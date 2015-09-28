@@ -15,20 +15,22 @@ var LanguageNav = React.createClass({
     var {isVisible} = this.state;
     return (
       <div>
-        <h6 className="nav-header">
-          {this.props.name}
-          <a className="btn btn-xs btn-default" onClick={this.toggle}>
-            {isVisible ?
-              '-'
-            :
-              '+'
-            }
-          </a>
-        </h6>
-        <ul className="nav nav-stacked" style={{
-          display: (isVisible ? 'block' : 'none')
-        }}>
-          {this.props.children}
+        <ul className="list-group">
+          <li className="list-group-item list-group-header">
+            <a className="pull-right" onClick={this.toggle}>
+              {isVisible ?
+                <span className="icon-minus"/>
+              :
+                <span className="icon-plus"/>
+              }
+            </a>
+            <strong>{this.props.name}</strong>
+          </li>
+          <span style={{
+            display: (isVisible ? 'block' : 'none')
+          }}>
+            {this.props.children}
+          </span>
         </ul>
       </div>
     );

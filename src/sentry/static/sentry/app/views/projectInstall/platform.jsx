@@ -3,8 +3,8 @@ import {Link} from "react-router";
 
 import api from "../../api";
 import LanguageNav from "./languageNav";
-import ListLink from "../../components/listLink";
 import LoadingIndicator from "../../components/loadingIndicator";
+import jQuery from "jquery";
 import RouteMixin from "../../mixins/routeMixin";
 
 var ProjectInstallPlatform = React.createClass({
@@ -118,6 +118,14 @@ var ProjectInstallPlatform = React.createClass({
     this.fetchData();
   },
 
+  componentWillMount() {
+    jQuery(document.body).addClass("white-bg");
+  },
+
+  componentWillUnmount() {
+    jQuery(document.body).removeClass("white-bg");
+  },
+
   routeDidChange() {
     this.setState({
       loading: true
@@ -139,11 +147,12 @@ var ProjectInstallPlatform = React.createClass({
       display = this.static.platforms[platform].display;
     }
     return (
-      <ListLink
+      <Link
         to="projectInstallPlatform"
+        className="list-group-item"
         params={Object.assign({}, params, {platform: platform})}>
           {display}
-      </ListLink>
+      </Link>
     );
   },
 
@@ -152,8 +161,8 @@ var ProjectInstallPlatform = React.createClass({
     let {platform} = params;
 
     return (
-      <div className="row">
-        <div className="col-md-2">
+      <div className="install row">
+        <div className="install-sidebar col-md-2">
           <LanguageNav name="Python" active={platform.indexOf('python') !== -1}>
             {this.getPlatformLink('python', 'Generic')}
             {this.getPlatformLink('python-bottle')}
@@ -167,30 +176,25 @@ var ProjectInstallPlatform = React.createClass({
             {this.getPlatformLink('javascript', 'Generic')}
           </LanguageNav>
         </div>
-        <div className="col-md-10">
-          <div className="box">
-            <div className="box-content with-padding">
-
-              <div className="pull-right">
-                <a href={this.state.link} className="btn btn-default">Full Documentation</a>
-              </div>
-
-              <h1>Configure {this.static.platforms[platform].display}</h1>
-
-              {this.state.loading
-                ? <LoadingIndicator/>
-                : (
-                  <div>
-                    <p>
-                      This is a quick getting started guide. For in-depth instructions on integrating Sentry with {this.state.name}, view <a href={this.state.link}>our complete documentation</a>.
-                    </p>
-                    <div dangerouslySetInnerHTML={{__html: this.state.html}}/>
-                    <Link to="stream" params={params} className="btn btn-primary">Continue</Link>
-                  </div>
-                )
-              }
-            </div>
+        <div className="install-content col-md-10">
+          <div className="pull-right">
+            <a href={this.state.link} className="btn btn-default">Full Documentation</a>
           </div>
+
+          <h1>Configure {this.static.platforms[platform].display}</h1>
+
+          {this.state.loading
+            ? <LoadingIndicator/>
+            : (
+              <div>
+                <p>
+                  This is a quick getting started guide. For in-depth instructions on integrating Sentry with {this.state.name}, view <a href={this.state.link}>our complete documentation</a>.
+                </p>
+                <div dangerouslySetInnerHTML={{__html: this.state.html}}/>
+                <Link to="stream" params={params} className="btn btn-primary btn-lg">Continue</Link>
+              </div>
+            )
+          }
         </div>
       </div>
     );
