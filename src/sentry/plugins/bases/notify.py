@@ -16,7 +16,7 @@ from sentry.app import (
     digests,
     ratelimiter,
 )
-from sentry.digests.base import Record
+from sentry.digests import Record
 from sentry.plugins import Notification, Plugin
 from sentry.models import UserOption
 from sentry.utils.dates import to_timestamp

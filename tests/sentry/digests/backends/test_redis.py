@@ -8,10 +8,10 @@ import time
 from exam import fixture
 from redis.client import StrictRedis
 
-from sentry.digests.base import (
+from sentry.digests import (
     Record,
 )
-from sentry.digests.redis import (
+from sentry.digests.backends.redis import (
     SCHEDULE_STATE_READY,
     SCHEDULE_STATE_WAITING,
     RedisBackend,
