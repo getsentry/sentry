@@ -246,7 +246,7 @@ var OrganizationStats = React.createClass({
       },
       {
         data: stats.rejected,
-        color: 'rgba(244, 63, 32, 1)',
+        color: 'rgba(226, 76, 83, 1)',
         shadowSize: 0,
         label: 'Dropped (Rate Limit)',
         stack: true,
@@ -258,7 +258,7 @@ var OrganizationStats = React.createClass({
       },
       {
         data: stats.blacklisted,
-        color: 'rgba(192, 152, 83, 1)',
+        color: 'rgba(247, 131, 0, 1)',
         shadowSize: 0,
         label: 'Dropped (Blacklist)',
         stack: true,
