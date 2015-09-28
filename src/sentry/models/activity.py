@@ -135,6 +135,7 @@ class Activity(Model):
 
         project = self.project
         org = self.project.organization
+        group = self.group
 
         if self.user:
             author = self.user.first_name or self.user.username
@@ -158,21 +159,25 @@ class Activity(Model):
         context = {
             'data': self.data,
             'author': author,
-            'project': self.project,
+            'project': project,
             'project_link': absolute_uri(reverse('sentry-stream', kwargs={
                 'organization_slug': org.slug,
                 'project_id': project.slug,
             })),
         }
 
-        if self.group:
+        if group:
+            group_link = absolute_uri('/{}/{}/group/{}/'.format(org.slug, project.slug, group.id))
+            activity_link = '{}activity/'.format(group_link)
+
             headers.update({
-                'X-Sentry-Reply-To': group_id_to_email(self.group.id),
+                'X-Sentry-Reply-To': group_id_to_email(group.id),
             })
 
             context.update({
-                'group': self.group,
-                'link': self.group.get_absolute_url(),
+                'group': group,
+                'link': group_link,
+                'activity_link': activity_link,
             })
 
         # TODO(dcramer): abstract each activity email into its own helper class
