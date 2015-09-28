@@ -693,7 +693,7 @@ os_parsers:
   # @ref: http://en.wikipedia.org/wiki/Mac_OS_X#Versions
   # @ref: http://www.puredarwin.org/curious/versions
   ##########
-  - regex: '((?:Mac ?|; )OS X)[\s/](?:(\d+)[_.](\d+)(?:[_.](\d+))?|Mach-O)'
+  - regex: '((?:Mac ?|; )OS X)[\s/](?:Version\s)?(?:(\d+)[_.](\d+)(?:[_.](\d+))?|Mach-O)'
     os_replacement: 'Mac OS X'
   # Leopard
   - regex: ' (Dar)(win)/(9).(\d+).*\((?:i386|x86_64|Power Macintosh)\)'
