@@ -1,17 +1,11 @@
 from __future__ import absolute_import
 
 import logging
-from collections import namedtuple
 
 from sentry.utils.imports import import_string
 
 
 logger = logging.getLogger('sentry.digests')
-
-
-Record = namedtuple('Record', 'key value timestamp')
-
-ScheduleEntry = namedtuple('ScheduleEntry', 'key timestamp')
 
 
 def load(options):

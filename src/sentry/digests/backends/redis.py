@@ -17,10 +17,12 @@ from redis.exceptions import (
 
 from sentry.utils.cache import Lock
 
-from .base import (
-    Backend,
+from .. import (
     Record,
     ScheduleEntry,
+)
+from .base import (
+    Backend,
 )
 
 
