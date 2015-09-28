@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.db import models
 from django.utils import timezone
+from hashlib import md5
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.cache import memoize
@@ -11,6 +12,7 @@ class EventUser(Model):
     __core__ = False
 
     project = FlexibleForeignKey('sentry.Project')
+    hash = models.CharField(max_length=32)
     ident = models.CharField(max_length=64, null=True)
     email = models.EmailField(null=True)
     username = models.CharField(max_length=64, null=True)
@@ -20,7 +22,7 @@ class EventUser(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_eventuser'
-        unique_together = (('project', 'ident'),)
+        unique_together = (('project', 'ident'), ('project', 'hash'))
         index_together = (
             ('project', 'email'),
             ('project', 'username'),
@@ -32,7 +34,13 @@ class EventUser(Model):
     def save(self, *args, **kwargs):
         assert self.ident or self.username or self.email or self.ip_address, \
             'No identifying value found for user'
+        if not self.hash:
+            self.hash = self.get_hash()
         super(EventUser, self).save(*args, **kwargs)
+
+    def get_hash(self):
+        value = self.ident or self.username or self.email or self.ip_address
+        return md5(value).hexdigest()
 
     @memoize
     def tag_value(self):
