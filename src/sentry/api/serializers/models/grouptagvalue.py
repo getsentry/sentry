@@ -12,6 +12,8 @@ def parse_user_tag(value):
     lookup, value = value.split(':', 1)
     if lookup == 'id':
         lookup = 'ident'
+    elif lookup == 'ip':
+        lookup = 'ip_address'
     return {lookup: value}
 
 
