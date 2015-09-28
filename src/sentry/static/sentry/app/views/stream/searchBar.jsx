@@ -26,7 +26,7 @@ var SearchBar = React.createClass({
   getDefaultProps() {
     return {
       defaultQuery: "",
-      query: "",
+      query: null,
       onSearch: function() {},
       onQueryChange: function() {},
 
@@ -63,7 +63,7 @@ var SearchBar = React.createClass({
 
   getInitialState() {
     return {
-      query: this.props.query || this.props.defaultQuery,
+      query: this.props.query !== null ? this.props.query : this.props.defaultQuery,
 
       searchTerm: '',
       searchItems: [],
