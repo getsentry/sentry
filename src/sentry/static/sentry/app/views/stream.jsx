@@ -4,6 +4,7 @@ import $ from "jquery";
 import Cookies from "js-cookie";
 import Sticky from 'react-sticky';
 import _ from "underscore";
+import classNames from "classnames";
 
 import api from "../api";
 
@@ -61,7 +62,8 @@ var Stream = React.createClass({
       query: this.props.defaultQuery,
       sort: this.props.defaultSort,
       filter: {},
-      tags: {}
+      tags: {},
+      isSidebarVisible: false
     }, this.getQueryStringState());
   },
 
@@ -308,6 +310,12 @@ var Stream = React.createClass({
     }, this.transitionTo);
   },
 
+  onSidebarToggle() {
+    this.setState({
+      isSidebarVisible: !this.state.isSidebarVisible
+    });
+  },
+
   transitionTo() {
     var router = this.context.router;
     var queryParams = {};
@@ -373,8 +381,8 @@ var Stream = React.createClass({
   },
 
   render() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
+    let router = this.context.router;
+    let params = router.getCurrentParams();
 
     let queryItems = this.state.query.match(/\S+:"[^"]*"?|\S+/g);
     let queryObj = _.inject(queryItems, (obj, item) => {
@@ -385,8 +393,13 @@ var Stream = React.createClass({
       return obj;
     }, {});
 
+    let classes = ['stream-row'];
+
+    if (this.state.isSidebarVisible)
+      classes.push('show-sidebar');
+
     return (
-      <div className="stream-row show-sideba">
+      <div className={classNames(classes)}>
         <div className="stream-content">
           <StreamFilters
             query={this.state.query}
@@ -396,6 +409,7 @@ var Stream = React.createClass({
             onSortChange={this.onSortChange}
             onFilterChange={this.onFilterChange}
             onSearch={this.onSearch}
+            onSidebarToggle={this.onSidebarToggle}
           />
           <div className="group-header">
             <Sticky>
@@ -411,7 +425,7 @@ var Stream = React.createClass({
           </div>
           {this.renderStreamBody()}
           <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
-        </div>  
+        </div>
         <StreamSidebar tags={this.state.tags} initialQuery={queryObj} onQueryChange={this.onSearch}/>
       </div>
     );
