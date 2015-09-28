@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from mock import Mock, patch
 
-from sentry.models import Group
+from sentry.models import EventUser, Group
 from sentry.testutils import TestCase
 from sentry.tasks.post_process import (
     post_process_group, record_affected_user, record_affected_code,
@@ -102,6 +102,11 @@ class RecordAffectedUserTest(TestCase):
                     'email': 'foo@example.com',
                 })
             ])
+
+        assert EventUser.objects.filter(
+            project=1,
+            email='foo@example.com',
+        ).exists()
 
 
 class RecordAdditionalTagsTest(TestCase):

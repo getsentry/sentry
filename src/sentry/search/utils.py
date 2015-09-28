@@ -1,11 +1,29 @@
 from __future__ import absolute_import, division, print_function
 
 from sentry.constants import STATUS_CHOICES
-from sentry.models import User
+from sentry.models import EventUser, User
 from sentry.utils.auth import find_users
 
 
-def parse_query(query, user):
+def get_user_tag(project, key, value):
+    if key == 'id':
+        lookup = 'ident'
+    else:
+        lookup = key
+
+    # TODO(dcramer): do something with case of multiple matches
+    try:
+        euser = EventUser.objects.filter(
+            project=project,
+            **{lookup: value}
+        )[0]
+    except IndexError:
+        return '{}:{}'.format(key, value)
+
+    return euser.tag_value
+
+
+def parse_query(project, query, user):
     # TODO(dcramer): handle query being wrapped in quotes
     tokens = query.split(' ')
 
@@ -60,7 +78,15 @@ def parse_query(query, user):
         elif key == 'release':
             results['tags']['sentry:release'] = value
         elif key == 'user':
-            results['tags']['sentry:user'] = value
+            if ':' in value:
+                comp, value = value.split(':', 1)
+            else:
+                comp = 'id'
+            results['tags']['sentry:user'] = get_user_tag(
+                project, comp, value)
+        elif key.startswith('user.'):
+            results['tags']['sentry:user'] = get_user_tag(
+                project, key.split('.', 1)[1], value)
         else:
             results['tags'][key] = value
 
