@@ -50,27 +50,27 @@ var ProjectInstall = React.createClass({
         <h3>Everything else</h3>
 
         <ul className="client-platform-list">
-          <li className="bottle">
+          <li className="bottle python">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-bottle"})}>Bottle</Link>
           </li>
-          <li className="celery">
+          <li className="celery python">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-celery"})}>Celery</Link>
           </li>
-          <li className="flask">
+          <li className="flask python">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-flask"})}>Flask</Link>
           </li>
-          <li className="pylons">
+          <li className="pylons python">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-pylons"})}>Pylons</Link>
           </li>
-          <li className="pyramid">
+          <li className="pyramid python">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-pyramid"})}>Pyramid</Link>
           </li>
-          <li className="tornado">
+          <li className="tornado python">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-tornado"})}>Tornado</Link>
           </li>
@@ -78,31 +78,31 @@ var ProjectInstall = React.createClass({
             <span className="platformicon platformicon-node-js"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"node"})}>Node.js</Link>
           </li>
-          <li className="express">
+          <li className="express node-js">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"node-express"})}>Express</Link>
           </li>
-          <li className="koa">
+          <li className="koa node-js">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"node-koa"})}>Koa</Link>
           </li>
-          <li className="connect">
+          <li className="connect node-js">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"node-connect"})}>Connect</Link>
           </li>
-          <li className="laravel">
+          <li className="laravel php">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"php-laravel"})}>Laravel</Link>
           </li>
-          <li className="monolog">
+          <li className="monolog php">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"php-monolog"})}>Monolog</Link>
           </li>
-          <li className="symfony2">
+          <li className="symfony2 php">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"php-symfony2"})}>Symfony2</Link>
           </li>
-          <li className="rack">
+          <li className="rack ruby">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"ruby-rack"})}>Rack</Link>
           </li>
@@ -110,15 +110,15 @@ var ProjectInstall = React.createClass({
             <span className="platformicon platformicon-apple"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"objective-c"})}>Objective-C</Link>
           </li>
-          <li className="log4j">
+          <li className="log4j java">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"java-log4j"})}>Log4j</Link>
           </li>
-          <li className="log4j2">
+          <li className="log4j2 java">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"java-log4j2"})}>Log4j 2</Link>
           </li>
-          <li className="logback">
+          <li className="logback java">
             <span className="platformicon platformicon-generic"/>
             <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"java-logback"})}>Logback</Link>
           </li>

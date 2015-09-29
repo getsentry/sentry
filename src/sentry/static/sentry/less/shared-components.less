@@ -2744,8 +2744,17 @@ ul.tag-list {
     border-radius: 4px;
     text-align: center;
     position: relative;
+    color: #fff;
 
     a {
+      color: inherit;
+      opacity: .85;
+      .transition(opacity .1s);
+
+      &:hover {
+        opacity: 1;
+      }
+
       &:after {
         display: block;
         content: "";
@@ -2763,6 +2772,55 @@ ul.tag-list {
     .square(48px);
     font-size: 48px;
     margin: 15px auto 2px;
+  }
+
+  // Colors
+
+  li {
+    &.python {
+      background: darken(@blue, 6);
+    }
+
+    &.javascript {
+      background: @yellow;
+      color: #111;
+    }
+
+    &.ruby,
+    &.java,
+    &.rails {
+      background: @red;
+    }
+
+    &.php {
+      background: @purple;
+    }
+
+    &.django {
+      background: @green;
+    }
+
+    &.node-js {
+      background: #90C541;
+    }
+
+    &.objective-c {
+      background: @gray;
+    }
+
+    &.app-engine {
+      background: @orange;
+    }
+
+    &.c-sharp {
+      background: @teal;
+    }
+
+    &.go {
+      border: 2px solid @gray;
+      color: @gray-dark;
+      background: #fff;
+    }
   }
 }
 
