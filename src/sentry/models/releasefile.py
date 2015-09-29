@@ -9,9 +9,9 @@ sentry.models.releasefile
 from __future__ import absolute_import
 
 from django.db import models
-from hashlib import sha1
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.utils.hashlib import sha1
 
 
 class ReleaseFile(Model):
@@ -42,4 +42,4 @@ class ReleaseFile(Model):
 
     @classmethod
     def get_ident(cls, name):
-        return sha1(name.encode('utf-8')).hexdigest()
+        return sha1(name).hexdigest()

@@ -8,8 +8,8 @@ import base64
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
+from django.utils.encoding import force_bytes
 from collections import namedtuple
-from hashlib import md5
 from os.path import splitext
 from requests.exceptions import RequestException
 from simplejson import JSONDecodeError
@@ -27,6 +27,7 @@ from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Release, ReleaseFile
 from sentry.event_manager import generate_culprit
 from sentry.utils.cache import cache
+from sentry.utils.hashlib import md5
 from sentry.utils.http import is_valid_origin
 
 from .cache import SourceCache, SourceMapCache
@@ -182,7 +183,7 @@ def discover_sourcemap(result):
 def fetch_release_file(filename, release):
     cache_key = 'releasefile:%s:%s' % (
         release.id,
-        md5(filename.encode('utf-8')).hexdigest(),
+        md5(filename).hexdigest(),
     )
     logger.debug('Checking cache for release artfiact %r (release_id=%s)',
                  filename, release.id)
@@ -221,7 +222,7 @@ def fetch_url(url, project=None, release=None):
     Attempts to fetch from the cache.
     """
     cache_key = 'source:cache:v2:%s' % (
-        md5(url.encode('utf-8')).hexdigest(),
+        md5(url).hexdigest(),
     )
 
     if release:
@@ -237,7 +238,7 @@ def fetch_url(url, project=None, release=None):
         # lock down domains that are problematic
         domain = urlparse(url).netloc
         domain_key = 'source:blacklist:v2:%s' % (
-            md5(domain.encode('utf-8')).hexdigest(),
+            md5(domain).hexdigest(),
         )
         domain_result = cache.get(domain_key)
         if domain_result:
@@ -508,7 +509,7 @@ class SourceProcessor(object):
                     else:
                         all_errors.append({
                             'type': EventError.JS_MISSING_SOURCE,
-                            'url': abs_path.encode('utf-8'),
+                            'url': force_bytes(abs_path, errors='replace'),
                         })
 
                 # Store original data in annotation

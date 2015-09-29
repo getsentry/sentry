@@ -7,15 +7,16 @@ sentry.utils.avatar
 """
 from __future__ import absolute_import
 
-import hashlib
 import urllib
 
 from django.conf import settings
 
+from sentry.utils.hashlib import md5
+
 
 def get_gravatar_url(email, size=None, default='mm'):
     gravatar_url = "%s/avatar/%s" % (settings.SENTRY_GRAVATAR_BASE_URL,
-                                     hashlib.md5(email.lower()).hexdigest())
+                                     md5(email.lower()).hexdigest())
 
     properties = {}
     if size:
