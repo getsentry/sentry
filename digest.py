@@ -7,6 +7,7 @@ configure()
 import itertools
 import sys
 
+from sentry.app import digests
 from sentry.digests.notifications import (
     build_digest,
     event_to_record,
@@ -16,10 +17,15 @@ from sentry.models import (
     Project,
 )
 
+
+def reserialize(value):
+    return digests.codec.decode(digests.codec.encode(value))
+
+
 project = Project.objects.get(id=int(sys.argv[1]))
 events = project.event_set.all()[:int(sys.argv[2])]
 Event.objects.bind_nodes(events, 'data')
-records = itertools.imap(event_to_record, events)
+records = itertools.imap(reserialize, itertools.imap(event_to_record, events))
 
 print '{project.organization} / {project}'.format(project=project)
 print ''

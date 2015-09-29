@@ -62,13 +62,13 @@ class NotificationPlugin(Plugin):
                 continue
             raise NotImplementedError('The default behavior for notification de-duplication does not support args')
 
-        notification = Notification(event=event, rules=rules)
         if features.has('projects:digests', event.group.project):
             digests.add(
                 unsplit_key(self, event.group.project),
                 event_to_record(event, rules),
             )
         else:
+            notification = Notification(event=event, rules=rules)
             self.notify(notification)
 
     def notify_users(self, group, event, fail_silently=False):

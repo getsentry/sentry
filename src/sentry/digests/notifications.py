@@ -20,7 +20,7 @@ from . import Record
 logger = logging.getLogger('sentry.digests')
 
 
-NotificationEvent = namedtuple('NotificationEvent', 'group_id event_id event_data rules')
+NotificationEvent = namedtuple('NotificationEvent', 'event rules')
 
 
 def split_key(key):
@@ -33,17 +33,25 @@ def unsplit_key(plugin, project):
     return '{plugin.slug}:p:{project.id}'.format(plugin=plugin, project=project)
 
 
+def strip_for_serialization(instance):
+    cls = type(instance)
+    return cls(**{field.attname: getattr(instance, field.attname) for field in cls._meta.fields})
+
+
 # XXX: Rules
 def event_to_record(event, rules=[]):
     return Record(
         event.event_id,
-        NotificationEvent(event.group_id, event.id, event.data.data, rules),
+        NotificationEvent(
+            strip_for_serialization(event),
+            map(strip_for_serialization, rules),
+        ),
         to_timestamp(event.datetime),
     )
 
 
 def group(records):
-    key = lambda record: record.value.group_id
+    key = lambda record: record.value.event.group_id
     raw = {}
     for group, records in itertools.groupby(sorted(records, key=key), key=key):
         yield group, list(records)
@@ -74,20 +82,17 @@ class NotificationDigest(object):
     @property
     def event(self):
         # TODO: Probably warn about this.
-        # XXX: Need to put a ``Event`` model back together, ugh...
-        raise NotImplementedError
+        return self.groups.values()[0][0].value.event
 
     @property
     def rule(self):
         # TODO: Probably warn about this.
-        records = self.groups.values()[0]
-        return records[0].rules[0]
+        return self.groups.values()[0][0].value.rules[0]
 
     @property
     def rules(self):
         # TODO: Probably warn about this.
-        records = self.groups.values()[0]
-        return records[0].rules
+        return self.groups.values()[0][0].value.rules
 
 
 def build_digest(project, records):
