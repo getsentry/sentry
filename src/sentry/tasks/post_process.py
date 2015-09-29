@@ -9,7 +9,6 @@ sentry.tasks.post_process
 from __future__ import absolute_import, print_function
 
 from celery.utils.log import get_task_logger
-from django.conf import settings
 from django.db import IntegrityError, transaction
 
 from sentry.constants import PLATFORM_LIST, PLATFORM_ROOTS
@@ -17,7 +16,6 @@ from sentry.plugins import plugins
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
-from sentry.utils.hashlib import md5
 
 logger = get_task_logger(__name__)
 
@@ -52,9 +50,6 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     project = Project.objects.get_from_cache(id=event.group.project_id)
 
     _capture_stats(event, is_new)
-
-    if settings.SENTRY_ENABLE_EXPLORE_CODE:
-        record_affected_code.delay(event=event)
 
     record_affected_user.delay(event=event)
 
@@ -124,49 +119,3 @@ def record_affected_user(event, **kwargs):
     Group.objects.add_tags(event.group, [
         ('sentry:user', euser.tag_value)
     ])
-
-
-@instrumented_task(
-    name='sentry.tasks.post_process.record_affected_code')
-def record_affected_code(event, **kwargs):
-    from sentry.models import Group
-
-    if not settings.SENTRY_ENABLE_EXPLORE_CODE:
-        return
-
-    data = event.interfaces.get('sentry.interfaces.Exception')
-    if not data:
-        return
-
-    checksum = lambda x: md5(x).hexdigest()
-
-    tags = []
-    for exception in data:
-        if not exception.stacktrace:
-            continue
-
-        for frame in exception.stacktrace:
-            # we only tag explicit app frames to avoid excess fat
-            if not frame.in_app:
-                continue
-
-            filename = frame.filename or frame.module
-            if not filename:
-                continue
-
-            tags.append((
-                'sentry:filename',
-                checksum(filename),
-                {'filename': filename},
-            ))
-
-            function = frame.function
-            if function:
-                tags.append((
-                    'sentry:function',
-                    checksum('%s:%s' % (filename, function)),
-                    {'filename': filename, 'function': function}
-                ))
-
-    if tags:
-        Group.objects.add_tags(event.group, tags)
