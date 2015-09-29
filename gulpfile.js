@@ -40,10 +40,6 @@ function file(name) {
   return path.join(__dirname, staticPrefix, name);
 }
 
-function vendorFile(name) {
-  return path.join(__dirname, staticPrefix, "vendor", name);
-}
-
 function buildCssCompileTask(name, fileList) {
   return function(){
     gulp.src(fileList)
@@ -71,7 +67,7 @@ gulp.task("dist:css:platformicons", buildCssCompileTask("platformicons.css", ['n
 
 gulp.task("dist:css", ["dist:css:sentry", "dist:css:wall", "dist:css:platformicons"]);
 
-gulp.task("dist", ["dist:css"]);
+gulp.task("dist", ["dist:css", "platformicons"]);
 
 gulp.task("watch:css:sentry", ["dist:css:sentry"], function(){
   return gp_watch(file("less/**/*.less"), function(){
@@ -96,4 +92,4 @@ gulp.task("watch", function(){
   return gulp.start(["watch:css"]);
 });
 
-gulp.task("default", ["dist", "platformicons"]);
+gulp.task("default", ["dist"]);
