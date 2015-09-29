@@ -3,7 +3,6 @@ import Reflux from "reflux";
 import $ from "jquery";
 import Cookies from "js-cookie";
 import Sticky from 'react-sticky';
-import _ from "underscore";
 import classNames from "classnames";
 
 import api from "../api";
@@ -20,6 +19,7 @@ import StreamTagStore from "../stores/streamTagStore";
 import StreamFilters from './stream/filters';
 import StreamSidebar from "./stream/sidebar";
 import utils from "../utils";
+import {queryToObj} from "../utils/stream";
 
 
 var Stream = React.createClass({
@@ -384,15 +384,7 @@ var Stream = React.createClass({
   render() {
     let router = this.context.router;
     let params = router.getCurrentParams();
-
-    let queryItems = this.state.query.match(/\S+:"[^"]*"?|\S+/g);
-    let queryObj = _.inject(queryItems, (obj, item) => {
-      let index = item.indexOf(':');
-      let tagKey = item.slice(0, index);
-      let value = item.slice(index + 1).replace(/^"|"$/g, '');
-      obj[tagKey] = value;
-      return obj;
-    }, {});
+    let queryObj = queryToObj(this.state.query);
 
     let classes = ['stream-row'];
 
