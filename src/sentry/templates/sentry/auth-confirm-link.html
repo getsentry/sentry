@@ -4,14 +4,14 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block wrapperclass %}windowed-small org-login{% endblock %}
+{% block wrapperclass %}narrow auth org-login hide-sidebar{% endblock %}
 
 {% block title %}{% trans "Confirm Identity" %} | {{ block.super }}{% endblock %}
 
 {% block account_nav %}{% endblock%}
 
 {% block main %}
-  <section class="body org-login" style="padding: 40px">
+  <section class="body org-login">
     <form class="form-stacked" action="" method="post">
       {% csrf_token %}
 
