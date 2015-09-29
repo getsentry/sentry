@@ -193,6 +193,9 @@ class MailPlugin(NotificationPlugin):
             context=context,
         )
 
+    def notify_digest(self, digest):
+        raise NotImplementedError
+
 
 # Legacy compatibility
 MailProcessor = MailPlugin

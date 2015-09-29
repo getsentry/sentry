@@ -38,5 +38,4 @@ def deliver_digest(key):
     with digests.digest(key) as records:
         digest = build_digest(project, records)
 
-    # XXX: This won't actually work right now.
-    plugin.notify(digest)
+    plugin.notify_digest(digest)

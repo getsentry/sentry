@@ -75,37 +75,11 @@ filter_muted_groups = functools.partial(
 )
 
 
-class NotificationDigest(object):
-    def __init__(self, groups):
-        self.groups = groups
-
-    # XXX: There is a large chance these alises are a terrible idea, it is
-    # probably a better idea for notification plugins to explicitly opt-in to
-    # digest support instead of masking it like this.
-
-    @property
-    def event(self):
-        # TODO: Probably warn about this.
-        return self.groups.values()[0][0].value.event
-
-    @property
-    def rule(self):
-        # TODO: Probably warn about this.
-        return self.groups.values()[0][0].value.rules[0]
-
-    @property
-    def rules(self):
-        # TODO: Probably warn about this.
-        return self.groups.values()[0][0].value.rules
-
-
 def build_digest(project, records):
-    return NotificationDigest(
-        OrderedDict(
-            sorted(
-                filter_muted_groups(associate_with_instance(project, group(records))),
-                key=lambda (group, records): (len(records), max(record.timestamp for record in records)),
-                reverse=True,
-            ),
-        )
+    return OrderedDict(
+        sorted(
+            filter_muted_groups(associate_with_instance(project, group(records))),
+            key=lambda (group, records): (len(records), max(record.timestamp for record in records)),
+            reverse=True,
+        ),
     )
