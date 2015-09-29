@@ -63,7 +63,8 @@ var Stream = React.createClass({
       sort: this.props.defaultSort,
       filter: {},
       tags: StreamTagStore.getAllTags(),
-      isSidebarVisible: false
+      isSidebarVisible: false,
+      isStickyHeader: false
     }, this.getQueryStringState());
   },
 
@@ -317,6 +318,12 @@ var Stream = React.createClass({
     });
   },
 
+  onStickyStateChange(state) {
+    this.setState({
+      isStickyHeader: state
+    });
+  },
+
   transitionTo() {
     var router = this.context.router;
     var queryParams = {};
@@ -406,15 +413,17 @@ var Stream = React.createClass({
             isSearchDisabled={this.state.isSidebarVisible}
           />
           <div className="group-header">
-            <Sticky>
-              <StreamActions
-                orgId={params.orgId}
-                projectId={params.projectId}
-                onSelectStatsPeriod={this.onSelectStatsPeriod}
-                onRealtimeChange={this.onRealtimeChange}
-                realtimeActive={this.state.realtimeActive}
-                statsPeriod={this.state.statsPeriod}
-                groupIds={this.state.groupIds} />
+            <Sticky onStickyStateChange={this.onStickyStateChange}>
+              <div className={this.state.isStickyHeader ? "container" : null}>
+                <StreamActions
+                  orgId={params.orgId}
+                  projectId={params.projectId}
+                  onSelectStatsPeriod={this.onSelectStatsPeriod}
+                  onRealtimeChange={this.onRealtimeChange}
+                  realtimeActive={this.state.realtimeActive}
+                  statsPeriod={this.state.statsPeriod}
+                  groupIds={this.state.groupIds} />
+              </div>
             </Sticky>
           </div>
           {this.renderStreamBody()}
