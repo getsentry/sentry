@@ -105,11 +105,11 @@ var StreamTagFilter = React.createClass({
 
     return (
       <div className="stream-tag-filter">
-        <h6>{tag.name}</h6>
+        <h6 className="nav-header">{tag.name}</h6>
 
         {this.props.tag.predefined ?
 
-          <select ref="select" className="form-control" value={this.props.initialValue}>
+          <select ref="select" value={this.props.initialValue}>
             <option></option>
             {this.state.tagValues.map((val) => {
               return (
@@ -117,7 +117,7 @@ var StreamTagFilter = React.createClass({
               );
             })}
           </select> :
-          <input type="hidden" ref="select" className="form-control" value={this.props.initialValue}/>
+          <input type="hidden" ref="select" value={this.props.initialValue}/>
         }
 
       </div>
