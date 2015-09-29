@@ -6,40 +6,12 @@ from rest_framework.response import Response
 from sentry import http
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import ProjectKey, ProjectKeyStatus
+from sentry.constants import PLATFORM_LIST
+from sentry.models import ProjectKey
 
 DOC_URL = 'https://docs.getsentry.com/hosted/_wizards/{platform}.json'
 
-PLATFORMS = set([
-    'python',
-    'python-bottle',
-    'python-celery',
-    'python-django',
-    'python-flask',
-    'python-pylons',
-    'python-pyramid',
-    'python-tornado',
-    'javascript',
-    'node',
-    'node-express',
-    'node-koa',
-    'node-connect',
-    'php',
-    'php-laravel',
-    'php-monolog',
-    'php-symfony2',
-    'ruby',
-    'ruby-rack',
-    'ruby-rails',
-    'objective-c',
-    'java',
-    'java-log4j',
-    'java-log4j2',
-    'java-logback',
-    'java-appengine',
-    'c-sharp',
-    'go',
-])
+PLATFORM_SET = frozenset(PLATFORM_LIST)
 
 
 def replace_keys(html, project_key):
@@ -53,9 +25,9 @@ def replace_keys(html, project_key):
     return html
 
 
-class ProjectPlatformDocsEndpoint(ProjectEndpoint):
+class ProjectDocsPlatformEndpoint(ProjectEndpoint):
     def get(self, request, project, platform):
-        if platform not in PLATFORMS:
+        if platform not in PLATFORM_SET:
             raise ResourceDoesNotExist
 
         cache_key = 'docs:{}'.format(platform)
@@ -65,16 +37,10 @@ class ProjectPlatformDocsEndpoint(ProjectEndpoint):
             result = session.get(DOC_URL.format(platform=platform)).json()
             cache.set(cache_key, result, 3600)
 
-        try:
-            project_key = ProjectKey.objects.filter(
-                project=project,
-                roles=ProjectKey.roles.store,
-                status=ProjectKeyStatus.ACTIVE
-            )[0]
-        except IndexError:
-            project_key = None
+        project_key = ProjectKey.get_default(project)
 
         return Response({
+            'id': platform,
             'name': result['name'],
             'html': replace_keys(result['body'], project_key),
             'sdk': result['client_lib'],

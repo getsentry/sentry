@@ -3,6 +3,7 @@ import {Link} from "react-router";
 
 import api from "../../api";
 import LanguageNav from "./languageNav";
+import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
 import jQuery from "jquery";
 import RouteMixin from "../../mixins/routeMixin";
@@ -14,103 +15,10 @@ var ProjectInstallPlatform = React.createClass({
 
   mixins: [RouteMixin],
 
-  static: {
-    platforms: {
-      python: {
-        display: "Python"
-      },
-      "python-bottle": {
-        display: "Bottle"
-      },
-      "python-celery": {
-        display: "Celery",
-      },
-      "python-django": {
-        display: "Django",
-      },
-      "python-flask": {
-        display: "Flask"
-      },
-      "python-pylons": {
-        display: "Pylons"
-      },
-      "python-pyramid": {
-        display: "Pyramid"
-      },
-      "python-tornado": {
-        display: "Tornado"
-      },
-      javascript: {
-        display: "JavaScript"
-      },
-      node: {
-        display: "Node JS"
-      },
-      "node-express": {
-        display: "Express"
-      },
-      "node-koa": {
-        display: "Koa"
-      },
-      "node-connect": {
-        display: "Connect"
-      },
-      php: {
-        display: "PHP"
-      },
-      "php-laravel": {
-        display: "Laravel"
-      },
-      "php-monolog": {
-        display: "Monolog"
-      },
-      "php-symfony2": {
-        display: "Symfony2"
-      },
-      ruby: {
-        display: "Ruby"
-      },
-      "ruby-rack": {
-        display: "Rack"
-      },
-      "ruby-rails": {
-        display: "Rails"
-      },
-      "objective-c": {
-        display: "Objective-C"
-      },
-      java: {
-        display: "Java"
-      },
-      "java-log4j": {
-        display: "Log4j"
-      },
-      "java-log4j2": {
-        display: "Log4j 2"
-      },
-      "java-logback": {
-        display: "Logback"
-      },
-      "java-appengine": {
-        display: "App Engine"
-      },
-      "c-sharp": {
-        display: "C#"
-      },
-      go: {
-        display: "Go"
-      }
-    }
-  },
-
   getInitialState() {
     return {
-      isFramework: null,
-      link: null,
-      name: null,
-      sdk: null,
-      html: '',
       loading: true,
+      data: null
     };
   },
 
@@ -136,51 +44,59 @@ var ProjectInstallPlatform = React.createClass({
     let {orgId, projectId, platform} = this.context.router.getCurrentParams();
     api.request(`/projects/${orgId}/${projectId}/docs/${platform}/`, {
       success: (data) => {
-        this.setState(Object.assign({loading:false}, data));
+        this.setState({
+          loading: false,
+          error: false,
+          data: data
+        });
+      },
+      error: () => {
+        this.setSTate({
+          loading: false,
+          error: true
+        });
       }
     });
   },
 
   getPlatformLink(platform, display) {
     let params = this.context.router.getCurrentParams();
-    if (typeof display === "undefined") {
-      display = this.static.platforms[platform].display;
-    }
     return (
       <Link
         to="projectInstallPlatform"
         className="list-group-item"
         params={Object.assign({}, params, {platform: platform})}>
-          {display}
+          {display || platform}
       </Link>
     );
   },
 
   render() {
+    if (this.state.loading)
+      return <LoadingIndicator />;
+    else if (this.state.error)
+      return <LoadingError onRetry={this.fetchData} />;
+
     let params = this.context.router.getCurrentParams();
     let {platform} = params;
+    let data = this.state.data;
 
     return (
       <div className="install row">
         <div className="install-content col-md-10">
           <div className="pull-right">
-            <a href={this.state.link} className="btn btn-default">Full Documentation</a>
+            <a href={data.link} className="btn btn-default">Full Documentation</a>
           </div>
 
-          <h1>Configure {this.static.platforms[platform].display}</h1>
+          <h1>Configure {data.name}</h1>
 
-          {this.state.loading
-            ? <LoadingIndicator/>
-            : (
-              <div>
-                <p>
-                  This is a quick getting started guide. For in-depth instructions on integrating Sentry with {this.state.name}, view <a href={this.state.link}>our complete documentation</a>.
-                </p>
-                <div dangerouslySetInnerHTML={{__html: this.state.html}}/>
-                <Link to="stream" params={params} className="btn btn-primary btn-lg">Continue</Link>
-              </div>
-            )
-          }
+          <div>
+            <p>
+              This is a quick getting started guide. For in-depth instructions on integrating Sentry with {data.name}, view <a href={data.link}>our complete documentation</a>.
+            </p>
+            <div dangerouslySetInnerHTML={{__html: data.html}}/>
+            <Link to="stream" params={params} className="btn btn-primary btn-lg">Continue</Link>
+          </div>
         </div>
         <div className="install-sidebar col-md-2">
           <LanguageNav name="Python" active={platform.indexOf('python') !== -1}>

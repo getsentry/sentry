@@ -65,15 +65,15 @@ const ProjectSettings = React.createClass({
 
   render() {
     // TODO(dcramer): move sidebar into component
-    let urlPrefix = ConfigStore.get('urlPrefix');
-    let params = this.context.router.getCurrentParams();
-    let settingsUrlRoot = `${urlPrefix}/${params.orgId}/${params.projectId}/settings`;
-    let project = this.state.project;
-
     if (this.state.loading)
       return <LoadingIndicator />;
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
+
+    let urlPrefix = ConfigStore.get('urlPrefix');
+    let params = this.context.router.getCurrentParams();
+    let settingsUrlRoot = `${urlPrefix}/${params.orgId}/${params.projectId}/settings`;
+    let project = this.state.project;
 
     return (
       <div className="row">
