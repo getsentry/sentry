@@ -13,7 +13,7 @@ const AutoSelectText = React.createClass({
   },
 
   selectText() {
-    var node = this.refs.element.getDOMNode();
+    var node = this.refs.element.getDOMNode().firstChild;
     if (document.selection) {
       let range = document.body.createTextRange();
       range.moveToElementText(node);

@@ -194,11 +194,11 @@
   $('.auto-select').click(function() {
     if (document.selection) {
       var range = document.body.createTextRange();
-      range.moveToElementText(this);
+      range.moveToElementText(this.firstChild);
       range.select();
     } else if (window.getSelection) {
       var range = document.createRange();
-      range.selectNode(this);
+      range.selectNode(this.firstChild);
       window.getSelection().addRange(range);
     }
   });
