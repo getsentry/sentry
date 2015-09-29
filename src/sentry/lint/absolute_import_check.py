@@ -21,8 +21,8 @@ class ImportVisitor(ast.NodeVisitor):
 
 class AbsoluteImportCheck(object):
     name = 'absolute-import-checker'
-    version = '0'
-    _error = "C901 Missing `from __future__ import absolute_import`"
+    code = 'C901'
+    msg = "C901 Missing `from __future__ import absolute_import`"
 
     def __init__(self, tree, filename=None):
         self.tree = tree
@@ -31,4 +31,4 @@ class AbsoluteImportCheck(object):
         visitor = ImportVisitor()
         visitor.visit(self.tree)
         if not visitor.has_import:
-            yield 0, 0, self._error, type(self)
+            yield 0, 0, self.msg, type(self)
