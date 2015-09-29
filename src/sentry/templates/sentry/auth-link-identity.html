@@ -3,7 +3,7 @@
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block wrapperclass %}windowed-small{% endblock %}
+{% block wrapperclass %}narrow auth org-login hide-sidebar{% endblock %}
 
 {% block title %}{% trans "Link Identity" %} | {{ block.super }}{% endblock %}
 
@@ -12,20 +12,24 @@
     <form class="form-stacked" action="" method="post">
       {% csrf_token %}
 
-      <img src="http://github.com/getsentry.png" class="org-avatar">
+      <div class="align-center">
+        <img src="{% url 'sentry-media' "sentry" "images/default-organization-logo.png" %}" class="org-avatar">
 
-      <h3>
-        {{ organization.name }}
-      </h3>
+        <h3>
+          {{ organization.name }}
+        </h3>
+      </div>
 
-      <p>Link your Sentry account with your {{ provider_name }} account to continue.</p>
+      <div class="align-center">
+        <p>Link your Sentry account with your {{ provider_name }} account to continue.</p>
 
-      <button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
-        <span class="provider-logo {{ provider_name | lower}}"></span>Login with {{ provider_name }}</button>
+        <button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
+          <span class="provider-logo {{ provider_name | lower}}"></span> Login with {{ provider_name }}
+        </button>
+      </div>
     </form>
   </section>
 {% endblock %}
 
 {% block footer %}
-  <a href="#"></a>
 {% endblock %}
