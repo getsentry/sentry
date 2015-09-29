@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import hashlib
+from hashlib import sha256
 import hmac
 
 from django.contrib import messages
@@ -56,7 +56,7 @@ class ProjectReleaseTrackingView(ProjectView):
         return hmac.new(
             key=str(token),
             msg='{}-{}'.format(plugin_id, project_id),
-            digestmod=hashlib.sha256
+            digestmod=sha256
         ).hexdigest()
 
     def handle(self, request, organization, team, project):

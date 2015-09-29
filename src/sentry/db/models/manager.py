@@ -8,7 +8,6 @@ sentry.db.models.manager
 
 from __future__ import absolute_import, print_function
 
-import hashlib
 import logging
 import six
 import threading
@@ -63,7 +62,7 @@ def make_key(model, prefix, kwargs):
         kwargs_bits.append('%s=%s' % (k, v))
     kwargs_bits = ':'.join(kwargs_bits)
 
-    return '%s:%s:%s' % (prefix, model.__name__, hashlib.md5(kwargs_bits).hexdigest())
+    return '%s:%s:%s' % (prefix, model.__name__, md5(kwargs_bits).hexdigest())
 
 
 class BaseManager(Manager):

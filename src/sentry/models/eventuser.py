@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 from django.db import models
 from django.utils import timezone
-from hashlib import md5
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.cache import memoize
+from sentry.utils.hashlib import md5
 
 
 class EventUser(Model):
@@ -40,7 +40,7 @@ class EventUser(Model):
 
     def get_hash(self):
         value = self.ident or self.username or self.email or self.ip_address
-        return md5(value.encode('utf-8')).hexdigest()
+        return md5(value).hexdigest()
 
     @memoize
     def tag_value(self):

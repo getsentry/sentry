@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-import hashlib
+from hashlib import sha256
 import hmac
 import logging
 
@@ -22,7 +22,7 @@ class MailgunInboundWebhookView(View):
         return constant_time_compare(signature, hmac.new(
             key=api_key,
             msg='{}{}'.format(timestamp, token),
-            digestmod=hashlib.sha256
+            digestmod=sha256
         ).hexdigest())
 
     @method_decorator(csrf_exempt)
