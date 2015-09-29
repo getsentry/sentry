@@ -37,6 +37,10 @@ var StreamTagStore = Reflux.createStore({
     return this.tags;
   },
 
+  getTagKeys() {
+    return Object.keys(this.tags);
+  },
+
   getTagValues(tagKey, query) {
     return this.tags[tagKey].values || [];
   },
