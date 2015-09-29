@@ -5,6 +5,7 @@
 # Translators:
 # Antoine Lubineau <antoine@lubignon.info>, 2014
 # Benjamin Oertel <ben@punchtab.com>, 2012
+# Cheikh Sidya CAMARA <scicasoft@gmail.com>, 2015
 # Christophe kryskool <christophe.chauvet@gmail.com>, 2015
 # Christophe Sicard <sicard.christophe@gmail.com>, 2014
 # jmsche <contact@jmsche.fr>, 2013
@@ -16,15 +17,16 @@
 # Nathan Le Ray <oyokoon@gmail.com>, 2013
 # NotSqrt <notsqrt@gmail.com>, 2013-2014
 # pierreot <chtipepere@gmail.com>, 2014-2015
+# Rémy Hubscher <natim@mozilla.com>, 2015
 # Thomas Decaux <ebuildy@gmail.com>, 2014
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-28 05:31+0000\n"
-"PO-Revision-Date: 2015-07-28 05:31+0000\n"
-"Last-Translator: David Cramer <dcramer@gmail.com>\n"
-"Language-Team: French (http://www.transifex.com/projects/p/sentry/language/fr/)\n"
+"POT-Creation-Date: 2015-07-28 05:32+0000\n"
+"PO-Revision-Date: 2015-09-22 13:12+0000\n"
+"Last-Translator: pierreot <chtipepere@gmail.com>\n"
+"Language-Team: French (http://www.transifex.com/getsentry/sentry/language/fr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -109,17 +111,17 @@ msgstr "Agen système"
 #: constants.py:239
 #, python-brace-format
 msgid "The {name} integration has been enabled."
-msgstr ""
+msgstr "L'intégration de {name} a été activée."
 
 #: constants.py:241
 #, python-brace-format
 msgid "The {name} integration has been disabled."
-msgstr ""
+msgstr "L'intégration de {name} a été désactivée."
 
 #: constants.py:243
 #, python-brace-format
 msgid "Configuration for the {name} integration has been saved."
-msgstr ""
+msgstr "La configuration de l'intégration de {name} a été sauvegardée."
 
 #: auth/helper.py:25
 msgid "You have successully linked your account to your SSO provider."
@@ -130,6 +132,9 @@ msgid ""
 "SSO has been configured for your organization and any existing members have "
 "been sent an email to link their accounts."
 msgstr ""
+"La connexion via votre fournisseur d'identité a été configurée pour votre "
+"organisation. Un e-mail a été envoyé à tous les membres existant afin "
+"qu'ils lient leurs comptes."
 
 #: auth/helper.py:29
 msgid "There was an error encountered during authentication."
@@ -923,13 +928,15 @@ msgstr "Vos permissions ne vous donnent pas accès à cette page."
 #: templates/sentry/no-organization-access.html:5
 #: templates/sentry/no-organization-access.html:12
 msgid "No Organization Access"
-msgstr ""
+msgstr "Pas d'accès Organisation"
 
 #: templates/sentry/no-organization-access.html:14
 msgid ""
 "You don't have access to any organizations within Sentry. Talk to a Sentry "
 "administrator about getting access."
 msgstr ""
+"Vous n'avez accès à aucune organization dans ce Sentry. "
+"Contactez un administrateur afin d'y accèder."
 
 #: templates/sentry/organization-api-key-settings.html:7
 #: templates/sentry/organization-api-key-settings.html:13
@@ -1042,7 +1049,7 @@ msgstr "Stats"
 #: templates/sentry/project-issue-tracking.html:11
 #: templates/sentry/projects/manage.html:93
 msgid "Issue Tracking"
-msgstr ""
+msgstr "Suivi des bogues"
 
 #: templates/sentry/project-notifications.html:8
 #: templates/sentry/project-notifications.html:12
@@ -1073,7 +1080,7 @@ msgstr "Général"
 #: templates/sentry/project-release-tracking.html:11
 #: templates/sentry/projects/manage.html:97
 msgid "Release Tracking"
-msgstr ""
+msgstr "Suivi des livraisons"
 
 #: templates/sentry/register.html:6 templates/sentry/register.html.py:31
 msgid "Register"
@@ -1220,6 +1227,9 @@ msgid ""
 "To recover a lost account, you will need to know your account's username. We will send a confirmation\n"
 "        email to this address which allows you to change your password."
 msgstr ""
+"Pour récupérer un compte perdu, vous devez connaitre votre nom d'utilisateur. "
+"Nous vous enverrons un e-mail de confirmation sur votre adresse afin que vous "
+"puissiez changer votre mot de passe."
 
 #: templates/sentry/account/recover/index.html:28
 msgid "Send Email"
@@ -2366,7 +2376,7 @@ msgstr "Vous devez <a href=\"%(link)s\">associer un identitié</a> avec %(title)
 msgid ""
 "Your server administrator will need to configure authentication with\n"
 "            <strong>%(auth_provider)s</strong> before you can use this plugin."
-msgstr ""
+msgstr "Votre administrateur système devra configurer l'authentification avec <strong>%(auth_provider)s</strong> avant que vous puissiez utiliser ce plugin."
 
 #: templates/sentry/plugins/bases/issue/not_configured.html:23
 #, python-format
@@ -2494,7 +2504,7 @@ msgstr "Ce projet ne peut pas être supprimé. Il est utilisé en interne par le
 
 #: templates/sentry/projects/manage.html:60
 msgid "You do not have the required permission to remove this project."
-msgstr ""
+msgstr "Vous n'avez pas les permissions requises pour supprimer ce projet"
 
 #: templates/sentry/projects/manage.html:83
 #: templates/sentry/projects/quotas.html:7
@@ -2668,7 +2678,7 @@ msgstr "Supprimer l'équipe"
 
 #: templates/sentry/teams/manage.html:51
 msgid "You do not have the required permission to remove this team."
-msgstr ""
+msgstr "Vous n'avez pas les permissions requises pour supprimer cet équipe"
 
 #: templates/sentry/teams/remove.html:19
 msgid ""
@@ -2907,7 +2917,7 @@ msgstr "Étiquette"
 
 #: web/frontend/accept_organization_invite.py:13
 msgid "The invite link you followed is not valid."
-msgstr ""
+msgstr "Le lien d'invitation que vous avez suivi est invalide"
 
 #: web/frontend/accept_organization_invite.py:89
 #, python-format
@@ -2923,11 +2933,13 @@ msgstr "Vous avez été ajouté à l'organisation %r."
 msgid ""
 "Either you are not a member of the given organization or it does not exist."
 msgstr ""
+"Soit vous n'êtes pas membre de cette organization, soit elle n'existe pas."
 
 #: web/frontend/auth_login.py:16
 msgid ""
 "The organization does not exist or does not have Single Sign-On enabled."
 msgstr ""
+"L'organisation n'existe pas ou n'a pas de fournisseur d'identité de configuré."
 
 #: web/frontend/auth_organization_login.py:19
 msgid "username or email"
@@ -2939,7 +2951,8 @@ msgstr "mot  de passe"
 
 #: web/frontend/base.py:21
 msgid "You need to link your account with the SSO provider to continue."
-msgstr ""
+msgstr "Vous devez lier votre compte avec le fournisseur d'identité pour "
+"continuer."
 
 #: web/frontend/create_organization.py:16
 msgid "Organization Name"
@@ -2978,26 +2991,29 @@ msgstr "Séparez les entrées par un retour à la ligne."
 
 #: web/frontend/organization_auth_settings.py:23
 msgid "The SSO feature is not enabled for this organization."
-msgstr ""
+msgstr "La connexion via un fournisseur d'identité n'est pas activée pour "
+"cette organisation."
 
 #: web/frontend/organization_auth_settings.py:25
 msgid "SSO authentication has been disabled."
-msgstr ""
+msgstr "La connexion via le fournisseur d'identité a été désactivée."
 
 #: web/frontend/organization_auth_settings.py:27
 msgid ""
 "A reminder email has been sent to members who have not yet linked their "
 "accounts."
-msgstr ""
+msgstr "Un email de rappel a été envoyé aux membres n'ayant pas encore associé leurs comptes."
 
 #: web/frontend/organization_auth_settings.py:32
 msgid "Require SSO"
-msgstr ""
+msgstr "SSO obligatoire"
 
 #: web/frontend/organization_auth_settings.py:33
 msgid ""
 "Require members use a valid linked SSO account to access this organization"
 msgstr ""
+"Nécessite que les membres utilisent un compte correctement lié au fournisseur "
+"d'identité de l'organization pour y accéder."
 
 #: web/frontend/organization_member_settings.py:28
 #, python-format
@@ -3014,15 +3030,16 @@ msgstr "Le nom de votre organisation. ex. Ma compagnie"
 
 #: web/frontend/organization_settings.py:17
 msgid "A unique ID used to identify this organization."
-msgstr ""
+msgstr "Un identifiant unique pour identifier votre société."
 
 #: web/frontend/organization_settings.py:19
 msgid "Open Membership"
-msgstr ""
+msgstr "Souscription ouverte"
 
 #: web/frontend/organization_settings.py:20
 msgid "Allow organization members to freely join or leave any team."
-msgstr ""
+msgstr "Autorise les membres de l'organisation à la rejoindre ou à la "
+"quitter librement."
 
 #: web/frontend/organization_settings.py:58
 msgid "Changes to your organization were saved."
@@ -3039,10 +3056,12 @@ msgid ""
 "Your deploy token has been regenerated. You will need to update any pre-"
 "existing deploy hooks."
 msgstr ""
+"Votre token de déploiement a été régénéré. N'oubliez pas de mettre à jour "
+"tous les hooks de déploiement pré-existant."
 
 #: web/frontend/project_release_tracking.py:22
 msgid "The release tracking feature is not enabled for this project."
-msgstr ""
+msgstr "La fonctionnalité de suivi de livraison n'est pas activé pour ce projet."
 
 #: web/frontend/project_settings.py:27
 msgid "Production"
@@ -3080,13 +3099,15 @@ msgstr "Applique un nettoyage des données côté serveur pour empêcher que des
 
 #: web/frontend/project_settings.py:45
 msgid "Additional sensitive fields"
-msgstr ""
+msgstr "Données sensibles supplémentaires"
 
 #: web/frontend/project_settings.py:46
 msgid ""
 "Additional field names to match against when scrubbing data. Separate "
 "multiple entries with a newline."
 msgstr ""
+"Nom des champs sensibles additionnels à nettoyer lors de la réception des données. "
+"Une entrée par ligne."
 
 #: web/frontend/project_settings.py:48
 msgid "e.g. email"
@@ -3106,7 +3127,7 @@ msgstr "Les changements de votre projet ont été sauvegardés."
 
 #: web/frontend/remove_organization.py:12
 msgid "You cannot remove the default organization."
-msgstr ""
+msgstr "Vous ne pouvez pas supprimer l'organisation pas défaut"
 
 #: web/frontend/remove_organization.py:14
 #, python-format
