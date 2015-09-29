@@ -98,9 +98,7 @@ class RecordAffectedUserTest(TestCase):
             record_affected_user(event=event)
 
             add_tags.assert_called_once_with(event.group, [
-                ('sentry:user', 'email:foo@example.com', {
-                    'email': 'foo@example.com',
-                })
+                ('sentry:user', 'email:foo@example.com')
             ])
 
         assert EventUser.objects.filter(
