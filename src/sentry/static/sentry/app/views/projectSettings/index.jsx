@@ -89,7 +89,10 @@ const ProjectSettings = React.createClass({
           </ul>
           <h6 className="nav-header">Setup</h6>
           <ul className="nav nav-stacked">
-            <ListLink to="projectInstall" params={params}>Instructions</ListLink>
+            <ListLink to="projectInstall" params={params} isActive={function (to) {
+              let router = this.context.router;
+              return router.isActive('projectInstall') || router.isActive('projectInstallPlatform');
+            }}>Instructions</ListLink>
             <li><a href={`${settingsUrlRoot}/keys/`}>Client Keys</a></li>
           </ul>
           <h6 className="nav-header">Integrations</h6>
