@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+import logging
+
 from django.contrib import messages
 from django.contrib.auth import login
 from django.core.urlresolvers import reverse
@@ -11,6 +13,8 @@ from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.frontend.base import BaseView
 
 ERR_LINK_INVALID = _('Either you are not a member of the given organization or it does not exist.')
+
+auth_logger = logging.getLogger('sentry.auth')
 
 
 class AuthLinkIdentityView(BaseView):
@@ -28,6 +32,7 @@ class AuthLinkIdentityView(BaseView):
                 slug=organization_slug
             )
         except Organization.DoesNotExist:
+            auth_logger.debug('Organization not found: %s', organization_slug)
             messages.add_message(
                 request, messages.ERROR,
                 ERR_LINK_INVALID,
@@ -39,6 +44,8 @@ class AuthLinkIdentityView(BaseView):
                 organization=organization
             )
         except AuthProvider.DoesNotExist:
+            auth_logger.debug('Organization has no auth provider configured: %s',
+                              organization.slug)
             messages.add_message(
                 request, messages.ERROR,
                 ERR_LINK_INVALID,
@@ -66,7 +73,7 @@ class AuthLinkIdentityView(BaseView):
 
             request.session.pop('needs_captcha', None)
 
-            return self.handle_authed(request, organization, auth_provider)
+            return self.redirect(request.path)
 
         elif request.POST and not request.session.get('needs_captcha'):
             request.session['needs_captcha'] = 1
@@ -86,6 +93,8 @@ class AuthLinkIdentityView(BaseView):
                 user=request.user,
             )
         except OrganizationMember.DoesNotExist:
+            auth_logger.debug('User does is not a member of organization: %s',
+                              organization.slug)
             messages.add_message(
                 request, messages.ERROR,
                 ERR_LINK_INVALID,
