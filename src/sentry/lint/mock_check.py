@@ -24,8 +24,7 @@ class MockAttrVisitor(ast.NodeVisitor):
 
 
 class MockCheck(object):
-    name = 'mock-checker'
-    version = '0'
+    code = 'C900'
     _error_tmpl = "C900 Mock function call is banned: %s"
 
     def __init__(self, tree, filename=None):
