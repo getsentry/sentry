@@ -10,7 +10,8 @@ from sentry.tasks.base import instrumented_task
 
 
 @instrumented_task(
-    name='sentry.tasks.digests.schedule_digests')
+    name='sentry.tasks.digests.schedule_digests',
+    queue='digests.scheduling')
 def schedule_digests():
     from sentry.app import digests
 
@@ -28,7 +29,8 @@ def schedule_digests():
 
 
 @instrumented_task(
-    name='sentry.tasks.digests.deliver_digest')
+    name='sentry.tasks.digests.deliver_digest',
+    queue='digests.delivery')
 def deliver_digest(key):
     from sentry.app import digests
 
