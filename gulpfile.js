@@ -83,7 +83,7 @@ gulp.task("watch:css:wall", ["dist:css:wall"], function(){
 
 gulp.task('platformicons', function() {
   return gulp.src(['!node_modules/platformicons/platformicons/platformicons.css', 'node_modules/platformicons/platformicons/*'])
-  .pipe(gulp.dest(distPath))
+  .pipe(gulp.dest(distPath));
 });
 
 gulp.task("watch:css", ["watch:css:sentry", "watch:css:wall"]);
