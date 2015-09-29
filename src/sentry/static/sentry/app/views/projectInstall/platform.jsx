@@ -162,20 +162,6 @@ var ProjectInstallPlatform = React.createClass({
 
     return (
       <div className="install row">
-        <div className="install-sidebar col-md-2">
-          <LanguageNav name="Python" active={platform.indexOf('python') !== -1}>
-            {this.getPlatformLink('python', 'Generic')}
-            {this.getPlatformLink('python-bottle')}
-            {this.getPlatformLink('python-django')}
-            {this.getPlatformLink('python-flask')}
-            {this.getPlatformLink('python-pylons')}
-            {this.getPlatformLink('python-pyramid')}
-            {this.getPlatformLink('python-tornado')}
-          </LanguageNav>
-          <LanguageNav name="JavaScript" active={platform.indexOf('javascript') !== -1}>
-            {this.getPlatformLink('javascript', 'Generic')}
-          </LanguageNav>
-        </div>
         <div className="install-content col-md-10">
           <div className="pull-right">
             <a href={this.state.link} className="btn btn-default">Full Documentation</a>
@@ -195,6 +181,20 @@ var ProjectInstallPlatform = React.createClass({
               </div>
             )
           }
+        </div>
+        <div className="install-sidebar col-md-2">
+          <LanguageNav name="Python" active={platform.indexOf('python') !== -1}>
+            {this.getPlatformLink('python', 'Generic')}
+            {this.getPlatformLink('python-bottle')}
+            {this.getPlatformLink('python-django')}
+            {this.getPlatformLink('python-flask')}
+            {this.getPlatformLink('python-pylons')}
+            {this.getPlatformLink('python-pyramid')}
+            {this.getPlatformLink('python-tornado')}
+          </LanguageNav>
+          <LanguageNav name="JavaScript" active={platform.indexOf('javascript') !== -1}>
+            {this.getPlatformLink('javascript', 'Generic')}
+          </LanguageNav>
         </div>
       </div>
     );

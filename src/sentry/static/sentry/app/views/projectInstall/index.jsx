@@ -6,6 +6,14 @@ var ProjectInstall = React.createClass({
     router: React.PropTypes.func
   },
 
+  propTypes: {
+    setProjectNavSection: React.PropTypes.func.isRequired
+  },
+
+  componentWillMount() {
+    this.props.setProjectNavSection('settings');
+  },
+
   render() {
     let params = Object.assign({}, this.context.router.getCurrentParams());
 
