@@ -98,10 +98,6 @@ class IPlugin(local, PluggableViewMixin):
             return True
         if not self.can_enable_for_projects():
             return True
-        if project is not None:
-            from sentry import features
-            if not features.has('projects:plugins', project, self, actor=None):
-                return False
 
         if project:
             project_enabled = self.get_option('enabled', project)
@@ -229,8 +225,29 @@ class IPlugin(local, PluggableViewMixin):
 
     def can_enable_for_projects(self):
         """
-        Returns a boolean describing whether this plugin can be enabled on a per project basis
+        Returns a boolean describing whether this plugin can be enabled for
+        projects.
         """
+        return True
+
+    def can_configure_for_project(self, project):
+        """
+        Returns a boolean describing whether this plugin can be enabled on
+        a per project basis
+        """
+        from sentry import features
+
+        if not self.enabled:
+            return False
+        if not self.can_enable_for_projects():
+            return False
+
+        if not features.has('projects:plugins', project, self, actor=None):
+            return False
+
+        if not self.can_disable:
+            return True
+
         return True
 
     def get_form_initial(self, project=None):
@@ -453,6 +470,9 @@ class IPlugin(local, PluggableViewMixin):
     def configure(self, request, project=None):
         """Configures the plugin."""
         return default_plugin_config(self, project, request)
+
+    def get_url_module(self):
+        """Allows a plugin to return the import path to a URL module."""
 
 
 class Plugin(IPlugin):

@@ -1,4 +1,7 @@
+from __future__ import absolute_import
+
 import os.path
+
 from sentry.models import Activity
 from sentry.services.smtp import SentrySMTPServer, STATUS
 from sentry.testutils import TestCase

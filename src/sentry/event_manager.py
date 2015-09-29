@@ -16,8 +16,8 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+from django.utils.encoding import force_bytes
 from hashlib import md5
-from raven.utils.encoding import to_string
 from uuid import uuid4
 
 from sentry.app import buffer, tsdb
@@ -63,7 +63,7 @@ def time_limit(silence):  # ~ 3600 per hour
 def md5_from_hash(hash_bits):
     result = md5()
     for bit in hash_bits:
-        result.update(to_string(bit))
+        result.update(force_bytes(bit, errors='replace'))
     return result.hexdigest()
 
 

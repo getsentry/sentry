@@ -29,8 +29,8 @@ var OrganizationStats = React.createClass({
       statsLoading: false,
       statsRequestsPending: 0,
       projectMap: null,
-      rawProjectData: {received: null, rejected: null},
-      rawOrgData: {received: null, rejected: null},
+      rawProjectData: {received: null, rejected: null, blacklisted: null},
+      rawOrgData: {received: null, rejected: null, blacklisted: null},
       orgStats: null,
       orgTotal: null,
       projectTotals: null
@@ -62,10 +62,10 @@ var OrganizationStats = React.createClass({
     this.setState({
       statsError: false,
       statsLoading: true,
-      statsRequestsPending: 2,
+      statsRequestsPending: 3,
       projectsError: false,
       projectsLoading: true,
-      projectsRequestsPending: 3
+      projectsRequestsPending: 4
     });
 
     var statEndpoint = this.getOrganizationStatsEndpoint();
@@ -151,23 +151,29 @@ var OrganizationStats = React.createClass({
   processOrgData() {
     var oReceived = 0;
     var oRejected = 0;
+    var oBlacklisted = 0;
     var sReceived = {};
     var sRejected = {};
+    var sBlacklisted = {};
     var aReceived = [0, 0]; // received, points
     var rawOrgData = this.state.rawOrgData;
     $.each(rawOrgData.received, (idx, point) => {
       var dReceived = point[1];
       var dRejected = rawOrgData.rejected[idx][1];
+      var dBlacklisted = rawOrgData.blacklisted[idx][1];
       var ts = point[0] * 1000;
       if (sReceived[ts] === undefined) {
         sReceived[ts] = dReceived;
         sRejected[ts] = dRejected;
+        sBlacklisted[ts] = dBlacklisted;
       } else {
         sReceived[ts] += dReceived;
         sRejected[ts] += dRejected;
+        sBlacklisted[ts] += dBlacklisted;
       }
       oReceived += dReceived;
       oRejected += dRejected;
+      oBlacklisted += dBlacklisted;
       if (dReceived > 0) {
         aReceived[0] += dReceived;
         aReceived[1] += 1;
@@ -180,12 +186,16 @@ var OrganizationStats = React.createClass({
         }),
         accepted: $.map(sReceived, (value, ts) => {
           return [[ts, value - sRejected[ts]]];
+        }),
+        blacklisted: $.map(sBlacklisted, (value, ts) => {
+          return [[ts, value - sBlacklisted[ts]]];
         })
       },
       orgTotal: {
         received: oReceived,
         rejected: oRejected,
-        accepted: oReceived - oRejected,
+        blacklisted: oBlacklisted,
+        accepted: oReceived - oRejected - oBlacklisted,
         avgRate: parseInt((aReceived[0] / aReceived[1]) / 60, 10)
       },
       statsLoading: false
@@ -198,15 +208,18 @@ var OrganizationStats = React.createClass({
     $.each(rawProjectData.received, (projectId, data) => {
       var pReceived = 0;
       var pRejected = 0;
+      var pBlacklisted = 0;
       $.each(data, (idx, point) => {
         pReceived += point[1];
         pRejected += rawProjectData.rejected[projectId][idx][1];
+        pBlacklisted += rawProjectData.blacklisted[projectId][idx][1];
       });
       projectTotals.push({
         id: projectId,
         received: pReceived,
         rejected: pRejected,
-        accepted: pReceived - pRejected
+        blacklisted: pBlacklisted,
+        accepted: pReceived - pRejected - pBlacklisted
       });
     });
     this.setState({
@@ -221,7 +234,7 @@ var OrganizationStats = React.createClass({
     return [
       {
         data: stats.accepted,
-        label: 'Events Accepted',
+        label: 'Accepted',
         color: 'rgba(86, 175, 232, 1)',
         shadowSize: 0,
         stack: true,
@@ -233,9 +246,21 @@ var OrganizationStats = React.createClass({
       },
       {
         data: stats.rejected,
-        color: 'rgba(244, 63, 32, 1)',
+        color: 'rgba(226, 76, 83, 1)',
         shadowSize: 0,
-        label: 'Events Rejected',
+        label: 'Dropped (Rate Limit)',
+        stack: true,
+        lines: {
+          lineWidth: 2,
+          show: true,
+          fill: true
+        }
+      },
+      {
+        data: stats.blacklisted,
+        color: 'rgba(247, 131, 0, 1)',
+        shadowSize: 0,
+        label: 'Dropped (Blacklist)',
         stack: true,
         lines: {
           lineWidth: 2,
@@ -252,7 +277,12 @@ var OrganizationStats = React.createClass({
         <h3>Stats</h3>
         <div className="row">
           <div className="col-md-9">
-            <p>The chart below reflects events the system has received across your entire organization. Events are broken down into two categories: Accepted and Rejected. Rejected events are entries that the system threw away due to quotas being hit.</p>
+            <p>The chart below reflects events the system has received
+            across your entire organization. Events are broken down into
+            three categories: Accepted, Rate Limited, and Blacklisted. Rate
+            Limited events are entries that the system threw away due to quotas
+            being hit, and Blacklisted events are events that were blocked
+            due to your Blacklisted IPs setting.</p>
           </div>
           {!this.state.statsLoading &&
             <div className="col-md-3 stats-column">

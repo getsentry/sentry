@@ -203,6 +203,7 @@ class StacktraceTest(TestCase):
         interface = Frame.to_python({
             'context_line': 'hello world',
             'filename': 'http://foo.com/foo.py',
+            'function': 'test',
         })
         result = interface.get_hash()
         self.assertEquals(result, ['hello world'])
@@ -211,6 +212,7 @@ class StacktraceTest(TestCase):
         interface = Frame.to_python({
             'context_line': 'hello world',
             'filename': 'https://foo.com/foo.py',
+            'function': 'test',
         })
         result = interface.get_hash()
         self.assertEquals(result, ['hello world'])
@@ -219,6 +221,7 @@ class StacktraceTest(TestCase):
         interface = Frame.to_python({
             'context_line': 'hello world',
             'abs_path': 'https://foo.com/foo.py',
+            'function': 'test',
             'filename': 'foo.py',
         })
         result = interface.get_hash()
@@ -277,6 +280,18 @@ class StacktraceTest(TestCase):
         })
         result = interface.get_hash()
         assert result != []
+
+    def test_get_hash_does_not_group_different_js_errors(self):
+        interface = Stacktrace.to_python({
+            'frames': [{
+                'context_line': '{snip}',
+                'lineno': 20,
+                'filename': 'https://foo.com/index.js',
+                'function': '?',
+            }],
+        })
+        result = interface.get_hash()
+        assert result == []
 
     @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_stacktrace')
     def test_to_string_returns_stacktrace(self, get_stacktrace):

@@ -81,6 +81,11 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 stat_model = tsdb.models.project_total_rejected
             else:
                 stat_model = tsdb.models.organization_total_rejected
+        elif stat == 'blacklisted':
+            if group == 'project':
+                stat_model = tsdb.models.project_total_blacklisted
+            else:
+                stat_model = tsdb.models.organization_total_blacklisted
         else:
             raise ValueError('Invalid stat: %s' % stat)
 

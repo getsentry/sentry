@@ -11,11 +11,11 @@ import logging
 
 from django.conf import settings
 from django.utils import timezone
-from hashlib import md5
 
 from sentry.cache import default_cache
 from sentry.db.models.query import create_or_update
 from sentry.models import Option
+from sentry.utils.hashlib import md5
 
 
 CACHE_FETCH_ERR = 'Unable to fetch option cache for %s'

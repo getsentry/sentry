@@ -197,7 +197,7 @@ class EventAttributeCondition(EventCondition):
         except KeyError:
             attribute_values = []
 
-        attribute_values = [v.lower() for v in attribute_values]
+        attribute_values = [v.lower() for v in attribute_values if v is not None]
 
         if match == MatchType.EQUAL:
             for a_value in attribute_values:

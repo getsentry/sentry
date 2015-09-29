@@ -88,14 +88,9 @@ class IPlugin2(local):
         """
         if not self.enabled:
             return False
+
         if not self.can_disable:
             return True
-        if not self.can_enable_for_projects():
-            return True
-        if project is not None:
-            from sentry import features
-            if not features.has('projects:plugins', project, self, actor=None):
-                return False
 
         if project:
             project_enabled = self.get_option('enabled', project)
@@ -213,10 +208,21 @@ class IPlugin2(local):
     def has_project_conf(self):
         return self.project_conf_form is not None
 
-    def can_enable_for_projects(self):
+    def can_configure_for_project(self, project):
         """
-        Returns a boolean describing whether this plugin can be enabled on a per project basis
+        Checks if the plugin can be configured for a specific project.
         """
+        from sentry import features
+
+        if not self.enabled:
+            return False
+
+        if not features.has('projects:plugins', project, self, actor=None):
+            return False
+
+        if not self.can_disable:
+            return True
+
         return True
 
     # Response methods
@@ -386,6 +392,9 @@ class IPlugin2(local):
     def configure(self, project, request):
         """Configures the plugin."""
         return default_plugin_config(self, project, request)
+
+    def get_url_module(self):
+        """Allows a plugin to return the import path to a URL module."""
 
 
 class Plugin2(IPlugin2):

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from sentry.web.forms import ReplayForm
 from sentry.testutils import TestCase
 

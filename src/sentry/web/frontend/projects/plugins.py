@@ -25,12 +25,11 @@ from sentry.web.helpers import render_to_response
 def manage_plugins(request, organization, project):
     if request.POST:
         enabled = set(request.POST.getlist('plugin'))
-        for plugin in plugins.all(version=None):
-            if plugin.can_enable_for_projects():
-                if plugin.slug in enabled:
-                    plugin.enable(project)
-                else:
-                    plugin.disable(project)
+        for plugin in plugins.configurable_for_project(project, version=None):
+            if plugin.slug in enabled:
+                plugin.enable(project)
+            else:
+                plugin.disable(project)
 
         messages.add_message(
             request, messages.SUCCESS,
@@ -57,7 +56,7 @@ def configure_project_plugin(request, organization, project, slug):
     except KeyError:
         return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.organization.slug, project.slug]))
 
-    if not plugin.can_enable_for_projects():
+    if not plugin.can_configure_for_project(project):
         return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.organization.slug, project.slug]))
 
     view = plugin.configure(request, project=project)

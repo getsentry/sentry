@@ -37,7 +37,9 @@ from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.data_scrubber import SensitiveDataFilter
 from sentry.utils.javascript import to_json
-from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
+from sentry.utils.http import (
+    is_valid_origin, get_origins, is_same_domain, is_valid_ip,
+)
 from sentry.utils.safe import safe_execute
 from sentry.web.decorators import has_access
 from sentry.web.helpers import render_to_response
@@ -290,7 +292,18 @@ class StoreView(APIView):
     def process(self, request, project, auth, helper, data, **kwargs):
         metrics.incr('events.total')
 
-        event_received.send_robust(ip=request.META['REMOTE_ADDR'], sender=type(self))
+        remote_addr = request.META['REMOTE_ADDR']
+        event_received.send_robust(ip=remote_addr, sender=type(self))
+
+        if not is_valid_ip(remote_addr, project):
+            app.tsdb.incr_multi([
+                (app.tsdb.models.project_total_received, project.id),
+                (app.tsdb.models.project_total_blacklisted, project.id),
+                (app.tsdb.models.organization_total_received, project.organization_id),
+                (app.tsdb.models.organization_total_blacklisted, project.organization_id),
+            ])
+            metrics.incr('events.blacklisted')
+            raise APIForbidden('Blacklisted IP address: %s' % (remote_addr,))
 
         # TODO: improve this API (e.g. make RateLimit act on __ne__)
         rate_limit = safe_execute(app.quotas.is_rate_limited, project=project,
@@ -334,7 +347,7 @@ class StoreView(APIView):
 
         # insert IP address if not available
         if auth.is_public and not scrub_ip_address:
-            helper.ensure_has_ip(data, request.META['REMOTE_ADDR'])
+            helper.ensure_has_ip(data, remote_addr)
 
         event_id = data['event_id']
 
@@ -589,7 +602,7 @@ def crossdomain_xml(request, project_id):
         return HttpResponse(status=404)
 
     origin_list = get_origins(project)
-    if origin_list == '*':
+    if origin_list == ['*']:
         origin_list = [origin_list]
 
     response = render_to_response('sentry/crossdomain.xml', {

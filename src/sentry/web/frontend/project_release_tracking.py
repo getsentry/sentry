@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import hashlib
+from hashlib import sha256
 import hmac
 
 from django.contrib import messages
@@ -56,7 +56,7 @@ class ProjectReleaseTrackingView(ProjectView):
         return hmac.new(
             key=str(token),
             msg='{}-{}'.format(plugin_id, project_id),
-            digestmod=hashlib.sha256
+            digestmod=sha256
         ).hexdigest()
 
     def handle(self, request, organization, team, project):
@@ -92,7 +92,7 @@ class ProjectReleaseTrackingView(ProjectView):
                 }))
                 content = plugin.get_release_doc_html(hook_url=hook_url)
                 enabled_plugins.append((plugin, mark_safe(content)))
-            else:
+            elif plugin.can_configure_for_project(project):
                 other_plugins.append(plugin)
 
         context = {

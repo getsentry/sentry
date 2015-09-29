@@ -1,5 +1,8 @@
+from __future__ import absolute_import
+
 from exam import fixture
 from django.core.urlresolvers import reverse
+
 from sentry.models import Activity, Group
 from sentry.testutils import APITestCase
 
