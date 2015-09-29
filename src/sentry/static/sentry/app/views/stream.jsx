@@ -388,7 +388,7 @@ var Stream = React.createClass({
     let queryObj = _.inject(queryItems, (obj, item) => {
       let index = item.indexOf(':');
       let tagKey = item.slice(0, index);
-      let value = item.slice(index + 1);
+      let value = item.slice(index + 1).replace(/^"|"$/g, '');
       obj[tagKey] = value;
       return obj;
     }, {});

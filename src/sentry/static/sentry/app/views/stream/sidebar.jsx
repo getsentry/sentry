@@ -29,7 +29,7 @@ var StreamSidebar = React.createClass({
 
   getQueryStr() {
     return _.map(this.state.currentQuery, (value, tagKey) => {
-      return `${tagKey}:${value}`;
+      return `${tagKey}:"${value}"`;
     }).join(' ');
   },
 

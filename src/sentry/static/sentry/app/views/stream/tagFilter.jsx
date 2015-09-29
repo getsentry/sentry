@@ -1,14 +1,8 @@
 import React from "react";
 import Reflux from "reflux";
 import _ from "underscore";
-import DropdownLink from "../../components/dropdownLink";
-import MenuItem from "../../components/menuItem";
-import LoadingIndicator from "../../components/loadingIndicator";
 
-import {fetchTagValues} from "../../api/tags";
 import StreamTagStore from "../../stores/streamTagStore";
-
-var KEYUP_DEBOUNCE_MS = 300;
 
 var StreamTagFilter = React.createClass({
   mixins: [
@@ -35,54 +29,70 @@ var StreamTagFilter = React.createClass({
       tagValues: this.props.tag.values || [],
       query: '',
       loading: false,
-      selectedValue: this.props.initialValue
+      selectedValue: this.props.initialValue,
     };
   },
 
-  fetchTagValues: _.debounce(function() {
-    let query = this.state.query;
+  statics: {
+    tagValueToSelect2Format: (key) => {
+      return {
+        id: key,
+        text: key
+      };
+    }
+  },
 
-    this.setState({
-      loading: true
-    });
+  componentDidMount() {
+    let select = this.refs.select.getDOMNode();
 
+    let selectOpts = {
+      placeholder: `Select a value for ${this.props.tag.name.toLowerCase()}`,
+      allowClear: true
+    };
+
+    if (!this.props.tag.predefined) {
+      Object.assign(selectOpts, {
+        minimumInputLength: 1,
+        initSelection: (element, callback) => {
+          callback(StreamTagFilter.tagValueToSelect2Format(this.props.initialValue));
+        },
+        ajax: {
+          url: this.getTagValuesAPIEndpoint(),
+          dataType: 'json',
+          delay: 250,
+          data: (term, page) => {
+            return {
+              query: term
+            };
+          },
+          results: (data, page) => {
+            // parse the results into the format expected by Select2
+            return {
+              results: _.map(data, (val) => StreamTagFilter.tagValueToSelect2Format(val.value))
+            };
+          },
+          cache: true
+        }
+      });
+    }
+
+    $(select)
+      .select2(selectOpts)
+      .on('change', this.onSelectValue);
+  },
+
+  componentWillUnount() {
+    let select = this.refs.select.getDOMNode();
+    $(select).select2('destroy');
+  },
+
+  getTagValuesAPIEndpoint() {
     let params = this.context.router.getCurrentParams();
-    fetchTagValues(params, this.props.tag.key, query, () => {
-      this.setState({ loading: false });
-    });
-  }, KEYUP_DEBOUNCE_MS),
-
-  onFilterChange(evt) {
-    let query = evt.target.value;
-    this.setState({
-      query: query,
-    }, () => {
-      if (this.props.tag.predefined) {
-        return void this.filterTagValues();
-      }
-      this.fetchTagValues();
-    });
+    return `/api/0/projects/${params.orgId}/${params.projectId}/tags/${this.props.tag.key}/values/`;
   },
 
-  filterTagValues() {
-    let query = this.state.query.toLowerCase();
-    let tag = this.props.tag;
-
-    this.setState({
-      tagValues: _.filter(tag.values || [], (val) => val.toLowerCase().indexOf(query) > -1)
-    });
-  },
-
-  onStreamTagChange(tags) {
-    // The store broadcasts changes to *all* tags. We are only
-    // interested in changes to *this* tag.
-    let tag = _.find(tags, (t) => t.key === this.props.tag.key);
-    if (!tag) return;
-
-    this.filterTagValues();
-  },
-
-  onSelectValue(val, evt) {
+  onSelectValue(evt) {
+    let val = evt.target.value;
     this.setState({
       selectedValue: val
     });
@@ -94,29 +104,22 @@ var StreamTagFilter = React.createClass({
     let tag = this.props.tag;
 
     return (
-      <div>
+      <div className="stream-tag-filter">
         <h6>{tag.name}</h6>
-        <DropdownLink
-          className="btn btn-default btn-sm"
-          title={this.state.selectedValue || 'Search for a ' + this.props.tag.name}>
-          <MenuItem noAnchor={true} key="filter">
-            <input type="text"
-              className="form-control input-sm"
-              placeholder={`Filter ${this.props.tag.name}`}
-              ref="filter"
-              onKeyUp={this.onFilterChange} />
-          </MenuItem>
-          {this.state.loading
-            ? <LoadingIndicator/>
-            : this.state.tagValues.map((val) => {
-                return (
-                  <MenuItem key={val} onSelect={this.onSelectValue.bind(this, val)}>
-                  {val}
-                  </MenuItem>
-                );
-              })
-          }
-        </DropdownLink>
+
+        {this.props.tag.predefined ?
+
+          <select ref="select" className="form-control" value={this.props.initialValue}>
+            <option></option>
+            {this.state.tagValues.map((val) => {
+              return (
+                <option key={val}>{val}</option>
+              );
+            })}
+          </select> :
+          <input type="hidden" ref="select" className="form-control" value={this.props.initialValue}/>
+        }
+
       </div>
     );
   }
