@@ -33,3 +33,11 @@ The following providers are published and maintained by the Sentry team:
 * `Google Apps <https://github.com/getsentry/sentry-auth-google>`_
 * `GitHub <https://github.com/getsentry/sentry-auth-github>`_
 
+Custom Providers
+----------------
+
+At this time the API is considered unstable and subject to change. Things likely won't change a lot, but there's
+a few areas that need cleaned up.
+
+With that in mind, if you wish to build your own take a look at the base ``Provider`` class as well as one of the
+the reference implementations above.
