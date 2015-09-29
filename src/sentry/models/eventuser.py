@@ -51,13 +51,13 @@ class EventUser(Model):
             'No identifying value found for user'
 
         if self.ident:
-            return 'id:{}'.format(self.ident)
+            return u'id:{}'.format(self.ident)
         if self.email:
-            return 'email:{}'.format(self.email)
+            return u'email:{}'.format(self.email)
         if self.username:
-            return 'username:{}'.format(self.username)
+            return u'username:{}'.format(self.username)
         if self.ip_address:
-            return 'ip:{}'.format(self.ip_address)
+            return u'ip:{}'.format(self.ip_address)
 
     def get_label(self):
         return self.email or self.username or self.ident or self.ip_address
