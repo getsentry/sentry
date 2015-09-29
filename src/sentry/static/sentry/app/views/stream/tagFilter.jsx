@@ -1,14 +1,7 @@
 import React from "react";
-import Reflux from "reflux";
 import _ from "underscore";
 
-import StreamTagStore from "../../stores/streamTagStore";
-
 var StreamTagFilter = React.createClass({
-  mixins: [
-    Reflux.listenTo(StreamTagStore, "onStreamTagChange")
-  ],
-
   contextTypes: {
     router: React.PropTypes.func
   },
@@ -26,7 +19,6 @@ var StreamTagFilter = React.createClass({
 
   getInitialState() {
     return {
-      tagValues: this.props.tag.values || [],
       query: '',
       loading: false,
       selectedValue: this.props.initialValue,
@@ -102,7 +94,6 @@ var StreamTagFilter = React.createClass({
 
   render() {
     let tag = this.props.tag;
-
     return (
       <div className="stream-tag-filter">
         <h6 className="nav-header">{tag.name}</h6>
@@ -111,7 +102,7 @@ var StreamTagFilter = React.createClass({
 
           <select ref="select" value={this.props.initialValue}>
             <option></option>
-            {this.state.tagValues.map((val) => {
+            {this.props.tag.values.map((val) => {
               return (
                 <option key={val}>{val}</option>
               );
