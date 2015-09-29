@@ -231,6 +231,9 @@ setup(
         'console_scripts': [
             'sentry = sentry.utils.runner:main',
         ],
+        'flake8.extension': [
+            'C900 = sentry.lint.mock_check:MockCheck',
+        ],
     },
     classifiers=[
         'Framework :: Django',
