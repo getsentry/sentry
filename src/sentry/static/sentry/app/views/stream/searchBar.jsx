@@ -1,6 +1,7 @@
 import React from "react";
 import Reflux from "reflux";
 import _ from "underscore";
+import classNames from "classnames";
 
 // import TagStore from "../../stores/tagStore";
 import MemberListStore from "../../stores/memberListStore";
@@ -422,8 +423,12 @@ var SearchBar = React.createClass({
       display: this.state.dropdownVisible ? 'block' : 'none'
     };
 
+    let rootClassNames = ['search'];
+    if (this.props.disabled)
+      rootClassNames.push('disabled');
+
     return (
-      <div className="search">
+      <div className={classNames(rootClassNames)}>
         <form className="form-horizontal" ref="searchForm" onSubmit={this.onSubmit}>
           <div>
             <input type="text" className="search-input form-control"
@@ -438,6 +443,7 @@ var SearchBar = React.createClass({
               onKeyDown={this.onKeyDown}
               onChange={this.onQueryChange}
               onClick={this.onInputClick}
+              disabled={this.props.disabled}
               />
             <span className="icon-search" />
             {this.state.query !== this.props.defaultQuery &&

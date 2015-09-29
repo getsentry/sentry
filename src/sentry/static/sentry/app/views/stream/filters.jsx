@@ -1,4 +1,5 @@
 import React from "react";
+
 import FilterSelectLink from "./filterSelectLink";
 import SearchBar from "./searchBar";
 import SortOptions from "./sortOptions";
@@ -90,6 +91,7 @@ var StreamFilters = React.createClass({
               placeholder="Search for events, users, tags, and everything else."
               query={this.props.query}
               onSearch={this.props.onSearch}
+              disabled={this.props.isSearchDisabled}
               />
             <a className="btn btn-default toggle-stream-sidebar" onClick={this.props.onSidebarToggle}><span className="icon-arrow-left"></span></a>
           </div>
