@@ -1,34 +1,25 @@
-{% extends "sentry/bases/modal.html" %}
+{% extends "sentry/bases/auth.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block wrapperclass %}narrow auth org-login hide-sidebar{% endblock %}
-
 {% block title %}{% trans "Confirm Identity" %} | {{ block.super }}{% endblock %}
 
-{% block account_nav %}{% endblock%}
+{% block auth_main %}
+  <form class="form-stacked" action="" method="post">
+    {% csrf_token %}
 
-{% block main %}
-  <section class="body org-login">
-    <form class="form-stacked" action="" method="post">
-      {% csrf_token %}
+    <img src="{% gravatar_url user.email size 36 %}" class="merge-avatar avatar">
+    <span class="icon-arrow-right"></span>
+    <span class="icon-arrow-left"></span>
+    <img src="{% gravatar_url identity.email size 36 %}" class="merge-avatar avatar">
 
-      <img src="{% gravatar_url user.email size 36 %}" class="merge-avatar avatar">
-      <span class="icon-arrow-right"></span>
-      <span class="icon-arrow-left"></span>
-      <img src="{% gravatar_url identity.email size 36 %}" class="merge-avatar avatar">
+    <p>You're already logged in with an existing account. Would you like to add this identity? If not, we'll go ahead and create a new account for you.</p>
 
-      <p>You're already logged in with an existing account. Would you like to add this identity? If not, we'll go ahead and create a new account for you.</p>
-
-      <p class="align-center">
-        <button class="btn btn-default" name="op" value="newuser" type="submit">No thanks</button>
-        <button class="btn btn-primary" name="op" value="confirm" type="submit">Merge accounts</button>
-      </p>
-    </form>
-  </section>
-{% endblock %}
-
-{% block footer %}
+    <p class="align-center">
+      <button class="btn btn-default" name="op" value="newuser" type="submit">No thanks</button>
+      <button class="btn btn-primary" name="op" value="confirm" type="submit">Merge accounts</button>
+    </p>
+  </form>
 {% endblock %}

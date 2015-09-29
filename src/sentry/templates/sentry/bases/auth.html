@@ -1,0 +1,15 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block wrapperclass %}narrow auth org-login hide-sidebar{% endblock %}
+
+{% block main %}
+  <section class="body org-login">
+    {% block auth_main %}{% endblock %}
+  </section>
+{% endblock %}
+
+{% block footer %}
+{% endblock %}
