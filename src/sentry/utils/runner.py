@@ -199,7 +199,7 @@ SENTRY_WEB_OPTIONS = {
 ###############
 
 # For more information check Django's documentation:
-#  https://docs.djangoproject.com/en/1.3/topics/email/?from=olddocs#e-mail-backends
+# https://docs.djangoproject.com/en/1.6/topics/email/
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
