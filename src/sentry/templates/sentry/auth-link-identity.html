@@ -1,31 +1,28 @@
-{% extends "sentry/bases/modal.html" %}
+{% extends "sentry/bases/auth.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block wrapperclass %}windowed-small{% endblock %}
-
 {% block title %}{% trans "Link Identity" %} | {{ block.super }}{% endblock %}
 
-{% block main %}
-  <section class="body org-login">
-    <form class="form-stacked" action="" method="post">
-      {% csrf_token %}
+{% block auth_main %}
+  <form class="form-stacked" action="" method="post">
+    {% csrf_token %}
 
-      <img src="http://github.com/getsentry.png" class="org-avatar">
+    <div class="align-center">
+      <img src="{% url 'sentry-media' "sentry" "images/default-organization-logo.png" %}" class="org-avatar">
 
-      <h3>
-        {{ organization.name }}
-      </h3>
+      <h3>{{ organization.name }}</h3>
+    </div>
 
+    <div class="align-center">
       <p>Link your Sentry account with your {{ provider_name }} account to continue.</p>
 
-      <button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
-        <span class="provider-logo {{ provider_name | lower}}"></span>Login with {{ provider_name }}</button>
-    </form>
-  </section>
-{% endblock %}
-
-{% block footer %}
-  <a href="#"></a>
+      <p>
+        <button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
+          <span class="provider-logo {{ provider_name | lower}}"></span> Login with {{ provider_name }}
+        </button>
+      </p>
+    </div>
+  </form>
 {% endblock %}

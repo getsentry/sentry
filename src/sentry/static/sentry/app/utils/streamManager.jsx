@@ -9,7 +9,7 @@ var removeFromList = (item, list) => {
 class StreamManager {
   // TODO(dcramer): this should listen to changes on GroupStore and remove
   // items that are removed there
-  constructor(store, options={}) {
+  constructor(store, options = {}) {
     this.idList = [];
     this.store = store;
     this.limit = options.limit || 1000;
@@ -20,7 +20,7 @@ class StreamManager {
     excess.forEach(this.store.remove);
   }
 
-  push(items=[]) {
+  push(items = []) {
     items = [].concat(items);
     if (items.length === 0) return this;
 
@@ -41,7 +41,7 @@ class StreamManager {
     });
   }
 
-  unshift(items=[]) {
+  unshift(items = []) {
     items = [].concat(items);
     if (items.length === 0) return this;
 
