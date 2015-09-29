@@ -79,6 +79,10 @@ class NotificationDigest(object):
     def __init__(self, groups):
         self.groups = groups
 
+    # XXX: There is a large chance these alises are a terrible idea, it is
+    # probably a better idea for notification plugins to explicitly opt-in to
+    # digest support instead of masking it like this.
+
     @property
     def event(self):
         # TODO: Probably warn about this.
