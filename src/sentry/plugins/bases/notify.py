@@ -62,7 +62,8 @@ class NotificationPlugin(Plugin):
                 continue
             raise NotImplementedError('The default behavior for notification de-duplication does not support args')
 
-        if features.has('projects:digests', event.group.project):
+        # TODO: Encapsulate this better, maybe make it an option on the plugin?
+        if features.has('projects:digests', event.group.project) and hasattr(self, 'notify_digest'):
             digests.add(
                 unsplit_key(self, event.group.project),
                 event_to_record(event, rules),
