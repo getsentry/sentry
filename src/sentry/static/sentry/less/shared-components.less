@@ -2728,6 +2728,45 @@ ul.tag-list {
 }
 
 /**
+* Client platform list
+* ============================================================================
+*/
+
+.client-platform-list {
+  .list-unstyled;
+  .clearfix;
+
+  li {
+    float: left;
+    margin: 0 10px 10px 0;
+    background: darken(@bgColor, 5);
+    .square(100px);
+    border-radius: 4px;
+    text-align: center;
+    position: relative;
+
+    a {
+      &:after {
+        display: block;
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+      }
+    }
+  }
+
+  .platformicon {
+    display: block;
+    .square(48px);
+    font-size: 48px;
+    margin: 15px auto 2px;
+  }
+}
+
+/**
 * Responsive small screens
 * ============================================================================
 */
