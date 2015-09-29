@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import hashlib
+from hashlib import sha256
 import hmac
 
 from django.core.urlresolvers import reverse
@@ -21,7 +21,7 @@ class ReleaseWebhookTest(TestCase):
         self.signature = hmac.new(
             key=self.token,
             msg='dummy-{}'.format(self.project.id),
-            digestmod=hashlib.sha256,
+            digestmod=sha256,
         ).hexdigest()
         ProjectOption.objects.set_value(
             self.project, 'sentry:release-token', self.token)
