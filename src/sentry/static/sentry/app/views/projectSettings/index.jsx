@@ -1,10 +1,16 @@
 import React from "react";
 import Router from "react-router";
 
+import api from "../../api";
 import ConfigStore from "../../stores/configStore";
 import ListLink from "../../components/listLink";
+import LoadingError from "../../components/loadingError";
+import LoadingIndicator from "../../components/loadingIndicator";
+import RouteMixin from "../../mixins/routeMixin";
 
 const ProjectSettings = React.createClass({
+  mixins: [RouteMixin],
+
   contextTypes: {
     router: React.PropTypes.func
   },
@@ -15,6 +21,46 @@ const ProjectSettings = React.createClass({
 
   componentWillMount() {
     this.props.setProjectNavSection('settings');
+    this.fetchData();
+  },
+
+  routeDidChange(nextPath, nextParams) {
+    var params = this.context.router.getCurrentParams();
+    if (nextParams.projectId != params.projectId ||
+        nextParams.orgId != params.orgId) {
+      this.setState({
+        loading: true,
+        error: false
+      }, this.fetchData);
+    }
+  },
+
+  getInitialState() {
+    return {
+      loading: true,
+      error: false,
+      project: null
+    };
+  },
+
+  fetchData() {
+    var params = this.context.router.getCurrentParams();
+
+    api.request(`/projects/${params.orgId}/${params.projectId}/`, {
+      success: (data) => {
+        this.setState({
+          project: data,
+          loading: false,
+          error: false
+        });
+      },
+      error: () => {
+        this.setState({
+          loading: false,
+          error: true
+        });
+      }
+    });
   },
 
   render() {
@@ -22,6 +68,12 @@ const ProjectSettings = React.createClass({
     let urlPrefix = ConfigStore.get('urlPrefix');
     let params = this.context.router.getCurrentParams();
     let settingsUrlRoot = `${urlPrefix}/${params.orgId}/${params.projectId}/settings`;
+    let project = this.state.project;
+
+    if (this.state.loading)
+      return <LoadingIndicator />;
+    else if (this.state.error)
+      return <LoadingError onRetry={this.fetchData} />;
 
     return (
       <div className="row">
@@ -40,10 +92,18 @@ const ProjectSettings = React.createClass({
             <ListLink to="projectInstall" params={params}>Instructions</ListLink>
             <li><a href={`${settingsUrlRoot}/keys/`}>Client Keys</a></li>
           </ul>
+          <h6 className="nav-header">Integrations</h6>
+          <ul className="nav nav-stacked">
+            <li><a href={`${settingsUrlRoot}/plugins/`}>All Integrations</a></li>
+            {project.activePlugins.map((plugin) => {
+              return <li><a href={`${settingsUrlRoot}/plugins/${plugin.id}/`}>{plugin.name}</a></li>;
+            })}
+          </ul>
         </div>
         <div className="col-md-10">
           <Router.RouteHandler
               setProjectNavSection={this.setProjectNavSection}
+              project={project}
               {...this.props} />
         </div>
       </div>
