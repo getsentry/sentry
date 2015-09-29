@@ -28,23 +28,51 @@ var StreamSidebar = React.createClass({
   },
 
   getQueryStr() {
-    return _.map(this.state.currentQuery, (value, tagKey) => {
-      return `${tagKey}:"${value}"`;
-    }).join(' ');
+    let tags = _.omit(this.state.currentQuery, '__text');
+
+    return _.map(tags, (value, tagKey) => {
+        return `${tagKey}:"${value}"`;
+      })
+      .concat(this.state.currentQuery.__text)
+      .join(' ');
   },
 
   onSelectTag(tag, value) {
     this.setState({
       currentQuery: {...this.state.currentQuery, [tag.key]:value}
-    }, () => {
-      let query = this.getQueryStr();
-      this.props.onQueryChange && this.props.onQueryChange(query);
-    });
+    }, this.onQueryChange);
+  },
+
+  onTextChange: function (evt) {
+    let text = evt.target.value;
+
+    this.debouncedTextChange(text);
+  },
+
+  debouncedTextChange: _.debounce(function(text) {
+    this.setState({
+      currentQuery: {...this.state.currentQuery, __text:text}
+    }, this.onQueryChange);
+  }, 300),
+
+  onQueryChange() {
+    let query = this.getQueryStr();
+    this.props.onQueryChange && this.props.onQueryChange(query);
   },
 
   render() {
     return (
       <div className="stream-sidebar">
+        <div className="stream-tag-filter">
+          <h6 className="nav-header">Text</h6>
+          <input
+            className="form-control"
+            placeholder="Search title and culprit text body"
+            onChange={this.onTextChange}
+            defaultValue={this.props.initialQuery.__text}
+          />
+        </div>
+
         {_.map(this.props.tags, (tag) => {
           return (
             <StreamTagFilter
