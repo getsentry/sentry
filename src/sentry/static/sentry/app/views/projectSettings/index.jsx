@@ -38,6 +38,7 @@ const ProjectSettings = React.createClass({
           <h6 className="nav-header">Setup</h6>
           <ul className="nav nav-stacked">
             <ListLink to="projectInstall" params={params}>Instructions</ListLink>
+            <li><a href={`${settingsUrlRoot}/keys/`}>Client Keys</a></li>
           </ul>
         </div>
         <div className="col-md-10">
