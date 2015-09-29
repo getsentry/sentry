@@ -1,0 +1,23 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load sentry_helpers %}
+
+{% block main %}
+
+<h2>{{ project }}</h2>
+
+{% for group, records in digest.items %}
+    {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
+    <h3><a href="{% absolute_uri group_link %}">{{ group.title }}</a></h3>
+    {{ records|length }} event{{ records|pluralize }}
+    <ul>
+        {% for record in records %}
+            <li>
+                {{ record.value.event.message }}
+                at {{ record.datetime }}
+            </li>
+        {% endfor %}
+    </ul>
+{% endfor %}
+
+{% endblock %}

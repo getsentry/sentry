@@ -88,6 +88,8 @@ if settings.DEBUG:
             sentry.web.frontend.debug.mail.new_note),
         url(r'^debug/mail/new-release/$',
             DebugNewReleaseEmailView.as_view()),
+        url(r'^debug/mail/digest/$',
+            sentry.web.frontend.debug.mail.digest),
         url(r'^debug/mail/request-access/$',
             sentry.web.frontend.debug.mail.request_access),
         url(r'^debug/mail/access-approved/$',
