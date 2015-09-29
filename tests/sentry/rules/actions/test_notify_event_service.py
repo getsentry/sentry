@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from mock import MagicMock, patch
 
 from sentry.testutils.cases import RuleTestCase
