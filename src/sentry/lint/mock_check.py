@@ -17,9 +17,6 @@ class MockAttrVisitor(ast.NodeVisitor):
     def __init__(self):
         self.errors = []
 
-    def visit(self, node):
-        super(MockAttrVisitor, self).visit(node)
-
     def visit_Attribute(self, node):
         self.generic_visit(node)
         if node.attr in self.non_existent_methods:
