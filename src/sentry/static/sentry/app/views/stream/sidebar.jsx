@@ -71,6 +71,7 @@ var StreamSidebar = React.createClass({
             onChange={this.onTextChange}
             defaultValue={this.props.initialQuery.__text}
           />
+          <hr/>
         </div>
 
         {_.map(this.props.tags, (tag) => {
