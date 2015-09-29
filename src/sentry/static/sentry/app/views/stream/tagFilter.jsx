@@ -38,7 +38,7 @@ var StreamTagFilter = React.createClass({
     let select = this.refs.select.getDOMNode();
 
     let selectOpts = {
-      placeholder: `Select a value for ${this.props.tag.name.toLowerCase()}`,
+      placeholder: '--',
       allowClear: true
     };
 
