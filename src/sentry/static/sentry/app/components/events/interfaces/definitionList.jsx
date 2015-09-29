@@ -24,7 +24,7 @@ var DefinitionList = React.createClass({
             <dt key={"dt-" + key}>{key}</dt>,
             this.props.isContextData
               ? <dd key={"dd-" + key}><ContextData data={value}/></dd>
-              : <dd key={"dd-" + key}><pre>{''+value || ' '}</pre></dd>
+              : <dd key={"dd-" + key}><pre>{'' + value || ' '}</pre></dd>
 
           ];
         })}

@@ -33,7 +33,7 @@ var TeamStore = Reflux.createStore({
 
   getById(id) {
     id = '' + id;
-    for (var i=0; i<this.items.length; i++) {
+    for (var i = 0; i < this.items.length; i++) {
       if (this.items[i].id === id) {
         return this.items[i];
       }
@@ -42,7 +42,7 @@ var TeamStore = Reflux.createStore({
   },
 
   getBySlug(slug) {
-    for (var i=0; i<this.items.length; i++) {
+    for (var i = 0; i < this.items.length; i++) {
       if (this.items[i].slug === slug) {
         return this.items[i];
       }

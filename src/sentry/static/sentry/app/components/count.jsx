@@ -22,7 +22,7 @@ var Count = React.createClass({
       number = parseInt(number, 10);
 
       /*eslint no-cond-assign:0*/
-      for (var i=0; (b=this.numberFormats[i]); i++){
+      for (var i = 0; (b = this.numberFormats[i]); i++){
           x = b[0];
           y = b[1];
           o = Math.floor(number / x);
