@@ -1,15 +1,11 @@
-{% extends "sentry/bases/modal.html" %}
+{% extends "sentry/bases/auth.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block wrapperclass %}narrow auth hide-sidebar{% endblock %}
-
 {% block title %}{% trans "Recover Account" %} | {{ block.super }}{% endblock %}
 
-{% block account_nav %}{% endblock%}
-
-{% block content %}
+{% block auth_main %}
   <h3>{% trans "Recover Account" %}</h2>
   <p>{% blocktrans %}We will send a confirmation email to this address:{% endblocktrans %}</p>
 
@@ -26,8 +22,4 @@
       <button type="submit" class="btn btn-primary">{% trans "Send Email" %}</button>
     </fieldset>
   </form>
-
-{% endblock %}
-
-{% block footer %}
 {% endblock %}
