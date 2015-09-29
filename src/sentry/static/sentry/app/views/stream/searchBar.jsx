@@ -3,10 +3,10 @@ import Reflux from "reflux";
 import _ from "underscore";
 import classNames from "classnames";
 
-// import TagStore from "../../stores/tagStore";
+import StreamTagStore from "../../stores/streamTagStore";
 import MemberListStore from "../../stores/memberListStore";
 
-import tagsApi from "../../api/tags";
+import api from "../../api";
 
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
@@ -150,47 +150,12 @@ var SearchBar = React.createClass({
   },
 
   /**
-   * Returns a tag object matching the given tag name. Includes
-   * predefined tags (e..g "is:" and "assigned:").
-   */
-  getTag(tagName) {
-    // predefined search terms tag priority over tags
-    switch (tagName) {
-      case 'is':
-        return {
-          key: 'is',
-          values: [
-            { value: 'resolved' },
-            { value: 'unresolved' },
-            { value: 'muted' }
-          ],
-          predefined: true
-        };
-      case 'assigned':
-        return {
-          key: 'assigned',
-          values: MemberListStore.getAll().map(user => {
-            return { value: user.email };
-          }),
-          predefined: true
-        };
-      default:
-        return this.state.tags[tagName];
-    }
-  },
-
-  /**
    * Returns array of possible key values that substring match `query`
    *
    * e.g. ['is:', 'assigned:', 'url:', 'release:']
    */
   getTagKeys: function (query) {
-    let keys = [
-      'is',
-      'assigned'
-    ].concat(Object.keys(this.state.tags).map(k => this.state.tags[k].key));
-
-    return keys
+    return StreamTagStore.getTagKeys()
       .map(key => key + ':')
       .filter(key => key.indexOf(query) > -1);
   },
@@ -207,21 +172,17 @@ var SearchBar = React.createClass({
       loading: true
     });
 
-    var params = this.context.router.getCurrentParams();
-    tagsApi.fetchTagValues(params, tag, query, function (values) {
-      this.setState({ loading: false });
-      callback(values.map(v => '"' + v.value + '"'), tag.key, query);
+    let params = this.context.router.getCurrentParams();
+    api.request(`/projects/${params.orgId}/${params.projectId}/tags/${tag.key}/values/`, {
+      data: {
+        query: query
+      },
+      method: "GET",
+      success: (values) => {
+        this.setState({ loading: false });
+        callback(values.map(v => '"' + v.value + '"'), tag.key, query);
+      }
     });
-    // api.request(`/projects/${params.orgId}/${params.projectId}/tags/${tag.key}/values/`, {
-    //   data: {
-    //     query: query
-    //   },
-    //   method: "GET",
-    //   success: (values) => {
-    //     this.setState({ loading: false });
-    //     callback(values.map(v => '"' + v.value + '"'), tag.key, query);
-    //   }
-    // });
   }, 300),
 
   /**
@@ -230,7 +191,6 @@ var SearchBar = React.createClass({
    */
   getPredefinedTagValues: function (tag, query, callback) {
     var values = tag.values
-      .map(valueObj => valueObj.value)
       .filter(value => value.indexOf(query) > -1);
 
     callback(values, tag.key);
@@ -297,7 +257,7 @@ var SearchBar = React.createClass({
       query = last.slice(index + 1);
       this.setState({searchTerm: query});
 
-      let tag = this.getTag(tagName);
+      let tag = StreamTagStore.getTag(tagName);
       if (!tag)
         return void this.setState({
           searchItems: []
