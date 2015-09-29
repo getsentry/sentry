@@ -10,7 +10,7 @@ Details
 
 {{ group.title }}
 
-{{ link }}
+{{ activity_link }}
 
 {% endautoescape %}
 {% endspaceless %}

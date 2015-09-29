@@ -13,7 +13,7 @@ var StreamFilters = React.createClass({
       defaultQuery: "",
       sort: "",
       filter: "",
-      query: "",
+      query: null,
       onFilterChange: function() {},
       onSortChange: function() {},
       onSearch: function() {}

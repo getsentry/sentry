@@ -63,7 +63,6 @@ def pytest_configure(config):
     settings.SENTRY_URL_PREFIX = 'http://example.com'
 
     # enable draft features
-    settings.SENTRY_ENABLE_EXPLORE_CODE = True
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
 
     # disable error reporting by default

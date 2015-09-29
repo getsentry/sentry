@@ -3,5 +3,5 @@ export function logException(ex, context) {
     extra: context
   });
   /*eslint no-console:0*/
-  console.error(ex);
+  window.console && console.error && console.error(ex);
 }

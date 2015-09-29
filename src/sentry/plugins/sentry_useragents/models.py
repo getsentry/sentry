@@ -27,8 +27,13 @@ class UserAgentPlugin(TagPlugin):
         if not http.headers:
             return []
 
+        headers = http.headers
+        # XXX: transitional support for workers
+        if isinstance(headers, dict):
+            headers = headers.items()
+
         output = []
-        for key, value in http.headers:
+        for key, value in headers:
             if key != 'User-Agent':
                 continue
             ua = Parse(value)

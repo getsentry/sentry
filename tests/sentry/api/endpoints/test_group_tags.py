@@ -1,4 +1,7 @@
+from __future__ import absolute_import
+
 from django.core.urlresolvers import reverse
+
 from sentry.models import GroupTagKey, GroupTagValue, TagKey, TagValue
 from sentry.testutils import APITestCase
 

@@ -30,11 +30,7 @@
                             </p>
                         </td>
                         <td class="align-right">
-                            {% if plugin.can_disable and plugin.can_enable_for_projects %}
-                                <input type="checkbox" name="plugin" value="{{ plugin.slug }}"{% if is_enabled %} checked="checked"{% endif %}/>
-                            {% else %}
-                                <em>{% trans "n/a" %}</em>
-                            {% endif %}
+                            <input type="checkbox" name="plugin" value="{{ plugin.slug }}"{% if is_enabled %} checked="checked"{% endif %}/>
                         </td>
                     </tr>
                 {% endfor %}

@@ -558,7 +558,7 @@ SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 SENTRY_FEATURES = {
     'auth:register': True,
     'organizations:create': True,
-    'organizations:sso': False,
+    'organizations:sso': True,
     'projects:quotas': True,
     'projects:user-reports': True,
     'projects:plugins': True,
@@ -750,9 +750,6 @@ SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.20/jquery,native/raven.min.js'
 # (Defaults to URL_PREFIX by default)
 SENTRY_ENDPOINT = None
 SENTRY_PUBLIC_ENDPOINT = None
-
-# Early draft features. Not slated or public release yet.
-SENTRY_ENABLE_EXPLORE_CODE = False
 
 # Prevent variables (e.g. context locals, http data, etc) from exceeding this
 # size in characters

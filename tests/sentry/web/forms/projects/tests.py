@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from sentry.models import Project
 from sentry.web.forms.projects import ProjectQuotasForm
 from sentry.testutils import TestCase

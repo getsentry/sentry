@@ -18,6 +18,9 @@ class Provider(object):
         self.logger = logging.getLogger('sentry.auth.%s' % (key,))
 
     def get_configure_view(self):
+        """
+        Return the view which handles configuration (post-setup).
+        """
         return ConfigureView.as_view()
 
     def get_auth_pipeline(self):

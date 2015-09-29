@@ -12,9 +12,14 @@ from django.core.urlresolvers import reverse
 from django.template import RequestContext
 from django.http import HttpResponseRedirect
 from django.contrib import messages
+from django.http import Http404
 
 
 def default_plugin_config(plugin, project, request):
+    if plugin.can_enable_for_projects() and \
+       not plugin.can_configure_for_project(project):
+        raise Http404()
+
     plugin_key = plugin.get_conf_key()
     form_class = plugin.get_conf_form(project)
     template = plugin.get_conf_template(project)

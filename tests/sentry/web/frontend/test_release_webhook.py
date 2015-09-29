@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import hashlib
+from hashlib import sha256
 import hmac
 
 from django.core.urlresolvers import reverse
@@ -21,7 +21,7 @@ class ReleaseWebhookTest(TestCase):
         self.signature = hmac.new(
             key=self.token,
             msg='dummy-{}'.format(self.project.id),
-            digestmod=hashlib.sha256,
+            digestmod=sha256,
         ).hexdigest()
         ProjectOption.objects.set_value(
             self.project, 'sentry:release-token', self.token)
@@ -53,7 +53,7 @@ class ReleaseWebhookTest(TestCase):
         mock_plugin_get.assert_called_once_with('dummy')
         MockPlugin.get_release_hook.assert_called_once_with()
         MockReleaseHook.assert_called_once_with(self.project)
-        MockReleaseHook.return_value.handle.assert_called_once()
+        assert MockReleaseHook.return_value.handle.call_count is 1
 
     @patch('sentry.plugins.plugins.get')
     def test_disabled_plugin(self, mock_plugin_get):

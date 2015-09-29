@@ -171,6 +171,15 @@ describe("SearchBar", function() {
       });
     });
 
+    it("handles an empty query", function () {
+      let props = {
+        query: "",
+        defaultQuery: "is:unresolved"
+      };
+      let wrapper = React.render(<this.ContextStubbedSearchBar {...props} />, document.body).refs.wrapped;
+      expect(wrapper.state.query).to.eql("");
+    });
+
   });
 
   describe("updateAutoCompleteItems()", function() {
