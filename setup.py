@@ -232,8 +232,6 @@ setup(
             'sentry = sentry.utils.runner:main',
         ],
         'flake8.extension': [
-            'C900 = sentry.lint.mock_check:MockCheck',
-            'C901 = sentry.lint.absolute_import_check:AbsoluteImportCheck',
         ],
     },
     classifiers=[

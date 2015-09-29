@@ -108,7 +108,7 @@ var GroupStore = Reflux.createStore({
     return -1;
   },
 
-  addActivity(id, data, index=-1) {
+  addActivity(id, data, index = -1) {
     var group = this.get(id);
     if (!group) return;
 

@@ -93,6 +93,12 @@ class AuthOrganizationLoginView(BaseView):
         return self.respond('sentry/organization-login.html', context)
 
     def handle_sso(self, request, organization, auth_provider):
+        # if they're authenticated we want them to go through the standard
+        # link flow
+        if request.user.is_authenticated():
+            return self.redirect(reverse('sentry-auth-link-identity',
+                                         args=[organization.slug]))
+
         if request.method == 'POST':
             helper = AuthHelper(
                 request=request,

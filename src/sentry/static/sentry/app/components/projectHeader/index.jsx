@@ -23,23 +23,23 @@ var ProjectHeader = React.createClass({
           <div className="container">
             <div className="pull-right">
               <ul className="nav nav-tabs">
-                <li className={navSection == 'dashboard' ? 'active': ''}>
+                <li className={navSection == 'dashboard' ? 'active' : ''}>
                   <Router.Link to="projectDashboard" params={routeParams}>
                     Dashboard
                   </Router.Link>
                 </li>
-                <li className={navSection == 'stream' ? 'active': ''}>
+                <li className={navSection == 'stream' ? 'active' : ''}>
                   <Router.Link to="stream" params={routeParams}>
                     Issues
                   </Router.Link>
                 </li>
-                <li className={navSection == 'releases' ? 'active': ''}>
+                <li className={navSection == 'releases' ? 'active' : ''}>
                   <Router.Link to="projectReleases" params={routeParams}>
                     Releases
                   </Router.Link>
                 </li>
                 {access.has('project:write') &&
-                  <li className={navSection == 'settings' ? 'active': ''}>
+                  <li className={navSection == 'settings' ? 'active' : ''}>
                     <a href={urlPrefix + '/' + routeParams.orgId + '/' + routeParams.projectId + '/settings/'}>
                       Settings
                     </a>
