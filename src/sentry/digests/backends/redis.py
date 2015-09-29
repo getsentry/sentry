@@ -213,8 +213,56 @@ class RedisBackend(Backend):
                 else:
                     raise RuntimeError('loop exceeded maximum iterations (%s)' % (maximum_iterations,))
 
-    def maintenance(self, deadline):
-        raise NotImplementedError
+    def maintenance(self, deadline, chunk=1000):
+        # XXX: This is not the final iteration of this, and will need changes
+        # before actual use!
+
+        # TODO: Balancing.
+        for host in self.cluster.hosts:
+            connection = self.cluster.get_local_client(host)
+
+            # TODO: This needs to respect locks!
+            maximum_iterations = 1000
+            for i in xrange(maximum_iterations):
+                items = connection.zrangebyscore(
+                    make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
+                    min=0,
+                    max=deadline,
+                    withscores=True,
+                    start=0,
+                    num=chunk,
+                )
+
+                # XXX: Redis will error if we try and execute an empty
+                # transaction. If there are no items to move between states, we
+                # need to exit the loop now. (This can happen on the first
+                # iteration of the loop if there is nothing to do, or on a
+                # subsequent iteration if there was exactly the same number of
+                # items to change states as the chunk size.)
+                if not items:
+                    break
+
+                with connection.pipeline() as pipeline:
+                    pipeline.multi()
+
+                    pipeline.zrem(
+                        make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
+                        *[key for key, timestamp in items]
+                    )
+
+                    pipeline.zadd(
+                        make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
+                        *itertools.chain.from_iterable([(timestamp, key) for (key, timestamp) in items])
+                    )
+
+                    pipeline.execute()
+
+                # If we retrieved less than the chunk size of items, we don't
+                # need try to retrieve more items.
+                if len(items) < chunk:
+                    break
+            else:
+                raise RuntimeError('loop exceeded maximum iterations (%s)' % (maximum_iterations,))
 
     @contextmanager
     def digest(self, key):

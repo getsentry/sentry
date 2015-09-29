@@ -368,6 +368,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.beacon',
     'sentry.tasks.check_auth',
     'sentry.tasks.deletion',
+    'sentry.tasks.digests',
     'sentry.tasks.email',
     'sentry.tasks.index',
     'sentry.tasks.merge',
@@ -388,6 +389,8 @@ CELERY_QUEUES = [
     Queue('update', routing_key='update'),
     Queue('email', routing_key='email'),
     Queue('options', routing_key='options'),
+    Queue('digests.delivery', routing_key='digests.delivery'),
+    Queue('digests.scheduling', routing_key='digests.scheduling'),
 ]
 
 CELERY_ROUTES = ('sentry.queue.routers.SplitQueueRouter',)
@@ -452,6 +455,13 @@ CELERYBEAT_SCHEDULE = {
             'queue': 'options',
         }
     },
+    'schedule-digests': {
+        'task': 'sentry.tasks.digests.schedule_digests',
+        'schedule': timedelta(seconds=15),
+        'options': {
+            'expires': 15,
+        },
+    }
 }
 
 LOGGING = {
