@@ -16,6 +16,7 @@ running on your own infrastructure.
    nodestore
    queue
    buffer
+   sso
    throttling
    tsdb
    inbound-mail
