@@ -3,7 +3,10 @@ from __future__ import absolute_import
 import functools
 import itertools
 import logging
-from collections import namedtuple
+from collections import (
+    OrderedDict,
+    namedtuple,
+)
 
 from sentry.models import (
     Group,
@@ -64,5 +67,36 @@ filter_muted_groups = functools.partial(
 )
 
 
+class NotificationDigest(object):
+    def __init__(self, groups):
+        self.groups = groups
+
+    @property
+    def event(self):
+        # TODO: Probably warn about this.
+        # XXX: Need to put a ``Event`` model back together, ugh...
+        raise NotImplementedError
+
+    @property
+    def rule(self):
+        # TODO: Probably warn about this.
+        records = self.groups.values()[0]
+        return records[0].rules[0]
+
+    @property
+    def rules(self):
+        # TODO: Probably warn about this.
+        records = self.groups.values()[0]
+        return records[0].rules
+
+
 def build_digest(project, records):
-    return filter_muted_groups(associate_with_instance(project, group(records)))
+    return NotificationDigest(
+        OrderedDict(
+            sorted(
+                filter_muted_groups(associate_with_instance(project, group(records))),
+                key=lambda (group, records): (len(records), max(record.timestamp for record in records)),
+                reverse=True,
+            ),
+        )
+    )

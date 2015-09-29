@@ -24,7 +24,8 @@ records = itertools.imap(event_to_record, events)
 print '{project.organization} / {project}'.format(project=project)
 print ''
 
-for group, records in build_digest(project, records):
+digest = build_digest(project, records)
+for group, records in digest.groups.iteritems():
     print '*', group.message_short
     print ' ', group.culprit
     print ' ', group.get_absolute_url()
