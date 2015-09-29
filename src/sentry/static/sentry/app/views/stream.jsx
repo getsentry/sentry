@@ -403,6 +403,7 @@ var Stream = React.createClass({
             onFilterChange={this.onFilterChange}
             onSearch={this.onSearch}
             onSidebarToggle={this.onSidebarToggle}
+            isSearchDisabled={this.state.isSidebarVisible}
           />
           <div className="group-header">
             <Sticky>
