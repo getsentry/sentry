@@ -11,13 +11,13 @@ from __future__ import absolute_import, print_function
 from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.db import IntegrityError, transaction
-from hashlib import md5
 
 from sentry.constants import PLATFORM_LIST, PLATFORM_ROOTS
 from sentry.plugins import plugins
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
+from sentry.utils.hashlib import md5
 
 logger = get_task_logger(__name__)
 

@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-import hashlib
+from hashlib import sha256
 import hmac
 import logging
 
@@ -19,7 +19,7 @@ class ReleaseWebhookView(View):
         return constant_time_compare(signature, hmac.new(
             key=str(token),
             msg='{}-{}'.format(plugin_id, project_id),
-            digestmod=hashlib.sha256
+            digestmod=sha256
         ).hexdigest())
 
     @method_decorator(csrf_exempt)

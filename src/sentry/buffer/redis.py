@@ -9,8 +9,7 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.db import models
-from django.utils.encoding import smart_str
-from hashlib import md5
+from django.utils.encoding import force_bytes
 from rb import Cluster
 from time import time
 
@@ -18,6 +17,7 @@ from sentry.buffer import Buffer
 from sentry.exceptions import InvalidConfiguration
 from sentry.tasks.process_buffer import process_incr
 from sentry.utils.compat import pickle
+from sentry.utils.hashlib import md5
 from sentry.utils.imports import import_string
 
 
@@ -45,7 +45,7 @@ class RedisBuffer(Buffer):
     def _coerce_val(self, value):
         if isinstance(value, models.Model):
             value = value.pk
-        return smart_str(value)
+        return force_bytes(value, errors='replace')
 
     def _make_key(self, model, filters):
         """
@@ -53,8 +53,8 @@ class RedisBuffer(Buffer):
         """
         return 'b:k:%s:%s' % (
             model._meta,
-            md5(smart_str('&'.join('%s=%s' % (k, self._coerce_val(v))
-                for k, v in sorted(filters.iteritems())))).hexdigest(),
+            md5('&'.join('%s=%s' % (k, self._coerce_val(v))
+                for k, v in sorted(filters.iteritems()))).hexdigest(),
         )
 
     def _make_lock_key(self, key):
