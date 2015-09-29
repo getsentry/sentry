@@ -1,6 +1,7 @@
 import React from "react";
 import Router from "react-router";
 
+import ConfigStore from "../../stores/configStore";
 import ListLink from "../../components/listLink";
 
 const ProjectSettings = React.createClass({
@@ -18,18 +19,21 @@ const ProjectSettings = React.createClass({
 
   render() {
     // TODO(dcramer): move sidebar into component
-    var params = this.context.router.getCurrentParams();
+    let urlPrefix = ConfigStore.get('urlPrefix');
+    let params = this.context.router.getCurrentParams();
+    let settingsUrlRoot = `${urlPrefix}/${params.orgId}/${params.projectId}/settings`;
+
     return (
       <div className="row">
         <div className="col-md-2">
           <h6 className="nav-header">Configuration</h6>
           <ul className="nav nav-stacked">
-            <li><a href="">Project Settings</a></li>
-            <li><a href="">Notifications</a></li>
-            <li><a href="">Rules</a></li>
-            <li><a href="">Tags</a></li>
-            <li><a href="">Issue Tracking</a></li>
-            <li><a href="">Release Tracking</a></li>
+            <li><a href={`${settingsUrlRoot}/`}>Project Settings</a></li>
+            <li><a href={`${settingsUrlRoot}/notifications/`}>Notifications</a></li>
+            <li><a href={`${settingsUrlRoot}/rules/`}>Rules</a></li>
+            <li><a href={`${settingsUrlRoot}/tags/`}>Tags</a></li>
+            <li><a href={`${settingsUrlRoot}/issue-tracking/`}>Issue Tracking</a></li>
+            <li><a href={`${settingsUrlRoot}/release-tracking/`}>Release Tracking</a></li>
           </ul>
           <h6 className="nav-header">Setup</h6>
           <ul className="nav nav-stacked">
