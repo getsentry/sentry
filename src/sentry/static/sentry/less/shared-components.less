@@ -837,6 +837,8 @@ table.integrations {
   }
 
   &.disabled {
+    position: relative;
+
     .search-input {
       border: 1px solid lighten(@trim, 4);
       background: @bgColor;
@@ -845,6 +847,16 @@ table.integrations {
 
     .icon-search {
       color: @gray-light;
+    }
+
+    &:after {
+      display: block;
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
     }
   }
 }
