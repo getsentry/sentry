@@ -62,7 +62,7 @@ var Stream = React.createClass({
       query: this.props.defaultQuery,
       sort: this.props.defaultSort,
       filter: {},
-      tags: {},
+      tags: StreamTagStore.getAllTags(),
       isSidebarVisible: false
     }, this.getQueryStringState());
   },
@@ -275,11 +275,12 @@ var Stream = React.createClass({
   },
 
   onStreamTagChange(tags) {
+    // new object to trigger state change
     this.setState({
-      tags: tags.reduce((obj, tag) => {
+      tags: Object.assign({}, tags.reduce((obj, tag) => {
         obj[tag.key] = tag;
         return obj;
-      }, this.state.tags)
+      }, this.state.tags))
     });
   },
 
