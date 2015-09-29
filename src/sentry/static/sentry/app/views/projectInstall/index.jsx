@@ -2,6 +2,7 @@ import React from "react";
 import {Link} from "react-router";
 
 import api from "../../api";
+import AutoSelectText from "../../components/autoSelectText";
 import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
 
@@ -41,53 +42,72 @@ var ProjectInstall = React.createClass({
     });
   },
 
+  getPlatformLink(root, platform, display) {
+    let params = this.context.router.getCurrentParams();
+    return (
+      <li className={`${root} ${platform}`} key={platform}>
+        <span className={`platformicon platformicon-${platform}`}/>
+        <Link to="projectInstallPlatform"
+              params={Object.assign({}, params, {platform: platform})}>
+          {display}
+        </Link>
+      </li>
+    );
+  },
+
+  toggleDsn() {
+    this.setState({showDsn: !this.state.showDsn});
+  },
+
   render() {
     if (this.state.loading)
       return <LoadingIndicator />;
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
+    let data = this.state.data;
     let params = Object.assign({}, this.context.router.getCurrentParams());
 
     return (
       <div>
         <h1>Configure your application</h1>
 
-        <p>Choose a language/platform:</p>
+        <p>Get started by selecting the platform or language that powers your application.</p>
+
+        {this.state.showDsn ?
+          <div>
+            <h3>DSN</h3>
+
+            <div className="control-group">
+              <label>DSN</label>
+              <AutoSelectText className="form-control disabled">{data.dsn}</AutoSelectText>
+            </div>
+
+            <div className="control-group">
+              <label>Public DSN</label>
+              <AutoSelectText className="form-control disabled">{data.dsnPublic}</AutoSelectText>
+              <div className="help-block">Your public DSN should be used with JavaScript and ActionScript.</div>
+            </div>
+          </div>
+        :
+          <p><small>Already have things setup? <a onClick={this.toggleDsn}>Get your DSN</a>.</small></p>
+        }
 
         <h3>Popular</h3>
+
         <ul className="client-platform-list">
-          <li className="python">
-            <span className="platformicon platformicon-python"/>
-            <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python"})}>Python</Link>
-          </li>
-          <li className="javascript">
-            <span className="platformicon platformicon-js"/>
-            <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"javascript"})}>JavaScript</Link>
-          </li>
-          <li className="ruby">
-            <span className="platformicon platformicon-ruby"/>
-            <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"ruby"})}>Ruby</Link>
-          </li>
-          <li className="rails">
-            <span className="platformicon platformicon-rails"/>
-            <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"ruby-rails"})}>Rails</Link>
-          </li>
-          <li className="java">
-            <span className="platformicon platformicon-java"/>
-            <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"java"})}>Java</Link>
-          </li>
-          <li className="php">
-            <span className="platformicon platformicon-php"/>
-            <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"php"})}>PHP</Link>
-          </li>
-          <li className="django">
-            <span className="platformicon platformicon-django"/>
-            <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-django"})}>Django</Link>
-          </li>
+          {this.getPlatformLink('python', 'python', 'Python')}
+          {this.getPlatformLink('javascript', 'javascript', 'JavaScript')}
+          {this.getPlatformLink('ruby', 'ruby', 'Ruby')}
+          {this.getPlatformLink('ruby', 'rails', 'Rails')}
+          {this.getPlatformLink('php', 'php', 'PHP')}
+          {this.getPlatformLink('python', 'django', 'Django')}
+          {this.getPlatformLink('python', 'flask', 'Flask')}
         </ul>
 
-        <h3>Everything else</h3>
+        <h3>Frameworks</h3>
+
+        <h3>Languages</h3>
 
         <ul className="client-platform-list">
           <li className="bottle python">
