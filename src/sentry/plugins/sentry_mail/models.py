@@ -7,6 +7,8 @@ sentry.plugins.sentry_mail.models
 """
 from __future__ import absolute_import
 
+import itertools
+
 import sentry
 
 from django.conf import settings
@@ -193,8 +195,28 @@ class MailPlugin(NotificationPlugin):
             context=context,
         )
 
-    def notify_digest(self, digest):
-        raise NotImplementedError
+    def notify_digest(self, project, digest):
+        # TODO: Probably just put this in a template?
+        # TODO: Maybe project should just be an attribute of the digest?
+        records = list(itertools.chain.from_iterable(digest.values()))
+        # TODO: Pluralization
+        subject = '[{project}] {n} events from {first.datetime} to {last.datetime}]'.format(
+            project=project.get_full_name().encode('utf-8'),
+            n=len(records),
+            first=records[0],
+            last=records[-1],
+        )
+
+        self._send_mail(
+            subject=subject,
+            template='sentry/emails/digests/body.txt',
+            html_template='sentry/emails/digests/body.html',
+            project=project,
+            context={
+                'project': project,
+                'digest': digest,
+            },
+        )
 
 
 # Legacy compatibility
