@@ -751,9 +751,6 @@ SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.20/jquery,native/raven.min.js'
 SENTRY_ENDPOINT = None
 SENTRY_PUBLIC_ENDPOINT = None
 
-# Early draft features. Not slated or public release yet.
-SENTRY_ENABLE_EXPLORE_CODE = False
-
 # Prevent variables (e.g. context locals, http data, etc) from exceeding this
 # size in characters
 SENTRY_MAX_VARIABLE_SIZE = 512
