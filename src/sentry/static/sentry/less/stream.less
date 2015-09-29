@@ -647,7 +647,12 @@
   .toggle-stream-sidebar {
     float: left;
     width: 16%;
-    margin-left: 2%
+    margin-left: 2%;
+    height: 38px;
+
+    .icon-filter {
+      font-size: 19px;
+    }
   }
 
   .stream-content, .stream-sidebar {
@@ -683,11 +688,6 @@
     }
   }
 
-  .toggle-stream-sidebar .icon-arrow-left {
-    .transition(all .2s ease-in-out);
-    display: inline-block;
-  }
-
   &.show-sidebar {
     .stream-content {
       width: 75%;
@@ -699,10 +699,6 @@
       opacity: 1;
       height: auto;
       overflow: visible;
-    }
-
-    .toggle-stream-sidebar .icon-arrow-left {
-      -webkit-transform: rotate(-180deg);
     }
   }
 }
