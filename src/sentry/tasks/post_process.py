@@ -115,15 +115,6 @@ def record_affected_user(event, **kwargs):
         ip_address=event.ip_address,
     )
 
-    tag_data = {}
-    for key in ('id', 'email', 'username', 'data'):
-        value = user_data.get(key)
-        if value:
-            tag_data[key] = value
-    ip_address = event.ip_address
-    if ip_address:
-        tag_data['ip'] = ip_address
-
     try:
         with transaction.atomic():
             euser.save()
@@ -131,7 +122,7 @@ def record_affected_user(event, **kwargs):
         pass
 
     Group.objects.add_tags(event.group, [
-        ('sentry:user', euser.tag_value, tag_data)
+        ('sentry:user', euser.tag_value)
     ])
 
 
