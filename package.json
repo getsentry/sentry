@@ -45,6 +45,7 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
+    "postinstall": "node_modules/.bin/gulp dist",
     "test": "node_modules/karma/bin/karma start tests/karma.conf.js --single-run",
     "test-watch": "node_modules/karma/bin/karma start tests/karma.conf.js",
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx"
