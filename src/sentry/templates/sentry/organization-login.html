@@ -16,9 +16,11 @@
     <div class="align-center">
       <p>Sign in with your {{ provider_name }} account to continue.</p>
 
-      <button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
+      <p><button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
         <span class="provider-logo {{ provider_name | lower}}"></span> Login with {{ provider_name }}
-      </button>
+      </button></p>
+
+      <p><small>Have an existing account? <a href="{% url 'sentry-auth-link-identity' organization.slug %}">Login with your password</a> to link your identity.</small></p>
     </div>
   {% else %}
     <ul class="nav nav-tabs auth-toggle">
