@@ -1,5 +1,3 @@
-
-
 import React from "react/addons";
 import Cookies from "js-cookie";
 import Api from "app/api";
@@ -9,6 +7,7 @@ import LoadingIndicator from "app/components/loadingIndicator";
 import Stream from "app/views/stream";
 import StreamGroup from "app/components/stream/group";
 import StreamFilters from "app/views/stream/filters";
+import StreamSidebar from "app/views/stream/sidebar";
 import stubReactComponents from "../../helpers/stubReactComponent";
 import stubContext from "../../helpers/stubContext";
 import stubRouter from "../../helpers/stubRouter";
@@ -23,7 +22,7 @@ describe("Stream", function() {
     this.sandbox = sinon.sandbox.create();
 
     this.stubbedApiRequest = this.sandbox.stub(Api, "request");
-    stubReactComponents(this.sandbox, [StreamGroup, StreamFilters]);
+    stubReactComponents(this.sandbox, [StreamGroup, StreamFilters, StreamSidebar]);
 
     var ContextStubbedStream = stubContext(Stream, {
       router: stubRouter({
@@ -55,7 +54,7 @@ describe("Stream", function() {
       this.stubbedApiRequest.restore();
       this.sandbox.stub(Api, "request", function(url, options) {
         expectedUrl = url;
-        options.complete();
+        options.complete && options.complete();
       });
 
       var stubbedSetEndpoint = this.sandbox.stub(CursorPoller.prototype, "setEndpoint");
