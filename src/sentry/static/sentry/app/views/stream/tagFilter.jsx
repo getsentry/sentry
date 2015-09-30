@@ -13,7 +13,7 @@ var StreamTagFilter = React.createClass({
   getDefaultProps() {
     return {
       tag: {},
-      initialValue: null
+      value: null
     };
   },
 
@@ -21,7 +21,7 @@ var StreamTagFilter = React.createClass({
     return {
       query: '',
       loading: false,
-      selectedValue: this.props.initialValue,
+      value: this.props.value,
     };
   },
 
@@ -31,6 +31,17 @@ var StreamTagFilter = React.createClass({
         id: key,
         text: key
       };
+    }
+  },
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.value !== this.state.value) {
+      this.setState({
+        value: nextProps.value
+      }, () => {
+        let select = this.refs.select.getDOMNode();
+        $(select).select2('val', this.state.value);
+      });
     }
   },
 
@@ -45,7 +56,7 @@ var StreamTagFilter = React.createClass({
     if (!this.props.tag.predefined) {
       Object.assign(selectOpts, {
         initSelection: (element, callback) => {
-          callback(StreamTagFilter.tagValueToSelect2Format(this.props.initialValue));
+          callback(StreamTagFilter.tagValueToSelect2Format(this.props.value));
         },
         ajax: {
           url: this.getTagValuesAPIEndpoint(),
@@ -85,7 +96,7 @@ var StreamTagFilter = React.createClass({
   onSelectValue(evt) {
     let val = evt.target.value;
     this.setState({
-      selectedValue: val
+      value: val
     });
 
     this.props.onSelect && this.props.onSelect(this.props.tag, val);
@@ -99,7 +110,7 @@ var StreamTagFilter = React.createClass({
 
         {this.props.tag.predefined ?
 
-          <select ref="select" value={this.props.initialValue}>
+          <select ref="select" value={this.props.value}>
             <option></option>
             {this.props.tag.values.map((val) => {
               return (
@@ -107,7 +118,7 @@ var StreamTagFilter = React.createClass({
               );
             })}
           </select> :
-          <input type="hidden" ref="select" value={this.props.initialValue}/>
+          <input type="hidden" ref="select" value={this.props.value}/>
         }
 
       </div>
