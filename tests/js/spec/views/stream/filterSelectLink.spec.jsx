@@ -1,6 +1,5 @@
-var React = require("react/addons");
-
-var FilterSelectLink = require("app/views/stream/filterSelectLink");
+import React from "react/addons";
+import FilterSelectLink from "app/views/stream/filterSelectLink";
 
 var TestUtils = React.addons.TestUtils;
 var findWithClass = TestUtils.findRenderedDOMComponentWithClass;
@@ -47,3 +46,4 @@ describe("FilterSelectLink", function() {
   });
 
 });
+

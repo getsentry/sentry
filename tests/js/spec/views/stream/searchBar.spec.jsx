@@ -1,11 +1,10 @@
-var React = require("react/addons");
-var api = require("app/api");
-var SearchBar = require("app/views/stream/searchBar");
-var SearchDropdown = require("app/views/stream/searchDropdown");
-
-var stubReactComponents = require("../../../helpers/stubReactComponent");
-var stubRouter = require("../../../helpers/stubRouter");
-var stubContext = require("../../../helpers/stubContext");
+import React from "react/addons";
+import api from "app/api";
+import SearchBar from "app/views/stream/searchBar";
+import SearchDropdown from "app/views/stream/searchDropdown";
+import stubReactComponents from "../../../helpers/stubReactComponent";
+import stubRouter from "../../../helpers/stubRouter";
+import stubContext from "../../../helpers/stubContext";
 
 var TestUtils = React.addons.TestUtils;
 var findWithClass = TestUtils.findRenderedDOMComponentWithClass;
@@ -242,3 +241,4 @@ describe("SearchBar", function() {
   });
 
 });
+

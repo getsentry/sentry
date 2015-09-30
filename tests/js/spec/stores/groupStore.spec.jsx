@@ -64,3 +64,4 @@ describe('GroupStore', function () {
     });
   });
 });
+

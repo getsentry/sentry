@@ -1,15 +1,13 @@
-var React = require("react/addons");
+import React from "react/addons";
 var TestUtils = React.addons.TestUtils;
 
-var api = require("app/api");
-var stubReactComponents = require("../../../helpers/stubReactComponent");
-
-var StreamActions = require("app/views/stream/actions");
-var ActionLink = require("app/views/stream/actionLink");
-var DropdownLink = require("app/components/dropdownLink");
-var MenuItem = require("app/components/menuItem");
-
-var SelectedGroupStore = require("app/stores/selectedGroupStore");
+import api from "app/api";
+import stubReactComponents from "../../../helpers/stubReactComponent";
+import StreamActions from "app/views/stream/actions";
+import ActionLink from "app/views/stream/actionLink";
+import DropdownLink from "app/components/dropdownLink";
+import MenuItem from "app/components/menuItem";
+import SelectedGroupStore from "app/stores/selectedGroupStore";
 
 describe("StreamActions", function() {
 
@@ -65,4 +63,5 @@ describe("StreamActions", function() {
     });
   });
 });
+
 
