@@ -409,13 +409,16 @@ class RedisBackend(Backend):
 
             yield itertools.islice(get_records_for_digest(), self.capacity)
 
+            def cleanup_records(pipeline):
+                record_keys = [make_record_key(timeline_key, record_key) for record_key, score in records]
+                pipeline.delete(digest_key, *record_keys)
+
             def reschedule():
                 with connection.pipeline() as pipeline:
                     pipeline.watch(digest_key)  # This shouldn't be necessary, but better safe than sorry?
                     pipeline.multi()
 
-                    record_keys = [make_record_key(timeline_key, record_key) for record_key, score in records]
-                    pipeline.delete(digest_key, *record_keys)
+                    cleanup_records(pipeline)
                     pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
                     pipeline.zadd(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), time.time() + self.backoff(iteration + 1), key)
                     pipeline.set(make_iteration_key(timeline_key), iteration + 1)
@@ -428,6 +431,7 @@ class RedisBackend(Backend):
                     pipeline.watch(timeline_key)
                     pipeline.multi()
                     if connection.zcard(timeline_key) is 0:
+                        cleanup_records(pipeline)
                         pipeline.delete(make_iteration_key(timeline_key))
                         pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
                         pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), key)
