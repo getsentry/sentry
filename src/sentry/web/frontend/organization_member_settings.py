@@ -10,7 +10,7 @@ from sentry.web.forms.edit_organization_member import EditOrganizationMemberForm
 
 
 class OrganizationMemberSettingsView(OrganizationView):
-    required_access = OrganizationMemberType.ADMIN
+    required_access = OrganizationMemberType.MEMBER
 
     def get_form(self, request, member, authorizing_access):
         return EditOrganizationMemberForm(
