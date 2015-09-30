@@ -75,37 +75,6 @@ MEMBER_TYPES = (
 # a User instance.
 EMPTY_PASSWORD_VALUES = ('!', '', '$')
 
-PLATFORM_LIST = sorted([
-    'python',
-    'python-bottle',
-    'python-celery',
-    'python-django',
-    'python-flask',
-    'python-pylons',
-    'python-pyramid',
-    'python-tornado',
-    'javascript',
-    'node',
-    'node-express',
-    'node-koa',
-    'node-connect',
-    'php',
-    'php-laravel',
-    'php-monolog',
-    'php-symfony2',
-    'ruby',
-    'ruby-rack',
-    'ruby-rails',
-    'objective-c',
-    'java',
-    'java-log4j',
-    'java-log4j2',
-    'java-logback',
-    'java-appengine',
-    'c-sharp',
-    'go',
-])
-
 # Normalize counts to the 15 minute marker. This value MUST be less than 60. A
 # value of 0 would store counts for every minute, and is the lowest level of
 # accuracy provided.

@@ -20,7 +20,6 @@ class Command(BaseCommand):
 
     def handle(self, **options):
         from django.conf import settings
-        from sentry.constants import PLATFORM_LIST
         from sentry.models import Project
         from sentry.utils.samples import create_sample_event
 
@@ -34,9 +33,6 @@ class Command(BaseCommand):
                 project = Project.objects.get(slug=p_slug, team__slug=t_slug)
             else:
                 raise CommandError('Project must be specified as team-slug/project-slug or a project id')
-
-        if options['platform'] not in PLATFORM_LIST:
-            raise CommandError('Invalid platform. Must specify one of: %s' % ', '.join(PLATFORM_LIST))
 
         platform = options['platform']
         event = create_sample_event(project, platform)
