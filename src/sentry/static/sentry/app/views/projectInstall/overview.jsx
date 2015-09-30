@@ -72,13 +72,13 @@ const ProjectInstallOverview = React.createClass({
         <h3>Popular</h3>
 
         <ul className="client-platform-list">
-          {this.getIntegrationLink('python', 'python', 'Python')}
           {this.getIntegrationLink('javascript', 'javascript', 'JavaScript')}
-          {this.getIntegrationLink('ruby', 'ruby', 'Ruby')}
-          {this.getIntegrationLink('ruby', 'ruby-rails', 'Rails')}
-          {this.getIntegrationLink('php', 'php', 'PHP')}
           {this.getIntegrationLink('python', 'python-django', 'Django')}
-          {this.getIntegrationLink('python', 'python-flask', 'Flask')}
+          {this.getIntegrationLink('ruby', 'ruby-rails', 'Rails')}
+          {this.getIntegrationLink('node', 'node-express', 'Express')}
+          {this.getIntegrationLink('php', 'php-laravel', 'Laravel')}
+          {this.getIntegrationLink('php', 'php-symfony2', 'Symfony2')}
+          {this.getIntegrationLink('java', 'java-log4j', 'Log4j')}
         </ul>
 
         <h3>Frameworks</h3>
