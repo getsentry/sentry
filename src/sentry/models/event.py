@@ -88,13 +88,13 @@ class Event(Model):
 
     @memoize
     def ip_address(self):
-        user_data = self.data.get('sentry.interfaces.User')
+        user_data = self.data.get('sentry.interfaces.User', self.data.get('user'))
         if user_data:
             value = user_data.get('ip_address')
             if value:
                 return value
 
-        http_data = self.data.get('sentry.interfaces.Http')
+        http_data = self.data.get('sentry.interfaces.Http', self.data.get('http'))
         if http_data and 'env' in http_data:
             value = http_data['env'].get('REMOTE_ADDR')
             if value:
