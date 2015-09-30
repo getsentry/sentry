@@ -54,7 +54,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
             else:
                 # MySQL can't handle an `IN` with a `LIMIT` clause
                 queryset = base_queryset
-            queryset = queryset.filter(value__istartswith=query)
+            queryset = queryset.filter(value__contains=query)
 
         else:
             queryset = TagValue.objects.filter(
