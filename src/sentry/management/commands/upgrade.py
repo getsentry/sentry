@@ -33,3 +33,10 @@ class Command(BaseCommand):
             traceback=options['traceback'],
             verbosity=options['verbosity'],
         )
+
+        call_command(
+            'repair',
+            interactive=(not options['noinput']),
+            traceback=options['traceback'],
+            verbosity=options['verbosity'],
+        )
