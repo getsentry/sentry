@@ -19,7 +19,6 @@ import StreamTagStore from "../stores/streamTagStore";
 import StreamFilters from './stream/filters';
 import StreamSidebar from "./stream/sidebar";
 import utils from "../utils";
-import {queryToObj} from "../utils/stream";
 
 
 var Stream = React.createClass({
@@ -391,10 +390,8 @@ var Stream = React.createClass({
   render() {
     let router = this.context.router;
     let params = router.getCurrentParams();
-    let queryObj = queryToObj(this.state.query);
 
     let classes = ['stream-row'];
-
     if (this.state.isSidebarVisible)
       classes.push('show-sidebar');
 
@@ -429,7 +426,7 @@ var Stream = React.createClass({
           {this.renderStreamBody()}
           <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
         </div>
-        <StreamSidebar tags={this.state.tags} initialQuery={queryObj} onQueryChange={this.onSearch}/>
+        <StreamSidebar tags={this.state.tags} query={this.state.query} onQueryChange={this.onSearch}/>
       </div>
     );
   }

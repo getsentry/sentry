@@ -36,3 +36,23 @@ export function queryToObj(queryStr) {
 
   return queryObj;
 }
+
+/**
+ * Converts an object representation of a stream query to a string
+ * (consumable by the Sentry stream HTTP API).
+ */
+export function objToQuery(queryObj) {
+  let tags = _.omit(queryObj, '__text');
+
+  let parts = _.map(tags, (value, tagKey) => {
+      if (value.indexOf(' ') > -1)
+        value = `"${value}"`;
+
+      return `${tagKey}:${value}`;
+    });
+
+  if (queryObj.__text)
+    parts.push(queryObj.__text);
+
+  return parts.join(' ');
+}

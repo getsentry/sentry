@@ -1,6 +1,10 @@
 import React from "react";
 import _ from "underscore";
 import StreamTagFilter from "./tagFilter";
+import {queryToObj, objToQuery} from "../../utils/stream";
+
+
+let TEXT_FILTER_DEBOUNCE_IN_MS = 300;
 
 var StreamSidebar = React.createClass({
   contextTypes: {
@@ -16,56 +20,61 @@ var StreamSidebar = React.createClass({
   getDefaultProps() {
     return {
       tags: {},
-      onQueryChange: function () {},
-      initialQuery: {}
+      query: '',
+      onQueryChange: function () {}
     };
   },
 
   getInitialState() {
+    let queryObj = queryToObj(this.props.query);
     return {
-      currentQuery: this.props.initialQuery
+      queryObj: queryObj,
+      textFilter: queryObj.__text
     };
   },
 
-  getQueryStr() {
-    let tags = _.omit(this.state.currentQuery, '__text');
+  componentWillReceiveProps(nextProps) {
+    // If query was updated by another source (e.g. SearchBar),
+    // clobber state of sidebar with new query.
+    let query = objToQuery(this.state.queryObj);
 
-    return _.map(tags, (value, tagKey) => {
-        if (value.indexOf(' ') > -1)
-          value = `"${value}"`;
-
-        return `${tagKey}:${value}`;
-      })
-      .concat(this.state.currentQuery.__text)
-      .join(' ');
+    if (!_.isEqual(nextProps.query, query)) {
+      let queryObj = queryToObj(nextProps.query);
+      this.setState({
+        queryObj: queryObj,
+        textFilter: queryObj.__text
+      });
+    }
   },
 
   onSelectTag(tag, value) {
-    let newQuery = {...this.state.currentQuery};
+    let newQuery = {...this.state.queryObj};
     if (value)
       newQuery[tag.key] = value;
     else
       delete newQuery[tag.key];
 
     this.setState({
-      currentQuery: newQuery,
+      queryObj: newQuery,
     }, this.onQueryChange);
   },
 
   onTextChange: function (evt) {
     let text = evt.target.value;
 
+    this.setState({ textFilter: text });
+
     this.debouncedTextChange(text);
   },
 
   debouncedTextChange: _.debounce(function(text) {
     this.setState({
-      currentQuery: {...this.state.currentQuery, __text:text}
+      queryObj: {...this.state.queryObj, __text:text}
     }, this.onQueryChange);
-  }, 300),
+  }, TEXT_FILTER_DEBOUNCE_IN_MS),
 
   onQueryChange() {
-    let query = this.getQueryStr();
+    let query = objToQuery(this.state.queryObj);
     this.props.onQueryChange && this.props.onQueryChange(query);
   },
 
@@ -78,7 +87,7 @@ var StreamSidebar = React.createClass({
             className="form-control"
             placeholder="Search title and culprit text body"
             onChange={this.onTextChange}
-            defaultValue={this.props.initialQuery.__text}
+            value={this.state.textFilter}
           />
           <hr/>
         </div>
@@ -86,7 +95,7 @@ var StreamSidebar = React.createClass({
         {_.map(this.props.tags, (tag) => {
           return (
             <StreamTagFilter
-              initialValue={this.state.currentQuery[tag.key]}
+              value={this.state.queryObj[tag.key]}
               key={tag.key}
               tag={tag}
               onSelect={this.onSelectTag}
