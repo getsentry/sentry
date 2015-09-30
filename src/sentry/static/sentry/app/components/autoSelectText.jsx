@@ -7,7 +7,7 @@ const AutoSelectText = React.createClass({
     jQuery(ref).bind('click', this.selectText);
   },
 
-  componentWillUnount() {
+  componentWillUnmount() {
     let ref = this.refs.element.getDOMNode();
     jQuery(ref).unbind('click', this.selectText);
   },
