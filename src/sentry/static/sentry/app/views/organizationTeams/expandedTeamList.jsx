@@ -32,28 +32,60 @@ var ExpandedTeamList = React.createClass({
   },
 
   renderTeamNode(team, urlPrefix) {
-    return (
-      <div className="box" key={team.slug}>
-        <div className="box-header">
-          <div className="pull-right actions hidden-xs">
-            <a className="leave-team" onClick={this.leaveTeam.bind(this, team)}>
-              Leave Team
-            </a>
-            <a className="team-settings" href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
-              Team Settings
-            </a>
+    if (team.projects.length) {
+      return (
+        <div className="box" key={team.slug}>
+          <div className="box-header">
+            <div className="pull-right actions hidden-xs">
+              <a className="leave-team" onClick={this.leaveTeam.bind(this, team)}>
+                Leave Team
+              </a>
+              <a className="team-settings" href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
+                Team Settings
+              </a>
+            </div>
+            <h3>{team.name}</h3>
           </div>
-          <h3>{team.name}</h3>
+          <div className="box-content">
+            <table className="table project-list">
+              <tbody>{sortArray(team.projects, function(o) {
+                return o.name;
+              }).map(this.renderProject)}</tbody>
+            </table>
+          </div>
         </div>
-        <div className="box-content">
-          <table className="table project-list">
-            <tbody>{sortArray(team.projects, function(o) {
-              return o.name;
-            }).map(this.renderProject)}</tbody>
-          </table>
+      );
+    } else {
+      return (
+        <div className="box" key={team.slug}>
+          <div className="box-header">
+            <div className="pull-right actions hidden-xs">
+              <a className="leave-team" onClick={this.leaveTeam.bind(this, team)}>
+                Leave Team
+              </a>
+              <a className="team-settings" href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
+                Team Settings
+              </a>
+            </div>
+            <h3>{team.name}</h3>
+          </div>
+          <div className="box-content">
+            <table className="table project-list">
+              <tbody>
+                <tr>
+                  <td>
+                    <p className="project-list-empty">
+                      {"There are no projects in this team. Get started by "}
+                      <a href={this.urlPrefix() + '/projects/new/?team=' + team.slug}>creating your first project</a>.
+                    </p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
   },
 
   renderProject(project) {
