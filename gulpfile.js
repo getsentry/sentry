@@ -40,10 +40,6 @@ function file(name) {
   return path.join(__dirname, staticPrefix, name);
 }
 
-function vendorFile(name) {
-  return path.join(__dirname, staticPrefix, "vendor", name);
-}
-
 function buildCssCompileTask(name, fileList) {
   return function(){
     gulp.src(fileList)
@@ -67,9 +63,11 @@ gulp.task("dist:css:sentry", buildCssCompileTask("sentry.css", [file("less/sentr
 
 gulp.task("dist:css:wall", buildCssCompileTask("wall.css", [file("less/wall.less")]))
 
-gulp.task("dist:css", ["dist:css:sentry", "dist:css:wall"]);
+gulp.task("dist:css:platformicons", buildCssCompileTask("platformicons.css", ['node_modules/platformicons/platformicons/platformicons.css']))
 
-gulp.task("dist", ["dist:css"]);
+gulp.task("dist:css", ["dist:css:sentry", "dist:css:wall", "dist:css:platformicons"]);
+
+gulp.task("dist", ["dist:css", "platformicons"]);
 
 gulp.task("watch:css:sentry", ["dist:css:sentry"], function(){
   return gp_watch(file("less/**/*.less"), function(){
@@ -81,6 +79,11 @@ gulp.task("watch:css:wall", ["dist:css:wall"], function(){
   return gp_watch(file("less/wall.less"), function(){
     gulp.start("dist:css:wall");
   });
+});
+
+gulp.task('platformicons', function() {
+  return gulp.src(['!node_modules/platformicons/platformicons/platformicons.css', 'node_modules/platformicons/platformicons/*'])
+  .pipe(gulp.dest(distPath));
 });
 
 gulp.task("watch:css", ["watch:css:sentry", "watch:css:wall"]);

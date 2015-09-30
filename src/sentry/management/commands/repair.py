@@ -14,10 +14,12 @@ class Command(BaseCommand):
     help = 'Attempts to repair any invalid data within Sentry'
 
     def handle(self, **options):
+        print("Forcing documentation sync")
+        from sentry.tasks.sync_docs import sync_docs
+        sync_docs()
+
         from sentry.models import Project, ProjectKey
         from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
-
-        # Create missing project keys
         print("Creating missing project keys")
         queryset = Project.objects.all()
         for project in RangeQuerySetWrapperWithProgressBar(queryset):

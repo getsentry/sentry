@@ -2,9 +2,8 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Project, Team
+from sentry.models import Team
 from sentry.testutils import TestCase, PermissionTestCase
-from sentry.web.frontend.create_team import AddTeamForm, AddProjectForm
 
 
 class CreateTeamPermissionTest(PermissionTestCase):
@@ -26,104 +25,28 @@ class CreateTeamPermissionTest(PermissionTestCase):
 
 
 class CreateTeamTest(TestCase):
-    def test_step_0_renders(self):
+    def test_renders_with_context(self):
         organization = self.create_organization()
+        team = self.create_team(organization=organization)
         path = reverse('sentry-create-team', args=[organization.slug])
         self.login_as(self.user)
         resp = self.client.get(path)
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/create-team-step-team.html')
+        self.assertTemplateUsed(resp, 'sentry/create-team.html')
         assert resp.context['organization'] == organization
-        assert resp.context['step'] == 0
         assert resp.context['form']
-        assert type(resp.context['form']) == AddTeamForm
 
-    def test_step_0_valid_params(self):
+    def test_submission(self):
         organization = self.create_organization()
         path = reverse('sentry-create-team', args=[organization.slug])
         self.login_as(self.user)
         resp = self.client.post(path, {
-            'op': 'continue',
-            'step': '0',
-            'ctwizard-0-name': 'bar',
+            'name': 'bar',
         })
-        assert resp.status_code == 200
-        assert resp.context['step'] == 1, resp.context['form'].errors
+        assert resp.status_code == 302, resp.context['form'].errors
 
-    def test_step_1_renders(self):
-        organization = self.create_organization()
+        team = Team.objects.get(organization=organization, name='bar')
 
-        path = reverse('sentry-create-team', args=[organization.slug])
-
-        self.login_as(self.user)
-
-        self.session['ctwizard'] = {
-            'step0': {'name': 'bar'},
-        }
-        self.save_session()
-
-        resp = self.client.post(path, {'step': '1'})
-
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/create-team-step-project.html')
-        assert resp.context['organization'] == organization
-        assert resp.context['step'] == 1
-        assert resp.context['form']
-        assert type(resp.context['form']) == AddProjectForm
-
-    def test_step_1_valid_params(self):
-        organization = self.create_organization()
-
-        path = reverse('sentry-create-team', args=[organization.slug])
-
-        self.login_as(self.user)
-
-        self.session['ctwizard'] = {
-            'step0': {'name': 'bar'},
-        }
-        self.save_session()
-
-        resp = self.client.post(path, {
-            'op': 'continue',
-            'step': '1',
-            'ctwizard-1-name': 'bar',
-        })
-        assert resp.status_code == 302
-
-        team = Team.objects.get(organization=organization)
-
-        assert team.name == 'bar'
-
-        project = Project.objects.get(team=team)
-
-        assert project.name == 'bar'
-
-        redirect_uri = reverse('sentry-stream', args=[organization.slug, project.slug])
-
-        assert resp['Location'] == 'http://testserver%s?newinstall=1' % (redirect_uri,)
-
-    def test_step_1_skip(self):
-        organization = self.create_organization()
-
-        path = reverse('sentry-create-team', args=[organization.slug])
-
-        self.login_as(self.user)
-
-        self.session['ctwizard'] = {
-            'step0': {'name': 'bar'},
-        }
-        self.save_session()
-
-        resp = self.client.post(path, {
-            'op': 'skip',
-            'step': '1',
-        })
-        assert resp.status_code == 302
-
-        team = Team.objects.get(organization=organization)
-
-        assert team.name == 'bar'
-
-        redirect_uri = reverse('sentry-organization-home', args=[organization.slug])
-
-        assert resp['Location'] == 'http://testserver%s' % (redirect_uri,)
+        redirect_uri = reverse('sentry-create-project', args=[organization.slug])
+        assert resp['Location'] == 'http://testserver%s?team=%s' % (
+            redirect_uri, team.slug)

@@ -1,4 +1,5 @@
 import React from "react";
+
 import FilterSelectLink from "./filterSelectLink";
 import SearchBar from "./searchBar";
 import SortOptions from "./sortOptions";
@@ -16,7 +17,8 @@ var StreamFilters = React.createClass({
       query: null,
       onFilterChange: function() {},
       onSortChange: function() {},
-      onSearch: function() {}
+      onSearch: function() {},
+      onSidebarToggle: function () {}
     };
   },
 
@@ -84,11 +86,14 @@ var StreamFilters = React.createClass({
           <div className="col-sm-5">
             <SearchBar
               ref="searchBar"
+              tags={this.props.tags}
               defaultQuery={this.props.defaultQuery}
               placeholder="Search for events, users, tags, and everything else."
               query={this.props.query}
               onSearch={this.props.onSearch}
+              disabled={this.props.isSearchDisabled}
               />
+            <a className="btn btn-default toggle-stream-sidebar" onClick={this.props.onSidebarToggle}><span className="icon-filter"></span></a>
           </div>
         </div>
       </div>

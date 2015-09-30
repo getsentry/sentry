@@ -127,9 +127,11 @@ def generate_culprit(data):
         if 'sentry.interfaces.Stacktrace' in data:
             stacktraces = [data['sentry.interfaces.Stacktrace']]
         else:
-            return ''
+            stacktraces = None
 
     if not stacktraces:
+        if 'sentry.interfaces.Http' in data:
+            return data['sentry.interfaces.Http'].get('url') or ''
         return ''
 
     return truncatechars(
@@ -301,9 +303,12 @@ class EventManager(object):
             del data['sentry.interfaces.Stacktrace']
 
         if 'sentry.interfaces.Http' in data:
-            # default the culprit to the url
-            if not data['culprit']:
-                data['culprit'] = data['sentry.interfaces.Http']['url']
+            ip_address = data['sentry.interfaces.Http'].get(
+                'env', {}).get('REMOTE_ADDR')
+            if ip_address:
+                data.setdefault('sentry.interfaces.User', {})
+                data['sentry.interfaces.User'].setdefault(
+                    'ip_address', ip_address)
 
         if data['time_spent']:
             data['time_spent'] = int(data['time_spent'])
@@ -319,8 +324,6 @@ class EventManager(object):
 
     @suppress_exceptions
     def save(self, project, raw=False):
-        # TODO: culprit should default to "most recent" frame in stacktraces when
-        # it's not provided.
         project = Project.objects.get_from_cache(id=project)
 
         data = self.data.copy()

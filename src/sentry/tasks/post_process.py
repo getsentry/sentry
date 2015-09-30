@@ -11,7 +11,6 @@ from __future__ import absolute_import, print_function
 from celery.utils.log import get_task_logger
 from django.db import IntegrityError, transaction
 
-from sentry.constants import PLATFORM_LIST, PLATFORM_ROOTS
 from sentry.plugins import plugins
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -21,13 +20,12 @@ logger = get_task_logger(__name__)
 
 
 def _capture_stats(event, is_new):
+    # TODO(dcramer): limit platforms to... something?
     group = event.group
     platform = group.platform
     if not platform:
         return
-    platform = PLATFORM_ROOTS.get(platform, platform)
-    if platform not in PLATFORM_LIST:
-        return
+    platform = platform.split('-', 1)[0].split('_', 1)[0]
 
     if is_new:
         metrics.incr('events.unique')
@@ -107,7 +105,7 @@ def record_affected_user(event, **kwargs):
         ident=unicode(user_data.get('id')) if user_data.get('id') else None,
         email=user_data.get('email'),
         username=user_data.get('username'),
-        ip_address=event.ip_address,
+        ip_address=user_data.get('ip_address'),
     )
 
     try:

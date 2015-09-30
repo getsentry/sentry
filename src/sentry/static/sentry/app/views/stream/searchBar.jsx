@@ -1,8 +1,9 @@
 import React from "react";
 import Reflux from "reflux";
 import _ from "underscore";
+import classNames from "classnames";
 
-// import TagStore from "../../stores/tagStore";
+import StreamTagStore from "../../stores/streamTagStore";
 import MemberListStore from "../../stores/memberListStore";
 
 import api from "../../api";
@@ -77,18 +78,13 @@ var SearchBar = React.createClass({
     };
   },
 
-  componentWillMount() {
-    var params = this.context.router.getCurrentParams();
-    api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
-      success: (tags) => {
-        this.setState({
-          tags: tags.reduce((obj, tag) => {
-            obj[tag.key] = tag;
-            return obj;
-          }, this.state.tags)
-        });
-      }
-    });
+  componentWillReceiveProps(nextProps) {
+    // query was updated by another source (e.g. sidebar filters)
+    if (nextProps.query !== this.state.query) {
+      this.setState({
+        query: nextProps.query
+      });
+    }
   },
 
   statics: {
@@ -163,47 +159,12 @@ var SearchBar = React.createClass({
   },
 
   /**
-   * Returns a tag object matching the given tag name. Includes
-   * predefined tags (e..g "is:" and "assigned:").
-   */
-  getTag(tagName) {
-    // predefined search terms tag priority over tags
-    switch (tagName) {
-      case 'is':
-        return {
-          key: 'is',
-          values: [
-            { value: 'resolved' },
-            { value: 'unresolved' },
-            { value: 'muted' }
-          ],
-          predefined: true
-        };
-      case 'assigned':
-        return {
-          key: 'assigned',
-          values: MemberListStore.getAll().map(user => {
-            return { value: user.email };
-          }),
-          predefined: true
-        };
-      default:
-        return this.state.tags[tagName];
-    }
-  },
-
-  /**
    * Returns array of possible key values that substring match `query`
    *
    * e.g. ['is:', 'assigned:', 'url:', 'release:']
    */
   getTagKeys: function (query) {
-    let keys = [
-      'is',
-      'assigned'
-    ].concat(Object.keys(this.state.tags).map(k => this.state.tags[k].key));
-
-    return keys
+    return StreamTagStore.getTagKeys()
       .map(key => key + ':')
       .filter(key => key.indexOf(query) > -1);
   },
@@ -220,7 +181,7 @@ var SearchBar = React.createClass({
       loading: true
     });
 
-    var params = this.context.router.getCurrentParams();
+    let params = this.context.router.getCurrentParams();
     api.request(`/projects/${params.orgId}/${params.projectId}/tags/${tag.key}/values/`, {
       data: {
         query: query
@@ -228,7 +189,10 @@ var SearchBar = React.createClass({
       method: "GET",
       success: (values) => {
         this.setState({ loading: false });
-        callback(values.map(v => '"' + v.value + '"'), tag.key, query);
+        callback(values.map((v) => {
+          // Wrap in quotes if there is a space
+          return v.value.indexOf(' ') > -1 ? `"${v.value}"` : v.value;
+        }), tag.key, query);
       }
     });
   }, 300),
@@ -239,7 +203,6 @@ var SearchBar = React.createClass({
    */
   getPredefinedTagValues: function (tag, query, callback) {
     var values = tag.values
-      .map(valueObj => valueObj.value)
       .filter(value => value.indexOf(query) > -1);
 
     callback(values, tag.key);
@@ -306,7 +269,7 @@ var SearchBar = React.createClass({
       query = last.slice(index + 1);
       this.setState({searchTerm: query});
 
-      let tag = this.getTag(tagName);
+      let tag = StreamTagStore.getTag(tagName);
       if (!tag)
         return void this.setState({
           searchItems: []
@@ -432,8 +395,12 @@ var SearchBar = React.createClass({
       display: this.state.dropdownVisible ? 'block' : 'none'
     };
 
+    let rootClassNames = ['search'];
+    if (this.props.disabled)
+      rootClassNames.push('disabled');
+
     return (
-      <div className="search">
+      <div className={classNames(rootClassNames)}>
         <form className="form-horizontal" ref="searchForm" onSubmit={this.onSubmit}>
           <div>
             <input type="text" className="search-input form-control"
@@ -448,6 +415,7 @@ var SearchBar = React.createClass({
               onKeyDown={this.onKeyDown}
               onChange={this.onQueryChange}
               onClick={this.onInputClick}
+              disabled={this.props.disabled}
               />
             <span className="icon-search" />
             {this.state.query !== this.props.defaultQuery &&

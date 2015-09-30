@@ -209,7 +209,7 @@ urlpatterns += patterns(
         name='sentry-create-organization'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/$', OrganizationApiKeysView.as_view(),
         name='sentry-organization-api-keys'),
-    url(r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/(?P<key_id>[\w_-]+)$', OrganizationApiKeySettingsView.as_view(),
+    url(r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/(?P<key_id>[\w_-]+)/$', OrganizationApiKeySettingsView.as_view(),
         name='sentry-organization-api-key-settings'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/auth/$', OrganizationAuthSettingsView.as_view(),
         name='sentry-organization-auth-settings'),
@@ -379,6 +379,8 @@ urlpatterns += patterns(
         name='sentry-dashboard'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/events/$', ReactPageView.as_view(),
         name='sentry-events'),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/install/$', ReactPageView.as_view(),
+        name='sentry-project-setup'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', ReactPageView.as_view(),
         name='sentry-stream'),
 
