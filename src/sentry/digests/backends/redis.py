@@ -15,7 +15,10 @@ from redis.exceptions import (
     WatchError,
 )
 
-from sentry.utils.cache import Lock
+from sentry.utils.cache import (
+    Lock,
+    UnableToGetLock,
+)
 
 from .. import (
     Record,
@@ -214,48 +217,91 @@ class RedisBackend(Backend):
                     raise RuntimeError('loop exceeded maximum iterations (%s)' % (maximum_iterations,))
 
     def maintenance(self, deadline, chunk=1000):
-        # XXX: This is not the final iteration of this, and will need changes
-        # before actual use!
+        # TODO: This needs tests!
 
         # TODO: Balancing.
         for host in self.cluster.hosts:
             connection = self.cluster.get_local_client(host)
 
-            # TODO: This needs to respect locks!
+            start = 0
             maximum_iterations = 1000
             for i in xrange(maximum_iterations):
                 items = connection.zrangebyscore(
                     make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
-                    min=0,
+                    min=start,
                     max=deadline,
                     withscores=True,
                     start=0,
                     num=chunk,
                 )
 
-                # XXX: Redis will error if we try and execute an empty
-                # transaction. If there are no items to move between states, we
-                # need to exit the loop now. (This can happen on the first
-                # iteration of the loop if there is nothing to do, or on a
-                # subsequent iteration if there was exactly the same number of
-                # items to change states as the chunk size.)
-                if not items:
-                    break
+                if items:
+                    # Set the start position for the next query.
+                    start = items[-1][0]  # (This value is (key, timestamp).)
 
-                with connection.pipeline() as pipeline:
-                    pipeline.multi()
+                def lock((key, timestamp)):
+                    """
+                    Attempt to immedately acquire a lock on the timeline at
+                    key, returning the lock if it can be acquired, otherwise
+                    returning ``None``.
+                    """
+                    lock = Lock(make_timeline_key(self.namespace, key))
+                    try:
+                        # TODO: This timeout is totally arbitrary, need to
+                        # ensure this is reasonable.
+                        lock.__enter__(timeout=60, nowait=True)  # TODO: Add ``Lock.acquire``.
+                    except UnableToGetLock:
+                        return None
 
-                    pipeline.zrem(
-                        make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
-                        *[key for key, timestamp in items]
-                    )
+                def locked((lock, item)):
+                    return lock is not None
 
-                    pipeline.zadd(
-                        make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
-                        *itertools.chain.from_iterable([(timestamp, key) for (key, timestamp) in items])
-                    )
+                # Try to take out a lock on each item. If we can't acquire the
+                # lock, that means this is currently being digested (and
+                # doesn't require rescheduling.) Since we can only reschedule
+                # items that we were able to lock, we then filter the list down
+                # to items that we hold the lock on.
+                held = filter(locked, map(lock, items))
 
-                    pipeline.execute()
+                # XXX: We need to perform this check before the transaction to
+                # ensure that we don't execute an empty transaction. (We'll
+                # need to perform a similar check after the completion of the
+                # transaction as well.)
+                if not held:
+                    if len(items) == chunk:
+                        # There is nothing to reschedule in this chunk, but we
+                        # need check if there are others after this chunk.
+                        continue
+                    else:
+                        # There is nothing to unlock, and we've exhausted all items.
+                        break
+
+                try:
+                    with connection.pipeline() as pipeline:
+                        pipeline.multi()
+
+                        pipeline.zrem(
+                            make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
+                            *[key for (lock, (key, timestamp)) in held]
+                        )
+
+                        pipeline.zadd(
+                            make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
+                            *itertools.chain.from_iterable([(timestamp, key) for (lock, (key, timestamp)) in held])
+                        )
+
+                        pipeline.execute()
+                finally:
+                    # Regardless of the outcome of the transaction, we should
+                    # try to unlock the items for processing.
+                    for lock, item in held:
+                        try:
+                            lock.__exit__(None, None, None)  # TODO: Add ``Lock.release``.
+                        except Exception as error:
+                            # XXX: This shouldn't be hit (the ``Lock`` code
+                            # should swallow the exception) but this is here
+                            # for safety anyway.
+                            logger.warning('Could not unlock %r: %s', item, error)
 
                 # If we retrieved less than the chunk size of items, we don't
                 # need try to retrieve more items.
