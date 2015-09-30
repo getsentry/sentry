@@ -209,7 +209,7 @@ urlpatterns += patterns(
         name='sentry-create-organization'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/$', OrganizationApiKeysView.as_view(),
         name='sentry-organization-api-keys'),
-    url(r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/(?P<key_id>[\w_-]+)$', OrganizationApiKeySettingsView.as_view(),
+    url(r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/(?P<key_id>[\w_-]+)/$', OrganizationApiKeySettingsView.as_view(),
         name='sentry-organization-api-key-settings'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/auth/$', OrganizationAuthSettingsView.as_view(),
         name='sentry-organization-auth-settings'),
