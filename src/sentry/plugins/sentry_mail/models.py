@@ -200,11 +200,11 @@ class MailPlugin(NotificationPlugin):
         # TODO: Maybe project should just be an attribute of the digest?
         records = list(itertools.chain.from_iterable(digest.values()))
         # TODO: Pluralization
-        subject = '[{project}] {n} events from {first.datetime} to {last.datetime}]'.format(
+        subject = '[{project}] {n} events from {oldest.datetime} to {newest.datetime}]'.format(
             project=project.get_full_name().encode('utf-8'),
             n=len(records),
-            first=records[0],
-            last=records[-1],
+            oldest=records[-1],
+            newest=records[0],
         )
 
         self._send_mail(
