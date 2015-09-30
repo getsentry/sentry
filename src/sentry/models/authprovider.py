@@ -12,7 +12,7 @@ from sentry.db.models import (
 from .organizationmember import OrganizationMember
 
 
-_organizationemmber_type_field = OrganizationMember._meta.get_field('type')
+_organizationmember_type_field = OrganizationMember._meta.get_field('type')
 
 
 class AuthProvider(Model):
@@ -25,8 +25,8 @@ class AuthProvider(Model):
     last_sync = models.DateTimeField(null=True)
 
     default_role = BoundedPositiveIntegerField(
-        choices=_organizationemmber_type_field.choices,
-        default=_organizationemmber_type_field.default
+        choices=_organizationmember_type_field.choices,
+        default=_organizationmember_type_field.default
     )
     default_global_access = models.BooleanField(default=True)
     # TODO(dcramer): ManyToMany has the same issue as ForeignKey and we need

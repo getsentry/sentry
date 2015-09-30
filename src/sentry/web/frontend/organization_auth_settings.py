@@ -26,12 +26,28 @@ OK_PROVIDER_DISABLED = _('SSO authentication has been disabled.')
 
 OK_REMINDERS_SENT = _('A reminder email has been sent to members who have not yet linked their accounts.')
 
+MEMBERSHIP_CHOICES = (
+    (OrganizationMemberType.MEMBER, _('Member')),
+    (OrganizationMemberType.ADMIN, _('Admin')),
+    (OrganizationMemberType.OWNER, _('Owner')),
+)
+
 
 class AuthProviderSettingsForm(forms.Form):
     require_link = forms.BooleanField(
         label=_('Require SSO'),
         help_text=_('Require members use a valid linked SSO account to access this organization'),
         required=False,
+    )
+    default_global_access = forms.BooleanField(
+        label=_('Default Global Access'),
+        required=False,
+        help_text=_('Give new members access to all teams by default (global access).'),
+    )
+    default_role = forms.ChoiceField(
+        label=_('Default Role'),
+        choices=MEMBERSHIP_CHOICES,
+        help_text=_('The default role new members will receive when logging in for the first time.'),
     )
 
 
@@ -106,11 +122,15 @@ class OrganizationAuthSettingsView(OrganizationView):
             data=request.POST if request.POST.get('op') == 'settings' else None,
             initial={
                 'require_link': not auth_provider.flags.allow_unlinked,
+                'default_role': auth_provider.default_role,
+                'default_global_access': auth_provider.default_global_access,
             },
         )
 
         if form.is_valid():
             auth_provider.flags.allow_unlinked = not form.cleaned_data['require_link']
+            auth_provider.default_role = form.cleaned_data['default_role']
+            auth_provider.default_global_access = form.cleaned_data.get('default_global_access') or False
             auth_provider.save()
 
         view = provider.get_configure_view()
