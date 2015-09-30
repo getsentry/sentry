@@ -18,19 +18,24 @@ var ProjectInstallPlatform = React.createClass({
     let params = this.context.router.getCurrentParams();
     var key = params.platform;
     var integration;
-    this.props.platformData.platforms.forEach((platform) => {
+    var platform;
+    this.props.platformData.platforms.forEach((p_item) => {
       if (integration) {
         return;
       }
-      integration = platform.integrations.filter((item) => {
-        return item.id == key;
-      });
+      integration = p_item.integrations.filter((i_item) => {
+        return i_item.id == key;
+      })[0];
+      if (integration) {
+        platform = p_item;
+      }
     });
 
     return {
       loading: true,
       error: false,
       integration: integration,
+      platform: platform,
       html: null
     };
   },
@@ -76,8 +81,7 @@ var ProjectInstallPlatform = React.createClass({
 
   render() {
     let params = this.context.router.getCurrentParams();
-    let {platform} = params;
-    let integration = this.state.integration;
+    var {integration, platform} = this.state;
 
     return (
       <div className="install row">
@@ -108,18 +112,15 @@ var ProjectInstallPlatform = React.createClass({
           </div>
         </div>
         <div className="install-sidebar col-md-2">
-          <LanguageNav name="Python" active={platform.indexOf('python') !== -1}>
-            {this.getPlatformLink('python', 'Generic')}
-            {this.getPlatformLink('python-bottle')}
-            {this.getPlatformLink('python-django')}
-            {this.getPlatformLink('python-flask')}
-            {this.getPlatformLink('python-pylons')}
-            {this.getPlatformLink('python-pyramid')}
-            {this.getPlatformLink('python-tornado')}
-          </LanguageNav>
-          <LanguageNav name="JavaScript" active={platform.indexOf('javascript') !== -1}>
-            {this.getPlatformLink('javascript', 'Generic')}
-          </LanguageNav>
+          {this.props.platformData.platforms.map((p_item) => {
+            return (
+              <LanguageNav name={p_item.name} active={platform.id === p_item.id}>
+                {p_item.integrations.map((i_item) => {
+                  return this.getPlatformLink(i_item.id, (i_item.id === p_item.id ? 'Generic' : i_item.name));
+                })}
+              </LanguageNav>
+            );
+          })}
         </div>
       </div>
     );
