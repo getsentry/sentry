@@ -72,7 +72,7 @@ var StreamTagFilter = React.createClass({
       .on('change', this.onSelectValue);
   },
 
-  componentWillUnount() {
+  componentWillUnmount() {
     let select = this.refs.select.getDOMNode();
     $(select).select2('destroy');
   },
