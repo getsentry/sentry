@@ -42,4 +42,3 @@ var MemberListStore = Reflux.createStore({
 });
 
 export default MemberListStore;
-

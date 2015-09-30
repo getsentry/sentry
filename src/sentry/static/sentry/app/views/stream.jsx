@@ -2,7 +2,11 @@ import React from "react";
 import Reflux from "reflux";
 import $ from "jquery";
 import Cookies from "js-cookie";
+import Sticky from 'react-sticky';
+import classNames from "classnames";
+
 import api from "../api";
+
 import GroupStore from "../stores/groupStore";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
@@ -10,14 +14,18 @@ import Pagination from "../components/pagination";
 import RouteMixin from "../mixins/routeMixin";
 import StreamGroup from '../components/stream/group';
 import StreamActions from './stream/actions';
+import StreamTagActions from "../actions/streamTagActions";
+import StreamTagStore from "../stores/streamTagStore";
 import StreamFilters from './stream/filters';
+import StreamSidebar from "./stream/sidebar";
 import utils from "../utils";
-import Sticky from 'react-sticky';
+import {queryToObj} from "../utils/stream";
 
 
 var Stream = React.createClass({
   mixins: [
     Reflux.listenTo(GroupStore, "onGroupChange"),
+    Reflux.listenTo(StreamTagStore, "onStreamTagChange"),
     RouteMixin
   ],
 
@@ -53,7 +61,10 @@ var Stream = React.createClass({
       error: false,
       query: this.props.defaultQuery,
       sort: this.props.defaultSort,
-      filter: {}
+      filter: {},
+      tags: StreamTagStore.getAllTags(),
+      isSidebarVisible: false,
+      isStickyHeader: false
     }, this.getQueryStringState());
   },
 
@@ -69,6 +80,8 @@ var Stream = React.createClass({
       success: this.onRealtimePoll,
       endpoint: this.getGroupListEndpoint()
     });
+
+    this.fetchTags();
 
     var realtime = Cookies.get("realtimeActive");
     if (realtime) {
@@ -87,6 +100,20 @@ var Stream = React.createClass({
   componentWillUnmount() {
     this._poller.disable();
     GroupStore.reset();
+  },
+
+  fetchTags() {
+    StreamTagActions.loadTags();
+
+    var params = this.context.router.getCurrentParams();
+    api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
+      success: (tags) => {
+        StreamTagActions.loadTagsSuccess(tags);
+      },
+      error: (error) => {
+        StreamTagActions.loadTagsError();
+      }
+    });
   },
 
   getQueryStringState() {
@@ -170,7 +197,7 @@ var Stream = React.createClass({
     this.lastRequest = api.request(url, {
       method: 'GET',
       data: requestParams,
-      success: (data, _, jqXHR) => {
+      success: (data, ignore, jqXHR) => {
         // Was this the result of an event SHA search? If so, redirect
         // to corresponding group details
         if (data.length === 1 && /^[a-zA-Z0-9]{32}$/.test(requestParams.query.trim())) {
@@ -248,6 +275,16 @@ var Stream = React.createClass({
     }
   },
 
+  onStreamTagChange(tags) {
+    // new object to trigger state change
+    this.setState({
+      tags: Object.assign({}, tags.reduce((obj, tag) => {
+        obj[tag.key] = tag;
+        return obj;
+      }, this.state.tags))
+    });
+  },
+
   onPage(cursor) {
     var router = this.context.router;
     var params = router.getCurrentParams();
@@ -273,6 +310,18 @@ var Stream = React.createClass({
     this.setState({
       filter: filter
     }, this.transitionTo);
+  },
+
+  onSidebarToggle() {
+    this.setState({
+      isSidebarVisible: !this.state.isSidebarVisible
+    });
+  },
+
+  onStickyStateChange(state) {
+    this.setState({
+      isStickyHeader: state
+    });
   },
 
   transitionTo() {
@@ -340,33 +389,47 @@ var Stream = React.createClass({
   },
 
   render() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
+    let router = this.context.router;
+    let params = router.getCurrentParams();
+    let queryObj = queryToObj(this.state.query);
+
+    let classes = ['stream-row'];
+
+    if (this.state.isSidebarVisible)
+      classes.push('show-sidebar');
 
     return (
-      <div>
-        <StreamFilters
-          query={this.state.query}
-          sort={this.state.sort}
-          defaultQuery={this.props.defaultQuery}
-          onSortChange={this.onSortChange}
-          onFilterChange={this.onFilterChange}
-          onSearch={this.onSearch} />
+      <div className={classNames(classes)}>
+        <div className="stream-content">
+          <StreamFilters
+            query={this.state.query}
+            sort={this.state.sort}
+            tags={this.state.tags}
+            defaultQuery={this.props.defaultQuery}
+            onSortChange={this.onSortChange}
+            onFilterChange={this.onFilterChange}
+            onSearch={this.onSearch}
+            onSidebarToggle={this.onSidebarToggle}
+            isSearchDisabled={this.state.isSidebarVisible}
+          />
           <div className="group-header">
-            <Sticky>
-              <StreamActions
-                orgId={params.orgId}
-                projectId={params.projectId}
-                onSelectStatsPeriod={this.onSelectStatsPeriod}
-                onRealtimeChange={this.onRealtimeChange}
-                realtimeActive={this.state.realtimeActive}
-                statsPeriod={this.state.statsPeriod}
-                groupIds={this.state.groupIds} />
+            <Sticky onStickyStateChange={this.onStickyStateChange}>
+              <div className={this.state.isStickyHeader ? "container" : null}>
+                <StreamActions
+                  orgId={params.orgId}
+                  projectId={params.projectId}
+                  onSelectStatsPeriod={this.onSelectStatsPeriod}
+                  onRealtimeChange={this.onRealtimeChange}
+                  realtimeActive={this.state.realtimeActive}
+                  statsPeriod={this.state.statsPeriod}
+                  groupIds={this.state.groupIds} />
+              </div>
             </Sticky>
           </div>
           {this.renderStreamBody()}
           <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
-
+        </div>
+        <StreamSidebar tags={this.state.tags} initialQuery={queryObj} onQueryChange={this.onSearch}/>
       </div>
     );
   }
