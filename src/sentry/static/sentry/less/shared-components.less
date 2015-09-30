@@ -2742,7 +2742,7 @@ ul.tag-list {
   li {
     float: left;
     margin: 0 10px 10px 0;
-    background: darken(@bgColor, 5);
+    background: lighten(@gray, 20);
     .square(100px);
     border-radius: 4px;
     text-align: center;
@@ -2800,15 +2800,15 @@ ul.tag-list {
       background: @purple;
     }
 
-    &.django {
+    &.python-django {
       background: @green;
     }
 
-    &.node-js {
+    &.node {
       background: #90C541;
     }
 
-    &.objective-c {
+    &.objc {
       background: @gray;
     }
 
@@ -2816,7 +2816,7 @@ ul.tag-list {
       background: @orange;
     }
 
-    &.c-sharp {
+    &.csharp {
       background: @teal;
     }
 
@@ -2830,6 +2830,22 @@ ul.tag-list {
 
 .platformicon-javascript:before {
 	content: "\e600";
+}
+
+.platformicon-objc:before {
+	content: "\e60d";
+}
+
+.platformicon-node:before {
+	content: "\e609";
+}
+
+.platformicon-python-django:before {
+	content: "\e605";
+}
+
+.platformicon-ruby-rails:before {
+	content: "\e603";
 }
 
 /**
