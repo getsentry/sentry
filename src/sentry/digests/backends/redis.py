@@ -269,7 +269,7 @@ class RedisBackend(Backend):
                 }
 
                 for result in map(try_lock, items):
-                    can_reschedule[result[0]].append(result)
+                    can_reschedule[result[0] is not None].append(result)
 
                 logger.debug('Fetched %s items, able to reschedule %s.', len(items), len(can_reschedule[True]))
 
