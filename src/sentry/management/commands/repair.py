@@ -19,10 +19,9 @@ class Command(BaseCommand):
         sync_docs()
 
         from sentry.models import Project, ProjectKey
-        from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
         print("Creating missing project keys")
-        queryset = Project.objects.all()
-        for project in RangeQuerySetWrapperWithProgressBar(queryset):
+        queryset = Project.objects.filter(key_set__isnull=True)
+        for project in queryset:
             try:
                 ProjectKey.objects.get_or_create(
                     project=project,

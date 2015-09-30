@@ -131,7 +131,7 @@ var FlotChart = React.createClass({
     jQuery(window).resize(this.renderChart);
   },
 
-  componentWillUnount() {
+  componentWillUnmount() {
     jQuery(window).unbind('resize', this.renderChart);
   },
 
