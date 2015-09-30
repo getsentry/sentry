@@ -302,6 +302,13 @@ class EventManager(object):
             exception['values'][0]['stacktrace'] = stacktrace
             del data['sentry.interfaces.Stacktrace']
 
+        if 'sentry.interfaces.Http' in data:
+            data.setdefault('sentry.interfaces.User', {})
+            data['sentry.interfaces.User'].setdefault(
+                'ip_address',
+                data['sentry.interfaces.Http'].get('env', {}).get('REMOTE_ADDR')
+            )
+
         if data['time_spent']:
             data['time_spent'] = int(data['time_spent'])
 
