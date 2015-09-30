@@ -1,6 +1,8 @@
 import React from "react";
 import _ from "underscore";
 import StreamTagFilter from "./tagFilter";
+import {queryToObj} from "../../utils/stream";
+
 
 var StreamSidebar = React.createClass({
   contextTypes: {
@@ -16,19 +18,34 @@ var StreamSidebar = React.createClass({
   getDefaultProps() {
     return {
       tags: {},
-      onQueryChange: function () {},
-      initialQuery: {}
+      query: '',
+      onQueryChange: function () {}
     };
   },
 
   getInitialState() {
+    let queryObj = queryToObj(this.props.query);
     return {
-      currentQuery: this.props.initialQuery
+      queryObj: queryObj,
+      textFilter: queryObj.__text
     };
   },
 
+  componentWillReceiveProps(nextProps) {
+    // query was updated by another source (e.g. sidebar filters)
+    let query = this.getQueryStr();
+
+    if (!_.isEqual(nextProps.query, query)) {
+      let queryObj = queryToObj(nextProps.query);
+      this.setState({
+        queryObj: queryObj,
+        textFilter: queryObj.__text
+      });
+    }
+  },
+
   getQueryStr() {
-    let tags = _.omit(this.state.currentQuery, '__text');
+    let tags = _.omit(this.state.queryObj, '__text');
 
     return _.map(tags, (value, tagKey) => {
         if (value.indexOf(' ') > -1)
@@ -36,31 +53,35 @@ var StreamSidebar = React.createClass({
 
         return `${tagKey}:${value}`;
       })
-      .concat(this.state.currentQuery.__text)
+      .concat(this.state.queryObj.__text)
       .join(' ');
   },
 
   onSelectTag(tag, value) {
-    let newQuery = {...this.state.currentQuery};
+    let newQuery = {...this.state.queryObj};
     if (value)
       newQuery[tag.key] = value;
     else
       delete newQuery[tag.key];
 
     this.setState({
-      currentQuery: newQuery,
+      queryObj: newQuery,
     }, this.onQueryChange);
   },
 
   onTextChange: function (evt) {
     let text = evt.target.value;
 
+    this.setState({
+      textFilter: text
+    });
+
     this.debouncedTextChange(text);
   },
 
   debouncedTextChange: _.debounce(function(text) {
     this.setState({
-      currentQuery: {...this.state.currentQuery, __text:text}
+      queryObj: {...this.state.queryObj, __text:text}
     }, this.onQueryChange);
   }, 300),
 
@@ -78,7 +99,7 @@ var StreamSidebar = React.createClass({
             className="form-control"
             placeholder="Search title and culprit text body"
             onChange={this.onTextChange}
-            defaultValue={this.props.initialQuery.__text}
+            value={this.state.textFilter}
           />
           <hr/>
         </div>
@@ -86,7 +107,7 @@ var StreamSidebar = React.createClass({
         {_.map(this.props.tags, (tag) => {
           return (
             <StreamTagFilter
-              initialValue={this.state.currentQuery[tag.key]}
+              value={this.state.queryObj[tag.key]}
               key={tag.key}
               tag={tag}
               onSelect={this.onSelectTag}
