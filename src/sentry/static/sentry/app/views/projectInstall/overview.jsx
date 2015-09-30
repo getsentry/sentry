@@ -75,10 +75,10 @@ const ProjectInstallOverview = React.createClass({
           {this.getIntegrationLink('python', 'python', 'Python')}
           {this.getIntegrationLink('javascript', 'javascript', 'JavaScript')}
           {this.getIntegrationLink('ruby', 'ruby', 'Ruby')}
-          {this.getIntegrationLink('ruby', 'rails', 'Rails')}
+          {this.getIntegrationLink('ruby', 'ruby-rails', 'Rails')}
           {this.getIntegrationLink('php', 'php', 'PHP')}
-          {this.getIntegrationLink('python', 'django', 'Django')}
-          {this.getIntegrationLink('python', 'flask', 'Flask')}
+          {this.getIntegrationLink('python', 'python-django', 'Django')}
+          {this.getIntegrationLink('python', 'python-flask', 'Flask')}
         </ul>
 
         <h3>Frameworks</h3>
