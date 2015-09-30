@@ -24,7 +24,7 @@ var SearchBar = React.createClass({
   },
 
   blur() {
-    this.refs.searchInput.getDOMNode().blur();
+    React.findDOMNode(this.refs.searchInput).blur();
   },
 
   onSubmit(evt) {

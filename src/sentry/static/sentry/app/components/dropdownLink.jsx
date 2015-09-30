@@ -21,11 +21,11 @@ var DropdownLink = React.createClass({
   },
 
   isOpen() {
-    return this.getDOMNode().classList.contains("open");
+    return React.findDOMNode(this).classList.contains("open");
   },
 
   close() {
-    this.getDOMNode().classList.remove("open");
+    React.findDOMNode(this).classList.remove("open");
   },
 
   onToggle(e) {

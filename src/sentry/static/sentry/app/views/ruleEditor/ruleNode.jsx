@@ -10,7 +10,7 @@ var RuleNode = React.createClass({
   },
 
   componentDidMount() {
-    let $html = $(this.refs.html.getDOMNode());
+    let $html = $(React.findDOMNode(this.refs.html));
 
     $html.find('select, input, textarea').each((_, el) => {
       let $el = $(el);

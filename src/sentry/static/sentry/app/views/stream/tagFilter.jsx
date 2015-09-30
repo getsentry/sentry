@@ -46,7 +46,7 @@ var StreamTagFilter = React.createClass({
   },
 
   componentDidMount() {
-    let select = this.refs.select.getDOMNode();
+    let select = React.findDOMNode(this.refs.select);
 
     let selectOpts = {
       placeholder: '--',
@@ -84,7 +84,7 @@ var StreamTagFilter = React.createClass({
   },
 
   componentWillUnmount() {
-    let select = this.refs.select.getDOMNode();
+    let select = React.findDOMNode(this.refs.select);
     $(select).select2('destroy');
   },
 
