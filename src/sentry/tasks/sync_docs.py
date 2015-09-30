@@ -29,9 +29,14 @@ def sync_docs():
                     'name': i_data['name'],
                     'type': i_data['type'],
                     'link': i_data['doc_link'],
-                } for i_id, i_data in integrations.iteritems()
+                } for i_id, i_data in sorted(
+                    integrations.iteritems(),
+                    key=lambda x: x[1]['name']
+                )
             ],
         })
+
+    platform_list.sort(key=lambda x: x['name'])
 
     options.set('sentry:docs', {'platforms': platform_list})
 
