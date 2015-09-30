@@ -113,7 +113,7 @@ var FlotChart = React.createClass({
       lines: { show: false }
     };
 
-    var chart = this.refs.chartNode.getDOMNode();
+    var chart = React.findDOMNode(this.refs.chartNode);
     jQuery.plot(chart, series, plotOptions);
   },
 

@@ -20,7 +20,7 @@ var ClippedBox = React.createClass({
   },
 
   componentDidMount() {
-    var renderedHeight = this.getDOMNode().offsetHeight;
+    var renderedHeight = React.findDOMNode(this).offsetHeight;
 
     if (renderedHeight > this.props.clipHeight ) {
       /*eslint react/no-did-mount-set-state:0*/

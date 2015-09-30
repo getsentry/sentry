@@ -132,7 +132,7 @@ var ProjectSelector = React.createClass({
   },
 
   onOpen(evt) {
-    this.refs.filter.getDOMNode().focus();
+    React.findDOMNode(this.refs.filter).focus();
   },
 
   onClose() {
@@ -143,7 +143,7 @@ var ProjectSelector = React.createClass({
 
   componentDidUpdate(prevProps, prevState) {
     // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
-    var node = jQuery(this.refs.container.getDOMNode());
+    var node = jQuery(React.findDOMNode(this.refs.container));
     node.hide().show(0);
   },
 

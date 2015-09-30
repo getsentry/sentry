@@ -3,17 +3,17 @@ import React from "react";
 
 const AutoSelectText = React.createClass({
   componentDidMount() {
-    let ref = this.refs.element.getDOMNode();
+    let ref = React.findDOMNode(this.refs.element);
     jQuery(ref).bind('click', this.selectText);
   },
 
   componentWillUnmount() {
-    let ref = this.refs.element.getDOMNode();
+    let ref = React.findDOMNode(this.refs.element);
     jQuery(ref).unbind('click', this.selectText);
   },
 
   selectText() {
-    var node = this.refs.element.getDOMNode().firstChild;
+    var node = React.findDOMNode(this.refs.element).firstChild;
     if (document.selection) {
       let range = document.body.createTextRange();
       range.moveToElementText(node);
