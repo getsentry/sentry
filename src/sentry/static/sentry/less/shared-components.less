@@ -2888,6 +2888,28 @@ ul.tag-list {
 }
 
 /**
+ * Error level colors
+ * ============================================================================
+ */
+
+ .error-level {
+   background: lighten(@gray, 30);
+ }
+
+ &.level-info .error-level {
+   background: @blue;
+ }
+ &.level-warning .error-level {
+   background: @yellow;
+ }
+ &.level-error .error-level {
+   background: @sentry-orange;
+ }
+ &.level-fatal .error-level {
+   background: @red;
+ }
+
+/**
 * Responsive small screens
 * ============================================================================
 */

@@ -75,7 +75,7 @@ var GroupHeader = React.createClass({
       userCount = group.tags.user.count;
     }
 
-    var className = "group-detail";
+    var className = "group-detail level-" + group.level;
     if (group.isBookmarked) {
       className += " isBookmarked";
     }
@@ -96,6 +96,7 @@ var GroupHeader = React.createClass({
               {group.title}
             </h3>
             <div className="event-message">
+              <span className="error-level">{group.level}</span>
               <span className="message">{group.culprit}</span>
               {group.logger &&
                 <span className="event-annotation">
