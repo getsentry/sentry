@@ -62,7 +62,7 @@
     "karma-sinon": "^1.0.4",
     "karma-sourcemap-loader": "^0.3.3",
     "karma-webpack": "^1.7.0",
-    "platformicons": "0.0.2",
+    "platformicons": "0.0.3",
     "sinon": "^1.15.4",
     "sinon-chai": "^2.8.0"
   }
