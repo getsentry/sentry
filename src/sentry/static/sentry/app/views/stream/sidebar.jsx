@@ -1,8 +1,10 @@
 import React from "react";
 import _ from "underscore";
 import StreamTagFilter from "./tagFilter";
-import {queryToObj} from "../../utils/stream";
+import {queryToObj, objToQuery} from "../../utils/stream";
 
+
+let TEXT_FILTER_DEBOUNCE_IN_MS = 300;
 
 var StreamSidebar = React.createClass({
   contextTypes: {
@@ -32,8 +34,9 @@ var StreamSidebar = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    // query was updated by another source (e.g. sidebar filters)
-    let query = this.getQueryStr();
+    // If query was updated by another source (e.g. SearchBar),
+    // clobber state of sidebar with new query.
+    let query = objToQuery(this.state.queryObj);
 
     if (!_.isEqual(nextProps.query, query)) {
       let queryObj = queryToObj(nextProps.query);
@@ -42,19 +45,6 @@ var StreamSidebar = React.createClass({
         textFilter: queryObj.__text
       });
     }
-  },
-
-  getQueryStr() {
-    let tags = _.omit(this.state.queryObj, '__text');
-
-    return _.map(tags, (value, tagKey) => {
-        if (value.indexOf(' ') > -1)
-          value = `"${value}"`;
-
-        return `${tagKey}:${value}`;
-      })
-      .concat(this.state.queryObj.__text)
-      .join(' ');
   },
 
   onSelectTag(tag, value) {
@@ -72,9 +62,7 @@ var StreamSidebar = React.createClass({
   onTextChange: function (evt) {
     let text = evt.target.value;
 
-    this.setState({
-      textFilter: text
-    });
+    this.setState({ textFilter: text });
 
     this.debouncedTextChange(text);
   },
@@ -83,10 +71,10 @@ var StreamSidebar = React.createClass({
     this.setState({
       queryObj: {...this.state.queryObj, __text:text}
     }, this.onQueryChange);
-  }, 300),
+  }, TEXT_FILTER_DEBOUNCE_IN_MS),
 
   onQueryChange() {
-    let query = this.getQueryStr();
+    let query = objToQuery(this.state.queryObj);
     this.props.onQueryChange && this.props.onQueryChange(query);
   },
 

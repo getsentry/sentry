@@ -1,4 +1,4 @@
-import {queryToObj} from "app/utils/stream";
+import {queryToObj, objToQuery} from "app/utils/stream";
 
 describe("utils/stream", function () {
   describe("queryToObj()", function () {
@@ -29,6 +29,30 @@ describe("utils/stream", function () {
         __text: 'python exception',
         is: 'unresolved'
       });
+    });
+  });
+
+  describe('objToQuery()', function () {
+    it('should convert a query object to a query string', function () {
+      expect(objToQuery({
+        is: 'unresolved'
+      })).to.eql('is:unresolved');
+
+      expect(objToQuery({
+        is: 'unresolved',
+        assigned: 'foo@bar.com'
+      })).to.eql('is:unresolved assigned:foo@bar.com');
+
+      expect(objToQuery({
+        is: 'unresolved',
+        __text: 'python exception'
+      })).to.eql('is:unresolved python exception');
+    });
+
+    it('should quote query values that contain spaces', function () {
+      expect(objToQuery({
+        browser: 'Chrome 36'
+      })).to.eql('browser:"Chrome 36"');
     });
   });
 });
