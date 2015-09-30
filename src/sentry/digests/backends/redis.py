@@ -237,6 +237,17 @@ class RedisBackend(Backend):
 
                 if items:
                     # Set the start position for the next query.
+                    # TODO: If all items share the same score and are locked,
+                    # the iterator will never advance (we will keep trying to
+                    # schedule the same locked items over and over) and either
+                    # eventually progress slowly as items are unlocked, or hit
+                    # the maximum iterations boundary. A possible solution to
+                    # this would be to count the number of items that have the
+                    # maximum score in this page that we assume we can't
+                    # acquire (since we couldn't acquire the lock this
+                    # iteration) and add that count to the next query size
+                    # limit. (This unfortunately could also lead to unbounded
+                    # growth too, and should probably be limited as well.)
                     start = items[-1][0]  # (This value is (key, timestamp).)
 
                 def lock((key, timestamp)):
