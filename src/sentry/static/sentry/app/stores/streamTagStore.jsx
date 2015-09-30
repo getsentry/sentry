@@ -61,16 +61,6 @@ var StreamTagStore = Reflux.createStore({
     }));
   },
 
-  onLoadTagValuesSuccess(tagKey, data) {
-    let tag = this.tags[tagKey];
-    if (tag.values)
-      tag.values = _.unique(tag.values.concat(data));
-    else
-      tag.values = data;
-
-    this.trigger([tag]);
-  },
-
   onMemberListStoreChange(members) {
     let assignedTag = this.tags.assigned;
     assignedTag.values = MemberListStore.getAll().map(user => user.email);

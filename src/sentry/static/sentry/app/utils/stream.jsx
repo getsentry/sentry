@@ -16,23 +16,23 @@ import _ from "underscore";
  */
 
 export function queryToObj(queryStr) {
-	var text = [];
+  var text = [];
 
-	let queryItems = queryStr.match(/\S+:"[^"]*"?|\S+/g);
-	let queryObj = _.inject(queryItems, (obj, item) => {
-	  let index = item.indexOf(':');
-	  if (index === -1) {
-	  	text.push(item);
-	  } else {
-		  let tagKey = item.slice(0, index);
-		  let value = item.slice(index + 1).replace(/^"|"$/g, '');
-		  obj[tagKey] = value;
-	  }
-	  return obj;
-	}, {});
+  let queryItems = queryStr.match(/\S+:"[^"]*"?|\S+/g);
+  let queryObj = _.inject(queryItems, (obj, item) => {
+    let index = item.indexOf(':');
+    if (index === -1) {
+      text.push(item);
+    } else {
+      let tagKey = item.slice(0, index);
+      let value = item.slice(index + 1).replace(/^"|"$/g, '');
+      obj[tagKey] = value;
+    }
+    return obj;
+  }, {});
 
-	if (text.length)
-		queryObj.__text = text.join(' ');
+  if (text.length)
+    queryObj.__text = text.join(' ');
 
-	return queryObj;
+  return queryObj;
 }
