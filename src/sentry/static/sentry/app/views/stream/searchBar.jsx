@@ -189,7 +189,10 @@ var SearchBar = React.createClass({
       method: "GET",
       success: (values) => {
         this.setState({ loading: false });
-        callback(values.map(v => '"' + v.value + '"'), tag.key, query);
+        callback(values.map((v) => {
+          // Wrap in quotes if there is a space
+          return v.value.indexOf(' ') > -1 ? `"${v.value}"` : v.value;
+        }), tag.key, query);
       }
     });
   }, 300),

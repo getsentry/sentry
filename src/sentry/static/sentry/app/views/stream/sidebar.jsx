@@ -31,7 +31,10 @@ var StreamSidebar = React.createClass({
     let tags = _.omit(this.state.currentQuery, '__text');
 
     return _.map(tags, (value, tagKey) => {
-        return `${tagKey}:"${value}"`;
+        if (value.indexOf(' ') > -1)
+          value = `"${value}"`;
+
+        return `${tagKey}:${value}`;
       })
       .concat(this.state.currentQuery.__text)
       .join(' ');
