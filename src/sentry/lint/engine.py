@@ -53,7 +53,7 @@ def check_files(file_list=None):
     ]
 
     try:
-        if not file_list:
+        if file_list is None:
             files_to_check = get_files('.')
 
         else:

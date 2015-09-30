@@ -5,4 +5,8 @@ import sys
 
 from sentry.lint.engine import check_files
 
-sys.exit(check_files(sys.argv[1:]))
+file_list = sys.argv[1:]
+if not file_list:
+    file_list = None
+
+sys.exit(check_files(file_list))
