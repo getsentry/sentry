@@ -44,7 +44,6 @@ var StreamTagFilter = React.createClass({
 
     if (!this.props.tag.predefined) {
       Object.assign(selectOpts, {
-        minimumInputLength: 1,
         initSelection: (element, callback) => {
           callback(StreamTagFilter.tagValueToSelect2Format(this.props.initialValue));
         },
