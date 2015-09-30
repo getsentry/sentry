@@ -17,7 +17,6 @@ from django.db.models import F, Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import PLATFORM_LIST
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
@@ -74,11 +73,6 @@ class Project(Model):
     Projects are permission based namespaces which generally
     are the top level entry point for all data.
     """
-    PLATFORM_CHOICES = tuple(
-        (p, p)
-        for p in PLATFORM_LIST
-    ) + (('other', 'Other'),)
-
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
     organization = FlexibleForeignKey('sentry.Organization')

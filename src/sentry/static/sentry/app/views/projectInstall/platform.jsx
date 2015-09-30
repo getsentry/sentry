@@ -5,7 +5,6 @@ import api from "../../api";
 import LanguageNav from "./languageNav";
 import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
-import jQuery from "jquery";
 import RouteMixin from "../../mixins/routeMixin";
 
 var ProjectInstallPlatform = React.createClass({
@@ -16,9 +15,23 @@ var ProjectInstallPlatform = React.createClass({
   mixins: [RouteMixin],
 
   getInitialState() {
+    let params = this.context.router.getCurrentParams();
+    var key = params.platform;
+    var integration;
+    this.props.platformData.platforms.forEach((platform) => {
+      if (integration) {
+        return;
+      }
+      integration = platform.integrations.filter((item) => {
+        return item.id == key;
+      });
+    });
+
     return {
       loading: true,
-      data: null
+      error: false,
+      integration: integration,
+      html: null
     };
   },
 
@@ -26,18 +39,8 @@ var ProjectInstallPlatform = React.createClass({
     this.fetchData();
   },
 
-  componentWillMount() {
-    jQuery(document.body).addClass("white-bg");
-  },
-
-  componentWillUnmount() {
-    jQuery(document.body).removeClass("white-bg");
-  },
-
   routeDidChange() {
-    this.setState({
-      loading: true
-    }, this.fetchData);
+    this.setState(this.getInitialState(), this.fetchData);
   },
 
   fetchData() {
@@ -47,11 +50,11 @@ var ProjectInstallPlatform = React.createClass({
         this.setState({
           loading: false,
           error: false,
-          data: data
+          html: data.html
         });
       },
       error: () => {
-        this.setSTate({
+        this.setState({
           loading: false,
           error: true
         });
@@ -72,30 +75,36 @@ var ProjectInstallPlatform = React.createClass({
   },
 
   render() {
-    if (this.state.loading)
-      return <LoadingIndicator />;
-    else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
-
     let params = this.context.router.getCurrentParams();
     let {platform} = params;
-    let data = this.state.data;
+    let integration = this.state.integration;
 
     return (
       <div className="install row">
         <div className="install-content col-md-10">
           <div className="pull-right">
-            <a href={data.link} className="btn btn-default">Full Documentation</a>
+            <a href={integration.link} className="btn btn-default">Full Documentation</a>
           </div>
 
-          <h1>Configure {data.name}</h1>
+          <h1>Configure {integration.name}</h1>
 
           <div>
             <p>
-              This is a quick getting started guide. For in-depth instructions on integrating Sentry with {data.name}, view <a href={data.link}>our complete documentation</a>.
+              This is a quick getting started guide. For in-depth instructions on integrating Sentry with {integration.name}, view <a href={integration.link}>our complete documentation</a>.
             </p>
-            <div dangerouslySetInnerHTML={{__html: data.html}}/>
-            <Link to="stream" params={params} className="btn btn-primary btn-lg">Continue</Link>
+
+            {this.state.loading ?
+              <LoadingIndicator />
+            : (this.state.error ?
+              <LoadingError onRetry={this.fetchData} />
+            :
+              <div>
+                <div dangerouslySetInnerHTML={{__html: this.state.html}}/>
+
+                <Link to="stream" params={params} className="btn btn-primary btn-lg">Continue</Link>
+              </div>
+            )}
+
           </div>
         </div>
         <div className="install-sidebar col-md-2">
