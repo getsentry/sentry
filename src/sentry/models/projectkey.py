@@ -89,6 +89,17 @@ class ProjectKey(Model):
             project=project_id,
         )
 
+    @classmethod
+    def get_default(cls, project):
+        try:
+            return cls.objects.filter(
+                project=project,
+                roles=cls.roles.store,
+                status=ProjectKeyStatus.ACTIVE
+            )[0]
+        except IndexError:
+            return None
+
     @property
     def is_active(self):
         return self.status == ProjectKeyStatus.ACTIVE

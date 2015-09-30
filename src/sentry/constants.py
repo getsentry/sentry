@@ -75,67 +75,6 @@ MEMBER_TYPES = (
 # a User instance.
 EMPTY_PASSWORD_VALUES = ('!', '', '$')
 
-PLATFORM_LIST = (
-    'csharp',
-    'connect',
-    'django',
-    'express',
-    'flask',
-    'go',
-    'ios',
-    'java',
-    'java_log4j',
-    'java_log4j2',
-    'java_logback',
-    'java_logging',
-    'javascript',
-    'node.js',
-    'php',
-    'pyramid',
-    'python',
-    'r',
-    'ruby',
-    'rails3',
-    'rails4',
-    'sidekiq',
-    'sinatra',
-    'tornado',
-)
-
-PLATFORM_ROOTS = {
-    'rails3': 'ruby',
-    'rails4': 'ruby',
-    'sinatra': 'ruby',
-    'sidekiq': 'ruby',
-    'django': 'python',
-    'flask': 'python',
-    'pyramid': 'python',
-    'tornado': 'python',
-    'express': 'node.js',
-    'connect': 'node.js',
-    'java_log4j': 'java',
-    'java_log4j2': 'java',
-    'java_logback': 'java',
-    'java_logging': 'java',
-}
-
-PLATFORM_TITLES = {
-    'rails3': 'Rails 3 (Ruby)',
-    'rails4': 'Rails 4 (Ruby)',
-    'php': 'PHP',
-    'ios': 'iOS',
-    'express': 'Express (Node.js)',
-    'connect': 'Connect (Node.js)',
-    'django': 'Django (Python)',
-    'flask': 'Flask (Python)',
-    'pyramid': 'Pyramid (Python)',
-    'csharp': 'C#',
-    'java_log4j': 'Log4j (Java)',
-    'java_log4j2': 'Log4j 2.x (Java)',
-    'java_logback': 'Logback (Java)',
-    'java_logging': 'java.util.logging',
-}
-
 # Normalize counts to the 15 minute marker. This value MUST be less than 60. A
 # value of 0 would store counts for every minute, and is the lowest level of
 # accuracy provided.

@@ -17,7 +17,11 @@ import OrganizationTeams from "./views/organizationTeams";
 import ProjectDashboard from "./views/projectDashboard";
 import ProjectEvents from "./views/projectEvents";
 import ProjectDetails from "./views/projectDetails";
+import ProjectInstall from "./views/projectInstall";
+import ProjectInstallOverview from "./views/projectInstall/overview";
+import ProjectInstallPlatform from "./views/projectInstall/platform";
 import ProjectReleases from "./views/projectReleases";
+import ProjectSettings from "./views/projectSettings";
 import ReleaseAllEvents from "./views/releaseAllEvents";
 import ReleaseArtifacts from "./views/releaseArtifacts";
 import ReleaseDetails from "./views/releaseDetails";
@@ -38,11 +42,18 @@ var routes = (
         <DefaultRoute name="stream" handler={Stream} />
         <Route name="projectDashboard" path="dashboard/" handler={ProjectDashboard} />
         <Route name="projectEvents" path="events/" handler={ProjectEvents} />
+
         <Route name="projectReleases" path="releases/" handler={ProjectReleases} />
         <Route name="releaseDetails" path="releases/:version/" handler={ReleaseDetails}>
           <DefaultRoute name="releaseNewEvents" handler={ReleaseNewEvents} />
           <Route name="releaseAllEvents" path="all-events/" handler={ReleaseAllEvents} />
           <Route name="releaseArtifacts" path="artifacts/" handler={ReleaseArtifacts} />
+        </Route>
+        <Route name="projectSettings" path="settings/" handler={ProjectSettings}>
+          <Route name="projectInstall" path="install/" handler={ProjectInstall}>
+            <DefaultRoute name="projectInstallOverview" handler={ProjectInstallOverview}/>
+            <Route name="projectInstallPlatform" path="install/:platform/" handler={ProjectInstallPlatform}/>
+          </Route>
         </Route>
         <Route name="groupDetails" path="group/:groupId/" handler={GroupDetails}
                ignoreScrollBehavior>
