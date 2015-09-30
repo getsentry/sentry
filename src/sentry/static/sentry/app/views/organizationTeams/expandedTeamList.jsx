@@ -32,6 +32,7 @@ var ExpandedTeamList = React.createClass({
   },
 
   renderTeamNode(team, urlPrefix) {
+    // TODO: make this cleaner
     if (team.projects.length) {
       return (
         <div className="box" key={team.slug}>
