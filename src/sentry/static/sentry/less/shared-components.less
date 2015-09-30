@@ -2791,9 +2791,12 @@ ul.tag-list {
     }
 
     &.ruby,
-    &.java,
     &.rails {
       background: @red;
+    }
+
+    &.java {
+      background: @orange;
     }
 
     &.php {
@@ -2846,6 +2849,18 @@ ul.tag-list {
 
 .platformicon-ruby-rails:before {
 	content: "\e603";
+}
+
+.platformicon-php-laravel:before {
+	content: "\e60d";
+}
+
+.platformicon-python-bottle:before {
+	content: "\e60c";
+}
+
+.platformicon-java-appengine:before {
+	content: "\e60b";
 }
 
 /**
