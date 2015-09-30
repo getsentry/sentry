@@ -41,6 +41,13 @@ TIMELINE_DIGEST_PATH_COMPONENT = 'd'
 TIMELINE_RECORD_PATH_COMPONENT = 'r'
 
 
+def ilen(iterator):
+    i = 0
+    for i, _ in enumerate(iterator):
+        pass
+    return i
+
+
 def make_schedule_key(namespace, state):
     return '{0}:{1}:{2}'.format(namespace, SCHEDULE_PATH_COMPONENT, state)
 
@@ -223,63 +230,79 @@ class RedisBackend(Backend):
         for host in self.cluster.hosts:
             connection = self.cluster.get_local_client(host)
 
+            extra = 0
             start = 0
             maximum_iterations = 1000
             for i in xrange(maximum_iterations):
+                fetch_size = chunk + extra
                 items = connection.zrangebyscore(
                     make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
                     min=start,
                     max=deadline,
                     withscores=True,
                     start=0,
-                    num=chunk,
+                    num=fetch_size,
                 )
 
-                if items:
-                    # Set the start position for the next query.
-                    # TODO: If all items share the same score and are locked,
-                    # the iterator will never advance (we will keep trying to
-                    # schedule the same locked items over and over) and either
-                    # eventually progress slowly as items are unlocked, or hit
-                    # the maximum iterations boundary. A possible solution to
-                    # this would be to count the number of items that have the
-                    # maximum score in this page that we assume we can't
-                    # acquire (since we couldn't acquire the lock this
-                    # iteration) and add that count to the next query size
-                    # limit. (This unfortunately could also lead to unbounded
-                    # growth too, and should probably be limited as well.)
-                    start = items[-1][0]  # (This value is (key, timestamp).)
-
-                def lock((key, timestamp)):
+                def try_lock(item):
                     """
                     Attempt to immedately acquire a lock on the timeline at
                     key, returning the lock if it can be acquired, otherwise
                     returning ``None``.
                     """
-                    lock = Lock(make_timeline_key(self.namespace, key))
+                    key, timestamp = item
+                    lock = Lock(make_timeline_key(self.namespace, key), timeout=60, nowait=True)
                     try:
                         # TODO: This timeout is totally arbitrary, need to
                         # ensure this is reasonable.
-                        lock.__enter__(timeout=60, nowait=True)  # TODO: Add ``Lock.acquire``.
+                        lock.__enter__()  # TODO: Add ``Lock.acquire``.
+                        return lock, item
                     except UnableToGetLock:
-                        return None
-
-                def locked((lock, item)):
-                    return lock is not None
+                        return None, item
 
                 # Try to take out a lock on each item. If we can't acquire the
-                # lock, that means this is currently being digested (and
-                # doesn't require rescheduling.) Since we can only reschedule
-                # items that we were able to lock, we then filter the list down
-                # to items that we hold the lock on.
-                held = filter(locked, map(lock, items))
+                # lock, that means this is currently being digested and cannot
+                # be rescheduled.
+                can_reschedule = {
+                    True: [],
+                    False: [],
+                }
+
+                for result in map(try_lock, items):
+                    can_reschedule[result[0]].append(result)
+
+                logger.debug('Fetched %s items, able to reschedule %s.', len(items), len(can_reschedule[True]))
+
+                # Set the start position for the next query. (If there are no
+                # items, we don't need to worry about this, since there won't
+                # be a next query.) If all items share the same score and are
+                # locked, the iterator will never advance (we will keep trying
+                # to schedule the same locked items over and over) and either
+                # eventually progress slowly as items are unlocked, or hit the
+                # maximum iterations boundary. A possible solution to this
+                # would be to count the number of items that have the maximum
+                # score in this page that we assume we can't acquire (since we
+                # couldn't acquire the lock this iteration) and add that count
+                # to the next query limit. (This unfortunately could also
+                # lead to unbounded growth too, so we have to limit it as well.)
+                if items:
+                    start = items[-1][0]  # (This value is (key, timestamp).)
+                    extra = min(
+                        ilen(
+                            itertools.takewhile(
+                                lambda (lock, (key, timestamp)): timestamp == start,
+                                can_reschedule[False][::-1],
+                            ),
+                        ),
+                        chunk,
+                    )
 
                 # XXX: We need to perform this check before the transaction to
                 # ensure that we don't execute an empty transaction. (We'll
                 # need to perform a similar check after the completion of the
                 # transaction as well.)
-                if not held:
-                    if len(items) == chunk:
+                if not can_reschedule[True]:
+                    if len(items) == fetch_size:
                         # There is nothing to reschedule in this chunk, but we
                         # need check if there are others after this chunk.
                         continue
@@ -293,19 +316,19 @@ class RedisBackend(Backend):
 
                         pipeline.zrem(
                             make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
-                            *[key for (lock, (key, timestamp)) in held]
+                            *[key for (lock, (key, timestamp)) in can_reschedule[True]]
                         )
 
                         pipeline.zadd(
                             make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
-                            *itertools.chain.from_iterable([(timestamp, key) for (lock, (key, timestamp)) in held])
+                            *itertools.chain.from_iterable([(timestamp, key) for (lock, (key, timestamp)) in can_reschedule[True]])
                         )
 
                         pipeline.execute()
                 finally:
                     # Regardless of the outcome of the transaction, we should
                     # try to unlock the items for processing.
-                    for lock, item in held:
+                    for lock, item in can_reschedule[True]:
                         try:
                             lock.__exit__(None, None, None)  # TODO: Add ``Lock.release``.
                         except Exception as error:
@@ -316,7 +339,7 @@ class RedisBackend(Backend):
 
                 # If we retrieved less than the chunk size of items, we don't
                 # need try to retrieve more items.
-                if len(items) < chunk:
+                if len(items) < fetch_size:
                     break
             else:
                 raise RuntimeError('loop exceeded maximum iterations (%s)' % (maximum_iterations,))
