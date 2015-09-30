@@ -78,6 +78,15 @@ var SearchBar = React.createClass({
     };
   },
 
+  componentWillReceiveProps(nextProps) {
+    // query was updated by another source (e.g. sidebar filters)
+    if (nextProps.query !== this.state.query) {
+      this.setState({
+        query: nextProps.query
+      });
+    }
+  },
+
   statics: {
     /**
      * Given a query, and the current cursor position, return the string-delimiting
