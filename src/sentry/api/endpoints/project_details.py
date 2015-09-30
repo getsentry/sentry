@@ -10,8 +10,10 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntryEvent, Project, ProjectStatus
+from sentry.plugins import plugins
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.safe import safe_execute
 
 
 @scenario('GetProject')
@@ -81,6 +83,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to delete.
         :auth: required
         """
+        active_plugins = [
+            {
+                'name': plugin.get_title(),
+                'id': plugin.slug,
+            }
+            for plugin in plugins.configurable_for_project(project, version=None)
+            if safe_execute(plugin.is_enabled, project)
+            and safe_execute(plugin.has_project_conf)
+        ]
+
         data = serialize(project, request.user)
         data['options'] = {
             'sentry:origins': '\n'.join(project.get_option('sentry:origins', ['*']) or []),
@@ -88,6 +100,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'sentry:scrub_data': bool(project.get_option('sentry:scrub_data', True)),
             'sentry:sensitive_fields': project.get_option('sentry:sensitive_fields', []),
         }
+        data['activePlugins'] = active_plugins
         data['team'] = serialize(project.team, request.user)
         data['organization'] = serialize(project.organization, request.user)
 

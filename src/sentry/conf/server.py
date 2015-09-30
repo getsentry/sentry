@@ -374,6 +374,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.ping',
     'sentry.tasks.post_process',
     'sentry.tasks.process_buffer',
+    'sentry.tasks.sync_docs',
 )
 CELERY_QUEUES = [
     Queue('default', routing_key='default'),
@@ -431,6 +432,14 @@ CELERYBEAT_SCHEDULE = {
         'options': {
             'expires': 10,
             'queue': 'counters-0',
+        }
+    },
+    'sync-docs': {
+        'task': 'sentry.tasks.options.sync_docs',
+        'schedule': timedelta(seconds=3600),
+        'options': {
+            'expires': 3600,
+            'queue': 'update',
         }
     },
     'sync-options': {
@@ -813,7 +822,7 @@ SENTRY_API_RESPONSE_DELAY = 0
 
 # Watchers for various application purposes (such as compiling static media)
 SENTRY_WATCHERS = (
-    [os.path.join(NODE_MODULES_ROOT, '.bin', 'gulp'), 'watch:css'],
+    [os.path.join(NODE_MODULES_ROOT, '.bin', 'gulp'), 'watch'],
     [os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '-d', '--watch',
      "--config={}".format(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))],
 )

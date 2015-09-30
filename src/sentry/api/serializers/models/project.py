@@ -46,6 +46,7 @@ class ProjectSerializer(Serializer):
             'name': obj.name,
             'isPublic': obj.public,
             'dateCreated': obj.date_added,
+            'firstEvent': obj.first_event,
             'features': feature_list,
             'permission': {
                 'owner': attrs['access_type'] <= OrganizationMemberType.OWNER,
