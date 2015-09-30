@@ -4,7 +4,7 @@
 
 {% block main %}
 
-<h2>{{ project }}</h2>
+<h2>{{ project.name }}</h2>
 
 {% for group, records in digest.items %}
     {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
@@ -13,8 +13,8 @@
     <ul>
         {% for record in records %}
             <li>
-                {{ record.value.event.message }}
-                at {{ record.datetime }}
+                <strong>{{ record.value.event.message }}</strong>
+                <small>at {{ record.datetime }}</small>
             </li>
         {% endfor %}
     </ul>
