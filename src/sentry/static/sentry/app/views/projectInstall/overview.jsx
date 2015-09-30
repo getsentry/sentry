@@ -33,8 +33,6 @@ const ProjectInstallOverview = React.createClass({
 
   render() {
     let data = this.state.data;
-    let params = Object.assign({}, this.context.router.getCurrentParams());
-
     let frameworkList = [];
     let languageList = [];
     data.platforms.forEach((platform) => {
@@ -103,8 +101,6 @@ const ProjectInstallOverview = React.createClass({
           <em>Don't see your platform listed here?</em> For a complete list of client integrations,
           please visit see <a href="http://docs.getsentry.com">our in-depth documentation</a>.
         </p>
-
-        <Link to="stream" params={params} className="btn btn-lg btn-primary">Skip this step</Link>
       </div>
     );
   }
