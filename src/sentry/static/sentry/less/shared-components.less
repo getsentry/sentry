@@ -835,6 +835,30 @@ table.integrations {
     top: -1px;
     padding: 10px;
   }
+
+  &.disabled {
+    position: relative;
+
+    .search-input {
+      border: 1px solid lighten(@trim, 4);
+      background: @bgColor;
+      color: @gray-light;
+    }
+
+    .icon-search {
+      color: @gray-light;
+    }
+
+    &:after {
+      display: block;
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+  }
 }
 
 .search-dropdown {
@@ -1971,6 +1995,13 @@ table.integrations {
   font-size: 12px;
   color: lighten(@gray, 20);
   letter-spacing: 0.1px;
+
+  .btn-xs {
+    font-size: 11px;
+    line-height: 14px;
+    padding: 0 5px;
+    margin-left: 5px;
+  }
 }
 
 .nav-stacked li  {
@@ -2106,6 +2137,53 @@ table.integrations {
     border: 0;
   }
 }
+
+/**
+ * List-group
+ * ============================================================================
+ */
+
+ .list-group {
+   font-size: 14px;
+   border-radius: 3px;
+   border: 1px solid @trim;
+   margin-bottom: 15px;
+
+   .list-group-item {
+     color: @gray-dark;
+     padding: 5px 15px;
+     border: 0;
+     border-top: 1px solid lighten(@trim, 5);
+     border-radius: 0;
+     margin: 0;
+     background: none;
+
+     &.list-group-header {
+       border-top: 0;
+
+       .pull-right {
+         color: @gray;
+         position: relative;
+         top: 1px;
+         right: -2px;
+
+         &:hover {
+           color: @gray-dark;
+         }
+       }
+     }
+
+     &.active {
+       background: @blue;
+       color: #fff;
+       font-weight: 600;
+       box-shadow: inset 0 0 0 1px darken(@blue, 15);
+       border: 0 !important;
+       margin-left: -1px;
+       margin-right: -1px;
+     }
+   }
+ }
 
 /**
 * Project nav
@@ -2674,6 +2752,139 @@ ul.tag-list {
       }
     }
   }
+}
+
+/**
+* Client platform list
+* ============================================================================
+*/
+
+.client-platform-list {
+  .list-unstyled;
+  .clearfix;
+
+  li {
+    float: left;
+    margin: 0 10px 10px 0;
+    background: lighten(@gray, 20);
+    .square(100px);
+    border-radius: 4px;
+    text-align: center;
+    position: relative;
+    color: #fff;
+
+    a {
+      color: inherit;
+      opacity: .85;
+      .transition(opacity .1s);
+      font-weight: 600;
+
+      &:hover {
+        opacity: 1;
+      }
+
+      &:after {
+        display: block;
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+      }
+    }
+  }
+
+  .platformicon {
+    display: block;
+    .square(48px);
+    font-size: 48px;
+    margin: 15px auto 2px;
+  }
+
+  // Colors
+
+  li {
+    &.python {
+      background: darken(@blue, 6);
+    }
+
+    &.javascript {
+      background: @yellow;
+      color: #111;
+    }
+
+    &.ruby,
+    &.rails {
+      background: @red;
+    }
+
+    &.java {
+      background: @orange;
+    }
+
+    &.php {
+      background: @purple;
+    }
+
+    &.python-django {
+      background: @green;
+    }
+
+    &.node {
+      background: #90C541;
+    }
+
+    &.objc {
+      background: @gray;
+    }
+
+    &.app-engine {
+      background: @orange;
+    }
+
+    &.csharp {
+      background: @teal;
+    }
+
+    &.go {
+      border: 2px solid @gray;
+      color: @gray-dark;
+      background: #fff;
+    }
+  }
+}
+
+.platformicon-javascript:before {
+	content: "\e600";
+}
+
+.platformicon-objc:before {
+	content: "\e60e";
+}
+
+.platformicon-node:before {
+	content: "\e609";
+}
+
+.platformicon-python-django:before {
+	content: "\e605";
+}
+
+.platformicon-ruby-rails:before {
+	content: "\e603";
+}
+
+.platformicon-php-laravel:before {
+	content: "\e60d";
+}
+
+.platformicon-python-bottle:before {
+	content: "\e60c";
+}
+
+.platformicon-java-appengine:before {
+	content: "\e60b";
 }
 
 /**

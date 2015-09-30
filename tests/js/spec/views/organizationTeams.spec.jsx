@@ -1,9 +1,8 @@
-var React = require("react/addons");
-
-var api = require("app/api");
-var OrganizationTeams = require("app/views/organizationTeams");
-var stubRouter = require("../../helpers/stubRouter");
-var stubContext = require("../../helpers/stubContext");
+import React from "react/addons";
+import api from "app/api";
+import OrganizationTeams from "app/views/organizationTeams";
+import stubRouter from "../../helpers/stubRouter";
+import stubContext from "../../helpers/stubContext";
 
 describe("OrganizationTeams", function() {
 
@@ -47,3 +46,4 @@ describe("OrganizationTeams", function() {
     });
   });
 });
+

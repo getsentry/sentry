@@ -1,18 +1,16 @@
-
-
-var React = require("react/addons");
-var Cookies = require("js-cookie");
-
-var Api = require("app/api");
-var CursorPoller = require("app/utils/cursorPoller");
-var LoadingError = require("app/components/loadingError");
-var LoadingIndicator = require("app/components/loadingIndicator");
-var Stream = require("app/views/stream");
-var StreamGroup = require("app/components/stream/group");
-var StreamFilters = require("app/views/stream/filters");
-var stubReactComponents = require("../../helpers/stubReactComponent");
-var stubContext = require("../../helpers/stubContext");
-var stubRouter = require("../../helpers/stubRouter");
+import React from "react/addons";
+import Cookies from "js-cookie";
+import Api from "app/api";
+import CursorPoller from "app/utils/cursorPoller";
+import LoadingError from "app/components/loadingError";
+import LoadingIndicator from "app/components/loadingIndicator";
+import Stream from "app/views/stream";
+import StreamGroup from "app/components/stream/group";
+import StreamFilters from "app/views/stream/filters";
+import StreamSidebar from "app/views/stream/sidebar";
+import stubReactComponents from "../../helpers/stubReactComponent";
+import stubContext from "../../helpers/stubContext";
+import stubRouter from "../../helpers/stubRouter";
 
 var TestUtils = React.addons.TestUtils;
 var findWithClass = TestUtils.findRenderedDOMComponentWithClass;
@@ -24,7 +22,7 @@ describe("Stream", function() {
     this.sandbox = sinon.sandbox.create();
 
     this.stubbedApiRequest = this.sandbox.stub(Api, "request");
-    stubReactComponents(this.sandbox, [StreamGroup, StreamFilters]);
+    stubReactComponents(this.sandbox, [StreamGroup, StreamFilters, StreamSidebar]);
 
     var ContextStubbedStream = stubContext(Stream, {
       router: stubRouter({
@@ -56,7 +54,7 @@ describe("Stream", function() {
       this.stubbedApiRequest.restore();
       this.sandbox.stub(Api, "request", function(url, options) {
         expectedUrl = url;
-        options.complete();
+        options.complete && options.complete();
       });
 
       var stubbedSetEndpoint = this.sandbox.stub(CursorPoller.prototype, "setEndpoint");
@@ -202,3 +200,4 @@ describe("Stream", function() {
   });
 
 });
+

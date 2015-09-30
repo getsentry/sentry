@@ -1,6 +1,5 @@
-var React = require("react/addons");
-
-var BarChart = require("app/components/barChart");
+import React from "react/addons";
+import BarChart from "app/components/barChart";
 var TestUtils = React.addons.TestUtils;
 
 describe("BarChart", function() {
@@ -74,3 +73,4 @@ describe("BarChart", function() {
   });
 
 });
+

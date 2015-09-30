@@ -1,10 +1,9 @@
-var React = require("react/addons");
+import React from "react/addons";
 var TestUtils = React.addons.TestUtils;
 
-var api = require("app/api");
-var stubReactComponents = require("../../../helpers/stubReactComponent");
-
-var ActionLink = require("app/views/stream/actionLink");
+import api from "app/api";
+import stubReactComponents from "../../../helpers/stubReactComponent";
+import ActionLink from "app/views/stream/actionLink";
 import Modal from "react-bootstrap/Modal";
 
 describe("ActionLink", function() {
@@ -55,3 +54,4 @@ describe("ActionLink", function() {
     });
   });
 });
+

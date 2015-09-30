@@ -13,7 +13,7 @@ BLANK_CHOICE = [("", "")]
 class AddProjectForm(forms.ModelForm):
     name = forms.CharField(label=_('Name'), max_length=200,
         widget=forms.TextInput(attrs={
-            'placeholder': _('i.e. my project name'),
+            'placeholder': _('i.e. API, Frontend, My Application Name'),
         }),
         help_text='Using the repository name generally works well.',
     )

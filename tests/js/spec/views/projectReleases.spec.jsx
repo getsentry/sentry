@@ -1,15 +1,13 @@
-var React = require("react/addons");
+import React from "react/addons";
 var TestUtils = React.addons.TestUtils;
 
-var stubReactComponents = require("../../helpers/stubReactComponent");
-var stubContext = require("../../helpers/stubContext");
-var stubRouter = require("../../helpers/stubRouter");
-
-var api = require("app/api");
-
-var ProjectReleases = require("app/views/projectReleases");
-var SearchBar = require("app/views/stream/searchBar");
-var Pagination = require("app/components/pagination");
+import stubReactComponents from "../../helpers/stubReactComponent";
+import stubContext from "../../helpers/stubContext";
+import stubRouter from "../../helpers/stubRouter";
+import api from "app/api";
+import ProjectReleases from "app/views/projectReleases";
+import SearchBar from "app/views/stream/searchBar";
+import Pagination from "app/components/pagination";
 
 describe("ProjectReleases", function () {
   beforeEach(function () {
@@ -99,3 +97,4 @@ describe("ProjectReleases", function () {
     });
   });
 });
+

@@ -1,10 +1,10 @@
-var React = require("react/addons");
+import React from "react/addons";
 var TestUtils = React.addons.TestUtils;
 
-var api = require("app/api");
-var TagDistributionMeter = require("app/components/group/tagDistributionMeter");
-var stubRouter = require("../../../helpers/stubRouter");
-var stubContext = require("../../../helpers/stubContext");
+import api from "app/api";
+import TagDistributionMeter from "app/components/group/tagDistributionMeter";
+import stubRouter from "../../../helpers/stubRouter";
+import stubContext from "../../../helpers/stubContext";
 
 describe("TagDistributionMeter", function() {
 
@@ -97,3 +97,4 @@ describe("TagDistributionMeter", function() {
     });
   });
 });
+

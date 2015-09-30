@@ -267,7 +267,7 @@ var StreamActions = React.createClass({
         <div className="hidden-sm stream-actions-assignee col-md-1"></div>
         <div className="stream-actions-level col-md-1 hidden-xs"></div>
         <div className="hidden-sm hidden-xs stream-actions-graph col-md-2">
-          Graph:
+          <span className="stream-actions-graph-label">Graph:</span>
           <ul className="toggle-graph">
             <li className={this.props.statsPeriod === '24h' ? 'active' : ''}>
               <a onClick={this.selectStatsPeriod.bind(this, '24h')}>24h</a>

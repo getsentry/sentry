@@ -67,7 +67,8 @@ class User(Interface):
         username = trim(data.pop('username', None), 128)
         ip_address = validate_ip(data.pop('ip_address', None), False)
 
-        assert ident or email or username or ip_address
+        if not (ident or email or username or ip_address):
+            raise ValueError('No identifying value')
 
         kwargs = {
             'id': ident,

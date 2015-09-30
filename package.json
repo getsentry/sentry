@@ -45,6 +45,7 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
+    "postinstall": "node_modules/.bin/gulp dist",
     "test": "node_modules/karma/bin/karma start tests/karma.conf.js --single-run",
     "test-watch": "node_modules/karma/bin/karma start tests/karma.conf.js",
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx"
@@ -55,12 +56,13 @@
     "chai": "^3.0.0",
     "js-cookie": "^2.0.2",
     "karma": "^0.13.3",
-    "karma-mocha": "^0.1.6",
     "karma-chai": "^0.1.0",
+    "karma-mocha": "^0.1.6",
     "karma-phantomjs-launcher": "^0.1.4",
     "karma-sinon": "^1.0.4",
     "karma-sourcemap-loader": "^0.3.3",
     "karma-webpack": "^1.7.0",
+    "platformicons": "0.0.5",
     "sinon": "^1.15.4",
     "sinon-chai": "^2.8.0"
   }
