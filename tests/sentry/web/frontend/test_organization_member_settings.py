@@ -20,11 +20,8 @@ class OrganizationMemberSettingsPermissionTest(PermissionTestCase):
     def test_teamless_admin_cannot_load(self):
         self.assert_teamless_admin_cannot_access(self.path)
 
-    def test_org_admin_can_load(self):
-        self.assert_org_admin_can_access(self.path)
-
-    def test_org_member_cannot_load(self):
-        self.assert_org_member_cannot_access(self.path)
+    def test_org_member_can_load(self):
+        self.assert_org_member_can_access(self.path)
 
 
 class OrganizationMemberSettingsTest(TestCase):
