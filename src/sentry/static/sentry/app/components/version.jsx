@@ -27,7 +27,7 @@ var Version = React.createClass({
             params={{
               orgId: params.orgId,
               projectId: params.projectId,
-              version: version,
+              version: window.encodeURIComponent(version),
             }}>
           <span title={version}>{shortVersion}</span>
         </Router.Link>
