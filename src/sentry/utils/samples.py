@@ -74,6 +74,9 @@ def create_sample_event(project, platform=None, default=None, raw=True,
     if not platform and not default:
         return
 
+    if platform is None:
+        platform = default
+
     platform = platform.split('-', 1)[0].split('_', 1)[0]
 
     data = load_data(platform, default)
