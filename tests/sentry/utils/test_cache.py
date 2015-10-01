@@ -7,6 +7,7 @@ import pytest
 from sentry.testutils import TestCase
 from sentry.utils.cache import (
     Lock,
+    LockAlreadyHeld,
     UnableToGetLock,
 )
 
@@ -23,7 +24,8 @@ class LockTestCase(TestCase):
         assert timeout > lock.seconds_remaining > (timeout - 0.1)
         assert lock.held is True
 
-        assert lock.acquire() is True  # ensure reentrancy
+        with pytest.raises(LockAlreadyHeld):
+            lock.acquire()
 
         assert lock.release() is True
         assert lock.seconds_remaining is 0
