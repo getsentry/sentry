@@ -4,12 +4,10 @@ import api from "../../api";
 import BarChart from "../../components/barChart";
 import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
-import RouteMixin from "../../mixins/routeMixin";
 import ProjectState from "../../mixins/projectState";
 
 var ProjectChart = React.createClass({
   mixins: [
-    RouteMixin,
     ProjectState,
   ],
 
@@ -19,17 +17,17 @@ var ProjectChart = React.createClass({
 
   getInitialState() {
     return {
+      loading: true,
       error: false,
       stats: [],
-      releaseList: [],
-      dateSince: (new Date().getTime() / 1000) - (3600 * 24 * 7)
+      releaseList: []
     };
   },
 
   getStatsEndpoint() {
     var org = this.getOrganization();
     var project = this.getProject();
-    return "/projects/" + org.slug + "/" + project.slug + "/stats/?resolution=1h";
+    return "/projects/" + org.slug + "/" + project.slug + "/stats/?resolution=" + this.props.resolution;
   },
 
   getProjectReleasesEndpoint() {
@@ -42,32 +40,29 @@ var ProjectChart = React.createClass({
     this.fetchData();
   },
 
-  routeDidChange(nextPath, nextParams) {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    if (params.orgId != nextParams.orgId || nextParams.projectId != params.projectId) {
-      this.fetchData();
-    }
+  componentWillReceiveProps() {
+    this.setState({
+      loading: true,
+      error: false
+    }, this.fetchData);
   },
 
   fetchData() {
-    this.setState({
-      error: false
-    });
-
     api.request(this.getStatsEndpoint(), {
       query: {
-        since: this.state.dateSince
+        since: this.props.dateSince
       },
       success: (data) => {
         this.setState({
           stats: data,
-          error: false
+          error: false,
+          loading: false
         });
       },
       error: () => {
         this.setState({
-          error: true
+          error: true,
+          loading: false
         });
       }
     });
@@ -102,7 +97,7 @@ var ProjectChart = React.createClass({
           points={points}
           markers={markers}
           className="sparkline" />
-        <small className="date-legend">{moment(this.state.dateSince * 1000).format("LL")}</small>
+        <small className="date-legend">{moment(this.props.dateSince * 1000).format("LL")}</small>
       </div>
     );
   },
