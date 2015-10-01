@@ -430,9 +430,11 @@ class Stacktrace(Interface):
     ``post_context``
       A list of source code lines after context_line (in order) -- usually [lineno + 1:lineno + 5]
     ``in_app``
-      Signifies whether this frame is related to the execution of the relevant code in this stacktrace. For example,
-      the frames that might power the framework's webserver of your app are probably not relevant, however calls to
-      the framework's library once you start handling code likely are.
+      Signifies whether this frame is related to the execution of the relevant
+      code in this stacktrace. For example, the frames that might power the
+      framework's webserver of your app are probably not relevant, however calls
+      to the framework's library once you start handling code likely are. See
+      notes below on implicity ``in_app`` behavior.
     ``vars``
       A mapping of variables which were available within this frame (usually context-locals).
 
@@ -459,6 +461,18 @@ class Stacktrace(Interface):
     >>>     "frames_omitted": [13, 56]
     >>> }
 
+    Implicity ``in_app`` behavior exists when the value is not specified on all
+    frames within a stacktrace (or collectively within an exception if this is
+    part of a chain).
+
+    If **any frame** is marked with ``in_app=True`` or ``in_app=False``:
+
+    - Set ``in_app=False`` where ``in_app is None``
+
+    If **all frames** are marked identical values for ``in_app``:
+
+    - Set ``in_app=False`` on all frames
+
     .. note:: This interface can be passed as the 'stacktrace' key in addition
               to the full interface path.
     """
@@ -468,16 +482,27 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, has_system_frames=None):
         assert data.get('frames')
 
         slim_frame_data(data)
 
+        if has_system_frames is None:
+            has_system_frames = cls.data_has_system_frames(data)
+
+        frame_list = [
+            Frame.to_python(f)
+            for f in data['frames']
+        ]
+
+        for frame in frame_list:
+            if not has_system_frames:
+                frame.in_app = False
+            elif frame.in_app is None:
+                frame.in_app = False
+
         kwargs = {
-            'frames': [
-                Frame.to_python(f)
-                for f in data['frames']
-            ],
+            'frames': frame_list,
         }
 
         if data.get('frames_omitted'):
@@ -486,31 +511,39 @@ class Stacktrace(Interface):
         else:
             kwargs['frames_omitted'] = None
 
+        kwargs['has_system_frames'] = has_system_frames
+
         return cls(**kwargs)
 
-    def get_api_context(self, is_public=False, has_system_frames=None):
-        # if there are no system frames, pretend they're all part of the app
-        if has_system_frames is None:
-            has_system_frames = self.has_system_frames()
+    @classmethod
+    def data_has_system_frames(cls, data):
+        system_frames = 0
+        frames = []
+        for frame in data['frames']:
+            if not frame.get('in_app'):
+                system_frames += 1
 
-        frame_list = []
-        for frame in self.frames:
-            frame_context = frame.get_api_context(is_public=is_public)
-            if not has_system_frames:
-                frame_context['inApp'] = True
-            elif frame_context.get('inApp') is None:
-                frame_context['inApp'] = False
-            frame_list.append(frame_context)
+        if len(frames) == system_frames:
+            system_frames = 0
+        return bool(system_frames)
+
+    def get_api_context(self, is_public=False):
+        frame_list = [
+            f.get_api_context(is_public=is_public)
+            for f in self.frames
+        ]
 
         return {
             'frames': frame_list,
             'framesOmitted': self.frames_omitted,
+            'hasSystemFrames': self.has_system_frames,
         }
 
     def to_json(self):
         return {
             'frames': [f.to_json() for f in self.frames],
             'frames_omitted': self.frames_omitted,
+            'has_system_frames': self.has_system_frames,
         }
 
     def get_path(self):
@@ -553,17 +586,6 @@ class Stacktrace(Interface):
 
     def to_string(self, event, is_public=False, **kwargs):
         return self.get_stacktrace(event, system_frames=False, max_frames=10)
-
-    def has_system_frames(self):
-        system_frames = 0
-        frames = []
-        for frame in self.frames:
-            if not frame.in_app:
-                system_frames += 1
-
-        if len(frames) == system_frames:
-            system_frames = 0
-        return bool(system_frames)
 
     def get_stacktrace(self, event, system_frames=True, newest_first=None,
                        max_frames=None, header=True):
