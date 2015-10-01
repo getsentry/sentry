@@ -8,6 +8,7 @@ import {getItem, setItem} from "../../utils/localStorage";
 
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 const localStorageKey = 'noteinput:latest';
+const DEFAULT_ERROR_JSON = {detail: 'Unknown error. Please try again.'};
 
 var NoteInput = React.createClass({
   mixins: [PureRenderMixin],
@@ -100,7 +101,7 @@ var NoteInput = React.createClass({
           loading: false,
           preview: false,
           error: true,
-          errorJSON: JSON.parse(error.responseJSON)
+          errorJSON: error.responseJSON || DEFAULT_ERROR_JSON
         });
       },
       success: (data) => {
@@ -134,7 +135,7 @@ var NoteInput = React.createClass({
           loading: false,
           preview: false,
           error: true,
-          errorJSON: JSON.parse(error.responseJSON)
+          errorJSON: error.responseJSON || DEFAULT_ERROR_JSON
         });
       },
       success: (data) => {
