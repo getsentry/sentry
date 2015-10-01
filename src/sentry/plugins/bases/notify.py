@@ -109,7 +109,7 @@ class NotificationPlugin(Plugin):
 
     def test_configuration(self, project):
         from sentry.utils.samples import create_sample_event
-        event = create_sample_event(project, default='python')
+        event = create_sample_event(project, platform='python')
         notification = Notification(event=event)
         return self.notify(notification)
 
