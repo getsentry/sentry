@@ -7,11 +7,17 @@ sentry.utils.dates
 """
 from __future__ import absolute_import
 
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
+
+import pytz
 from dateutil.parser import parse
 from django.db import connections
 
 from sentry.utils.db import get_db_engine
+
 
 DATE_TRUNC_GROUPERS = {
     'oracle': {
@@ -23,6 +29,27 @@ DATE_TRUNC_GROUPERS = {
         'minute': 'minute',
     },
 }
+
+
+epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
+
+
+def to_timestamp(value):
+    """
+    Convert a time zone aware datetime to a POSIX timestamp (with fractional
+    component.)
+    """
+    return (value - epoch).total_seconds()
+
+
+def to_datetime(value):
+    """
+    Convert a POSIX timestamp to a time zone aware datetime.
+
+    The timestamp value must be a numeric type (either a integer or float,
+    since it may contain a fractional component.)
+    """
+    return epoch + timedelta(seconds=value)
 
 
 def get_sql_date_trunc(col, db='default', grouper='hour'):
