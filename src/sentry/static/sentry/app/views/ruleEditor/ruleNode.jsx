@@ -2,6 +2,13 @@ import React from "react";
 import $ from "jquery";
 
 var RuleNode = React.createClass({
+  propTypes: {
+    data: React.PropTypes.object.isRequired,
+    node: React.PropTypes.shape({
+      html: React.PropTypes.string.isRequired
+    }).isRequired
+  },
+
   componentDidMount() {
     let $html = $(this.refs.html.getDOMNode());
 
