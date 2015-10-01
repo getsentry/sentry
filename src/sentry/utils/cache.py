@@ -23,6 +23,10 @@ class UnableToGetLock(Exception):
     pass
 
 
+class LockAlreadyHeld(UnableToGetLock):
+    pass
+
+
 class Lock(object):
     """
     Uses the defined cache backend to create a lock.
@@ -54,12 +58,9 @@ class Lock(object):
         # compatible in the future, but that would also require changes to the
         # the constructor: https://docs.python.org/2/library/threading.html#lock-objects
 
-        # XXX: This can lead to unexpected behavior, since the timeout is not
-        # correct -- maybe this should be an exception?
         time_remaining = self.seconds_remaining
         if time_remaining:
-            logger.warning('Tried to acquire lock that is already held, %.3fs remaining: %r', time_remaining, self)
-            return True
+            raise LockAlreadyHeld('Tried to acquire lock that is already held, %.3fs remaining: %r' % (time_remaining, self))
 
         started_at = time()
         self.__acquired_at = None
