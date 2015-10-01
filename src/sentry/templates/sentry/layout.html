@@ -31,17 +31,19 @@
   <script src="{% url 'sentry-media' "sentry" "dist/app.js" %}"></script>
 
   <script>
-    (function(){
-      for (var n in window.exports) {
-        window[n] = window.exports[n];
-      }
-      window.$ = window.jQuery;
+    for (var n in window.exports) {
+      window[n] = window.exports[n];
+    }
+    window.$ = window.jQuery;
 
-      window.moment.locale({{ request.LANGUAGE_CODE|to_json|safe }});
-    }());
+    window.moment.locale({{ request.LANGUAGE_CODE|to_json|safe }});
+
+    // if the ads.js file loads below it will mark this variable as false
+    window.adblockSuspected = true;
 
     Sentry.ConfigStore.loadInitialData({% get_react_config %});
   </script>
+  <script src="{% url 'sentry-media' 'sentry' 'js/ads.js' %}"></script>
 
   {% include "sentry/includes/ravenjs.html" %}
   {% endblock %}
