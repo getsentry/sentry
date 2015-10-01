@@ -60,11 +60,7 @@ var StreamSidebar = React.createClass({
   },
 
   onTextChange: function (evt) {
-    let text = evt.target.value;
-
-    this.setState({ textFilter: text });
-
-    this.debouncedTextChange(text);
+    this.setState({ textFilter: evt.target.value });
   },
 
   debouncedTextChange: _.debounce(function(text) {
@@ -73,9 +69,28 @@ var StreamSidebar = React.createClass({
     }, this.onQueryChange);
   }, TEXT_FILTER_DEBOUNCE_IN_MS),
 
+  onTextFilterSubmit(evt) {
+    evt && evt.preventDefault();
+
+    let newQueryObj = {
+      ...this.state.queryObj,
+      __text: this.state.textFilter
+    };
+
+    this.setState({
+      queryObj: newQueryObj
+    }, this.onQueryChange);
+  },
+
   onQueryChange() {
     let query = objToQuery(this.state.queryObj);
     this.props.onQueryChange && this.props.onQueryChange(query);
+  },
+
+  onClearSearch() {
+    this.setState({
+      textFilter: ''
+    }, this.onTextFilterSubmit);
   },
 
   render() {
@@ -83,12 +98,19 @@ var StreamSidebar = React.createClass({
       <div className="stream-sidebar">
         <div className="stream-tag-filter">
           <h6 className="nav-header">Text</h6>
-          <input
-            className="form-control"
-            placeholder="Search title and culprit text body"
-            onChange={this.onTextChange}
-            value={this.state.textFilter}
-          />
+          <form onSubmit={this.onTextFilterSubmit}>
+            <input
+              className="form-control"
+              placeholder="Search title and culprit text body"
+              onChange={this.onTextChange}
+              value={this.state.textFilter}
+            />
+            {this.state.textFilter &&
+              <a className="search-clear-form" onClick={this.onClearSearch}>
+                <span className="icon-circle-cross" />
+              </a>
+            }
+          </form>
           <hr/>
         </div>
 
