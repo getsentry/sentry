@@ -17,8 +17,8 @@ class OrganizationMemberSettingsPermissionTest(PermissionTestCase):
         om = self.create_member(user=member, organization=self.organization)
         self.path = reverse('sentry-organization-member-settings', args=[self.organization.slug, om.id])
 
-    def test_teamless_admin_cannot_load(self):
-        self.assert_teamless_admin_cannot_access(self.path)
+    def test_teamless_member_can_load(self):
+        self.assert_teamless_admin_can_access(self.path)
 
     def test_org_member_can_load(self):
         self.assert_org_member_can_access(self.path)
@@ -245,6 +245,39 @@ class OrganizationMemberSettingsTest(TestCase):
         member_om = OrganizationMember.objects.create(
             organization=organization,
             user=member,
+            type=OrganizationMemberType.ADMIN,
+        )
+
+        path = reverse('sentry-organization-member-settings',
+                       args=[organization.slug, owner_om.id])
+
+        self.login_as(member)
+
+        resp = self.client.get(path)
+
+        assert resp.status_code == 200
+
+        self.assertTemplateUsed(resp, 'sentry/organization-member-details.html')
+
+        assert resp.context['organization'] == organization
+        assert resp.context['member'] == owner_om
+
+    def test_can_view_member_with_team_access(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+        team_1 = self.create_team(name='foo', organization=organization)
+        team_2 = self.create_team(name='bar', organization=organization)
+
+        member = self.create_user('foo@example.com', is_superuser=False)
+
+        owner_om = OrganizationMember.objects.get(
+            organization=organization,
+            user=self.user,
+        )
+
+        member_om = OrganizationMember.objects.create(
+            organization=organization,
+            user=member,
+            has_global_access=False,
             type=OrganizationMemberType.ADMIN,
         )
 
