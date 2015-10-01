@@ -91,6 +91,12 @@ class Lock(object):
             return False
 
         try:
+            # XXX: There is a possible race condition here -- this could be
+            # actually past the timeout due to clock skew or the delete
+            # operation could reach the server after the timeout for a variety
+            # of reasons. The only real fix for this would be to use a check
+            # and delete operation, but that is backend dependent and not
+            # supported by the cache API.
             self.cache.delete(self.lock_key)
         except Exception as e:
             logger.exception(e)
