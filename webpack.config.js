@@ -22,7 +22,6 @@ var config = {
       "moment-timezone",
       "raven-js",
       "react/addons",
-      "react-datepicker",
       "react-document-title",
       "react-router",
       "react-bootstrap",
