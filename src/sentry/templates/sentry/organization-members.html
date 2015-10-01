@@ -58,7 +58,9 @@
         <th>&nbsp;</th>
         <th>Role</th>
         <th>Teams</th>
-        <th class="squash">&nbsp;</th>
+        {% if access_is_global %}
+          <th class="squash">&nbsp;</th>
+        {% endif %}
       </tr>
     </thead>
     <tbody>
@@ -96,13 +98,15 @@
               {{ team_list.0.name }}
             {% endif %}
           </td>
+          {% if access_is_global %}
           <td class="align-right squash">
-            {% if authorizing_access <= member.type %}
+            {% if authorizing_access <= member.type  %}
               {% if member.user != request.user or member_can_leave %}
               <a href="javascript:void(0)" class="btn btn-default btn-sm remove-member" data-member-id="{{ member.id }}"><span class="icon icon-trash"></span> &nbsp;Remove</a>
               {% endif %}
             {% endif %}
           </td>
+          {% endif %}
         </tr>
       {% endfor %}
     </tbody>

@@ -69,6 +69,7 @@ class OrganizationMembersView(OrganizationView):
             'request_list': access_requests,
             'ref': request.GET.get('ref'),
             'authorizing_access': authorizing_access,
+            'access_is_global': access_is_global,
             'member_can_leave': member_can_leave,
         }
 
