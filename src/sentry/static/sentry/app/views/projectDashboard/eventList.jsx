@@ -2,15 +2,10 @@ import React from "react";
 import api from "../../api";
 import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
-import RouteMixin from "../../mixins/routeMixin";
 
 import EventNode from "./eventNode";
 
 var EventList = React.createClass({
-  mixins: [
-    RouteMixin
-  ],
-
   contextTypes: {
     router: React.PropTypes.func
   },
@@ -33,26 +28,14 @@ var EventList = React.createClass({
     this.fetchData();
   },
 
-  routeDidChange(nextPath, nextParams) {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    if (nextParams.teamId != params.teamId) {
-      this.fetchData();
-    }
-  },
-
-  componentDidUpdate(_, prevState) {
-    if (this.state.statsPeriod != prevState.statsPeriod) {
-      this.fetchData();
-    }
-  },
-
-  fetchData() {
+  componentWillReceiveProps() {
     this.setState({
       loading: true,
       error: false
-    });
+    }, this.fetchData);
+  },
 
+  fetchData() {
     var minutes;
     switch(this.state.statsPeriod) {
       case "15m":
