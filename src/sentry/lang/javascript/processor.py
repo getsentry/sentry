@@ -432,6 +432,7 @@ class SourceProcessor(object):
             logger.debug('No stacktrace for event %r', data['event_id'])
             return
 
+        # TODO(dcramer): we need this to do more than just sourcemaps
         frames = self.get_valid_frames(stacktraces)
         if not frames:
             logger.debug('Event %r has no frames with enough context to fetch remote source', data['event_id'])
@@ -543,6 +544,9 @@ class SourceProcessor(object):
                         filename = '~/' + abs_path.split('/~/', 1)[-1]
                     else:
                         filename = filename.split('webpack:///', 1)[-1]
+
+                    if filename.startswith('~/') and frame.in_app is None:
+                        frame.in_app = False
 
                 frame.abs_path = abs_path
                 frame.filename = filename

@@ -21,6 +21,9 @@ var OrganizationStats = React.createClass({
   },
 
   getInitialState() {
+    let until = Math.floor(new Date().getTime() / 1000);
+    let since = until - 3600 * 24 * 7;
+
     return {
       projectsError: false,
       projectsLoading: false,
@@ -33,7 +36,9 @@ var OrganizationStats = React.createClass({
       rawOrgData: {received: null, rejected: null, blacklisted: null},
       orgStats: null,
       orgTotal: null,
-      projectTotals: null
+      projectTotals: null,
+      querySince: since,
+      queryUntil: until
     };
   },
 
@@ -69,10 +74,12 @@ var OrganizationStats = React.createClass({
     });
 
     var statEndpoint = this.getOrganizationStatsEndpoint();
+
     $.each(this.state.rawOrgData, (statName) => {
       api.request(statEndpoint, {
         query: {
-          since: new Date().getTime() / 1000 - 3600 * 24 * 7,
+          since: this.state.querySince,
+          until: this.state.queryUntil,
           resolution: '1h',
           stat: statName
         },
@@ -95,7 +102,8 @@ var OrganizationStats = React.createClass({
     $.each(this.state.rawProjectData, (statName) => {
       api.request(statEndpoint, {
         query: {
-          since: new Date().getTime() / 1000 - 3600 * 24 * 7,
+          since: this.state.querySince,
+          until: this.state.queryUntil,
           stat: statName,
           group: 'project'
         },
