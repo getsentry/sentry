@@ -2,7 +2,7 @@ import React from "react";
 import $ from "jquery";
 import api from "../../api";
 import IndicatorStore from '../../stores/indicatorStore';
-import Selectize from "../../components/selectize";
+import SelectInput from "../../components/selectInput";
 
 import RuleNodeList from "./ruleNodeList";
 
@@ -113,18 +113,21 @@ var RuleEditor = React.createClass({
                    required={true}
                    placeholder="My Rule Name" />
             <hr/>
-            <h6>
-              Every time
-              <Selectize ref="actionMatch"
-                      className={"selectize-inline" + (this.hasError('actionMatch') ? ' error' : '')}
+
+            <div className="node-match-selector">
+              <h6>
+                Every time
+                <SelectInput ref="actionMatch"
+                      className={(this.hasError('actionMatch') ? ' error' : '')}
                       value={actionMatch}
                       required={true}>
-                <option value="all">all</option>
-                <option value="any">any</option>
-                <option value="none">none</option>
-              </Selectize>
-              of these conditions are met:
-            </h6>
+                  <option value="all">all</option>
+                  <option value="any">any</option>
+                  <option value="none">none</option>
+                </SelectInput>
+                of these conditions are met:
+              </h6>
+            </div>
 
             {this.hasError('conditions') &&
               <p className="error">Ensure at least one condition is enabled and all required fields are filled in.</p>
