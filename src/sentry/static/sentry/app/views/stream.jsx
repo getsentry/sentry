@@ -19,7 +19,7 @@ import StreamTagStore from "../stores/streamTagStore";
 import StreamFilters from './stream/filters';
 import StreamSidebar from "./stream/sidebar";
 import utils from "../utils";
-
+import parseLinkHeader from '../utils/parseLinkHeader';
 
 var Stream = React.createClass({
   mixins: [
@@ -159,7 +159,6 @@ var Stream = React.createClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
-    this._poller.setEndpoint(this.getGroupListEndpoint());
     if (prevState.realtimeActive !== this.state.realtimeActive) {
       if (this.state.realtimeActive) {
         this._poller.enable();
@@ -220,11 +219,13 @@ var Stream = React.createClass({
           loading: false
         });
       },
-      complete: () => {
+      complete: (jqXHR) => {
         this.lastRequest = null;
 
+        var links = parseLinkHeader(jqXHR.getResponseHeader('Link'));
+        this._poller.setEndpoint(links.previous.href);
+
         if (this.state.realtimeActive) {
-          this._poller.setEndpoint(url);
           this._poller.enable();
         }
       }

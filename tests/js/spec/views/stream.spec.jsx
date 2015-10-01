@@ -16,6 +16,10 @@ var TestUtils = React.addons.TestUtils;
 var findWithClass = TestUtils.findRenderedDOMComponentWithClass;
 var findWithType = TestUtils.findRenderedComponentWithType;
 
+const EXAMPLE_LINK_HEADER =
+  '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
+  '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
+
 describe("Stream", function() {
 
   beforeEach(function() {
@@ -49,12 +53,12 @@ describe("Stream", function() {
 
   describe("fetchData()", function() {
 
-    it("resets the poller endpoint", function() {
-      var expectedUrl;
+    it("resets the poller endpoint and sets cursor URL", function() {
       this.stubbedApiRequest.restore();
       this.sandbox.stub(Api, "request", function(url, options) {
-        expectedUrl = url;
-        options.complete && options.complete();
+        options.complete && options.complete({
+          getResponseHeader: () => EXAMPLE_LINK_HEADER
+        });
       });
 
       var stubbedSetEndpoint = this.sandbox.stub(CursorPoller.prototype, "setEndpoint");
@@ -62,7 +66,10 @@ describe("Stream", function() {
       var wrapper = React.render(this.Element, document.body);
       wrapper.refs.wrapped.fetchData();
 
-      expect(stubbedSetEndpoint.calledWith(expectedUrl)).to.be.true;
+      // url value pulled from EXAMPLE_LINK_HEADER
+      expect(stubbedSetEndpoint
+        .calledWith('http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:1'))
+        .to.be.true;
     });
 
     it("should cancel any previous, unfinished fetches", function () {
@@ -87,7 +94,9 @@ describe("Stream", function() {
       expect(stream.lastRequest).to.be.ok;
 
       // when request "completes", lastRequest is cleared
-      requestOptions.complete();
+      requestOptions.complete({
+        getResponseHeader: () => EXAMPLE_LINK_HEADER
+      });
 
       expect(stream.lastRequest).to.be.null;
     });
