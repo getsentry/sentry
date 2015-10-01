@@ -13,15 +13,19 @@
   </div>
 
   {% if provider_name %}
-    <div class="align-center">
-      <p>Sign in with your {{ provider_name }} account to continue.</p>
+    <form class="form-stacked" action="" method="post" autocomplete="off">
+      {% csrf_token %}
 
-      <p><button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
-        <span class="provider-logo {{ provider_name | lower}}"></span> Login with {{ provider_name }}
-      </button></p>
+      <div class="align-center">
+        <p>Sign in with your {{ provider_name }} account to continue.</p>
 
-      <p><small>Have an existing account? <a href="{% url 'sentry-auth-link-identity' organization.slug %}">Login with your password</a> to link your identity.</small></p>
-    </div>
+        <p><button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
+          <span class="provider-logo {{ provider_name | lower}}"></span> Login with {{ provider_name }}
+        </button></p>
+
+        <p><small>Have an existing account? <a href="{% url 'sentry-auth-link-identity' organization.slug %}">Login with your password</a> to link your identity.</small></p>
+      </div>
+    </form>
   {% else %}
     <ul class="nav nav-tabs auth-toggle">
       <li{% if op == "login" %} class="active"{% endif %}>
