@@ -39,37 +39,87 @@ class Lock(object):
         self.lock_key = lock_key
         self.nowait = nowait
 
-    def __enter__(self):
-        lock_key = self.lock_key
-        cache = self.cache
+        self.__acquired_at = None
 
-        start = time()
+    def __repr__(self):
+        return '<Lock: %r>' % (self.lock_key,)
+
+    def acquire(self):
+        """
+        Attempt to acquire the lock, returning a boolean that represents if the
+        lock is held.
+        """
+        # NOTE: This isn't API compatible with the standard Python
+        # ``Lock.acquire`` method signature. It may make sense to make these
+        # compatible in the future, but that would also require changes to the
+        # the constructor: https://docs.python.org/2/library/threading.html#lock-objects
+
+        # XXX: This can lead to unexpected behavior, since the timeout is not
+        # correct -- maybe this should be an exception?
+        time_remaining = self.seconds_remaining
+        if time_remaining:
+            logger.warning('Tried to acquire lock that is already held, %.3fs remaining: %r', time_remaining, self)
+            return True
+
+        started_at = time()
+        self.__acquired_at = None
+
         delay = 0.01 + random.random() / 10
-        attempt = 0
-        max_attempts = self.timeout / delay
-        got_lock = None
-        self.was_locked = False
-        while not got_lock and attempt < max_attempts:
-            got_lock = cache.add(lock_key, '', self.timeout)
-            if not got_lock:
-                if self.nowait:
-                    break
-                self.was_locked = True
+        for i in xrange(int(self.timeout // delay)):
+            if i != 0:
                 sleep(delay)
-                attempt += 1
-        stop = time()
 
-        if not got_lock:
-            raise UnableToGetLock('Unable to fetch lock after %.3fs on %s' % (
-                stop - start, lock_key,))
+            attempt_started_at = time()
+            if self.cache.add(self.lock_key, '', self.timeout):
+                self.__acquired_at = attempt_started_at
+                break
 
-        return self
+            if self.nowait:
+                break
 
-    def __exit__(self, exc_type, exc_value, traceback):
+        return self.__acquired_at is not None
+
+    def release(self):
+        """
+        Release the lock.
+        """
+        # If we went over the lock duration (timeout), we need to exit to avoid
+        # accidentally releasing a lock that was acquired by another process.
+        if not self.held:
+            logger.warning('Tried to release unheld lock: %r', self)
+            return False
+
         try:
             self.cache.delete(self.lock_key)
         except Exception as e:
             logger.exception(e)
+        finally:
+            self.__acquired_at = None
+
+        return True
+
+    @property
+    def seconds_remaining(self):
+        if self.__acquired_at is None:
+            return 0
+
+        lifespan = time() - self.__acquired_at
+        return max(self.timeout - lifespan, 0)
+
+    @property
+    def held(self):
+        return bool(self.seconds_remaining)
+
+    def __enter__(self):
+        start = time()
+
+        if not self.acquire():
+            raise UnableToGetLock('Unable to fetch lock after %.3fs: %r' % (time() - start, self,))
+
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.release()
 
 
 class memoize(object):
