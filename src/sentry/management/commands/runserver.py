@@ -62,6 +62,13 @@ class Command(RunserverCommand):
         return Popen(sys.argv + ['--no-watchers'], cwd=self.cwd,
                      env=self.get_env())
 
+    def handle(self, addrport='', *args, **options):
+        if not addrport:
+            addrport = os.environ.get('SENTRY_BIND_ADDRESS', '')
+        if 'SENTRY_NO_WATCHERS' in os.environ:
+            options['use_watcher'] = False
+        super(Command, self).handle(addrport, *args, **options)
+
     def run(self, *args, **options):
         self.style = color_style()
         self.verbosity = int(options['verbosity'])

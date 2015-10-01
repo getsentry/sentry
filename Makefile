@@ -124,8 +124,33 @@ extract-api-docs:
 	rm -rf api-docs/cache/*
 	cd api-docs; python generator.py
 
-
 .PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python test-python-coverage lint lint-python lint-js coverage run-uwsgi publish
+
+
+###################################
+# Docker specific workflow things #
+###################################
+docker-exec:
+	@docker exec -it $(shell docker ps --filter name=sentry_web -q) bash
+
+docker-shell:
+	@docker exec -it $(shell docker ps --filter name=sentry_web -q) sentry shell
+
+docker-test:
+	@docker exec -it $(shell docker ps --filter name=sentry_web -q) make test
+
+docker-setup:
+	@docker exec -it $(shell docker ps --filter name=sentry_web -q) make dev-postgres
+
+docker-stop:
+	docker-compose stop
+
+docker:
+	docker-compose up -d
+	@$(MAKE) docker-setup
+	@$(MAKE) docker-exec
+
+.PHONY: docker-exec docker-shell docker-test docker-setup docker-stop docker
 
 
 ############################

@@ -2,15 +2,15 @@
 
 from __future__ import absolute_import
 
+from django.conf import settings
 from sentry.cache.redis import RedisCache
 from sentry.testutils import TestCase
 
 
 class RedisCacheTest(TestCase):
     def setUp(self):
-        self.backend = RedisCache(hosts={
-            0: {'db': 9}
-        })
+        options = settings.SENTRY_REDIS_OPTIONS
+        self.backend = RedisCache(hosts=options['hosts'])
 
     def test_integration(self):
         self.backend.set('foo', {'foo': 'bar'}, 50)
