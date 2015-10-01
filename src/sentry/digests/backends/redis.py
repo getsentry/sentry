@@ -15,10 +15,7 @@ from redis.exceptions import (
     WatchError,
 )
 
-from sentry.utils.cache import (
-    Lock,
-    UnableToGetLock,
-)
+from sentry.utils.cache import Lock
 
 from .. import (
     Record,
@@ -251,14 +248,9 @@ class RedisBackend(Backend):
                     returning ``None``.
                     """
                     key, timestamp = item
+                    # TODO: This timeout is totally arbitrary, need to ensure this is reasonable.
                     lock = Lock(make_timeline_key(self.namespace, key), timeout=60, nowait=True)
-                    try:
-                        # TODO: This timeout is totally arbitrary, need to
-                        # ensure this is reasonable.
-                        lock.__enter__()  # TODO: Add ``Lock.acquire``.
-                        return lock, item
-                    except UnableToGetLock:
-                        return None, item
+                    return lock if lock.acquire() else None, item
 
                 # Try to take out a lock on each item. If we can't acquire the
                 # lock, that means this is currently being digested and cannot
@@ -330,7 +322,7 @@ class RedisBackend(Backend):
                     # try to unlock the items for processing.
                     for lock, item in can_reschedule[True]:
                         try:
-                            lock.__exit__(None, None, None)  # TODO: Add ``Lock.release``.
+                            lock.release()
                         except Exception as error:
                             # XXX: This shouldn't be hit (the ``Lock`` code
                             # should swallow the exception) but this is here
