@@ -6,6 +6,7 @@ import ConfigStore from "../../stores/configStore";
 import OrganizationHomeContainer from "../../components/organizations/homeContainer";
 import OrganizationState from "../../mixins/organizationState";
 import TeamStore from "../../stores/teamStore";
+import TooltipMixin from "../../mixins/tooltip";
 import {sortArray} from "../../utils";
 
 import ExpandedTeamList from "./expandedTeamList";
@@ -15,7 +16,10 @@ import OrganizationStatOverview from "./organizationStatOverview";
 var OrganizationTeams = React.createClass({
   mixins: [
     OrganizationState,
-    Reflux.listenTo(TeamStore, "onTeamListChange")
+    Reflux.listenTo(TeamStore, "onTeamListChange"),
+    TooltipMixin({
+      selector: ".tip"
+    })
   ],
 
   contextTypes: {
@@ -92,13 +96,28 @@ var OrganizationTeams = React.createClass({
           <div className="col-md-9">
             <div className="team-list">
               <div className="pull-right">
-                <a href={urlPrefix + '/projects/new/'} className="btn btn-primary btn-sm"
-                   style={{marginRight: 5}}>
-                  <span className="icon-plus" /> Project
-                </a>
-                <a href={urlPrefix + '/teams/new/'} className="btn btn-primary btn-sm">
-                  <span className="icon-plus" /> Team
-                </a>
+                {access.has('project:write') ?
+                  <a href={urlPrefix + '/projects/new/'} className="btn btn-primary btn-sm"
+                     style={{marginRight: 5}}>
+                    <span className="icon-plus" /> Project
+                  </a>
+                :
+                  <a className="btn btn-primary btn-sm btn-disabled tip"
+                     title="You do not have enough permission to create new projects"
+                     style={{marginRight: 5}}>
+                    <span className="icon-plus" /> Project
+                  </a>
+                }
+                {access.has('team:write') ?
+                  <a href={urlPrefix + '/teams/new/'} className="btn btn-primary btn-sm">
+                    <span className="icon-plus" /> Team
+                  </a>
+                :
+                  <a className="btn btn-primary btn-sm btn-disabled tip"
+                     title="You do not have enough permission to create new teams">
+                    <span className="icon-plus" /> Team
+                  </a>
+                }
               </div>
               <ul className="nav nav-tabs border-bottom">
                 <li className={activeNav === "your-teams" && "active"}>
