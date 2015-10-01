@@ -7,6 +7,7 @@ from sentry.digests.notifications import (
     split_key,
 )
 from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
 
 
 @instrumented_task(
@@ -21,17 +22,16 @@ def schedule_digests():
     # TODO: This might make sense to make probabilistic instead?
     digests.maintenance(deadline - timeout)
 
-    # TODO: Monitor schedule latency (deadline - schedule time).
     deadline = time.time()
     for entry in digests.schedule(deadline):
-        # TODO: Pass through schedule time so we can monitor total lateny.
-        deliver_digest.delay(entry.key)
+        deliver_digest.delay(entry.key, entry.timestamp)
+        metrics.timing('digests.schedule_latency', time.time() - entry.timestamp)
 
 
 @instrumented_task(
     name='sentry.tasks.digests.deliver_digest',
     queue='digests.delivery')
-def deliver_digest(key):
+def deliver_digest(key, schedule_timestamp):
     from sentry.app import digests
 
     plugin, project = split_key(key)
@@ -40,3 +40,6 @@ def deliver_digest(key):
 
     if digest:
         plugin.notify_digest(project, digest)
+
+    # TODO: This should probably report, no matter the outcome of the task?
+    metrics.timing('digests.delivery_latency', time.time() - schedule_timestamp)
