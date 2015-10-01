@@ -43,13 +43,15 @@ class DjangoNodeStorage(NodeStorage):
             },
         )
 
-    def cleanup(self, cutoff_timestamp):
-        # TODO(dcramer): this should share the efficient bulk deletion
-        # mechanisms
+    def cleanup(self, cutoff_timestamp, chunk_size=100):
         query = """
-        DELETE FROM %s WHERE timestamp <= %%s
-        """ % (Node._meta.db_table,)
+        DELETE FROM %s WHERE timestamp <= %%s LIMIT %s
+        """ % (Node._meta.db_table, chunk_size)
         params = [cutoff_timestamp]
 
-        cursor = connection.cursor()
-        cursor.execute(query, params)
+        keep_it_going = True
+        while keep_it_going:
+            cursor = connection.cursor()
+            cursor.execute(query, params)
+
+            keep_it_going = cursor.rowcount > 0
