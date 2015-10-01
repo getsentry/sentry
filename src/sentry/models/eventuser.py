@@ -4,7 +4,6 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
-from sentry.utils.cache import memoize
 from sentry.utils.hashlib import md5
 
 
@@ -42,14 +41,11 @@ class EventUser(Model):
         value = self.ident or self.username or self.email or self.ip_address
         return md5(value).hexdigest()
 
-    @memoize
+    @property
     def tag_value(self):
         """
         Return the identifier used with tags to link this user.
         """
-        assert self.ident or self.username or self.email or self.ip_address, \
-            'No identifying value found for user'
-
         if self.ident:
             return u'id:{}'.format(self.ident)
         if self.email:
