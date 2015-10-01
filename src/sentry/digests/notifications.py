@@ -3,15 +3,9 @@ from __future__ import absolute_import
 import functools
 import itertools
 import logging
-from collections import (
-    OrderedDict,
-    namedtuple,
-)
+from collections import namedtuple
 
-from sentry.models import (
-    Group,
-    Project,
-)
+from sentry.models import Project
 from sentry.utils.dates import to_timestamp
 
 from . import Record
@@ -39,34 +33,15 @@ def strip_for_serialization(instance):
 
 
 # XXX: Rules
-def event_to_record(event, rules=[]):
+def event_to_record(event, rules=[], clean=strip_for_serialization):
     return Record(
         event.event_id,
         NotificationEvent(
-            strip_for_serialization(event),
-            map(strip_for_serialization, rules),
+            clean(event),
+            map(clean, rules),
         ),
         to_timestamp(event.datetime),
     )
-
-
-def group(records):
-    key = lambda record: record.value.event.group_id
-    raw = {}
-    for group, records in itertools.groupby(sorted(records, key=key), key=key):
-        yield group, list(records)
-
-
-def associate_with_instance(project, groups):
-    groups = dict(groups)
-
-    instances = Group.objects.filter(project=project).in_bulk(groups.keys())
-    for key, records in groups.iteritems():
-        try:
-            yield instances[key], records
-        except KeyError:
-            logger.warning('Skipping %s records for %s, no corresponding group instance exists.', len(records), id)
-            continue
 
 
 filter_muted_groups = functools.partial(
@@ -76,10 +51,8 @@ filter_muted_groups = functools.partial(
 
 
 def build_digest(project, records):
-    return OrderedDict(
-        sorted(
-            filter_muted_groups(associate_with_instance(project, group(records))),
-            key=lambda (group, records): (len(records), max(record.timestamp for record in records)),
-            reverse=True,
-        ),
-    )
+    rules = {}
+    for record in records:
+        for rule in record.value.rules:
+            rules.setdefault(rule, {}).setdefault(record.value.event.group, []).append(record)
+    return rules

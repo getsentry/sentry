@@ -4,7 +4,6 @@ import itertools
 import logging
 import time
 import traceback
-from collections import OrderedDict
 from datetime import (
     datetime,
     timedelta,
@@ -16,7 +15,10 @@ import pytz
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 
-from sentry.digests.notifications import event_to_record
+from sentry.digests.notifications import (
+    build_digest,
+    event_to_record,
+)
 from sentry.models import (
     Activity, Event, Group, Organization, Project, Rule, Team,
 )
@@ -175,34 +177,40 @@ def digest(request):
     org = Organization(
         id=1,
         slug='example',
-        name='Example',
+        name='Example Organization',
     )
     team = Team(
         id=1,
         slug='example',
-        name='Example',
+        name='Example Team',
         organization=org,
     )
     project = Project(
         id=1,
         slug='example',
-        name='Example',
+        name='Example Project',
         team=team,
         organization=org,
     )
 
     now = datetime.utcnow().replace(tzinfo=pytz.utc)
 
+    rules = [
+        Rule(id=1, label="First Rule"),
+        Rule(id=2, label="Second Rule"),
+        Rule(id=3, label="Third Rule"),
+    ]
+
+    records = []
+
     event_sequence = itertools.count(1)
-    digest = OrderedDict()
     for i in xrange(random.randint(1, 4)):
         group = Group(
-            id=i,
+            id=i + 1,
             project=project,
-            message='This is an example event.',
+            message='This is example event #%s' % (i + 1),
         )
 
-        records = []
         offset = timedelta(seconds=0)
         for i in xrange(random.randint(1, 10)):
             offset += timedelta(seconds=random.random() * 120)
@@ -216,11 +224,12 @@ def digest(request):
                         data=load_data('python'),
                         datetime=now - offset,
                     ),
-                    [Rule(label="An example rule")],
+                    random.sample(rules, random.randint(1, len(rules))),
+                    clean=lambda i: i,
                 )
             )
 
-        digest[group] = records
+    digest = build_digest(project, records)
 
     return MailPreview(
         html_template='sentry/emails/digests/body.html',

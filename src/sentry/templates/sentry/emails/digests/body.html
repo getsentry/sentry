@@ -6,18 +6,19 @@
 
 <h2>{{ project.name }}</h2>
 
-{% for group, records in digest.items %}
-    {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
-    <h3><a href="{% absolute_uri group_link %}">{{ group.title }}</a></h3>
-    {{ records|length }} event{{ records|pluralize }}
+{% for rule, groups in digest.items %}
+
+    <h3>{{ rule.label }}</h3>
+
     <ul>
-        {% for record in records %}
-            <li>
-                <strong>{{ record.value.event.message }}</strong>
-                <small>at {{ record.datetime }}</small>
-            </li>
-        {% endfor %}
+    {% for group, records in groups.items %}
+        <li>
+            {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
+            <a href="{% absolute_uri group_link %}">{{ group.title }}</a>
+        </li>
+    {% endfor %}
     </ul>
+
 {% endfor %}
 
 {% endblock %}
