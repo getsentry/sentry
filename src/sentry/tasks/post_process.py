@@ -108,6 +108,12 @@ def record_affected_user(event, **kwargs):
         ip_address=user_data.get('ip_address'),
     )
 
+    if not euser.tag_value:
+        # no ident, bail
+        logger.info('No identifying value found for user on event_id=%s',
+                    event.event_id)
+        return
+
     try:
         with transaction.atomic():
             euser.save()
