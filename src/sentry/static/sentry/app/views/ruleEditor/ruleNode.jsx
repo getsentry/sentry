@@ -29,11 +29,11 @@ var RuleNode = React.createClass({
   },
 
   render() {
-    let {id, node} = this.props;
+    let {data, node} = this.props;
     return (
       <tr>
         <td className="rule-form">
-          <input type="hidden" name="id" value={id} />
+          <input type="hidden" name="id" value={data.id} />
           <span ref="html" dangerouslySetInnerHTML={{__html: node.html}} />
         </td>
         <td className="align-right">

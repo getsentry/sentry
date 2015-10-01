@@ -35,7 +35,6 @@
     "react-sticky": "^2.5.2",
     "reflux": "^0.2.8",
     "select2": "^3.5.1",
-    "selectize": "^0.12.1",
     "underscore": "^1.8.3",
     "webpack": "^1.9.10"
   },

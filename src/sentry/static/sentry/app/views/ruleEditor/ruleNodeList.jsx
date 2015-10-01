@@ -1,6 +1,6 @@
 import React from "react";
-import Selectize from "../../components/selectize";
 
+import SelectInput from "../../components/selectInput";
 import RuleNode from "./ruleNode";
 
 var RuleNodeList = React.createClass({
@@ -44,7 +44,7 @@ var RuleNodeList = React.createClass({
   render() {
     return (
       <div className={this.props.className}>
-        <table className="actions-list table" style={{marginBottom: '10px'}}>
+        <table className="node-list table" style={{marginBottom: '10px'}}>
           <col />
           <col style={{ textAlign: 'right'}} />
           <tbody>
@@ -58,15 +58,15 @@ var RuleNodeList = React.createClass({
             })}
           </tbody>
         </table>
-        <fieldset>
-          <Selectize onChange={this.onAddRow}>
+        <fieldset className="node-selector">
+          <SelectInput onChange={this.onAddRow}>
             <option key="blank" />
             {this.props.nodes.map((node) => {
               return (
                 <option value={node.id} key={node.id}>{node.label}</option>
               );
             })}
-          </Selectize>
+          </SelectInput>
         </fieldset>
       </div>
     );
