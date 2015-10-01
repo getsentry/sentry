@@ -17,10 +17,11 @@ var RuleNodeList = React.createClass({
     });
   },
 
-  onAddRow(sel, nodeId) {
+  onAddRow(sel) {
+    let nodeId = sel.val();
     if (!nodeId) return;
 
-    sel.setValue('', true);
+    sel.val('');
 
     this.state.items.push({
       id: nodeId
