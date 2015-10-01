@@ -31,7 +31,7 @@ var RuleNodeList = React.createClass({
   },
 
   onDeleteRow(idx, e) {
-    this.state.items.splice(idx, idx + 1);
+    this.state.items.splice(idx, 1);
     this.setState({
       items: this.state.items
     });
@@ -53,7 +53,7 @@ var RuleNodeList = React.createClass({
                 <RuleNode key={idx}
                   node={this.getNode(item.id)}
                   onDelete={this.onDeleteRow.bind(this, idx)}
-                  {...item} />
+                  data={item} />
               );
             })}
           </tbody>

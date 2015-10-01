@@ -8,7 +8,7 @@ var RuleNode = React.createClass({
     $html.find('select, input, textarea').each((_, el) => {
       let $el = $(el);
       $el.attr('id', '');
-      $el.val(this.props[el.name]);
+      $el.val(this.props.data[el.name]);
     });
 
     $html.find('select').select2();
