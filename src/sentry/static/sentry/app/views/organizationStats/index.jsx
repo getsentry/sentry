@@ -69,10 +69,14 @@ var OrganizationStats = React.createClass({
     });
 
     var statEndpoint = this.getOrganizationStatsEndpoint();
+    var until = Math.floor(new Date().getTime() / 1000);
+    var since = until - 3600 * 24 * 7;
+
     $.each(this.state.rawOrgData, (statName) => {
       api.request(statEndpoint, {
         query: {
-          since: new Date().getTime() / 1000 - 3600 * 24 * 7,
+          since: since,
+          until: until,
           resolution: '1h',
           stat: statName
         },
