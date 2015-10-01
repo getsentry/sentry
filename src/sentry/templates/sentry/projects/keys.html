@@ -9,7 +9,7 @@
     {% if ACCESS.project_write %}
         <a href="{% url 'sentry-new-project-key' project.organization.slug project.slug %}" class="btn pull-right btn-primary btn-sm" style="position: relative; top: -6px;">{% trans "Generate New Key" %}</a>
     {% endif %}
-    <h2>{% trans "Client Configuration" %}</h2>
+    <h2>{% trans "Client Keys" %}</h2>
 
     <p>To send data to Sentry you will need to configure an SDK with a client key (usually referred to as the
         <code>SENTRY_DSN</code> value). For more information on integrating Sentry with your application take
