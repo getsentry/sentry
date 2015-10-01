@@ -127,9 +127,9 @@ class BaseTSDB(object):
         Returns a mapping of key => [(timestamp, count), ...].
 
         >>> now = timezone.now()
-        >>> get_keys(TimeSeriesModel.group, [1, 2, 3],
-        >>>          start=now - timedelta(days=1),
-        >>>          end=now)
+        >>> get_range([TSDBModel.group], [1, 2, 3],
+        >>>           start=now - timedelta(days=1),
+        >>>           end=now)
         """
         raise NotImplementedError
 
