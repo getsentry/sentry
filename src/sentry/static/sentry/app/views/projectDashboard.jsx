@@ -92,14 +92,22 @@ var ProjectDashboard = React.createClass({
   getTrendingEventsEndpoint(dateSince) {
     let router = this.context.router;
     let params = router.getCurrentParams();
-    let qs = "sort=priority&since=" + dateSince;
+    let qs = jQuery.param({
+      sort: "priority",
+      query: "is:unresolved",
+      since: dateSince
+    });
     return "/projects/" + params.orgId + "/" + params.projectId + "/groups/?" + qs;
   },
 
   getNewEventsEndpoint(dateSince) {
     let router = this.context.router;
     let params = router.getCurrentParams();
-    let qs = "sort=new&since=" + dateSince;
+    let qs = jQuery.param({
+      sort: "new",
+      query: "is:unresolved",
+      since: dateSince
+    });
     return "/projects/" + params.orgId + "/" + params.projectId + "/groups/?" + qs;
   },
 
