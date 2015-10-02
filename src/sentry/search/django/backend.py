@@ -27,7 +27,7 @@ class DjangoSearchBackend(SearchBackend):
               bookmarked_by=None, assigned_to=None, first_release=None,
               sort_by='date', date_filter='last_seen', date_from=None,
               date_to=None, cursor=None, limit=100):
-        from sentry.models import Group
+        from sentry.models import Group, GroupStatus
 
         queryset = Group.objects.filter(project=project)
         if query:
@@ -40,7 +40,14 @@ class DjangoSearchBackend(SearchBackend):
                 Q(culprit__icontains=query)
             )
 
-        if status is not None:
+        if status is None:
+            queryset = queryset.exclude(
+                status__in=(
+                    GroupStatus.PENDING_DELETION,
+                    GroupStatus.DELETION_IN_PROGRESS,
+                )
+            )
+        else:
             queryset = queryset.filter(status=status)
 
         if bookmarked_by:
