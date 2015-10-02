@@ -129,20 +129,19 @@ var ProjectDashboard = React.createClass({
                 to={routeName}
                 params={routeParams}
                 query={jQuery.extend({}, routeQuery, {statsPeriod: '1h'})}
-                isActive={statsPeriod === '1h'}
-                className={"btn btn-sm btn-default"}>1h</Router.Link>
+                active={statsPeriod === '1h'}
+                className={"btn btn-sm btn-default" + (statsPeriod === "1h" ? " active" : "")}>1h</Router.Link>
               <Router.Link
                 to={routeName}
                 params={routeParams}
                 query={jQuery.extend({}, routeQuery, {statsPeriod: '24h'})}
-                isActive={statsPeriod === '24h'}
-                className={"btn btn-sm btn-default"}>24h</Router.Link>
+                active={statsPeriod === '24h'}
+                className={"btn btn-sm btn-default" + (statsPeriod === "24h" ? " active" : "")}>24h</Router.Link>
               <Router.Link
                 to={routeName}
                 params={routeParams}
                 query={jQuery.extend({}, routeQuery, {statsPeriod: '1w'})}
-                isActive={statsPeriod === '1w'}
-                className={"btn btn-sm btn-default"}>1w</Router.Link>
+                className={"btn btn-sm btn-default" + (statsPeriod === "1w" ? " active" : "")}>1w</Router.Link>
             </div>
           </div>
           <h3>Overview</h3>
