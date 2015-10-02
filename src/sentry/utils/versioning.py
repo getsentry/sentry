@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
 import warnings
-from collections import namedtuple
 
 from sentry.exceptions import InvalidConfiguration
 
 
-class Version(namedtuple('Version', 'major minor patch')):
+class Version(tuple):
     def __str__(self):
         return '.'.join(map(str, self))
 

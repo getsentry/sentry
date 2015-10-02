@@ -84,9 +84,9 @@ class RedisTSDB(BaseTSDB):
             # NOTE: This assumes there is no routing magic going on here, and
             # all requests to this host are being served by the same database.
             key = '{host}:{port}'.format(host=host.host, port=host.port)
-            versions[key] = Version(*map(int, info['redis_version'].split('.', 3)))
+            versions[key] = Version(map(int, info['redis_version'].split('.', 3)))
 
-        check_versions('Redis (TSDB)', versions, Version(2, 8, 9), Version(3, 0, 4))
+        check_versions('Redis (TSDB)', versions, Version((2, 8, 9)), Version((3, 0, 4)))
 
     def make_key(self, model, epoch, model_key):
         if isinstance(model_key, six.integer_types):
