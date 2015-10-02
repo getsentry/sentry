@@ -6,12 +6,7 @@ from sentry.utils.auth import find_users
 
 
 def get_user_tag(project, key, value):
-    if key == 'id':
-        lookup = 'ident'
-    elif key == 'ip':
-        lookup = 'ip_address'
-    else:
-        lookup = key
+    lookup = EventUser.attr_from_keyword(key)
 
     # TODO(dcramer): do something with case of multiple matches
     try:

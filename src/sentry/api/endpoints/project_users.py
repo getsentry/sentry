@@ -7,13 +7,6 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import EventUser
 
-KEYWORD_MAP = {
-    'id': 'ident',
-    'email': 'email',
-    'username': 'username',
-    'ip': 'ip_address',
-}
-
 
 class ProjectUsersEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
@@ -44,7 +37,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
                 return Response([])
             try:
                 queryset = queryset.filter(**{
-                    '{}__icontains'.format(KEYWORD_MAP[pieces[0]]): pieces[1]
+                    '{}__icontains'.format(EventUser.attr_from_keyword(pieces[0])): pieces[1]
                 })
             except KeyError:
                 return Response([])
