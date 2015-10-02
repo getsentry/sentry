@@ -6,15 +6,14 @@ from sentry.utils.auth import find_users
 
 
 def get_user_tag(project, key, value):
-    lookup = EventUser.attr_from_keyword(key)
-
     # TODO(dcramer): do something with case of multiple matches
     try:
+        lookup = EventUser.attr_from_keyword(key)
         euser = EventUser.objects.filter(
             project=project,
             **{lookup: value}
         )[0]
-    except IndexError:
+    except (KeyError, IndexError):
         return '{}:{}'.format(key, value)
 
     return euser.tag_value
