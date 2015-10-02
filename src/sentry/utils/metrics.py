@@ -66,6 +66,16 @@ def timing(key, value, instance=None, tags=None):
 
 @contextmanager
 def timer(key, instance=None, tags=None):
+    if tags is None:
+        tags = {}
+
     start = time()
-    yield
-    timing(key, time() - start, instance, tags)
+    try:
+        yield tags
+    except Exception:
+        tags['result'] = 'failure'
+        raise
+    else:
+        tags['result'] = 'success'
+    finally:
+        timing(key, time() - start, instance, tags)
