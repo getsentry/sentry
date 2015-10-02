@@ -208,18 +208,20 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         results = list(cursor_result)
 
-        # HACK: remove auto resolved entries
-        if query_kwargs.get('status') == STATUS_UNRESOLVED:
-            results = [
-                r for r in results
-                if not r.is_resolved()
-            ]
-
-        response = Response(serialize(
+        context = serialize(
             results, request.user, StreamGroupSerializer(
                 stats_period=stats_period
             )
-        ))
+        )
+
+        # HACK: remove auto resolved entries
+        if query_kwargs.get('status') == STATUS_UNRESOLVED:
+            context = [
+                r for r in context
+                if r['status'] == 'unresolved'
+            ]
+
+        response = Response(context)
         response['Link'] = ', '.join([
             self.build_cursor_link(request, 'previous', cursor_result.prev),
             self.build_cursor_link(request, 'next', cursor_result.next),
