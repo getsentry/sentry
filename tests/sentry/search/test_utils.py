@@ -73,6 +73,10 @@ class ParseQueryTest(TestCase):
         result = self.parse_query('user.email:fake@example.com')
         assert result['tags']['sentry:user'] == 'email:fake@example.com'
 
+    def test_unknown_user_value(self):
+        result = self.parse_query('user.xxxxxx:example')
+        assert result['tags']['sentry:user'] == 'xxxxxx:example'
+
     def test_user_lookup_with_dot_query(self):
         euser = EventUser.objects.create(
             project=self.project,
