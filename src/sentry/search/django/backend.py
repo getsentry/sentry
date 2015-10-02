@@ -112,7 +112,13 @@ class DjangoSearchBackend(SearchBackend):
 
         # HACK: don't sort by the same column twice
         if sort_by == 'date':
-            queryset = queryset.order_by('-sort_value')
+            queryset = queryset.order_by('-last_seen')
+        elif sort_by == 'priority':
+            queryset = queryset.order_by('-score')
+        elif sort_by == 'new':
+            queryset = queryset.order_by('-first_seen')
+        elif sort_by == 'freq':
+            queryset = queryset.order_by('-times_seen')
         else:
             queryset = queryset.order_by('-sort_value', '-last_seen')
 
