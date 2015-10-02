@@ -18,22 +18,13 @@ from sentry.utils.cursors import build_cursor, Cursor
 quote_name = connections['default'].ops.quote_name
 
 
-class Paginator(object):
+class BasePaginator(object):
     def __init__(self, queryset, order_by):
         if order_by.startswith('-'):
             self.key, self.desc = order_by[1:], True
         else:
             self.key, self.desc = order_by, False
         self.queryset = queryset
-
-    def _get_item_key(self, item):
-        value = getattr(item, self.key)
-        if self.desc:
-            return math.ceil(value)
-        return math.floor(value)
-
-    def _value_from_cursor(self, cursor):
-        return cursor.value
 
     def _get_results_from_qs(self, value, is_prev):
         results = self.queryset
@@ -84,6 +75,12 @@ class Paginator(object):
 
         return results
 
+    def get_item_key(self, item):
+        raise NotImplementedError
+
+    def value_from_cursor(self, cursor):
+        raise NotImplementedError
+
     def get_result(self, limit=100, cursor=None):
         # cursors are:
         #   (identifier(integer), row offset, is_prev)
@@ -91,7 +88,7 @@ class Paginator(object):
             cursor = Cursor(0, 0, 0)
 
         if cursor.value:
-            cursor_value = self._value_from_cursor(cursor)
+            cursor_value = self.value_from_cursor(cursor)
         else:
             cursor_value = 0
 
@@ -113,25 +110,40 @@ class Paginator(object):
             results=results,
             limit=limit,
             cursor=cursor,
-            key=self._get_item_key,
+            key=self.get_item_key,
         )
 
 
-class DateTimePaginator(Paginator):
-    def _get_item_key(self, item):
+class Paginator(BasePaginator):
+    def get_item_key(self, item):
         value = getattr(item, self.key)
-        value = int(value.strftime('%s'))
         if self.desc:
             return math.ceil(value)
         return math.floor(value)
 
-    def _value_from_cursor(self, cursor):
-        return datetime.fromtimestamp(cursor.value).replace(tzinfo=timezone.utc)
+    def value_from_cursor(self, cursor):
+        return cursor.value
 
 
-class OffsetPaginator(Paginator):
-    def _get_item_key(self, item):
+class DateTimePaginator(BasePaginator):
+    multiplier = 1000
+
+    def get_item_key(self, item):
+        value = getattr(item, self.key)
+        value = float(value.strftime('%s.%f'))
+        if self.desc:
+            return math.ceil(value * self.multiplier)
+        return math.floor(value * self.multiplier)
+
+    def value_from_cursor(self, cursor):
+        return datetime.fromtimestamp(
+            float(cursor.value) / self.multiplier
+        ).replace(tzinfo=timezone.utc)
+
+
+class OffsetPaginator(BasePaginator):
+    def get_item_key(self, item):
         return 0
 
-    def _value_from_cursor(self, cursor):
+    def value_from_cursor(self, cursor):
         return 0
