@@ -72,5 +72,10 @@ def timer(key, instance=None, tags=None):
     start = time()
     try:
         yield tags
+    except Exception:
+        tags['result'] = 'failure'
+        raise
+    else:
+        tags['result'] = 'success'
     finally:
         timing(key, time() - start, instance, tags)
