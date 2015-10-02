@@ -23,8 +23,14 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
                 instance = '{}.{}'.format(name, stat_suffix(*args, **kwargs))
             else:
                 instance = name
-            with metrics.timer(key, instance=instance):
-                result = func(*args, **kwargs)
+            with metrics.timer(key, instance=instance) as tags:
+                try:
+                    result = func(*args, **kwargs)
+                except Exception:
+                    tags['result'] = 'failure'
+                    raise
+                else:
+                    tags['result'] = 'success'
             return result
         return app.task(name=name, **kwargs)(_wrapped)
     return wrapped
