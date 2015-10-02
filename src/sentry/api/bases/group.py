@@ -24,7 +24,7 @@ class GroupEndpoint(Endpoint):
 
     def convert_args(self, request, group_id, *args, **kwargs):
         try:
-            group = Group.objects.get(
+            group = Group.objects.select_related('project').get(
                 id=group_id,
             )
         except Group.DoesNotExist:
