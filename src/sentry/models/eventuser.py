@@ -6,6 +6,13 @@ from django.utils import timezone
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.hashlib import md5
 
+KEYWORD_MAP = {
+    'id': 'ident',
+    'email': 'email',
+    'username': 'username',
+    'ip': 'ip_address',
+}
+
 
 class EventUser(Model):
     __core__ = False
@@ -29,6 +36,10 @@ class EventUser(Model):
         )
 
     __repr__ = sane_repr('project_id', 'ident', 'email', 'username', 'ip_address')
+
+    @classmethod
+    def attr_from_keyword(cls, keyword):
+        return KEYWORD_MAP[keyword]
 
     def save(self, *args, **kwargs):
         assert self.ident or self.username or self.email or self.ip_address, \
