@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 from django.db.models import Q
 
-from sentry.api.paginator import Paginator
+from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.search.base import SearchBackend
 from sentry.search.django.constants import (
     SORT_CLAUSES, SQLITE_SORT_CLAUSES, MYSQL_SORT_CLAUSES, MSSQL_SORT_CLAUSES,
@@ -120,15 +120,22 @@ class DjangoSearchBackend(SearchBackend):
 
         # HACK: don't sort by the same column twice
         if sort_by == 'date':
-            queryset = queryset.order_by('-last_seen')
+            paginator_cls = DateTimePaginator
+            sort_clause = '-last_seen'
         elif sort_by == 'priority':
-            queryset = queryset.order_by('-score')
+            paginator_cls = Paginator
+            sort_clause = '-score'
         elif sort_by == 'new':
-            queryset = queryset.order_by('-first_seen')
+            paginator_cls = DateTimePaginator
+            sort_clause = '-first_seen'
         elif sort_by == 'freq':
-            queryset = queryset.order_by('-times_seen')
+            paginator_cls = Paginator
+            sort_clause = '-times_seen'
         else:
-            queryset = queryset.order_by('-sort_value', '-last_seen')
+            paginator_cls = Paginator
+            sort_clause = '-sort_value'
 
-        paginator = Paginator(queryset, '-sort_value')
+        queryset = queryset.order_by(sort_clause)
+
+        paginator = paginator_cls(queryset, sort_clause)
         return paginator.get_result(limit, cursor)
