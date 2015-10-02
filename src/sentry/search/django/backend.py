@@ -45,6 +45,7 @@ class DjangoSearchBackend(SearchBackend):
                 status__in=(
                     GroupStatus.PENDING_DELETION,
                     GroupStatus.DELETION_IN_PROGRESS,
+                    GroupStatus.PENDING_MERGE,
                 )
             )
         else:
