@@ -13,7 +13,6 @@ from sentry.models import AuditLogEntryEvent, Project, ProjectStatus
 from sentry.plugins import plugins
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.utils.safe import safe_execute
 
 
 @scenario('GetProject')
@@ -89,8 +88,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 'id': plugin.slug,
             }
             for plugin in plugins.configurable_for_project(project, version=None)
-            if safe_execute(plugin.is_enabled, project)
-            and safe_execute(plugin.has_project_conf)
+            if plugin.is_enabled(project)
+            and plugin.has_project_conf()
         ]
 
         data = serialize(project, request.user)
