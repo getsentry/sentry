@@ -318,7 +318,7 @@ var OrganizationStats = React.createClass({
             <h3>Events by Project</h3>
           </div>
           <div className="box-content">
-            {this.state.projectsLoading ?
+            {this.state.statsLoading || this.state.projectsLoading ?
               <LoadingIndicator />
             : (this.state.projectsError ?
               <LoadingError onRetry={this.fetchData} />
