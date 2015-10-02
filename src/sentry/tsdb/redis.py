@@ -7,6 +7,7 @@ sentry.tsdb.redis
 """
 from __future__ import absolute_import
 
+import logging
 import six
 
 from binascii import crc32
@@ -20,6 +21,13 @@ from rb import Cluster
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.tsdb.base import BaseTSDB
+from sentry.utils.versioning import (
+    Version,
+    check_versions,
+)
+
+
+logger = logging.getLogger(__name__)
 
 
 class RedisTSDB(BaseTSDB):
@@ -61,11 +69,24 @@ class RedisTSDB(BaseTSDB):
         super(RedisTSDB, self).__init__(**kwargs)
 
     def validate(self):
+        logger.info('Validating Redis version...')
+
         try:
             with self.cluster.all() as client:
-                client.ping()
+                results = client.info()
         except Exception as e:
+            # Any connection issues should be caught here.
             raise InvalidConfiguration(unicode(e))
+
+        versions = {}
+        for id, info in results.value.items():
+            host = self.cluster.hosts[id]
+            # NOTE: This assumes there is no routing magic going on here, and
+            # all requests to this host are being served by the same database.
+            key = '{host}:{port}'.format(host=host.host, port=host.port)
+            versions[key] = Version(*map(int, info['redis_version'].split('.', 3)))
+
+        check_versions('Redis (TSDB)', versions, Version(2, 8, 9), Version(3, 0, 4))
 
     def make_key(self, model, epoch, model_key):
         if isinstance(model_key, six.integer_types):
