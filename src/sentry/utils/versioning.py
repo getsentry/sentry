@@ -22,7 +22,7 @@ def make_upgrade_message(service, modality, version, hosts):
 
 def check_versions(service, versions, required, recommended=None):
     """
-    Check that all members of mapping hosts fulfill version requirements.
+    Check that hosts fulfill version requirements.
 
     :param service: service label, such as ``Redis``
     :param versions: mapping of host to ``Version``
