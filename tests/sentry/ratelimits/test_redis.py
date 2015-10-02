@@ -13,5 +13,5 @@ class RedisRateLimiterTest(TestCase):
         })
 
     def test_integration(self):
-        assert not self.backend.is_limited(self.project, 'foo', 1)
-        assert self.backend.is_limited(self.project, 'foo', 1)
+        assert not self.backend.is_limited(self.project.id, 'foo', 1)
+        assert self.backend.is_limited(self.project.id, 'foo', 1)
