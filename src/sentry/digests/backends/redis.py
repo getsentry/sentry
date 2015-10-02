@@ -116,7 +116,7 @@ class RedisBackend(Backend):
         super(RedisBackend, self).__init__(**options)
 
         self.cluster = Cluster(**options.pop('cluster', settings.SENTRY_REDIS_OPTIONS))
-        self.namespace = options.pop('namespace', 'digests')
+        self.namespace = options.pop('namespace', 'd')
         self.record_ttl = options.pop('record_ttl', 60 * 60)
 
         if options:
