@@ -39,11 +39,14 @@ class SingleException(Interface):
     display_score = 1200
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, has_system_frames=None):
         assert data.get('type') or data.get('value')
 
         if data.get('stacktrace') and data['stacktrace'].get('frames'):
-            stacktrace = Stacktrace.to_python(data['stacktrace'])
+            stacktrace = Stacktrace.to_python(
+                data['stacktrace'],
+                has_system_frames=has_system_frames,
+            )
         else:
             stacktrace = None
 
@@ -69,12 +72,9 @@ class SingleException(Interface):
             'stacktrace': stacktrace,
         }
 
-    def get_api_context(self, is_public=False, has_system_frames=None):
+    def get_api_context(self, is_public=False):
         if self.stacktrace:
-            stacktrace = self.stacktrace.get_api_context(
-                is_public=is_public,
-                has_system_frames=has_system_frames,
-            )
+            stacktrace = self.stacktrace.get_api_context(is_public=is_public)
         else:
             stacktrace = None
 
@@ -152,9 +152,14 @@ class Exception(Interface):
 
         trim_exceptions(data)
 
+        has_system_frames = cls.data_has_system_frames(data)
+
         kwargs = {
             'values': [
-                SingleException.to_python(v)
+                SingleException.to_python(
+                    v,
+                    has_system_frames=has_system_frames,
+                )
                 for v in data['values']
             ],
         }
@@ -166,6 +171,44 @@ class Exception(Interface):
             kwargs['exc_omitted'] = None
 
         return cls(**kwargs)
+
+    @classmethod
+    def data_has_system_frames(cls, data):
+        system_frames = 0
+        app_frames = 0
+        unknown_frames = 0
+        for exc in data['values']:
+            if not exc.get('stacktrace'):
+                continue
+
+            for frame in exc['stacktrace'].get('frames', []):
+                if frame.get('in_app') is False:
+                    system_frames += 1
+                elif frame.get('in_app') is True:
+                    app_frames += 1
+                else:
+                    unknown_frames += 1
+
+        # TODO(dcramer): this should happen in normalize
+        # We need to ensure that implicit values for in_app are handled
+        # appropriately
+        if unknown_frames and (app_frames or system_frames):
+            for exc in data['values']:
+                if not exc.get('stacktrace'):
+                    continue
+
+                for frame in exc['stacktrace'].get('frames', []):
+                    if frame.get('in_app') is None:
+                        if bool(system_frames):
+                            frame['in_app'] = True
+                            app_frames += 1
+                        else:
+                            frame['in_app'] = False
+                            system_frames += 1
+
+        # if there is a mix of frame styles then we indicate that system frames
+        # are present and should be represented as a split
+        return bool(app_frames and system_frames)
 
     def to_json(self):
         return {
@@ -211,17 +254,16 @@ class Exception(Interface):
         return output
 
     def get_api_context(self, is_public=False):
-        has_system_frames = self.has_system_frames()
-
         return {
             'values': [
-                v.get_api_context(
-                    is_public=is_public,
-                    has_system_frames=has_system_frames,
-                )
+                v.get_api_context(is_public=is_public)
                 for v in self.values
             ],
-            'hasSystemFrames': has_system_frames,
+            'hasSystemFrames': any(
+                v.stacktrace.has_system_frames
+                for v in self.values
+                if v.stacktrace
+            ),
             'excOmitted': self.exc_omitted,
         }
 
@@ -237,42 +279,6 @@ class Exception(Interface):
                     event, system_frames=False, max_frames=5,
                     header=False) + '\n\n')
         return (''.join(output)).strip()
-
-    def has_system_frames(self):
-        system_frames = 0
-        app_frames = 0
-        unknown_frames = 0
-        for exc in self.values:
-            if not exc.stacktrace:
-                continue
-
-            for frame in exc.stacktrace.frames:
-                if frame.in_app is False:
-                    system_frames += 1
-                elif frame.in_app is True:
-                    app_frames += 1
-                else:
-                    unknown_frames += 1
-
-        # TODO(dcramer): this should happen in normalize
-        # We need to ensure that implicit values for in_app are handled
-        # appropriately
-        if unknown_frames and (app_frames or system_frames):
-            for exc in self.values:
-                if not exc.stacktrace:
-                    continue
-
-                for frame in exc.stacktrace.frames:
-                    if frame.in_app is None:
-                        frame.in_app = bool(system_frames)
-                        if frame.in_app:
-                            app_frames += 1
-                        else:
-                            system_frames += 1
-
-        # if there is a mix of frame styles then we indicate that system frames
-        # are present and should be represented as a split
-        return bool(app_frames and system_frames)
 
     def get_stacktrace(self, *args, **kwargs):
         exc = self.values[0]
