@@ -26,13 +26,13 @@ class RedisRateLimiter(RateLimiter):
         except Exception as e:
             raise InvalidConfiguration(unicode(e))
 
-    def is_limited(self, project, key, limit):
+    def is_limited(self, value, key, limit):
         key = 'rl:%s:%s:%s' % (
-            key, project.id, int(time() / self.ttl)
+            key, value, int(time() / self.ttl)
         )
 
         with self.cluster.map() as client:
-            proj_result = client.incr(key)
+            result = client.incr(key)
             client.expire(key, self.ttl)
 
-        return proj_result.value > limit
+        return result.value > limit

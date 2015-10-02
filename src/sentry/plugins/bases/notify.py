@@ -96,7 +96,7 @@ class NotificationPlugin(Plugin):
         project = group.project
 
         rate_limited = ratelimiter.is_limited(
-            project=project,
+            value=project.id,
             key=self.get_conf_key(),
             limit=10,
         )
