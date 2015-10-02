@@ -64,12 +64,12 @@ class BasePaginator(object):
 
             if asc:
                 results = results.extra(
-                    where=['%s >= %%s' % (col_query,)],
+                    where=['%s.%s >= %%s' % (results.model._meta.db_table, col_query,)],
                     params=col_params,
                 )
             else:
                 results = results.extra(
-                    where=['%s <= %%s' % (col_query,)],
+                    where=['%s.%s <= %%s' % (results.model._meta.db_table, col_query,)],
                     params=col_params,
                 )
 

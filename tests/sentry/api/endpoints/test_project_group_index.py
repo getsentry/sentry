@@ -21,6 +21,24 @@ class GroupListTest(APITestCase):
             attrs['href'] = url
         return links
 
+    def test_sort_by_date_with_tag(self):
+        # XXX(dcramer): this tests a case where an ambiguous column name existed
+        project = self.project
+        now = timezone.now()
+        group1 = self.create_group(
+            checksum='a' * 32,
+            last_seen=now - timedelta(seconds=1),
+        )
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-project-group-index', kwargs={
+            'organization_slug': self.project.organization.slug,
+            'project_slug': self.project.slug,
+        })
+        response = self.client.get(url + '?sort_by=date&query=is:unresolved', format='json')
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == str(group1.id)
+
     def test_simple_pagination(self):
         project = self.project
         now = timezone.now()
