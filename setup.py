@@ -60,7 +60,6 @@ tests_require = [
     'casscache',
     'cqlsh',
     'datadog',
-    'elasticsearch',
     'httpretty',
     'pytest-cov>=1.4',
     'pytest-timeout',
