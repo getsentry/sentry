@@ -5,6 +5,9 @@ Version 8 of Sentry introduces a brand new frontend. Most of the application has
 and rewritten on top of React and our web API. Additionally many new features have been exposed
 related to user assigned and release tracking.
 
+General
+~~~~~~~
+
 - The ``public`` setting on projects has been removed
   - This also removes ``SENTRY_ALLOW_PUBLIC_PROJECTS``
 - Clients which were only sending ``sentry_key`` and not using CORS will no
@@ -17,9 +20,33 @@ related to user assigned and release tracking.
 - Do not unconditionally map sys.stdout to sys.stderr
 - The HTTP interface's internal structure has greatly changed. Headers and Cookies are now lists. Body
   is now stored as a string.
+- The internal metrics backend now supports both Datadog and a simple logging implementation (useful in DEBUG).
+- Member roles can now view client keys (DSNs).
+- Documentation for configuration wizards is now pulled from docs.getsentry.com as part
+  of the ``upgrade`` and ``repair`` processes.
+- The SSO flow for existing users has been greatly improved to avoid duplicate accounts.
+- Deletions are delayed for one hour and can be cancelled by changing the status
+  back to ``VISIBLE``.
+
+Client API
+~~~~~~~~~~
+
+- The ``culprit`` attribute will now automatically be filled when not present.
+- The ``in_app`` attribute on frames will now be computed on event submission when not present.
+- The ``ip_address`` value will always be stored on the user interface when possible.
+- The user interface no longer accepts data missing one of the required identifiers.
+- The ``fingerprint`` value is now stored in ``Event.data``.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
 - Removed the ``Project.platform`` column.
 - Removed the ``Project.organization`` column.
 - Removed the ``AccessGroup`` table.
+- Added ``EventUser`` table.
+- Added ``user.{attribute}`` to search backends.
+- Added ``Project.first_event`` column.
+- Added ``Release.owner`` column.
 
 Version 7.7.0
 -------------
