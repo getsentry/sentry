@@ -37,17 +37,3 @@ def cassandra_is_available():
 requires_cassandra = pytest.mark.skipif(
     not cassandra_is_available(),
     reason="requires cassandra server running")
-
-
-def elastic_search_is_available():
-    try:
-        socket.create_connection(('127.0.0.1', 9200), 1.0)
-    except socket.error:
-        return False
-    else:
-        return True
-
-
-requires_elastic_search = pytest.mark.skipif(
-    not elastic_search_is_available(),
-    reason="requires elastic search server running")

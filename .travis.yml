@@ -1,7 +1,6 @@
 sudo: false
 language: python
 services:
-  - elasticsearch
   - memcached
   - riak
   - mysql
