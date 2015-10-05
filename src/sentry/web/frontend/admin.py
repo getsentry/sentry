@@ -7,9 +7,9 @@ sentry.web.frontend.admin
 """
 from __future__ import absolute_import, print_function
 
-import datetime
 import logging
 import pkg_resources
+import six
 import sys
 import uuid
 
@@ -20,10 +20,7 @@ from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.db.models import Count
 from django.http import HttpResponseRedirect, HttpResponse
-from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
-
-import six
 
 from sentry.app import env
 from sentry.models import Team, Project, User
@@ -351,19 +348,4 @@ def status_mail(request):
         'EMAIL_PORT': settings.EMAIL_PORT,
         'EMAIL_USE_TLS': settings.EMAIL_USE_TLS,
         'SERVER_EMAIL': settings.SERVER_EMAIL,
-    }, request)
-
-
-@requires_admin
-def overview(request):
-    new_projects = Project.objects.filter(
-        date_added__gte=timezone.now() - datetime.timedelta(hours=24),
-    ).count()
-    statistics = (
-        ('Projects', Project.objects.count()),
-        ('Projects (24h)', new_projects),
-    )
-
-    return render_to_response('sentry/admin/stats.html', {
-        'statistics': statistics,
     }, request)

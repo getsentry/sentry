@@ -172,7 +172,7 @@ urlpatterns += patterns(
     url(r'^account/settings/social/', include('social_auth.urls')),
 
     # Admin
-    url(r'^manage/$', admin.overview,
+    url(r'^manage/$', ReactPageView.as_view(),
         name='sentry-admin-overview'),
     url(r'^manage/queue/$', AdminQueueView.as_view(),
         name='sentry-admin-queue'),
