@@ -6,6 +6,19 @@ var path = require("path"),
 var staticPrefix = "src/sentry/static/sentry",
     distPath = staticPrefix + "/dist";
 
+// Changes a webpack filename config depending on
+// the deployment environment.
+//
+// e.g.
+//   [name].js => [name].[chunkhash].js (in production)
+//   [name].js => [name].js (unaltered in dev)
+
+function fileFormatForEnv(file) {
+  return process.env.NODE_ENV === 'production' ?
+    file.replace(/\.(\w+)$/, '.[chunkhash].$1') :
+    file;
+}
+
 var config = {
   context: path.join(__dirname, staticPrefix),
   entry: {
@@ -50,7 +63,7 @@ var config = {
     ]
   },
   plugins: [
-    new webpack.optimize.CommonsChunkPlugin("vendor", "vendor.[chunkhash].js"),
+    new webpack.optimize.CommonsChunkPlugin("vendor", fileFormatForEnv("vendor.js")),
     new webpack.optimize.DedupePlugin(),
     new webpack.ProvidePlugin({
       $: 'jquery',
@@ -59,7 +72,7 @@ var config = {
       "root.jQuery": "jquery",
       Raven: "raven-js"
     }),
-    new ManifestPlugin()
+    new ManifestPlugin() // writes manifest.json to output directory
   ],
   resolve: {
     alias: {
@@ -71,10 +84,10 @@ var config = {
   },
   output: {
     path: distPath,
-    filename: "[name].[chunkhash].js",
+    filename: fileFormatForEnv("[name].js"),
     libraryTarget: "var",
     library: "exports",
-    sourceMapFilename: '[name].[chunkhash].js.map'
+    sourceMapFilename: fileFormatForEnv("[name].js.map"),
   },
   devtool: 'source-map'
 };
