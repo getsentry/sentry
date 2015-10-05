@@ -49,10 +49,6 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
 
     _capture_stats(event, is_new)
 
-    record_affected_user.delay(event=event)
-
-    record_additional_tags(event=event)
-
     rp = RuleProcessor(event, is_new, is_regression, is_sample)
     # TODO(dcramer): ideally this would fanout, but serializing giant
     # objects back and forth isn't super efficient
