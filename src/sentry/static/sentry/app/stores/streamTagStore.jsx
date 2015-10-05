@@ -6,9 +6,12 @@ import MemberListStore from "./memberListStore";
 var StreamTagStore = Reflux.createStore({
   listenables: StreamTagActions,
 
-  init: function() {
+  init() {
     this.listenTo(MemberListStore, this.onMemberListStoreChange);
+    this.reset();
+  },
 
+  reset() {
     this.tags = {
       is: {
         key: 'is',
@@ -47,11 +50,16 @@ var StreamTagStore = Reflux.createStore({
 
   onLoadTagsSuccess(data) {
     Object.assign(this.tags, _.reduce(data, (obj, tag) => {
+
       tag = Object.assign({
         values: []
       }, tag);
 
-      obj[tag.key] = tag;
+      let old = this.tags[tag.key];
+
+      // Don't override predefined filters (e.g. "is")
+      if (!old || !old.predefined)
+        obj[tag.key] = tag;
 
       return obj;
     }, {}));
