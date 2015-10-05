@@ -16,7 +16,7 @@ var TestUtils = React.addons.TestUtils;
 var findWithClass = TestUtils.findRenderedDOMComponentWithClass;
 var findWithType = TestUtils.findRenderedComponentWithType;
 
-const EXAMPLE_LINK_HEADER =
+const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
   '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
 
@@ -53,24 +53,39 @@ describe("Stream", function() {
 
   describe("fetchData()", function() {
 
-    it("resets the poller endpoint and sets cursor URL", function() {
-      this.stubbedApiRequest.restore();
-      this.sandbox.stub(Api, "request", function(url, options) {
-        options.complete && options.complete({
-          getResponseHeader: () => EXAMPLE_LINK_HEADER
+    describe("complete handler", function () {
+      beforeEach(function () {
+        this.stubbedApiRequest.restore();
+        this.sandbox.stub(Api, "request", (url, options) => {
+          options.complete && options.complete({
+            getResponseHeader: () => this.linkHeader
+          });
         });
+
+        this.sandbox.stub(CursorPoller.prototype, "setEndpoint");
       });
 
-      var stubbedSetEndpoint = this.sandbox.stub(CursorPoller.prototype, "setEndpoint");
+      it("should reset the poller endpoint and sets cursor URL", function() {
+        this.linkHeader = DEFAULT_LINKS_HEADER;
 
-      var wrapper = React.render(this.Element, document.body);
-      wrapper.refs.wrapped.fetchData();
+        var wrapper = React.render(this.Element, document.body);
+        wrapper.refs.wrapped.fetchData();
 
-      // url value pulled from EXAMPLE_LINK_HEADER
-      expect(stubbedSetEndpoint
-        .calledWith('http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:1'))
-        .to.be.true;
-    });
+        expect(CursorPoller.prototype.setEndpoint
+          .calledWith('http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:1'))
+          .to.be.true;
+      });
+
+      it("should not set the poller if the 'previous' link is missing", function () {
+        this.linkHeader =
+        '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
+
+        var wrapper = React.render(this.Element, document.body);
+        wrapper.refs.wrapped.fetchData();
+
+        expect(CursorPoller.prototype.setEndpoint.notCalled).to.be.ok;
+      });
+    }); // complete handler
 
     it("should cancel any previous, unfinished fetches", function () {
       this.stubbedApiRequest.restore();
@@ -95,12 +110,11 @@ describe("Stream", function() {
 
       // when request "completes", lastRequest is cleared
       requestOptions.complete({
-        getResponseHeader: () => EXAMPLE_LINK_HEADER
+        getResponseHeader: () => DEFAULT_LINKS_HEADER
       });
 
       expect(stream.lastRequest).to.be.null;
     });
-
   });
 
   describe("render()", function() {
