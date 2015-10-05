@@ -19,9 +19,9 @@ class EventUser(Model):
 
     project = FlexibleForeignKey('sentry.Project')
     hash = models.CharField(max_length=32)
-    ident = models.CharField(max_length=64, null=True)
+    ident = models.CharField(max_length=128, null=True)
     email = models.EmailField(null=True)
-    username = models.CharField(max_length=64, null=True)
+    username = models.CharField(max_length=128, null=True)
     ip_address = models.GenericIPAddressField(null=True)
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
