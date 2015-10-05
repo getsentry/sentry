@@ -37,3 +37,31 @@ environment:
         'app_key': '...',
         'tags': {},
     }
+
+Logging Backend
+---------------
+
+The the ``LoggingBackend`` reports all operations to the ``sentry.metrics``
+logger. In addition to the metric name and value, log messages also include
+extra data such as the ``instance`` and ``tags`` values which can be displayed
+using a custom formatter.
+
+.. code-block:: python
+
+    SENTRY_METRICS_BACKEND = 'sentry.metrics.logging.LoggingBackend'
+
+    LOGGING['loggers']['sentry.metrics'] = {
+        'level': 'DEBUG',
+        'handlers': ['console:metrics'],
+        'propagate': False,
+    }
+
+    LOGGING['formatters']['metrics'] = {
+        'format': '[%(levelname)s] %(message)s; instance=%(instance)r; tags=%(tags)r',
+    }
+
+    LOGGING['handlers']['console:metrics'] = {
+        'level': 'DEBUG',
+        'class': 'logging.StreamHandler',
+        'formatter': 'metrics',
+    }
