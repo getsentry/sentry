@@ -23,10 +23,9 @@ class ProjectUsersEndpoint(ProjectEndpoint):
         :pparam string key: the tag key to look up.
         :auth: required
         :qparam string query: Limit results to users matching the given query.
-        Prefixes should be used to suggest the field to match on: ``id``,
-        ``email``, ``username``, ``ip``. For example,
-        ``query=email:foo@example.com``
-
+                              Prefixes should be used to suggest the field to
+                              match on: ``id``, ``email``, ``username``, ``ip``.
+                              For example, ``query=email:foo@example.com``
         """
         queryset = EventUser.objects.filter(
             project=project,
