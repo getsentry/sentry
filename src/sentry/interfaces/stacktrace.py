@@ -19,7 +19,7 @@ from django.utils.translation import ugettext as _
 from urlparse import urlparse
 
 from sentry.app import env
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
@@ -166,8 +166,9 @@ class Frame(Interface):
         function = data.get('function')
         module = data.get('module')
 
-        for v in (abs_path, filename, function, module):
-            assert isinstance(v, (string_types, NoneType))
+        for name in ('abs_path', 'filename', 'function', 'module'):
+            if not isinstance(data.get(name), (string_types, NoneType)):
+                raise InterfaceValidationError("Invalid value for '%s'" % name)
 
         # absolute path takes priority over filename
         # (in the end both will get set)
@@ -185,7 +186,8 @@ class Frame(Interface):
             else:
                 filename = abs_path
 
-        assert filename or function or module
+        if not (filename or function or module):
+            raise InterfaceValidationError("No 'filename' or 'function' or 'module'")
 
         if function == '?':
             function = None
@@ -216,12 +218,17 @@ class Frame(Interface):
         else:
             pre_context, post_context = None, None
 
+        try:
+            in_app = validate_bool(data.get('in_app'), False)
+        except AssertionError:
+            raise InterfaceValidationError("Invalid value for 'in_app'")
+
         kwargs = {
             'abs_path': trim(abs_path, 256),
             'filename': trim(filename, 256),
             'module': trim(module, 256),
             'function': trim(function, 256),
-            'in_app': validate_bool(data.get('in_app'), False),
+            'in_app': in_app,
             'context_line': context_line,
             # TODO(dcramer): trim pre/post_context
             'pre_context': pre_context,
@@ -483,7 +490,8 @@ class Stacktrace(Interface):
 
     @classmethod
     def to_python(cls, data, has_system_frames=None):
-        assert data.get('frames')
+        if not data.get('frames'):
+            raise InterfaceValidationError("No 'frames' present")
 
         slim_frame_data(data)
 
@@ -506,7 +514,8 @@ class Stacktrace(Interface):
         }
 
         if data.get('frames_omitted'):
-            assert len(data['frames_omitted']) == 2
+            if len(data['frames_omitted']) != 2:
+                raise InterfaceValidationError("Invalid value for 'frames_omitted'")
             kwargs['frames_omitted'] = data['frames_omitted']
         else:
             kwargs['frames_omitted'] = None

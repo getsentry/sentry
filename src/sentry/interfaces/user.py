@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 __all__ = ('User',)
 
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
 from ipaddr import IPAddress
@@ -20,7 +20,7 @@ def validate_email(value, required=True):
         return
 
     if not isinstance(value, basestring):
-        raise TypeError('object of type %r is not an email address' % type(value).__name__)
+        raise ValueError('object of type %r is not an email address' % type(value).__name__)
 
     # safe to assume an email address at least has a @ in it.
     if '@' not in value:
@@ -65,11 +65,18 @@ class User(Interface):
         ident = trim(data.pop('id', None), 128)
         if ident:
             ident = unicode(ident)
-        email = trim(validate_email(data.pop('email', None), False), 128)
+        try:
+            email = trim(validate_email(data.pop('email', None), False), 128)
+        except ValueError:
+            raise InterfaceValidationError("Invalid value for 'email'")
         username = trim(data.pop('username', None), 128)
         if username:
             username = unicode(username)
-        ip_address = validate_ip(data.pop('ip_address', None), False)
+
+        try:
+            ip_address = validate_ip(data.pop('ip_address', None), False)
+        except ValueError:
+            raise InterfaceValidationError("Invalid value for 'ip_address'")
 
         # TODO(dcramer): patch in fix to deal w/ old data but not allow new
         # if not (ident or email or username or ip_address):

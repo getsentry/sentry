@@ -21,6 +21,10 @@ def get_interface(name):
     return interface
 
 
+class InterfaceValidationError(Exception):
+    pass
+
+
 class Interface(object):
     """
     An interface is a structured representation of data, which may
