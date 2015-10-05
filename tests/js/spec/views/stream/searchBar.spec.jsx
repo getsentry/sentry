@@ -2,6 +2,7 @@ import React from "react/addons";
 import api from "app/api";
 import SearchBar from "app/views/stream/searchBar";
 import SearchDropdown from "app/views/stream/searchDropdown";
+import StreamTagStore from "app/stores/streamTagStore";
 import stubReactComponents from "../../../helpers/stubReactComponent";
 import stubRouter from "../../../helpers/stubRouter";
 import stubContext from "../../../helpers/stubContext";
@@ -12,6 +13,8 @@ var findWithClass = TestUtils.findRenderedDOMComponentWithClass;
 describe("SearchBar", function() {
 
   beforeEach(function() {
+    StreamTagStore.reset();
+
     this.sandbox = sinon.sandbox.create();
 
     this.sandbox.stub(api, "request");
