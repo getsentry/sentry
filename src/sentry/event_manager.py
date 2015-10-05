@@ -27,8 +27,8 @@ from sentry.constants import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Event, EventMapping, Group, GroupHash, GroupStatus, Project,
-    Release, UserReport
+    Activity, Event, EventMapping, EventUser, Group, GroupHash, GroupStatus,
+    Project, Release, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import regression_signal
@@ -380,6 +380,11 @@ class EventManager(object):
                                       _with_transaction=False)
             if added_tags:
                 tags.extend(added_tags)
+
+        event_user = self._get_event_user(project, data)
+        if event_user:
+            tags.append(('sentry:user', event_user.tag_value))
+
         # XXX(dcramer): we're relying on mutation of the data object to ensure
         # this propagates into Event
         data['tags'] = tags
@@ -487,6 +492,30 @@ class EventManager(object):
             regression_signal.send_robust(sender=Group, instance=group)
 
         return event
+
+    def _get_event_user(self, project, data):
+        user_data = data.get('sentry.interfaces.User')
+        if not user_data:
+            return
+
+        euser = EventUser(
+            project=project,
+            ident=user_data.get('id'),
+            email=user_data.get('email'),
+            username=user_data.get('username'),
+            ip_address=user_data.get('ip_address'),
+        )
+
+        if not euser.tag_value:
+            return
+
+        try:
+            with transaction.atomic():
+                euser.save()
+        except IntegrityError:
+            return
+
+        return euser
 
     def _find_hashes(self, project, hash_list):
         matches = []
