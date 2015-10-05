@@ -67,8 +67,9 @@ class User(Interface):
         username = trim(data.pop('username', None), 128)
         ip_address = validate_ip(data.pop('ip_address', None), False)
 
-        if not (ident or email or username or ip_address):
-            raise ValueError('No identifying value')
+        # TODO(dcramer): patch in fix to deal w/ old data but not allow new
+        # if not (ident or email or username or ip_address):
+        #     raise ValueError('No identifying value')
 
         kwargs = {
             'id': ident,
