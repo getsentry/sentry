@@ -1,6 +1,7 @@
 /*eslint-env node*/
 var path = require("path"),
-    webpack = require("webpack");
+    webpack = require("webpack"),
+    ManifestPlugin = require('webpack-manifest-plugin');
 
 var staticPrefix = "src/sentry/static/sentry",
     distPath = staticPrefix + "/dist";
@@ -49,7 +50,7 @@ var config = {
     ]
   },
   plugins: [
-    new webpack.optimize.CommonsChunkPlugin("vendor", "vendor.js"),
+    new webpack.optimize.CommonsChunkPlugin("vendor", "vendor.[chunkhash].js"),
     new webpack.optimize.DedupePlugin(),
     new webpack.ProvidePlugin({
       $: 'jquery',
@@ -57,7 +58,8 @@ var config = {
       "window.jQuery": "jquery",
       "root.jQuery": "jquery",
       Raven: "raven-js"
-    })
+    }),
+    new ManifestPlugin()
   ],
   resolve: {
     alias: {
@@ -69,9 +71,10 @@ var config = {
   },
   output: {
     path: distPath,
-    filename: "[name].js",
+    filename: "[name].[chunkhash].js",
     libraryTarget: "var",
-    library: "exports"
+    library: "exports",
+    sourceMapFilename: '[name].[chunkhash].js.map'
   },
   devtool: 'source-map'
 };
