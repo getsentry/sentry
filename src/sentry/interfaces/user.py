@@ -12,7 +12,7 @@ __all__ = ('User',)
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
-from ipaddr import IPAddress
+from sentry.utils.validators import validate_ip
 
 
 def validate_email(value, required=True):
@@ -25,15 +25,6 @@ def validate_email(value, required=True):
     # safe to assume an email address at least has a @ in it.
     if '@' not in value:
         raise ValueError('malformed email address')
-    return value
-
-
-def validate_ip(value, required=True):
-    if not required and not value:
-        return
-
-    # will raise a ValueError
-    IPAddress(value)
     return value
 
 

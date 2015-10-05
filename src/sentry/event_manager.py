@@ -39,6 +39,7 @@ from sentry.tasks.post_process import post_process_group
 from sentry.utils.db import get_db_engine
 from sentry.utils.safe import safe_execute, trim, trim_dict
 from sentry.utils.strings import truncatechars
+from sentry.utils.validators import validate_ip
 
 # Valid pattern for tag key names
 TAG_KEY_RE = re.compile(r'^[a-zA-Z0-9_\.:-]+$')
@@ -303,8 +304,14 @@ class EventManager(object):
             del data['sentry.interfaces.Stacktrace']
 
         if 'sentry.interfaces.Http' in data:
-            ip_address = data['sentry.interfaces.Http'].get(
-                'env', {}).get('REMOTE_ADDR')
+            try:
+                ip_address = validate_ip(
+                    data['sentry.interfaces.Http'].get(
+                        'env', {}).get('REMOTE_ADDR'),
+                    required=False,
+                )
+            except ValueError:
+                ip_address = None
             if ip_address:
                 data.setdefault('sentry.interfaces.User', {})
                 data['sentry.interfaces.User'].setdefault(

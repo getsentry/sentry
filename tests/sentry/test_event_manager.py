@@ -69,6 +69,45 @@ class EventManagerTest(TransactionTestCase):
         assert data['sentry.interfaces.User'] == {'id': '1'}
         assert 'user' not in data
 
+    def test_does_default_ip_address_to_user(self):
+        manager = EventManager(self.make_event(**{
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com',
+                'env': {
+                    'REMOTE_ADDR': '127.0.0.1',
+                }
+            }
+        }))
+        data = manager.normalize()
+        assert data['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
+
+    def test_does_default_ip_address_if_present(self):
+        manager = EventManager(self.make_event(**{
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com',
+                'env': {
+                    'REMOTE_ADDR': '127.0.0.1',
+                }
+            },
+            'sentry.interfaces.User': {
+                'ip_address': '192.168.0.1',
+            },
+        }))
+        data = manager.normalize()
+        assert data['sentry.interfaces.User']['ip_address'] == '192.168.0.1'
+
+    def test_does_not_default_invalid_ip_address(self):
+        manager = EventManager(self.make_event(**{
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com',
+                'env': {
+                    'REMOTE_ADDR': '127.0.0.1, 192.168.0.1',
+                }
+            }
+        }))
+        data = manager.normalize()
+        assert 'sentry.interfaces.User' not in data
+
     def test_platform_is_saved(self):
         manager = EventManager(self.make_event(platform='python'))
         event = manager.save(1)
