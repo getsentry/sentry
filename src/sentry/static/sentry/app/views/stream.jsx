@@ -223,10 +223,12 @@ var Stream = React.createClass({
         this.lastRequest = null;
 
         var links = parseLinkHeader(jqXHR.getResponseHeader('Link'));
-        this._poller.setEndpoint(links.previous.href);
+        if (links && links.previous) {
+          this._poller.setEndpoint(links.previous.href);
 
-        if (this.state.realtimeActive) {
-          this._poller.enable();
+          if (this.state.realtimeActive) {
+            this._poller.enable();
+          }
         }
       }
     });
