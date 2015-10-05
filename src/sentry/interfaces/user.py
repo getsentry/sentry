@@ -63,8 +63,12 @@ class User(Interface):
             extra_data = {}
 
         ident = trim(data.pop('id', None), 128)
+        if ident:
+            ident = unicode(ident)
         email = trim(validate_email(data.pop('email', None), False), 128)
         username = trim(data.pop('username', None), 128)
+        if username:
+            username = unicode(username)
         ip_address = validate_ip(data.pop('ip_address', None), False)
 
         # TODO(dcramer): patch in fix to deal w/ old data but not allow new
