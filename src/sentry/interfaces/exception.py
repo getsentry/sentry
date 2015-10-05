@@ -12,7 +12,7 @@ __all__ = ('Exception',)
 
 from django.conf import settings
 
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.safe import trim
 
@@ -40,7 +40,8 @@ class SingleException(Interface):
 
     @classmethod
     def to_python(cls, data, has_system_frames=None):
-        assert data.get('type') or data.get('value')
+        if not (data.get('type') or data.get('value')):
+            raise InterfaceValidationError("No 'type' or 'value' present")
 
         if data.get('stacktrace') and data['stacktrace'].get('frames'):
             stacktrace = Stacktrace.to_python(
@@ -148,7 +149,8 @@ class Exception(Interface):
         if 'values' not in data:
             data = {'values': [data]}
 
-        assert data['values']
+        if not data['values']:
+            raise InterfaceValidationError("No 'values' present")
 
         trim_exceptions(data)
 
@@ -165,7 +167,8 @@ class Exception(Interface):
         }
 
         if data.get('exc_omitted'):
-            assert len(data['exc_omitted']) == 2
+            if len(data['exc_omitted']) != 2:
+                raise InterfaceValidationError("Invalid value for 'exc_omitted'")
             kwargs['exc_omitted'] = data['exc_omitted']
         else:
             kwargs['exc_omitted'] = None

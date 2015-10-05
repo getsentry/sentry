@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 __all__ = ('Query',)
 
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim
 
 
@@ -25,7 +25,8 @@ class Query(Interface):
     """
     @classmethod
     def to_python(cls, data):
-        assert data.get('query')
+        if not data.get('query'):
+            raise InterfaceValidationError("No 'query' value")
 
         kwargs = {
             'query': trim(data['query'], 1024),

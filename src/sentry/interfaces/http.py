@@ -16,7 +16,7 @@ from urllib import urlencode
 from urlparse import parse_qsl, urlsplit, urlunsplit
 
 from sentry.constants import HTTP_METHODS
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils import json
 from sentry.utils.safe import trim, trim_dict, trim_pairs
 from sentry.web.helpers import render_to_string
@@ -92,13 +92,15 @@ class Http(Interface):
 
     @classmethod
     def to_python(cls, data):
-        assert data.get('url')
+        if not data.get('url'):
+            raise InterfaceValidationError("No value for 'url'")
 
         kwargs = {}
 
         if data.get('method'):
             method = data['method'].upper()
-            assert method in HTTP_METHODS
+            if method not in HTTP_METHODS:
+                raise InterfaceValidationError("Invalid value for 'method'")
             kwargs['method'] = method
         else:
             kwargs['method'] = None

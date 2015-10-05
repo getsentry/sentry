@@ -6,6 +6,7 @@ import mock
 
 from exam import fixture
 
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.stacktrace import (
     Frame, Stacktrace, get_context, slim_frame_data
 )
@@ -42,7 +43,7 @@ class StacktraceTest(TestCase):
         assert interface == event.interfaces['sentry.interfaces.Stacktrace']
 
     def test_requires_filename(self):
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(InterfaceValidationError):
             Stacktrace.to_python(dict(frames=[{}]))
 
         Stacktrace.to_python(dict(frames=[{
@@ -344,23 +345,23 @@ class StacktraceTest(TestCase):
         self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo", line 3, in biz\n    def foo(r):\n  File "bar", line 5, in baz\n    return None')
 
     def test_bad_input(self):
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(InterfaceValidationError):
             Frame.to_python({
                 'filename': 1,
             })
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(InterfaceValidationError):
             Frame.to_python({
                 'filename': 'foo',
                 'abs_path': 1,
             })
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(InterfaceValidationError):
             Frame.to_python({
                 'function': 1,
             })
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(InterfaceValidationError):
             Frame.to_python({
                 'module': 1,
             })
