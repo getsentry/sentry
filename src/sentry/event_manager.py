@@ -275,6 +275,16 @@ class EventManager(object):
         trim_dict(
             data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
 
+        # Patch the IP address onto the user if it is not there yet.  Do
+        # this before we validate the data to ensure it's well formed.
+        if 'sentry.interfaces.Http' in data:
+            ip_address = data['sentry.interfaces.Http'].get(
+                'env', {}).get('REMOTE_ADDR')
+            if ip_address:
+                data.setdefault('sentry.interfaces.User', {})
+                data['sentry.interfaces.User'].setdefault(
+                    'ip_address', ip_address)
+
         # TODO(dcramer): more of validate data needs stuffed into the manager
         for key in data.keys():
             if key in CLIENT_RESERVED_ATTRS:
@@ -301,14 +311,6 @@ class EventManager(object):
         if exception and len(exception['values']) == 1 and stacktrace:
             exception['values'][0]['stacktrace'] = stacktrace
             del data['sentry.interfaces.Stacktrace']
-
-        if 'sentry.interfaces.Http' in data:
-            ip_address = data['sentry.interfaces.Http'].get(
-                'env', {}).get('REMOTE_ADDR')
-            if ip_address:
-                data.setdefault('sentry.interfaces.User', {})
-                data['sentry.interfaces.User'].setdefault(
-                    'ip_address', ip_address)
 
         if data['time_spent']:
             data['time_spent'] = int(data['time_spent'])
