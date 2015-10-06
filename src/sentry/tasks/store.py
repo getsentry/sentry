@@ -29,7 +29,7 @@ def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
         data = default_cache.get(cache_key)
 
     if data is None:
-        metrics.incr('events.failed', reason='cache', stage='pre')
+        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'pre'})
         logger.error('Data not available in preprocess_event (cache_key=%s)', cache_key)
         return
 
@@ -67,7 +67,7 @@ def save_event(cache_key=None, data=None, start_time=None, **kwargs):
         data = default_cache.get(cache_key)
 
     if data is None:
-        metrics.incr('events.failed', reason='cache', stage='post')
+        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
         return
 
     project = data.pop('project')
