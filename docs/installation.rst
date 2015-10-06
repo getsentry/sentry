@@ -19,6 +19,10 @@ Some basic prerequisites which you'll need in order to run Sentry:
 * `Nginx <http://nginx.org>`_ (``nginx-full``)
 * A dedicated domain to host Sentry on (i.e. `sentry.yourcompany.com`).
 
+If you're building from source you'll also need:
+
+* Node.js 0.12 or newer.
+
 Hardware
 --------
 
