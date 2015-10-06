@@ -196,29 +196,34 @@ class Group(Model):
         return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
 
     def get_latest_event(self):
-        # TODO(mattrobenolt): Deal with conflict resolution if
-        # multiple events have the same same exact datetime
         from sentry.models import Event
 
         if not hasattr(self, '_latest_event'):
-            try:
-                self._latest_event = Event.objects.filter(
+            latest_events = sorted(
+                Event.objects.filter(
                     group=self,
-                ).order_by('-datetime')[0]
+                ).order_by('-datetime')[0:5],
+                key=Event.ordering_key,
+                reverse=True,
+            )
+            try:
+                self._latest_event = latest_events[0]
             except IndexError:
                 self._latest_event = None
         return self._latest_event
 
     def get_oldest_event(self):
-        # TODO(mattrobenolt): Deal with conflict resolution if
-        # multiple events have the same same exact datetime
         from sentry.models import Event
 
         if not hasattr(self, '_oldest_event'):
-            try:
-                self._oldest_event = Event.objects.filter(
+            oldest_events = sorted(
+                Event.objects.filter(
                     group=self,
-                ).order_by('datetime')[0]
+                ).order_by('datetime')[0:5],
+                key=Event.ordering_key,
+            )
+            try:
+                self._oldest_event = oldest_events[0]
             except IndexError:
                 self._oldest_event = None
         return self._oldest_event
