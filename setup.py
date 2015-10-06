@@ -171,7 +171,9 @@ class BuildStatic(Command):
         log.info("running [npm install --quiet]")
         check_output(['npm', 'install', '--quiet'], cwd=work_path)
 
-        # Enable React production optimization
+        # By setting NODE_ENV=production, a few things happen
+        #   * React optimizes out certain code paths
+        #   * Webpack will add version strings to built/referenced assets
         os.environ['NODE_ENV'] = 'production'
 
         log.info("running [webpack]")
