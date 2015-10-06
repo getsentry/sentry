@@ -316,6 +316,7 @@ class EventManagerTest(TransactionTestCase):
                 'id': '1',
             }
         }))
+        manager.normalize()
         event = manager.save(1)
 
         assert EventUser.objects.filter(
@@ -330,6 +331,7 @@ class EventManagerTest(TransactionTestCase):
                 'id': '1',
             }
         }))
+        manager.normalize()
         event = manager.save(1)
 
         assert EventUser.objects.filter(
