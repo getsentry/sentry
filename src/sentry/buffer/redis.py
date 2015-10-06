@@ -16,6 +16,7 @@ from time import time
 from sentry.buffer import Buffer
 from sentry.exceptions import InvalidConfiguration
 from sentry.tasks.process_buffer import process_incr
+from sentry.utils import metrics
 from sentry.utils.compat import pickle
 from sentry.utils.hashlib import md5
 from sentry.utils.imports import import_string
@@ -118,6 +119,7 @@ class RedisBuffer(Buffer):
         # prevent a stampede due to the way we use celery etas + duplicate
         # tasks
         if not client.set(lock_key, '1', nx=True, ex=10):
+            metrics.incr('buffer.revoked', reason='locked')
             self.logger.info('Skipped process on %s; unable to get lock', key)
             return
 
@@ -126,6 +128,7 @@ class RedisBuffer(Buffer):
             conn.delete(key)
 
         if not values.value:
+            metrics.incr('buffer.revoked', reason='empty')
             self.logger.info('Skipped process on %s; no values found', key)
             return
 
