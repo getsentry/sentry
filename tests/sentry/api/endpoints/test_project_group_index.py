@@ -78,8 +78,8 @@ class GroupListTest(APITestCase):
 
         links = self._parse_links(response['Link'])
 
-        assert links['previous']['results'] == 'false'
-        assert links['next']['results'] == 'true'
+        assert links['previous']['results'] == 'true'
+        assert links['next']['results'] == 'false'
 
         # TODO(dcramer): not working correctly
         # print(links['previous']['cursor'])
