@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.api.bases.group import GroupPermission
 from sentry.api.serializers import serialize
+from sentry.constants import EVENT_ORDERING_KEY
 from sentry.models import Event, Release, UserReport
 
 
@@ -51,13 +52,13 @@ class EventDetailsEndpoint(Endpoint):
             base_qs.filter(
                 datetime__gte=event.datetime,
             ).order_by('datetime')[0:5],
-            key=lambda x: (x.datetime, x.id),
+            key=EVENT_ORDERING_KEY,
         )
         prev_events = sorted(
             base_qs.filter(
                 datetime__lte=event.datetime,
             ).order_by('-datetime')[0:5],
-            key=lambda x: (x.datetime, x.id),
+            key=EVENT_ORDERING_KEY,
             reverse=True,
         )
 

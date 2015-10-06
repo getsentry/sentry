@@ -22,7 +22,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import buffer
 from sentry.constants import (
-    DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
+    DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH, EVENT_ORDERING_KEY,
 )
 from sentry.db.models import (
     BaseManager, BoundedIntegerField, BoundedPositiveIntegerField,
@@ -196,29 +196,34 @@ class Group(Model):
         return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
 
     def get_latest_event(self):
-        # TODO(mattrobenolt): Deal with conflict resolution if
-        # multiple events have the same same exact datetime
         from sentry.models import Event
 
         if not hasattr(self, '_latest_event'):
-            try:
-                self._latest_event = Event.objects.filter(
+            latest_events = sorted(
+                Event.objects.filter(
                     group=self,
-                ).order_by('-datetime')[0]
+                ).order_by('-datetime')[0:5],
+                key=EVENT_ORDERING_KEY,
+                reverse=True,
+            )
+            try:
+                self._latest_event = latest_events[0]
             except IndexError:
                 self._latest_event = None
         return self._latest_event
 
     def get_oldest_event(self):
-        # TODO(mattrobenolt): Deal with conflict resolution if
-        # multiple events have the same same exact datetime
         from sentry.models import Event
 
         if not hasattr(self, '_oldest_event'):
-            try:
-                self._oldest_event = Event.objects.filter(
+            oldest_events = sorted(
+                Event.objects.filter(
                     group=self,
-                ).order_by('datetime')[0]
+                ).order_by('datetime')[0:5],
+                key=EVENT_ORDERING_KEY,
+            )
+            try:
+                self._oldest_event = oldest_events[0]
             except IndexError:
                 self._oldest_event = None
         return self._oldest_event
