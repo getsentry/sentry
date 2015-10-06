@@ -121,19 +121,22 @@ class RedisBuffer(Buffer):
             self.logger.info('Skipped process on %s; unable to get lock', key)
             return
 
-        with self.cluster.map() as conn:
-            values = conn.hgetall(key)
-            conn.delete(key)
+        conn = self.cluster.get_local_client_for_key(key)
+        pipe = conn.pipeline()
+        pipe.hgetall(key)
+        pipe.zrem(self.pending_key, key)
+        pipe.delete(key)
+        values = pipe.execute()[0]
 
-        if not values.value:
+        if not values:
             self.logger.info('Skipped process on %s; no values found', key)
             return
 
-        model = import_string(values.value['m'])
-        filters = pickle.loads(values.value['f'])
+        model = import_string(values['m'])
+        filters = pickle.loads(values['f'])
         incr_values = {}
         extra_values = {}
-        for k, v in values.value.iteritems():
+        for k, v in values.iteritems():
             if k.startswith('i+'):
                 incr_values[k[2:]] = int(v)
             elif k.startswith('e+'):
