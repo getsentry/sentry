@@ -21,7 +21,10 @@ logger = get_task_logger(__name__)
 
 @instrumented_task(
     name='sentry.tasks.store.preprocess_event',
-    queue='events')
+    queue='events',
+    time_limit=65,
+    soft_time_limit=60,
+)
 def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
     from sentry.plugins import plugins
 
