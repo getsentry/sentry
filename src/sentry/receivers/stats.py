@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from celery.signals import task_prerun, task_postrun, task_sent
+from celery.signals import task_prerun, task_postrun, task_revoked, task_sent
 from django.db.models.signals import post_save
 
 from sentry.utils import metrics
@@ -15,7 +15,7 @@ def record_instance_creation(instance, created, **kwargs):
 post_save.connect(
     record_instance_creation,
     weak=False,
-    dispatch_uid='record_instance_creation',
+    dispatch_uid='sentry.stats.tasks.record_instance_creation',
 )
 
 
@@ -32,10 +32,25 @@ def record_task_signal(signal, name):
     signal.connect(
         handler,
         weak=False,
-        dispatch_uid='sentry.stats.{0}'.format(name),
+        dispatch_uid='sentry.stats.tasks.{0}'.format(name),
     )
 
 
-record_task_signal(task_sent, 'dispatched')
+def task_revoked_handler(task, expired=False, **kwargs):
+    if not isinstance(task, basestring):
+        task = _get_task_name(task)
+    if expired:
+        metrics.incr('jobs.expired', instance=task)
+    else:
+        metrics.incr('jobs.revoked', instance=task)
+
+
+task_revoked.connect(
+    task_revoked_handler,
+    weak=False,
+    dispatch_uid='sentry.stats.tasks.revoked',
+)
+
 record_task_signal(task_prerun, 'started')
 record_task_signal(task_postrun, 'finished')
+record_task_signal(task_sent, 'dispatched')
