@@ -42,8 +42,8 @@ def register(type):
 
 class Serializer(object):
     def __call__(self, obj, attrs, user):
-        if not obj:
-            return obj
+        if obj is None:
+            return
         return self.serialize(obj, attrs, user)
 
     def get_attrs(self, item_list, user):

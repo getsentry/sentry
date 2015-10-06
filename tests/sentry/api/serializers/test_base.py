@@ -7,7 +7,7 @@ from sentry.testutils import TestCase
 
 
 class BaseSerializerTest(TestCase):
-    def test_simple(self):
+    def test_serialize(self):
         assert serialize([]) == []
         assert serialize(None) is None
 
