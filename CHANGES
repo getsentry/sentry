@@ -8,6 +8,7 @@ related to user assigned and release tracking.
 General
 ~~~~~~~
 
+- Source builds now require Node 0.12.x or newer.
 - The ``public`` setting on projects has been removed
   - This also removes ``SENTRY_ALLOW_PUBLIC_PROJECTS``
 - Clients which were only sending ``sentry_key`` and not using CORS will no
