@@ -50,10 +50,10 @@ class GroupListTest(APITestCase):
             checksum='b' * 32,
             last_seen=now,
         )
-        group3 = self.create_group(
-            checksum='c' * 32,
-            last_seen=now - timedelta(seconds=1),
-        )
+        # group3 = self.create_group(
+        #     checksum='c' * 32,
+        #     last_seen=now - timedelta(seconds=1),
+        # )
 
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-group-index', kwargs={
@@ -78,7 +78,7 @@ class GroupListTest(APITestCase):
 
         links = self._parse_links(response['Link'])
 
-        assert links['previous']['results'] == 'true'
+        assert links['previous']['results'] == 'false'
         assert links['next']['results'] == 'true'
 
         # TODO(dcramer): not working correctly
