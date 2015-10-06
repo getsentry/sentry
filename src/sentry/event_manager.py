@@ -520,7 +520,7 @@ class EventManager(object):
             with transaction.atomic():
                 euser.save()
         except IntegrityError:
-            return EventUser.objects.get(project=project, hash=euser.hash)
+            pass
 
         return euser
 
