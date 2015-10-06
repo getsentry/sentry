@@ -321,7 +321,7 @@ class EventManagerTest(TransactionTestCase):
 
         assert EventUser.objects.filter(
             project=self.project,
-            id='1',
+            ident='1',
         ).exists()
         assert 'sentry:user' in dict(event.tags)
 
@@ -336,7 +336,7 @@ class EventManagerTest(TransactionTestCase):
 
         assert EventUser.objects.filter(
             project=self.project,
-            id='1',
+            ident='1',
         ).exists()
         assert 'sentry:user' in dict(event.tags)
 
