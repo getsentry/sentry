@@ -41,7 +41,7 @@ class GroupListTest(APITestCase):
 
     def test_simple_pagination(self):
         project = self.project
-        now = timezone.now()
+        now = timezone.now().replace(microsecond=0)
         group1 = self.create_group(
             checksum='a' * 32,
             last_seen=now - timedelta(seconds=1),
