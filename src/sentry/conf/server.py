@@ -346,9 +346,7 @@ SOCIAL_AUTH_PROTECTED_USER_FIELDS = ['email']
 from kombu import Exchange, Queue
 
 BROKER_URL = "django://"
-BROKER_TRANSPORT_OPTIONS = {
-    'socket_timeout': 60,
-}
+BROKER_TRANSPORT_OPTIONS = {}
 
 CELERY_ALWAYS_EAGER = True
 CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
