@@ -14,6 +14,7 @@ from django.conf.global_settings import *  # NOQA
 from datetime import timedelta
 
 import hashlib
+import json
 import os
 import os.path
 import socket
@@ -257,6 +258,10 @@ STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 )
+
+ASSET_MANIFEST_PATH = os.path.join(STATIC_ROOT, 'sentry', 'dist', 'manifest.json')
+with open(ASSET_MANIFEST_PATH) as manifest_file:
+    ASSET_MANIFEST = json.load(manifest_file)
 
 # setup a default media root to somewhere useless
 MEDIA_ROOT = '/tmp/sentry-media'
@@ -820,7 +825,6 @@ SENTRY_API_RESPONSE_DELAY = 0
 
 # Watchers for various application purposes (such as compiling static media)
 SENTRY_WATCHERS = (
-    [os.path.join(NODE_MODULES_ROOT, '.bin', 'gulp'), 'watch'],
     [os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '-d', '--watch',
      "--config={}".format(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))],
 )
