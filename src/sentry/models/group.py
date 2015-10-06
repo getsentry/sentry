@@ -22,7 +22,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import buffer
 from sentry.constants import (
-    DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
+    DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH, EVENT_ORDERING_KEY,
 )
 from sentry.db.models import (
     BaseManager, BoundedIntegerField, BoundedPositiveIntegerField,
@@ -203,7 +203,7 @@ class Group(Model):
                 Event.objects.filter(
                     group=self,
                 ).order_by('-datetime')[0:5],
-                key=Event.ordering_key,
+                key=EVENT_ORDERING_KEY,
                 reverse=True,
             )
             try:
@@ -220,7 +220,7 @@ class Group(Model):
                 Event.objects.filter(
                     group=self,
                 ).order_by('datetime')[0:5],
-                key=Event.ordering_key,
+                key=EVENT_ORDERING_KEY,
             )
             try:
                 self._oldest_event = oldest_events[0]
