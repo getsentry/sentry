@@ -103,13 +103,16 @@ class RedisBuffer(Buffer):
                 keys = conn.zrange(self.pending_key, 0, -1)
                 if not keys:
                     continue
+                keycount = 0
                 for key in keys:
+                    keycount += 1
                     process_incr.apply_async(kwargs={
                         'key': key,
                     })
                 pipe = conn.pipeline()
                 pipe.zrem(self.pending_key, *keys)
                 pipe.execute()
+                metrics.timing('buffer.pending-size', keycount)
         finally:
             client.delete(lock_key)
 
