@@ -10,7 +10,7 @@ from django.conf import settings
 
 from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
 from sentry.event_manager import (
-    EventManager, get_hashes_for_event, get_hashes_from_fingerprint
+    EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint
 )
 from sentry.models import Event, Group, GroupStatus, EventMapping
 from sentry.testutils import TestCase, TransactionTestCase
@@ -309,6 +309,34 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(self.make_event(tags=[('foo bar', 'x')]))
         data = manager.normalize()
         assert data['tags'] == []
+
+    def test_event_user(self):
+        manager = EventManager(self.make_event(**{
+            'sentry.interfaces.User': {
+                'id': '1',
+            }
+        }))
+        event = manager.save(1)
+
+        assert EventUser.objects.filter(
+            project=event.project,
+            id='1',
+        ).exists()
+        assert 'sentry:user' in dict(event.tags)
+
+        # ensure event user is mapped to tags in second attempt
+        manager = EventManager(self.make_event(**{
+            'sentry.interfaces.User': {
+                'id': '1',
+            }
+        }))
+        event = manager.save(1)
+
+        assert EventUser.objects.filter(
+            project=event.project,
+            id='1',
+        ).exists()
+        assert 'sentry:user' in dict(event.tags)
 
 
 class GetHashesFromEventTest(TestCase):
