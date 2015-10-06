@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 __all__ = ('Message',)
 
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim
 
 
@@ -31,7 +31,8 @@ class Message(Interface):
     """
     @classmethod
     def to_python(cls, data):
-        assert data.get('message')
+        if not data.get('message'):
+            raise InterfaceValidationError("No 'message' present")
 
         kwargs = {
             'message': trim(data['message'], 2048)
