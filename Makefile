@@ -40,7 +40,7 @@ build: locale
 
 clean:
 	@echo "--> Cleaning static cache"
-	${NPM_ROOT}/.bin/gulp clean
+	rm dist/*
 	@echo "--> Cleaning pyc files"
 	find . -name "*.pyc" -delete
 	@echo ""

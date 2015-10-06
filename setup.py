@@ -171,10 +171,6 @@ class BuildStatic(Command):
         log.info("running [npm install --quiet]")
         check_output(['npm', 'install', '--quiet'], cwd=work_path)
 
-        log.info("running [gulp dist]")
-        check_output([os.path.join('node_modules', '.bin', 'gulp'), 'dist'],
-                     cwd=work_path)
-
         # Enable React production optimization
         os.environ['NODE_ENV'] = 'production'
 
