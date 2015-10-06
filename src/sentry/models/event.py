@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 import warnings
 
+from operator import attrgetter
 from collections import OrderedDict
 from django.db import models
 from django.utils import timezone
@@ -41,6 +42,9 @@ class Event(Model):
     data = NodeField(blank=True, null=True, ref_func=lambda x: x.group_id or x.group.id)
 
     objects = BaseManager()
+
+    # Key to use when ordering a list of events manually
+    ordering_key = attrgetter('datetime', 'id')
 
     class Meta:
         app_label = 'sentry'

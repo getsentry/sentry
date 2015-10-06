@@ -51,13 +51,13 @@ class EventDetailsEndpoint(Endpoint):
             base_qs.filter(
                 datetime__gte=event.datetime,
             ).order_by('datetime')[0:5],
-            key=lambda x: (x.datetime, x.id),
+            key=Event.ordering_key,
         )
         prev_events = sorted(
             base_qs.filter(
                 datetime__lte=event.datetime,
             ).order_by('-datetime')[0:5],
-            key=lambda x: (x.datetime, x.id),
+            key=Event.ordering_key,
             reverse=True,
         )
 
