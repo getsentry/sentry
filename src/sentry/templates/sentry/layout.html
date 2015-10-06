@@ -1,6 +1,7 @@
 {% load i18n %}
 {% load sentry_api %}
 {% load sentry_dsn %}
+{% load sentry_assets %}
 {% load sentry_features %}
 {% load sentry_helpers %}
 {% load sentry_react %}
@@ -18,7 +19,7 @@
   <link href="{% url 'sentry-media' "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
 
   {% block css %}
-  <link href="{% url 'sentry-media' "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
+  <link href="{% asset_url 'sentry-media' "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
   {% endblock %}
 
   <title>{% block title %}Sentry{% endblock %}</title>
@@ -27,8 +28,8 @@
   <script type="text/javascript" src="{% url 'sentry-media' "sentry" "scripts/lib/html5shiv.js" %}"></script>
   <![endif]-->
   {% block scripts %}
-  <script src="{% url 'sentry-media' "sentry" "dist/vendor.js" %}"></script>
-  <script src="{% url 'sentry-media' "sentry" "dist/app.js" %}"></script>
+  <script src="{% asset_url 'sentry-media' "sentry" "dist/vendor.js" %}"></script>
+  <script src="{% asset_url 'sentry-media' "sentry" "dist/app.js" %}"></script>
 
   <script>
     for (var n in window.exports) {

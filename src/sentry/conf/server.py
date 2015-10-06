@@ -14,6 +14,7 @@ from django.conf.global_settings import *  # NOQA
 from datetime import timedelta
 
 import hashlib
+import json
 import os
 import os.path
 import socket
@@ -257,6 +258,10 @@ STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 )
+
+ASSET_MANIFEST_PATH = os.path.join(STATIC_ROOT, 'sentry', 'dist', 'manifest.json')
+with open(ASSET_MANIFEST_PATH) as manifest_file:
+    ASSET_MANIFEST = json.load(manifest_file)
 
 # setup a default media root to somewhere useless
 MEDIA_ROOT = '/tmp/sentry-media'
