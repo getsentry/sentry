@@ -317,10 +317,10 @@ class EventManagerTest(TransactionTestCase):
             }
         }))
         manager.normalize()
-        event = manager.save(1)
+        event = manager.save(self.project.id)
 
         assert EventUser.objects.filter(
-            project=event.project,
+            project=self.project,
             id='1',
         ).exists()
         assert 'sentry:user' in dict(event.tags)
@@ -332,10 +332,10 @@ class EventManagerTest(TransactionTestCase):
             }
         }))
         manager.normalize()
-        event = manager.save(1)
+        event = manager.save(self.project.id)
 
         assert EventUser.objects.filter(
-            project=event.project,
+            project=self.project,
             id='1',
         ).exists()
         assert 'sentry:user' in dict(event.tags)
