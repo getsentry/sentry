@@ -104,7 +104,7 @@ class BasePaginator(object):
         results = list(queryset[cursor.offset:stop])
 
         if cursor.is_prev:
-            results = results[1:][::-1]
+            results = results[::-1]
 
         return build_cursor(
             results=results,
@@ -130,10 +130,10 @@ class DateTimePaginator(BasePaginator):
 
     def get_item_key(self, item):
         value = getattr(item, self.key)
-        value = float(value.strftime('%s.%f'))
+        value = float(value.strftime('%s.%f')) * self.multiplier
         if self.desc:
-            return math.ceil(value * self.multiplier)
-        return math.floor(value * self.multiplier)
+            return math.ceil(value)
+        return math.floor(value)
 
     def value_from_cursor(self, cursor):
         return datetime.fromtimestamp(
