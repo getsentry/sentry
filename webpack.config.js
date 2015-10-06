@@ -1,7 +1,8 @@
 /*eslint-env node*/
 var path = require("path"),
     webpack = require("webpack"),
-    ManifestPlugin = require('webpack-manifest-plugin');
+    ManifestPlugin = require('webpack-manifest-plugin'),
+    ExtractTextPlugin = require("extract-text-webpack-plugin");
 
 var staticPrefix = "src/sentry/static/sentry",
     distPath = staticPrefix + "/dist";
@@ -13,15 +14,17 @@ var staticPrefix = "src/sentry/static/sentry",
 //   [name].js => [name].[chunkhash].js (in production)
 //   [name].js => [name].js (unaltered in dev)
 
-function fileFormatForEnv(file) {
+function fileFormatForEnv(file, attr) {
+  attr = attr || '[chunkhash]';
   return process.env.NODE_ENV === 'production' ?
-    file.replace(/\.(\w+)$/, '.[chunkhash].$1') :
+    file.replace(/\.([\w\[\]]+)$/, '.' + attr + '.$1') :
     file;
 }
 
 var config = {
   context: path.join(__dirname, staticPrefix),
   entry: {
+    // js
     "app": "app",
     "vendor": [
       "babel-core/polyfill",
@@ -46,7 +49,13 @@ var config = {
       "flot/jquery.flot.time",
       "flot-tooltip/jquery.flot.tooltip",
       "vendor/simple-slider/simple-slider"
-    ]
+    ],
+
+    // css
+    // NOTE: this will also create an empty "sentry.js" file
+    // TODO: figure out how to not generate this
+    "sentry": "less/sentry.less"
+
   },
   module: {
     loaders: [
@@ -59,6 +68,15 @@ var config = {
       {
         test: /\.json$/,
         loader: "json-loader"
+      },
+      {
+        test: /\.less$/,
+        include: path.join(__dirname, staticPrefix),
+        loader: ExtractTextPlugin.extract("style-loader", "css-loader!less-loader")
+      },
+      {
+        test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
+        loader: 'file-loader?name=' + fileFormatForEnv('[name].[ext]', '[hash]')
       }
     ]
   },
@@ -72,7 +90,8 @@ var config = {
       "root.jQuery": "jquery",
       Raven: "raven-js"
     }),
-    new ManifestPlugin() // writes manifest.json to output directory
+    new ManifestPlugin(), // writes manifest.json to output directory
+    new ExtractTextPlugin(fileFormatForEnv("[name].css"))
   ],
   resolve: {
     alias: {
