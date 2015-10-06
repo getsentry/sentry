@@ -11,7 +11,7 @@ register = Library()
 class AssetURLNode(URLNode):
     def render(self, context):
         path = super(AssetURLNode, self).render(context)
-        parts = path.split('/')
+        parts = path.rsplit('/', 1)
         last = parts[-1]
 
         try:
