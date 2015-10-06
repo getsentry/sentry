@@ -11,12 +11,13 @@ register = Library()
 class AssetURLNode(URLNode):
     def render(self, context):
         path = super(AssetURLNode, self).render(context)
-
-        # Replace last part of url path with value from manifest
-        # TODO: Blow up gracefully if not in manifest?
         parts = path.split('/')
         last = parts[-1]
-        parts[-1] = settings.ASSET_MANIFEST[last]
+
+        try:
+            parts[-1] = settings.ASSET_MANIFEST[last]
+        except IndexError:
+            return path
 
         return '/'.join(parts)
 

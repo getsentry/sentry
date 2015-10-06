@@ -260,8 +260,11 @@ STATICFILES_FINDERS = (
 )
 
 ASSET_MANIFEST_PATH = os.path.join(STATIC_ROOT, 'sentry', 'dist', 'manifest.json')
-with open(ASSET_MANIFEST_PATH) as manifest_file:
-    ASSET_MANIFEST = json.load(manifest_file)
+try:
+    with open(ASSET_MANIFEST_PATH) as manifest_file:
+        ASSET_MANIFEST = json.load(manifest_file)
+except IOError:
+    ASSET_MANIFEST = {}
 
 # setup a default media root to somewhere useless
 MEDIA_ROOT = '/tmp/sentry-media'
