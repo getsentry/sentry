@@ -441,7 +441,7 @@ CELERYBEAT_SCHEDULE = {
         }
     },
     'sync-docs': {
-        'task': 'sentry.tasks.options.sync_docs',
+        'task': 'sentry.tasks.sync_docs',
         'schedule': timedelta(seconds=3600),
         'options': {
             'expires': 3600,
