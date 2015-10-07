@@ -35,14 +35,9 @@ def safe_execute(func, *args, **kwargs):
         func_name = getattr(func, '__name__', str(func))
         cls_name = cls.__name__
 
-        logger = logging.getLogger('sentry')
+        logger = logging.getLogger('sentry.safe')
         logger.error(
             'Error processing %r on %r: %s', func_name, cls_name, exc,
-            extra={
-                'func_module': cls.__module__,
-                'func_args': args,
-                'func_kwargs': kwargs,
-            },
             exc_info=True,
         )
     else:
