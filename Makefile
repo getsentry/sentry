@@ -89,6 +89,15 @@ test-python:
 	py.test tests || exit 1
 	@echo ""
 
+travis-test-python:
+	@echo "--> Running Python tests"
+	coverage run --source=src/sentry -m py.test tests
+	@echo ""
+
+test-postgres: travis-test-python
+test-mysql: travis-test-python
+test-sqlite: travis-test-python
+
 lint:
 	@echo "--> Linting all the things"
 	bin/lint src/sentry tests
@@ -96,8 +105,13 @@ lint:
 
 # These are just aliases for backwards compat
 # our linter does both now
+lint-sqlite: lint-python
+lint-mysql: lint-python
+lint-postgres: lint-python
 lint-python: lint
 lint-js: lint
+lint-cli:
+	@echo "Nothing to lint :("
 
 coverage: develop
 	coverage run --source=src/sentry -m py.test
@@ -112,5 +126,25 @@ publish:
 extract-api-docs:
 	rm -rf api-docs/cache/*
 	cd api-docs; python generator.py
+
+travis-install-cassandra:
+	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.0.3
+	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.0.3
+
+travis-install-python: travis-install-cassandra
+	python -m pip install --upgrade pip==7.1.2
+
+travis-install-sqlite: travis-install-python
+
+travis-install-postgres: travis-install-python dev-postgres
+	psql -c 'create database sentry;' -U postgres
+
+travis-install-mysql: travis-install-python dev-mysql
+	mysql -e 'create database sentry;'
+
+travis-install-js:
+	npm install
+
+travis-install-cli: travis-install-python develop
 
 .PHONY: develop dev-postgres dev-mysql dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python lint lint-python lint-js coverage run-uwsgi publish
