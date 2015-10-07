@@ -98,7 +98,6 @@ lint-python:
 
 lint-js:
 	@echo "--> Linting JavaScript files"
-	@npm install
 	@npm run lint
 	@echo ""
 
