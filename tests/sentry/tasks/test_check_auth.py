@@ -22,7 +22,7 @@ class CheckAuthTest(TestCase):
             organization=organization,
             provider='dummy',
         )
-        om = OrganizationMember.objects.create(
+        OrganizationMember.objects.create(
             user=user,
             organization=organization,
             flags=getattr(OrganizationMember.flags, 'sso:linked'),

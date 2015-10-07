@@ -24,7 +24,7 @@ class OrganizationMembersPermissionTest(PermissionTestCase):
 class OrganizationMembersTest(TestCase):
     def test_renders_with_context(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team_1 = self.create_team(name='foo', organization=organization)
+        self.create_team(name='foo', organization=organization)
         team_2 = self.create_team(name='bar', organization=organization)
 
         owner = self.user

@@ -41,7 +41,6 @@ def _sampled_value(value):
 def _incr_internal(key, instance=None, tags=None, amount=1):
     from sentry.app import tsdb
 
-    sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
     if _should_sample():
         amount = _sampled_value(amount)
         if instance:

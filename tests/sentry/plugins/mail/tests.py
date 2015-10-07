@@ -159,7 +159,7 @@ class MailPluginTest(TestCase):
 
         user = self.create_user(email='foo@example.com', is_active=True)
         user2 = self.create_user(email='baz@example.com', is_active=True)
-        user3 = self.create_user(email='baz2@example.com', is_active=True)
+        self.create_user(email='baz2@example.com', is_active=True)
 
         # user with inactive account
         self.create_user(email='bar@example.com', is_active=False)

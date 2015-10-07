@@ -442,8 +442,6 @@ class EventManager(object):
             **group_kwargs
         )
 
-        using = group._state.db
-
         event.group = group
         event.group_id = group.id
         # store a reference to the group id to guarantee validation of isolation
@@ -560,7 +558,6 @@ class EventManager(object):
         )
 
     def _save_aggregate(self, event, hashes, **kwargs):
-        time_spent = event.time_spent
         project = event.project
 
         # attempt to find a matching hash

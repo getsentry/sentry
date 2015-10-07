@@ -87,12 +87,11 @@ class AuthLinkIdentityView(BaseView):
         return self.respond('sentry/auth-link-login.html', context)
 
     def handle_authed(self, request, organization, auth_provider):
-        try:
-            om = OrganizationMember.objects.get(
-                organization=organization,
-                user=request.user,
-            )
-        except OrganizationMember.DoesNotExist:
+        om = OrganizationMember.objects.filter(
+            organization=organization,
+            user=request.user,
+        )
+        if not om.exists():
             auth_logger.debug('User does is not a member of organization: %s',
                               organization.slug)
             messages.add_message(

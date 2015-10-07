@@ -19,7 +19,7 @@ class ReleaseSerializerTest(TestCase):
             version=uuid4().hex,
             new_groups=1,
         )
-        tagvalue = TagValue.objects.create(
+        TagValue.objects.create(
             project=release.project,
             key='sentry:release',
             value=release.version,
