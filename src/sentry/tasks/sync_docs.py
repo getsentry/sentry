@@ -1,8 +1,12 @@
 from __future__ import absolute_import, print_function
 
+import logging
+
 from sentry.tasks.base import instrumented_task
 
 BASE_URL = 'https://docs.getsentry.com/hosted/_platforms/{}'
+
+logger = logging.getLogger('sentry')
 
 
 def get_integration_id(platform_id, integration_id):
@@ -17,6 +21,7 @@ def sync_docs():
 
     session = http.build_session()
 
+    logger.info('Syncing documentation (platform index)')
     data = session.get(BASE_URL.format('_index.json')).json()
     platform_list = []
     for platform_id, integrations in data['platforms'].iteritems():
@@ -42,6 +47,7 @@ def sync_docs():
 
     for platform_id, platform_data in data['platforms'].iteritems():
         for integration_id, integration in platform_data.iteritems():
+            logger.info('Syncing documentation for %s integration', integration_id)
             sync_integration(platform_id, integration_id, integration['details'])
 
 
