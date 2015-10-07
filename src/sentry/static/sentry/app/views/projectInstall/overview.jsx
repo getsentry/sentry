@@ -99,7 +99,7 @@ const ProjectInstallOverview = React.createClass({
 
         <p>
           <em>Don't see your platform listed here?</em> For a complete list of client integrations,
-          please visit see <a href="http://docs.getsentry.com">our in-depth documentation</a>.
+          please visit see <a href="https://docs.getsentry.com">our in-depth documentation</a>.
         </p>
       </div>
     );
