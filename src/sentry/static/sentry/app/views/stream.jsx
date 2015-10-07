@@ -4,6 +4,7 @@ import $ from "jquery";
 import Cookies from "js-cookie";
 import Sticky from 'react-sticky';
 import classNames from "classnames";
+import _ from "underscore";
 
 import api from "../api";
 
@@ -62,13 +63,20 @@ var Stream = React.createClass({
       sort: this.props.defaultSort,
       filter: {},
       tags: StreamTagStore.getAllTags(),
+      tagsLoading: true,
       isSidebarVisible: false,
       isStickyHeader: false
     }, this.getQueryStringState());
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    return !utils.valueIsEqual(this.state, nextState, true);
+    return !_.isEqual(this.state, nextState, true);
+  },
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.params.projectId !== this.props.params.projectId) {
+      this.fetchTags();
+    }
   },
 
   componentWillMount() {
@@ -102,14 +110,21 @@ var Stream = React.createClass({
   },
 
   fetchTags() {
+    StreamTagStore.reset();
     StreamTagActions.loadTags();
+
+    this.setState({
+      tagsLoading: true
+    });
 
     var params = this.context.router.getCurrentParams();
     api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
       success: (tags) => {
+        this.setState({tagsLoading: false});
         StreamTagActions.loadTagsSuccess(tags);
       },
       error: (error) => {
+        this.setState({tagsLoading: false});
         StreamTagActions.loadTagsError();
       }
     });
@@ -280,10 +295,7 @@ var Stream = React.createClass({
   onStreamTagChange(tags) {
     // new object to trigger state change
     this.setState({
-      tags: Object.assign({}, tags.reduce((obj, tag) => {
-        obj[tag.key] = tag;
-        return obj;
-      }, this.state.tags))
+      tags: Object.assign({}, tags)
     });
   },
 
@@ -429,7 +441,11 @@ var Stream = React.createClass({
           {this.renderStreamBody()}
           <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
         </div>
-        <StreamSidebar tags={this.state.tags} query={this.state.query} onQueryChange={this.onSearch}/>
+        <StreamSidebar
+          loading={this.state.tagsLoading}
+          tags={this.state.tags}
+          query={this.state.query}
+          onQueryChange={this.onSearch}/>
       </div>
     );
   }
