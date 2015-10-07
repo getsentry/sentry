@@ -182,26 +182,18 @@ class RedisTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
-        pipelines = {}
-        for model, key, values in items:
-            client = self.cluster.get_local_client_for_key(key)
-            pipeline = pipelines.get(client, None)
-            if pipeline is None:
-                # This operation is idempotent, so the pipeline does not need
-                # to be transactional.
-                pipeline = pipelines[client] = client.pipeline(transaction=False)
+        with self.cluster.fanout() as client:
+            for model, key, values in items:
+                h = self.cluster.get_router().get_host_for_key(key)
+                c = client.target([h])
 
-            for rollup, max_values in self.rollups:
-                expire = rollup * max_values  # XXX: This logic can lead to incorrect expiry values.
+                for rollup, max_values in self.rollups:
+                    expire = rollup * max_values  # XXX: This logic can lead to incorrect expiry values.
 
-                m = self.get_model_key(key)
-                k = self.make_key(model, self.normalize_to_rollup(timestamp, rollup), m)
-                pipeline.pfadd(k, m, *values)
-                pipeline.expire(k, expire)
-
-        # NOTE: This isn't concurrent.
-        for pipeline in pipelines.values():
-            pipeline.execute()
+                    m = self.get_model_key(key)
+                    k = self.make_key(model, self.normalize_to_rollup(timestamp, rollup), m)
+                    c.pfadd(k, m, *values)
+                    c.expire(k, expire)
 
     def get_distinct_counts(self, model, keys, start, end):
         """
@@ -223,25 +215,15 @@ class RedisTSDB(BaseTSDB):
                 self.get_model_key(key),
             )
 
-        pipelines = {}
-        for key in keys:
-            client = self.cluster.get_local_client_for_key(key)
-            result = pipelines.get(client, None)
-            if result is not None:
-                pipeline, requests = result
-            else:
-                pipeline, requests = pipelines[client] = client.pipeline(transaction=False), []
+        responses = {}
+        with self.cluster.fanout() as client:
+            for key in keys:
+                h = self.cluster.get_router().get_host_for_key(key)
+                c = client.target([h])
 
-            make_key = functools.partial(get_key, key)
-            pipeline.execute_command('pfcount', *map(make_key, intervals))
-            requests.append(key)
-
-        # NOTE: This isn't concurrent.
-        results = {}
-        for pipeline, requests in pipelines.values():
-            for request, response in zip(requests, pipeline.execute()):
-                results[request] = int(response)
+                make_key = functools.partial(get_key, key)
+                responses[key] = h, c.execute_command('pfcount', *map(make_key, intervals))
 
         upper = intervals[0]
         lower = intervals[-1] + rollup
-        return (upper, lower), results
+        return (upper, lower), {k: v.value[h] for k, (h, v) in responses.iteritems()}
