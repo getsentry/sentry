@@ -24,6 +24,7 @@ env:
     - SENTRY_LIGHT_BUILD=1
 install:
   - time make develop dev-postgres dev-mysql
+  - time pip install codecov
 before_script:
   - mysql -e 'create database sentry;'
   - psql -c 'create database sentry;' -U postgres
@@ -34,3 +35,5 @@ script:
   - make test-js
   - py.test tests
   - make test-cli
+after_success:
+  - codecov -e DB
