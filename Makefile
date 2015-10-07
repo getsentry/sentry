@@ -89,17 +89,15 @@ test-python:
 	py.test tests || exit 1
 	@echo ""
 
-lint: lint-python lint-js
-
-lint-python:
-	@echo "--> Linting Python files"
+lint:
+	@echo "--> Linting all the things"
 	bin/lint src/sentry tests
 	@echo ""
 
-lint-js:
-	@echo "--> Linting JavaScript files"
-	@npm run lint
-	@echo ""
+# These are just aliases for backwards compat
+# our linter does both now
+lint-python: lint
+lint-js: lint
 
 coverage: develop
 	coverage run --source=src/sentry -m py.test
