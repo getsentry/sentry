@@ -1,6 +1,7 @@
 import React from "react";
 import _ from "underscore";
 import StreamTagFilter from "./tagFilter";
+import LoadingIndicator from "../../components/loadingIndicator";
 import {queryToObj, objToQuery} from "../../utils/stream";
 
 
@@ -96,34 +97,40 @@ var StreamSidebar = React.createClass({
   render() {
     return (
       <div className="stream-sidebar">
-        <div className="stream-tag-filter">
-          <h6 className="nav-header">Text</h6>
-          <form onSubmit={this.onTextFilterSubmit}>
-            <input
-              className="form-control"
-              placeholder="Search title and culprit text body"
-              onChange={this.onTextChange}
-              value={this.state.textFilter}
-            />
-            {this.state.textFilter &&
-              <a className="search-clear-form" onClick={this.onClearSearch}>
-                <span className="icon-circle-cross" />
-              </a>
-            }
-          </form>
-          <hr/>
-        </div>
+        {this.props.loading ?
+          <LoadingIndicator/>
+        :
+          <div>
+            <div className="stream-tag-filter">
+              <h6 className="nav-header">Text</h6>
+              <form onSubmit={this.onTextFilterSubmit}>
+                <input
+                  className="form-control"
+                  placeholder="Search title and culprit text body"
+                  onChange={this.onTextChange}
+                  value={this.state.textFilter}
+                />
+                {this.state.textFilter &&
+                  <a className="search-clear-form" onClick={this.onClearSearch}>
+                    <span className="icon-circle-cross" />
+                  </a>
+                }
+              </form>
+              <hr/>
+            </div>
 
-        {_.map(this.props.tags, (tag) => {
-          return (
-            <StreamTagFilter
-              value={this.state.queryObj[tag.key]}
-              key={tag.key}
-              tag={tag}
-              onSelect={this.onSelectTag}
-            />
-          );
-        })}
+            {_.map(this.props.tags, (tag) => {
+              return (
+                <StreamTagFilter
+                  value={this.state.queryObj[tag.key]}
+                  key={tag.key}
+                  tag={tag}
+                  onSelect={this.onSelectTag}
+                />
+              );
+            })}
+          </div>
+        }
       </div>
     );
   }
