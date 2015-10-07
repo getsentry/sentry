@@ -61,13 +61,13 @@ class FetchUrlTest(TestCase):
         responses.add(responses.GET, 'http://example.com', body=RequestException())
 
         with pytest.raises(BadSource):
-            result = fetch_url('http://example.com')
+            fetch_url('http://example.com')
 
         assert len(responses.calls) == 1
 
         # ensure we use the cached domain-wide failure for the second call
         with pytest.raises(BadSource):
-            result = fetch_url('http://example.com/foo/bar')
+            fetch_url('http://example.com/foo/bar')
 
         assert len(responses.calls) == 1
 

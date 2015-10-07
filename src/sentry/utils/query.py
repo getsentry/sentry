@@ -68,7 +68,6 @@ class RangeQuerySetWrapper(object):
             queryset = queryset.order_by(self.order_by)
 
         # we implement basic cursor pagination for columns that are not unique
-        last_value = None
         last_object = None
         has_results = True
         while has_results:
@@ -97,7 +96,6 @@ class RangeQuerySetWrapper(object):
 
                 num += 1
                 cur_value = getattr(result, self.order_by)
-                last_value = cur_value
                 last_object = result
 
             if cur_value is None:

@@ -10,8 +10,6 @@ from sentry.testutils import AuthProviderTestCase
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
     def test_renders_basic_login_form(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
 
         path = reverse('sentry-auth-organization', args=[organization.slug])
 
@@ -29,8 +27,6 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     def test_basic_provider_flow_as_anonymous(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
         auth_provider = AuthProvider.objects.create(
             organization=organization,
             provider='dummy',
@@ -71,9 +67,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     def test_basic_provider_flow_as_existing_user(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
-        auth_provider = AuthProvider.objects.create(
+        AuthProvider.objects.create(
             organization=organization,
             provider='dummy',
         )

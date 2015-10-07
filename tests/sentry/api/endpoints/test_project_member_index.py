@@ -13,7 +13,7 @@ class ProjectMemberIndexTest(APITestCase):
         org = self.create_organization(owner=user_1)
         team = self.create_team(organization=org, slug='baz')
         project_1 = self.create_project(team=team, slug='foo')
-        project_2 = self.create_project(team=team, slug='bar')
+        self.create_project(team=team, slug='bar')
         org.member_set.create(user=user_2, has_global_access=True)
         org.member_set.create(user=user_3, has_global_access=False)
 

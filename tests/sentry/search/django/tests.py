@@ -79,8 +79,6 @@ class DjangoSearchBackendTest(TestCase):
         self.backend.index(self.event2)
 
     def test_query(self):
-        backend = self.create_backend()
-
         results = self.backend.query(self.project1, query='foo')
         assert len(results) == 1
         assert results[0] == self.group1
@@ -90,8 +88,6 @@ class DjangoSearchBackendTest(TestCase):
         assert results[0] == self.group2
 
     def test_sort(self):
-        backend = self.create_backend()
-
         results = self.backend.query(self.project1, sort_by='date')
         assert len(results) == 2
         assert results[0] == self.group1
@@ -146,8 +142,6 @@ class DjangoSearchBackendTest(TestCase):
         assert len(results) == 0
 
     def test_first_seen_date_filter(self):
-        backend = self.create_backend()
-
         results = self.backend.query(
             self.project1, date_from=self.group2.first_seen,
             date_filter='first_seen')
@@ -170,8 +164,6 @@ class DjangoSearchBackendTest(TestCase):
         assert results[0] == self.group1
 
     def test_last_seen_date_filter(self):
-        backend = self.create_backend()
-
         results = self.backend.query(
             self.project1, date_from=self.group1.last_seen,
             date_filter='last_seen')
