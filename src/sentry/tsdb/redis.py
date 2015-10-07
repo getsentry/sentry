@@ -7,6 +7,7 @@ sentry.tsdb.redis
 """
 from __future__ import absolute_import
 
+import functools
 import logging
 import six
 
@@ -173,3 +174,74 @@ class RedisTSDB(BaseTSDB):
         for key, points in results_by_key.iteritems():
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
+
+    def record_multi(self, items, timestamp=None):
+        """
+        Record an occurence of an item in a distinct counter.
+        """
+        if timestamp is None:
+            timestamp = timezone.now()
+
+        pipelines = {}
+        for model, key, values in items:
+            client = self.cluster.get_local_client_for_key(key)
+            pipeline = pipelines.get(client, None)
+            if pipeline is None:
+                # This operation is idempotent, so the pipeline does not need
+                # to be transactional.
+                pipeline = pipelines[client] = client.pipeline(transaction=False)
+
+            for rollup, max_values in self.rollups:
+                expire = rollup * max_values  # XXX: This logic can lead to incorrect expiry values.
+
+                m = self.get_model_key(key)
+                k = self.make_key(model, self.normalize_to_rollup(timestamp, rollup), m)
+                pipeline.pfadd(k, m, *values)
+                pipeline.expire(k, expire)
+
+        # NOTE: This isn't concurrent.
+        for pipeline in pipelines.values():
+            pipeline.execute()
+
+    def get_distinct_counts(self, model, keys, start, end):
+        """
+        Count distinct items during a time range.
+        """
+        # NOTE: "optimal" here means "able to most closely reflect the upper
+        # and lower bounds", not "able to construct the most efficient query"
+        rollup = self.get_optimal_rollup(start, end)
+
+        intervals = [self.normalize_to_epoch(start, rollup)]
+        end_ts = int(end.strftime('%s'))  # XXX: HACK
+        while intervals[-1] + rollup < end_ts:
+            intervals.append(intervals[-1] + rollup)
+
+        def get_key(key, timestamp):
+            return self.make_key(
+                model,
+                self.normalize_ts_to_rollup(timestamp, rollup),
+                self.get_model_key(key),
+            )
+
+        pipelines = {}
+        for key in keys:
+            client = self.cluster.get_local_client_for_key(key)
+            result = pipelines.get(client, None)
+            if result is not None:
+                pipeline, requests = result
+            else:
+                pipeline, requests = pipelines[client] = client.pipeline(transaction=False), []
+
+            make_key = functools.partial(get_key, key)
+            pipeline.execute_command('pfcount', *map(make_key, intervals))
+            requests.append(key)
+
+        # NOTE: This isn't concurrent.
+        results = {}
+        for pipeline, requests in pipelines.values():
+            for request, response in zip(requests, pipeline.execute()):
+                results[request] = int(response)
+
+        upper = intervals[0]
+        lower = intervals[-1] + rollup
+        return (upper, lower), results
