@@ -219,9 +219,11 @@ class RedisTSDB(BaseTSDB):
         responses = {}
         with self.cluster.fanout() as client:
             for key in keys:
-                c = client.target_key(key)
                 make_key = functools.partial(get_key, key)
-                responses[key] = c.execute_command('pfcount', *map(make_key, intervals))
+                responses[key] = client.target_key(key).execute_command(
+                    'pfcount',
+                    *map(make_key, intervals)
+                )
 
         upper = intervals[0]
         lower = intervals[-1] + rollup
