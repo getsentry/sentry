@@ -196,21 +196,11 @@ class RedisTSDB(BaseTSDB):
         # TODO: Check to make sure these operations didn't fail, so we can
         # raise an error if there were issues.
 
-    def _get_intervals(self, start, end, rollup=None):
-        # NOTE: "optimal" here means "able to most closely reflect the upper
-        # and lower bounds", not "able to construct the most efficient query"
-        if rollup is None:
-            rollup = self.get_optimal_rollup(start, end)
-
-        intervals = [self.normalize_to_epoch(start, rollup)]
-        end_ts = int(end.strftime('%s'))  # XXX: HACK
-        while intervals[-1] + rollup < end_ts:
-            intervals.append(intervals[-1] + rollup)
-
-        return rollup, intervals
-
     def get_distinct_counts_series(self, model, keys, start, end, rollup=None):
-        rollup, intervals = self._get_intervals(start, end, rollup)
+        """
+        Fetch counts of distinct items for each rollup interval within the range.
+        """
+        rollup, intervals = self.get_optimal_rollup_intervals(start, end, rollup)
 
         def get_key(key, timestamp):
             return self.make_key(
@@ -232,7 +222,7 @@ class RedisTSDB(BaseTSDB):
         """
         Count distinct items during a time range.
         """
-        rollup, intervals = self._get_intervals(start, end, rollup)
+        rollup, intervals = self.get_optimal_rollup_intervals(start, end, rollup)
 
         def get_key(key, timestamp):
             return self.make_key(
