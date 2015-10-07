@@ -1,22 +1,29 @@
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 
-develop-only: update-submodules
-	@echo "--> Installing dependencies"
-	npm install
+install-python:
+	@echo "--> Installing Pythond dependencies"
 	pip install "setuptools>=0.9.8"
 	# order matters here, base package must install first
 	pip install -e .
 	pip install "file://`pwd`#egg=sentry[dev]"
 
-develop: update-submodules setup-git develop-only
+install-npm:
+	@echo "--> Installing Node dependencies"
+	npm install
+
+install-python-tests:
 	pip install "file://`pwd`#egg=sentry[tests]"
+
+develop-only: update-submodules install-python install-node
+
+develop: update-submodules setup-git develop-only install-python-tests
 	@echo ""
 
-dev-postgres: develop
+dev-postgres: install-python
 	pip install "file://`pwd`#egg=sentry[postgres]"
 
-dev-mysql: develop
+dev-mysql: install-python
 	pip install "file://`pwd`#egg=sentry[mysql]"
 
 dev-docs:
@@ -127,13 +134,14 @@ extract-api-docs:
 	rm -rf api-docs/cache/*
 	cd api-docs; python generator.py
 
+travis-upgrade-pip:
+	python -m pip install --upgrade pip==7.1.2
+
 travis-install-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.0.3
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.0.3
 
-travis-install-python: travis-install-cassandra
-	python -m pip install --upgrade pip==7.1.2
-
+travis-install-python: travis-upgrade-pip install-python travis-install-cassandra
 travis-install-sqlite: travis-install-python
 
 travis-install-postgres: travis-install-python dev-postgres
@@ -145,6 +153,6 @@ travis-install-mysql: travis-install-python dev-mysql
 travis-install-js:
 	npm install --ignore-scripts
 
-travis-install-cli: travis-install-python develop
+travis-install-cli: travis-install-python
 
 .PHONY: develop dev-postgres dev-mysql dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python lint lint-python lint-js coverage run-uwsgi publish
