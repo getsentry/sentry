@@ -154,9 +154,7 @@ travis-install-mysql: travis-install-python dev-mysql
 travis-install-postgres: travis-install-python dev-postgres
 	psql -c 'create database sentry;' -U postgres
 travis-install-webpack: travis-install-js
-travis-install-js:
-	# Install npm deps and skip the postinstall step
-	npm install --ignore-scripts
+travis-install-js: install-npm
 travis-install-cli: travis-install-python
 
 .PHONY: travis-install-sqlite travis-install-mysql travis-install-postgres travis-install-webpack travis-install-js travis-install-cli
