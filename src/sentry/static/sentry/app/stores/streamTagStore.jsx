@@ -30,6 +30,7 @@ var StreamTagStore = Reflux.createStore({
         predefined: true
       }
     };
+    this.trigger(this.tags);
   },
 
   getTag(tagName) {
@@ -64,15 +65,13 @@ var StreamTagStore = Reflux.createStore({
       return obj;
     }, {}));
 
-    this.trigger(_.map(this.tags, (tag) => {
-      return tag;
-    }));
+    this.trigger(this.tags);
   },
 
   onMemberListStoreChange(members) {
     let assignedTag = this.tags.assigned;
     assignedTag.values = MemberListStore.getAll().map(user => user.email);
-    this.trigger([assignedTag]);
+    this.trigger(this.tags);
   }
 });
 
