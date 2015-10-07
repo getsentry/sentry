@@ -16,7 +16,7 @@ class AssetURLNode(URLNode):
 
         try:
             parts[-1] = settings.ASSET_MANIFEST[last]
-        except IndexError:
+        except KeyError:
             return path
 
         return '/'.join(parts)
