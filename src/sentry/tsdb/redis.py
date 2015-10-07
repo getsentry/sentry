@@ -196,7 +196,7 @@ class RedisTSDB(BaseTSDB):
         # TODO: Check to make sure these operations didn't fail, so we can
         # raise an error if there were issues.
 
-    def get_distinct_counts_series(self, model, keys, start, end, rollup=None):
+    def get_distinct_counts_series(self, model, keys, start, end=None, rollup=None):
         """
         Fetch counts of distinct items for each rollup interval within the range.
         """
@@ -218,7 +218,7 @@ class RedisTSDB(BaseTSDB):
 
         return {k: [(t, p.value) for t, p in v] for k, v in responses.iteritems()}
 
-    def get_distinct_counts_totals(self, model, keys, start, end, rollup=None):
+    def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
         """
         Count distinct items during a time range.
         """

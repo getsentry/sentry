@@ -8,7 +8,9 @@ sentry.tsdb.base
 from __future__ import absolute_import
 
 from django.conf import settings
+from django.utils import timezone
 from enum import Enum
+
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -103,7 +105,10 @@ class BaseTSDB(object):
                 return rollup
         return self.rollups[-1][0]
 
-    def get_optimal_rollup_intervals(self, start, end, rollup=None):
+    def get_optimal_rollup_intervals(self, start, end=None, rollup=None):
+        if end is None:
+            end = timezone.now()
+
         # NOTE: "optimal" here means "able to most closely reflect the upper
         # and lower bounds", not "able to construct the most efficient query"
         if rollup is None:
