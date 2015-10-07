@@ -116,4 +116,4 @@ class Interface(object):
         body = self.to_string(event)
         if not body:
             return ''
-        return '<pre>%s</pre>' % (escape(body).replace('\n', '<br>'),)
+        return '<pre>%s</pre>' % (escape(body),)
