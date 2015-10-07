@@ -80,6 +80,7 @@
     }],
     "eqeqeq": 0,                     // http://eslint.org/docs/rules/eqeqeq [REVISIT ME]
     "guard-for-in": 0,               // http://eslint.org/docs/rules/guard-for-in [REVISIT ME]
+    "jsx-quotes": [2, "prefer-double"], // http://eslint.org/docs/rules/jsx-quotes
     "no-caller": 2,                  // http://eslint.org/docs/rules/no-caller
     "no-else-return": 0,             // http://eslint.org/docs/rules/no-else-return [REVISIT ME]
     "no-eq-null": 2,                 // http://eslint.org/docs/rules/no-eq-null
@@ -114,10 +115,9 @@
     "yoda": 2,                       // http://eslint.org/docs/rules/yoda
 
     /**
-     * JSX style
+     * React
      */
     "react/display-name": 0,         // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/display-name.md
-    "react/jsx-quotes": [2, "double"], // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-quotes.md
     "react/no-multi-comp": 2,        // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-multi-comp.md
     "react/jsx-no-undef": 2,         // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-no-undef.md
     "react/jsx-no-duplicate-props": 2, // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-no-duplicate-props.md
