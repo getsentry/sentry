@@ -196,18 +196,43 @@ class RedisTSDB(BaseTSDB):
         # TODO: Check to make sure these operations didn't fail, so we can
         # raise an error if there were issues.
 
-    def get_distinct_counts(self, model, keys, start, end):
-        """
-        Count distinct items during a time range.
-        """
+    def _get_intervals(self, start, end, rollup=None):
         # NOTE: "optimal" here means "able to most closely reflect the upper
         # and lower bounds", not "able to construct the most efficient query"
-        rollup = self.get_optimal_rollup(start, end)
+        if rollup is None:
+            rollup = self.get_optimal_rollup(start, end)
 
         intervals = [self.normalize_to_epoch(start, rollup)]
         end_ts = int(end.strftime('%s'))  # XXX: HACK
         while intervals[-1] + rollup < end_ts:
             intervals.append(intervals[-1] + rollup)
+
+        return rollup, intervals
+
+    def get_distinct_counts_series(self, model, keys, start, end, rollup=None):
+        rollup, intervals = self._get_intervals(start, end, rollup)
+
+        def get_key(key, timestamp):
+            return self.make_key(
+                model,
+                self.normalize_ts_to_rollup(timestamp, rollup),
+                self.get_model_key(key),
+            )
+
+        responses = {}
+        with self.cluster.fanout() as client:
+            for key in keys:
+                make_key = functools.partial(get_key, key)
+                c = client.target_key(key)
+                responses[key] = [(timestamp, c.pfcount(make_key(timestamp))) for timestamp in intervals]
+
+        return {k: [(t, p.value) for t, p in v] for k, v in responses.iteritems()}
+
+    def get_distinct_counts_totals(self, model, keys, start, end, rollup=None):
+        """
+        Count distinct items during a time range.
+        """
+        rollup, intervals = self._get_intervals(start, end, rollup)
 
         def get_key(key, timestamp):
             return self.make_key(
@@ -225,6 +250,4 @@ class RedisTSDB(BaseTSDB):
                     *map(make_key, intervals)
                 )
 
-        upper = intervals[0]
-        lower = intervals[-1] + rollup
-        return (upper, lower), {k: v.value for k, v in responses.iteritems()}
+        return {k: v.value for k, v in responses.iteritems()}
