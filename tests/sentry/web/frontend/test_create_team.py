@@ -27,7 +27,6 @@ class CreateTeamPermissionTest(PermissionTestCase):
 class CreateTeamTest(TestCase):
     def test_renders_with_context(self):
         organization = self.create_organization()
-        team = self.create_team(organization=organization)
         path = reverse('sentry-create-team', args=[organization.slug])
         self.login_as(self.user)
         resp = self.client.get(path)

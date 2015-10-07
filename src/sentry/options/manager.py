@@ -82,7 +82,7 @@ class OptionsManager(object):
 
         try:
             self.update_cached_value(key, value)
-        except Exception as e:
+        except Exception:
             self.logger.warn(CACHE_UPDATE_ERR, key, exc_info=True)
 
     def get(self, key):
@@ -99,7 +99,7 @@ class OptionsManager(object):
 
         try:
             result = self.cache.get(cache_key)
-        except Exception as e:
+        except Exception:
             self.logger.warn(CACHE_FETCH_ERR, key, exc_info=True)
             result = None
             cache_success = False
@@ -120,7 +120,7 @@ class OptionsManager(object):
             if result is not None and cache_success:
                 try:
                     self.update_cached_value(key, result)
-                except Exception as e:
+                except Exception:
                     self.logger.warn(CACHE_UPDATE_ERR, key, exc_info=True)
 
         if not result:
@@ -145,7 +145,7 @@ class OptionsManager(object):
 
         try:
             self.cache.delete(cache_key)
-        except Exception as e:
+        except Exception:
             self.logger.warn(CACHE_UPDATE_ERR, key, exc_info=True)
 
     def update_cached_value(self, key, value):

@@ -62,7 +62,6 @@ class Lock(object):
         if time_remaining:
             raise LockAlreadyHeld('Tried to acquire lock that is already held, %.3fs remaining: %r' % (time_remaining, self))
 
-        started_at = time()
         self.__acquired_at = None
 
         delay = 0.01 + random.random() / 10

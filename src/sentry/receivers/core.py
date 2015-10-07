@@ -47,7 +47,7 @@ def create_default_projects(created_models, verbosity=2, **kwargs):
     )
 
     if settings.SENTRY_FRONTEND_PROJECT:
-        project = create_default_project(
+        create_default_project(
             id=settings.SENTRY_FRONTEND_PROJECT,
             name='Frontend',
             slug='frontend',

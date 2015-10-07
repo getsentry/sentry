@@ -12,7 +12,7 @@ class ProjectRuleDetailsTest(APITestCase):
 
         team = self.create_team()
         project1 = self.create_project(team=team, name='foo')
-        project2 = self.create_project(team=team, name='bar')
+        self.create_project(team=team, name='bar')
 
         rule = project1.rule_set.all()[0]
 

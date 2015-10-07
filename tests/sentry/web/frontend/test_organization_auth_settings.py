@@ -27,8 +27,6 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
     def test_renders_with_context(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
 
         path = reverse('sentry-organization-auth-settings', args=[organization.slug])
 
@@ -46,8 +44,6 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     def test_can_start_auth_flow(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
 
         path = reverse('sentry-organization-auth-settings', args=[organization.slug])
 
@@ -61,8 +57,6 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     def test_disable_provider(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
 
         auth_provider = AuthProvider.objects.create(
             organization=organization,

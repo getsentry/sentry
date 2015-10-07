@@ -24,8 +24,6 @@ class OrganizationAuditLogPermissionTest(PermissionTestCase):
 class OrganizationAuditLogTest(TestCase):
     def test_renders_with_context(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
 
         path = reverse('sentry-organization-audit-log', args=[organization.slug])
 

@@ -34,7 +34,7 @@ class ReleaseHook(object):
             project=self.project,
             values=values,
         )
-        activity = Activity.objects.create(
+        Activity.objects.create(
             type=Activity.RELEASE,
             project=self.project,
             ident=version,

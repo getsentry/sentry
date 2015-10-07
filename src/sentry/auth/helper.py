@@ -269,8 +269,6 @@ class AuthHelper(object):
 
     def _handle_new_user(self, identity):
         auth_provider = self.auth_provider
-        organization = self.organization
-        request = self.request
 
         user = User.objects.create(
             username=uuid4().hex,

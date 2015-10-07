@@ -33,7 +33,7 @@ class TeamPermissionTest(TeamPermissionBase):
 
     def test_org_member_without_team_access(self):
         user = self.create_user()
-        om = self.create_member(
+        self.create_member(
             user=user,
             organization=self.org,
             type=OrganizationMemberType.MEMBER,
@@ -43,7 +43,7 @@ class TeamPermissionTest(TeamPermissionBase):
 
     def test_org_member_with_global_access(self):
         user = self.create_user()
-        om = self.create_member(
+        self.create_member(
             user=user,
             organization=self.org,
             type=OrganizationMemberType.MEMBER,
@@ -53,7 +53,7 @@ class TeamPermissionTest(TeamPermissionBase):
 
     def test_org_member_with_team_access(self):
         user = self.create_user()
-        om = self.create_member(
+        self.create_member(
             user=user,
             organization=self.org,
             type=OrganizationMemberType.MEMBER,

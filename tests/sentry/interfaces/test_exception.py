@@ -98,7 +98,7 @@ ValueError: hello world
             }]},
         }]))
 
-        event = self.create_event(data={
+        self.create_event(data={
             'sentry.interfaces.Exception': inst.to_json(),
         })
         context = inst.get_api_context()
@@ -125,7 +125,7 @@ ValueError: hello world
             }]},
         }]))
 
-        event = self.create_event(data={
+        self.create_event(data={
             'sentry.interfaces.Exception': inst.to_json(),
         })
         context = inst.get_api_context()
@@ -152,7 +152,7 @@ ValueError: hello world
             }]},
         }]))
 
-        event = self.create_event(data={
+        self.create_event(data={
             'sentry.interfaces.Exception': inst.to_json(),
         })
         context = inst.get_api_context()

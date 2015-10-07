@@ -9,7 +9,7 @@ from sentry.testutils import APITestCase
 class BroadcastIndexTest(APITestCase):
     def test_simple(self):
         broadcast1 = Broadcast.objects.create(message='bar', is_active=True)
-        broadcast2 = Broadcast.objects.create(message='foo', is_active=False)
+        Broadcast.objects.create(message='foo', is_active=False)
 
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-broadcast-index')

@@ -45,7 +45,7 @@ class ProjectKeyTest(TestCase):
             self.assertEquals(key.get_dsn(), 'http://public:secret@endpoint.com/1')
 
     def test_key_is_created_for_project(self):
-        user = self.create_user('admin@example.com')
+        self.create_user('admin@example.com')
         team = self.create_team(name='Test')
         project = self.create_project(name='Test', team=team)
         assert project.key_set.exists() is True
@@ -141,7 +141,6 @@ class EventNodeStoreTest(TestCase):
             Event.objects.bind_nodes([event], 'data')
 
     def test_accepts_valid_ref(self):
-        invalid_event = self.create_event()
         event = self.create_event()
         event.data.bind_ref(event)
         event.save()

@@ -47,7 +47,7 @@ class PermissionBase(TestCase):
         user.set_password('member')
         user.save()
 
-        om = self.create_member(
+        self.create_member(
             organization=self.team.organization,
             user=user,
             type=MEMBER_USER,

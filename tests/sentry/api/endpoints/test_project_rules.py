@@ -12,7 +12,7 @@ class ProjectRuleListTest(APITestCase):
 
         team = self.create_team()
         project1 = self.create_project(team=team, name='foo')
-        project2 = self.create_project(team=team, name='bar')
+        self.create_project(team=team, name='bar')
 
         url = reverse('sentry-api-0-project-rules', kwargs={
             'organization_slug': project1.organization.slug,
