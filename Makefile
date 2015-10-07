@@ -87,7 +87,7 @@ test-cli:
 
 test-js:
 	@echo "--> Running JavaScript tests"
-	@node_modules/.bin/webpack
+	@${NPM_ROOT}/.bin/webpack
 	@npm run test
 	@echo ""
 
@@ -96,17 +96,12 @@ test-python:
 	py.test tests || exit 1
 	@echo ""
 
-travis-test-python:
+
+test-python-coverage:
 	@echo "--> Running Python tests"
 	coverage run --source=src/sentry -m py.test tests
 	@echo ""
 
-test-postgres: travis-test-python
-test-mysql: travis-test-python
-test-sqlite: travis-test-python
-test-webpack:
-	@echo "--> Compiling webpack"
-	./node_modules/.bin/webpack
 
 lint:
 	@echo "--> Linting all the things"
@@ -115,14 +110,8 @@ lint:
 
 # These are just aliases for backwards compat
 # our linter does both now
-lint-sqlite: lint-python
-lint-mysql: lint-python
-lint-postgres: lint-python
 lint-python: lint
 lint-js: lint
-lint-webpack: lint
-lint-cli:
-	@echo "Nothing to lint :("
 
 coverage: develop
 	coverage run --source=src/sentry -m py.test
@@ -138,27 +127,58 @@ extract-api-docs:
 	rm -rf api-docs/cache/*
 	cd api-docs; python generator.py
 
+
+.PHONY: develop dev-postgres dev-mysql dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python test-python-coverage lint lint-python lint-js coverage run-uwsgi publish
+
+
+############################
+# Halt, Travis stuff below #
+############################
+
+# Bases for all builds
 travis-upgrade-pip:
 	python -m pip install --upgrade pip==7.1.2
-
-travis-install-cassandra:
+travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.0.3
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.0.3
+travis-install-python: travis-upgrade-pip install-python travis-setup-cassandra
+travis-noop:
+	@echo "nothing to do here."
 
-travis-install-python: travis-upgrade-pip install-python travis-install-cassandra
+.PHONY: travis-upgrade-pip travis-setup-cassandra travis-install-python travis-noop
+
+# Install steps
 travis-install-sqlite: travis-install-python
-
-travis-install-postgres: travis-install-python dev-postgres
-	psql -c 'create database sentry;' -U postgres
-
 travis-install-mysql: travis-install-python dev-mysql
 	mysql -e 'create database sentry;'
-
-travis-install-js:
-	npm install --ignore-scripts
-
+travis-install-postgres: travis-install-python dev-postgres
+	psql -c 'create database sentry;' -U postgres
 travis-install-webpack: travis-install-js
-
+travis-install-js:
+	# Install npm deps and skip the postinstall step
+	npm install --ignore-scripts
 travis-install-cli: travis-install-python
 
-.PHONY: develop dev-postgres dev-mysql dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python lint lint-python lint-js coverage run-uwsgi publish
+.PHONY: travis-install-sqlite travis-install-mysql travis-install-postgres travis-install-webpack travis-install-js travis-install-cli
+
+# Lint steps
+travis-lint-sqlite: lint
+travis-lint-mysql: lint
+travis-lint-postgres: lint
+travis-lint-webpack: travis-noop
+travis-lint-js: lint
+travis-lint-cli: travis-noop
+
+.PHONY: travis-lint-sqlite travis-lint-mysql travis-lint-postgres travis-lint-webpack travis-lint-js travis-lint-cli
+
+# Test steps
+travis-test-sqlite: test-python-coverage
+travis-test-mysql: test-python-coverage
+travis-test-postgres: test-python-coverage
+travis-test-webpack:
+	@echo "--> Compiling webpack"
+	${NPM_ROOT}/.bin/webpack
+travis-test-js: test-js
+travis-test-ci: test-ci
+
+.PHONY: travis-test-sqlite travis-test-mysql travis-test-postgres travis-test-webpack travis-test-js travis-test-cli

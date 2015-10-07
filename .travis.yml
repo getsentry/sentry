@@ -28,7 +28,7 @@ env:
 install:
   - make travis-install-$TEST_SUITE
 script:
-  - make lint-$TEST_SUITE
-  - make test-$TEST_SUITE
+  - make travis-lint-$TEST_SUITE
+  - make travis-test-$TEST_SUITE
 after_success:
   - codecov -e TEST_SUITE
