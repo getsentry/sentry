@@ -143,7 +143,7 @@ travis-install-mysql: travis-install-python dev-mysql
 	mysql -e 'create database sentry;'
 
 travis-install-js:
-	npm install
+	npm install --ignore-scripts
 
 travis-install-cli: travis-install-python develop
 
