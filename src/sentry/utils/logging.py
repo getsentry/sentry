@@ -29,7 +29,7 @@ class WithoutRavenManager(object):
         pass
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        if all([exc_type, exc_value, exc_traceback]):
+        if all((exc_type, exc_value, exc_traceback)):
             logger = logging.getLogger('sentry.safe')
             logger.exception(unicode(exc_value))
         return True
