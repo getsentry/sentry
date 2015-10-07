@@ -103,6 +103,19 @@ class BaseTSDB(object):
                 return rollup
         return self.rollups[-1][0]
 
+    def get_optimal_rollup_intervals(self, start, end, rollup=None):
+        # NOTE: "optimal" here means "able to most closely reflect the upper
+        # and lower bounds", not "able to construct the most efficient query"
+        if rollup is None:
+            rollup = self.get_optimal_rollup(start, end)
+
+        intervals = [self.normalize_to_epoch(start, rollup)]
+        end_ts = int(end.strftime('%s'))  # XXX: HACK
+        while intervals[-1] + rollup < end_ts:
+            intervals.append(intervals[-1] + rollup)
+
+        return rollup, intervals
+
     def calculate_expiry(self, rollup, samples, timestamp):
         """
         Calculate the expiration time for a rollup.
@@ -172,3 +185,21 @@ class BaseTSDB(object):
                     result[key].append([new_ts, count])
                     last_new_ts = new_ts
         return result
+
+    def record_multi(self, items, timestamp=None):
+        """
+        Record an occurence of an item in a distinct counter.
+        """
+        raise NotImplementedError
+
+    def get_distinct_counts_series(self, model, keys, start, end, rollup=None):
+        """
+        Fetch counts of distinct items for each rollup interval within the range.
+        """
+        raise NotImplementedError
+
+    def get_distinct_counts_totals(self, model, keys, start, end, rollup=None):
+        """
+        Count distinct items during a time range.
+        """
+        raise NotImplementedError
