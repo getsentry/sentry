@@ -59,7 +59,6 @@ tests_require = [
     'blist',  # used by cassandra
     'casscache',
     'cqlsh',
-    'coverage',
     'datadog',
     'httpretty',
     'pytest-cov>=1.4',
