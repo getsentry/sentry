@@ -80,35 +80,33 @@ var ProjectInstallPlatform = React.createClass({
   },
 
   render() {
-    let params = this.context.router.getCurrentParams();
     var {integration, platform} = this.state;
 
     return (
       <div className="install row">
         <div className="install-content col-md-10">
-          <div className="pull-right">
-            <a href={integration.link} className="btn btn-default">Full Documentation</a>
-          </div>
-
-          <h1>Configure {integration.name}</h1>
-
-          <div>
-            <p>
-              This is a quick getting started guide. For in-depth instructions on integrating Sentry with {integration.name}, view <a href={integration.link}>our complete documentation</a>.
-            </p>
-
-            {this.state.loading ?
-              <LoadingIndicator />
-            : (this.state.error ?
-              <LoadingError onRetry={this.fetchData} />
-            :
-              <div>
-                <div dangerouslySetInnerHTML={{__html: this.state.html}}/>
-
-                <Link to="stream" params={params} className="btn btn-primary btn-lg">Continue</Link>
+          <div className="box">
+            <div className="box-header">
+              <div className="pull-right">
+                <a href={integration.link} className="btn btn-sm btn-default">Full Documentation</a>
               </div>
-            )}
 
+              <h3>Configure {integration.name}</h3>
+            </div>
+            <div className="box-content with-padding">
+              <p>
+                This is a quick getting started guide. For in-depth instructions on integrating Sentry with {integration.name}, view <a href={integration.link}>our complete documentation</a>.
+              </p>
+
+              {this.state.loading ?
+                <LoadingIndicator />
+              : (this.state.error ?
+                <LoadingError onRetry={this.fetchData} />
+              :
+                <div dangerouslySetInnerHTML={{__html: this.state.html}}/>
+              )}
+
+            </div>
           </div>
         </div>
         <div className="install-sidebar col-md-2">
