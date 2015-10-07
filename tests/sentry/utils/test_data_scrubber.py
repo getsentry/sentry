@@ -170,7 +170,7 @@ class SensitiveDataFilterTest(TestCase):
         }
 
         proc = SensitiveDataFilter()
-        result = proc.apply(data)
+        proc.apply(data)
         self.assertTrue('sentry.interfaces.Http' in data)
         http = data['sentry.interfaces.Http']
         self.assertEquals(http['data'], proc.MASK)
@@ -183,5 +183,5 @@ class SensitiveDataFilterTest(TestCase):
         }
 
         proc = SensitiveDataFilter()
-        result = proc.apply(data)
+        proc.apply(data)
         self.assertEquals(data['extra'], {'foo': 1})

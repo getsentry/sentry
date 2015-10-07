@@ -18,8 +18,8 @@ class DeleteOrganizationTest(TestCase):
             name='test',
             status=OrganizationStatus.PENDING_DELETION,
         )
-        team1 = self.create_team(organization=org, name='test1')
-        team2 = self.create_team(organization=org, name='test2')
+        self.create_team(organization=org, name='test1')
+        self.create_team(organization=org, name='test2')
 
         with self.tasks():
             delete_organization(object_id=org.id)
@@ -33,8 +33,8 @@ class DeleteTeamTest(TestCase):
             name='test',
             status=TeamStatus.PENDING_DELETION,
         )
-        project1 = self.create_project(team=team, name='test1')
-        project2 = self.create_project(team=team, name='test2')
+        self.create_project(team=team, name='test1')
+        self.create_project(team=team, name='test2')
 
         with self.tasks():
             delete_team(object_id=team.id)

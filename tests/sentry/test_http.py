@@ -26,4 +26,4 @@ class HttpTest(TestCase):
     # @responses.activate
     def test_ip_blacklist(self):
         with pytest.raises(SuspiciousOperation):
-            resp = safe_urlopen('http://127.0.0.1')
+            safe_urlopen('http://127.0.0.1')

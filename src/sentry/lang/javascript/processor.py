@@ -469,7 +469,6 @@ class SourceProcessor(object):
     def expand_frames(self, frames):
         last_state = None
         state = None
-        has_changes = False
 
         cache = self.cache
         sourcemaps = self.sourcemaps
@@ -478,7 +477,6 @@ class SourceProcessor(object):
         for frame in frames:
             errors = cache.get_errors(frame.abs_path)
             if errors:
-                has_changes = True
                 all_errors.extend(errors)
 
             source = cache.get(frame.abs_path)

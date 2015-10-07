@@ -59,7 +59,6 @@ class ReleaseWebhookTest(TestCase):
     def test_disabled_plugin(self, mock_plugin_get):
         MockPlugin = mock_plugin_get.return_value
         MockPlugin.is_enabled.return_value = False
-        MockReleaseHook = MockPlugin.get_release_hook.return_value
         resp = self.client.post(self.path)
         assert resp.status_code == 403
         mock_plugin_get.assert_called_once_with('dummy')

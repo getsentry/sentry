@@ -10,9 +10,6 @@ from sentry.testutils import AuthProviderTestCase
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
     def test_redirects_with_no_provider(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
-
         path = reverse('sentry-auth-link-identity', args=[organization.slug])
 
         self.login_as(self.user)
@@ -23,9 +20,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     def test_renders_login_form_as_anon(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
-        auth_provider = AuthProvider.objects.create(
+        AuthProvider.objects.create(
             organization=organization,
             provider='dummy',
         )
@@ -42,14 +37,10 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     def test_flow_as_anonymous(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
-        auth_provider = AuthProvider.objects.create(
+        AuthProvider.objects.create(
             organization=organization,
             provider='dummy',
         )
-        user = self.create_user('bar@example.com')
-        member = self.create_member(organization=organization, user=user)
 
         path = reverse('sentry-auth-link-identity', args=[organization.slug])
 
@@ -63,8 +54,6 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     def test_flow_as_existing_user(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
         auth_provider = AuthProvider.objects.create(
             organization=organization,
             provider='dummy',

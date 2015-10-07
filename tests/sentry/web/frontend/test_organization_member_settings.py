@@ -27,7 +27,7 @@ class OrganizationMemberSettingsPermissionTest(PermissionTestCase):
 class OrganizationMemberSettingsTest(TestCase):
     def test_renders_with_context(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team_1 = self.create_team(name='foo', organization=organization)
+        self.create_team(name='foo', organization=organization)
         team_2 = self.create_team(name='bar', organization=organization)
 
         user = self.create_user('bar@example.com')
@@ -147,7 +147,6 @@ class OrganizationMemberSettingsTest(TestCase):
         team_1 = self.create_team(name='foo', organization=organization)
         team_2 = self.create_team(name='bar', organization=organization)
 
-        user = self.create_user('bar@example.com')
         member = OrganizationMember.objects.create(
             organization=organization,
             email='bar@example.com',
@@ -172,7 +171,6 @@ class OrganizationMemberSettingsTest(TestCase):
 
     def test_ensure_admin_cant_set_owner(self):
         organization = self.create_organization(name='foo', owner=self.user)
-
         admin = self.create_user('bar@example.com', is_superuser=False)
         user = self.create_user('baz@example.com')
 
@@ -208,9 +206,6 @@ class OrganizationMemberSettingsTest(TestCase):
 
     def test_cannot_edit_yourself(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team_1 = self.create_team(name='foo', organization=organization)
-        team_2 = self.create_team(name='bar', organization=organization)
-
         member = OrganizationMember.objects.get(
             organization=organization,
             user=self.user,
@@ -232,17 +227,13 @@ class OrganizationMemberSettingsTest(TestCase):
 
     def test_cannot_edit_higher_access(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team_1 = self.create_team(name='foo', organization=organization)
-        team_2 = self.create_team(name='bar', organization=organization)
-
         member = self.create_user('foo@example.com', is_superuser=False)
-
         owner_om = OrganizationMember.objects.get(
             organization=organization,
             user=self.user,
         )
 
-        member_om = OrganizationMember.objects.create(
+        OrganizationMember.objects.create(
             organization=organization,
             user=member,
             type=OrganizationMemberType.ADMIN,
@@ -264,17 +255,13 @@ class OrganizationMemberSettingsTest(TestCase):
 
     def test_can_view_member_with_team_access(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team_1 = self.create_team(name='foo', organization=organization)
-        team_2 = self.create_team(name='bar', organization=organization)
-
         member = self.create_user('foo@example.com', is_superuser=False)
-
         owner_om = OrganizationMember.objects.get(
             organization=organization,
             user=self.user,
         )
 
-        member_om = OrganizationMember.objects.create(
+        OrganizationMember.objects.create(
             organization=organization,
             user=member,
             has_global_access=False,
@@ -298,7 +285,6 @@ class OrganizationMemberSettingsTest(TestCase):
     def test_global_access_with_inactive_teams(self):
         organization = self.create_organization(name='foo', owner=self.user)
         team_1 = self.create_team(name='foo', organization=organization)
-        team_2 = self.create_team(name='bar', organization=organization)
 
         user = self.create_user('bar@example.com')
         member = OrganizationMember.objects.create(

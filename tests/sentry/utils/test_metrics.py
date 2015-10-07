@@ -28,7 +28,7 @@ class ExpectedError(Exception):
 def test_timer_failure():
     with mock.patch('sentry.utils.metrics.timing') as timing:
         with pytest.raises(ExpectedError):
-            with timer('key', tags={'foo': True}) as tags:
+            with timer('key', tags={'foo': True}):
                 raise ExpectedError
 
         assert timing.call_count is 1

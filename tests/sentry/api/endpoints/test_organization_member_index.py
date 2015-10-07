@@ -9,7 +9,8 @@ class OrganizationMemberListTest(APITestCase):
     def test_simple(self):
         user_1 = self.create_user('foo@localhost', username='foo')
         user_2 = self.create_user('bar@localhost', username='bar')
-        user_3 = self.create_user('baz@localhost', username='baz')
+        self.create_user('baz@localhost', username='baz')
+
         org = self.create_organization(owner=user_1)
         org.member_set.create(user=user_2)
 

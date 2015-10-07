@@ -119,13 +119,13 @@ class EventManagerTest(TransactionTestCase):
     def test_dupe_message_id(self):
         event_id = 'a' * 32
 
-        manager = EventManager(self.make_event(event_id='a' * 32))
+        manager = EventManager(self.make_event(event_id=event_id))
         manager.save(1)
 
         assert Event.objects.count() == 1
 
         # ensure that calling it again doesn't raise a db error
-        manager = EventManager(self.make_event(event_id='a' * 32))
+        manager = EventManager(self.make_event(event_id=event_id))
         manager.save(1)
 
         assert Event.objects.count() == 1

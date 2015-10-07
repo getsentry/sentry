@@ -43,8 +43,6 @@ class RemoveOrganizationTest(TestCase):
         assert resp.context['team_list']
 
     def test_success(self):
-        user2 = self.create_user('bar@example.com')
-
         resp = self.client.post(self.path)
 
         assert resp.status_code == 302
@@ -59,10 +57,6 @@ class RemoveOrganizationTest(TestCase):
         org = self.create_organization()
 
         self.login_as(self.user)
-
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
 
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
             resp = self.client.post(self.path)

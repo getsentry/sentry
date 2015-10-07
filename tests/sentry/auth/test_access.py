@@ -51,8 +51,7 @@ class FromUserTest(TestCase):
     def test_unlinked_sso(self):
         user = self.create_user()
         organization = self.create_organization(owner=user)
-        member = organization.member_set.get(user=user)
-        team = self.create_team(organization=organization)
+        self.create_team(organization=organization)
         AuthProvider.objects.create(
             organization=organization,
             provider='dummy',
@@ -64,8 +63,7 @@ class FromUserTest(TestCase):
     def test_sso_without_link_requirement(self):
         user = self.create_user()
         organization = self.create_organization(owner=user)
-        member = organization.member_set.get(user=user)
-        team = self.create_team(organization=organization)
+        self.create_team(organization=organization)
         AuthProvider.objects.create(
             organization=organization,
             provider='dummy',
