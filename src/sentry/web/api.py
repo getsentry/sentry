@@ -17,6 +17,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Sum, Q
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import timezone
+from django.utils.encoding import force_bytes
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View as BaseView
@@ -109,7 +110,7 @@ class APIView(BaseView):
                                       *args, **kwargs)
         except APIError as e:
             context = {
-                'error': unicode(e.msg).encode('utf-8'),
+                'error': force_bytes(e.msg, errors='replace'),
             }
             if e.name:
                 context['error_name'] = e.name
