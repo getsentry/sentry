@@ -12,28 +12,23 @@ python:
 cache:
   directories:
     - node_modules
-    - .pip_download_cache
+    - $HOME/.cache/pip
     - "$HOME/virtualenv/python2.7.9"
 env:
   matrix:
-    - DB=sqlite
-    - DB=mysql
-    - DB=postgres
+    - TEST_SUITE=sqlite
+    - TEST_SUITE=mysql
+    - TEST_SUITE=postgres
+    - TEST_SUITE=webpack
+    - TEST_SUITE=js
+    - TEST_SUITE=cli
   global:
-    - PIP_DOWNLOAD_CACHE=".pip_download_cache"
     - SENTRY_LIGHT_BUILD=1
+    - SKIP_BACKEND_VALIDATION=1
 install:
-  - time make develop dev-postgres dev-mysql
-  - time pip install codecov
-before_script:
-  - mysql -e 'create database sentry;'
-  - psql -c 'create database sentry;' -U postgres
-  - "echo \"create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};\" | cqlsh --cqlversion=3.0.3"
-  - echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.0.3
+  - make travis-install-$TEST_SUITE
 script:
-  - make lint
-  - make test-js
-  - coverage run --source=src/sentry -m py.test tests
-  - make test-cli
+  - make travis-lint-$TEST_SUITE
+  - make travis-test-$TEST_SUITE
 after_success:
-  - codecov -e DB
+  - codecov -e TEST_SUITE
