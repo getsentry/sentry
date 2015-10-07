@@ -184,9 +184,7 @@ class RedisTSDB(BaseTSDB):
 
         with self.cluster.fanout() as client:
             for model, key, values in items:
-                h = self.cluster.get_router().get_host_for_key(key)
-                c = client.target([h])
-
+                c = client.target_key(key)
                 for rollup, max_values in self.rollups:
                     expire = rollup * max_values  # XXX: This logic can lead to incorrect expiry values.
 
@@ -194,6 +192,9 @@ class RedisTSDB(BaseTSDB):
                     k = self.make_key(model, self.normalize_to_rollup(timestamp, rollup), m)
                     c.pfadd(k, m, *values)
                     c.expire(k, expire)
+
+        # TODO: Check to make sure these operations didn't fail, so we can
+        # raise an error if there were issues.
 
     def get_distinct_counts(self, model, keys, start, end):
         """
@@ -218,12 +219,10 @@ class RedisTSDB(BaseTSDB):
         responses = {}
         with self.cluster.fanout() as client:
             for key in keys:
-                h = self.cluster.get_router().get_host_for_key(key)
-                c = client.target([h])
-
+                c = client.target_key(key)
                 make_key = functools.partial(get_key, key)
-                responses[key] = h, c.execute_command('pfcount', *map(make_key, intervals))
+                responses[key] = c.execute_command('pfcount', *map(make_key, intervals))
 
         upper = intervals[0]
         lower = intervals[-1] + rollup
-        return (upper, lower), {k: v.value[h] for k, (h, v) in responses.iteritems()}
+        return (upper, lower), {k: v.value for k, v in responses.iteritems()}
