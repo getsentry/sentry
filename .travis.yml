@@ -19,6 +19,7 @@ env:
     - TEST_SUITE=sqlite
     - TEST_SUITE=mysql
     - TEST_SUITE=postgres
+    - TEST_SUITE=webpack
     - TEST_SUITE=js
     - TEST_SUITE=cli
   global:

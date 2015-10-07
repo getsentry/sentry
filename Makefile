@@ -104,6 +104,9 @@ travis-test-python:
 test-postgres: travis-test-python
 test-mysql: travis-test-python
 test-sqlite: travis-test-python
+test-webpack:
+	@echo "--> Compiling webpack"
+	./node_modules/.bin/webpack
 
 lint:
 	@echo "--> Linting all the things"
@@ -117,6 +120,7 @@ lint-mysql: lint-python
 lint-postgres: lint-python
 lint-python: lint
 lint-js: lint
+lint-webpack: lint
 lint-cli:
 	@echo "Nothing to lint :("
 
@@ -152,6 +156,8 @@ travis-install-mysql: travis-install-python dev-mysql
 
 travis-install-js:
 	npm install --ignore-scripts
+
+travis-install-webpack: travis-install-js
 
 travis-install-cli: travis-install-python
 
