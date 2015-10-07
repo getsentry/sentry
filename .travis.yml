@@ -16,9 +16,9 @@ cache:
     - "$HOME/virtualenv/python2.7.9"
 env:
   matrix:
-    - TEST_SUITE=sqlite
-    - TEST_SUITE=mysql
-    - TEST_SUITE=postgres
+    - TEST_SUITE=sqlite DB=sqlite
+    - TEST_SUITE=mysql DB=mysql
+    - TEST_SUITE=postgres DB=postgres
     - TEST_SUITE=webpack
     - TEST_SUITE=js
     - TEST_SUITE=cli
