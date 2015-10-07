@@ -60,3 +60,11 @@ class AuthLoginTest(TestCase):
         user = User.objects.get(username='test-a-really-long-email-address@example.com')
         assert user.email == 'test-a-really-long-email-address@example.com'
         assert user.check_password('foobar')
+
+    def test_register_renders_correct_template(self):
+        register_path = reverse('sentry-register')
+        resp = self.client.get(register_path)
+
+        assert resp.status_code == 200
+        assert resp.context['op'] == 'register'
+        self.assertTemplateUsed('sentry/login.html')

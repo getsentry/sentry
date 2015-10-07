@@ -56,6 +56,12 @@ class AuthLoginView(BaseView):
         can_register = features.has('auth:register') or request.session.get('can_register')
 
         op = request.POST.get('op')
+
+        # Detect that we are on the register page by url /register/ and
+        # then activate the register tab by default.
+        if not op and '/register' in request.path_info and can_register:
+            op = 'register'
+
         login_form = self.get_login_form(request)
         if can_register:
             register_form = self.get_register_form(request)
