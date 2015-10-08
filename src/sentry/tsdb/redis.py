@@ -207,7 +207,7 @@ class RedisTSDB(BaseTSDB):
         """
         Fetch counts of distinct items for each rollup interval within the range.
         """
-        rollup, intervals = self.get_optimal_rollup_intervals(start, end, rollup)
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         def get_key(key, timestamp):
             return self.make_key(
@@ -221,7 +221,7 @@ class RedisTSDB(BaseTSDB):
             for key in keys:
                 make_key = functools.partial(get_key, key)
                 c = client.target_key(key)
-                responses[key] = [(timestamp, c.pfcount(make_key(timestamp))) for timestamp in intervals]
+                responses[key] = [(timestamp, c.pfcount(make_key(timestamp))) for timestamp in series]
 
         return {k: [(t, p.value) for t, p in v] for k, v in responses.iteritems()}
 
@@ -229,7 +229,7 @@ class RedisTSDB(BaseTSDB):
         """
         Count distinct items during a time range.
         """
-        rollup, intervals = self.get_optimal_rollup_intervals(start, end, rollup)
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         def get_key(key, timestamp):
             return self.make_key(
@@ -244,7 +244,7 @@ class RedisTSDB(BaseTSDB):
                 make_key = functools.partial(get_key, key)
                 responses[key] = client.target_key(key).execute_command(
                     'pfcount',
-                    *map(make_key, intervals)
+                    *map(make_key, series)
                 )
 
         return {k: v.value for k, v in responses.iteritems()}
