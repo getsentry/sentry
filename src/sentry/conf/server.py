@@ -22,6 +22,8 @@ import sys
 import tempfile
 import urlparse
 
+import sentry
+
 gettext_noop = lambda s: s
 
 socket.setdefaulttimeout(5)
@@ -831,3 +833,15 @@ SENTRY_WATCHERS = (
     [os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '-d', '--watch',
      "--config={}".format(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))],
 )
+
+
+def get_raven_config():
+    return {
+        'release': sentry.__build__,
+        'register_signals': True,
+        'include_paths': [
+            'sentry',
+        ],
+    }
+
+RAVEN_CONFIG = get_raven_config()
