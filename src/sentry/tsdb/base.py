@@ -105,7 +105,7 @@ class BaseTSDB(object):
                 return rollup
         return self.rollups[-1][0]
 
-    def get_optimal_rollup_intervals(self, start, end=None, rollup=None):
+    def get_optimal_rollup_series(self, start, end=None, rollup=None):
         if end is None:
             end = timezone.now()
 

@@ -68,27 +68,27 @@ class InMemoryTSDB(BaseTSDB):
             self.sets[model][key][r].update(values)
 
     def get_distinct_counts_series(self, model, keys, start, end=None, rollup=None):
-        rollup, intervals = self.get_optimal_rollup_intervals(start, end, rollup)
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         results = {}
         for key in keys:
             source = self.sets[model][key]
-            series = results[key] = []
-            for interval in intervals:
-                r = self.normalize_ts_to_rollup(interval, rollup)
-                series.append((interval, len(source[r])))
+            counts = results[key] = []
+            for timestamp in series:
+                r = self.normalize_ts_to_rollup(timestamp, rollup)
+                counts.append((timestamp, len(source[r])))
 
         return results
 
     def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
-        rollup, intervals = self.get_optimal_rollup_intervals(start, end, rollup)
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         results = {}
         for key in keys:
             source = self.sets[model][key]
             values = set()
-            for interval in intervals:
-                r = self.normalize_ts_to_rollup(interval, rollup)
+            for timestamp in series:
+                r = self.normalize_ts_to_rollup(timestamp, rollup)
                 values.update(source[r])
             results[key] = len(values)
 
