@@ -124,13 +124,14 @@ class RedisTSDB(BaseTSDB):
         with self.cluster.map() as client:
             for rollup, max_values in self.rollups:
                 norm_rollup = normalize_to_rollup(timestamp, rollup)
-                expire = rollup * max_values
-
                 for model, key in items:
                     model_key = self.get_model_key(key)
                     hash_key = make_key(model, norm_rollup, model_key)
                     client.hincrby(hash_key, model_key, count)
-                    client.expire(hash_key, expire)
+                    client.expireat(
+                        hash_key,
+                        self.calculate_expiry(rollup, max_values, timestamp),
+                    )
 
     def get_range(self, model, keys, start, end, rollup=None):
         """
