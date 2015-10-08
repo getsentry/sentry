@@ -116,7 +116,7 @@ else:
 
 
 def generate_culprit(data):
-    from sentry.interfaces.stacktrace import Stacktrace
+    culprit = ''
 
     try:
         stacktraces = [
@@ -132,13 +132,12 @@ def generate_culprit(data):
 
     if not stacktraces:
         if 'sentry.interfaces.Http' in data:
-            return data['sentry.interfaces.Http'].get('url') or ''
-        return ''
+            culprit = data['sentry.interfaces.Http'].get('url', '')
+    else:
+        from sentry.interfaces.stacktrace import Stacktrace
+        culprit = Stacktrace.to_python(stacktraces[-1]).get_culprit_string()
 
-    return truncatechars(
-        Stacktrace.to_python(stacktraces[-1]).get_culprit_string(),
-        MAX_CULPRIT_LENGTH
-    )
+    return truncatechars(culprit, MAX_CULPRIT_LENGTH)
 
 
 def plugin_is_regression(group, event):
