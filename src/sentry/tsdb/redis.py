@@ -186,12 +186,13 @@ class RedisTSDB(BaseTSDB):
             for model, key, values in items:
                 c = client.target_key(key)
                 for rollup, max_values in self.rollups:
-                    expire = rollup * max_values  # XXX: This logic can lead to incorrect expiry values.
-
                     m = self.get_model_key(key)
                     k = self.make_key(model, self.normalize_to_rollup(timestamp, rollup), m)
                     c.pfadd(k, m, *values)
-                    c.expire(k, expire)
+                    c.expireat(
+                        k,
+                        self.calculate_expiry(rollup, max_values, timestamp),
+                    )
 
         # TODO: Check to make sure these operations didn't fail, so we can
         # raise an error if there were issues.
