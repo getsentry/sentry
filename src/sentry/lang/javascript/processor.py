@@ -330,7 +330,8 @@ def fetch_sourcemap(url, project=None, release=None):
 
     try:
         return sourcemap_to_index(body)
-    except (JSONDecodeError, ValueError):
+    except (JSONDecodeError, ValueError, AssertionError) as exc:
+        logger.warn(unicode(exc))
         raise UnparseableSourcemap({
             'url': url,
         })
