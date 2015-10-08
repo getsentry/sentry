@@ -527,12 +527,11 @@ class Stacktrace(Interface):
     @classmethod
     def data_has_system_frames(cls, data):
         system_frames = 0
-        frames = []
         for frame in data['frames']:
             if not frame.get('in_app'):
                 system_frames += 1
 
-        if len(frames) == system_frames:
+        if len(data['frames']) == system_frames:
             return False
         return bool(system_frames)
 
