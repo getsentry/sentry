@@ -62,7 +62,7 @@ class RedisTSDB(BaseTSDB):
     something like this::
 
         {
-            "<model>:<epoch>:<shard id>:<key>": value,
+            "<model>:<epoch>:<key>": value,
             ...
         }
 
