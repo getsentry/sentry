@@ -487,6 +487,9 @@ class GenerateCulpritTest(TestCase):
         }
         assert generate_culprit(data) == ''
 
+    def test_empty_data(self):
+        assert generate_culprit({}) == ''
+
     def test_truncation(self):
         data = {
             'sentry.interfaces.Exception': {
