@@ -10,7 +10,8 @@ from django.conf import settings
 
 from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
 from sentry.event_manager import (
-    EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint
+    EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint,
+    generate_culprit,
 )
 from sentry.models import Event, Group, GroupStatus, EventMapping
 from sentry.testutils import TestCase, TransactionTestCase
@@ -420,3 +421,98 @@ class GetHashesFromFingerprintTest(TestCase):
         def_checksums = get_hashes_for_event(event)
         assert len(fp_checksums) == len(def_checksums)
         assert def_checksums != fp_checksums
+
+
+class GenerateCulpritTest(TestCase):
+    def test_with_exception_interface(self):
+        data = {
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'stacktrace': {
+                        'frames': [{
+                            'lineno': 1,
+                            'filename': 'foo.py',
+                        }, {
+                            'lineno': 1,
+                            'filename': 'bar.py',
+                            'in_app': True,
+                        }],
+                    }
+                }]
+            },
+            'sentry.interfaces.Stacktrace': {
+                'frames': [{
+                    'lineno': 1,
+                    'filename': 'NOTME.py',
+                }, {
+                    'lineno': 1,
+                    'filename': 'PLZNOTME.py',
+                    'in_app': True,
+                }],
+            },
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com'
+            },
+        }
+        assert generate_culprit(data) == 'bar.py in ?'
+
+    def test_with_missing_exception_interface(self):
+        data = {
+            'sentry.interfaces.Stacktrace': {
+                'frames': [{
+                    'lineno': 1,
+                    'filename': 'NOTME.py',
+                }, {
+                    'lineno': 1,
+                    'filename': 'PLZNOTME.py',
+                    'in_app': True,
+                }],
+            },
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com'
+            },
+        }
+        assert generate_culprit(data) == 'PLZNOTME.py in ?'
+
+    def test_with_only_http_interface(self):
+        data = {
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com'
+            },
+        }
+        assert generate_culprit(data) == 'http://example.com'
+
+        data = {
+            'sentry.interfaces.Http': {},
+        }
+        assert generate_culprit(data) == ''
+
+    def test_truncation(self):
+        data = {
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'stacktrace': {
+                        'frames': [{
+                            'filename': 'x' * (MAX_CULPRIT_LENGTH + 1),
+                        }],
+                    }
+                }],
+            }
+        }
+        assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
+
+        data = {
+            'sentry.interfaces.Stacktrace': {
+                'frames': [{
+                    'filename': 'x' * (MAX_CULPRIT_LENGTH + 1),
+                }]
+            }
+        }
+        assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
+
+        data = {
+            'sentry.interfaces.Http': {
+                'url': 'x' * (MAX_CULPRIT_LENGTH + 1),
+            }
+        }
+        assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
