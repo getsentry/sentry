@@ -435,8 +435,7 @@ class EventManager(object):
                 datetime=date,
             )
 
-        group, is_new, is_regression, is_sample = safe_execute(
-            self._save_aggregate,
+        group, is_new, is_regression, is_sample = self._save_aggregate(
             event=event,
             hashes=hashes,
             **group_kwargs
