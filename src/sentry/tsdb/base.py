@@ -101,6 +101,17 @@ class BaseTSDB(object):
                 return rollup
         return self.rollups[-1][0]
 
+    def calculate_expiry(self, rollup, samples, timestamp):
+        """
+        Calculate the expiration time for a rollup.
+
+        :param rollup: rollup interval (in seconds)
+        :param samples: number of samples to maintain
+        :param timestamp: datetime used to calculate the rollup epoch
+        """
+        epoch = self.normalize_to_epoch(timestamp, rollup)
+        return epoch + (rollup * samples)
+
     def incr(self, model, key, timestamp=None, count=1):
         """
         Increment project ID=1:
