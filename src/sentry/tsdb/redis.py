@@ -239,6 +239,12 @@ class RedisTSDB(BaseTSDB):
         with self.cluster.fanout() as client:
             for key in keys:
                 make_key = functools.partial(get_key, key)
+                # XXX: The current versions of the Redis driver don't implement
+                # ``PFCOUNT`` correctly (although this is fixed in the Git
+                # master, so should be available in the next release) and only
+                # supports a single key argument -- not the variadic signature
+                # supported by the protocol -- so we have to call the commnand
+                # directly here instead.
                 responses[key] = client.target_key(key).execute_command(
                     'pfcount',
                     *map(make_key, series)
