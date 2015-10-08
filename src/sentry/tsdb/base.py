@@ -191,19 +191,23 @@ class BaseTSDB(object):
                     last_new_ts = new_ts
         return result
 
+    def record(self, model, key, values, timestamp=None):
+        raise NotImplementedError
+
     def record_multi(self, items, timestamp=None):
         """
         Record an occurence of an item in a distinct counter.
         """
-        raise NotImplementedError
+        for model, key, values in items:
+            self.record(model, key, values, timestamp)
 
-    def get_distinct_counts_series(self, model, keys, start, end, rollup=None):
+    def get_distinct_counts_series(self, model, keys, start, end=None, rollup=None):
         """
         Fetch counts of distinct items for each rollup interval within the range.
         """
         raise NotImplementedError
 
-    def get_distinct_counts_totals(self, model, keys, start, end, rollup=None):
+    def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
         """
         Count distinct items during a time range.
         """
