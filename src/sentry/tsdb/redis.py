@@ -33,29 +33,40 @@ logger = logging.getLogger(__name__)
 
 class RedisTSDB(BaseTSDB):
     """
-    A time series storage implementation which maps types + normalized epochs
-    to hash buckets.
+    A time series storage backend for Redis.
 
-    Since each hash keyspace is an epoch, TTLs are applied to the entire bucket.
+    The time series API supports two data types:
 
-    This ends up looking something like the following inside of Redis:
+        * simple counters
+        * distinct counters (number of unique elements seen)
 
-    {
-        "TSDBModel:epoch:shard": {
-            "Key": Count
+    The backend also supports virtual nodes (``vnodes``) which controls shard
+    distribution. This value should be set to the anticipated maximum number of
+    physical hosts and not modified after data has been written.
+
+    Simple counters are stored in hashes. The key of the hash is composed of
+    the model, epoch (which defines the start of the rollup period), and a
+    shard identifier. This allows TTLs to be applied to the entire bucket,
+    instead of having to be stored for every individual element in the rollup
+    period. This results in a data layout that looks something like this::
+
+        {
+            "<model>:<epoch>:<shard id>": {
+                "<key>": value,
+                ...
+            },
+            ...
         }
-    }
 
-    In our case, this translates to:
+    Distinct counters are stored using HyperLogLog, which provides a
+    cardinality estimate with a standard error of 0.8%. The data layout looks
+    something like this::
 
-    {
-        "Group:epoch:shard": {
-            "GroupID": Count
+        {
+            "<model>:<epoch>:<shard id>:<key>": value,
+            ...
         }
-    }
 
-    - ``vnodes`` controls the shard distribution and should ideally be set to
-      the maximum number of physical hosts.
     """
     def __init__(self, hosts=None, prefix='ts:', vnodes=64, **kwargs):
         # inherit default options from REDIS_OPTIONS
