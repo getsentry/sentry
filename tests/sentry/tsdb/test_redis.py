@@ -81,3 +81,71 @@ class RedisTSDBTest(TestCase):
             1: 9,
             2: 4,
         }
+
+    def test_count_distinct(self):
+        now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        dts = [now + timedelta(hours=i) for i in xrange(4)]
+
+        model = TSDBModel.users_affected_by_event
+
+        def timestamp(d):
+            t = int(d.strftime('%s'))
+            return t - (t % 3600)
+
+        self.db.record(
+            model,
+            1,
+            ('foo', 'bar'),
+            dts[0],
+        )
+
+        self.db.record(
+            model,
+            1,
+            ('baz',),
+            dts[1],
+        )
+
+        self.db.record_multi((
+            (
+                model,
+                1,
+                ('foo', 'bar', 'baz'),
+            ),
+            (
+                model,
+                2,
+                ('bar',),
+            ),
+        ), dts[2])
+
+        self.db.record(
+            model,
+            2,
+            ('foo',),
+            dts[3],
+        )
+
+        assert self.db.get_distinct_counts_series(model, [1], dts[0], dts[-1]) == {
+            1: [
+                (timestamp(dts[0]), 2),
+                (timestamp(dts[1]), 1),
+                (timestamp(dts[2]), 3),
+                (timestamp(dts[3]), 0),
+            ],
+        }
+
+        assert self.db.get_distinct_counts_series(model, [2], dts[0], dts[-1]) == {
+            2: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 1),
+                (timestamp(dts[3]), 1),
+            ],
+        }
+
+        results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1])
+        assert results == {
+            1: 3,
+            2: 2,
+        }
