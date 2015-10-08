@@ -192,11 +192,14 @@ class BaseTSDB(object):
         return result
 
     def record(self, model, key, values, timestamp=None):
+        """
+        Record occurences of items in a single distinct counter.
+        """
         raise NotImplementedError
 
     def record_multi(self, items, timestamp=None):
         """
-        Record an occurence of an item in a distinct counter.
+        Record occurences of items in multiple distinct counters.
         """
         for model, key, values in items:
             self.record(model, key, values, timestamp)
