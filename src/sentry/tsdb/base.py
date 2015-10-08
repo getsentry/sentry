@@ -46,7 +46,8 @@ class TSDBModel(Enum):
     # the number of events blocked due to being blacklisted
     organization_total_blacklisted = 202
 
-    users_affected_by_event = 300
+    # distinct count of users that have been affected by a group
+    users_affected_by_group = 300
 
 
 class BaseTSDB(object):

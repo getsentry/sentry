@@ -86,7 +86,7 @@ class RedisTSDBTest(TestCase):
         now = datetime.utcnow().replace(tzinfo=pytz.UTC)
         dts = [now + timedelta(hours=i) for i in xrange(4)]
 
-        model = TSDBModel.users_affected_by_event
+        model = TSDBModel.users_affected_by_group
 
         def timestamp(d):
             t = int(d.strftime('%s'))
