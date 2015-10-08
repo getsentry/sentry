@@ -189,9 +189,12 @@ class RedisTSDB(BaseTSDB):
             for model, key, values in items:
                 c = client.target_key(key)
                 for rollup, max_values in self.rollups:
-                    m = self.get_model_key(key)
-                    k = self.make_key(model, self.normalize_to_rollup(timestamp, rollup), m)
-                    c.pfadd(k, m, *values)
+                    k = self.make_key(
+                        model,
+                        self.normalize_to_rollup(timestamp, rollup),
+                        self.get_model_key(key),
+                    )
+                    c.pfadd(k, *values)
                     c.expireat(
                         k,
                         self.calculate_expiry(rollup, max_values, timestamp),
