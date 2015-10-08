@@ -7,7 +7,6 @@ sentry.tsdb.redis
 """
 from __future__ import absolute_import
 
-import functools
 import logging
 import six
 
@@ -186,6 +185,14 @@ class RedisTSDB(BaseTSDB):
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
+    def make_distinct_counter_key(self, model, rollup, timestamp, key):
+        return '{prefix}{model}:{epoch}:{key}'.format(
+            prefix=self.prefix,
+            model=model.value,
+            epoch=self.normalize_ts_to_rollup(timestamp, rollup),
+            key=self.get_model_key(key),
+        )
+
     def record(self, model, key, values, timestamp=None):
         self.record_multi(((model, key, values),), timestamp)
 
@@ -196,19 +203,26 @@ class RedisTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
+        ts = int(timestamp.strftime('%s'))  # not actually a timestamp :(
+
         with self.cluster.fanout() as client:
             for model, key, values in items:
                 c = client.target_key(key)
                 for rollup, max_values in self.rollups:
-                    k = self.make_key(
+                    k = self.make_distinct_counter_key(
                         model,
-                        self.normalize_to_rollup(timestamp, rollup),
-                        self.get_model_key(key),
+                        rollup,
+                        ts,
+                        key,
                     )
                     c.pfadd(k, *values)
                     c.expireat(
                         k,
-                        self.calculate_expiry(rollup, max_values, timestamp),
+                        self.calculate_expiry(
+                            rollup,
+                            max_values,
+                            timestamp,
+                        ),
                     )
 
     def get_distinct_counts_series(self, model, keys, start, end=None, rollup=None):
@@ -217,21 +231,25 @@ class RedisTSDB(BaseTSDB):
         """
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
-        def get_key(key, timestamp):
-            return self.make_key(
-                model,
-                self.normalize_ts_to_rollup(timestamp, rollup),
-                self.get_model_key(key),
-            )
-
         responses = {}
         with self.cluster.fanout() as client:
             for key in keys:
-                make_key = functools.partial(get_key, key)
                 c = client.target_key(key)
-                responses[key] = [(timestamp, c.pfcount(make_key(timestamp))) for timestamp in series]
+                r = responses[key] = []
+                for timestamp in series:
+                    r.append((
+                        timestamp,
+                        c.pfcount(
+                            self.make_distinct_counter_key(
+                                model,
+                                rollup,
+                                timestamp,
+                                key,
+                            ),
+                        ),
+                    ))
 
-        return {k: [(t, p.value) for t, p in v] for k, v in responses.iteritems()}
+        return {key: [(timestamp, promise.value) for timestamp, promise in value] for key, value in responses.iteritems()}
 
     def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
         """
@@ -239,26 +257,19 @@ class RedisTSDB(BaseTSDB):
         """
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
-        def get_key(key, timestamp):
-            return self.make_key(
-                model,
-                self.normalize_ts_to_rollup(timestamp, rollup),
-                self.get_model_key(key),
-            )
-
         responses = {}
         with self.cluster.fanout() as client:
             for key in keys:
-                make_key = functools.partial(get_key, key)
                 # XXX: The current versions of the Redis driver don't implement
                 # ``PFCOUNT`` correctly (although this is fixed in the Git
                 # master, so should be available in the next release) and only
                 # supports a single key argument -- not the variadic signature
                 # supported by the protocol -- so we have to call the commnand
                 # directly here instead.
-                responses[key] = client.target_key(key).execute_command(
-                    'pfcount',
-                    *map(make_key, series)
-                )
+                ks = []
+                for timestamp in series:
+                    ks.append(self.make_distinct_counter_key(model, rollup, timestamp, key))
 
-        return {k: v.value for k, v in responses.iteritems()}
+                responses[key] = client.target_key(key).execute_command('pfcount', *ks)
+
+        return {key: value.value for key, value in responses.iteritems()}
