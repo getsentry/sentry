@@ -176,7 +176,7 @@ class RedisTSDB(BaseTSDB):
         return dict(results_by_key)
 
     def record(self, model, key, values, timestamp=None):
-        self.record_multi((model, key, values), timestamp)
+        self.record_multi(((model, key, values),), timestamp)
 
     def record_multi(self, items, timestamp=None):
         """
