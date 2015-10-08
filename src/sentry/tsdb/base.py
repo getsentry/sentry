@@ -114,12 +114,12 @@ class BaseTSDB(object):
         if rollup is None:
             rollup = self.get_optimal_rollup(start, end)
 
-        intervals = [self.normalize_to_epoch(start, rollup)]
-        end_ts = int(end.strftime('%s'))  # XXX: HACK
-        while intervals[-1] + rollup < end_ts:
-            intervals.append(intervals[-1] + rollup)
+        series = [self.normalize_to_epoch(start, rollup)]
+        end_ts = int(end.strftime('%s'))
+        while series[-1] + rollup < end_ts:
+            series.append(series[-1] + rollup)
 
-        return rollup, intervals
+        return rollup, series
 
     def calculate_expiry(self, rollup, samples, timestamp):
         """
