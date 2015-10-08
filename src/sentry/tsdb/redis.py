@@ -175,6 +175,9 @@ class RedisTSDB(BaseTSDB):
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
+    def record(self, model, key, values, timestamp=None):
+        self.record_multi((model, key, values), timestamp)
+
     def record_multi(self, items, timestamp=None):
         """
         Record an occurence of an item in a distinct counter.
