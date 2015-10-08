@@ -551,7 +551,7 @@ class EventManager(object):
 
         return GroupHash.objects.filter(
             project=group.project,
-            hash__in=bad_hashes,
+            hash__in=[h.hash for h in bad_hashes],
         ).update(
             group=group,
         )
