@@ -195,7 +195,7 @@ class Exception(Interface):
         # TODO(dcramer): this should happen in normalize
         # We need to ensure that implicit values for in_app are handled
         # appropriately
-        if unknown_frames and (app_frames or system_frames):
+        if unknown_frames:
             for exc in data['values']:
                 if not exc.get('stacktrace'):
                     continue

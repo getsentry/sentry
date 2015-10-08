@@ -533,7 +533,7 @@ class Stacktrace(Interface):
                 system_frames += 1
 
         if len(frames) == system_frames:
-            system_frames = 0
+            return False
         return bool(system_frames)
 
     def get_api_context(self, is_public=False):
