@@ -31,3 +31,4 @@ web:
     TERM: xterm
     EDITOR: vim
     DB: postgres
+    WEBPACK_WATCH_POLL: 1
