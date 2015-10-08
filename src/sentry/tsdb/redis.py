@@ -200,9 +200,6 @@ class RedisTSDB(BaseTSDB):
                         self.calculate_expiry(rollup, max_values, timestamp),
                     )
 
-        # TODO: Check to make sure these operations didn't fail, so we can
-        # raise an error if there were issues.
-
     def get_distinct_counts_series(self, model, keys, start, end=None, rollup=None):
         """
         Fetch counts of distinct items for each rollup interval within the range.
