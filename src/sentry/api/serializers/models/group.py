@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function
 
-from collections import defaultdict
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -9,8 +8,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.models import (
-    Group, GroupAssignee, GroupBookmark, GroupMeta, GroupTagKey, GroupSeen,
-    GroupStatus, TagKey, TagKeyStatus
+    Group, GroupAssignee, GroupBookmark, GroupMeta, GroupSeen, GroupStatus
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -39,13 +37,6 @@ class GroupSerializer(Serializer):
             bookmarks = set()
             seen_groups = {}
 
-        tag_counts = defaultdict(dict)
-        tag_results = GroupTagKey.objects.filter(
-            group__in=item_list,
-        ).values_list('key', 'group', 'values_seen')[:1000]
-        for key, group_id, values_seen in tag_results:
-            tag_counts[key][group_id] = values_seen
-
         assignees = dict(
             (a.group_id, a.user)
             for a in GroupAssignee.objects.filter(
@@ -53,44 +44,9 @@ class GroupSerializer(Serializer):
             ).select_related('user')
         )
 
-        tagkeys = dict(
-            (t.key, t)
-            for t in TagKey.objects.filter(
-                project=item_list[0].project,
-                key__in=tag_counts.keys(),
-            ).order_by(
-                '-values_seen',
-            )[:20]
-        )
-
         result = {}
         for item in item_list:
             active_date = item.active_at or item.last_seen
-
-            # TODO(dcramer): switch to serializers
-            tags = {}
-            for key in tag_counts.iterkeys():
-                try:
-                    tagkey = tagkeys[key]
-                except KeyError:
-                    label = key.replace('_', ' ').title()
-                else:
-                    if tagkey.status != TagKeyStatus.VISIBLE:
-                        continue
-                    label = tagkey.get_label()
-
-                try:
-                    value = tag_counts[key].get(item.id, 0)
-                except KeyError:
-                    value = 0
-
-                if key.startswith('sentry:'):
-                    key = key.split('sentry:', 1)[-1]
-
-                tags[key] = {
-                    'name': label,
-                    'count': value,
-                }
 
             annotations = []
             for plugin in plugins.for_project(project=item.project, version=1):
@@ -102,7 +58,6 @@ class GroupSerializer(Serializer):
                 'assigned_to': serialize(assignees.get(item.id)),
                 'is_bookmarked': item.id in bookmarks,
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
-                'tags': tags,
                 'annotations': annotations,
             }
         return result
@@ -148,7 +103,6 @@ class GroupSerializer(Serializer):
             'assignedTo': attrs['assigned_to'],
             'isBookmarked': attrs['is_bookmarked'],
             'hasSeen': attrs['has_seen'],
-            'tags': attrs['tags'],
             'annotations': attrs['annotations'],
         }
         return d
