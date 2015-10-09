@@ -150,8 +150,7 @@ var StreamActions = React.createClass({
                tooltip="Set Status to Resolved"
                canActionAll={true}
                onlyIfBulk={true}
-               selectAllActive={this.state.selectAllActive}
-               groupIds={this.props.groupIds}>
+               selectAllActive={this.state.selectAllActive}>
               <i aria-hidden="true" className="icon-checkmark"></i>
             </ActionLink>
             <ActionLink
@@ -165,8 +164,7 @@ var StreamActions = React.createClass({
                tooltip="Add to Bookmarks"
                canActionAll={false}
                onlyIfBulk={true}
-               selectAllActive={this.state.selectAllActive}
-               groupIds={this.props.groupIds}>
+               selectAllActive={this.state.selectAllActive}>
               <i aria-hidden="true" className="icon-bookmark"></i>
             </ActionLink>
 
@@ -185,8 +183,7 @@ var StreamActions = React.createClass({
                    onAction={this.onMerge}
                    confirmLabel="Merge"
                    canActionAll={false}
-                   selectAllActive={this.state.selectAllActive}
-                   groupIds={this.props.groupIds}>
+                   selectAllActive={this.state.selectAllActive}>
                   Merge Events
                 </ActionLink>
               </MenuItem>
@@ -200,8 +197,7 @@ var StreamActions = React.createClass({
                    actionLabel="remove these {count} events from your bookmarks"
                    onlyIfBulk={true}
                    canActionAll={false}
-                   selectAllActive={this.state.selectAllActive}
-                   groupIds={this.props.groupIds}>
+                   selectAllActive={this.state.selectAllActive}>
                   Remove from Bookmarks
                 </ActionLink>
               </MenuItem>
@@ -231,8 +227,7 @@ var StreamActions = React.createClass({
                    confirmLabel="Mute"
                    onlyIfBulk={false}
                    canActionAll={false}
-                   selectAllActive={this.state.selectAllActive}
-                   groupIds={this.props.groupIds}>
+                   selectAllActive={this.state.selectAllActive}>
                   Set status to: Muted
                 </ActionLink>
               </MenuItem>
@@ -245,8 +240,7 @@ var StreamActions = React.createClass({
                    onAction={this.onDelete}
                    confirmLabel="Delete"
                    canActionAll={false}
-                   selectAllActive={this.state.selectAllActive}
-                   groupIds={this.props.groupIds}>
+                   selectAllActive={this.state.selectAllActive}>
                   Delete Events
                 </ActionLink>
               </MenuItem>
