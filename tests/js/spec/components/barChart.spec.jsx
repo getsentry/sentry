@@ -18,7 +18,7 @@ describe("BarChart", function() {
         { x: 1439773200, y: 30 },
       ];
 
-      var comp = TestUtils.renderIntoDocument(<BarChart interval={3600} points={points}/>);
+      var comp = TestUtils.renderIntoDocument(<BarChart points={points}/>);
       var columns = comp.getDOMNode().querySelectorAll('.chart-column');
 
       expect(columns).to.have.property('length', 3);
@@ -38,7 +38,7 @@ describe("BarChart", function() {
         { x: 1439776800, className: 'last-seen', label: 'last seen' } // matches last point
       ];
 
-      var comp = TestUtils.renderIntoDocument(<BarChart interval={3600} points={points} markers={markers}/>, document.body);
+      var comp = TestUtils.renderIntoDocument(<BarChart points={points} markers={markers}/>, document.body);
       var columns = comp.getDOMNode().getElementsByTagName('a');
 
       expect(columns).to.have.property('length', 5);
@@ -60,7 +60,7 @@ describe("BarChart", function() {
         { x: 1439776800, className: 'last-seen', label: 'last seen' }
       ];
 
-      var comp = TestUtils.renderIntoDocument(<BarChart interval={3600} points={points} markers={markers}/>, document.body);
+      var comp = TestUtils.renderIntoDocument(<BarChart points={points} markers={markers}/>, document.body);
       var columns = comp.getDOMNode().getElementsByTagName('a');
 
       expect(columns).to.have.property('length', 3);
