@@ -47,7 +47,7 @@ build: locale
 
 clean:
 	@echo "--> Cleaning static cache"
-	rm dist/*
+	rm dist/* static/dist/*
 	@echo "--> Cleaning pyc files"
 	find . -name "*.pyc" -delete
 	@echo ""
