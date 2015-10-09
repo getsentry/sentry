@@ -4,7 +4,7 @@
 
 {% block header %}
     <a href="{{ release_link }}" class="btn">View Release</a>
-    <h1>Sentry <small>New Release of <a href="{{ project_link }}">{{ project.name }}</a></small></h1>
+    {{ block.super }}
 {% endblock %}
 
 {% block main %}
