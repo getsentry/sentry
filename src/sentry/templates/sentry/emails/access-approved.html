@@ -2,10 +2,7 @@
 
 {% load i18n %}
 
-{% block header %}
-    <h1>Sentry <small>Access Approved</small></h1>
-{% endblock %}
-
 {% block main %}
-    <p>You have been granted access to the {{ organization.name }} / {{ team.name }} team on Sentry.</p>
+    <h3>Access Approved</h3>
+    <p>You have been granted access to the <strong>{{ organization.name }} / {{ team.name }}</strong> team on Sentry.</p>
 {% endblock %}
