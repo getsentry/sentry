@@ -10,6 +10,7 @@ from datetime import (
 from sentry.testutils import TestCase
 from sentry.tsdb.base import TSDBModel, ONE_MINUTE, ONE_HOUR, ONE_DAY
 from sentry.tsdb.redis import RedisTSDB
+from sentry.utils.dates import to_timestamp
 
 
 class RedisTSDBTest(TestCase):
@@ -46,7 +47,7 @@ class RedisTSDBTest(TestCase):
         dts = [now + timedelta(hours=i) for i in xrange(4)]
 
         def timestamp(d):
-            t = int(d.strftime('%s'))
+            t = int(to_timestamp(d))
             return t - (t % 3600)
 
         self.db.incr(TSDBModel.project, 1, dts[0])
@@ -89,7 +90,7 @@ class RedisTSDBTest(TestCase):
         model = TSDBModel.users_affected_by_group
 
         def timestamp(d):
-            t = int(d.strftime('%s'))
+            t = int(to_timestamp(d))
             return t - (t % 3600)
 
         self.db.record(

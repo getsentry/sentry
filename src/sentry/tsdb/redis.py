@@ -21,6 +21,7 @@ from rb import Cluster
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.tsdb.base import BaseTSDB
+from sentry.utils.dates import to_timestamp
 from sentry.utils.versioning import (
     Version,
     check_versions,
@@ -203,7 +204,7 @@ class RedisTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
-        ts = int(timestamp.strftime('%s'))  # not actually a timestamp :(
+        ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
         with self.cluster.fanout() as client:
             for model, key, values in items:
