@@ -262,7 +262,7 @@ STATICFILES_FINDERS = (
 
 
 def get_asset_version():
-    path = os.path.join(STATIC_ROOT, 'sentry', 'dist', 'version')
+    path = os.path.join(STATIC_ROOT, 'version')
     try:
         with open(path) as fp:
             return fp.read().strip()
