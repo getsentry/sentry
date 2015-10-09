@@ -15,7 +15,7 @@ var staticPrefix = "src/sentry/static/sentry",
 //   [name].js => [name].js (unaltered in dev)
 
 function fileFormatForEnv(file, attr) {
-  attr = attr || '[chunkhash]';
+  attr = attr || '[hash]';
   return process.env.NODE_ENV === 'production' ?
     file.replace(/\.([\w\[\]]+)$/, '.' + attr + '.$1') :
     file;
@@ -91,7 +91,15 @@ var config = {
       Raven: "raven-js"
     }),
     new ManifestPlugin(), // writes manifest.json to output directory
-    new ExtractTextPlugin(fileFormatForEnv("[name].css"))
+    new ExtractTextPlugin(fileFormatForEnv("[name].css")),
+    function() {
+      // Write top-level hash as a single line to static/dist/version
+      this.plugin("done", function(stats) {
+        require("fs").writeFileSync(
+          path.join(distPath, "version"),
+          stats.hash + '\n');
+      });
+    }
   ],
   resolve: {
     alias: {
