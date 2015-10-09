@@ -289,6 +289,16 @@ def initialize_gevent():
         make_psycopg_green()
 
 
+def get_asset_version(settings):
+    path = os.path.join(settings.STATIC_ROOT, 'version')
+    try:
+        with open(path) as fp:
+            return fp.read().strip()
+    except IOError:
+        from time import time
+        return int(time())
+
+
 def initialize_app(config, skip_backend_validation=False):
     settings = config['settings']
 
@@ -312,6 +322,8 @@ def initialize_app(config, skip_backend_validation=False):
     settings.SUDO_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
 
     settings.CACHES['default']['VERSION'] = settings.CACHE_VERSION
+
+    settings.ASSET_VERSION = get_asset_version(settings)
 
     if USE_GEVENT:
         from django.db import connections

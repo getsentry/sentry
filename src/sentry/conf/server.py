@@ -260,17 +260,7 @@ STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 )
 
-
-def get_asset_version():
-    path = os.path.join(STATIC_ROOT, 'version')
-    try:
-        with open(path) as fp:
-            return fp.read().strip()
-    except IOError:
-        from time import time
-        return int(time())
-
-ASSET_VERSION = get_asset_version()
+ASSET_VERSION = 0
 
 # setup a default media root to somewhere useless
 MEDIA_ROOT = '/tmp/sentry-media'
