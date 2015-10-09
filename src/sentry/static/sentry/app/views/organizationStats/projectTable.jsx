@@ -1,4 +1,3 @@
-import $ from "jquery";
 import React from "react";
 import ConfigStore from "../../stores/configStore";
 import Count from "../../components/count";
@@ -28,6 +27,11 @@ var ProjectTable = React.createClass({
       return <div/>;
     }
 
+    // Sort based on # events received in desc order
+    projectTotals.sort((a, b) => {
+      return b.received - a.received;
+    });
+
     return (
       <table className="table simple-list project-list">
         <thead>
@@ -40,7 +44,7 @@ var ProjectTable = React.createClass({
           </tr>
         </thead>
         <tbody>
-          {$.map(projectTotals, (item) => {
+          {projectTotals.map((item) => {
             var project = projectMap[item.id];
 
             return (
