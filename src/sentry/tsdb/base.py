@@ -11,6 +11,8 @@ from django.conf import settings
 from django.utils import timezone
 from enum import Enum
 
+from sentry.utils.dates import to_timestamp
+
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -71,7 +73,7 @@ class BaseTSDB(object):
         i.e. if the rollup is minutes, the resulting timestamp would have
         the seconds and microseconds rounded down.
         """
-        epoch = int(timestamp.strftime('%s'))
+        epoch = int(to_timestamp(timestamp))
         return epoch - (epoch % seconds)
 
     def normalize_ts_to_epoch(self, epoch, seconds):
@@ -84,7 +86,7 @@ class BaseTSDB(object):
         """
         Given a ``timestamp`` (datetime object) normalize to an epoch rollup.
         """
-        epoch = int(timestamp.strftime('%s'))
+        epoch = int(to_timestamp(timestamp))
         return int(epoch / seconds)
 
     def normalize_ts_to_rollup(self, epoch, seconds):
@@ -98,7 +100,7 @@ class BaseTSDB(object):
         Identify the lowest granularity rollup available within the given time
         range.
         """
-        num_seconds = int(end_timestamp.strftime('%s')) - int(start_timestamp.strftime('%s'))
+        num_seconds = int(to_timestamp(end_timestamp)) - int(to_timestamp(start_timestamp))
 
         # calculate the highest rollup within time range
         for rollup, samples in self.rollups:
@@ -116,7 +118,7 @@ class BaseTSDB(object):
             rollup = self.get_optimal_rollup(start, end)
 
         series = [self.normalize_to_epoch(start, rollup)]
-        end_ts = int(end.strftime('%s'))
+        end_ts = int(to_timestamp(end))
         while series[-1] + rollup < end_ts:
             series.append(series[-1] + rollup)
 
