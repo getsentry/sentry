@@ -1489,6 +1489,68 @@ pre.val, span.val {
 }
 
 /**
+* Breadcrumbs
+* ============================================================================
+*/
+ul.crumbs {
+  list-style: none;
+  margin: 0 0 20px 0;
+  padding: 0;
+  font-size: 13px;
+
+  li {
+    margin: 0;
+    border: 1px solid lighten(@trim, 6);
+    padding: 2px 8px;
+
+    + li {
+      border-top: none;
+    }
+
+    p {
+      margin: 0;
+      padding: 0;
+    }
+
+    time {
+      float: right;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    span.crumb-classifier {
+      font-style: italic;
+      padding-left: 10px;
+      font-size: 11px;
+    }
+
+    &.crumb-query {
+      background: lighten(@orange, 42);
+    }
+
+    &.crumb-rpc {
+      background: lighten(@blue, 42);
+    }
+
+    &.crumb-message {
+      span.level {
+        font-weight: bold;
+        text-transform: capitalize;
+      }
+      span.level:after {
+        content: ": ";
+      }
+      span.logger {
+        font-size: 11px;
+        padding-left: 10px;
+        color: @blue;
+      }
+    }
+  }
+}
+
+
+/**
 * Responsive medium screen
 * ============================================================================
 */

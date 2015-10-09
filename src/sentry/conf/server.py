@@ -696,7 +696,7 @@ SENTRY_INTERFACES = {
     'user': 'sentry.interfaces.user.User',
     'csp': 'sentry.interfaces.csp.Csp',
     'applecrashreport': 'sentry.interfaces.applecrash.AppleCrashReport',
-
+    'breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
     'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
     'sentry.interfaces.Message': 'sentry.interfaces.message.Message',
     'sentry.interfaces.Stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
@@ -706,6 +706,7 @@ SENTRY_INTERFACES = {
     'sentry.interfaces.User': 'sentry.interfaces.user.User',
     'sentry.interfaces.Csp': 'sentry.interfaces.csp.Csp',
     'sentry.interfaces.AppleCrashReport': 'sentry.interfaces.applecrash.AppleCrashReport',
+    'sentry.interfaces.Breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
 }
 
 # Should users without superuser permissions be allowed to

@@ -30,17 +30,18 @@ const EventEntries = React.createClass({
     };
   },
 
-  shouldComponentUpdate(nextProps, nextState) {
-    return this.props.event.id !== nextProps.event.id;
-  },
-
   // TODO(dcramer): make this extensible
   interfaces: {
-    exception: require('./interfaces/exception'),
-    request: require('./interfaces/request'),
-    stacktrace: require('./interfaces/stacktrace'),
-    template: require('./interfaces/template'),
+    exception: require("./interfaces/exception"),
+    request: require("./interfaces/request"),
+    stacktrace: require("./interfaces/stacktrace"),
+    template: require("./interfaces/template"),
     csp: require('./interfaces/csp'),
+    breadcrumbs: require("./interfaces/breadcrumbs")
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return this.props.event.id !== nextProps.event.id;
   },
 
   render(){
