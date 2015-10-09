@@ -345,10 +345,6 @@ urlpatterns += patterns(
     url(r'^share/group/(?P<share_id>[\w_-]+)/$', GenericReactPageView.as_view(auth_required=False),
         name='sentry-group-shared'),
 
-    # TV dashboard
-    url(r'^(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/wall/$', groups.wall_display,
-        name='sentry-wall'),
-
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', ReactPageView.as_view(),
         name='sentry-group'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/activity/$', ReactPageView.as_view(),
