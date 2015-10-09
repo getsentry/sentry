@@ -8,7 +8,8 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.models import (
-    Group, GroupAssignee, GroupBookmark, GroupMeta, GroupSeen, GroupStatus
+    Group, GroupAssignee, GroupBookmark, GroupMeta, GroupSeen, GroupStatus,
+    GroupTagKey
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -44,6 +45,13 @@ class GroupSerializer(Serializer):
             ).select_related('user')
         )
 
+        user_counts = dict(
+            GroupTagKey.objects.filter(
+                group__in=item_list,
+                key='sentry:user',
+            ).values_list('group', 'values_seen')
+        )
+
         result = {}
         for item in item_list:
             active_date = item.active_at or item.last_seen
@@ -59,6 +67,7 @@ class GroupSerializer(Serializer):
                 'is_bookmarked': item.id in bookmarks,
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'annotations': annotations,
+                'user_count': user_counts.get(item.id, 0),
             }
         return result
 
@@ -85,6 +94,7 @@ class GroupSerializer(Serializer):
             'id': str(obj.id),
             'shareId': obj.get_share_id(),
             'count': str(obj.times_seen),
+            'userCount': attrs['user_count'],
             'title': obj.message_short,
             'culprit': obj.culprit,
             'permalink': permalink,

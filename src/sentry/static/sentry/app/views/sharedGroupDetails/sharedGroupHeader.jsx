@@ -5,11 +5,7 @@ import Count from "../../components/count";
 var SharedGroupHeader = React.createClass({
   render() {
     var group = this.props.group,
-        userCount = 0;
-
-    if (group.tags.user !== undefined) {
-      userCount = group.tags.user.count;
-    }
+        userCount = group.userCount;
 
     return (
       <div className="group-detail">
