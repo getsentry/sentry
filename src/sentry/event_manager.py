@@ -467,6 +467,14 @@ class EventManager(object):
                 self.logger.info('Duplicate Event found for event_id=%s', event_id)
                 return event
 
+        if event_user:
+            tsdb.record(
+                tsdb.models.users_affected_by_group,
+                group.id,
+                (event_user.tag_value,),
+                timestamp=event.datetime,
+            )
+
         if is_new and release:
             buffer.incr(Release, {'new_groups': 1}, {
                 'id': release.id,

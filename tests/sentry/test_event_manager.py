@@ -8,6 +8,7 @@ from mock import patch
 
 from django.conf import settings
 
+from sentry.app import tsdb
 from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
 from sentry.event_manager import (
     EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint
@@ -318,6 +319,15 @@ class EventManagerTest(TransactionTestCase):
         }))
         manager.normalize()
         event = manager.save(self.project.id)
+
+        assert tsdb.get_distinct_counts_totals(
+            tsdb.models.users_affected_by_group,
+            (event.group.id,),
+            event.datetime,
+            event.datetime,
+        ) == {
+            event.group.id: 1,
+        }
 
         assert EventUser.objects.filter(
             project=self.project,
