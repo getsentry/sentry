@@ -237,6 +237,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         result = serializer.object
 
+        acting_user = request.user if request.user.is_authenticated() else None
+
         # TODO(dcramer): we should allow assignment to anyone who has membership
         # even if that membership is not SSO linked
         if result.get('assignedTo') and not group.project.member_set.filter(user=result['assignedTo']).exists():
@@ -261,7 +263,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     project=group.project,
                     group=group,
                     type=Activity.SET_RESOLVED,
-                    user=request.user,
+                    user=acting_user,
                 )
         elif result.get('status'):
             group.status = STATUS_CHOICES[result['status']]
@@ -325,7 +327,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                         project=group.project,
                         group=group,
                         type=Activity.ASSIGNED,
-                        user=request.user,
+                        user=acting_user,
                         data={
                             'assignee': result['assignedTo'].id,
                         }
@@ -345,7 +347,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                         project=group.project,
                         group=group,
                         type=Activity.UNASSIGNED,
-                        user=request.user,
+                        user=acting_user,
                     )
                     activity.send_notification()
 
