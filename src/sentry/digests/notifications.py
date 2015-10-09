@@ -51,8 +51,22 @@ filter_muted_groups = functools.partial(
 
 
 def build_digest(project, records):
+    # Extract all groups from the records.
+
+    # Fetch the time series data for all groups.
+
+    # Fetch the event counts for all groups.
+    # Fetch the user counts for all groups.
+
+    # Group the records by [rule][group].
+
+    # Sort the group lists by events.
+    # Sort the rules by number of groups.
+
     rules = {}
+
     for record in records:
         for rule in record.value.rules:
             rules.setdefault(rule, {}).setdefault(record.value.event.group, []).append(record)
+
     return rules
