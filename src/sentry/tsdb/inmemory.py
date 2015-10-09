@@ -59,7 +59,7 @@ class InMemoryTSDB(BaseTSDB):
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
-    def record(self, model, key, values, timestamp):
+    def record(self, model, key, values, timestamp=None):
         if timestamp is None:
             timestamp = timezone.now()
 
