@@ -7,20 +7,6 @@ var path = require("path"),
 var staticPrefix = "src/sentry/static/sentry",
     distPath = staticPrefix + "/dist";
 
-// Changes a webpack filename config depending on
-// the deployment environment.
-//
-// e.g.
-//   [name].js => [name].[chunkhash].js (in production)
-//   [name].js => [name].js (unaltered in dev)
-
-function fileFormatForEnv(file, attr) {
-  attr = attr || '[hash]';
-  return process.env.NODE_ENV === 'production' ?
-    file.replace(/\.([\w\[\]]+)$/, '.' + attr + '.$1') :
-    file;
-}
-
 var config = {
   context: path.join(__dirname, staticPrefix),
   entry: {
@@ -76,12 +62,12 @@ var config = {
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
-        loader: 'file-loader?name=' + fileFormatForEnv('[name].[ext]', '[hash]')
+        loader: 'file-loader?name=' + '[name].[ext]'
       }
     ]
   },
   plugins: [
-    new webpack.optimize.CommonsChunkPlugin("vendor", fileFormatForEnv("vendor.js")),
+    new webpack.optimize.CommonsChunkPlugin("vendor", "vendor.js"),
     new webpack.optimize.DedupePlugin(),
     new webpack.ProvidePlugin({
       $: 'jquery',
@@ -91,7 +77,7 @@ var config = {
       Raven: "raven-js"
     }),
     new ManifestPlugin(), // writes manifest.json to output directory
-    new ExtractTextPlugin(fileFormatForEnv("[name].css")),
+    new ExtractTextPlugin("[name].css"),
     function() {
       // Write top-level hash as a single line to static/dist/version
       this.plugin("done", function(stats) {
@@ -111,10 +97,10 @@ var config = {
   },
   output: {
     path: distPath,
-    filename: fileFormatForEnv("[name].js"),
+    filename: "[name].js",
     libraryTarget: "var",
     library: "exports",
-    sourceMapFilename: fileFormatForEnv("[name].js.map"),
+    sourceMapFilename: "[name].js.map",
   },
   devtool: 'source-map'
 };
