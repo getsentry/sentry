@@ -96,4 +96,21 @@ def build_digest(project, records):
                 )
             summary.records.append(record)
 
-    return Digest(start, end, groups_by_rule)
+    results = sorted(
+        [
+            (
+                rule,
+                sorted(
+                    summaries.items(),
+                    key=lambda (group, summary): summary.events,
+                    reverse=True,
+                )
+            )
+            for rule, summaries in
+            groups_by_rule.items()
+        ],
+        key=lambda (rule, groups): len(groups),
+        reverse=True,
+    )
+
+    return Digest(start, end, results)
