@@ -1526,6 +1526,17 @@ ul.crumbs {
 
     &.crumb-query {
       background: lighten(@orange, 42);
+      code {
+        white-space: pre;
+
+        span.param {
+          display: inline;
+          color: @blue;
+          padding: 0 3px;
+          background: white;
+          border-radius: 2px;
+        }
+      }
     }
 
     &.crumb-rpc {
