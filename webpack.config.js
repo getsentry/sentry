@@ -75,15 +75,7 @@ var config = {
       "root.jQuery": "jquery",
       Raven: "raven-js"
     }),
-    new ExtractTextPlugin("[name].css"),
-    function() {
-      // Write top-level hash as a single line to static/dist/version
-      this.plugin("done", function(stats) {
-        require("fs").writeFileSync(
-          path.join(distPath, "version"),
-          stats.hash + '\n');
-      });
-    }
+    new ExtractTextPlugin("[name].css")
   ],
   resolve: {
     alias: {
