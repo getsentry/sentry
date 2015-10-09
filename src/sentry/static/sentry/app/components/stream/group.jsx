@@ -87,11 +87,7 @@ var StreamGroup = React.createClass({
     var router = this.context.router;
     var params = router.getCurrentParams();
     var data = this.state.data;
-    var userCount = 0;
-
-    if (data.tags.user !== undefined) {
-      userCount = data.tags.user.count;
-    }
+    var userCount = data.userCount;
 
     var className = "group row";
     if (data.isBookmarked) {

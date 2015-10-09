@@ -68,12 +68,8 @@ var GroupHeader = React.createClass({
 
   render() {
     var group = this.props.group,
-        userCount = 0,
+        userCount = group.userCount,
         features = this.getProjectFeatures();
-
-    if (group.tags.user !== undefined) {
-      userCount = group.tags.user.count;
-    }
 
     var className = "group-detail level-" + group.level;
     if (group.isBookmarked) {
