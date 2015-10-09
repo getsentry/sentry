@@ -38,7 +38,7 @@ var BreadcrumbsInterface = React.createClass({
     var title = (
       <div>
         <h3>
-          <strong>Breadcrums</strong>{' '}
+          <strong>Breadcrumbs</strong>{' '}
           <small>(significant events that lead up to this)</small>
         </h3>
       </div>
