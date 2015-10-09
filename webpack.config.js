@@ -1,7 +1,6 @@
 /*eslint-env node*/
 var path = require("path"),
     webpack = require("webpack"),
-    ManifestPlugin = require('webpack-manifest-plugin'),
     ExtractTextPlugin = require("extract-text-webpack-plugin");
 
 var staticPrefix = "src/sentry/static/sentry",
@@ -76,7 +75,6 @@ var config = {
       "root.jQuery": "jquery",
       Raven: "raven-js"
     }),
-    new ManifestPlugin(), // writes manifest.json to output directory
     new ExtractTextPlugin("[name].css"),
     function() {
       // Write top-level hash as a single line to static/dist/version
