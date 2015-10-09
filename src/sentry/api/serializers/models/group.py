@@ -42,7 +42,7 @@ class GroupSerializer(Serializer):
         tag_counts = defaultdict(dict)
         tag_results = GroupTagKey.objects.filter(
             group__in=item_list,
-        ).values_list('key', 'group', 'values_seen')
+        ).values_list('key', 'group', 'values_seen')[:1000]
         for key, group_id, values_seen in tag_results:
             tag_counts[key][group_id] = values_seen
 
@@ -58,7 +58,9 @@ class GroupSerializer(Serializer):
             for t in TagKey.objects.filter(
                 project=item_list[0].project,
                 key__in=tag_counts.keys(),
-            )
+            ).order_by(
+                '-values_seen',
+            )[:20]
         )
 
         result = {}
