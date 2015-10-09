@@ -37,7 +37,7 @@ class TagKeyManager(BaseManager):
             result = list(self.filter(
                 project=project,
                 status=TagKeyStatus.VISIBLE,
-            ).values_list('key', flat=True))
+            ).values_list('key', flat=True)[:100])
             cache.set(key, result, 60)
         return result
 
