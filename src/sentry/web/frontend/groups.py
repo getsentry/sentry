@@ -17,34 +17,11 @@ from django.http import (
 )
 from django.shortcuts import get_object_or_404
 
-from sentry.auth import access
 from sentry.constants import MEMBER_USER
-from sentry.models import (
-    Project, Group, GroupMeta, Event
-)
+from sentry.models import Group, GroupMeta, Event
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.web.decorators import has_access, login_required
-from sentry.web.helpers import render_to_response
-
-
-@login_required
-@has_access
-def wall_display(request, organization, team):
-    project_list = list(Project.objects.filter(team=team))
-
-    for project in project_list:
-        project.team = team
-
-    return render_to_response('sentry/wall.html', {
-        'team': team,
-        'organization': team.organization,
-        'project_list': project_list,
-        'ACCESS': access.from_user(
-            user=request.user,
-            organization=organization,
-        ).to_django_context(),
-    }, request)
 
 
 @has_access(MEMBER_USER)
