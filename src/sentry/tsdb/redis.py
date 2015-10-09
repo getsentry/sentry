@@ -271,6 +271,6 @@ class RedisTSDB(BaseTSDB):
                 for timestamp in series:
                     ks.append(self.make_distinct_counter_key(model, rollup, timestamp, key))
 
-                responses[key] = client.target_key(key).execute_command('pfcount', *ks)
+                responses[key] = client.target_key(key).execute_command('PFCOUNT', *ks)
 
         return {key: value.value for key, value in responses.iteritems()}
