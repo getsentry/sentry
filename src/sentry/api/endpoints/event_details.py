@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.group import GroupPermission
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.constants import EVENT_ORDERING_KEY
 from sentry.models import Event, Release, UserReport
@@ -34,9 +35,12 @@ class EventDetailsEndpoint(Endpoint):
         is the event as it appears in the Sentry database and not the event
         ID that is reported by the client upon submission.
         """
-        event = Event.objects.get(
-            id=event_id
-        )
+        try:
+            event = Event.objects.get(
+                id=event_id
+            )
+        except Event.DoesNotExist:
+            raise ResourceDoesNotExist
 
         self.check_object_permissions(request, event.group)
 
