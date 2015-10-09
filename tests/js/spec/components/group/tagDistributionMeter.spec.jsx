@@ -25,7 +25,7 @@ describe("TagDistributionMeter", function() {
       })
     });
 
-    this.element = TestUtils.renderIntoDocument(<ContextStubbedTagDistributionMeter tag="browser" group={{id:1337}}/>).refs.wrapped;
+    this.element = TestUtils.renderIntoDocument(<ContextStubbedTagDistributionMeter tag="browser" group={{id:"1337"}}/>).refs.wrapped;
   });
 
   afterEach(function() {

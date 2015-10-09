@@ -30,7 +30,7 @@ describe("StreamActions", function() {
             projectId="1"
             groupIds={[1,2,3]}
             onRealtimeChange={function(){}}
-            onSelectedStatsPeriod={function(){}}
+            onSelectStatsPeriod={function(){}}
             realtimeActive={false}
             statsPeriod="24h"
             />
