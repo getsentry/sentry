@@ -294,6 +294,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         result = dict(serializer.object)
 
+        acting_user = request.user if request.user.is_authenticated() else None
+
         # validate that we've passed a selector for non-status bulk operations
         if not group_ids and result.keys() != ['status']:
             return Response('{"detail": "You must specify a list of IDs for this operation"}', status=400)
@@ -328,7 +330,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         project=group.project,
                         group=group,
                         type=Activity.SET_RESOLVED,
-                        user=request.user,
+                        user=acting_user,
                     )
                     activity.send_notification()
 
@@ -352,7 +354,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         project=group.project,
                         group=group,
                         type=activity_type,
-                        user=request.user,
+                        user=acting_user,
                     )
                     activity.send_notification()
 
@@ -398,7 +400,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     project=group.project,
                     group=group,
                     type=Activity.SET_PUBLIC,
-                    user=request.user,
+                    user=acting_user,
                 )
         elif result.get('isPublic') is False:
             Group.objects.filter(
@@ -412,7 +414,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     project=group.project,
                     group=group,
                     type=Activity.SET_PRIVATE,
-                    user=request.user,
+                    user=acting_user,
                 )
 
         # XXX(dcramer): this feels a bit shady like it should be its own
