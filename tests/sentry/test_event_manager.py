@@ -329,6 +329,15 @@ class EventManagerTest(TransactionTestCase):
             event.group.id: 1,
         }
 
+        assert tsdb.get_distinct_counts_totals(
+            tsdb.models.users_affected_by_project,
+            (event.project.id,),
+            event.datetime,
+            event.datetime,
+        ) == {
+            event.project.id: 1,
+        }
+
         assert EventUser.objects.filter(
             project=self.project,
             ident='1',
