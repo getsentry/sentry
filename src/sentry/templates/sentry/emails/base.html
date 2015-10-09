@@ -114,10 +114,10 @@
     margin: 0 0 20px;
   }
   h2 .highlight {
-    background: #fece09;
-    color: #000;
+    background: #f6f7f8;
     padding: 0 6px;
     border-radius: 3px;
+    font-weight: 500;
   }
 
   h3 {
@@ -130,6 +130,11 @@
     background: #fff;
     padding: 30px 0 20px;
   }
+
+  .inner p {
+    font-size: 16px;
+  }
+
   .inner pre,
   .inner p,
   .inner table {
@@ -170,78 +175,6 @@
     font-weight: 200;
   }
 
-  .event {
-    position: relative;
-    padding: 0 0 0 80px;
-    margin: 0 0 30px;
-    position: relative;
-    min-height: 60px; /* count height */
-  }
-
-  .event h3 {
-    padding: 0;
-    margin: 0 0 4px;
-    font-size: 16px;
-    line-height: 20px;
-    font-weight: bold;
-    width: 85%;
-    white-space: nowrap;
-    overflow: hidden;
-    /*text-overflow: ellipsis;*/
-  }
-
-  .event h3 a {
-    color: #465262;
-  }
-  .event .count {
-    color: #fff;
-    position: absolute;
-    left: 0px;
-    width: 60px;
-    height: 60px;
-    border-radius: 60px;
-    line-height: 60px;
-    background: #cfd3da;
-    text-align: center;
-    font-size: 17px;
-    font-weight: bold;
-    letter-spacing: -1px;
-    overflow: hidden;
-  }
-  .level-info .count { background: #2788ce; }
-  .level-warning .count { background: #f18500; }
-  .level-error .count { background: #f43f20; }
-  .level-fatal .count { background: #d20f2a; }
-  .event .count .span {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 100%;
-    text-align: center;
-    line-height: inherit;
-    display: block;
-  }
-  .event .message {
-    color: #898f98;
-    margin: 0 0 4px;
-    padding: 0;
-    font-size: 14px;
-    padding-right: 24px;
-    white-space: nowrap;
-    overflow: hidden;
-    /*text-overflow: ellipsis;*/
-  }
-  .event .meta {
-    color: #b6bcc2;
-    font-size: 12px;
-  }
-  .event .tag a {
-    font-weight: normal;
-    color: inherit;
-  }
-  .event .tag {
-    margin-left: 10px;
-  }
   .via {
     border: 1px solid #ddd;
     background: #eee;
@@ -252,6 +185,80 @@
   strong {
     font-weight: bold;
   }
+
+  /* Group header */
+
+  .group-header {
+    border-bottom: 1px solid #E7EBEE;
+    margin-bottom: 30px;
+  }
+
+  .group-header h3 {
+    margin: 0 0 2px;
+  }
+
+  .group-header .message {
+    margin: 0 0 5px;
+  }
+
+  .group-header .meta {
+    margin: 0 0 15px;
+    font-size: 13px;
+  }
+
+  .group-header .meta a {
+    color: #687276;
+  }
+
+  .group-header .meta .tag {
+    padding-left: 10px;
+    border-left: 1px solid #eee;
+    margin-left: 10px;
+  }
+
+  .group-header table {
+    width: 100%;
+    margin-bottom: 0;
+  }
+
+  .group-header td {
+    width: 25%;
+  }
+
+  .group-header h6 {
+    margin: 0 0 10px;
+    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: bold;
+    margin: 0 0 5px;
+    color: #9CA3AD;
+  }
+
+  .group-header .value {
+    font-size: 20px;
+    font-weight: bold;
+  }
+
+  .level {
+    padding: 0px 6px 2px;
+    color: #fff;
+    border-radius: 3px;
+    font-size: 18px;
+  }
+  .level-info { background: #2788ce; }
+  .level-warning { background: #f18500; }
+  .level-error { background: #f43f20; }
+  .level-fatal { background: #d20f2a; }
+  .event .count .span {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 100%;
+    text-align: center;
+    line-height: inherit;
+    display: block;
+  }
+
   </style>
 </head>
 <body{% block bodyclass %}{% endblock %}>
