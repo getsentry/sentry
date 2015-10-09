@@ -8,7 +8,11 @@ sentry.tsdb.base
 from __future__ import absolute_import
 
 from django.conf import settings
+from django.utils import timezone
 from enum import Enum
+
+from sentry.utils.dates import to_timestamp
+
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -44,6 +48,12 @@ class TSDBModel(Enum):
     # the number of events blocked due to being blacklisted
     organization_total_blacklisted = 202
 
+    # distinct count of users that have been affected by an event in a group
+    users_affected_by_group = 300
+
+    # distinct count of users that have been affected by an event in a project
+    users_affected_by_project = 301
+
 
 class BaseTSDB(object):
     models = TSDBModel
@@ -66,7 +76,7 @@ class BaseTSDB(object):
         i.e. if the rollup is minutes, the resulting timestamp would have
         the seconds and microseconds rounded down.
         """
-        epoch = int(timestamp.strftime('%s'))
+        epoch = int(to_timestamp(timestamp))
         return epoch - (epoch % seconds)
 
     def normalize_ts_to_epoch(self, epoch, seconds):
@@ -79,7 +89,7 @@ class BaseTSDB(object):
         """
         Given a ``timestamp`` (datetime object) normalize to an epoch rollup.
         """
-        epoch = int(timestamp.strftime('%s'))
+        epoch = int(to_timestamp(timestamp))
         return int(epoch / seconds)
 
     def normalize_ts_to_rollup(self, epoch, seconds):
@@ -93,13 +103,29 @@ class BaseTSDB(object):
         Identify the lowest granularity rollup available within the given time
         range.
         """
-        num_seconds = int(end_timestamp.strftime('%s')) - int(start_timestamp.strftime('%s'))
+        num_seconds = int(to_timestamp(end_timestamp)) - int(to_timestamp(start_timestamp))
 
         # calculate the highest rollup within time range
         for rollup, samples in self.rollups:
             if rollup * samples >= num_seconds:
                 return rollup
         return self.rollups[-1][0]
+
+    def get_optimal_rollup_series(self, start, end=None, rollup=None):
+        if end is None:
+            end = timezone.now()
+
+        # NOTE: "optimal" here means "able to most closely reflect the upper
+        # and lower bounds", not "able to construct the most efficient query"
+        if rollup is None:
+            rollup = self.get_optimal_rollup(start, end)
+
+        series = [self.normalize_to_epoch(start, rollup)]
+        end_ts = int(to_timestamp(end))
+        while series[-1] + rollup < end_ts:
+            series.append(series[-1] + rollup)
+
+        return rollup, series
 
     def calculate_expiry(self, rollup, samples, timestamp):
         """
@@ -170,3 +196,28 @@ class BaseTSDB(object):
                     result[key].append([new_ts, count])
                     last_new_ts = new_ts
         return result
+
+    def record(self, model, key, values, timestamp=None):
+        """
+        Record occurences of items in a single distinct counter.
+        """
+        raise NotImplementedError
+
+    def record_multi(self, items, timestamp=None):
+        """
+        Record occurences of items in multiple distinct counters.
+        """
+        for model, key, values in items:
+            self.record(model, key, values, timestamp)
+
+    def get_distinct_counts_series(self, model, keys, start, end=None, rollup=None):
+        """
+        Fetch counts of distinct items for each rollup interval within the range.
+        """
+        raise NotImplementedError
+
+    def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
+        """
+        Count distinct items during a time range.
+        """
+        raise NotImplementedError
