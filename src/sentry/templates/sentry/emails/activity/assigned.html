@@ -2,7 +2,7 @@
 
 {% block header %}
   <a href="{{ link }}" class="btn">View on Sentry</a>
-  <h1>Sentry</h1>
+  {{ block.super }}
 {% endblock %}
 
 {% block main %}
@@ -11,6 +11,6 @@
   <h2>Assigned</h2>
 
   <blockquote>
-    {{ author }} assigned this event to you.
+    <strong>{{ author }}</strong> assigned this event to you.
   </blockquote>
 {% endblock %}
