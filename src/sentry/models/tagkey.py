@@ -37,7 +37,9 @@ class TagKeyManager(BaseManager):
             result = list(self.filter(
                 project=project,
                 status=TagKeyStatus.VISIBLE,
-            ).values_list('key', flat=True)[:100])
+            ).order_by(
+                '-values_seen'
+            ).values_list('key', flat=True)[:20])
             cache.set(key, result, 60)
         return result
 
