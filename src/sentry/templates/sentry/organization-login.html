@@ -2,12 +2,13 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_assets %}
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
 {% block content %}
   <div class="align-center">
-    <img src="{% url 'sentry-media' "sentry" "images/default-organization-logo.png" %}" class="org-avatar">
+    <img src="{% asset_url "sentry" "images/default-organization-logo.png" %}" class="org-avatar">
 
     <h3>{{ organization.name }}</h3>
   </div>

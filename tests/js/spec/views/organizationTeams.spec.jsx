@@ -12,7 +12,7 @@ describe("OrganizationTeams", function() {
     this.stubbedApiRequest = this.sandbox.stub(api, "request");
 
     var ContextStubbedOrganizationTeams = stubContext(OrganizationTeams, {
-      organization: { id: 1337 },
+      organization: { id: "1337" },
       router: stubRouter({
         getCurrentParams() {
           return { orgId: "123" };

@@ -52,7 +52,7 @@ def get_react_config(context):
         'urlPrefix': settings.SENTRY_URL_PREFIX,
         'version': _get_version_info(),
         'features': enabled_features,
-        'mediaUrl': reverse('sentry-media', args=['sentry', '']),
+        'mediaUrl': reverse('sentry-media', args=[settings.ASSET_VERSION, 'sentry', '']),
     }
     if user and user.is_authenticated():
         context.update({

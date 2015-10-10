@@ -11,7 +11,7 @@ export default function(stubber, stubbedComponents) {
       return originalCreateElement.apply(React, arguments);
     } else {
       var componentFactory = React.createFactory(component);
-      var displayName = componentFactory().type.displayName;
+      var displayName = componentFactory(props).type.displayName;
 
       if (displayName) {
         if (props.className) {
