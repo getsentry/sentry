@@ -16,7 +16,6 @@ var ActionLink = React.createClass({
 
   propTypes: {
     actionLabel: React.PropTypes.string,
-    groupIds: React.PropTypes.instanceOf(Array).isRequired,
     canActionAll: React.PropTypes.bool.isRequired,
     confirmLabel: React.PropTypes.string,
     disabled: React.PropTypes.bool,
@@ -30,6 +29,7 @@ var ActionLink = React.createClass({
     return {
       actionTypes: {},
       buttonTitle: null, // title="..." (optional)
+      canActionAll: false,
       confirmLabel: 'Edit',
       onlyIfBulk: false,
       neverConfirm: false,
