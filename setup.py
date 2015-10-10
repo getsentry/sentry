@@ -87,6 +87,7 @@ install_requires = [
     'exam>=0.5.1',
     'gunicorn>=19.2.1,<20.0.0',
     'ipaddr>=2.1.11,<2.2.0',
+    'kombu<3.0.27',  # 3.0.27 breaks Django 1.6.x compatibility
     'logan>=0.7.1,<0.8.0',
     'lxml>=3.4.1',
     'mock>=0.8.0',
