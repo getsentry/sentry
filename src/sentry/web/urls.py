@@ -109,9 +109,6 @@ urlpatterns += patterns(
     url(r'^_static/(?P<version>[^/]+)/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
         name='sentry-media'),
 
-    url(r'^templates/(?P<path>.*)$', generic.partial_static_media,
-        name='sentry-partial-media'),
-
     # API
     url(r'^api/0/', include('sentry.api.urls')),
     url(r'^api/hooks/mailgun/inbound/', MailgunInboundWebhookView.as_view(),
