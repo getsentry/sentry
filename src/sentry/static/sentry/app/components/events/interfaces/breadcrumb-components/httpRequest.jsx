@@ -7,6 +7,10 @@ var HttpRequestCrumbComponent = React.createClass({
     data: React.PropTypes.object.isRequired,
   },
 
+  test() {
+    return 42;
+  },
+
   render() {
     var data = this.props.data;
 

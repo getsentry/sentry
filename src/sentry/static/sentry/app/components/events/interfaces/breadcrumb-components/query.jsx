@@ -12,12 +12,12 @@ var QueryCrumbComponent = React.createClass({
     var placeholderIdx = 0;
     var queryElements = [];
 
-    data.query.split(/(%s)/).forEach((item) => {
+    data.query.split(/(%s)/).forEach((item, idx) => {
       queryElements.push(
         item === '%s'
-          ? <span className="param">{
+          ? <span key={idx} className="param">{
               data.params ? data.params[placeholderIdx++] : item}</span>
-          : <span className="literal">{item}</span>
+          : <span key={idx} className="literal">{item}</span>
       );
     });
 

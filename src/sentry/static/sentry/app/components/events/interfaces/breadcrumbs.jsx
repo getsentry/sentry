@@ -2,8 +2,6 @@ import React from "react";
 import GroupEventDataSection from "../eventDataSection";
 import PropTypes from "../../../proptypes";
 
-import TimeSince from "../../../components/timeSince";
-
 import MessageCrumbComponent from "./breadcrumb-components/message";
 import RpcCrumbComponent from "./breadcrumb-components/rpc";
 import QueryCrumbComponent from "./breadcrumb-components/query";
@@ -54,10 +52,9 @@ var BreadcrumbsInterface = React.createClass({
       } else {
         el = <div className="errors">Missing crumb "{item.type}"</div>;
       }
-      var ts = new Date(item.timestamp);
       return (
         <li key={idx} className={'crumb crumb-' + item.type.replace(/_/g, '-')}>
-          <TimeSince date={ts} />
+          <span className="dt">{Math.round(item.dt * 1000 * 1000) / 1000}ms</span>
           {el}
         </li>
       );
