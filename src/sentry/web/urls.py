@@ -106,7 +106,7 @@ urlpatterns += patterns(
     url(r'^api/(?P<project_id>[\w_-]+)/store/$', api.StoreView.as_view(),
         name='sentry-api-store'),
 
-    url(r'^_static/(?P<version>[^/]+)/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
+    url(r'^_static/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
         name='sentry-media'),
 
     # API
