@@ -135,6 +135,7 @@ class Breadcrumbs(Interface):
             items.append({
                 'type': ty,
                 'timestamp': ts,
+                'dt': crumb.get('dt'),
                 'data': validate_payload_for_type(crumb.get('data'), ty),
             })
         return cls(items=items)
