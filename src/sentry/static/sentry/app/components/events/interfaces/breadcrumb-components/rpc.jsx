@@ -11,7 +11,7 @@ var RpcCrumbComponent = React.createClass({
     var data = this.props.data;
     return (
       <p>
-        <strong>Call to</strong> <code>{data.endpoint}</code>
+        <strong>Remote call to</strong> <code>{data.endpoint}</code>
         <Classifier value={data.classifier} prefix="rpc" title="%s call"/>
       </p>
     );

@@ -50,7 +50,8 @@ def validate_payload_for_type(payload, type):
     payload = payload or {}
     func = validators.get(type)
     if func is None:
-        raise InterfaceValidationError("Invalid breadcrumb type.")
+        raise InterfaceValidationError("Invalid breadcrumb type (%s)." %
+                                       (type,))
     return func(payload)
 
 
@@ -78,6 +79,20 @@ def validate_rpc(payload):
     if not rv.get('endpoint'):
         raise InterfaceValidationError("No message provided for "
                                        "'message' breadcrumb.")
+    return rv
+
+
+@typevalidator('http_request')
+def validate_http_request(payload):
+    rv = {}
+    for key in 'statusCode', 'reason', 'method', 'url', 'headers', \
+               'response', 'classifier':
+        value = payload.get(key)
+        if value is not None:
+            rv[key] = trim(value, 1024)
+    if not rv.get('url'):
+        raise InterfaceValidationError("No message provided for "
+                                       "'url' breadcrumb.")
     return rv
 
 
