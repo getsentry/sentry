@@ -21,7 +21,11 @@ class Command(RunserverCommand):
     option_list = RunserverCommand.option_list + (
         make_option(
             '--no-watchers', action='store_false', dest='use_watcher',
-            default=settings.DEBUG,
+            default=True,
+            help='Tells Sentry to NOT automatically recompile static distributions.'),
+        make_option(
+            '--watchers', action='store_true', dest='use_watcher',
+            default=True,
             help='Tells Sentry to NOT automatically recompile static distributions.'),
     )
 
