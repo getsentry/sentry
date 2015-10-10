@@ -6,9 +6,9 @@
 {% endblock %}
 
 {% block main %}
-  {% include "sentry/emails/group_header.html" %}
-
   <h2>New Note by <span class="highlight">{{ author }}</span></h2>
 
   {{ data.text|urlize|linebreaks }}
+
+  {% include "sentry/emails/group_header.html" %}
 {% endblock %}
