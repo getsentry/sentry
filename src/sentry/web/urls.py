@@ -199,6 +199,9 @@ urlpatterns += patterns(
     url(r'^api/?$',
         RedirectView.as_view(url='https://docs.getsentry.com/hosted/api/', permanent=False),
         name='sentry-api-docs-redirect'),
+    url(r'^docs/api/?$',
+        RedirectView.as_view(url='https://docs.getsentry.com/hosted/api/', permanent=False),
+        name='sentry-api-docs-redirect'),
 
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$', ReactPageView.as_view(),
