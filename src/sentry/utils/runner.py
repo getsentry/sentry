@@ -324,6 +324,9 @@ def initialize_app(config, skip_backend_validation=False):
     settings.CACHES['default']['VERSION'] = settings.CACHE_VERSION
 
     settings.ASSET_VERSION = get_asset_version(settings)
+    settings.STATIC_URL = settings.STATIC_URL.format(
+        version=settings.ASSET_VERSION,
+    )
 
     if USE_GEVENT:
         from django.db import connections
