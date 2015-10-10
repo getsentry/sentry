@@ -7,12 +7,14 @@ import TimeSince from "../../../components/timeSince";
 import MessageCrumbComponent from "./breadcrumb-components/message";
 import RpcCrumbComponent from "./breadcrumb-components/rpc";
 import QueryCrumbComponent from "./breadcrumb-components/query";
+import HttpRequestCrumbComponent from "./breadcrumb-components/httpRequest";
 
 
 const crumbComponents = {
   message: MessageCrumbComponent,
   rpc: RpcCrumbComponent,
   query: QueryCrumbComponent,
+  http_request: HttpRequestCrumbComponent,
 };
 
 
@@ -54,7 +56,7 @@ var BreadcrumbsInterface = React.createClass({
       }
       var ts = new Date(item.timestamp);
       return (
-        <li key={idx} className={'crumb crumb-' + item.type}>
+        <li key={idx} className={'crumb crumb-' + item.type.replace(/_/g, '-')}>
           <TimeSince date={ts} />
           {el}
         </li>
