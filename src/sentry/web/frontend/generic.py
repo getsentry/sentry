@@ -27,11 +27,6 @@ def static_media(request, **kwargs):
     return serve(request, path, insecure=True)
 
 
-def partial_static_media(request, path):
-    path = 'app/templates/' + path
-    return static_media(request, module='sentry', path=path)
-
-
 class TemplateView(BaseTemplateView):
     def render_to_response(self, context, **response_kwargs):
         return render_to_response(
