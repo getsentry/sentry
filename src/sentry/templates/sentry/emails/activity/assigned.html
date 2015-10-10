@@ -6,11 +6,11 @@
 {% endblock %}
 
 {% block main %}
-  {% include "sentry/emails/group_header.html" %}
-
   <h2>Assigned</h2>
 
   <blockquote>
     <strong>{{ author }}</strong> assigned this event to you.
   </blockquote>
+
+  {% include "sentry/emails/group_header.html" %}
 {% endblock %}
