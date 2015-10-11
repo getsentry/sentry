@@ -15,7 +15,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.db.models import Sum, Q
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotAllowed
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.views.decorators.cache import never_cache, cache_control
@@ -27,7 +27,7 @@ from raven.contrib.django.models import client as Raven
 from sentry import app
 from sentry.app import tsdb
 from sentry.coreapi import (
-    APIError, APIForbidden, APIRateLimited, ClientApiHelper
+    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper,
 )
 from sentry.event_manager import EventManager
 from sentry.models import (
@@ -71,6 +71,8 @@ def api(func):
 
 
 class APIView(BaseView):
+    helper_cls = ClientApiHelper
+
     def _get_project_from_id(self, project_id):
         if not project_id:
             return
@@ -95,7 +97,7 @@ class APIView(BaseView):
     @csrf_exempt
     @never_cache
     def dispatch(self, request, project_id=None, *args, **kwargs):
-        helper = ClientApiHelper(
+        helper = self.helper_cls(
             agent=request.META.get('HTTP_USER_AGENT'),
             project_id=project_id,
             ip_address=request.META['REMOTE_ADDR'],
@@ -329,16 +331,17 @@ class StoreView(APIView):
 
         content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')
 
-        if content_encoding == 'gzip':
-            data = helper.decompress_gzip(data)
-        elif content_encoding == 'deflate':
-            data = helper.decompress_deflate(data)
-        elif not data.startswith('{'):
-            data = helper.decode_and_decompress_data(data)
-        data = helper.safely_load_json_string(data)
+        if isinstance(data, basestring):
+            if content_encoding == 'gzip':
+                data = helper.decompress_gzip(data)
+            elif content_encoding == 'deflate':
+                data = helper.decompress_deflate(data)
+            elif not data.startswith('{'):
+                data = helper.decode_and_decompress_data(data)
+            data = helper.safely_load_json_string(data)
 
         # mutates data
-        helper.validate_data(project, data)
+        data = helper.validate_data(project, data)
 
         # mutates data
         manager = EventManager(data, version=auth.version)
@@ -376,6 +379,60 @@ class StoreView(APIView):
         helper.log.debug('New event received (%s)', event_id)
 
         return event_id
+
+
+class CspReportView(StoreView):
+    helper_cls = CspApiHelper
+    content_types = ('application/csp-report', 'application/json')
+
+    def _dispatch(self, request, helper, project_id=None, origin=None,
+                  *args, **kwargs):
+        if request.method != 'POST':
+            return HttpResponseNotAllowed(['POST'])
+
+        if request.META.get('CONTENT_TYPE') not in self.content_types:
+            raise APIError('Invalid Content-Type')
+
+        request.user = AnonymousUser()
+
+        project = self._get_project_from_id(project_id)
+        helper.context.bind_project(project)
+        Raven.tags_context(helper.context.get_tags_context())
+
+        auth = self._parse_header(request, helper, project)
+
+        project_ = helper.project_from_auth(auth)
+        if project_ != project:
+            raise APIError('Two different project were specified')
+
+        helper.context.bind_auth(auth)
+        Raven.tags_context(helper.context.get_tags_context())
+
+        return super(APIView, self).dispatch(
+            request=request,
+            project=project,
+            auth=auth,
+            helper=helper,
+            **kwargs
+        )
+
+    def post(self, request, project, auth, helper, **kwargs):
+        data = helper.safely_load_json_string(request.body)
+        origin = data['csp-report'].get('document-uri')
+        if not is_valid_origin(origin, project):
+            raise APIForbidden('Invalid document-uri')
+
+        response_or_event_id = self.process(
+            request,
+            project=project,
+            auth=auth,
+            helper=helper,
+            data=data,
+            **kwargs
+        )
+        if isinstance(response_or_event_id, HttpResponse):
+            return response_or_event_id
+        return HttpResponse(status=201)
 
 
 @never_cache
