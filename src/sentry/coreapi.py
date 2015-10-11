@@ -29,6 +29,7 @@ from sentry.constants import (
     MAX_TAG_KEY_LENGTH
 )
 from sentry.interfaces.base import get_interface, InterfaceValidationError
+from sentry.interfaces.csp import Csp
 from sentry.models import EventError, Project, ProjectKey
 from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json
@@ -569,3 +570,35 @@ class ClientApiHelper(object):
         cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
         default_cache.set(cache_key, data, timeout=3600)
         preprocess_event.delay(cache_key=cache_key, start_time=time())
+
+
+class CspApiHelper(ClientApiHelper):
+    def validate_data(self, project, data):
+        report = data.get('csp-report')
+        if not report:
+            raise APIForbidden('Missing csp-report')
+
+        report = dict(map(lambda v: (v[0].replace('-', '_'), v[1]), report.iteritems()))
+        inst = Csp.to_python(report)
+        headers = {}
+        if self.context.agent:
+            headers['User-Agent'] = self.context.agent
+        if inst.referrer:
+            headers['Referer'] = inst.referrer
+        return {
+            'project': project.id,
+            inst.get_path(): inst.to_json(),
+            'message': inst.get_message(),
+            'culprit': inst.get_culprit(),
+            # This is a bit weird, since we don't have nearly enough
+            # information to create an Http interface, but
+            # this automatically will pick up tags for the User-Agent
+            # which is actually important here for CSP
+            'sentry.interfaces.Http': {
+                'url': inst.document_uri,
+                'headers': headers,
+            },
+            'sentry.interfaces.User': {
+                'ip_address': self.context.ip_address,
+            }
+        }
