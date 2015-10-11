@@ -578,18 +578,22 @@ class CspApiHelper(ClientApiHelper):
         if not report:
             raise APIForbidden('Missing csp-report')
 
+        # All keys are sent with hyphens, so we want to conver to underscores
         report = dict(map(lambda v: (v[0].replace('-', '_'), v[1]), report.iteritems()))
         inst = Csp.to_python(report)
+
+        # Construct a faux Http interface based on the little information we have
         headers = {}
         if self.context.agent:
             headers['User-Agent'] = self.context.agent
         if inst.referrer:
             headers['Referer'] = inst.referrer
+
         return {
             'project': project.id,
-            inst.get_path(): inst.to_json(),
             'message': inst.get_message(),
             'culprit': inst.get_culprit(),
+            inst.get_path(): inst.to_json(),
             # This is a bit weird, since we don't have nearly enough
             # information to create an Http interface, but
             # this automatically will pick up tags for the User-Agent

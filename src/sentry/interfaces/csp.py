@@ -14,6 +14,8 @@ from urlparse import urlsplit
 from sentry.interfaces.base import Interface
 from sentry.utils.safe import trim
 
+
+# Sourced from https://developer.mozilla.org/en-US/docs/Web/Security/CSP/CSP_policy_directives
 REPORT_KEYS = frozenset((
     'blocked_uri', 'document_uri', 'effective_directive', 'original_policy',
     'referrer', 'status_code', 'violated_directive', 'source_file',
@@ -34,6 +36,8 @@ class Csp(Interface):
     """
     A CSP violation report.
 
+    See also: http://www.w3.org/TR/CSP/#violation-reports
+
     >>> {
     >>>     "document_uri": "http://example.com/",
     >>>     "violated_directive": "style-src cdn.example.com",
@@ -46,7 +50,10 @@ class Csp(Interface):
         return cls(**kwargs)
 
     def get_hash(self):
-        # this may or may not be great, not sure until we see it in the wild
+        # The hash of a CSP report is it's normalized `violated-directive`.
+        # This normalization has to be done for FireFox because they send
+        # weird stuff compared to Safari and Chrome.
+        # NOTE: this may or may not be great, not sure until we see it in the wild
         bits = filter(None, self.violated_directive.split(' '))
         return [bits[0]] + map(self._normalize_value, bits[1:])
 
@@ -57,7 +64,11 @@ class Csp(Interface):
         return 'CSP Violation: %r' % ' '.join(self.get_hash())
 
     def get_culprit(self):
-        return self.blocked_uri or self.effective_directive or self.violated_directive
+        if self.blocked_uri:
+            return 'blocked uri: %r' % self.blocked_uri
+        if self.effective_directive:
+            return 'effective directive: %r' % self.effective_directive
+        return 'violated directive: %r' % self.violated_directive
 
     def _normalize_value(self, value):
         # > If no scheme is specified, the same scheme as the one used to
@@ -73,6 +84,8 @@ class Csp(Interface):
             if _get_origin(self.document_uri) == value:
                 return "'self'"
             return value
+
+        # Now we need to stitch on a scheme to the value
         scheme = self.document_uri.split(':', 1)[0]
         # These schemes need to have an additional '//' to be a url
         if scheme in ('http', 'https', 'file'):
@@ -82,6 +95,7 @@ class Csp(Interface):
 
 
 def _get_origin(value):
+    "Extract the origin out of a url, which is just scheme+host"
     scheme, hostname = urlsplit(value)[:2]
     if scheme in ('http', 'https', 'file'):
         return '%s://%s' % (scheme, hostname)
