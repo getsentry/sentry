@@ -2,7 +2,7 @@
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models,
 
 class Migration(DataMigration):
 
@@ -20,15 +20,12 @@ class Migration(DataMigration):
             teams = Team.objects.filter(organization=org)
             for member in members:
                 for team in teams:
-                    try:
-                        with transaction.atomic():
-                            OrganizationMemberTeam.objects.create(
-                                team=team,
-                                organizationmember=member,
-                                is_active=True,
-                            )
-                    except IntegrityError:
-                        pass
+                    # XXX(dcramer): South doesnt like us using transactions here
+                    OrganizationMemberTeam.objects.get_or_create(
+                        team=team,
+                        organizationmember=member,
+                        is_active=True,
+                    )
 
     def backwards(self, orm):
         pass
