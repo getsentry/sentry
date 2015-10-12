@@ -217,7 +217,7 @@ def digest(request):
             records.append(
                 event_to_record(
                     Event(
-                        id=next(itertools.count()),
+                        id=next(event_sequence),
                         project=project,
                         group=group,
                         message=group.message,
