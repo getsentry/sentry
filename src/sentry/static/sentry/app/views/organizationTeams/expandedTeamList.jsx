@@ -1,5 +1,6 @@
 import React from "react";
 import Router from "react-router";
+import LazyLoad from "react-lazy-load";
 
 import api from "../../api";
 import BarChart from "../../components/barChart";
@@ -110,7 +111,7 @@ var ExpandedTeamList = React.createClass({
           </h5>
         </td>
         <td className="align-right project-chart">
-          {chartData && <BarChart points={chartData} className="sparkline" /> }
+          {chartData && <LazyLoad><BarChart points={chartData} className="sparkline" /></LazyLoad> }
         </td>
       </tr>
     );
