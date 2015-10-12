@@ -12,6 +12,56 @@ from sentry.testutils import TestCase
 from sentry.utils import json
 
 
+class CspReportViewTest(TestCase):
+    @fixture
+    def path(self):
+        path = reverse('sentry-api-csp-report', kwargs={'project_id': self.project.id})
+        return path + '?sentry_key=%s&sentry_version=5' % self.projectkey.public_key
+
+    def _postWithHeader(self, data, key=None, **extra):
+        body = json.dumps({'csp-report': data})
+        with self.tasks():
+            return self.client.post(
+                self.path, data=body,
+                content_type='application/csp-report',
+                HTTP_USER_AGENT='awesome',
+                **extra
+            )
+
+    def test_get_response(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 405, resp.content
+
+    def test_invalid_content_type(self):
+        resp = self.client.post(self.path, content_type='text/plain')
+        assert resp.status_code == 400, resp.content
+
+    def test_missing_csp_report(self):
+        resp = self.client.post(self.path,
+            content_type='application/csp-report',
+            data='{"lol":1}',
+            HTTP_USER_AGENT='awesome',
+        )
+        assert resp.status_code == 400, resp.content
+
+    @mock.patch('sentry.utils.http.get_origins')
+    def test_bad_origin(self, get_origins):
+        get_origins.return_value = ['example.com']
+        resp = self.client.post(self.path,
+            content_type='application/csp-report',
+            data='{"csp-report":{"document_uri":"http://lolnope.com"}}',
+            HTTP_USER_AGENT='awesome',
+        )
+        assert resp.status_code == 403, resp.content
+
+    @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
+    @mock.patch('sentry.web.api.CspReportView.process')
+    def test_post_success(self, process):
+        process.return_value = 'ok'
+        resp = self._postWithHeader(dict(document_uri='http://example.com'))
+        assert resp.status_code == 201, resp.content
+
+
 class StoreViewTest(TestCase):
     @fixture
     def path(self):

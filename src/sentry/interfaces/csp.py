@@ -20,6 +20,9 @@ REPORT_KEYS = frozenset((
     'blocked_uri', 'document_uri', 'effective_directive', 'original_policy',
     'referrer', 'status_code', 'violated_directive', 'source_file',
     'line_number', 'column_number',
+
+    # FireFox specific keys
+    'script_sample',
 ))
 
 KEYWORDS = frozenset((
@@ -47,6 +50,11 @@ class Csp(Interface):
     @classmethod
     def to_python(cls, data):
         kwargs = {k: trim(data.get(k, None), 1024) for k in REPORT_KEYS}
+        # Inline script violations are confusing and don't say what uri blocked them
+        # because they're inline. FireFox sends along "blocked-uri": "self", which is
+        # vastly more useful, so we want to emulate that
+        if kwargs['effective_directive'] == 'script-src' and not kwargs['blocked_uri']:
+            kwargs['blocked_uri'] = 'self'
         return cls(**kwargs)
 
     def get_hash(self):
@@ -54,21 +62,30 @@ class Csp(Interface):
         # This normalization has to be done for FireFox because they send
         # weird stuff compared to Safari and Chrome.
         # NOTE: this may or may not be great, not sure until we see it in the wild
-        bits = filter(None, self.violated_directive.split(' '))
-        return [bits[0]] + map(self._normalize_value, bits[1:])
+        return [':'.join(self.get_violated_directive()), ':'.join(self.get_culprit_directive())]
+
+    def get_violated_directive(self):
+        return 'violated-directive', self._normalize_directive(self.violated_directive)
+
+    def get_culprit_directive(self):
+        if self.blocked_uri:
+            return 'blocked-uri', self.blocked_uri
+        return 'effective-directive', self._normalize_directive(self.effective_directive)
 
     def get_path(self):
         return 'sentry.interfaces.Csp'
 
     def get_message(self):
-        return 'CSP Violation: %r' % ' '.join(self.get_hash())
+        return 'CSP Violation: %s %r' % self.get_culprit_directive()
 
     def get_culprit(self):
-        if self.blocked_uri:
-            return 'blocked uri: %r' % self.blocked_uri
-        if self.effective_directive:
-            return 'effective directive: %r' % self.effective_directive
-        return 'violated directive: %r' % self.violated_directive
+        return '%s in %r' % self.get_violated_directive()
+
+    def _normalize_directive(self, directive):
+        if not directive:
+            return directive
+        bits = filter(None, directive.split(' '))
+        return ' '.join([bits[0]] + map(self._normalize_value, bits[1:]))
 
     def _normalize_value(self, value):
         # > If no scheme is specified, the same scheme as the one used to
