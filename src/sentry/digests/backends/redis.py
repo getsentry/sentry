@@ -162,14 +162,13 @@ class RedisBackend(Backend):
     def schedule(self, deadline, chunk=1000):
         # TODO: This doesn't lead to a fair balancing of workers, ideally each
         # scheduling task would be executed by a different process for each
-        # host.
+        # host. There is also no failure isolation here, so a single shard
+        # failure will cause the remainder of the shards to not be able to be
+        # scheduled.
         for host in self.cluster.hosts:
             connection = self.cluster.get_local_client(host)
 
-            # TODO: This needs to handle partial failures gracefully.
-            # TODO: This lock duration is totally arbitrary (it should be a
-            # function of the scheduler execution interval.)
-            with Lock('{0}:s:{1}'.format(self.namespace, host), nowait=True, timeout=60 * 5):
+            with Lock('{0}:s:{1}'.format(self.namespace, host), nowait=True, timeout=30):
                 # Prevent a runaway loop by setting a maximum number of
                 # iterations. Note that this limits the total number of
                 # expected items in any specific scheduling interval to chunk *
@@ -222,7 +221,8 @@ class RedisBackend(Backend):
     def maintenance(self, deadline, chunk=1000):
         # TODO: This needs tests!
 
-        # TODO: Balancing.
+        # TODO: This suffers from the same shard isolation issues as
+        # ``schedule``.
         for host in self.cluster.hosts:
             connection = self.cluster.get_local_client(host)
 
@@ -247,8 +247,7 @@ class RedisBackend(Backend):
                     returning ``None``.
                     """
                     key, timestamp = item
-                    # TODO: This timeout is totally arbitrary, need to ensure this is reasonable.
-                    lock = Lock(make_timeline_key(self.namespace, key), timeout=60, nowait=True)
+                    lock = Lock(make_timeline_key(self.namespace, key), timeout=5, nowait=True)
                     return lock if lock.acquire() else None, item
 
                 # Try to take out a lock on each item. If we can't acquire the
@@ -342,9 +341,8 @@ class RedisBackend(Backend):
 
         connection = self.cluster.get_local_client_for_key(timeline_key)
 
-        # TODO: This timeout is totally arbitrary.
         # TODO: Note that callers must be prepared to handle this exception.
-        with Lock(timeline_key, nowait=True, timeout=60):
+        with Lock(timeline_key, nowait=True, timeout=30):
             if connection.zscore(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key) is None:
                 raise Exception('Cannot digest timeline, timeline is not in the ready state.')
 
