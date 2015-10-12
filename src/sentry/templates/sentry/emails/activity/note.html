@@ -8,7 +8,7 @@
 {% block main %}
   <h2>New Note by <span class="highlight">{{ author }}</span></h2>
 
-  {{ data.text|urlize|linebreaks }}
+  <div class="note-body">{{ data.text|urlize|linebreaks }}</div>
 
   {% include "sentry/emails/group_header.html" %}
 {% endblock %}
