@@ -45,7 +45,7 @@ class BulkDeleteQuery(object):
             where=where_clause,
         )
 
-        return self._continuous_delete(query)
+        return self._continuous_query(query)
 
     def execute_mysql(self, chunk_size=10000):
         quote_name = connections['default'].ops.quote_name
@@ -75,7 +75,7 @@ class BulkDeleteQuery(object):
             where=where_clause,
         )
 
-        return self._continuous_delete(query)
+        return self._continuous_query(query)
 
     def _continuous_query(self, query):
         results = True
