@@ -387,6 +387,13 @@ class CspReportView(StoreView):
 
     def _dispatch(self, request, helper, project_id=None, origin=None,
                   *args, **kwargs):
+        # NOTE: We need to override the auth flow for a CSP report!
+        # A CSP report is sent as a POST request with no Origin or Referer
+        # header. What we're left with is a 'document-uri' key which is
+        # inside of the JSON body of the request. This 'document-uri' value
+        # should be treated as an origin check since it refers to the page
+        # that triggered the report. The Content-Type is supposed to be
+        # `application/csp-report`, but FireFix sends it as `application/json`.
         if request.method != 'POST':
             return HttpResponseNotAllowed(['POST'])
 
@@ -399,6 +406,9 @@ class CspReportView(StoreView):
         helper.context.bind_project(project)
         Raven.tags_context(helper.context.get_tags_context())
 
+        # This is yanking the auth from the querystring since it's not
+        # in the POST body. This means we expect a `sentry_key` and
+        # `sentry_version` to be set in querystring
         auth = self._parse_header(request, helper, project)
 
         project_ = helper.project_from_auth(auth)
@@ -418,6 +428,9 @@ class CspReportView(StoreView):
 
     def post(self, request, project, auth, helper, **kwargs):
         data = helper.safely_load_json_string(request.body)
+
+        # Do origin check based on the `document-uri` key as explained
+        # in `_dispatch`.
         origin = data['csp-report'].get('document-uri')
         if not is_valid_origin(origin, project):
             raise APIForbidden('Invalid document-uri')
