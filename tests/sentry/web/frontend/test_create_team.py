@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Team
+from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 from sentry.testutils import TestCase, PermissionTestCase
 
 
@@ -45,6 +45,17 @@ class CreateTeamTest(TestCase):
         assert resp.status_code == 302, resp.context['form'].errors
 
         team = Team.objects.get(organization=organization, name='bar')
+
+        member = OrganizationMember.objects.get(
+            user=self.user,
+            organization=organization,
+        )
+
+        assert OrganizationMemberTeam.objects.filter(
+            organizationmember=member,
+            team=team,
+            is_active=True,
+        ).exists()
 
         redirect_uri = reverse('sentry-create-project', args=[organization.slug])
         assert resp['Location'] == 'http://testserver%s?team=%s' % (

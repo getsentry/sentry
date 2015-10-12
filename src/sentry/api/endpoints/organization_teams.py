@@ -7,7 +7,10 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
-from sentry.models import AuditLogEntryEvent, Team, TeamStatus
+from sentry.models import (
+    AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam,
+    Team, TeamStatus
+)
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -90,6 +93,21 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 slug=result.get('slug'),
                 organization=organization,
             )
+
+            if request.user.is_authenticated():
+                try:
+                    member = OrganizationMember.objects.get(
+                        user=request.user,
+                        organization=organization,
+                    )
+                except OrganizationMember.DoesNotExist:
+                    pass
+                else:
+                    OrganizationMemberTeam.objects.create(
+                        team=team,
+                        organizationmember=member,
+                        is_active=True,
+                    )
 
             self.create_audit_entry(
                 request=request,

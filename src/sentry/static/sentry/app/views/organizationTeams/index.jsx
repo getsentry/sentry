@@ -124,13 +124,15 @@ var OrganizationTeams = React.createClass({
                   <a onClick={this.toggleTeams.bind(this, "your-teams")}>Your Teams</a>
                 </li>
                 <li className={activeNav === "all-teams" && "active"}>
-                  <a onClick={this.toggleTeams.bind(this, "all-teams")}>All Teams</a>
+                  <a onClick={this.toggleTeams.bind(this, "all-teams")}>All Teams <span className="badge badge-soft">{allTeams.length}</span></a>
                 </li>
               </ul>
               {activeNav == 'your-teams' ?
                 <ExpandedTeamList
                     organization={org} teamList={activeTeams}
-                    projectStats={this.state.projectStats} />
+                    projectStats={this.state.projectStats}
+                    hasTeams={allTeams.length !== 0}
+                    showAllTeams={this.toggleTeams.bind(this, "all-teams")} />
               :
                 <SlimTeamList
                   organization={org} teamList={allTeams}
