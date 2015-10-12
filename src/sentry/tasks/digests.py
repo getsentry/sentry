@@ -7,7 +7,6 @@ from sentry.digests.notifications import (
     split_key,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
 
 
 @instrumented_task(
@@ -17,15 +16,20 @@ def schedule_digests():
     from sentry.app import digests
 
     deadline = time.time()
-    timeout = 30  # TODO: Make this a setting, it also should match task expiration.
 
-    # TODO: This might make sense to make probabilistic instead?
+    # The maximum (but hopefully not typical) expected delay can be roughly
+    # calculated by adding together the schedule interval, the # of shards *
+    # schedule timeout (at least until these are able to be processed in
+    # parallel), the expected duration of time an item spends waiting in the
+    # queue to be processed for delivery and the expected duration of time an
+    # item takes to be processed for delivery, so this timeout should be
+    # relatively high to avoid requeueing items before they even had a chance
+    # to be processed.
+    timeout = 300
     digests.maintenance(deadline - timeout)
 
-    deadline = time.time()
     for entry in digests.schedule(deadline):
         deliver_digest.delay(entry.key, entry.timestamp)
-        metrics.timing('digests.schedule_latency', time.time() - entry.timestamp)
 
 
 @instrumented_task(
@@ -40,6 +44,3 @@ def deliver_digest(key, schedule_timestamp):
 
     if digest:
         plugin.notify_digest(project, digest)
-
-    # TODO: This should probably report, no matter the outcome of the task?
-    metrics.timing('digests.delivery_latency', time.time() - schedule_timestamp)

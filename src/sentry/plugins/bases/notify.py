@@ -54,6 +54,10 @@ class NotificationPlugin(Plugin):
         event = notification.event
         return self.notify_users(event.group, event)
 
+    def __can_be_digested(self, event):
+        return hasattr(self, 'notify_digest') and \
+            features.has('projects:digests', event.group.project)
+
     def rule_notify(self, event, futures):
         rules = []
         for future in futures:
@@ -62,10 +66,9 @@ class NotificationPlugin(Plugin):
                 continue
             raise NotImplementedError('The default behavior for notification de-duplication does not support args')
 
-        # TODO: Encapsulate this better, maybe make it an option on the plugin?
-        if features.has('projects:digests', event.group.project) and hasattr(self, 'notify_digest'):
+        if self.__can_be_digested(event):
             digests.add(
-                unsplit_key(self, event.group.project),
+                unsplit_key(self, event.group.project),  # TODO: Improve this abstraction.
                 event_to_record(event, rules),
             )
         else:
@@ -107,7 +110,7 @@ class NotificationPlugin(Plugin):
     def should_notify(self, group, event):
         # If digests are enabled for this project, we always want to add the
         # notification to the digest (even if it may be filtered out later.)
-        if features.has('projects:digests', group.project):
+        if self.__can_be_digested(event):
             return True
 
         if group.is_muted():
