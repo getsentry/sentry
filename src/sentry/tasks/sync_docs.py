@@ -47,7 +47,8 @@ def sync_docs():
 
     for platform_id, platform_data in data['platforms'].iteritems():
         for integration_id, integration in platform_data.iteritems():
-            logger.info('Syncing documentation for %s integration', integration_id)
+            logger.info('Syncing documentation for %s.%s integration',
+                        platform_id, integration_id)
             sync_integration(platform_id, integration_id, integration['details'])
 
 
