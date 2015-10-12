@@ -41,7 +41,7 @@ class BulkDeleteQuery(object):
             ));
         """.format(
             table=self.model._meta.db_table,
-            chunk_size=self.chunk_size,
+            chunk_size=chunk_size,
             where=where_clause,
         )
 
