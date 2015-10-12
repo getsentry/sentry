@@ -74,6 +74,8 @@ class Backend(object):
         else:
             if options.get('truncation_chance') is not None:
                 raise TypeError('No timeline capacity has been set, "truncation_chance" must be None.')
+            else:
+                self.truncation_chance = 0.0
 
     def add(self, key, record):
         """
