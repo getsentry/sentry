@@ -12,7 +12,7 @@ class Migration(DataMigration):
         OrganizationMemberTeam = orm['sentry.OrganizationMemberTeam']
         Team = orm['sentry.Team']
 
-        for org in Organization.objects.filter():
+        for org in Organization.objects.all():
             members = OrganizationMember.objects.filter(
                 organization=org,
                 has_global_access=True,
