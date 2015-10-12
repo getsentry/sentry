@@ -7,7 +7,7 @@
   <table class="group-stats">
     <tr>
       <td class="group-message">
-        <h3>{{ group.title }}</h3>
+        <h3>{{ group.title|truncatechars:30 }}</h3>
         <p class="message">{{ group.message_short }}</p>
         <p class="meta">
           <span class="last-seen pretty-date">{{ group.last_seen }} UTC</span>
