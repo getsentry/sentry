@@ -393,7 +393,7 @@ class CspReportView(StoreView):
         # inside of the JSON body of the request. This 'document-uri' value
         # should be treated as an origin check since it refers to the page
         # that triggered the report. The Content-Type is supposed to be
-        # `application/csp-report`, but FireFix sends it as `application/json`.
+        # `application/csp-report`, but FireFox sends it as `application/json`.
         if request.method != 'POST':
             return HttpResponseNotAllowed(['POST'])
 
@@ -431,7 +431,12 @@ class CspReportView(StoreView):
 
         # Do origin check based on the `document-uri` key as explained
         # in `_dispatch`.
-        origin = data['csp-report'].get('document-uri')
+        try:
+            report = data['csp-report']
+        except KeyError:
+            raise APIError('Missing csp-report')
+
+        origin = report.get('document-uri')
         if not is_valid_origin(origin, project):
             raise APIForbidden('Invalid document-uri')
 
@@ -440,7 +445,7 @@ class CspReportView(StoreView):
             project=project,
             auth=auth,
             helper=helper,
-            data=data,
+            data=report,
             **kwargs
         )
         if isinstance(response_or_event_id, HttpResponse):

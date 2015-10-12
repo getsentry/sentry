@@ -573,13 +573,13 @@ class ClientApiHelper(object):
 
 
 class CspApiHelper(ClientApiHelper):
-    def validate_data(self, project, data):
-        report = data.get('csp-report')
-        if not report:
-            raise APIForbidden('Missing csp-report')
+    def origin_from_request(self, request):
+        # We don't use an origin here
+        return None
 
+    def validate_data(self, project, data):
         # All keys are sent with hyphens, so we want to conver to underscores
-        report = dict(map(lambda v: (v[0].replace('-', '_'), v[1]), report.iteritems()))
+        report = dict(map(lambda v: (v[0].replace('-', '_'), v[1]), data.iteritems()))
         inst = Csp.to_python(report)
 
         # Construct a faux Http interface based on the little information we have
