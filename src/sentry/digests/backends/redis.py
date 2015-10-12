@@ -137,8 +137,9 @@ class RedisBackend(Backend):
 
             pipeline.set(make_iteration_key(timeline_key), 0, nx=True)
 
-            # TODO: Prefix the entry with the timestamp (lexicographically
-            # sortable) to ensure that we can maintain abitrary precision:
+            # In the future, it might make sense to prefix the entry with the
+            # timestamp (lexicographically sortable) to ensure that we can
+            # maintain the correct sort order with abitrary precision:
             # http://redis.io/commands/ZADD#elements-with-the-same-score
             pipeline.zadd(timeline_key, record.timestamp, record.key)
 
@@ -222,7 +223,11 @@ class RedisBackend(Backend):
         # TODO: This needs tests!
 
         # TODO: This suffers from the same shard isolation issues as
-        # ``schedule``.
+        # ``schedule``. Ideally, this would also return the number of items
+        # that were rescheduled (and possibly even how late they were at the
+        # point of rescheduling) but that causes a bit of an API issue since in
+        # the case of an error, this can be considered a partial success (but
+        # still should raise an exception.)
         for host in self.cluster.hosts:
             connection = self.cluster.get_local_client(host)
 
