@@ -106,11 +106,8 @@ urlpatterns += patterns(
     url(r'^api/(?P<project_id>[\w_-]+)/store/$', api.StoreView.as_view(),
         name='sentry-api-store'),
 
-    url(r'^_static/(?P<version>[^/]+)/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
+    url(r'^_static/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
         name='sentry-media'),
-
-    url(r'^templates/(?P<path>.*)$', generic.partial_static_media,
-        name='sentry-partial-media'),
 
     # API
     url(r'^api/0/', include('sentry.api.urls')),
@@ -200,6 +197,9 @@ urlpatterns += patterns(
         RedirectView.as_view(url='https://docs.getsentry.com/hosted/', permanent=False),
         name='sentry-docs-redirect'),
     url(r'^api/?$',
+        RedirectView.as_view(url='https://docs.getsentry.com/hosted/api/', permanent=False),
+        name='sentry-api-docs-redirect'),
+    url(r'^docs/api/?$',
         RedirectView.as_view(url='https://docs.getsentry.com/hosted/api/', permanent=False),
         name='sentry-api-docs-redirect'),
 

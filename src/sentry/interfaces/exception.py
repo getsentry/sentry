@@ -179,35 +179,15 @@ class Exception(Interface):
     def data_has_system_frames(cls, data):
         system_frames = 0
         app_frames = 0
-        unknown_frames = 0
         for exc in data['values']:
             if not exc.get('stacktrace'):
                 continue
 
             for frame in exc['stacktrace'].get('frames', []):
-                if frame.get('in_app') is False:
-                    system_frames += 1
-                elif frame.get('in_app') is True:
+                if frame.get('in_app') is True:
                     app_frames += 1
                 else:
-                    unknown_frames += 1
-
-        # TODO(dcramer): this should happen in normalize
-        # We need to ensure that implicit values for in_app are handled
-        # appropriately
-        if unknown_frames:
-            for exc in data['values']:
-                if not exc.get('stacktrace'):
-                    continue
-
-                for frame in exc['stacktrace'].get('frames', []):
-                    if frame.get('in_app') is None:
-                        if bool(system_frames):
-                            frame['in_app'] = True
-                            app_frames += 1
-                        else:
-                            frame['in_app'] = False
-                            system_frames += 1
+                    system_frames += 1
 
         # if there is a mix of frame styles then we indicate that system frames
         # are present and should be represented as a split

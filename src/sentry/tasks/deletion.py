@@ -8,7 +8,6 @@ sentry.tasks.deletion
 
 from __future__ import absolute_import
 
-
 from celery.utils.log import get_task_logger
 
 from sentry.utils.query import bulk_delete_objects

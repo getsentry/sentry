@@ -1,15 +1,15 @@
-{% load i18n %}{% load static from staticfiles %}{% load url from compat %}
-<link rel="stylesheet" href="{% static 'debug_toolbar/css/print.css' %}" type="text/css" media="print" />
-<link rel="stylesheet" href="{% static 'sentry/styles/debug-toolbar.css' %}" type="text/css" />
+{% load i18n %}{% load sentry_assets %}
+<link rel="stylesheet" href="{% asset_url 'debug_toolbar' 'css/print.css' %}" type="text/css" media="print" />
+<link rel="stylesheet" href="{% asset_url 'sentry' 'styles/debug-toolbar.css' %}" type="text/css" />
 {% if toolbar.config.JQUERY_URL %}
 <!-- Prevent our copy of jQuery from registering as an AMD module on sites that use RequireJS. -->
-<script src="{% static 'debug_toolbar/js/jquery_pre.js' %}"></script>
+<script src="{% asset_url 'debug_toolbar' 'js/jquery_pre.js' %}"></script>
 <script src="{{ toolbar.config.JQUERY_URL }}"></script>
-<script src="{% static 'debug_toolbar/js/jquery_post.js' %}"></script>
+<script src="{% asset_url 'debug_toolbar' 'js/jquery_post.js' %}"></script>
 {% else %}
-<script src="{% static 'debug_toolbar/js/jquery_existing.js' %}"></script>
+<script src="{% asset_url 'debug_toolbar' 'js/jquery_existing.js' %}"></script>
 {% endif %}
-<script src="{% static 'debug_toolbar/js/toolbar.js' %}"></script>
+<script src="{% asset_url 'debug_toolbar' 'js/toolbar.js' %}"></script>
 <script>
 djdt.jQuery(function(){
     var body = djdt.jQuery(document.body);
@@ -54,7 +54,7 @@ djdt.jQuery(function(){
                 </div>
                 <div class="djDebugPanelContent">
                     {% if toolbar.store_id %}
-                    <img src="{% static 'debug_toolbar/img/ajax-loader.gif' %}" alt="loading" class="djdt-loader" />
+                    <img src="{% asset_url 'debug_toolbar' 'img/ajax-loader.gif' %}" alt="loading" class="djdt-loader" />
                     <div class="djdt-scroll"></div>
                     {% else %}
                     <div class="djdt-scroll">{{ panel.content }}</div>
