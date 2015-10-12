@@ -19,9 +19,7 @@ from sentry.digests import (
     Record,
     ScheduleEntry,
 )
-from sentry.digests.base import (
-    Backend,
-)
+from sentry.digests.backends.base import Backend
 from sentry.utils.cache import Lock
 
 
@@ -346,7 +344,6 @@ class RedisBackend(Backend):
 
         connection = self.cluster.get_local_client_for_key(timeline_key)
 
-        # TODO: Note that callers must be prepared to handle this exception.
         with Lock(timeline_key, nowait=True, timeout=30):
             if connection.zscore(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key) is None:
                 raise Exception('Cannot digest timeline, timeline is not in the ready state.')
