@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import functools
-import itertools
 import logging
 from collections import namedtuple
 
@@ -46,12 +44,6 @@ def event_to_record(event, rules=[], clean=strip_for_serialization):
     )
 
 
-filter_muted_groups = functools.partial(
-    itertools.ifilter,
-    lambda (group, records): not group.is_muted(),
-)
-
-
 Digest = namedtuple('Digest', 'start end rules')
 Summary = namedtuple('Summary', 'records events users')
 
@@ -94,6 +86,8 @@ def build_digest(project, records):
                     users[group.id],
                 )
             summary.records.append(record)
+
+    # TODO: Filter out any groups that are muted or resolved?
 
     results = sorted(
         [
