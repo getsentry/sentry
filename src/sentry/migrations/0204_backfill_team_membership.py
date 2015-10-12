@@ -2,7 +2,7 @@
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.db import IntegrityError, models
+from django.db import IntegrityError, models, transaction
 
 class Migration(DataMigration):
 
@@ -21,11 +21,18 @@ class Migration(DataMigration):
             for member in members:
                 for team in teams:
                     # XXX(dcramer): South doesnt like us using transactions here
-                    OrganizationMemberTeam.objects.get_or_create(
-                        team=team,
-                        organizationmember=member,
-                        is_active=True,
-                    )
+                    try:
+                        sid = transaction.savepoint()
+                        OrganizationMemberTeam.objects.create(
+                            team=team,
+                            organizationmember=member,
+                            is_active=True,
+                        )
+                    except IntegrityError:
+                        transaction.savepoint_rollback(sid)
+                    else:
+                        transaction.savepoint_commit(sid)
+                    transaction.commit()
 
     def backwards(self, orm):
         pass
