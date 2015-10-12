@@ -457,9 +457,9 @@ CELERYBEAT_SCHEDULE = {
     },
     'schedule-digests': {
         'task': 'sentry.tasks.digests.schedule_digests',
-        'schedule': timedelta(seconds=15),
+        'schedule': timedelta(seconds=30),
         'options': {
-            'expires': 15,
+            'expires': 30,
         },
     }
 }
