@@ -8,10 +8,9 @@ from collections import namedtuple
 from django.utils import timezone
 
 from sentry.app import tsdb
+from sentry.digests import Record
 from sentry.models import Project
 from sentry.utils.dates import to_timestamp
-
-from . import Record
 
 
 logger = logging.getLogger('sentry.digests')

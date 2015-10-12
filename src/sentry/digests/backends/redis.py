@@ -15,15 +15,14 @@ from redis.exceptions import (
     WatchError,
 )
 
-from sentry.utils.cache import Lock
-
-from .. import (
+from sentry.digests import (
     Record,
     ScheduleEntry,
 )
-from .base import (
+from sentry.digests.base import (
     Backend,
 )
+from sentry.utils.cache import Lock
 
 
 logger = logging.getLogger('sentry.digests')
