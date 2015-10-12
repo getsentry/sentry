@@ -24,6 +24,27 @@ from sentry.db.models import (
 )
 from sentry.utils.http import absolute_uri
 
+ROLE_SCOPES = {
+    'owner': set([
+        'org:read', 'org:write', 'org:delete',
+        'member:read', 'member:write', 'member:delete',
+        'team:read', 'team:write', 'team:delete',
+        'project:read', 'project:write', 'project:delete',
+        'event:read', 'event:write', 'event:delete',
+    ]),
+    'admin': set([
+        'event:read', 'event:write', 'event:delete',
+        'org:read', 'member:read',
+        'project:read', 'project:write', 'project:delete',
+        'team:read', 'team:write', 'team:delete',
+    ]),
+    'member': set([
+        'event:read', 'event:write', 'event:delete',
+        'project:read', 'project:write',
+        'org:read', 'member:read', 'team:read',
+    ]),
+}
+
 
 # TODO(dcramer): pull in enum library
 class OrganizationMemberType(object):
@@ -71,12 +92,20 @@ class OrganizationMember(Model):
                              related_name="sentry_orgmember_set")
     email = models.EmailField(null=True, blank=True)
 
+    role = models.CharField(choices=(
+        ('owner', _('Owner')),
+        ('admin', _('Admin')),
+        ('member', _('Member')),
+    ), max_length=32, default='member')
+
+    # deprecated -- role replaces this
     type = BoundedPositiveIntegerField(choices=(
         (OrganizationMemberType.BOT, _('Bot')),
         (OrganizationMemberType.MEMBER, _('Member')),
         (OrganizationMemberType.ADMIN, _('Admin')),
         (OrganizationMemberType.OWNER, _('Owner')),
     ), default=OrganizationMemberType.MEMBER)
+
     flags = BitField(flags=(
         ('sso:linked', 'sso:linked'),
         ('sso:invalid', 'sso:invalid'),
@@ -95,7 +124,7 @@ class OrganizationMember(Model):
             ('organization', 'email'),
         )
 
-    __repr__ = sane_repr('organization_id', 'user_id', 'type')
+    __repr__ = sane_repr('organization_id', 'user_id', 'role',)
 
     @transaction.atomic
     def save(self, *args, **kwargs):
@@ -104,12 +133,21 @@ class OrganizationMember(Model):
         super(OrganizationMember, self).save(*args, **kwargs)
         if not self.counter:
             self._set_counter()
+        self.role = self._compute_role()
 
     @transaction.atomic
     def delete(self, *args, **kwargs):
         super(OrganizationMember, self).delete(*args, **kwargs)
         if self.counter:
             self._unshift_counter()
+
+    def _compute_role(self):
+        if self.has_global_access:
+            if self.type <= OrganizationMemberType.OWNER:
+                return 'owner'
+        if self.type <= OrganizationMemberType.ADMIN:
+            return 'admin'
+        return 'member'
 
     def _unshift_counter(self):
         assert self.counter
@@ -142,6 +180,7 @@ class OrganizationMember(Model):
         return checksum.hexdigest()
 
     def get_scopes(self):
+        # TODO(dcramer): use role once we've fully migrated
         scopes = []
         if self.type <= OrganizationMemberType.MEMBER:
             scopes.extend([
