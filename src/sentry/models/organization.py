@@ -91,7 +91,7 @@ class Organization(Model):
 
     flags = BitField(flags=(
         ('allow_joinleave', 'Allow members to join and leave teams without requiring approval.'),
-    ), default=0)
+    ), default=1)
 
     objects = OrganizationManager(cache_fields=(
         'pk',
