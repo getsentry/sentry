@@ -72,10 +72,8 @@ class Backend(object):
         if self.capacity:
             self.truncation_chance = options.pop('truncation_chance', 1.0 / self.capacity)
         else:
-            self.truncation_chance = None
-            if 'truncation_chance' in options:
-                logger.warning('No timeline capacity has been set, ignoring "truncation_chance" option.')
-                del options['truncation_chance']
+            if options.get('truncation_chance') is not None:
+                raise TypeError('No timeline capacity has been set, "truncation_chance" must be None.')
 
     def add(self, key, record):
         """
