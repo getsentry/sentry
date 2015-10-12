@@ -184,6 +184,10 @@ class DeviceParser(object):
         return device, brand, model
 
 
+MAX_CACHE_SIZE = 50
+_parse_cache = {}
+
+
 def Parse(user_agent_string, **jsParseBits):
     """ Parse all the things
     Args:
@@ -193,12 +197,20 @@ def Parse(user_agent_string, **jsParseBits):
       A dictionary containing all parsed bits
     """
     jsParseBits = jsParseBits or {}
-    return {
+    key = (user_agent_string, repr(jsParseBits))
+    cached = _parse_cache.get(key)
+    if cached is not None:
+        return cached
+    if len(_parse_cache) > MAX_CACHE_SIZE:
+        _parse_cache.clear()
+    v = {
         'user_agent': ParseUserAgent(user_agent_string, **jsParseBits),
         'os': ParseOS(user_agent_string, **jsParseBits),
         'device': ParseDevice(user_agent_string, **jsParseBits),
         'string': user_agent_string
     }
+    _parse_cache[key] = v
+    return v
 
 
 def ParseUserAgent(user_agent_string, **jsParseBits):

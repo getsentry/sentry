@@ -36,13 +36,12 @@ def record_task_signal(signal, name):
     )
 
 
-def task_revoked_handler(task, expired=False, **kwargs):
-    if not isinstance(task, basestring):
-        task = _get_task_name(task)
+# https://celery.readthedocs.org/en/latest/userguide/signals.html#task-revoked
+def task_revoked_handler(sender, expired=False, **kwargs):
     if expired:
-        metrics.incr('jobs.expired', instance=task)
+        metrics.incr('jobs.expired', instance=sender)
     else:
-        metrics.incr('jobs.revoked', instance=task)
+        metrics.incr('jobs.revoked', instance=sender)
 
 
 task_revoked.connect(

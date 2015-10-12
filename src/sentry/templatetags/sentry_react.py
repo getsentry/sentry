@@ -4,13 +4,13 @@ import sentry
 
 from django import template
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.utils.html import mark_safe
 from pkg_resources import parse_version
 
 from sentry import features, options
 from sentry.api.serializers.base import serialize
 from sentry.utils import json
+from sentry.utils.assets import get_asset_url
 from sentry.utils.functional import extract_lazy_object
 
 register = template.Library()
@@ -52,7 +52,7 @@ def get_react_config(context):
         'urlPrefix': settings.SENTRY_URL_PREFIX,
         'version': _get_version_info(),
         'features': enabled_features,
-        'mediaUrl': reverse('sentry-media', args=[settings.ASSET_VERSION, 'sentry', '']),
+        'mediaUrl': get_asset_url('sentry', ''),
     }
     if user and user.is_authenticated():
         context.update({

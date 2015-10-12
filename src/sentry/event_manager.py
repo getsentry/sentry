@@ -230,7 +230,7 @@ class EventManager(object):
         if not data.get('event_id'):
             data['event_id'] = uuid4().hex
 
-        data.setdefault('message', None)
+        data.setdefault('message', '')
         data.setdefault('culprit', None)
         data.setdefault('time_spent', None)
         data.setdefault('server_name', None)
