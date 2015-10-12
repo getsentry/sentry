@@ -196,9 +196,14 @@
 
   .group-header h3 {
     margin: 0 0 2px;
+    font-size: 20px;
   }
 
-  .group-header .message {
+  .group-header .group-message {
+    padding: 0;
+  }
+
+  .group-header p.message {
     margin: 0 0 5px;
   }
 
@@ -223,7 +228,17 @@
   }
 
   .group-header td {
-    width: 25%;
+    /*width: 25%;*/
+  }
+
+  .group-header td.group-level, .group-header td.group-events {
+    text-align: right;
+    vertical-align: top;
+  }
+
+  .group-header td.group-level h6, .group-header td.group-events h6 {
+    margin-bottom: 12px;
+    font-size: 14px;
   }
 
   .group-header h6 {
@@ -235,8 +250,12 @@
     color: #9CA3AD;
   }
 
+  .group-header h6.no-margin {
+    margin-bottom: 5px;
+  }
+
   .group-header .value {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: bold;
   }
 
@@ -244,7 +263,8 @@
     padding: 0px 6px 2px;
     color: #fff;
     border-radius: 3px;
-    font-size: 18px;
+    font-size: 20px;
+    text-transform: capitalize;
   }
   .level-info { background: #2788ce; }
   .level-warning { background: #f18500; }
