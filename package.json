@@ -30,7 +30,7 @@
     "react-document-title": "^1.0.2",
     "react-router": "^0.13.3",
     "react-sticky": "^2.5.2",
-    "reflux": "^0.2.8",
+    "reflux": "^0.3.0",
     "select2": "^3.5.1",
     "style-loader": "^0.12.4",
     "underscore": "^1.8.3",
