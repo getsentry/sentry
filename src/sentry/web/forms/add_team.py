@@ -3,7 +3,10 @@ from __future__ import absolute_import
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, Team
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
+    OrganizationMemberTeam, Team
+)
 
 
 class AddTeamForm(forms.ModelForm):
@@ -23,6 +26,20 @@ class AddTeamForm(forms.ModelForm):
         team = super(AddTeamForm, self).save(commit=False)
         team.organization = organization
         team.save()
+
+        try:
+            member = OrganizationMember.objects.get(
+                user=actor,
+                organization=organization,
+            )
+        except OrganizationMember.DoesNotExist:
+            pass
+        else:
+            OrganizationMemberTeam.objects.create(
+                team=team,
+                organizationmember=member,
+                is_active=True,
+            )
 
         AuditLogEntry.objects.create(
             organization=organization,

@@ -116,7 +116,24 @@ var ExpandedTeamList = React.createClass({
     );
   },
 
+  showAllTeams(e) {
+    e.preventDefault();
+    this.props.showAllTeams();
+  },
+
   renderEmpty() {
+    if (this.props.hasTeams) {
+      return (
+        <p>
+          {"You are not a member of any teams. "}
+          <a onClick={this.showAllTeams}>Join an existing team</a>
+          {" or "}
+          <a href={this.urlPrefix() + '/teams/new/'}>create a new one</a>
+          {"."}
+        </p>
+      );
+
+    }
     return (
       <p>
         {"You dont have any teams for this organization yet. Get started by "}
