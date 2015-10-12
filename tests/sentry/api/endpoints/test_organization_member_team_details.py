@@ -12,8 +12,6 @@ from sentry.testutils import APITestCase
 
 class CreateOrganizationMemberTeamTest(APITestCase):
     def test_can_join_as_statusless_global_member(self):
-        self.login_as(user=self.user)
-
         organization = self.create_organization(name='foo', owner=self.user)
         user = self.create_user('dummy@example.com')
         member_om = self.create_member(
@@ -35,8 +33,6 @@ class CreateOrganizationMemberTeamTest(APITestCase):
         assert resp.status_code == 204
 
     def test_can_join_as_global_member(self):
-        self.login_as(user=self.user)
-
         organization = self.create_organization(name='foo', owner=self.user)
         user = self.create_user('dummy@example.com')
         member_om = self.create_member(
@@ -69,8 +65,6 @@ class CreateOrganizationMemberTeamTest(APITestCase):
         assert omt.is_active
 
     def test_can_join_as_existing_team_member(self):
-        self.login_as(user=self.user)
-
         organization = self.create_organization(name='foo', owner=self.user)
         team = self.create_team(name='foo', organization=organization)
         user = self.create_user('dummy@example.com')
@@ -93,9 +87,11 @@ class CreateOrganizationMemberTeamTest(APITestCase):
         assert resp.status_code == 204
 
     def test_cannot_join_as_non_team_member(self):
-        self.login_as(user=self.user)
-
-        organization = self.create_organization(name='foo', owner=self.user)
+        organization = self.create_organization(
+            name='foo',
+            owner=self.user,
+            flags=0,
+        )
         team = self.create_team(name='foo', organization=organization)
         user = self.create_user('dummy@example.com')
 
@@ -104,13 +100,14 @@ class CreateOrganizationMemberTeamTest(APITestCase):
             user=user,
             type=OrganizationMemberType.MEMBER,
             has_global_access=False,
+            teams=[],
         )
 
         path = reverse('sentry-api-0-organization-member-team-details', args=[
             organization.slug, member_om.id, team.slug,
         ])
 
-        self.login_as(self.user)
+        self.login_as(user)
 
         resp = self.client.post(path)
 
@@ -124,8 +121,6 @@ class CreateOrganizationMemberTeamTest(APITestCase):
         ).exists()
 
     def test_can_join_on_open_org(self):
-        self.login_as(user=self.user)
-
         organization = self.create_organization(
             name='foo',
             owner=self.user,
