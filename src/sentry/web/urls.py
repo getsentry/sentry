@@ -329,22 +329,6 @@ urlpatterns += patterns(
     url(r'^plugins/', include('sentry.plugins.base.urls')),
 
     # Generic API
-    url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<team_slug>[\w_-]+)/groups/trends/$', api.get_group_trends,
-        name='sentry-api-groups-trends'),
-    url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<team_slug>[\w_-]+)/groups/newest/$', api.get_new_groups,
-        name='sentry-api-groups-new'),
-    url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<team_slug>[\w_-]+)/groups/resolved/$', api.get_resolved_groups,
-        name='sentry-api-groups-resolved'),
-
-    url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<team_slug>[\w_-]+)/stats/$', api.get_stats,
-        name='sentry-api-stats'),
-    url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/tags/search/$', api.search_tags,
-        name='sentry-api-search-tags'),
-    url(r'^api/(?P<organization_slug>[\w_-]+)/users/search/$', api.search_users,
-        name='sentry-api-search-users'),
-    url(r'^api/(?P<organization_slug>[\w_-]+)/projects/search/$', api.search_projects,
-        name='sentry-api-search-projects'),
-
     url(r'^share/group/(?P<share_id>[\w_-]+)/$', GenericReactPageView.as_view(auth_required=False),
         name='sentry-group-shared'),
 
