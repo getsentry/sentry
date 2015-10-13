@@ -14,7 +14,7 @@ from sentry.db.models.query import create_or_update
 from sentry.constants import STATUS_CHOICES
 from sentry.models import (
     Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus,
-    GroupTagValue, Release, UserReport
+    GroupTagKey, GroupTagValue, Release, UserReport
 )
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
@@ -192,6 +192,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if last_release:
             last_release = self._get_release_info(request, group, last_release)
 
+        tag_counts = dict(GroupTagKey.objects.filter(
+            group=group,
+        ).values_list('key', 'values_seen')[:100])
+
         data.update({
             'firstRelease': first_release,
             'lastRelease': last_release,
@@ -199,6 +203,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             'seenBy': seen_by,
             'pluginActions': action_list,
             'userReportCount': UserReport.objects.filter(group=group).count(),
+            'tags': tag_counts,
             'stats': {
                 '24h': hourly_stats,
                 '30d': daily_stats,
