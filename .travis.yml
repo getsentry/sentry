@@ -3,7 +3,6 @@ language: python
 services:
   - memcached
   - riak
-  - mysql
   - postgresql
   - redis-server
   - cassandra
