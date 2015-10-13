@@ -5,13 +5,12 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.utils.safestring import mark_safe
 
 from sentry import constants
-from sentry.models import OrganizationMemberType
 from sentry.plugins import plugins, IssueTrackingPlugin
 from sentry.web.frontend.base import ProjectView
 
 
 class ProjectIssueTrackingView(ProjectView):
-    required_access = OrganizationMemberType.ADMIN
+    required_scope = 'project:write'
 
     def _iter_plugins(self):
         for plugin in plugins.all(version=1):

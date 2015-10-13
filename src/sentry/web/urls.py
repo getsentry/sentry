@@ -13,16 +13,8 @@ from django.conf.urls import include, patterns, url
 from django.conf import settings
 from django.views.generic import RedirectView
 
-import sentry.web.frontend.projects.keys
-import sentry.web.frontend.projects.plugins
-import sentry.web.frontend.projects.quotas
-import sentry.web.frontend.projects.rules
-import sentry.web.frontend.projects.tags
-
 from sentry.web import api
-from sentry.web.frontend import (
-    accounts, generic, groups, events, admin
-)
+from sentry.web.frontend import accounts, admin, generic
 
 from sentry.web.frontend.admin_queue import AdminQueueView
 from sentry.web.frontend.accept_organization_invite import AcceptOrganizationInviteView
@@ -32,6 +24,8 @@ from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
+from sentry.web.frontend.group_event_json import GroupEventJsonView
+from sentry.web.frontend.group_plugin_action import GroupPluginActionView
 from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.organization_api_keys import OrganizationApiKeysView
@@ -44,17 +38,34 @@ from sentry.web.frontend.organization_settings import OrganizationSettingsView
 from sentry.web.frontend.create_organization import CreateOrganizationView
 from sentry.web.frontend.create_organization_member import CreateOrganizationMemberView
 from sentry.web.frontend.create_project import CreateProjectView
+from sentry.web.frontend.create_project_key import CreateProjectKeyView
 from sentry.web.frontend.create_team import CreateTeamView
+from sentry.web.frontend.disable_project_key import DisableProjectKeyView
+from sentry.web.frontend.edit_project_key import EditProjectKeyView
+from sentry.web.frontend.enable_project_key import EnableProjectKeyView
+from sentry.web.frontend.remove_project_key import RemoveProjectKeyView
 from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
+from sentry.web.frontend.project_keys import ProjectKeysView
+from sentry.web.frontend.project_plugins import ProjectPluginsView
+from sentry.web.frontend.project_plugin_configure import ProjectPluginConfigureView
+from sentry.web.frontend.project_plugin_disable import ProjectPluginDisableView
+from sentry.web.frontend.project_plugin_enable import ProjectPluginEnableView
+from sentry.web.frontend.project_plugin_reset import ProjectPluginResetView
 from sentry.web.frontend.project_notifications import ProjectNotificationsView
+from sentry.web.frontend.project_quotas import ProjectQuotasView
 from sentry.web.frontend.project_release_tracking import ProjectReleaseTrackingView
+from sentry.web.frontend.project_rules import ProjectRulesView
+from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
+from sentry.web.frontend.project_rule_remove import ProjectRuleRemoveView
 from sentry.web.frontend.project_settings import ProjectSettingsView
+from sentry.web.frontend.project_tags import ProjectTagsView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.remove_account import RemoveAccountView
 from sentry.web.frontend.remove_organization import RemoveOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.remove_team import RemoveTeamView
+from sentry.web.frontend.replay_event import ReplayEventView
 from sentry.web.frontend.team_settings import TeamSettingsView
 
 
@@ -251,68 +262,68 @@ urlpatterns += patterns(
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/release-tracking/$',
         ProjectReleaseTrackingView.as_view(),
         name='sentry-project-release-tracking'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/keys/$',
-        sentry.web.frontend.projects.keys.manage_project_keys,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/keys/$',
+        ProjectKeysView.as_view(),
         name='sentry-manage-project-keys'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/keys/new/$',
-        sentry.web.frontend.projects.keys.new_project_key,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/keys/new/$',
+        CreateProjectKeyView.as_view(),
         name='sentry-new-project-key'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/keys/(?P<key_id>\d+)/edit/$',
-        sentry.web.frontend.projects.keys.edit_project_key,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/keys/(?P<key_id>\d+)/edit/$',
+        EditProjectKeyView.as_view(),
         name='sentry-edit-project-key'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/keys/(?P<key_id>\d+)/remove/$',
-        sentry.web.frontend.projects.keys.remove_project_key,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/keys/(?P<key_id>\d+)/remove/$',
+        RemoveProjectKeyView.as_view(),
         name='sentry-remove-project-key'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/keys/(?P<key_id>\d+)/disable/$',
-        sentry.web.frontend.projects.keys.disable_project_key,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/keys/(?P<key_id>\d+)/disable/$',
+        DisableProjectKeyView.as_view(),
         name='sentry-disable-project-key'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/keys/(?P<key_id>\d+)/enable/$',
-        sentry.web.frontend.projects.keys.enable_project_key,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/keys/(?P<key_id>\d+)/enable/$',
+        EnableProjectKeyView.as_view(),
         name='sentry-enable-project-key'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/plugins/$',
-        sentry.web.frontend.projects.plugins.manage_plugins,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/$',
+        ProjectPluginsView.as_view(),
         name='sentry-manage-project-plugins'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/$',
-        sentry.web.frontend.projects.plugins.configure_project_plugin,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/$',
+        ProjectPluginConfigureView.as_view(),
         name='sentry-configure-project-plugin'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/reset/$',
-        sentry.web.frontend.projects.plugins.reset_project_plugin,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/reset/$',
+        ProjectPluginResetView.as_view(),
         name='sentry-reset-project-plugin'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/disable/$',
-        sentry.web.frontend.projects.plugins.disable_project_plugin,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/disable/$',
+        ProjectPluginDisableView.as_view(),
         name='sentry-disable-project-plugin'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/enable/$',
-        sentry.web.frontend.projects.plugins.enable_project_plugin,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/enable/$',
+        ProjectPluginEnableView.as_view(),
         name='sentry-enable-project-plugin'),
 
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/remove/$',
         RemoveProjectView.as_view(),
         name='sentry-remove-project'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/tags/$',
-        sentry.web.frontend.projects.tags.manage_project_tags,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/tags/$',
+        ProjectTagsView.as_view(),
         name='sentry-manage-project-tags'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/quotas/$',
-        sentry.web.frontend.projects.quotas.manage_project_quotas,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/quotas/$',
+        ProjectQuotasView.as_view(),
         name='sentry-manage-project-quotas'),
 
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/notifications/$',
         ProjectNotificationsView.as_view(),
         name='sentry-project-notifications'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/rules/$',
-        sentry.web.frontend.projects.rules.list_rules,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/$',
+        ProjectRulesView.as_view(),
         name='sentry-project-rules'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/rules/(?P<rule_id>\d+)/edit/$',
-        sentry.web.frontend.projects.rules.create_or_edit_rule,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/(?P<rule_id>\d+)/edit/$',
+        ProjectRuleEditView.as_view(),
         name='sentry-edit-project-rule'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/rules/(?P<rule_id>\d+)/remove/$',
-        sentry.web.frontend.projects.rules.remove_rule,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/(?P<rule_id>\d+)/remove/$',
+        ProjectRuleRemoveView.as_view(),
         name='sentry-remove-project-rule'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/rules/new/$',
-        sentry.web.frontend.projects.rules.create_or_edit_rule,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/new/$',
+        ProjectRuleEditView.as_view(),
         name='sentry-new-project-rule'),
 
     # Generic
@@ -340,11 +351,11 @@ urlpatterns += patterns(
         name='sentry-group-events'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)/$', ReactPageView.as_view(),
         name='sentry-group-event'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)/replay/$', events.replay_event,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)/replay/$', ReplayEventView.as_view(),
         name='sentry-replay'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/json/$', groups.group_event_details_json,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/json/$', GroupEventJsonView.as_view(),
         name='sentry-group-event-json'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/', groups.group_plugin_action,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/', GroupPluginActionView.as_view(),
         name='sentry-group-plugin-action'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/tags/$', ReactPageView.as_view(),
         name='sentry-group-tags'),

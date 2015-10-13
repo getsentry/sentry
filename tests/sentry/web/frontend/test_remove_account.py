@@ -3,8 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
-    Organization, OrganizationMember, OrganizationMemberType,
-    OrganizationStatus, User
+    Organization, OrganizationMember, OrganizationStatus, User
 )
 from sentry.testutils import TestCase
 
@@ -20,16 +19,15 @@ class RemoveAccountTest(TestCase):
         self.create_member(
             user=other_user,
             organization=self.organization,
-            type=OrganizationMemberType.ADMIN,
-            has_global_access=True,
+            role='admin',
         )
+
         # dual owner
         self.organization2 = self.create_organization(name='b', owner=self.user)
         self.create_member(
-            organization=self.organization2,
-            type=OrganizationMemberType.OWNER,
-            has_global_access=True,
             user=other_user,
+            organization=self.organization2,
+            role='owner',
         )
 
         # non-owned

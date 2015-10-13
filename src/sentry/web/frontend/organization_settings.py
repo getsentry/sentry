@@ -6,8 +6,9 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import roles
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Organization, OrganizationMemberType
+    AuditLogEntry, AuditLogEntryEvent, Organization
 )
 from sentry.web.frontend.base import OrganizationView
 
@@ -20,20 +21,26 @@ class OrganizationSettingsForm(forms.ModelForm):
         help_text=_('Allow organization members to freely join or leave any team.'),
         required=False,
     )
+    default_role = forms.ChoiceField(
+        label=_('Default Role'),
+        choices=roles.get_choices(),
+        help_text=_('The default role new members will receive.'),
+    )
 
     class Meta:
-        fields = ('name', 'slug')
+        fields = ('name', 'slug', 'default_role')
         model = Organization
 
 
 class OrganizationSettingsView(OrganizationView):
-    required_access = OrganizationMemberType.ADMIN
+    required_scope = 'org:write'
 
     def get_form(self, request, organization):
         return OrganizationSettingsForm(
             request.POST or None,
             instance=organization,
             initial={
+                'default_role': organization.default_role,
                 'allow_joinleave': bool(getattr(organization.flags, 'allow_joinleave')),
             }
         )

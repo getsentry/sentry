@@ -15,14 +15,11 @@ class TeamSettingsPermissionTest(PermissionTestCase):
     def test_team_admin_can_load(self):
         self.assert_team_admin_can_access(self.path)
 
-    def test_team_member_cannot_load(self):
-        self.assert_team_member_cannot_access(self.path)
+    def test_member_cannot_load(self):
+        self.assert_member_cannot_access(self.path)
 
-    def test_org_admin_can_load(self):
-        self.assert_org_admin_can_access(self.path)
-
-    def test_org_member_cannot_load(self):
-        self.assert_org_member_cannot_access(self.path)
+    def test_owner_can_load(self):
+        self.assert_owner_can_access(self.path)
 
 
 class TeamSettingsTest(TestCase):

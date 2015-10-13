@@ -23,11 +23,10 @@ class ProjectPermission(ScopedPermission):
 
         request.access = access.from_user(request.user, project.organization)
 
-        if not request.access.has_team(project.team):
-            return False
-
-        allowed_scopes = set(self.scope_map.get(request.method, []))
-        return any(request.access.has_scope(s) for s in allowed_scopes)
+        for scope in self.scope_map.get(request.method, []):
+            if request.access.has_team_scope(project.team, scope):
+                return True
+        return False
 
 
 class ProjectEventPermission(ProjectPermission):

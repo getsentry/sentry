@@ -25,8 +25,7 @@ class OrganizationMixin(object):
     # TODO(dcramer): move the implicit organization logic into its own class
     # as it's only used in a single location and over complicates the rest of
     # the code
-    def get_active_organization(self, request, organization_slug=None,
-                                access=None):
+    def get_active_organization(self, request, organization_slug=None):
         """
         Returns the currently active organization for the request or None
         if no organization.
@@ -54,7 +53,6 @@ class OrganizationMixin(object):
         if active_organization is None:
             organizations = Organization.objects.get_for_user(
                 user=request.user,
-                access=access,
             )
 
         if active_organization is None and organization_slug:
@@ -85,7 +83,7 @@ class OrganizationMixin(object):
 
         return active_organization
 
-    def get_active_team(self, request, organization, team_slug, access=None):
+    def get_active_team(self, request, organization, team_slug):
         """
         Returns the currently selected team for the request or None
         if no match.
@@ -98,21 +96,15 @@ class OrganizationMixin(object):
         except Team.DoesNotExist:
             return None
 
-        if not request.user.is_superuser and not team.has_access(request.user, access):
-            return None
-
         return team
 
-    def get_active_project(self, request, organization, project_slug, access=None):
+    def get_active_project(self, request, organization, project_slug):
         try:
             project = Project.objects.get_from_cache(
                 slug=project_slug,
                 organization=organization,
             )
         except Project.DoesNotExist:
-            return None
-
-        if not request.user.is_superuser and not project.has_access(request.user, access):
             return None
 
         return project
@@ -217,7 +209,7 @@ class OrganizationView(BaseView):
     The 'organization' keyword argument is automatically injected into the
     resulting dispatch.
     """
-    required_access = None
+    required_scope = None
     valid_sso_required = True
 
     def get_access(self, request, organization, *args, **kwargs):
@@ -236,6 +228,10 @@ class OrganizationView(BaseView):
         if organization is None:
             return False
         if self.valid_sso_required and not request.access.sso_is_valid:
+            return False
+        if self.required_scope and not request.access.has_scope(self.required_scope):
+            logging.info('User %s does not have %s permission to access organization %s',
+                         request.user, self.required_scope, organization)
             return False
         return True
 
@@ -261,7 +257,6 @@ class OrganizationView(BaseView):
     def convert_args(self, request, organization_slug=None, *args, **kwargs):
         active_organization = self.get_active_organization(
             request=request,
-            access=self.required_access,
             organization_slug=organization_slug,
         )
 
@@ -286,10 +281,21 @@ class TeamView(OrganizationView):
         return context
 
     def has_permission(self, request, organization, team, *args, **kwargs):
+        if team is None:
+            return False
         rv = super(TeamView, self).has_permission(request, organization)
         if not rv:
             return rv
-        return team is not None
+        if self.required_scope:
+            if not request.access.has_team_scope(team, self.required_scope):
+                logging.info('User %s does not have %s permission to access team %s',
+                             request.user, self.required_scope, team)
+                return False
+        elif not request.access.has_team(team):
+            logging.info('User %s does not have access to team %s',
+                         request.user, team)
+            return False
+        return True
 
     def convert_args(self, request, organization_slug, team_slug, *args, **kwargs):
         active_organization = self.get_active_organization(
@@ -302,7 +308,6 @@ class TeamView(OrganizationView):
                 request=request,
                 team_slug=team_slug,
                 organization=active_organization,
-                access=self.required_access,
             )
         else:
             active_team = None
@@ -330,10 +335,23 @@ class ProjectView(TeamView):
         return context
 
     def has_permission(self, request, organization, team, project, *args, **kwargs):
+        if project is None:
+            return False
+        if team is None:
+            return False
         rv = super(ProjectView, self).has_permission(request, organization, team)
         if not rv:
             return rv
-        return project is not None
+        if self.required_scope:
+            if not request.access.has_team_scope(team, self.required_scope):
+                logging.info('User %s does not have %s permission to access project %s',
+                             request.user, self.required_scope, project)
+                return False
+        elif not request.access.has_team(team):
+            logging.info('User %s does not have access to project %s',
+                         request.user, project)
+            return False
+        return True
 
     def convert_args(self, request, organization_slug, project_slug, *args, **kwargs):
         active_organization = self.get_active_organization(
@@ -346,7 +364,6 @@ class ProjectView(TeamView):
                 request=request,
                 organization=active_organization,
                 project_slug=project_slug,
-                access=self.required_access,
             )
         else:
             active_project = None

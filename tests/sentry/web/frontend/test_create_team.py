@@ -11,17 +11,17 @@ class CreateTeamPermissionTest(PermissionTestCase):
         super(CreateTeamPermissionTest, self).setUp()
         self.path = reverse('sentry-create-team', args=[self.organization.slug])
 
-    def test_teamless_admin_cannot_load(self):
-        self.assert_teamless_admin_cannot_access(self.path)
+    def test_teamless_admin_can_load(self):
+        self.assert_teamless_admin_can_access(self.path)
 
-    def test_team_admin_cannot_load(self):
-        self.assert_team_admin_cannot_access(self.path)
+    def test_team_admin_can_load(self):
+        self.assert_team_admin_can_access(self.path)
 
-    def test_org_member_cannot_load(self):
-        self.assert_org_member_cannot_access(self.path)
+    def test_member_cannot_load(self):
+        self.assert_member_cannot_access(self.path)
 
-    def test_org_admin_can_load(self):
-        self.assert_org_admin_can_access(self.path)
+    def test_owner_can_load(self):
+        self.assert_owner_can_access(self.path)
 
 
 class CreateTeamTest(TestCase):

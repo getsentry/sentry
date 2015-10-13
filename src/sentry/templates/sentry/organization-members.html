@@ -57,14 +57,13 @@
         <th>Member</th>
         <th>&nbsp;</th>
         <th>Role</th>
-        <th>Teams</th>
-        {% if access_is_global %}
+        {% if can_admin %}
           <th class="squash">&nbsp;</th>
         {% endif %}
       </tr>
     </thead>
     <tbody>
-      {% for member, team_list, needs_sso in member_list %}
+      {% for member, needs_sso in member_list %}
         <tr>
           <td class="table-user-info">
             <img class="avatar" src="{% gravatar_url member.get_email size 80 %}">
@@ -85,25 +84,11 @@
               <a href="javascript:void(0)" class="resend-invite btn btn-sm btn-primary" data-member-id="{{ member.id }}" style="padding: 0 4px; margin-top: 2px">Resend invite</a>
             {% endif %}
           </td>
-          <td>{{ member.get_type_display }}</td>
-          <td>
-            {% if member.has_global_access %}
-              <span class="tip" title="Access to all teams">&infin;</span>
-            {% elif team_list|length > 1 %}
-              <span class="tip"
-                    title="{% for team in team_list %}{{ team.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">
-                {{ team_list|length }} teams
-              </span>
-            {% else %}
-              {{ team_list.0.name }}
-            {% endif %}
-          </td>
-          {% if access_is_global %}
+          <td>{{ member.get_role_display }}</td>
+          {% if can_admin %}
           <td class="align-right squash">
-            {% if authorizing_access <= member.type  %}
-              {% if member.user != request.user or member_can_leave %}
+            {% if member.user != request.user or member_can_leave %}
               <a href="javascript:void(0)" class="btn btn-default btn-sm remove-member" data-member-id="{{ member.id }}"><span class="icon icon-trash"></span> &nbsp;Remove</a>
-              {% endif %}
             {% endif %}
           </td>
           {% endif %}

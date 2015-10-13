@@ -40,7 +40,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
         if is_approved is None:
             return Response(status=400)
 
-        if not access_request.member.has_global_access:
+        if is_approved:
             affected, _ = OrganizationMemberTeam.objects.create_or_update(
                 organizationmember=access_request.member,
                 team=access_request.team,
@@ -48,7 +48,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                     'is_active': is_approved,
                 }
             )
-            if affected and is_approved:
+            if affected:
                 omt = OrganizationMemberTeam.objects.get(
                     organizationmember=access_request.member,
                     team=access_request.team,

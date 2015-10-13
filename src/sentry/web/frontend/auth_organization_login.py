@@ -8,7 +8,7 @@ from django.views.decorators.cache import never_cache
 
 from sentry import features
 from sentry.auth.helper import AuthHelper
-from sentry.models import AuthProvider, Organization, OrganizationMemberType
+from sentry.models import AuthProvider, Organization
 from sentry.utils.auth import get_login_redirect
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
@@ -45,8 +45,7 @@ class AuthOrganizationLoginView(BaseView):
             user = register_form.save()
 
             defaults = {
-                'has_global_access': True,
-                'type': OrganizationMemberType.MEMBER,
+                'role': 'member',
             }
 
             organization.member_set.create(

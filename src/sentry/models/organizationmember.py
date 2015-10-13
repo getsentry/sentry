@@ -15,43 +15,14 @@ from django.core.urlresolvers import reverse
 from django.db import models, transaction
 from django.db.models import F
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
 from hashlib import md5
 
+from sentry import roles
 from sentry.db.models import (
     BaseModel, BoundedAutoField, BoundedPositiveIntegerField,
     FlexibleForeignKey, Model, sane_repr
 )
 from sentry.utils.http import absolute_uri
-
-ROLE_SCOPES = {
-    'owner': set([
-        'org:read', 'org:write', 'org:delete',
-        'member:read', 'member:write', 'member:delete',
-        'team:read', 'team:write', 'team:delete',
-        'project:read', 'project:write', 'project:delete',
-        'event:read', 'event:write', 'event:delete',
-    ]),
-    'admin': set([
-        'event:read', 'event:write', 'event:delete',
-        'org:read', 'member:read',
-        'project:read', 'project:write', 'project:delete',
-        'team:read', 'team:write', 'team:delete',
-    ]),
-    'member': set([
-        'event:read', 'event:write', 'event:delete',
-        'project:read', 'project:write',
-        'org:read', 'member:read', 'team:read',
-    ]),
-}
-
-
-# TODO(dcramer): pull in enum library
-class OrganizationMemberType(object):
-    OWNER = 0
-    ADMIN = 25
-    MEMBER = 50
-    BOT = 100
 
 
 class OrganizationMemberTeam(BaseModel):
@@ -91,21 +62,11 @@ class OrganizationMember(Model):
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
                              related_name="sentry_orgmember_set")
     email = models.EmailField(null=True, blank=True)
-
-    role = models.CharField(choices=(
-        ('owner', _('Owner')),
-        ('admin', _('Admin')),
-        ('member', _('Member')),
-    ), max_length=32, default='member')
-
-    # deprecated -- role replaces this
-    type = BoundedPositiveIntegerField(choices=(
-        (OrganizationMemberType.BOT, _('Bot')),
-        (OrganizationMemberType.MEMBER, _('Member')),
-        (OrganizationMemberType.ADMIN, _('Admin')),
-        (OrganizationMemberType.OWNER, _('Owner')),
-    ), default=OrganizationMemberType.MEMBER)
-
+    role = models.CharField(
+        choices=roles.get_choices(),
+        max_length=32,
+        default=roles.get_default().id,
+    )
     flags = BitField(flags=(
         ('sso:linked', 'sso:linked'),
         ('sso:invalid', 'sso:invalid'),
@@ -115,6 +76,9 @@ class OrganizationMember(Model):
     counter = BoundedPositiveIntegerField(null=True, blank=True)
     teams = models.ManyToManyField('sentry.Team', blank=True,
                                    through='sentry.OrganizationMemberTeam')
+
+    # Deprecated -- no longer used
+    type = BoundedPositiveIntegerField(default=50, blank=True)
 
     class Meta:
         app_label = 'sentry'
@@ -130,7 +94,6 @@ class OrganizationMember(Model):
     def save(self, *args, **kwargs):
         assert self.user_id or self.email, \
             'Must set user or email'
-        self.role = self._compute_role()
         super(OrganizationMember, self).save(*args, **kwargs)
         if not self.counter:
             self._set_counter()
@@ -140,14 +103,6 @@ class OrganizationMember(Model):
         super(OrganizationMember, self).delete(*args, **kwargs)
         if self.counter:
             self._unshift_counter()
-
-    def _compute_role(self):
-        if self.has_global_access:
-            if self.type <= OrganizationMemberType.OWNER:
-                return 'owner'
-        if self.type <= OrganizationMemberType.ADMIN:
-            return 'admin'
-        return 'member'
 
     def _unshift_counter(self):
         assert self.counter
@@ -178,9 +133,6 @@ class OrganizationMember(Model):
         for x in (str(self.organization_id), self.get_email(), settings.SECRET_KEY):
             checksum.update(x)
         return checksum.hexdigest()
-
-    def get_scopes(self):
-        return ROLE_SCOPES[self.role]
 
     def send_invite_email(self):
         from sentry.utils.email import MessageBuilder
@@ -241,28 +193,35 @@ class OrganizationMember(Model):
         return self.email
 
     def get_audit_log_data(self):
+        from sentry.models import Team
         return {
             'email': self.email,
             'user': self.user_id,
-            'teams': [t.id for t in self.get_teams()],
+            'teams': list(Team.objects.filter(
+                id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember=self,
+                    is_active=True,
+                ).values_list('team', flat=True)
+            )),
             'has_global_access': self.has_global_access,
+            'role': self.role,
         }
 
     def get_teams(self):
         from sentry.models import Team
 
-        if self.has_global_access:
-            return Team.objects.filter(
-                organization=self.organization,
-            ).exclude(
-                id__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember=self,
-                    is_active=False,
-                ).values('team')
-            )
+        if roles.get(self.role).is_global:
+            return self.organization.team_set.all()
+
         return Team.objects.filter(
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=self,
                 is_active=True,
             ).values('team')
         )
+
+    def get_scopes(self):
+        return roles.get(self.role).scopes
+
+    def can_manage_member(self, member):
+        return roles.can_manage(self.role, member.role)
