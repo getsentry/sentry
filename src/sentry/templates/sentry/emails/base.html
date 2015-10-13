@@ -158,7 +158,7 @@
   }
   .inner table th {
     min-width: 60px;
-    color: #666;
+    color: #889092;
   }
   .interface {
     margin-bottom: 30px;
@@ -166,6 +166,24 @@
   .interface .title {
     margin-bottom: 15px;
   }
+
+  .inner .interface table {
+    border-collapse: separate;
+    border-spacing: 5px;
+    margin: 0 -5px;
+  }
+
+  .interface table th {
+    font-weight: 500;
+  }
+
+  .interface table td {
+    background: #f4f5f6;
+    padding: 5px 10px;
+    border-radius: 3px;
+    margin-bottom: 5px;
+  }
+
   .inner pre.message {
     margin: 0 0 30px !important;
   }
@@ -322,6 +340,18 @@
   .avatar {
     border-radius: 3px;
   }
+
+  .inner table.reset {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  .inner table.reset > tr > td {
+    background: #fff;
+    padding: 0;
+    padding-top: 0;
+  }
+
   </style>
 </head>
 <body{% block bodyclass %}{% endblock %}>
