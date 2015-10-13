@@ -19,6 +19,13 @@ Continue by running all required migrations, with the upgrade command::
 
 Finally, restart any Sentry services you had running.
 
+Upgrading to 8.x
+----------------
+
+As of 8.0 **MySQL is no longer supported**. While things may still function
+we will no longer be providing support upstream, and schema migrations will
+likely need applied by hand.
+
 Upgrading to 7.x
 ----------------
 
