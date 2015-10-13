@@ -11,7 +11,6 @@ from uuid import uuid1
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType, Project, Team
 )
-from sentry.permissions import can_remove_project
 from sentry.web.forms.fields import (
     CustomTypedChoiceField, RangeField, OriginsField, IPNetworksField,
 )
@@ -134,13 +133,6 @@ class EditProjectForm(forms.ModelForm):
 
 class ProjectSettingsView(ProjectView):
     required_access = OrganizationMemberType.ADMIN
-
-    def get_default_context(self, request, **kwargs):
-        context = super(ProjectSettingsView, self).get_default_context(request, **kwargs)
-        context.update({
-            'can_remove_project': can_remove_project(request.user, kwargs['project']),
-        })
-        return context
 
     def has_permission(self, request, organization, team, project):
         if project is None:
