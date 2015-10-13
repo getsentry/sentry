@@ -13,7 +13,7 @@ Some basic prerequisites which you'll need in order to run Sentry:
   assumes an ubuntu based system.
 * Python 2.7
 * ``python-setuptools``, ``python-pip``, ``python-dev``, ``libxslt1-dev``,
-  ``libxml2-dev``, ``libz-dev``, ``libffi-dev``, ``libssl-dev``
+  ``libxml2-dev``, ``libz-dev``, ``libffi-dev``, ``libssl-dev``, ``libpq-dev``
 * `PostgreSQL <http://www.postgresql.org/>`_
 * `Redis <http://redis.io>`_ (3.0.2 or newer)
 * `Nginx <http://nginx.org>`_ (``nginx-full``)
@@ -105,23 +105,6 @@ via ``sentry``, and get something like the following:
   $ sentry
   usage: [SENTRY_CONF=/path/to/settings.py] sentry [command] [options]
 
-
-Using Postgres or MySQL
-~~~~~~~~~~~~~~~~~~~~~~~
-
-We **highly** recommend using PostgreSQL for your database, or MySQL if
-you have no other choice. The default is sqlite and will handle very
-little load. If you're using MySQL, you should use InnoDB as your storage
-engine.
-
-These databases require additional packages, but Sentry provides a couple
-of meta packages to make things easier:
-
-::
-
-    # install sentry and its postgresql dependencies
-    apt-get install libpq-dev
-    pip install -U sentry[postgres]
 
 Installing from Source
 ~~~~~~~~~~~~~~~~~~~~~~

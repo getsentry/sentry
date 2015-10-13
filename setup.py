@@ -97,6 +97,7 @@ install_requires = [
     'markdown>=2.4.1,<2.5.0',
     'petname>=1.7,<1.8',
     'progressbar>=2.2,<2.4',
+    'psycopg2>=2.5.0,<2.6.0',
     'pytest>=2.6.4,<2.7.0',
     'pytest-django>=2.6.0,<2.7.0',
     'python-dateutil>=2.0.0,<3.0.0',
@@ -116,7 +117,6 @@ install_requires = [
 ]
 
 postgres_requires = [
-    'psycopg2>=2.5.0,<2.6.0',
 ]
 
 postgres_pypy_requires = [
