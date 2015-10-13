@@ -1,1 +1,1 @@
-[{digest.project}] Notifications from {digest.start} to {digest.end}]
+Notifications for {{ project.name }}

@@ -4,6 +4,7 @@ import itertools
 import logging
 import time
 import traceback
+import uuid
 from datetime import (
     datetime,
     timedelta,
@@ -15,13 +16,15 @@ import pytz
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 
+from sentry.digests import Record
 from sentry.digests.notifications import (
+    Notification,
     build_digest,
-    event_to_record,
 )
 from sentry.models import (
     Activity, Event, Group, Organization, Project, Rule, Team,
 )
+from sentry.utils.dates import to_timestamp
 from sentry.utils.samples import load_data
 from sentry.utils.email import inline_css
 from sentry.utils.http import absolute_uri
@@ -170,8 +173,9 @@ def new_note(request):
 def digest(request):
     seed = request.GET.get('seed', str(time.time()))
     logger.debug('Using random seed value: %s')
-
     random = Random(seed)
+
+    now = datetime.utcnow().replace(tzinfo=pytz.utc)
 
     # TODO: Refactor all of these into something more manageable.
     org = Organization(
@@ -179,12 +183,14 @@ def digest(request):
         slug='example',
         name='Example Organization',
     )
+
     team = Team(
         id=1,
         slug='example',
         name='Example Team',
         organization=org,
     )
+
     project = Project(
         id=1,
         slug='example',
@@ -193,43 +199,60 @@ def digest(request):
         organization=org,
     )
 
-    now = datetime.utcnow().replace(tzinfo=pytz.utc)
-
-    rules = [
-        Rule(id=1, label="First Rule"),
-        Rule(id=2, label="Second Rule"),
-        Rule(id=3, label="Third Rule"),
-    ]
+    state = {
+        'project': project,
+        'groups': {},
+        'rules': {
+            1: Rule(id=1, project=project, label="First Rule"),
+            2: Rule(id=2, project=project, label="Second Rule"),
+            3: Rule(id=3, project=project, label="Third Rule"),
+        },
+        'event_counts': {},
+        'user_counts': {},
+    }
 
     records = []
 
+    group_sequence = itertools.count(1)
     event_sequence = itertools.count(1)
+
     for i in xrange(random.randint(1, 4)):
-        group = Group(
-            id=i + 1,
+        group_id = next(group_sequence)
+
+        group = state['groups'][group_id] = Group(
+            id=group_id,
             project=project,
-            message='This is example event #%s' % (i + 1),
+            message='This is example event #%s' % (group_id,),
         )
 
         offset = timedelta(seconds=0)
         for i in xrange(random.randint(1, 10)):
             offset += timedelta(seconds=random.random() * 120)
+            event = Event(
+                id=next(event_sequence),
+                event_id=uuid.uuid4().hex,
+                project=project,
+                group=group,
+                message=group.message,
+                data=load_data('python'),
+                datetime=now - offset,
+            )
+
             records.append(
-                event_to_record(
-                    Event(
-                        id=next(event_sequence),
-                        project=project,
-                        group=group,
-                        message=group.message,
-                        data=load_data('python'),
-                        datetime=now - offset,
+                Record(
+                    event.event_id,
+                    Notification(
+                        event,
+                        random.sample(state['rules'], random.randint(1, len(state['rules']))),
                     ),
-                    random.sample(rules, random.randint(1, len(rules))),
-                    clean=lambda i: i,
+                    to_timestamp(event.datetime),
                 )
             )
 
-    digest = build_digest(project, records)
+            state['event_counts'][group_id] = random.randint(10, 1e4)
+            state['user_counts'][group_id] = random.randint(10, 1e4)
+
+    digest = build_digest(project, records, state)
 
     return MailPreview(
         html_template='sentry/emails/digests/body.html',
