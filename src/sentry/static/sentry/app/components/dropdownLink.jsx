@@ -1,4 +1,3 @@
-import joinClasses from "react/lib/joinClasses";
 import classNames from "classnames";
 import React from "react";
 
@@ -51,14 +50,14 @@ var DropdownLink = React.createClass({
     });
 
     return (
-      <span className={joinClasses(this.props.topLevelClasses, topLevelClasses)}>
-        <a className={joinClasses(this.props.className, className)} data-toggle="dropdown" onClick={this.onToggle}>
+      <span className={classNames(this.props.topLevelClasses, topLevelClasses)}>
+        <a className={classNames(this.props.className, className)} data-toggle="dropdown" onClick={this.onToggle}>
           {this.props.title}
           {this.props.caret &&
             <i className="icon-arrow-down" />
           }
         </a>
-        <ul className={joinClasses(this.props.menuClasses, "dropdown-menu")}>
+        <ul className={classNames(this.props.menuClasses, "dropdown-menu")}>
           {this.props.children}
         </ul>
       </span>
