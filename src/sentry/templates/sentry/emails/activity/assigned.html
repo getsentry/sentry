@@ -1,5 +1,9 @@
 {% extends "sentry/emails/base.html" %}
 
+{% block preheader %}
+  {{ author }} assigned you an issue in {{ group.organization.name }}/{{ group.project.name }}.
+{% endblock %}
+
 {% block header %}
   <a href="{{ link }}" class="btn">View on Sentry</a>
   {{ block.super }}
@@ -9,7 +13,7 @@
   <h2>Assigned</h2>
 
   <blockquote>
-    <strong>{{ author }}</strong> assigned this event to you.
+    <strong>{{ author }}</strong> assigned this issue to you in {{ group.organization.name }}/{{ group.project.name }}.
   </blockquote>
 
   {% include "sentry/emails/group_header.html" %}

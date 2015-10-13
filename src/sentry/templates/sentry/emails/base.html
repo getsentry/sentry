@@ -68,6 +68,16 @@
     text-align: left;
     padding: 0 20px;
   }
+
+  .preheader {
+    display: none;
+    font-size: 0;
+    max-height: 0;
+    line-height: 0;
+    padding: 0; (optional)
+    mso-hide: all; /* hide elements in Outlook 2007-2013 */
+  }
+
   .header {
     padding: 25px 0;
     font-size: 14px;
@@ -294,6 +304,7 @@
   </style>
 </head>
 <body{% block bodyclass %}{% endblock %}>
+<div class="preheader">{% block preheader %}{% endblock %}</div>
 <table class="main">
   <tr>
     <td>
