@@ -1,7 +1,10 @@
 {% extends "sentry/emails/base.html" %}
 
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
 {% block preheader %}
-  New note by {{ author }} in {{ group.organization.name }}/{{ group.project.name }}.
+  New comment by {{ author }} in {{ group.organization.name }}/{{ group.project.name }}.
 {% endblock %}
 
 {% block header %}
@@ -10,9 +13,21 @@
 {% endblock %}
 
 {% block main %}
-  <h2>New Note by <span class="highlight">{{ author }}</span> in {{ group.organization.name }}/{{ group.project.name }}</h2>
+  <h3>New comment by {{ author }}</h3>
 
-  <div class="note-body">{{ data.text|urlize|linebreaks }}</div>
+  <table class="note">
+    <tr>
+      <td class="avatar-column">
+        <img class="avatar" width="48" height="48" src="{% gravatar_url author.email size 96 %}">
+      </td>
+      <td class="notch-column">
+        <img width="7" height="48" src="{% asset_url 'sentry' 'images/email/avatar-notch.png' %}">
+      </td>
+      <td>
+        <div class="note-body">{{ data.text|urlize|linebreaks }}</div>
+      </td>
+    </tr>
+  </table>
 
   {% include "sentry/emails/group_header.html" %}
 {% endblock %}
