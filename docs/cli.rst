@@ -50,3 +50,12 @@ Builtin Commands
 
     Performs any needed repair against the Sentry database. This will attempt to correct
     things like missing teams, project keys, etc.
+
+.. describe:: export
+
+    Exports all system configuration tables to a JSON file. This will not export event
+    data.
+
+.. describe:: import
+
+    Imports a JSON export. Used in conjuction with ``export``.
