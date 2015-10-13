@@ -7,12 +7,11 @@ sentry.plugins.sentry_mail.models
 """
 from __future__ import absolute_import
 
-import itertools
-
 import sentry
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.template.loader import render_to_string
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
@@ -196,26 +195,16 @@ class MailPlugin(NotificationPlugin):
         )
 
     def notify_digest(self, project, digest):
-        # TODO: Probably just put this in a template?
-        # TODO: Maybe project should just be an attribute of the digest?
-        records = list(itertools.chain.from_iterable(digest.values()))
-        # TODO: Pluralization
-        subject = '[{project}] {n} events from {oldest.datetime} to {newest.datetime}]'.format(
-            project=project.get_full_name().encode('utf-8'),
-            n=len(records),
-            oldest=records[-1],
-            newest=records[0],
-        )
+        context = {
+            'digest': digest,
+        }
 
         self._send_mail(
-            subject=subject,
+            subject=render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
             template='sentry/emails/digests/body.txt',
             html_template='sentry/emails/digests/body.html',
             project=project,
-            context={
-                'project': project,
-                'digest': digest,
-            },
+            context=context,
         )
 
 
