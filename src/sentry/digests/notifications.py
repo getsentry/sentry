@@ -32,14 +32,13 @@ def strip_for_serialization(instance):
     return cls(**{field.attname: getattr(instance, field.attname) for field in cls._meta.fields})
 
 
-# XXX: Rules
-def event_to_record(event, rules=[], clean=strip_for_serialization):
+def event_to_record(event, rules, clean=strip_for_serialization):
+    if not rules:
+        logger.warning('Creating record for %r that does not contain any rules!', event)
+
     return Record(
         event.event_id,
-        NotificationEvent(
-            clean(event),
-            map(clean, rules),
-        ),
+        NotificationEvent(clean(event), [rule.id for rule in rules]),
         to_timestamp(event.datetime),
     )
 
