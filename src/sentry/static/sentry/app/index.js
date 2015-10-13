@@ -38,6 +38,7 @@ export default {
   moment: require("moment"),
   Raven: require("raven-js"),
   React: require("react"),
+  ReactDOM: require("react-dom"),
   Router: require("react-router"),
 
   Sentry: {
