@@ -20,7 +20,10 @@ class GroupTagKeySerializer(Serializer):
             try:
                 label = tag_labels[item.key]
             except KeyError:
-                label = item.value
+                if item.key.startswith('sentry:'):
+                    label = item.key.split('sentry:', 1)[-1]
+                else:
+                    label = item.key
             result[item] = {
                 'name': label,
             }
