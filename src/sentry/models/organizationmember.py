@@ -130,10 +130,10 @@ class OrganizationMember(Model):
     def save(self, *args, **kwargs):
         assert self.user_id or self.email, \
             'Must set user or email'
+        self.role = self._compute_role()
         super(OrganizationMember, self).save(*args, **kwargs)
         if not self.counter:
             self._set_counter()
-        self.role = self._compute_role()
 
     @transaction.atomic
     def delete(self, *args, **kwargs):
