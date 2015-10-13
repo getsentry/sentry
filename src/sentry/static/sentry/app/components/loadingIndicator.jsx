@@ -1,4 +1,3 @@
-import joinClasses from "react/lib/joinClasses";
 import classNames from "classnames";
 import React from "react";
 
@@ -22,7 +21,7 @@ var LoadingIndicator = React.createClass({
     });
 
     return (
-      <div className={joinClasses(this.props.className, className)}>
+      <div className={classNames(this.props.className, className)}>
         <div className="loading-mask"></div>
         <div className="loading-indicator"></div>
         <div className="loading-message">{this.props.children}</div>
