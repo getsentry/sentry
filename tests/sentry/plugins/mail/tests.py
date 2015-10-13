@@ -221,7 +221,7 @@ class MailPluginTest(TestCase):
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
     def test_notify_digest(self, _send_mail):
         project = self.event.project
-        rule = Rule(id=1, project=project, data={})
+        rule = project.rule_set.all()[0]
         digest = build_digest(
             project,
             (
