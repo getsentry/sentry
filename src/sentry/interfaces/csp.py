@@ -82,8 +82,8 @@ class Csp(Interface):
         return '%s in %r' % self.get_violated_directive()
 
     def _normalize_directive(self, directive):
-        if not directive:
-            return directive
+        if directive is None:
+            return '<unknown>'
         bits = filter(None, directive.split(' '))
         return ' '.join([bits[0]] + map(self._normalize_value, bits[1:]))
 

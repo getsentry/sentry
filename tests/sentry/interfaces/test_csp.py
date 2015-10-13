@@ -90,6 +90,11 @@ class CspTest(TestCase):
         ))
         assert result.get_culprit_directive() == ('blocked-uri', 'self')
 
+        result = Csp.to_python(dict(
+            document_uri='http://example.com/foo',
+        ))
+        assert result.get_culprit_directive() == ('effective-directive', '<unknown>')
+
     @patch('sentry.interfaces.csp.Csp.get_culprit_directive')
     @patch('sentry.interfaces.csp.Csp.get_violated_directive')
     def test_get_hash(self, get_culprit, get_violated):
