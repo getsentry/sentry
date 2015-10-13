@@ -108,13 +108,12 @@ var ActionLink = React.createClass({
     actionLabel = actionLabel.replace('{count}', numEvents);
 
     return (
-      <span>
-        <a title={this.props.tooltip || this.props.buttonTitle}
-           className={className}
-           disabled={this.props.disabled}
-           onClick={this.handleClick}>
-          {this.props.children}
-        </a>
+      <a title={this.props.tooltip || this.props.buttonTitle}
+         className={className}
+         disabled={this.props.disabled}
+         onClick={this.handleClick}>
+        {this.props.children}
+
         <Modal show={this.state.isModalOpen} title="Please confirm" animation={false} onHide={this.handleToggle}>
           <div className="modal-body">
             <p><strong>Are you sure that you want to {this.props.actionLabel}?</strong></p>
@@ -131,7 +130,7 @@ var ActionLink = React.createClass({
                     onClick={this.handleActionSelected}>{confirmLabel} {numEvents} selected events</button>
           </div>
         </Modal>
-      </span>
+      </a>
     );
   }
 });
