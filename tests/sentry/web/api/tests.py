@@ -39,7 +39,7 @@ class CspReportViewTest(TestCase):
         get_origins.return_value = ['example.com']
         resp = self.client.post(self.path,
             content_type='application/csp-report',
-            data='{"csp-report":{"document_uri":"http://lolnope.com"}}',
+            data='{"csp-report":{"document-uri":"http://lolnope.com"}}',
             HTTP_USER_AGENT='awesome',
         )
         assert resp.status_code == 403, resp.content
@@ -47,7 +47,7 @@ class CspReportViewTest(TestCase):
         get_origins.return_value = ['*']
         resp = self.client.post(self.path,
             content_type='application/csp-report',
-            data='{"csp-report":{"document_uri":"about:blank"}}',
+            data='{"csp-report":{"document-uri":"about:blank"}}',
             HTTP_USER_AGENT='awesome',
         )
         assert resp.status_code == 403, resp.content
@@ -56,7 +56,7 @@ class CspReportViewTest(TestCase):
     @mock.patch('sentry.web.api.CspReportView.process')
     def test_post_success(self, process):
         process.return_value = 'ok'
-        resp = self._postCspWithHeader({'csp-report': {'document_uri': 'http://example.com'}})
+        resp = self._postCspWithHeader({'csp-report': {'document-uri': 'http://example.com'}})
         assert resp.status_code == 201, resp.content
 
 
