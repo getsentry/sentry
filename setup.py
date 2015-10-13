@@ -123,10 +123,6 @@ postgres_pypy_requires = [
     'psycopg2cffi',
 ]
 
-mysql_requires = [
-    'MySQL-python>=1.2.0,<1.3.0',
-]
-
 
 class DevelopWithBuildStatic(develop):
     def install_for_development(self):
@@ -216,7 +212,6 @@ setup(
         'dev': dev_requires,
         'postgres': install_requires + postgres_requires,
         'postgres_pypy': install_requires + postgres_pypy_requires,
-        'mysql': install_requires + mysql_requires,
     },
     cmdclass={
         'build_static': BuildStatic,
