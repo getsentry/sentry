@@ -192,9 +192,9 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if last_release:
             last_release = self._get_release_info(request, group, last_release)
 
-        tag_counts = dict(GroupTagKey.objects.filter(
+        tags = list(GroupTagKey.objects.filter(
             group=group,
-        ).values_list('key', 'values_seen')[:100])
+        )[:100])
 
         data.update({
             'firstRelease': first_release,
@@ -203,7 +203,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             'seenBy': seen_by,
             'pluginActions': action_list,
             'userReportCount': UserReport.objects.filter(group=group).count(),
-            'tags': tag_counts,
+            'tags': sorted(serialize(tags, request.user), key=lambda x: x['name']),
             'stats': {
                 '24h': hourly_stats,
                 '30d': daily_stats,
