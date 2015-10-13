@@ -9,9 +9,9 @@ sentry.cache.redis
 from __future__ import absolute_import
 
 from django.conf import settings
-from rb import Cluster
 
 from sentry.utils import json
+from sentry.utils.redis import make_rb_cluster
 
 from .base import BaseCache
 
@@ -27,7 +27,7 @@ class RedisCache(BaseCache):
         options.setdefault('hosts', {
             0: {},
         })
-        self.cluster = Cluster(options['hosts'])
+        self.cluster = make_rb_cluster(options['hosts'])
         self.client = self.cluster.get_routing_client()
 
         super(RedisCache, self).__init__(version=version, prefix=prefix)

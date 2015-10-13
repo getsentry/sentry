@@ -10,7 +10,6 @@ from __future__ import absolute_import
 from django.conf import settings
 from django.db import models
 from django.utils.encoding import force_bytes
-from rb import Cluster
 from time import time
 
 from sentry.buffer import Buffer
@@ -20,6 +19,7 @@ from sentry.utils import metrics
 from sentry.utils.compat import pickle
 from sentry.utils.hashlib import md5
 from sentry.utils.imports import import_string
+from sentry.utils.redis import make_rb_cluster
 
 
 class RedisBuffer(Buffer):
@@ -34,7 +34,7 @@ class RedisBuffer(Buffer):
         options.setdefault('hosts', {
             0: {},
         })
-        self.cluster = Cluster(options['hosts'])
+        self.cluster = make_rb_cluster(options['hosts'])
 
     def validate(self):
         try:
