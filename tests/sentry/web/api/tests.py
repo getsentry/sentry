@@ -48,7 +48,7 @@ class CspReportViewTest(TestCase):
     @mock.patch('sentry.web.api.CspReportView.process')
     def test_post_success(self, process):
         process.return_value = 'ok'
-        resp = self._postCSPWithHeader({'csp-report': {'document_uri': 'http://example.com'}})
+        resp = self._postCspWithHeader({'csp-report': {'document_uri': 'http://example.com'}})
         assert resp.status_code == 201, resp.content
 
 
