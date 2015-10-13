@@ -2,15 +2,12 @@
 
 from __future__ import absolute_import
 
-import pytest
-
 from django.core.urlresolvers import reverse
 from exam import fixture
 
 from sentry.testutils import TestCase
 
 
-@pytest.mark.xfail
 class ReplayTest(TestCase):
     @fixture
     def path(self):
