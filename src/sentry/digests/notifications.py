@@ -148,5 +148,5 @@ def build_digest(project, records, state=None):
         state = fetch_state(project, records)
 
     state = attach_state(**state)
-    records = map(functools.partial(rewrite_record, **state), records)
+    records = filter(None, map(functools.partial(rewrite_record, **state), records))
     return sort_groups(group_records(records))
