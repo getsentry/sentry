@@ -47,36 +47,6 @@ class BulkDeleteQuery(object):
 
         return self._continuous_query(query)
 
-    def execute_mysql(self, chunk_size=10000):
-        quote_name = connections['default'].ops.quote_name
-
-        where = []
-        if self.dtfield and self.days is not None:
-            where.append("{} < now() - interval '{} days'".format(
-                quote_name(self.dtfield),
-                self.days,
-            ))
-        if self.project_id:
-            where.append("project_id = {}".format(self.project_id))
-
-        if where:
-            where_clause = 'where {}'.format(' and '.join(where))
-        else:
-            where_clause = ''
-
-        query = """
-            delete from {table}
-            {where}
-            limit {chunk_size}
-            ));
-        """.format(
-            table=self.model._meta.db_table,
-            chunk_size=chunk_size,
-            where=where_clause,
-        )
-
-        return self._continuous_query(query)
-
     def _continuous_query(self, query):
         results = True
         cursor = connections['default'].cursor()
@@ -107,7 +77,5 @@ class BulkDeleteQuery(object):
     def execute(self, chunk_size=10000):
         if db.is_postgres():
             self.execute_postgres(chunk_size)
-        elif db.is_mysql():
-            self.execute_mysql(chunk_size)
         else:
             self.execute_generic(chunk_size)

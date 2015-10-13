@@ -215,7 +215,7 @@ def fetch_release_file(filename, release):
     return result
 
 
-def fetch_url(url, project=None, release=None):
+def fetch_url(url, project=None, release=None, allow_scraping=True):
     """
     Pull down a URL, returning a UrlResult object.
 
@@ -227,6 +227,12 @@ def fetch_url(url, project=None, release=None):
 
     if release:
         result = fetch_release_file(url, release)
+    elif not allow_scraping:
+        error = {
+            'type': EventError.JS_MISSING_SOURCE,
+            'url': url,
+        }
+        raise CannotFetchSource(error)
     else:
         result = None
 
@@ -314,11 +320,12 @@ def fetch_url(url, project=None, release=None):
     return UrlResult(url, result[0], result[1])
 
 
-def fetch_sourcemap(url, project=None, release=None):
+def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
     if is_data_uri(url):
         body = base64.b64decode(url[BASE64_PREAMBLE_LENGTH:])
     else:
-        result = fetch_url(url, project=project, release=release)
+        result = fetch_url(url, project=project, release=release,
+                           allow_scraping=allow_scraping)
         body = result.body
 
     # According to various specs[1][2] a SourceMap may be prefixed to force
@@ -384,7 +391,8 @@ class SourceProcessor(object):
 
     Mutates the input ``data`` with expanded context if available.
     """
-    def __init__(self, max_fetches=MAX_RESOURCE_FETCHES):
+    def __init__(self, max_fetches=MAX_RESOURCE_FETCHES, allow_scraping=True):
+        self.allow_scraping = allow_scraping
         self.max_fetches = max_fetches
         self.cache = SourceCache()
         self.sourcemaps = SourceMapCache()
@@ -590,7 +598,8 @@ class SourceProcessor(object):
             # TODO: respect cache-control/max-age headers to some extent
             logger.debug('Fetching remote source %r', filename)
             try:
-                result = fetch_url(filename, project=project, release=release)
+                result = fetch_url(filename, project=project, release=release,
+                                   allow_scraping=self.allow_scraping)
             except BadSource as exc:
                 cache.add_error(filename, exc.data)
                 continue
@@ -622,6 +631,7 @@ class SourceProcessor(object):
                     sourcemap_url,
                     project=project,
                     release=release,
+                    allow_scraping=self.allow_scraping,
                 )
             except BadSource as exc:
                 cache.add_error(filename, exc.data)

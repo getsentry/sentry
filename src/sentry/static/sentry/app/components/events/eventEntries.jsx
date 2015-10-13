@@ -31,7 +31,8 @@ var EventEntries = React.createClass({
     exception: require("./interfaces/exception"),
     request: require("./interfaces/request"),
     stacktrace: require("./interfaces/stacktrace"),
-    template: require("./interfaces/template")
+    template: require("./interfaces/template"),
+    csp: require("./interfaces/csp"),
   },
 
   shouldComponentUpdate(nextProps, nextState) {

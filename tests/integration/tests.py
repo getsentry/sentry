@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import, print_function
 
+import os
 import datetime
 import json
 import logging
@@ -68,6 +69,15 @@ DEPENDENCY_TEST_DATA = {
         }
     }),
 }
+
+
+def get_fixture_path(name):
+    return os.path.join(os.path.dirname(__file__), 'fixtures', name)
+
+
+def load_fixture(name):
+    with open(get_fixture_path(name)) as fp:
+        return fp.read()
 
 
 class AssertHandler(logging.Handler):
@@ -380,3 +390,47 @@ class DepdendencyTest(TestCase):
 
     def test_validate_fails_on_pylibmc(self):
         self.validate_dependency(*DEPENDENCY_TEST_DATA['pylibmc'])
+
+
+def make_csp_test(f, func):
+    path = os.path.join(os.path.dirname(__file__), 'fixtures/csp', f)
+
+    def run(self):
+        with open(path + '_input.json', 'rb') as fp1:
+            input = fp1.read()
+        with open(path + '_output.json', 'rb') as fp2:
+            output = json.load(fp2)
+        func(self, input, output)
+    return run
+
+
+class _CspReportTestGenerator(type):
+    def __new__(cls, name, bases, attrs):
+        test_cases = []
+        for k, v in attrs.copy().iteritems():
+            if k.startswith('test_') and callable(v):
+                test_cases.append((k, v))
+                attrs.pop(k)
+        for f in attrs['fixtures']:
+            for name, func in test_cases:
+                test = make_csp_test(f, func)
+                test.__name__ = '%s:%s' % (name, f)
+                attrs[test.__name__] = test
+        return super(_CspReportTestGenerator, cls).__new__(cls, name, bases, attrs)
+
+
+class CspReportTest(TestCase):
+    __metaclass__ = _CspReportTestGenerator
+    fixtures = (
+        'chrome_blocked_asset',
+        'firefox_blocked_asset'
+    )
+
+    def test_successful(self, input, output):
+        resp = self._postCspWithHeader(input)
+        assert resp.status_code == 201, resp.content
+        assert Event.objects.count() == 1
+        e = Event.objects.all()[0]
+        Event.objects.bind_nodes([e], 'data')
+        assert e.message == output['message']
+        self.assertDictContainsSubset(output['data'], e.data.data, e.data.data)

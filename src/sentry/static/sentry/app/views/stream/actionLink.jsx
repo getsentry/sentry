@@ -1,5 +1,4 @@
-import Modal from "react-bootstrap/Modal";
-import OverlayMixin from "react-bootstrap/OverlayMixin";
+import Modal from "react-bootstrap/lib/Modal";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 import React from "react";
 import SelectedGroupStore from "../../stores/selectedGroupStore";
@@ -7,7 +6,7 @@ import TooltipMixin from "../../mixins/tooltip";
 
 var ActionLink = React.createClass({
   mixins: [
-    OverlayMixin, PureRenderMixin,
+    PureRenderMixin,
     TooltipMixin({
       html: false,
       container: 'body'
@@ -43,6 +42,15 @@ var ActionLink = React.createClass({
     };
   },
 
+  handleClick() {
+    var selectedItemIds = SelectedGroupStore.getSelectedIds();
+    if (!this.state.isModalOpen && !this.shouldConfirm(selectedItemIds.size)) {
+      return void this.handleActionSelected();
+    }
+
+    this.handleToggle();
+  },
+
   handleToggle() {
     if (this.props.disabled) {
       return;
@@ -70,22 +78,6 @@ var ActionLink = React.createClass({
     return confirmLabel.toLowerCase() + ' these {count} events';
   },
 
-  render() {
-    var className = this.props.className;
-    if (this.props.disabled) {
-      className += ' disabled';
-    }
-    className += ' tip';
-    return (
-      <a title={this.props.tooltip || this.props.buttonTitle}
-         className={className}
-         disabled={this.props.disabled}
-         onClick={this.handleToggle}>
-        {this.props.children}
-      </a>
-    );
-  },
-
   shouldConfirm(numSelectedItems) {
     // By default, should confirm ...
     var shouldConfirm = true;
@@ -102,45 +94,43 @@ var ActionLink = React.createClass({
     return shouldConfirm;
   },
 
-  renderOverlay() {
-    if (!this.state.isModalOpen) {
-      return null;
+  render() {
+    let className = this.props.className;
+    if (this.props.disabled) {
+      className += ' disabled';
     }
+    className += ' tip';
 
-    var selectedItemIds = SelectedGroupStore.getSelectedIds();
-    if (selectedItemIds.size === 0) {
-      throw new Error('ActionModal rendered without any selected groups');
-    }
 
-    if (!this.shouldConfirm(selectedItemIds.size)) {
-      this.handleActionSelected();
-      this.state.isModalOpen = false;
-      return null;
-    }
-
-    var confirmLabel = this.props.confirmLabel;
-    var actionLabel = this.props.actionLabel || this.defaultActionLabel(confirmLabel);
-    var numEvents = selectedItemIds.size;
-
+    let confirmLabel = this.props.confirmLabel;
+    let numEvents = SelectedGroupStore.getSelectedIds().size;
+    let actionLabel = this.props.actionLabel || this.defaultActionLabel(confirmLabel);
     actionLabel = actionLabel.replace('{count}', numEvents);
 
     return (
-      <Modal title="Please confirm" animation={false} onRequestHide={this.handleToggle}>
-        <div className="modal-body">
-          <p><strong>Are you sure that you want to {actionLabel}?</strong></p>
-          <p>This action cannot be undone.</p>
-        </div>
-        <div className="modal-footer">
-          <button type="button" className="btn btn-default"
-                  onClick={this.handleToggle}>Cancel</button>
-          {this.props.canActionAll &&
-            <button type="button" className="btn btn-danger"
-                    onClick={this.handleActionAll}>{confirmLabel} all recorded events</button>
-          }
-          <button type="button" className="btn btn-primary"
-                  onClick={this.handleActionSelected}>{confirmLabel} {numEvents} selected events</button>
-        </div>
-      </Modal>
+      <a title={this.props.tooltip || this.props.buttonTitle}
+         className={className}
+         disabled={this.props.disabled}
+         onClick={this.handleClick}>
+        {this.props.children}
+
+        <Modal show={this.state.isModalOpen} title="Please confirm" animation={false} onHide={this.handleToggle}>
+          <div className="modal-body">
+            <p><strong>Are you sure that you want to {this.props.actionLabel}?</strong></p>
+            <p>This action cannot be undone.</p>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-default"
+                    onClick={this.handleToggle}>Cancel</button>
+            {this.props.canActionAll &&
+              <button type="button" className="btn btn-danger"
+                      onClick={this.handleActionAll}>{confirmLabel} all recorded events</button>
+            }
+            <button type="button" className="btn btn-primary"
+                    onClick={this.handleActionSelected}>{confirmLabel} {numEvents} selected events</button>
+          </div>
+        </Modal>
+      </a>
     );
   }
 });

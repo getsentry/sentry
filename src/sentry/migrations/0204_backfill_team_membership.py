@@ -12,7 +12,7 @@ class Migration(DataMigration):
         OrganizationMemberTeam = orm['sentry.OrganizationMemberTeam']
         Team = orm['sentry.Team']
 
-        for org in Organization.objects.filter():
+        for org in Organization.objects.all():
             members = OrganizationMember.objects.filter(
                 organization=org,
                 has_global_access=True,
@@ -20,15 +20,19 @@ class Migration(DataMigration):
             teams = Team.objects.filter(organization=org)
             for member in members:
                 for team in teams:
+                    # XXX(dcramer): South doesnt like us using transactions here
                     try:
-                        with transaction.atomic():
-                            OrganizationMemberTeam.objects.create(
-                                team=team,
-                                organizationmember=member,
-                                is_active=True,
-                            )
+                        sid = transaction.savepoint()
+                        OrganizationMemberTeam.objects.create(
+                            team=team,
+                            organizationmember=member,
+                            is_active=True,
+                        )
                     except IntegrityError:
-                        pass
+                        transaction.savepoint_rollback(sid)
+                    else:
+                        transaction.savepoint_commit(sid)
+                    transaction.commit()
 
     def backwards(self, orm):
         pass

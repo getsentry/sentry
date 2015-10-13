@@ -11,11 +11,6 @@ var GroupSidebar = React.createClass({
     var orgId = this.getOrganization().slug;
     var projectId = this.getProject().slug;
     var group = this.getGroup();
-    var tagList = [];
-    for (var key in group.tags) {
-      tagList.push([group.tags[key].name, key]);
-    }
-    tagList.sort();
 
     return (
       <div className="group-stats">
@@ -44,13 +39,13 @@ var GroupSidebar = React.createClass({
             release={group.lastRelease} />
 
         <h6><span>Tags</span></h6>
-        {tagList.map((data) => {
+        {group.tags.map((data) => {
           return (
             <TagDistributionMeter
-              key={data[0]}
+              key={data.key}
               group={group}
-              name={data[0]}
-              tag={data[1]} />
+              name={data.name}
+              tag={data.key} />
           );
         })}
       </div>

@@ -23,9 +23,6 @@ develop: update-submodules setup-git develop-only install-python-tests
 dev-postgres: install-python
 	pip install "file://`pwd`#egg=sentry[postgres]"
 
-dev-mysql: install-python
-	pip install "file://`pwd`#egg=sentry[mysql]"
-
 dev-docs:
 	pip install -r doc-requirements.txt
 
@@ -128,7 +125,7 @@ extract-api-docs:
 	cd api-docs; python generator.py
 
 
-.PHONY: develop dev-postgres dev-mysql dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python test-python-coverage lint lint-python lint-js coverage run-uwsgi publish
+.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python test-python-coverage lint lint-python lint-js coverage run-uwsgi publish
 
 
 ############################
@@ -149,29 +146,25 @@ travis-noop:
 
 # Install steps
 travis-install-sqlite: travis-install-python
-travis-install-mysql: travis-install-python dev-mysql
-	mysql -e 'create database sentry;'
 travis-install-postgres: travis-install-python dev-postgres
 	psql -c 'create database sentry;' -U postgres
 travis-install-webpack: travis-install-js
 travis-install-js: install-npm
 travis-install-cli: travis-install-python
 
-.PHONY: travis-install-sqlite travis-install-mysql travis-install-postgres travis-install-webpack travis-install-js travis-install-cli
+.PHONY: travis-install-sqlite travis-install-postgres travis-install-webpack travis-install-js travis-install-cli
 
 # Lint steps
 travis-lint-sqlite: lint
-travis-lint-mysql: lint
 travis-lint-postgres: lint
 travis-lint-webpack: travis-noop
 travis-lint-js: lint
 travis-lint-cli: travis-noop
 
-.PHONY: travis-lint-sqlite travis-lint-mysql travis-lint-postgres travis-lint-webpack travis-lint-js travis-lint-cli
+.PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-webpack travis-lint-js travis-lint-cli
 
 # Test steps
 travis-test-sqlite: test-python-coverage
-travis-test-mysql: test-python-coverage
 travis-test-postgres: test-python-coverage
 travis-test-webpack:
 	@echo "--> Compiling webpack"
@@ -179,4 +172,4 @@ travis-test-webpack:
 travis-test-js: test-js
 travis-test-ci: test-ci
 
-.PHONY: travis-test-sqlite travis-test-mysql travis-test-postgres travis-test-webpack travis-test-js travis-test-cli
+.PHONY: travis-test-sqlite travis-test-postgres travis-test-webpack travis-test-js travis-test-cli

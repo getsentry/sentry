@@ -24,11 +24,6 @@ var EventTags = React.createClass({
     if (_.isEmpty(tags))
       return null;
 
-    let sortedTags = _.chain(tags)
-      .map((val, key) => [key, val])
-      .sortBy(([key,]) => key)
-      .value();
-
     return (
       <EventDataSection
           group={this.props.group}
@@ -36,17 +31,17 @@ var EventTags = React.createClass({
           title="Tags"
           type="tags">
         <ul className="mini-tag-list">
-          {sortedTags.map(([key, value]) => {
+          {tags.map((tag) => {
             return (
-              <li key={key}>
-                {key} = <Router.Link
+              <li key={tag.key}>
+                {tag.key} = <Router.Link
                   to="stream"
                   params={params}
-                  query={{query: `${key}:"${value}"`}}>
-                  {value}
+                  query={{query: `${tag.key}:"${tag.value}"`}}>
+                  {tag.value}
                 </Router.Link>
-                {isUrl(value) &&
-                  <a href={value} className="external-icon">
+                {isUrl(tag.value) &&
+                  <a href={tag.value} className="external-icon">
                     <em className="icon-open" />
                   </a>
                 }

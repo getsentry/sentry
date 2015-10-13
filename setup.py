@@ -97,6 +97,7 @@ install_requires = [
     'markdown>=2.4.1,<2.5.0',
     'petname>=1.7,<1.8',
     'progressbar>=2.2,<2.4',
+    'psycopg2>=2.5.0,<2.6.0',
     'pytest>=2.6.4,<2.7.0',
     'pytest-django>=2.6.0,<2.7.0',
     'python-dateutil>=2.0.0,<3.0.0',
@@ -116,15 +117,10 @@ install_requires = [
 ]
 
 postgres_requires = [
-    'psycopg2>=2.5.0,<2.6.0',
 ]
 
 postgres_pypy_requires = [
     'psycopg2cffi',
-]
-
-mysql_requires = [
-    'MySQL-python>=1.2.0,<1.3.0',
 ]
 
 
@@ -216,7 +212,6 @@ setup(
         'dev': dev_requires,
         'postgres': install_requires + postgres_requires,
         'postgres_pypy': install_requires + postgres_pypy_requires,
-        'mysql': install_requires + mysql_requires,
     },
     cmdclass={
         'build_static': BuildStatic,

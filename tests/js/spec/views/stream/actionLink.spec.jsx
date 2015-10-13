@@ -4,7 +4,7 @@ var TestUtils = React.addons.TestUtils;
 import api from "app/api";
 import stubReactComponents from "../../../helpers/stubReactComponent";
 import ActionLink from "app/views/stream/actionLink";
-import Modal from "react-bootstrap/Modal";
+import Modal from "react-bootstrap/lib/Modal";
 
 describe("ActionLink", function() {
 

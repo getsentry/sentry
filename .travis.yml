@@ -3,7 +3,6 @@ language: python
 services:
   - memcached
   - riak
-  - mysql
   - postgresql
   - redis-server
   - cassandra
@@ -17,7 +16,6 @@ cache:
 env:
   matrix:
     - TEST_SUITE=sqlite DB=sqlite
-    - TEST_SUITE=mysql DB=mysql
     - TEST_SUITE=postgres DB=postgres
     - TEST_SUITE=webpack
     - TEST_SUITE=js

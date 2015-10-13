@@ -145,6 +145,21 @@ class BaseTestCase(Fixtures, Exam):
             )
         return resp
 
+    def _postCspWithHeader(self, data, key=None, **extra):
+        if isinstance(data, dict):
+            body = json.dumps({'csp-report': data})
+        elif isinstance(data, basestring):
+            body = data
+        path = reverse('sentry-api-csp-report', kwargs={'project_id': self.project.id})
+        path += '?sentry_key=%s&sentry_version=5' % self.projectkey.public_key
+        with self.tasks():
+            return self.client.post(
+                path, data=body,
+                content_type='application/csp-report',
+                HTTP_USER_AGENT='awesome',
+                **extra
+            )
+
     def _getWithReferer(self, data, key=None, referer='getsentry.com', protocol='4'):
         if key is None:
             key = self.projectkey.public_key

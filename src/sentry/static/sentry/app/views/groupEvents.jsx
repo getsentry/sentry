@@ -81,11 +81,9 @@ var GroupEvents = React.createClass({
     }
 
     var group = this.getGroup();
-    var tagList = [];
-    for (var key in group.tags) {
-      tagList.push([group.tags[key].name, key]);
-    }
-    tagList.sort();
+    var tagList = group.tags.filter((tag) => {
+      return tag.key !== 'user';
+    });
 
     var hasUser = false;
     for (var i = 0; i < this.state.eventList.length; i++) {
@@ -102,6 +100,10 @@ var GroupEvents = React.createClass({
         groupId: this.getGroup().id,
         eventId: event.id
       };
+      var tagMap = {};
+      event.tags.forEach((tag) => {
+        tagMap[tag.key] = tag.value;
+      });
 
       return (
         <tr key={eventIdx}>
@@ -114,10 +116,10 @@ var GroupEvents = React.createClass({
               <small>{event.eventID}</small>
             </h5>
           </td>
-          {tagList.map((tag, tagIdx) => {
+          {tagList.map((tag) => {
             return (
-              <td key={tagIdx}>
-                {event.tags[tag[1]]}
+              <td key={tag.key}>
+                {tagMap[tag.key]}
               </td>
             );
           })}
@@ -143,10 +145,10 @@ var GroupEvents = React.createClass({
           <table className="table">
             <thead>
               <th>ID</th>
-              {tagList.map((tag, tagIdx) => {
+              {tagList.map((tag) => {
                 return (
-                  <th key={tagIdx}>
-                    {tag[0]}
+                  <th key={tag.key}>
+                    {tag.name}
                   </th>
                 );
               })}
