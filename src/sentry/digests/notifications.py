@@ -143,6 +143,8 @@ def sort_groups(grouped):
 
 
 def build_digest(project, records, state=None):
+    records = list(records)
+
     # XXX: This is a hack to allow generating a mock digest without actually
     # doing any real IO!
     if state is None:
