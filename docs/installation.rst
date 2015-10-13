@@ -123,10 +123,6 @@ of meta packages to make things easier:
     apt-get install libpq-dev
     pip install -U sentry[postgres]
 
-    # or if you choose, mysql
-    pip install -U sentry[mysql]
-
-
 Installing from Source
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -169,12 +165,7 @@ not a fully supported database and should not be used in production**.
     # https://docs.djangoproject.com/en/1.6/ref/databases/
     DATABASES = {
         'default': {
-            # We suggest PostgreSQL for optimal performance
             'ENGINE': 'sentry.db.postgres',
-
-            # Alternatively you can use MySQL
-            'ENGINE': 'django.db.backends.mysql',
-
             'NAME': 'sentry',
             'USER': 'postgres',
             'PASSWORD': '',
@@ -249,11 +240,8 @@ you've created the database:
 
 .. code-block:: bash
 
-    # If you're using Postgres, and kept the database ``NAME`` as ``sentry``
+    # If you kept the database ``NAME`` as ``sentry``
     $ createdb -E utf-8 sentry
-
-    # alternatively if you're using MySQL, ensure you've created the database:
-    $ mysql -e 'create database sentry'
 
 Once done, you can create the initial schema using the ``upgrade`` command:
 
