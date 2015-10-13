@@ -2296,22 +2296,32 @@ table.integrations {
   }
 }
 
-.radio-inputs {
+ul.radio-inputs {
+  .list-unstyled;
   position: relative;
   display: inline-block;
+  margin-bottom: 10px;
 
-  .radio {
-    margin-top: 7px;
+  li.radio {
+    margin-top: 0;
     margin-right: 10px;
-    margin-bottom: 0;
-    margin-left: 20px;
+    margin-bottom: 10px;
+    margin-left: 0;
     display: inline-block;
     font-weight: normal;
 
-    input {
-      margin-left: -20px;
-      margin-top: 4px;
-      vertical-align: middle;
+    label {
+      padding-left: 25px;
+
+      input {
+        margin-left: -25px;
+        margin-top: 4px;
+        vertical-align: middle;
+      }
+
+      .help-block {
+        margin-bottom: 0;
+      }
     }
   }
 }

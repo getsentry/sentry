@@ -4,9 +4,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from operator import or_
 
-from sentry.models import (
-    ApiKey, AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType
-)
+from sentry.models import ApiKey, AuditLogEntry, AuditLogEntryEvent
 from sentry.web.frontend.base import OrganizationView
 
 DEFAULT_SCOPES = [
@@ -19,7 +17,7 @@ DEFAULT_SCOPES = [
 
 
 class OrganizationApiKeysView(OrganizationView):
-    required_access = OrganizationMemberType.ADMIN
+    required_scope = 'org:delete'
 
     def handle(self, request, organization):
         if request.POST.get('op') == 'newkey':

@@ -3,9 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.models import (
-    Organization, OrganizationMember, OrganizationMemberType
-)
+from sentry.models import Organization, OrganizationMember
 from sentry.testutils import TestCase
 
 
@@ -33,7 +31,7 @@ class CreateOrganizationTest(TestCase):
         assert OrganizationMember.objects.filter(
             organization=org,
             user=self.user,
-            type=OrganizationMemberType.OWNER,
+            role='owner',
         ).exists()
 
         redirect_uri = reverse('sentry-create-team', args=[org.slug])

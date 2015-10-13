@@ -21,7 +21,6 @@ class BaseAPITest(TestCase):
         self.user = self.create_user('coreapi@example.com')
         self.team = self.create_team(name='Foo')
         self.project = self.create_project(team=self.team)
-        self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
         self.pk = self.project.key_set.get_or_create()[0]
         self.helper = self.helper_cls(agent='Awesome Browser', ip_address='69.69.69.69')
 

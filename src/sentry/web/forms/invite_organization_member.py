@@ -4,20 +4,18 @@ from django import forms
 from django.db import transaction, IntegrityError
 
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberType
+    AuditLogEntry, AuditLogEntryEvent, OrganizationMember
 )
 
 
 class InviteOrganizationMemberForm(forms.ModelForm):
     class Meta:
-        fields = ('email',)
+        fields = ('email', 'role')
         model = OrganizationMember
 
     def save(self, actor, organization, ip_address):
         om = super(InviteOrganizationMemberForm, self).save(commit=False)
         om.organization = organization
-        om.type = OrganizationMemberType.MEMBER
 
         try:
             existing = OrganizationMember.objects.filter(

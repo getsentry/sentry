@@ -15,7 +15,11 @@ class TeamTest(TestCase):
             user=user,
             organization=org,
         )
-
+        OrganizationMemberTeam.objects.create(
+            organizationmember=member,
+            team=team,
+            is_active=True,
+        )
         assert list(team.member_set.all()) == [member]
 
     def test_inactive_global_member(self):
@@ -42,8 +46,8 @@ class TeamTest(TestCase):
         member = self.create_member(
             user=user2,
             organization=org,
-            has_global_access=False,
-            teams=[team]
+            role='member',
+            teams=[team],
         )
 
         assert member in team.member_set.all()
@@ -56,7 +60,8 @@ class TeamTest(TestCase):
         member = self.create_member(
             user=user2,
             organization=org,
-            has_global_access=False,
+            role='member',
+            teams=[],
         )
 
         assert member not in team.member_set.all()

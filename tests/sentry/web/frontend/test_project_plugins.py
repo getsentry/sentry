@@ -12,7 +12,7 @@ class ManageProjectPluginsTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-manage-project-plugins', args=[
-            self.organization.slug, self.project.id])
+            self.organization.slug, self.project.slug])
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)

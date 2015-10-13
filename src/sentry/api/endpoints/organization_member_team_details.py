@@ -90,44 +90,31 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not om.has_global_access:
-            try:
-                omt = OrganizationMemberTeam.objects.get(
+        try:
+            omt = OrganizationMemberTeam.objects.get(
+                team=team,
+                organizationmember=om,
+            )
+        except OrganizationMemberTeam.DoesNotExist:
+            if not (request.access.has_scope('org:write') or organization.flags.allow_joinleave):
+                omt, created = OrganizationAccessRequest.objects.get_or_create(
                     team=team,
-                    organizationmember=om,
+                    member=om,
                 )
-            except OrganizationMemberTeam.DoesNotExist:
-                # TODO(dcramer): this should create a pending request and
-                # return a 202
-                if not organization.flags.allow_joinleave:
-                    omt, created = OrganizationAccessRequest.objects.get_or_create(
-                        team=team,
-                        member=om,
-                    )
-                    if created:
-                        omt.send_request_email()
-                    return Response(status=202)
+                if created:
+                    omt.send_request_email()
+                return Response(status=202)
 
-                omt = OrganizationMemberTeam(
-                    team=team,
-                    organizationmember=om,
-                    is_active=False,
-                )
-
+            omt = OrganizationMemberTeam.objects.create(
+                team=team,
+                organizationmember=om,
+                is_active=True,
+            )
+        else:
             if omt.is_active:
                 return Response(status=204)
-        else:
-            try:
-                omt = OrganizationMemberTeam.objects.get(
-                    team=team,
-                    organizationmember=om,
-                )
-            except OrganizationMemberTeam.DoesNotExist:
-                # if the relationship doesnt exist, they're already a member
-                return Response(status=204)
-
-        omt.is_active = True
-        omt.save()
+            omt.is_active = True
+            omt.save()
 
         self.create_audit_entry(
             request=request,
@@ -163,29 +150,15 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not om.has_global_access:
-            try:
-                omt = OrganizationMemberTeam.objects.get(
-                    team=team,
-                    organizationmember=om,
-                )
-            except OrganizationMemberTeam.DoesNotExist:
-                # if the relationship doesnt exist, they're already a member
-                return Response(serialize(
-                    team, request.user, TeamWithProjectsSerializer()), status=200)
-        else:
-            try:
-                omt = OrganizationMemberTeam.objects.get(
-                    team=team,
-                    organizationmember=om,
-                    is_active=True,
-                )
-            except OrganizationMemberTeam.DoesNotExist:
-                omt = OrganizationMemberTeam(
-                    team=team,
-                    organizationmember=om,
-                    is_active=True,
-                )
+        try:
+            omt = OrganizationMemberTeam.objects.get(
+                team=team,
+                organizationmember=om,
+            )
+        except OrganizationMemberTeam.DoesNotExist:
+            # if the relationship doesnt exist, they're already a member
+            return Response(serialize(
+                team, request.user, TeamWithProjectsSerializer()), status=200)
 
         if omt.is_active:
             omt.is_active = False

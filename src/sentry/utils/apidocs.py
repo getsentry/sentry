@@ -260,12 +260,9 @@ class MockUtils(object):
             user=owner,
             organization=org,
             defaults={
-                'has_global_access': False,
+                'role': 'member',
             }
         )
-
-        if dummy_member.has_global_access:
-            dummy_member.update(has_global_access=False)
 
         return org
 
