@@ -9,16 +9,26 @@
 {% endblock %}
 
 {% block main %}
-    <h2>
+    <h2 style="margin-bottom: 15px">
         {% url 'sentry-stream' group.project.organization.slug group.project.slug as project_link %}
         {% if group.times_seen == 1 %}
-            New Event on <a href="{% absolute_uri project_link %}" class="highlight">{{ project_label }}</a>
+            New Event on <a href="{% absolute_uri project_link %}">{{ project_label }}</a>
         {% else %}
-            Regression on <a href="{% absolute_uri project_link %}" class="highlight">{{ project_label }}</a>
+            Regression on <a href="{% absolute_uri project_link %}">{{ project_label }}</a>
         {% endif %}
     </h2>
 
-    <pre class="message">{{ event.message }}</pre>
+    <table class="event">
+      <tr>
+        <td colspan="2">
+          <pre class="message">{{ event.message }}</pre>
+        </td>
+      </tr>
+      <tr>
+        <td>{{ event.datetime }} UTC</td>
+        <td>ID: {{ event.event_id }}</td>
+      </tr>
+    </table>
 
     {% if tags %}
       <h3>Tags</h3>
