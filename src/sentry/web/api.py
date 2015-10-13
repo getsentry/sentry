@@ -15,7 +15,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.db.models import Sum, Q
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotAllowed
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.views.decorators.cache import never_cache, cache_control
@@ -27,7 +27,7 @@ from raven.contrib.django.models import client as Raven
 from sentry import app
 from sentry.app import tsdb
 from sentry.coreapi import (
-    APIError, APIForbidden, APIRateLimited, ClientApiHelper
+    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper,
 )
 from sentry.event_manager import EventManager
 from sentry.models import (
@@ -71,6 +71,8 @@ def api(func):
 
 
 class APIView(BaseView):
+    helper_cls = ClientApiHelper
+
     def _get_project_from_id(self, project_id):
         if not project_id:
             return
@@ -95,7 +97,7 @@ class APIView(BaseView):
     @csrf_exempt
     @never_cache
     def dispatch(self, request, project_id=None, *args, **kwargs):
-        helper = ClientApiHelper(
+        helper = self.helper_cls(
             agent=request.META.get('HTTP_USER_AGENT'),
             project_id=project_id,
             ip_address=request.META['REMOTE_ADDR'],
@@ -329,16 +331,17 @@ class StoreView(APIView):
 
         content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')
 
-        if content_encoding == 'gzip':
-            data = helper.decompress_gzip(data)
-        elif content_encoding == 'deflate':
-            data = helper.decompress_deflate(data)
-        elif not data.startswith('{'):
-            data = helper.decode_and_decompress_data(data)
-        data = helper.safely_load_json_string(data)
+        if isinstance(data, basestring):
+            if content_encoding == 'gzip':
+                data = helper.decompress_gzip(data)
+            elif content_encoding == 'deflate':
+                data = helper.decompress_deflate(data)
+            elif not data.startswith('{'):
+                data = helper.decode_and_decompress_data(data)
+            data = helper.safely_load_json_string(data)
 
         # mutates data
-        helper.validate_data(project, data)
+        data = helper.validate_data(project, data)
 
         # mutates data
         manager = EventManager(data, version=auth.version)
@@ -376,6 +379,78 @@ class StoreView(APIView):
         helper.log.debug('New event received (%s)', event_id)
 
         return event_id
+
+
+class CspReportView(StoreView):
+    helper_cls = CspApiHelper
+    content_types = ('application/csp-report', 'application/json')
+
+    def _dispatch(self, request, helper, project_id=None, origin=None,
+                  *args, **kwargs):
+        # NOTE: We need to override the auth flow for a CSP report!
+        # A CSP report is sent as a POST request with no Origin or Referer
+        # header. What we're left with is a 'document-uri' key which is
+        # inside of the JSON body of the request. This 'document-uri' value
+        # should be treated as an origin check since it refers to the page
+        # that triggered the report. The Content-Type is supposed to be
+        # `application/csp-report`, but FireFox sends it as `application/json`.
+        if request.method != 'POST':
+            return HttpResponseNotAllowed(['POST'])
+
+        if request.META.get('CONTENT_TYPE') not in self.content_types:
+            raise APIError('Invalid Content-Type')
+
+        request.user = AnonymousUser()
+
+        project = self._get_project_from_id(project_id)
+        helper.context.bind_project(project)
+        Raven.tags_context(helper.context.get_tags_context())
+
+        # This is yanking the auth from the querystring since it's not
+        # in the POST body. This means we expect a `sentry_key` and
+        # `sentry_version` to be set in querystring
+        auth = self._parse_header(request, helper, project)
+
+        project_ = helper.project_from_auth(auth)
+        if project_ != project:
+            raise APIError('Two different project were specified')
+
+        helper.context.bind_auth(auth)
+        Raven.tags_context(helper.context.get_tags_context())
+
+        return super(APIView, self).dispatch(
+            request=request,
+            project=project,
+            auth=auth,
+            helper=helper,
+            **kwargs
+        )
+
+    def post(self, request, project, auth, helper, **kwargs):
+        data = helper.safely_load_json_string(request.body)
+
+        # Do origin check based on the `document-uri` key as explained
+        # in `_dispatch`.
+        try:
+            report = data['csp-report']
+        except KeyError:
+            raise APIError('Missing csp-report')
+
+        origin = report.get('document-uri')
+        if not is_valid_origin(origin, project):
+            raise APIForbidden('Invalid document-uri')
+
+        response_or_event_id = self.process(
+            request,
+            project=project,
+            auth=auth,
+            helper=helper,
+            data=report,
+            **kwargs
+        )
+        if isinstance(response_or_event_id, HttpResponse):
+            return response_or_event_id
+        return HttpResponse(status=201)
 
 
 @never_cache
