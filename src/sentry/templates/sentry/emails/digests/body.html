@@ -6,7 +6,7 @@
 
 <h2>{{ project.name }}</h2>
 
-{% for rule, groups in digest.rules %}
+{% for rule, groups in digest.iteritems %}
 
     <h3>{{ rule.label }}</h3>
 
@@ -16,17 +16,17 @@
             <th>Events</th>
             <th>Users</th>
         </tr>
-        {% for group, summary in groups %}
+        {% for group, records in groups.iteritems %}
             <tr>
                 <th>
                     {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
                     <a href="{% absolute_uri group_link %}">{{ group.title }}</a>
                 </th>
                 <td>
-                    {{ summary.events }}
+                    {{ group.event_count }}
                 </td>
                 <td>
-                    {{ summary.users }}
+                    {{ group.user_count }}
                 </td>
             </tr>
         {% endfor %}

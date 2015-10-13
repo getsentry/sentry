@@ -1,13 +1,21 @@
 from __future__ import absolute_import
 
+import functools
+import itertools
 import logging
-from collections import namedtuple
-
-from django.utils import timezone
+from collections import (
+    OrderedDict,
+    defaultdict,
+    namedtuple,
+)
 
 from sentry.app import tsdb
 from sentry.digests import Record
-from sentry.models import Project
+from sentry.models import (
+    Project,
+    Group,
+    Rule,
+)
 from sentry.utils.dates import to_timestamp
 
 
@@ -32,77 +40,113 @@ def strip_for_serialization(instance):
     return cls(**{field.attname: getattr(instance, field.attname) for field in cls._meta.fields})
 
 
-def event_to_record(event, rules, clean=strip_for_serialization):
+def event_to_record(event, rules):
     if not rules:
         logger.warning('Creating record for %r that does not contain any rules!', event)
 
     return Record(
         event.event_id,
-        Notification(clean(event), [rule.id for rule in rules]),
+        Notification(strip_for_serialization(event), [rule.id for rule in rules]),
         to_timestamp(event.datetime),
     )
 
 
-Digest = namedtuple('Digest', 'start end rules')
-Summary = namedtuple('Summary', 'records events users')
-
-
-def build_digest(project, records):
-    # Extract all groups from the records.
-    groups = set()
-    for record in records:
-        groups.add(record.value.event.group_id)
-
+def fetch_state(project, records):
+    # This reads a little strange, but remember that records are returned in
+    # reverse chronological order, and we query the database in chronological
+    # order.
+    # NOTE: This doesn't account for any issues that are filtered out later.
     start = records[-1].datetime
-    end = timezone.now()
+    end = records[0].datetime
 
-    # Fetch the event counts for all groups.
-    events = tsdb.get_sums(
-        tsdb.models.group,
-        groups,
-        start,
-        end,
+    groups = Group.objects.in_bulk(record.value.event.group_id for record in records)
+    return {
+        'project': project,
+        'groups': groups,
+        'rules': Rule.objects.in_bulk(itertools.chain.from_iterable(record.value.rules for record in records)),
+        'event_counts': tsdb.get_sums(tsdb.models.group, groups.keys(), start, end),
+        'user_counts': tsdb.get_distinct_counts_totals(tsdb.models.users_affected_by_group, groups.keys(), start, end),
+    }
+
+
+def attach_state(project, groups, rules, event_counts, user_counts):
+    for id, group in groups.iteritems():
+        assert group.project_id == project.id, 'Group must belong to Project'
+        group.project = project
+
+    for id, rule in rules.iteritems():
+        assert rule.project_id == project.id, 'Rule must belong to Project'
+        rule.project = project
+
+    for id, event_count in event_counts.iteritems():
+        groups[id].event_count = event_count
+
+    for id, user_count in user_counts.iteritems():
+        groups[id].user_count = user_count
+
+    return {
+        'project': project,
+        'groups': groups,
+        'rules': rules,
+    }
+
+
+def rewrite_record(record, project, groups, rules):
+    event = record.value.event
+    group = groups.get(event.group_id)
+    if group is None:
+        return
+
+    event.group = group
+
+    return Record(
+        record.key,
+        Notification(
+            event,
+            filter(None, [rules.get(id) for id in record.value.rules]),
+        ),
+        record.timestamp,
     )
 
-    # Fetch the user counts for all groups.
-    users = tsdb.get_distinct_counts_totals(
-        tsdb.models.users_affected_by_group,
-        groups,
-        start,
-        end,
-    )
 
-    # Group the records by [rule][group].
-    groups_by_rule = {}
+def group_records(records):
+    results = defaultdict(lambda: defaultdict(list))
     for record in records:
+        group = record.value.event.group
         for rule in record.value.rules:
-            group = record.value.event.group
-            summary = groups_by_rule.setdefault(rule, {}).get(group)
-            if summary is None:
-                summary = groups_by_rule[rule][group] = Summary(
-                    [],
-                    events[group.id],
-                    users[group.id],
-                )
-            summary.records.append(record)
+            results[rule][group].append(record)
 
-    # TODO: Filter out any groups that are muted or resolved?
+    return results
 
-    results = sorted(
-        [
-            (
-                rule,
-                sorted(
-                    summaries.items(),
-                    key=lambda (group, summary): summary.events,
-                    reverse=True,
-                )
-            )
-            for rule, summaries in
-            groups_by_rule.items()
-        ],
-        key=lambda (rule, groups): len(groups),
-        reverse=True,
-    )
 
-    return Digest(start, end, results)
+def sort_groups(grouped):
+    def sort_by_events(groups):
+        return OrderedDict(
+            sorted(
+                groups.items(),
+                key=lambda (group, records): (group.event_count, group.user_count),
+                reverse=True,
+            ),
+        )
+
+    def sort_by_groups(rules):
+        return OrderedDict(
+            sorted(
+                rules.items(),
+                key=lambda (rule, groups): len(groups),
+                reverse=True,
+            ),
+        )
+
+    return sort_by_groups({rule: sort_by_events(groups) for rule, groups in grouped.iteritems()})
+
+
+def build_digest(project, records, state=None):
+    # XXX: This is a hack to allow generating a mock digest without actually
+    # doing any real IO!
+    if state is None:
+        state = fetch_state(project, records)
+
+    state = attach_state(**state)
+    records = map(functools.partial(rewrite_record, **state), records)
+    return sort_groups(group_records(records))

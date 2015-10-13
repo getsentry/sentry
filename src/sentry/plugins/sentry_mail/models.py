@@ -196,6 +196,7 @@ class MailPlugin(NotificationPlugin):
 
     def notify_digest(self, project, digest):
         context = {
+            'project': project,
             'digest': digest,
         }
 
