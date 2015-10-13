@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
 from django.conf import settings
-from rb import Cluster
 from time import time
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.ratelimits.base import RateLimiter
+from sentry.utils.redis import make_rb_cluster
 
 
 class RedisRateLimiter(RateLimiter):
@@ -17,7 +17,7 @@ class RedisRateLimiter(RateLimiter):
             options = settings.SENTRY_REDIS_OPTIONS
         options.setdefault('hosts', {0: {}})
 
-        self.cluster = Cluster(options['hosts'])
+        self.cluster = make_rb_cluster(options['hosts'])
 
     def validate(self):
         try:

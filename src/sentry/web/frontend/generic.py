@@ -24,7 +24,12 @@ def static_media(request, **kwargs):
     if module:
         path = '%s/%s' % (module, path)
 
-    return serve(request, path, insecure=True)
+    response = serve(request, path, insecure=True)
+
+    # We need CORS for font files
+    if path.endswith(('.eot', '.ttf', '.woff')):
+        response['Access-Control-Allow-Origin'] = '*'
+    return response
 
 
 class TemplateView(BaseTemplateView):

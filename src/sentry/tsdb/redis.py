@@ -17,11 +17,10 @@ from django.conf import settings
 from django.utils import timezone
 from hashlib import md5
 
-from rb import Cluster
-
 from sentry.exceptions import InvalidConfiguration
 from sentry.tsdb.base import BaseTSDB
 from sentry.utils.dates import to_timestamp
+from sentry.utils.redis import make_rb_cluster
 from sentry.utils.versioning import (
     Version,
     check_versions,
@@ -75,7 +74,7 @@ class RedisTSDB(BaseTSDB):
         if hosts is None:
             hosts = defaults.get('hosts', {0: {}})
 
-        self.cluster = Cluster(hosts)
+        self.cluster = make_rb_cluster(hosts)
         self.prefix = prefix
         self.vnodes = vnodes
         super(RedisTSDB, self).__init__(**kwargs)

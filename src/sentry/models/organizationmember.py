@@ -130,10 +130,10 @@ class OrganizationMember(Model):
     def save(self, *args, **kwargs):
         assert self.user_id or self.email, \
             'Must set user or email'
+        self.role = self._compute_role()
         super(OrganizationMember, self).save(*args, **kwargs)
         if not self.counter:
             self._set_counter()
-        self.role = self._compute_role()
 
     @transaction.atomic
     def delete(self, *args, **kwargs):
@@ -180,24 +180,7 @@ class OrganizationMember(Model):
         return checksum.hexdigest()
 
     def get_scopes(self):
-        # TODO(dcramer): use role once we've fully migrated
-        scopes = []
-        if self.type <= OrganizationMemberType.MEMBER:
-            scopes.extend([
-                'event:read', 'event:write', 'event:delete',
-                'org:read', 'project:read', 'team:read',
-                'member:read',
-            ])
-        if self.type <= OrganizationMemberType.ADMIN:
-            scopes.extend(['project:write', 'team:write'])
-        if self.type <= OrganizationMemberType.OWNER:
-            scopes.extend(['project:delete', 'team:delete'])
-        if self.has_global_access:
-            if self.type <= OrganizationMemberType.ADMIN:
-                scopes.extend(['org:write', 'member:write'])
-            if self.type <= OrganizationMemberType.OWNER:
-                scopes.extend(['org:delete', 'member:delete'])
-        return scopes
+        return ROLE_SCOPES[self.role]
 
     def send_invite_email(self):
         from sentry.utils.email import MessageBuilder

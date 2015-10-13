@@ -13,7 +13,7 @@ Some basic prerequisites which you'll need in order to run Sentry:
   assumes an ubuntu based system.
 * Python 2.7
 * ``python-setuptools``, ``python-pip``, ``python-dev``, ``libxslt1-dev``,
-  ``libxml2-dev``, ``libz-dev``, ``libffi-dev``, ``libssl-dev``
+  ``libxml2-dev``, ``libz-dev``, ``libffi-dev``, ``libssl-dev``, ``libpq-dev``
 * `PostgreSQL <http://www.postgresql.org/>`_
 * `Redis <http://redis.io>`_ (3.0.2 or newer)
 * `Nginx <http://nginx.org>`_ (``nginx-full``)
@@ -106,27 +106,6 @@ via ``sentry``, and get something like the following:
   usage: [SENTRY_CONF=/path/to/settings.py] sentry [command] [options]
 
 
-Using Postgres or MySQL
-~~~~~~~~~~~~~~~~~~~~~~~
-
-We **highly** recommend using PostgreSQL for your database, or MySQL if
-you have no other choice. The default is sqlite and will handle very
-little load. If you're using MySQL, you should use InnoDB as your storage
-engine.
-
-These databases require additional packages, but Sentry provides a couple
-of meta packages to make things easier:
-
-::
-
-    # install sentry and its postgresql dependencies
-    apt-get install libpq-dev
-    pip install -U sentry[postgres]
-
-    # or if you choose, mysql
-    pip install -U sentry[mysql]
-
-
 Installing from Source
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -169,12 +148,7 @@ not a fully supported database and should not be used in production**.
     # https://docs.djangoproject.com/en/1.6/ref/databases/
     DATABASES = {
         'default': {
-            # We suggest PostgreSQL for optimal performance
             'ENGINE': 'sentry.db.postgres',
-
-            # Alternatively you can use MySQL
-            'ENGINE': 'django.db.backends.mysql',
-
             'NAME': 'sentry',
             'USER': 'postgres',
             'PASSWORD': '',
@@ -249,11 +223,8 @@ you've created the database:
 
 .. code-block:: bash
 
-    # If you're using Postgres, and kept the database ``NAME`` as ``sentry``
+    # If you kept the database ``NAME`` as ``sentry``
     $ createdb -E utf-8 sentry
-
-    # alternatively if you're using MySQL, ensure you've created the database:
-    $ mysql -e 'create database sentry'
 
 Once done, you can create the initial schema using the ``upgrade`` command:
 

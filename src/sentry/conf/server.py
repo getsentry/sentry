@@ -637,11 +637,6 @@ SENTRY_WEB_HOST = 'localhost'
 SENTRY_WEB_PORT = 9000
 SENTRY_WEB_OPTIONS = {}
 
-# UDP Service
-SENTRY_UDP_HOST = 'localhost'
-SENTRY_UDP_PORT = 9001
-SENTRY_USE_IPV6_UDP = False
-
 # SMTP Service
 SENTRY_ENABLE_EMAIL_REPLIES = False
 SENTRY_SMTP_HOSTNAME = 'localhost'
@@ -656,6 +651,7 @@ SENTRY_INTERFACES = {
     'template': 'sentry.interfaces.template.Template',
     'query': 'sentry.interfaces.query.Query',
     'user': 'sentry.interfaces.user.User',
+    'csp': 'sentry.interfaces.csp.Csp',
 
     'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
     'sentry.interfaces.Message': 'sentry.interfaces.message.Message',
@@ -664,6 +660,7 @@ SENTRY_INTERFACES = {
     'sentry.interfaces.Query': 'sentry.interfaces.query.Query',
     'sentry.interfaces.Http': 'sentry.interfaces.http.Http',
     'sentry.interfaces.User': 'sentry.interfaces.user.User',
+    'sentry.interfaces.Csp': 'sentry.interfaces.csp.Csp',
 }
 
 # Should users without superuser permissions be allowed to

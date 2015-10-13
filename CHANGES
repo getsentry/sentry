@@ -5,6 +5,16 @@ Version 8 of Sentry introduces a brand new frontend. Most of the application has
 and rewritten on top of React and our web API. Additionally many new features have been exposed
 related to user assigned and release tracking.
 
+A Note on MySQL
+~~~~~~~~~~~~~~~
+
+Due to numerous issues over the years and recent discoveries that nearly all schema migration was
+broken in MySQL (due to some behavior in our migration tool), we've made the decision to no longer
+support MySQL. It is possible to bring the schema up to date on a MySQL machine, but Sentry's
+automated migrations will likely not work and require DBA assistance.
+
+Postgres is now the only supported production database.
+
 General
 ~~~~~~~
 
