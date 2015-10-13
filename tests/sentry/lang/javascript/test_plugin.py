@@ -58,6 +58,7 @@ class JavascriptIntegrationTest(TestCase):
             'http://example.com/foo.js',
             project=self.project,
             release=None,
+            allow_scraping=True,
         )
 
         event = Event.objects.get()
@@ -109,6 +110,7 @@ class JavascriptIntegrationTest(TestCase):
             'http://example.com/test.min.js',
             project=self.project,
             release=None,
+            allow_scraping=True,
         )
 
         event = Event.objects.get()

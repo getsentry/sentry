@@ -15,10 +15,10 @@ def preprocess_event(data):
     project = Project.objects.get_from_cache(
         id=data['project'],
     )
-    if not bool(project.get_option('sentry:scrape_javascript', True)):
-        return
 
-    processor = SourceProcessor()
+    allow_scraping = bool(project.get_option('sentry:scrape_javascript', True))
+
+    processor = SourceProcessor(allow_scraping=allow_scraping)
     return processor.process(project, data)
 
 
