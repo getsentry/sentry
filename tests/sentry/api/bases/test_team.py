@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from mock import Mock
 
 from sentry.api.bases.team import TeamPermission
-from sentry.models import ApiKey, OrganizationMemberType, ProjectKey
+from sentry.models import ApiKey, ProjectKey
 from sentry.testutils import TestCase
 
 
@@ -31,33 +31,22 @@ class TeamPermissionTest(TeamPermissionBase):
         user = self.create_user(is_superuser=True)
         assert self.has_object_perm(None, user, self.team)
 
-    def test_org_member_without_team_access(self):
+    def test_member_without_team_access(self):
         user = self.create_user()
         self.create_member(
             user=user,
             organization=self.org,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=False,
+            role='member',
+            teams=[],
         )
         assert not self.has_object_perm(None, user, self.team)
 
-    def test_org_member_with_global_access(self):
+    def test_member_with_team_access(self):
         user = self.create_user()
         self.create_member(
             user=user,
             organization=self.org,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=True,
-        )
-        assert self.has_object_perm(None, user, self.team)
-
-    def test_org_member_with_team_access(self):
-        user = self.create_user()
-        self.create_member(
-            user=user,
-            organization=self.org,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=False,
+            role='member',
             teams=[self.team],
         )
         assert self.has_object_perm(None, user, self.team)

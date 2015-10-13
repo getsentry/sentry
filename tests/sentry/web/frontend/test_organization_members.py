@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import OrganizationMember, OrganizationMemberType
+from sentry.models import OrganizationMember
 from sentry.testutils import TestCase, PermissionTestCase
 
 
@@ -11,11 +11,8 @@ class OrganizationMembersPermissionTest(PermissionTestCase):
         super(OrganizationMembersPermissionTest, self).setUp()
         self.path = reverse('sentry-organization-members', args=[self.organization.slug])
 
-    def test_teamless_member_can_load(self):
-        self.assert_teamless_member_can_access(self.path)
-
-    def test_org_member_can_load(self):
-        self.assert_org_member_can_access(self.path)
+    def test_member_can_load(self):
+        self.assert_member_can_access(self.path)
 
     def test_non_member_cannot_load(self):
         self.assert_non_member_cannot_access(self.path)
@@ -38,8 +35,7 @@ class OrganizationMembersTest(TestCase):
         member_om = self.create_member(
             organization=organization,
             user=member,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=False,
+            role='member',
             teams=[team_2],
         )
 
@@ -57,6 +53,6 @@ class OrganizationMembersTest(TestCase):
         member_list = sorted(resp.context['member_list'], key=lambda x: x[0].id)
 
         assert member_list == [
-            (owner_om, [], False),
-            (member_om, [team_2], False),
+            (owner_om, False),
+            (member_om, False),
         ]

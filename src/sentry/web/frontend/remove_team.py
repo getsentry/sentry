@@ -7,7 +7,6 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.api import client
-from sentry.models import OrganizationMemberType
 from sentry.web.frontend.base import TeamView
 
 
@@ -16,7 +15,7 @@ class RemoveTeamForm(forms.Form):
 
 
 class RemoveTeamView(TeamView):
-    required_access = OrganizationMemberType.OWNER
+    required_scope = 'team:delete'
     sudo_required = True
 
     def get_form(self, request):

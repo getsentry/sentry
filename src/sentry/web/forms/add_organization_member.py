@@ -5,7 +5,6 @@ from django.db import transaction, IntegrityError
 
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberType
 )
 from sentry.web.forms.fields import UserField
 
@@ -14,13 +13,12 @@ class AddOrganizationMemberForm(forms.ModelForm):
     user = UserField()
 
     class Meta:
-        fields = ('user',)
+        fields = ('user', 'role')
         model = OrganizationMember
 
     def save(self, actor, organization, ip_address):
         om = super(AddOrganizationMemberForm, self).save(commit=False)
         om.organization = organization
-        om.type = OrganizationMemberType.MEMBER
 
         with transaction.atomic():
             try:

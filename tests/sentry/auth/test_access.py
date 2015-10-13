@@ -19,10 +19,13 @@ class FromUserTest(TestCase):
         assert not result.scopes
         assert not result.has_team(team)
 
-    def test_global_org_member_access(self):
+    def test_owner_all_teams(self):
         user = self.create_user()
-        organization = self.create_organization(owner=user)
-        member = organization.member_set.get(user=user)
+        organization = self.create_organization(owner=self.user)
+        member = self.create_member(
+            organization=organization, user=user,
+            role='owner',
+        )
         team = self.create_team(organization=organization)
 
         result = access.from_user(user, organization)
@@ -31,6 +34,21 @@ class FromUserTest(TestCase):
         assert result.scopes == member.get_scopes()
         assert result.has_team(team)
 
+    def test_member_no_teams(self):
+        user = self.create_user()
+        organization = self.create_organization(owner=self.user)
+        member = self.create_member(
+            organization=organization, user=user,
+            role='member',
+        )
+        team = self.create_team(organization=organization)
+
+        result = access.from_user(user, organization)
+        assert result.is_active
+        assert result.sso_is_valid
+        assert result.scopes == member.get_scopes()
+        assert not result.has_team(team)
+
     def test_team_restricted_org_member_access(self):
         user = self.create_user()
         organization = self.create_organization()
@@ -38,7 +56,6 @@ class FromUserTest(TestCase):
         member = self.create_member(
             organization=organization,
             user=user,
-            has_global_access=False,
             teams=[team],
         )
 

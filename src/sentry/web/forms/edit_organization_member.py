@@ -1,27 +1,14 @@
 from __future__ import absolute_import
 
 from django import forms
-from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberTeam, OrganizationMemberType, Team
-)
-from sentry.web.forms.fields import CustomTypedChoiceField
-
-MEMBERSHIP_CHOICES = (
-    (OrganizationMemberType.MEMBER, _('Member')),
-    (OrganizationMemberType.ADMIN, _('Admin')),
-    (OrganizationMemberType.OWNER, _('Owner')),
+    OrganizationMemberTeam, Team
 )
 
 
 class EditOrganizationMemberForm(forms.ModelForm):
-    type = CustomTypedChoiceField(label=_('Role'), choices=(), coerce=int)
-    has_global_access = forms.BooleanField(
-        label=_('This member should have global access within the organization (including all teams).'),
-        required=False,
-    )
     teams = forms.ModelMultipleChoiceField(
         queryset=Team.objects.none(),
         widget=forms.CheckboxSelectMultiple(),
@@ -29,16 +16,12 @@ class EditOrganizationMemberForm(forms.ModelForm):
     )
 
     class Meta:
-        fields = ('type', 'has_global_access')
+        fields = ('role',)
         model = OrganizationMember
 
-    def __init__(self, authorizing_access, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(EditOrganizationMemberForm, self).__init__(*args, **kwargs)
 
-        self.fields['type'].choices = [
-            m for m in MEMBERSHIP_CHOICES
-            if m[0] >= authorizing_access
-        ]
         self.fields['teams'].queryset = Team.objects.filter(
             organization=self.instance.organization,
         )

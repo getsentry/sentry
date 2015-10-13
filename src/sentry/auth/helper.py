@@ -223,8 +223,7 @@ class AuthHelper(object):
             except OrganizationMember.DoesNotExist:
                 member = OrganizationMember.objects.create(
                     organization=organization,
-                    type=auth_provider.default_role,
-                    has_global_access=auth_provider.default_global_access,
+                    role=organization.default_role,
                     user=user,
                     flags=getattr(OrganizationMember.flags, 'sso:linked'),
                 )
@@ -296,8 +295,7 @@ class AuthHelper(object):
 
         om = OrganizationMember.objects.create(
             organization=organization,
-            type=auth_provider.default_role,
-            has_global_access=auth_provider.default_global_access,
+            role=organization.default_role,
             user=user,
             flags=getattr(OrganizationMember.flags, 'sso:linked'),
         )

@@ -6,7 +6,7 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import (
-    ApiKey, AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType
+    ApiKey, AuditLogEntry, AuditLogEntryEvent
 )
 from sentry.web.forms.fields import OriginsField
 from sentry.web.frontend.base import OrganizationView
@@ -22,7 +22,7 @@ class ApiKeyForm(forms.ModelForm):
 
 
 class OrganizationApiKeySettingsView(OrganizationView):
-    required_access = OrganizationMemberType.ADMIN
+    required_scope = 'org:write'
 
     def handle(self, request, organization, key_id):
         key = ApiKey.objects.get(organization=organization, id=key_id)

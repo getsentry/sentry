@@ -1,13 +1,11 @@
 from __future__ import absolute_import
 
-from sentry.models import (
-    AuditLogEntry, OrganizationMemberType
-)
+from sentry.models import AuditLogEntry
 from sentry.web.frontend.base import OrganizationView
 
 
 class OrganizationAuditLogView(OrganizationView):
-    required_access = OrganizationMemberType.ADMIN
+    required_scope = 'org:write'
 
     def get(self, request, organization):
         queryset = AuditLogEntry.objects.filter(

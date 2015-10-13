@@ -23,11 +23,8 @@ class TeamPermission(ScopedPermission):
 
         request.access = access.from_user(request.user, team.organization)
 
-        if not request.access.has_team(team):
-            return False
-
         allowed_scopes = set(self.scope_map.get(request.method, []))
-        return any(request.access.has_scope(s) for s in allowed_scopes)
+        return any(request.access.has_team_scope(team, s) for s in allowed_scopes)
 
 
 class TeamEndpoint(Endpoint):

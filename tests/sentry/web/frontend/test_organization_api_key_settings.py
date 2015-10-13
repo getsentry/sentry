@@ -14,14 +14,14 @@ class OrganizationApiKeySettingsPermissionTest(PermissionTestCase):
             self.organization.slug, key.id
         ])
 
-    def test_teamless_owner_cannot_load(self):
-        self.assert_teamless_owner_cannot_access(self.path)
+    def test_teamless_admin_cannot_load(self):
+        self.assert_teamless_admin_cannot_access(self.path)
 
-    def test_org_member_cannot_load(self):
-        self.assert_org_member_cannot_access(self.path)
+    def test_member_cannot_load(self):
+        self.assert_member_cannot_access(self.path)
 
-    def test_org_admin_can_load(self):
-        self.assert_org_admin_can_access(self.path)
+    def test_owner_can_load(self):
+        self.assert_owner_can_access(self.path)
 
 
 class OrganizationApiKeySettingsTest(TestCase):
