@@ -14,6 +14,7 @@ from sentry.digests import Record
 from sentry.models import (
     Project,
     Group,
+    GroupStatus,
     Rule,
 )
 from sentry.utils.dates import to_timestamp
@@ -149,4 +150,5 @@ def build_digest(project, records, state=None):
 
     state = attach_state(**state)
     records = filter(None, map(functools.partial(rewrite_record, **state), records))
+    records = filter(lambda record: record.value.event.group.get_status() is GroupStatus.UNRESOLVED, records)
     return sort_groups(group_records(records))
