@@ -3,11 +3,23 @@
 {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
 {% url 'sentry-stream' group.organization.slug group.project.slug as project_link %}
 <div class="group-header">
-  <h6 class="no-margin">On this event</h6>
   <table class="group-stats">
+    <thead>
+      <tr>
+        <th>
+          <h6>On this event</h6>
+        </th>
+        <th class="align-right">
+          <h6>Level</h6>
+        </th>
+        <th class="align-right">
+          <h6>Events</h6>
+        </th>
+      </tr>
+    </thead>
     <tr>
       <td class="group-message">
-        <h3>{{ group.title|truncatechars:30 }}</h3>
+        <h3>{{ group.title|truncatechars:35 }}</h3>
         <p class="message">{{ group.message_short }}</p>
         <p class="meta">
           <span class="last-seen pretty-date">{{ group.last_seen }} UTC</span>
@@ -20,11 +32,9 @@
         </p>
       </td>
       <td class="group-level">
-        <h6>Level</h6>
         <p class="value"><span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span></p>
       </td>
       <td class="group-events">
-        <h6>Events</h6>
         <p class="value">{{ group.times_seen }}</p>
       </td>
     </tr>
