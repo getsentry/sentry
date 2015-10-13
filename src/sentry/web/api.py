@@ -437,6 +437,11 @@ class CspReportView(StoreView):
             raise APIError('Missing csp-report')
 
         origin = report.get('document-uri')
+
+        # No idea, but this is garbage
+        if origin == 'about:blank':
+            raise APIForbidden('Invalid document-uri')
+
         if not is_valid_origin(origin, project):
             raise APIForbidden('Invalid document-uri')
 

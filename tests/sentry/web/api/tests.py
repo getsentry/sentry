@@ -44,6 +44,14 @@ class CspReportViewTest(TestCase):
         )
         assert resp.status_code == 403, resp.content
 
+        get_origins.return_value = ['*']
+        resp = self.client.post(self.path,
+            content_type='application/csp-report',
+            data='{"csp-report":{"document_uri":"about:blank"}}',
+            HTTP_USER_AGENT='awesome',
+        )
+        assert resp.status_code == 403, resp.content
+
     @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
     @mock.patch('sentry.web.api.CspReportView.process')
     def test_post_success(self, process):
