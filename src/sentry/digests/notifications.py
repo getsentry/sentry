@@ -14,7 +14,7 @@ from sentry.utils.dates import to_timestamp
 logger = logging.getLogger('sentry.digests')
 
 
-NotificationEvent = namedtuple('NotificationEvent', 'event rules')
+Notification = namedtuple('Notification', 'event rules')
 
 
 def split_key(key):
@@ -38,7 +38,7 @@ def event_to_record(event, rules, clean=strip_for_serialization):
 
     return Record(
         event.event_id,
-        NotificationEvent(clean(event), [rule.id for rule in rules]),
+        Notification(clean(event), [rule.id for rule in rules]),
         to_timestamp(event.datetime),
     )
 
