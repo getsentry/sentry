@@ -3,6 +3,14 @@
 {% load sentry_helpers %}
 {% load i18n %}
 
+{% block preheader %}
+  {% if group.times_seen == 1 %}
+      New Event on {{ project_label }}.
+  {% else %}
+      Regression on {{ project_label }}.
+  {% endif %}
+{% endblock %}
+
 {% block header %}
     <a href="{{ link }}" class="btn">View on Sentry</a>
     {{ block.super }}
