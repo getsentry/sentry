@@ -1,12 +1,16 @@
 {% extends "sentry/emails/base.html" %}
 
+{% block preheader %}
+  New note by {{ author }} in {{ group.organization.name }}/{{ group.project.name }}.
+{% endblock %}
+
 {% block header %}
   <a href="{{ activity_link }}" class="btn">View on Sentry</a>
   {{ block.super }}
 {% endblock %}
 
 {% block main %}
-  <h2>New Note by <span class="highlight">{{ author }}</span></h2>
+  <h2>New Note by <span class="highlight">{{ author }}</span> in {{ group.organization.name }}/{{ group.project.name }}</h2>
 
   <div class="note-body">{{ data.text|urlize|linebreaks }}</div>
 
