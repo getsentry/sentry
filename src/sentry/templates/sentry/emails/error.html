@@ -20,17 +20,19 @@
 
     <pre class="message">{{ event.message }}</pre>
 
-    <h3>Tags</h3>
+    {% if tags %}
+      <h3>Tags</h3>
 
-    <ul class="tag-list">
-    {% for tag_key, tag_value in tags %}
+      <ul class="tag-list">
+      {% for tag_key, tag_value in tags %}
         <li>
             <strong>{{ tag_key }}</strong>
             <em>=</em>
             <span><a href="{% absolute_uri project_link %}?{{ tag_key }}={{ tag_value }}">{{ tag_value }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}</span>
         </li>
-    {% endfor %}
-    </ul>
+      {% endfor %}
+      </ul>
+    {% endif %}
 
     {% for label, html, _ in interfaces %}
     <div class="interface">
