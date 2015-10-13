@@ -14,6 +14,7 @@ from . import metrics
 UNSAFE_FILES = (
     'sentry/event_manager.py',
     'sentry/tasks/process_buffer.py',
+    'sentry/utils/raven.py',
 )
 
 
