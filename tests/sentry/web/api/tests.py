@@ -18,16 +18,6 @@ class CspReportViewTest(TestCase):
         path = reverse('sentry-api-csp-report', kwargs={'project_id': self.project.id})
         return path + '?sentry_key=%s&sentry_version=5' % self.projectkey.public_key
 
-    def _postWithHeader(self, data, key=None, **extra):
-        body = json.dumps({'csp-report': data})
-        with self.tasks():
-            return self.client.post(
-                self.path, data=body,
-                content_type='application/csp-report',
-                HTTP_USER_AGENT='awesome',
-                **extra
-            )
-
     def test_get_response(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 405, resp.content
@@ -58,7 +48,7 @@ class CspReportViewTest(TestCase):
     @mock.patch('sentry.web.api.CspReportView.process')
     def test_post_success(self, process):
         process.return_value = 'ok'
-        resp = self._postWithHeader(dict(document_uri='http://example.com'))
+        resp = self._postCSPWithHeader({'csp-report': {'document_uri': 'http://example.com'}})
         assert resp.status_code == 201, resp.content
 
 
