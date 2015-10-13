@@ -242,8 +242,8 @@
     border-collapse: collapse;
   }
 
-  .group-header td {
-    /*width: 25%;*/
+  .inner .group-header table td {
+    padding: 0;
   }
 
   .group-header td.group-level, .group-header td.group-events {
@@ -258,7 +258,6 @@
   }
 
   .group-header h6 {
-    margin: 0 0 10px;
     text-transform: uppercase;
     font-size: 12px;
     font-weight: bold;
@@ -296,10 +295,37 @@
     display: block;
   }
 
-  /* Note body */
+  /* Note */
 
-  .inner .note-body p {
-    font-size: 18px;
+  .inner .note {
+    border-collapse: collapse;
+  }
+
+  .inner .note td {
+    padding: 0;
+  }
+  .inner .note-body {
+    background: #F6F7F8;
+    padding: 15px 20px;
+    border-radius: 3px;
+  }
+  .inner .note-body p:last-child {
+    margin-bottom: 0;
+  }
+  .avatar-column {
+    width: 60px;
+    vertical-align: top;
+  }
+  .notch-column {
+    width: 7px;
+    vertical-align: top;
+  }
+
+  .notch-column img {
+    display: block;
+  }
+  .avatar {
+    border-radius: 3px;
   }
   </style>
 </head>
