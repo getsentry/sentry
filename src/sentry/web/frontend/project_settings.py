@@ -9,7 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 from uuid import uuid1
 
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType, Project, Team
+    AuditLogEntry, AuditLogEntryEvent, Project, Team
 )
 from sentry.web.forms.fields import (
     CustomTypedChoiceField, RangeField, OriginsField, IPNetworksField,
@@ -132,24 +132,17 @@ class EditProjectForm(forms.ModelForm):
 
 
 class ProjectSettingsView(ProjectView):
-    required_access = OrganizationMemberType.ADMIN
-
-    def has_permission(self, request, organization, team, project):
-        if project is None:
-            return False
-
-        if request.user.is_superuser:
-            return True
-
-        return True
+    required_scope = 'project:write'
 
     def get_form(self, request, project):
         organization = project.organization
-        team_list = Team.objects.get_for_user(
-            organization=organization,
-            user=request.user,
-            access=OrganizationMemberType.ADMIN,
-        )
+        team_list = [
+            t for t in Team.objects.get_for_user(
+                organization=organization,
+                user=request.user,
+            )
+            if request.access.has_team_scope(t, self.required_scope)
+        ]
 
         # TODO(dcramer): this update should happen within a lock
         security_token = project.get_option('sentry:token', None)

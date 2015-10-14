@@ -11,20 +11,14 @@ class RemoveTeamPermissionTest(PermissionTestCase):
         super(RemoveTeamPermissionTest, self).setUp()
         self.path = reverse('sentry-remove-team', args=[self.organization.slug, self.team.slug])
 
-    def test_teamless_owner_cannot_load(self):
-        self.assert_teamless_owner_cannot_access(self.path)
+    def test_teamless_admin_cannot_load(self):
+        self.assert_teamless_admin_cannot_access(self.path)
 
-    def test_team_admin_cannot_load(self):
-        self.assert_team_admin_cannot_access(self.path)
+    def test_team_admin_can_load(self):
+        self.assert_team_admin_can_access(self.path)
 
-    def test_team_owner_can_load(self):
-        self.assert_team_owner_can_access(self.path)
-
-    def test_org_admin_cannot_load(self):
-        self.assert_org_admin_cannot_access(self.path)
-
-    def test_org_owner_can_load(self):
-        self.assert_org_owner_can_access(self.path)
+    def test_owner_can_load(self):
+        self.assert_owner_can_access(self.path)
 
 
 class RemoveTeamTest(TestCase):

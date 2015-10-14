@@ -3,11 +3,12 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
+from sentry import roles
 from sentry.api.base import DocSection, Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.models import (
-    AuditLogEntryEvent, Organization, OrganizationMember, OrganizationMemberType
+    AuditLogEntryEvent, Organization, OrganizationMember
 )
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -85,8 +86,7 @@ class OrganizationIndexEndpoint(Endpoint):
             OrganizationMember.objects.create(
                 user=request.user,
                 organization=org,
-                type=OrganizationMemberType.OWNER,
-                has_global_access=True,
+                role=roles.get_top_dog().id,
             )
 
             self.create_audit_entry(

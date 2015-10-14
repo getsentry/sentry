@@ -59,19 +59,6 @@ STATUS_CHOICES = {
     'muted': STATUS_MUTED,
 }
 
-
-MEMBER_OWNER = 0
-MEMBER_ADMIN = 25
-MEMBER_USER = 50
-MEMBER_SYSTEM = 100
-
-MEMBER_TYPES = (
-    (MEMBER_OWNER, _('Owner')),
-    (MEMBER_ADMIN, _('Admin')),
-    (MEMBER_USER, _('User')),
-    # (MEMBER_SYSTEM, _('System Agent')),
-)
-
 # A list of values which represent an unset or empty password on
 # a User instance.
 EMPTY_PASSWORD_VALUES = ('!', '', '$')

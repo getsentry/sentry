@@ -3,14 +3,10 @@ from __future__ import absolute_import
 from django import forms
 from django.contrib import messages
 from django.core.urlresolvers import reverse
-from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Team, OrganizationMember,
-    OrganizationMemberType
-)
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, Team
 from sentry.web.frontend.base import TeamView
 
 
@@ -21,7 +17,7 @@ class EditTeamForm(forms.ModelForm):
 
 
 class TeamSettingsView(TeamView):
-    required_access = OrganizationMemberType.ADMIN
+    required_scope = 'team:write'
 
     def get_form(self, request, team):
         return EditTeamForm(request.POST or None, instance=team)
@@ -48,11 +44,7 @@ class TeamSettingsView(TeamView):
         if request.user.is_superuser:
             can_remove_team = True
         else:
-            can_remove_team = OrganizationMember.objects.filter(
-                Q(has_global_access=True) | Q(teams=team),
-                user=request.user,
-                type__lte=OrganizationMemberType.OWNER,
-            ).exists()
+            can_remove_team = request.access.has_team_scope(team, 'team:delete')
 
         context = {
             'form': form,

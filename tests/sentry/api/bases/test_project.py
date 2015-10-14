@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from mock import Mock
 
 from sentry.api.bases.project import ProjectPermission
-from sentry.models import ApiKey, OrganizationMemberType, ProjectKey
+from sentry.models import ApiKey, ProjectKey
 from sentry.testutils import TestCase
 
 
@@ -25,40 +25,49 @@ class ProjectPermissionBase(TestCase):
 
 class ProjectPermissionTest(ProjectPermissionBase):
     def test_regular_user(self):
-        user = self.create_user()
+        user = self.create_user(is_superuser=False)
         assert not self.has_object_perm(None, user, self.project)
 
     def test_superuser(self):
         user = self.create_user(is_superuser=True)
         assert self.has_object_perm(None, user, self.project)
 
-    def test_org_member_without_team_access(self):
-        user = self.create_user()
+    def test_member_for_project_read(self):
+        user = self.create_user(is_superuser=False)
         self.create_member(
             user=user,
             organization=self.org,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=False,
-        )
-        assert not self.has_object_perm(None, user, self.project)
-
-    def test_org_member_with_global_access(self):
-        user = self.create_user()
-        self.create_member(
-            user=user,
-            organization=self.org,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=True,
+            role='member',
+            teams=[self.team],
         )
         assert self.has_object_perm(None, user, self.project)
 
-    def test_org_member_with_team_access(self):
-        user = self.create_user()
+    def test_member_for_project_write(self):
+        user = self.create_user(is_superuser=False)
         self.create_member(
             user=user,
             organization=self.org,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=False,
+            role='member',
+            teams=[self.team],
+        )
+        assert not self.has_object_perm(None, user, self.project, method='POST')
+
+    def test_member_for_project_delete(self):
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=self.org,
+            role='member',
+            teams=[self.team],
+        )
+        assert not self.has_object_perm(None, user, self.project, method='DELETE')
+
+    def test_member_with_team_access(self):
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=self.org,
+            role='member',
             teams=[self.team]
         )
         assert self.has_object_perm(None, user, self.project)

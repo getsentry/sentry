@@ -3,10 +3,7 @@ from __future__ import absolute_import
 from django.core import mail
 from django.core.urlresolvers import reverse
 
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberTeam, OrganizationMemberType
-)
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, OrganizationMember
 from sentry.testutils import TestCase, PermissionTestCase
 
 
@@ -17,11 +14,11 @@ class OrganizationMemberSettingsPermissionTest(PermissionTestCase):
         om = self.create_member(user=member, organization=self.organization)
         self.path = reverse('sentry-organization-member-settings', args=[self.organization.slug, om.id])
 
-    def test_teamless_member_can_load(self):
-        self.assert_teamless_admin_can_access(self.path)
+    def test_non_member_cannot_load(self):
+        self.assert_non_member_cannot_access(self.path)
 
-    def test_org_member_can_load(self):
-        self.assert_org_member_can_access(self.path)
+    def test_member_can_load(self):
+        self.assert_member_can_access(self.path)
 
 
 class OrganizationMemberSettingsTest(TestCase):
@@ -34,8 +31,7 @@ class OrganizationMemberSettingsTest(TestCase):
         member = self.create_member(
             organization=organization,
             user=user,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=False,
+            role='member',
             teams=[team_2],
         )
 
@@ -54,7 +50,7 @@ class OrganizationMemberSettingsTest(TestCase):
         assert resp.context['member'] == member
         assert resp.context['form']
 
-    def test_setting_global_access(self):
+    def test_setting_role(self):
         organization = self.create_organization(name='foo', owner=self.user)
         team_1 = self.create_team(name='foo', organization=organization)
         team_2 = self.create_team(name='bar', organization=organization)
@@ -63,8 +59,7 @@ class OrganizationMemberSettingsTest(TestCase):
         member = OrganizationMember.objects.create(
             organization=organization,
             user=user,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=False,
+            role='member',
         )
 
         path = reverse('sentry-organization-member-settings',
@@ -73,17 +68,15 @@ class OrganizationMemberSettingsTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.post(path, {
-            'has_global_access': True,
             'teams': [team_1.id, team_2.id],
-            'type': OrganizationMemberType.ADMIN,
+            'role': 'admin',
         })
 
         assert resp.status_code == 302
 
         member = OrganizationMember.objects.get(id=member.id)
 
-        assert member.has_global_access is True
-        assert member.type == OrganizationMemberType.ADMIN
+        assert member.role == 'admin'
 
         assert member.teams.count() == 2
 
@@ -106,8 +99,7 @@ class OrganizationMemberSettingsTest(TestCase):
         member = OrganizationMember.objects.create(
             organization=organization,
             user=user,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=False,
+            role='member',
         )
 
         path = reverse('sentry-organization-member-settings',
@@ -117,15 +109,13 @@ class OrganizationMemberSettingsTest(TestCase):
 
         resp = self.client.post(path, {
             'teams': [team_1.id, team_2.id],
-            'type': OrganizationMemberType.ADMIN,
+            'role': 'member',
         })
 
-        assert resp.status_code == 302
+        assert resp.status_code == 302, resp.context['form'].errors
 
         member = OrganizationMember.objects.get(id=member.id)
-
-        assert member.has_global_access is False
-        assert member.type == OrganizationMemberType.ADMIN
+        assert member.role == 'member'
 
         teams = list(member.teams.all())
         assert team_1 in teams
@@ -144,8 +134,6 @@ class OrganizationMemberSettingsTest(TestCase):
 
     def test_reinvite(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team_1 = self.create_team(name='foo', organization=organization)
-        team_2 = self.create_team(name='bar', organization=organization)
 
         member = OrganizationMember.objects.create(
             organization=organization,
@@ -159,8 +147,6 @@ class OrganizationMemberSettingsTest(TestCase):
 
         resp = self.client.post(path, {
             'op': 'reinvite',
-            'teams': [team_1.id, team_2.id],
-            'type': OrganizationMemberType.ADMIN,
         })
 
         assert resp.status_code == 302
@@ -168,41 +154,6 @@ class OrganizationMemberSettingsTest(TestCase):
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == ['bar@example.com']
         assert mail.outbox[0].subject == 'Invite to join organization: foo'
-
-    def test_ensure_admin_cant_set_owner(self):
-        organization = self.create_organization(name='foo', owner=self.user)
-        admin = self.create_user('bar@example.com', is_superuser=False)
-        user = self.create_user('baz@example.com')
-
-        OrganizationMember.objects.create(
-            organization=organization,
-            user=admin,
-            type=OrganizationMemberType.ADMIN,
-            has_global_access=True,
-        )
-
-        member = OrganizationMember.objects.create(
-            organization=organization,
-            user=user,
-        )
-
-        path = reverse('sentry-organization-member-settings',
-                       args=[organization.slug, member.id])
-
-        self.login_as(admin)
-
-        resp = self.client.post(path, {
-            'type': OrganizationMemberType.OWNER,
-        })
-
-        assert resp.status_code == 200
-        assert resp.context['form'].errors['type']
-
-        resp = self.client.post(path, {
-            'type': OrganizationMemberType.MEMBER,
-        })
-
-        assert resp.status_code == 302
 
     def test_cannot_edit_yourself(self):
         organization = self.create_organization(name='foo', owner=self.user)
@@ -225,7 +176,7 @@ class OrganizationMemberSettingsTest(TestCase):
         assert resp.context['organization'] == organization
         assert resp.context['member'] == member
 
-    def test_cannot_edit_higher_access(self):
+    def test_admin_cant_edit(self):
         organization = self.create_organization(name='foo', owner=self.user)
         member = self.create_user('foo@example.com', is_superuser=False)
         owner_om = OrganizationMember.objects.get(
@@ -236,7 +187,7 @@ class OrganizationMemberSettingsTest(TestCase):
         OrganizationMember.objects.create(
             organization=organization,
             user=member,
-            type=OrganizationMemberType.ADMIN,
+            role='admin',
         )
 
         path = reverse('sentry-organization-member-settings',
@@ -253,7 +204,7 @@ class OrganizationMemberSettingsTest(TestCase):
         assert resp.context['organization'] == organization
         assert resp.context['member'] == owner_om
 
-    def test_can_view_member_with_team_access(self):
+    def test_member_cant_edit(self):
         organization = self.create_organization(name='foo', owner=self.user)
         member = self.create_user('foo@example.com', is_superuser=False)
         owner_om = OrganizationMember.objects.get(
@@ -264,8 +215,7 @@ class OrganizationMemberSettingsTest(TestCase):
         OrganizationMember.objects.create(
             organization=organization,
             user=member,
-            has_global_access=False,
-            type=OrganizationMemberType.ADMIN,
+            role='member',
         )
 
         path = reverse('sentry-organization-member-settings',
@@ -281,46 +231,3 @@ class OrganizationMemberSettingsTest(TestCase):
 
         assert resp.context['organization'] == organization
         assert resp.context['member'] == owner_om
-
-    def test_global_access_with_inactive_teams(self):
-        organization = self.create_organization(name='foo', owner=self.user)
-        team_1 = self.create_team(name='foo', organization=organization)
-
-        user = self.create_user('bar@example.com')
-        member = OrganizationMember.objects.create(
-            organization=organization,
-            user=user,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=True,
-        )
-
-        OrganizationMemberTeam.objects.create(
-            organizationmember=member,
-            team=team_1,
-            is_active=False,
-        )
-
-        path = reverse('sentry-organization-member-settings',
-                       args=[organization.slug, member.id])
-
-        self.login_as(self.user)
-
-        resp = self.client.post(path, {
-            'has_global_access': True,
-            'type': OrganizationMemberType.MEMBER,
-        })
-
-        assert resp.status_code == 302
-
-        member = OrganizationMember.objects.get(id=member.id)
-
-        assert member.has_global_access is True
-        assert member.type == OrganizationMemberType.MEMBER
-
-        om_teams = OrganizationMemberTeam.objects.filter(
-            organizationmember=member,
-        )
-
-        assert len(om_teams) == 1
-        assert om_teams[0].is_active is False
-        assert om_teams[0].team == team_1

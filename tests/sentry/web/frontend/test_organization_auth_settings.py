@@ -11,17 +11,17 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
         super(OrganizationAuthSettingsPermissionTest, self).setUp()
         self.path = reverse('sentry-organization-auth-settings', args=[self.organization.slug])
 
-    def test_teamless_owner_cannot_load(self):
+    def test_teamless_admin_cannot_load(self):
         with self.feature('organizations:sso'):
-            self.assert_teamless_owner_cannot_access(self.path)
+            self.assert_teamless_admin_cannot_access(self.path)
 
-    def test_org_admin_cannot_load(self):
+    def test_team_admin_cannot_load(self):
         with self.feature('organizations:sso'):
-            self.assert_org_admin_cannot_access(self.path)
+            self.assert_team_admin_cannot_access(self.path)
 
-    def test_org_owner_can_load(self):
+    def test_owner_can_load(self):
         with self.feature('organizations:sso'):
-            self.assert_org_owner_can_access(self.path)
+            self.assert_owner_can_access(self.path)
 
 
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
