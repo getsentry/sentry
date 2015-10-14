@@ -162,3 +162,10 @@ class CspTest(TestCase):
             violated_directive="script-src example.com",
         ))
         assert result.get_message() == "Blocked unsafe 'script'"
+
+        result = Csp.to_python(dict(
+            document_uri='http://example.com/foo',
+            effective_directive='script-src',
+            blocked_uri='data:text/plain;base64,SGVsbG8sIFdvcmxkIQ%3D%3D',
+        ))
+        assert result.get_message() == "Blocked 'script' from 'data:'"

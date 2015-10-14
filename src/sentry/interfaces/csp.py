@@ -101,7 +101,7 @@ class Csp(Interface):
         # Some reports from Chrome report blocked-uri as just 'about'.
         # In this case, this is not actionable and is just noisy.
         # Observed in Chrome 45 and 46.
-        if kwargs['blocked_uri'] == 'about':
+        if kwargs['blocked_uri'] in ('about', 'data'):
             raise InterfaceValidationError("Invalid value for 'blocked-uri'")
 
         # Anything resulting from an "inline" whatever violation is either sent
