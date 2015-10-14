@@ -5,7 +5,7 @@ import ActionLink from "./actionLink";
 import DropdownLink from "../../components/dropdownLink";
 import IndicatorStore from "../../stores/indicatorStore";
 import MenuItem from "../../components/menuItem";
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 import SelectedGroupStore from "../../stores/selectedGroupStore";
 
 var StreamActions = React.createClass({

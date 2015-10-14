@@ -1,6 +1,6 @@
 import React from "react";
 import Modal from "react-bootstrap/lib/Modal";
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 var LinkWithConfirmation = React.createClass({
   mixins: [PureRenderMixin],

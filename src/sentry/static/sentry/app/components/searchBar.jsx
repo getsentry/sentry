@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 var SearchBar = React.createClass({
   contextTypes: {
