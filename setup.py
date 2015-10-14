@@ -23,10 +23,11 @@ any application.
 """
 from __future__ import absolute_import
 
-import os
 import datetime
 import json
+import os
 import os.path
+import sys
 
 from distutils import log
 from distutils.core import Command
@@ -137,29 +138,104 @@ class SdistWithBuildStatic(sdist):
 
         sdist.make_release_tree(self, *a, **kw)
 
-        self.reinitialize_command('build_static', work_path=dist_path)
+        self.reinitialize_command('build_static', work_path=dist_path,
+                                  force=True)
         self.run_command('build_static')
-
-        with open(os.path.join(dist_path, 'sentry-package.json'), 'w') as fp:
-            json.dump({
-                'createdAt': datetime.datetime.utcnow().isoformat() + 'Z',
-            }, fp)
 
 
 class BuildStatic(Command):
     user_options = [
         ('work-path=', 'w',
          "The working directory for source files. Defaults to ."),
+        ('force', 'f',
+         "Force rebuilding of static content. Defaults to rebuilding on version "
+         "change detection."),
     ]
+
+    boolean_options = ['force']
+
+    def _get_package_version(self):
+        """
+        Attempt to get the most correct current version of Sentry.
+        """
+        pkg_path = os.path.join(ROOT, 'src')
+
+        sys.path.insert(0, pkg_path)
+        try:
+            import sentry
+        except Exception:
+            version = None
+            build = None
+        else:
+            log.info("pulled version information from 'sentry' module".format(
+                     sentry.__file__))
+            version = sentry.__version__
+            build = sentry.__build__
+        finally:
+            sys.path.pop(0)
+
+        if not (version and build):
+            try:
+                with open(self.work_path, 'sentry-package.json') as fp:
+                    data = json.loads(fp.read())
+            except Exception:
+                pass
+            else:
+                log.info("pulled version information from 'sentry-package.json'")
+                version, build = data['version'], data['build']
+
+        return {
+            'version': version,
+            'build': build,
+        }
+
+    def _needs_static(self, version_info):
+        json_path = os.path.join(self.work_path, 'sentry-package.json')
+        if not os.path.exists(json_path):
+            return True
+
+        with open(json_path) as fp:
+            data = json.load(fp)
+        if data.get('version') != version_info.get('version'):
+            return True
+        if data.get('build') != version_info.get('build'):
+            return True
+        return False
 
     def initialize_options(self):
         self.work_path = None
+        self.force = None
 
     def finalize_options(self):
         if self.work_path is None:
             self.work_path = ROOT
 
     def run(self):
+        version_info = self._get_package_version()
+        if not (self.force or self._needs_static(version_info)):
+            log.info("skipped asset build (version already built)")
+            return
+
+        log.info("building assets for Sentry v{} (build {})".format(
+            version_info['version'] or 'UNKNOWN',
+            version_info['build'] or 'UNKNOWN',
+        ))
+        try:
+            self._build_static()
+        except Exception:
+            log.fatal("unable to build Sentry's static assets!\n"
+                      "Hint: You might be running an invalid version of NPM.",
+                      exc_info=True)
+            sys.exit(1)
+
+        if version_info['version'] and version_info['build']:
+            log.info("writing version manifest")
+            manifest = self._write_version_file(version_info)
+            log.info("recorded manifest\n{}".format(
+                json.dumps(manifest, indent=2),
+            ))
+
+    def _build_static(self):
         work_path = self.work_path
 
         log.info("initializing git submodules")
@@ -178,6 +254,16 @@ class BuildStatic(Command):
         check_output([os.path.join('node_modules', '.bin', 'webpack'), '-p'],
                      cwd=work_path)
 
+    def _write_version_file(self, version_info):
+        manifest = {
+            'createdAt': datetime.datetime.utcnow().isoformat() + 'Z',
+            'version': version_info['version'],
+            'build': version_info['build'],
+        }
+        with open(os.path.join(self.work_path, 'sentry-package.json'), 'w') as fp:
+            json.dump(manifest, fp)
+        return manifest
+
 
 class SmartInstall(install):
     """
@@ -186,12 +272,9 @@ class SmartInstall(install):
     If the package indicator is missing, this will also force a run of
     `build_static` which is required for JavaScript assets and other things.
     """
-    def _needs_static(self):
-        return not os.path.exists(os.path.join(ROOT, 'sentry-package.json'))
-
     def run(self):
-        if self._needs_static():
-            self.run_command('build_static')
+        self.reinitialize_command('build_static')
+        self.run_command('build_static')
         install.run(self)
 
 
