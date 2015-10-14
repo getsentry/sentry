@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from mock import patch
 from exam import fixture
 
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.testutils import TestCase
 
@@ -30,6 +31,10 @@ class CspTest(TestCase):
         assert result.document_uri == 'http://example.com'
         assert result.violated_directive == 'style-src cdn.example.com'
         assert result.blocked_uri == 'http://example.com/lol.css'
+
+    def test_to_python_validation_errors(self):
+        with self.assertRaises(InterfaceValidationError):
+            Csp.to_python(dict(blocked_uri='about'))
 
     def test_coerce_blocked_uri_if_script_src(self):
         result = Csp.to_python(dict(

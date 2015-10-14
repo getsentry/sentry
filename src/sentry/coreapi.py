@@ -580,7 +580,11 @@ class CspApiHelper(ClientApiHelper):
     def validate_data(self, project, data):
         # All keys are sent with hyphens, so we want to conver to underscores
         report = dict(map(lambda v: (v[0].replace('-', '_'), v[1]), data.iteritems()))
-        inst = Csp.to_python(report)
+
+        try:
+            inst = Csp.to_python(report)
+        except Exception:
+            raise APIForbidden('Invalid CSP Report')
 
         # Construct a faux Http interface based on the little information we have
         headers = {}
