@@ -17,6 +17,7 @@ class CspTest(TestCase):
             document_uri='http://example.com',
             violated_directive='style-src cdn.example.com',
             blocked_uri='http://example.com/lol.css',
+            effective_directive='style-src',
         ))
 
     def test_path(self):
@@ -46,30 +47,35 @@ class CspTest(TestCase):
         result = Csp.to_python(dict(
             document_uri='http://example.com/foo',
             violated_directive='style-src http://cdn.example.com',
+            effective_directive='style-src',
         ))
         assert result.get_violated_directive() == ('violated-directive', 'style-src http://cdn.example.com')
 
         result = Csp.to_python(dict(
             document_uri='http://example.com/foo',
             violated_directive='style-src cdn.example.com',
+            effective_directive='style-src',
         ))
         assert result.get_violated_directive() == ('violated-directive', 'style-src http://cdn.example.com')
 
         result = Csp.to_python(dict(
             document_uri='https://example.com/foo',
             violated_directive='style-src cdn.example.com',
+            effective_directive='style-src',
         ))
         assert result.get_violated_directive() == ('violated-directive', 'style-src https://cdn.example.com')
 
         result = Csp.to_python(dict(
             document_uri='http://example.com/foo',
             violated_directive='style-src https://cdn.example.com',
+            effective_directive='style-src',
         ))
         assert result.get_violated_directive() == ('violated-directive', 'style-src https://cdn.example.com')
 
         result = Csp.to_python(dict(
             document_uri='blob:example.com/foo',
             violated_directive='style-src cdn.example.com',
+            effective_directive='style-src',
         ))
         assert result.get_violated_directive() == ('violated-directive', 'style-src blob:cdn.example.com')
 
@@ -77,7 +83,7 @@ class CspTest(TestCase):
         result = Csp.to_python(dict(
             document_uri='http://example.com/foo',
             blocked_uri='http://example.com/lol.css',
-            effective_directive='style-src'
+            effective_directive='style-src',
         ))
         assert result.get_culprit_directive() == ('blocked-uri', 'http://example.com/lol.css')
 
@@ -94,11 +100,6 @@ class CspTest(TestCase):
             blocked_uri='',
         ))
         assert result.get_culprit_directive() == ('blocked-uri', 'self')
-
-        result = Csp.to_python(dict(
-            document_uri='http://example.com/foo',
-        ))
-        assert result.get_culprit_directive() == ('effective-directive', '<unknown>')
 
     @patch('sentry.interfaces.csp.Csp.get_culprit_directive')
     @patch('sentry.interfaces.csp.Csp.get_violated_directive')
