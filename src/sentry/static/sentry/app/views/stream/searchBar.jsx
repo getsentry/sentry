@@ -156,7 +156,7 @@ var SearchBar = React.createClass({
   },
 
   getCursorPosition() {
-    return React.findDOMNode(this.refs.searchInput).selectionStart;
+    return ReactDOM.findDOMNode(this.refs.searchInput).selectionStart;
   },
 
   /**
@@ -218,7 +218,7 @@ var SearchBar = React.createClass({
       this.setState(
         { query: this.state.query + ' ' },
         () => {
-          React.findDOMNode(this.refs.searchInput).setSelectionRange(cursor + 1, cursor + 1);
+          ReactDOM.findDOMNode(this.refs.searchInput).setSelectionRange(cursor + 1, cursor + 1);
           this.updateAutoCompleteItems();
         }
       );
@@ -377,7 +377,7 @@ var SearchBar = React.createClass({
       query: newQuery
     }, () => {
       // setting a new input value will lose focus; restore it
-      var node = React.findDOMNode(this.refs.searchInput);
+      var node = ReactDOM.findDOMNode(this.refs.searchInput);
       node.focus();
 
       // then update the autocomplete box with new contextTypes
