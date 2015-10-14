@@ -109,6 +109,61 @@ truncate_timeline = Script(None, TRUNCATE_TIMELINE_SCRIPT)
 
 
 class RedisBackend(Backend):
+    """
+    Implements the digest backend API, backed by Redis.
+
+    Each timeline is modeled as a modeled as a sorted set, as well as a
+    separate key that contains the iteration counter (for implementing backoff
+    strategies that require this value as an argument, such as exponential
+    backoff.)
+
+    .. code::
+
+        redis:6379> GET "d:t:mail:p:1:i"
+        "1"
+
+        redis:6379> ZREVRANGEBYSCORE "d:t:mail:p:1" inf -inf WITHSCORES
+        1) "433be20b807c4cd49a132de69c0f6c55"
+        2) "1444847625"
+        3) "0f9d5fe4b5b3400fab85d9a841aa8467"
+        4) "1444847625"
+        ...
+
+    In the example above, the timeline ``mail:p:1`` has already digested once,
+    as evidenced by the iteration counter, which ends with ``:i``. The timeline
+    also contains references to several records, which are stored separately,
+    encoded using the codec:
+
+    .. code::
+
+        redis:6379> GET "d:t:mail:p:1:r:433be20b807c4cd49a132de69c0f6c55"
+        [ binary content ]
+
+    When the timeline is ready to be digested, the timeline set is renamed,
+    creating a digest set (in this case the key would be ``d:t:mail:p:1:d``),
+    that represents a snapshot of the timeline contents at that point in time.
+    (If the digest set already exists, the timeline contents are instead
+    unioned into the digest set and then the timeline is cleared.) This allows
+    new records to be added to the timeline that will be processed after the
+    next scheduling interval without the risk of data loss due to race
+    conditions between the record addition and digest generation and delivery.
+
+    Schedules are modeled as two sorted sets -- one for ``waiting`` items, and
+    one for ``ready`` items. Items in the ``waiting`` set are scored by the
+    time at which they should be transitioned to the ``ready`` set.  Items in
+    the ``ready`` set are scored by the time at which they were scheduled to be
+    added to the ``ready`` set. Iterating each set from oldest to newest yields
+    the highest priority items for action (moving from the ``waiting`` to
+    ``ready`` set, or delivering a digest for the ``waiting`` and ``ready``
+    set, respectively.)
+
+    .. code::
+
+        redis:6379> ZREVRANGEBYSCORE "d:s:w" inf -inf WITHSCORES
+        1) "mail:p:1"
+        2) "1444847638"
+
+    """
     def __init__(self, **options):
         super(RedisBackend, self).__init__(**options)
 
