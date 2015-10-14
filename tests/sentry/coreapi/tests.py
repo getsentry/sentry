@@ -353,6 +353,7 @@ class CspApiHelperTest(BaseAPITest):
         assert result['project'] == self.project.id
         assert 'message' in result
         assert 'culprit' in result
+        assert 'tags' in result
         assert result['sentry.interfaces.User'] == {'ip_address': '69.69.69.69'}
         assert result['sentry.interfaces.Http'] == {
             'url': 'http://45.55.25.245:8123/csp',

@@ -153,6 +153,12 @@ class Csp(Interface):
     def get_culprit(self):
         return self._normalize_directive(self.violated_directive)
 
+    def get_tags(self):
+        return (
+            ('effective-directive', self.effective_directive),
+            ('blocked-uri', _normalize_uri(self.blocked_uri)),
+        )
+
     def _normalize_directive(self, directive):
         bits = filter(None, directive.split(' '))
         return ' '.join([bits[0]] + map(self._normalize_value, bits[1:]))

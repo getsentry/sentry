@@ -124,6 +124,12 @@ class CspTest(TestCase):
         ))
         assert result.get_hash() == ['img-src', 'ftp://example.com']
 
+    def test_get_tags(self):
+        assert self.interface.get_tags() == (
+            ('effective-directive', 'style-src'),
+            ('blocked-uri', 'example.com'),
+        )
+
     def test_get_message(self):
         result = Csp.to_python(dict(
             document_uri='http://example.com/foo',

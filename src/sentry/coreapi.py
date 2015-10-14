@@ -598,6 +598,7 @@ class CspApiHelper(ClientApiHelper):
             'project': project.id,
             'message': inst.get_message(),
             'culprit': inst.get_culprit(),
+            'tags': inst.get_tags(),
             inst.get_path(): inst.to_json(),
             # This is a bit weird, since we don't have nearly enough
             # information to create an Http interface, but
