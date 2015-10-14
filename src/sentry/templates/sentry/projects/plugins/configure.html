@@ -9,13 +9,25 @@
     <div class="pull-right">
         {% if plugin.can_disable %}
             {% if not plugin_is_enabled %}
-                <a href="{% url 'sentry-enable-project-plugin' project.organization.slug project.slug plugin.slug %}" class="btn btn-default">{% trans "Enable Plugin" %}</a>
+                <form method="post" action="{% url 'sentry-enable-project-plugin' project.organization.slug project.slug plugin.slug %}"
+                      style="display:inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-default">{% trans "Enable Plugin" %}</button>
+                </form>
             {% else %}
-                <a href="{% url 'sentry-disable-project-plugin' project.organization.slug project.slug plugin.slug %}" class="btn btn-danger">{% trans "Disable Plugin" %}</a>
+                <form method="post" action="{% url 'sentry-disable-project-plugin' project.organization.slug project.slug plugin.slug %}"
+                      style="display:inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">{% trans "Disable Plugin" %}</button>
+                </form>
             {% endif %}
         {% endif %}
-        <a href="{% url 'sentry-reset-project-plugin' project.organization.slug project.slug plugin.slug %}" class="btn btn-default"
-            onclick="return confirm('{% trans "Are you sure you wish to reset all configuration for this plugin?" %}');">{% trans "Reset Configuration" %}</a>
+        <form method="post" action="{% url 'sentry-reset-project-plugin' project.organization.slug project.slug plugin.slug %}"
+              style="display:inline"
+              onsubmit="return confirm('{% trans "Are you sure you wish to reset all configuration for this plugin?" %}');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-default">{% trans "Reset Configuration" %}</button>
+        </form>
     </div>
     <h2>{{ plugin.get_title }}</h2>
     <hr>
