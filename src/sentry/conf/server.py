@@ -713,7 +713,7 @@ CACHES = {
 CACHE_VERSION = 1
 
 # Digests backend
-SENTRY_DIGESTS = 'sentry.digests.backends.redis.RedisBackend'
+SENTRY_DIGESTS = 'sentry.digests.backends.dummy.DummyBackend'
 SENTRY_DIGESTS_OPTIONS = {}
 
 # Quota backend
