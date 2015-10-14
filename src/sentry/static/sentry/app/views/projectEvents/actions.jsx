@@ -1,6 +1,6 @@
 import React from "react";
 
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 var EventActions = React.createClass({
   mixins: [

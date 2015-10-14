@@ -23,7 +23,6 @@ var config = {
       "moment",
       "moment-timezone",
       "raven-js",
-      "react/addons",
       "react-document-title",
       "react-router",
       "react-bootstrap",
