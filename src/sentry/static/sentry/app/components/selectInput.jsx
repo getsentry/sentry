@@ -23,12 +23,12 @@ var SelectInput = React.createClass({
   },
 
   create() {
-    this.select2 = jQuery(this.refs.select.getDOMNode()).select2();
+    this.select2 = jQuery(this.refs.select).select2();
     this.select2.on('change', this.onChange);
   },
 
   destroy() {
-    jQuery(this.refs.select.getDOMNode()).select2('destroy');
+    jQuery(this.refs.select).select2('destroy');
   },
 
   onChange(...args) {

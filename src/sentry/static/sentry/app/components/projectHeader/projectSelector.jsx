@@ -1,4 +1,5 @@
 import React from "react";
+import ReactDOM from "react-dom";
 import Router from "react-router";
 import jQuery from "jquery";
 import ConfigStore from "../../stores/configStore";
@@ -132,7 +133,7 @@ var ProjectSelector = React.createClass({
   },
 
   onOpen(evt) {
-    React.findDOMNode(this.refs.filter).focus();
+    ReactDOM.findDOMNode(this.refs.filter).focus();
   },
 
   onClose() {
@@ -143,7 +144,7 @@ var ProjectSelector = React.createClass({
 
   componentDidUpdate(prevProps, prevState) {
     // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
-    var node = jQuery(React.findDOMNode(this.refs.container));
+    var node = jQuery(ReactDOM.findDOMNode(this.refs.container));
     node.hide().show(0);
   },
 

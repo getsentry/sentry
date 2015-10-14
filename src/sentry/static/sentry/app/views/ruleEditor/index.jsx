@@ -1,4 +1,5 @@
 import React from "react";
+import ReactDOM from "react-dom";
 import $ from "jquery";
 import api from "../../api";
 import IndicatorStore from '../../stores/indicatorStore';
@@ -31,13 +32,13 @@ var RuleEditor = React.createClass({
 
   componentDidUpdate() {
     if (this.state.error) {
-      $(document.body).scrollTop($(React.findDOMNode(this.refs.form)).offset().top);
+      $(document.body).scrollTop($(ReactDOM.findDOMNode(this.refs.form)).offset().top);
     }
   },
 
   onSubmit(e) {
     e.preventDefault();
-    var form = $(React.findDOMNode(this.refs.form));
+    var form = $(ReactDOM.findDOMNode(this.refs.form));
     var conditions = [];
     form.find('.rule-condition-list .rule-form').each((_, el) => {
       conditions.push(this.serializeNode(el));
@@ -46,8 +47,8 @@ var RuleEditor = React.createClass({
     form.find('.rule-action-list .rule-form').each((_, el) => {
       actions.push(this.serializeNode(el));
     });
-    var actionMatch = $(React.findDOMNode(this.refs.actionMatch)).val();
-    var name = $(React.findDOMNode(this.refs.name)).val();
+    var actionMatch = $(ReactDOM.findDOMNode(this.refs.actionMatch)).val();
+    var name = $(ReactDOM.findDOMNode(this.refs.name)).val();
     var data = {
       actionMatch: actionMatch,
       actions: actions,

@@ -39,7 +39,7 @@ var StreamTagFilter = React.createClass({
       this.setState({
         value: nextProps.value
       }, () => {
-        let select = this.refs.select.getDOMNode();
+        let select = this.refs.select;
         $(select).select2('val', this.state.value);
       });
     }

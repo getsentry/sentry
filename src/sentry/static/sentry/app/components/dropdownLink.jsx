@@ -1,5 +1,6 @@
-import classNames from "classnames";
 import React from "react";
+import ReactDOM from "react-dom";
+import classNames from "classnames";
 
 require("bootstrap/js/dropdown");
 
@@ -20,11 +21,11 @@ var DropdownLink = React.createClass({
   },
 
   isOpen() {
-    return React.findDOMNode(this).classList.contains("open");
+    return ReactDOM.findDOMNode(this).classList.contains("open");
   },
 
   close() {
-    React.findDOMNode(this).classList.remove("open");
+    ReactDOM.findDOMNode(this).classList.remove("open");
   },
 
   onToggle(e) {

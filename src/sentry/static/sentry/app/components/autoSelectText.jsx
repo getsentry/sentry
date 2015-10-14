@@ -1,19 +1,20 @@
-import jQuery from "jquery";
 import React from "react";
+import jQuery from "jquery";
+import ReactDOM from "react-dom";
 
 const AutoSelectText = React.createClass({
   componentDidMount() {
-    let ref = React.findDOMNode(this.refs.element);
+    let ref = ReactDOM.findDOMNode(this.refs.element);
     jQuery(ref).bind('click', this.selectText);
   },
 
   componentWillUnmount() {
-    let ref = React.findDOMNode(this.refs.element);
+    let ref = ReactDOM.findDOMNode(this.refs.element);
     jQuery(ref).unbind('click', this.selectText);
   },
 
   selectText() {
-    var node = React.findDOMNode(this.refs.element).firstChild;
+    var node = ReactDOM.findDOMNode(this.refs.element).firstChild;
     if (document.selection) {
       let range = document.body.createTextRange();
       range.moveToElementText(node);

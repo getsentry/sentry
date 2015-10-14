@@ -1,4 +1,5 @@
 import React from "react";
+import ReactDOM from "react-dom";
 
 var ClippedBox = React.createClass({
   propTypes: {
@@ -20,7 +21,7 @@ var ClippedBox = React.createClass({
   },
 
   componentDidMount() {
-    var renderedHeight = React.findDOMNode(this).offsetHeight;
+    var renderedHeight = ReactDOM.findDOMNode(this).offsetHeight;
 
     if (renderedHeight > this.props.clipHeight ) {
       /*eslint react/no-did-mount-set-state:0*/

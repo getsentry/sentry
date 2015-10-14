@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import jQuery from 'jquery';
 import moment from 'moment';
 
@@ -113,7 +114,7 @@ var FlotChart = React.createClass({
       lines: { show: false }
     };
 
-    var chart = React.findDOMNode(this.refs.chartNode);
+    var chart = ReactDOM.findDOMNode(this.refs.chartNode);
     jQuery.plot(chart, series, plotOptions);
   },
 

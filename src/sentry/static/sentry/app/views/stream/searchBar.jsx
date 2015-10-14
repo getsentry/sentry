@@ -1,4 +1,5 @@
 import React from "react";
+import ReactDOM from "react-dom";
 import Reflux from "reflux";
 import _ from "underscore";
 import classNames from "classnames";
@@ -109,7 +110,7 @@ var SearchBar = React.createClass({
   },
 
   blur() {
-    React.findDOMNode(this.refs.searchInput).blur();
+    ReactDOM.findDOMNode(this.refs.searchInput).blur();
   },
 
   onSubmit(evt) {
