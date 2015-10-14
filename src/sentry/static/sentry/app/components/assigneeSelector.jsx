@@ -1,4 +1,5 @@
 import React from "react";
+import ReactDOM from "react-dom";
 import Reflux from "reflux";
 import classNames from "classnames";
 import api from "../api";
@@ -87,7 +88,7 @@ var AssigneeSelector = React.createClass({
   },
 
   onDropdownOpen() {
-    React.findDOMNode(this.refs.filter).focus();
+    ReactDOM.findDOMNode(this.refs.filter).focus();
   },
 
   onDropdownClose() {
@@ -118,7 +119,7 @@ var AssigneeSelector = React.createClass({
 
   componentDidUpdate(prevProps, prevState) {
     // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
-    var node = jQuery(React.findDOMNode(this.refs.container));
+    var node = jQuery(ReactDOM.findDOMNode(this.refs.container));
     node.hide().show(0);
   },
 

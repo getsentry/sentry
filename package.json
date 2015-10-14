@@ -30,7 +30,7 @@
     "react-document-title": "^1.0.2",
     "react-dom": "^0.14.0",
     "react-lazy-load": "git@github.com:benvinegar/react-lazy-load.git#3abc798f58afdf34e4bf691e6324bcc636c579ae",
-    "react-router": "git@github.com:benvinegar/react-router.git#f1ff6c68facff8cd5948e56e3bf9742ffe30625c",
+    "react-router": "git@github.com:benvinegar/react-router.git#46998d030de3802ace768a673b07272586f7bf99",
     "react-sticky": "^2.5.2",
     "reflux": "^0.3.0",
     "select2": "^3.5.1",

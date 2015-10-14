@@ -1,4 +1,5 @@
 import React from "react/addons";
+import ReactDOM from "react-dom";
 import api from "app/api";
 import SearchBar from "app/views/stream/searchBar";
 import SearchDropdown from "app/views/stream/searchDropdown";
@@ -133,7 +134,7 @@ describe("SearchBar", function() {
         var wrapper = React.render(<this.ContextStubbedSearchBar />, document.body).refs.wrapped;
         wrapper.state.dropdownVisible = true;
 
-        var input = React.findDOMNode(wrapper.refs.searchInput);
+        var input = ReactDOM.findDOMNode(wrapper.refs.searchInput);
 
         input.focus();
 

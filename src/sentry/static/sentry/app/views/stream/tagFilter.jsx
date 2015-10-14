@@ -1,4 +1,5 @@
 import React from "react";
+import ReactDOM from "react-dom";
 import _ from "underscore";
 
 var StreamTagFilter = React.createClass({
@@ -46,7 +47,7 @@ var StreamTagFilter = React.createClass({
   },
 
   componentDidMount() {
-    let select = React.findDOMNode(this.refs.select);
+    let select = ReactDOM.findDOMNode(this.refs.select);
 
     let selectOpts = {
       placeholder: '--',
@@ -84,7 +85,7 @@ var StreamTagFilter = React.createClass({
   },
 
   componentWillUnmount() {
-    let select = React.findDOMNode(this.refs.select);
+    let select = ReactDOM.findDOMNode(this.refs.select);
     $(select).select2('destroy');
   },
 
