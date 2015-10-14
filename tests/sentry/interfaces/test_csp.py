@@ -41,7 +41,8 @@ class CspTest(TestCase):
 
     def test_coerce_blocked_uri_if_missing(self):
         result = Csp.to_python(dict(
-            effective_directive='script-src'
+            document_uri='http://example.com',
+            effective_directive='script-src',
         ))
         assert result.blocked_uri == 'self'
 

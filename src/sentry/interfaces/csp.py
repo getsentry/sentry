@@ -12,6 +12,7 @@ __all__ = ('Csp',)
 
 from urlparse import urlsplit, urlunsplit
 from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.utils.cache import memoize
 from sentry.utils.safe import trim
 
 
@@ -113,7 +114,7 @@ class Csp(Interface):
 
     def get_hash(self):
         directive = self.effective_directive
-        uri = _normalize_uri(self.blocked_uri)
+        uri = self._normalized_blocked_uri
 
         # We want to distinguish between the different script-src
         # violations that happen in
@@ -127,7 +128,7 @@ class Csp(Interface):
 
     def get_message(self):
         directive = self.effective_directive
-        uri = _normalize_uri(self.blocked_uri)
+        uri = self._normalized_blocked_uri
 
         index = 1 if uri == SELF else 0
 
@@ -156,8 +157,16 @@ class Csp(Interface):
     def get_tags(self):
         return (
             ('effective-directive', self.effective_directive),
-            ('blocked-uri', _normalize_uri(self.blocked_uri)),
+            ('blocked-uri', self._normalized_blocked_uri),
         )
+
+    @memoize
+    def _normalized_blocked_uri(self):
+        return _normalize_uri(self.blocked_uri)
+
+    @memoize
+    def _normalized_document_uri(self):
+        return _normalize_uri(self.document_uri)
 
     def _normalize_directive(self, directive):
         bits = filter(None, directive.split(' '))
@@ -174,14 +183,14 @@ class Csp(Interface):
         # FireFox transforms a 'self' value into the spelled out origin, so we
         # want to reverse this and bring it back
         if value.startswith(ALL_SCHEMES):
-            if _normalize_uri(self.document_uri) == _normalize_uri(value):
+            if self._normalized_document_uri == _normalize_uri(value):
                 return SELF
             # Their rule had an explicit scheme, so let's respect that
             return value
 
         # value doesn't have a scheme, but let's see if their
         # hostnames match at least, if so, they're the same
-        if value == _normalize_uri(self.document_uri):
+        if value == self._normalized_document_uri:
             return SELF
 
         # Now we need to stitch on a scheme to the value
