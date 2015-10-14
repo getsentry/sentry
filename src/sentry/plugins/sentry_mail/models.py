@@ -72,34 +72,6 @@ class MailPlugin(NotificationPlugin):
             project.slug,
         ]))
 
-    def on_alert(self, alert):
-        project = alert.project
-        subject = '[{0} {1}] ALERT: {2}'.format(
-            project.team.name,
-            project.name,
-            alert.message,
-        )
-        template = 'sentry/emails/alert.txt'
-        html_template = 'sentry/emails/alert.html'
-
-        context = {
-            'alert': alert,
-            'link': alert.get_absolute_url(),
-        }
-
-        headers = {
-            'X-Sentry-Project': project.name,
-        }
-
-        self._send_mail(
-            subject=subject,
-            template=template,
-            html_template=html_template,
-            project=project,
-            headers=headers,
-            context=context,
-        )
-
     def should_notify(self, group, event):
         send_to = self.get_sendable_users(group.project)
         if not send_to:
