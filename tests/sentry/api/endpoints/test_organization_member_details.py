@@ -96,6 +96,36 @@ class DeleteOrganizationMemberTest(APITestCase):
 
         assert not OrganizationMember.objects.filter(id=member_om.id).exists()
 
+    def test_cannot_delete_member_with_higher_access(self):
+        self.login_as(user=self.user)
+
+        organization = self.create_organization(name='foo', owner=self.user)
+
+        other_user = self.create_user('bar@example.com')
+
+        self.create_member(
+            organization=organization,
+            role='manager',
+            user=other_user,
+        )
+
+        owner_om = OrganizationMember.objects.get(
+            organization=organization,
+            user=self.user,
+        )
+
+        assert owner_om.role == 'owner'
+
+        path = reverse('sentry-api-0-organization-member-details', args=[organization.slug, owner_om.id])
+
+        self.login_as(other_user)
+
+        resp = self.client.delete(path)
+
+        assert resp.status_code == 400
+
+        assert OrganizationMember.objects.filter(id=owner_om.id).exists()
+
     def test_cannot_delete_only_owner(self):
         self.login_as(user=self.user)
 
