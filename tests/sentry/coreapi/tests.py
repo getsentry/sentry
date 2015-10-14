@@ -9,7 +9,7 @@ from uuid import UUID
 
 from sentry.coreapi import (
     APIError, APIUnauthorized, Auth, ClientApiHelper, InvalidFingerprint,
-    InvalidTimestamp, get_interface, CspApiHelper,
+    InvalidTimestamp, get_interface, CspApiHelper, APIForbidden,
 )
 from sentry.testutils import TestCase
 
@@ -361,3 +361,8 @@ class CspApiHelperTest(BaseAPITest):
                 'Referer': 'http://example.com'
             }
         }
+
+    @mock.patch('sentry.interfaces.csp.Csp.to_python', mock.Mock(side_effect=Exception))
+    def test_validate_raises_invalid_interface(self):
+        with self.assertRaises(APIForbidden):
+            self.helper.validate_data(self.project, {})
