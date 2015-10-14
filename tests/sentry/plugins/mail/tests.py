@@ -10,7 +10,9 @@ from exam import fixture
 from mock import Mock
 
 from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import Event, Group, Rule
+from sentry.models import (
+    Event, Group, OrganizationMember, OrganizationMemberTeam, Rule
+)
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.testutils import TestCase
@@ -170,8 +172,14 @@ class MailPluginTest(TestCase):
         team = self.create_team(organization=organization)
 
         project = self.create_project(name='Test', team=team)
-        organization.member_set.get_or_create(user=user)
-        organization.member_set.get_or_create(user=user2)
+        OrganizationMemberTeam.objects.create(
+            organizationmember=OrganizationMember.objects.get(
+                user=user,
+                organization=organization,
+            ),
+            team=team,
+        )
+        self.create_member(user=user2, organization=organization, teams=[team])
 
         # all members
         assert (sorted(set([user.pk, user2.pk])) ==
@@ -185,8 +193,7 @@ class MailPluginTest(TestCase):
 
         user4 = User.objects.create(username='baz4', email='bar@example.com',
                                     is_active=True)
-        organization.member_set.get_or_create(user=user4)
-
+        self.create_member(user=user4, organization=organization, teams=[team])
         assert user4.pk in self.plugin.get_sendable_users(project)
 
         # disabled by default user4

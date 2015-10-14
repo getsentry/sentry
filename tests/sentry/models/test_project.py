@@ -7,7 +7,7 @@ from sentry.testutils import TestCase
 
 
 class ProjectTest(TestCase):
-    def test_global_member(self):
+    def test_member_set_simple(self):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
@@ -15,6 +15,11 @@ class ProjectTest(TestCase):
         member = OrganizationMember.objects.get(
             user=user,
             organization=org,
+        )
+        OrganizationMemberTeam.objects.create(
+            organizationmember=member,
+            team=team,
+            is_active=True
         )
 
         assert list(project.member_set.all()) == [member]
@@ -35,32 +40,3 @@ class ProjectTest(TestCase):
         )
 
         assert list(project.member_set.all()) == []
-
-    def test_active_basic_member(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team = self.create_team(organization=org)
-        project = self.create_project(team=team)
-        user2 = self.create_user('foo@example.com')
-        member = self.create_member(
-            user=user2,
-            organization=org,
-            has_global_access=False,
-            teams=[team]
-        )
-
-        assert member in project.member_set.all()
-
-    def test_teamless_basic_member(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team = self.create_team(organization=org)
-        project = self.create_project(team=team)
-        user2 = self.create_user('foo@example.com')
-        member = self.create_member(
-            user=user2,
-            organization=org,
-            has_global_access=False,
-        )
-
-        assert member not in project.member_set.all()

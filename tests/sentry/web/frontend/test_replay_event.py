@@ -13,7 +13,7 @@ class ReplayTest(TestCase):
     def path(self):
         return reverse('sentry-replay', kwargs={
             'organization_slug': self.organization.slug,
-            'project_id': self.project.slug,
+            'project_slug': self.project.slug,
             'group_id': self.group.id,
             'event_id': self.event.id,
         })

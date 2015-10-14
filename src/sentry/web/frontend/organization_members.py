@@ -1,35 +1,15 @@
 from __future__ import absolute_import
 
-from collections import defaultdict
-
+from sentry import roles
 from sentry.models import (
-    AuthProvider, OrganizationAccessRequest, OrganizationMember,
-    OrganizationMemberTeam, OrganizationMemberType
+    AuthProvider, OrganizationAccessRequest, OrganizationMember
 )
 from sentry.web.frontend.base import OrganizationView
 
 
 class OrganizationMembersView(OrganizationView):
     def handle(self, request, organization):
-        if request.user.is_superuser:
-            authorizing_access = OrganizationMemberType.OWNER
-            access_is_global = True
-        else:
-            member = OrganizationMember.objects.get(
-                user=request.user,
-                organization=organization,
-            )
-            authorizing_access = member.type
-            access_is_global = member.has_global_access
-
-        queryset = OrganizationMemberTeam.objects.filter(
-            organizationmember__organization=organization,
-            is_active=True,
-        ).select_related('team')
-
-        team_map = defaultdict(list)
-        for omt in queryset:
-            team_map[omt.organizationmember_id].append(omt.team)
+        can_admin = request.access.has_scope('member:delete')
 
         queryset = OrganizationMember.objects.filter(
             organization=organization,
@@ -45,18 +25,18 @@ class OrganizationMembersView(OrganizationView):
         member_list = []
         for om in queryset:
             needs_sso = bool(auth_provider and not getattr(om.flags, 'sso:linked'))
-            member_list.append((om, team_map[om.id], needs_sso))
+            member_list.append((om, needs_sso))
 
         # if the member is not the only owner we allow them to leave the org
         member_can_leave = any(
-            1 for om, _, _ in member_list
-            if (om.type == OrganizationMemberType.OWNER
+            1 for om, _ in member_list
+            if (om.role == roles.get_top_dog().id
                 and om.user != request.user
                 and om.user is not None)
         )
 
         # pending requests
-        if access_is_global and authorizing_access <= OrganizationMemberType.ADMIN:
+        if can_admin:
             access_requests = list(OrganizationAccessRequest.objects.filter(
                 team__organization=organization,
             ).select_related('team', 'member__user'))
@@ -65,11 +45,10 @@ class OrganizationMembersView(OrganizationView):
 
         context = {
             'org_has_sso': auth_provider is not None,
+            'can_admin': can_admin,
             'member_list': member_list,
             'request_list': access_requests,
             'ref': request.GET.get('ref'),
-            'authorizing_access': authorizing_access,
-            'access_is_global': access_is_global,
             'member_can_leave': member_can_leave,
         }
 

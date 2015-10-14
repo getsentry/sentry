@@ -38,6 +38,8 @@ General
 - The SSO flow for existing users has been greatly improved to avoid duplicate accounts.
 - Deletions are delayed for one hour and can be cancelled by changing the status
   back to ``VISIBLE``.
+- Membership permissions have been overhauled and have been flattened into a single tiered
+  role. Additionally owners will no longer be automatically added to new teams.
 
 Client API
 ~~~~~~~~~~
@@ -58,6 +60,8 @@ Schema Changes
 - Added ``user.{attribute}`` to search backends.
 - Added ``Project.first_event`` column.
 - Added ``Release.owner`` column.
+- Added ``Organization.default_role`` column.
+- Added ``OrganizationMember.role`` column.
 
 Version 7.7.1
 -------------

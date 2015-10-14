@@ -11,7 +11,6 @@ import warnings
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -24,17 +23,11 @@ from sentry.utils.cache import Lock
 
 
 class TeamManager(BaseManager):
-    def get_for_user(self, organization, user, access=None, with_projects=False):
+    def get_for_user(self, organization, user, with_projects=False):
         """
         Returns a list of all teams a user has some level of access to.
-
-        Each <Team> returned has an ``access_type`` attribute which holds the
-        OrganizationMemberType value.
         """
-        from sentry.models import (
-            OrganizationMember, OrganizationMemberTeam,
-            OrganizationMemberType, Project
-        )
+        from sentry.models import OrganizationMemberTeam, Project
 
         if not user.is_authenticated():
             return []
@@ -44,44 +37,17 @@ class TeamManager(BaseManager):
             status=TeamStatus.VISIBLE
         )
 
-        if user.is_superuser or (settings.SENTRY_PUBLIC and access is None):
-            inactive = list(OrganizationMemberTeam.objects.filter(
-                organizationmember__user=user,
-                organizationmember__organization=organization,
-                is_active=False,
-            ).values_list('team', flat=True))
-
-            team_list = base_team_qs
-            if inactive:
-                team_list = team_list.exclude(id__in=inactive)
-
-            team_list = list(team_list)
-
-            if user.is_superuser:
-                access = OrganizationMemberType.OWNER
-            else:
-                access = OrganizationMemberType.MEMBER
-            for team in team_list:
-                team.access_type = access
+        if user.is_superuser or settings.SENTRY_PUBLIC:
+            team_list = list(base_team_qs)
 
         else:
-            om_qs = OrganizationMember.objects.filter(
-                user=user,
-                organization=organization,
-            )
-            if access is not None:
-                om_qs = om_qs.filter(type__lte=access)
-
-            try:
-                om = om_qs.get()
-            except OrganizationMember.DoesNotExist:
-                team_qs = self.none()
-            else:
-                team_qs = om.get_teams()
-                for team in team_qs:
-                    team.access_type = om.type
-
-            team_list = set(team_qs)
+            team_list = list(base_team_qs.filter(
+                id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__user=user,
+                    organizationmember__organization=organization,
+                    is_active=True,
+                ).values_list('team'),
+            ))
 
         results = sorted(team_list, key=lambda x: x.name.lower())
 
@@ -129,7 +95,7 @@ class Team(Model):
         db_table = 'sentry_team'
         unique_together = (('organization', 'slug'),)
 
-    __repr__ = sane_repr('slug', 'owner_id', 'name')
+    __repr__ = sane_repr('slug', 'name')
 
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)
@@ -145,16 +111,10 @@ class Team(Model):
 
     @property
     def member_set(self):
-        from sentry.models import OrganizationMember
         return self.organization.member_set.filter(
-            Q(organizationmemberteam__team=self) |
-            Q(has_global_access=True),
+            organizationmemberteam__team=self,
+            organizationmemberteam__is_active=True,
             user__is_active=True,
-        ).exclude(
-            id__in=OrganizationMember.objects.filter(
-                organizationmemberteam__is_active=False,
-                organizationmemberteam__team=self,
-            ).values('id')
         ).distinct()
 
     def has_access(self, user, access=None):

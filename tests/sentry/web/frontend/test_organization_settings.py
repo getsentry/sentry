@@ -14,11 +14,11 @@ class OrganizationSettingsPermissionTest(PermissionTestCase):
     def test_teamless_admin_cannot_load(self):
         self.assert_teamless_admin_cannot_access(self.path)
 
-    def test_org_admin_can_load(self):
-        self.assert_org_admin_can_access(self.path)
+    def test_owner_can_load(self):
+        self.assert_owner_can_access(self.path)
 
-    def test_org_member_cannot_load(self):
-        self.assert_org_member_cannot_access(self.path)
+    def test_member_cannot_load(self):
+        self.assert_member_cannot_access(self.path)
 
 
 class OrganizationSettingsTest(TestCase):
@@ -45,7 +45,11 @@ class OrganizationSettingsTest(TestCase):
 
         self.login_as(self.user)
 
-        resp = self.client.post(path, {'name': 'bar', 'slug': 'bar'})
+        resp = self.client.post(path, {
+            'name': 'bar',
+            'slug': 'bar',
+            'default_role': 'admin',
+        })
 
         assert resp.status_code == 302
 
@@ -53,3 +57,4 @@ class OrganizationSettingsTest(TestCase):
 
         assert organization.name == 'bar'
         assert organization.slug == 'bar'
+        assert organization.default_role == 'admin'

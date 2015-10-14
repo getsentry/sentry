@@ -14,44 +14,64 @@
       <br><small>Member Settings</small>
     </h2>
   </div>
-  <div class="row" style="margin-bottom: 10px">
-    <div class="col-md-4">
-      <div class="control-group">
-        <label>{% trans "Email" %}</label>
-        <div class="controls">
-          <a href="mailto:{{ member.get_email }}">{{ member.get_email }}</a>
-        </div>
-      </div>
+
+
+  <div class="box">
+    <div class="box-header">
+      <h3>{% trans "Basics" %}</h3>
     </div>
-    <div class="col-md-4">
-      <div class="control-group">
-        <label>{% trans "Status" %}</label>
-        <div class="controls">
-          {% if member.is_pending %}
-            Invited
-          {% else %}
-            Active
-          {% endif %}
+
+    <div class="box-content with-padding">
+      <div class="row" style="margin-bottom:10px">
+        <div class="col-md-6">
+          <div class="control-group">
+            <label>{% trans "Email" %}</label>
+            <div class="controls">
+              <a href="mailto:{{ member.get_email }}">{{ member.get_email }}</a>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="control-group">
-        <label>{% trans "Role" %}</label>
-        <div class="controls">
-          {{ member.get_type_display }}
+        <div class="col-md-3">
+          <div class="control-group">
+            <label>{% trans "Status" %}</label>
+            <div class="controls">
+              {% if member.is_pending %}
+                Invited
+              {% else %}
+                Active
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="control-group">
+            <label>{% trans "Added" %}</label>
+            <div class="controls">
+              {{ member.date_added|date }}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="control-group">
-    <div class="controls">
-      <label class="checkbox">
-        <input type="checkbox" class="checkboxinput"
-               disabled="disabled"{% if member.has_global_access %} checked="checked'{% endif %}">
-        This member should have global access within the organization (including all teams).
-      </label>
+  <div class="box">
+    <div class="box-header">
+      <h3>{% trans "Role" %}</h3>
+    </div>
+    <div class="box-content with-padding">
+      <ul class="radio-inputs">
+        {% for role in role_list %}
+          <li class="radio disabled">
+            <label>
+              <input type="radio" name="role" value="{{ role.id }}"
+                     disabled {% if role.id == member.role %} checked{% endif %} />
+              {{ role.name }}
+              <div class="help-block">{{ role.desc|linebreaksbr }}</div>
+            </label>
+          </li>
+        {% endfor %}
+      </ul>
     </div>
   </div>
 
@@ -76,7 +96,6 @@
     </div>
   </div>
 
-
   <div class="form-actions">
     <div class="alert alert-block alert-info">
       {% if member.user == user %}
@@ -86,5 +105,4 @@
       {% endif %}
     </div>
   </div>
-
 {% endblock %}

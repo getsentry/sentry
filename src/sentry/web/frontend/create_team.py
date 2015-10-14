@@ -2,13 +2,12 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import OrganizationMemberType
 from sentry.web.forms.add_team import AddTeamForm
 from sentry.web.frontend.base import OrganizationView
 
 
 class CreateTeamView(OrganizationView):
-    required_access = OrganizationMemberType.ADMIN
+    required_scope = 'team:write'
 
     def get_form(self, request):
         return AddTeamForm(request.POST or None, initial={

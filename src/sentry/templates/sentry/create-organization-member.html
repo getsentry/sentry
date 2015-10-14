@@ -6,25 +6,48 @@
 {% block title %}{% trans "Add Member to Organization" %} | {{ block.super }}{% endblock %}
 
 {% block main %}
-  <div class="create-flow">
-    <div class="page-header">
-      <div class="pull-right">
-        <a class="go-back" href="{% url 'sentry-organization-home' organization.slug %}">Back to Organization Home</a>
+  <div class="page-header">
+    <a class="back-arrow" style="top: 0px;" href="{% url 'sentry-organization-members' organization.slug %}"><span class="icon-arrow-left"></span></a>
+    <h2>{% trans "Add Member to Organization" %}</h2>
+  </div>
+
+  {% if is_invite %}
+    <p>{% trans "Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one." %}</p>
+  {% else %}
+    <p>{% trans "You may add a user by their username if they already have an account." %}</p>
+  {% endif %}
+
+  <form class="form-stacked" action="" method="post">
+    {% csrf_token %}
+
+    {% for field in form %}
+      {% if field.name != "role" %}
+        {{ field|as_crispy_field }}
+      {% endif %}
+    {% endfor %}
+
+    <div class="box">
+      <div class="box-header">
+        <h3>{% trans "Role" %}</h3>
       </div>
-      <h2>{% trans "Add Member to Organization" %}</h2>
+      <div class="box-content with-padding">
+        <ul class="radio-inputs">
+          {% for role in role_list %}
+            <li class="radio">
+              <label>
+                <input type="radio" name="role" value="{{ role.id }}"
+                       {% if role.id == form.role.value %} checked{% endif %} />
+                {{ role.name }}
+                <div class="help-block">{{ role.desc|linebreaksbr }}</div>
+              </label>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
     </div>
 
-    <fieldset>
-      {% if is_invite %}
-        <p>{% trans "Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one." %}</p>
-        <p>{% trans "You will be able to configure permissions and team access on the following page." %}</p>
-        {% trans "Send Invite" as submit_label %}
-        {% include "sentry/partial/_form.html" %}
-      {% else %}
-        <p>{% trans "You may add a user by their username if they already have an account." %}</p>
-        <p>{% trans "You will be able to configure permissions and team access on the following page." %}</p>
-        {% include "sentry/partial/_form.html" %}
-      {% endif %}
-    </fieldset>
-  </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% trans "Add Member" %}</button>
+    </div>
+  </form>
 {% endblock %}

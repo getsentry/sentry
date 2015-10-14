@@ -4,7 +4,7 @@ from django.core import mail
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
-    OrganizationAccessRequest, OrganizationMemberTeam, OrganizationMemberType
+    OrganizationAccessRequest, OrganizationMemberTeam
 )
 from sentry.testutils import APITestCase
 
@@ -18,8 +18,7 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
         member = self.create_member(
             organization=organization,
             user=user,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=False,
+            role='member',
         )
         team = self.create_team(name='foo', organization=organization)
 
@@ -56,8 +55,7 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
         member = self.create_member(
             organization=organization,
             user=user,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=False,
+            role='member',
         )
         team = self.create_team(name='foo', organization=organization)
 

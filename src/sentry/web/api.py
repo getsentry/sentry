@@ -1,22 +1,12 @@
-"""
-sentry.web.views
-~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 import logging
 import traceback
 
-from datetime import timedelta
 from django.conf import settings
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
-from django.db.models import Sum, Q
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotAllowed
-from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
@@ -25,24 +15,19 @@ from functools import wraps
 from raven.contrib.django.models import client as Raven
 
 from sentry import app
-from sentry.app import tsdb
 from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper,
 )
 from sentry.event_manager import EventManager
-from sentry.models import (
-    AnonymousUser, Group, GroupStatus, Project, TagValue, User
-)
+from sentry.models import AnonymousUser, Project
 from sentry.signals import event_received
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.data_scrubber import SensitiveDataFilter
-from sentry.utils.javascript import to_json
 from sentry.utils.http import (
     is_valid_origin, get_origins, is_same_domain, is_valid_ip,
 )
 from sentry.utils.safe import safe_execute
-from sentry.web.decorators import has_access
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger('sentry')
@@ -456,213 +441,6 @@ class CspReportView(StoreView):
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
         return HttpResponse(status=201)
-
-
-@never_cache
-@csrf_exempt
-@has_access
-def get_group_trends(request, organization, team):
-    minutes = int(request.REQUEST.get('minutes', 15))
-    limit = min(100, int(request.REQUEST.get('limit', 10)))
-
-    project_list = Project.objects.get_for_user(team=team, user=request.user)
-
-    project_dict = dict((p.id, p) for p in project_list)
-
-    base_qs = Group.objects.filter(
-        project__in=project_list,
-        status=0,
-    )
-
-    cutoff = timedelta(minutes=minutes)
-    cutoff_dt = timezone.now() - cutoff
-
-    group_list = list(base_qs.filter(
-        status=GroupStatus.UNRESOLVED,
-        last_seen__gte=cutoff_dt
-    ).extra(select={'sort_value': 'score'}).order_by('-score')[:limit])
-
-    for group in group_list:
-        group._project_cache = project_dict.get(group.project_id)
-
-    data = to_json(group_list, request)
-
-    response = HttpResponse(data)
-    response['Content-Type'] = 'application/json'
-
-    return response
-
-
-@never_cache
-@csrf_exempt
-@has_access
-def get_new_groups(request, organization, team):
-    minutes = int(request.REQUEST.get('minutes', 15))
-    limit = min(100, int(request.REQUEST.get('limit', 10)))
-
-    project_list = Project.objects.get_for_user(team=team, user=request.user)
-
-    project_dict = dict((p.id, p) for p in project_list)
-
-    cutoff = timedelta(minutes=minutes)
-    cutoff_dt = timezone.now() - cutoff
-
-    group_list = list(Group.objects.filter(
-        project__in=project_dict.keys(),
-        status=GroupStatus.UNRESOLVED,
-        active_at__gte=cutoff_dt,
-    ).extra(select={'sort_value': 'score'}).order_by('-score', '-first_seen')[:limit])
-
-    for group in group_list:
-        group._project_cache = project_dict.get(group.project_id)
-
-    data = to_json(group_list, request)
-
-    response = HttpResponse(data)
-    response['Content-Type'] = 'application/json'
-
-    return response
-
-
-@never_cache
-@csrf_exempt
-@has_access
-def get_resolved_groups(request, organization, team):
-    minutes = int(request.REQUEST.get('minutes', 15))
-    limit = min(100, int(request.REQUEST.get('limit', 10)))
-
-    project_list = Project.objects.get_for_user(team=team, user=request.user)
-
-    project_dict = dict((p.id, p) for p in project_list)
-
-    cutoff = timedelta(minutes=minutes)
-    cutoff_dt = timezone.now() - cutoff
-
-    group_list = list(Group.objects.filter(
-        project__in=project_list,
-        status=GroupStatus.RESOLVED,
-        resolved_at__gte=cutoff_dt,
-    ).order_by('-score')[:limit])
-
-    for group in group_list:
-        group._project_cache = project_dict.get(group.project_id)
-
-    data = to_json(group_list, request)
-
-    response = HttpResponse(json.dumps(data))
-    response['Content-Type'] = 'application/json'
-
-    return response
-
-
-@never_cache
-@csrf_exempt
-@has_access
-def get_stats(request, organization, team):
-    minutes = int(request.REQUEST.get('minutes', 15))
-
-    project_list = Project.objects.get_for_user(team=team, user=request.user)
-
-    cutoff = timedelta(minutes=minutes)
-
-    end = timezone.now()
-    start = end - cutoff
-
-    # TODO(dcramer): this is used in an unreleased feature. reimplement it using
-    # new API and tsdb
-    results = tsdb.get_range(
-        model=tsdb.models.project,
-        keys=[p.id for p in project_list],
-        start=start,
-        end=end,
-    )
-    num_events = 0
-    for project, points in results.iteritems():
-        num_events += sum(p[1] for p in points)
-
-    # XXX: This is too slow if large amounts of groups are resolved
-    # TODO(dcramer); move this into tsdb
-    num_resolved = Group.objects.filter(
-        project__in=project_list,
-        status=GroupStatus.RESOLVED,
-        resolved_at__gte=start,
-    ).aggregate(t=Sum('times_seen'))['t'] or 0
-
-    data = {
-        'events': num_events,
-        'resolved': num_resolved,
-    }
-
-    response = HttpResponse(json.dumps(data))
-    response['Content-Type'] = 'application/json'
-
-    return response
-
-
-@never_cache
-@csrf_exempt
-@has_access
-def search_tags(request, organization, project):
-    limit = min(100, int(request.GET.get('limit', 10)))
-    name = request.GET['name']
-    query = request.GET['query']
-
-    results = list(TagValue.objects.filter(
-        project=project,
-        key=name,
-        value__icontains=query,
-    ).values_list('value', flat=True).order_by('value')[:limit])
-
-    response = HttpResponse(json.dumps({
-        'results': results,
-        'query': query,
-    }))
-    response['Content-Type'] = 'application/json'
-
-    return response
-
-
-@never_cache
-@csrf_exempt
-@has_access
-def search_users(request, organization):
-    limit = min(100, int(request.GET.get('limit', 10)))
-    query = request.GET['query']
-
-    results = list(User.objects.filter(
-        Q(email__istartswith=query) | Q(first_name__istartswith=query) | Q(username__istartswith=query),
-    ).filter(
-        sentry_orgmember_set__organization=organization,
-    ).distinct().order_by('first_name', 'email').values('id', 'username', 'first_name', 'email')[:limit])
-
-    response = HttpResponse(json.dumps({
-        'results': results,
-        'query': query,
-    }))
-    response['Content-Type'] = 'application/json'
-
-    return response
-
-
-@never_cache
-@csrf_exempt
-@has_access
-def search_projects(request, organization):
-    limit = min(100, int(request.GET.get('limit', 10)))
-    query = request.GET['query']
-
-    results = list(Project.objects.filter(
-        Q(name__istartswith=query) | Q(slug__istartswith=query),
-        organization=organization,
-    ).distinct().order_by('name', 'slug').values('id', 'name', 'slug')[:limit])
-
-    response = HttpResponse(json.dumps({
-        'results': results,
-        'query': query,
-    }))
-    response['Content-Type'] = 'application/json'
-
-    return response
 
 
 @cache_control(max_age=3600, public=True)
