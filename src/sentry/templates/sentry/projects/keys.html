@@ -9,6 +9,7 @@
     {% if ACCESS.project_write %}
         <form method="post" class="pull-right" action="{% url 'sentry-new-project-key' project.organization.slug project.slug %}"
                style="position: relative; top: -6px;">
+            {% csrf_token %}
             <button type="submit" class="btn btn-primary btn-sm">{% trans "Generate New Key" %}</button>
         </form>
     {% endif %}
