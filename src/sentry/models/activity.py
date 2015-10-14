@@ -18,6 +18,23 @@ from sentry.db.models import (
     sane_repr
 )
 from sentry.utils.http import absolute_uri
+from sentry.utils.safe import safe_execute
+
+
+def get_activity_notifiers(project):
+    from sentry.plugins.bases.notify import NotificationPlugin
+    from sentry.plugins import plugins
+
+    results = []
+    for plugin in plugins.for_project(project, version=1):
+        if isinstance(plugin, NotificationPlugin):
+            results.append(plugin)
+
+    for plugin in plugins.for_project(project, version=2):
+        for notifier in (safe_execute(plugin.get_notifiers) or ()):
+            results.append(notifier)
+
+    return results
 
 
 class Activity(Model):
@@ -207,3 +224,6 @@ class Activity(Model):
         )
         msg.add_users(send_to, project=self.project)
         msg.send_async()
+
+        for notifier in get_activity_notifiers(self.project):
+            notifier.notify_about_activity(self)
