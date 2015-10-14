@@ -45,11 +45,15 @@ class Csp(Interface):
     >>>     "document_uri": "http://example.com/",
     >>>     "violated_directive": "style-src cdn.example.com",
     >>>     "blocked_uri": "http://example.com/style.css",
+    >>>     "effective_uri": "style-src",
     >>> }
     """
     @classmethod
     def to_python(cls, data):
         kwargs = {k: trim(data.get(k, None), 1024) for k in REPORT_KEYS}
+
+        if kwargs['effective_directive'] is None:
+            raise InterfaceValidationError("'effective_directive' is missing")
 
         # Some reports from Chrome report blocked-uri as just 'about'.
         # In this case, this is not actionable and is just noisy.
