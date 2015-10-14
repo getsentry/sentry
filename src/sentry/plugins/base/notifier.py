@@ -40,3 +40,6 @@ class Notifier(object):
             self.logger.info('Notification for project %s dropped due to rate limiting', project.id)
 
         return not rate_limited
+
+    def notify_about_activity(self, activity):
+        pass
