@@ -54,21 +54,21 @@ SELF = "'self'"
 
 DIRECTIVE_TO_MESSAGES = {
     # 'base-uri': '',
-    'child-src': ("blocked 'child' from {uri!r}", "blocked inline 'child'"),
-    'connect-src': ("blocked 'connect' from {uri!r}", "blocked inline 'connect'"),
+    'child-src': ("Blocked 'child' from {uri!r}", "Blocked inline 'child'"),
+    'connect-src': ("Blocked 'connect' from {uri!r}", "Blocked inline 'connect'"),
     # 'default-src': '',
-    'font-src': ("blocked 'font' from {uri!r}", "blocked inline 'font'"),
-    'form-action': ("blocked 'form' action to {uri!r}",),  # no inline option
+    'font-src': ("Blocked 'font' from {uri!r}", "Blocked inline 'font'"),
+    'form-action': ("Blocked 'form' action to {uri!r}",),  # no inline option
     # 'frame-ancestors': '',
-    'img-src': ("blocked 'image' from {uri!r}", "blocked inline 'image'"),
-    'manifest-src': ("blocked 'manifest' from {uri!r}", "blocked inline 'manifest'"),
-    'media-src': ("blocked 'media' from {uri!r}", "blocked inline 'media'"),
-    'object-src': ("blocked 'object' from {uri!r}", "blocked inline 'object'"),
+    'img-src': ("Blocked 'image' from {uri!r}", "Blocked inline 'image'"),
+    'manifest-src': ("Blocked 'manifest' from {uri!r}", "Blocked inline 'manifest'"),
+    'media-src': ("Blocked 'media' from {uri!r}", "Blocked inline 'media'"),
+    'object-src': ("Blocked 'object' from {uri!r}", "Blocked inline 'object'"),
     # 'plugin-types': '',
     # 'referrer': '',
     # 'reflected-xss': '',
-    'script-src': ("blocked 'script' from {uri!r}", "blocked unsafe 'script'"),
-    'style-src': ("blocked 'style' from {uri!r}", "blocked inline 'style'"),
+    'script-src': ("Blocked 'script' from {uri!r}", "Blocked unsafe 'script'"),
+    'style-src': ("Blocked 'style' from {uri!r}", "Blocked inline 'style'"),
     # 'upgrade-insecure-requests': '',
 }
 
@@ -84,7 +84,7 @@ class Csp(Interface):
     >>> {
     >>>     "document_uri": "http://example.com/",
     >>>     "violated_directive": "style-src cdn.example.com",
-    >>>     "blocked_uri": "http://example.com/style.css",
+    >>>     "Blocked_uri": "http://example.com/style.css",
     >>>     "effective_directive": "style-src",
     >>> }
     """
@@ -135,9 +135,9 @@ class Csp(Interface):
         # so we want to attempt to guess which it was
         if _is_unsafe_script(directive, uri) and self.violated_directive:
             if "'unsafe-inline'" in self.violated_directive:
-                tmpl = "blocked unsafe eval() 'script'"
+                tmpl = "Blocked unsafe eval() 'script'"
             elif "'unsafe-eval'" in self.violated_directive:
-                tmpl = "blocked unsafe inline 'script'"
+                tmpl = "Blocked unsafe inline 'script'"
 
         if tmpl is None:
             try:
@@ -145,8 +145,7 @@ class Csp(Interface):
             except (KeyError, IndexError):
                 tmpl = DEFAULT_MESSAGE[index]
 
-        message = tmpl.format(directive=directive, uri=uri)
-        return 'CSP Violation: ' + message
+        return tmpl.format(directive=directive, uri=uri)
 
     def get_culprit(self):
         return self._normalize_directive(self.violated_directive)
