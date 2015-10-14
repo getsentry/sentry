@@ -104,6 +104,9 @@ var StreamTagFilter = React.createClass({
   },
 
   render() {
+    // NOTE: need to specify empty onChange handler on <select> - even though this
+    //       will get overridden by select2 - because React will complain with
+    //       a warning
     let tag = this.props.tag;
     return (
       <div className="stream-tag-filter">
@@ -111,7 +114,7 @@ var StreamTagFilter = React.createClass({
 
         {this.props.tag.predefined ?
 
-          <select ref="select" value={this.props.value}>
+          <select ref="select" value={this.props.value} onChange={function(){}}>
             <option key="empty"></option>
             {this.props.tag.values.map((val) => {
               return (
