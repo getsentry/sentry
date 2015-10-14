@@ -60,6 +60,8 @@ Schema Changes
 - Added ``user.{attribute}`` to search backends.
 - Added ``Project.first_event`` column.
 - Added ``Release.owner`` column.
+- Added ``Organization.default_role`` column.
+- Added ``OrganizationMember.role`` column.
 
 Version 7.7.1
 -------------
