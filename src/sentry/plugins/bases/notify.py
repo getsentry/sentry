@@ -108,13 +108,11 @@ class NotificationPlugin(Plugin):
         return member_set
 
     def should_notify(self, group, event):
-        # If digests are enabled for this project, we always want to add the
-        # notification to the digest (even if it may be filtered out later.)
-        if self.__can_be_digested(event):
-            return True
-
         if group.is_muted():
             return False
+
+        if self.__can_be_digested(event):
+            return True
 
         project = group.project
 
