@@ -130,14 +130,14 @@ class CspTest(TestCase):
             effective_directive='img-src',
             blocked_uri='http://google.com/foo',
         ))
-        assert result.get_message() == "CSP Violation: blocked 'image' from 'google.com'"
+        assert result.get_message() == "Blocked 'image' from 'google.com'"
 
         result = Csp.to_python(dict(
             document_uri='http://example.com/foo',
             effective_directive='style-src',
             blocked_uri='',
         ))
-        assert result.get_message() == "CSP Violation: blocked inline 'style'"
+        assert result.get_message() == "Blocked inline 'style'"
 
         result = Csp.to_python(dict(
             document_uri='http://example.com/foo',
@@ -145,7 +145,7 @@ class CspTest(TestCase):
             blocked_uri='',
             violated_directive="script-src 'unsafe-inline'",
         ))
-        assert result.get_message() == "CSP Violation: blocked unsafe eval() 'script'"
+        assert result.get_message() == "Blocked unsafe eval() 'script'"
 
         result = Csp.to_python(dict(
             document_uri='http://example.com/foo',
@@ -153,7 +153,7 @@ class CspTest(TestCase):
             blocked_uri='',
             violated_directive="script-src 'unsafe-eval'",
         ))
-        assert result.get_message() == "CSP Violation: blocked unsafe inline 'script'"
+        assert result.get_message() == "Blocked unsafe inline 'script'"
 
         result = Csp.to_python(dict(
             document_uri='http://example.com/foo',
@@ -161,4 +161,4 @@ class CspTest(TestCase):
             blocked_uri='',
             violated_directive="script-src example.com",
         ))
-        assert result.get_message() == "CSP Violation: blocked unsafe 'script'"
+        assert result.get_message() == "Blocked unsafe 'script'"
