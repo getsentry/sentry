@@ -57,7 +57,7 @@
         <th>Member</th>
         <th>&nbsp;</th>
         <th>Role</th>
-        {% if can_admin %}
+        {% if can_remove_members or member_can_leave %}
           <th class="squash">&nbsp;</th>
         {% endif %}
       </tr>
@@ -85,10 +85,19 @@
             {% endif %}
           </td>
           <td>{{ member.get_role_display }}</td>
-          {% if can_admin %}
+          {% if can_remove_members or member_can_leave %}
           <td class="align-right squash">
-            {% if member.user != request.user or member_can_leave %}
-              <a href="javascript:void(0)" class="btn btn-default btn-sm remove-member" data-member-id="{{ member.id }}"><span class="icon icon-trash"></span> &nbsp;Remove</a>
+            {% if member.user != request.user and can_remove_members %}
+              <a href="javascript:void(0)" class="btn btn-default btn-sm remove-member"
+                  data-member-id="{{ member.id }}">
+                <span class="icon icon-trash"></span> &nbsp;Remove
+              </a>
+            {% elif member.user == request.user and member_can_leave %}
+              <a href="javascript:void(0)" class="btn btn-default btn-sm remove-member"
+                  data-member-id="{{ member.id }}"
+                  data-message="Are you sure you wish to leave this organization?">
+                <span class="icon icon-trash"></span> &nbsp;Leave
+              </a>
             {% endif %}
           </td>
           {% endif %}
@@ -106,11 +115,13 @@
   </style>
   <script>
   $('.remove-member').click(function(){
-    if (!confirm('Are you sure you wish to remove this member?')) {
+    var $this = $(this);
+    var msg = $this.data('message') || 'Are you sure you wish to remove this member?';
+
+    if (!confirm(msg)) {
       return;
     }
 
-    var $this = $(this);
     $.ajax({
       url: '{{ URL_PREFIX }}/api/0/organizations/{{ organization.slug }}/members/' + $this.data('member-id') + '/',
       method: 'DELETE',
