@@ -18,7 +18,7 @@ from sentry.db.models import (
     sane_repr
 )
 from sentry.utils.http import absolute_uri
-from sentry.tasks.activity import send_activity_notifications
+from sentry.tasks import activity
 
 
 class Activity(Model):
@@ -129,6 +129,8 @@ class Activity(Model):
         if self.type not in (Activity.NOTE, Activity.ASSIGNED, Activity.RELEASE):
             return
 
+        activity.send_activity_notifications.delay(self.id)
+
         send_to = self.get_recipients()
 
         if not send_to:
@@ -208,5 +210,3 @@ class Activity(Model):
         )
         msg.add_users(send_to, project=self.project)
         msg.send_async()
-
-        send_activity_notifications.delay(self.id)
