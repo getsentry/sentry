@@ -20,6 +20,7 @@ from sentry.models import (
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.testutils import TestCase
+from sentry.utils.email import MessageBuilder
 
 
 class MailPluginTest(TestCase):
@@ -225,8 +226,8 @@ class MailPluginTest(TestCase):
         msg = mail.outbox[0]
         assert msg.subject == u'[Sentry] [foo Bar] ERROR: רונית מגן'
 
-    @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
-    def test_notify_digest(self, _send_mail):
+    @mock.patch.object(MessageBuilder, 'send', autospec=True)
+    def test_notify_digest(self, send):
         project = self.event.project
         rule = project.rule_set.all()[0]
         digest = build_digest(
@@ -236,4 +237,4 @@ class MailPluginTest(TestCase):
             ),
         )
         self.plugin.notify_digest(project, digest)
-        assert _send_mail.call_count is 1
+        assert send.call_count is 1
