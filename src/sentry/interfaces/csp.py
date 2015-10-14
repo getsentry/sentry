@@ -11,7 +11,7 @@ from __future__ import absolute_import
 __all__ = ('Csp',)
 
 from urlparse import urlsplit
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim
 
 
@@ -50,11 +50,19 @@ class Csp(Interface):
     @classmethod
     def to_python(cls, data):
         kwargs = {k: trim(data.get(k, None), 1024) for k in REPORT_KEYS}
+
+        # Some reports from Chrome report blocked-uri as just 'about'.
+        # In this case, this is not actionable and is just noisy.
+        # Observed in Chrome 45 and 46.
+        if kwargs['blocked_uri'] == 'about':
+            raise InterfaceValidationError("blocked-uri must not be 'about'")
+
         # Inline script violations are confusing and don't say what uri blocked them
         # because they're inline. FireFox sends along "blocked-uri": "self", which is
         # vastly more useful, so we want to emulate that
         if kwargs['effective_directive'] == 'script-src' and not kwargs['blocked_uri']:
             kwargs['blocked_uri'] = 'self'
+
         return cls(**kwargs)
 
     def get_hash(self):
