@@ -19,6 +19,7 @@ from sentry.db.models import (
 )
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
+from sentry.tasks.base import instrumented_task
 
 
 def get_activity_notifiers(project):
@@ -35,6 +36,18 @@ def get_activity_notifiers(project):
             results.append(notifier)
 
     return results
+
+
+@instrumented_task(
+    name='sentry.models.activity.send_activity_notifications')
+def send_activity_notifications(activity_id):
+    try:
+        activity = Activity.objects.get(pk=activity_id)
+    except Activity.DoesNotExist:
+        return
+
+    for notifier in get_activity_notifiers(activity.project):
+        notifier.notify_about_activity(activity)
 
 
 class Activity(Model):
@@ -225,5 +238,4 @@ class Activity(Model):
         msg.add_users(send_to, project=self.project)
         msg.send_async()
 
-        for notifier in get_activity_notifiers(self.project):
-            notifier.notify_about_activity(self)
+        send_activity_notifications.delay(self.id)
