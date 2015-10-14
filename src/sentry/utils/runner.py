@@ -152,6 +152,14 @@ SENTRY_QUOTAS = 'sentry.quotas.redis.RedisQuota'
 
 SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
 
+###########
+# Digests #
+###########
+
+# The digest backend powers notification summaries.
+
+SENTRY_DIGESTS = 'sentry.digests.backends.redis.RedisBackend'
+
 ################
 # File storage #
 ################

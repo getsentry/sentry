@@ -9,6 +9,10 @@ from django.utils import timezone
 from exam import fixture
 from mock import Mock
 
+from sentry.digests.notifications import (
+    build_digest,
+    event_to_record,
+)
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
     Event, Group, OrganizationMember, OrganizationMemberTeam, Rule
@@ -220,3 +224,16 @@ class MailPluginTest(TestCase):
 
         msg = mail.outbox[0]
         assert msg.subject == u'[Sentry] [foo Bar] ERROR: רונית מגן'
+
+    @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
+    def test_notify_digest(self, _send_mail):
+        project = self.event.project
+        rule = project.rule_set.all()[0]
+        digest = build_digest(
+            project,
+            (
+                event_to_record(self.event, (rule,)),
+            ),
+        )
+        self.plugin.notify_digest(project, digest)
+        assert _send_mail.call_count is 1

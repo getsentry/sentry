@@ -1,14 +1,30 @@
 from __future__ import absolute_import, print_function
 
+import itertools
 import logging
+import time
 import traceback
+import uuid
+from datetime import (
+    datetime,
+    timedelta,
+)
+from random import Random
+
+import pytz
 
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 
+from sentry.digests import Record
+from sentry.digests.notifications import (
+    Notification,
+    build_digest,
+)
 from sentry.models import (
     Activity, Event, Group, Organization, Project, Rule, Team,
 )
+from sentry.utils.dates import to_timestamp
 from sentry.utils.samples import load_data
 from sentry.utils.email import inline_css
 from sentry.utils.http import absolute_uri
@@ -16,12 +32,15 @@ from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response, render_to_string
 
 
+logger = logging.getLogger(__name__)
+
+
 # TODO(dcramer): use https://github.com/disqus/django-mailviews
 class MailPreview(object):
-    def __init__(self, html_template, text_template, context):
+    def __init__(self, html_template, text_template, context=None):
         self.html_template = html_template
         self.text_template = text_template
-        self.context = context
+        self.context = context if context is not None else {}
 
     def text_body(self):
         return render_to_string(self.text_template, self.context)
@@ -32,6 +51,11 @@ class MailPreview(object):
         except Exception:
             traceback.print_exc()
             raise
+
+    def render(self):
+        return render_to_response('sentry/debug/mail/preview.html', {
+            'preview': self,
+        })
 
 
 @login_required
@@ -78,7 +102,7 @@ def new_event(request):
             continue
         interface_list.append((interface.get_title(), mark_safe(body)))
 
-    preview = MailPreview(
+    return MailPreview(
         html_template='sentry/emails/error.html',
         text_template='sentry/emails/error.html',
         context={
@@ -90,15 +114,12 @@ def new_event(request):
             'tags': event.get_tags(),
             'project_label': project.name,
         },
-    )
-
-    return render_to_response('sentry/debug/mail/preview.html', {
-        'preview': preview,
-    })
+    ).render()
 
 
 @login_required
 def new_note(request):
+
     org = Organization(
         id=1,
         slug='example',
@@ -135,7 +156,7 @@ def new_note(request):
         data={'text': 'This is an example note!'},
     )
 
-    preview = MailPreview(
+    return MailPreview(
         html_template='sentry/emails/activity/note.html',
         text_template='sentry/emails/activity/note.txt',
         context={
@@ -145,11 +166,102 @@ def new_note(request):
             'group': group,
             'link': group.get_absolute_url(),
         },
+    ).render()
+
+
+@login_required
+def digest(request):
+    seed = request.GET.get('seed', str(time.time()))
+    logger.debug('Using random seed value: %s')
+    random = Random(seed)
+
+    now = datetime.utcnow().replace(tzinfo=pytz.utc)
+
+    # TODO: Refactor all of these into something more manageable.
+    org = Organization(
+        id=1,
+        slug='example',
+        name='Example Organization',
     )
 
-    return render_to_response('sentry/debug/mail/preview.html', {
-        'preview': preview,
-    })
+    team = Team(
+        id=1,
+        slug='example',
+        name='Example Team',
+        organization=org,
+    )
+
+    project = Project(
+        id=1,
+        slug='example',
+        name='Example Project',
+        team=team,
+        organization=org,
+    )
+
+    state = {
+        'project': project,
+        'groups': {},
+        'rules': {
+            1: Rule(id=1, project=project, label="First Rule"),
+            2: Rule(id=2, project=project, label="Second Rule"),
+            3: Rule(id=3, project=project, label="Third Rule"),
+        },
+        'event_counts': {},
+        'user_counts': {},
+    }
+
+    records = []
+
+    group_sequence = itertools.count(1)
+    event_sequence = itertools.count(1)
+
+    for i in xrange(random.randint(1, 4)):
+        group_id = next(group_sequence)
+
+        group = state['groups'][group_id] = Group(
+            id=group_id,
+            project=project,
+            message='This is example event #%s' % (group_id,),
+        )
+
+        offset = timedelta(seconds=0)
+        for i in xrange(random.randint(1, 10)):
+            offset += timedelta(seconds=random.random() * 120)
+            event = Event(
+                id=next(event_sequence),
+                event_id=uuid.uuid4().hex,
+                project=project,
+                group=group,
+                message=group.message,
+                data=load_data('python'),
+                datetime=now - offset,
+            )
+
+            records.append(
+                Record(
+                    event.event_id,
+                    Notification(
+                        event,
+                        random.sample(state['rules'], random.randint(1, len(state['rules']))),
+                    ),
+                    to_timestamp(event.datetime),
+                )
+            )
+
+            state['event_counts'][group_id] = random.randint(10, 1e4)
+            state['user_counts'][group_id] = random.randint(10, 1e4)
+
+    digest = build_digest(project, records, state)
+
+    return MailPreview(
+        html_template='sentry/emails/digests/body.html',
+        text_template='sentry/emails/digests/body.txt',
+        context={
+            'project': project,
+            'digest': digest,
+        },
+    ).render()
 
 
 @login_required
@@ -166,7 +278,7 @@ def request_access(request):
         organization=org,
     )
 
-    preview = MailPreview(
+    return MailPreview(
         html_template='sentry/emails/request-team-access.html',
         text_template='sentry/emails/request-team-access.txt',
         context={
@@ -178,11 +290,7 @@ def request_access(request):
                 'organization_slug': org.slug,
             }) + '?ref=access-requests'),
         },
-    )
-
-    return render_to_response('sentry/debug/mail/preview.html', {
-        'preview': preview,
-    })
+    ).render()
 
 
 @login_required
@@ -199,7 +307,7 @@ def access_approved(request):
         organization=org,
     )
 
-    preview = MailPreview(
+    return MailPreview(
         html_template='sentry/emails/access-approved.html',
         text_template='sentry/emails/access-approved.txt',
         context={
@@ -208,8 +316,4 @@ def access_approved(request):
             'organization': org,
             'team': team,
         },
-    )
-
-    return render_to_response('sentry/debug/mail/preview.html', {
-        'preview': preview,
-    })
+    ).render()
