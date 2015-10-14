@@ -88,6 +88,9 @@ class Csp(Interface):
     >>>     "effective_directive": "style-src",
     >>> }
     """
+
+    display_score = 1300
+
     @classmethod
     def to_python(cls, data):
         kwargs = {k: trim(data.get(k, None), 1024) for k in REPORT_KEYS}
