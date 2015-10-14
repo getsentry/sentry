@@ -11,7 +11,15 @@ import logging
 
 from django import forms
 
-from sentry.app import ratelimiter
+from sentry import features
+from sentry.app import (
+    digests,
+    ratelimiter,
+)
+from sentry.digests.notifications import (
+    event_to_record,
+    unsplit_key,
+)
 from sentry.plugins import Notification, Plugin
 from sentry.models import UserOption
 
@@ -46,6 +54,10 @@ class NotificationPlugin(Plugin):
         event = notification.event
         return self.notify_users(event.group, event)
 
+    def __can_be_digested(self, event):
+        return hasattr(self, 'notify_digest') and \
+            features.has('projects:digests', event.group.project)
+
     def rule_notify(self, event, futures):
         rules = []
         for future in futures:
@@ -54,8 +66,14 @@ class NotificationPlugin(Plugin):
                 continue
             raise NotImplementedError('The default behavior for notification de-duplication does not support args')
 
-        notification = Notification(event=event, rules=rules)
-        self.notify(notification)
+        if self.__can_be_digested(event):
+            digests.add(
+                unsplit_key(self, event.group.project),  # TODO: Improve this abstraction.
+                event_to_record(event, rules),
+            )
+        else:
+            notification = Notification(event=event, rules=rules)
+            self.notify(notification)
 
     def notify_users(self, group, event, fail_silently=False):
         raise NotImplementedError
@@ -92,6 +110,9 @@ class NotificationPlugin(Plugin):
     def should_notify(self, group, event):
         if group.is_muted():
             return False
+
+        if self.__can_be_digested(event):
+            return True
 
         project = group.project
 

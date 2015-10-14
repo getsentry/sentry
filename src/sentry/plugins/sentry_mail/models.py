@@ -11,6 +11,7 @@ import sentry
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.template.loader import render_to_string
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
@@ -162,6 +163,20 @@ class MailPlugin(NotificationPlugin):
             project=project,
             group=group,
             headers=headers,
+            context=context,
+        )
+
+    def notify_digest(self, project, digest):
+        context = {
+            'project': project,
+            'digest': digest,
+        }
+
+        self._send_mail(
+            subject=render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
+            template='sentry/emails/digests/body.txt',
+            html_template='sentry/emails/digests/body.html',
+            project=project,
             context=context,
         )
 

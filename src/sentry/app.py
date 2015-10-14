@@ -28,6 +28,7 @@ def get_instance(path, options):
 # TODO(dcramer): this is getting heavy, we should find a better way to structure
 # this
 buffer = get_instance(settings.SENTRY_BUFFER, settings.SENTRY_BUFFER_OPTIONS)
+digests = get_instance(settings.SENTRY_DIGESTS, settings.SENTRY_DIGESTS_OPTIONS)
 quotas = get_instance(settings.SENTRY_QUOTAS, settings.SENTRY_QUOTA_OPTIONS)
 nodestore = get_instance(
     settings.SENTRY_NODESTORE, settings.SENTRY_NODESTORE_OPTIONS)
