@@ -168,7 +168,15 @@ class RedisBackend(Backend):
 
         self.cluster = Cluster(**options.pop('cluster', settings.SENTRY_REDIS_OPTIONS))
         self.namespace = options.pop('namespace', 'd')
-        self.record_ttl = options.pop('record_ttl', 60 * 60)
+
+        # Sets the time-to-live (in seconds) for records, timelines, and
+        # digests. This can (and should) be a relatively high value, since
+        # timelines, digests, and records should all be deleted after they have
+        # been processed -- this is mainly to ensure stale data doesn't hang
+        # around too long in the case of a configuration error. This should be
+        # larger than the maximum backoff value to ensure data is not evicted
+        # too early.
+        self.ttl = options.pop('ttl', 60 * 60)
 
         if options:
             logger.warning('Discarding invalid options: %r', options)
@@ -184,16 +192,18 @@ class RedisBackend(Backend):
             pipeline.set(
                 record_key,
                 self.codec.encode(record.value),
-                ex=self.record_ttl,
+                ex=self.ttl,
             )
 
             pipeline.set(make_iteration_key(timeline_key), 0, nx=True)
+            pipeline.expire(make_iteration_key(timeline_key), self.ttl)
 
             # In the future, it might make sense to prefix the entry with the
             # timestamp (lexicographically sortable) to ensure that we can
             # maintain the correct sort order with abitrary precision:
             # http://redis.io/commands/ZADD#elements-with-the-same-score
             pipeline.zadd(timeline_key, record.timestamp, record.key)
+            pipeline.expire(timeline_key, self.ttl)
 
             ensure_timeline_scheduled(
                 map(
@@ -409,10 +419,12 @@ class RedisBackend(Backend):
                     pipeline.multi()
                     pipeline.zunionstore(digest_key, (timeline_key, digest_key), aggregate='max')
                     pipeline.delete(timeline_key)
+                    pipeline.expire(digest_key, self.ttl)
                     pipeline.execute()
                 else:
                     pipeline.multi()
                     pipeline.rename(timeline_key, digest_key)
+                    pipeline.expire(digest_key, self.ttl)
                     try:
                         pipeline.execute()
                     except ResponseError as error:
