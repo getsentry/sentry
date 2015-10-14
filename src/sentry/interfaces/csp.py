@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 __all__ = ('Csp',)
 
-from urlparse import urlsplit
+from urlparse import urlsplit, urlunsplit
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim
 
@@ -29,10 +29,50 @@ KEYWORDS = frozenset((
     "'none'", "'self'", "'unsafe-inline'", "'unsafe-eval'",
 ))
 
+DIRECTIVES = frozenset((
+    'base-uri', 'child-src', 'connect-src', 'default-src',
+    'font-src', 'form-action', 'frame-ancestors',
+    'img-src', 'manifest-src', 'media-src', 'object-src',
+    'plugin-types', 'referrer', 'reflected-xss',
+    'script-src', 'style-src', 'upgrade-insecure-requests',
+
+    # Deprecated directives
+    # > Note: This directive is deprecated. Use child-src instead.
+    # > https://developer.mozilla.org/en-US/docs/Web/Security/CSP/CSP_policy_directives#frame-src
+    # 'frame-src',
+
+    # I don't really know what this even is.
+    # 'sandbox',
+))
+
 ALL_SCHEMES = (
     'data:', 'mediastream:', 'blob:', 'filesystem:',
     'http:', 'https:', 'file:',
 )
+
+SELF = "'self'"
+
+DIRECTIVE_TO_MESSAGES = {
+    # 'base-uri': '',
+    'child-src': ("blocked 'child' from {uri!r}", "blocked inline 'child'"),
+    'connect-src': ("blocked 'connect' from {uri!r}", "blocked inline 'connect'"),
+    # 'default-src': '',
+    'font-src': ("blocked 'font' from {uri!r}", "blocked inline 'font'"),
+    'form-action': ("blocked 'form' action to {uri!r}",),  # no inline option
+    # 'frame-ancestors': '',
+    'img-src': ("blocked 'image' from {uri!r}", "blocked inline 'image'"),
+    'manifest-src': ("blocked 'manifest' from {uri!r}", "blocked inline 'manifest'"),
+    'media-src': ("blocked 'media' from {uri!r}", "blocked inline 'media'"),
+    'object-src': ("blocked 'object' from {uri!r}", "blocked inline 'object'"),
+    # 'plugin-types': '',
+    # 'referrer': '',
+    # 'reflected-xss': '',
+    'script-src': ("blocked 'script' from {uri!r}", "blocked unsafe 'script'"),
+    'style-src': ("blocked 'style' from {uri!r}", "blocked inline 'style'"),
+    # 'upgrade-insecure-requests': '',
+}
+
+DEFAULT_MESSAGE = ('blocked {directive!r} from {uri!r}', 'blocked inline {directive!r}')
 
 
 class Csp(Interface):
@@ -45,57 +85,73 @@ class Csp(Interface):
     >>>     "document_uri": "http://example.com/",
     >>>     "violated_directive": "style-src cdn.example.com",
     >>>     "blocked_uri": "http://example.com/style.css",
-    >>>     "effective_uri": "style-src",
+    >>>     "effective_directive": "style-src",
     >>> }
     """
     @classmethod
     def to_python(cls, data):
         kwargs = {k: trim(data.get(k, None), 1024) for k in REPORT_KEYS}
 
-        if kwargs['effective_directive'] is None:
-            raise InterfaceValidationError("'effective_directive' is missing")
+        if kwargs['effective_directive'] not in DIRECTIVES:
+            raise InterfaceValidationError("Invalid value for 'effective-directive'")
 
         # Some reports from Chrome report blocked-uri as just 'about'.
         # In this case, this is not actionable and is just noisy.
         # Observed in Chrome 45 and 46.
         if kwargs['blocked_uri'] == 'about':
-            raise InterfaceValidationError("blocked-uri must not be 'about'")
+            raise InterfaceValidationError("Invalid value for 'blocked-uri'")
 
-        # Inline script violations are confusing and don't say what uri blocked them
-        # because they're inline. FireFox sends along "blocked-uri": "self", which is
-        # vastly more useful, so we want to emulate that
-        if kwargs['effective_directive'] == 'script-src' and not kwargs['blocked_uri']:
+        # Anything resulting from an "inline" whatever violation is either sent
+        # as 'self', or left off. In the case if it missing, we want to noramalize.
+        if not kwargs['blocked_uri']:
             kwargs['blocked_uri'] = 'self'
 
         return cls(**kwargs)
 
     def get_hash(self):
-        # The hash of a CSP report is it's normalized `violated-directive`.
-        # This normalization has to be done for FireFox because they send
-        # weird stuff compared to Safari and Chrome.
-        # NOTE: this may or may not be great, not sure until we see it in the wild
-        return [':'.join(self.get_violated_directive()), ':'.join(self.get_culprit_directive())]
+        directive = self.effective_directive
+        uri = _normalize_uri(self.blocked_uri)
 
-    def get_violated_directive(self):
-        return 'violated-directive', self._normalize_directive(self.violated_directive)
+        # We want to distinguish between the different script-src
+        # violations that happen in
+        if _is_unsafe_script(directive, uri) and self.violated_directive:
+            if "'unsafe-inline" in self.violated_directive:
+                uri = "'unsafe-eval'"
+            elif "'unsafe-eval'" in self.violated_directive:
+                uri = "'unsafe-inline"
 
-    def get_culprit_directive(self):
-        if self.blocked_uri:
-            return 'blocked-uri', self.blocked_uri
-        return 'effective-directive', self._normalize_directive(self.effective_directive)
-
-    def get_path(self):
-        return 'sentry.interfaces.Csp'
+        return [directive, uri]
 
     def get_message(self):
-        return 'CSP Violation: %s %r' % self.get_culprit_directive()
+        directive = self.effective_directive
+        uri = _normalize_uri(self.blocked_uri)
+
+        index = 1 if uri == SELF else 0
+
+        tmpl = None
+
+        # We want to special case script-src because they have
+        # unsafe-inline and unsafe-eval, but the report is ambiguous.
+        # so we want to attempt to guess which it was
+        if _is_unsafe_script(directive, uri) and self.violated_directive:
+            if "'unsafe-inline'" in self.violated_directive:
+                tmpl = "blocked unsafe eval() 'script'"
+            elif "'unsafe-eval'" in self.violated_directive:
+                tmpl = "blocked unsafe inline 'script'"
+
+        if tmpl is None:
+            try:
+                tmpl = DIRECTIVE_TO_MESSAGES[directive][index]
+            except (KeyError, IndexError):
+                tmpl = DEFAULT_MESSAGE[index]
+
+        message = tmpl.format(directive=directive, uri=uri)
+        return 'CSP Violation: ' + message
 
     def get_culprit(self):
-        return '%s in %r' % self.get_violated_directive()
+        return self._normalize_directive(self.violated_directive)
 
     def _normalize_directive(self, directive):
-        if directive is None:
-            return '<unknown>'
         bits = filter(None, directive.split(' '))
         return ' '.join([bits[0]] + map(self._normalize_value, bits[1:]))
 
@@ -110,22 +166,40 @@ class Csp(Interface):
         # FireFox transforms a 'self' value into the spelled out origin, so we
         # want to reverse this and bring it back
         if value.startswith(ALL_SCHEMES):
-            if _get_origin(self.document_uri) == value:
-                return "'self'"
+            if _normalize_uri(self.document_uri) == _normalize_uri(value):
+                return SELF
+            # Their rule had an explicit scheme, so let's respect that
             return value
+
+        # value doesn't have a scheme, but let's see if their
+        # hostnames match at least, if so, they're the same
+        if value == _normalize_uri(self.document_uri):
+            return SELF
 
         # Now we need to stitch on a scheme to the value
         scheme = self.document_uri.split(':', 1)[0]
-        # These schemes need to have an additional '//' to be a url
-        if scheme in ('http', 'https', 'file'):
-            return '%s://%s' % (scheme, value)
-        # The others do not
-        return '%s:%s' % (scheme, value)
+        # But let's not stitch on the boring values
+        if scheme in ('http', 'https'):
+            return value
+        return _unsplit(scheme, value)
+
+    def get_path(self):
+        return 'sentry.interfaces.Csp'
 
 
-def _get_origin(value):
-    "Extract the origin out of a url, which is just scheme+host"
+def _is_unsafe_script(directive, uri):
+    return directive == 'script-src' and uri == SELF
+
+
+def _normalize_uri(value):
+    if value in ('self', "'self'"):
+        return SELF
+
     scheme, hostname = urlsplit(value)[:2]
-    if scheme in ('http', 'https', 'file'):
-        return '%s://%s' % (scheme, hostname)
-    return '%s:%s' % (scheme, hostname)
+    if scheme in ('http', 'https'):
+        return hostname
+    return _unsplit(scheme, hostname)
+
+
+def _unsplit(scheme, rest):
+    return urlunsplit((scheme, rest, '', None, None))

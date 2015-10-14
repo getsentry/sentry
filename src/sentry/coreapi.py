@@ -583,8 +583,8 @@ class CspApiHelper(ClientApiHelper):
 
         try:
             inst = Csp.to_python(report)
-        except Exception:
-            raise APIForbidden('Invalid CSP Report')
+        except Exception as exc:
+            raise APIForbidden('Invalid CSP Report: %s' % exc)
 
         # Construct a faux Http interface based on the little information we have
         headers = {}
@@ -594,6 +594,7 @@ class CspApiHelper(ClientApiHelper):
             headers['Referer'] = inst.referrer
 
         return {
+            'logger': 'csp',
             'project': project.id,
             'message': inst.get_message(),
             'culprit': inst.get_culprit(),

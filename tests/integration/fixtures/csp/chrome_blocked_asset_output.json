@@ -1,5 +1,5 @@
 {
-  "message": "CSP Violation: blocked-uri 'http://localhost:8000/lol.css'",
+  "message": "CSP Violation: blocked 'style' from 'localhost:8000'",
   "data": {
     "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
     "sentry.interfaces.Csp": {
