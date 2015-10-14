@@ -112,10 +112,9 @@ class RedisBackend(Backend):
     """
     Implements the digest backend API, backed by Redis.
 
-    Each timeline is modeled as a modeled as a sorted set, as well as a
-    separate key that contains the iteration counter (for implementing backoff
-    strategies that require this value as an argument, such as exponential
-    backoff.)
+    Each timeline is modeled as a sorted set, and also maintains a separate key
+    that contains the iteration counter for implementing backoff strategies
+    that require this value as an argument, such as exponential backoff.
 
     .. code::
 
@@ -129,10 +128,10 @@ class RedisBackend(Backend):
         4) "1444847625"
         ...
 
-    In the example above, the timeline ``mail:p:1`` has already digested once,
-    as evidenced by the iteration counter, which ends with ``:i``. The timeline
-    also contains references to several records, which are stored separately,
-    encoded using the codec:
+    In the example above, the timeline ``mail:p:1`` has already been digested
+    once, as evidenced by the iteration counter (the key that ends with
+    ``:i``.) The timeline also contains references to several records, which
+    are stored separately, encoded using the codec provided to the backend:
 
     .. code::
 
