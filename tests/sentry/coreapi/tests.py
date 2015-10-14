@@ -349,6 +349,7 @@ class CspApiHelperTest(BaseAPITest):
             "status-code": 200
         }
         result = self.helper.validate_data(self.project, report)
+        assert result['logger'] == 'csp'
         assert result['project'] == self.project.id
         assert 'message' in result
         assert 'culprit' in result
