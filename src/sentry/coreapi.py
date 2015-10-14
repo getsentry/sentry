@@ -594,6 +594,7 @@ class CspApiHelper(ClientApiHelper):
             headers['Referer'] = inst.referrer
 
         return {
+            'logger': 'csp',
             'project': project.id,
             'message': inst.get_message(),
             'culprit': inst.get_culprit(),
