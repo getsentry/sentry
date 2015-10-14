@@ -2,15 +2,14 @@ from __future__ import absolute_import
 
 from sentry import roles
 from sentry.models import (
-    AuthProvider, OrganizationAccessRequest, OrganizationMember
+    AuthProvider, OrganizationAccessRequest, OrganizationMember,
+    OrganizationMemberTeam
 )
 from sentry.web.frontend.base import OrganizationView
 
 
 class OrganizationMembersView(OrganizationView):
     def handle(self, request, organization):
-        can_admin = request.access.has_scope('member:delete')
-
         queryset = OrganizationMember.objects.filter(
             organization=organization,
         ).select_related('user')
@@ -35,20 +34,33 @@ class OrganizationMembersView(OrganizationView):
                 and om.user is not None)
         )
 
+        can_approve_requests_globally = (
+            request.access.has_scope('member:write')
+            or request.access.has_scope('org:write')
+        )
+        can_remove_members = request.access.has_scope('member:delete')
+
         # pending requests
-        if can_admin:
+        if can_approve_requests_globally:
             access_requests = list(OrganizationAccessRequest.objects.filter(
                 team__organization=organization,
+            ).select_related('team', 'member__user'))
+        elif request.access.has_scope('team:write'):
+            access_requests = list(OrganizationAccessRequest.objects.filter(
+                team__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__organization=organization,
+                    organizationmember__user=request.user,
+                ).values('team'),
             ).select_related('team', 'member__user'))
         else:
             access_requests = []
 
         context = {
             'org_has_sso': auth_provider is not None,
-            'can_admin': can_admin,
             'member_list': member_list,
             'request_list': access_requests,
             'ref': request.GET.get('ref'),
+            'can_remove_members': can_remove_members,
             'member_can_leave': member_can_leave,
         }
 

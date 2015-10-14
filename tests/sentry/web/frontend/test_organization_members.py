@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import OrganizationMember
+from sentry.models import OrganizationAccessRequest, OrganizationMember
 from sentry.testutils import TestCase, PermissionTestCase
 
 
@@ -56,3 +56,47 @@ class OrganizationMembersTest(TestCase):
             (owner_om, False),
             (member_om, False),
         ]
+
+    def test_shows_access_requests_for_team_admin(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+        team_1 = self.create_team(name='foo', organization=organization)
+        team_2 = self.create_team(name='bar', organization=organization)
+
+        team_admin = self.create_user('admin@example.com')
+        self.create_member(
+            organization=organization,
+            user=team_admin,
+            role='admin',
+            teams=[team_1],
+        )
+
+        other_user = self.create_user('bar@example.com')
+        other_member = self.create_member(
+            organization=organization,
+            user=other_user,
+            role='member',
+            teams=[],
+        )
+
+        request_1 = OrganizationAccessRequest.objects.create(
+            member=other_member,
+            team=team_1,
+        )
+        OrganizationAccessRequest.objects.create(
+            member=other_member,
+            team=team_2,
+        )
+
+        path = reverse('sentry-organization-members', args=[organization.slug])
+
+        self.login_as(team_admin)
+
+        resp = self.client.get(path)
+
+        assert resp.status_code == 200
+
+        self.assertTemplateUsed(resp, 'sentry/organization-members.html')
+
+        assert resp.context['organization'] == organization
+        assert len(resp.context['request_list']) == 1
+        assert resp.context['request_list'][0] == request_1

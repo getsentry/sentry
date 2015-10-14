@@ -6,21 +6,24 @@ from collections import defaultdict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import (
-    OrganizationAccessRequest, Project, ProjectStatus, Team
+    OrganizationAccessRequest, OrganizationMemberTeam, Project, ProjectStatus,
+    Team
 )
 
 
 @register(Team)
 class TeamSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        organization = item_list[0].organization
-        # TODO(dcramer): kill this off when we fix OrganizaitonMemberTeam
-        team_map = dict(
-            (t.id, t) for t in Team.objects.get_for_user(
-                organization=organization,
-                user=user,
+        if user.is_authenticated():
+            memberships = frozenset(
+                OrganizationMemberTeam.objects.filter(
+                    organizationmember__user=user,
+                    team__in=item_list,
+                    is_active=True,
+                ).values_list('team', flat=True)
             )
-        )
+        else:
+            memberships = frozenset()
 
         if user.is_authenticated():
             access_requests = frozenset(
@@ -36,7 +39,7 @@ class TeamSerializer(Serializer):
         for team in item_list:
             result[team] = {
                 'pending_request': team.id in access_requests,
-                'is_member': team.id in team_map,
+                'is_member': team.id in memberships,
             }
         return result
 
