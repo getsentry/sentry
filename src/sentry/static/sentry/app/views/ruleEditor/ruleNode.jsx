@@ -1,4 +1,5 @@
 import React from "react";
+import ReactDOM from "react-dom";
 import $ from "jquery";
 
 var RuleNode = React.createClass({
@@ -10,7 +11,7 @@ var RuleNode = React.createClass({
   },
 
   componentDidMount() {
-    let $html = $(React.findDOMNode(this.refs.html));
+    let $html = $(ReactDOM.findDOMNode(this.refs.html));
 
     $html.find('select, input, textarea').each((_, el) => {
       let $el = $(el);
