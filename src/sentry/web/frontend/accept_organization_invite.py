@@ -55,11 +55,16 @@ class AcceptOrganizationInviteView(BaseView):
 
         organization = om.organization
 
-        project_list = list(Project.objects.select_related('team'))
+        qs = Project.objects.filter(
+            organization=organization,
+        )
+        project_list = list(qs.select_related('team')[:25])
+        project_count = qs.count()
 
         context = {
             'organization': om.organization,
             'project_list': project_list,
+            'project_count': project_count,
             'needs_authentication': not request.user.is_authenticated(),
         }
 

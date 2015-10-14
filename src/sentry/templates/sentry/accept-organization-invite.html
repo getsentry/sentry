@@ -19,7 +19,7 @@
           {% blocktrans with org_name=organization.name %}<strong>{{ org_name }}</strong> is using Sentry to aggregate errors.{% endblocktrans %}
         </p>
 
-        <p>{% blocktrans with project_count=project_list|length %}You have been invited to join this organization, which manages <strong>{{ project_count }}</strong> project(s):{% endblocktrans %}</p>
+        <p>{% blocktrans %}You have been invited to join this organization, which manages <strong>{{ project_count }}</strong> project(s), including:{% endblocktrans %}</p>
         <ul>
           {% for project in project_list|slice:"5" %}
             <li>
