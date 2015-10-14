@@ -20,7 +20,7 @@ class Migration(DataMigration):
                 continue
 
             Organization.objects.filter(
-                id=auth_provider.organization_id.id,
+                id=auth_provider.organization_id,
             ).update(default_role=role)
 
     def backwards(self, orm):
