@@ -37,8 +37,8 @@ def py_lint(file_list):
 
 
 def js_lint(file_list):
-    if not os.path.isdir('node_modules'):
-        print '!! Skipping JavaScript linting because no `node_modules` folder found.'
+    if not os.path.exists('node_modules/.bin/eslint'):
+        print '!! Skipping JavaScript linting because eslint is not installed.'
         return False
     has_errors = False
     file_list = filter(lambda x: x.endswith(('.js', '.jsx')), file_list)
