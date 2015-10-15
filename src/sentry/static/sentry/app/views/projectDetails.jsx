@@ -55,31 +55,25 @@ var ProjectDetails = React.createClass({
     this.fetchData();
   },
 
+  remountComponent() {
+    this.setState(this.getInitialState(), this.fetchData);
+  },
+
   routeDidChange(nextPath, nextParams) {
     var router = this.context.router;
     var params = router.getCurrentParams();
     if (nextParams.projectId != params.projectId ||
         nextParams.orgId != params.orgId) {
-      this.setState({
-        loading: true,
-        error: false,
-        errorType: null,
-        project: null,
-        team: null
-      }, this.fetchData);
+      this.remountComponent();
     }
   },
 
   fetchData() {
     var org = this.getOrganization();
+    // TODO(dcramer): this should never happen
     if (!org) {
       return;
     }
-
-    this.setState({
-      loading: true,
-      error: false
-    });
 
     var router = this.context.router;
     var params = router.getCurrentParams();
@@ -165,7 +159,7 @@ var ProjectDetails = React.createClass({
             </div>
           );
         default:
-          return <LoadingError onRetry={this.fetchData} />;
+          return <LoadingError onRetry={this.remountComponent} />;
       }
     }
 
