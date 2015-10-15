@@ -3,34 +3,54 @@
 {% load sentry_helpers %}
 {% load i18n %}
 
+{% block preheader %}
+  {% if group.times_seen == 1 %}
+      New Event on {{ project_label }}.
+  {% else %}
+      Regression on {{ project_label }}.
+  {% endif %}
+{% endblock %}
+
 {% block header %}
     <a href="{{ link }}" class="btn">View on Sentry</a>
-    <h1>Sentry</h1>
+    {{ block.super }}
 {% endblock %}
 
 {% block main %}
-    <h2>
+    <h2 style="margin-bottom: 15px">
         {% url 'sentry-stream' group.project.organization.slug group.project.slug as project_link %}
         {% if group.times_seen == 1 %}
-            New Event on <a href="{% absolute_uri project_link %}" class="highlight">{{ project_label }}</a>
+            New Event on <a href="{% absolute_uri project_link %}">{{ project_label }}</a>
         {% else %}
-            Regression on <a href="{% absolute_uri project_link %}" class="highlight">{{ project_label }}</a>
+            Regression on <a href="{% absolute_uri project_link %}">{{ project_label }}</a>
         {% endif %}
     </h2>
 
-    <pre class="message">{{ event.message }}</pre>
+    <table class="event">
+      <tr>
+        <td colspan="2">
+          <pre class="message">{{ event.message }}</pre>
+        </td>
+      </tr>
+      <tr>
+        <td>{{ event.datetime }} UTC</td>
+        <td>ID: {{ event.event_id }}</td>
+      </tr>
+    </table>
 
-    <h3>Tags</h3>
+    {% if tags %}
+      <h3>Tags</h3>
 
-    <ul class="tag-list">
-    {% for tag_key, tag_value in tags %}
+      <ul class="tag-list">
+      {% for tag_key, tag_value in tags %}
         <li>
             <strong>{{ tag_key }}</strong>
             <em>=</em>
             <span><a href="{% absolute_uri project_link %}?{{ tag_key }}={{ tag_value }}">{{ tag_value }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}</span>
         </li>
-    {% endfor %}
-    </ul>
+      {% endfor %}
+      </ul>
+    {% endif %}
 
     {% for label, html, _ in interfaces %}
     <div class="interface">
