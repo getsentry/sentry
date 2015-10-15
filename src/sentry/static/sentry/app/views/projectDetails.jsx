@@ -11,6 +11,11 @@ import OrganizationState from "../mixins/organizationState";
 import RouteMixin from "../mixins/routeMixin";
 import PropTypes from "../proptypes";
 
+const ERROR_TYPES = {
+  MISSING_MEMBERSHIP: "MISSING_MEMBERSHIP",
+  PROJECT_NOT_FOUND: "PROJECT_NOT_FOUND"
+};
+
 var ProjectDetails = React.createClass({
   mixins: [
     Reflux.connect(MemberListStore, "memberList"),
@@ -38,6 +43,7 @@ var ProjectDetails = React.createClass({
     return {
       loading: true,
       error: false,
+      errorType: null,
       memberList: [],
       project: null,
       team: null,
@@ -49,44 +55,43 @@ var ProjectDetails = React.createClass({
     this.fetchData();
   },
 
+  remountComponent() {
+    this.setState(this.getInitialState(), this.fetchData);
+  },
+
   routeDidChange(nextPath, nextParams) {
     var router = this.context.router;
     var params = router.getCurrentParams();
     if (nextParams.projectId != params.projectId ||
         nextParams.orgId != params.orgId) {
-      this.fetchData();
+      this.remountComponent();
     }
   },
 
   fetchData() {
     var org = this.getOrganization();
+    // TODO(dcramer): this should never happen
     if (!org) {
       return;
     }
-
-    this.setState({
-      loading: true,
-      error: false
-    });
 
     var router = this.context.router;
     var params = router.getCurrentParams();
     var projectSlug = params.projectId;
     var activeProject = null;
     var activeTeam = null;
+    var isMember = null;
     org.teams.forEach((team) => {
-      if (!team.isMember) {
-        return;
-      }
       team.projects.forEach((project) => {
         if (project.slug == projectSlug) {
           activeProject = project;
           activeTeam = team;
+          isMember = team.isMember;
         }
       });
     });
 
-    if (activeProject) {
+    if (activeProject && isMember) {
       // TODO(dcramer): move member list to organization level
       api.request(this.getMemberListEndpoint(), {
         success: (data) => {
@@ -97,12 +102,21 @@ var ProjectDetails = React.createClass({
       this.setState({
         project: activeProject,
         team: activeTeam,
-        loading: false
+        loading: false,
+        error: false,
+        errorType: null
+      });
+    } else if (isMember === false) {
+      this.setState({
+        loading: false,
+        error: true,
+        errorType: ERROR_TYPES.MISSING_MEMBERSHIP
       });
     } else {
       this.setState({
         loading: false,
-        error: true
+        error: true,
+        errorType: ERROR_TYPES.PROJECT_NOT_FOUND
       });
     }
   },
@@ -128,8 +142,26 @@ var ProjectDetails = React.createClass({
   render() {
     if (this.state.loading)
       return <LoadingIndicator />;
-    else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
+    else if (this.state.error) {
+      switch (this.state.errorType) {
+        case ERROR_TYPES.PROJECT_NOT_FOUND:
+          return (
+            <div className="container">
+              <div className="alert alert-block">The project you were looking for was not found.</div>
+            </div>
+          );
+        case ERROR_TYPES.MISSING_MEMBERSHIP:
+          // TODO(dcramer): add various controls to improve this flow and break it
+          // out into a reusable missing access error component
+          return (
+            <div className="container">
+              <div className="alert alert-block">You don't have access to this project.</div>
+            </div>
+          );
+        default:
+          return <LoadingError onRetry={this.remountComponent} />;
+      }
+    }
 
     return (
       <DocumentTitle title={this.getTitle()}>
