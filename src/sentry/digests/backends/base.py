@@ -14,6 +14,13 @@ def load(options):
 
 DEFAULT_BACKOFF = {
     'path': 'sentry.digests.backoff.IntervalBackoffStrategy',
+    'options': {
+        'default': 60 * 15,
+        'intervals': {
+            0: 30,
+            1: 60 * 5,
+        },
+    },
 }
 
 

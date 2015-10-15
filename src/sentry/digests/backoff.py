@@ -7,8 +7,9 @@ class BackoffStrategy(object):
 
 
 class IntervalBackoffStrategy(BackoffStrategy):
-    def __init__(self, interval=60):
-        self.interval = interval
+    def __init__(self, default=60, intervals=None):
+        self.default = default
+        self.intervals = intervals if intervals is not None else {}
 
     def __call__(self, iteration):
-        return self.interval
+        return self.intervals.get(iteration, self.default)
