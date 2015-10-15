@@ -14,7 +14,9 @@ from sentry.models import (
 @register(Team)
 class TeamSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        if user.is_authenticated():
+        if user.is_active_superuser():
+            memberships = frozenset([i.id for i in item_list])
+        elif user.is_authenticated():
             memberships = frozenset(
                 OrganizationMemberTeam.objects.filter(
                     organizationmember__user=user,
