@@ -34,8 +34,8 @@ DIRECTIVES = frozenset((
     'base-uri', 'child-src', 'connect-src', 'default-src',
     'font-src', 'form-action', 'frame-ancestors',
     'img-src', 'manifest-src', 'media-src', 'object-src',
-    'plugin-types', 'referrer', 'reflected-xss',
-    'script-src', 'style-src', 'upgrade-insecure-requests',
+    'plugin-types', 'referrer', 'script-src', 'style-src',
+    'upgrade-insecure-requests',
 
     # Deprecated directives
     # > Note: This directive is deprecated. Use child-src instead.
