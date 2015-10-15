@@ -85,7 +85,5 @@ class TeamWithProjectsSerializer(TeamSerializer):
 
     def serialize(self, obj, attrs, user):
         d = super(TeamWithProjectsSerializer, self).serialize(obj, attrs, user)
-        # project lists are only available if you're a member
-        if d['isMember']:
-            d['projects'] = attrs['projects']
+        d['projects'] = attrs['projects']
         return d
