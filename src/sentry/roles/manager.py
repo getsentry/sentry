@@ -52,7 +52,7 @@ class RoleManager(object):
         return self._roles.itervalues()
 
     def can_manage(self, role, other):
-        return self.get(role).priority > self.get(other).priority
+        return self.get(role).priority >= self.get(other).priority
 
     def get(self, id):
         return self._roles[id]
