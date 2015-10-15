@@ -45,7 +45,10 @@ var ProjectSelector = React.createClass({
 
   close() {
     this.setState({ filter: '' });
-    this.refs.dropdownLink.close();
+    // dropdownLink might not exist because we try to close within
+    // onFilterBlur above after a timeout. My hunch is that sometimes
+    // this DOM element is removed within the 200ms, so we error out.
+    this.refs.dropdownLink && this.refs.dropdownLink.close();
   },
 
   highlight(text, highlightText) {
