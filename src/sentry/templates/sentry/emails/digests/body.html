@@ -21,6 +21,9 @@
                 <th>
                     {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
                     <a href="{% absolute_uri group_link %}">{{ group.title }}</a>
+                    <p>
+                        <small>{{ group.message_short }}</small>
+                    </p>
                 </th>
                 <td>
                     {{ group.event_count }}
