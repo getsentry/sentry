@@ -78,6 +78,9 @@ class NotificationPlugin(Plugin):
     def notify_users(self, group, event, fail_silently=False):
         raise NotImplementedError
 
+    def notify_about_activity(self, activity):
+        pass
+
     def get_sendable_users(self, project):
         conf_key = self.get_conf_key()
 
