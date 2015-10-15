@@ -11,6 +11,7 @@ import sentry
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.template.loader import render_to_string
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
@@ -71,34 +72,6 @@ class MailPlugin(NotificationPlugin):
             project.organization.slug,
             project.slug,
         ]))
-
-    def on_alert(self, alert):
-        project = alert.project
-        subject = '[{0} {1}] ALERT: {2}'.format(
-            project.team.name,
-            project.name,
-            alert.message,
-        )
-        template = 'sentry/emails/alert.txt'
-        html_template = 'sentry/emails/alert.html'
-
-        context = {
-            'alert': alert,
-            'link': alert.get_absolute_url(),
-        }
-
-        headers = {
-            'X-Sentry-Project': project.name,
-        }
-
-        self._send_mail(
-            subject=subject,
-            template=template,
-            html_template=html_template,
-            project=project,
-            headers=headers,
-            context=context,
-        )
 
     def should_notify(self, group, event):
         send_to = self.get_sendable_users(group.project)
@@ -190,6 +163,20 @@ class MailPlugin(NotificationPlugin):
             project=project,
             group=group,
             headers=headers,
+            context=context,
+        )
+
+    def notify_digest(self, project, digest):
+        context = {
+            'project': project,
+            'digest': digest,
+        }
+
+        self._send_mail(
+            subject=render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
+            template='sentry/emails/digests/body.txt',
+            html_template='sentry/emails/digests/body.html',
+            project=project,
             context=context,
         )
 

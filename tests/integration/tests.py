@@ -416,6 +416,8 @@ class CspReportTest(TestCase):
         e = Event.objects.all()[0]
         Event.objects.bind_nodes([e], 'data')
         assert e.message == output['message']
+        for key, value in output['tags'].iteritems():
+            assert e.get_tag(key) == value
         self.assertDictContainsSubset(output['data'], e.data.data, e.data.data)
 
     def assertReportRejected(self, input):

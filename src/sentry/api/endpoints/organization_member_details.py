@@ -103,7 +103,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if request.user.is_authenticated() and not request.user.is_superuser:
+        if request.user.is_authenticated() and not request.user.is_active_superuser():
             try:
                 acting_member = OrganizationMember.objects.get(
                     organization=organization,

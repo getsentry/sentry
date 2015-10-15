@@ -9,6 +9,10 @@ import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import PropTypes from "../proptypes";
 
+const ERROR_TYPES = {
+  GROUP_NOT_FOUND: "GROUP_NOT_FOUND"
+};
+
 var GroupDetails = React.createClass({
   contextTypes: {
     router: React.PropTypes.func
@@ -37,7 +41,8 @@ var GroupDetails = React.createClass({
     return {
       group: null,
       loading: true,
-      error: false
+      error: false,
+      errorType: null
     };
   },
 
@@ -46,23 +51,32 @@ var GroupDetails = React.createClass({
     this.fetchData();
   },
 
-  fetchData() {
-    this.setState({
-      loading: true,
-      error: false
-    });
+  remountComponent() {
+    this.setState(this.getInitialState(), this.fetchData);
+  },
 
+  fetchData() {
     api.request(this.getGroupDetailsEndpoint(), {
       success: (data) => {
         this.setState({
-          loading: false
+          loading: false,
+          error: false,
+          errorType: null
         });
 
         GroupStore.loadInitialData([data]);
-      }, error: () => {
+      }, error: (_, textStatus, errorThrown) => {
+        let errorType = null;
+        switch (errorThrown) {
+          case "NOT FOUND":
+            errorType = ERROR_TYPES.GROUP_NOT_FOUND;
+            break;
+          default:
+        }
         this.setState({
           loading: false,
-          error: true
+          error: true,
+          errorType: errorType
         });
       }
     });
@@ -93,10 +107,17 @@ var GroupDetails = React.createClass({
     var group = this.state.group;
     var params = this.context.router.getCurrentParams();
 
-    if (this.state.loading || !group)
+    if (this.state.error) {
+      switch (this.state.errorType) {
+        case ERROR_TYPES.GROUP_NOT_FOUND:
+          return (
+            <div className="alert alert-block">The issue you were looking for was not found.</div>
+          );
+        default:
+          return <LoadingError onRetry={this.remountComponent} />;
+      }
+    } else if (this.state.loading || !group)
       return <LoadingIndicator />;
-    else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
 
     return (
       <DocumentTitle title={this.getTitle()}>

@@ -38,7 +38,7 @@ class OrganizationMixin(object):
             organization_slug = request.session.get('activeorg')
 
         if organization_slug is not None:
-            if request.user.is_superuser:
+            if request.user.is_active_superuser():
                 try:
                     active_organization = Organization.objects.get_from_cache(
                         slug=organization_slug,

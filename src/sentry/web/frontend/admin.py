@@ -116,7 +116,7 @@ def manage_users(request):
 @transaction.atomic
 @csrf_protect
 def create_new_user(request):
-    if not request.user.is_superuser:
+    if not request.user.is_active_superuser():
         return HttpResponseRedirect(reverse('sentry'))
 
     form = NewUserForm(request.POST or None, initial={
@@ -176,7 +176,7 @@ def create_new_user(request):
 @requires_admin
 @csrf_protect
 def edit_user(request, user_id):
-    if not request.user.is_superuser:
+    if not request.user.is_active_superuser():
         return HttpResponseRedirect(reverse('sentry'))
 
     try:
