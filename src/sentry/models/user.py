@@ -70,11 +70,11 @@ class User(BaseModel, AbstractBaseUser):
 
     def has_perm(self, perm_name):
         warnings.warn('User.has_perm is deprecated', DeprecationWarning)
-        return self.is_superuser
+        return self.is_active_superuser()
 
     def has_module_perms(self, app_label):
         # the admin requires this method
-        return self.is_superuser
+        return self.is_active_superuser()
 
     def get_display_name(self):
         return self.first_name or self.email or self.username

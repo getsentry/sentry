@@ -11,6 +11,10 @@ import PropTypes from "../proptypes";
 import RouteMixin from "../mixins/routeMixin";
 import TeamStore from "../stores/teamStore";
 
+const ERROR_TYPES = {
+  ORG_NOT_FOUND: "ORG_NOT_FOUND"
+};
+
 var OrganizationDetails = React.createClass({
   mixins: [
     RouteMixin
@@ -34,6 +38,7 @@ var OrganizationDetails = React.createClass({
     return {
       loading: true,
       error: false,
+      errorType: null,
       organization: null
     };
   },
@@ -46,33 +51,41 @@ var OrganizationDetails = React.createClass({
     TeamStore.reset();
   },
 
+  remountComponent() {
+    this.setState(this.getInitialState(), this.fetchData);
+  },
+
   routeDidChange(nextPath, nextParams) {
     var router = this.context.router;
     var params = router.getCurrentParams();
     if (nextParams.orgId != params.orgId) {
-      this.fetchData();
+      this.remountComponent();
     }
   },
 
   fetchData() {
-    this.setState({
-      loading: true,
-      error: false
-    });
-
     api.request(this.getOrganizationDetailsEndpoint(), {
       success: (data) => {
         this.setState({
           organization: data,
-          loading: false
+          loading: false,
+          error: false,
+          errorType: null
         });
 
         TeamStore.loadInitialData(data.teams);
-      },
-      error: () => {
+      }, error: (_, textStatus, errorThrown) => {
+        let errorType = null;
+        switch (errorThrown) {
+          case "NOT FOUND":
+            errorType = ERROR_TYPES.ORG_NOT_FOUND;
+            break;
+          default:
+        }
         this.setState({
           loading: false,
-          error: true
+          error: true,
+          errorType: errorType,
         });
       }
     });
@@ -97,8 +110,18 @@ var OrganizationDetails = React.createClass({
             Loading data for your organization.
           </LoadingIndicator>
         );
-    } else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
+    } else if (this.state.error) {
+      switch (this.state.errorType) {
+        case ERROR_TYPES.ORG_NOT_FOUND:
+          return (
+            <div className="container">
+              <div className="alert alert-block">The organization you were looking for was not found.</div>
+            </div>
+          );
+        default:
+          return <LoadingError onRetry={this.remountComponent} />;
+      }
+    }
 
     // Allow injection via getsentry et all
     var org = this.state.organization;

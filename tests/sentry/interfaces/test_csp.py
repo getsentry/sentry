@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import
 
-from mock import patch
 from exam import fixture
 
 from sentry.interfaces.base import InterfaceValidationError
@@ -37,73 +36,143 @@ class CspTest(TestCase):
         with self.assertRaises(InterfaceValidationError):
             Csp.to_python(dict(blocked_uri='about'))
 
-    def test_coerce_blocked_uri_if_script_src(self):
+        with self.assertRaises(InterfaceValidationError):
+            Csp.to_python(dict(effective_directive='lol'))
+
+    def test_coerce_blocked_uri_if_missing(self):
         result = Csp.to_python(dict(
-            effective_directive='script-src'
+            document_uri='http://example.com',
+            effective_directive='script-src',
         ))
         assert result.blocked_uri == 'self'
 
-    def test_violated_directive(self):
+    def test_get_culprit(self):
         result = Csp.to_python(dict(
             document_uri='http://example.com/foo',
             violated_directive='style-src http://cdn.example.com',
             effective_directive='style-src',
         ))
-        assert result.get_violated_directive() == ('violated-directive', 'style-src http://cdn.example.com')
+        assert result.get_culprit() == 'style-src http://cdn.example.com'
 
         result = Csp.to_python(dict(
             document_uri='http://example.com/foo',
             violated_directive='style-src cdn.example.com',
             effective_directive='style-src',
         ))
-        assert result.get_violated_directive() == ('violated-directive', 'style-src http://cdn.example.com')
+        assert result.get_culprit() == 'style-src cdn.example.com'
 
         result = Csp.to_python(dict(
             document_uri='https://example.com/foo',
             violated_directive='style-src cdn.example.com',
             effective_directive='style-src',
         ))
-        assert result.get_violated_directive() == ('violated-directive', 'style-src https://cdn.example.com')
+        assert result.get_culprit() == 'style-src cdn.example.com'
 
         result = Csp.to_python(dict(
             document_uri='http://example.com/foo',
             violated_directive='style-src https://cdn.example.com',
             effective_directive='style-src',
         ))
-        assert result.get_violated_directive() == ('violated-directive', 'style-src https://cdn.example.com')
-
-        result = Csp.to_python(dict(
-            document_uri='blob:example.com/foo',
-            violated_directive='style-src cdn.example.com',
-            effective_directive='style-src',
-        ))
-        assert result.get_violated_directive() == ('violated-directive', 'style-src blob:cdn.example.com')
-
-    def test_get_culprit_directive(self):
-        result = Csp.to_python(dict(
-            document_uri='http://example.com/foo',
-            blocked_uri='http://example.com/lol.css',
-            effective_directive='style-src',
-        ))
-        assert result.get_culprit_directive() == ('blocked-uri', 'http://example.com/lol.css')
+        assert result.get_culprit() == 'style-src https://cdn.example.com'
 
         result = Csp.to_python(dict(
             document_uri='http://example.com/foo',
-            blocked_uri='',
+            violated_directive='style-src http://example.com',
             effective_directive='style-src',
         ))
-        assert result.get_culprit_directive() == ('effective-directive', 'style-src')
+        assert result.get_culprit() == "style-src 'self'"
 
+        result = Csp.to_python(dict(
+            document_uri='http://example.com/foo',
+            violated_directive='style-src http://example2.com example.com',
+            effective_directive='style-src',
+        ))
+        assert result.get_culprit() == "style-src http://example2.com 'self'"
+
+    def test_get_hash(self):
         result = Csp.to_python(dict(
             document_uri='http://example.com/foo',
             effective_directive='script-src',
             blocked_uri='',
         ))
-        assert result.get_culprit_directive() == ('blocked-uri', 'self')
+        assert result.get_hash() == ['script-src', "'self'"]
 
-    @patch('sentry.interfaces.csp.Csp.get_culprit_directive')
-    @patch('sentry.interfaces.csp.Csp.get_violated_directive')
-    def test_get_hash(self, get_culprit, get_violated):
-        get_culprit.return_value = ('a', 'b')
-        get_violated.return_value = ('c', 'd')
-        assert self.interface.get_hash() == ['a:b', 'c:d']
+        result = Csp.to_python(dict(
+            document_uri='http://example.com/foo',
+            effective_directive='script-src',
+            blocked_uri='self',
+        ))
+        assert result.get_hash() == ['script-src', "'self'"]
+
+        result = Csp.to_python(dict(
+            document_uri='http://example.com/foo',
+            effective_directive='script-src',
+            blocked_uri='http://example.com/lol.js',
+        ))
+        assert result.get_hash() == ['script-src', 'example.com']
+
+        result = Csp.to_python(dict(
+            document_uri='http://example.com/foo',
+            effective_directive='img-src',
+            blocked_uri='data:foo',
+        ))
+        assert result.get_hash() == ['img-src', 'data:']
+
+        result = Csp.to_python(dict(
+            document_uri='http://example.com/foo',
+            effective_directive='img-src',
+            blocked_uri='ftp://example.com/foo',
+        ))
+        assert result.get_hash() == ['img-src', 'ftp://example.com']
+
+    def test_get_tags(self):
+        assert self.interface.get_tags() == (
+            ('effective-directive', 'style-src'),
+            ('blocked-uri', 'example.com'),
+        )
+
+    def test_get_message(self):
+        result = Csp.to_python(dict(
+            document_uri='http://example.com/foo',
+            effective_directive='img-src',
+            blocked_uri='http://google.com/foo',
+        ))
+        assert result.get_message() == "Blocked 'image' from 'google.com'"
+
+        result = Csp.to_python(dict(
+            document_uri='http://example.com/foo',
+            effective_directive='style-src',
+            blocked_uri='',
+        ))
+        assert result.get_message() == "Blocked inline 'style'"
+
+        result = Csp.to_python(dict(
+            document_uri='http://example.com/foo',
+            effective_directive='script-src',
+            blocked_uri='',
+            violated_directive="script-src 'unsafe-inline'",
+        ))
+        assert result.get_message() == "Blocked unsafe eval() 'script'"
+
+        result = Csp.to_python(dict(
+            document_uri='http://example.com/foo',
+            effective_directive='script-src',
+            blocked_uri='',
+            violated_directive="script-src 'unsafe-eval'",
+        ))
+        assert result.get_message() == "Blocked unsafe inline 'script'"
+
+        result = Csp.to_python(dict(
+            document_uri='http://example.com/foo',
+            effective_directive='script-src',
+            blocked_uri='',
+            violated_directive="script-src example.com",
+        ))
+        assert result.get_message() == "Blocked unsafe 'script'"
+
+        result = Csp.to_python(dict(
+            document_uri='http://example.com/foo',
+            effective_directive='script-src',
+            blocked_uri='data:text/plain;base64,SGVsbG8sIFdvcmxkIQ%3D%3D',
+        ))
+        assert result.get_message() == "Blocked 'script' from 'data:'"

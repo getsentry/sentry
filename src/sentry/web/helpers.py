@@ -37,7 +37,7 @@ def group_is_public(group, user):
     if not user.is_authenticated():
         return True
     # superusers can always view events
-    if user.is_superuser:
+    if user.is_active_superuser():
         return False
     # project owners can view events
     if group.project in Project.objects.get_for_user(team=group.project.team, user=user):

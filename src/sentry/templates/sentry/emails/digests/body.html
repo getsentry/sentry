@@ -1,0 +1,40 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load sentry_helpers %}
+
+{% block main %}
+
+<h2>{{ project.name }}</h2>
+
+{% for rule, groups in digest.iteritems %}
+
+    <h3>{{ rule.label }}</h3>
+
+    <table>
+        <tr>
+            <th>Issue</th>
+            <th>Events</th>
+            <th>Users</th>
+        </tr>
+        {% for group, records in groups.iteritems %}
+            <tr>
+                <th>
+                    {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
+                    <a href="{% absolute_uri group_link %}">{{ group.title }}</a>
+                    <p>
+                        <small>{{ group.message_short }}</small>
+                    </p>
+                </th>
+                <td>
+                    {{ group.event_count }}
+                </td>
+                <td>
+                    {{ group.user_count }}
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+
+{% endfor %}
+
+{% endblock %}

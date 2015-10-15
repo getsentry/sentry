@@ -22,14 +22,19 @@ class OrganizationMemberTeamSerializer(serializers.Serializer):
 
 
 class RelaxedOrganizationPermission(OrganizationPermission):
+    _allowed_scopes = [
+        'org:read', 'org:write', 'org:delete',
+        'member:read', 'member:write', 'member:delete',
+    ]
+
     scope_map = {
-        'GET': ['org:read', 'org:write', 'org:delete'],
-        'POST': ['org:read', 'org:write', 'org:delete'],
-        'PUT': ['org:read', 'org:write', 'org:delete'],
+        'GET': _allowed_scopes,
+        'POST': _allowed_scopes,
+        'PUT': _allowed_scopes,
 
         # DELETE checks for role comparison as you can either remove a member
         # with a lower access role, or yourself, without having the req. scope
-        'DELETE': ['org:read', 'org:write', 'org:delete'],
+        'DELETE': _allowed_scopes,
     }
 
 
@@ -38,7 +43,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
     def _can_access(self, request, member):
         # TODO(dcramer): ideally org owners/admins could perform these actions
-        if request.user.is_superuser:
+        if request.user.is_active_superuser():
             return True
 
         if not request.user.is_authenticated():

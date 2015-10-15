@@ -34,4 +34,4 @@ class PreprocessEventTest(PluginTestCase):
 
         preprocess_event(data=data)
 
-        assert mock_save_event.delay.call_count is 1
+        assert mock_save_event.delay.call_count == 1
