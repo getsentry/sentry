@@ -24,8 +24,8 @@ class TeamSerializer(Serializer):
                 ).values_list('team', flat=True)
             )
             memberships = frozenset([
-                t for t in item_list
-                if t not in inactive_memberships
+                t.id for t in item_list
+                if t.id not in inactive_memberships
             ])
         elif user.is_authenticated():
             memberships = frozenset(
