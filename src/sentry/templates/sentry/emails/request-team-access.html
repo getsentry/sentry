@@ -2,14 +2,9 @@
 
 {% load i18n %}
 
-{% block header %}
-    <h1>Sentry <small>Request for Access</small></h1>
-{% endblock %}
-
 {% block main %}
-    <p>{{ name }} is requesting access to the {{ team.name }} team on Sentry.</p>
+    <h3>Request for Access</h3>
+    <p><strong>{{ name }}</strong> is requesting access to the {{ team.name }} team on Sentry.</p>
 
-    <p>You can accept or decline this request in via the pending requests panel:</p>
-
-    <p><a href="{{ url }}">{{ url }}</a></p>
+    <p>Accept or decline this request in the <a href="{{ url }}">pending requests panel</a>.</p>
 {% endblock %}
