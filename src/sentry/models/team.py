@@ -37,7 +37,7 @@ class TeamManager(BaseManager):
             status=TeamStatus.VISIBLE
         )
 
-        if user.is_superuser or settings.SENTRY_PUBLIC:
+        if user.is_active_superuser() or settings.SENTRY_PUBLIC:
             team_list = list(base_team_qs)
 
         else:

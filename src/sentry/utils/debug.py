@@ -31,7 +31,7 @@ class ProfileMiddleware(object):
             return False
         if settings.DEBUG:
             return True
-        if hasattr(request, 'user') and request.user.is_superuser:
+        if hasattr(request, 'user') and request.user.is_active_superuser():
             return True
         return False
 

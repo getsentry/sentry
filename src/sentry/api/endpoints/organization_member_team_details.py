@@ -43,7 +43,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
     def _can_access(self, request, member):
         # TODO(dcramer): ideally org owners/admins could perform these actions
-        if request.user.is_superuser:
+        if request.user.is_active_superuser():
             return True
 
         if not request.user.is_authenticated():

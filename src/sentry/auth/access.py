@@ -49,7 +49,7 @@ def from_user(user, organization):
     if not organization:
         return DEFAULT
 
-    if user.is_superuser:
+    if user.is_active_superuser():
         return Access(
             scopes=settings.SENTRY_SCOPES,
             is_active=True,

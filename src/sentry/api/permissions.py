@@ -47,6 +47,6 @@ class ScopedPermission(permissions.BasePermission):
 
 class SuperuserPermission(permissions.BasePermission):
     def has_permission(self, request, view):
-        if request.user.is_superuser:
+        if request.user.is_active_superuser():
             return True
         return False
