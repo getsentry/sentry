@@ -1,1 +1,1 @@
-Notifications for {{ project.name }}
+[{{ project.name }}] {{ counts|length }} notification{{ counts|pluralize }}
