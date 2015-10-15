@@ -545,7 +545,8 @@ REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
     'DEFAULT_PERMISSION_CLASSES': (
         'sentry.api.permissions.NoPermission',
-    )
+    ),
+    'UNAUTHENTICATED_USER': 'sentry.models.AnonymousUser',
 }
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
