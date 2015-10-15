@@ -226,8 +226,25 @@ class MailPluginTest(TestCase):
         msg = mail.outbox[0]
         assert msg.subject == u'[Sentry] [foo Bar] ERROR: רונית מגן'
 
+    @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
     @mock.patch.object(MessageBuilder, 'send', autospec=True)
-    def test_notify_digest(self, send):
+    def test_notify_digest(self, send, notify):
+        project = self.event.project
+        rule = project.rule_set.all()[0]
+        digest = build_digest(
+            project,
+            (
+                event_to_record(self.create_event(group=self.create_group()), (rule,)),
+                event_to_record(self.event, (rule,)),
+            ),
+        )
+        self.plugin.notify_digest(project, digest)
+        assert send.call_count is 1
+        assert notify.call_count is 0
+
+    @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
+    @mock.patch.object(MessageBuilder, 'send', autospec=True)
+    def test_notify_digest_single_record(self, send, notify):
         project = self.event.project
         rule = project.rule_set.all()[0]
         digest = build_digest(
@@ -238,3 +255,4 @@ class MailPluginTest(TestCase):
         )
         self.plugin.notify_digest(project, digest)
         assert send.call_count is 1
+        assert notify.call_count is 1

@@ -7,6 +7,9 @@ sentry.plugins.sentry_mail.models
 """
 from __future__ import absolute_import
 
+import itertools
+from collections import Counter
+
 import sentry
 
 from django.conf import settings
@@ -16,6 +19,7 @@ from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
 from sentry.plugins import register
+from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils.cache import cache
 from sentry.utils.email import MessageBuilder, group_id_to_email
@@ -167,9 +171,29 @@ class MailPlugin(NotificationPlugin):
         )
 
     def notify_digest(self, project, digest):
+        counts = Counter()
+        for rule, groups in digest.iteritems():
+            counts.update(groups.keys())
+
+        # If there is only one group in this digest (regardless of how many
+        # rules it appears in), we should just render this using the single
+        # notification template. If there is more than one record for a group,
+        # just choose the most recent one.
+        if len(counts) == 1:
+            group = counts.keys()[0]
+            record = max(
+                itertools.chain.from_iterable(
+                    groups.get(group, []) for groups in digest.itervalues(),
+                ),
+                key=lambda record: record.timestamp,
+            )
+            notification = Notification(record.value.event, rules=record.value.rules)
+            return self.notify(notification)
+
         context = {
             'project': project,
             'digest': digest,
+            'counts': counts,
         }
 
         self._send_mail(
