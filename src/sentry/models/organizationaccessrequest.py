@@ -64,6 +64,7 @@ class OrganizationAccessRequest(Model):
             Q(role__in=non_global_roles) |
             Q(teams=self.team, role__in=roles_capable),
             organization=self.team.organization,
+            user__isnull=False,
         ).select_related('user')
 
         msg.send_async([m.user.email for m in member_list])
