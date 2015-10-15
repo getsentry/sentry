@@ -15,10 +15,10 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from django.utils.translation import ugettext, ugettext_lazy as _
-
+from pprint import saferepr
 from sentry.models import (
     ApiKey, AuthIdentity, AuthProvider, AuditLogEntry, Broadcast, HelpPage,
-    Organization, OrganizationMember, Project, Team, User
+    Option, Organization, OrganizationMember, Project, Team, User
 )
 
 csrf_protect_m = method_decorator(csrf_protect)
@@ -31,6 +31,22 @@ class BroadcastAdmin(admin.ModelAdmin):
     search_fields = ('message', 'url')
 
 admin.site.register(Broadcast, BroadcastAdmin)
+
+
+class OptionAdmin(admin.ModelAdmin):
+    list_display = ('key', 'last_updated')
+    fields = ('key', 'value_repr', 'last_updated')
+    readonly_fields = ('key', 'value_repr', 'last_updated')
+    search_fields = ('key',)
+
+    def value_repr(self, instance):
+        return '<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(escape(saferepr(instance.value)))
+
+    value_repr.short_description = "Value"
+    value_repr.allow_tags = True
+
+
+admin.site.register(Option, OptionAdmin)
 
 
 class ProjectAdmin(admin.ModelAdmin):
