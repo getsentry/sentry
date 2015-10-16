@@ -169,6 +169,7 @@ class Http(Interface):
             'short_url': self.url,
             'method': self.method,
             'query_string': self.query_string,
+            'fragment': self.fragment,
         })
 
     def get_alias(self):
