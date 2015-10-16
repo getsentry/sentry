@@ -179,7 +179,7 @@ class CspTest(TestCase):
             blocked_uri='',
             violated_directive="script-src example.com",
         ))
-        assert result.get_message() == "Blocked unsafe 'script'"
+        assert result.get_message() == "Blocked unsafe (eval() or inline) 'script'"
 
         result = Csp.to_python(dict(
             document_uri='http://example.com/foo',
