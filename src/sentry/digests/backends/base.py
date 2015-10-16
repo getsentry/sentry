@@ -84,6 +84,9 @@ class Backend(object):
             else:
                 self.truncation_chance = 0.0
 
+    def validate(self):
+        pass
+
     def add(self, key, record):
         """
         Add a record to a timeline.
