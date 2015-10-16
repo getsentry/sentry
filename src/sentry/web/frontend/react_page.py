@@ -1,11 +1,19 @@
 from __future__ import absolute_import
 
+from django.http import HttpResponse
+from django.template import loader
+
 from sentry.web.frontend.base import BaseView, OrganizationView
 
 
 class ReactMixin(object):
     def handle_react(self, request):
-        return self.respond('sentry/bases/react.html')
+        template = loader.render_to_string('sentry/bases/react.html')
+
+        response = HttpResponse(template)
+        response['Content-Type'] = 'text/html'
+
+        return response
 
 
 # TODO(dcramer): once we implement basic auth hooks in React we can make this
