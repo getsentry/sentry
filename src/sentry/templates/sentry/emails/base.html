@@ -191,7 +191,7 @@
   }
 
   .inner pre.message {
-    margin: 0 0 0 !important;
+    margin: 0 0 10px !important;
   }
   .tag-list {
     list-style: none;
@@ -222,12 +222,15 @@
   }
 
   .event {
-    margin-bottom: 20px;
+    margin-bottom: 30px;
   }
 
-  .event td {
-    width: 50%;
+  .event-id, .event-date {
     color: #889092;
+  }
+
+  .event-id {
+    float: right;
   }
 
   /* Group header */
@@ -366,6 +369,16 @@
     padding: 0;
     padding-top: 0;
   }
+
+  @media only screen and (max-device-width: 480px) {
+		/* mobile-specific CSS styles */
+
+    .event-id {
+      float: none;
+      margin-bottom: 10px;
+    }
+
+	}
 
   </style>
 </head>
