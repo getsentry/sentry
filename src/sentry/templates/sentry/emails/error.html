@@ -26,17 +26,11 @@
         {% endif %}
     </h2>
 
-    <table class="event">
-      <tr>
-        <td colspan="2">
-          <pre class="message">{{ event.message }}</pre>
-        </td>
-      </tr>
-      <tr>
-        <td>{{ event.datetime }} UTC</td>
-        <td>ID: {{ event.event_id }}</td>
-      </tr>
-    </table>
+    <div class="event">
+      <pre class="message">{{ event.message }}</pre>
+      <div class="event-id">ID: {{ event.event_id }}</div>
+      <div class="event-date">{{ event.datetime }} UTC</div>
+    </div>
 
     {% if tags %}
       <h3>Tags</h3>
