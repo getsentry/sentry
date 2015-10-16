@@ -46,7 +46,7 @@
         <li>
             <strong>{{ tag_key }}</strong>
             <em>=</em>
-            <span><a href="{% absolute_uri project_link %}?{{ tag_key }}={{ tag_value }}">{{ tag_value }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}</span>
+            <span><a href="{% absolute_uri project_link %}?{{ tag_key }}={{ tag_value }}">{{ tag_value }}</a> {% if tag_value|is_url %}<a href="{{ tag_value|truncatechars:50 }}" class="icon-share"></a>{% endif %}</span>
         </li>
       {% endfor %}
       </ul>
