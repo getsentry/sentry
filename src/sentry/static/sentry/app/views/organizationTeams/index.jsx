@@ -10,7 +10,7 @@ import TooltipMixin from "../../mixins/tooltip";
 import {sortArray} from "../../utils";
 
 import ExpandedTeamList from "./expandedTeamList";
-import SlimTeamList from "./slimTeamList";
+import AllTeamsList from "./allTeamsList";
 import OrganizationStatOverview from "./organizationStatOverview";
 
 var OrganizationTeams = React.createClass({
@@ -134,7 +134,7 @@ var OrganizationTeams = React.createClass({
                     hasTeams={allTeams.length !== 0}
                     showAllTeams={this.toggleTeams.bind(this, "all-teams")} />
               :
-                <SlimTeamList
+                <AllTeamsList
                   organization={org} teamList={allTeams}
                   openMembership={features.has('open-membership') || access.has('org:write')} />
               }
