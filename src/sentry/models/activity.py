@@ -126,10 +126,10 @@ class Activity(Model):
         from sentry.models import Release
         from sentry.utils.email import MessageBuilder, group_id_to_email
 
+        activity.send_activity_notifications.delay(self.id)
+
         if self.type not in (Activity.NOTE, Activity.ASSIGNED, Activity.RELEASE):
             return
-
-        activity.send_activity_notifications.delay(self.id)
 
         send_to = self.get_recipients()
 
