@@ -303,8 +303,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
             ).delete()
 
         if 'assignedTo' in result:
-            now = timezone.now()
-
             if result['assignedTo']:
                 GroupAssignee.objects.assign(group, result['assignedTo'],
                                              acting_user)
