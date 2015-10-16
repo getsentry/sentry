@@ -22,5 +22,13 @@
             </td>
         </tr>
         {% endif %}
+        {% if fragment %}
+        <tr>
+            <th>{% trans "Fragment" %}</th>
+            <td>
+                <code>{{ fragment|truncatechars:20 }}</code>
+            </td>
+        </tr>
+        {% endif %}
     </tbody>
 </table>
