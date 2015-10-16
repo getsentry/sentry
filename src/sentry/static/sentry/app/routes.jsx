@@ -3,6 +3,8 @@ import Router from "react-router";
 var Route = Router.Route;
 var DefaultRoute = Router.DefaultRoute;
 
+import Admin from "./views/admin";
+import AdminOverview from "./views/adminOverview";
 import App from "./views/app";
 import GroupActivity from "./views/groupActivity";
 import GroupDetails from "./views/groupDetails";
@@ -32,6 +34,9 @@ import Stream from "./views/stream";
 
 var routes = (
   <Route name="app" path="/" handler={App}>
+    <Route name="admin" path="/manage/" handler={Admin}>
+      <DefaultRoute name="adminOverview" handler={AdminOverview} />
+    </Route>
     <Route path="/organizations/:orgId/" handler={OrganizationDetails}>
       <Route name="organizationStats" path="stats/" handler={OrganizationStats} />
     </Route>

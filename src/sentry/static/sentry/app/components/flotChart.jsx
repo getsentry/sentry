@@ -137,7 +137,10 @@ var FlotChart = React.createClass({
 
   render() {
     return (
-      <figure className={this.props.className} ref="chartNode" />
+      <figure
+        className={this.props.className || 'chart'}
+        style={this.props.style}
+        ref="chartNode" />
     );
   }
 });

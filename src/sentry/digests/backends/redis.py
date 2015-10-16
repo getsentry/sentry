@@ -8,7 +8,6 @@ import time
 from contextlib import contextmanager
 
 from django.conf import settings
-from rb import Cluster
 from redis.client import Script
 from redis.exceptions import (
     ResponseError,
@@ -21,6 +20,11 @@ from sentry.digests import (
 )
 from sentry.digests.backends.base import Backend
 from sentry.utils.cache import Lock
+from sentry.utils.redis import (
+    check_cluster_versions,
+    make_rb_cluster as _make_rb_cluster,
+)
+from sentry.utils.versioning import Version
 
 
 logger = logging.getLogger('sentry.digests')
@@ -33,6 +37,12 @@ TIMELINE_PATH_COMPONENT = 't'
 TIMELINE_ITERATION_PATH_COMPONENT = 'i'
 TIMELINE_DIGEST_PATH_COMPONENT = 'd'
 TIMELINE_RECORD_PATH_COMPONENT = 'r'
+
+
+def make_rb_cluster(hosts, **kwargs):
+    if kwargs:
+        logger.warning('Discarding unused Redis cluster options: %r', kwargs.keys())
+    return _make_rb_cluster(hosts)
 
 
 def ilen(iterator):
@@ -166,7 +176,12 @@ class RedisBackend(Backend):
     def __init__(self, **options):
         super(RedisBackend, self).__init__(**options)
 
-        self.cluster = Cluster(**options.pop('cluster', settings.SENTRY_REDIS_OPTIONS))
+        hosts = options.pop('hosts', None)
+        if hosts is None:
+            self.cluster = make_rb_cluster(**settings.SENTRY_REDIS_OPTIONS)
+        else:
+            self.cluster = make_rb_cluster(hosts)
+
         self.namespace = options.pop('namespace', 'd')
 
         # Sets the time-to-live (in seconds) for records, timelines, and
@@ -180,6 +195,14 @@ class RedisBackend(Backend):
 
         if options:
             logger.warning('Discarding invalid options: %r', options)
+
+    def validate(self):
+        logger.info('Validating Redis version...')
+        check_cluster_versions(
+            self.cluster,
+            Version((2, 8, 9)),
+            label='Digests',
+        )
 
     def add(self, key, record):
         timeline_key = make_timeline_key(self.namespace, key)

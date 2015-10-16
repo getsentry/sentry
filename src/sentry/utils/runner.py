@@ -349,12 +349,18 @@ def initialize_app(config, skip_backend_validation=False):
 def validate_backends():
     from sentry import app
 
-    app.buffer.validate()
-    app.nodestore.validate()
-    app.quotas.validate()
-    app.search.validate()
-    app.ratelimiter.validate()
-    app.tsdb.validate()
+    backends = (
+        app.buffer,
+        app.digests,
+        app.nodestore,
+        app.quotas,
+        app.ratelimiter,
+        app.search,
+        app.tsdb,
+    )
+
+    for backend in backends:
+        backend.validate()
 
 
 def fix_south(settings):
