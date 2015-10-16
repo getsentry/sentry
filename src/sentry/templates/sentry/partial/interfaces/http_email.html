@@ -14,11 +14,21 @@
                 <td>{{ method }}</td>
             </tr>
         {% endif %}
+        {% if query_string %}
         <tr>
             <th>{% trans "Query" %}</th>
             <td>
-                <code>{{ query_string }}</code>
+                <code>{{ query_string|truncatechars:20 }}</code>
             </td>
         </tr>
+        {% endif %}
+        {% if fragment %}
+        <tr>
+            <th>{% trans "Fragment" %}</th>
+            <td>
+                <code>{{ fragment|truncatechars:20 }}</code>
+            </td>
+        </tr>
+        {% endif %}
     </tbody>
 </table>

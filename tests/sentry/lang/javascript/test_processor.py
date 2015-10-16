@@ -131,6 +131,7 @@ class GenerateModuleTest(TestCase):
         assert generate_module('https://example.com/libs/libs-20150417171659.min.js') == 'libs/libs'
         assert generate_module('webpack:///92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
         assert generate_module('webpack:///example/92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
+        assert generate_module('webpack:///./app/components/projectHeader/projectSelector.jsx') == 'app/components/projectHeader/projectSelector'
 
 
 class FetchBase64SourcemapTest(TestCase):

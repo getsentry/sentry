@@ -11,7 +11,64 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr, \
+    BaseManager
+from sentry.models.activity import Activity
+
+
+class GroupAssigneeManager(BaseManager):
+
+    def assign(self, group, assigned_to, acting_user=None):
+        now = timezone.now()
+        assignee, created = GroupAssignee.objects.get_or_create(
+            group=group,
+            defaults={
+                'project': group.project,
+                'user': assigned_to,
+                'date_added': now,
+            }
+        )
+
+        if not created:
+            affected = GroupAssignee.objects.filter(
+                group=group,
+            ).exclude(
+                user=assigned_to,
+            ).update(
+                user=assigned_to,
+                date_added=now
+            )
+        else:
+            affected = True
+
+        if affected:
+            activity = Activity.objects.create(
+                project=group.project,
+                group=group,
+                type=Activity.ASSIGNED,
+                user=acting_user,
+                data={
+                    'assignee': assigned_to.id,
+                }
+            )
+            activity.send_notification()
+
+    def deassign(self, group, acting_user=None):
+        affected = GroupAssignee.objects.filter(
+            group=group,
+        )[:1].count()
+        GroupAssignee.objects.filter(
+            group=group,
+        ).delete()
+
+        if affected > 0:
+            activity = Activity.objects.create(
+                project=group.project,
+                group=group,
+                type=Activity.UNASSIGNED,
+                user=acting_user,
+            )
+            activity.send_notification()
 
 
 class GroupAssignee(Model):
@@ -20,6 +77,8 @@ class GroupAssignee(Model):
     aggregated event (Group).
     """
     __core__ = False
+
+    objects = GroupAssigneeManager()
 
     project = FlexibleForeignKey('sentry.Project', related_name="assignee_set")
     group = FlexibleForeignKey('sentry.Group', related_name="assignee_set", unique=True)

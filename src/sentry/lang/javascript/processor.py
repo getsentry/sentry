@@ -362,7 +362,7 @@ def generate_module(src):
         return UNKNOWN_MODULE
 
     filename, ext = splitext(urlsplit(src).path)
-    if ext not in ('.js', '.coffee'):
+    if ext not in ('.js', '.jsx', '.coffee'):
         return UNKNOWN_MODULE
 
     if filename.endswith('.min'):
@@ -559,7 +559,7 @@ class SourceProcessor(object):
 
                 frame.abs_path = abs_path
                 frame.filename = filename
-                if abs_path.startswith(('http:', 'https:')):
+                if abs_path.startswith(('http:', 'https:', 'webpack:')):
                     frame.module = generate_module(abs_path)
 
             elif sourcemap_url:
