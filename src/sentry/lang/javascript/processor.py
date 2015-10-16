@@ -542,8 +542,10 @@ class SourceProcessor(object):
 
                 filename = state.src
                 # special case webpack support
-                if filename.startswith('webpack://'):
-                    abs_path = filename
+                # abs_path will always be the full path with webpack:/// prefix.
+                # filename will be relative to that
+                if abs_path.startswith('webpack://'):
+                    filename = abs_path
                     # webpack seems to use ~ to imply "relative to resolver root"
                     # which is generally seen for third party deps
                     # (i.e. node_modules)
