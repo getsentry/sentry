@@ -10,7 +10,7 @@ var RawExceptionContent = React.createClass({
     var children = this.props.values.map((exc, excIdx) => {
       return (
         <pre key={excIdx} className="traceback plain">
-          {rawStacktraceContent(exc.stacktrace, this.props.platform, exc)}
+          {exc.stacktrace && rawStacktraceContent(exc.stacktrace, this.props.platform, exc)}
         </pre>
       );
     });
