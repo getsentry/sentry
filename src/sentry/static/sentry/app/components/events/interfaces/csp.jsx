@@ -1,7 +1,7 @@
 import React from "react";
-import _ from "underscore";
 import PropTypes from "../../../proptypes";
 
+import {objectToArray} from "../../../utils";
 import EventDataSection from "../eventDataSection";
 import DefinitionList from "./definitionList";
 
@@ -15,10 +15,7 @@ var CSPInterface = React.createClass({
 
   render() {
     let {group, event, data} = this.props;
-
-    let extraDataArray = _.chain(data)
-      .map((val, key) => [key.replace(/_/g, '-'), val])
-      .value();
+    let extraDataArray = objectToArray(data);
 
     return (
       <EventDataSection

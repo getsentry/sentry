@@ -64,6 +64,16 @@ var objectMatchesSubset = function(obj, other, deep){
   return true;
 };
 
+// XXX(dcramer): the previous mechanism of using _.map here failed
+// miserably if a param was named 'length'
+const objectToArray = function(obj) {
+  let result = [];
+  for (var key in obj) {
+    result.push([key, obj[key]]);
+  }
+  return result;
+};
+
 var compareArrays = function(arr1, arr2, compFunc) {
   if (arr1 === arr2) {
     return true;
@@ -189,6 +199,7 @@ export default {
   modelsEqual: modelsEqual,
   valueIsEqual: valueIsEqual,
   parseLinkHeader: require('./utils/parseLinkHeader'),
+  objectToArray: objectToArray,
 
   Collection: require('./utils/collection'),
   PendingChangeQueue: require('./utils/pendingChangeQueue'),
