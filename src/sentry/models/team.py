@@ -27,7 +27,9 @@ class TeamManager(BaseManager):
         """
         Returns a list of all teams a user has some level of access to.
         """
-        from sentry.models import OrganizationMemberTeam, Project
+        from sentry.models import (
+            OrganizationMemberTeam, Project, ProjectStatus
+        )
 
         if not user.is_authenticated():
             return []
@@ -52,14 +54,22 @@ class TeamManager(BaseManager):
         results = sorted(team_list, key=lambda x: x.name.lower())
 
         if with_projects:
+            project_list = sorted(Project.objects.filter(
+                team__in=team_list,
+                status=ProjectStatus.VISIBLE,
+            ), key=lambda x: x.name.lower())
+            projects_by_team = {
+                t.id: [] for t in team_list
+            }
+            for project in project_list:
+                projects_by_team[project.team_id].append(project)
+
             # these kinds of queries make people sad :(
             for idx, team in enumerate(results):
-                project_list = list(Project.objects.get_for_user(
-                    team=team,
-                    user=user,
-                    _skip_team_check=True
-                ))
-                results[idx] = (team, project_list)
+                team_projects = projects_by_team[team.id]
+                for project in team_projects:
+                    project.team = team
+                results[idx] = (team, team_projects)
 
         return results
 
