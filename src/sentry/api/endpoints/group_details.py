@@ -306,55 +306,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
             now = timezone.now()
 
             if result['assignedTo']:
-                assignee, created = GroupAssignee.objects.get_or_create(
-                    group=group,
-                    defaults={
-                        'project': group.project,
-                        'user': result['assignedTo'],
-                        'date_added': now,
-                    }
-                )
-
-                if not created:
-                    affected = GroupAssignee.objects.filter(
-                        group=group,
-                    ).exclude(
-                        user=result['assignedTo'],
-                    ).update(
-                        user=result['assignedTo'],
-                        date_added=now
-                    )
-                else:
-                    affected = True
-
-                if affected:
-                    activity = Activity.objects.create(
-                        project=group.project,
-                        group=group,
-                        type=Activity.ASSIGNED,
-                        user=acting_user,
-                        data={
-                            'assignee': result['assignedTo'].id,
-                        }
-                    )
-                    activity.send_notification()
-
+                GroupAssignee.objects.assign(group, result['assignedTo'],
+                                             acting_user)
             else:
-                affected = GroupAssignee.objects.filter(
-                    group=group,
-                )[:1].count()
-                GroupAssignee.objects.filter(
-                    group=group,
-                ).delete()
-
-                if affected > 0:
-                    activity = Activity.objects.create(
-                        project=group.project,
-                        group=group,
-                        type=Activity.UNASSIGNED,
-                        user=acting_user,
-                    )
-                    activity.send_notification()
+                GroupAssignee.objects.deassign(group, acting_user)
 
         return Response(serialize(group, request.user))
 
