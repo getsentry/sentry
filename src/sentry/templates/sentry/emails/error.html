@@ -32,6 +32,13 @@
       <div class="event-date">{{ event.datetime }} UTC</div>
     </div>
 
+    {% for label, html, _ in interfaces %}
+    <div class="interface">
+        <h3 class="title">{{ label }}</h3>
+        {{ html }}
+    </div>
+    {% endfor %}
+
     {% if tags %}
       <h3>Tags</h3>
 
@@ -45,13 +52,6 @@
       {% endfor %}
       </ul>
     {% endif %}
-
-    {% for label, html, _ in interfaces %}
-    <div class="interface">
-        <h3 class="title">{{ label }}</h3>
-        {{ html }}
-    </div>
-    {% endfor %}
 
     {% if rules %}
         <p class="via">
