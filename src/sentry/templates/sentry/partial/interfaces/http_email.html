@@ -14,11 +14,13 @@
                 <td>{{ method }}</td>
             </tr>
         {% endif %}
+        {% if query_string %}
         <tr>
             <th>{% trans "Query" %}</th>
             <td>
                 <code>{{ query_string }}</code>
             </td>
         </tr>
+        {% endif %}
     </tbody>
 </table>
