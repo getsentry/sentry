@@ -68,7 +68,7 @@ DIRECTIVE_TO_MESSAGES = {
     # 'plugin-types': '',
     # 'referrer': '',
     # 'reflected-xss': '',
-    'script-src': ("Blocked 'script' from {uri!r}", "Blocked unsafe 'script'"),
+    'script-src': ("Blocked 'script' from {uri!r}", "Blocked unsafe (eval() or inline) 'script'"),
     'style-src': ("Blocked 'style' from {uri!r}", "Blocked inline 'style'"),
     # 'upgrade-insecure-requests': '',
 }
