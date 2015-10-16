@@ -83,6 +83,9 @@ def init_all_applications():
 
 init_all_applications()
 
+# Only create one instance of the ReactPageView since it's duplicated errywhere
+react_page_view = ReactPageView.as_view()
+
 urlpatterns = patterns('')
 
 if settings.DEBUG:
@@ -172,7 +175,7 @@ urlpatterns += patterns(
     url(r'^account/settings/social/', include('social_auth.urls')),
 
     # Admin
-    url(r'^manage/$', ReactPageView.as_view(),
+    url(r'^manage/$', react_page_view,
         name='sentry-admin-overview'),
     url(r'^manage/queue/$', AdminQueueView.as_view(),
         name='sentry-admin-queue'),
@@ -219,7 +222,7 @@ urlpatterns += patterns(
         name='sentry-api-docs-redirect'),
 
     # Organizations
-    url(r'^(?P<organization_slug>[\w_-]+)/$', ReactPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/$', react_page_view,
         name='sentry-organization-home'),
     url(r'^organizations/new/$', CreateOrganizationView.as_view(),
         name='sentry-create-organization'),
@@ -237,7 +240,7 @@ urlpatterns += patterns(
         name='sentry-create-organization-member'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$', OrganizationMemberSettingsView.as_view(),
         name='sentry-organization-member-settings'),
-    url(r'^organizations/(?P<organization_slug>[\w_-]+)/stats/$', ReactPageView.as_view(),
+    url(r'^organizations/(?P<organization_slug>[\w_-]+)/stats/$', react_page_view,
         name='sentry-organization-stats'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/settings/$', OrganizationSettingsView.as_view(),
         name='sentry-organization-settings'),
@@ -345,13 +348,13 @@ urlpatterns += patterns(
     url(r'^share/group/(?P<share_id>[\w_-]+)/$', GenericReactPageView.as_view(auth_required=False),
         name='sentry-group-shared'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', ReactPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', react_page_view,
         name='sentry-group'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/activity/$', ReactPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/activity/$', react_page_view,
         name='sentry-group-activity'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/$', ReactPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/$', react_page_view,
         name='sentry-group-events'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)/$', ReactPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)/$', react_page_view,
         name='sentry-group-event'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)/replay/$', ReplayEventView.as_view(),
         name='sentry-replay'),
@@ -359,27 +362,27 @@ urlpatterns += patterns(
         name='sentry-group-event-json'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/', GroupPluginActionView.as_view(),
         name='sentry-group-plugin-action'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/tags/$', ReactPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/tags/$', react_page_view,
         name='sentry-group-tags'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/tags/(?P<tag_name>[^/]+)/$', ReactPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/tags/(?P<tag_name>[^/]+)/$', react_page_view,
         name='sentry-group-tag-details'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/releases/$', ReactPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/releases/$', react_page_view,
         name='sentry-releases'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/releases/(?P<version>[^\/]+)/$', ReactPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/releases/(?P<version>[^\/]+)/$', react_page_view,
         name='sentry-release-details'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/releases/(?P<version>[^\/]+)/all-events/$', ReactPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/releases/(?P<version>[^\/]+)/all-events/$', react_page_view,
         name='sentry-release-details-all-events'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/releases/(?P<version>[^\/]+)/artifacts/$', ReactPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/releases/(?P<version>[^\/]+)/artifacts/$', react_page_view,
         name='sentry-release-details-artifacts'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/dashboard/$', ReactPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/dashboard/$', react_page_view,
         name='sentry-dashboard'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/events/$', ReactPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/events/$', react_page_view,
         name='sentry-events'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/install/$', ReactPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/install/$', react_page_view,
         name='sentry-project-setup'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', ReactPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', react_page_view,
         name='sentry-stream'),
 
     # Legacy
-    url(r'', ReactPageView.as_view()),
+    url(r'', react_page_view),
 )
