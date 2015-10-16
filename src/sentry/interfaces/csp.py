@@ -73,7 +73,7 @@ DIRECTIVE_TO_MESSAGES = {
     # 'upgrade-insecure-requests': '',
 }
 
-DEFAULT_MESSAGE = ('blocked {directive!r} from {uri!r}', 'blocked inline {directive!r}')
+DEFAULT_MESSAGE = ('Blocked {directive!r} from {uri!r}', 'Blocked inline {directive!r}')
 
 DISALLOWED_SOURCES = ('chrome-extension://',)
 
@@ -87,7 +87,7 @@ class Csp(Interface):
     >>> {
     >>>     "document_uri": "http://example.com/",
     >>>     "violated_directive": "style-src cdn.example.com",
-    >>>     "Blocked_uri": "http://example.com/style.css",
+    >>>     "blocked_uri": "http://example.com/style.css",
     >>>     "effective_directive": "style-src",
     >>> }
     """
