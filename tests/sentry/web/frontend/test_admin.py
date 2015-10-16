@@ -59,23 +59,6 @@ class MailStatusTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/admin/status/mail.html')
 
 
-class OverviewTest(TestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-admin-overview')
-
-    def test_requires_auth(self):
-        resp = self.client.get(self.path)
-        self.assertEquals(resp.status_code, 302)
-
-    def test_renders_template(self):
-        self.login_as(self.user)
-
-        resp = self.client.get(self.path)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/admin/stats.html')
-
-
 class ManageUsersTest(TestCase):
     @fixture
     def path(self):
