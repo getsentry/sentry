@@ -46,6 +46,8 @@ def load_data(platform, default=None):
         'results': [1, 2, 3, 4, 5],
         'emptyList': [],
         'emptyMap': {},
+        'length': 10837790,
+
     }
     data['modules'] = {
         'my.package': '1.0.0',
