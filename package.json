@@ -32,7 +32,7 @@
     "react-dom": "^0.14.0",
     "react-lazy-load": "benvinegar/react-lazy-load#64fd716d9fb243e43b1b8040f7fba52f2191f2cb",
     "react-router": "benvinegar/react-router#46998d030de3802ace768a673b07272586f7bf99",
-    "react-sticky": "^2.5.2",
+    "react-sticky": "^3.0.0",
     "reflux": "^0.3.0",
     "select2": "^3.5.1",
     "style-loader": "^0.12.4",
