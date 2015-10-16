@@ -621,7 +621,7 @@ class EventManager(object):
         tsdb.incr_multi([
             (tsdb.models.group, group.id),
             (tsdb.models.project, project.id),
-        ])
+        ], timestamp=event.datetime)
 
         return group, is_new, is_regression, is_sample
 
