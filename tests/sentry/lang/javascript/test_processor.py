@@ -216,3 +216,36 @@ class SourceProcessorTest(TestCase):
         result = processor.get_stacktraces(data)
         assert len(result) == 1
         assert type(result[0][1]) is Stacktrace
+
+    def test_get_culprit_is_patched(self):
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'type': 'Error',
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'abs_path': 'http://example.com/foo.js',
+                                'filename': 'foo.js',
+                                'lineno': 4,
+                                'colno': 0,
+                                'function': 'thing',
+                            },
+                            {
+                                'abs_path': 'http://example.com/bar.js',
+                                'filename': 'bar.js',
+                                'lineno': 1,
+                                'colno': 0,
+                                'function': 'oops',
+                            },
+                        ],
+                    },
+                }],
+            }
+        }
+
+        processor = SourceProcessor()
+        result = processor.process(self.project, data)
+        assert result['culprit'] == 'bar in oops'
