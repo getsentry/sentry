@@ -18,7 +18,7 @@ from sentry.models.activity import Activity
 
 class GroupAssigneeManager(BaseManager):
 
-    def assign(self, group, assigned_to, acting_user):
+    def assign(self, group, assigned_to, acting_user=None):
         now = timezone.now()
         assignee, created = GroupAssignee.objects.get_or_create(
             group=group,
@@ -53,7 +53,7 @@ class GroupAssigneeManager(BaseManager):
             )
             activity.send_notification()
 
-    def deassign(self, group, acting_user):
+    def deassign(self, group, acting_user=None):
         affected = GroupAssignee.objects.filter(
             group=group,
         )[:1].count()
