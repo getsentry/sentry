@@ -40,11 +40,8 @@ var LinkWithConfirmation = React.createClass({
       className += ' disabled';
     }
     return (
-      <div>
-        <a className={className} disabled={this.props.disabled} onClick={this.onToggle} title={this.props.title}>
-          {this.props.children}
-        </a>
-
+      <a className={className} disabled={this.props.disabled} onClick={this.onToggle} title={this.props.title}>
+        {this.props.children}
         <Modal show={this.state.isModalOpen} title="Please confirm" animation={false} onHide={this.onToggle}>
           <div className="modal-body">
             <p><strong>{this.props.message}</strong></p>
@@ -56,10 +53,9 @@ var LinkWithConfirmation = React.createClass({
                     onClick={this.onConfirm}>Confirm</button>
           </div>
         </Modal>
-      </div>
+      </a>
     );
   }
 });
 
 export default LinkWithConfirmation;
-
