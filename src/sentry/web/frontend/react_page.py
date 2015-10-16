@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
 from django.http import HttpResponse
-from django.template import loader
+from django.template import loader, Context
 
 from sentry.web.frontend.base import BaseView, OrganizationView
 
 
 class ReactMixin(object):
     def handle_react(self, request):
-        template = loader.render_to_string('sentry/bases/react.html')
+        context = Context({'request': request})
+        template = loader.render_to_string('sentry/bases/react.html', context)
 
         response = HttpResponse(template)
         response['Content-Type'] = 'text/html'
