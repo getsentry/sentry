@@ -25,7 +25,6 @@ except ImportError:
 from sentry import http
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Release, ReleaseFile
-from sentry.event_manager import generate_culprit
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5
 from sentry.utils.http import is_valid_origin
@@ -462,7 +461,15 @@ class SourceProcessor(object):
         return data
 
     def fix_culprit(self, data, stacktraces):
-        data['culprit'] = generate_culprit(data)
+        # This is a bit weird, since the original culprit we get
+        # will be wrong, so we want to touch it up after we've processed
+        # a stack trace.
+
+        # In this case, we have a list of all stacktraces as a tuple
+        # (stacktrace as dict, stacktrace class)
+        # So we need to take the [1] index to get the Stacktrace class,
+        # then extract the culprit string from that.
+        data['culprit'] = stacktraces[-1][1].get_culprit_string()
 
     def update_stacktraces(self, stacktraces):
         for raw, interface in stacktraces:
