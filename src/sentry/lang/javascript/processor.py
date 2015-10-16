@@ -42,7 +42,7 @@ UNKNOWN_MODULE = '<unknown module>'
 CLEAN_MODULE_RE = re.compile(r"""^
 (?:/|  # Leading slashes
 (?:
-    (?:java)?scripts?|js|build|static|node_modules|bower_components|[_\.].*?|  # common folder prefixes
+    (?:java)?scripts?|js|build|static|node_modules|bower_components|[_\.~].*?|  # common folder prefixes
     v?(?:\d+\.)*\d+|   # version numbers, v1, 1.0.0
     [a-f0-9]{7,8}|     # short sha
     [a-f0-9]{32}|      # md5
@@ -472,7 +472,7 @@ class SourceProcessor(object):
         # TODO(dcramer): this doesn't really fit well with generic URLs so we
         # whitelist it to http/https
         for frame in frames:
-            if not frame.module and frame.abs_path.startswith(('http:', 'https:')):
+            if not frame.module and frame.abs_path.startswith(('http:', 'https:', 'webpack:')):
                 frame.module = generate_module(frame.abs_path)
 
     def expand_frames(self, frames):
@@ -544,7 +544,7 @@ class SourceProcessor(object):
                 # special case webpack support
                 # abs_path will always be the full path with webpack:/// prefix.
                 # filename will be relative to that
-                if abs_path.startswith('webpack://'):
+                if abs_path.startswith('webpack:'):
                     filename = abs_path
                     # webpack seems to use ~ to imply "relative to resolver root"
                     # which is generally seen for third party deps
@@ -557,9 +557,12 @@ class SourceProcessor(object):
                     if filename.startswith('~/') and frame.in_app is None:
                         frame.in_app = False
 
+                    # We want to explicitly generate a webpack module name
+                    frame.module = generate_module(filename)
+
                 frame.abs_path = abs_path
                 frame.filename = filename
-                if abs_path.startswith(('http:', 'https:', 'webpack:')):
+                if not frame.module and abs_path.startswith(('http:', 'https:', 'webpack:')):
                     frame.module = generate_module(abs_path)
 
             elif sourcemap_url:
