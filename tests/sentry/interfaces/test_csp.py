@@ -34,10 +34,21 @@ class CspTest(TestCase):
 
     def test_to_python_validation_errors(self):
         with self.assertRaises(InterfaceValidationError):
-            Csp.to_python(dict(blocked_uri='about'))
+            Csp.to_python(dict(
+                effective_directive='style-src',
+                blocked_uri='about',
+            ))
 
         with self.assertRaises(InterfaceValidationError):
-            Csp.to_python(dict(effective_directive='lol'))
+            Csp.to_python(dict(
+                effective_directive='lol',
+            ))
+
+        with self.assertRaises(InterfaceValidationError):
+            Csp.to_python(dict(
+                effective_directive='style-src',
+                source_file='chrome-extension://fdasfdsafdsfdsa',
+            ))
 
     def test_coerce_blocked_uri_if_missing(self):
         result = Csp.to_python(dict(
