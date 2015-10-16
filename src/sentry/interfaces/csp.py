@@ -75,6 +75,8 @@ DIRECTIVE_TO_MESSAGES = {
 
 DEFAULT_MESSAGE = ('blocked {directive!r} from {uri!r}', 'blocked inline {directive!r}')
 
+DISALLOWED_SOURCES = ('chrome-extension://',)
+
 
 class Csp(Interface):
     """
@@ -104,6 +106,12 @@ class Csp(Interface):
         # Observed in Chrome 45 and 46.
         if kwargs['blocked_uri'] in ('about', 'data'):
             raise InterfaceValidationError("Invalid value for 'blocked-uri'")
+
+        # Here, we want to block reports that are coming from browser extensions
+        # and other sources that are meaningless
+        if kwargs['source_file'] is not None:
+            if kwargs['source_file'].startswith(DISALLOWED_SOURCES):
+                raise InterfaceValidationError("Invalid value for 'source-file'")
 
         # Anything resulting from an "inline" whatever violation is either sent
         # as 'self', or left off. In the case if it missing, we want to noramalize.
