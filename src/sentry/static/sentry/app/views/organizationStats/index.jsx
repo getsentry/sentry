@@ -193,7 +193,7 @@ var OrganizationStats = React.createClass({
           return [[ts, value || 0]];
         }),
         accepted: $.map(sReceived, (value, ts) => {
-          return [[ts, value - sRejected[ts] - sBlacklisted[ts]]];
+          return [[ts, value - (sRejected[ts] || 0) - (sBlacklisted[ts] || 0)]];
         }),
         blacklisted: $.map(sBlacklisted, (value, ts) => {
           return [[ts, value || 0]];
