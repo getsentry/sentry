@@ -299,7 +299,11 @@ class StoreView(APIView):
         if isinstance(rate_limit, bool):
             rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
 
-        if rate_limit is not None and rate_limit.is_limited:
+        # XXX(dcramer): when the rate limiter fails we drop events to ensure
+        # it cannot cascade
+        if rate_limit is None or rate_limit.is_limited:
+            if rate_limit is None:
+                helper.log.debug('Dropped event due to error with rate limiter')
             app.tsdb.incr_multi([
                 (app.tsdb.models.project_total_received, project.id),
                 (app.tsdb.models.project_total_rejected, project.id),
