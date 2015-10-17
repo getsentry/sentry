@@ -17,6 +17,9 @@ var App = React.createClass({
 
   componentWillMount() {
     api.request('/organizations/', {
+      query: {
+        'member': '1'
+      },
       success: (data) => {
         OrganizationStore.load(data);
         this.setState({

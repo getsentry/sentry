@@ -175,8 +175,6 @@ urlpatterns += patterns(
     url(r'^account/settings/social/', include('social_auth.urls')),
 
     # Admin
-    url(r'^manage/$', react_page_view,
-        name='sentry-admin-overview'),
     url(r'^manage/queue/$', AdminQueueView.as_view(),
         name='sentry-admin-queue'),
     url(r'^manage/status/environment/$', admin.status_env,
@@ -209,6 +207,9 @@ urlpatterns += patterns(
     # Admin - Plugins
     url(r'^manage/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin,
         name='sentry-admin-configure-plugin'),
+
+    url(r'^manage/', react_page_view,
+        name='sentry-admin-overview'),
 
     # Legacy Redirects
     url(r'^docs/?$',
