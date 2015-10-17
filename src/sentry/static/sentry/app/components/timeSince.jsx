@@ -1,7 +1,12 @@
 import React from "react";
 import moment from "moment";
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 var TimeSince = React.createClass({
+  mixins: [
+    PureRenderMixin
+  ],
+
   propTypes: {
     date: React.PropTypes.any.isRequired,
     suffix: React.PropTypes.string
@@ -29,10 +34,6 @@ var TimeSince = React.createClass({
   ensureValidity() {
     // TODO(dcramer): this should ensure we actually *need* to update the value
     this.forceUpdate();
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return this.props.date !== nextProps.date;
   },
 
   render() {
