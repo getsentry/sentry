@@ -190,13 +190,13 @@ var OrganizationStats = React.createClass({
     this.setState({
       orgStats: {
         rejected: $.map(sRejected, (value, ts) => {
-          return [[ts, value || null]];
+          return [[ts, value || 0]];
         }),
         accepted: $.map(sReceived, (value, ts) => {
           return [[ts, value - sRejected[ts] - sBlacklisted[ts]]];
         }),
         blacklisted: $.map(sBlacklisted, (value, ts) => {
-          return [[ts, value || null]];
+          return [[ts, value || 0]];
         })
       },
       orgTotal: {
