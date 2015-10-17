@@ -196,7 +196,7 @@ var OrganizationStats = React.createClass({
           return [[ts, value - sRejected[ts]]];
         }),
         blacklisted: $.map(sBlacklisted, (value, ts) => {
-          return [[ts, value - sBlacklisted[ts]]];
+          return [[ts, value || null]];
         })
       },
       orgTotal: {
