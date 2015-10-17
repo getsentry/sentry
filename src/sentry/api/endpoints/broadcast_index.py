@@ -12,6 +12,8 @@ class BroadcastIndexEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
-        broadcasts = list(Broadcast.objects.filter(is_active=True))
+        broadcasts = list(Broadcast.objects.filter(
+            is_active=True
+        ))
 
         return Response(serialize(broadcasts, request.user))
