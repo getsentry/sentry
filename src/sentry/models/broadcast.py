@@ -10,7 +10,7 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 
 
 BADGES = (
@@ -32,3 +32,16 @@ class Broadcast(Model):
         db_table = 'sentry_broadcast'
 
     __repr__ = sane_repr('message')
+
+
+class BroadcastSeen(Model):
+    broadcast = FlexibleForeignKey('sentry.Broadcast')
+    user = FlexibleForeignKey('sentry.User')
+    date_seen = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_broadcastseen'
+        unique_together = (('broadcast', 'user'))
+
+    __repr__ = sane_repr('broadcast', 'user', 'date_seen')
