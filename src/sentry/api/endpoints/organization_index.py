@@ -1,14 +1,16 @@
 from __future__ import absolute_import
 
+from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.base import DocSection, Endpoint
 from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import (
-    AuditLogEntryEvent, Organization, OrganizationMember
+    AuditLogEntryEvent, Organization, OrganizationMember, OrganizationStatus
 )
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -41,18 +43,46 @@ class OrganizationIndexEndpoint(Endpoint):
         user bound context.  For API key based requests this will
         only return the organization that belongs to the key.
 
+        :qparam bool member: restrict results to organizations which you have
+                             membership
+
         :auth: required
         """
+        member_only = request.GET.get('member') in ('1', 'true')
+
+        queryset = Organization.objects.filter(
+            status=OrganizationStatus.VISIBLE,
+        )
+
         if request.auth:
             if hasattr(request.auth, 'project'):
-                organizations = [request.auth.project.organization]
+                queryset = queryset.filter(
+                    id=request.auth.project.organization_id
+                )
             else:
-                organizations = [request.auth.organization]
-        else:
-            organizations = Organization.objects.get_for_user(
-                user=request.user,
+                queryset = queryset.filter(
+                    id=request.auth.organization.id
+                )
+        elif member_only or not request.user.is_active_superuser():
+            queryset = queryset.filter(
+                id__in=OrganizationMember.objects.filter(
+                    user=request.user,
+                ).values('organization'),
             )
-        return Response(serialize(organizations, request.user))
+
+        query = request.GET.get('query')
+        if query:
+            queryset = queryset.filter(
+                Q(name__icontains=query) | Q(slug__icontains=query),
+            )
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by='name',
+            on_results=lambda x: serialize(x, request.user),
+            paginator_cls=OffsetPaginator,
+        )
 
     # XXX: endpoint useless for end-users as it needs user context.
     def post(self, request):

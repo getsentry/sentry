@@ -5,7 +5,7 @@ import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
 import Pagination from "../../components/pagination";
 import RouteMixin from "../../mixins/routeMixin";
-import SearchBar from "./searchBar.jsx";
+import SearchBar from "../../components/searchBar.jsx";
 
 import ReleaseList from "./releaseList";
 
@@ -168,7 +168,6 @@ var ProjectReleases = React.createClass({
             <SearchBar defaultQuery=""
               placeholder="Search for a release."
               query={this.state.query}
-              onQueryChange={this.onQueryChange}
               onSearch={this.onSearch}
             />
           </div>

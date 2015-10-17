@@ -38,6 +38,7 @@ const Admin = React.createClass({
 
                   <h6 className="nav-header">Manage</h6>
                   <ul className="nav nav-stacked">
+                    <ListLink to="adminOrganizations">Organizations</ListLink>
                     <li><a href={`${urlPrefix}/manage/teams/`}>Teams</a></li>
                     <li><a href={`${urlPrefix}/manage/projects/`}>Projects</a></li>
                     <li><a href={`${urlPrefix}/manage/users/`}>Users</a></li>

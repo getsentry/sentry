@@ -4,6 +4,7 @@ var Route = Router.Route;
 var DefaultRoute = Router.DefaultRoute;
 
 import Admin from "./views/admin";
+import AdminOrganizations from "./views/adminOrganizations";
 import AdminOverview from "./views/adminOverview";
 import App from "./views/app";
 import GroupActivity from "./views/groupActivity";
@@ -35,6 +36,7 @@ import Stream from "./views/stream";
 var routes = (
   <Route name="app" path="/" handler={App}>
     <Route name="admin" path="/manage/" handler={Admin}>
+      <Route name="adminOrganizations" path="organizations/" handler={AdminOrganizations} />
       <DefaultRoute name="adminOverview" handler={AdminOverview} />
     </Route>
     <Route path="/organizations/:orgId/" handler={OrganizationDetails}>
