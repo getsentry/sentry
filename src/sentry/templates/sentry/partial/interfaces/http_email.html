@@ -18,7 +18,7 @@
         <tr>
             <th>{% trans "Query" %}</th>
             <td>
-                <code>{{ query_string|truncatechars:20 }}</code>
+                <code>{{ query_string|truncatechars:100 }}</code>
             </td>
         </tr>
         {% endif %}
@@ -26,7 +26,7 @@
         <tr>
             <th>{% trans "Fragment" %}</th>
             <td>
-                <code>{{ fragment|truncatechars:20 }}</code>
+                <code>{{ fragment|truncatechars:100 }}</code>
             </td>
         </tr>
         {% endif %}
