@@ -1,3 +1,5 @@
+import _ from "underscore";
+
 /*eslint no-use-before-define:0*/
 var modelsEqual = function(obj1, obj2) {
   if (!obj1 && !obj2)
@@ -171,7 +173,7 @@ export default {
   },
 
   isUrl(str) {
-    return (str.indexOf('http://') === 0) || (str.indexOf('https://') === 0);
+    return _.isString(str) && (str.indexOf('http://') === 0 || str.indexOf('https://') === 0);
   },
 
   escape(str) {
