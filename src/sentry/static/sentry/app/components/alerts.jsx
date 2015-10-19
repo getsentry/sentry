@@ -1,6 +1,6 @@
 import React from "react";
 import Reflux from "reflux";
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 import AlertStore from '../stores/alertStore';
 import AlertMessage from './alertMessage';

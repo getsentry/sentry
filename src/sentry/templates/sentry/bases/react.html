@@ -17,7 +17,7 @@
   <script>
   $(function(){
     Router.run(Sentry.routes, Router.HistoryLocation, function(Handler) {
-      React.render(React.createFactory(Handler)({
+      ReactDOM.render(React.createFactory(Handler)({
       }), document.getElementById('blk_router'));
     });
   });

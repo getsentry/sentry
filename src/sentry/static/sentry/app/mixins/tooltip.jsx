@@ -1,3 +1,4 @@
+import ReactDOM from "react-dom";
 import $ from "jquery";
 import "bootstrap/js/tooltip";
 
@@ -10,18 +11,18 @@ export default function (options) {
 
     componentWillUnmount() {
       this.removeTooltips();
-      $(this.getDOMNode()).unbind();
+      $(ReactDOM.findDOMNode(this)).unbind();
     },
 
     attachTooltips() {
-      $(this.getDOMNode()).tooltip(
+      $(ReactDOM.findDOMNode(this)).tooltip(
         Object.prototype.toString.call(options) === '[object Function]' ?
           options.call(this) : options
       );
     },
 
     removeTooltips() {
-      $(this.getDOMNode())
+      $(ReactDOM.findDOMNode(this))
         .tooltip("destroy") // destroy tooltips on parent ...
         .find(options.selector)
           .tooltip("destroy"); // ... and descendents

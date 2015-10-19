@@ -1,6 +1,6 @@
 import React from "react";
 import AlertActions from '../actions/alertActions';
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 var AlertMessage = React.createClass({
   mixins: [PureRenderMixin],
