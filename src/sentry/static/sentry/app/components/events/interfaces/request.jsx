@@ -26,6 +26,13 @@ var RequestInterface = React.createClass({
     };
   },
 
+  isPartial() {
+    // We assume we only have a partial interface is we're missing
+    // an HTTP method. This means we don't have enough information
+    // to reliably construct a full HTTP request.
+    return !this.props.data.method;
+  },
+
   toggleView(value) {
     this.setState({
       view: value
@@ -52,20 +59,24 @@ var RequestInterface = React.createClass({
 
     var title = (
       <div>
-        <div className="pull-right">
-          {!this.props.isShare &&
-            <RequestActions organization={this.context.organization}
-                            project={this.context.project}
-                            group={group}
-                            event={evt} />
-          }
-        </div>
-        <div className="btn-group">
-          <a className={(view === "rich" ? "active" : "") + " btn btn-default btn-sm"}
-             onClick={this.toggleView.bind(this, "rich")}>Rich</a>
-          <a className={(view === "curl" ? "active" : "") + " btn btn-default btn-sm"}
-             onClick={this.toggleView.bind(this, "curl")}><code>curl</code></a>
-        </div>
+        {!this.isPartial() &&
+          <div>
+            <div className="pull-right">
+              {!this.props.isShare &&
+                <RequestActions organization={this.context.organization}
+                                project={this.context.project}
+                                group={group}
+                                event={evt} />
+              }
+            </div>
+            <div className="btn-group">
+              <a className={(view === "rich" ? "active" : "") + " btn btn-default btn-sm"}
+                 onClick={this.toggleView.bind(this, "rich")}>Rich</a>
+              <a className={(view === "curl" ? "active" : "") + " btn btn-default btn-sm"}
+                 onClick={this.toggleView.bind(this, "curl")}><code>curl</code></a>
+            </div>
+          </div>
+        }
         <h3>
           <strong>{data.method || 'GET'} <a href={fullUrl}>{parsedUrl.pathname}</a></strong>
           <small style={{marginLeft: 20}}>{parsedUrl.hostname}</small>
