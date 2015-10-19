@@ -1,4 +1,4 @@
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 import React from "react";
 import DropdownLink from "../../components/dropdownLink";
 import MenuItem from "../../components/menuItem";

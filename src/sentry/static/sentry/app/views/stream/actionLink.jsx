@@ -1,5 +1,5 @@
 import Modal from "react-bootstrap/lib/Modal";
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 import React from "react";
 import SelectedGroupStore from "../../stores/selectedGroupStore";
 import TooltipMixin from "../../mixins/tooltip";

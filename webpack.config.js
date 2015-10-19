@@ -23,7 +23,6 @@ var config = {
       "moment",
       "moment-timezone",
       "raven-js",
-      "react/addons",
       "react-document-title",
       "react-router",
       "react-bootstrap",
@@ -81,6 +80,7 @@ var config = {
     alias: {
       "flot": path.join(__dirname, staticPrefix, "vendor", "jquery-flot"),
       "flot-tooltip": path.join(__dirname, staticPrefix, "vendor", "jquery-flot-tooltip"),
+      "react-router": path.join(__dirname, "node_modules", "react-router", "build", "lib")
     },
     modulesDirectories: [path.join(__dirname, staticPrefix), "node_modules"],
     extensions: ["", ".jsx", ".js", ".json"]

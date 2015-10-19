@@ -1,4 +1,5 @@
 import React from "react";
+import ReactDOM from "react-dom";
 import Reflux from "reflux";
 import _ from "underscore";
 import classNames from "classnames";
@@ -8,7 +9,7 @@ import MemberListStore from "../../stores/memberListStore";
 
 import api from "../../api";
 
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 import SearchDropdown from "./searchDropdown";
 
@@ -109,7 +110,7 @@ var SearchBar = React.createClass({
   },
 
   blur() {
-    this.refs.searchInput.getDOMNode().blur();
+    ReactDOM.findDOMNode(this.refs.searchInput).blur();
   },
 
   onSubmit(evt) {
@@ -155,7 +156,7 @@ var SearchBar = React.createClass({
   },
 
   getCursorPosition() {
-    return this.refs.searchInput.getDOMNode().selectionStart;
+    return ReactDOM.findDOMNode(this.refs.searchInput).selectionStart;
   },
 
   /**
@@ -217,7 +218,7 @@ var SearchBar = React.createClass({
       this.setState(
         { query: this.state.query + ' ' },
         () => {
-          this.refs.searchInput.getDOMNode().setSelectionRange(cursor + 1, cursor + 1);
+          ReactDOM.findDOMNode(this.refs.searchInput).setSelectionRange(cursor + 1, cursor + 1);
           this.updateAutoCompleteItems();
         }
       );
@@ -376,7 +377,7 @@ var SearchBar = React.createClass({
       query: newQuery
     }, () => {
       // setting a new input value will lose focus; restore it
-      var node = this.refs.searchInput.getDOMNode();
+      var node = ReactDOM.findDOMNode(this.refs.searchInput);
       node.focus();
 
       // then update the autocomplete box with new contextTypes

@@ -1,7 +1,7 @@
 import React from "react";
 import ConfigStore from "../../stores/configStore";
 import Count from "../../components/count";
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 var getPercent = (item, total) => {
   if (total === 0) {

@@ -1,7 +1,7 @@
 import React from "react";
 import BarChart from "../../components/barChart";
 import PropTypes from "../../proptypes";
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 var GroupChart = React.createClass({
   mixins: [PureRenderMixin],

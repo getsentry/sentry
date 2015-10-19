@@ -6,7 +6,7 @@ import IndicatorStore from "../../stores/indicatorStore";
 import {logException} from "../../utils/logging";
 import {getItem, setItem} from "../../utils/localStorage";
 
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 const localStorageKey = 'noteinput:latest';
 const DEFAULT_ERROR_JSON = {detail: 'Unknown error. Please try again.'};
 

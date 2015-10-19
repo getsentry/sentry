@@ -3,7 +3,7 @@ import classNames from "classnames";
 
 import LoadingIndicator from "../../components/loadingIndicator";
 
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 var SearchDropdown = React.createClass({
   mixins: [PureRenderMixin],

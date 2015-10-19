@@ -1,4 +1,5 @@
 import React from "react";
+import ReactDOM from "react-dom";
 import _ from "underscore";
 
 var StreamTagFilter = React.createClass({
@@ -39,14 +40,14 @@ var StreamTagFilter = React.createClass({
       this.setState({
         value: nextProps.value
       }, () => {
-        let select = this.refs.select.getDOMNode();
+        let select = this.refs.select;
         $(select).select2('val', this.state.value);
       });
     }
   },
 
   componentDidMount() {
-    let select = this.refs.select.getDOMNode();
+    let select = ReactDOM.findDOMNode(this.refs.select);
 
     let selectOpts = {
       placeholder: '--',
@@ -84,7 +85,7 @@ var StreamTagFilter = React.createClass({
   },
 
   componentWillUnmount() {
-    let select = this.refs.select.getDOMNode();
+    let select = ReactDOM.findDOMNode(this.refs.select);
     $(select).select2('destroy');
   },
 
@@ -103,6 +104,9 @@ var StreamTagFilter = React.createClass({
   },
 
   render() {
+    // NOTE: need to specify empty onChange handler on <select> - even though this
+    //       will get overridden by select2 - because React will complain with
+    //       a warning
     let tag = this.props.tag;
     return (
       <div className="stream-tag-filter">
@@ -110,7 +114,7 @@ var StreamTagFilter = React.createClass({
 
         {this.props.tag.predefined ?
 
-          <select ref="select" value={this.props.value}>
+          <select ref="select" value={this.props.value} onChange={function(){}}>
             <option key="empty"></option>
             {this.props.tag.values.map((val) => {
               return (

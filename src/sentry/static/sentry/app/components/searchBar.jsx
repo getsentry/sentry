@@ -1,5 +1,6 @@
 import React from "react";
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import ReactDOM from "react-dom";
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 var SearchBar = React.createClass({
   contextTypes: {
@@ -24,7 +25,7 @@ var SearchBar = React.createClass({
   },
 
   blur() {
-    this.refs.searchInput.getDOMNode().blur();
+    ReactDOM.findDOMNode(this.refs.searchInput).blur();
   },
 
   onSubmit(evt) {
