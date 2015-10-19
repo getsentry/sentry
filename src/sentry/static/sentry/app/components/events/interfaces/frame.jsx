@@ -120,7 +120,9 @@ var Frame = React.createClass({
     }
 
     let hasContextSource = defined(data.context) && data.context.length;
+    let hasExtendedSource = hasContextSource && data.context.length > 1;
     let hasContextVars = !objectIsEmpty(data.vars);
+    let expandable = hasExtendedSource || hasContextVars;
 
     if (hasContextSource || hasContextVars) {
       let startLineNo = hasContextSource ? data.context[0][0] : '';
@@ -128,7 +130,7 @@ var Frame = React.createClass({
         <ol start={startLineNo} className={outerClassName}
             onClick={this.toggleContext}>
           {defined(data.errors) &&
-          <li className="expandable error"
+          <li className={expandable ? "expandable error" : "error"}
               key="errors">{data.errors.join(", ")}</li>
           }
           {(data.context || []).map((line) => {
