@@ -7,6 +7,15 @@ var TimeSince = React.createClass({
     PureRenderMixin
   ],
 
+  statics: {
+    getDateObj(date) {
+      if (typeof date === "string" || typeof date === "number") {
+        date = new Date(date);
+      }
+      return date;
+    }
+  },
+
   propTypes: {
     date: React.PropTypes.any.isRequired,
     suffix: React.PropTypes.string
@@ -18,35 +27,46 @@ var TimeSince = React.createClass({
     };
   },
 
-  componentDidMount() {
-    var delay = 2600;
+  getInitialState() {
+    return {
+      relative: this.getRelativeDate()
+    };
+  },
 
-    this.ticker = setInterval(this.ensureValidity, delay);
+  componentDidMount() {
+    this.setRelativeDateTicker();
+  },
+
+  setRelativeDateTicker() {
+    const ONE_MINUTE_IN_MS = 3600;
+
+    this.ticker = setTimeout(() => {
+      this.setState({
+        relative: this.getRelativeDate()
+      });
+      this.setRelativeDateTicker();
+    }, ONE_MINUTE_IN_MS);
+  },
+
+  getRelativeDate() {
+    let date = TimeSince.getDateObj(this.props.date);
+    return moment(date).fromNow(true);
   },
 
   componentWillUnmount() {
     if (this.ticker) {
-      clearInterval(this.ticker);
+      clearTimeout(this.ticker);
       this.ticker = null;
     }
   },
 
-  ensureValidity() {
-    // TODO(dcramer): this should ensure we actually *need* to update the value
-    this.forceUpdate();
-  },
-
   render() {
-    var date = this.props.date;
-
-    if (typeof date === "string" || typeof date === "number") {
-      date = new Date(date);
-    }
+    let date = TimeSince.getDateObj(this.props.date);
 
     return (
       <time
         dateTime={date.toISOString()}
-        title={date.toString()}>{moment(date).fromNow(true)} {this.props.suffix || ''}</time>
+        title={date.toString()}>{this.state.relative} {this.props.suffix || ''}</time>
     );
   }
 });
