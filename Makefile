@@ -139,6 +139,7 @@ travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.0.3
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.0.3
 travis-install-python: travis-upgrade-pip install-python-tests travis-setup-cassandra
+	python -m pip install codecov
 travis-noop:
 	@echo "nothing to do here."
 
