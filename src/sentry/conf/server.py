@@ -41,7 +41,12 @@ APPEND_SLASH = True
 
 PROJECT_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
 
-NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'node_modules')
+# XXX(dcramer): handle case when we've installed from source vs just running
+# this straight out of the repository
+if 'site-packages' in __file__:
+    NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, 'node_modules')
+else:
+    NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'node_modules')
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
@@ -908,6 +913,8 @@ SENTRY_USE_BIG_INTS = False
 SENTRY_API_RESPONSE_DELAY = 0
 
 # Watchers for various application purposes (such as compiling static media)
+# XXX(dcramer): this doesn't work outside of a source distribution as the
+# webpack.config.js is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
     [os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '-d', '--watch',
      "--config={}".format(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))],
