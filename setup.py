@@ -224,8 +224,7 @@ class BuildStatic(Command):
             self._build_static()
         except Exception:
             log.fatal("unable to build Sentry's static assets!\n"
-                      "Hint: You might be running an invalid version of NPM.",
-                      exc_info=True)
+                      "Hint: You might be running an invalid version of NPM.")
             sys.exit(1)
 
         if version_info['version'] and version_info['build']:
