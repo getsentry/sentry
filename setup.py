@@ -59,6 +59,7 @@ dev_requires = [
 tests_require = [
     'blist',  # used by cassandra
     'casscache',
+    'coverage',
     'cqlsh',
     'datadog',
     'httpretty',
