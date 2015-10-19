@@ -173,7 +173,7 @@ export default {
   },
 
   isUrl(str) {
-    return _.isString(str) && (str.indexOf('http://') === 0 || str.indexOf('https://') === 0);
+    return !!str && _.isString(str) && (str.indexOf('http://') === 0 || str.indexOf('https://') === 0);
   },
 
   escape(str) {
