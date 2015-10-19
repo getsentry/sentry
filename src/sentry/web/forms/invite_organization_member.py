@@ -9,6 +9,9 @@ from sentry.models import (
 
 
 class InviteOrganizationMemberForm(forms.ModelForm):
+    # override this to ensure the field is required
+    email = forms.EmailField()
+
     class Meta:
         fields = ('email', 'role')
         model = OrganizationMember
