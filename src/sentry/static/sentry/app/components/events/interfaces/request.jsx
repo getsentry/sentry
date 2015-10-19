@@ -57,31 +57,36 @@ var RequestInterface = React.createClass({
     var parsedUrl = document.createElement("a");
     parsedUrl.href = fullUrl;
 
+    var children = [];
+
+    if (!this.isPartial()) {
+      children.push(
+        <div className="pull-right">
+          {!this.props.isShare &&
+            <RequestActions organization={this.context.organization}
+                            project={this.context.project}
+                            group={group}
+                            event={evt} />
+          }
+        </div>,
+        <div className="btn-group">
+          <a className={(view === "rich" ? "active" : "") + " btn btn-default btn-sm"}
+             onClick={this.toggleView.bind(this, "rich")}>Rich</a>
+          <a className={(view === "curl" ? "active" : "") + " btn btn-default btn-sm"}
+             onClick={this.toggleView.bind(this, "curl")}><code>curl</code></a>
+        </div>
+      );
+    }
+
+    children.push(
+      <h3>
+        <strong>{data.method || 'GET'} <a href={fullUrl}>{parsedUrl.pathname}</a></strong>
+        <small style={{marginLeft: 20}}>{parsedUrl.hostname}</small>
+      </h3>
+    );
+
     var title = (
-      <div>
-        {!this.isPartial() &&
-          <div>
-            <div className="pull-right">
-              {!this.props.isShare &&
-                <RequestActions organization={this.context.organization}
-                                project={this.context.project}
-                                group={group}
-                                event={evt} />
-              }
-            </div>
-            <div className="btn-group">
-              <a className={(view === "rich" ? "active" : "") + " btn btn-default btn-sm"}
-                 onClick={this.toggleView.bind(this, "rich")}>Rich</a>
-              <a className={(view === "curl" ? "active" : "") + " btn btn-default btn-sm"}
-                 onClick={this.toggleView.bind(this, "curl")}><code>curl</code></a>
-            </div>
-          </div>
-        }
-        <h3>
-          <strong>{data.method || 'GET'} <a href={fullUrl}>{parsedUrl.pathname}</a></strong>
-          <small style={{marginLeft: 20}}>{parsedUrl.hostname}</small>
-        </h3>
-      </div>
+      <div>{children}</div>
     );
 
     return (
