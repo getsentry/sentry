@@ -171,7 +171,7 @@ export default {
   },
 
   isUrl(str) {
-    return (str.indexOf('http://') !== -1) || (str.indexOf('https://') !== -1);
+    return (str.indexOf('http://') === 0) || (str.indexOf('https://') === 0);
   },
 
   escape(str) {
