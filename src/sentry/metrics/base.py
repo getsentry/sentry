@@ -26,3 +26,6 @@ class MetricsBackend(local):
 
     def timing(self, key, value, instance=None, tags=None, sample_rate=1):
         raise NotImplementedError
+
+    def validate(self):
+        pass
