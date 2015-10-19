@@ -2,7 +2,7 @@ NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 
 install-python:
-	@echo "--> Installing Pythond dependencies"
+	@echo "--> Installing Python dependencies"
 	pip install "setuptools>=0.9.8"
 	# order matters here, base package must install first
 	pip install -e .
@@ -15,7 +15,7 @@ install-npm:
 install-python-tests:
 	pip install "file://`pwd`#egg=sentry[tests]"
 
-develop-only: update-submodules install-python install-npm
+develop-only: update-submodules install-python-tests install-npm
 
 develop: update-submodules setup-git develop-only install-python-tests
 	@echo ""
@@ -138,7 +138,7 @@ travis-upgrade-pip:
 travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.0.3
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.0.3
-travis-install-python: travis-upgrade-pip install-python travis-setup-cassandra
+travis-install-python: travis-upgrade-pip install-python-tests travis-setup-cassandra
 travis-noop:
 	@echo "nothing to do here."
 
