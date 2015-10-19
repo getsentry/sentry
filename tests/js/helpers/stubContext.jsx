@@ -1,3 +1,4 @@
+/*eslint react/no-multi-comp:0*/
 // https://github.com/karlbright/react-stub-context/blob/master/src/index.js
 
 var React = require('react');
