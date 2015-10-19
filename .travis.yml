@@ -29,4 +29,4 @@ script:
   - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE
 after_success:
-  - codecov -e TEST_SUITE
+  - which -s codecov && codecov -e TEST_SUITE
