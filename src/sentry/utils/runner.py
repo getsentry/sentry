@@ -353,7 +353,6 @@ def validate_backends():
         app.buffer,
         app.digests,
         app.nodestore,
-        app.metrics,
         app.quotas,
         app.ratelimiter,
         app.search,
