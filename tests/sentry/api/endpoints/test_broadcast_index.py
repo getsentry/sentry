@@ -30,7 +30,7 @@ class BroadcastUpdateTest(APITestCase):
             'hasSeen': '1'
         })
         assert response.status_code == 200
-        assert response.data['hasSeen'] == True
+        assert response.data['hasSeen']
 
         assert BroadcastSeen.objects.filter(
             user=self.user,
