@@ -42,7 +42,7 @@ export default {
 
   Sentry: {
     api: require("./api"),
-    routes: require("./routes"),
+    router: require("./router"),
 
     Alerts: require("./components/alerts"),
     ConfigStore: require("./stores/configStore"),
