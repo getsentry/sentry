@@ -6,14 +6,32 @@ import TooltipMixin from "../mixins/tooltip";
 var BarChart = React.createClass({
   mixins: [
     TooltipMixin(function () {
+      var barChartInstance = this;
       return {
         html: true,
         placement: this.props.placement,
         selector: ".tip",
-        viewport: this.props.viewport
+        viewport: this.props.viewport,
+
+        // This callback is fired when the user hovers over the
+        // barchart / triggers tooltip rendering. This is better
+        // than using data-title, which renders up-front for each
+        // BarChart (slow).
+        title: function (instance) {
+          // `this` is the targeted element
+          let pointIdx = this.getAttribute('data-point-index');
+          return barChartInstance.renderTooltip(pointIdx);
+        }
       };
     })
   ],
+
+
+  statics: {
+    getInterval(points) {
+      return points.length > 1 ? points[1].x - points[0].x : null;
+    }
+  },
 
   propTypes: {
     points: React.PropTypes.arrayOf(React.PropTypes.shape({
@@ -40,6 +58,20 @@ var BarChart = React.createClass({
       width: null,
       viewport: null
     };
+  },
+
+  getInitialState() {
+    return {
+      interval: BarChart.getInterval(this.props.points)
+    };
+  },
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.points) {
+      this.setState({
+        interval: BarChart.getInterval(nextProps.points)
+      });
+    }
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -91,6 +123,19 @@ var BarChart = React.createClass({
     return timeMoment.format("lll");
   },
 
+  getTimeLabel(point) {
+    switch (this.state.interval) {
+      case 3600:
+        return this.timeLabelAsHour(point);
+      case 86400:
+        return this.timeLabelAsDay(point);
+      case null:
+        return this.timeLabelAsFull(point);
+      default:
+        return this.timeLabelAsRange(this.state.interval, point);
+    }
+  },
+
   maxPointValue() {
     var maxval = 10;
     this.props.points.forEach((point) => {
@@ -121,10 +166,10 @@ var BarChart = React.createClass({
     );
   },
 
-  renderChartColumn(point, maxval, timeLabelFunc, pointWidth) {
-    var pct = this.floatFormat(point.y / maxval * 99, 2) + "%";
-    var timeLabel = timeLabelFunc(point);
-    var title = (
+  renderTooltip(pointIdx) {
+    let point = this.props.points[pointIdx];
+    let timeLabel = this.getTimeLabel(point);
+    let title = (
       '<div style="width:130px">' +
         point.y + ' ' + this.props.label + '<br/>' +
         timeLabel +
@@ -133,9 +178,19 @@ var BarChart = React.createClass({
     if (point.label) {
       title += '<div>(' + point.label + ')</div>';
     }
+    return title;
+  },
+
+  renderChartColumn(pointIdx, maxval, pointWidth) {
+    let point = this.props.points[pointIdx];
+    let pct = this.floatFormat(point.y / maxval * 99, 2) + "%";
 
     return (
-      <a key={point.x} className="chart-column tip" data-title={title} style={{ width: pointWidth }}>
+      <a key={point.x}
+         className="chart-column tip"
+         data-point-index={pointIdx}
+         style={{ width: pointWidth }}
+       >
         <span style={{ height: pct }}>{point.y}</span>
       </a>
     );
@@ -144,22 +199,6 @@ var BarChart = React.createClass({
   renderChart() {
     var points = this.props.points;
     var pointWidth = this.floatFormat(100.0 / points.length, 2) + "%";
-
-    var interval = (points.length > 1 ? points[1].x - points[0].x : null);
-    var timeLabelFunc;
-    switch (interval) {
-      case 3600:
-        timeLabelFunc = this.timeLabelAsHour;
-        break;
-      case 86400:
-        timeLabelFunc = this.timeLabelAsDay;
-        break;
-      case null:
-        timeLabelFunc = this.timeLabelAsFull;
-        break;
-      default:
-        timeLabelFunc = this.timeLabelAsRange.bind(this, interval);
-    }
 
     var maxval = this.maxPointValue();
 
@@ -171,7 +210,7 @@ var BarChart = React.createClass({
         children.push(this.renderMarker(markers.shift()));
       }
 
-      children.push(this.renderChartColumn(point, maxval, timeLabelFunc, pointWidth));
+      children.push(this.renderChartColumn(pointIdx, maxval, pointWidth));
     });
 
     // in bizarre case where markers never got rendered, render them last
