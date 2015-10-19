@@ -561,14 +561,13 @@ class SourceProcessor(object):
                     else:
                         filename = filename.split('webpack:///', 1)[-1]
 
-                    if frame.in_app is None:
-                        # As noted above, '~/' means they're coming from node_modules,
-                        # so these are not app dependencies
-                        if filename.startswith('~/'):
-                            frame.in_app = False
-                        # And conversely, local dependencies start with './'
-                        elif filename.startswith('./'):
-                            frame.in_app = True
+                    # As noted above, '~/' means they're coming from node_modules,
+                    # so these are not app dependencies
+                    if filename.startswith('~/'):
+                        frame.in_app = False
+                    # And conversely, local dependencies start with './'
+                    elif filename.startswith('./'):
+                        frame.in_app = True
 
                     # We want to explicitly generate a webpack module name
                     frame.module = generate_module(filename)
