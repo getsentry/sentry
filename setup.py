@@ -31,8 +31,8 @@ import sys
 
 from distutils import log
 from distutils.core import Command
-from setuptools.command.install import install
 from setuptools.command.develop import develop
+from setuptools.command.install import install
 from setuptools.command.sdist import sdist
 from setuptools import setup, find_packages
 from subprocess import check_output
@@ -158,7 +158,7 @@ class BuildStatic(Command):
         """
         Attempt to get the most correct current version of Sentry.
         """
-        pkg_path = os.path.join(ROOT, 'src')
+        pkg_path = os.path.join(self.work_path, 'src')
 
         sys.path.insert(0, pkg_path)
         try:
@@ -237,9 +237,10 @@ class BuildStatic(Command):
     def _build_static(self):
         work_path = self.work_path
 
-        log.info("initializing git submodules")
-        check_output(['git', 'submodule', 'init'], cwd=work_path)
-        check_output(['git', 'submodule', 'update'], cwd=work_path)
+        if os.path.exists(os.path.join(work_path, '.git')):
+            log.info("initializing git submodules")
+            check_output(['git', 'submodule', 'init'], cwd=work_path)
+            check_output(['git', 'submodule', 'update'], cwd=work_path)
 
         log.info("running [npm install --quiet]")
         check_output(['npm', 'install', '--quiet'], cwd=work_path)
@@ -284,7 +285,7 @@ setup(
     author_email='dcramer@gmail.com',
     url='https://www.getsentry.com',
     description='A realtime logging and aggregation server.',
-    long_description=open('README.rst').read(),
+    long_description=open(os.path.join(ROOT, 'README.rst')).read(),
     package_dir={'': 'src'},
     packages=find_packages('src'),
     zip_safe=False,
