@@ -100,7 +100,7 @@ admin.site.register(Organization, OrganizationAdmin)
 
 class AuthProviderAdmin(admin.ModelAdmin):
     list_display = ('organization', 'provider', 'date_added')
-    search_fields = ('organization__name')
+    search_fields = ('organization__name',)
     raw_id_fields = ('organization', 'default_teams')
     list_filter = ('provider',)
 
