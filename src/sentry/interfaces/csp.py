@@ -233,5 +233,5 @@ def _normalize_uri(value):
     return _unsplit(scheme, hostname)
 
 
-def _unsplit(scheme, rest):
-    return urlunsplit((scheme, rest, '', None, None))
+def _unsplit(scheme, hostname):
+    return urlunsplit((scheme, hostname, '', None, None))
