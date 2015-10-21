@@ -104,7 +104,7 @@ class Csp(Interface):
         # Some reports from Chrome report blocked-uri as just 'about'.
         # In this case, this is not actionable and is just noisy.
         # Observed in Chrome 45 and 46.
-        if kwargs['blocked_uri'] in ('about', 'data'):
+        if kwargs['blocked_uri'] == 'about':
             raise InterfaceValidationError("Invalid value for 'blocked-uri'")
 
         # Here, we want to block reports that are coming from browser extensions
@@ -220,9 +220,16 @@ def _normalize_uri(value):
     if value in ('self', "'self'"):
         return SELF
 
-    scheme, hostname = urlsplit(value)[:2]
-    if scheme in ('http', 'https'):
-        return hostname
+    # A lot of these values get reported as literally
+    # just the scheme. So a value like 'data' or 'blob', which
+    # are valid schemes, just not a uri. So we want to
+    # normalize it into a uri.
+    if ':' not in value:
+        scheme, hostname = value, ''
+    else:
+        scheme, hostname = urlsplit(value)[:2]
+        if scheme in ('http', 'https'):
+            return hostname
     return _unsplit(scheme, hostname)
 
 
