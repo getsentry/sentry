@@ -118,6 +118,14 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         else:
             if omt.is_active:
                 return Response(status=204)
+            elif not (request.access.has_scope('org:write') or organization.flags.allow_joinleave):
+                omt, created = OrganizationAccessRequest.objects.get_or_create(
+                    team=team,
+                    member=om,
+                )
+                if created:
+                    omt.send_request_email()
+                return Response(status=202)
             omt.is_active = True
             omt.save()
 
