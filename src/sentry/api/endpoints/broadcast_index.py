@@ -18,9 +18,10 @@ class BroadcastIndexEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
+        # limit to only "recent" broadcasts
         broadcasts = list(Broadcast.objects.filter(
             is_active=True
-        ))
+        ).order_by('-date_added')[:10])
 
         return Response(serialize(broadcasts, request.user))
 
@@ -31,13 +32,27 @@ class BroadcastIndexEndpoint(Endpoint):
 
         result = serializer.object
 
-        # limit scope of query
         queryset = Broadcast.objects.filter(
             is_active=True,
-        )[:100]
+        )
+
+        ids = request.GET.getlist('id')
+        if ids:
+            queryset = queryset.filter(
+                id__in=ids,
+            )
 
         if result.get('hasSeen'):
-            for broadcast in queryset:
+            if ids:
+                unseen_queryset = queryset
+            else:
+                unseen_queryset = queryset.exclude(
+                    id__in=queryset.filter(
+                        user=request.user,
+                    ).values('broadcast')
+                )
+
+            for broadcast in unseen_queryset:
                 try:
                     with transaction.atomic():
                         BroadcastSeen.objects.create(
