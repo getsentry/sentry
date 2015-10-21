@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Organization, OrganizationMemberTeam
+from sentry.models import (
+    Organization, OrganizationAccessRequest, OrganizationMemberTeam
+)
 from sentry.testutils import APITestCase
 
 
@@ -60,6 +62,10 @@ class CreateOrganizationMemberTeamTest(APITestCase):
         assert not OrganizationMemberTeam.objects.filter(
             team=team,
             organizationmember=member_om,
+        ).exists()
+        assert OrganizationAccessRequest.objects.filter(
+            team=team,
+            member=member_om,
         ).exists()
 
     def test_can_join_as_member_with_open_membership(self):
