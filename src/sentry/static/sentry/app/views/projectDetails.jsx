@@ -6,6 +6,7 @@ import DocumentTitle from "react-document-title";
 import MemberListStore from "../stores/memberListStore";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
+import MissingProjectMembership from "../components/missingProjectMembership";
 import ProjectHeader from "../components/projectHeader";
 import OrganizationState from "../mixins/organizationState";
 import RouteMixin from "../mixins/routeMixin";
@@ -22,6 +23,7 @@ var ProjectDetails = React.createClass({
     Reflux.connect(MemberListStore, "memberList"),
     Reflux.listenTo(TeamStore, "onTeamChange"),
     OrganizationState,
+    Reflux.listenTo(TeamStore, "onTeamChange"),
     RouteMixin
   ],
 
@@ -71,9 +73,25 @@ var ProjectDetails = React.createClass({
   },
 
   onTeamChange() {
-    this.setState({
-      teams: TeamStore.getAll()
-    }, this.fetchData);
+    this.fetchData();
+  },
+
+  identifyProject() {
+    let router = this.context.router;
+    let params = router.getCurrentParams();
+    let projectSlug = params.projectId;
+    let activeProject = null;
+    let activeTeam = null;
+    let teams = TeamStore.getAll();
+    teams.forEach((team) => {
+      team.projects.forEach((project) => {
+        if (project.slug == projectSlug) {
+          activeProject = project;
+          activeTeam = team;
+        }
+      });
+    });
+    return [activeTeam, activeProject];
   },
 
   fetchData() {
@@ -81,22 +99,8 @@ var ProjectDetails = React.createClass({
     if (!org) {
       return;
     }
-    let router = this.context.router;
-    let params = router.getCurrentParams();
-    let projectSlug = params.projectId;
-    let activeProject = null;
-    let activeTeam = null;
-    let isMember = null;
-    let teams = TeamStore.getAll();
-    teams.forEach((team) => {
-      team.projects.forEach((project) => {
-        if (project.slug == projectSlug) {
-          activeProject = project;
-          activeTeam = team;
-          isMember = team.isMember;
-        }
-      });
-    });
+    let [activeTeam, activeProject] = this.identifyProject();
+    let isMember = activeTeam && activeTeam.isMember;
 
     if (activeProject && isMember) {
       // TODO(dcramer): move member list to organization level
@@ -115,12 +119,16 @@ var ProjectDetails = React.createClass({
       });
     } else if (isMember === false) {
       this.setState({
+        project: activeProject,
+        team: activeTeam,
         loading: false,
         error: true,
         errorType: ERROR_TYPES.MISSING_MEMBERSHIP
       });
     } else {
       this.setState({
+        project: activeProject,
+        team: activeTeam,
         loading: false,
         error: true,
         errorType: ERROR_TYPES.PROJECT_NOT_FOUND
@@ -161,9 +169,10 @@ var ProjectDetails = React.createClass({
           // TODO(dcramer): add various controls to improve this flow and break it
           // out into a reusable missing access error component
           return (
-            <div className="container">
-              <div className="alert alert-block">You don't have access to this project.</div>
-            </div>
+            <MissingProjectMembership
+                organization={this.getOrganization()}
+                team={this.state.team}
+                project={this.state.project} />
           );
         default:
           return <LoadingError onRetry={this.remountComponent} />;
