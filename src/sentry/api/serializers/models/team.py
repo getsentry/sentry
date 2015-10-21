@@ -43,7 +43,7 @@ class TeamSerializer(Serializer):
                 OrganizationAccessRequest.objects.filter(
                     team__in=item_list,
                     member__user=user,
-                ).values_list('team')
+                ).values_list('team', flat=True)
             )
         else:
             access_requests = frozenset()
