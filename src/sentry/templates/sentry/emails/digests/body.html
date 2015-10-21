@@ -7,7 +7,7 @@
 {% block content %}
 
 <div class="container" style="padding-top: 30px;">
-  <h2 style="margin-bottom: 30px">N new notifications from <a href="{{ project.url }}">{{ project.name }}</a>:</h2>
+  <h2 style="margin-bottom: 30px">{{ counts|length }} new notification{{ counts|pluralize }} from <a href="{{ project.url }}">{{ project.name }}</a>:</h2>
 </div>
 
 {% for rule, groups in digest.iteritems %}
