@@ -334,6 +334,9 @@ class AuthHelper(object):
         auth_provider = self.auth_provider
         request = self.request
 
+        # TODO(dcramer): check for an existing user with the given email address
+        # and if one exists, ask them to verify the account for merge
+
         try:
             auth_identity = AuthIdentity.objects.get(
                 auth_provider=auth_provider,
