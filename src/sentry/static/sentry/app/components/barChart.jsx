@@ -20,7 +20,11 @@ var BarChart = React.createClass({
         title: function (instance) {
           // `this` is the targeted element
           let pointIdx = this.getAttribute('data-point-index');
-          return barChartInstance.renderTooltip(pointIdx);
+
+          if (pointIdx)
+            return barChartInstance.renderTooltip(pointIdx);
+          else
+            return this.getAttribute('data-title');
         }
       };
     })

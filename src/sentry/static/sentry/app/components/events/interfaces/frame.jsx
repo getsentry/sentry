@@ -1,7 +1,7 @@
 import React from "react";
 import _ from "underscore";
 import classNames from "classnames";
-import {defined, objectIsEmpty} from "../../../utils";
+import {defined, objectIsEmpty, isUrl} from "../../../utils";
 
 import TooltipMixin from "../../../mixins/tooltip";
 import FrameVariables from "./frameVariables";
@@ -29,13 +29,6 @@ var Frame = React.createClass({
     };
   },
 
-  isUrl(filename) {
-    if (!filename) {
-      return false;
-    }
-    return filename.indexOf('http:') !== -1 || filename.indexOf('https:') !== -1;
-  },
-
   toggleContext(evt) {
     evt && evt.preventDefault();
     this.setState({
@@ -48,7 +41,7 @@ var Frame = React.createClass({
 
     // TODO: is there a way to render a react element as a string? All the
     // documented methods don't exist on the client (meant for server rendering)
-    let escapedAbsPath = this.isUrl(data.origAbsPath)
+    let escapedAbsPath = isUrl(data.origAbsPath)
       ? `<a href="${_.escape(data.origAbsPath)}">${_.escape(data.origAbsPath)}</a>`
       : _.escape(data.origAbsPath);
 
@@ -80,7 +73,7 @@ var Frame = React.createClass({
 
     if (defined(data.filename || data.module)) {
       title.push(<code key="filename">{data.filename || data.module}</code>);
-      if (this.isUrl(data.absPath)) {
+      if (isUrl(data.absPath)) {
         title.push(<a href={data.absPath} className="icon-open" key="share" target="_blank" />);
       }
       if (defined(data.function)) {
@@ -127,7 +120,9 @@ var Frame = React.createClass({
     }
 
     let hasContextSource = defined(data.context) && data.context.length;
+    let hasExtendedSource = hasContextSource && data.context.length > 1;
     let hasContextVars = !objectIsEmpty(data.vars);
+    let expandable = hasExtendedSource || hasContextVars;
 
     if (hasContextSource || hasContextVars) {
       let startLineNo = hasContextSource ? data.context[0][0] : '';
@@ -135,7 +130,7 @@ var Frame = React.createClass({
         <ol start={startLineNo} className={outerClassName}
             onClick={this.toggleContext}>
           {defined(data.errors) &&
-          <li className="expandable error"
+          <li className={expandable ? "expandable error" : "error"}
               key="errors">{data.errors.join(", ")}</li>
           }
           {(data.context || []).map((line) => {
