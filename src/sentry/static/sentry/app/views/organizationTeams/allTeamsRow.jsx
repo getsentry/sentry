@@ -68,7 +68,7 @@ var AllTeamsRow = React.createClass({
   render() {
     let {team, openMembership} = this.props;
     return (
-     <tr key={team.slug}>
+     <tr>
         <td>
           <h5>{team.name}</h5>
         </td>

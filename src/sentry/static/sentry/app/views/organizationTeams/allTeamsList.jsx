@@ -17,13 +17,21 @@ var AllTeamsList = React.createClass({
     var urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + organization.slug;
 
     var teamNodes = this.props.teamList.map((team, teamIdx) => {
-      return <AllTeamsRow team={team} organization={organization} openMembership={openMembership} />;
+      return (
+        <AllTeamsRow
+          team={team}
+          organization={organization}
+          openMembership={openMembership}
+          key={team.slug} />
+      );
     });
 
     if (teamNodes.length !== 0) {
       return (
         <table className="table">
-          {teamNodes}
+          <tbody>
+            {teamNodes}
+          </tbody>
         </table>
       );
     }
