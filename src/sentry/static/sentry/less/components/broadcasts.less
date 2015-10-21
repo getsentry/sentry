@@ -1,0 +1,46 @@
+.broadcasts {
+  &.unseen a {
+    color: @linkColor;
+    font-weight: bold;
+  }
+
+  .dropdown-menu {
+    // ideally we could use 90% but due to parent element
+    // this doesnt work
+    max-height: 300px;
+    min-width: 200px;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: auto;
+
+    > li {
+      color: #7a8188;
+      padding: 5px 8px;
+      border-bottom: 1px solid #e5e5e5;
+      margin-bottom: 5px;
+
+      &.unseen {
+        font-weight: bold;
+      }
+
+      &:last-child {
+        border-bottom: 0;
+        margin-bottom: 0;
+      }
+
+      .loading {
+        margin: 0 auto;
+
+        .loading-message {
+          display: none;
+        }
+      }
+
+      > a {
+        display: inline;
+        padding: 0;
+        color: @linkColor;
+      }
+    }
+  }
+}

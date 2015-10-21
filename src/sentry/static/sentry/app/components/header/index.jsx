@@ -3,6 +3,7 @@ import ConfigStore from "../../stores/configStore";
 import OrganizationState from "../../mixins/organizationState";
 import {Link} from "react-router";
 
+import Broadcasts from "./broadcasts";
 import UserNav from "./userNav";
 import OrganizationSelector from "./organizationSelector";
 
@@ -24,9 +25,7 @@ const Header = React.createClass({
       <header>
         <div className="container">
           <UserNav className="pull-right" />
-          <ul className="global-nav pull-right">
-            <li><a href="https://docs.getsentry.com">Docs</a></li>
-          </ul>
+          <Broadcasts className="pull-right" />
           {this.props.orgId ?
             <Link to={`/${this.props.orgId}/`} className="logo">{logo}</Link>
             :
