@@ -5,6 +5,7 @@ import logging
 import time
 import traceback
 import uuid
+from collections import Counter
 from datetime import (
     datetime,
     timedelta,
@@ -254,11 +255,17 @@ def digest(request):
 
     digest = build_digest(project, records, state)
 
+    # TODO(tkaemming): This duplication from ``MailPlugin.notify_digest`` is a code smell
+    counts = Counter()
+    for rule, groups in digest.iteritems():
+        counts.update(groups.keys())
+
     return MailPreview(
         html_template='sentry/emails/digests/body.html',
         text_template='sentry/emails/digests/body.txt',
         context={
             'project': project,
+            'counts': counts,
             'digest': digest,
         },
     ).render()

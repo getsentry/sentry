@@ -124,6 +124,11 @@
     font-weight: 700;
     margin: 0 0 20px;
   }
+
+  h2 a {
+    font-weight: inherit;
+  }
+
   h2 .highlight {
     background: #f6f7f8;
     padding: 0 6px;
@@ -370,6 +375,66 @@
     padding-top: 0;
   }
 
+  .digest .rule {
+    background: #F6F7F8;
+    padding: 8px;
+    font-size: 14px;
+    border-left: 10px solid #15A7F6;
+    padding-left: 0;
+    margin: 20px 0;
+  }
+
+  .digest .rule div {
+    font-weight: 600;
+  }
+
+  table.event-list {
+    text-align: left;
+  }
+
+  table.event-list th {
+    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: bold;
+    margin: 0 0 5px;
+    color: #9CA3AD;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #E7EBEE;
+  }
+
+  table.event-list td {
+    border-top: 1px solid #E7EBEE;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  table.event-list th.align-right, table.event-list td.align-right {
+    text-align: right;
+  }
+
+  table.event-list td.align-right {
+    width: 100px;
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  table.event-list .event-detail {
+    width: 400px;
+    text-align: left;
+  }
+
+  table.event-list .event-detail a {
+    font-size: 17px;
+    color: #15A7F6;
+    font-weight: 600;
+  }
+
+  table.event-list .event-detail p {
+    margin: 0;
+    font-size: 15px;
+    color: #687276;
+  }
+
   @media only screen and (max-device-width: 480px) {
 		/* mobile-specific CSS styles */
 
@@ -382,7 +447,7 @@
 
   </style>
 </head>
-<body{% block bodyclass %}{% endblock %}>
+<body class="{% block bodyclass %}{% endblock %}">
 <div class="preheader">{% block preheader %}{% endblock %}</div>
 <table class="main">
   <tr>
