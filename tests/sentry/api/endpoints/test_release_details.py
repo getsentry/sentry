@@ -26,6 +26,25 @@ class ReleaseDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data['version'] == release.version
 
+    def test_with_slash_in_version(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project(name='foo')
+        release = Release.objects.create(
+            project=project,
+            version='release/1',
+        )
+
+        url = reverse('sentry-api-0-release-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+            'version': 'release%2F1',
+        })
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data['version'] == release.version
+
 
 class UpdateReleaseDetailsTest(APITestCase):
     def test_simple(self):
