@@ -2,39 +2,58 @@
 
 {% load sentry_helpers %}
 
-{% block main %}
+{% block bodyclass %}digest{% endblock %}
 
-<h2>{{ project.name }}</h2>
+{% block content %}
+
+<div class="container" style="padding-top: 30px;">
+  <h2 style="margin-bottom: 30px">{{ counts|length }} new notification{{ counts|pluralize }} from <a href="{{ project.url }}">{{ project.name }}</a>:</h2>
+</div>
 
 {% for rule, groups in digest.iteritems %}
 
-    <h3>{{ rule.label }}</h3>
+    <div class="rule">
+      <div class="container">
+        {{ rule.label }}
+      </div>
+    </div>
 
-    <table>
-        <tr>
-            <th>Issue</th>
-            <th>Events</th>
-            <th>Users</th>
-        </tr>
-        {% for group, records in groups.iteritems %}
-            <tr>
-                <th>
-                    {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
-                    <a href="{% absolute_uri group_link %}">{{ group.title }}</a>
-                    <p>
-                        <small>{{ group.message_short }}</small>
-                    </p>
-                </th>
-                <td>
-                    {{ group.event_count }}
-                </td>
-                <td>
-                    {{ group.user_count }}
-                </td>
-            </tr>
-        {% endfor %}
-    </table>
-
+    <div class="container">
+      <table class="event-list">
+          <tr>
+              <th>Issue</th>
+              <th class="align-right">Events</th>
+              <th class="align-right">Users</th>
+          </tr>
+          {% for group, records in groups.iteritems %}
+              <tr>
+                  <td class="event-detail">
+                      {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
+                      <a href="{% absolute_uri group_link %}">{{ group.title }}</a>
+                      <p>
+                        {{ group.message_short }}
+                      </p>
+                  </td>
+                  <td class="align-right">
+                      {{ group.event_count }}
+                  </td>
+                  <td class="align-right">
+                      {{ group.user_count }}
+                  </td>
+              </tr>
+          {% endfor %}
+      </table>
+    </div>
 {% endfor %}
+
+<div class="container">
+  <div class="footer" style="margin-top: 30px">
+    {% block footer %}
+    <a href="{% absolute_uri %}" style="float:right">Home</a>
+    {% url 'sentry-account-settings-notifications' as settings_link %}
+    <a href="{% absolute_uri settings_link %}">Notification Settings</a>
+    {% endblock %}
+  </div>
+</div>
 
 {% endblock %}
