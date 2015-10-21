@@ -10,6 +10,7 @@ import ProjectHeader from "../components/projectHeader";
 import OrganizationState from "../mixins/organizationState";
 import RouteMixin from "../mixins/routeMixin";
 import PropTypes from "../proptypes";
+import TeamStore from "../stores/teamStore";
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: "MISSING_MEMBERSHIP",
@@ -19,6 +20,7 @@ const ERROR_TYPES = {
 var ProjectDetails = React.createClass({
   mixins: [
     Reflux.connect(MemberListStore, "memberList"),
+    Reflux.listenTo(TeamStore, "onTeamChange"),
     OrganizationState,
     RouteMixin
   ],
@@ -60,28 +62,33 @@ var ProjectDetails = React.createClass({
   },
 
   routeDidChange(nextPath, nextParams) {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
+    let router = this.context.router;
+    let params = router.getCurrentParams();
     if (nextParams.projectId != params.projectId ||
         nextParams.orgId != params.orgId) {
       this.remountComponent();
     }
   },
 
+  onTeamChange() {
+    this.setState({
+      teams: TeamStore.getAll()
+    }, this.fetchData);
+  },
+
   fetchData() {
-    var org = this.getOrganization();
-    // TODO(dcramer): this should never happen
+    let org = this.context.organization;
     if (!org) {
       return;
     }
-
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    var projectSlug = params.projectId;
-    var activeProject = null;
-    var activeTeam = null;
-    var isMember = null;
-    org.teams.forEach((team) => {
+    let router = this.context.router;
+    let params = router.getCurrentParams();
+    let projectSlug = params.projectId;
+    let activeProject = null;
+    let activeTeam = null;
+    let isMember = null;
+    let teams = TeamStore.getAll();
+    teams.forEach((team) => {
       team.projects.forEach((project) => {
         if (project.slug == projectSlug) {
           activeProject = project;
