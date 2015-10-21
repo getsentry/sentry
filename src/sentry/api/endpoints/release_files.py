@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from StringIO import StringIO
+from urllib import unquote
 
 from django.db import IntegrityError, transaction
 from rest_framework.negotiation import DefaultContentNegotiation
@@ -81,6 +82,8 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
         :pparam string version: the version identifier of the release.
         :auth: required
         """
+        version = unquote(version)
+
         try:
             release = Release.objects.get(
                 project=project,
@@ -130,6 +133,8 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
                               type.
         :auth: required
         """
+        version = unquote(version)
+
         try:
             release = Release.objects.get(
                 project=project,

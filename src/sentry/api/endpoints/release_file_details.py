@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework import serializers
 from rest_framework.response import Response
+from urllib import unquote
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
@@ -86,6 +87,8 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
         :pparam string file_id: the ID of the file to retrieve.
         :auth: required
         """
+        version = unquote(version)
+
         release = Release.objects.get(
             project=project,
             version=version,
@@ -115,6 +118,8 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
         :param string name: the new name of the file.
         :auth: required
         """
+        version = unquote(version)
+
         release = Release.objects.get(
             project=project,
             version=version,
@@ -154,6 +159,8 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
         :pparam string file_id: the ID of the file to delete.
         :auth: required
         """
+        version = unquote(version)
+
         release = Release.objects.get(
             project=project,
             version=version,
