@@ -39,7 +39,7 @@ class TeamSerializer(serializers.Serializer):
 
 
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
-    doc_section = DocSection.ORGANIZATIONS
+    doc_section = DocSection.TEAMS
 
     @attach_scenarios([list_organization_teams_scenario])
     def get(self, request, organization):
