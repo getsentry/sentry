@@ -22,12 +22,8 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         if settings.MAINTENANCE:
             return
 
-        # We don't care about locale for API
-        if '/api/0/' in request.path:
-            return
-
-        # Or our store endpoint
-        if request.path[-7:] == '/store/':
+        # We don't care about locale for anything under api
+        if request.path[:5] == '/api/':
             return
 
         if not request.user.is_authenticated():
