@@ -68,7 +68,7 @@ class SentryInternalClient(DjangoClient):
 
         helper.context.bind_project(project)
 
-        metrics.incr('events.total', instance=project.id)
+        metrics.incr('events.total')
 
         kwargs['project'] = project.id
         try:
