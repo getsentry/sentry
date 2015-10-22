@@ -278,7 +278,7 @@ class StoreView(APIView):
         return response
 
     def process(self, request, project, auth, helper, data, **kwargs):
-        metrics.incr('events.total', instance=project.id)
+        metrics.incr('events.total')
 
         remote_addr = request.META['REMOTE_ADDR']
         event_received.send_robust(ip=remote_addr, sender=type(self))
@@ -290,7 +290,7 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_received, project.organization_id),
                 (app.tsdb.models.organization_total_blacklisted, project.organization_id),
             ])
-            metrics.incr('events.blacklisted', instance=project.id)
+            metrics.incr('events.blacklisted')
             raise APIForbidden('Blacklisted IP address: %s' % (remote_addr,))
 
         # TODO: improve this API (e.g. make RateLimit act on __ne__)
@@ -310,7 +310,7 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_received, project.organization_id),
                 (app.tsdb.models.organization_total_rejected, project.organization_id),
             ])
-            metrics.incr('events.dropped', instance=project.id)
+            metrics.incr('events.dropped')
             raise APIRateLimited(rate_limit.retry_after)
         else:
             app.tsdb.incr_multi([
