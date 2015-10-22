@@ -11,6 +11,7 @@ MANIFEST
 test.conf
 pip-log.txt
 celerybeat-schedule
+sentry-package.json
 /htmlcov
 /cover
 /build
