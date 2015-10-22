@@ -146,12 +146,14 @@ class Organization(Model):
         }
 
     def get_default_owner(self):
-        from sentry.models import User
+        if not hasattr(self, '_default_owner'):
+            from sentry.models import User
 
-        return User.objects.filter(
-            sentry_orgmember_set__role='owner',
-            sentry_orgmember_set__organization=self,
-        )[0]
+            self._default_owner = User.objects.filter(
+                sentry_orgmember_set__role=roles.get_top_dog().id,
+                sentry_orgmember_set__organization=self,
+            )[0]
+        return self._default_owner
 
     def has_single_owner(self):
         from sentry.models import OrganizationMember

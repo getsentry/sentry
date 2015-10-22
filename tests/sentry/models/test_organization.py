@@ -54,3 +54,8 @@ class OrganizationTest(TestCase):
             team=from_team,
             is_active=True,
         ).exists()
+
+    def test_get_default_owner(self):
+        user = self.create_user('foo@example.com')
+        org = self.create_organization(owner=user)
+        assert org.get_default_owner() == user
