@@ -184,6 +184,9 @@ class Exception(Interface):
                 continue
 
             for frame in exc['stacktrace'].get('frames', []):
+                # XXX(dcramer): handle PHP sending an empty array for a frame
+                if not isinstance(frame, dict):
+                    continue
                 if frame.get('in_app') is True:
                     app_frames += 1
                 else:

@@ -499,7 +499,8 @@ class Stacktrace(Interface):
             has_system_frames = cls.data_has_system_frames(data)
 
         frame_list = [
-            Frame.to_python(f)
+            # XXX(dcramer): handle PHP sending an empty array for a frame
+            Frame.to_python(f or {})
             for f in data['frames']
         ]
 
@@ -528,6 +529,9 @@ class Stacktrace(Interface):
     def data_has_system_frames(cls, data):
         system_frames = 0
         for frame in data['frames']:
+            # XXX(dcramer): handle PHP sending an empty array for a frame
+            if not isinstance(frame, dict):
+                continue
             if not frame.get('in_app'):
                 system_frames += 1
 
