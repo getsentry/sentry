@@ -126,7 +126,10 @@ class BaseManager(Manager):
         Updates the tracked state of an instance.
         """
         if instance.pk:
-            self.__cache[instance] = dict((f, getattr(instance, f)) for f in self.cache_fields)
+            self.__cache[instance] = {
+                f: self.__value_for_field(instance, f)
+                for f in self.cache_fields
+            }
         else:
             self.__cache[instance] = UNSAVED
 
@@ -148,8 +151,9 @@ class BaseManager(Manager):
             if key in pk_names:
                 continue
             # store pointers
+            value = self.__value_for_field(instance, key)
             cache.set(
-                key=self.__get_lookup_cache_key(**{key: getattr(instance, key)}),
+                key=self.__get_lookup_cache_key(**{key: value}),
                 value=pk_val,
                 timeout=self.cache_ttl,
                 version=self.cache_version,
@@ -176,7 +180,8 @@ class BaseManager(Manager):
                 if key not in self.__cache[instance]:
                     continue
                 value = self.__cache[instance][key]
-                if value != getattr(instance, key):
+                current_value = self.__value_for_field(instance, key)
+                if value != current_value:
                     cache.delete(
                         key=self.__get_lookup_cache_key(**{key: value}),
                         version=self.cache_version,
@@ -193,8 +198,9 @@ class BaseManager(Manager):
             if key in ('pk', pk_name):
                 continue
             # remove pointers
+            value = self.__value_for_field(instance, key)
             cache.delete(
-                key=self.__get_lookup_cache_key(**{key: getattr(instance, key)}),
+                key=self.__get_lookup_cache_key(**{key: value}),
                 version=self.cache_version,
             )
         # remove actual object
@@ -205,6 +211,19 @@ class BaseManager(Manager):
 
     def __get_lookup_cache_key(self, **kwargs):
         return make_key(self.model, 'modelcache', kwargs)
+
+    def __value_for_field(self, instance, key):
+        """
+        Return the cacheable value for a field.
+
+        ForeignKey's will cache via the primary key rather than using an
+        instance ref. This is needed due to the way lifecycle of models works
+        as otherwise we end up doing wasteful queries.
+        """
+        if key == 'pk':
+            return instance.pk
+        field = instance._meta.get_field(key)
+        return getattr(instance, field.attname)
 
     def contribute_to_class(self, model, name):
         super(BaseManager, self).contribute_to_class(model, name)
@@ -223,6 +242,10 @@ class BaseManager(Manager):
         pk_name = self.model._meta.pk.name
         if key == 'pk':
             key = pk_name
+
+        # We store everything by key references (vs instances)
+        if isinstance(value, Model):
+            value = value.pk
 
         # Kill __exact since it's the default behavior
         if key.endswith('__exact'):
