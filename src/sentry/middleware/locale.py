@@ -22,17 +22,23 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         if settings.MAINTENANCE:
             return
 
+        # We don't care about locale for API
         if '/api/0/' in request.path:
             return
 
-        safe_execute(self.load_user_conf, request)
+        # Or our store endpoint
+        if request.path[-7:] == '/store/':
+            return
+
+        if not request.user.is_authenticated():
+            return
+
+        safe_execute(self.load_user_conf, request,
+                     _with_transaction=False)
 
         super(SentryLocaleMiddleware, self).process_request(request)
 
     def load_user_conf(self, request):
-        if not request.user.is_authenticated():
-            return
-
         language = UserOption.objects.get_value(
             user=request.user, project=None, key='language', default=None)
         if language:
