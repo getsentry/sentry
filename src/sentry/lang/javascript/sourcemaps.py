@@ -66,7 +66,7 @@ def parse_sourcemap(smap):
     """
     sources = smap['sources']
     sourceRoot = smap.get('sourceRoot')
-    names = smap['names']
+    names = smap.get('names', [])
     mappings = smap['mappings']
     lines = mappings.split(';')
 
