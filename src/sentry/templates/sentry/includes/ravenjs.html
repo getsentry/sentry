@@ -46,7 +46,7 @@ Raven.config('{% public_dsn %}', {
 }).install();
 
 {% if request.user.is_authenticated %}
-Raven.setUser({
+Raven.setUserContext({
     email: '{{ request.user.email }}',
     id: '{{ request.user.id }}',
     ip_address: '{{ request.META.REMOTE_ADDR }}'
