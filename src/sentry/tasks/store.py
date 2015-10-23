@@ -41,7 +41,8 @@ def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
     # TODO(dcramer): ideally we would know if data changed by default
     has_changed = False
     for plugin in plugins.all(version=2):
-        for processor in (safe_execute(plugin.get_event_preprocessors) or ()):
+        processors = safe_execute(plugin.get_event_preprocessors, _with_transaction=False)
+        for processor in (processors or ()):
             result = safe_execute(processor, data)
             if result:
                 data = result
