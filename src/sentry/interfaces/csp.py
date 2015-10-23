@@ -165,7 +165,7 @@ class Csp(Interface):
     def get_tags(self):
         return (
             ('effective-directive', self.effective_directive),
-            ('blocked-uri', self._normalized_blocked_uri),
+            ('blocked-uri', self.blocked_uri),
         )
 
     @memoize
