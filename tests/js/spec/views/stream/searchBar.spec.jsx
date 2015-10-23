@@ -1,5 +1,6 @@
-import React from "react/addons";
+import React from "react";
 import ReactDOM from "react-dom";
+import TestUtils from "react-addons-test-utils";
 import api from "app/api";
 import SearchBar from "app/views/stream/searchBar";
 import SearchDropdown from "app/views/stream/searchDropdown";
@@ -8,7 +9,6 @@ import stubReactComponents from "../../../helpers/stubReactComponent";
 import stubRouter from "../../../helpers/stubRouter";
 import stubContext from "../../../helpers/stubContext";
 
-var TestUtils = React.addons.TestUtils;
 var findWithClass = TestUtils.findRenderedDOMComponentWithClass;
 
 describe("SearchBar", function() {
@@ -38,8 +38,6 @@ describe("SearchBar", function() {
 
   afterEach(function() {
     this.sandbox.restore();
-
-    React.unmountComponentAtNode(document.body);
   });
 
   describe("getQueryTerms()", function () {
@@ -75,7 +73,7 @@ describe("SearchBar", function() {
         query: "is:unresolved ruby",
         defaultQuery: "is:unresolved"
       };
-      var wrapper = React.render(<this.ContextStubbedSearchBar {...props} />, document.body).refs.wrapped;
+      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
 
       wrapper.clearSearch();
 
@@ -88,7 +86,7 @@ describe("SearchBar", function() {
         defaultQuery: "is:unresolved",
         onSearch: this.sandbox.spy()
       };
-      var wrapper = React.render(<this.ContextStubbedSearchBar {...props} />, document.body).refs.wrapped;
+      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
 
       wrapper.clearSearch();
 
@@ -103,7 +101,7 @@ describe("SearchBar", function() {
   describe("onQueryFocus()", function() {
 
     it("displays the drop down", function() {
-      var wrapper = React.render(<this.ContextStubbedSearchBar />, document.body).refs.wrapped;
+      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar />).refs.wrapped;
       expect(wrapper.state.dropdownVisible).to.be.false;
 
       wrapper.onQueryFocus();
@@ -116,7 +114,7 @@ describe("SearchBar", function() {
   describe("onQueryBlur()", function() {
 
     it("hides the drop down", function() {
-      var wrapper = React.render(<this.ContextStubbedSearchBar />, document.body).refs.wrapped;
+      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar />).refs.wrapped;
       wrapper.state.dropdownVisible = true;
 
       var clock = this.sandbox.useFakeTimers();
@@ -131,7 +129,8 @@ describe("SearchBar", function() {
   describe("onKeyUp()", function () {
     describe("escape", function () {
       it("blurs the input", function () {
-        var wrapper = React.render(<this.ContextStubbedSearchBar />, document.body).refs.wrapped;
+        // needs to be rendered into document.body or cannot query document.activeElement
+        var wrapper = ReactDOM.render(<this.ContextStubbedSearchBar />, document.body).refs.wrapped;
         wrapper.state.dropdownVisible = true;
 
         var input = ReactDOM.findDOMNode(wrapper.refs.searchInput);
@@ -151,7 +150,7 @@ describe("SearchBar", function() {
 
     it("invokes onSearch() when submitting the form", function() {
       var stubbedOnSearch = this.sandbox.spy();
-      var wrapper = React.render(<this.ContextStubbedSearchBar onSearch={stubbedOnSearch} />, document.body).refs.wrapped;
+      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar onSearch={stubbedOnSearch} />).refs.wrapped;
 
       TestUtils.Simulate.submit(wrapper.refs.searchForm, { preventDefault() {} });
 
@@ -163,7 +162,7 @@ describe("SearchBar", function() {
         query: "is:unresolved",
         onSearch: this.sandbox.spy()
       };
-      var wrapper = React.render(<this.ContextStubbedSearchBar {...props} />, document.body).refs.wrapped;
+      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
 
       var cancelButton = findWithClass(wrapper, "search-clear-form");
       TestUtils.Simulate.click(cancelButton);
@@ -179,7 +178,7 @@ describe("SearchBar", function() {
         query: "",
         defaultQuery: "is:unresolved"
       };
-      let wrapper = React.render(<this.ContextStubbedSearchBar {...props} />, document.body).refs.wrapped;
+      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
       expect(wrapper.state.query).to.eql("");
     });
 
@@ -190,7 +189,7 @@ describe("SearchBar", function() {
       var props = {
         query: "",
       };
-      var wrapper = React.render(<this.ContextStubbedSearchBar {...props} />, document.body).refs.wrapped;
+      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
       wrapper.updateAutoCompleteItems();
       expect(wrapper.state.searchTerm).to.eql('');
       expect(wrapper.state.searchItems).to.eql(wrapper.props.defaultSearchItems);
@@ -201,7 +200,7 @@ describe("SearchBar", function() {
       var props = {
         query: "fu",
       };
-      var wrapper = React.render(<this.ContextStubbedSearchBar {...props} />, document.body).refs.wrapped;
+      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
       wrapper.updateAutoCompleteItems();
       expect(wrapper.state.searchTerm).to.eql('fu');
       expect(wrapper.state.searchItems).to.eql([]);
@@ -212,7 +211,7 @@ describe("SearchBar", function() {
       var props = {
         query: "url:\"fu\"",
       };
-      var wrapper = React.render(<this.ContextStubbedSearchBar {...props} />, document.body).refs.wrapped;
+      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
       wrapper.updateAutoCompleteItems();
       expect(wrapper.state.searchTerm).to.eql('"fu"');
       expect(wrapper.state.searchItems).to.eql([]);
@@ -223,7 +222,7 @@ describe("SearchBar", function() {
       var props = {
         query: "is:unresolved fu",
       };
-      var wrapper = React.render(<this.ContextStubbedSearchBar {...props} />, document.body).refs.wrapped;
+      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
       wrapper.updateAutoCompleteItems();
       expect(wrapper.state.searchTerm).to.eql('unresolved');
       expect(wrapper.state.searchItems.length).to.eql(1);
@@ -236,7 +235,7 @@ describe("SearchBar", function() {
       var props = {
         query: "url:\"http://example.com\"",
       };
-      var wrapper = React.render(<this.ContextStubbedSearchBar {...props} />, document.body).refs.wrapped;
+      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
       wrapper.updateAutoCompleteItems();
       expect(wrapper.state.searchTerm).to.eql('"http://example.com"');
       expect(wrapper.state.searchItems).to.eql([]);

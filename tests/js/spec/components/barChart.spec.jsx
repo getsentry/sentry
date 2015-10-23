@@ -1,13 +1,15 @@
-import React from "react/addons";
+import React from "react";
+import ReactDOM from "react-dom";
+import TestUtils from "react-addons-test-utils";
+
 import BarChart from "app/components/barChart";
-var TestUtils = React.addons.TestUtils;
 
 describe("BarChart", function() {
 
   describe("render()", function() {
 
     it("renders with default props", function() {
-      var comp = TestUtils.renderIntoDocument(<BarChart />, document.body);
+      var comp = TestUtils.renderIntoDocument(<BarChart />);
       expect(comp).to.be.ok;
     });
 
@@ -19,7 +21,7 @@ describe("BarChart", function() {
       ];
 
       var comp = TestUtils.renderIntoDocument(<BarChart points={points}/>);
-      var columns = comp.getDOMNode().querySelectorAll('.chart-column');
+      var columns = ReactDOM.findDOMNode(comp).querySelectorAll('.chart-column');
 
       expect(columns).to.have.property('length', 3);
       expect(columns[0]).to.have.property('textContent', '10'); // check y values
@@ -38,8 +40,8 @@ describe("BarChart", function() {
         { x: 1439776800, className: 'last-seen', label: 'last seen' } // matches last point
       ];
 
-      var comp = TestUtils.renderIntoDocument(<BarChart points={points} markers={markers}/>, document.body);
-      var columns = comp.getDOMNode().getElementsByTagName('a');
+      var comp = TestUtils.renderIntoDocument(<BarChart points={points} markers={markers}/>);
+      var columns = ReactDOM.findDOMNode(comp).getElementsByTagName('a');
 
       expect(columns).to.have.property('length', 5);
 
@@ -60,8 +62,8 @@ describe("BarChart", function() {
         { x: 1439776800, className: 'last-seen', label: 'last seen' }
       ];
 
-      var comp = TestUtils.renderIntoDocument(<BarChart points={points} markers={markers}/>, document.body);
-      var columns = comp.getDOMNode().getElementsByTagName('a');
+      var comp = TestUtils.renderIntoDocument(<BarChart points={points} markers={markers}/>);
+      var columns = ReactDOM.findDOMNode(comp).getElementsByTagName('a');
 
       expect(columns).to.have.property('length', 3);
 
