@@ -80,7 +80,7 @@ FROM_EMAIL_DOMAIN = domain_from_email(settings.DEFAULT_FROM_EMAIL)
 class MessageBuilder(object):
     def __init__(self, subject, context=None, template=None, html_template=None,
                  body=None, html_body=None, headers=None, reference=None,
-                 reply_reference=None):
+                 reply_reference=None, from_email=None):
         assert not (body and template)
         assert not (html_body and html_template)
         assert context or not (template or html_template)
@@ -94,7 +94,7 @@ class MessageBuilder(object):
         self.headers = headers
         self.reference = reference  # The object that generated this message
         self.reply_reference = reply_reference  # The object this message is replying about
-
+        self.from_email = from_email or settings.SERVER_EMAIL
         self._send_to = set()
 
     @cached_property
@@ -195,7 +195,7 @@ class MessageBuilder(object):
         msg = EmailMultiAlternatives(
             subject,
             self.txt_body,
-            settings.SERVER_EMAIL,
+            self.from_email,
             (to,),
             headers=headers
         )
