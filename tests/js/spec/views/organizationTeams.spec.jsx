@@ -1,4 +1,5 @@
-import React from "react/addons";
+import React from "react";
+import TestUtils from "react-addons-test-utils";
 import api from "app/api";
 import OrganizationTeams from "app/views/organizationTeams";
 import stubRouter from "../../helpers/stubRouter";
@@ -28,12 +29,11 @@ describe("OrganizationTeams", function() {
 
   afterEach(function() {
     this.sandbox.restore();
-    React.unmountComponentAtNode(document.body);
   });
 
   describe("fetchStats()", function() {
     it('should make a request to the organizations endpoint', function () {
-      var organizationTeams = React.render(this.Element, document.body).refs.wrapped;
+      var organizationTeams = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
 
       // NOTE: creation of OrganizationTeams causes a bunch of API requests to fire ...
       //       reset the request stub so that we can get an accurate count

@@ -1,5 +1,7 @@
-import React from "react/addons";
-var TestUtils = React.addons.TestUtils;
+import React from "react";
+import ReactDOMServer from "react-dom/server";
+
+import TestUtils from "react-addons-test-utils";
 
 import api from "app/api";
 import TagDistributionMeter from "app/components/group/tagDistributionMeter";
@@ -75,7 +77,7 @@ describe("TagDistributionMeter", function() {
         }
       }, () => {
         let out = this.element.renderBody();
-        expect(React.renderToStaticMarkup(out)).to.eql('<p>No recent data.</p>');
+        expect(ReactDOMServer.renderToStaticMarkup(out)).to.eql('<p>No recent data.</p>');
         done();
       });
     });

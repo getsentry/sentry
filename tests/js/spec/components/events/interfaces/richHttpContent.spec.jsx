@@ -1,5 +1,5 @@
-import React from "react/addons";
-var TestUtils = React.addons.TestUtils;
+import React from "react";
+import TestUtils from "react-addons-test-utils";
 import stubReactComponents from "../../../../helpers/stubReactComponent";
 
 import RichHttpContent from "app/components/events/interfaces/richHttpContent";

@@ -1,5 +1,7 @@
-import React from "react/addons";
-var TestUtils = React.addons.TestUtils;
+import React from "react";
+import ReactDOM from "react-dom";
+import TestUtils from "react-addons-test-utils";
+
 import DefinitionList from "app/components/events/interfaces/definitionList";
 
 describe('DefinitionList', function () {
@@ -11,12 +13,12 @@ describe('DefinitionList', function () {
       var elem = TestUtils.renderIntoDocument(<DefinitionList data={data} />);
 
       var dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
-      expect(dts[0].getDOMNode().textContent).to.eql('a');
-      expect(dts[1].getDOMNode().textContent).to.eql('b');
+      expect(ReactDOM.findDOMNode(dts[0]).textContent).to.eql('a');
+      expect(ReactDOM.findDOMNode(dts[1]).textContent).to.eql('b');
 
       var dds = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dd');
-      expect(dds[0].getDOMNode().textContent).to.eql('x');
-      expect(dds[1].getDOMNode().textContent).to.eql('y');
+      expect(ReactDOM.findDOMNode(dds[0]).textContent).to.eql('x');
+      expect(ReactDOM.findDOMNode(dds[1]).textContent).to.eql('y');
     });
 
     it("should sort sort key/value pairs", function () {
@@ -26,12 +28,12 @@ describe('DefinitionList', function () {
       var elem = TestUtils.renderIntoDocument(<DefinitionList data={data} />);
 
       var dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
-      expect(dts[0].getDOMNode().textContent).to.eql('a');
-      expect(dts[1].getDOMNode().textContent).to.eql('b');
+      expect(ReactDOM.findDOMNode(dts[0]).textContent).to.eql('a');
+      expect(ReactDOM.findDOMNode(dts[1]).textContent).to.eql('b');
 
       var dds = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dd');
-      expect(dds[0].getDOMNode().textContent).to.eql('x');
-      expect(dds[1].getDOMNode().textContent).to.eql('y');
+      expect(ReactDOM.findDOMNode(dds[0]).textContent).to.eql('x');
+      expect(ReactDOM.findDOMNode(dds[1]).textContent).to.eql('y');
     });
 
     it("should use a single space for values that are an empty string", function () {
@@ -41,12 +43,12 @@ describe('DefinitionList', function () {
       var elem = TestUtils.renderIntoDocument(<DefinitionList data={data} />);
 
       var dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
-      expect(dts[0].getDOMNode().textContent).to.eql('a');
-      expect(dts[1].getDOMNode().textContent).to.eql('b');
+      expect(ReactDOM.findDOMNode(dts[0]).textContent).to.eql('a');
+      expect(ReactDOM.findDOMNode(dts[1]).textContent).to.eql('b');
 
       var dds = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dd');
-      expect(dds[0].getDOMNode().textContent).to.eql(' ');
-      expect(dds[1].getDOMNode().textContent).to.eql('y');
+      expect(ReactDOM.findDOMNode(dds[0]).textContent).to.eql(' ');
+      expect(ReactDOM.findDOMNode(dds[1]).textContent).to.eql('y');
     });
 
     it("should coerce non-strings into strings", function () {
@@ -56,10 +58,10 @@ describe('DefinitionList', function () {
       var elem = TestUtils.renderIntoDocument(<DefinitionList data={data} />);
 
       var dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
-      expect(dts[0].getDOMNode().textContent).to.eql('a');
+      expect(ReactDOM.findDOMNode(dts[0]).textContent).to.eql('a');
 
       var dds = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dd');
-      expect(dds[0].getDOMNode().textContent).to.eql('false');
+      expect(ReactDOM.findDOMNode(dds[0]).textContent).to.eql('false');
     });
 
     it("shouldn't blow up on null", function () {
@@ -69,10 +71,10 @@ describe('DefinitionList', function () {
       var elem = TestUtils.renderIntoDocument(<DefinitionList data={data} />);
 
       var dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
-      expect(dts[0].getDOMNode().textContent).to.eql('a');
+      expect(ReactDOM.findDOMNode(dts[0]).textContent).to.eql('a');
 
       var dds = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dd');
-      expect(dds[0].getDOMNode().textContent).to.eql('null');
+      expect(ReactDOM.findDOMNode(dds[0]).textContent).to.eql('null');
     });
   });
 });
