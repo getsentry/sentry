@@ -10,16 +10,29 @@
   <form class="form-stacked" action="" method="post">
     {% csrf_token %}
 
-    <img src="{% gravatar_url user.email size 36 %}" class="merge-avatar avatar">
-    <span class="icon-arrow-right"></span>
-    <span class="icon-arrow-left"></span>
-    <img src="{% gravatar_url identity.email size 36 %}" class="merge-avatar avatar">
+    <div class="sso-link">
+      <img src="{% gravatar_url existing_user.email size 36 %}" class="merge-avatar avatar">
+      <span class="icon-arrow-right"></span>
+      <span class="icon-arrow-left"></span>
+      <img src="{% gravatar_url identity.email size 36 %}" class="merge-avatar avatar">
+    </div>
 
-    <p>You're already logged in with an existing account. Would you like to add this identity? If not, we'll go ahead and create a new account for you.</p>
+    <div class="align-center">
 
-    <p class="align-center">
-      <button class="btn btn-default" name="op" value="newuser" type="submit">No thanks</button>
-      <button class="btn btn-primary" name="op" value="confirm" type="submit">Merge accounts</button>
-    </p>
+      {% if existing_user.email == identity.email %}
+        <p>We're going to associate your new identity with your existing account which means all of your existing settings will stay in tact.</p>
+
+        <p>
+          <button class="btn btn-primary" name="op" value="confirm" type="submit">Continue</button>
+        </p>
+      {% else %}
+        <p>Would you like to associate this identity with your existing account? If not, we'll go ahead and create a new account for you.</p>
+
+        <p>
+          <button class="btn btn-default" name="op" value="newuser" type="submit">No thanks</button>
+          <button class="btn btn-primary" name="op" value="confirm" type="submit">Merge accounts</button>
+        </p>
+      {% endif %}
+    </div>
   </form>
 {% endblock %}
