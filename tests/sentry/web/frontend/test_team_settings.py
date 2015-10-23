@@ -47,7 +47,7 @@ class TeamSettingsTest(TestCase):
 
     def test_slug_already_exists(self):
         self.login_as(self.user)
-        team_2 = self.create_team(name='bar', organization=self.organization)
+        self.create_team(name='bar', organization=self.organization)
         resp = self.client.post(self.path, {
             'name': 'bar',
             'slug': self.team.slug,
