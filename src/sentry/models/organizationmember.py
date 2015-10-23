@@ -175,12 +175,7 @@ class OrganizationMember(Model):
             html_template='sentry/emails/auth-link-identity.html',
             context=context,
         )
-
-        try:
-            msg.send([self.get_email()])
-        except Exception as e:
-            logger = logging.getLogger('sentry.mail.errors')
-            logger.exception(e)
+        msg.send_async([self.get_email()])
 
     def get_display_name(self):
         if self.user_id:
