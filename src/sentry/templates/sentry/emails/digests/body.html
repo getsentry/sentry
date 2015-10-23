@@ -25,7 +25,7 @@
               <th class="align-right">Events</th>
               <th class="align-right">Users</th>
           </tr>
-          {% for group, records in groups.iteritems %}
+          {% for group, records in groups.items|slice:":10" %}
               <tr>
                   <td class="event-detail">
                       {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
@@ -42,9 +42,15 @@
                   </td>
               </tr>
           {% endfor %}
-          <tr>
-            <td colspan="3" class="more-events">And N more events</td>
-          </tr>
+          {% with groups.items|slice:"10:" as remainder %}
+            {% if remainder %}
+                <tr>
+                    <td colspan="3" class="more-events">
+                        and {{ remainder|length }} more event{{ remainder|pluralize }}
+                    </td>
+                </tr>
+            {% endif %}
+          {% endwith %}
       </table>
     </div>
 {% endfor %}
