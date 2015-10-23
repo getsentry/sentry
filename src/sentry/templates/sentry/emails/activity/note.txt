@@ -8,7 +8,7 @@ A new note was posted on an event in Sentry:
 Details
 -------
 
-{{ group.title }}
+{{ group.message_short }}
 
 {{ activity_link }}
 
