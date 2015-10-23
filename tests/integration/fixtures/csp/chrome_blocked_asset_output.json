@@ -3,7 +3,7 @@
   "tags": {
     "logger": "csp",
     "effective-directive": "style-src",
-    "blocked-uri": "localhost:8000"
+    "blocked-uri": "http://localhost:8000/lol.css"
   },
   "data": {
     "sentry.interfaces.User": {"ip_address": "127.0.0.1"},

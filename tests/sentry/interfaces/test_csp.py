@@ -139,7 +139,7 @@ class CspTest(TestCase):
     def test_get_tags(self):
         assert self.interface.get_tags() == (
             ('effective-directive', 'style-src'),
-            ('blocked-uri', 'example.com'),
+            ('blocked-uri', 'http://example.com/lol.css'),
         )
 
     def test_get_message(self):
