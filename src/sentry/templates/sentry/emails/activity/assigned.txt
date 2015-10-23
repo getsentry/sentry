@@ -6,7 +6,7 @@
 Details
 -------
 
-{{ group.title }}
+{{ group.message_short }}
 
 {{ link }}
 
