@@ -226,6 +226,7 @@ def digest(request):
             id=group_id,
             project=project,
             message='This is example event #%s' % (group_id,),
+            culprit='widget.foo in bar',
         )
 
         offset = timedelta(seconds=0)

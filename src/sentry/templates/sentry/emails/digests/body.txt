@@ -2,7 +2,7 @@
 
 {% for rule, groups in digest.iteritems %}{{ rule.label }}
 
-{% for group, records in groups.iteritems %}* {{ group.title }} ({{ group.event_count }} event{{ group.event_count|pluralize }}, {{ group.user_count }} user{{ group.user_count|pluralize }})
+{% for group, records in groups.iteritems %}* {{ group.message_short }} ({{ group.event_count }} event{{ group.event_count|pluralize }}, {{ group.user_count }} user{{ group.user_count|pluralize }})
   {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}{% absolute_uri group_link %}
 
 {% endfor %}{% endfor %}
