@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from django.conf import settings
 from random import random
 from time import time
+import logging
 
 
 def get_default_backend():
@@ -47,20 +48,33 @@ def _incr_internal(key, instance=None, tags=None, amount=1):
             full_key = '{}.{}'.format(key, instance)
         else:
             full_key = key
-        tsdb.incr(tsdb.models.internal, full_key, count=amount)
+
+        try:
+            tsdb.incr(tsdb.models.internal, full_key, count=amount)
+        except Exception:
+            logger = logging.getLogger('sentry.errors')
+            logger.exception('Unable to incr internal metric')
 
 
 def incr(key, amount=1, instance=None, tags=None):
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
     _incr_internal(key, instance, tags, amount)
-    backend.incr(key, instance, tags, amount, sample_rate)
+    try:
+        backend.incr(key, instance, tags, amount, sample_rate)
+    except Exception:
+        logger = logging.getLogger('sentry.errors')
+        logger.exception('Unable to record backend metric')
 
 
 def timing(key, value, instance=None, tags=None):
     # TODO(dcramer): implement timing for tsdb
     # TODO(dcramer): implement sampling for timing
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
-    backend.timing(key, value, instance, tags, sample_rate)
+    try:
+        backend.timing(key, value, instance, tags, sample_rate)
+    except Exception:
+        logger = logging.getLogger('sentry.errors')
+        logger.exception('Unable to record backend metric')
 
 
 @contextmanager
