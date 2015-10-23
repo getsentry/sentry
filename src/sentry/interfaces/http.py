@@ -32,6 +32,13 @@ def format_headers(value):
     result = []
     cookie_header = None
     for k, v in value:
+        # If a header value is a list of header,
+        # we want to normalize this into a comma separated list
+        # This is how most other libraries handle this.
+        # See: urllib3._collections:HTTPHeaderDict.itermerged
+        if isinstance(v, list):
+            v = ', '.join(v)
+
         if k.lower() == 'cookie':
             cookie_header = v
         else:
