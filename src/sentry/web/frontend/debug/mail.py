@@ -200,14 +200,16 @@ def digest(request):
         organization=org,
     )
 
+    rules = {i: Rule(
+        id=i,
+        project=project,
+        label="Rule #%s" % (i,),
+    ) for i in xrange(1, random.randint(2, 4))}
+
     state = {
         'project': project,
         'groups': {},
-        'rules': {
-            1: Rule(id=1, project=project, label="First Rule"),
-            2: Rule(id=2, project=project, label="Second Rule"),
-            3: Rule(id=3, project=project, label="Third Rule"),
-        },
+        'rules': rules,
         'event_counts': {},
         'user_counts': {},
     }
@@ -217,7 +219,7 @@ def digest(request):
     group_sequence = itertools.count(1)
     event_sequence = itertools.count(1)
 
-    for i in xrange(random.randint(1, 4)):
+    for i in xrange(random.randint(1, 30)):
         group_id = next(group_sequence)
 
         group = state['groups'][group_id] = Group(
