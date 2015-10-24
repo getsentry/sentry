@@ -24,6 +24,7 @@ class InviteOrganizationMemberForm(forms.ModelForm):
             existing = OrganizationMember.objects.filter(
                 organization=organization,
                 user__email__iexact=om.email,
+                user__is_active=True,
             )[0]
         except IndexError:
             pass

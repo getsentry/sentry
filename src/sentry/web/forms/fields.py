@@ -75,7 +75,10 @@ class UserField(CharField):
         if not value:
             return None
         try:
-            return User.objects.get(username=value)
+            return User.objects.get(
+                username=value,
+                is_active=True,
+            )
         except User.DoesNotExist:
             raise ValidationError(_('Invalid username'))
 

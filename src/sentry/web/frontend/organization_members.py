@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.db.models import Q
+
 from sentry import roles
 from sentry.models import (
     AuthProvider, OrganizationAccessRequest, OrganizationMember,
@@ -11,6 +13,7 @@ from sentry.web.frontend.base import OrganizationView
 class OrganizationMembersView(OrganizationView):
     def handle(self, request, organization):
         queryset = OrganizationMember.objects.filter(
+            Q(user__is_active=True) | Q(user__isnull=True),
             organization=organization,
         ).select_related('user')
 
@@ -44,9 +47,11 @@ class OrganizationMembersView(OrganizationView):
         if can_approve_requests_globally:
             access_requests = list(OrganizationAccessRequest.objects.filter(
                 team__organization=organization,
+                member__user__is_active=True,
             ).select_related('team', 'member__user'))
         elif request.access.has_scope('team:write'):
             access_requests = list(OrganizationAccessRequest.objects.filter(
+                member__user__is_active=True,
                 team__in=OrganizationMemberTeam.objects.filter(
                     organizationmember__organization=organization,
                     organizationmember__user=request.user,

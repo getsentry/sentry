@@ -145,6 +145,7 @@ class Fixtures(object):
 
         kwargs.setdefault('username', email)
         kwargs.setdefault('is_staff', True)
+        kwargs.setdefault('is_active', True)
         kwargs.setdefault('is_superuser', False)
 
         user = User(email=email, **kwargs)
