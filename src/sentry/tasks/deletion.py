@@ -10,6 +10,7 @@ from __future__ import absolute_import
 
 from celery.utils.log import get_task_logger
 
+from sentry.exceptions import DeleteAborted
 from sentry.utils.query import bulk_delete_objects
 from sentry.signals import pending_delete
 from sentry.tasks.base import instrumented_task, retry
@@ -31,7 +32,7 @@ def delete_organization(object_id, continuous=True, **kwargs):
         return
 
     if o.status == OrganizationStatus.VISIBLE:
-        raise ValueError('Aborting organization deletion as status is invalid')
+        raise DeleteAborted('Aborting organization deletion as status is invalid')
 
     if o.status != OrganizationStatus.DELETION_IN_PROGRESS:
         o.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
@@ -67,7 +68,7 @@ def delete_team(object_id, continuous=True, **kwargs):
         return
 
     if t.status == TeamStatus.VISIBLE:
-        raise ValueError('Aborting team deletion as status is invalid')
+        raise DeleteAborted('Aborting team deletion as status is invalid')
 
     if t.status != TeamStatus.DELETION_IN_PROGRESS:
         pending_delete.send(sender=Team, instance=t)
@@ -101,7 +102,7 @@ def delete_project(object_id, continuous=True, **kwargs):
         return
 
     if p.status == ProjectStatus.VISIBLE:
-        raise ValueError('Aborting project deletion as status is invalid')
+        raise DeleteAborted('Aborting project deletion as status is invalid')
 
     if p.status != ProjectStatus.DELETION_IN_PROGRESS:
         pending_delete.send(sender=Project, instance=p)
