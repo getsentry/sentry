@@ -16,6 +16,20 @@ class EditTeamForm(forms.ModelForm):
         fields = ('name', 'slug',)
         model = Team
 
+    def clean_slug(self):
+        value = self.cleaned_data.get('slug')
+        if not value:
+            return
+
+        qs = Team.objects.filter(
+            slug=value,
+            organization=self.instance.organization,
+        ).exclude(id=self.instance.id)
+        if qs.exists():
+            raise forms.ValidationError("A team with that slug already exists.")
+
+        return value
+
 
 class TeamSettingsView(TeamView):
     required_scope = 'team:write'
@@ -24,27 +38,25 @@ class TeamSettingsView(TeamView):
         return EditTeamForm(request.POST or None, instance=team)
 
     def handle(self, request, organization, team):
-        old_slug = team.slug
         form = self.get_form(request, team)
         if form.is_valid():
             try:
                 team = form.save()
             except IntegrityError:
-                team.slug = old_slug
-                messages.add_message(request, messages.ERROR,
-                    _('Changes to your team failed. Slug already exists.'))
-            else:
-                AuditLogEntry.objects.create(
-                    organization=organization,
-                    actor=request.user,
-                    ip_address=request.META['REMOTE_ADDR'],
-                    target_object=team.id,
-                    event=AuditLogEntryEvent.TEAM_EDIT,
-                    data=team.get_audit_log_data(),
-                )
+                form.errors['__all__'] = ['There was an error while saving your changes. Please try again.']
 
-                messages.add_message(request, messages.SUCCESS,
-                    _('Changes to your team were saved.'))
+        if form.is_valid():
+            AuditLogEntry.objects.create(
+                organization=organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=team.id,
+                event=AuditLogEntryEvent.TEAM_EDIT,
+                data=team.get_audit_log_data(),
+            )
+
+            messages.add_message(request, messages.SUCCESS,
+                _('Changes to your team were saved.'))
 
             return HttpResponseRedirect(reverse('sentry-manage-team', args=[organization.slug, team.slug]))
 
