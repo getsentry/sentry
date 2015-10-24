@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, ugettext
 
 from sentry import roles
@@ -52,7 +53,10 @@ class OrganizationMemberSettingsView(OrganizationView):
 
     def handle(self, request, organization, member_id):
         try:
-            member = OrganizationMember.objects.get(id=member_id)
+            member = OrganizationMember.objects.get(
+                Q(user__is_active=True) | Q(user__isnull=True),
+                id=member_id,
+            )
         except OrganizationMember.DoesNotExist:
             return self.redirect(reverse('sentry'))
 

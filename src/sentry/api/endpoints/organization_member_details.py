@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.db import transaction
+from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -48,9 +49,11 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             queryset = OrganizationMember.objects.filter(
                 organization=organization,
                 user__id=request.user.id,
+                user__is_active=True,
             )
         else:
             queryset = OrganizationMember.objects.filter(
+                Q(user__is_active=True) | Q(user__isnull=True),
                 organization=organization,
                 id=member_id,
             )
@@ -64,6 +67,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             organization=member.organization_id,
             role=roles.get_top_dog().id,
             user__isnull=False,
+            user__is_active=True,
         ).exclude(id=member.id)
         if queryset.exists():
             return False

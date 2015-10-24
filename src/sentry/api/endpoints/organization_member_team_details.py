@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -59,9 +60,11 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             queryset = OrganizationMember.objects.filter(
                 organization=organization,
                 user__id=request.user.id,
+                user__is_active=True,
             )
         else:
             queryset = OrganizationMember.objects.filter(
+                Q(user__is_active=True) | Q(user__isnull=True),
                 organization=organization,
                 id=member_id,
             )
