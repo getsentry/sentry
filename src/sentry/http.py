@@ -76,14 +76,12 @@ class BlacklistAdapter(HTTPAdapter):
             raise SuspiciousOperation('%s matches the URL blacklist' % (request.url,))
         return super(BlacklistAdapter, self).send(request, *args, **kwargs)
 
-blacklist_adapter = BlacklistAdapter()
-
 
 def build_session():
     session = requests.Session()
     session.headers.update({'User-Agent': USER_AGENT})
-    session.mount('https://', blacklist_adapter)
-    session.mount('http://', blacklist_adapter)
+    session.mount('https://', BlacklistAdapter())
+    session.mount('http://', BlacklistAdapter())
     return session
 
 
