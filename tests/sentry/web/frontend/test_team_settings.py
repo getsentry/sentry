@@ -42,17 +42,16 @@ class TeamSettingsTest(TestCase):
         })
         assert resp.status_code == 302
         self.assertEquals(resp['Location'], 'http://testserver' + self.path)
-        team = Team.objects.get(pk=self.team.pk)
+        team = Team.objects.get(id=self.team.id)
         self.assertEquals(team.name, 'bar')
 
     def test_slug_already_exists(self):
         self.login_as(self.user)
-        self.create_team(name='bar', organization=self.organization)
+        self.create_team(name='bar', slug='bar', organization=self.organization)
         resp = self.client.post(self.path, {
             'name': 'bar',
-            'slug': self.team.slug,
+            'slug': 'bar',
         })
-        assert resp.status_code == 302
-        self.assertEquals(resp['Location'], 'http://testserver' + self.path)
-        team = Team.objects.get(pk=self.team.pk)
-        self.assertEquals(team.name, self.team.name)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/teams/manage.html')
+        assert resp.context['form'].errors['slug']
