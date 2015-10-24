@@ -44,3 +44,15 @@ class TeamSettingsTest(TestCase):
         self.assertEquals(resp['Location'], 'http://testserver' + self.path)
         team = Team.objects.get(pk=self.team.pk)
         self.assertEquals(team.name, 'bar')
+
+    def test_slug_already_exists(self):
+        self.login_as(self.user)
+        self.create_team(name='bar', organization=self.organization)
+        resp = self.client.post(self.path, {
+            'name': 'bar',
+            'slug': self.team.slug,
+        })
+        assert resp.status_code == 302
+        self.assertEquals(resp['Location'], 'http://testserver' + self.path)
+        team = Team.objects.get(pk=self.team.pk)
+        self.assertEquals(team.name, self.team.name)
