@@ -292,11 +292,11 @@ class BaseManager(Manager):
 
         object_node_list = []
         for name in node_names:
-            object_node_list.extend(
-                ((i, getattr(i, name))
+            object_node_list.extend((
+                (i, getattr(i, name))
                 for i in object_list
-                if getattr(i, name).id)
-            )
+                if getattr(i, name).id
+            ))
 
         node_ids = [n.id for _, n in object_node_list]
         if not node_ids:
