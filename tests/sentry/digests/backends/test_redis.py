@@ -35,10 +35,8 @@ def get_set_size(cluster, key):
 
 class BaseRedisBackendTestCase(TestCase):
     DEFAULT_BACKEND_OPTIONS = {
-        'cluster': {
-            'hosts': {
-                0: {'db': 9},
-            },
+        'hosts': {
+            0: {'db': 9},
         },
     }
 
