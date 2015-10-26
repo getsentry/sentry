@@ -169,6 +169,57 @@ def new_note(request):
         },
     ).render()
 
+@login_required
+def assigned(request):
+
+    org = Organization(
+        id=1,
+        slug='example',
+        name='Example',
+    )
+    team = Team(
+        id=1,
+        slug='example',
+        name='Example',
+        organization=org,
+    )
+    project = Project(
+        id=1,
+        slug='example',
+        name='Example',
+        team=team,
+        organization=org,
+    )
+    group = Group(
+        id=1,
+        project=project,
+        message='This is an example event.',
+    )
+    event = Event(
+        id=1,
+        project=project,
+        group=group,
+        message=group.message,
+        data=load_data('python'),
+    )
+    assigned = Activity(
+        group=event.group, event=event, project=event.project,
+        type=Activity.ASSIGNED, user=request.user,
+        data={'text': 'This is an example note!'},
+    )
+
+    return MailPreview(
+        html_template='sentry/emails/activity/assigned.html',
+        text_template='sentry/emails/activity/assigned.txt',
+        context={
+            'data': assigned.data,
+            'author': assigned.user,
+            'date': assigned.datetime,
+            'group': group,
+            'link': group.get_absolute_url(),
+        },
+    ).render()
+
 
 @login_required
 def digest(request):
