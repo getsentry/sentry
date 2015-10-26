@@ -17,7 +17,7 @@ from sentry.digests.backends.redis import (
     RedisBackend,
     ensure_timeline_scheduled,
     make_digest_key,
-    make_iteration_key,
+    make_last_processed_timestamp_key,
     make_record_key,
     make_schedule_key,
     make_timeline_key,
@@ -63,31 +63,31 @@ class RedisScriptTestCase(BaseRedisBackendTestCase):
         timeline_score_in_waiting_set = functools.partial(client.zscore, 'waiting', timeline)
         timeline_score_in_ready_set = functools.partial(client.zscore, 'ready', timeline)
 
-        # The first addition should cause the timeline to be added to the waiting set.
-        with self.assertChanges(waiting_set_size, before=0, after=1), \
-                self.assertChanges(timeline_score_in_waiting_set, before=None, after=timestamp):
-            ensure_timeline_scheduled(('waiting', 'ready'), (timeline, timestamp), client)
+        # The first addition should cause the timeline to be added to the ready set.
+        with self.assertChanges(ready_set_size, before=0, after=1), \
+                self.assertChanges(timeline_score_in_ready_set, before=None, after=timestamp):
+            assert ensure_timeline_scheduled(('waiting', 'ready'), (timeline, timestamp, 1, 10), client) == 1
 
         # Adding it again with a timestamp in the future should not change the schedule time.
         with self.assertDoesNotChange(waiting_set_size), \
-                self.assertDoesNotChange(timeline_score_in_waiting_set):
-            ensure_timeline_scheduled(('waiting', 'ready'), (timeline, timestamp + 50), client)
-
-        # If we see a record with a timestamp earlier than the schedule time,
-        # we should change the schedule.
-        with self.assertDoesNotChange(waiting_set_size), \
-                self.assertChanges(timeline_score_in_waiting_set, before=timestamp, after=timestamp - 50):
-            ensure_timeline_scheduled(('waiting', 'ready'), (timeline, timestamp - 50), client)
-
-        # Move the timeline from the waiting set to the ready set.
-        client.zrem('waiting', timeline)
-        client.zadd('ready', timestamp, timeline)
-
-        # Nothing should change.
-        with self.assertDoesNotChange(waiting_set_size), \
                 self.assertDoesNotChange(ready_set_size), \
                 self.assertDoesNotChange(timeline_score_in_ready_set):
-            ensure_timeline_scheduled(('waiting', 'ready'), (timeline, timestamp - 50), client)
+            assert ensure_timeline_scheduled(('waiting', 'ready'), (timeline, timestamp + 50, 1, 10), client) is None
+
+        # Move the timeline from the ready set to the waiting set.
+        client.zrem('ready', timeline)
+        client.zadd('waiting', timestamp, timeline)
+        client.set(make_last_processed_timestamp_key(timeline), timestamp)
+
+        increment = 1
+        with self.assertDoesNotChange(waiting_set_size), \
+                self.assertChanges(timeline_score_in_waiting_set, before=timestamp, after=timestamp + increment):
+            assert ensure_timeline_scheduled(('waiting', 'ready'), (timeline, timestamp, increment, 10), client) is None
+
+        # Make sure the schedule respects the maximum value.
+        with self.assertDoesNotChange(waiting_set_size), \
+                self.assertChanges(timeline_score_in_waiting_set, before=timestamp + 1, after=timestamp):
+            assert ensure_timeline_scheduled(('waiting', 'ready'), (timeline, timestamp, increment, 0), client) is None
 
     def test_truncate_timeline_script(self):
         client = StrictRedis(db=9)
@@ -123,19 +123,17 @@ class RedisBackendTestCase(BaseRedisBackendTestCase):
         connection = backend.cluster.get_local_client_for_key(timeline_key)
 
         record = next(self.records)
-        waiting_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_WAITING)
+        ready_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_READY)
         record_key = make_record_key(timeline_key, record.key)
 
-        get_timeline_score_in_waiting_set = functools.partial(connection.zscore, waiting_set_key, timeline)
-        get_timeline_iteration_counter = functools.partial(connection.get, make_iteration_key(timeline_key))
+        get_timeline_score_in_ready_set = functools.partial(connection.zscore, ready_set_key, timeline)
         get_record_score_in_timeline_set = functools.partial(connection.zscore, timeline_key, record.key)
 
         def get_record_value():
             value = connection.get(record_key)
             return backend.codec.decode(value) if value is not None else None
 
-        with self.assertChanges(get_timeline_score_in_waiting_set, before=None, after=record.timestamp + backend.backoff(0)), \
-                self.assertChanges(get_timeline_iteration_counter, before=None, after='0'), \
+        with self.assertChanges(get_timeline_score_in_ready_set, before=None, after=record.timestamp), \
                 self.assertChanges(get_record_score_in_timeline_set, before=None, after=record.timestamp), \
                 self.assertChanges(get_record_value, before=None, after=record.value):
             backend.add(timeline, record)
@@ -234,8 +232,9 @@ class DigestTestCase(BaseRedisBackendTestCase):
                 entries = list(entries)
                 assert entries == records[::-1]
 
-            next_scheduled_delivery = timestamp + backend.backoff(1)
+            next_scheduled_delivery = timestamp + backend.interval
             assert client.zscore(waiting_set_key, timeline) == next_scheduled_delivery
+            assert int(client.get(make_last_processed_timestamp_key(timeline_key))) == int(timestamp)
 
         # Move the timeline back to the ready set.
         for entry in backend.schedule(next_scheduled_delivery):
@@ -246,6 +245,8 @@ class DigestTestCase(BaseRedisBackendTestCase):
                 self.assertChanges(get_ready_set_size, before=1, after=0):
             with backend.digest(timeline) as entries:
                 assert list(entries) == []
+
+        assert client.get(make_last_processed_timestamp_key(timeline_key)) is None
 
     def test_digesting_failure_recovery(self):
         backend = self.get_backend()
@@ -272,13 +273,11 @@ class DigestTestCase(BaseRedisBackendTestCase):
         get_ready_set_size = functools.partial(get_set_size, backend.cluster, ready_set_key)
         get_timeline_size = functools.partial(client.zcard, timeline_key)
         get_digest_size = functools.partial(client.zcard, make_digest_key(timeline_key))
-        get_iteration_counter = functools.partial(client.get, make_iteration_key(timeline_key))
 
         with self.assertChanges(get_timeline_size, before=n, after=0), \
                 self.assertChanges(get_digest_size, before=0, after=n), \
                 self.assertDoesNotChange(get_waiting_set_size), \
-                self.assertDoesNotChange(get_ready_set_size), \
-                self.assertDoesNotChange(get_iteration_counter):
+                self.assertDoesNotChange(get_ready_set_size):
             try:
                 with backend.digest(timeline) as entries:
                     raise ExpectedError
@@ -293,13 +292,11 @@ class DigestTestCase(BaseRedisBackendTestCase):
         with self.assertChanges(get_timeline_size, before=len(extra), after=0), \
                 self.assertChanges(get_digest_size, before=len(records), after=0), \
                 self.assertChanges(get_waiting_set_size, before=0, after=1), \
-                self.assertChanges(get_ready_set_size, before=1, after=0), \
-                self.assertChanges(get_iteration_counter, before='0', after='1'):
-
+                self.assertChanges(get_ready_set_size, before=1, after=0):
             timestamp = time.time()
             with mock.patch('time.time', return_value=timestamp), \
                     backend.digest(timeline) as entries:
                 entries = list(entries)
                 assert entries == (records + extra)[::-1]
 
-            assert client.zscore(waiting_set_key, timeline) == timestamp + backend.backoff(1)
+            assert client.zscore(waiting_set_key, timeline) == timestamp + backend.interval

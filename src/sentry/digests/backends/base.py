@@ -12,18 +12,6 @@ def load(options):
     return import_string(options['path'])(**options.get('options', {}))
 
 
-DEFAULT_BACKOFF = {
-    'path': 'sentry.digests.backoff.IntervalBackoffStrategy',
-    'options': {
-        'default': 60 * 15,
-        'intervals': {
-            0: 30,
-            1: 60 * 5,
-        },
-    },
-}
-
-
 DEFAULT_CODEC = {
     'path': 'sentry.digests.codecs.CompressedPickleCodec',
 }
@@ -51,14 +39,13 @@ class Backend(object):
     deleted (although deletion may be preempted by a new record being added to
     the timeline, requiring it to be transitioned to "waiting" instead.)
     """
+    interval = 60  # TODO: make option
+    maximum_delay = interval * 5
+
     def __init__(self, **options):
         # The ``codec`` option provides the strategy for encoding and decoding
         # records in the timeline.
         self.codec = load(options.pop('codec', DEFAULT_CODEC))
-
-        # The ``backoff`` option provides the strategy for calculating
-        # scheduling intervals.
-        self.backoff = load(options.pop('backoff', DEFAULT_BACKOFF))
 
         # The ``capacity`` option defines the maximum number of items that
         # should be contained within a timeline. (Whether this is a hard or
@@ -96,6 +83,9 @@ class Backend(object):
 
         If another record exists in the timeline with the same record key, it
         will be overwritten.
+
+        The return value this function indicates whether or not the timeline is
+        ready for immediate digestion.
         """
         raise NotImplementedError
 
