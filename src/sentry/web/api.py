@@ -111,12 +111,12 @@ class APIView(BaseView):
             if isinstance(e, APIRateLimited) and e.retry_after is not None:
                 response['Retry-After'] = str(e.retry_after)
 
-        except Exception:
-            if settings.DEBUG or True:
+        except Exception as e:
+            if settings.DEBUG:
                 content = traceback.format_exc()
             else:
                 content = ''
-            traceback.print_exc()
+            logger.exception(e)
             response = HttpResponse(content,
                                     content_type='text/plain',
                                     status=500)
