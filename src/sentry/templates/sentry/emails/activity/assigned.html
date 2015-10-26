@@ -1,5 +1,8 @@
 {% extends "sentry/emails/base.html" %}
 
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
 {% block preheader %}
   {{ author }} assigned you an issue in {{ group.organization.name }}/{{ group.project.name }}.
 {% endblock %}
@@ -13,7 +16,7 @@
   <h2>Assigned</h2>
 
   <blockquote>
-    <strong>{{ author }}</strong> assigned this issue to you in {{ group.organization.name }}/{{ group.project.name }}.
+    <strong><img class="avatar" width="20" height="20" src="{% gravatar_url author.email size 40 %}" style="border-radius: 3px; margin-right: 5px; vertical-align: bottom">{{ author }}</strong> assigned this issue to you in <strong>{{ group.organization.name }}/{{ group.project.name }}</strong>.
   </blockquote>
 
   {% include "sentry/emails/group_header.html" %}

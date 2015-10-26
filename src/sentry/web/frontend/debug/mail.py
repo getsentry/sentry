@@ -169,6 +169,7 @@ def new_note(request):
         },
     ).render()
 
+
 @login_required
 def assigned(request):
 
