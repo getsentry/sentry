@@ -141,7 +141,7 @@ class Activity(Model):
         group = self.group
 
         if self.user:
-            author = self.user.first_name or self.user.username
+            author = self.user
         else:
             author = None
 
