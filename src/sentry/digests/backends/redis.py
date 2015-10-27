@@ -255,7 +255,7 @@ class RedisBackend(Backend):
                 (
                     key,
                     record.timestamp,
-                    5,
+                    self.increment_delay,
                     self.maximum_delay,
                 ),
                 pipeline,

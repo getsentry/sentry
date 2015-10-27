@@ -28,21 +28,42 @@ class Backend(object):
     key. Records within a timeline are also identified by a key that is unique
     with respect to the timeline they are a part of.
 
-    A timeline can be in one of two states: "waiting" or "ready". When the
-    first record is added to a timeline, the timeline transitions to the
-    "waiting" state. This transition also causes the timeline to be scheduled
-    for digestion after the waiting period. After the waiting period expires,
-    the timeline transitions to the "ready" state, which causes the timeline to
-    be digested. After the timeline is digested, it transitions back to the
-    "waiting" state (causing it to be rescheduled) if it contained records. If
-    the timeline did not contain any records when it was digested, it can be
-    deleted (although deletion may be preempted by a new record being added to
-    the timeline, requiring it to be transitioned to "waiting" instead.)
-    """
-    interval = 60  # TODO: make option
-    maximum_delay = interval * 5
+    A timeline can be in one of two states: "waiting" or "ready".
 
+    When the first record is added to a timeline, the timeline transitions to
+    the "ready" state, and the digest is immediately available to be digested
+    and delivered. (This immediate state change to "ready" allows notifications
+    to be delivered with lower latency.)
+
+    After delivery, the digest transitions to the "waiting" state for the
+    duration of the delay interval. If more items are added to the digest
+    during this waiting period, the schedule is extended incrementally (up to
+    the value defined by the maximum delay option) to allow grouping the more
+    items into a single notification.
+
+    When the "waiting" period is over, the timeline transitions back to the
+    "ready" state, which causes the timeline to be again digested and
+    delivered. After the timeline is digested, it transitions back to the
+    "waiting" state if it contained records. If the timeline did not contain
+    any records when it was digested, it can be deleted (although deletion may
+    be preempted by a new record being added to the timeline, requiring it to
+    be transitioned to "waiting" instead.)
+    """
     def __init__(self, **options):
+        # The ``interval`` option defines the minimum amount of time (in
+        # seconds) to wait between scheduling digests for delivery after the
+        # initial scheduling.
+        self.interval = options.pop('interval', 120)
+
+        # The ``maximum_delay`` option defines the maximum amount of time (in
+        # seconds) to wait between scheduling digests for delivery.
+        self.maximum_delay = options.pop('maximum_delay', 60 * 5)
+
+        # The ``increment_delay`` option defines how long each observation of
+        # an event should delay scheduling (up until the ``maximum_delay``
+        # after the last time a digest was processed.)
+        self.increment_delay = options.pop('increment_delay', 5)
+
         # The ``codec`` option provides the strategy for encoding and decoding
         # records in the timeline.
         self.codec = load(options.pop('codec', DEFAULT_CODEC))
