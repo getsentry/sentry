@@ -128,7 +128,7 @@ urlpatterns = patterns(
 
     # Handles redirecting project_id => org_slug/project_slug
     # TODO(dcramer): remove this after a reasonable period of time
-    url(r'^projects/(?P<project_id>\d+)/(?P<path>(?:groups|releases|stats|tags)/.+)?',
+    url(r'^projects/(?P<project_id>\d+)/(?P<path>(?:groups|releases|stats|tags)/.*)$',
         LegacyProjectRedirectEndpoint.as_view()),
 
     # Projects
