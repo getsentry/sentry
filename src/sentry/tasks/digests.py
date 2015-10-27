@@ -35,7 +35,7 @@ def schedule_digests():
 @instrumented_task(
     name='sentry.tasks.digests.deliver_digest',
     queue='digests.delivery')
-def deliver_digest(key, schedule_timestamp):
+def deliver_digest(key, schedule_timestamp=None):
     from sentry.app import digests
 
     plugin, project = split_key(key)
