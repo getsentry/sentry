@@ -49,13 +49,18 @@ def sync_docs():
 
     for platform_id, platform_data in data['platforms'].iteritems():
         for integration_id, integration in platform_data.iteritems():
-            logger.info('Syncing documentation for %s.%s integration',
-                        platform_id, integration_id)
-            sync_integration(platform_id, integration_id, integration['details'])
+            sync_integration_docs.delay(platform_id, integration_id,
+                                        integration['details'])
 
 
-def sync_integration(platform_id, integration_id, path):
+@instrumented_task(name='sentry.tasks.sync_integration_docs', queue='update',
+                   time_limit=15,
+                   soft_time_limit=10)
+def sync_integration_docs(platform_id, integration_id, path):
     from sentry import http, options
+
+    logger.info('Syncing documentation for %s.%s integration',
+                platform_id, integration_id)
 
     session = http.build_session()
 
