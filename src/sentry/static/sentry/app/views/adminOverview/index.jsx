@@ -4,10 +4,6 @@ import ApiChart from "./apiChart";
 import EventChart from "./eventChart";
 
 const AdminOverview = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   getInitialState() {
     return {
       since: new Date().getTime() / 1000 - 3600 * 24 * 7,

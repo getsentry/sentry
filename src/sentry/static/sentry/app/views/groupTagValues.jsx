@@ -1,5 +1,5 @@
 import React from "react";
-import Router from "react-router";
+import {Link, History} from "react-router";
 import jQuery from "jquery";
 import api from "../api";
 import Count from "../components/count";
@@ -11,11 +11,10 @@ import TimeSince from "../components/timeSince";
 import {isUrl, percent} from "../utils";
 
 var GroupTagValues = React.createClass({
-  mixins: [GroupState],
-
-  contextTypes: {
-    router: React.PropTypes.func
-  },
+  mixins: [
+    History,
+    GroupState
+  ],
 
   getInitialState() {
     return {
@@ -32,9 +31,8 @@ var GroupTagValues = React.createClass({
   },
 
   fetchData() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    var queryParams = router.getCurrentQuery();
+    var params = this.props.params;
+    var queryParams = this.props.location.query;
     var querystring = jQuery.param(queryParams);
 
     this.setState({
@@ -75,12 +73,11 @@ var GroupTagValues = React.createClass({
   },
 
   onPage(cursor) {
-    var router = this.context.router;
-    var queryParams = jQuery.extend({}, router.getCurrentQuery(), {
+    var queryParams = jQuery.extend({}, this.props.location.query, {
       cursor: cursor
     });
 
-    router.transitionTo('groupTagValues', router.getCurrentParams(), queryParams);
+    this.history.pushState(null, this.props.location.path, queryParams);
   },
 
   render() {
@@ -90,11 +87,11 @@ var GroupTagValues = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    var router = this.context.router;
     var tagKey = this.state.tagKey;
     var children = this.state.tagValueList.map((tagValue, tagValueIdx) => {
       var pct = percent(tagValue.count, tagKey.totalValues).toFixed(2);
-      var params = router.getCurrentParams();
+      let orgId = this.getOrganization().slug;
+      let projectId = this.getProject().slug;
       return (
         <tr key={tagValueIdx}>
           <td className="bar-cell">
@@ -102,12 +99,11 @@ var GroupTagValues = React.createClass({
             <span className="label">{pct}%</span>
           </td>
           <td>
-            <Router.Link
-                to="stream"
-                params={params}
+            <Link
+                to={`/${orgId}/${projectId}/`}
                 query={{query: tagKey.key + ':' + '"' + tagValue.value + '"'}}>
               {tagValue.name}
-            </Router.Link>
+            </Link>
             {isUrl(tagValue.value) &&
               <a href={tagValue.value} className="external-icon">
                 <em className="icon-open" />

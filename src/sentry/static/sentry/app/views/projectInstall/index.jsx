@@ -1,17 +1,12 @@
 import React from "react";
-import Router from "react-router";
 
 import api from "../../api";
 import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
 
 const ProjectInstall = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   propTypes: {
-    setProjectNavSection: React.PropTypes.func.isRequired
+    setProjectNavSection: React.PropTypes.func
   },
 
   componentWillMount() {
@@ -30,7 +25,7 @@ const ProjectInstall = React.createClass({
   },
 
   fetchData() {
-    let {orgId, projectId} = this.context.router.getCurrentParams();
+    let {orgId, projectId} = this.props.params;
     api.request(`/projects/${orgId}/${projectId}/docs/`, {
       success: (data) => {
         this.setState({
@@ -48,10 +43,9 @@ const ProjectInstall = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
 
     let data = this.state.data;
-    return (
-      <Router.RouteHandler
-          platformData={data} {...this.props} />
-    );
+    return React.cloneElement(this.props.children, {
+      platformData: data // {...this.props}
+    });
   }
 });
 

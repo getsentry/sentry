@@ -11,13 +11,15 @@ import StreamGroup from "../components/stream/group";
 import utils from "../utils";
 
 var GroupList = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   propTypes: {
     query: React.PropTypes.string.isRequired,
-    canSelectGroups: React.PropTypes.bool
+    canSelectGroups: React.PropTypes.bool,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
+  },
+
+  contextTypes: {
+    location: React.PropTypes.object
   },
 
   mixins: [
@@ -49,8 +51,11 @@ var GroupList = React.createClass({
     this.fetchData();
   },
 
-  routeDidChange() {
-    this.fetchData();
+  componentDidUpdate(prevProps) {
+    if (prevProps.orgId !== this.props.orgId ||
+      prevProps.projectId !== this.props.projectId) {
+      this.fetchData();
+    }
   },
 
   componentWillUnmount() {
@@ -85,15 +90,14 @@ var GroupList = React.createClass({
   },
 
   getGroupListEndpoint() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    var queryParams = router.getCurrentQuery();
+    var queryParams = this.context.location.query;
     queryParams.limit = 50;
     queryParams.sort = 'new';
     queryParams.query = this.props.query;
     var querystring = jQuery.param(queryParams);
 
-    return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + querystring;
+    let props = this.props;
+    return '/projects/' + props.orgId + '/' + props.projectId + '/groups/?' + querystring;
   },
 
   onGroupChange() {
@@ -124,12 +128,22 @@ var GroupList = React.createClass({
       wrapperClass = "stream-no-bulk-actions";
     }
 
+    var {orgId, projectId} = this.props;
+
     return (
       <div className={wrapperClass}>
         <GroupListHeader />
         <ul className="group-list">
           {this.state.groupIds.map((id) => {
-            return <StreamGroup key={id} id={id} canSelect={this.props.canSelectGroups} />;
+            return (
+              <StreamGroup
+                key={id}
+                id={id}
+                orgId={orgId}
+                projectId={projectId}
+                canSelect={this.props.canSelectGroups} 
+              />
+            );
           })}
         </ul>
       </div>

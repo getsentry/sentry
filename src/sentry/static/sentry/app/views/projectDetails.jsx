@@ -1,6 +1,5 @@
 import React from "react";
 import Reflux from "reflux";
-import Router from "react-router";
 import api from "../api";
 import DocumentTitle from "react-document-title";
 import MemberListStore from "../stores/memberListStore";
@@ -9,7 +8,6 @@ import LoadingIndicator from "../components/loadingIndicator";
 import MissingProjectMembership from "../components/missingProjectMembership";
 import ProjectHeader from "../components/projectHeader";
 import OrganizationState from "../mixins/organizationState";
-import RouteMixin from "../mixins/routeMixin";
 import PropTypes from "../proptypes";
 import TeamStore from "../stores/teamStore";
 
@@ -22,18 +20,12 @@ var ProjectDetails = React.createClass({
   mixins: [
     Reflux.connect(MemberListStore, "memberList"),
     Reflux.listenTo(TeamStore, "onTeamChange"),
-    OrganizationState,
-    Reflux.listenTo(TeamStore, "onTeamChange"),
-    RouteMixin
+    OrganizationState
   ],
 
   childContextTypes: {
     project: PropTypes.Project,
     team: PropTypes.Team
-  },
-
-  contextTypes: {
-    router: React.PropTypes.func
   },
 
   getChildContext() {
@@ -63,11 +55,9 @@ var ProjectDetails = React.createClass({
     this.setState(this.getInitialState(), this.fetchData);
   },
 
-  routeDidChange(nextPath, nextParams) {
-    let router = this.context.router;
-    let params = router.getCurrentParams();
-    if (nextParams.projectId != params.projectId ||
-        nextParams.orgId != params.orgId) {
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.params.projectId !== this.props.params.projectId ||
+      nextProps.params.orgId != this.props.params.orgId) {
       this.remountComponent();
     }
   },
@@ -77,13 +67,12 @@ var ProjectDetails = React.createClass({
   },
 
   identifyProject() {
-    let router = this.context.router;
-    let params = router.getCurrentParams();
-    let projectSlug = params.projectId;
-    let activeProject = null;
-    let activeTeam = null;
-    let teams = TeamStore.getAll();
-    teams.forEach((team) => {
+    var params = this.props.params;
+    var projectSlug = params.projectId;
+    var activeProject = null;
+    var activeTeam = null;
+    let org = this.context.organization;
+    org.teams.forEach((team) => {
       team.projects.forEach((project) => {
         if (project.slug == projectSlug) {
           activeProject = project;
@@ -137,8 +126,7 @@ var ProjectDetails = React.createClass({
   },
 
   getMemberListEndpoint() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
+    var params = this.props.params;
     return '/projects/' + params.orgId + '/' + params.projectId + '/members/';
   },
 
@@ -188,10 +176,10 @@ var ProjectDetails = React.createClass({
             organization={this.getOrganization()} />
           <div className="container">
             <div className="content">
-              <Router.RouteHandler
-                  memberList={this.state.memberList}
-                  setProjectNavSection={this.setProjectNavSection}
-                  {...this.props} />
+              {React.cloneElement(this.props.children, {
+                setProjectNavSection: this.setProjectNavSection,
+                memberList: this.state.memberList
+              })}
             </div>
           </div>
         </div>

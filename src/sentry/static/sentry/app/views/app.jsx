@@ -1,6 +1,5 @@
 import React from "react";
 import api from "../api";
-import Router from "react-router";
 import Alerts from "../components/alerts";
 import AlertActions from "../actions/alertActions.jsx";
 import Indicators from "../components/indicators";
@@ -64,7 +63,7 @@ var App = React.createClass({
       <div>
         <Alerts className="messages-container" />
         <Indicators className="indicators-container" />
-        <Router.RouteHandler />
+        {this.props.children}
       </div>
     );
   }

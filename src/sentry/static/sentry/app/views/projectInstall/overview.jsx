@@ -4,10 +4,6 @@ import {Link} from "react-router";
 import AutoSelectText from "../../components/autoSelectText";
 
 const ProjectInstallOverview = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   getInitialState() {
     return {
       data: this.props.platformData
@@ -15,12 +11,11 @@ const ProjectInstallOverview = React.createClass({
   },
 
   getIntegrationLink(root, platform, display) {
-    let params = this.context.router.getCurrentParams();
+    let {orgId, projectId} = this.props.params;
     return (
       <li className={`${root} ${platform}`} key={platform}>
         <span className={`platformicon platformicon-${platform}`}/>
-        <Link to="projectInstallPlatform"
-              params={Object.assign({}, params, {platform: platform})}>
+        <Link to={`/${orgId}/${projectId}/settings/install/${platform}/`}>
           {display}
         </Link>
       </li>

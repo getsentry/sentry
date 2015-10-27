@@ -1,7 +1,7 @@
 import jQuery from "jquery";
 import React from "react";
 import Reflux from "reflux";
-import Router from "react-router";
+import {Link} from "react-router";
 
 import AssigneeSelector from "../assigneeSelector";
 import Count from "../count";
@@ -15,16 +15,14 @@ import SelectedGroupStore from "../../stores/selectedGroupStore";
 import {valueIsEqual} from "../../utils";
 
 var StreamGroup = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   mixins: [
     Reflux.listenTo(GroupStore, "onGroupChange")
   ],
 
   propTypes: {
     id: React.PropTypes.string.isRequired,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
     statsPeriod: React.PropTypes.string.isRequired,
     canSelect: React.PropTypes.bool
   },
@@ -84,8 +82,6 @@ var StreamGroup = React.createClass({
   },
 
   render() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
     var data = this.state.data;
     var userCount = data.userCount;
 
@@ -105,11 +101,7 @@ var StreamGroup = React.createClass({
 
     className += " level-" + data.level;
 
-    var routeParams = {
-      orgId: params.orgId,
-      projectId: params.projectId,
-      groupId: data.id
-    };
+    let {id, orgId, projectId} = this.props;
 
     return (
       <li className={className} onClick={this.toggleSelect}>
@@ -120,12 +112,12 @@ var StreamGroup = React.createClass({
             </div>
           }
           <h3 className="truncate">
-            <Router.Link to="groupDetails" params={routeParams}>
+            <Link to={`/${orgId}/${projectId}/group/${data.id}/`}>
               <span className="error-level truncate">{data.level}</span>
               <span className="icon icon-soundoff"></span>
               <span className="icon icon-bookmark"></span>
               {data.title}
-            </Router.Link>
+            </Link>
           </h3>
           <div className="event-message truncate">
             <span className="message">{data.culprit}</span>
@@ -140,17 +132,17 @@ var StreamGroup = React.createClass({
               </li>
               {data.numComments !== 0 &&
                 <li>
-                  <Router.Link to="groupActivity" params={routeParams} className="comments">
+                  <Link to={`/${orgId}/${projectId}/group/${id}/activity/`} className="comments">
                     <span className="icon icon-comments"></span>
                     <span className="tag-count">{data.numComments}</span>
-                  </Router.Link>
+                  </Link>
                 </li>
               }
               {data.logger &&
                 <li className="event-annotation">
-                  <Router.Link to="stream" params={params} query={{query: "logger:" + data.logger}}>
+                  <Link to={`/${orgId}/${projectId}`} query={{query: "logger:" + data.logger}}>
                     {data.logger}
-                  </Router.Link>
+                  </Link>
                 </li>
               }
               {data.annotations.map((annotation, key) => {

@@ -15,6 +15,8 @@ var EventEntries = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
     // TODO(dcramer): ideally isShare would be replaced with simple permission
     // checks
     isShare: React.PropTypes.bool
@@ -75,6 +77,7 @@ var EventEntries = React.createClass({
       }
     });
 
+    let {orgId, projectId} = this.props;
     return (
       <div>
         {!utils.objectIsEmpty(evt.errors) &&
@@ -87,7 +90,9 @@ var EventEntries = React.createClass({
           event={evt} />
         <EventTags
           group={group}
-          event={evt} />
+          event={evt}
+          orgId={orgId}
+          projectId={projectId} />
         {!utils.objectIsEmpty(evt.user) &&
           <EventUser
             group={group}

@@ -1,7 +1,5 @@
 import React from "react";
-import Router from "react-router";
-var Route = Router.Route;
-var DefaultRoute = Router.DefaultRoute;
+import { Route, IndexRoute } from "react-router";
 
 import Admin from "./views/admin";
 import AdminOrganizations from "./views/adminOrganizations";
@@ -34,48 +32,51 @@ import SharedGroupDetails from "./views/sharedGroupDetails";
 import Stream from "./views/stream";
 
 var routes = (
-  <Route name="app" path="/" handler={App}>
-    <Route name="admin" path="/manage/" handler={Admin}>
-      <Route name="adminOrganizations" path="organizations/" handler={AdminOrganizations} />
-      <DefaultRoute name="adminOverview" handler={AdminOverview} />
+  <Route path="/" component={App}>
+    <Route path="/organizations/:orgId/" component={OrganizationDetails}>
+      <Route path="stats/" component={OrganizationStats} />
     </Route>
-    <Route path="/organizations/:orgId/" handler={OrganizationDetails}>
-      <Route name="organizationStats" path="stats/" handler={OrganizationStats} />
-    </Route>
-    <Route name="sharedGroupDetails" path="/share/group/:shareId/" handler={SharedGroupDetails} />
-    <Route name="organizationDetails" path="/:orgId/" handler={OrganizationDetails}>
-      <DefaultRoute name="organizationTeams" handler={OrganizationTeams} />
-      <Route name="projectDetails" path=":projectId/" handler={ProjectDetails}>
-        <DefaultRoute name="stream" handler={Stream} />
-        <Route name="projectDashboard" path="dashboard/" handler={ProjectDashboard} />
-        <Route name="projectEvents" path="events/" handler={ProjectEvents} />
 
-        <Route name="projectReleases" path="releases/" handler={ProjectReleases} />
-        <Route name="releaseDetails" path="releases/:version/" handler={ReleaseDetails}>
-          <DefaultRoute name="releaseNewEvents" handler={ReleaseNewEvents} />
-          <Route name="releaseAllEvents" path="all-events/" handler={ReleaseAllEvents} />
-          <Route name="releaseArtifacts" path="artifacts/" handler={ReleaseArtifacts} />
+    <Route path="/manage/" component={Admin}>
+      <Route path="organizations/" component={AdminOrganizations} />
+      <IndexRoute component={AdminOverview} />
+    </Route>
+
+    <Route path="/share/group/:shareId/" component={SharedGroupDetails} />
+
+    <Route path="/:orgId/" component={OrganizationDetails}>
+      <IndexRoute component={OrganizationTeams} />
+      <Route path=":projectId/" component={ProjectDetails}>
+        <IndexRoute component={Stream} />
+        <Route path="dashboard/" component={ProjectDashboard} />
+        <Route path="events/" component={ProjectEvents} />
+        <Route path="releases/" component={ProjectReleases} />
+        <Route name="releaseDetails" path="releases/:version/" component={ReleaseDetails}>
+          <IndexRoute component={ReleaseNewEvents} />
+          <Route path="all-events/" component={ReleaseAllEvents} />
+          <Route path="artifacts/" component={ReleaseArtifacts} />
         </Route>
-        <Route name="projectSettings" path="settings/" handler={ProjectSettings}>
-          <Route name="projectInstall" path="install/" handler={ProjectInstall}>
-            <DefaultRoute name="projectInstallOverview" handler={ProjectInstallOverview}/>
-            <Route name="projectInstallPlatform" path="install/:platform/" handler={ProjectInstallPlatform}/>
+        <Route path="settings/" component={ProjectSettings}>
+          <Route path="install/" component={ProjectInstall}>
+            <IndexRoute component={ProjectInstallOverview}/>
+            <Route path=":platform/" component={ProjectInstallPlatform}/>
           </Route>
         </Route>
-        <Route name="groupDetails" path="group/:groupId/" handler={GroupDetails}
+        <Route path="group/:groupId/" component={GroupDetails}
                ignoreScrollBehavior>
-          <DefaultRoute name="groupOverview" handler={GroupEventDetails} />
+          <IndexRoute component={GroupEventDetails} />
 
-          <Route name="groupActivity" path="activity/" handler={GroupActivity} />
-          <Route name="groupEventDetails" path="events/:eventId/" handler={GroupEventDetails} />
-          <Route name="groupEvents" path="events/" handler={GroupEvents} />
-          <Route name="groupTags" path="tags/" handler={GroupTags} />
-          <Route name="groupTagValues" path="tags/:tagKey/" handler={GroupTagValues} />
-          <Route name="groupUserReports" path="reports/" handler={GroupUserReports} />
+          <Route path="activity/" component={GroupActivity} />
+          <Route path="events/:eventId/" component={GroupEventDetails} />
+          <Route path="events/" component={GroupEvents} />
+          <Route path="tags/" component={GroupTags} />
+          <Route path="tags/:tagKey/" component={GroupTagValues} />
+          <Route path="reports/" component={GroupUserReports} />
         </Route>
       </Route>
     </Route>
-    <Router.NotFoundRoute handler={RouteNotFound} />
+
+    <Route path="*" component={RouteNotFound}/>
   </Route>
 );
 

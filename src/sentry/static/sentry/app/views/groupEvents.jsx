@@ -1,9 +1,8 @@
 import React from "react";
-import Router from "react-router";
+import {History, Link} from "react-router";
 import api from "../api";
 
 import GroupState from "../mixins/groupState";
-import RouteMixin from "../mixins/routeMixin";
 
 import DateTime from "../components/dateTime";
 import Gravatar from "../components/gravatar";
@@ -12,13 +11,9 @@ import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
 
 var GroupEvents = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   mixins: [
     GroupState,
-    RouteMixin
+    History
   ],
 
   getInitialState() {
@@ -35,7 +30,7 @@ var GroupEvents = React.createClass({
   },
 
   fetchData() {
-    var queryParams = this.context.router.getCurrentQuery();
+    var queryParams = this.props.location.query;
 
     this.setState({
       loading: true,
@@ -62,15 +57,21 @@ var GroupEvents = React.createClass({
     });
   },
 
-  routeDidChange() {
-    this.fetchData();
+  componentDidUpdate(prevProps) {
+    if (prevProps.params.groupId !== this.props.params.groupId) {
+      this.fetchData();
+    }
   },
 
   onPage(cursor) {
-    var router = this.context.router;
-    var queryParams = {...router.getCurrentQuery(), cursor: cursor};
+    var queryParams = {...this.context.location.query, cursor: cursor};
 
-    router.transitionTo('groupEvents', this.context.router.getCurrentParams(), queryParams);
+    let {orgId, projectId, groupId} = this.props.params;
+    this.history.pushState(
+      null,
+      `/${orgId}/${projectId}/group/${groupId}/events/`,
+      queryParams
+    );
   },
 
   render() {
@@ -93,13 +94,9 @@ var GroupEvents = React.createClass({
       }
     }
 
+    var {orgId, projectId, groupId} = this.props.params;
+
     var children = this.state.eventList.map((event, eventIdx) => {
-      var linkParams = {
-        orgId: this.getOrganization().slug,
-        projectId: this.getProject().slug,
-        groupId: this.getGroup().id,
-        eventId: event.id
-      };
       var tagMap = {};
       event.tags.forEach((tag) => {
         tagMap[tag.key] = tag.value;
@@ -109,10 +106,9 @@ var GroupEvents = React.createClass({
         <tr key={eventIdx}>
           <td>
             <h5>
-              <Router.Link to="groupEventDetails"
-                           params={linkParams}>
+              <Link to={`/${orgId}/${projectId}/group/${groupId}/events/${event.id}/`}>
                 <DateTime date={event.dateCreated} />
-              </Router.Link>
+              </Link>
               <small>{event.eventID}</small>
             </h5>
           </td>
@@ -144,17 +140,19 @@ var GroupEvents = React.createClass({
         <div className="event-list">
           <table className="table">
             <thead>
-              <th>ID</th>
-              {tagList.map((tag) => {
-                return (
-                  <th key={tag.key}>
-                    {tag.name}
-                  </th>
-                );
-              })}
-              {hasUser &&
-                <th>User</th>
-              }
+              <tr>
+                <th>ID</th>
+                {tagList.map((tag) => {
+                  return (
+                    <th key={tag.key}>
+                      {tag.name}
+                    </th>
+                  );
+                })}
+                {hasUser &&
+                  <th>User</th>
+                }
+              </tr>
             </thead>
             <tbody>
               {children}
