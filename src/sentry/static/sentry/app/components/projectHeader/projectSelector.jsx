@@ -102,6 +102,10 @@ var ProjectSelector = React.createClass({
     let org = this.props.organization;
     let label = this.getProjectLabel(team, project);
 
+    if (!this.context.location) {
+      return <a href={this.getRawLink(project)}>{label}</a>;
+    }
+
     let orgId = org.slug;
     let projectId = project.slug;
 
