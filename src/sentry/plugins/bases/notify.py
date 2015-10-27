@@ -22,6 +22,7 @@ from sentry.digests.notifications import (
 )
 from sentry.plugins import Notification, Plugin
 from sentry.models import UserOption
+from sentry.tasks.digests import deliver_digest
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -67,10 +68,9 @@ class NotificationPlugin(Plugin):
             raise NotImplementedError('The default behavior for notification de-duplication does not support args')
 
         if self.__can_be_digested(event):
-            digests.add(
-                unsplit_key(self, event.group.project),  # TODO: Improve this abstraction.
-                event_to_record(event, rules),
-            )
+            key = unsplit_key(self, event.group.project)
+            if digests.add(key, event_to_record(event, rules)):
+                deliver_digest.delay(key)
         else:
             notification = Notification(event=event, rules=rules)
             self.notify(notification)

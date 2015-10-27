@@ -33,9 +33,9 @@ SCHEDULE_PATH_COMPONENT = 's'
 SCHEDULE_STATE_WAITING = 'w'
 SCHEDULE_STATE_READY = 'r'
 
-TIMELINE_PATH_COMPONENT = 't'
-TIMELINE_ITERATION_PATH_COMPONENT = 'i'
 TIMELINE_DIGEST_PATH_COMPONENT = 'd'
+TIMELINE_LAST_PROCESSED_TIMESTAMP_PATH_COMPONENT = 'l'
+TIMELINE_PATH_COMPONENT = 't'
 TIMELINE_RECORD_PATH_COMPONENT = 'r'
 
 
@@ -60,8 +60,8 @@ def make_timeline_key(namespace, key):
     return '{0}:{1}:{2}'.format(namespace, TIMELINE_PATH_COMPONENT, key)
 
 
-def make_iteration_key(timeline_key):
-    return '{0}:{1}'.format(timeline_key, TIMELINE_ITERATION_PATH_COMPONENT)
+def make_last_processed_timestamp_key(timeline_key):
+    return '{0}:{1}'.format(timeline_key, TIMELINE_LAST_PROCESSED_TIMESTAMP_PATH_COMPONENT)
 
 
 def make_digest_key(timeline_key):
@@ -72,30 +72,57 @@ def make_record_key(timeline_key, record):
     return '{0}:{1}:{2}'.format(timeline_key, TIMELINE_RECORD_PATH_COMPONENT, record)
 
 
-# Ensures an timeline is scheduled to be digested.
-# KEYS: {WATING, READY}
-# ARGV: {TIMELINE, TIMESTAMP}
+# Ensures an timeline is scheduled to be digested, adjusting the schedule time
+# if necessary.
+# KEYS: {WAITING, READY}
+# ARGV: {
+#   TIMELINE,   -- timeline key
+#   TIMESTAMP,  --
+#   INCREMENT,  -- amount of time (in seconds) that an event addition delays scheduling
+#   MAXIMUM     -- maximum amount of time (in seconds) between a timeline being
+#               -- digested, and the same timeline being scheduled for the next
+#               -- digestion
+# }
 ENSURE_TIMELINE_SCHEDULED_SCRIPT = """\
--- Check to see if the timeline exists in the "waiting" set (heuristics tell us
--- that this should be more likely than it's presence in the "ready" set.)
-local waiting = redis.call('ZSCORE', KEYS[1], ARGV[1])
+-- If the timeline is already in the "ready" set, this is a noop.
+if tonumber(redis.call('ZSCORE', KEYS[2], ARGV[1])) ~= nil then
+    return false
+end
 
-if waiting ~= false then
-    -- If the item already exists, update the score if the provided timestamp
-    -- is less than the current score.
-    if tonumber(waiting) > tonumber(ARGV[2]) then
-        redis.call('ZADD', KEYS[1], ARGV[2], ARGV[1])
+-- Otherwise, check to see if the timeline is in the "waiting" set.
+local score = tonumber(redis.call('ZSCORE', KEYS[1], ARGV[1]))
+if score ~= nil then
+    -- If the timeline is already in the "waiting" set, increase the delay by
+    -- min(current schedule + increment value, maximum delay after last processing time).
+    local last = tonumber(redis.call('GET', ARGV[1] .. ':{TIMELINE_LAST_PROCESSED_TIMESTAMP_PATH_COMPONENT}'))
+    local update = nil;
+    if last == nil then
+        -- If the last processed timestamp is missing for some reason (possibly
+        -- evicted), be conservative and allow the timeline to be scheduled
+        -- with either the current schedule time or provided timestamp,
+        -- whichever is smaller.
+        update = math.min(last, ARGV[2])
+    else
+        update = math.min(
+            score + tonumber(ARGV[3]),
+            last + tonumber(ARGV[4])
+        )
     end
-    return
+
+    if update ~= score then
+        redis.call('ZADD', KEYS[1], update, ARGV[1])
+    end
+    return false
 end
 
--- Otherwise, check to see if the timeline already exists in the "ready" set.
--- If it doesn't, it needs to be added to the "waiting" set to be scheduled.
-if redis.call('ZSCORE', KEYS[2], ARGV[1]) == false then
-    redis.call('ZADD', KEYS[1], ARGV[2], ARGV[1])
-    return
-end
-"""
+-- If the timeline isn't already in either set, add it to the "ready" set with
+-- the provided timestamp. This allows for immediate scheduling, bypassing the
+-- imposed delay of the "waiting" state.
+redis.call('ZADD', KEYS[2], ARGV[2], ARGV[1])
+return true
+""".format(
+    TIMELINE_LAST_PROCESSED_TIMESTAMP_PATH_COMPONENT=TIMELINE_LAST_PROCESSED_TIMESTAMP_PATH_COMPONENT,
+)
 
 
 # Trims a timeline to a maximum number of records.
@@ -123,13 +150,9 @@ class RedisBackend(Backend):
     Implements the digest backend API, backed by Redis.
 
     Each timeline is modeled as a sorted set, and also maintains a separate key
-    that contains the iteration counter for implementing backoff strategies
-    that require this value as an argument, such as exponential backoff.
+    that contains the last time the digest was processed (used for scheduling.)
 
     .. code::
-
-        redis:6379> GET "d:t:mail:p:1:i"
-        "1"
 
         redis:6379> ZREVRANGEBYSCORE "d:t:mail:p:1" inf -inf WITHSCORES
         1) "433be20b807c4cd49a132de69c0f6c55"
@@ -138,10 +161,8 @@ class RedisBackend(Backend):
         4) "1444847625"
         ...
 
-    In the example above, the timeline ``mail:p:1`` has already been digested
-    once, as evidenced by the iteration counter (the key that ends with
-    ``:i``.) The timeline also contains references to several records, which
-    are stored separately, encoded using the codec provided to the backend:
+    The timeline contains references to several records, which are stored
+    separately, encoded using the codec provided to the backend:
 
     .. code::
 
@@ -189,7 +210,7 @@ class RedisBackend(Backend):
         # timelines, digests, and records should all be deleted after they have
         # been processed -- this is mainly to ensure stale data doesn't hang
         # around too long in the case of a configuration error. This should be
-        # larger than the maximum backoff value to ensure data is not evicted
+        # larger than the maximum scheduling delay to ensure data is not evicted
         # too early.
         self.ttl = options.pop('ttl', 60 * 60)
 
@@ -218,9 +239,6 @@ class RedisBackend(Backend):
                 ex=self.ttl,
             )
 
-            pipeline.set(make_iteration_key(timeline_key), 0, nx=True)
-            pipeline.expire(make_iteration_key(timeline_key), self.ttl)
-
             # In the future, it might make sense to prefix the entry with the
             # timestamp (lexicographically sortable) to ensure that we can
             # maintain the correct sort order with abitrary precision:
@@ -233,7 +251,12 @@ class RedisBackend(Backend):
                     functools.partial(make_schedule_key, self.namespace),
                     (SCHEDULE_STATE_WAITING, SCHEDULE_STATE_READY,),
                 ),
-                (key, record.timestamp + self.backoff(0)),
+                (
+                    key,
+                    record.timestamp,
+                    self.increment_delay,
+                    self.maximum_delay,
+                ),
                 pipeline,
             )
 
@@ -244,6 +267,8 @@ class RedisBackend(Backend):
             results = pipeline.execute()
             if should_truncate:
                 logger.info('Removed %s extra records from %s.', results[-1], key)
+
+            return results[-2 if should_truncate else -1]
 
     def schedule(self, deadline, chunk=1000):
         # TODO: This doesn't lead to a fair balancing of workers, ideally each
@@ -463,15 +488,6 @@ class RedisBackend(Backend):
             if not records:
                 logger.info('Retrieved timeline containing no records.')
 
-            def get_iteration_count(default=0):
-                value = connection.get(make_iteration_key(timeline_key))
-                if not value:
-                    logger.warning('Could not retrieve iteration counter for %s, defaulting to %s.', key, default)
-                    return default
-                return int(value)
-
-            iteration = get_iteration_count()
-
             def get_records_for_digest():
                 with connection.pipeline(transaction=False) as pipeline:
                     for record_key, timestamp in records:
@@ -500,8 +516,8 @@ class RedisBackend(Backend):
 
                     cleanup_records(pipeline)
                     pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
-                    pipeline.zadd(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), time.time() + self.backoff(iteration + 1), key)
-                    pipeline.set(make_iteration_key(timeline_key), iteration + 1)
+                    pipeline.zadd(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), time.time() + self.interval, key)
+                    pipeline.setex(make_last_processed_timestamp_key(timeline_key), self.ttl, int(time.time()))
                     pipeline.execute()
 
             def unschedule():
@@ -512,15 +528,15 @@ class RedisBackend(Backend):
                     pipeline.multi()
                     if connection.zcard(timeline_key) is 0:
                         cleanup_records(pipeline)
-                        pipeline.delete(make_iteration_key(timeline_key))
+                        pipeline.delete(make_last_processed_timestamp_key(timeline_key))
                         pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
                         pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), key)
                         pipeline.execute()
 
-            # If there were records in the digest, we need to schedule it so that
-            # we schedule any records that were added during digestion with the
-            # appropriate backoff. If there were no items, we can try to remove the
-            # timeline from the digestion schedule.
+            # If there were records in the digest, we need to schedule it so
+            # that we schedule any records that were added during digestion. If
+            # there were no items, we can try to remove the timeline from the
+            # digestion schedule.
             if records:
                 reschedule()
             else:
