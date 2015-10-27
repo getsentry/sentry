@@ -16,10 +16,10 @@
   </div>
   <script>
   $(function(){
-    Router.run(Sentry.routes, Router.HistoryLocation, function(Handler) {
-      ReactDOM.render(React.createFactory(Handler)({
-      }), document.getElementById('blk_router'));
-    });
+    ReactDOM.render(
+      React.createElement(Router.Router, {history:Sentry.createHistory()}, Sentry.routes),
+      document.getElementById('blk_router')
+    );
   });
   </script>
 {% endblock %}

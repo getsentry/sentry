@@ -5,17 +5,11 @@ import api from "../../api";
 import LanguageNav from "./languageNav";
 import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
-import RouteMixin from "../../mixins/routeMixin";
 
 var ProjectInstallPlatform = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
-  mixins: [RouteMixin],
 
   getInitialState() {
-    let params = this.context.router.getCurrentParams();
+    let params = this.props.params;
     var key = params.platform;
     var integration;
     var platform;
@@ -44,12 +38,14 @@ var ProjectInstallPlatform = React.createClass({
     this.fetchData();
   },
 
-  routeDidChange() {
-    this.setState(this.getInitialState(), this.fetchData);
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.params.platform !== this.props.params.platform) {
+      this.setState(this.getInitialState(), this.fetchData);
+    }
   },
 
   fetchData() {
-    let {orgId, projectId, platform} = this.context.router.getCurrentParams();
+    let {orgId, projectId, platform} = this.props.params;
     api.request(`/projects/${orgId}/${projectId}/docs/${platform}/`, {
       success: (data) => {
         this.setState({
@@ -68,12 +64,11 @@ var ProjectInstallPlatform = React.createClass({
   },
 
   getPlatformLink(platform, display) {
-    let params = this.context.router.getCurrentParams();
+    let {orgId, projectId} = this.props.params;
     return (
       <Link
-        to="projectInstallPlatform"
-        className="list-group-item"
-        params={Object.assign({}, params, {platform: platform})}>
+        to={`/${orgId}/${projectId}/settings/install/${platform}/`}
+        className="list-group-item">
           {display || platform}
       </Link>
     );

@@ -43,6 +43,8 @@ var GroupSidebar = React.createClass({
           return (
             <TagDistributionMeter
               key={data.key}
+              orgId={orgId}
+              projectId={projectId}
               group={group}
               name={data.name}
               tag={data.key} />

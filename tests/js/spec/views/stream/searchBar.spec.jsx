@@ -6,7 +6,7 @@ import SearchBar from "app/views/stream/searchBar";
 import SearchDropdown from "app/views/stream/searchDropdown";
 import StreamTagStore from "app/stores/streamTagStore";
 import stubReactComponents from "../../../helpers/stubReactComponent";
-import stubRouter from "../../../helpers/stubRouter";
+
 import stubContext from "../../../helpers/stubContext";
 
 var findWithClass = TestUtils.findRenderedDOMComponentWithClass;
@@ -21,19 +21,7 @@ describe("SearchBar", function() {
     this.sandbox.stub(api, "request");
 
     stubReactComponents(this.sandbox, [SearchDropdown]);
-    this.ContextStubbedSearchBar = stubContext(SearchBar, {
-      router: stubRouter({
-        getCurrentParams() {
-          return {
-            orgId: "123",
-            projectId: "456"
-          };
-        },
-        getCurrentQuery() {
-          return { limit: 0 };
-        }
-      })
-    });
+    this.ContextStubbedSearchBar = stubContext(SearchBar);
   });
 
   afterEach(function() {
@@ -70,6 +58,8 @@ describe("SearchBar", function() {
 
     it("clears the query", function() {
       var props = {
+        orgId: "123",
+        projectId: "456",
         query: "is:unresolved ruby",
         defaultQuery: "is:unresolved"
       };
@@ -82,6 +72,8 @@ describe("SearchBar", function() {
 
     it("calls onSearch()", function(done) {
       var props = {
+        orgId: "123",
+        projectId: "456",
         query: "is:unresolved ruby",
         defaultQuery: "is:unresolved",
         onSearch: this.sandbox.spy()
@@ -101,7 +93,7 @@ describe("SearchBar", function() {
   describe("onQueryFocus()", function() {
 
     it("displays the drop down", function() {
-      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar />).refs.wrapped;
+      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar orgId="123" projectId="456"/>).refs.wrapped;
       expect(wrapper.state.dropdownVisible).to.be.false;
 
       wrapper.onQueryFocus();
@@ -114,7 +106,7 @@ describe("SearchBar", function() {
   describe("onQueryBlur()", function() {
 
     it("hides the drop down", function() {
-      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar />).refs.wrapped;
+      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar orgId="123" projectId="456"/>).refs.wrapped;
       wrapper.state.dropdownVisible = true;
 
       var clock = this.sandbox.useFakeTimers();
@@ -130,7 +122,7 @@ describe("SearchBar", function() {
     describe("escape", function () {
       it("blurs the input", function () {
         // needs to be rendered into document.body or cannot query document.activeElement
-        var wrapper = ReactDOM.render(<this.ContextStubbedSearchBar />, document.body).refs.wrapped;
+        var wrapper = ReactDOM.render(<this.ContextStubbedSearchBar orgId="123" projectId="456"/>, document.body).refs.wrapped;
         wrapper.state.dropdownVisible = true;
 
         var input = ReactDOM.findDOMNode(wrapper.refs.searchInput);
@@ -150,7 +142,7 @@ describe("SearchBar", function() {
 
     it("invokes onSearch() when submitting the form", function() {
       var stubbedOnSearch = this.sandbox.spy();
-      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar onSearch={stubbedOnSearch} />).refs.wrapped;
+      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar onSearch={stubbedOnSearch} orgId="123" projectId="456"/>).refs.wrapped;
 
       TestUtils.Simulate.submit(wrapper.refs.searchForm, { preventDefault() {} });
 
@@ -159,6 +151,8 @@ describe("SearchBar", function() {
 
     it("invokes onSearch() when search is cleared", function(done) {
       var props = {
+        orgId: "123",
+        projectId: "456",
         query: "is:unresolved",
         onSearch: this.sandbox.spy()
       };
@@ -167,7 +161,7 @@ describe("SearchBar", function() {
       var cancelButton = findWithClass(wrapper, "search-clear-form");
       TestUtils.Simulate.click(cancelButton);
 
-      setTimeout(() => {
+      setTimeout(function () {
         expect(props.onSearch.calledWith("")).to.be.true;
         done();
       });
@@ -175,6 +169,8 @@ describe("SearchBar", function() {
 
     it("handles an empty query", function () {
       let props = {
+        orgId: "123",
+        projectId: "456",
         query: "",
         defaultQuery: "is:unresolved"
       };
@@ -187,6 +183,8 @@ describe("SearchBar", function() {
   describe("updateAutoCompleteItems()", function() {
     it("sets state when empty", function() {
       var props = {
+        orgId: "123",
+        projectId: "456",
         query: "",
       };
       var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
@@ -198,6 +196,8 @@ describe("SearchBar", function() {
 
     it("sets state when incomplete tag", function() {
       var props = {
+        orgId: "123",
+        projectId: "456",
         query: "fu",
       };
       var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
@@ -209,6 +209,8 @@ describe("SearchBar", function() {
 
     it("sets state with complete tag", function() {
       var props = {
+        orgId: "123",
+        projectId: "456",
         query: "url:\"fu\"",
       };
       var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
@@ -220,6 +222,8 @@ describe("SearchBar", function() {
 
     it("sets state when incomplete tag as second input", function() {
       var props = {
+        orgId: "123",
+        projectId: "456",
         query: "is:unresolved fu",
       };
       var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
@@ -233,6 +237,8 @@ describe("SearchBar", function() {
 
     it("sets state when value has colon", function() {
       var props = {
+        orgId: "123",
+        projectId: "456",
         query: "url:\"http://example.com\"",
       };
       var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;

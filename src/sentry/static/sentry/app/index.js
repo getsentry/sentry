@@ -44,6 +44,7 @@ export default {
   Sentry: {
     api: require("./api"),
     routes: require("./routes"),
+    createHistory: require("history/lib/createBrowserHistory"),
 
     Alerts: require("./components/alerts"),
     ConfigStore: require("./stores/configStore"),

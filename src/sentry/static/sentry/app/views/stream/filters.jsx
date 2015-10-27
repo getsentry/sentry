@@ -5,8 +5,9 @@ import SearchBar from "./searchBar";
 import SortOptions from "./sortOptions";
 
 var StreamFilters = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   getDefaultProps() {
@@ -22,24 +23,12 @@ var StreamFilters = React.createClass({
     };
   },
 
-  componentWillMount() {
-    this.setState({
-      activeButton: this.getActiveButton()
-    });
-  },
-
-  componentWillReceiveProps(nextProps) {
-    var activeButton = this.getActiveButton();
-    if (activeButton != this.state.activeButton) {
-      this.setState({
-        activeButton: activeButton
-      });
-    }
+  contextTypes: {
+    location: React.PropTypes.object
   },
 
   getActiveButton() {
-    var router = this.context.router;
-    var queryParams = router.getCurrentQuery();
+    var queryParams = this.context.location.query;
     var activeButton;
     if (queryParams.bookmarks) {
       activeButton = 'bookmarks';
@@ -56,7 +45,7 @@ var StreamFilters = React.createClass({
   },
 
   render() {
-    var activeButton = this.state.activeButton;
+    let activeButton = this.getActiveButton();
     return (
       <div className="filter-nav stream-header">
         <div className="row">
@@ -85,6 +74,8 @@ var StreamFilters = React.createClass({
           </div>
           <div className="col-sm-5">
             <SearchBar
+              orgId={this.props.orgId}
+              projectId={this.props.projectId}
               ref="searchBar"
               tags={this.props.tags}
               defaultQuery={this.props.defaultQuery}

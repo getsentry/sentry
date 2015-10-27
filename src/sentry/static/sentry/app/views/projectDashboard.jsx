@@ -1,26 +1,16 @@
 import jQuery from "jquery";
 import React from "react";
-import Router from "react-router";
+import {Link} from "react-router";
 
 import EventList from "./projectDashboard/eventList";
 import ProjectState from "../mixins/projectState";
 import ProjectChart from "./projectDashboard/chart";
-import RouteMixin from "../mixins/routeMixin";
 
 
 var ProjectDashboard = React.createClass({
   mixins: [
-    ProjectState,
-    RouteMixin
+    ProjectState
   ],
-
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
-  propTypes: {
-    setProjectNavSection: React.PropTypes.func.isRequired
-  },
 
   getDefaultProps() {
     return {
@@ -36,27 +26,19 @@ var ProjectDashboard = React.createClass({
 
   componentWillMount() {
     this.props.setProjectNavSection('dashboard');
-    this._path = this.context.router.getCurrentPath();
   },
 
-  routeDidChange() {
-    this.setState(this.getQueryStringState());
+  componentWillReceiveProps(nextProps) {
+    this.setState(this.getQueryStringState(nextProps));
   },
 
-  shouldComponentUpdate(nextProps, nextState) {
-    if (this._path !== this.context.router.getCurrentPath()) {
-      this._path = this.context.router.getCurrentPath();
-      return true;
-    }
-    return false;
-  },
-
-  getQueryStringState() {
-    var currentQuery = this.context.router.getCurrentQuery();
+  getQueryStringState(props) {
+    props = props || this.props;
+    var currentQuery = props.location.query;
     var statsPeriod = currentQuery.statsPeriod;
 
     if (statsPeriod !== '1w' && statsPeriod !== '24h' && statsPeriod != '1h') {
-      statsPeriod = this.props.defaultStatsPeriod;
+      statsPeriod = props.defaultStatsPeriod;
     }
 
     return {
@@ -90,8 +72,7 @@ var ProjectDashboard = React.createClass({
   },
 
   getTrendingEventsEndpoint(dateSince) {
-    let router = this.context.router;
-    let params = router.getCurrentParams();
+    let params = this.props.params;
     let qs = jQuery.param({
       sort: "priority",
       query: "is:unresolved",
@@ -101,8 +82,7 @@ var ProjectDashboard = React.createClass({
   },
 
   getNewEventsEndpoint(dateSince) {
-    let router = this.context.router;
-    let params = router.getCurrentParams();
+    let params = this.props.params;
     let qs = jQuery.param({
       sort: "new",
       query: "is:unresolved",
@@ -115,33 +95,29 @@ var ProjectDashboard = React.createClass({
     let {statsPeriod} = this.state;
     let dateSince = this.getStatsPeriodBeginTimestamp(statsPeriod);
     let resolution = this.getStatsPeriodResolution(statsPeriod);
-    let router = this.context.router;
-    let routeName = "projectDashboard";
-    let routeParams = router.getCurrentParams();
-    let routeQuery = router.getCurrentQuery();
+    let {orgId, projectId} = this.props.params;
+    let url = `/${orgId}/${projectId}/dashboard/`;
+    let routeQuery = this.props.location.query;
 
     return (
       <div>
         <div>
           <div className="pull-right">
             <div className="btn-group">
-              <Router.Link
-                to={routeName}
-                params={routeParams}
+              <Link
+                to={url}
                 query={jQuery.extend({}, routeQuery, {statsPeriod: '1h'})}
                 active={statsPeriod === '1h'}
-                className={"btn btn-sm btn-default" + (statsPeriod === "1h" ? " active" : "")}>1h</Router.Link>
-              <Router.Link
-                to={routeName}
-                params={routeParams}
+                className={"btn btn-sm btn-default" + (statsPeriod === "1h" ? " active" : "")}>1h</Link>
+              <Link
+                to={url}
                 query={jQuery.extend({}, routeQuery, {statsPeriod: '24h'})}
                 active={statsPeriod === '24h'}
-                className={"btn btn-sm btn-default" + (statsPeriod === "24h" ? " active" : "")}>24h</Router.Link>
-              <Router.Link
-                to={routeName}
-                params={routeParams}
+                className={"btn btn-sm btn-default" + (statsPeriod === "24h" ? " active" : "")}>24h</Link>
+              <Link
+                to={url}
                 query={jQuery.extend({}, routeQuery, {statsPeriod: '1w'})}
-                className={"btn btn-sm btn-default" + (statsPeriod === "1w" ? " active" : "")}>1w</Router.Link>
+                className={"btn btn-sm btn-default" + (statsPeriod === "1w" ? " active" : "")}>1w</Link>
             </div>
           </div>
           <h3>Overview</h3>

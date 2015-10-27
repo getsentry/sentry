@@ -4,11 +4,15 @@ import TimeSince from "../../components/timeSince";
 import Version from "../../components/version";
 
 var ReleaseList = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
+
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
   },
 
   render() {
+    var {orgId, projectId} = this.props;
+
     return (
       <ul className="release-list">
           {this.props.releaseList.map((release) => {
@@ -16,7 +20,7 @@ var ReleaseList = React.createClass({
               <li className="release" key={release.version}>
                 <div className="row">
                   <div className="col-sm-8 col-xs-6">
-                    <h4><Version version={release.version} /></h4>
+                    <h4><Version orgId={orgId} projectId={projectId} version={release.version} /></h4>
                     <div className="release-meta">
                       <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
                     </div>

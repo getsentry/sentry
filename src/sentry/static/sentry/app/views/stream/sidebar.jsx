@@ -8,14 +8,12 @@ import {queryToObj, objToQuery} from "../../utils/stream";
 let TEXT_FILTER_DEBOUNCE_IN_MS = 300;
 
 var StreamSidebar = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   propTypes: {
     tags: React.PropTypes.object.isRequired,
     onQueryChange: React.PropTypes.func.isRequired,
-    defaultQuery: React.PropTypes.string
+    defaultQuery: React.PropTypes.string,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   getDefaultProps() {
@@ -126,6 +124,8 @@ var StreamSidebar = React.createClass({
                   key={tag.key}
                   tag={tag}
                   onSelect={this.onSelectTag}
+                  orgId={this.props.orgId}
+                  projectId={this.props.projectId}
                 />
               );
             })}

@@ -1,6 +1,5 @@
 import DocumentTitle from "react-document-title";
 import React from "react";
-import Router from "react-router";
 
 import ConfigStore from "../../stores/configStore";
 import Footer from "../../components/footer";
@@ -8,10 +7,6 @@ import Header from "../../components/header";
 import ListLink from "../../components/listLink";
 
 const Admin = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   getTitle() {
     return 'Sentry Admin';
   },
@@ -29,7 +24,7 @@ const Admin = React.createClass({
                 <div className="col-md-2">
                   <h6 className="nav-header">System</h6>
                   <ul className="nav nav-stacked">
-                    <ListLink to="adminOverview">Overview</ListLink>
+                    <ListLink to="/manage/">Overview</ListLink>
                     <li><a href={`${urlPrefix}/manage/queue/`}>Queue</a></li>
                     <li><a href={`${urlPrefix}/manage/environment/`}>Environment</a></li>
                     <li><a href={`${urlPrefix}/manage/packages/`}>Packages</a></li>
@@ -38,14 +33,14 @@ const Admin = React.createClass({
 
                   <h6 className="nav-header">Manage</h6>
                   <ul className="nav nav-stacked">
-                    <ListLink to="adminOrganizations">Organizations</ListLink>
+                    <ListLink to="/manage/organizations/">Organizations</ListLink>
                     <li><a href={`${urlPrefix}/manage/teams/`}>Teams</a></li>
                     <li><a href={`${urlPrefix}/manage/projects/`}>Projects</a></li>
                     <li><a href={`${urlPrefix}/manage/users/`}>Users</a></li>
                   </ul>
                 </div>
                 <div className="col-md-10">
-                  <Router.RouteHandler />
+                  {this.props.children}
                 </div>
               </div>
             </div>

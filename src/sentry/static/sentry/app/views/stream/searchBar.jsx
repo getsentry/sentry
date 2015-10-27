@@ -14,8 +14,9 @@ import PureRenderMixin from 'react-addons-pure-render-mixin';
 import SearchDropdown from "./searchDropdown";
 
 var SearchBar = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   mixins: [
@@ -182,8 +183,8 @@ var SearchBar = React.createClass({
       loading: true
     });
 
-    let params = this.context.router.getCurrentParams();
-    api.request(`/projects/${params.orgId}/${params.projectId}/tags/${tag.key}/values/`, {
+    let {orgId, projectId} = this.props;
+    api.request(`/projects/${orgId}/${projectId}/tags/${tag.key}/values/`, {
       data: {
         query: query
       },
