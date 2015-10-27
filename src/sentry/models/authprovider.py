@@ -36,6 +36,9 @@ class AuthProvider(Model):
 
     __repr__ = sane_repr('organization_id', 'provider')
 
+    def __unicode__(self):
+        return self.provider
+
     def get_provider(self):
         from sentry.auth import manager
 
