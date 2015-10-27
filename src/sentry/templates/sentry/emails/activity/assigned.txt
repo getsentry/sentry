@@ -1,6 +1,6 @@
 {% spaceless %}
 {% autoescape off %}
-{{ author }} assigned this event to you.
+{{ author.get_display_name }} assigned this event to you.
 
 
 Details
