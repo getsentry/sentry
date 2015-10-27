@@ -13,6 +13,10 @@ var ProjectSelector = React.createClass({
     };
   },
 
+  contextTypes: {
+    location: React.PropTypes.object
+  },
+
   onFilterChange(evt) {
     this.setState({
       filter: evt.target.value
@@ -63,20 +67,21 @@ var ProjectSelector = React.createClass({
   },
 
   getProjectNode(team, project, highlightText, hasSingleTeam) {
-    var org = this.props.organization;
-    let orgId = org.slug;
     let projectId = project.slug;
-    var label = this.getProjectLabel(team, project, hasSingleTeam);
+    let label = this.getProjectLabel(team, project, hasSingleTeam);
 
-    return (
-      <MenuItem
-        key={projectId}
-        to={`/${orgId}/${projectId}/`}
-        linkClassName={projectId === this.props.projectId && 'active'}>
+    let menuItemProps = {
+      key: projectId, // TODO: what if two projects w/ same name under diff orgs?
+      linkClassName: projectId == this.props.projectId && 'active',
 
-        {this.highlight(label, highlightText)}
-      </MenuItem>
-    );
+      // When router is available, use `to` property. Otherwise, use href
+      // property. For example - when project selector is loaded on
+      // Django-powered Settings pages.
+
+      [this.context.location ? 'to' : 'href']: this.getRawLink(project)
+    };
+
+    return <MenuItem {...menuItemProps}>{this.highlight(label, highlightText)}</MenuItem>;
   },
 
   getProjectLabel(team, project, hasSingleTeam) {
