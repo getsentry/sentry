@@ -64,7 +64,7 @@ var GroupEvents = React.createClass({
   },
 
   onPage(cursor) {
-    var queryParams = {...this.context.location.query, cursor: cursor};
+    var queryParams = {...this.props.location.query, cursor: cursor};
 
     let {orgId, projectId, groupId} = this.props.params;
     this.history.pushState(
