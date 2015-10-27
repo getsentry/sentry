@@ -15,7 +15,9 @@ def get_integration_id(platform_id, integration_id):
     return '{}-{}'.format(platform_id, integration_id)
 
 
-@instrumented_task(name='sentry.tasks.sync_docs', queue='update')
+@instrumented_task(name='sentry.tasks.sync_docs', queue='update',
+                   time_limit=15,
+                   soft_time_limit=10)
 def sync_docs():
     from sentry import http, options
 
