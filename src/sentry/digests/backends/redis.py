@@ -101,7 +101,7 @@ if score ~= nil then
         -- evicted), be conservative and allow the timeline to be scheduled
         -- with either the current schedule time or provided timestamp,
         -- whichever is smaller.
-        update = math.min(last, ARGV[2])
+        update = math.min(score, ARGV[2])
     else
         update = math.min(
             score + tonumber(ARGV[3]),

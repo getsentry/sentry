@@ -89,6 +89,18 @@ class RedisScriptTestCase(BaseRedisBackendTestCase):
                 self.assertChanges(timeline_score_in_waiting_set, before=timestamp + 1, after=timestamp):
             assert ensure_timeline_scheduled(('waiting', 'ready'), (timeline, timestamp, increment, 0), client) is None
 
+        # Test to ensure a missing last processed timestamp can be handled
+        # correctly (chooses minimum of schedule value and record timestamp.)
+        client.zadd('waiting', timestamp, timeline)
+        client.delete(make_last_processed_timestamp_key(timeline))
+        with self.assertDoesNotChange(waiting_set_size), \
+                self.assertDoesNotChange(timeline_score_in_waiting_set):
+            assert ensure_timeline_scheduled(('waiting', 'ready'), (timeline, timestamp + 100, increment, 10), client) is None
+
+        with self.assertDoesNotChange(waiting_set_size), \
+                self.assertChanges(timeline_score_in_waiting_set, before=timestamp, after=timestamp - 100):
+            assert ensure_timeline_scheduled(('waiting', 'ready'), (timeline, timestamp - 100, increment, 10), client) is None
+
     def test_truncate_timeline_script(self):
         client = StrictRedis(db=9)
 
