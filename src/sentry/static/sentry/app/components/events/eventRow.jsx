@@ -29,12 +29,7 @@ var EventRow = React.createClass({
 
   render() {
     var event = this.state.event;
-    var linkParams = {
-      eventId: event.id,
-      orgId: this.props.orgSlug,
-      projectId: this.props.projectSlug,
-      groupId: event.groupID
-    };
+    var eventLink = `/${this.props.orgSlug}/${this.props.projectSlug}/groups/${event.groupID}/events/${event.id}/`;
 
     var tagList = [];
     for (var key in event.tags) {
@@ -45,8 +40,7 @@ var EventRow = React.createClass({
       <tr>
         <td>
           <h5>
-            <Router.Link to="groupEventDetails"
-                params={linkParams}>{event.message}</Router.Link>
+            <Router.Link to={eventLink}>{event.message}</Router.Link>
           </h5>
           <small className="tagList">{tagList.map((tag) => {
             return <span key={tag[0]}>{tag[0]} = {tag[1]} </span>;

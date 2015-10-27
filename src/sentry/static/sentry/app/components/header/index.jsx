@@ -28,7 +28,7 @@ var Header = React.createClass({
             <li><a href="https://docs.getsentry.com">Docs</a></li>
           </ul>
           {this.props.orgId ?
-            <Link to={`/${this.props.orgId}/`}className="logo">{logo}</Link>
+            <Link to={`/${this.props.orgId}/`} className="logo">{logo}</Link>
             :
             <a href="/" className="logo">{logo}</a>
           }
