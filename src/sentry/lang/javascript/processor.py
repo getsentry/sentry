@@ -155,7 +155,7 @@ def discover_sourcemap(result):
     sourcemap = result.headers.get('sourcemap', result.headers.get('x-sourcemap'))
 
     if not sourcemap:
-        parsed_body = result.body.splitlines()
+        parsed_body = result.body.split('\n')
         # Source maps are only going to exist at either the top or bottom of the document.
         # Technically, there isn't anything indicating *where* it should exist, so we
         # are generous and assume it's somewhere either in the first or last 5 lines.
@@ -621,7 +621,7 @@ class SourceProcessor(object):
                 cache.add_error(filename, exc.data)
                 continue
 
-            cache.add(filename, result.body.splitlines())
+            cache.add(filename, result.body.split('\n'))
             cache.alias(result.url, filename)
 
             sourcemap_url = discover_sourcemap(result)
