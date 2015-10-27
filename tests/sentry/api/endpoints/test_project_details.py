@@ -20,6 +20,30 @@ class ProjectDetailsTest(APITestCase):
         assert response.status_code == 200
         assert response.data['id'] == str(project.id)
 
+    def test_numeric_org_slug(self):
+        # Regression test for https://github.com/getsentry/sentry/issues/2236
+        self.login_as(user=self.user)
+        org = self.create_organization(
+            name='baz',
+            slug='1',
+            owner=self.user,
+        )
+        team = self.create_team(
+            organization=org,
+            name='foo',
+            slug='foo',
+        )
+        project = self.create_project(
+            name='Bar',
+            slug='bar',
+            team=team,
+        )
+        # We want to make sure we don't hit the LegacyProjectRedirect view at all.
+        url = '/api/0/projects/%s/%s/' % (org.slug, project.slug)
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data['id'] == str(project.id)
+
 
 class ProjectUpdateTest(APITestCase):
     def test_simple(self):
