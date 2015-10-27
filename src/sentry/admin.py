@@ -83,7 +83,7 @@ class OrganizationTeamInline(admin.TabularInline):
 class OrganizationMemberInline(admin.TabularInline):
     model = OrganizationMember
     extra = 1
-    fields = ('user', 'type', 'organization')
+    fields = ('user', 'organization', 'role')
     raw_id_fields = ('user', 'organization')
 
 
