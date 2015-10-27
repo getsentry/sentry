@@ -87,6 +87,13 @@ class OrganizationMemberInline(admin.TabularInline):
     raw_id_fields = ('user', 'organization')
 
 
+class AuthIdentityInline(admin.TabularInline):
+    model = AuthIdentity
+    extra = 1
+    fields = ('user', 'auth_provider', 'ident', 'data', 'last_verified')
+    raw_id_fields = ('user', 'auth_provider')
+
+
 class OrganizationAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug', 'status')
     list_filter = ('status',)
@@ -176,7 +183,7 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'is_managed')
     search_fields = ('username', 'first_name', 'last_name', 'email')
     ordering = ('username',)
-    inlines = (OrganizationMemberInline,)
+    inlines = (OrganizationMemberInline, AuthIdentityInline)
 
     def get_fieldsets(self, request, obj=None):
         if not obj:
