@@ -15,7 +15,7 @@ Some basic prerequisites which you'll need in order to run Sentry:
 * ``python-setuptools``, ``python-pip``, ``python-dev``, ``libxslt1-dev``,
   ``libxml2-dev``, ``libz-dev``, ``libffi-dev``, ``libssl-dev``, ``libpq-dev``
 * `PostgreSQL <http://www.postgresql.org/>`_
-* `Redis <http://redis.io>`_ (3.0.2 or newer)
+* `Redis <http://redis.io>`_ (2.8.9 or newer)
 * `Nginx <http://nginx.org>`_ (``nginx-full``)
 * A dedicated domain to host Sentry on (i.e. `sentry.yourcompany.com`).
 
