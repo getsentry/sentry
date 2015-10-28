@@ -129,25 +129,12 @@ def create_new_user(request):
 
         user.save()
 
-        if form.cleaned_data['create_project']:
-            project = Project.objects.create(
-                name='%s\'s New Project' % user.username.capitalize()
-            )
-            member = project.organization.member_set.get(user=user)
-            key = project.key_set.get(user=user)
-
         if form.cleaned_data['send_welcome_mail']:
             context = {
                 'username': user.username,
                 'password': password,
                 'url': absolute_uri(reverse('sentry')),
             }
-            if form.cleaned_data['create_project']:
-                context.update({
-                    'project': project,
-                    'member': member,
-                    'dsn': key.get_dsn(),
-                })
             body = render_to_string('sentry/emails/welcome_mail.txt', context, request)
 
             try:
