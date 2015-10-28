@@ -53,7 +53,7 @@ IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 
 dev_requires = [
     'flake8>=2.0,<2.1',
-    'Click',
+    'click',
 ]
 
 tests_require = [
