@@ -138,7 +138,7 @@ def sourcemap_to_index(sourcemap):
             # Apply the root to the source before shoving into the index
             # so we can look it up correctly later
             source = urljoin(sourceRoot, source)
-            content[source] = value.splitlines()
+            content[source] = value.split('\n')
 
     for state in parse_sourcemap(smap):
         state_list.append(state)
