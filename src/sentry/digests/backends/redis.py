@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import functools
 import itertools
 import logging
 import random
@@ -74,7 +73,7 @@ def make_record_key(timeline_key, record):
 
 # Ensures an timeline is scheduled to be digested, adjusting the schedule time
 # if necessary.
-# KEYS: {WAITING, READY}
+# KEYS: {WAITING, READY, LAST_PROCESSED_TIMESTAMP}
 # ARGV: {
 #   TIMELINE,   -- timeline key
 #   TIMESTAMP,  --
@@ -84,33 +83,42 @@ def make_record_key(timeline_key, record):
 #               -- digestion
 # }
 ENSURE_TIMELINE_SCHEDULED_SCRIPT = """\
+local WAITING = KEYS[1] or error("incorrect number of keys provided")
+local READY = KEYS[2] or error("incorrect number of keys provided")
+local LAST_PROCESSED_TIMESTAMP = KEYS[3] or error("incorrect number of keys provided")
+
+local TIMELINE = ARGV[1] or error("incorrect number of arguments provided")
+local TIMESTAMP = ARGV[2] or error("incorrect number of arguments provided")
+local INCREMENT = ARGV[3] or error("incorrect number of arguments provided")
+local MAXIMUM = ARGV[4] or error("incorrect number of arguments provided")
+
 -- If the timeline is already in the "ready" set, this is a noop.
-if tonumber(redis.call('ZSCORE', KEYS[2], ARGV[1])) ~= nil then
+if tonumber(redis.call('ZSCORE', READY, TIMELINE)) ~= nil then
     return false
 end
 
 -- Otherwise, check to see if the timeline is in the "waiting" set.
-local score = tonumber(redis.call('ZSCORE', KEYS[1], ARGV[1]))
+local score = tonumber(redis.call('ZSCORE', WAITING, TIMELINE))
 if score ~= nil then
     -- If the timeline is already in the "waiting" set, increase the delay by
     -- min(current schedule + increment value, maximum delay after last processing time).
-    local last = tonumber(redis.call('GET', ARGV[1] .. ':{TIMELINE_LAST_PROCESSED_TIMESTAMP_PATH_COMPONENT}'))
+    local last = tonumber(redis.call('GET', LAST_PROCESSED_TIMESTAMP))
     local update = nil;
     if last == nil then
         -- If the last processed timestamp is missing for some reason (possibly
         -- evicted), be conservative and allow the timeline to be scheduled
         -- with either the current schedule time or provided timestamp,
         -- whichever is smaller.
-        update = math.min(score, ARGV[2])
+        update = math.min(score, TIMESTAMP)
     else
         update = math.min(
-            score + tonumber(ARGV[3]),
-            last + tonumber(ARGV[4])
+            score + tonumber(INCREMENT),
+            last + tonumber(MAXIMUM)
         )
     end
 
     if update ~= score then
-        redis.call('ZADD', KEYS[1], update, ARGV[1])
+        redis.call('ZADD', WAITING, update, TIMELINE)
     end
     return false
 end
@@ -118,11 +126,9 @@ end
 -- If the timeline isn't already in either set, add it to the "ready" set with
 -- the provided timestamp. This allows for immediate scheduling, bypassing the
 -- imposed delay of the "waiting" state.
-redis.call('ZADD', KEYS[2], ARGV[2], ARGV[1])
+redis.call('ZADD', READY, TIMESTAMP, TIMELINE)
 return true
-""".format(
-    TIMELINE_LAST_PROCESSED_TIMESTAMP_PATH_COMPONENT=TIMELINE_LAST_PROCESSED_TIMESTAMP_PATH_COMPONENT,
-)
+"""
 
 
 # Trims a timeline to a maximum number of records.
@@ -247,9 +253,10 @@ class RedisBackend(Backend):
             pipeline.expire(timeline_key, self.ttl)
 
             ensure_timeline_scheduled(
-                map(
-                    functools.partial(make_schedule_key, self.namespace),
-                    (SCHEDULE_STATE_WAITING, SCHEDULE_STATE_READY,),
+                (
+                    make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
+                    make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
+                    make_last_processed_timestamp_key(timeline_key),
                 ),
                 (
                     key,
