@@ -42,8 +42,6 @@ class BaseUserForm(forms.ModelForm):
 
 
 class NewUserForm(BaseUserForm):
-    create_project = forms.BooleanField(required=False,
-        help_text=_("Create a project for this user."))
     send_welcome_mail = forms.BooleanField(required=False,
         help_text=_("Send this user a welcome email which will contain their generated password."))
 
