@@ -273,8 +273,9 @@ class SmartInstall(install):
     `build_static` which is required for JavaScript assets and other things.
     """
     def run(self):
-        self.reinitialize_command('build_static')
-        self.run_command('build_static')
+        if not IS_LIGHT_BUILD:
+            self.reinitialize_command('build_static')
+            self.run_command('build_static')
         install.run(self)
 
 
