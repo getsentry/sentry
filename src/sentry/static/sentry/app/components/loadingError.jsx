@@ -1,6 +1,6 @@
 import React from "react";
 
-var LoadingError = React.createClass({
+const LoadingError = React.createClass({
   propTypes: {
     onRetry: React.PropTypes.func,
     message: React.PropTypes.string

@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import $ from "jquery";
 
-var RuleNode = React.createClass({
+const RuleNode = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
     node: React.PropTypes.shape({

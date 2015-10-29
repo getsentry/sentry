@@ -2,8 +2,8 @@ import React from 'react';
 import jQuery from 'jquery';
 
 function looksLikeObjectRepr(value) {
-  var a = value[0];
-  var z = value[value.length - 1];
+  let a = value[0];
+  let z = value[value.length - 1];
   if (a == '<' && z == '>') {
     return true;
   } else if (a == '[' && z == ']') {
@@ -22,13 +22,13 @@ function looksLikeMultiLineString(value) {
 
 function padNumbersInString(string) {
   return string.replace(/(\d+)/g, function(num) {
-    var isNegative = false;
+    let isNegative = false;
     num = parseInt(num, 10);
     if (num < 0) {
       num *= -1;
       isNegative = true;
     }
-    var s = '0000000000000' + num;
+    let s = '0000000000000' + num;
     s = s.substr(s.length - (isNegative ? 11 : 12));
     if (isNegative) {
       s = '-' + s;
@@ -44,7 +44,7 @@ function naturalCaseInsensitiveSort(a, b) {
 }
 
 function analyzeStringForRepr(value) {
-  var rv = {
+  let rv = {
     repr: value,
     isString: true,
     isMultiLine: false,
@@ -67,7 +67,7 @@ function analyzeStringForRepr(value) {
 }
 
 
-var ContextData = React.createClass({
+const ContextData = React.createClass({
   propTypes: {
     data: React.PropTypes.any
   },
@@ -101,13 +101,13 @@ var ContextData = React.createClass({
 
     /*eslint no-shadow:0*/
     function walk(value, depth) {
-      var i = 0, children = [];
+      let i = 0, children = [];
       if (value === null) {
         return <span className="val-null">None</span>;
       } else if (value === true || value === false) {
         return <span className="val-bool">{value ? 'True' : 'False'}</span>;
       } else if (typeof value === 'string' || value instanceof String) {
-        var valueInfo = analyzeStringForRepr(value);
+        let valueInfo = analyzeStringForRepr(value);
         return (
           <span className={
             (valueInfo.isString ? 'val-string' : 'val-repr') +
@@ -135,10 +135,10 @@ var ContextData = React.createClass({
           </span>
         );
       } else {
-        var keys = Object.keys(value);
+        let keys = Object.keys(value);
         keys.sort(naturalCaseInsensitiveSort);
         for (i = 0; i < keys.length; i++) {
-          var key = keys[i];
+          let key = keys[i];
           children.push(
             <span className="val-dict-pair" key={key}>
               <span className="val-dict-key">
@@ -174,11 +174,11 @@ var ContextData = React.createClass({
 
   render() {
     // XXX(dcramer): babel does not support this yet
-    // var {data, className, ...other} = this.props;
-    var data = this.props.data;
-    var className = this.props.className;
-    var other = {};
-    for (var key in this.props) {
+    // let {data, className, ...other} = this.props;
+    let data = this.props.data;
+    let className = this.props.className;
+    let other = {};
+    for (let key in this.props) {
       if (key !== 'data' && key !== 'className') {
         other[key] = this.props[key];
       }

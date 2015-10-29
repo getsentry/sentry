@@ -5,7 +5,7 @@ import PropTypes from "../../proptypes";
 import TimeSince from "../../components/timeSince";
 import ProjectState from "../../mixins/projectState";
 
-var EventNode = React.createClass({
+const EventNode = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired
   },
@@ -13,8 +13,8 @@ var EventNode = React.createClass({
   mixins: [ProjectState],
 
   makeGroupLink(title) {
-    var group = this.props.group;
-    var org = this.getOrganization();
+    let group = this.props.group;
+    let org = this.getOrganization();
 
     let orgId = org.slug;
     let projectId = group.project.slug;
@@ -28,8 +28,8 @@ var EventNode = React.createClass({
   },
 
   render() {
-    var group = this.props.group;
-    var userCount = group.userCount;
+    let group = this.props.group;
+    let userCount = group.userCount;
 
     return (
       <li className="group">

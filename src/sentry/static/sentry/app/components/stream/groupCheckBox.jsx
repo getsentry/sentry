@@ -3,7 +3,7 @@ import Reflux from "reflux";
 
 import SelectedGroupStore from "../../stores/selectedGroupStore";
 
-var GroupCheckBox = React.createClass({
+const GroupCheckBox = React.createClass({
   propTypes: {
     id: React.PropTypes.string.isRequired
   },
@@ -31,7 +31,7 @@ var GroupCheckBox = React.createClass({
   },
 
   onSelectedGroupChange() {
-    var isSelected = SelectedGroupStore.isSelected(this.props.id);
+    let isSelected = SelectedGroupStore.isSelected(this.props.id);
     if (isSelected !== this.state.isSelected) {
       this.setState({
         isSelected: isSelected,
@@ -40,7 +40,7 @@ var GroupCheckBox = React.createClass({
   },
 
   onSelect() {
-    var id = this.props.id;
+    let id = this.props.id;
     SelectedGroupStore.toggleSelect(id);
   },
 

@@ -31,7 +31,7 @@ import RouteNotFound from "./views/routeNotFound";
 import SharedGroupDetails from "./views/sharedGroupDetails";
 import Stream from "./views/stream";
 
-var routes = (
+let routes = (
   <Route path="/" component={App}>
     <Route path="/organizations/:orgId/" component={OrganizationDetails}>
       <Route path="stats/" component={OrganizationStats} />

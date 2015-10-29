@@ -2,7 +2,7 @@ import React from "react";
 import Modal from "react-bootstrap/lib/Modal";
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-var LinkWithConfirmation = React.createClass({
+const LinkWithConfirmation = React.createClass({
   propTypes: {
     disabled: React.PropTypes.bool,
     message: React.PropTypes.string.isRequired,
@@ -35,7 +35,7 @@ var LinkWithConfirmation = React.createClass({
   },
 
   render() {
-    var className = this.props.className;
+    let className = this.props.className;
     if (this.props.disabled) {
       className += ' disabled';
     }

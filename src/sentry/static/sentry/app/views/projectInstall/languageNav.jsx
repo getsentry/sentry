@@ -1,6 +1,6 @@
 import React from "react";
 
-var LanguageNav = React.createClass({
+const LanguageNav = React.createClass({
   getInitialState() {
     return {
       isVisible: this.props.active || false
@@ -12,7 +12,7 @@ var LanguageNav = React.createClass({
   },
 
   render() {
-    var {isVisible} = this.state;
+    let {isVisible} = this.state;
     return (
       <div>
         <ul className="list-group">

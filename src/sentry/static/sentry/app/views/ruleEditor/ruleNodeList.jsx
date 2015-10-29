@@ -3,7 +3,7 @@ import React from "react";
 import SelectInput from "../../components/selectInput";
 import RuleNode from "./ruleNode";
 
-var RuleNodeList = React.createClass({
+const RuleNodeList = React.createClass({
   getInitialState() {
     return {
       items: this.props.initialItems || []

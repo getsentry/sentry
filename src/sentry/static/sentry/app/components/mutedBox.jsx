@@ -1,7 +1,7 @@
 import React from "react";
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-var MutedBox = React.createClass({
+const MutedBox = React.createClass({
   mixins: [PureRenderMixin],
 
   render() {

@@ -40,7 +40,7 @@ describe("StreamActions", function() {
     describe("for all items", function () {
       it("should invoke the callback with 'undefined' and deselect all", function () {
         this.sandbox.stub(SelectedGroupStore, 'deselectAll');
-        var callback = this.sandbox.stub();
+        let callback = this.sandbox.stub();
 
         this.actions.actionSelectedGroups(this.actions.props.actionTypes.ALL, callback);
 
@@ -54,7 +54,7 @@ describe("StreamActions", function() {
         this.sandbox.stub(SelectedGroupStore, 'deselectAll');
         this.sandbox.stub(SelectedGroupStore, 'getSelectedIds').returns(new Set([1,2,3]));
 
-        var callback = this.sandbox.stub();
+        let callback = this.sandbox.stub();
         this.actions.actionSelectedGroups(this.actions.props.actionTypes.SELECTED, callback);
 
         expect(callback.withArgs([1,2,3]).calledOnce).to.be.ok;
