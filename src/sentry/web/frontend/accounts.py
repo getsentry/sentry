@@ -151,6 +151,7 @@ def appearance_settings(request):
         'language': options.get('language') or request.LANGUAGE_CODE,
         'stacktrace_order': int(options.get('stacktrace_order', -1) or -1),
         'timezone': options.get('timezone') or settings.SENTRY_DEFAULT_TIME_ZONE,
+        'clock_24_hours': options.get('clock_24_hours') or False,
     })
     if form.is_valid():
         form.save()

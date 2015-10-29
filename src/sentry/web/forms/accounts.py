@@ -335,6 +335,10 @@ class AppearanceSettingsForm(forms.Form):
     timezone = forms.ChoiceField(
         label=_('Time zone'), choices=TIMEZONE_CHOICES, required=False,
         widget=forms.Select(attrs={'class': 'input-xxlarge'}))
+    clock_24_hours = forms.BooleanField(
+        label=_('Use a 24-hour clock'),
+        required=False,
+    )
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
@@ -363,6 +367,14 @@ class AppearanceSettingsForm(forms.Form):
             project=None,
             key='timezone',
             value=self.cleaned_data['timezone'],
+        )
+
+        # Save clock 24 hours option
+        UserOption.objects.set_value(
+            user=self.user,
+            project=None,
+            key='clock_24_hours',
+            value=self.cleaned_data['clock_24_hours'],
         )
 
         return self.user
