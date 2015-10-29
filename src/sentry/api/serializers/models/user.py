@@ -37,6 +37,6 @@ class UserSerializer(Serializer):
                 'language': options.get('language') or 'en',
                 'stacktraceOrder': stacktrace_order,
                 'timezone': options.get('timezone') or settings.SENTRY_DEFAULT_TIME_ZONE,
-
+                'clock24Hours': options.get('clock_24_hours') or False,
             }
         return d
