@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import _ from "underscore";
 
-var StreamTagFilter = React.createClass({
+const StreamTagFilter = React.createClass({
   propTypes: {
     tag: React.PropTypes.object.isRequired,
     orgId: React.PropTypes.string.isRequired,

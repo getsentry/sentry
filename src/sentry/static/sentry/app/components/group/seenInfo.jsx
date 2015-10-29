@@ -4,7 +4,7 @@ import TimeSince from "../../components/timeSince";
 import Version from "../../components/version";
 import utils from "../../utils";
 
-var SeenInfo = React.createClass({
+const SeenInfo = React.createClass({
   propTypes: {
     date: React.PropTypes.any.isRequired,
     release: React.PropTypes.shape({
@@ -15,7 +15,7 @@ var SeenInfo = React.createClass({
   },
 
   render() {
-    var {date, release} = this.props;
+    let {date, release} = this.props;
     return (
       <dl>
         <dt key={0}>When:</dt>

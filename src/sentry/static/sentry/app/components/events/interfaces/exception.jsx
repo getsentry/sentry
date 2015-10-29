@@ -5,7 +5,7 @@ import PropTypes from "../../../proptypes";
 import ExceptionContent from "./exceptionContent";
 import RawExceptionContent from "./rawExceptionContent";
 
-var ExceptionInterface = React.createClass({
+const ExceptionInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
@@ -14,11 +14,11 @@ var ExceptionInterface = React.createClass({
   },
 
   getInitialState() {
-    var user = ConfigStore.get("user");
+    let user = ConfigStore.get("user");
     // user may not be authenticated
-    var options = user ? user.options : {};
-    var platform = this.props.event.platform;
-    var newestFirst;
+    let options = user ? user.options : {};
+    let platform = this.props.event.platform;
+    let newestFirst;
     switch (options.stacktraceOrder) {
       case "newestFirst":
         newestFirst = true;
@@ -44,13 +44,13 @@ var ExceptionInterface = React.createClass({
   },
 
   render() {
-    var group = this.props.group;
-    var evt = this.props.event;
-    var data = this.props.data;
-    var stackView = this.state.stackView;
-    var newestFirst = this.state.newestFirst;
+    let group = this.props.group;
+    let evt = this.props.event;
+    let data = this.props.data;
+    let stackView = this.state.stackView;
+    let newestFirst = this.state.newestFirst;
 
-    var title = (
+    let title = (
       <div>
         <div className="btn-group">
           {data.hasSystemFrames &&

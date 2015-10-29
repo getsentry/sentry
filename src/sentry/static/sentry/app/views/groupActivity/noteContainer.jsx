@@ -6,7 +6,7 @@ import GroupStore from "../../stores/groupStore";
 import Note from "./note";
 import NoteInput from "./noteInput";
 
-var NoteContainer = React.createClass({
+const NoteContainer = React.createClass({
   getInitialState() {
     return {
       editing: false
@@ -22,12 +22,12 @@ var NoteContainer = React.createClass({
   },
 
   onDelete() {
-    var {group, item} = this.props;
+    let {group, item} = this.props;
 
-    var loadingIndicator = IndicatorStore.add('Removing comment..');
+    let loadingIndicator = IndicatorStore.add('Removing comment..');
 
     // Optimistically remove from UI
-    var index = GroupStore.removeActivity(group.id, item.id);
+    let index = GroupStore.removeActivity(group.id, item.id);
     if (index === -1) {
         // I dunno, the id wasn't found in the GroupStore
         return;
@@ -47,7 +47,7 @@ var NoteContainer = React.createClass({
   },
 
   render() {
-    var {group, item, author} = this.props;
+    let {group, item, author} = this.props;
 
     return (
       <li className="activity-note">

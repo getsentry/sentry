@@ -14,7 +14,7 @@ import SelectedGroupStore from "../../stores/selectedGroupStore";
 
 import {valueIsEqual} from "../../utils";
 
-var StreamGroup = React.createClass({
+const StreamGroup = React.createClass({
   propTypes: {
     id: React.PropTypes.string.isRequired,
     orgId: React.PropTypes.string.isRequired,
@@ -63,8 +63,8 @@ var StreamGroup = React.createClass({
     if (!itemIds.has(this.props.id)) {
       return;
     }
-    var id = this.props.id;
-    var data = GroupStore.get(id);
+    let id = this.props.id;
+    let data = GroupStore.get(id);
     this.setState({
       data: data,
     });
@@ -82,10 +82,10 @@ var StreamGroup = React.createClass({
   },
 
   render() {
-    var data = this.state.data;
-    var userCount = data.userCount;
+    let data = this.state.data;
+    let userCount = data.userCount;
 
-    var className = "group row";
+    let className = "group row";
     if (data.isBookmarked) {
       className += " isBookmarked";
     }

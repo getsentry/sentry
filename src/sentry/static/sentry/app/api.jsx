@@ -24,7 +24,7 @@ class Client {
   }
 
   uniqueId() {
-    var s4 = () => {
+    let s4 = () => {
       return Math.floor((1 + Math.random()) * 0x10000)
                  .toString(16)
                  .substring(1);
@@ -40,7 +40,7 @@ class Client {
     }
 
     return (...args) => {
-      var req = this.activeRequests[id];
+      let req = this.activeRequests[id];
       if (cleanup === true) {
         delete this.activeRequests[id];
       }
@@ -51,16 +51,16 @@ class Client {
   }
 
   request(path, options = {}) {
-    var query = $.param(options.query || "", true);
-    var method = options.method || (options.data ? "POST" : "GET");
-    var data = options.data;
-    var id = this.uniqueId();
+    let query = $.param(options.query || "", true);
+    let method = options.method || (options.data ? "POST" : "GET");
+    let data = options.data;
+    let id = this.uniqueId();
 
     if (typeof data !== "undefined" && method !== 'GET') {
       data = JSON.stringify(data);
     }
 
-    var fullUrl;
+    let fullUrl;
     if (path.indexOf(this.baseUrl) === -1) {
       fullUrl = this.baseUrl + path;
     } else {
@@ -112,9 +112,9 @@ class Client {
   }
 
   bulkDelete(params, options) {
-    var path = "/projects/" + params.orgId + "/" + params.projectId + "/groups/";
-    var query = (params.itemIds ? {id: params.itemIds} : undefined);
-    var id = this.uniqueId();
+    let path = "/projects/" + params.orgId + "/" + params.projectId + "/groups/";
+    let query = (params.itemIds ? {id: params.itemIds} : undefined);
+    let id = this.uniqueId();
 
     GroupActions.delete(id, params.itemIds);
 
@@ -131,9 +131,9 @@ class Client {
   }
 
   bulkUpdate(params, options) {
-    var path = "/projects/" + params.orgId + "/" + params.projectId + "/groups/";
-    var query = (params.itemIds ? {id: params.itemIds} : undefined);
-    var id = this.uniqueId();
+    let path = "/projects/" + params.orgId + "/" + params.projectId + "/groups/";
+    let query = (params.itemIds ? {id: params.itemIds} : undefined);
+    let id = this.uniqueId();
 
     GroupActions.update(id, params.itemIds, params.data);
 
@@ -151,9 +151,9 @@ class Client {
   }
 
   merge(params, options) {
-    var path = "/projects/" + params.orgId + "/" + params.projectId + "/groups/";
-    var query = (params.itemIds ? {id: params.itemIds} : undefined);
-    var id = this.uniqueId();
+    let path = "/projects/" + params.orgId + "/" + params.projectId + "/groups/";
+    let query = (params.itemIds ? {id: params.itemIds} : undefined);
+    let id = this.uniqueId();
 
     GroupActions.merge(id, params.itemIds);
 
@@ -171,8 +171,8 @@ class Client {
   }
 
   assignTo(params, options) {
-    var path = "/groups/" + params.id + "/";
-    var id = this.uniqueId();
+    let path = "/groups/" + params.id + "/";
+    let id = this.uniqueId();
 
     GroupActions.assignTo(id, params.id, {email: params.email});
 
@@ -189,8 +189,8 @@ class Client {
   }
 
   joinTeam(params, options) {
-    var path = "/organizations/" + params.orgId + "/members/" + (params.memberId || 'me') + "/teams/" + params.teamId + "/";
-    var id = this.uniqueId();
+    let path = "/organizations/" + params.orgId + "/members/" + (params.memberId || 'me') + "/teams/" + params.teamId + "/";
+    let id = this.uniqueId();
 
     TeamActions.update(id, params.teamId);
 
@@ -206,8 +206,8 @@ class Client {
   }
 
   leaveTeam(params, options) {
-    var path = "/organizations/" + params.orgId + "/members/" + (params.memberId || 'me') + "/teams/" + params.teamId + "/";
-    var id = this.uniqueId();
+    let path = "/organizations/" + params.orgId + "/members/" + (params.memberId || 'me') + "/teams/" + params.teamId + "/";
+    let id = this.uniqueId();
 
     TeamActions.update(id, params.teamId);
 

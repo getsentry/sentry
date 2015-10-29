@@ -13,7 +13,7 @@ import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 import SearchDropdown from "./searchDropdown";
 
-var SearchBar = React.createClass({
+const SearchBar = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired
@@ -204,7 +204,7 @@ var SearchBar = React.createClass({
    * with results
    */
   getPredefinedTagValues: function (tag, query, callback) {
-    var values = tag.values
+    let values = tag.values
       .filter(value => value.indexOf(query) > -1);
 
     callback(values, tag.key);
@@ -234,8 +234,8 @@ var SearchBar = React.createClass({
       this.blurTimeout = null;
     }
 
-    var cursor = this.getCursorPosition();
-    var query = this.state.query;
+    let cursor = this.getCursorPosition();
+    let query = this.state.query;
 
     let lastTermIndex = SearchBar.getLastTermIndex(query, cursor);
     let terms = SearchBar.getQueryTerms(query.slice(0, lastTermIndex));
@@ -378,7 +378,7 @@ var SearchBar = React.createClass({
       query: newQuery
     }, () => {
       // setting a new input value will lose focus; restore it
-      var node = ReactDOM.findDOMNode(this.refs.searchInput);
+      let node = ReactDOM.findDOMNode(this.refs.searchInput);
       node.focus();
 
       // then update the autocomplete box with new contextTypes
@@ -393,7 +393,7 @@ var SearchBar = React.createClass({
   },
 
   render() {
-    var dropdownStyle = {
+    let dropdownStyle = {
       display: this.state.dropdownVisible ? 'block' : 'none'
     };
 

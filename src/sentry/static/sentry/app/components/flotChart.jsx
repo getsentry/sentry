@@ -9,7 +9,7 @@ require('flot/jquery.flot.stack');
 require('flot/jquery.flot.time');
 require('flot-tooltip/jquery.flot.tooltip');
 
-var timeUnitSize = {
+let timeUnitSize = {
   "second": 1000,
   "minute": 60 * 1000,
   "hour": 60 * 60 * 1000,
@@ -19,15 +19,15 @@ var timeUnitSize = {
   "year": 365.2425 * 24 * 60 * 60 * 1000
 };
 
-var numberWithCommas = function(x) {
+let numberWithCommas = function(x) {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 };
 
-var buildTooltipHandler = function(series) {
+let buildTooltipHandler = function(series) {
   return function(_l, xval, _y, flotItem) {
-    var yval;
-    var content = '<h6>' + moment(parseInt(xval, 10)).format('llll') + '</h6>';
-    for (var i = 0; i < series.length; i++) {
+    let yval;
+    let content = '<h6>' + moment(parseInt(xval, 10)).format('llll') + '</h6>';
+    for (let i = 0; i < series.length; i++) {
       // we're assuming series are identical
       yval = numberWithCommas(series[i].data[flotItem.dataIndex][1] || 0);
       content += '<strong style="color:' + series[i].color + '">' + series[i].label + ':</strong> ' + yval + '<br>';
@@ -36,12 +36,12 @@ var buildTooltipHandler = function(series) {
   };
 };
 
-var tickFormatter = (value, axis) => {
-  var d = moment(parseInt(value, 10));
+let tickFormatter = (value, axis) => {
+  let d = moment(parseInt(value, 10));
 
-  var t = axis.tickSize[0] * timeUnitSize[axis.tickSize[1]];
-  var span = axis.max - axis.min;
-  var fmt;
+  let t = axis.tickSize[0] * timeUnitSize[axis.tickSize[1]];
+  let span = axis.max - axis.min;
+  let fmt;
 
   if (t < timeUnitSize.minute) {
     fmt = 'LT';
@@ -67,7 +67,7 @@ var tickFormatter = (value, axis) => {
   return d.format(fmt);
 };
 
-var FlotChart = React.createClass({
+const FlotChart = React.createClass({
   propTypes: {
     plotData: React.PropTypes.array
   },
@@ -91,8 +91,8 @@ var FlotChart = React.createClass({
   },
 
   renderChart(options) {
-    var series = this.props.plotData;
-    var plotOptions = {
+    let series = this.props.plotData;
+    let plotOptions = {
       xaxis: {
         mode: "time",
         minTickSize: [1, "day"],
@@ -132,7 +132,7 @@ var FlotChart = React.createClass({
       lines: { show: false }
     };
 
-    var chart = ReactDOM.findDOMNode(this.refs.chartNode);
+    let chart = ReactDOM.findDOMNode(this.refs.chartNode);
     jQuery.plot(chart, series, plotOptions);
   },
 

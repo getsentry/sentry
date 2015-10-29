@@ -7,7 +7,7 @@ import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import {percent} from "../utils";
 
-var GroupTags = React.createClass({
+const GroupTags = React.createClass({
   mixins: [
     ApiMixin,
     GroupState
@@ -63,16 +63,16 @@ var GroupTags = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    var children = [];
+    let children = [];
 
-    var orgId = this.getOrganization().slug;
-    var projectId = this.getProject().slug;
-    var groupId = this.getGroup().id;
+    let orgId = this.getOrganization().slug;
+    let projectId = this.getProject().slug;
+    let groupId = this.getGroup().id;
 
     if (this.state.tagList) {
       children = this.state.tagList.map((tag, tagIdx) => {
-        var valueChildren = tag.topValues.map((tagValue, tagValueIdx) => {
-          var pct = percent(tagValue.count, tag.totalValues);
+        let valueChildren = tag.topValues.map((tagValue, tagValueIdx) => {
+          let pct = percent(tagValue.count, tag.totalValues);
           return (
             <li key={tagValueIdx}>
               <Link

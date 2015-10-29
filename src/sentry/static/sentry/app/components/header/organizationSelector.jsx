@@ -6,7 +6,7 @@ import AppState from "../../mixins/appState";
 import OrganizationStore from "../../stores/organizationStore";
 import ConfigStore from "../../stores/configStore";
 
-var OrganizationSelector = React.createClass({
+const OrganizationSelector = React.createClass({
   mixins: [
     AppState,
   ],
@@ -16,15 +16,15 @@ var OrganizationSelector = React.createClass({
   },
 
   render() {
-    var singleOrganization = ConfigStore.get('singleOrganization');
-    var activeOrg = this.props.organization;
+    let singleOrganization = ConfigStore.get('singleOrganization');
+    let activeOrg = this.props.organization;
 
     if (singleOrganization || !activeOrg) {
       return null;
     }
 
-    var urlPrefix = ConfigStore.get('urlPrefix');
-    var features = ConfigStore.get('features');
+    let urlPrefix = ConfigStore.get('urlPrefix');
+    let features = ConfigStore.get('features');
 
     return (
       <DropdownLink

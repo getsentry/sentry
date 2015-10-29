@@ -13,7 +13,7 @@ import {userDisplayName} from "../utils/formatters";
 import {valueIsEqual} from "../utils";
 import TooltipMixin from "../mixins/tooltip";
 
-var AssigneeSelector = React.createClass({
+const AssigneeSelector = React.createClass({
   propTypes: {
     id: React.PropTypes.string.isRequired
   },
@@ -27,7 +27,7 @@ var AssigneeSelector = React.createClass({
   ],
 
   getInitialState() {
-    var group = GroupStore.get(this.props.id);
+    let group = GroupStore.get(this.props.id);
 
     return {
       assignedTo: group.assignedTo,
@@ -38,9 +38,9 @@ var AssigneeSelector = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    var loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
+    let loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
     if (nextProps.id != this.props.id || loading != this.state.loading) {
-      var group = GroupStore.get(this.props.id);
+      let group = GroupStore.get(this.props.id);
       this.setState({
         assignedTo: group.assignedTo,
         memberList: MemberListStore.getAll(),
@@ -62,7 +62,7 @@ var AssigneeSelector = React.createClass({
 
   componentDidUpdate(prevProps, prevState) {
     // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
-    var node = jQuery(ReactDOM.findDOMNode(this.refs.container));
+    let node = jQuery(ReactDOM.findDOMNode(this.refs.container));
     node.hide().show(0);
   },
 
@@ -70,7 +70,7 @@ var AssigneeSelector = React.createClass({
     if (!itemIds.has(this.props.id)) {
       return;
     }
-    var group = GroupStore.get(this.props.id);
+    let group = GroupStore.get(this.props.id);
     this.setState({
       assignedTo: group.assignedTo,
       loading: GroupStore.hasStatus(this.props.id, 'assignTo')
@@ -108,7 +108,7 @@ var AssigneeSelector = React.createClass({
       return text;
     }
     highlightText = highlightText.toLowerCase();
-    var idx = text.toLowerCase().indexOf(highlightText);
+    let idx = text.toLowerCase().indexOf(highlightText);
     if (idx === -1) {
       return text;
     }
@@ -124,18 +124,18 @@ var AssigneeSelector = React.createClass({
   },
 
   render() {
-    var loading = this.state.loading;
-    var assignedTo = this.state.assignedTo;
-    var filter = this.state.filter;
+    let loading = this.state.loading;
+    let assignedTo = this.state.assignedTo;
+    let filter = this.state.filter;
 
-    var className = "assignee-selector anchor-right";
+    let className = "assignee-selector anchor-right";
     if (!assignedTo) {
       className += " unassigned";
     }
 
-    var memberNodes = [];
+    let memberNodes = [];
     this.state.memberList.forEach(function(item){
-      var fullName = [item.name, item.email].join(' ').toLowerCase();
+      let fullName = [item.name, item.email].join(' ').toLowerCase();
       if (filter && fullName.indexOf(filter) === -1) {
         return;
       }
@@ -150,7 +150,7 @@ var AssigneeSelector = React.createClass({
       );
     }.bind(this));
 
-    var tooltipTitle = null;
+    let tooltipTitle = null;
     if (assignedTo) {
       tooltipTitle = userDisplayName(assignedTo);
     }

@@ -1,4 +1,4 @@
-var defaults = {
+let defaults = {
   limit: null,
   key: function(item) {
     return item.id;
@@ -6,7 +6,7 @@ var defaults = {
 };
 
 function Collection(collection, options) {
-  var i;
+  let i;
 
   Array.call(this);
 
@@ -45,7 +45,7 @@ Collection.prototype.push = function push(items) {
   }
 
   items.forEach(function(item){
-    var existing = this.pop(item);
+    let existing = this.pop(item);
     if (existing) {
       $.extend(true, existing, item);
       item = existing;
@@ -61,7 +61,7 @@ Collection.prototype.unshift = function unshift(items) {
     items = [items];
   }
   items.reverse().forEach(function(item){
-    var existing = this.pop(item);
+    let existing = this.pop(item);
     if (existing) {
       $.extend(true, existing, item);
       item = existing;
@@ -73,7 +73,7 @@ Collection.prototype.unshift = function unshift(items) {
 };
 
 Collection.prototype.get = function get(key) {
-  var idx = this.indexOf(key);
+  let idx = this.indexOf(key);
   if (idx === -1) {
     return null;
   }
@@ -81,7 +81,7 @@ Collection.prototype.get = function get(key) {
 };
 
 Collection.prototype.pop = function pop(item) {
-  var idx = this.indexOf(this.options.key(item));
+  let idx = this.indexOf(this.options.key(item));
   if (idx === -1) {
     return null;
   }
@@ -95,8 +95,8 @@ Collection.prototype.empty = function empty() {
 };
 
 Collection.prototype.indexOf = function indexOf(key) {
-  var keyFunc = this.options.key;
-  for (var i = 0; i < this.length; i++) {
+  let keyFunc = this.options.key;
+  for (let i = 0; i < this.length; i++) {
     if (keyFunc(this[i]) === key) {
       return i;
     }
@@ -106,7 +106,7 @@ Collection.prototype.indexOf = function indexOf(key) {
 
 Collection.prototype.update = function update(item) {
   // returns true if the item already existed and was updated (as configured)
-  var existing = this.indexOf(this.options.key(item));
+  let existing = this.indexOf(this.options.key(item));
   if (existing !== -1) {
     $.extend(true, this[existing], item);
     return true;

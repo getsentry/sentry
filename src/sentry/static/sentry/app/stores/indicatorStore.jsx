@@ -2,7 +2,7 @@ import React from "react";
 import Reflux from "reflux";
 import LoadingIndicator from '../components/loadingIndicator';
 
-var IndicatorStore = Reflux.createStore({
+const IndicatorStore = Reflux.createStore({
   init() {
     this.items = [];
   },

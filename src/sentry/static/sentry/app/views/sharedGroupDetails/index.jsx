@@ -12,7 +12,7 @@ import PropTypes from "../../proptypes";
 
 import SharedGroupHeader from "./sharedGroupHeader";
 
-var SharedGroupDetails = React.createClass({
+const SharedGroupDetails = React.createClass({
 
   childContextTypes: {
     group: PropTypes.Group,
@@ -69,20 +69,20 @@ var SharedGroupDetails = React.createClass({
   },
 
   getGroupDetailsEndpoint() {
-    var id = this.props.params.shareId;
+    let id = this.props.params.shareId;
 
     return '/shared/groups/' + id + '/';
   },
 
   render() {
-    var group = this.state.group;
+    let group = this.state.group;
 
     if (this.state.loading || !group)
       return <LoadingIndicator />;
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
-    var evt = this.state.group.latestEvent;
+    let evt = this.state.group.latestEvent;
 
     return (
       <DocumentTitle title={this.getTitle()}>

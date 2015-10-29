@@ -5,15 +5,28 @@
 <head>
   <meta charset="utf-8" />
   <style type="text/css">
+  body {
+    background-image: url("{% asset_url 'sentry' 'images/email/sentry-pattern.png' %}");
+  }
   body, .main {
     width: 100%;
     font-size: 16px;
     font-family: "Lato", "Helvetica Neue", helvetica, sans-serif;
-    border: 0;
     padding: 0;
     margin: 0;
     background-color: #fff;
     color: #3D4649;
+  }
+  .main {
+    max-width: 700px;
+    box-shadow: 0 1px 3px rgba(0,0,0, .1);
+    margin: 0 auto;
+    border-radius: 0 0 4px 4px;
+    border-right: 1px solid #c7d0d4;
+    border-left: 1px solid #c7d0d4;
+    border-bottom: 1px solid #c7d0d4;
+    border-collapse: separate;
+    border-spacing: 0;
   }
   * {
     font-weight: 300;
@@ -96,9 +109,9 @@
   }
 
   .header {
-    padding: 25px 0;
+    padding: 23px 0;
     font-size: 14px;
-    border-bottom: 1px solid #CFD9DE;
+    border-bottom: 1px solid #dee7eb;
   }
 
   .header .btn {
@@ -122,7 +135,7 @@
   }
   .footer {
     border-top: 1px solid #E7EBEE;
-    padding: 40px 0;
+    padding: 35px 0;
   }
 
   .footer a {

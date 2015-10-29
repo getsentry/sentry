@@ -4,7 +4,7 @@ import EventStore from "../../stores/eventStore";
 import Gravatar from "../gravatar";
 import TimeSince from "../timeSince";
 
-var EventRow = React.createClass({
+const EventRow = React.createClass({
   propTypes: {
     id: React.PropTypes.string.isRequired
   },
@@ -28,11 +28,11 @@ var EventRow = React.createClass({
   },
 
   render() {
-    var event = this.state.event;
-    var eventLink = `/${this.props.orgSlug}/${this.props.projectSlug}/groups/${event.groupID}/events/${event.id}/`;
+    let event = this.state.event;
+    let eventLink = `/${this.props.orgSlug}/${this.props.projectSlug}/groups/${event.groupID}/events/${event.id}/`;
 
-    var tagList = [];
-    for (var key in event.tags) {
+    let tagList = [];
+    for (let key in event.tags) {
       tagList.push([key, event.tags[key]]);
     }
 

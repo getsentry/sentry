@@ -5,11 +5,11 @@ import DefinitionList from "./interfaces/definitionList";
 import EventDataSection from "./eventDataSection";
 
 
-var EventUser = React.createClass({
+const EventUser = React.createClass({
   render() {
-    var user = this.props.event.user;
-    var builtins = [];
-    var children = [];
+    let user = this.props.event.user;
+    let builtins = [];
+    let children = [];
 
     // Handle our native attributes special
     user.id && builtins.push(['ID', user.id]);

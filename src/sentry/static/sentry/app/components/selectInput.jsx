@@ -1,7 +1,7 @@
 import React from "react";
 import jQuery from "jquery";
 
-var SelectInput = React.createClass({
+const SelectInput = React.createClass({
   getDefaultProps() {
     return {
       // HTML attrs
@@ -52,7 +52,7 @@ var SelectInput = React.createClass({
   },
 
   render() {
-    var opts = {
+    let opts = {
         ref: 'select',
         disabled: this.props.disabled,
         required: this.props.required,

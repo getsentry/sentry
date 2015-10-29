@@ -1,7 +1,7 @@
 import React from "react";
 import PropTypes from "../../proptypes";
 
-var GroupEventDataSection = React.createClass({
+const GroupEventDataSection = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,

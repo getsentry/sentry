@@ -10,7 +10,7 @@ import IndicatorStore from "../../stores/indicatorStore";
 import ListLink from "../../components/listLink";
 import ProjectState from "../../mixins/projectState";
 
-var GroupHeader = React.createClass({
+const GroupHeader = React.createClass({
   propTypes: {
     memberList: React.PropTypes.instanceOf(Array).isRequired
   },
@@ -25,10 +25,10 @@ var GroupHeader = React.createClass({
   ],
 
   onToggleMute() {
-    var group = this.props.group;
-    var project = this.getProject();
-    var org = this.getOrganization();
-    var loadingIndicator = IndicatorStore.add('Saving changes..');
+    let group = this.props.group;
+    let project = this.getProject();
+    let org = this.getOrganization();
+    let loadingIndicator = IndicatorStore.add('Saving changes..');
 
     api.bulkUpdate({
       orgId: org.slug,
@@ -50,10 +50,10 @@ var GroupHeader = React.createClass({
   },
 
   onTogglePublic() {
-    var group = this.props.group;
-    var project = this.getProject();
-    var org = this.getOrganization();
-    var loadingIndicator = IndicatorStore.add('Saving changes..');
+    let group = this.props.group;
+    let project = this.getProject();
+    let org = this.getOrganization();
+    let loadingIndicator = IndicatorStore.add('Saving changes..');
 
     api.bulkUpdate({
       orgId: org.slug,
@@ -70,11 +70,11 @@ var GroupHeader = React.createClass({
   },
 
   render() {
-    var group = this.props.group,
+    let group = this.props.group,
         userCount = group.userCount,
         features = this.getProjectFeatures();
 
-    var className = "group-detail level-" + group.level;
+    let className = "group-detail level-" + group.level;
     if (group.isBookmarked) {
       className += " isBookmarked";
     }

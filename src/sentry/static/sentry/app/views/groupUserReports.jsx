@@ -9,7 +9,7 @@ import LoadingIndicator from "../components/loadingIndicator";
 import TimeSince from "../components/timeSince";
 import utils from "../utils";
 
-var GroupUserReports = React.createClass({
+const GroupUserReports = React.createClass({
   mixins: [
     GroupState,
     History
@@ -29,8 +29,8 @@ var GroupUserReports = React.createClass({
   },
 
   fetchData() {
-    var queryParams = this.props.params;
-    var querystring = $.param(queryParams);
+    let queryParams = this.props.params;
+    let querystring = $.param(queryParams);
 
     this.setState({
       loading: true,
@@ -56,7 +56,7 @@ var GroupUserReports = React.createClass({
   },
 
   onPage(cursor) {
-    var queryParams = $.extend({}, this.props.location.query, {cursor: cursor});
+    let queryParams = $.extend({}, this.props.location.query, {cursor: cursor});
 
     let {orgId, projectId, groupId} = this.props.params;
     this.history.pushState(
@@ -73,8 +73,8 @@ var GroupUserReports = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    var children = this.state.reportList.map((item, itemIdx) => {
-      var body = utils.nl2br(utils.urlize(utils.escape(item.comments)));
+    let children = this.state.reportList.map((item, itemIdx) => {
+      let body = utils.nl2br(utils.urlize(utils.escape(item.comments)));
 
       return (
         <li className="activity-note" key={itemIdx}>
