@@ -20,6 +20,17 @@ var ProjectChart = React.createClass({
     };
   },
 
+  componentWillMount() {
+    this.fetchData();
+  },
+
+  componentWillReceiveProps() {
+    this.setState({
+      loading: true,
+      error: false
+    }, this.fetchData);
+  },
+
   getStatsEndpoint() {
     var org = this.getOrganization();
     var project = this.getProject();
@@ -30,17 +41,6 @@ var ProjectChart = React.createClass({
     var org = this.getOrganization();
     var project = this.getProject();
     return '/projects/' + org.slug + '/' + project.slug + '/releases/';
-  },
-
-  componentWillMount() {
-    this.fetchData();
-  },
-
-  componentWillReceiveProps() {
-    this.setState({
-      loading: true,
-      error: false
-    }, this.fetchData);
   },
 
   fetchData() {

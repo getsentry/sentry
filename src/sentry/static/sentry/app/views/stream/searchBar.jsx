@@ -24,7 +24,26 @@ var SearchBar = React.createClass({
     Reflux.listenTo(MemberListStore, 'onMemberListStoreChange')
   ],
 
-  DROPDOWN_BLUR_DURATION: 200,
+  statics: {
+    /**
+     * Given a query, and the current cursor position, return the string-delimiting
+     * index of the search term designated by the cursor.
+     */
+    getLastTermIndex(query, cursor) {
+      // TODO: work with quoted-terms
+      let cursorOffset = query.slice(cursor).search(/\s|$/);
+      return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
+    },
+
+    /**
+     * Returns an array of query terms, including incomplete terms
+     *
+     * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
+     */
+    getQueryTerms(query, cursor) {
+      return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
+    }
+  },
 
   getDefaultProps() {
     return {
@@ -89,26 +108,7 @@ var SearchBar = React.createClass({
     }
   },
 
-  statics: {
-    /**
-     * Given a query, and the current cursor position, return the string-delimiting
-     * index of the search term designated by the cursor.
-     */
-    getLastTermIndex(query, cursor) {
-      // TODO: work with quoted-terms
-      let cursorOffset = query.slice(cursor).search(/\s|$/);
-      return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
-    },
-
-    /**
-     * Returns an array of query terms, including incomplete terms
-     *
-     * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
-     */
-    getQueryTerms(query, cursor) {
-      return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
-    }
-  },
+  DROPDOWN_BLUR_DURATION: 200,
 
   blur() {
     ReactDOM.findDOMNode(this.refs.searchInput).blur();

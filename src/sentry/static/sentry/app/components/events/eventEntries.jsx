@@ -28,6 +28,10 @@ var EventEntries = React.createClass({
     };
   },
 
+  shouldComponentUpdate(nextProps, nextState) {
+    return this.props.event.id !== nextProps.event.id;
+  },
+
   // TODO(dcramer): make this extensible
   interfaces: {
     exception: require("./interfaces/exception"),
@@ -35,10 +39,6 @@ var EventEntries = React.createClass({
     stacktrace: require("./interfaces/stacktrace"),
     template: require("./interfaces/template"),
     csp: require("./interfaces/csp"),
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return this.props.event.id !== nextProps.event.id;
   },
 
   render(){

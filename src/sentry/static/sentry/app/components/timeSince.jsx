@@ -3,6 +3,11 @@ import moment from "moment";
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 var TimeSince = React.createClass({
+  propTypes: {
+    date: React.PropTypes.any.isRequired,
+    suffix: React.PropTypes.string
+  },
+
   mixins: [
     PureRenderMixin
   ],
@@ -14,11 +19,6 @@ var TimeSince = React.createClass({
       }
       return date;
     }
-  },
-
-  propTypes: {
-    date: React.PropTypes.any.isRequired,
-    suffix: React.PropTypes.string
   },
 
   getDefaultProps() {
@@ -37,6 +37,13 @@ var TimeSince = React.createClass({
     this.setRelativeDateTicker();
   },
 
+  componentWillUnmount() {
+    if (this.ticker) {
+      clearTimeout(this.ticker);
+      this.ticker = null;
+    }
+  },
+
   setRelativeDateTicker() {
     const ONE_MINUTE_IN_MS = 3600;
 
@@ -51,13 +58,6 @@ var TimeSince = React.createClass({
   getRelativeDate() {
     let date = TimeSince.getDateObj(this.props.date);
     return moment(date).fromNow(true);
-  },
-
-  componentWillUnmount() {
-    if (this.ticker) {
-      clearTimeout(this.ticker);
-      this.ticker = null;
-    }
   },
 
   render() {

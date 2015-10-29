@@ -18,12 +18,6 @@ var OrganizationDetails = React.createClass({
     organization: PropTypes.Organization
   },
 
-  getChildContext() {
-    return {
-      organization: this.state.organization
-    };
-  },
-
   getInitialState() {
     return {
       loading: true,
@@ -33,8 +27,20 @@ var OrganizationDetails = React.createClass({
     };
   },
 
+  getChildContext() {
+    return {
+      organization: this.state.organization
+    };
+  },
+
   componentWillMount() {
     this.fetchData();
+  },
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.params.orgId !== this.props.params.orgId) {
+      this.remountComponent();
+    }
   },
 
   componentWillUnmount() {
@@ -43,12 +49,6 @@ var OrganizationDetails = React.createClass({
 
   remountComponent() {
     this.setState(this.getInitialState(), this.fetchData);
-  },
-
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.params.orgId !== this.props.params.orgId) {
-      this.remountComponent();
-    }
   },
 
   fetchData() {

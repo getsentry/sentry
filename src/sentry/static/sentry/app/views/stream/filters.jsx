@@ -10,6 +10,10 @@ var StreamFilters = React.createClass({
     projectId: React.PropTypes.string.isRequired
   },
 
+  contextTypes: {
+    location: React.PropTypes.object
+  },
+
   getDefaultProps() {
     return {
       defaultQuery: "",
@@ -21,10 +25,6 @@ var StreamFilters = React.createClass({
       onSearch: function() {},
       onSidebarToggle: function () {}
     };
-  },
-
-  contextTypes: {
-    location: React.PropTypes.object
   },
 
   getActiveButton() {
