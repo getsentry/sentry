@@ -5,6 +5,9 @@
 <head>
   <meta charset="utf-8" />
   <style type="text/css">
+  body {
+    background-image: url("{% asset_url 'sentry' 'images/email/sentry-pattern.png' %}");
+  }
   body, .main {
     width: 100%;
     font-size: 16px;
@@ -14,6 +17,11 @@
     margin: 0;
     background-color: #fff;
     color: #3D4649;
+  }
+  .main {
+    max-width: 700px;
+    box-shadow: 0 0 5px #888;
+    margin: 0 auto;
   }
   * {
     font-weight: 300;
