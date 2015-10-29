@@ -34,6 +34,7 @@ class AppearanceSettingsTest(TestCase):
         resp = self.client.post(self.path, {
             'language': 'en',
             'stacktrace_order': '2',
+            'clock_24_hours': True
         })
         assert resp.status_code == 302
 
@@ -41,6 +42,7 @@ class AppearanceSettingsTest(TestCase):
 
         assert options.get('language') == 'en'
         assert options.get('stacktrace_order') == '2'
+        assert options.get('clock_24_hours') is True
 
 
 class SettingsTest(TestCase):
