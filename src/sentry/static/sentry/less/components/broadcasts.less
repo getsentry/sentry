@@ -1,7 +1,24 @@
 .broadcasts {
-  &.unseen a {
-    color: @linkColor;
-    font-weight: bold;
+  &.unseen {
+    position: relative;
+
+    &:after {
+      position: absolute;
+      display: block;
+      content: "";
+      top: 8px;
+      right: 26px;
+      .square(8px);
+      border-radius: 50%;
+      background: @red;
+      box-shadow: 0 0 0 3px #515C6F;
+    }
+  }
+
+  .icon-globe {
+    font-size: 18px;
+    position: relative;
+    top: 2px;
   }
 
   .dropdown-menu {
