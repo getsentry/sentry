@@ -87,13 +87,15 @@ var Broadcasts = React.createClass({
       return !item.hasSeen;
     }).length;
 
+    let title = <span className="icon-globe" />;
+
     return (
       <DropdownLink
           topLevelClasses={`broadcasts ${this.props.className || ''} ${unseenCount && 'unseen'}`}
           menuClasses="dropdown-menu-right"
           onOpen={this.onOpen}
           onClose={this.onClose}
-          title="B">
+          title={title}>
         {loading ?
           <li><LoadingIndicator /></li>
         : (broadcasts.length === 0 ?
