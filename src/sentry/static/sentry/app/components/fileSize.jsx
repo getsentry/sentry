@@ -1,11 +1,11 @@
 import React from "react";
 
 var FileSize = React.createClass({
-  units: ['KB','MB','GB','TB','PB','EB','ZB','YB'],
-
   propTypes: {
     bytes: React.PropTypes.number.isRequired
   },
+
+  units: ['KB','MB','GB','TB','PB','EB','ZB','YB'],
 
   formatBytes: function(bytes) {
       var thresh = 1024;

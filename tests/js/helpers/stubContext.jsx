@@ -18,9 +18,9 @@ function stubContext(BaseComponent, context) {
 
   var StubbedContextParent = React.createClass({
     displayName: 'StubbedContextParent',
+    contextTypes: _contextTypes,
     childContextTypes: _contextTypes,
     getChildContext() { return _context; },
-    contextTypes: _contextTypes,
 
     render() {
       return React.Children.only(this.props.children);

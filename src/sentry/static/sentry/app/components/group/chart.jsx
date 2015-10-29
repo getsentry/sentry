@@ -4,12 +4,12 @@ import PropTypes from "../../proptypes";
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 var GroupChart = React.createClass({
-  mixins: [PureRenderMixin],
-
   propTypes: {
     group: PropTypes.Group.isRequired,
     statsPeriod: React.PropTypes.string.isRequired
   },
+
+  mixins: [PureRenderMixin],
 
   render: function() {
     var group = this.props.group;

@@ -72,6 +72,24 @@ var FlotChart = React.createClass({
     plotData: React.PropTypes.array
   },
 
+  componentDidMount() {
+    this.renderChart();
+    jQuery(window).resize(this.renderChart);
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    // TODO(dcramer): improve logic here
+    return nextProps.plotData.length > 0;
+  },
+
+  componentDidUpdate() {
+    this.renderChart();
+  },
+
+  componentWillUnmount() {
+    jQuery(window).unbind('resize', this.renderChart);
+  },
+
   renderChart(options) {
     var series = this.props.plotData;
     var plotOptions = {
@@ -116,24 +134,6 @@ var FlotChart = React.createClass({
 
     var chart = ReactDOM.findDOMNode(this.refs.chartNode);
     jQuery.plot(chart, series, plotOptions);
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    // TODO(dcramer): improve logic here
-    return nextProps.plotData.length > 0;
-  },
-
-  componentDidUpdate() {
-    this.renderChart();
-  },
-
-  componentDidMount() {
-    this.renderChart();
-    jQuery(window).resize(this.renderChart);
-  },
-
-  componentWillUnmount() {
-    jQuery(window).unbind('resize', this.renderChart);
   },
 
   render() {

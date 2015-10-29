@@ -20,6 +20,12 @@ var RuleEditor = React.createClass({
     };
   },
 
+  componentDidUpdate() {
+    if (this.state.error) {
+      $(document.body).scrollTop($(ReactDOM.findDOMNode(this.refs.form)).offset().top);
+    }
+  },
+
   serializeNode(node) {
     var result = {};
     $(node).find('input, select').each((_, el) => {
@@ -28,12 +34,6 @@ var RuleEditor = React.createClass({
       }
     });
     return result;
-  },
-
-  componentDidUpdate() {
-    if (this.state.error) {
-      $(document.body).scrollTop($(ReactDOM.findDOMNode(this.refs.form)).offset().top);
-    }
   },
 
   onSubmit(e) {

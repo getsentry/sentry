@@ -6,11 +6,11 @@ import TimeSince from "../../components/timeSince";
 import ProjectState from "../../mixins/projectState";
 
 var EventNode = React.createClass({
-  mixins: [ProjectState],
-
   propTypes: {
     group: PropTypes.Group.isRequired
   },
+
+  mixins: [ProjectState],
 
   makeGroupLink(title) {
     var group = this.props.group;

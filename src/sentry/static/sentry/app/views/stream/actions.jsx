@@ -9,11 +9,6 @@ import PureRenderMixin from 'react-addons-pure-render-mixin';
 import SelectedGroupStore from "../../stores/selectedGroupStore";
 
 var StreamActions = React.createClass({
-  mixins: [
-    Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
-    PureRenderMixin
-  ],
-
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
@@ -24,14 +19,10 @@ var StreamActions = React.createClass({
     statsPeriod: React.PropTypes.string.isRequired
   },
 
-  getInitialState() {
-    return {
-      datePickerActive: false,
-      selectAllActive: false,
-      anySelected: false,
-      multiSelected: false,
-    };
-  },
+  mixins: [
+    Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
+    PureRenderMixin
+  ],
 
   getDefaultProps() {
     return {
@@ -39,6 +30,15 @@ var StreamActions = React.createClass({
         ALL: 'all',
         SELECTED: 'selected'
       }
+    };
+  },
+
+  getInitialState() {
+    return {
+      datePickerActive: false,
+      selectAllActive: false,
+      anySelected: false,
+      multiSelected: false,
     };
   },
 
