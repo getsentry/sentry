@@ -1,13 +1,13 @@
 
 import Reflux from "reflux";
 
-var validHookNames = new Set([
+let validHookNames = new Set([
   'footer',
   'organization:header',
   'organization:sidebar'
 ]);
 
-var HookStore = Reflux.createStore({
+const HookStore = Reflux.createStore({
   init() {
     this.hooks = {};
   },

@@ -7,7 +7,7 @@ import AlertActions from "../../actions/alertActions";
 const ERR_JOIN = 'There was an error while trying to join the team.';
 const ERR_LEAVE = 'There was an error while trying to leave the team.';
 
-var AllTeamsRow = React.createClass({
+const AllTeamsRow = React.createClass({
   getInitialState() {
     return {
       loading: false,

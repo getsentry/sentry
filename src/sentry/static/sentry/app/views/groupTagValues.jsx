@@ -10,7 +10,7 @@ import Pagination from "../components/pagination";
 import TimeSince from "../components/timeSince";
 import {isUrl, percent} from "../utils";
 
-var GroupTagValues = React.createClass({
+const GroupTagValues = React.createClass({
   mixins: [
     History,
     GroupState
@@ -31,9 +31,9 @@ var GroupTagValues = React.createClass({
   },
 
   fetchData() {
-    var params = this.props.params;
-    var queryParams = this.props.location.query;
-    var querystring = jQuery.param(queryParams);
+    let params = this.props.params;
+    let queryParams = this.props.location.query;
+    let querystring = jQuery.param(queryParams);
 
     this.setState({
       loading: true,
@@ -73,7 +73,7 @@ var GroupTagValues = React.createClass({
   },
 
   onPage(cursor) {
-    var queryParams = jQuery.extend({}, this.props.location.query, {
+    let queryParams = jQuery.extend({}, this.props.location.query, {
       cursor: cursor
     });
 
@@ -87,9 +87,9 @@ var GroupTagValues = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    var tagKey = this.state.tagKey;
-    var children = this.state.tagValueList.map((tagValue, tagValueIdx) => {
-      var pct = percent(tagValue.count, tagKey.totalValues).toFixed(2);
+    let tagKey = this.state.tagKey;
+    let children = this.state.tagValueList.map((tagValue, tagValueIdx) => {
+      let pct = percent(tagValue.count, tagKey.totalValues).toFixed(2);
       let orgId = this.getOrganization().slug;
       let projectId = this.getProject().slug;
       return (

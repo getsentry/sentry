@@ -7,7 +7,7 @@ import ProjectState from "../mixins/projectState";
 import ProjectChart from "./projectDashboard/chart";
 
 
-var ProjectDashboard = React.createClass({
+const ProjectDashboard = React.createClass({
   mixins: [
     ProjectState
   ],
@@ -34,8 +34,8 @@ var ProjectDashboard = React.createClass({
 
   getQueryStringState(props) {
     props = props || this.props;
-    var currentQuery = props.location.query;
-    var statsPeriod = currentQuery.statsPeriod;
+    let currentQuery = props.location.query;
+    let statsPeriod = currentQuery.statsPeriod;
 
     if (statsPeriod !== '1w' && statsPeriod !== '24h' && statsPeriod != '1h') {
       statsPeriod = props.defaultStatsPeriod;

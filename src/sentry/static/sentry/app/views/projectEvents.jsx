@@ -12,7 +12,7 @@ import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
 import utils from "../utils";
 
-var ProjectEvents = React.createClass({
+const ProjectEvents = React.createClass({
   propTypes: {
     setProjectNavSection: React.PropTypes.func
   },
@@ -41,9 +41,9 @@ var ProjectEvents = React.createClass({
       endpoint: this.getEventListEndpoint()
     });
 
-    var realtime = Cookies.get("realtimeActive");
+    let realtime = Cookies.get("realtimeActive");
     if (realtime) {
-      var realtimeActive = realtime === "true";
+      let realtimeActive = realtime === "true";
       this.setState({
         realtimeActive: realtimeActive
       });
@@ -88,7 +88,7 @@ var ProjectEvents = React.createClass({
       error: false
     });
 
-    var url = this.getEventListEndpoint();
+    let url = this.getEventListEndpoint();
 
     api.request(url, {
       success: (data, _, jqXHR) => {
@@ -116,10 +116,10 @@ var ProjectEvents = React.createClass({
   },
 
   getEventListEndpoint() {
-    var params = this.props.params;
-    var queryParams = this.props.location.query;
+    let params = this.props.params;
+    let queryParams = this.props.location.query;
     queryParams.limit = 50;
-    var querystring = jQuery.param(queryParams);
+    let querystring = jQuery.param(queryParams);
 
     return '/projects/' + params.orgId + '/' + params.projectId + '/events/?' + querystring;
   },
@@ -141,7 +141,7 @@ var ProjectEvents = React.createClass({
   },
 
   onEventChange() {
-    var eventIds = this._streamManager.getAllItems().map((item) => item.id);
+    let eventIds = this._streamManager.getAllItems().map((item) => item.id);
     if (!utils.valueIsEqual(eventIds, this.state.eventIds)) {
       this.setState({
         eventIds: eventIds
@@ -150,7 +150,7 @@ var ProjectEvents = React.createClass({
   },
 
   onPage(cursor) {
-    var queryParams = jQuery.extend({}, this.props.location.query, {
+    let queryParams = jQuery.extend({}, this.props.location.query, {
       cursor: cursor
     });
 
@@ -158,9 +158,9 @@ var ProjectEvents = React.createClass({
   },
 
   transitionTo() {
-    var queryParams = {};
+    let queryParams = {};
 
-    for (var prop in this.state.filter) {
+    for (let prop in this.state.filter) {
       queryParams[prop] = this.state.filter[prop];
     }
 
@@ -177,8 +177,8 @@ var ProjectEvents = React.createClass({
   },
 
   renderEventNodes(ids) {
-    var params = this.props.params;
-    var nodes = ids.map((id) => {
+    let params = this.props.params;
+    let nodes = ids.map((id) => {
       return (
         <EventRow key={id} id={id} orgSlug={params.orgId}
             projectSlug={params.projectId} />
@@ -206,7 +206,7 @@ var ProjectEvents = React.createClass({
   },
 
   renderBody() {
-    var body;
+    let body;
 
     if (this.state.loading) {
       body = this.renderLoading();
@@ -222,7 +222,7 @@ var ProjectEvents = React.createClass({
   },
 
   render() {
-    var params = this.props.params;
+    let params = this.props.params;
 
     return (
       <div>

@@ -6,7 +6,7 @@ import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
 import ProjectState from "../../mixins/projectState";
 
-var ProjectChart = React.createClass({
+const ProjectChart = React.createClass({
   mixins: [
     ProjectState,
   ],
@@ -32,14 +32,14 @@ var ProjectChart = React.createClass({
   },
 
   getStatsEndpoint() {
-    var org = this.getOrganization();
-    var project = this.getProject();
+    let org = this.getOrganization();
+    let project = this.getProject();
     return "/projects/" + org.slug + "/" + project.slug + "/stats/?resolution=" + this.props.resolution;
   },
 
   getProjectReleasesEndpoint() {
-    var org = this.getOrganization();
-    var project = this.getProject();
+    let org = this.getOrganization();
+    let project = this.getProject();
     return '/projects/' + org.slug + '/' + project.slug + '/releases/';
   },
 
@@ -73,12 +73,12 @@ var ProjectChart = React.createClass({
   },
 
   renderChart() {
-    var points = this.state.stats.map((point) => {
+    let points = this.state.stats.map((point) => {
       return {x: point[0], y: point[1]};
     });
-    var startX = (new Date().getTime() / 1000) - 3600 * 24 * 7;
-    var markers = this.state.releaseList.filter((release) => {
-      var date = new Date(release.dateCreated).getTime() / 1000;
+    let startX = (new Date().getTime() / 1000) - 3600 * 24 * 7;
+    let markers = this.state.releaseList.filter((release) => {
+      let date = new Date(release.dateCreated).getTime() / 1000;
       return date >= startX;
     }).map((release) => {
       return {

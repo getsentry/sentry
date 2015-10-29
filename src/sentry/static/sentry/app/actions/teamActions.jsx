@@ -1,7 +1,7 @@
 
 import Reflux from "reflux";
 
-var TeamActions = Reflux.createActions([
+let TeamActions = Reflux.createActions([
   "update",
   "updateError",
   "updateSuccess"

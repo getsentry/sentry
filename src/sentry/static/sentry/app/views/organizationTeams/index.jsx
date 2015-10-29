@@ -13,7 +13,7 @@ import ExpandedTeamList from "./expandedTeamList";
 import AllTeamsList from "./allTeamsList";
 import OrganizationStatOverview from "./organizationStatOverview";
 
-var OrganizationTeams = React.createClass({
+const OrganizationTeams = React.createClass({
   mixins: [
     OrganizationState,
     Reflux.listenTo(TeamStore, "onTeamListChange"),
@@ -53,12 +53,12 @@ var OrganizationTeams = React.createClass({
   },
 
   getOrganizationStatsEndpoint() {
-    var params = this.props.params;
+    let params = this.props.params;
     return '/organizations/' + params.orgId + '/stats/';
   },
 
   onTeamListChange() {
-    var newTeamList = TeamStore.getAll();
+    let newTeamList = TeamStore.getAll();
 
     this.setState({
       teamList: sortArray(newTeamList, function(o) {
@@ -79,14 +79,14 @@ var OrganizationTeams = React.createClass({
     if (!this.context.organization)
       return null;
 
-    var access = this.getAccess();
-    var features = this.getFeatures();
-    var org = this.getOrganization();
-    var urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
+    let access = this.getAccess();
+    let features = this.getFeatures();
+    let org = this.getOrganization();
+    let urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
 
-    var activeNav = this.state.activeNav;
-    var allTeams = this.state.teamList;
-    var activeTeams = this.state.teamList.filter((team) => team.isMember);
+    let activeNav = this.state.activeNav;
+    let allTeams = this.state.teamList;
+    let activeTeams = this.state.teamList.filter((team) => team.isMember);
 
     return (
       <OrganizationHomeContainer>

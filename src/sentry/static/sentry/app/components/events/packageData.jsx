@@ -4,7 +4,7 @@ import PropTypes from "../../proptypes";
 import EventDataSection from "./eventDataSection";
 import ClippedBox from "../clippedBox";
 
-var EventPackageData = React.createClass({
+const EventPackageData = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired
@@ -15,14 +15,14 @@ var EventPackageData = React.createClass({
   },
 
   render() {
-    var packages = this.props.event.packages;
-    var packageKeys = [];
+    let packages = this.props.event.packages;
+    let packageKeys = [];
     for (let key in packages) {
       packageKeys.push(key);
     }
     packageKeys.sort();
 
-    var children = [];
+    let children = [];
     packageKeys.forEach((key) => {
       children.push(<dt key={'dt-' + key}>{key}</dt>);
       children.push(<dd key={'dd-' + key}><pre>{packages[key]}</pre></dd>);

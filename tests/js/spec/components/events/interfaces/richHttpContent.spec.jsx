@@ -64,7 +64,7 @@ describe("RichHttpContent", function () {
     });
 
     it("should return a DefinitionList element when Content-Type is x-www-form-urlencoded", function () {
-      var out = this.elem.getBodySection({
+      let out = this.elem.getBodySection({
         headers: [
           ['lol' , 'no'],
           ['Content-Type', 'application/x-www-form-urlencoded']
@@ -92,7 +92,7 @@ describe("RichHttpContent", function () {
     });
 
     it("should return a ContextData element when Content-Type is application/json", function () {
-      var out = this.elem.getBodySection({
+      let out = this.elem.getBodySection({
         headers: [
           ['lol' , 'no'],
           ['Content-Type', 'application/json']
@@ -108,7 +108,7 @@ describe("RichHttpContent", function () {
     });
 
     it("should return a ContextData element when content is JSON, ignoring Content-Type", function () {
-      var out = this.elem.getBodySection({
+      let out = this.elem.getBodySection({
         headers: [
           ['Content-Type', 'application/x-www-form-urlencoded']
         ], // no content-type header,

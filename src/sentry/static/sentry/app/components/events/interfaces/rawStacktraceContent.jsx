@@ -1,7 +1,7 @@
 import {defined, trim} from "../../../utils";
 
 function getJavaScriptFrame(frame) {
-  var result = '';
+  let result = '';
   if (defined(frame.function)) {
     result += '  at ' + frame.function + '(';
   } else {
@@ -23,7 +23,7 @@ function getJavaScriptFrame(frame) {
 }
 
 function getRubyFrame(frame) {
-  var result = '  from ';
+  let result = '  from ';
   if (defined(frame.filename)) {
     result += frame.filename;
   } else if (defined(frame.module)) {
@@ -44,7 +44,7 @@ function getRubyFrame(frame) {
 }
 
 export function getPythonFrame(frame) {
-  var result = '';
+  let result = '';
   if (defined(frame.filename)) {
     result += '  File "' + frame.filename + '"';
   } else if (defined(frame.module)) {
@@ -72,7 +72,7 @@ export function getPythonFrame(frame) {
 }
 
 export function getJavaFrame(frame) {
-  var result = '    at';
+  let result = '    at';
   if (defined(frame.module)) {
     result += ' ' + frame.module + '.';
   }
@@ -105,8 +105,8 @@ function getFrame(frame, platform) {
 }
 
 export default function render (data, platform, exception) {
-  var firstFrameOmitted, lastFrameOmitted;
-  var children = [];
+  let firstFrameOmitted, lastFrameOmitted;
+  let children = [];
 
   if (exception) {
     children.push(exception.type + ': ' + exception.value);

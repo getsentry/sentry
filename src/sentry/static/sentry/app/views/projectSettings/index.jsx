@@ -29,7 +29,7 @@ const ProjectSettings = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    var params = this.props.params;
+    let params = this.props.params;
     if (nextProps.params.projectId !== params.projectId ||
         nextProps.params.orgId !== params.orgId) {
       this.setState({
@@ -40,7 +40,7 @@ const ProjectSettings = React.createClass({
   },
 
   fetchData() {
-    var params = this.props.params;
+    let params = this.props.params;
 
     api.request(`/projects/${params.orgId}/${params.projectId}/`, {
       success: (data) => {

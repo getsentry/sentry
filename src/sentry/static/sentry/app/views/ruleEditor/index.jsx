@@ -7,7 +7,7 @@ import SelectInput from "../../components/selectInput";
 
 import RuleNodeList from "./ruleNodeList";
 
-var RuleEditor = React.createClass({
+const RuleEditor = React.createClass({
   propTypes: {
     actions: React.PropTypes.instanceOf(Array).isRequired,
     conditions: React.PropTypes.instanceOf(Array).isRequired
@@ -27,7 +27,7 @@ var RuleEditor = React.createClass({
   },
 
   serializeNode(node) {
-    var result = {};
+    let result = {};
     $(node).find('input, select').each((_, el) => {
       if (el.name) {
         result[el.name] = $(el).val();
@@ -38,32 +38,32 @@ var RuleEditor = React.createClass({
 
   onSubmit(e) {
     e.preventDefault();
-    var form = $(ReactDOM.findDOMNode(this.refs.form));
-    var conditions = [];
+    let form = $(ReactDOM.findDOMNode(this.refs.form));
+    let conditions = [];
     form.find('.rule-condition-list .rule-form').each((_, el) => {
       conditions.push(this.serializeNode(el));
     });
-    var actions = [];
+    let actions = [];
     form.find('.rule-action-list .rule-form').each((_, el) => {
       actions.push(this.serializeNode(el));
     });
-    var actionMatch = $(ReactDOM.findDOMNode(this.refs.actionMatch)).val();
-    var name = $(ReactDOM.findDOMNode(this.refs.name)).val();
-    var data = {
+    let actionMatch = $(ReactDOM.findDOMNode(this.refs.actionMatch)).val();
+    let name = $(ReactDOM.findDOMNode(this.refs.name)).val();
+    let data = {
       actionMatch: actionMatch,
       actions: actions,
       conditions: conditions,
       name: name
     };
-    var rule = this.props.rule;
-    var project = this.props.project;
-    var org = this.props.organization;
-    var endpoint = '/projects/' + org.slug + '/' + project.slug + '/rules/';
+    let rule = this.props.rule;
+    let project = this.props.project;
+    let org = this.props.organization;
+    let endpoint = '/projects/' + org.slug + '/' + project.slug + '/rules/';
     if (rule.id) {
       endpoint += rule.id + '/';
     }
 
-    var loadingIndicator = IndicatorStore.add('Saving...');
+    let loadingIndicator = IndicatorStore.add('Saving...');
     api.request(endpoint, {
       method: (rule.id ? "PUT" : "POST"),
       data: data,
@@ -83,15 +83,15 @@ var RuleEditor = React.createClass({
   },
 
   hasError(field) {
-    var {error} = this.state;
+    let {error} = this.state;
     if (!error) return false;
     return !!error[field];
   },
 
   render() {
-    var rule = this.props.rule;
-    var {loading, error} = this.state;
-    var {actionMatch, actions, conditions, name} = rule;
+    let rule = this.props.rule;
+    let {loading, error} = this.state;
+    let {actionMatch, actions, conditions, name} = rule;
 
     return (
       <form onSubmit={this.onSubmit} ref="form">

@@ -16,7 +16,7 @@ import _ from "underscore";
  */
 
 export function queryToObj(queryStr) {
-  var text = [];
+  let text = [];
 
   let queryItems = queryStr.match(/\S+:"[^"]*"?|\S+/g);
   let queryObj = _.inject(queryItems, (obj, item) => {

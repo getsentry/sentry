@@ -10,7 +10,7 @@ import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 
 
-var GroupEventDetails = React.createClass({
+const GroupEventDetails = React.createClass({
   mixins: [
     ApiMixin,
     GroupState
@@ -36,9 +36,9 @@ var GroupEventDetails = React.createClass({
   },
 
   fetchData() {
-    var eventId = this.props.params.eventId || 'latest';
+    let eventId = this.props.params.eventId || 'latest';
 
-    var url = (eventId === 'latest' || eventId === 'oldest' ?
+    let url = (eventId === 'latest' || eventId === 'oldest' ?
       '/groups/' + this.getGroup().id + '/events/' + eventId + '/' :
       '/events/' + eventId + '/');
 
@@ -73,9 +73,9 @@ var GroupEventDetails = React.createClass({
   },
 
   render() {
-    var group = this.getGroup();
-    var evt = this.state.event;
-    var params = this.props.params;
+    let group = this.getGroup();
+    let evt = this.state.event;
+    let params = this.props.params;
 
     return (
       <div>

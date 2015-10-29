@@ -5,7 +5,7 @@ import PropTypes from "../../proptypes";
 
 import AllTeamsRow from "./allTeamsRow";
 
-var AllTeamsList = React.createClass({
+const AllTeamsList = React.createClass({
   propTypes: {
     organization: PropTypes.Organization.isRequired,
     teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
@@ -13,10 +13,10 @@ var AllTeamsList = React.createClass({
   },
 
   render() {
-    var {organization, openMembership} = this.props;
-    var urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + organization.slug;
+    let {organization, openMembership} = this.props;
+    let urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + organization.slug;
 
-    var teamNodes = this.props.teamList.map((team, teamIdx) => {
+    let teamNodes = this.props.teamList.map((team, teamIdx) => {
       return (
         <AllTeamsRow
           team={team}

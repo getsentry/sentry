@@ -8,11 +8,11 @@ import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import PropTypes from "../proptypes";
 
-const ERROR_TYPES = {
+let ERROR_TYPES = {
   GROUP_NOT_FOUND: "GROUP_NOT_FOUND"
 };
 
-var GroupDetails = React.createClass({
+const GroupDetails = React.createClass({
   childContextTypes: {
     group: PropTypes.Group,
   },
@@ -73,7 +73,7 @@ var GroupDetails = React.createClass({
   },
 
   onGroupChange(itemIds) {
-    var id = this.props.params.groupId;
+    let id = this.props.params.groupId;
     if (itemIds.has(id)) {
       this.setState({
         group: GroupStore.get(id),
@@ -82,7 +82,7 @@ var GroupDetails = React.createClass({
   },
 
   getGroupDetailsEndpoint() {
-    var id = this.props.params.groupId;
+    let id = this.props.params.groupId;
 
     return '/groups/' + id + '/';
   },
@@ -94,8 +94,8 @@ var GroupDetails = React.createClass({
   },
 
   render() {
-    var group = this.state.group;
-    var params = this.props.params;
+    let group = this.state.group;
+    let params = this.props.params;
 
     if (this.state.error) {
       switch (this.state.errorType) {

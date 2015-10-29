@@ -1,7 +1,7 @@
 import React from "react";
 import utils from "../utils";
 
-var Pagination = React.createClass({
+const Pagination = React.createClass({
   propTypes: {
     onPage: React.PropTypes.func.isRequired,
     pageLinks: React.PropTypes.string.isRequired,
@@ -16,14 +16,14 @@ var Pagination = React.createClass({
       return null;
     }
 
-    var links = utils.parseLinkHeader(this.props.pageLinks);
+    let links = utils.parseLinkHeader(this.props.pageLinks);
 
-    var previousPageClassName = 'btn btn-default btn-lg prev';
+    let previousPageClassName = 'btn btn-default btn-lg prev';
     if (links.previous.results === false) {
       previousPageClassName += ' disabled';
     }
 
-    var nextPageClassName = 'btn btn-default btn-lg next';
+    let nextPageClassName = 'btn btn-default btn-lg next';
     if (links.next.results === false) {
       nextPageClassName += ' disabled';
     }

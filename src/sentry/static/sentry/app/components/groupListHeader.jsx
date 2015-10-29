@@ -1,6 +1,6 @@
 import React from "react";
 
-var GroupListHeader = React.createClass({
+const GroupListHeader = React.createClass({
   render() {
     return (
       <div className="group-header">

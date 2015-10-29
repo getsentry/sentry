@@ -3,7 +3,7 @@ import GroupEventDataSection from "../eventDataSection";
 import PropTypes from "../../../proptypes";
 import Frame from "./frame";
 
-var TemplateInterface = React.createClass({
+const TemplateInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
