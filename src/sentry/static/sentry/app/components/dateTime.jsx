@@ -8,10 +8,10 @@ const DateTime = React.createClass({
   },
 
   render() {
-    var date = this.props.date;
-    var user = ConfigStore.get('user');
-    var options = user ? user.options : {};
-    var format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
+    let date = this.props.date;
+    let user = ConfigStore.get('user');
+    let options = user ? user.options : {};
+    let format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
 
     if (typeof date === "string" || typeof date === "number") {
       date = new Date(date);
