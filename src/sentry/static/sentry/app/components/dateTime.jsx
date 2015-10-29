@@ -2,7 +2,7 @@ import React from "react";
 import moment from "moment";
 import ConfigStore from "../stores/configStore.jsx";
 
-var DateTime = React.createClass({
+const DateTime = React.createClass({
   propTypes: {
     date: React.PropTypes.any.isRequired
   },
@@ -12,8 +12,6 @@ var DateTime = React.createClass({
     var user = ConfigStore.get('user');
     var options = user ? user.options : {};
     var format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
-
-    if (ConfigStore.get('user'))
 
     if (typeof date === "string" || typeof date === "number") {
       date = new Date(date);

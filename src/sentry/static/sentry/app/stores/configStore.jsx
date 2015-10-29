@@ -1,7 +1,7 @@
 import moment from "moment-timezone";
 import Reflux from "reflux";
 
-var ConfigStore = Reflux.createStore({
+const ConfigStore = Reflux.createStore({
   init() {
     this.config = {};
   },
@@ -12,7 +12,7 @@ var ConfigStore = Reflux.createStore({
 
   set(key, value) {
     this.config[key] = value;
-    var out = {};
+    let out = {};
     out[key] = value;
     this.trigger(out);
   },

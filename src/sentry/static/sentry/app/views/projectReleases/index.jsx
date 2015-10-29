@@ -9,7 +9,7 @@ import SearchBar from "../../components/searchBar.jsx";
 
 import ReleaseList from "./releaseList";
 
-var ProjectReleases = React.createClass({
+const ProjectReleases = React.createClass({
   propTypes: {
     setProjectNavSection: React.PropTypes.func
   },
@@ -23,7 +23,7 @@ var ProjectReleases = React.createClass({
   },
 
   getInitialState() {
-    var queryParams = this.props.location.query;
+    let queryParams = this.props.location.query;
 
     return {
       releaseList: [],
@@ -49,7 +49,7 @@ var ProjectReleases = React.createClass({
   },
 
   onSearch(query) {
-    var targetQueryParams = {};
+    let targetQueryParams = {};
     if (query !== '')
       targetQueryParams.query = query;
 
@@ -82,8 +82,8 @@ var ProjectReleases = React.createClass({
   },
 
   getProjectReleasesEndpoint() {
-    var params = this.props.params;
-    var queryParams = $.extend({}, this.props.location.query);
+    let params = this.props.params;
+    let queryParams = $.extend({}, this.props.location.query);
     queryParams.limit = 50;
     queryParams.query = this.state.query;
 
@@ -91,7 +91,7 @@ var ProjectReleases = React.createClass({
   },
 
   onPage(cursor) {
-    var queryParams = $.extend({}, this.props.location.query);
+    let queryParams = $.extend({}, this.props.location.query);
     queryParams.cursor = cursor;
 
     let {orgId, projectId} = this.props.params;
@@ -99,13 +99,13 @@ var ProjectReleases = React.createClass({
   },
 
   getReleaseTrackingUrl() {
-    var params = this.props.params;
+    let params = this.props.params;
 
     return '/' + params.orgId + '/' + params.projectId + '/settings/release-tracking/';
   },
 
   renderStreamBody() {
-    var body;
+    let body;
 
     let params = this.props.params;
 

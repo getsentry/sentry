@@ -3,7 +3,7 @@ import _ from "underscore";
 
 import ContextData from "../../contextData";
 
-var DefinitionList = React.createClass({
+const DefinitionList = React.createClass({
   propTypes: {
     data: React.PropTypes.array.isRequired,
     isContextData: React.PropTypes.bool

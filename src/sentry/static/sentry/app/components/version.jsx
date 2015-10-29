@@ -1,7 +1,7 @@
 import React from "react";
 import {Link} from "react-router";
 
-var Version = React.createClass({
+const Version = React.createClass({
   propTypes: {
     version: React.PropTypes.string.isRequired,
     orgId: React.PropTypes.string.isRequired,
@@ -17,8 +17,8 @@ var Version = React.createClass({
   render() {
     // NOTE: version is encoded because it can contain slashes "/",
     //       which can interfere with URL construction
-    var version = encodeURIComponent(this.props.version);
-    var shortVersion = version.length === 40 ? version.substr(0, 12) : version;
+    let version = encodeURIComponent(this.props.version);
+    let shortVersion = version.length === 40 ? version.substr(0, 12) : version;
 
     let {orgId, projectId} = this.props;
 

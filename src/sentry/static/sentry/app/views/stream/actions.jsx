@@ -8,7 +8,7 @@ import MenuItem from "../../components/menuItem";
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import SelectedGroupStore from "../../stores/selectedGroupStore";
 
-var StreamActions = React.createClass({
+const StreamActions = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
@@ -47,12 +47,12 @@ var StreamActions = React.createClass({
   },
 
   actionSelectedGroups(actionType, callback) {
-    var selectedIds;
+    let selectedIds;
 
     if (actionType === this.props.actionTypes.ALL) {
       selectedIds = undefined; // undefined means "all"
     } else if (actionType === this.props.actionTypes.SELECTED) {
-      var itemIdSet = SelectedGroupStore.getSelectedIds();
+      let itemIdSet = SelectedGroupStore.getSelectedIds();
       selectedIds = this.props.groupIds.filter(
         (itemId) => itemIdSet.has(itemId)
       );
@@ -67,7 +67,7 @@ var StreamActions = React.createClass({
 
   onUpdate(data, event, actionType) {
     this.actionSelectedGroups(actionType, (itemIds) => {
-      var loadingIndicator = IndicatorStore.add('Saving changes..');
+      let loadingIndicator = IndicatorStore.add('Saving changes..');
 
       api.bulkUpdate({
         orgId: this.props.orgId,
@@ -83,7 +83,7 @@ var StreamActions = React.createClass({
   },
 
   onDelete(event, actionType) {
-    var loadingIndicator = IndicatorStore.add('Removing events..');
+    let loadingIndicator = IndicatorStore.add('Removing events..');
 
     this.actionSelectedGroups(actionType, (itemIds) => {
       api.bulkDelete({
@@ -99,7 +99,7 @@ var StreamActions = React.createClass({
   },
 
   onMerge(event, actionType) {
-    var loadingIndicator = IndicatorStore.add('Merging events..');
+    let loadingIndicator = IndicatorStore.add('Merging events..');
 
     this.actionSelectedGroups(actionType, (itemIds) => {
       api.merge({

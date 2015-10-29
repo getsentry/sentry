@@ -5,7 +5,7 @@ import LoadingIndicator from "../../components/loadingIndicator";
 
 import EventNode from "./eventNode";
 
-var EventList = React.createClass({
+const EventList = React.createClass({
   propTypes: {
     title: React.PropTypes.string.isRequired,
     endpoint: React.PropTypes.string.isRequired
@@ -32,7 +32,7 @@ var EventList = React.createClass({
   },
 
   fetchData() {
-    var minutes;
+    let minutes;
     switch(this.state.statsPeriod) {
       case "15m":
         minutes = "15";
@@ -74,7 +74,7 @@ var EventList = React.createClass({
   },
 
   render() {
-    var eventNodes = this.state.groupList.map((item) => {
+    let eventNodes = this.state.groupList.map((item) => {
       return <EventNode group={item} key={item.id} />;
     });
 

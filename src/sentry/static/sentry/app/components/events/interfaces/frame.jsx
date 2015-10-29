@@ -7,7 +7,7 @@ import TooltipMixin from "../../../mixins/tooltip";
 import FrameVariables from "./frameVariables";
 
 
-var Frame = React.createClass({
+const Frame = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired
   },

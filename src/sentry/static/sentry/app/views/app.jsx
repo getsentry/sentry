@@ -6,7 +6,7 @@ import Indicators from "../components/indicators";
 import LoadingIndicator from "../components/loadingIndicator";
 import OrganizationStore from "../stores/organizationStore";
 
-var App = React.createClass({
+const App = React.createClass({
   getInitialState() {
     return {
       loading: false,

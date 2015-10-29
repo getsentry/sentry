@@ -9,19 +9,19 @@ describe("BarChart", function() {
   describe("render()", function() {
 
     it("renders with default props", function() {
-      var comp = TestUtils.renderIntoDocument(<BarChart />);
+      let comp = TestUtils.renderIntoDocument(<BarChart />);
       expect(comp).to.be.ok;
     });
 
     it("renders with points data", function () {
-      var points = [
+      let points = [
         { x: 1439766000, y: 10 },
         { x: 1439769600, y: 20 },
         { x: 1439773200, y: 30 },
       ];
 
-      var comp = TestUtils.renderIntoDocument(<BarChart points={points}/>);
-      var columns = ReactDOM.findDOMNode(comp).querySelectorAll('.chart-column');
+      let comp = TestUtils.renderIntoDocument(<BarChart points={points}/>);
+      let columns = ReactDOM.findDOMNode(comp).querySelectorAll('.chart-column');
 
       expect(columns).to.have.property('length', 3);
       expect(columns[0]).to.have.property('textContent', '10'); // check y values
@@ -30,18 +30,18 @@ describe("BarChart", function() {
     });
 
     it("renders with points and markers", function () {
-      var points = [
+      let points = [
         { x: 1439769600, y: 10 },
         { x: 1439773200, y: 20 },
         { x: 1439776800, y: 30 }
       ];
-      var markers = [
+      let markers = [
         { x: 1439769600, className: 'first-seen', label: 'first seen' }, // matches first point
         { x: 1439776800, className: 'last-seen', label: 'last seen' } // matches last point
       ];
 
-      var comp = TestUtils.renderIntoDocument(<BarChart points={points} markers={markers}/>);
-      var columns = ReactDOM.findDOMNode(comp).getElementsByTagName('a');
+      let comp = TestUtils.renderIntoDocument(<BarChart points={points} markers={markers}/>);
+      let columns = ReactDOM.findDOMNode(comp).getElementsByTagName('a');
 
       expect(columns).to.have.property('length', 5);
 
@@ -54,16 +54,16 @@ describe("BarChart", function() {
     });
 
     it("renders with points and markers, when first and last seen are same data point", function () {
-      var points = [
+      let points = [
         { x: 1439776800, y: 30 }
       ];
-      var markers = [
+      let markers = [
         { x: 1439776800, className: 'first-seen', label: 'first seen' },
         { x: 1439776800, className: 'last-seen', label: 'last seen' }
       ];
 
-      var comp = TestUtils.renderIntoDocument(<BarChart points={points} markers={markers}/>);
-      var columns = ReactDOM.findDOMNode(comp).getElementsByTagName('a');
+      let comp = TestUtils.renderIntoDocument(<BarChart points={points} markers={markers}/>);
+      let columns = ReactDOM.findDOMNode(comp).getElementsByTagName('a');
 
       expect(columns).to.have.property('length', 3);
 

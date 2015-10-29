@@ -9,11 +9,11 @@ import LoadingIndicator from "../components/loadingIndicator";
 import PropTypes from "../proptypes";
 import TeamStore from "../stores/teamStore";
 
-const ERROR_TYPES = {
+let ERROR_TYPES = {
   ORG_NOT_FOUND: "ORG_NOT_FOUND"
 };
 
-var OrganizationDetails = React.createClass({
+const OrganizationDetails = React.createClass({
   childContextTypes: {
     organization: PropTypes.Organization
   },
@@ -110,13 +110,13 @@ var OrganizationDetails = React.createClass({
     }
 
     // Allow injection via getsentry et all
-    var org = this.state.organization;
-    var children = [];
+    let org = this.state.organization;
+    let children = [];
     HookStore.get('organization:header').forEach((cb) => {
       children.push(cb(org));
     });
 
-    var params = this.props.params;
+    let params = this.props.params;
 
     return (
       <DocumentTitle title={this.getTitle()}>

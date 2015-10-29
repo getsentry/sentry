@@ -7,7 +7,7 @@ import GroupState from "../../mixins/groupState";
 import {userDisplayName} from "../../utils/formatters";
 import TooltipMixin from "../../mixins/tooltip";
 
-var GroupSeenBy = React.createClass({
+const GroupSeenBy = React.createClass({
   mixins: [
     GroupState,
     TooltipMixin({
@@ -17,7 +17,7 @@ var GroupSeenBy = React.createClass({
   ],
 
   render() {
-    var activeUser = ConfigStore.get('user');
+    let activeUser = ConfigStore.get('user');
     let group = this.getGroup();
 
     let seenByNodes = group.seenBy.filter((user, userIdx) => {

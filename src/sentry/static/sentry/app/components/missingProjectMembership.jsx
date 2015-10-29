@@ -5,7 +5,7 @@ import api from "../api";
 
 const ERR_JOIN = 'There was an error while trying to join the team.';
 
-var MissingProjectMembership = React.createClass({
+const MissingProjectMembership = React.createClass({
   getInitialState() {
     return {
       loading: false,

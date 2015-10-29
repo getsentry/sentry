@@ -3,7 +3,7 @@ import DocumentTitle from "react-document-title";
 import Footer from "../components/footer";
 import Header from "../components/header";
 
-var RouteNotFound = React.createClass({
+const RouteNotFound = React.createClass({
   statics: {
     // Try and append a trailing slash to the route when we "404".
     //

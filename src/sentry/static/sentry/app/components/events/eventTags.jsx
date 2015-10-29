@@ -7,7 +7,7 @@ import PropTypes from "../../proptypes";
 import EventDataSection from "./eventDataSection";
 import {isUrl} from "../../utils";
 
-var EventTags = React.createClass({
+const EventTags = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,

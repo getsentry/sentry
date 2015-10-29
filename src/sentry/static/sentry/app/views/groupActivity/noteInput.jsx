@@ -10,20 +10,20 @@ import PureRenderMixin from 'react-addons-pure-render-mixin';
 const localStorageKey = 'noteinput:latest';
 const DEFAULT_ERROR_JSON = {detail: 'Unknown error. Please try again.'};
 
-var NoteInput = React.createClass({
+const NoteInput = React.createClass({
   mixins: [PureRenderMixin],
 
   getInitialState() {
-    var {item, group} = this.props;
-    var updating = !!item;
-    var defaultText = '';
+    let {item, group} = this.props;
+    let updating = !!item;
+    let defaultText = '';
 
     if (updating) {
       defaultText = item.data.text;
     } else {
-      var storage = getItem(localStorageKey);
+      let storage = getItem(localStorageKey);
       if (storage) {
-        var {groupId, value} = JSON.parse(storage);
+        let {groupId, value} = JSON.parse(storage);
         if (groupId === group.id) {
           defaultText = value;
         }
@@ -87,9 +87,9 @@ var NoteInput = React.createClass({
   },
 
   create() {
-    var {group} = this.props;
+    let {group} = this.props;
 
-    var loadingIndicator = IndicatorStore.add('Posting comment..');
+    let loadingIndicator = IndicatorStore.add('Posting comment..');
 
     api.request('/groups/' + group.id + '/notes/', {
       method: 'POST',
@@ -121,9 +121,9 @@ var NoteInput = React.createClass({
   },
 
   update() {
-    var {group, item} = this.props;
+    let {group, item} = this.props;
 
-    var loadingIndicator = IndicatorStore.add('Updating comment..');
+    let loadingIndicator = IndicatorStore.add('Updating comment..');
 
     api.request('/groups/' + group.id + '/notes/' + item.id + '/', {
       method: 'PUT',
@@ -179,7 +179,7 @@ var NoteInput = React.createClass({
     // onFocus event
     if (!this.state._hasFocused) {
       this.setState({_hasFocused: true});
-      var value = e.target.value;
+      let value = e.target.value;
       e.target.value = '';
       e.target.value = value;
     }
@@ -193,8 +193,8 @@ var NoteInput = React.createClass({
   },
 
   render() {
-    var {error, errorJSON, loading, preview, updating, value} = this.state;
-    var classNames = 'activity-field';
+    let {error, errorJSON, loading, preview, updating, value} = this.state;
+    let classNames = 'activity-field';
     if (error) {
       classNames += ' error';
     }
@@ -202,7 +202,7 @@ var NoteInput = React.createClass({
       classNames += ' loading';
     }
 
-    var btnText = updating ? 'Save' : 'Post';
+    let btnText = updating ? 'Save' : 'Post';
 
     return (
       <form className={classNames} onSubmit={this.onSubmit}>

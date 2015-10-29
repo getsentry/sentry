@@ -4,13 +4,13 @@ import ConfigStore from "../../stores/configStore";
 
 import ProjectSelector from "./projectSelector";
 
-var ProjectHeader = React.createClass({
+const ProjectHeader = React.createClass({
   render() {
-    var navSection = this.props.activeSection;
-    var urlPrefix = ConfigStore.get('urlPrefix');
-    var project = this.props.project;
-    var org = this.props.organization;
-    var access = new Set(org.access);
+    let navSection = this.props.activeSection;
+    let urlPrefix = ConfigStore.get('urlPrefix');
+    let project = this.props.project;
+    let org = this.props.organization;
+    let access = new Set(org.access);
 
     return (
       <div>
