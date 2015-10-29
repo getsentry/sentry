@@ -1,5 +1,6 @@
 import React from "react";
 import moment from "moment";
+import ConfigStore from "../stores/configStore.jsx";
 
 var DateTime = React.createClass({
   propTypes: {
@@ -8,13 +9,18 @@ var DateTime = React.createClass({
 
   render() {
     var date = this.props.date;
+    var user = ConfigStore.get('user');
+    var options = user ? user.options : {};
+    var format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
+
+    if (ConfigStore.get('user'))
 
     if (typeof date === "string" || typeof date === "number") {
       date = new Date(date);
     }
 
     return (
-      <time>{moment(date).format('LLL z')}</time>
+      <time>{moment(date).format(format)}</time>
     );
   }
 });
