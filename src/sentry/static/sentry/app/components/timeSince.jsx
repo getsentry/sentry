@@ -1,6 +1,7 @@
 import React from "react";
 import moment from "moment";
 import PureRenderMixin from 'react-addons-pure-render-mixin';
+import ConfigStore from '../stores/configStore.jsx';
 
 var TimeSince = React.createClass({
   propTypes: {
@@ -62,11 +63,14 @@ var TimeSince = React.createClass({
 
   render() {
     let date = TimeSince.getDateObj(this.props.date);
+    let user = ConfigStore.get('user');
+    let options = user ? user.options : {};
+    let format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
 
     return (
       <time
         dateTime={date.toISOString()}
-        title={date.toString()}>{this.state.relative} {this.props.suffix || ''}</time>
+        title={moment(date).format(format)}>{this.state.relative} {this.props.suffix || ''}</time>
     );
   }
 });
