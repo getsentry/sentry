@@ -10,7 +10,7 @@ import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
 
-var GroupEvents = React.createClass({
+const GroupEvents = React.createClass({
   mixins: [
     GroupState,
     History
@@ -36,7 +36,7 @@ var GroupEvents = React.createClass({
   },
 
   fetchData() {
-    var queryParams = this.props.location.query;
+    let queryParams = this.props.location.query;
 
     this.setState({
       loading: true,
@@ -64,7 +64,7 @@ var GroupEvents = React.createClass({
   },
 
   onPage(cursor) {
-    var queryParams = {...this.props.location.query, cursor: cursor};
+    let queryParams = {...this.props.location.query, cursor: cursor};
 
     let {orgId, projectId, groupId} = this.props.params;
     this.history.pushState(
@@ -81,23 +81,23 @@ var GroupEvents = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    var group = this.getGroup();
-    var tagList = group.tags.filter((tag) => {
+    let group = this.getGroup();
+    let tagList = group.tags.filter((tag) => {
       return tag.key !== 'user';
     });
 
-    var hasUser = false;
-    for (var i = 0; i < this.state.eventList.length; i++) {
+    let hasUser = false;
+    for (let i = 0; i < this.state.eventList.length; i++) {
       if (this.state.eventList[i].user) {
         hasUser = true;
         break;
       }
     }
 
-    var {orgId, projectId, groupId} = this.props.params;
+    let {orgId, projectId, groupId} = this.props.params;
 
-    var children = this.state.eventList.map((event, eventIdx) => {
-      var tagMap = {};
+    let children = this.state.eventList.map((event, eventIdx) => {
+      let tagMap = {};
       event.tags.forEach((tag) => {
         tagMap[tag.key] = tag.value;
       });

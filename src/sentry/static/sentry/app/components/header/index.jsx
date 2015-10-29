@@ -6,12 +6,12 @@ import {Link} from "react-router";
 import UserNav from "./userNav";
 import OrganizationSelector from "./organizationSelector";
 
-var Header = React.createClass({
+const Header = React.createClass({
   mixins: [OrganizationState],
 
   render() {
-    var user = ConfigStore.get('user');
-    var logo;
+    let user = ConfigStore.get('user');
+    let logo;
 
     if (user) {
       logo = <span className="icon-sentry-logo"/>;

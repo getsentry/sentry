@@ -3,7 +3,7 @@ import Count from "../../components/count";
 import TimeSince from "../../components/timeSince";
 import Version from "../../components/version";
 
-var ReleaseList = React.createClass({
+const ReleaseList = React.createClass({
 
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
@@ -11,7 +11,7 @@ var ReleaseList = React.createClass({
   },
 
   render() {
-    var {orgId, projectId} = this.props;
+    let {orgId, projectId} = this.props;
 
     return (
       <ul className="release-list">

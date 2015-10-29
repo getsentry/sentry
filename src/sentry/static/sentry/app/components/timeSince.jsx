@@ -2,7 +2,7 @@ import React from "react";
 import moment from "moment";
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-var TimeSince = React.createClass({
+const TimeSince = React.createClass({
   propTypes: {
     date: React.PropTypes.any.isRequired,
     suffix: React.PropTypes.string

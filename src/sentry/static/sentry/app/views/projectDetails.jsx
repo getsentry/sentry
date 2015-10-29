@@ -16,7 +16,7 @@ const ERROR_TYPES = {
   PROJECT_NOT_FOUND: "PROJECT_NOT_FOUND"
 };
 
-var ProjectDetails = React.createClass({
+const ProjectDetails = React.createClass({
   childContextTypes: {
     project: PropTypes.Project,
     team: PropTypes.Team
@@ -67,10 +67,10 @@ var ProjectDetails = React.createClass({
   },
 
   identifyProject() {
-    var params = this.props.params;
-    var projectSlug = params.projectId;
-    var activeProject = null;
-    var activeTeam = null;
+    let params = this.props.params;
+    let projectSlug = params.projectId;
+    let activeProject = null;
+    let activeTeam = null;
     let org = this.context.organization;
     org.teams.forEach((team) => {
       team.projects.forEach((project) => {
@@ -126,7 +126,7 @@ var ProjectDetails = React.createClass({
   },
 
   getMemberListEndpoint() {
-    var params = this.props.params;
+    let params = this.props.params;
     return '/projects/' + params.orgId + '/' + params.projectId + '/members/';
   },
 

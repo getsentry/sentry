@@ -1,6 +1,6 @@
 import api from "../api";
 
-var ApiMixin = {
+let ApiMixin = {
   componentWillMount() {
     this._pendingRequests = new Set();
     this._id = 0;
@@ -13,9 +13,9 @@ var ApiMixin = {
   },
 
   apiRequest(path, options) {
-    var self = this;
+    let self = this;
 
-    var completeFunc = options.complete;
+    let completeFunc = options.complete;
     options.complete = function(...params) {
       self._pendingRequests.delete(this);
 
@@ -24,7 +24,7 @@ var ApiMixin = {
       }
     };
 
-    var req = api.request(path, options);
+    let req = api.request(path, options);
     this._pendingRequests.add(req);
   }
 };

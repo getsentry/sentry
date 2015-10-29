@@ -8,7 +8,7 @@ import ConfigStore from "../../stores/configStore";
 import PropTypes from "../../proptypes";
 import {sortArray} from "../../utils";
 
-var ExpandedTeamList = React.createClass({
+const ExpandedTeamList = React.createClass({
   propTypes: {
     organization: PropTypes.Organization.isRequired,
     teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
@@ -24,7 +24,7 @@ var ExpandedTeamList = React.createClass({
   },
 
   urlPrefix() {
-    var org = this.props.organization;
+    let org = this.props.organization;
     return ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
   },
 
@@ -87,9 +87,9 @@ var ExpandedTeamList = React.createClass({
   },
 
   renderProject(project) {
-    var org = this.props.organization;
-    var projectStats = this.props.projectStats;
-    var chartData = null;
+    let org = this.props.organization;
+    let projectStats = this.props.projectStats;
+    let chartData = null;
     if (projectStats[project.id]) {
       chartData = projectStats[project.id].map((point) => {
         return {x: point[0], y: point[1]};
@@ -139,14 +139,14 @@ var ExpandedTeamList = React.createClass({
   },
 
   renderTeamNodes() {
-    var urlPrefix = this.urlPrefix();
+    let urlPrefix = this.urlPrefix();
     return this.props.teamList.map((team) => {
       return this.renderTeamNode(team, urlPrefix);
     });
   },
 
   render() {
-    var hasTeams = this.props.teamList.length > 0;
+    let hasTeams = this.props.teamList.length > 0;
 
     return (
       <div>

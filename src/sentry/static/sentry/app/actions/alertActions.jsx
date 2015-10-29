@@ -1,5 +1,5 @@
 import Reflux from "reflux";
 
-var AlertActions = Reflux.createActions(["addAlert", "closeAlert"]);
+let AlertActions = Reflux.createActions(["addAlert", "closeAlert"]);
 
 export default AlertActions;

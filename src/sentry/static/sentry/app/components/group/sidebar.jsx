@@ -4,13 +4,13 @@ import GroupState from "../../mixins/groupState";
 import SeenInfo from "./seenInfo";
 import TagDistributionMeter from "./tagDistributionMeter";
 
-var GroupSidebar = React.createClass({
+const GroupSidebar = React.createClass({
   mixins: [GroupState],
 
   render(){
-    var orgId = this.getOrganization().slug;
-    var projectId = this.getProject().slug;
-    var group = this.getGroup();
+    let orgId = this.getOrganization().slug;
+    let projectId = this.getProject().slug;
+    let group = this.getGroup();
 
     return (
       <div className="group-stats">

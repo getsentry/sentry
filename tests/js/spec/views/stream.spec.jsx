@@ -13,8 +13,8 @@ import StreamSidebar from "app/views/stream/sidebar";
 import StreamActions from "app/views/stream/actions";
 import stubReactComponents from "../../helpers/stubReactComponent";
 
-var findWithClass = TestUtils.findRenderedDOMComponentWithClass;
-var findWithType = TestUtils.findRenderedComponentWithType;
+const findWithClass = TestUtils.findRenderedDOMComponentWithClass;
+const findWithType = TestUtils.findRenderedComponentWithType;
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -57,7 +57,7 @@ describe("Stream", function() {
       it("should reset the poller endpoint and sets cursor URL", function() {
         this.linkHeader = DEFAULT_LINKS_HEADER;
 
-        var stream = TestUtils.renderIntoDocument(this.Element);
+        let stream = TestUtils.renderIntoDocument(this.Element);
         stream.fetchData();
 
         expect(CursorPoller.prototype.setEndpoint
@@ -69,7 +69,7 @@ describe("Stream", function() {
         this.linkHeader =
         '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
 
-        var stream = TestUtils.renderIntoDocument(this.Element);
+        let stream = TestUtils.renderIntoDocument(this.Element);
         stream.fetchData();
 
         expect(CursorPoller.prototype.setEndpoint.notCalled).to.be.ok;
@@ -79,8 +79,8 @@ describe("Stream", function() {
     it("should cancel any previous, unfinished fetches", function () {
       this.stubbedApiRequest.restore();
 
-      var requestCancel = this.sandbox.stub();
-      var requestOptions;
+      let requestCancel = this.sandbox.stub();
+      let requestOptions;
       this.sandbox.stub(Api, "request", function (url, options) {
         requestOptions = options;
         return {
@@ -89,7 +89,7 @@ describe("Stream", function() {
       });
 
       // NOTE: fetchData called once after render automatically
-      var stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element);
 
       // 2nd fetch should call cancel
       stream.fetchData();
@@ -109,42 +109,42 @@ describe("Stream", function() {
   describe("render()", function() {
 
     it("displays a loading indicator when component is loading", function() {
-      var stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element);
       stream.setState({ loading: true });
-      var expected = findWithType(stream, LoadingIndicator);
+      let expected = findWithType(stream, LoadingIndicator);
 
       expect(expected).to.be.ok;
     });
 
     it("displays an error when component has errored", function() {
-      var stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element);
       stream.setState({
         error: true,
         loading: false
       });
-      var expected = findWithType(stream, LoadingError);
+      let expected = findWithType(stream, LoadingError);
       expect(expected).to.be.ok;
     });
 
     it("displays the group list", function() {
-      var stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element);
       stream.setState({
         error: false,
         groupIds: ["1"],
         loading: false
       });
-      var expected = findWithClass(stream, "group-list");
+      let expected = findWithClass(stream, "group-list");
       expect(expected).to.be.ok;
     });
 
     it("displays empty with no ids", function() {
-      var stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element);
       stream.setState({
         error: false,
         groupIds: [],
         loading: false
       });
-      var expected = findWithClass(stream, "empty-stream");
+      let expected = findWithClass(stream, "empty-stream");
       expect(expected).to.be.ok;
     });
 
@@ -159,7 +159,7 @@ describe("Stream", function() {
     it("reads the realtimeActive state from a cookie", function(done) {
       Cookies.set("realtimeActive", "false");
 
-      var stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element);
       setTimeout(() => {
         expect(stream.state.realtimeActive).to.not.be.ok;
         done();
@@ -168,7 +168,7 @@ describe("Stream", function() {
 
     it("reads the true realtimeActive state from a cookie", function(done) {
       Cookies.set("realtimeActive", "true");
-      var stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element);
 
       setTimeout(() => {
         expect(stream.state.realtimeActive).to.be.ok;
@@ -181,7 +181,7 @@ describe("Stream", function() {
   describe("onRealtimeChange", function() {
 
     it("sets the realtimeActive state", function() {
-      var stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element);
       stream.state.realtimeActive = false;
       stream.onRealtimeChange(true);
       expect(stream.state.realtimeActive).to.eql(true);
@@ -197,7 +197,7 @@ describe("Stream", function() {
   describe("getInitialState", function() {
 
     it("sets the right defaults", function() {
-      var expected = {
+      let expected = {
         groupIds: [],
         selectAllActive: false,
         multiSelected: false,
@@ -208,10 +208,10 @@ describe("Stream", function() {
         loading: true,
         error: false
       };
-      var stream = TestUtils.renderIntoDocument(this.Element);
-      var actual = stream.getInitialState();
+      let stream = TestUtils.renderIntoDocument(this.Element);
+      let actual = stream.getInitialState();
 
-      for (var property in expected) {
+      for (let property in expected) {
         expect(actual[property]).to.eql(expected[property]);
       }
     });

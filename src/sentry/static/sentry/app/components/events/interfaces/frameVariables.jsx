@@ -2,7 +2,7 @@ import React from "react";
 
 import ContextData from "../../contextData";
 
-var FrameVariables = React.createClass({
+const FrameVariables = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired
   },
@@ -14,11 +14,11 @@ var FrameVariables = React.createClass({
   },
 
   render() {
-    var children = [];
-    var data = this.props.data;
+    let children = [];
+    let data = this.props.data;
 
-    for (var key in data) {
-      var value = data[key];
+    for (let key in data) {
+      let value = data[key];
       children.push(<dt key={'dt-' + key}>{key}</dt>);
       children.push((
         <dd key={'dd-' + key}>

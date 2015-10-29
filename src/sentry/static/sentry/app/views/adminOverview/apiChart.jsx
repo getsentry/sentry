@@ -21,7 +21,7 @@ const ApiChart = React.createClass({
   componentWillMount() {
     this.fetchData();
   },
-
+  
   fetchData() {
     let statNameList = [
       "client-api.all-versions.responses.2xx",

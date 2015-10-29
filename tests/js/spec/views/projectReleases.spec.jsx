@@ -43,7 +43,7 @@ describe("ProjectReleases", function () {
 
   describe("onSearch", function () {
     it("should change query string with new search parameter", function () {
-      var projectReleases = this.projectReleases;
+      let projectReleases = this.projectReleases;
 
       let pushState = this.sandbox.stub();
       projectReleases.history = {
@@ -65,7 +65,7 @@ describe("ProjectReleases", function () {
 
   describe("componentWillReceiveProps()", function () {
     it("should update state with latest query pulled from query string", function () {
-      var projectReleases = this.projectReleases;
+      let projectReleases = this.projectReleases;
 
       let setState = this.sandbox.stub(projectReleases, 'setState');
 

@@ -7,7 +7,7 @@ import OrganizationState from "../../mixins/organizationState";
 
 import {defined} from "../../utils";
 
-var OrganizationStatOverview = React.createClass({
+const OrganizationStatOverview = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string
   },
@@ -36,14 +36,14 @@ var OrganizationStatOverview = React.createClass({
   },
 
   fetchData() {
-    var statsEndpoint = this.getOrganizationStatsEndpoint();
+    let statsEndpoint = this.getOrganizationStatsEndpoint();
     api.request(statsEndpoint, {
       query: {
         since: new Date().getTime() / 1000 - 3600 * 24,
         stat: 'rejected'
       },
       success: (data) => {
-        var totalRejected = 0;
+        let totalRejected = 0;
         data.forEach((point) => {
           totalRejected += point[1];
         });
@@ -57,14 +57,14 @@ var OrganizationStatOverview = React.createClass({
         stat: 'received'
       },
       success: (data) => {
-        var received = [0, 0];
+        let received = [0, 0];
         data.forEach((point) => {
           if (point[1] > 0) {
             received[0] += point[1];
             received[1] += 1;
           }
         });
-        var epm = (received[1] ? parseInt((received[0] / received[1]) / 60, 10) : 0);
+        let epm = (received[1] ? parseInt((received[0] / received[1]) / 60, 10) : 0);
         this.setState({epm: epm});
       }
     });
@@ -74,9 +74,9 @@ var OrganizationStatOverview = React.createClass({
     if (!defined(this.state.epm) || !defined(this.state.totalRejected))
       return null;
 
-    var access = this.getAccess();
+    let access = this.getAccess();
 
-    var rejectedClasses = ['count'];
+    let rejectedClasses = ['count'];
     if (this.state.totalRejected > 0)
       rejectedClasses.push('rejected');
 

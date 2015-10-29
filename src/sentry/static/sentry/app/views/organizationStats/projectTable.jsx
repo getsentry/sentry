@@ -3,7 +3,7 @@ import ConfigStore from "../../stores/configStore";
 import Count from "../../components/count";
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-var getPercent = (item, total) => {
+let getPercent = (item, total) => {
   if (total === 0) {
     return '';
   }
@@ -13,15 +13,15 @@ var getPercent = (item, total) => {
   return parseInt(item / total * 100, 10) + '%';
 };
 
-var ProjectTable = React.createClass({
+const ProjectTable = React.createClass({
   mixins: [PureRenderMixin],
 
   render() {
-    var projectMap = this.props.projectMap;
-    var projectTotals = this.props.projectTotals;
-    var orgTotal = this.props.orgTotal;
-    var org = this.props.organization;
-    var urlPrefix = ConfigStore.get('urlPrefix') + '/' + org.slug;
+    let projectMap = this.props.projectMap;
+    let projectTotals = this.props.projectTotals;
+    let orgTotal = this.props.orgTotal;
+    let org = this.props.organization;
+    let urlPrefix = ConfigStore.get('urlPrefix') + '/' + org.slug;
 
     if (!projectTotals) {
       return <div/>;
@@ -45,7 +45,7 @@ var ProjectTable = React.createClass({
         </thead>
         <tbody>
           {projectTotals.map((item) => {
-            var project = projectMap[item.id];
+            let project = projectMap[item.id];
 
             return (
               <tr key={item.id}>
