@@ -4,21 +4,21 @@ import DropdownLink from "../dropdownLink";
 import Gravatar from "../gravatar";
 import MenuItem from "../menuItem";
 
-var UserNav = React.createClass({
+const UserNav = React.createClass({
   shouldComponentUpdate(nextProps, nextState) {
     return false;
   },
 
   render() {
-    var urlPrefix = ConfigStore.get('urlPrefix');
-    var user = ConfigStore.get('user');
+    let urlPrefix = ConfigStore.get('urlPrefix');
+    let user = ConfigStore.get('user');
 
     if (!user) {
       // TODO
       return null;
     }
 
-    var title = (
+    let title = (
       <Gravatar email={user.email} className="avatar" />
     );
 

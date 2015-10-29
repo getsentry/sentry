@@ -8,12 +8,12 @@ import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
 
-var ReleaseArtifacts = React.createClass({
-  mixins: [ History ],
-
+const ReleaseArtifacts = React.createClass({
   contextTypes: {
     release: React.PropTypes.object
   },
+
+  mixins: [ History ],
 
   getInitialState() {
     return {
@@ -35,8 +35,8 @@ var ReleaseArtifacts = React.createClass({
   },
 
   fetchData() {
-    var params = this.props.params;
-    var endpoint = '/projects/' + params.orgId + '/' + params.projectId + '/releases/' + params.version + '/files/';
+    let params = this.props.params;
+    let endpoint = '/projects/' + params.orgId + '/' + params.projectId + '/releases/' + params.version + '/files/';
 
     this.setState({
       loading: true,
@@ -62,7 +62,7 @@ var ReleaseArtifacts = React.createClass({
   },
 
   onPage(cursor) {
-    var queryParams = jQuery.extend({}, this.props.location.query, {
+    let queryParams = jQuery.extend({}, this.props.location.query, {
       cursor: cursor
     });
 

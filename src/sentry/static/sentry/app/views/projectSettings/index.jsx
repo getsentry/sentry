@@ -7,29 +7,12 @@ import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
 
 const ProjectSettings = React.createClass({
-
-  contextTypes: {
-    location: React.PropTypes.object
-  },
-
   propTypes: {
     setProjectNavSection: React.PropTypes.func
   },
 
-  componentWillMount() {
-    this.props.setProjectNavSection('settings');
-    this.fetchData();
-  },
-
-  componentWillReceiveProps(nextProps) {
-    var params = this.props.params;
-    if (nextProps.params.projectId !== params.projectId ||
-        nextProps.params.orgId !== params.orgId) {
-      this.setState({
-        loading: true,
-        error: false
-      }, this.fetchData);
-    }
+  contextTypes: {
+    location: React.PropTypes.object
   },
 
   getInitialState() {
@@ -40,8 +23,24 @@ const ProjectSettings = React.createClass({
     };
   },
 
+  componentWillMount() {
+    this.props.setProjectNavSection('settings');
+    this.fetchData();
+  },
+
+  componentWillReceiveProps(nextProps) {
+    let params = this.props.params;
+    if (nextProps.params.projectId !== params.projectId ||
+        nextProps.params.orgId !== params.orgId) {
+      this.setState({
+        loading: true,
+        error: false
+      }, this.fetchData);
+    }
+  },
+
   fetchData() {
-    var params = this.props.params;
+    let params = this.props.params;
 
     api.request(`/projects/${params.orgId}/${params.projectId}/`, {
       success: (data) => {

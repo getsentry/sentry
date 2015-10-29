@@ -4,7 +4,7 @@ import PropTypes from "../../proptypes";
 import DateTime from "../../components/dateTime";
 import FileSize from "../../components/fileSize";
 
-var GroupEventToolbar  = React.createClass({
+let GroupEventToolbar  = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,

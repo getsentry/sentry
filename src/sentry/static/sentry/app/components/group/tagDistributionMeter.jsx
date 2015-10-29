@@ -5,7 +5,7 @@ import PropTypes from "../../proptypes";
 import TooltipMixin from "../../mixins/tooltip";
 import {escape, percent} from "../../utils";
 
-var TagDistributionMeter = React.createClass({
+const TagDistributionMeter = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     tag: React.PropTypes.string.isRequired,
@@ -36,7 +36,7 @@ var TagDistributionMeter = React.createClass({
   },
 
   fetchData() {
-    var url = '/groups/' + this.props.group.id + '/tags/' + encodeURIComponent(this.props.tag) + '/';
+    let url = '/groups/' + this.props.group.id + '/tags/' + encodeURIComponent(this.props.tag) + '/';
 
     this.setState({
       loading: true,
@@ -84,8 +84,8 @@ var TagDistributionMeter = React.createClass({
     return (
       <div className="segments">
         {data.topValues.map((value) => {
-          var pct = percent(value.count, totalValues);
-          var pctLabel = Math.floor(pct);
+          let pct = percent(value.count, totalValues);
+          let pctLabel = Math.floor(pct);
 
           return (
             <Link

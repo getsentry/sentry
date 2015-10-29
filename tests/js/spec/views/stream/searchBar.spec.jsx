@@ -9,7 +9,7 @@ import stubReactComponents from "../../../helpers/stubReactComponent";
 
 import stubContext from "../../../helpers/stubContext";
 
-var findWithClass = TestUtils.findRenderedDOMComponentWithClass;
+let findWithClass = TestUtils.findRenderedDOMComponentWithClass;
 
 describe("SearchBar", function() {
 
@@ -57,13 +57,13 @@ describe("SearchBar", function() {
   describe("clearSearch()", function() {
 
     it("clears the query", function() {
-      var props = {
+      let props = {
         orgId: "123",
         projectId: "456",
         query: "is:unresolved ruby",
         defaultQuery: "is:unresolved"
       };
-      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
+      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
 
       wrapper.clearSearch();
 
@@ -71,14 +71,14 @@ describe("SearchBar", function() {
     });
 
     it("calls onSearch()", function(done) {
-      var props = {
+      let props = {
         orgId: "123",
         projectId: "456",
         query: "is:unresolved ruby",
         defaultQuery: "is:unresolved",
         onSearch: this.sandbox.spy()
       };
-      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
+      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
 
       wrapper.clearSearch();
 
@@ -93,7 +93,7 @@ describe("SearchBar", function() {
   describe("onQueryFocus()", function() {
 
     it("displays the drop down", function() {
-      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar orgId="123" projectId="456"/>).refs.wrapped;
+      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar orgId="123" projectId="456"/>).refs.wrapped;
       expect(wrapper.state.dropdownVisible).to.be.false;
 
       wrapper.onQueryFocus();
@@ -106,10 +106,10 @@ describe("SearchBar", function() {
   describe("onQueryBlur()", function() {
 
     it("hides the drop down", function() {
-      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar orgId="123" projectId="456"/>).refs.wrapped;
+      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar orgId="123" projectId="456"/>).refs.wrapped;
       wrapper.state.dropdownVisible = true;
 
-      var clock = this.sandbox.useFakeTimers();
+      let clock = this.sandbox.useFakeTimers();
       wrapper.onQueryBlur();
       clock.tick(201); // doesn't close until 200ms
 
@@ -122,10 +122,10 @@ describe("SearchBar", function() {
     describe("escape", function () {
       it("blurs the input", function () {
         // needs to be rendered into document.body or cannot query document.activeElement
-        var wrapper = ReactDOM.render(<this.ContextStubbedSearchBar orgId="123" projectId="456"/>, document.body).refs.wrapped;
+        let wrapper = ReactDOM.render(<this.ContextStubbedSearchBar orgId="123" projectId="456"/>, document.body).refs.wrapped;
         wrapper.state.dropdownVisible = true;
 
-        var input = ReactDOM.findDOMNode(wrapper.refs.searchInput);
+        let input = ReactDOM.findDOMNode(wrapper.refs.searchInput);
 
         input.focus();
 
@@ -141,8 +141,8 @@ describe("SearchBar", function() {
   describe("render()", function() {
 
     it("invokes onSearch() when submitting the form", function() {
-      var stubbedOnSearch = this.sandbox.spy();
-      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar onSearch={stubbedOnSearch} orgId="123" projectId="456"/>).refs.wrapped;
+      let stubbedOnSearch = this.sandbox.spy();
+      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar onSearch={stubbedOnSearch} orgId="123" projectId="456"/>).refs.wrapped;
 
       TestUtils.Simulate.submit(wrapper.refs.searchForm, { preventDefault() {} });
 
@@ -150,15 +150,15 @@ describe("SearchBar", function() {
     });
 
     it("invokes onSearch() when search is cleared", function(done) {
-      var props = {
+      let props = {
         orgId: "123",
         projectId: "456",
         query: "is:unresolved",
         onSearch: this.sandbox.spy()
       };
-      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
+      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
 
-      var cancelButton = findWithClass(wrapper, "search-clear-form");
+      let cancelButton = findWithClass(wrapper, "search-clear-form");
       TestUtils.Simulate.click(cancelButton);
 
       setTimeout(function () {
@@ -182,12 +182,12 @@ describe("SearchBar", function() {
 
   describe("updateAutoCompleteItems()", function() {
     it("sets state when empty", function() {
-      var props = {
+      let props = {
         orgId: "123",
         projectId: "456",
         query: "",
       };
-      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
+      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
       wrapper.updateAutoCompleteItems();
       expect(wrapper.state.searchTerm).to.eql('');
       expect(wrapper.state.searchItems).to.eql(wrapper.props.defaultSearchItems);
@@ -195,12 +195,12 @@ describe("SearchBar", function() {
     });
 
     it("sets state when incomplete tag", function() {
-      var props = {
+      let props = {
         orgId: "123",
         projectId: "456",
         query: "fu",
       };
-      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
+      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
       wrapper.updateAutoCompleteItems();
       expect(wrapper.state.searchTerm).to.eql('fu');
       expect(wrapper.state.searchItems).to.eql([]);
@@ -208,12 +208,12 @@ describe("SearchBar", function() {
     });
 
     it("sets state with complete tag", function() {
-      var props = {
+      let props = {
         orgId: "123",
         projectId: "456",
         query: "url:\"fu\"",
       };
-      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
+      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
       wrapper.updateAutoCompleteItems();
       expect(wrapper.state.searchTerm).to.eql('"fu"');
       expect(wrapper.state.searchItems).to.eql([]);
@@ -221,12 +221,12 @@ describe("SearchBar", function() {
     });
 
     it("sets state when incomplete tag as second input", function() {
-      var props = {
+      let props = {
         orgId: "123",
         projectId: "456",
         query: "is:unresolved fu",
       };
-      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
+      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
       wrapper.updateAutoCompleteItems();
       expect(wrapper.state.searchTerm).to.eql('unresolved');
       expect(wrapper.state.searchItems.length).to.eql(1);
@@ -236,12 +236,12 @@ describe("SearchBar", function() {
     });
 
     it("sets state when value has colon", function() {
-      var props = {
+      let props = {
         orgId: "123",
         projectId: "456",
         query: "url:\"http://example.com\"",
       };
-      var wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
+      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
       wrapper.updateAutoCompleteItems();
       expect(wrapper.state.searchTerm).to.eql('"http://example.com"');
       expect(wrapper.state.searchItems).to.eql([]);

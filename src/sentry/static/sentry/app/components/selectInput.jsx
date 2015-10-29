@@ -1,7 +1,7 @@
 import React from "react";
 import jQuery from "jquery";
 
-var SelectInput = React.createClass({
+const SelectInput = React.createClass({
   getDefaultProps() {
     return {
       // HTML attrs
@@ -16,6 +16,22 @@ var SelectInput = React.createClass({
       value: '',
       onChange: $.noop
     };
+  },
+
+  componentDidMount() {
+    this.create();
+  },
+
+  componentWillUpdate() {
+    this.destroy();
+  },
+
+  componentDidUpdate() {
+    this.create();
+  },
+
+  componentWillUnmount() {
+    this.destroy();
   },
 
   getValue() {
@@ -35,24 +51,8 @@ var SelectInput = React.createClass({
     this.props.onChange.call(this, this.select2, ...args);
   },
 
-  componentDidMount() {
-    this.create();
-  },
-
-  componentWillUnmount() {
-    this.destroy();
-  },
-
-  componentWillUpdate() {
-    this.destroy();
-  },
-
-  componentDidUpdate() {
-    this.create();
-  },
-
   render() {
-    var opts = {
+    let opts = {
         ref: 'select',
         disabled: this.props.disabled,
         required: this.props.required,

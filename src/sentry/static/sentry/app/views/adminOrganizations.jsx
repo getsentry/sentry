@@ -27,6 +27,16 @@ const AdminOrganizations = React.createClass({
     this.fetchData();
   },
 
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.location.search !== this.props.location.search) {
+      this.setState({
+        query: this.props.location.query,
+        loading: true,
+        error: false
+      }, this.fetchData);
+    }
+  },
+
   remountComponent() {
     this.setState(this.getInitialState(), this.fetchData);
   },
@@ -52,16 +62,6 @@ const AdminOrganizations = React.createClass({
         });
       }
     });
-  },
-
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.location.search !== this.props.location.search) {
-      this.setState({
-        query: this.props.location.query,
-        loading: true,
-        error: false
-      }, this.fetchData);
-    }
   },
 
   onPage(cursor) {

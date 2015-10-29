@@ -2,7 +2,7 @@ import React from "react";
 import {Link} from "react-router";
 import GroupList from "../components/groupList";
 
-var ReleaseNewEvents = React.createClass({
+const ReleaseNewEvents = React.createClass({
   contextTypes: {
     release: React.PropTypes.object
   },

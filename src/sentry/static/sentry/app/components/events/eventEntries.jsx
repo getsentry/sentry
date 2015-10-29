@@ -11,7 +11,7 @@ import EventUser from "./user";
 import PropTypes from "../../proptypes";
 import utils from "../../utils";
 
-var EventEntries = React.createClass({
+const EventEntries = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
@@ -28,6 +28,10 @@ var EventEntries = React.createClass({
     };
   },
 
+  shouldComponentUpdate(nextProps, nextState) {
+    return this.props.event.id !== nextProps.event.id;
+  },
+
   // TODO(dcramer): make this extensible
   interfaces: {
     exception: require("./interfaces/exception"),
@@ -37,18 +41,14 @@ var EventEntries = React.createClass({
     csp: require("./interfaces/csp"),
   },
 
-  shouldComponentUpdate(nextProps, nextState) {
-    return this.props.event.id !== nextProps.event.id;
-  },
-
   render(){
-    var group = this.props.group;
-    var evt = this.props.event;
-    var isShare = this.props.isShare;
+    let group = this.props.group;
+    let evt = this.props.event;
+    let isShare = this.props.isShare;
 
-    var entries = evt.entries.map((entry, entryIdx) => {
+    let entries = evt.entries.map((entry, entryIdx) => {
       try {
-        var Component = this.interfaces[entry.type];
+        let Component = this.interfaces[entry.type];
         if (!Component) {
           /*eslint no-console:0*/
           window.console && console.error && console.error('Unregistered interface: ' + entry.type);

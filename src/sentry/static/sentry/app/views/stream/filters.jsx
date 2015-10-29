@@ -4,10 +4,14 @@ import FilterSelectLink from "./filterSelectLink";
 import SearchBar from "./searchBar";
 import SortOptions from "./sortOptions";
 
-var StreamFilters = React.createClass({
+const StreamFilters = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired
+  },
+
+  contextTypes: {
+    location: React.PropTypes.object
   },
 
   getDefaultProps() {
@@ -23,13 +27,9 @@ var StreamFilters = React.createClass({
     };
   },
 
-  contextTypes: {
-    location: React.PropTypes.object
-  },
-
   getActiveButton() {
-    var queryParams = this.context.location.query;
-    var activeButton;
+    let queryParams = this.context.location.query;
+    let activeButton;
     if (queryParams.bookmarks) {
       activeButton = 'bookmarks';
     } else if (queryParams.assigned) {

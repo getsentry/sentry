@@ -6,10 +6,6 @@ import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
 
 const ApiChart = React.createClass({
-  componentWillMount() {
-    this.fetchData();
-  },
-
   getInitialState() {
     return {
       error: false,
@@ -22,6 +18,10 @@ const ApiChart = React.createClass({
     };
   },
 
+  componentWillMount() {
+    this.fetchData();
+  },
+  
   fetchData() {
     let statNameList = [
       "client-api.all-versions.responses.2xx",

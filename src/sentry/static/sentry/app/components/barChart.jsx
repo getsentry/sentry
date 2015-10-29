@@ -3,10 +3,24 @@ import React from "react";
 import { valueIsEqual } from "../utils";
 import TooltipMixin from "../mixins/tooltip";
 
-var BarChart = React.createClass({
+const BarChart = React.createClass({
+  propTypes: {
+    points: React.PropTypes.arrayOf(React.PropTypes.shape({
+      x: React.PropTypes.number.isRequired,
+      y: React.PropTypes.number.isRequired,
+      label: React.PropTypes.string
+    })),
+    placement: React.PropTypes.string,
+    label: React.PropTypes.string,
+    markers: React.PropTypes.arrayOf(React.PropTypes.shape({
+      x: React.PropTypes.number.isRequired,
+      label: React.PropTypes.string
+    }))
+  },
+
   mixins: [
     TooltipMixin(function () {
-      var barChartInstance = this;
+      let barChartInstance = this;
       return {
         html: true,
         placement: this.props.placement,
@@ -30,25 +44,10 @@ var BarChart = React.createClass({
     })
   ],
 
-
   statics: {
     getInterval(points) {
       return points.length > 1 ? points[1].x - points[0].x : null;
     }
-  },
-
-  propTypes: {
-    points: React.PropTypes.arrayOf(React.PropTypes.shape({
-      x: React.PropTypes.number.isRequired,
-      y: React.PropTypes.number.isRequired,
-      label: React.PropTypes.string
-    })),
-    placement: React.PropTypes.string,
-    label: React.PropTypes.string,
-    markers: React.PropTypes.arrayOf(React.PropTypes.shape({
-      x: React.PropTypes.number.isRequired,
-      label: React.PropTypes.string
-    }))
   },
 
   getDefaultProps() {
@@ -83,13 +82,13 @@ var BarChart = React.createClass({
   },
 
   floatFormat(number, places) {
-    var multi = Math.pow(10, places);
+    let multi = Math.pow(10, places);
     return parseInt(number * multi, 10) / multi;
   },
 
   timeLabelAsHour(point) {
-    var timeMoment = moment(point.x * 1000);
-    var nextMoment = timeMoment.clone().add(59, "minute");
+    let timeMoment = moment(point.x * 1000);
+    let nextMoment = timeMoment.clone().add(59, "minute");
 
     return (
       '<span>' +
@@ -100,7 +99,7 @@ var BarChart = React.createClass({
   },
 
   timeLabelAsDay(point) {
-    var timeMoment = moment(point.x * 1000);
+    let timeMoment = moment(point.x * 1000);
 
     return (
       '<span>' +
@@ -110,8 +109,8 @@ var BarChart = React.createClass({
   },
 
   timeLabelAsRange(interval, point) {
-    var timeMoment = moment(point.x * 1000);
-    var nextMoment = timeMoment.clone().add(interval - 1, "second");
+    let timeMoment = moment(point.x * 1000);
+    let nextMoment = timeMoment.clone().add(interval - 1, "second");
 
     return (
       '<span>' +
@@ -123,7 +122,7 @@ var BarChart = React.createClass({
   },
 
   timeLabelAsFull(point) {
-    var timeMoment = moment(point.x * 1000);
+    let timeMoment = moment(point.x * 1000);
     return timeMoment.format("lll");
   },
 
@@ -141,7 +140,7 @@ var BarChart = React.createClass({
   },
 
   maxPointValue() {
-    var maxval = 10;
+    let maxval = 10;
     this.props.points.forEach((point) => {
       if (point.y > maxval) {
         maxval = point.y;
@@ -151,17 +150,17 @@ var BarChart = React.createClass({
   },
 
   renderMarker(marker) {
-    var timeLabel = moment(marker.x * 1000).format("lll");
-    var title = (
+    let timeLabel = moment(marker.x * 1000).format("lll");
+    let title = (
       '<div style="width:130px">' +
         marker.label + '<br/>' +
         timeLabel +
       '</div>'
     );
-    var className = "chart-marker tip " + (marker.className || '');
+    let className = "chart-marker tip " + (marker.className || '');
 
     // example key: m-last-seen-22811123, m-first-seen-228191
-    var key = ['m', marker.className, marker.x].join('-');
+    let key = ['m', marker.className, marker.x].join('-');
 
     return (
       <a key={key} className={className} data-title={title}>
@@ -201,14 +200,14 @@ var BarChart = React.createClass({
   },
 
   renderChart() {
-    var points = this.props.points;
-    var pointWidth = this.floatFormat(100.0 / points.length, 2) + "%";
+    let points = this.props.points;
+    let pointWidth = this.floatFormat(100.0 / points.length, 2) + "%";
 
-    var maxval = this.maxPointValue();
+    let maxval = this.maxPointValue();
 
-    var markers = this.props.markers.slice();
+    let markers = this.props.markers.slice();
 
-    var children = [];
+    let children = [];
     points.forEach((point, pointIdx) => {
       while(markers.length && markers[0].x <= point.x) {
         children.push(this.renderMarker(markers.shift()));
@@ -227,8 +226,8 @@ var BarChart = React.createClass({
   },
 
   render() {
-    var figureClass = [this.props.className, 'barchart'].join(" ");
-    var maxval = this.maxPointValue();
+    let figureClass = [this.props.className, 'barchart'].join(" ");
+    let maxval = this.maxPointValue();
 
     return (
       <figure className={figureClass} height={this.props.height} width={this.props.width}>

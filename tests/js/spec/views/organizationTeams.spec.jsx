@@ -17,7 +17,7 @@ describe("OrganizationTeams", function() {
     this.stubbedApiRequest = this.sandbox.stub(api, "request");
     stubReactComponent(this.sandbox, [ExpandedTeamList, AllTeamsList, OrganizationHomeContainer]);
 
-    var ContextStubbedOrganizationTeams = stubContext(OrganizationTeams, {
+    let ContextStubbedOrganizationTeams = stubContext(OrganizationTeams, {
       organization: { id: "1337" }
     });
 
@@ -30,7 +30,7 @@ describe("OrganizationTeams", function() {
 
   describe("fetchStats()", function() {
     it('should make a request to the organizations endpoint', function () {
-      var organizationTeams = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
+      let organizationTeams = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
 
       // NOTE: creation of OrganizationTeams causes a bunch of API requests to fire ...
       //       reset the request stub so that we can get an accurate count

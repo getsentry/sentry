@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 
-var ClippedBox = React.createClass({
+const ClippedBox = React.createClass({
   propTypes: {
     title: React.PropTypes.string,
     defaultClipped: React.PropTypes.bool
@@ -21,7 +21,7 @@ var ClippedBox = React.createClass({
   },
 
   componentDidMount() {
-    var renderedHeight = ReactDOM.findDOMNode(this).offsetHeight;
+    let renderedHeight = ReactDOM.findDOMNode(this).offsetHeight;
 
     if (renderedHeight > this.props.clipHeight ) {
       /*eslint react/no-did-mount-set-state:0*/
@@ -40,7 +40,7 @@ var ClippedBox = React.createClass({
   },
 
   render() {
-    var className = "box-clippable";
+    let className = "box-clippable";
     if (this.state.clipped) {
       className += " clipped";
     }

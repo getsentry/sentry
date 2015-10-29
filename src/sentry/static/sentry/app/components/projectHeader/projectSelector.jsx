@@ -6,15 +6,21 @@ import ConfigStore from "../../stores/configStore";
 import DropdownLink from "../dropdownLink";
 import MenuItem from "../menuItem";
 
-var ProjectSelector = React.createClass({
+const ProjectSelector = React.createClass({
+  contextTypes: {
+    location: React.PropTypes.object
+  },
+
   getInitialState() {
     return {
       filter: ''
     };
   },
 
-  contextTypes: {
-    location: React.PropTypes.object
+  componentDidUpdate(prevProps, prevState) {
+    // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
+    let node = jQuery(ReactDOM.findDOMNode(this.refs.container));
+    node.hide().show(0);
   },
 
   onFilterChange(evt) {
@@ -51,7 +57,7 @@ var ProjectSelector = React.createClass({
       return text;
     }
     highlightText = highlightText.toLowerCase();
-    var idx = text.toLowerCase().indexOf(highlightText);
+    let idx = text.toLowerCase().indexOf(highlightText);
     if (idx === -1) {
       return text;
     }
@@ -85,7 +91,7 @@ var ProjectSelector = React.createClass({
   },
 
   getProjectLabel(team, project, hasSingleTeam) {
-    var label = project.name;
+    let label = project.name;
     if (!hasSingleTeam && label.indexOf(team.name) === -1) {
       label = team.name + ' / ' + project.name;
     }
@@ -93,8 +99,8 @@ var ProjectSelector = React.createClass({
   },
 
   getRawLink(project) {
-    var org = this.props.organization;
-    var urlPrefix = ConfigStore.get('urlPrefix');
+    let org = this.props.organization;
+    let urlPrefix = ConfigStore.get('urlPrefix');
     return urlPrefix + '/' + org.slug + '/' + project.slug + '/';
   },
 
@@ -124,19 +130,13 @@ var ProjectSelector = React.createClass({
     });
   },
 
-  componentDidUpdate(prevProps, prevState) {
-    // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
-    var node = jQuery(ReactDOM.findDOMNode(this.refs.container));
-    node.hide().show(0);
-  },
-
   render() {
-    var org = this.props.organization;
-    var filter = this.state.filter.toLowerCase();
-    var children = [];
-    var activeTeam;
-    var activeProject;
-    var hasSingleTeam = org.teams.length === 1;
+    let org = this.props.organization;
+    let filter = this.state.filter.toLowerCase();
+    let children = [];
+    let activeTeam;
+    let activeProject;
+    let hasSingleTeam = org.teams.length === 1;
 
     org.teams.forEach((team) => {
       if (!team.isMember) {
@@ -147,7 +147,7 @@ var ProjectSelector = React.createClass({
           activeTeam = team;
           activeProject = project;
         }
-        var fullName = [team.name, project.name, team.slug, project.slug].join(' ').toLowerCase();
+        let fullName = [team.name, project.name, team.slug, project.slug].join(' ').toLowerCase();
         if (filter && fullName.indexOf(filter) === -1) {
           return;
         }

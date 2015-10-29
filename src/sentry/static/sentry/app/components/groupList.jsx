@@ -10,7 +10,7 @@ import ProjectState from "../mixins/projectState";
 import StreamGroup from "../components/stream/group";
 import utils from "../utils";
 
-var GroupList = React.createClass({
+const GroupList = React.createClass({
   propTypes: {
     query: React.PropTypes.string.isRequired,
     canSelectGroups: React.PropTypes.bool,
@@ -41,14 +41,14 @@ var GroupList = React.createClass({
     };
   },
 
-  shouldComponentUpdate(nextProps, nextState) {
-    return !utils.valueIsEqual(this.state, nextState, true);
-  },
-
   componentWillMount() {
     this._streamManager = new utils.StreamManager(GroupStore);
 
     this.fetchData();
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return !utils.valueIsEqual(this.state, nextState, true);
   },
 
   componentDidUpdate(prevProps) {
@@ -90,18 +90,18 @@ var GroupList = React.createClass({
   },
 
   getGroupListEndpoint() {
-    var queryParams = this.context.location.query;
+    let queryParams = this.context.location.query;
     queryParams.limit = 50;
     queryParams.sort = 'new';
     queryParams.query = this.props.query;
-    var querystring = jQuery.param(queryParams);
+    let querystring = jQuery.param(queryParams);
 
     let props = this.props;
     return '/projects/' + props.orgId + '/' + props.projectId + '/groups/?' + querystring;
   },
 
   onGroupChange() {
-    var groupIds = this._streamManager.getAllItems().map((item) => item.id);
+    let groupIds = this._streamManager.getAllItems().map((item) => item.id);
     if (!utils.valueIsEqual(groupIds, this.state.groupIds)) {
       this.setState({
         groupIds: groupIds
@@ -122,13 +122,13 @@ var GroupList = React.createClass({
         </div>
       );
 
-    var wrapperClass;
+    let wrapperClass;
 
     if (!this.props.bulkActions) {
       wrapperClass = "stream-no-bulk-actions";
     }
 
-    var {orgId, projectId} = this.props;
+    let {orgId, projectId} = this.props;
 
     return (
       <div className={wrapperClass}>

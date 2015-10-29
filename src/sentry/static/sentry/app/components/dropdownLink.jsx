@@ -4,7 +4,7 @@ import classNames from "classnames";
 
 require("bootstrap/js/dropdown");
 
-var DropdownLink = React.createClass({
+const DropdownLink = React.createClass({
   propTypes: {
     title:     React.PropTypes.node,
     caret:     React.PropTypes.bool,
@@ -41,12 +41,12 @@ var DropdownLink = React.createClass({
   },
 
   render() {
-    var className = classNames({
+    let className = classNames({
       "dropdown-toggle": true,
       "disabled": this.props.disabled,
     });
 
-    var topLevelClasses = classNames({
+    let topLevelClasses = classNames({
       "dropdown" : true,
     });
 

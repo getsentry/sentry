@@ -5,7 +5,7 @@ import PureRenderMixin from 'react-addons-pure-render-mixin';
 import AlertStore from '../stores/alertStore';
 import AlertMessage from './alertMessage';
 
-var Alerts = React.createClass({
+const Alerts = React.createClass({
   mixins: [
     PureRenderMixin,
     Reflux.connect(AlertStore, "alerts")

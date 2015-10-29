@@ -5,7 +5,7 @@ import LoadingIndicator from "../../components/loadingIndicator";
 
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-var SearchDropdown = React.createClass({
+const SearchDropdown = React.createClass({
   mixins: [PureRenderMixin],
 
   getDefaultProps() {

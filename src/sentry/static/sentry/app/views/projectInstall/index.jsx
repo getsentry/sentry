@@ -9,19 +9,19 @@ const ProjectInstall = React.createClass({
     setProjectNavSection: React.PropTypes.func
   },
 
+  getInitialState() {
+    return {
+      loading: true,
+      platformList: null
+    };
+  },
+
   componentWillMount() {
     this.props.setProjectNavSection('settings');
   },
 
   componentDidMount() {
     this.fetchData();
-  },
-
-  getInitialState() {
-    return {
-      loading: true,
-      platformList: null
-    };
   },
 
   fetchData() {

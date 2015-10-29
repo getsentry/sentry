@@ -3,7 +3,7 @@ import _ from "underscore";
 
 import StreamTagActions from "../actions/streamTagActions";
 import MemberListStore from "./memberListStore";
-var StreamTagStore = Reflux.createStore({
+const StreamTagStore = Reflux.createStore({
   listenables: StreamTagActions,
 
   init() {

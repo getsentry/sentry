@@ -1,7 +1,7 @@
-var functions = {};
+let functions = {};
 
 try {
-  var mod = 'sentry';
+  let mod = 'sentry';
   localStorage.setItem(mod, mod);
   localStorage.removeItem(mod);
 

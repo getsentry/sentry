@@ -21,7 +21,7 @@ describe("ActionLink", function() {
 
   describe("shouldConfirm()", function() {
     it('should always return true by default', function () {
-      var actionLink = TestUtils.renderIntoDocument(
+      let actionLink = TestUtils.renderIntoDocument(
         <ActionLink onAction={function(){}} selectAllActive={false}/>
       );
 
@@ -31,7 +31,7 @@ describe("ActionLink", function() {
     });
 
     it('should return false when props.neverConfirm is true', function () {
-      var actionLink = TestUtils.renderIntoDocument(
+      let actionLink = TestUtils.renderIntoDocument(
         <ActionLink neverConfirm={true} onAction={function(){}} selectAllActive={false}/>
       );
 
@@ -42,7 +42,7 @@ describe("ActionLink", function() {
 
 
     it('should return (mostly) true when props.onlyIfBulk is true and all are selected', function () {
-      var actionLink = TestUtils.renderIntoDocument(
+      let actionLink = TestUtils.renderIntoDocument(
         <ActionLink onlyIfBulk={true} selectAllActive={true} onAction={function(){}}/>
       );
 
@@ -52,7 +52,7 @@ describe("ActionLink", function() {
     });
 
     it('should return false when props.onlyIfBulk is true and not all are selected', function () {
-      var actionLink = TestUtils.renderIntoDocument(
+      let actionLink = TestUtils.renderIntoDocument(
         <ActionLink onlyIfBulk={true} selectAllActive={false} onAction={function(){}}/>
       );
 

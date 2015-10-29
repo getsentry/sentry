@@ -22,16 +22,16 @@ import StreamSidebar from "./stream/sidebar";
 import utils from "../utils";
 import parseLinkHeader from '../utils/parseLinkHeader';
 
-var Stream = React.createClass({
+const Stream = React.createClass({
+  propTypes: {
+    setProjectNavSection: React.PropTypes.func
+  },
+
   mixins: [
     Reflux.listenTo(GroupStore, "onGroupChange"),
     Reflux.listenTo(StreamTagStore, "onStreamTagChange"),
     History
   ],
-
-  propTypes: {
-    setProjectNavSection: React.PropTypes.func
-  },
 
   getDefaultProps() {
     return {
@@ -65,27 +65,6 @@ var Stream = React.createClass({
     }, this.getQueryStringState());
   },
 
-  shouldComponentUpdate(nextProps, nextState) {
-    return !_.isEqual(this.state, nextState, true);
-  },
-
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.location.search !== this.props.location.search) {
-      this.setState(this.getQueryStringState(nextProps), this.fetchData);
-      this._poller.disable();
-    }
-  },
-
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.realtimeActive !== this.state.realtimeActive) {
-      if (this.state.realtimeActive) {
-        this._poller.enable();
-      } else {
-        this._poller.disable();
-      }
-    }
-  },
-
   componentWillMount() {
     this.props.setProjectNavSection('stream');
 
@@ -95,9 +74,9 @@ var Stream = React.createClass({
       endpoint: this.getGroupListEndpoint()
     });
 
-    var realtime = Cookies.get("realtimeActive");
+    let realtime = Cookies.get("realtimeActive");
     if (realtime) {
-      var realtimeActive = realtime === "true";
+      let realtimeActive = realtime === "true";
       this.setState({
         realtimeActive: realtimeActive
       });
@@ -108,6 +87,27 @@ var Stream = React.createClass({
 
     this.fetchTags();
     this.fetchData();
+  },
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.location.search !== this.props.location.search) {
+      this.setState(this.getQueryStringState(nextProps), this.fetchData);
+      this._poller.disable();
+    }
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return !_.isEqual(this.state, nextState, true);
+  },
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.realtimeActive !== this.state.realtimeActive) {
+      if (this.state.realtimeActive) {
+        this._poller.enable();
+      } else {
+        this._poller.disable();
+      }
+    }
   },
 
   componentWillUnmount() {
@@ -138,26 +138,26 @@ var Stream = React.createClass({
 
   getQueryStringState(props) {
     props = props || this.props;
-    var currentQuery = props.location.query;
+    let currentQuery = props.location.query;
 
-    var filter = {};
+    let filter = {};
     if (currentQuery.bookmarks) {
       filter = { bookmarks: "1" };
     } else if (currentQuery.assigned) {
       filter = { assigned: "1" };
     }
 
-    var query =
+    let query =
       currentQuery.hasOwnProperty("query") ?
       currentQuery.query :
       this.props.defaultQuery;
 
-    var sort =
+    let sort =
       currentQuery.hasOwnProperty("sort") ?
       currentQuery.sort :
       this.props.defaultSort;
 
-    var statsPeriod =
+    let statsPeriod =
       currentQuery.hasOwnProperty("statsPeriod") ?
       currentQuery.statsPeriod :
       this.props.defaultStatsPeriod;
@@ -182,9 +182,9 @@ var Stream = React.createClass({
       error: false
     });
 
-    var url = this.getGroupListEndpoint();
+    let url = this.getGroupListEndpoint();
 
-    var requestParams = $.extend({}, this.props.location.query, {
+    let requestParams = $.extend({}, this.props.location.query, {
       limit: this.props.maxItems,
       statsPeriod: this.state.statsPeriod
     });
@@ -207,7 +207,7 @@ var Stream = React.createClass({
           let params = this.props.params;
           let groupId = data[0].id;
 
-          return void this.history.pushState(null, `/${params.orgId}/${params.projectId}/${groupId}/`);
+          return void this.history.pushState(null, `/${params.orgId}/${params.projectId}/group/${groupId}/`);
         }
 
         this._streamManager.push(data);
@@ -227,7 +227,7 @@ var Stream = React.createClass({
       complete: (jqXHR) => {
         this.lastRequest = null;
 
-        var links = parseLinkHeader(jqXHR.getResponseHeader('Link'));
+        let links = parseLinkHeader(jqXHR.getResponseHeader('Link'));
         if (links && links.previous) {
           this._poller.setEndpoint(links.previous.href);
 
@@ -240,7 +240,7 @@ var Stream = React.createClass({
   },
 
   getGroupListEndpoint() {
-    var params = this.props.params;
+    let params = this.props.params;
 
     return '/projects/' + params.orgId + '/' + params.projectId + '/groups/';
   },
@@ -273,7 +273,7 @@ var Stream = React.createClass({
   },
 
   onGroupChange() {
-    var groupIds = this._streamManager.getAllItems().map((item) => item.id);
+    let groupIds = this._streamManager.getAllItems().map((item) => item.id);
     if (!utils.valueIsEqual(groupIds, this.state.groupIds)) {
       this.setState({
         groupIds: groupIds
@@ -289,8 +289,8 @@ var Stream = React.createClass({
   },
 
   onPage(cursor) {
-    var params = this.props.params;
-    var queryParams = $.extend({}, this.props.location.query);
+    let params = this.props.params;
+    let queryParams = $.extend({}, this.props.location.query);
     queryParams.cursor = cursor;
 
     this.history.pushState(null, `/${params.orgId}/${params.projectId}/`, queryParams);
@@ -327,9 +327,9 @@ var Stream = React.createClass({
   },
 
   transitionTo() {
-    var queryParams = {};
+    let queryParams = {};
 
-    for (var prop in this.state.filter) {
+    for (let prop in this.state.filter) {
       queryParams[prop] = this.state.filter[prop];
     }
 
@@ -350,8 +350,8 @@ var Stream = React.createClass({
   },
 
   renderGroupNodes(ids, statsPeriod) {
-    var {orgId, projectId} = this.props.params;
-    var groupNodes = ids.map((id) => {
+    let {orgId, projectId} = this.props.params;
+    let groupNodes = ids.map((id) => {
       return (
         <StreamGroup
           key={id}
@@ -383,7 +383,7 @@ var Stream = React.createClass({
   },
 
   renderStreamBody() {
-    var body;
+    let body;
 
     if (this.state.loading) {
       body = this.renderLoading();

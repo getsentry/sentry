@@ -2,10 +2,10 @@ import React from "react";
 import ConfigStore from "../stores/configStore";
 import HookStore from "../stores/hookStore";
 
-var Footer = React.createClass({
+const Footer = React.createClass({
   render() {
-    var config = ConfigStore.getConfig();
-    var children = [];
+    let config = ConfigStore.getConfig();
+    let children = [];
     HookStore.get('footer').forEach((cb) => {
       children.push(cb());
     });

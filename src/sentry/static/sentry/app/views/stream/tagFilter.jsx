@@ -2,11 +2,20 @@ import React from "react";
 import ReactDOM from "react-dom";
 import _ from "underscore";
 
-var StreamTagFilter = React.createClass({
+const StreamTagFilter = React.createClass({
   propTypes: {
     tag: React.PropTypes.object.isRequired,
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired
+  },
+
+  statics: {
+    tagValueToSelect2Format: (key) => {
+      return {
+        id: key,
+        text: key
+      };
+    }
   },
 
   getDefaultProps() {
@@ -22,26 +31,6 @@ var StreamTagFilter = React.createClass({
       loading: false,
       value: this.props.value,
     };
-  },
-
-  statics: {
-    tagValueToSelect2Format: (key) => {
-      return {
-        id: key,
-        text: key
-      };
-    }
-  },
-
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.value !== this.state.value) {
-      this.setState({
-        value: nextProps.value
-      }, () => {
-        let select = this.refs.select;
-        $(select).select2('val', this.state.value);
-      });
-    }
   },
 
   componentDidMount() {
@@ -80,6 +69,17 @@ var StreamTagFilter = React.createClass({
     $(select)
       .select2(selectOpts)
       .on('change', this.onSelectValue);
+  },
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.value !== this.state.value) {
+      this.setState({
+        value: nextProps.value
+      }, () => {
+        let select = this.refs.select;
+        $(select).select2('val', this.state.value);
+      });
+    }
   },
 
   componentWillUnmount() {

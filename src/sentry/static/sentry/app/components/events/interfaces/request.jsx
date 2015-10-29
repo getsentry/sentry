@@ -6,7 +6,7 @@ import {getCurlCommand} from "./utils";
 
 import RequestActions from "./requestActions";
 
-var RequestInterface = React.createClass({
+const RequestInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
@@ -40,12 +40,12 @@ var RequestInterface = React.createClass({
   },
 
   render() {
-    var group = this.props.group;
-    var evt = this.props.event;
-    var data = this.props.data;
-    var view = this.state.view;
+    let group = this.props.group;
+    let evt = this.props.event;
+    let data = this.props.data;
+    let view = this.state.view;
 
-    var fullUrl = data.url;
+    let fullUrl = data.url;
     if (data.query) {
       fullUrl = fullUrl + '?' + data.query;
     }
@@ -54,10 +54,10 @@ var RequestInterface = React.createClass({
     }
 
     // lol
-    var parsedUrl = document.createElement("a");
+    let parsedUrl = document.createElement("a");
     parsedUrl.href = fullUrl;
 
-    var children = [];
+    let children = [];
 
     if (!this.isPartial()) {
       children.push(
@@ -85,7 +85,7 @@ var RequestInterface = React.createClass({
       </h3>
     );
 
-    var title = (
+    let title = (
       <div>{children}</div>
     );
 
