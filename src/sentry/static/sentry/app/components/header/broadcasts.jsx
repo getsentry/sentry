@@ -99,7 +99,7 @@ var Broadcasts = React.createClass({
         {loading ?
           <li><LoadingIndicator /></li>
         : (broadcasts.length === 0 ?
-          <li>There is nothing to see here. Carry on.</li>
+          <li className="empty">No recent broadcasts from the Sentry team.</li>
         :
           broadcasts.map((item) => {
             return (
