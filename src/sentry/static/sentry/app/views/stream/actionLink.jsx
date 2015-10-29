@@ -5,14 +5,6 @@ import SelectedGroupStore from "../../stores/selectedGroupStore";
 import TooltipMixin from "../../mixins/tooltip";
 
 var ActionLink = React.createClass({
-  mixins: [
-    PureRenderMixin,
-    TooltipMixin({
-      html: false,
-      container: 'body'
-    })
-  ],
-
   propTypes: {
     actionLabel: React.PropTypes.string,
     canActionAll: React.PropTypes.bool.isRequired,
@@ -23,6 +15,14 @@ var ActionLink = React.createClass({
     onlyIfBulk: React.PropTypes.bool,
     selectAllActive: React.PropTypes.bool.isRequired
   },
+
+  mixins: [
+    PureRenderMixin,
+    TooltipMixin({
+      html: false,
+      container: 'body'
+    })
+  ],
 
   getDefaultProps() {
     return {

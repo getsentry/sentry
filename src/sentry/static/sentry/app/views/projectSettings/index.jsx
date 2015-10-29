@@ -7,13 +7,20 @@ import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
 
 const ProjectSettings = React.createClass({
+  propTypes: {
+    setProjectNavSection: React.PropTypes.func
+  },
 
   contextTypes: {
     location: React.PropTypes.object
   },
 
-  propTypes: {
-    setProjectNavSection: React.PropTypes.func
+  getInitialState() {
+    return {
+      loading: true,
+      error: false,
+      project: null
+    };
   },
 
   componentWillMount() {
@@ -30,14 +37,6 @@ const ProjectSettings = React.createClass({
         error: false
       }, this.fetchData);
     }
-  },
-
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      project: null
-    };
   },
 
   fetchData() {

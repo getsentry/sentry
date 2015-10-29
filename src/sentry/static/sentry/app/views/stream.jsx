@@ -23,15 +23,15 @@ import utils from "../utils";
 import parseLinkHeader from '../utils/parseLinkHeader';
 
 var Stream = React.createClass({
+  propTypes: {
+    setProjectNavSection: React.PropTypes.func
+  },
+
   mixins: [
     Reflux.listenTo(GroupStore, "onGroupChange"),
     Reflux.listenTo(StreamTagStore, "onStreamTagChange"),
     History
   ],
-
-  propTypes: {
-    setProjectNavSection: React.PropTypes.func
-  },
 
   getDefaultProps() {
     return {
@@ -65,27 +65,6 @@ var Stream = React.createClass({
     }, this.getQueryStringState());
   },
 
-  shouldComponentUpdate(nextProps, nextState) {
-    return !_.isEqual(this.state, nextState, true);
-  },
-
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.location.search !== this.props.location.search) {
-      this.setState(this.getQueryStringState(nextProps), this.fetchData);
-      this._poller.disable();
-    }
-  },
-
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.realtimeActive !== this.state.realtimeActive) {
-      if (this.state.realtimeActive) {
-        this._poller.enable();
-      } else {
-        this._poller.disable();
-      }
-    }
-  },
-
   componentWillMount() {
     this.props.setProjectNavSection('stream');
 
@@ -108,6 +87,27 @@ var Stream = React.createClass({
 
     this.fetchTags();
     this.fetchData();
+  },
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.location.search !== this.props.location.search) {
+      this.setState(this.getQueryStringState(nextProps), this.fetchData);
+      this._poller.disable();
+    }
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return !_.isEqual(this.state, nextState, true);
+  },
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.realtimeActive !== this.state.realtimeActive) {
+      if (this.state.realtimeActive) {
+        this._poller.enable();
+      } else {
+        this._poller.disable();
+      }
+    }
   },
 
   componentWillUnmount() {

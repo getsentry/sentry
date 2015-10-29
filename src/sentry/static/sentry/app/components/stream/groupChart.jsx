@@ -5,14 +5,14 @@ import GroupStore from "../../stores/groupStore";
 import {valueIsEqual} from "../../utils";
 
 var GroupChart = React.createClass({
-  mixins: [
-    Reflux.listenTo(GroupStore, "onGroupChange")
-  ],
-
   propTypes: {
     id: React.PropTypes.string.isRequired,
     statsPeriod: React.PropTypes.string.isRequired,
   },
+
+  mixins: [
+    Reflux.listenTo(GroupStore, "onGroupChange")
+  ],
 
   getInitialState() {
     var data = GroupStore.get(this.props.id);

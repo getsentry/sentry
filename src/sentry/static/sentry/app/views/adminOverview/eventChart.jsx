@@ -7,10 +7,6 @@ import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
 
 const EventChart = React.createClass({
-  componentWillMount() {
-    this.fetchData();
-  },
-
   getInitialState() {
     return {
       error: false,
@@ -22,6 +18,10 @@ const EventChart = React.createClass({
       stats: {received: [], rejected: []},
       systemTotal: {received: 0, rejected: 0, accepted: 0}
     };
+  },
+
+  componentWillMount() {
+    this.fetchData();
   },
 
   fetchData() {

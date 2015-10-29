@@ -4,6 +4,20 @@ import { valueIsEqual } from "../utils";
 import TooltipMixin from "../mixins/tooltip";
 
 var BarChart = React.createClass({
+  propTypes: {
+    points: React.PropTypes.arrayOf(React.PropTypes.shape({
+      x: React.PropTypes.number.isRequired,
+      y: React.PropTypes.number.isRequired,
+      label: React.PropTypes.string
+    })),
+    placement: React.PropTypes.string,
+    label: React.PropTypes.string,
+    markers: React.PropTypes.arrayOf(React.PropTypes.shape({
+      x: React.PropTypes.number.isRequired,
+      label: React.PropTypes.string
+    }))
+  },
+
   mixins: [
     TooltipMixin(function () {
       var barChartInstance = this;
@@ -30,25 +44,10 @@ var BarChart = React.createClass({
     })
   ],
 
-
   statics: {
     getInterval(points) {
       return points.length > 1 ? points[1].x - points[0].x : null;
     }
-  },
-
-  propTypes: {
-    points: React.PropTypes.arrayOf(React.PropTypes.shape({
-      x: React.PropTypes.number.isRequired,
-      y: React.PropTypes.number.isRequired,
-      label: React.PropTypes.string
-    })),
-    placement: React.PropTypes.string,
-    label: React.PropTypes.string,
-    markers: React.PropTypes.arrayOf(React.PropTypes.shape({
-      x: React.PropTypes.number.isRequired,
-      label: React.PropTypes.string
-    }))
   },
 
   getDefaultProps() {

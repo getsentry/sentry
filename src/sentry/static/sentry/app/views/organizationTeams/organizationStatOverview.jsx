@@ -8,10 +8,6 @@ import OrganizationState from "../../mixins/organizationState";
 import {defined} from "../../utils";
 
 var OrganizationStatOverview = React.createClass({
-  mixins: [
-    OrganizationState
-  ],
-
   propTypes: {
     orgId: React.PropTypes.string
   },
@@ -19,6 +15,10 @@ var OrganizationStatOverview = React.createClass({
   contextTypes: {
     location: React.PropTypes.object
   },
+
+  mixins: [
+    OrganizationState
+  ],
 
   getInitialState() {
     return {

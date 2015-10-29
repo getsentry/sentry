@@ -7,14 +7,20 @@ import DropdownLink from "../dropdownLink";
 import MenuItem from "../menuItem";
 
 var ProjectSelector = React.createClass({
+  contextTypes: {
+    location: React.PropTypes.object
+  },
+
   getInitialState() {
     return {
       filter: ''
     };
   },
 
-  contextTypes: {
-    location: React.PropTypes.object
+  componentDidUpdate(prevProps, prevState) {
+    // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
+    var node = jQuery(ReactDOM.findDOMNode(this.refs.container));
+    node.hide().show(0);
   },
 
   onFilterChange(evt) {
@@ -122,12 +128,6 @@ var ProjectSelector = React.createClass({
     this.setState({
       filter: ''
     });
-  },
-
-  componentDidUpdate(prevProps, prevState) {
-    // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
-    var node = jQuery(ReactDOM.findDOMNode(this.refs.container));
-    node.hide().show(0);
   },
 
   render() {

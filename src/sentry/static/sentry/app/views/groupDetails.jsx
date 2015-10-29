@@ -13,19 +13,13 @@ const ERROR_TYPES = {
 };
 
 var GroupDetails = React.createClass({
-  mixins: [
-    Reflux.listenTo(GroupStore, "onGroupChange")
-  ],
-
   childContextTypes: {
     group: PropTypes.Group,
   },
 
-  getChildContext() {
-    return {
-      group: this.state.group,
-    };
-  },
+  mixins: [
+    Reflux.listenTo(GroupStore, "onGroupChange")
+  ],
 
   getInitialState() {
     return {
@@ -33,6 +27,12 @@ var GroupDetails = React.createClass({
       loading: true,
       error: false,
       errorType: null
+    };
+  },
+
+  getChildContext() {
+    return {
+      group: this.state.group,
     };
   },
 

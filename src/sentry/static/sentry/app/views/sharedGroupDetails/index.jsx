@@ -18,12 +18,6 @@ var SharedGroupDetails = React.createClass({
     group: PropTypes.Group,
   },
 
-  getChildContext() {
-    return {
-      group: this.state.group,
-    };
-  },
-
   getInitialState() {
     return {
       group: null,
@@ -32,10 +26,10 @@ var SharedGroupDetails = React.createClass({
     };
   },
 
-  getTitle() {
-    if (this.state.group)
-      return this.state.group.title;
-    return 'Sentry';
+  getChildContext() {
+    return {
+      group: this.state.group,
+    };
   },
 
   componentWillMount() {
@@ -45,6 +39,12 @@ var SharedGroupDetails = React.createClass({
 
   componentWillUnmount() {
     jQuery(document.body).removeClass("shared-group");
+  },
+
+  getTitle() {
+    if (this.state.group)
+      return this.state.group.title;
+    return 'Sentry';
   },
 
   fetchData() {

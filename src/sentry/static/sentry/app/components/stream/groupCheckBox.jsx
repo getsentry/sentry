@@ -4,13 +4,13 @@ import Reflux from "reflux";
 import SelectedGroupStore from "../../stores/selectedGroupStore";
 
 var GroupCheckBox = React.createClass({
-  mixins: [
-    Reflux.listenTo(SelectedGroupStore, "onSelectedGroupChange")
-  ],
-
   propTypes: {
     id: React.PropTypes.string.isRequired
   },
+
+  mixins: [
+    Reflux.listenTo(SelectedGroupStore, "onSelectedGroupChange")
+  ],
 
   getInitialState() {
     return {

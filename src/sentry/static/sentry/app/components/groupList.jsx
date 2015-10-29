@@ -41,14 +41,14 @@ var GroupList = React.createClass({
     };
   },
 
-  shouldComponentUpdate(nextProps, nextState) {
-    return !utils.valueIsEqual(this.state, nextState, true);
-  },
-
   componentWillMount() {
     this._streamManager = new utils.StreamManager(GroupStore);
 
     this.fetchData();
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return !utils.valueIsEqual(this.state, nextState, true);
   },
 
   componentDidUpdate(prevProps) {

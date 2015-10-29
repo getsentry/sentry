@@ -3,13 +3,13 @@ import Modal from "react-bootstrap/lib/Modal";
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 var LinkWithConfirmation = React.createClass({
-  mixins: [PureRenderMixin],
-
   propTypes: {
     disabled: React.PropTypes.bool,
     message: React.PropTypes.string.isRequired,
     onConfirm: React.PropTypes.func.isRequired
   },
+
+  mixins: [PureRenderMixin],
 
   getInitialState() {
     return {

@@ -10,16 +10,16 @@ import SearchBar from "../../components/searchBar.jsx";
 import ReleaseList from "./releaseList";
 
 var ProjectReleases = React.createClass({
+  propTypes: {
+    setProjectNavSection: React.PropTypes.func
+  },
+
   mixins: [ History ],
 
   getDefaultProps() {
     return {
       defaultQuery: ""
     };
-  },
-
-  propTypes: {
-    setProjectNavSection: React.PropTypes.func
   },
 
   getInitialState() {
@@ -34,15 +34,6 @@ var ProjectReleases = React.createClass({
     };
   },
 
-  onSearch(query) {
-    var targetQueryParams = {};
-    if (query !== '')
-      targetQueryParams.query = query;
-
-    let {orgId, projectId} = this.props.params;
-    this.history.pushState(null, `/${orgId}/${projectId}/releases/`, targetQueryParams);
-  },
-
   componentWillMount() {
     this.props.setProjectNavSection('releases');
     this.fetchData();
@@ -55,6 +46,15 @@ var ProjectReleases = React.createClass({
         query: queryParams.query
       }, this.fetchData);
     }
+  },
+
+  onSearch(query) {
+    var targetQueryParams = {};
+    if (query !== '')
+      targetQueryParams.query = query;
+
+    let {orgId, projectId} = this.props.params;
+    this.history.pushState(null, `/${orgId}/${projectId}/releases/`, targetQueryParams);
   },
 
   fetchData() {
