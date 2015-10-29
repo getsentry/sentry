@@ -102,11 +102,20 @@ var Broadcasts = React.createClass({
           <li className="empty">No recent broadcasts from the Sentry team.</li>
         :
           broadcasts.map((item) => {
-            return (
-              <li key={item.id} className={!item.hasSeen && 'unseen'}>
-                {item.message}
-              </li>
-            );
+
+            if(item.link) {
+              return (
+                <li key={item.id} className={!item.hasSeen && 'unseen'}>
+                  <a href="{item.link}">{item.message}</a>
+                </li>
+              );
+            } else {
+              return (
+                <li key={item.id} className={!item.hasSeen && 'unseen'}>
+                  {item.message}
+                </li>
+              );
+            }
           })
         )}
       </DropdownLink>
