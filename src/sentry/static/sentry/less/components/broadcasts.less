@@ -24,21 +24,31 @@
   .dropdown-menu {
     // ideally we could use 90% but due to parent element
     // this doesnt work
-    max-height: 300px;
-    min-width: 200px;
+    max-height: 500px;
+    min-width: 240px;
     padding-top: 0;
     padding-bottom: 0;
     overflow: auto;
 
     > li {
-      color: #7a8188;
+      color: @gray-dark;
       padding: 5px 8px;
       border-bottom: 1px solid #e5e5e5;
-      margin-bottom: 5px;
-      line-height: 1.4;
+      margin-bottom: 0;
+      line-height: 1.3;
+
+      a {
+        color: @linkColor;
+
+        &:hover {
+          color: @linkColorHover;
+          background: none;
+        }
+      }
 
       &.empty {
         text-align: center;
+        color: #7a8188;
       }
 
       &.unseen {
