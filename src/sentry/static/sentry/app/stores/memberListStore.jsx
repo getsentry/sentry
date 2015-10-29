@@ -1,9 +1,6 @@
-
 import Reflux from "reflux";
 
-// var MemberActions = require('../actions/groupActions');
-
-var MemberListStore = Reflux.createStore({
+const MemberListStore = Reflux.createStore({
   // listenables: MemberActions,
 
   init() {
@@ -18,7 +15,7 @@ var MemberListStore = Reflux.createStore({
 
   getById(id) {
     id = '' + id;
-    for (var i = 0; i < this.items.length; i++) {
+    for (let i = 0; i < this.items.length; i++) {
       if (this.items[i].id === id) {
         return this.items[i];
       }
@@ -28,7 +25,7 @@ var MemberListStore = Reflux.createStore({
 
   getByEmail(email) {
     email = email.toLowerCase();
-    for (var i = 0; i < this.items.length; i++) {
+    for (let i = 0; i < this.items.length; i++) {
       if (this.items[i].email.toLowerCase() === email) {
         return this.items[i];
       }

@@ -1,7 +1,7 @@
 import _ from "underscore";
 
 /*eslint no-use-before-define:0*/
-var modelsEqual = function(obj1, obj2) {
+const modelsEqual = function(obj1, obj2) {
   if (!obj1 && !obj2)
     return true;
   if (obj1.id && !obj2)
@@ -11,7 +11,7 @@ var modelsEqual = function(obj1, obj2) {
   return obj1.id === obj2.id;
 };
 
-var arrayIsEqual = function(arr, other, deep) {
+const arrayIsEqual = function(arr, other, deep) {
   // if the other array is a falsy value, return
   if (!arr && !other) {
     return true;
@@ -26,12 +26,12 @@ var arrayIsEqual = function(arr, other, deep) {
     return false;
   }
 
-  for (var i = 0, l = Math.max(arr.length, other.length); i < l; i++) {
+  for (let i = 0, l = Math.max(arr.length, other.length); i < l; i++) {
     return valueIsEqual(arr[i], other[i], deep);
   }
 };
 
-var valueIsEqual = function(value, other, deep) {
+const valueIsEqual = function(value, other, deep) {
   if (value === other) {
     return true;
   } else if (value instanceof Array || other instanceof Array) {
@@ -46,8 +46,8 @@ var valueIsEqual = function(value, other, deep) {
   return false;
 };
 
-var objectMatchesSubset = function(obj, other, deep){
-  var k;
+const objectMatchesSubset = function(obj, other, deep){
+  let k;
 
   if (deep !== true) {
     for (k in other) {
@@ -70,13 +70,13 @@ var objectMatchesSubset = function(obj, other, deep){
 // miserably if a param was named 'length'
 const objectToArray = function(obj) {
   let result = [];
-  for (var key in obj) {
+  for (let key in obj) {
     result.push([key, obj[key]]);
   }
   return result;
 };
 
-var compareArrays = function(arr1, arr2, compFunc) {
+const compareArrays = function(arr1, arr2, compFunc) {
   if (arr1 === arr2) {
     return true;
   }
@@ -91,7 +91,7 @@ var compareArrays = function(arr1, arr2, compFunc) {
     return false;
   }
 
-  for (var i = 0; i < Math.max(arr1.length, arr2.length); i++) {
+  for (let i = 0; i < Math.max(arr1.length, arr2.length); i++) {
     if (!arr1[i]) {
       return false;
     }
@@ -107,9 +107,8 @@ var compareArrays = function(arr1, arr2, compFunc) {
 
 export default {
   getQueryParams() {
-    var vars = {},
-        href = window.location.href,
-        hashes, hash;
+    let hashes, hash;
+    let vars = {}, href = window.location.href;
 
     if (href.indexOf('?') == -1)
       return vars;
@@ -133,10 +132,9 @@ export default {
 
   sortArray(arr, score_fn) {
     arr.sort((a, b) => {
-      var a_score = score_fn(a),
-          b_score = score_fn(b);
+      let a_score = score_fn(a), b_score = score_fn(b);
 
-      for (var i = 0; i < a_score.length; i++) {
+      for (let i = 0; i < a_score.length; i++) {
         if (a_score[i] > b_score[i]) {
           return 1;
         }
@@ -151,7 +149,7 @@ export default {
   },
 
   objectIsEmpty(obj) {
-    for (var prop in obj) {
+    for (let prop in obj) {
       if (obj.hasOwnProperty(prop)) {
         return false;
       }

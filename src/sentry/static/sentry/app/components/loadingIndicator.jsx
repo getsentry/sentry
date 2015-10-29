@@ -1,7 +1,7 @@
 import classNames from "classnames";
 import React from "react";
 
-var LoadingIndicator = React.createClass({
+const LoadingIndicator = React.createClass({
   propTypes: {
     global: React.PropTypes.bool,
     mini:  React.PropTypes.bool,
@@ -13,7 +13,7 @@ var LoadingIndicator = React.createClass({
   },
 
   render() {
-    var className = classNames({
+    let className = classNames({
       "loading": true,
       "mini": this.props.mini,
       "global": this.props.global,

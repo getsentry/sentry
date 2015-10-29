@@ -2,9 +2,7 @@ import React from "react";
 import {Link, History} from "react-router";
 import classNames from 'classnames';
 
-var ListLink = React.createClass({
-  mixins: [History],
-
+const ListLink = React.createClass({
   displayName: 'ListLink',
 
   propTypes: {
@@ -19,6 +17,8 @@ var ListLink = React.createClass({
     isActive: React.PropTypes.func
   },
 
+  mixins: [History],
+
   getDefaultProps() {
     return {
       activeClassName: 'active'
@@ -30,7 +30,7 @@ var ListLink = React.createClass({
   },
 
   getClassName() {
-    var _classNames = {};
+    let _classNames = {};
 
     if (this.props.className)
       _classNames[this.props.className] = true;

@@ -4,15 +4,7 @@ import React from "react";
 import SelectedGroupStore from "../../stores/selectedGroupStore";
 import TooltipMixin from "../../mixins/tooltip";
 
-var ActionLink = React.createClass({
-  mixins: [
-    PureRenderMixin,
-    TooltipMixin({
-      html: false,
-      container: 'body'
-    })
-  ],
-
+const ActionLink = React.createClass({
   propTypes: {
     actionLabel: React.PropTypes.string,
     canActionAll: React.PropTypes.bool.isRequired,
@@ -23,6 +15,14 @@ var ActionLink = React.createClass({
     onlyIfBulk: React.PropTypes.bool,
     selectAllActive: React.PropTypes.bool.isRequired
   },
+
+  mixins: [
+    PureRenderMixin,
+    TooltipMixin({
+      html: false,
+      container: 'body'
+    })
+  ],
 
   getDefaultProps() {
     return {
@@ -43,7 +43,7 @@ var ActionLink = React.createClass({
   },
 
   handleClick() {
-    var selectedItemIds = SelectedGroupStore.getSelectedIds();
+    let selectedItemIds = SelectedGroupStore.getSelectedIds();
     if (!this.state.isModalOpen && !this.shouldConfirm(selectedItemIds.size)) {
       return void this.handleActionSelected();
     }
@@ -80,7 +80,7 @@ var ActionLink = React.createClass({
 
   shouldConfirm(numSelectedItems) {
     // By default, should confirm ...
-    var shouldConfirm = true;
+    let shouldConfirm = true;
 
     // Unless `neverConfirm` is true, then return false
     if (this.props.neverConfirm === true) {

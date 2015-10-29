@@ -3,7 +3,7 @@ import {defined} from "../../../utils";
 
 import StacktraceContent from "./stacktraceContent";
 
-var ExceptionContent = React.createClass({
+const ExceptionContent = React.createClass({
   propTypes: {
     view: React.PropTypes.string.isRequired,
     platform: React.PropTypes.string,
@@ -11,8 +11,8 @@ var ExceptionContent = React.createClass({
   },
 
   render() {
-    var stackView = this.props.view;
-    var children = this.props.values.map((exc, excIdx) => {
+    let stackView = this.props.view;
+    let children = this.props.values.map((exc, excIdx) => {
       return (
         <div key={excIdx}>
           <h4>

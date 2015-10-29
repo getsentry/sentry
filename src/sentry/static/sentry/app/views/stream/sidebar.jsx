@@ -7,7 +7,7 @@ import {queryToObj, objToQuery} from "../../utils/stream";
 
 let TEXT_FILTER_DEBOUNCE_IN_MS = 300;
 
-var StreamSidebar = React.createClass({
+const StreamSidebar = React.createClass({
   propTypes: {
     tags: React.PropTypes.object.isRequired,
     onQueryChange: React.PropTypes.func.isRequired,

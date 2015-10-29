@@ -9,7 +9,7 @@ import OrganizationState from "../../mixins/organizationState";
 
 import ProjectTable from "./projectTable";
 
-var OrganizationStats = React.createClass({
+const OrganizationStats = React.createClass({
   mixins: [
     OrganizationState
   ],
@@ -41,14 +41,13 @@ var OrganizationStats = React.createClass({
   },
 
   componentDidUpdate(prevProps) {
-    let prevParams = prevProps.params,
-      currentParams = this.props.params;
+    let prevParams = prevProps.params, currentParams = this.props.params;
 
     if (prevParams.orgId !== currentParams.orgId) {
       this.fetchData();
     }
 
-    var state = this.state;
+    let state = this.state;
     if (state.statsLoading && !state.statsRequestsPending) {
       this.processOrgData();
     }
@@ -67,7 +66,7 @@ var OrganizationStats = React.createClass({
       projectsRequestsPending: 4
     });
 
-    var statEndpoint = this.getOrganizationStatsEndpoint();
+    let statEndpoint = this.getOrganizationStatsEndpoint();
 
     $.each(this.state.rawOrgData, (statName) => {
       api.request(statEndpoint, {
@@ -119,7 +118,7 @@ var OrganizationStats = React.createClass({
 
     api.request(this.getOrganizationProjectsEndpoint(), {
       success: (data) => {
-        var projectMap = {};
+        let projectMap = {};
         data.forEach((project) => {
           projectMap[project.id] = project;
         });
@@ -139,29 +138,29 @@ var OrganizationStats = React.createClass({
   },
 
   getOrganizationStatsEndpoint() {
-    var params = this.props.params;
+    let params = this.props.params;
     return '/organizations/' + params.orgId + '/stats/';
   },
 
   getOrganizationProjectsEndpoint() {
-    var params = this.props.params;
+    let params = this.props.params;
     return '/organizations/' + params.orgId + '/projects/';
   },
 
   processOrgData() {
-    var oReceived = 0;
-    var oRejected = 0;
-    var oBlacklisted = 0;
-    var sReceived = {};
-    var sRejected = {};
-    var sBlacklisted = {};
-    var aReceived = [0, 0]; // received, points
-    var rawOrgData = this.state.rawOrgData;
+    let oReceived = 0;
+    let oRejected = 0;
+    let oBlacklisted = 0;
+    let sReceived = {};
+    let sRejected = {};
+    let sBlacklisted = {};
+    let aReceived = [0, 0]; // received, points
+    let rawOrgData = this.state.rawOrgData;
     $.each(rawOrgData.received, (idx, point) => {
-      var dReceived = point[1];
-      var dRejected = rawOrgData.rejected[idx][1];
-      var dBlacklisted = rawOrgData.blacklisted[idx][1];
-      var ts = point[0] * 1000;
+      let dReceived = point[1];
+      let dRejected = rawOrgData.rejected[idx][1];
+      let dBlacklisted = rawOrgData.blacklisted[idx][1];
+      let ts = point[0] * 1000;
       if (sReceived[ts] === undefined) {
         sReceived[ts] = dReceived;
         sRejected[ts] = dRejected;
@@ -203,12 +202,12 @@ var OrganizationStats = React.createClass({
   },
 
   processProjectData() {
-    var rawProjectData = this.state.rawProjectData;
-    var projectTotals = [];
+    let rawProjectData = this.state.rawProjectData;
+    let projectTotals = [];
     $.each(rawProjectData.received, (projectId, data) => {
-      var pReceived = 0;
-      var pRejected = 0;
-      var pBlacklisted = 0;
+      let pReceived = 0;
+      let pRejected = 0;
+      let pBlacklisted = 0;
       $.each(data, (idx, point) => {
         pReceived += point[1];
         pRejected += rawProjectData.rejected[projectId][idx][1];
@@ -229,7 +228,7 @@ var OrganizationStats = React.createClass({
   },
 
   getChartPlotData() {
-    var stats = this.state.orgStats;
+    let stats = this.state.orgStats;
 
     return [
       {

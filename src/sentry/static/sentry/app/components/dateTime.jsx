@@ -1,13 +1,13 @@
 import React from "react";
 import moment from "moment";
 
-var DateTime = React.createClass({
+const DateTime = React.createClass({
   propTypes: {
     date: React.PropTypes.any.isRequired
   },
 
   render() {
-    var date = this.props.date;
+    let date = this.props.date;
 
     if (typeof date === "string" || typeof date === "number") {
       date = new Date(date);

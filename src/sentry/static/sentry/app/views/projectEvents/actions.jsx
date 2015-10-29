@@ -2,15 +2,15 @@ import React from "react";
 
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-var EventActions = React.createClass({
-  mixins: [
-    PureRenderMixin
-  ],
-
+const EventActions = React.createClass({
   propTypes: {
     onRealtimeChange: React.PropTypes.func.isRequired,
     realtimeActive: React.PropTypes.bool.isRequired
   },
+
+  mixins: [
+    PureRenderMixin
+  ],
 
   getInitialState() {
     return {

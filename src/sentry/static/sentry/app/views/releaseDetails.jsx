@@ -9,11 +9,7 @@ import ProjectState from "../mixins/projectState";
 import TimeSince from "../components/timeSince";
 import Version from "../components/version";
 
-var ReleaseDetails = React.createClass({
-  mixins: [
-    ProjectState
-  ],
-
+const ReleaseDetails = React.createClass({
   propTypes: {
     setProjectNavSection: React.PropTypes.func
   },
@@ -26,11 +22,9 @@ var ReleaseDetails = React.createClass({
     release: React.PropTypes.object
   },
 
-  getChildContext() {
-    return {
-      release: this.state.release
-    };
-  },
+  mixins: [
+    ProjectState
+  ],
 
   getInitialState() {
     return {
@@ -40,15 +34,21 @@ var ReleaseDetails = React.createClass({
     };
   },
 
+  getChildContext() {
+    return {
+      release: this.state.release
+    };
+  },
+
   componentWillMount() {
     this.props.setProjectNavSection('releases');
     this.fetchData();
   },
 
   getTitle() {
-    var project = this.getProject();
-    var team = this.getTeam();
-    var params = this.props.params;
+    let project = this.getProject();
+    let team = this.getTeam();
+    let params = this.props.params;
     return 'Release ' + params.version + ' | ' + team.name + ' / ' + project.name;
   },
 
@@ -74,10 +74,10 @@ var ReleaseDetails = React.createClass({
   },
 
   getReleaseDetailsEndpoint() {
-    var params = this.props.params;
-    var orgId = params.orgId;
-    var projectId = params.projectId;
-    var version = params.version;
+    let params = this.props.params;
+    let orgId = params.orgId;
+    let projectId = params.projectId;
+    let version = params.version;
 
     return '/projects/' + orgId + '/' + projectId + '/releases/' + version + '/';
   },
@@ -88,9 +88,9 @@ var ReleaseDetails = React.createClass({
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
-    var release = this.state.release;
+    let release = this.state.release;
 
-    var {orgId, projectId} = this.props.params;
+    let {orgId, projectId} = this.props.params;
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className={this.props.classname}>

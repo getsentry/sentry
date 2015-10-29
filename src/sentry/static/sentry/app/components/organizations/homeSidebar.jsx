@@ -6,17 +6,17 @@ import OrganizationState from "../../mixins/organizationState";
 import ConfigStore from "../../stores/configStore";
 import HookStore from "../../stores/hookStore";
 
-var HomeSidebar = React.createClass({
+const HomeSidebar = React.createClass({
   mixins: [OrganizationState],
 
   render() {
-    var access = this.getAccess();
-    var features = this.getFeatures();
-    var org = this.getOrganization();
-    var urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
+    let access = this.getAccess();
+    let features = this.getFeatures();
+    let org = this.getOrganization();
+    let urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
 
     // Allow injection via getsentry et all
-    var children = [];
+    let children = [];
     HookStore.get('organization:sidebar').forEach((cb) => {
       children.push(cb(org));
     });

@@ -21,8 +21,8 @@ def load_fixture(name):
 
 
 class JavascriptIntegrationTest(TestCase):
-    @patch('sentry.lang.javascript.processor.fetch_url')
-    def test_source_expansion(self, mock_fetch_url):
+    @patch('sentry.lang.javascript.processor.fetch_file')
+    def test_source_expansion(self, mock_fetch_file):
         data = {
             'message': 'hello',
             'platform': 'javascript',
@@ -49,12 +49,12 @@ class JavascriptIntegrationTest(TestCase):
             }
         }
 
-        mock_fetch_url.return_value.body = '\n'.join('hello world')
+        mock_fetch_file.return_value.body = '\n'.join('hello world')
 
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        mock_fetch_url.assert_called_once_with(
+        mock_fetch_file.assert_called_once_with(
             'http://example.com/foo.js',
             project=self.project,
             release=None,
@@ -75,9 +75,9 @@ class JavascriptIntegrationTest(TestCase):
         assert frame.context_line == 'h'
         assert frame.post_context == ['e', 'l', 'l', 'o', ' ']
 
-    @patch('sentry.lang.javascript.processor.fetch_url')
+    @patch('sentry.lang.javascript.processor.fetch_file')
     @patch('sentry.lang.javascript.processor.discover_sourcemap')
-    def test_inlined_sources(self, mock_discover_sourcemap, mock_fetch_url):
+    def test_inlined_sources(self, mock_discover_sourcemap, mock_fetch_file):
         data = {
             'message': 'hello',
             'platform': 'javascript',
@@ -100,13 +100,13 @@ class JavascriptIntegrationTest(TestCase):
 
         mock_discover_sourcemap.return_value = BASE64_SOURCEMAP
 
-        mock_fetch_url.return_value.url = 'http://example.com/test.min.js'
-        mock_fetch_url.return_value.body = '\n'.join('<generated source>')
+        mock_fetch_file.return_value.url = 'http://example.com/test.min.js'
+        mock_fetch_file.return_value.body = '\n'.join('<generated source>')
 
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        mock_fetch_url.assert_called_once_with(
+        mock_fetch_file.assert_called_once_with(
             'http://example.com/test.min.js',
             project=self.project,
             release=None,

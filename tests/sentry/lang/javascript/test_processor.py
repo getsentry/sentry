@@ -5,26 +5,28 @@ from __future__ import absolute_import
 import pytest
 import responses
 
+from mock import patch
 from requests.exceptions import RequestException
 
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.lang.javascript.processor import (
-    BadSource, discover_sourcemap, fetch_sourcemap, fetch_url, generate_module,
+    BadSource, discover_sourcemap, fetch_sourcemap, fetch_file, generate_module,
     SourceProcessor, trim_line, UrlResult
 )
 from sentry.lang.javascript.sourcemaps import SourceMap, SourceMapIndex
+from sentry.models import Release
 from sentry.testutils import TestCase
 
 base64_sourcemap = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0='
 
 
-class FetchUrlTest(TestCase):
+class FetchFileTest(TestCase):
     @responses.activate
     def test_simple(self):
         responses.add(responses.GET, 'http://example.com', body='foo bar',
                       content_type='application/json')
 
-        result = fetch_url('http://example.com')
+        result = fetch_file('http://example.com')
 
         assert len(responses.calls) == 1
 
@@ -33,7 +35,7 @@ class FetchUrlTest(TestCase):
         assert result.headers == {'content-type': 'application/json'}
 
         # ensure we use the cached result
-        result2 = fetch_url('http://example.com')
+        result2 = fetch_file('http://example.com')
 
         assert len(responses.calls) == 1
 
@@ -47,7 +49,7 @@ class FetchUrlTest(TestCase):
         self.project.update_option('sentry:token', 'foobar')
         self.project.update_option('sentry:origins', ['*'])
 
-        result = fetch_url('http://example.com', project=self.project)
+        result = fetch_file('http://example.com', project=self.project)
 
         assert len(responses.calls) == 1
         assert responses.calls[0].request.headers['X-Sentry-Token'] == 'foobar'
@@ -61,15 +63,36 @@ class FetchUrlTest(TestCase):
         responses.add(responses.GET, 'http://example.com', body=RequestException())
 
         with pytest.raises(BadSource):
-            fetch_url('http://example.com')
+            fetch_file('http://example.com')
 
         assert len(responses.calls) == 1
 
         # ensure we use the cached domain-wide failure for the second call
         with pytest.raises(BadSource):
-            fetch_url('http://example.com/foo/bar')
+            fetch_file('http://example.com/foo/bar')
 
         assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_non_url_without_release(self):
+        with pytest.raises(BadSource):
+            fetch_file('/example.js')
+
+    @responses.activate
+    @patch('sentry.lang.javascript.processor.fetch_release_file')
+    def test_non_url_with_release(self, mock_fetch_release_file):
+        mock_fetch_release_file.return_value = (
+            {'content-type': 'application/json'},
+            'foo',
+            200
+        )
+
+        release = Release.objects.create(project=self.project, version='1')
+
+        result = fetch_file('/example.js', release=release)
+        assert result.url == '/example.js'
+        assert result.body == 'foo'
+        assert result.headers == {'content-type': 'application/json'}
 
 
 class DiscoverSourcemapTest(TestCase):

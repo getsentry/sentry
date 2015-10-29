@@ -5,7 +5,7 @@ import {objectToArray} from "../../utils";
 import EventDataSection from "./eventDataSection";
 import DefinitionList from "./interfaces/definitionList";
 
-var EventExtraData = React.createClass({
+const EventExtraData = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired

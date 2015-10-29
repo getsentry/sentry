@@ -16,24 +16,17 @@ const ERROR_TYPES = {
   PROJECT_NOT_FOUND: "PROJECT_NOT_FOUND"
 };
 
-var ProjectDetails = React.createClass({
-  mixins: [
-    Reflux.connect(MemberListStore, "memberList"),
-    Reflux.listenTo(TeamStore, "onTeamChange"),
-    OrganizationState
-  ],
-
+const ProjectDetails = React.createClass({
   childContextTypes: {
     project: PropTypes.Project,
     team: PropTypes.Team
   },
 
-  getChildContext() {
-    return {
-      project: this.state.project,
-      team: this.state.team
-    };
-  },
+  mixins: [
+    Reflux.connect(MemberListStore, "memberList"),
+    Reflux.listenTo(TeamStore, "onTeamChange"),
+    OrganizationState
+  ],
 
   getInitialState() {
     return {
@@ -47,12 +40,15 @@ var ProjectDetails = React.createClass({
     };
   },
 
-  componentWillMount() {
-    this.fetchData();
+  getChildContext() {
+    return {
+      project: this.state.project,
+      team: this.state.team
+    };
   },
 
-  remountComponent() {
-    this.setState(this.getInitialState(), this.fetchData);
+  componentWillMount() {
+    this.fetchData();
   },
 
   componentWillReceiveProps(nextProps) {
@@ -62,15 +58,19 @@ var ProjectDetails = React.createClass({
     }
   },
 
+  remountComponent() {
+    this.setState(this.getInitialState(), this.fetchData);
+  },
+
   onTeamChange() {
     this.fetchData();
   },
 
   identifyProject() {
-    var params = this.props.params;
-    var projectSlug = params.projectId;
-    var activeProject = null;
-    var activeTeam = null;
+    let params = this.props.params;
+    let projectSlug = params.projectId;
+    let activeProject = null;
+    let activeTeam = null;
     let org = this.context.organization;
     org.teams.forEach((team) => {
       team.projects.forEach((project) => {
@@ -126,7 +126,7 @@ var ProjectDetails = React.createClass({
   },
 
   getMemberListEndpoint() {
-    var params = this.props.params;
+    let params = this.props.params;
     return '/projects/' + params.orgId + '/' + params.projectId + '/members/';
   },
 
