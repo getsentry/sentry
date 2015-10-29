@@ -214,7 +214,7 @@ def fetch_release_file(filename, release):
     return result
 
 
-def fetch_url(url, project=None, release=None, allow_scraping=True):
+def fetch_file(url, project=None, release=None, allow_scraping=True):
     """
     Pull down a URL, returning a UrlResult object.
 
@@ -226,7 +226,7 @@ def fetch_url(url, project=None, release=None, allow_scraping=True):
 
     if release:
         result = fetch_release_file(url, release)
-    elif not allow_scraping:
+    elif not allow_scraping or not url.startswith(('http:', 'https:')):
         error = {
             'type': EventError.JS_MISSING_SOURCE,
             'url': url,
@@ -323,8 +323,8 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
     if is_data_uri(url):
         body = base64.b64decode(url[BASE64_PREAMBLE_LENGTH:])
     else:
-        result = fetch_url(url, project=project, release=release,
-                           allow_scraping=allow_scraping)
+        result = fetch_file(url, project=project, release=release,
+                            allow_scraping=allow_scraping)
         body = result.body
 
     # According to various specs[1][2] a SourceMap may be prefixed to force
@@ -421,7 +421,6 @@ class SourceProcessor(object):
             frames.extend([
                 f for f in stacktrace.frames
                 if f.lineno is not None
-                and f.is_url()
             ])
         return frames
 
@@ -615,8 +614,8 @@ class SourceProcessor(object):
             # TODO: respect cache-control/max-age headers to some extent
             logger.debug('Fetching remote source %r', filename)
             try:
-                result = fetch_url(filename, project=project, release=release,
-                                   allow_scraping=self.allow_scraping)
+                result = fetch_file(filename, project=project, release=release,
+                                    allow_scraping=self.allow_scraping)
             except BadSource as exc:
                 cache.add_error(filename, exc.data)
                 continue
