@@ -11,18 +11,18 @@ import ListLink from "../../components/listLink";
 import ProjectState from "../../mixins/projectState";
 
 var GroupHeader = React.createClass({
-  mixins: [
-    ProjectState,
-    History
-  ],
+  propTypes: {
+    memberList: React.PropTypes.instanceOf(Array).isRequired
+  },
 
   contextTypes: {
     location: React.PropTypes.object
   },
 
-  propTypes: {
-    memberList: React.PropTypes.instanceOf(Array).isRequired
-  },
+  mixins: [
+    ProjectState,
+    History
+  ],
 
   onToggleMute() {
     var group = this.props.group;

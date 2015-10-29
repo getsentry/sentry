@@ -3,12 +3,12 @@ import AlertActions from '../actions/alertActions';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 var AlertMessage = React.createClass({
-  mixins: [PureRenderMixin],
-
   propTypes: {
     type: React.PropTypes.string,
     message: React.PropTypes.string
   },
+
+  mixins: [PureRenderMixin],
 
   closeAlert: function() {
     AlertActions.closeAlert(this.props.id);

@@ -13,14 +13,14 @@ import Pagination from "../components/pagination";
 import utils from "../utils";
 
 var ProjectEvents = React.createClass({
+  propTypes: {
+    setProjectNavSection: React.PropTypes.func
+  },
+
   mixins: [
     Reflux.listenTo(EventStore, "onEventChange"),
     History
   ],
-
-  propTypes: {
-    setProjectNavSection: React.PropTypes.func
-  },
 
   getInitialState() {
     return {
@@ -30,10 +30,6 @@ var ProjectEvents = React.createClass({
       loading: true,
       error: false
     };
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return !utils.valueIsEqual(this.state, nextState, true);
   },
 
   componentWillMount() {
@@ -59,9 +55,8 @@ var ProjectEvents = React.createClass({
     this.fetchData();
   },
 
-  componentWillUnmount() {
-    this._poller.disable();
-    EventStore.reset();
+  shouldComponentUpdate(nextProps, nextState) {
+    return !utils.valueIsEqual(this.state, nextState, true);
   },
 
   componentDidUpdate(prevProps, prevState) {
@@ -78,6 +73,11 @@ var ProjectEvents = React.createClass({
         this._poller.disable();
       }
     }
+  },
+
+  componentWillUnmount() {
+    this._poller.disable();
+    EventStore.reset();
   },
 
   fetchData() {

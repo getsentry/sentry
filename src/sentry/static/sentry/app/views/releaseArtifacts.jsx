@@ -9,11 +9,11 @@ import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
 
 var ReleaseArtifacts = React.createClass({
-  mixins: [ History ],
-
   contextTypes: {
     release: React.PropTypes.object
   },
+
+  mixins: [ History ],
 
   getInitialState() {
     return {

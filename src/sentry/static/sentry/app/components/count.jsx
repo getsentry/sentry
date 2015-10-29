@@ -5,6 +5,10 @@ var Count = React.createClass({
     value: React.PropTypes.any.isRequired
   },
 
+  shouldComponentUpdate(nextProps, nextState) {
+    return this.props.value !== nextProps.value;
+  },
+
   numberFormats: [
       [1000000000, 'b'],
       [1000000, 'm'],
@@ -34,10 +38,6 @@ var Count = React.createClass({
           }
       }
       return '' + number;
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return this.props.value !== nextProps.value;
   },
 
   render() {

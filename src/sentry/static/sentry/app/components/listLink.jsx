@@ -3,8 +3,6 @@ import {Link, History} from "react-router";
 import classNames from 'classnames';
 
 var ListLink = React.createClass({
-  mixins: [History],
-
   displayName: 'ListLink',
 
   propTypes: {
@@ -18,6 +16,8 @@ var ListLink = React.createClass({
     // route matching
     isActive: React.PropTypes.func
   },
+
+  mixins: [History],
 
   getDefaultProps() {
     return {

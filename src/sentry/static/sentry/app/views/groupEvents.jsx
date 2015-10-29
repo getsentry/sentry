@@ -29,6 +29,12 @@ var GroupEvents = React.createClass({
     this.fetchData();
   },
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.params.groupId !== this.props.params.groupId) {
+      this.fetchData();
+    }
+  },
+
   fetchData() {
     var queryParams = this.props.location.query;
 
@@ -55,12 +61,6 @@ var GroupEvents = React.createClass({
         });
       }
     });
-  },
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.params.groupId !== this.props.params.groupId) {
-      this.fetchData();
-    }
   },
 
   onPage(cursor) {

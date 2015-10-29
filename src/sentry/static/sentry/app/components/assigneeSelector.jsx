@@ -14,6 +14,10 @@ import {valueIsEqual} from "../utils";
 import TooltipMixin from "../mixins/tooltip";
 
 var AssigneeSelector = React.createClass({
+  propTypes: {
+    id: React.PropTypes.string.isRequired
+  },
+
   mixins: [
     Reflux.listenTo(GroupStore, "onGroupChange"),
     TooltipMixin({
@@ -21,10 +25,6 @@ var AssigneeSelector = React.createClass({
       selector: ".tip"
     })
   ],
-
-  propTypes: {
-    id: React.PropTypes.string.isRequired
-  },
 
   getInitialState() {
     var group = GroupStore.get(this.props.id);
@@ -58,6 +58,12 @@ var AssigneeSelector = React.createClass({
       return true;
     }
     return valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
+  },
+
+  componentDidUpdate(prevProps, prevState) {
+    // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
+    var node = jQuery(ReactDOM.findDOMNode(this.refs.container));
+    node.hide().show(0);
   },
 
   onGroupChange(itemIds) {
@@ -115,12 +121,6 @@ var AssigneeSelector = React.createClass({
         {text.substr(idx + highlightText.length)}
       </span>
     );
-  },
-
-  componentDidUpdate(prevProps, prevState) {
-    // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
-    var node = jQuery(ReactDOM.findDOMNode(this.refs.container));
-    node.hide().show(0);
   },
 
   render() {

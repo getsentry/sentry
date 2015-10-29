@@ -15,10 +15,6 @@ import SelectedGroupStore from "../../stores/selectedGroupStore";
 import {valueIsEqual} from "../../utils";
 
 var StreamGroup = React.createClass({
-  mixins: [
-    Reflux.listenTo(GroupStore, "onGroupChange")
-  ],
-
   propTypes: {
     id: React.PropTypes.string.isRequired,
     orgId: React.PropTypes.string.isRequired,
@@ -26,6 +22,10 @@ var StreamGroup = React.createClass({
     statsPeriod: React.PropTypes.string.isRequired,
     canSelect: React.PropTypes.bool
   },
+
+  mixins: [
+    Reflux.listenTo(GroupStore, "onGroupChange")
+  ],
 
   getDefaultProps() {
     return {

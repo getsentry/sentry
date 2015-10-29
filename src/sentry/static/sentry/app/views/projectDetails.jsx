@@ -17,23 +17,16 @@ const ERROR_TYPES = {
 };
 
 var ProjectDetails = React.createClass({
-  mixins: [
-    Reflux.connect(MemberListStore, "memberList"),
-    Reflux.listenTo(TeamStore, "onTeamChange"),
-    OrganizationState
-  ],
-
   childContextTypes: {
     project: PropTypes.Project,
     team: PropTypes.Team
   },
 
-  getChildContext() {
-    return {
-      project: this.state.project,
-      team: this.state.team
-    };
-  },
+  mixins: [
+    Reflux.connect(MemberListStore, "memberList"),
+    Reflux.listenTo(TeamStore, "onTeamChange"),
+    OrganizationState
+  ],
 
   getInitialState() {
     return {
@@ -47,12 +40,15 @@ var ProjectDetails = React.createClass({
     };
   },
 
-  componentWillMount() {
-    this.fetchData();
+  getChildContext() {
+    return {
+      project: this.state.project,
+      team: this.state.team
+    };
   },
 
-  remountComponent() {
-    this.setState(this.getInitialState(), this.fetchData);
+  componentWillMount() {
+    this.fetchData();
   },
 
   componentWillReceiveProps(nextProps) {
@@ -60,6 +56,10 @@ var ProjectDetails = React.createClass({
       nextProps.params.orgId != this.props.params.orgId) {
       this.remountComponent();
     }
+  },
+
+  remountComponent() {
+    this.setState(this.getInitialState(), this.fetchData);
   },
 
   onTeamChange() {

@@ -18,6 +18,22 @@ var SelectInput = React.createClass({
     };
   },
 
+  componentDidMount() {
+    this.create();
+  },
+
+  componentWillUpdate() {
+    this.destroy();
+  },
+
+  componentDidUpdate() {
+    this.create();
+  },
+
+  componentWillUnmount() {
+    this.destroy();
+  },
+
   getValue() {
     return this.select2.getValue();
   },
@@ -33,22 +49,6 @@ var SelectInput = React.createClass({
 
   onChange(...args) {
     this.props.onChange.call(this, this.select2, ...args);
-  },
-
-  componentDidMount() {
-    this.create();
-  },
-
-  componentWillUnmount() {
-    this.destroy();
-  },
-
-  componentWillUpdate() {
-    this.destroy();
-  },
-
-  componentDidUpdate() {
-    this.create();
   },
 
   render() {

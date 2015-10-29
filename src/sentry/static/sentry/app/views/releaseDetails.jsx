@@ -10,10 +10,6 @@ import TimeSince from "../components/timeSince";
 import Version from "../components/version";
 
 var ReleaseDetails = React.createClass({
-  mixins: [
-    ProjectState
-  ],
-
   propTypes: {
     setProjectNavSection: React.PropTypes.func
   },
@@ -26,17 +22,21 @@ var ReleaseDetails = React.createClass({
     release: React.PropTypes.object
   },
 
-  getChildContext() {
-    return {
-      release: this.state.release
-    };
-  },
+  mixins: [
+    ProjectState
+  ],
 
   getInitialState() {
     return {
       release: null,
       loading: true,
       error: false
+    };
+  },
+
+  getChildContext() {
+    return {
+      release: this.state.release
     };
   },
 
