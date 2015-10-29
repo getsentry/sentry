@@ -1,7 +1,7 @@
 import Reflux from "reflux";
 import GroupStore from "./groupStore";
 
-var SelectedGroupStore = Reflux.createStore({
+const SelectedGroupStore = Reflux.createStore({
   init() {
     this.records = {};
 
@@ -15,7 +15,7 @@ var SelectedGroupStore = Reflux.createStore({
   },
 
   add(ids) {
-    var allSelected = this.allSelected();
+    let allSelected = this.allSelected();
     ids.forEach((id) => {
       if (!this.records.hasOwnProperty(id)) {
         this.records[id] = allSelected;
@@ -24,10 +24,10 @@ var SelectedGroupStore = Reflux.createStore({
   },
 
   prune() {
-    var existingIds = new Set(GroupStore.getAllItemIds());
+    let existingIds = new Set(GroupStore.getAllItemIds());
 
     // Remove ids that no longer exist
-    for (var itemId in this.records) {
+    for (let itemId in this.records) {
       if (!existingIds.has(itemId)) {
         delete this.records[itemId];
       }
@@ -35,24 +35,24 @@ var SelectedGroupStore = Reflux.createStore({
   },
 
   allSelected() {
-    var itemIds = this.getSelectedIds();
-    var numRecords = Object.keys(this.records).length;
+    let itemIds = this.getSelectedIds();
+    let numRecords = Object.keys(this.records).length;
     return itemIds.size > 0 && itemIds.size === numRecords;
   },
 
   anySelected() {
-    var itemIds = this.getSelectedIds();
+    let itemIds = this.getSelectedIds();
     return itemIds.size > 0;
   },
 
   multiSelected() {
-    var itemIds = this.getSelectedIds();
+    let itemIds = this.getSelectedIds();
     return itemIds.size > 1;
   },
 
   getSelectedIds() {
-    var selected = new Set();
-    for (var itemId in this.records) {
+    let selected = new Set();
+    for (let itemId in this.records) {
       if (this.records[itemId]) {
         selected.add(itemId);
       }
@@ -65,7 +65,7 @@ var SelectedGroupStore = Reflux.createStore({
   },
 
   deselectAll() {
-    for (var itemId in this.records) {
+    for (let itemId in this.records) {
       this.records[itemId] = false;
     }
     this.trigger();
@@ -78,9 +78,9 @@ var SelectedGroupStore = Reflux.createStore({
   },
 
   toggleSelectAll() {
-    var allSelected = !this.allSelected();
+    let allSelected = !this.allSelected();
 
-    for (var itemId in this.records) {
+    for (let itemId in this.records) {
       this.records[itemId] = allSelected;
     }
 

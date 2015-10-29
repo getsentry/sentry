@@ -6,7 +6,7 @@ export function escapeQuotes(v) {
 
 // TODO(dcramer): support cookies
 export function getCurlCommand(data) {
-  var result = 'curl';
+  let result = 'curl';
 
   if (defined(data.method) && data.method !== 'GET') {
     result += ' \\\n -X ' + data.method;

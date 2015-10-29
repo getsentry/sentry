@@ -2,7 +2,7 @@ import React from "react";
 import OrganizationHomeSidebar from "./homeSidebar";
 import OrganizationState from "../../mixins/organizationState";
 
-var HomeContainer = React.createClass({
+const HomeContainer = React.createClass({
   mixins: [OrganizationState],
 
   render() {

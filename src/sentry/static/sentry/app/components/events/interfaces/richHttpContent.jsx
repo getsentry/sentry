@@ -7,7 +7,7 @@ import ContextData from "../../contextData";
 import {objectIsEmpty} from "../../../utils";
 import queryString from "query-string";
 
-var RichHttpContent = React.createClass({
+const RichHttpContent = React.createClass({
 
   /**
    * Converts an object of body/querystring key/value pairs

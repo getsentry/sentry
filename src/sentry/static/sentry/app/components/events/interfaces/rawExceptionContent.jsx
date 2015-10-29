@@ -1,13 +1,13 @@
 import React from "react";
 import rawStacktraceContent from "./rawStacktraceContent";
 
-var RawExceptionContent = React.createClass({
+const RawExceptionContent = React.createClass({
   propTypes: {
     platform: React.PropTypes.string
   },
 
   render() {
-    var children = this.props.values.map((exc, excIdx) => {
+    let children = this.props.values.map((exc, excIdx) => {
       return (
         <pre key={excIdx} className="traceback plain">
           {exc.stacktrace && rawStacktraceContent(exc.stacktrace, this.props.platform, exc)}

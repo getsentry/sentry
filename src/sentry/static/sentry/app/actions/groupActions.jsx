@@ -4,7 +4,7 @@ import Reflux from "reflux";
 
 // TODO(dcramer): we should probably just make every parameter update
 // work on bulk groups
-var GroupActions = Reflux.createActions([
+let GroupActions = Reflux.createActions([
   "assignTo",
   "assignToError",
   "assignToSuccess",

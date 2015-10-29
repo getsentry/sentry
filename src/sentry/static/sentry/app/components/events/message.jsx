@@ -2,7 +2,7 @@ import React from "react";
 import EventDataSection from "./eventDataSection";
 import utils from "../../utils";
 
-var Message = React.createClass({
+const Message = React.createClass({
   render() {
     return (
       <EventDataSection

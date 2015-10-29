@@ -2,7 +2,7 @@ import React from "react";
 import {Link} from "react-router";
 import classNames from "classnames";
 
-var MenuItem = React.createClass({
+const MenuItem = React.createClass({
   propTypes: {
     header:    React.PropTypes.bool,
     divider:   React.PropTypes.bool,
@@ -49,13 +49,13 @@ var MenuItem = React.createClass({
   },
 
   render() {
-    var classes = {
+    let classes = {
       "dropdown-header": this.props.header,
       "divider": this.props.divider,
       "active": this.props.isActive
     };
 
-    var children = null;
+    let children = null;
     if (this.props.noAnchor) {
       children = this.props.children;
     } else if (this.props.header) {

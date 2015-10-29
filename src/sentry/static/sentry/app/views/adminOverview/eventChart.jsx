@@ -63,12 +63,12 @@ const EventChart = React.createClass({
   },
 
   processOrgData() {
-    var {rawData} = this.state;
-    var oReceived = 0;
-    var oRejected = 0;
-    var sReceived = {};
-    var sRejected = {};
-    var aReceived = [0, 0]; // received, points
+    let {rawData} = this.state;
+    let oReceived = 0;
+    let oRejected = 0;
+    let sReceived = {};
+    let sRejected = {};
+    let aReceived = [0, 0]; // received, points
     jQuery.each(rawData['events.total'], function(idx, point){
       let dReceived = point[1];
       let dRejected = rawData['events.dropped'][idx][1];

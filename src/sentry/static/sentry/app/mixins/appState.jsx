@@ -1,6 +1,6 @@
 import OrganizationStore from "../stores/organizationStore";
 
-var AppState = {
+let AppState = {
   getOrganizationList() {
     return OrganizationStore.getAll();
   }

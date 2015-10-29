@@ -2,7 +2,7 @@ import React from "react";
 
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-var EventActions = React.createClass({
+const EventActions = React.createClass({
   propTypes: {
     onRealtimeChange: React.PropTypes.func.isRequired,
     realtimeActive: React.PropTypes.bool.isRequired

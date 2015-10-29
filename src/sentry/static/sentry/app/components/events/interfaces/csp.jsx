@@ -5,7 +5,7 @@ import {objectToArray} from "../../../utils";
 import EventDataSection from "../eventDataSection";
 import DefinitionList from "./definitionList";
 
-var CSPInterface = React.createClass({
+const CSPInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,

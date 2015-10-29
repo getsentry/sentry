@@ -6,13 +6,13 @@ import LanguageNav from "./languageNav";
 import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
 
-var ProjectInstallPlatform = React.createClass({
+const ProjectInstallPlatform = React.createClass({
 
   getInitialState() {
     let params = this.props.params;
-    var key = params.platform;
-    var integration;
-    var platform;
+    let key = params.platform;
+    let integration;
+    let platform;
     this.props.platformData.platforms.forEach((p_item) => {
       if (integration) {
         return;
@@ -75,7 +75,7 @@ var ProjectInstallPlatform = React.createClass({
   },
 
   render() {
-    var {integration, platform} = this.state;
+    let {integration, platform} = this.state;
 
     return (
       <div className="install row">
