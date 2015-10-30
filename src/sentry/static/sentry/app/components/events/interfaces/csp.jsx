@@ -1,9 +1,22 @@
 import React from "react";
 import PropTypes from "../../../proptypes";
 
-import {objectToArray} from "../../../utils";
-import EventDataSection from "../eventDataSection";
-import DefinitionList from "./definitionList";
+import GroupEventDataSection from "../eventDataSection";
+import CSPContent from "./cspContent";
+import CSPHelp from "./cspHelp";
+
+function getView(view, data) {
+  switch (view) {
+    case 'report':
+      return <CSPContent data={data} />;
+    case 'raw':
+      return <pre>{JSON.stringify({'report-uri': data}, null, 2)}</pre>;
+    case 'help':
+      return <CSPHelp data={data} />;
+    default:
+      throw new TypeError(`Invalid view: ${view}`);
+  }
+}
 
 const CSPInterface = React.createClass({
   propTypes: {
@@ -13,18 +26,49 @@ const CSPInterface = React.createClass({
     data: React.PropTypes.object.isRequired,
   },
 
+  getInitialState() {
+    let {data} = this.props;
+    // hide the report-uri since this is redundant and silly
+    data.original_policy = data.original_policy.replace(/(;\s+)?report-uri [^;]+/, '');
+
+    return {
+      view: 'report',
+      data: data
+    };
+  },
+
+  toggleView(value) {
+    this.setState({
+      view: value
+    });
+  },
+
   render() {
-    let {group, event, data} = this.props;
-    let extraDataArray = objectToArray(data);
+    let {view, data} = this.state;
+    let {group, event} = this.props;
+
+    var title = (
+      <div>
+        <div className="btn-group">
+          <a className={(view === "report" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleView.bind(this, "report")}>Report</a>
+          <a className={(view === "raw" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleView.bind(this, "raw")}>Raw</a>
+          <a className={(view === "help" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleView.bind(this, "help")}>Help</a>
+        </div>
+        <h3>{'CSP Report'}</h3>
+      </div>
+    );
+
+    let children = getView(view, data);
 
     return (
-      <EventDataSection
+      <GroupEventDataSection
           group={group}
           event={event}
           type="csp"
-          title="CSP Report">
-          <DefinitionList data={extraDataArray} isContextData={true}/>
-      </EventDataSection>
+          title={title}
+          wrapTitle={false}>
+          {children}
+      </GroupEventDataSection>
     );
   }
 });
