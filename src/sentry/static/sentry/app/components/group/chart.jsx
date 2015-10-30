@@ -1,6 +1,6 @@
-import React from "react";
-import BarChart from "../../components/barChart";
-import PropTypes from "../../proptypes";
+import React from 'react';
+import BarChart from '../../components/barChart';
+import PropTypes from '../../proptypes';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 const GroupChart = React.createClass({
@@ -17,23 +17,23 @@ const GroupChart = React.createClass({
     let points = stats.map((point) => {
       return {x: point[0], y: point[1]};
     });
-    let className = "bar-chart group-chart " + (this.props.className || '');
+    let className = 'bar-chart group-chart ' + (this.props.className || '');
 
     let markers = [];
     let firstSeenX = new Date(this.props.firstSeen).getTime() / 1000;
     let lastSeenX = new Date(this.props.lastSeen).getTime() / 1000;
     if (firstSeenX >= points[0].x) {
       markers.push({
-        label: "First seen",
+        label: 'First seen',
         x: firstSeenX,
-        className: "first-seen"
+        className: 'first-seen'
       });
     }
     if (lastSeenX >= points[0].x) {
       markers.push({
-        label: "Last seen",
+        label: 'Last seen',
         x: lastSeenX,
-        className: "last-seen"
+        className: 'last-seen'
       });
     }
 

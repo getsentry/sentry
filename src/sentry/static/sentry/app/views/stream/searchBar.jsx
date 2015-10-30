@@ -1,17 +1,17 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import Reflux from "reflux";
-import _ from "underscore";
-import classNames from "classnames";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import Reflux from 'reflux';
+import _ from 'underscore';
+import classNames from 'classnames';
 
-import StreamTagStore from "../../stores/streamTagStore";
-import MemberListStore from "../../stores/memberListStore";
+import StreamTagStore from '../../stores/streamTagStore';
+import MemberListStore from '../../stores/memberListStore';
 
-import api from "../../api";
+import api from '../../api';
 
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-import SearchDropdown from "./searchDropdown";
+import SearchDropdown from './searchDropdown';
 
 const SearchBar = React.createClass({
   propTypes: {
@@ -47,7 +47,7 @@ const SearchBar = React.createClass({
 
   getDefaultProps() {
     return {
-      defaultQuery: "",
+      defaultQuery: '',
       query: null,
       onSearch: function() {},
       onQueryChange: function() {},
@@ -188,7 +188,7 @@ const SearchBar = React.createClass({
       data: {
         query: query
       },
-      method: "GET",
+      method: 'GET',
       success: (values) => {
         this.setState({ loading: false });
         callback(values.map((v) => {

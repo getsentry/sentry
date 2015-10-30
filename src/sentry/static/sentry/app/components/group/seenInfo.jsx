@@ -1,8 +1,8 @@
-import React from "react";
-import DateTime from "../../components/dateTime";
-import TimeSince from "../../components/timeSince";
-import Version from "../../components/version";
-import utils from "../../utils";
+import React from 'react';
+import DateTime from '../../components/dateTime';
+import TimeSince from '../../components/timeSince';
+import Version from '../../components/version';
+import utils from '../../utils';
 
 const SeenInfo = React.createClass({
   propTypes: {

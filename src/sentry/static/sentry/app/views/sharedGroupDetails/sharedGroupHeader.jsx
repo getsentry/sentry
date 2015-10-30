@@ -1,6 +1,6 @@
-import React from "react";
+import React from 'react';
 
-import Count from "../../components/count";
+import Count from '../../components/count';
 
 const SharedGroupHeader = React.createClass({
   render() {

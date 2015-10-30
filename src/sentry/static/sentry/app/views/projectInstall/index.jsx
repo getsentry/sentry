@@ -1,8 +1,8 @@
-import React from "react";
+import React from 'react';
 
-import api from "../../api";
-import LoadingError from "../../components/loadingError";
-import LoadingIndicator from "../../components/loadingIndicator";
+import api from '../../api';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
 
 const ProjectInstall = React.createClass({
   propTypes: {

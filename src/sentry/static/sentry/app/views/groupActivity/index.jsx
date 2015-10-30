@@ -1,36 +1,36 @@
-import React from "react";
-import Gravatar from "../../components/gravatar";
-import GroupState from "../../mixins/groupState";
-import MemberListStore from "../../stores/memberListStore";
-import TimeSince from "../../components/timeSince";
-import ConfigStore from "../../stores/configStore";
+import React from 'react';
+import Gravatar from '../../components/gravatar';
+import GroupState from '../../mixins/groupState';
+import MemberListStore from '../../stores/memberListStore';
+import TimeSince from '../../components/timeSince';
+import ConfigStore from '../../stores/configStore';
 
-import NoteContainer from "./noteContainer";
-import NoteInput from "./noteInput";
+import NoteContainer from './noteContainer';
+import NoteInput from './noteInput';
 
 let formatActivity = function(item) {
   let data = item.data;
 
   switch(item.type) {
-    case "note":
-      return "left a comment";
-    case "set_resolved":
-      return "marked this event as resolved";
-    case "set_unresolved":
-      return "marked this event as unresolved";
-    case "set_muted":
-      return "marked this event as muted";
-    case "set_public":
-      return "made this event public";
-    case "set_private":
-      return "made this event private";
-    case "set_regression":
-      return "marked this event as a regression";
-    case "create_issue":
+    case 'note':
+      return 'left a comment';
+    case 'set_resolved':
+      return 'marked this event as resolved';
+    case 'set_unresolved':
+      return 'marked this event as unresolved';
+    case 'set_muted':
+      return 'marked this event as muted';
+    case 'set_public':
+      return 'made this event public';
+    case 'set_private':
+      return 'made this event private';
+    case 'set_regression':
+      return 'marked this event as a regression';
+    case 'create_issue':
       return <span>created an issue on {data.provider} titled <a href={data.location}>{data.title}</a></span>;
-    case "first_seen":
-      return "first saw this event";
-    case "assigned":
+    case 'first_seen':
+      return 'first saw this event';
+    case 'assigned':
       let assignee;
       if (data.assignee === item.user.id) {
         assignee = 'themselves';
@@ -39,10 +39,10 @@ let formatActivity = function(item) {
         assignee = (assignee ? assignee.email : 'an unknown user');
       }
       return `assigned this event to ${assignee}`;
-    case "unassigned":
-      return "unassigned this event";
+    case 'unassigned':
+      return 'unassigned this event';
     default:
-      return ""; // should never hit (?)
+      return ''; // should never hit (?)
   }
 };
 

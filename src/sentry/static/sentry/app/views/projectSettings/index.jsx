@@ -1,10 +1,10 @@
-import React from "react";
+import React from 'react';
 
-import api from "../../api";
-import ConfigStore from "../../stores/configStore";
-import ListLink from "../../components/listLink";
-import LoadingError from "../../components/loadingError";
-import LoadingIndicator from "../../components/loadingIndicator";
+import api from '../../api';
+import ConfigStore from '../../stores/configStore';
+import ListLink from '../../components/listLink';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
 
 const ProjectSettings = React.createClass({
   propTypes: {

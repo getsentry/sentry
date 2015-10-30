@@ -1,8 +1,8 @@
-import React from "react";
-import Reflux from "reflux";
-import BarChart from "../barChart";
-import GroupStore from "../../stores/groupStore";
-import {valueIsEqual} from "../../utils";
+import React from 'react';
+import Reflux from 'reflux';
+import BarChart from '../barChart';
+import GroupStore from '../../stores/groupStore';
+import {valueIsEqual} from '../../utils';
 
 const GroupChart = React.createClass({
   propTypes: {
@@ -11,7 +11,7 @@ const GroupChart = React.createClass({
   },
 
   mixins: [
-    Reflux.listenTo(GroupStore, "onGroupChange")
+    Reflux.listenTo(GroupStore, 'onGroupChange')
   ],
 
   getInitialState() {

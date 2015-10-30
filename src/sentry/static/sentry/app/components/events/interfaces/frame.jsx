@@ -1,10 +1,10 @@
-import React from "react";
-import _ from "underscore";
-import classNames from "classnames";
-import {defined, objectIsEmpty, isUrl} from "../../../utils";
+import React from 'react';
+import _ from 'underscore';
+import classNames from 'classnames';
+import {defined, objectIsEmpty, isUrl} from '../../../utils';
 
-import TooltipMixin from "../../../mixins/tooltip";
-import FrameVariables from "./frameVariables";
+import TooltipMixin from '../../../mixins/tooltip';
+import FrameVariables from './frameVariables';
 
 
 const Frame = React.createClass({
@@ -15,8 +15,8 @@ const Frame = React.createClass({
   mixins: [
     TooltipMixin({
       html: true,
-      selector: ".tip",
-      trigger: "click"
+      selector: '.tip',
+      trigger: 'click'
     })
   ],
 
@@ -114,9 +114,9 @@ const Frame = React.createClass({
     let data = this.props.data;
     let context = '';
 
-    let outerClassName = "context";
+    let outerClassName = 'context';
     if (this.state.isExpanded) {
-      outerClassName += " expanded";
+      outerClassName += ' expanded';
     }
 
     let hasContextSource = defined(data.context) && data.context.length;
@@ -130,13 +130,13 @@ const Frame = React.createClass({
         <ol start={startLineNo} className={outerClassName}
             onClick={this.toggleContext}>
           {defined(data.errors) &&
-          <li className={expandable ? "expandable error" : "error"}
-              key="errors">{data.errors.join(", ")}</li>
+          <li className={expandable ? 'expandable error' : 'error'}
+              key="errors">{data.errors.join(', ')}</li>
           }
           {(data.context || []).map((line) => {
-            let liClassName = "expandable";
+            let liClassName = 'expandable';
             if (line[0] === data.lineNo) {
-              liClassName += " active";
+              liClassName += ' active';
             }
 
             let lineWs;
@@ -169,9 +169,9 @@ const Frame = React.createClass({
     let data = this.props.data;
 
     let className = classNames({
-      "frame": true,
-      "system-frame": !data.inApp,
-      "frame-errors": data.errors,
+      'frame': true,
+      'system-frame': !data.inApp,
+      'frame-errors': data.errors,
     });
 
     let context = this.renderContext();
@@ -184,7 +184,7 @@ const Frame = React.createClass({
               title="Toggle context"
               onClick={this.toggleContext}
               className="btn btn-sm btn-default btn-toggle">
-              <span className={this.state.isExpanded ? "icon-minus" : "icon-plus"}/>
+              <span className={this.state.isExpanded ? 'icon-minus' : 'icon-plus'}/>
             </a>
             : ''
           }

@@ -1,6 +1,6 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import _ from "underscore";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import _ from 'underscore';
 
 const StreamTagFilter = React.createClass({
   propTypes: {

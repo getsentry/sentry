@@ -1,11 +1,11 @@
-import React from "react";
-import {History} from "react-router";
-import api from "../../api";
-import DropdownLink from "../../components/dropdownLink";
-import GroupState from "../../mixins/groupState";
-import IndicatorStore from "../../stores/indicatorStore";
-import MenuItem from "../../components/menuItem";
-import LinkWithConfirmation from "../../components/linkWithConfirmation";
+import React from 'react';
+import {History} from 'react-router';
+import api from '../../api';
+import DropdownLink from '../../components/dropdownLink';
+import GroupState from '../../mixins/groupState';
+import IndicatorStore from '../../stores/indicatorStore';
+import MenuItem from '../../components/menuItem';
+import LinkWithConfirmation from '../../components/linkWithConfirmation';
 
 const GroupActions = React.createClass({
   mixins: [
@@ -75,14 +75,14 @@ const GroupActions = React.createClass({
   render() {
     let group = this.getGroup();
 
-    let resolveClassName = "group-resolve btn btn-default btn-sm";
-    if (group.status === "resolved") {
-      resolveClassName += " active";
+    let resolveClassName = 'group-resolve btn btn-default btn-sm';
+    if (group.status === 'resolved') {
+      resolveClassName += ' active';
     }
 
-    let bookmarkClassName = "group-bookmark btn btn-default btn-sm";
+    let bookmarkClassName = 'group-bookmark btn btn-default btn-sm';
     if (group.isBookmarked) {
-      bookmarkClassName += " active";
+      bookmarkClassName += ' active';
     }
 
     return (

@@ -1,5 +1,5 @@
-import classNames from "classnames";
-import React from "react";
+import classNames from 'classnames';
+import React from 'react';
 
 const LoadingIndicator = React.createClass({
   propTypes: {
@@ -14,10 +14,10 @@ const LoadingIndicator = React.createClass({
 
   render() {
     let className = classNames({
-      "loading": true,
-      "mini": this.props.mini,
-      "global": this.props.global,
-      "triangle": this.props.triangle,
+      'loading': true,
+      'mini': this.props.mini,
+      'global': this.props.global,
+      'triangle': this.props.triangle,
     });
 
     return (

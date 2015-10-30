@@ -1,6 +1,6 @@
-import React from "react";
-import {Link} from "react-router";
-import GroupList from "../components/groupList";
+import React from 'react';
+import {Link} from 'react-router';
+import GroupList from '../components/groupList';
 
 const ReleaseAllEvents = React.createClass({
   contextTypes: {
@@ -13,7 +13,7 @@ const ReleaseAllEvents = React.createClass({
       <div>
         <div className="alert alert-block">
           <Link to={`/${orgId}/${projectId}/`} query={{
-            query: "release:" + this.context.release.version
+            query: 'release:' + this.context.release.version
           }}>
             <span className="icon icon-open"></span> View all events seen in this release in the stream
           </Link>

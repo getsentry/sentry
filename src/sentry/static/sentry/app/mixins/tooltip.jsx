@@ -1,6 +1,6 @@
-import ReactDOM from "react-dom";
-import $ from "jquery";
-import "bootstrap/js/tooltip";
+import ReactDOM from 'react-dom';
+import $ from 'jquery';
+import 'bootstrap/js/tooltip';
 
 export default function (options) {
   options = options || {};
@@ -23,9 +23,9 @@ export default function (options) {
 
     removeTooltips() {
       $(ReactDOM.findDOMNode(this))
-        .tooltip("destroy") // destroy tooltips on parent ...
+        .tooltip('destroy') // destroy tooltips on parent ...
         .find(options.selector)
-          .tooltip("destroy"); // ... and descendents
+          .tooltip('destroy'); // ... and descendents
     }
   };
 }

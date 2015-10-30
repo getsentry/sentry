@@ -1,13 +1,13 @@
-import React from "react";
-import api from "../api";
-import Count from "../components/count";
-import DocumentTitle from "react-document-title";
-import ListLink from "../components/listLink";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import ProjectState from "../mixins/projectState";
-import TimeSince from "../components/timeSince";
-import Version from "../components/version";
+import React from 'react';
+import api from '../api';
+import Count from '../components/count';
+import DocumentTitle from 'react-document-title';
+import ListLink from '../components/listLink';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import ProjectState from '../mixins/projectState';
+import TimeSince from '../components/timeSince';
+import Version from '../components/version';
 
 const ReleaseDetails = React.createClass({
   propTypes: {

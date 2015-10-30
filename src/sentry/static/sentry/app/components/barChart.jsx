@@ -1,7 +1,7 @@
-import moment from "moment";
-import React from "react";
-import { valueIsEqual } from "../utils";
-import TooltipMixin from "../mixins/tooltip";
+import moment from 'moment';
+import React from 'react';
+import { valueIsEqual } from '../utils';
+import TooltipMixin from '../mixins/tooltip';
 
 const BarChart = React.createClass({
   propTypes: {
@@ -24,7 +24,7 @@ const BarChart = React.createClass({
       return {
         html: true,
         placement: this.props.placement,
-        selector: ".tip",
+        selector: '.tip',
         viewport: this.props.viewport,
 
         // This callback is fired when the user hovers over the
@@ -52,10 +52,10 @@ const BarChart = React.createClass({
 
   getDefaultProps() {
     return {
-      className: "",
+      className: '',
       height: null,
-      label: "events",
-      placement: "bottom",
+      label: 'events',
+      placement: 'bottom',
       points: [],
       markers: [],
       width: null,
@@ -88,12 +88,12 @@ const BarChart = React.createClass({
 
   timeLabelAsHour(point) {
     let timeMoment = moment(point.x * 1000);
-    let nextMoment = timeMoment.clone().add(59, "minute");
+    let nextMoment = timeMoment.clone().add(59, 'minute');
 
     return (
       '<span>' +
-        timeMoment.format("LL") + '<br />' +
-        timeMoment.format("LT") + '  &#8594; ' + nextMoment.format("LT") +
+        timeMoment.format('LL') + '<br />' +
+        timeMoment.format('LT') + '  &#8594; ' + nextMoment.format('LT') +
       '</span>'
     );
   },
@@ -103,27 +103,27 @@ const BarChart = React.createClass({
 
     return (
       '<span>' +
-        timeMoment.format("LL") +
+        timeMoment.format('LL') +
       '</span>'
     );
   },
 
   timeLabelAsRange(interval, point) {
     let timeMoment = moment(point.x * 1000);
-    let nextMoment = timeMoment.clone().add(interval - 1, "second");
+    let nextMoment = timeMoment.clone().add(interval - 1, 'second');
 
     return (
       '<span>' +
         // e.g. Aug 23rd, 12:50 pm
-        timeMoment.format("MMM Do, h:mm a") +
-        ' &#8594 ' + nextMoment.format("MMM Do, h:mm a") +
+        timeMoment.format('MMM Do, h:mm a') +
+        ' &#8594 ' + nextMoment.format('MMM Do, h:mm a') +
       '</span>'
     );
   },
 
   timeLabelAsFull(point) {
     let timeMoment = moment(point.x * 1000);
-    return timeMoment.format("lll");
+    return timeMoment.format('lll');
   },
 
   getTimeLabel(point) {
@@ -150,14 +150,14 @@ const BarChart = React.createClass({
   },
 
   renderMarker(marker) {
-    let timeLabel = moment(marker.x * 1000).format("lll");
+    let timeLabel = moment(marker.x * 1000).format('lll');
     let title = (
       '<div style="width:130px">' +
         marker.label + '<br/>' +
         timeLabel +
       '</div>'
     );
-    let className = "chart-marker tip " + (marker.className || '');
+    let className = 'chart-marker tip ' + (marker.className || '');
 
     // example key: m-last-seen-22811123, m-first-seen-228191
     let key = ['m', marker.className, marker.x].join('-');
@@ -186,7 +186,7 @@ const BarChart = React.createClass({
 
   renderChartColumn(pointIdx, maxval, pointWidth) {
     let point = this.props.points[pointIdx];
-    let pct = this.floatFormat(point.y / maxval * 99, 2) + "%";
+    let pct = this.floatFormat(point.y / maxval * 99, 2) + '%';
 
     return (
       <a key={point.x}
@@ -201,7 +201,7 @@ const BarChart = React.createClass({
 
   renderChart() {
     let points = this.props.points;
-    let pointWidth = this.floatFormat(100.0 / points.length, 2) + "%";
+    let pointWidth = this.floatFormat(100.0 / points.length, 2) + '%';
 
     let maxval = this.maxPointValue();
 
@@ -226,7 +226,7 @@ const BarChart = React.createClass({
   },
 
   render() {
-    let figureClass = [this.props.className, 'barchart'].join(" ");
+    let figureClass = [this.props.className, 'barchart'].join(' ');
     let maxval = this.maxPointValue();
 
     return (

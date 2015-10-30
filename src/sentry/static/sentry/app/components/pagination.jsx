@@ -1,5 +1,5 @@
-import React from "react";
-import utils from "../utils";
+import React from 'react';
+import utils from '../utils';
 
 const Pagination = React.createClass({
   propTypes: {

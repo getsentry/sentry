@@ -1,8 +1,8 @@
-import jQuery from "jquery";
-import Reflux from "reflux";
-import AlertActions from "../actions/alertActions";
+import jQuery from 'jquery';
+import Reflux from 'reflux';
+import AlertActions from '../actions/alertActions';
 import GroupActions from '../actions/groupActions';
-import utils from "../utils";
+import utils from '../utils';
 
 const ERR_CHANGE_ASSIGNEE = 'Unable to change assignee. Please try again.';
 const ERR_SCHEDULE_DELETE = 'Unable to delete events. Please try again.';

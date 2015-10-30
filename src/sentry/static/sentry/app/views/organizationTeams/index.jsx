@@ -1,24 +1,24 @@
-import React from "react";
-import Reflux from "reflux";
+import React from 'react';
+import Reflux from 'reflux';
 
-import api from "../../api";
-import ConfigStore from "../../stores/configStore";
-import OrganizationHomeContainer from "../../components/organizations/homeContainer";
-import OrganizationState from "../../mixins/organizationState";
-import TeamStore from "../../stores/teamStore";
-import TooltipMixin from "../../mixins/tooltip";
-import {sortArray} from "../../utils";
+import api from '../../api';
+import ConfigStore from '../../stores/configStore';
+import OrganizationHomeContainer from '../../components/organizations/homeContainer';
+import OrganizationState from '../../mixins/organizationState';
+import TeamStore from '../../stores/teamStore';
+import TooltipMixin from '../../mixins/tooltip';
+import {sortArray} from '../../utils';
 
-import ExpandedTeamList from "./expandedTeamList";
-import AllTeamsList from "./allTeamsList";
-import OrganizationStatOverview from "./organizationStatOverview";
+import ExpandedTeamList from './expandedTeamList';
+import AllTeamsList from './allTeamsList';
+import OrganizationStatOverview from './organizationStatOverview';
 
 const OrganizationTeams = React.createClass({
   mixins: [
     OrganizationState,
-    Reflux.listenTo(TeamStore, "onTeamListChange"),
+    Reflux.listenTo(TeamStore, 'onTeamListChange'),
     TooltipMixin({
-      selector: ".tip"
+      selector: '.tip'
     })
   ],
 
@@ -118,11 +118,11 @@ const OrganizationTeams = React.createClass({
                 }
               </div>
               <ul className="nav nav-tabs border-bottom">
-                <li className={activeNav === "your-teams" && "active"}>
-                  <a onClick={this.toggleTeams.bind(this, "your-teams")}>Your Teams</a>
+                <li className={activeNav === 'your-teams' && 'active'}>
+                  <a onClick={this.toggleTeams.bind(this, 'your-teams')}>Your Teams</a>
                 </li>
-                <li className={activeNav === "all-teams" && "active"}>
-                  <a onClick={this.toggleTeams.bind(this, "all-teams")}>All Teams <span className="badge badge-soft">{allTeams.length}</span></a>
+                <li className={activeNav === 'all-teams' && 'active'}>
+                  <a onClick={this.toggleTeams.bind(this, 'all-teams')}>All Teams <span className="badge badge-soft">{allTeams.length}</span></a>
                 </li>
               </ul>
               {activeNav == 'your-teams' ?
@@ -130,7 +130,7 @@ const OrganizationTeams = React.createClass({
                     organization={org} teamList={activeTeams}
                     projectStats={this.state.projectStats}
                     hasTeams={allTeams.length !== 0}
-                    showAllTeams={this.toggleTeams.bind(this, "all-teams")} />
+                    showAllTeams={this.toggleTeams.bind(this, 'all-teams')} />
               :
                 <AllTeamsList
                   organization={org} teamList={allTeams}

@@ -1,9 +1,9 @@
-import React from "react";
+import React from 'react';
 
-import PropTypes from "../../proptypes";
-import {objectToArray} from "../../utils";
-import EventDataSection from "./eventDataSection";
-import DefinitionList from "./interfaces/definitionList";
+import PropTypes from '../../proptypes';
+import {objectToArray} from '../../utils';
+import EventDataSection from './eventDataSection';
+import DefinitionList from './interfaces/definitionList';
 
 const EventExtraData = React.createClass({
   propTypes: {

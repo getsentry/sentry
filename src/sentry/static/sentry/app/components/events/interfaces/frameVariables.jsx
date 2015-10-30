@@ -1,6 +1,6 @@
-import React from "react";
+import React from 'react';
 
-import ContextData from "../../contextData";
+import ContextData from '../../contextData';
 
 const FrameVariables = React.createClass({
   propTypes: {

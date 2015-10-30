@@ -1,5 +1,5 @@
-import React from "react";
-import PropTypes from "../../proptypes";
+import React from 'react';
+import PropTypes from '../../proptypes';
 
 const GroupEventDataSection = React.createClass({
   propTypes: {

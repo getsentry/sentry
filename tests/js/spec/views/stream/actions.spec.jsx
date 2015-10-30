@@ -1,20 +1,20 @@
-import React from "react";
-import TestUtils from "react-addons-test-utils";
+import React from 'react';
+import TestUtils from 'react-addons-test-utils';
 
-import api from "app/api";
-import stubReactComponents from "../../../helpers/stubReactComponent";
-import StreamActions from "app/views/stream/actions";
-import ActionLink from "app/views/stream/actionLink";
-import DropdownLink from "app/components/dropdownLink";
-import MenuItem from "app/components/menuItem";
-import SelectedGroupStore from "app/stores/selectedGroupStore";
+import api from 'app/api';
+import stubReactComponents from '../../../helpers/stubReactComponent';
+import StreamActions from 'app/views/stream/actions';
+import ActionLink from 'app/views/stream/actionLink';
+import DropdownLink from 'app/components/dropdownLink';
+import MenuItem from 'app/components/menuItem';
+import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
-describe("StreamActions", function() {
+describe('StreamActions', function() {
 
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(api, "request");
+    this.stubbedApiRequest = this.sandbox.stub(api, 'request');
     stubReactComponents(this.sandbox, [ActionLink, DropdownLink, MenuItem]);
   });
 
@@ -22,7 +22,7 @@ describe("StreamActions", function() {
     this.sandbox.restore();
   });
 
-  describe("actionSelectedGroups()", function () {
+  describe('actionSelectedGroups()', function () {
     beforeEach(function() {
       this.actions = TestUtils.renderIntoDocument(
           <StreamActions
@@ -37,8 +37,8 @@ describe("StreamActions", function() {
           );
     });
 
-    describe("for all items", function () {
-      it("should invoke the callback with 'undefined' and deselect all", function () {
+    describe('for all items', function () {
+      it('should invoke the callback with \'undefined\' and deselect all', function () {
         this.sandbox.stub(SelectedGroupStore, 'deselectAll');
         let callback = this.sandbox.stub();
 
@@ -49,8 +49,8 @@ describe("StreamActions", function() {
       });
     });
 
-    describe("for selected items", function () {
-      it("should invoke the callback with an array of selected items and deselect all", function () {
+    describe('for selected items', function () {
+      it('should invoke the callback with an array of selected items and deselect all', function () {
         this.sandbox.stub(SelectedGroupStore, 'deselectAll');
         this.sandbox.stub(SelectedGroupStore, 'getSelectedIds').returns(new Set([1,2,3]));
 

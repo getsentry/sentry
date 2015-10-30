@@ -1,8 +1,8 @@
-import React from "react";
-import GroupChart from "./chart";
-import GroupState from "../../mixins/groupState";
-import SeenInfo from "./seenInfo";
-import TagDistributionMeter from "./tagDistributionMeter";
+import React from 'react';
+import GroupChart from './chart';
+import GroupState from '../../mixins/groupState';
+import SeenInfo from './seenInfo';
+import TagDistributionMeter from './tagDistributionMeter';
 
 const GroupSidebar = React.createClass({
   mixins: [GroupState],

@@ -1,8 +1,8 @@
-import React from "react";
-import Router from "react-router";
-import EventStore from "../../stores/eventStore";
-import Gravatar from "../gravatar";
-import TimeSince from "../timeSince";
+import React from 'react';
+import Router from 'react-router';
+import EventStore from '../../stores/eventStore';
+import Gravatar from '../gravatar';
+import TimeSince from '../timeSince';
 
 const EventRow = React.createClass({
   propTypes: {

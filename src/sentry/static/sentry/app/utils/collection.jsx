@@ -10,19 +10,19 @@ function Collection(collection, options) {
 
   Array.call(this);
 
-  if (typeof options === "undefined") {
+  if (typeof options === 'undefined') {
     options = {};
   }
 
   for (i in defaults) {
-    if (typeof options[i] === "undefined") {
+    if (typeof options[i] === 'undefined') {
       options[i] = defaults[i];
     }
   }
 
   this.options = options;
 
-  if (typeof collection !== "undefined") {
+  if (typeof collection !== 'undefined') {
     this.push(collection);
   }
 

@@ -1,4 +1,4 @@
-import _ from "underscore";
+import _ from 'underscore';
 
 /**
  * Converts a stream query to an object representation, with

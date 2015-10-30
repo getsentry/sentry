@@ -10,17 +10,17 @@ require('flot/jquery.flot.time');
 require('flot-tooltip/jquery.flot.tooltip');
 
 let timeUnitSize = {
-  "second": 1000,
-  "minute": 60 * 1000,
-  "hour": 60 * 60 * 1000,
-  "day": 24 * 60 * 60 * 1000,
-  "month": 30 * 24 * 60 * 60 * 1000,
-  "quarter": 3 * 30 * 24 * 60 * 60 * 1000,
-  "year": 365.2425 * 24 * 60 * 60 * 1000
+  'second': 1000,
+  'minute': 60 * 1000,
+  'hour': 60 * 60 * 1000,
+  'day': 24 * 60 * 60 * 1000,
+  'month': 30 * 24 * 60 * 60 * 1000,
+  'quarter': 3 * 30 * 24 * 60 * 60 * 1000,
+  'year': 365.2425 * 24 * 60 * 60 * 1000
 };
 
 let numberWithCommas = function(x) {
-  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
 
 let buildTooltipHandler = function(series) {
@@ -94,8 +94,8 @@ const FlotChart = React.createClass({
     let series = this.props.plotData;
     let plotOptions = {
       xaxis: {
-        mode: "time",
-        minTickSize: [1, "day"],
+        mode: 'time',
+        minTickSize: [1, 'day'],
         tickFormatter: tickFormatter
       },
       yaxis: {

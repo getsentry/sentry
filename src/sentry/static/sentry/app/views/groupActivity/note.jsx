@@ -1,8 +1,8 @@
-import marked from "marked";
-import React from "react";
-import TimeSince from "../../components/timeSince";
-import ConfigStore from "../../stores/configStore";
-import LinkWithConfirmation from "../../components/linkWithConfirmation";
+import marked from 'marked';
+import React from 'react';
+import TimeSince from '../../components/timeSince';
+import ConfigStore from '../../stores/configStore';
+import LinkWithConfirmation from '../../components/linkWithConfirmation';
 
 const Note = React.createClass({
   canEdit() {

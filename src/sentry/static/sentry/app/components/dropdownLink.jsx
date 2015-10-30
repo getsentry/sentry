@@ -1,8 +1,8 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import classNames from "classnames";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import classNames from 'classnames';
 
-require("bootstrap/js/dropdown");
+require('bootstrap/js/dropdown');
 
 const DropdownLink = React.createClass({
   propTypes: {
@@ -21,11 +21,11 @@ const DropdownLink = React.createClass({
   },
 
   isOpen() {
-    return ReactDOM.findDOMNode(this).classList.contains("open");
+    return ReactDOM.findDOMNode(this).classList.contains('open');
   },
 
   close() {
-    ReactDOM.findDOMNode(this).classList.remove("open");
+    ReactDOM.findDOMNode(this).classList.remove('open');
   },
 
   onToggle(e) {
@@ -42,12 +42,12 @@ const DropdownLink = React.createClass({
 
   render() {
     let className = classNames({
-      "dropdown-toggle": true,
-      "disabled": this.props.disabled,
+      'dropdown-toggle': true,
+      'disabled': this.props.disabled,
     });
 
     let topLevelClasses = classNames({
-      "dropdown" : true,
+      'dropdown' : true,
     });
 
     return (
@@ -58,7 +58,7 @@ const DropdownLink = React.createClass({
             <i className="icon-arrow-down" />
           }
         </a>
-        <ul className={classNames(this.props.menuClasses, "dropdown-menu")}>
+        <ul className={classNames(this.props.menuClasses, 'dropdown-menu')}>
           {this.props.children}
         </ul>
       </span>

@@ -1,9 +1,9 @@
-import React from "react";
-import PropTypes from "../../../proptypes";
+import React from 'react';
+import PropTypes from '../../../proptypes';
 
-import GroupEventDataSection from "../eventDataSection";
-import CSPContent from "./cspContent";
-import CSPHelp from "./cspHelp";
+import GroupEventDataSection from '../eventDataSection';
+import CSPContent from './cspContent';
+import CSPHelp from './cspHelp';
 
 function getView(view, data) {
   switch (view) {
@@ -50,9 +50,9 @@ const CSPInterface = React.createClass({
     var title = (
       <div>
         <div className="btn-group">
-          <a className={(view === "report" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleView.bind(this, "report")}>Report</a>
-          <a className={(view === "raw" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleView.bind(this, "raw")}>Raw</a>
-          <a className={(view === "help" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleView.bind(this, "help")}>Help</a>
+          <a className={(view === 'report' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleView.bind(this, 'report')}>Report</a>
+          <a className={(view === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleView.bind(this, 'raw')}>Raw</a>
+          <a className={(view === 'help' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleView.bind(this, 'help')}>Help</a>
         </div>
         <h3>{'CSP Report'}</h3>
       </div>

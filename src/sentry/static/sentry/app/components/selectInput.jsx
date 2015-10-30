@@ -1,5 +1,5 @@
-import React from "react";
-import jQuery from "jquery";
+import React from 'react';
+import jQuery from 'jquery';
 
 const SelectInput = React.createClass({
   getDefaultProps() {

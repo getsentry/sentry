@@ -1,8 +1,8 @@
-import Reflux from "reflux";
-import _ from "underscore";
+import Reflux from 'reflux';
+import _ from 'underscore';
 
-import StreamTagActions from "../actions/streamTagActions";
-import MemberListStore from "./memberListStore";
+import StreamTagActions from '../actions/streamTagActions';
+import MemberListStore from './memberListStore';
 const StreamTagStore = Reflux.createStore({
   listenables: StreamTagActions,
 

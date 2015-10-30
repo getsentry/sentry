@@ -1,4 +1,4 @@
-import api from "../api";
+import api from '../api';
 
 let ApiMixin = {
   componentWillMount() {
@@ -19,7 +19,7 @@ let ApiMixin = {
     options.complete = function(...params) {
       self._pendingRequests.delete(this);
 
-      if (typeof completeFunc !== "undefined") {
+      if (typeof completeFunc !== 'undefined') {
         completeFunc.apply(this, params);
       }
     };

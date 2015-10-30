@@ -1,7 +1,7 @@
 import PureRenderMixin from 'react-addons-pure-render-mixin';
-import React from "react";
-import DropdownLink from "../../components/dropdownLink";
-import MenuItem from "../../components/menuItem";
+import React from 'react';
+import DropdownLink from '../../components/dropdownLink';
+import MenuItem from '../../components/menuItem';
 
 const SortOptions = React.createClass({
   mixins: [PureRenderMixin],

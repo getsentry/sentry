@@ -1,10 +1,10 @@
-import DocumentTitle from "react-document-title";
-import React from "react";
+import DocumentTitle from 'react-document-title';
+import React from 'react';
 
-import ConfigStore from "../../stores/configStore";
-import Footer from "../../components/footer";
-import Header from "../../components/header";
-import ListLink from "../../components/listLink";
+import ConfigStore from '../../stores/configStore';
+import Footer from '../../components/footer';
+import Header from '../../components/header';
+import ListLink from '../../components/listLink';
 
 const Admin = React.createClass({
   getTitle() {

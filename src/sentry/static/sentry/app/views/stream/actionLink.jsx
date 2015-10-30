@@ -1,8 +1,8 @@
-import Modal from "react-bootstrap/lib/Modal";
+import Modal from 'react-bootstrap/lib/Modal';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
-import React from "react";
-import SelectedGroupStore from "../../stores/selectedGroupStore";
-import TooltipMixin from "../../mixins/tooltip";
+import React from 'react';
+import SelectedGroupStore from '../../stores/selectedGroupStore';
+import TooltipMixin from '../../mixins/tooltip';
 
 const ActionLink = React.createClass({
   propTypes: {

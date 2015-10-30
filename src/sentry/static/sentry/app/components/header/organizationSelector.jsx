@@ -1,10 +1,10 @@
-import React from "react";
+import React from 'react';
 
-import MenuItem from "../menuItem";
-import DropdownLink from "../dropdownLink";
-import AppState from "../../mixins/appState";
-import OrganizationStore from "../../stores/organizationStore";
-import ConfigStore from "../../stores/configStore";
+import MenuItem from '../menuItem';
+import DropdownLink from '../dropdownLink';
+import AppState from '../../mixins/appState';
+import OrganizationStore from '../../stores/organizationStore';
+import ConfigStore from '../../stores/configStore';
 
 const OrganizationSelector = React.createClass({
   mixins: [
@@ -29,7 +29,7 @@ const OrganizationSelector = React.createClass({
     return (
       <DropdownLink
           menuClasses="dropdown-menu-right"
-          topLevelClasses={(this.props.className || "") + " org-selector"}
+          topLevelClasses={(this.props.className || '') + ' org-selector'}
           title={activeOrg.name}>
         {OrganizationStore.getAll().map((org) => {
           return (
