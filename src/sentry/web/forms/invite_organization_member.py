@@ -13,7 +13,7 @@ class InviteOrganizationMemberForm(forms.ModelForm):
     email = forms.EmailField()
 
     class Meta:
-        fields = ('email', 'role')
+        fields = ('email',)
         model = OrganizationMember
 
     def save(self, actor, organization, ip_address):

@@ -13,7 +13,7 @@ class AddOrganizationMemberForm(forms.ModelForm):
     user = UserField()
 
     class Meta:
-        fields = ('user', 'role')
+        fields = ('user',)
         model = OrganizationMember
 
     def save(self, actor, organization, ip_address):
