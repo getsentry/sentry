@@ -26,9 +26,9 @@ sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
 
 
 class BroadcastAdmin(admin.ModelAdmin):
-    list_display = ('message', 'is_active', 'date_added')
+    list_display = ('title', 'message', 'is_active', 'date_added')
     list_filter = ('is_active',)
-    search_fields = ('message', 'url')
+    search_fields = ('title', 'message', 'link')
 
 admin.site.register(Broadcast, BroadcastAdmin)
 
