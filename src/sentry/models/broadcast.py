@@ -14,6 +14,8 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 
 
 class Broadcast(Model):
+    __core__ = False
+
     title = models.CharField(max_length=32)
     message = models.CharField(max_length=256)
     link = models.URLField(null=True, blank=True)
@@ -28,6 +30,8 @@ class Broadcast(Model):
 
 
 class BroadcastSeen(Model):
+    __core__ = False
+
     broadcast = FlexibleForeignKey('sentry.Broadcast')
     user = FlexibleForeignKey('sentry.User')
     date_seen = models.DateTimeField(default=timezone.now)
