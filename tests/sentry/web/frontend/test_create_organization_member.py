@@ -40,7 +40,6 @@ class CreateOrganizationMemberTest(TestCase):
 
         with self.settings(SENTRY_ENABLE_INVITES=True):
             resp = self.client.post(path, {
-                'role': 'admin',
                 'email': 'foo@example.com',
             })
         assert resp.status_code == 302
@@ -50,7 +49,6 @@ class CreateOrganizationMemberTest(TestCase):
             email='foo@example.com',
         )
 
-        assert member.role == 'admin'
         assert member.user is None
 
         redirect_uri = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
@@ -75,7 +73,6 @@ class CreateOrganizationMemberTest(TestCase):
 
         with self.settings(SENTRY_ENABLE_INVITES=True):
             resp = self.client.post(path, {
-                'role': 'member',
                 'email': 'foo@example.com',
             })
 
@@ -83,7 +80,6 @@ class CreateOrganizationMemberTest(TestCase):
 
         member = OrganizationMember.objects.get(id=member.id)
 
-        assert member.role == 'member'
         assert member.email is None
 
         redirect_uri = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
@@ -98,7 +94,6 @@ class CreateOrganizationMemberTest(TestCase):
 
         with self.settings(SENTRY_ENABLE_INVITES=False):
             resp = self.client.post(path, {
-                'role': 'member',
                 'user': 'foo@example.com',
             })
         assert resp.status_code == 302
@@ -108,7 +103,6 @@ class CreateOrganizationMemberTest(TestCase):
             user=user,
         )
 
-        assert member.role == 'member'
         assert member.email is None
 
         redirect_uri = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
@@ -121,7 +115,6 @@ class CreateOrganizationMemberTest(TestCase):
 
         with self.settings(SENTRY_ENABLE_INVITES=False):
             resp = self.client.post(path, {
-                'role': 'member',
                 'user': 'bar@example.com',
             })
 
