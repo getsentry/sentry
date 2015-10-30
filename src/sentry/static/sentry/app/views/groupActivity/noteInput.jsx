@@ -214,6 +214,9 @@ const NoteInput = React.createClass({
             <li className={preview ? "active" : ""}>
               <a onClick={this.togglePreview}>Preview</a>
             </li>
+            <li className="markdown">
+              <span className="icon-markdown" /><span className="supported">Markdown supported</span>
+            </li>
           </ul>
           {preview ?
             <div className="note-preview"
