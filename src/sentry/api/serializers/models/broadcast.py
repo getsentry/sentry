@@ -25,6 +25,7 @@ class BroadcastSerializer(Serializer):
         return {
             'id': str(obj.id),
             'message': obj.message,
+            'title': obj.title,
             'link': obj.link,
             'isActive': obj.is_active,
             'dateCreated': obj.date_added,
