@@ -1,13 +1,13 @@
-import React from "react";
-import api from "../api";
-import ApiMixin from "../mixins/apiMixin";
-import EventEntries from "../components/events/eventEntries";
-import GroupEventToolbar from "./groupDetails/eventToolbar";
-import GroupSidebar from "../components/group/sidebar";
-import GroupState from "../mixins/groupState";
-import MutedBox from "../components/mutedBox";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
+import React from 'react';
+import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
+import EventEntries from '../components/events/eventEntries';
+import GroupEventToolbar from './groupDetails/eventToolbar';
+import GroupSidebar from '../components/group/sidebar';
+import GroupState from '../mixins/groupState';
+import MutedBox from '../components/mutedBox';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
 
 
 const GroupEventDetails = React.createClass({

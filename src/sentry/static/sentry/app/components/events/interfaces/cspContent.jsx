@@ -1,7 +1,7 @@
-import React from "react";
+import React from 'react';
 
-import {objectToArray} from "../../../utils";
-import DefinitionList from "./definitionList";
+import {objectToArray} from '../../../utils';
+import DefinitionList from './definitionList';
 
 const CSPContent = React.createClass({
   propTypes: {

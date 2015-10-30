@@ -1,10 +1,10 @@
-import React from "react";
-import GroupEventDataSection from "../eventDataSection";
-import PropTypes from "../../../proptypes";
-import RichHttpContent from "./richHttpContent";
-import {getCurlCommand} from "./utils";
+import React from 'react';
+import GroupEventDataSection from '../eventDataSection';
+import PropTypes from '../../../proptypes';
+import RichHttpContent from './richHttpContent';
+import {getCurlCommand} from './utils';
 
-import RequestActions from "./requestActions";
+import RequestActions from './requestActions';
 
 const RequestInterface = React.createClass({
   propTypes: {
@@ -22,7 +22,7 @@ const RequestInterface = React.createClass({
 
   getInitialState() {
     return {
-      view: "rich"
+      view: 'rich'
     };
   },
 
@@ -54,7 +54,7 @@ const RequestInterface = React.createClass({
     }
 
     // lol
-    let parsedUrl = document.createElement("a");
+    let parsedUrl = document.createElement('a');
     parsedUrl.href = fullUrl;
 
     let children = [];
@@ -70,10 +70,10 @@ const RequestInterface = React.createClass({
           }
         </div>,
         <div className="btn-group">
-          <a className={(view === "rich" ? "active" : "") + " btn btn-default btn-sm"}
-             onClick={this.toggleView.bind(this, "rich")}>Rich</a>
-          <a className={(view === "curl" ? "active" : "") + " btn btn-default btn-sm"}
-             onClick={this.toggleView.bind(this, "curl")}><code>curl</code></a>
+          <a className={(view === 'rich' ? 'active' : '') + ' btn btn-default btn-sm'}
+             onClick={this.toggleView.bind(this, 'rich')}>Rich</a>
+          <a className={(view === 'curl' ? 'active' : '') + ' btn btn-default btn-sm'}
+             onClick={this.toggleView.bind(this, 'curl')}><code>curl</code></a>
         </div>
       );
     }
@@ -96,7 +96,7 @@ const RequestInterface = React.createClass({
           type={this.props.type}
           title={title}
           wrapTitle={false}>
-        {view === "curl" ?
+        {view === 'curl' ?
           <pre>{getCurlCommand(data)}</pre>
         :
           <RichHttpContent data={data} />

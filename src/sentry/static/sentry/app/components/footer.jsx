@@ -1,6 +1,6 @@
-import React from "react";
-import ConfigStore from "../stores/configStore";
-import HookStore from "../stores/hookStore";
+import React from 'react';
+import ConfigStore from '../stores/configStore';
+import HookStore from '../stores/hookStore';
 
 const Footer = React.createClass({
   render() {

@@ -1,15 +1,15 @@
-import React from "react";
-import Reflux from "reflux";
-import api from "../api";
-import DocumentTitle from "react-document-title";
-import GroupHeader from "./groupDetails/header";
-import GroupStore from "../stores/groupStore";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import PropTypes from "../proptypes";
+import React from 'react';
+import Reflux from 'reflux';
+import api from '../api';
+import DocumentTitle from 'react-document-title';
+import GroupHeader from './groupDetails/header';
+import GroupStore from '../stores/groupStore';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import PropTypes from '../proptypes';
 
 let ERROR_TYPES = {
-  GROUP_NOT_FOUND: "GROUP_NOT_FOUND"
+  GROUP_NOT_FOUND: 'GROUP_NOT_FOUND'
 };
 
 const GroupDetails = React.createClass({
@@ -18,7 +18,7 @@ const GroupDetails = React.createClass({
   },
 
   mixins: [
-    Reflux.listenTo(GroupStore, "onGroupChange")
+    Reflux.listenTo(GroupStore, 'onGroupChange')
   ],
 
   getInitialState() {
@@ -58,7 +58,7 @@ const GroupDetails = React.createClass({
       }, error: (_, textStatus, errorThrown) => {
         let errorType = null;
         switch (errorThrown) {
-          case "NOT FOUND":
+          case 'NOT FOUND':
             errorType = ERROR_TYPES.GROUP_NOT_FOUND;
             break;
           default:

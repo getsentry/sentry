@@ -1,10 +1,10 @@
-import React from "react";
-import moment from "moment";
-import api from "../../api";
-import BarChart from "../../components/barChart";
-import LoadingError from "../../components/loadingError";
-import LoadingIndicator from "../../components/loadingIndicator";
-import ProjectState from "../../mixins/projectState";
+import React from 'react';
+import moment from 'moment';
+import api from '../../api';
+import BarChart from '../../components/barChart';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
+import ProjectState from '../../mixins/projectState';
 
 const ProjectChart = React.createClass({
   mixins: [
@@ -34,7 +34,7 @@ const ProjectChart = React.createClass({
   getStatsEndpoint() {
     let org = this.getOrganization();
     let project = this.getProject();
-    return "/projects/" + org.slug + "/" + project.slug + "/stats/?resolution=" + this.props.resolution;
+    return '/projects/' + org.slug + '/' + project.slug + '/stats/?resolution=' + this.props.resolution;
   },
 
   getProjectReleasesEndpoint() {
@@ -93,7 +93,7 @@ const ProjectChart = React.createClass({
           points={points}
           markers={markers}
           className="sparkline" />
-        <small className="date-legend">{moment(this.props.dateSince * 1000).format("LL")}</small>
+        <small className="date-legend">{moment(this.props.dateSince * 1000).format('LL')}</small>
       </div>
     );
   },

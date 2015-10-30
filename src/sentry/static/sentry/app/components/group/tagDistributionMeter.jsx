@@ -1,9 +1,9 @@
-import React from "react";
-import {Link} from "react-router";
-import ApiMixin from "../../mixins/apiMixin";
-import PropTypes from "../../proptypes";
-import TooltipMixin from "../../mixins/tooltip";
-import {escape, percent} from "../../utils";
+import React from 'react';
+import {Link} from 'react-router';
+import ApiMixin from '../../mixins/apiMixin';
+import PropTypes from '../../proptypes';
+import TooltipMixin from '../../mixins/tooltip';
+import {escape, percent} from '../../utils';
 
 const TagDistributionMeter = React.createClass({
   propTypes: {
@@ -18,8 +18,8 @@ const TagDistributionMeter = React.createClass({
     ApiMixin,
     TooltipMixin({
       html: true,
-      selector: ".segment",
-      container: "body"
+      selector: '.segment',
+      container: 'body'
     })
   ],
 
@@ -90,7 +90,7 @@ const TagDistributionMeter = React.createClass({
           return (
             <Link
                 key={value.value}
-                className="segment" style={{width: pct + "%"}}
+                className="segment" style={{width: pct + '%'}}
                 to={`/${orgId}/${projectId}/group/${this.props.group.id}/tags/${this.props.tag}/`}
                 title={'<div class="truncate">' + escape(value.name) + '</div>' + pctLabel + '%'}>
               <span className="tag-description">
@@ -103,7 +103,7 @@ const TagDistributionMeter = React.createClass({
         {hasOther &&
           <Link
               key="other"
-              className="segment" style={{width: otherPct + "%"}}
+              className="segment" style={{width: otherPct + '%'}}
               to={`/${orgId}/${projectId}/group/${this.props.group.id}/tags/${this.props.tag}/`}
               title={'Other<br/>' + otherPctLabel + '%'}>
             <span className="tag-description">

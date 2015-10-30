@@ -1,7 +1,7 @@
-import React from "react";
-import Count from "../../components/count";
-import TimeSince from "../../components/timeSince";
-import Version from "../../components/version";
+import React from 'react';
+import Count from '../../components/count';
+import TimeSince from '../../components/timeSince';
+import Version from '../../components/version';
 
 const ReleaseList = React.createClass({
 

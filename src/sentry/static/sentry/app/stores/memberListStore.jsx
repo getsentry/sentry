@@ -1,4 +1,4 @@
-import Reflux from "reflux";
+import Reflux from 'reflux';
 
 const MemberListStore = Reflux.createStore({
   // listenables: MemberActions,

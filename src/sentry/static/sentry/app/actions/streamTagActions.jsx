@@ -1,8 +1,8 @@
 
-import Reflux from "reflux";
+import Reflux from 'reflux';
 
 export default Reflux.createActions([
-  "loadTags",
-  "loadTagsError",
-  "loadTagsSuccess"
+  'loadTags',
+  'loadTagsError',
+  'loadTagsSuccess'
 ]);

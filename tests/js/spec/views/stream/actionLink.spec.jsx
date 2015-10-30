@@ -1,17 +1,17 @@
-import React from "react";
-import TestUtils from "react-addons-test-utils";
+import React from 'react';
+import TestUtils from 'react-addons-test-utils';
 
-import api from "app/api";
-import stubReactComponents from "../../../helpers/stubReactComponent";
-import ActionLink from "app/views/stream/actionLink";
-import Modal from "react-bootstrap/lib/Modal";
+import api from 'app/api';
+import stubReactComponents from '../../../helpers/stubReactComponent';
+import ActionLink from 'app/views/stream/actionLink';
+import Modal from 'react-bootstrap/lib/Modal';
 
-describe("ActionLink", function() {
+describe('ActionLink', function() {
 
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(api, "request");
+    this.stubbedApiRequest = this.sandbox.stub(api, 'request');
     stubReactComponents(this.sandbox, [Modal]);
   });
 
@@ -19,7 +19,7 @@ describe("ActionLink", function() {
     this.sandbox.restore();
   });
 
-  describe("shouldConfirm()", function() {
+  describe('shouldConfirm()', function() {
     it('should always return true by default', function () {
       let actionLink = TestUtils.renderIntoDocument(
         <ActionLink onAction={function(){}} selectAllActive={false}/>

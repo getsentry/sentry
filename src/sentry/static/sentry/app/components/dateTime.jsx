@@ -1,6 +1,6 @@
-import React from "react";
-import moment from "moment";
-import ConfigStore from "../stores/configStore.jsx";
+import React from 'react';
+import moment from 'moment';
+import ConfigStore from '../stores/configStore.jsx';
 
 const DateTime = React.createClass({
   propTypes: {
@@ -13,7 +13,7 @@ const DateTime = React.createClass({
     let options = user ? user.options : {};
     let format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
 
-    if (typeof date === "string" || typeof date === "number") {
+    if (typeof date === 'string' || typeof date === 'number') {
       date = new Date(date);
     }
 

@@ -1,6 +1,6 @@
-import React from "react";
+import React from 'react';
 //import GroupEventDataSection from "../eventDataSection";
-import Frame from "./frame";
+import Frame from './frame';
 
 const StacktraceContent = React.createClass({
   propTypes: {

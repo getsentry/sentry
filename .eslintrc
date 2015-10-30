@@ -108,6 +108,7 @@
     "no-sequences": 2,               // http://eslint.org/docs/rules/no-sequences
     "no-throw-literal": 2,           // http://eslint.org/docs/rules/no-throw-literal
     "no-with": 2,                    // http://eslint.org/docs/rules/no-with
+    "quotes": [2, "single"],         // http://eslint.org/docs/rules/quotes.html
     "radix": 2,                      // http://eslint.org/docs/rules/radix
     "space-infix-ops": 2,            // http://eslint.org/docs/rules/space-infix-ops.html
     "vars-on-top": 0,                // http://eslint.org/docs/rules/vars-on-top

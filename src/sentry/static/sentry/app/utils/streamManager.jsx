@@ -24,7 +24,7 @@ class StreamManager {
     items = [].concat(items);
     if (items.length === 0) return this;
 
-    items = items.filter((item) => item.hasOwnProperty("id"));
+    items = items.filter((item) => item.hasOwnProperty('id'));
 
     items.forEach((item) => removeFromList(item.id, this.idList));
     let ids = items.map((item) => item.id);

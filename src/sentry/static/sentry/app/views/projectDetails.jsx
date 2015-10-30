@@ -1,19 +1,19 @@
-import React from "react";
-import Reflux from "reflux";
-import api from "../api";
-import DocumentTitle from "react-document-title";
-import MemberListStore from "../stores/memberListStore";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import MissingProjectMembership from "../components/missingProjectMembership";
-import ProjectHeader from "../components/projectHeader";
-import OrganizationState from "../mixins/organizationState";
-import PropTypes from "../proptypes";
-import TeamStore from "../stores/teamStore";
+import React from 'react';
+import Reflux from 'reflux';
+import api from '../api';
+import DocumentTitle from 'react-document-title';
+import MemberListStore from '../stores/memberListStore';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import MissingProjectMembership from '../components/missingProjectMembership';
+import ProjectHeader from '../components/projectHeader';
+import OrganizationState from '../mixins/organizationState';
+import PropTypes from '../proptypes';
+import TeamStore from '../stores/teamStore';
 
 const ERROR_TYPES = {
-  MISSING_MEMBERSHIP: "MISSING_MEMBERSHIP",
-  PROJECT_NOT_FOUND: "PROJECT_NOT_FOUND"
+  MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
+  PROJECT_NOT_FOUND: 'PROJECT_NOT_FOUND'
 };
 
 const ProjectDetails = React.createClass({
@@ -23,8 +23,8 @@ const ProjectDetails = React.createClass({
   },
 
   mixins: [
-    Reflux.connect(MemberListStore, "memberList"),
-    Reflux.listenTo(TeamStore, "onTeamChange"),
+    Reflux.connect(MemberListStore, 'memberList'),
+    Reflux.listenTo(TeamStore, 'onTeamChange'),
     OrganizationState
   ],
 

@@ -1,12 +1,12 @@
-import jQuery from "jquery";
-import React from "react";
-import {Link, History} from "react-router";
+import jQuery from 'jquery';
+import React from 'react';
+import {Link, History} from 'react-router';
 
-import api from "../api";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import Pagination from "../components/pagination";
-import SearchBar from "../components/searchBar.jsx";
+import api from '../api';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import Pagination from '../components/pagination';
+import SearchBar from '../components/searchBar.jsx';
 
 const AdminOrganizations = React.createClass({
   mixins: [History],

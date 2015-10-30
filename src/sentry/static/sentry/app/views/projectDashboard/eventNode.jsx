@@ -1,9 +1,9 @@
-import React from "react";
-import {Link} from "react-router";
-import Count from "../../components/count";
-import PropTypes from "../../proptypes";
-import TimeSince from "../../components/timeSince";
-import ProjectState from "../../mixins/projectState";
+import React from 'react';
+import {Link} from 'react-router';
+import Count from '../../components/count';
+import PropTypes from '../../proptypes';
+import TimeSince from '../../components/timeSince';
+import ProjectState from '../../mixins/projectState';
 
 const EventNode = React.createClass({
   propTypes: {

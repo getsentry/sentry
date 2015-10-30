@@ -1,4 +1,4 @@
-import {defined, trim} from "../../../utils";
+import {defined, trim} from '../../../utils';
 
 function getJavaScriptFrame(frame) {
   let result = '';
@@ -91,13 +91,13 @@ export function getJavaFrame(frame) {
 
 function getFrame(frame, platform) {
   switch (platform) {
-    case "javascript":
+    case 'javascript':
       return getJavaScriptFrame(frame);
-    case "ruby":
+    case 'ruby':
       return getRubyFrame(frame);
-    case "python":
+    case 'python':
       return getPythonFrame(frame);
-    case "java":
+    case 'java':
       return getJavaFrame(frame);
     default:
       return getPythonFrame(frame);

@@ -1,9 +1,9 @@
-import React from "react";
-import ConfigStore from "../../../stores/configStore";
-import GroupEventDataSection from "../eventDataSection";
-import PropTypes from "../../../proptypes";
-import ExceptionContent from "./exceptionContent";
-import RawExceptionContent from "./rawExceptionContent";
+import React from 'react';
+import ConfigStore from '../../../stores/configStore';
+import GroupEventDataSection from '../eventDataSection';
+import PropTypes from '../../../proptypes';
+import ExceptionContent from './exceptionContent';
+import RawExceptionContent from './rawExceptionContent';
 
 const ExceptionInterface = React.createClass({
   propTypes: {
@@ -14,25 +14,25 @@ const ExceptionInterface = React.createClass({
   },
 
   getInitialState() {
-    let user = ConfigStore.get("user");
+    let user = ConfigStore.get('user');
     // user may not be authenticated
     let options = user ? user.options : {};
     let platform = this.props.event.platform;
     let newestFirst;
     switch (options.stacktraceOrder) {
-      case "newestFirst":
+      case 'newestFirst':
         newestFirst = true;
         break;
-      case "newestLast":
+      case 'newestLast':
         newestFirst = false;
         break;
-      case "default":
+      case 'default':
       default:
-        newestFirst = (platform !== "python");
+        newestFirst = (platform !== 'python');
     }
 
     return {
-      stackView: (this.props.data.hasSystemFrames ? "app" : "full"),
+      stackView: (this.props.data.hasSystemFrames ? 'app' : 'full'),
       newestFirst: newestFirst
     };
   },
@@ -54,10 +54,10 @@ const ExceptionInterface = React.createClass({
       <div>
         <div className="btn-group">
           {data.hasSystemFrames &&
-            <a className={(stackView === "app" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "app")}>App Only</a>
+            <a className={(stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'app')}>App Only</a>
           }
-          <a className={(stackView === "full" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "full")}>Full</a>
-          <a className={(stackView === "raw" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "raw")}>Raw</a>
+          <a className={(stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'full')}>Full</a>
+          <a className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'raw')}>Raw</a>
         </div>
         <h3>
           {'Exception '}

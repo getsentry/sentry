@@ -1,6 +1,6 @@
-import React from "react";
-import ConfigStore from "../../stores/configStore";
-import Count from "../../components/count";
+import React from 'react';
+import ConfigStore from '../../stores/configStore';
+import Count from '../../components/count';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 let getPercent = (item, total) => {

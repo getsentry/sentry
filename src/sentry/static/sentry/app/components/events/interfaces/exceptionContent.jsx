@@ -1,7 +1,7 @@
-import React from "react";
-import {defined} from "../../../utils";
+import React from 'react';
+import {defined} from '../../../utils';
 
-import StacktraceContent from "./stacktraceContent";
+import StacktraceContent from './stacktraceContent';
 
 const ExceptionContent = React.createClass({
   propTypes: {
@@ -24,7 +24,7 @@ const ExceptionContent = React.createClass({
           {defined(exc.stacktrace) &&
             <StacktraceContent
                 data={exc.stacktrace}
-                includeSystemFrames={stackView === "full"}
+                includeSystemFrames={stackView === 'full'}
                 platform={this.props.platform}
                 newestFirst={this.props.newestFirst} />
           }

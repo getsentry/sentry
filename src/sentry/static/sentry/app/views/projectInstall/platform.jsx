@@ -1,10 +1,10 @@
-import React from "react";
-import {Link} from "react-router";
+import React from 'react';
+import {Link} from 'react-router';
 
-import api from "../../api";
-import LanguageNav from "./languageNav";
-import LoadingError from "../../components/loadingError";
-import LoadingIndicator from "../../components/loadingIndicator";
+import api from '../../api';
+import LanguageNav from './languageNav';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
 
 const ProjectInstallPlatform = React.createClass({
 

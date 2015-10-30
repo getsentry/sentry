@@ -1,6 +1,6 @@
-import React from "react";
-import EventDataSection from "./eventDataSection";
-import utils from "../../utils";
+import React from 'react';
+import EventDataSection from './eventDataSection';
+import utils from '../../utils';
 
 const Message = React.createClass({
   render() {

@@ -1,16 +1,16 @@
-import React from "react";
-import api from "../api";
-import DocumentTitle from "react-document-title";
-import Footer from "../components/footer";
-import Header from "../components/header";
-import HookStore from "../stores/hookStore";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import PropTypes from "../proptypes";
-import TeamStore from "../stores/teamStore";
+import React from 'react';
+import api from '../api';
+import DocumentTitle from 'react-document-title';
+import Footer from '../components/footer';
+import Header from '../components/header';
+import HookStore from '../stores/hookStore';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import PropTypes from '../proptypes';
+import TeamStore from '../stores/teamStore';
 
 let ERROR_TYPES = {
-  ORG_NOT_FOUND: "ORG_NOT_FOUND"
+  ORG_NOT_FOUND: 'ORG_NOT_FOUND'
 };
 
 const OrganizationDetails = React.createClass({
@@ -65,7 +65,7 @@ const OrganizationDetails = React.createClass({
       }, error: (_, textStatus, errorThrown) => {
         let errorType = null;
         switch (errorThrown) {
-          case "NOT FOUND":
+          case 'NOT FOUND':
             errorType = ERROR_TYPES.ORG_NOT_FOUND;
             break;
           default:

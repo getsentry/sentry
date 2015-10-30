@@ -1,10 +1,10 @@
-import React from "react";
-import api from "../../api";
-import IndicatorStore from "../../stores/indicatorStore";
-import GroupStore from "../../stores/groupStore";
+import React from 'react';
+import api from '../../api';
+import IndicatorStore from '../../stores/indicatorStore';
+import GroupStore from '../../stores/groupStore';
 
-import Note from "./note";
-import NoteInput from "./noteInput";
+import Note from './note';
+import NoteInput from './noteInput';
 
 const NoteContainer = React.createClass({
   getInitialState() {

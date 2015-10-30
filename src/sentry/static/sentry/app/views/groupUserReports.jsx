@@ -1,13 +1,13 @@
-import $ from "jquery";
-import React from "react";
-import {History} from "react-router";
-import api from "../api";
-import Gravatar from "../components/gravatar";
-import GroupState from "../mixins/groupState";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import TimeSince from "../components/timeSince";
-import utils from "../utils";
+import $ from 'jquery';
+import React from 'react';
+import {History} from 'react-router';
+import api from '../api';
+import Gravatar from '../components/gravatar';
+import GroupState from '../mixins/groupState';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import TimeSince from '../components/timeSince';
+import utils from '../utils';
 
 const GroupUserReports = React.createClass({
   mixins: [

@@ -1,5 +1,5 @@
-import React from "react";
-import rawStacktraceContent from "./rawStacktraceContent";
+import React from 'react';
+import rawStacktraceContent from './rawStacktraceContent';
 
 const RawExceptionContent = React.createClass({
   propTypes: {

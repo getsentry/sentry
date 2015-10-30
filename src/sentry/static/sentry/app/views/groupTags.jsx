@@ -1,11 +1,11 @@
-import React from "react";
-import {Link} from "react-router";
-import ApiMixin from "../mixins/apiMixin";
-import Count from "../components/count";
-import GroupState from "../mixins/groupState";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import {percent} from "../utils";
+import React from 'react';
+import {Link} from 'react-router';
+import ApiMixin from '../mixins/apiMixin';
+import Count from '../components/count';
+import GroupState from '../mixins/groupState';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import {percent} from '../utils';
 
 const GroupTags = React.createClass({
   mixins: [

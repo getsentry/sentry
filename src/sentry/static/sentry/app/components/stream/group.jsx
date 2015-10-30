@@ -1,18 +1,18 @@
-import jQuery from "jquery";
-import React from "react";
-import Reflux from "reflux";
-import {Link} from "react-router";
+import jQuery from 'jquery';
+import React from 'react';
+import Reflux from 'reflux';
+import {Link} from 'react-router';
 
-import AssigneeSelector from "../assigneeSelector";
-import Count from "../count";
-import GroupChart from "./groupChart";
-import GroupCheckBox from "./groupCheckBox";
-import TimeSince from "../timeSince";
+import AssigneeSelector from '../assigneeSelector';
+import Count from '../count';
+import GroupChart from './groupChart';
+import GroupCheckBox from './groupCheckBox';
+import TimeSince from '../timeSince';
 
-import GroupStore from "../../stores/groupStore";
-import SelectedGroupStore from "../../stores/selectedGroupStore";
+import GroupStore from '../../stores/groupStore';
+import SelectedGroupStore from '../../stores/selectedGroupStore';
 
-import {valueIsEqual} from "../../utils";
+import {valueIsEqual} from '../../utils';
 
 const StreamGroup = React.createClass({
   propTypes: {
@@ -24,13 +24,13 @@ const StreamGroup = React.createClass({
   },
 
   mixins: [
-    Reflux.listenTo(GroupStore, "onGroupChange")
+    Reflux.listenTo(GroupStore, 'onGroupChange')
   ],
 
   getDefaultProps() {
     return {
       canSelect: true,
-      id: "",
+      id: '',
       statsPeriod: '24h'
     };
   },
@@ -85,21 +85,21 @@ const StreamGroup = React.createClass({
     let data = this.state.data;
     let userCount = data.userCount;
 
-    let className = "group row";
+    let className = 'group row';
     if (data.isBookmarked) {
-      className += " isBookmarked";
+      className += ' isBookmarked';
     }
     if (data.hasSeen) {
-      className += " hasSeen";
+      className += ' hasSeen';
     }
-    if (data.status === "resolved") {
-      className += " isResolved";
+    if (data.status === 'resolved') {
+      className += ' isResolved';
     }
-    if (data.status === "muted") {
-      className += " isMuted";
+    if (data.status === 'muted') {
+      className += ' isMuted';
     }
 
-    className += " level-" + data.level;
+    className += ' level-' + data.level;
 
     let {id, orgId, projectId} = this.props;
 
@@ -140,7 +140,7 @@ const StreamGroup = React.createClass({
               }
               {data.logger &&
                 <li className="event-annotation">
-                  <Link to={`/${orgId}/${projectId}`} query={{query: "logger:" + data.logger}}>
+                  <Link to={`/${orgId}/${projectId}`} query={{query: 'logger:' + data.logger}}>
                     {data.logger}
                   </Link>
                 </li>

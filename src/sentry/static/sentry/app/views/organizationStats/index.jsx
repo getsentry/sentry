@@ -1,13 +1,13 @@
-import $ from "jquery";
-import React from "react";
-import api from "../../api";
-import FlotChart from "../../components/flotChart";
-import LoadingError from "../../components/loadingError";
-import LoadingIndicator from "../../components/loadingIndicator";
-import OrganizationHomeContainer from "../../components/organizations/homeContainer";
-import OrganizationState from "../../mixins/organizationState";
+import $ from 'jquery';
+import React from 'react';
+import api from '../../api';
+import FlotChart from '../../components/flotChart';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
+import OrganizationHomeContainer from '../../components/organizations/homeContainer';
+import OrganizationState from '../../mixins/organizationState';
 
-import ProjectTable from "./projectTable";
+import ProjectTable from './projectTable';
 
 const OrganizationStats = React.createClass({
   mixins: [

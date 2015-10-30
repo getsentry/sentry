@@ -1,8 +1,8 @@
-import React from "react";
+import React from 'react';
 
-import api from "../../api";
-import DropdownLink from "../dropdownLink";
-import LoadingIndicator from "../loadingIndicator";
+import api from '../../api';
+import DropdownLink from '../dropdownLink';
+import LoadingIndicator from '../loadingIndicator';
 
 var Broadcasts = React.createClass({
   getInitialState() {
@@ -30,7 +30,7 @@ var Broadcasts = React.createClass({
 
   fetchData() {
     api.request('/broadcasts/', {
-      method: "GET",
+      method: 'GET',
       success: (data) => {
         this.setState({
           broadcasts: data,
@@ -68,7 +68,7 @@ var Broadcasts = React.createClass({
       return;
 
     api.request('/broadcasts/', {
-      method: "PUT",
+      method: 'PUT',
       query: {id: broadcastIds},
       data: {
         hasSeen: '1'

@@ -1,8 +1,8 @@
-import _ from "underscore";
-import React from "react";
-import Gravatar from "../../components/gravatar";
-import DefinitionList from "./interfaces/definitionList";
-import EventDataSection from "./eventDataSection";
+import _ from 'underscore';
+import React from 'react';
+import Gravatar from '../../components/gravatar';
+import DefinitionList from './interfaces/definitionList';
+import EventDataSection from './eventDataSection';
 
 
 const EventUser = React.createClass({

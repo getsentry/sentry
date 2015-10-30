@@ -1,11 +1,11 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import TestUtils from "react-addons-test-utils";
-import FilterSelectLink from "app/views/stream/filterSelectLink";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import TestUtils from 'react-addons-test-utils';
+import FilterSelectLink from 'app/views/stream/filterSelectLink';
 
 let findWithClass = TestUtils.findRenderedDOMComponentWithClass;
 
-describe("FilterSelectLink", function() {
+describe('FilterSelectLink', function() {
 
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
@@ -15,26 +15,26 @@ describe("FilterSelectLink", function() {
     this.sandbox.restore();
   });
 
-  describe("render()", function() {
+  describe('render()', function() {
 
-    it("shows a button", function(){
+    it('shows a button', function(){
       let wrapper = TestUtils.renderIntoDocument(<FilterSelectLink extraClass="test-btn" />);
-      let expected = findWithClass(wrapper, "test-btn");
+      let expected = findWithClass(wrapper, 'test-btn');
       expect(expected).to.be.ok;
     });
 
-    it("shows active state when passed isActive=true", function(){
+    it('shows active state when passed isActive=true', function(){
       let wrapper = TestUtils.renderIntoDocument(<FilterSelectLink isActive={true} />);
-      let expected = findWithClass(wrapper, "active");
+      let expected = findWithClass(wrapper, 'active');
       expect(expected).to.be.ok;
     });
 
-    it("doesn't show active state when passed isActive=false", function(){
+    it('doesn\'t show active state when passed isActive=false', function(){
       let wrapper = TestUtils.renderIntoDocument(<FilterSelectLink isActive={false} />);
-      expect(() => findWithClass(wrapper, "active")).to.throw();
+      expect(() => findWithClass(wrapper, 'active')).to.throw();
     });
 
-    it("calls onSelect() when anchor clicked", function(){
+    it('calls onSelect() when anchor clicked', function(){
       let onSelect = this.sandbox.spy();
       let wrapper = TestUtils.renderIntoDocument(<FilterSelectLink onSelect={onSelect} />);
 

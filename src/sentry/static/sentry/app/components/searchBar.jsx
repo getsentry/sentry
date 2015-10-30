@@ -1,5 +1,5 @@
-import React from "react";
-import ReactDOM from "react-dom";
+import React from 'react';
+import ReactDOM from 'react-dom';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 const SearchBar = React.createClass({
@@ -8,8 +8,8 @@ const SearchBar = React.createClass({
 
   getDefaultProps() {
     return {
-      defaultQuery: "",
-      query: "",
+      defaultQuery: '',
+      query: '',
       onSearch: function() {},
       onQueryChange: function() {}
     };

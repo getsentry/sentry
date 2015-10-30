@@ -1,13 +1,13 @@
-import jQuery from "jquery";
-import React from "react";
-import {History} from "react-router";
-import api from "../../api";
-import LoadingError from "../../components/loadingError";
-import LoadingIndicator from "../../components/loadingIndicator";
-import Pagination from "../../components/pagination";
-import SearchBar from "../../components/searchBar.jsx";
+import jQuery from 'jquery';
+import React from 'react';
+import {History} from 'react-router';
+import api from '../../api';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
+import Pagination from '../../components/pagination';
+import SearchBar from '../../components/searchBar.jsx';
 
-import ReleaseList from "./releaseList";
+import ReleaseList from './releaseList';
 
 const ProjectReleases = React.createClass({
   propTypes: {
@@ -18,7 +18,7 @@ const ProjectReleases = React.createClass({
 
   getDefaultProps() {
     return {
-      defaultQuery: ""
+      defaultQuery: ''
     };
   },
 

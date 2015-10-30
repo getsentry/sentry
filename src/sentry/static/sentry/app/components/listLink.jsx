@@ -1,5 +1,5 @@
-import React from "react";
-import {Link, History} from "react-router";
+import React from 'react';
+import {Link, History} from 'react-router';
 import classNames from 'classnames';
 
 const ListLink = React.createClass({

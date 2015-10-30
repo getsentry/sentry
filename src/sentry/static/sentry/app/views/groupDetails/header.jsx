@@ -1,14 +1,14 @@
-import React from "react";
+import React from 'react';
 // import Router from "react-router";
-import {Link, History} from "react-router";
-import api from "../../api";
-import AssigneeSelector from "../../components/assigneeSelector";
-import Count from "../../components/count";
-import GroupActions from "./actions";
-import GroupSeenBy from "./seenBy";
-import IndicatorStore from "../../stores/indicatorStore";
-import ListLink from "../../components/listLink";
-import ProjectState from "../../mixins/projectState";
+import {Link, History} from 'react-router';
+import api from '../../api';
+import AssigneeSelector from '../../components/assigneeSelector';
+import Count from '../../components/count';
+import GroupActions from './actions';
+import GroupSeenBy from './seenBy';
+import IndicatorStore from '../../stores/indicatorStore';
+import ListLink from '../../components/listLink';
+import ProjectState from '../../mixins/projectState';
 
 const GroupHeader = React.createClass({
   propTypes: {
@@ -74,15 +74,15 @@ const GroupHeader = React.createClass({
         userCount = group.userCount,
         features = this.getProjectFeatures();
 
-    let className = "group-detail level-" + group.level;
+    let className = 'group-detail level-' + group.level;
     if (group.isBookmarked) {
-      className += " isBookmarked";
+      className += ' isBookmarked';
     }
     if (group.hasSeen) {
-      className += " hasSeen";
+      className += ' hasSeen';
     }
-    if (group.status === "resolved") {
-      className += " isResolved";
+    if (group.status === 'resolved') {
+      className += ' isResolved';
     }
 
     let groupId = group.id,
@@ -101,7 +101,7 @@ const GroupHeader = React.createClass({
               <span className="message">{group.culprit}</span>
               {group.logger &&
                 <span className="event-annotation">
-                  <Link to={`/${orgId}/${projectId}/`} query={{query: "logger:" + group.logger}}>
+                  <Link to={`/${orgId}/${projectId}/`} query={{query: 'logger:' + group.logger}}>
                     {group.logger}
                   </Link>
                 </span>

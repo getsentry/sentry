@@ -1,8 +1,8 @@
-import React from "react";
-import _ from "underscore";
-import StreamTagFilter from "./tagFilter";
-import LoadingIndicator from "../../components/loadingIndicator";
-import {queryToObj, objToQuery} from "../../utils/stream";
+import React from 'react';
+import _ from 'underscore';
+import StreamTagFilter from './tagFilter';
+import LoadingIndicator from '../../components/loadingIndicator';
+import {queryToObj, objToQuery} from '../../utils/stream';
 
 
 let TEXT_FILTER_DEBOUNCE_IN_MS = 300;

@@ -1,9 +1,9 @@
-import React from "react";
+import React from 'react';
 
-import api from "../../api";
-import FlotChart from "../../components/flotChart";
-import LoadingError from "../../components/loadingError";
-import LoadingIndicator from "../../components/loadingIndicator";
+import api from '../../api';
+import FlotChart from '../../components/flotChart';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
 
 const ApiChart = React.createClass({
   getInitialState() {
@@ -11,9 +11,9 @@ const ApiChart = React.createClass({
       error: false,
       loading: true,
       rawData: {
-        "client-api.all-versions.responses.2xx": null,
-        "client-api.all-versions.responses.4xx": null,
-        "client-api.all-versions.responses.5xx": null
+        'client-api.all-versions.responses.2xx': null,
+        'client-api.all-versions.responses.4xx': null,
+        'client-api.all-versions.responses.5xx': null
       },
     };
   },
@@ -24,14 +24,14 @@ const ApiChart = React.createClass({
   
   fetchData() {
     let statNameList = [
-      "client-api.all-versions.responses.2xx",
-      "client-api.all-versions.responses.4xx",
-      "client-api.all-versions.responses.5xx"
+      'client-api.all-versions.responses.2xx',
+      'client-api.all-versions.responses.4xx',
+      'client-api.all-versions.responses.5xx'
     ];
 
     statNameList.forEach((statName) => {
       api.request('/internal/stats/', {
-        method: "GET",
+        method: 'GET',
         data: {
           since: this.props.since,
           resolution: '1h',

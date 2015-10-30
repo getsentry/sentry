@@ -1,14 +1,14 @@
-import React from "react";
-import {Link, History} from "react-router";
-import jQuery from "jquery";
-import api from "../api";
-import Count from "../components/count";
-import GroupState from "../mixins/groupState";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import Pagination from "../components/pagination";
-import TimeSince from "../components/timeSince";
-import {isUrl, percent} from "../utils";
+import React from 'react';
+import {Link, History} from 'react-router';
+import jQuery from 'jquery';
+import api from '../api';
+import Count from '../components/count';
+import GroupState from '../mixins/groupState';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import Pagination from '../components/pagination';
+import TimeSince from '../components/timeSince';
+import {isUrl, percent} from '../utils';
 
 const GroupTagValues = React.createClass({
   mixins: [

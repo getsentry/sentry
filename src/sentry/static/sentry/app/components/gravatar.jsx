@@ -1,6 +1,6 @@
-import React from "react";
-import $ from "jquery";
-import MD5 from "crypto-js/md5";
+import React from 'react';
+import $ from 'jquery';
+import MD5 from 'crypto-js/md5';
 
 const Gravatar = React.createClass({
   propTypes: {
@@ -11,13 +11,13 @@ const Gravatar = React.createClass({
 
   getDefaultProps() {
     return {
-      className: "avatar",
+      className: 'avatar',
       size: 64
     };
   },
 
   buildGravatarUrl() {
-    let url = "https://secure.gravatar.com/avatar/";
+    let url = 'https://secure.gravatar.com/avatar/';
 
     url += MD5(this.props.email.toLowerCase());
 
@@ -26,7 +26,7 @@ const Gravatar = React.createClass({
       d: this.props.default || undefined
     };
 
-    url += "?" + $.param(query);
+    url += '?' + $.param(query);
 
     return url;
   },

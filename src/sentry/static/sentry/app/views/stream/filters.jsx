@@ -1,8 +1,8 @@
-import React from "react";
+import React from 'react';
 
-import FilterSelectLink from "./filterSelectLink";
-import SearchBar from "./searchBar";
-import SortOptions from "./sortOptions";
+import FilterSelectLink from './filterSelectLink';
+import SearchBar from './searchBar';
+import SortOptions from './sortOptions';
 
 const StreamFilters = React.createClass({
   propTypes: {
@@ -16,9 +16,9 @@ const StreamFilters = React.createClass({
 
   getDefaultProps() {
     return {
-      defaultQuery: "",
-      sort: "",
-      filter: "",
+      defaultQuery: '',
+      sort: '',
+      filter: '',
       query: null,
       onFilterChange: function() {},
       onSortChange: function() {},
@@ -57,11 +57,11 @@ const StreamFilters = React.createClass({
                 extraClass="btn btn-all-events" />
               <FilterSelectLink label="Bookmarks"
                 isActive={activeButton === 'bookmarks'}
-                onSelect={this.onFilterChange.bind(this, {bookmarks: "1"})}
+                onSelect={this.onFilterChange.bind(this, {bookmarks: '1'})}
                 extraClass="btn btn-middle btn-bookmarks" />
               <FilterSelectLink label="Assigned"
                 isActive={activeButton === 'assigned'}
-                onSelect={this.onFilterChange.bind(this, {assigned: "1"})}
+                onSelect={this.onFilterChange.bind(this, {assigned: '1'})}
                 extraClass="btn btn-assigned" />
             </div>
           </div>

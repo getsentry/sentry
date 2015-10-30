@@ -1,8 +1,8 @@
-import {queryToObj, objToQuery} from "app/utils/stream";
+import {queryToObj, objToQuery} from 'app/utils/stream';
 
-describe("utils/stream", function () {
-  describe("queryToObj()", function () {
-    it("should convert a basic query string to a query object", function () {
+describe('utils/stream', function () {
+  describe('queryToObj()', function () {
+    it('should convert a basic query string to a query object', function () {
       expect(queryToObj('is:unresolved')).to.eql({
         is: 'unresolved'
       });
