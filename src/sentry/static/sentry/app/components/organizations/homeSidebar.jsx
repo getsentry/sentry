@@ -1,10 +1,10 @@
-import React from "react";
+import React from 'react';
 
-import ListLink from "../listLink";
-import OrganizationState from "../../mixins/organizationState";
+import ListLink from '../listLink';
+import OrganizationState from '../../mixins/organizationState';
 
-import ConfigStore from "../../stores/configStore";
-import HookStore from "../../stores/hookStore";
+import ConfigStore from '../../stores/configStore';
+import HookStore from '../../stores/hookStore';
 
 const HomeSidebar = React.createClass({
   mixins: [OrganizationState],

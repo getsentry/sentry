@@ -1,6 +1,6 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import $ from "jquery";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import $ from 'jquery';
 
 const RuleNode = React.createClass({
   propTypes: {

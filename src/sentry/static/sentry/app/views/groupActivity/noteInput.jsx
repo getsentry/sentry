@@ -1,10 +1,10 @@
-import marked from "marked";
-import React from "react";
-import api from "../../api";
-import GroupStore from "../../stores/groupStore";
-import IndicatorStore from "../../stores/indicatorStore";
-import {logException} from "../../utils/logging";
-import {getItem, setItem} from "../../utils/localStorage";
+import marked from 'marked';
+import React from 'react';
+import api from '../../api';
+import GroupStore from '../../stores/groupStore';
+import IndicatorStore from '../../stores/indicatorStore';
+import {logException} from '../../utils/logging';
+import {getItem, setItem} from '../../utils/localStorage';
 
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 const localStorageKey = 'noteinput:latest';
@@ -208,10 +208,10 @@ const NoteInput = React.createClass({
       <form className={classNames} onSubmit={this.onSubmit}>
         <div className="activity-notes">
           <ul className="nav nav-tabs">
-            <li className={!preview ? "active" : ""}>
-              <a onClick={this.toggleEdit}>{updating ? "Edit" : "Write"}</a>
+            <li className={!preview ? 'active' : ''}>
+              <a onClick={this.toggleEdit}>{updating ? 'Edit' : 'Write'}</a>
             </li>
-            <li className={preview ? "active" : ""}>
+            <li className={preview ? 'active' : ''}>
               <a onClick={this.togglePreview}>Preview</a>
             </li>
           </ul>

@@ -1,14 +1,14 @@
-import React from "react";
-import Reflux from "reflux";
-import jQuery from "jquery";
-import api from "../api";
-import GroupListHeader from "../components/groupListHeader";
-import GroupStore from "../stores/groupStore";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import ProjectState from "../mixins/projectState";
-import StreamGroup from "../components/stream/group";
-import utils from "../utils";
+import React from 'react';
+import Reflux from 'reflux';
+import jQuery from 'jquery';
+import api from '../api';
+import GroupListHeader from '../components/groupListHeader';
+import GroupStore from '../stores/groupStore';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import ProjectState from '../mixins/projectState';
+import StreamGroup from '../components/stream/group';
+import utils from '../utils';
 
 const GroupList = React.createClass({
   propTypes: {
@@ -24,7 +24,7 @@ const GroupList = React.createClass({
 
   mixins: [
     ProjectState,
-    Reflux.listenTo(GroupStore, "onGroupChange"),
+    Reflux.listenTo(GroupStore, 'onGroupChange'),
   ],
 
   getDefaultProps() {
@@ -125,7 +125,7 @@ const GroupList = React.createClass({
     let wrapperClass;
 
     if (!this.props.bulkActions) {
-      wrapperClass = "stream-no-bulk-actions";
+      wrapperClass = 'stream-no-bulk-actions';
     }
 
     let {orgId, projectId} = this.props;

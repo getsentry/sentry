@@ -1,7 +1,7 @@
-import React from "react";
-import DocumentTitle from "react-document-title";
-import Footer from "../components/footer";
-import Header from "../components/header";
+import React from 'react';
+import DocumentTitle from 'react-document-title';
+import Footer from '../components/footer';
+import Header from '../components/header';
 
 const RouteNotFound = React.createClass({
   statics: {

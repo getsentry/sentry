@@ -1,12 +1,12 @@
-import React from "react";
-import Reflux from "reflux";
-import api from "../../api";
-import ActionLink from "./actionLink";
-import DropdownLink from "../../components/dropdownLink";
-import IndicatorStore from "../../stores/indicatorStore";
-import MenuItem from "../../components/menuItem";
+import React from 'react';
+import Reflux from 'reflux';
+import api from '../../api';
+import ActionLink from './actionLink';
+import DropdownLink from '../../components/dropdownLink';
+import IndicatorStore from '../../stores/indicatorStore';
+import MenuItem from '../../components/menuItem';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
-import SelectedGroupStore from "../../stores/selectedGroupStore";
+import SelectedGroupStore from '../../stores/selectedGroupStore';
 
 const StreamActions = React.createClass({
   propTypes: {
@@ -144,7 +144,7 @@ const StreamActions = React.createClass({
                actionTypes={this.props.actionTypes}
                className="btn btn-default btn-sm action-resolve"
                disabled={!this.state.anySelected}
-               onAction={this.onUpdate.bind(this, {status: "resolved"})}
+               onAction={this.onUpdate.bind(this, {status: 'resolved'})}
                buttonTitle="Resolve"
                confirmLabel="Resolve"
                tooltip="Set Status to Resolved"
@@ -207,7 +207,7 @@ const StreamActions = React.createClass({
                    actionTypes={this.props.actionTypes}
                    className="action-unresolve"
                    disabled={!this.state.anySelected}
-                   onAction={this.onUpdate.bind(this, {status: "unresolved"})}
+                   onAction={this.onUpdate.bind(this, {status: 'unresolved'})}
                    neverConfirm={true}
                    confirmLabel="Unresolve"
                    onlyIfBulk={false}
@@ -222,7 +222,7 @@ const StreamActions = React.createClass({
                    actionTypes={this.props.actionTypes}
                    className="action-mute"
                    disabled={!this.state.anySelected}
-                   onAction={this.onUpdate.bind(this, {status: "muted"})}
+                   onAction={this.onUpdate.bind(this, {status: 'muted'})}
                    neverConfirm={true}
                    confirmLabel="Mute"
                    onlyIfBulk={false}

@@ -1,8 +1,8 @@
-import React from "react";
+import React from 'react';
 
-import EventDataSection from "./eventDataSection";
-import EventErrorItem from "./errorItem";
-import PropTypes from "../../proptypes";
+import EventDataSection from './eventDataSection';
+import EventErrorItem from './errorItem';
+import PropTypes from '../../proptypes';
 
 const EventErrors = React.createClass({
   propTypes: {

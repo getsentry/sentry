@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import AlertActions from '../actions/alertActions';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 

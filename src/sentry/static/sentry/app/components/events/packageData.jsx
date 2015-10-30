@@ -1,8 +1,8 @@
-import React from "react";
-import PropTypes from "../../proptypes";
+import React from 'react';
+import PropTypes from '../../proptypes';
 
-import EventDataSection from "./eventDataSection";
-import ClippedBox from "../clippedBox";
+import EventDataSection from './eventDataSection';
+import ClippedBox from '../clippedBox';
 
 const EventPackageData = React.createClass({
   propTypes: {

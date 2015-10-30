@@ -1,25 +1,25 @@
-import React from "react";
-import Reflux from "reflux";
-import {History} from "react-router";
-import $ from "jquery";
-import Cookies from "js-cookie";
+import React from 'react';
+import Reflux from 'reflux';
+import {History} from 'react-router';
+import $ from 'jquery';
+import Cookies from 'js-cookie';
 import Sticky from 'react-sticky';
-import classNames from "classnames";
-import _ from "underscore";
+import classNames from 'classnames';
+import _ from 'underscore';
 
-import api from "../api";
+import api from '../api';
 
-import GroupStore from "../stores/groupStore";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import Pagination from "../components/pagination";
+import GroupStore from '../stores/groupStore';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import Pagination from '../components/pagination';
 import StreamGroup from '../components/stream/group';
 import StreamActions from './stream/actions';
-import StreamTagActions from "../actions/streamTagActions";
-import StreamTagStore from "../stores/streamTagStore";
+import StreamTagActions from '../actions/streamTagActions';
+import StreamTagStore from '../stores/streamTagStore';
 import StreamFilters from './stream/filters';
-import StreamSidebar from "./stream/sidebar";
-import utils from "../utils";
+import StreamSidebar from './stream/sidebar';
+import utils from '../utils';
 import parseLinkHeader from '../utils/parseLinkHeader';
 
 const Stream = React.createClass({
@@ -28,18 +28,18 @@ const Stream = React.createClass({
   },
 
   mixins: [
-    Reflux.listenTo(GroupStore, "onGroupChange"),
-    Reflux.listenTo(StreamTagStore, "onStreamTagChange"),
+    Reflux.listenTo(GroupStore, 'onGroupChange'),
+    Reflux.listenTo(StreamTagStore, 'onStreamTagChange'),
     History
   ],
 
   getDefaultProps() {
     return {
       // intentional trailing whitespace / better UX for when uesrs focus on search input
-      defaultQuery: "is:unresolved ",
+      defaultQuery: 'is:unresolved ',
 
-      defaultSort: "date",
-      defaultStatsPeriod: "24h",
+      defaultSort: 'date',
+      defaultStatsPeriod: '24h',
       maxItems: 25
     };
   },
@@ -74,9 +74,9 @@ const Stream = React.createClass({
       endpoint: this.getGroupListEndpoint()
     });
 
-    let realtime = Cookies.get("realtimeActive");
+    let realtime = Cookies.get('realtimeActive');
     if (realtime) {
-      let realtimeActive = realtime === "true";
+      let realtimeActive = realtime === 'true';
       this.setState({
         realtimeActive: realtimeActive
       });
@@ -142,23 +142,23 @@ const Stream = React.createClass({
 
     let filter = {};
     if (currentQuery.bookmarks) {
-      filter = { bookmarks: "1" };
+      filter = { bookmarks: '1' };
     } else if (currentQuery.assigned) {
-      filter = { assigned: "1" };
+      filter = { assigned: '1' };
     }
 
     let query =
-      currentQuery.hasOwnProperty("query") ?
+      currentQuery.hasOwnProperty('query') ?
       currentQuery.query :
       this.props.defaultQuery;
 
     let sort =
-      currentQuery.hasOwnProperty("sort") ?
+      currentQuery.hasOwnProperty('sort') ?
       currentQuery.sort :
       this.props.defaultSort;
 
     let statsPeriod =
-      currentQuery.hasOwnProperty("statsPeriod") ?
+      currentQuery.hasOwnProperty('statsPeriod') ?
       currentQuery.statsPeriod :
       this.props.defaultStatsPeriod;
 
@@ -189,7 +189,7 @@ const Stream = React.createClass({
       statsPeriod: this.state.statsPeriod
     });
 
-    if (!requestParams.hasOwnProperty("query")) {
+    if (!requestParams.hasOwnProperty('query')) {
       requestParams.query = this.props.defaultQuery;
     }
 
@@ -246,7 +246,7 @@ const Stream = React.createClass({
   },
 
   onRealtimeChange(realtime) {
-    Cookies.set("realtimeActive", realtime.toString());
+    Cookies.set('realtimeActive', realtime.toString());
     this.setState({
       realtimeActive: realtime
     });
@@ -424,7 +424,7 @@ const Stream = React.createClass({
           />
           <div className="group-header">
             <Sticky onStickyStateChange={this.onStickyStateChange}>
-              <div className={this.state.isStickyHeader ? "container" : null}>
+              <div className={this.state.isStickyHeader ? 'container' : null}>
                 <StreamActions
                   orgId={params.orgId}
                   projectId={params.projectId}

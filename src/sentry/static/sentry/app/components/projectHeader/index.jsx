@@ -1,8 +1,8 @@
-import React from "react";
-import {Link} from "react-router";
-import ConfigStore from "../../stores/configStore";
+import React from 'react';
+import {Link} from 'react-router';
+import ConfigStore from '../../stores/configStore';
 
-import ProjectSelector from "./projectSelector";
+import ProjectSelector from './projectSelector';
 
 const ProjectHeader = React.createClass({
   render() {

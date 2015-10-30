@@ -1,16 +1,16 @@
-import React from "react";
-import {History} from "react-router";
-import Reflux from "reflux";
-import jQuery from "jquery";
-import Cookies from "js-cookie";
-import api from "../api";
-import EventRow from "../components/events/eventRow";
-import EventActions from "./projectEvents/actions";
-import EventStore from "../stores/eventStore";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import Pagination from "../components/pagination";
-import utils from "../utils";
+import React from 'react';
+import {History} from 'react-router';
+import Reflux from 'reflux';
+import jQuery from 'jquery';
+import Cookies from 'js-cookie';
+import api from '../api';
+import EventRow from '../components/events/eventRow';
+import EventActions from './projectEvents/actions';
+import EventStore from '../stores/eventStore';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import Pagination from '../components/pagination';
+import utils from '../utils';
 
 const ProjectEvents = React.createClass({
   propTypes: {
@@ -18,7 +18,7 @@ const ProjectEvents = React.createClass({
   },
 
   mixins: [
-    Reflux.listenTo(EventStore, "onEventChange"),
+    Reflux.listenTo(EventStore, 'onEventChange'),
     History
   ],
 
@@ -41,9 +41,9 @@ const ProjectEvents = React.createClass({
       endpoint: this.getEventListEndpoint()
     });
 
-    let realtime = Cookies.get("realtimeActive");
+    let realtime = Cookies.get('realtimeActive');
     if (realtime) {
-      let realtimeActive = realtime === "true";
+      let realtimeActive = realtime === 'true';
       this.setState({
         realtimeActive: realtimeActive
       });
@@ -125,7 +125,7 @@ const ProjectEvents = React.createClass({
   },
 
   onRealtimeChange(realtime) {
-    Cookies.set("realtimeActive", realtime.toString());
+    Cookies.set('realtimeActive', realtime.toString());
     this.setState({
       realtimeActive: realtime
     });

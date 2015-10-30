@@ -1,5 +1,5 @@
-import React from "react";
-import moment from "moment";
+import React from 'react';
+import moment from 'moment';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import ConfigStore from '../stores/configStore.jsx';
 
@@ -15,7 +15,7 @@ const TimeSince = React.createClass({
 
   statics: {
     getDateObj(date) {
-      if (typeof date === "string" || typeof date === "number") {
+      if (typeof date === 'string' || typeof date === 'number') {
         date = new Date(date);
       }
       return date;

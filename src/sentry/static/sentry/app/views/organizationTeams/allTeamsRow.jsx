@@ -1,7 +1,7 @@
-import React from "react";
+import React from 'react';
 
-import api from "../../api";
-import AlertActions from "../../actions/alertActions";
+import api from '../../api';
+import AlertActions from '../../actions/alertActions';
 
 // TODO(dcramer): this isnt great UX
 const ERR_JOIN = 'There was an error while trying to join the team.';

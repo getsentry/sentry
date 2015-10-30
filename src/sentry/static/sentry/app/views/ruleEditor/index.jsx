@@ -1,11 +1,11 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import $ from "jquery";
-import api from "../../api";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import $ from 'jquery';
+import api from '../../api';
 import IndicatorStore from '../../stores/indicatorStore';
-import SelectInput from "../../components/selectInput";
+import SelectInput from '../../components/selectInput';
 
-import RuleNodeList from "./ruleNodeList";
+import RuleNodeList from './ruleNodeList';
 
 const RuleEditor = React.createClass({
   propTypes: {
@@ -65,7 +65,7 @@ const RuleEditor = React.createClass({
 
     let loadingIndicator = IndicatorStore.add('Saving...');
     api.request(endpoint, {
-      method: (rule.id ? "PUT" : "POST"),
+      method: (rule.id ? 'PUT' : 'POST'),
       data: data,
       success: () => {
         window.location.href = (rule.id ? '../../' : '../');

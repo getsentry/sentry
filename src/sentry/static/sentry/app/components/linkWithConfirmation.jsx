@@ -1,5 +1,5 @@
-import React from "react";
-import Modal from "react-bootstrap/lib/Modal";
+import React from 'react';
+import Modal from 'react-bootstrap/lib/Modal';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 const LinkWithConfirmation = React.createClass({

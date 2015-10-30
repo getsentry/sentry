@@ -1,10 +1,10 @@
 
-import Reflux from "reflux";
+import Reflux from 'reflux';
 
 let TeamActions = Reflux.createActions([
-  "update",
-  "updateError",
-  "updateSuccess"
+  'update',
+  'updateError',
+  'updateSuccess'
 ]);
 
 

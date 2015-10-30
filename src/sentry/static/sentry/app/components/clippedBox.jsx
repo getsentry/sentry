@@ -1,5 +1,5 @@
-import React from "react";
-import ReactDOM from "react-dom";
+import React from 'react';
+import ReactDOM from 'react-dom';
 
 const ClippedBox = React.createClass({
   propTypes: {
@@ -40,9 +40,9 @@ const ClippedBox = React.createClass({
   },
 
   render() {
-    let className = "box-clippable";
+    let className = 'box-clippable';
     if (this.state.clipped) {
-      className += " clipped";
+      className += ' clipped';
     }
 
     return (

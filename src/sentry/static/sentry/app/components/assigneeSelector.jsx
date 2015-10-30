@@ -1,17 +1,17 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import Reflux from "reflux";
-import classNames from "classnames";
-import api from "../api";
-import Gravatar from "../components/gravatar";
-import GroupStore from "../stores/groupStore";
-import DropdownLink from "./dropdownLink";
-import MemberListStore from "../stores/memberListStore";
-import MenuItem from "./menuItem";
-import LoadingIndicator from "../components/loadingIndicator";
-import {userDisplayName} from "../utils/formatters";
-import {valueIsEqual} from "../utils";
-import TooltipMixin from "../mixins/tooltip";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import Reflux from 'reflux';
+import classNames from 'classnames';
+import api from '../api';
+import Gravatar from '../components/gravatar';
+import GroupStore from '../stores/groupStore';
+import DropdownLink from './dropdownLink';
+import MemberListStore from '../stores/memberListStore';
+import MenuItem from './menuItem';
+import LoadingIndicator from '../components/loadingIndicator';
+import {userDisplayName} from '../utils/formatters';
+import {valueIsEqual} from '../utils';
+import TooltipMixin from '../mixins/tooltip';
 
 const AssigneeSelector = React.createClass({
   propTypes: {
@@ -19,10 +19,10 @@ const AssigneeSelector = React.createClass({
   },
 
   mixins: [
-    Reflux.listenTo(GroupStore, "onGroupChange"),
+    Reflux.listenTo(GroupStore, 'onGroupChange'),
     TooltipMixin({
       html: true,
-      selector: ".tip"
+      selector: '.tip'
     })
   ],
 
@@ -128,9 +128,9 @@ const AssigneeSelector = React.createClass({
     let assignedTo = this.state.assignedTo;
     let filter = this.state.filter;
 
-    let className = "assignee-selector anchor-right";
+    let className = 'assignee-selector anchor-right';
     if (!assignedTo) {
-      className += " unassigned";
+      className += ' unassigned';
     }
 
     let memberNodes = [];
@@ -157,7 +157,7 @@ const AssigneeSelector = React.createClass({
 
     return (
       <div ref="container">
-        <div className={classNames(className, "tip")} title={tooltipTitle} >
+        <div className={classNames(className, 'tip')} title={tooltipTitle} >
           {loading ?
             <LoadingIndicator mini={true} />
           :

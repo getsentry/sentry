@@ -1,4 +1,4 @@
-import PropTypes from "../proptypes";
+import PropTypes from '../proptypes';
 
 let OrganizationState = {
   contextTypes: {

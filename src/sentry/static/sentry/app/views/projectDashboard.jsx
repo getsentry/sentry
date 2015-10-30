@@ -1,10 +1,10 @@
-import jQuery from "jquery";
-import React from "react";
-import {Link} from "react-router";
+import jQuery from 'jquery';
+import React from 'react';
+import {Link} from 'react-router';
 
-import EventList from "./projectDashboard/eventList";
-import ProjectState from "../mixins/projectState";
-import ProjectChart from "./projectDashboard/chart";
+import EventList from './projectDashboard/eventList';
+import ProjectState from '../mixins/projectState';
+import ProjectChart from './projectDashboard/chart';
 
 
 const ProjectDashboard = React.createClass({
@@ -14,7 +14,7 @@ const ProjectDashboard = React.createClass({
 
   getDefaultProps() {
     return {
-      defaultStatsPeriod: "24h"
+      defaultStatsPeriod: '24h'
     };
   },
 
@@ -74,21 +74,21 @@ const ProjectDashboard = React.createClass({
   getTrendingEventsEndpoint(dateSince) {
     let params = this.props.params;
     let qs = jQuery.param({
-      sort: "priority",
-      query: "is:unresolved",
+      sort: 'priority',
+      query: 'is:unresolved',
       since: dateSince
     });
-    return "/projects/" + params.orgId + "/" + params.projectId + "/groups/?" + qs;
+    return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + qs;
   },
 
   getNewEventsEndpoint(dateSince) {
     let params = this.props.params;
     let qs = jQuery.param({
-      sort: "new",
-      query: "is:unresolved",
+      sort: 'new',
+      query: 'is:unresolved',
       since: dateSince
     });
-    return "/projects/" + params.orgId + "/" + params.projectId + "/groups/?" + qs;
+    return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + qs;
   },
 
   render() {
@@ -108,16 +108,16 @@ const ProjectDashboard = React.createClass({
                 to={url}
                 query={jQuery.extend({}, routeQuery, {statsPeriod: '1h'})}
                 active={statsPeriod === '1h'}
-                className={"btn btn-sm btn-default" + (statsPeriod === "1h" ? " active" : "")}>1h</Link>
+                className={'btn btn-sm btn-default' + (statsPeriod === '1h' ? ' active' : '')}>1h</Link>
               <Link
                 to={url}
                 query={jQuery.extend({}, routeQuery, {statsPeriod: '24h'})}
                 active={statsPeriod === '24h'}
-                className={"btn btn-sm btn-default" + (statsPeriod === "24h" ? " active" : "")}>24h</Link>
+                className={'btn btn-sm btn-default' + (statsPeriod === '24h' ? ' active' : '')}>24h</Link>
               <Link
                 to={url}
                 query={jQuery.extend({}, routeQuery, {statsPeriod: '1w'})}
-                className={"btn btn-sm btn-default" + (statsPeriod === "1w" ? " active" : "")}>1w</Link>
+                className={'btn btn-sm btn-default' + (statsPeriod === '1w' ? ' active' : '')}>1w</Link>
             </div>
           </div>
           <h3>Overview</h3>

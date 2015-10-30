@@ -1,5 +1,5 @@
-import PropTypes from "../proptypes";
-import OrganizationState from "./organizationState";
+import PropTypes from '../proptypes';
+import OrganizationState from './organizationState';
 
 let TeamState = {
   mixins: [OrganizationState],

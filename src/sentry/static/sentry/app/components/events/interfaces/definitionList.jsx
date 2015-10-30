@@ -1,7 +1,7 @@
-import React from "react";
-import _ from "underscore";
+import React from 'react';
+import _ from 'underscore';
 
-import ContextData from "../../contextData";
+import ContextData from '../../contextData';
 
 const DefinitionList = React.createClass({
   propTypes: {
@@ -21,10 +21,10 @@ const DefinitionList = React.createClass({
       <dl className="vars">
         {data.map(([key, value]) => {
           return [
-            <dt key={"dt-" + key}>{key}</dt>,
+            <dt key={'dt-' + key}>{key}</dt>,
             this.props.isContextData
-              ? <dd key={"dd-" + key}><ContextData data={value}/></dd>
-              : <dd key={"dd-" + key}><pre>{'' + value || ' '}</pre></dd>
+              ? <dd key={'dd-' + key}><ContextData data={value}/></dd>
+              : <dd key={'dd-' + key}><pre>{'' + value || ' '}</pre></dd>
 
           ];
         })}

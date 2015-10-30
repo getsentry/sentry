@@ -31,8 +31,8 @@ describe('GroupStore', function () {
     });
   });
 
-  describe("onUpdate()", function () {
-    it("should treat undefined itemIds argument as 'all'", function () {
+  describe('onUpdate()', function () {
+    it('should treat undefined itemIds argument as \'all\'', function () {
       GroupStore.items = [
         { id: 1 },
         { id: 2 },
@@ -48,8 +48,8 @@ describe('GroupStore', function () {
     });
   });
 
-  describe("onUpdateSuccess()", function () {
-    it("should treat undefined itemIds argument as 'all'", function () {
+  describe('onUpdateSuccess()', function () {
+    it('should treat undefined itemIds argument as \'all\'', function () {
       GroupStore.items = [
         { id: 1 },
         { id: 2 },

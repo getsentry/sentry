@@ -1,10 +1,10 @@
-import React from "react";
-import api from "../api";
-import Alerts from "../components/alerts";
-import AlertActions from "../actions/alertActions.jsx";
-import Indicators from "../components/indicators";
-import LoadingIndicator from "../components/loadingIndicator";
-import OrganizationStore from "../stores/organizationStore";
+import React from 'react';
+import api from '../api';
+import Alerts from '../components/alerts';
+import AlertActions from '../actions/alertActions.jsx';
+import Indicators from '../components/indicators';
+import LoadingIndicator from '../components/loadingIndicator';
+import OrganizationStore from '../stores/organizationStore';
 
 const App = React.createClass({
   getInitialState() {

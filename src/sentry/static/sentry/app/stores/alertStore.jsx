@@ -1,4 +1,4 @@
-import Reflux from "reflux";
+import Reflux from 'reflux';
 import AlertActions from '../actions/alertActions';
 
 const AlertStore = Reflux.createStore({

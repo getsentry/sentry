@@ -1,4 +1,4 @@
-import _ from "underscore";
+import _ from 'underscore';
 
 /*eslint no-use-before-define:0*/
 const modelsEqual = function(obj1, obj2) {
@@ -163,7 +163,7 @@ export default {
   },
 
   defined(item) {
-    return typeof item !== "undefined" && item !== null;
+    return typeof item !== 'undefined' && item !== null;
   },
 
   nl2br(str) {

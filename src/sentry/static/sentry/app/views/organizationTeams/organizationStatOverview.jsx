@@ -1,11 +1,11 @@
-import React from "react";
-import {Link} from "react-router";
-import classNames from "classnames";
+import React from 'react';
+import {Link} from 'react-router';
+import classNames from 'classnames';
 
-import api from "../../api";
-import OrganizationState from "../../mixins/organizationState";
+import api from '../../api';
+import OrganizationState from '../../mixins/organizationState';
 
-import {defined} from "../../utils";
+import {defined} from '../../utils';
 
 const OrganizationStatOverview = React.createClass({
   propTypes: {

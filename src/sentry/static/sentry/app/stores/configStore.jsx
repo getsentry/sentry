@@ -1,5 +1,5 @@
-import moment from "moment-timezone";
-import Reflux from "reflux";
+import moment from 'moment-timezone';
+import Reflux from 'reflux';
 
 const ConfigStore = Reflux.createStore({
   init() {

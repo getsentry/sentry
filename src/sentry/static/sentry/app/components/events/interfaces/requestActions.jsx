@@ -1,5 +1,5 @@
-import React from "react";
-import ConfigStore from "../../../stores/configStore";
+import React from 'react';
+import ConfigStore from '../../../stores/configStore';
 
 const RequestActions = React.createClass({
   render(){

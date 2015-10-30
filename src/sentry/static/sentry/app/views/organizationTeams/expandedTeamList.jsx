@@ -1,12 +1,12 @@
-import React from "react";
-import {Link} from "react-router";
-import LazyLoad from "react-lazy-load";
+import React from 'react';
+import {Link} from 'react-router';
+import LazyLoad from 'react-lazy-load';
 
-import api from "../../api";
-import BarChart from "../../components/barChart";
-import ConfigStore from "../../stores/configStore";
-import PropTypes from "../../proptypes";
-import {sortArray} from "../../utils";
+import api from '../../api';
+import BarChart from '../../components/barChart';
+import ConfigStore from '../../stores/configStore';
+import PropTypes from '../../proptypes';
+import {sortArray} from '../../utils';
 
 const ExpandedTeamList = React.createClass({
   propTypes: {
@@ -73,7 +73,7 @@ const ExpandedTeamList = React.createClass({
                 <tr>
                   <td>
                     <p className="project-list-empty">
-                      {"There are no projects in this team. Get started by "}
+                      {'There are no projects in this team. Get started by '}
                       <a href={this.urlPrefix() + '/projects/new/?team=' + team.slug}>creating your first project</a>.
                     </p>
                   </td>
@@ -121,18 +121,18 @@ const ExpandedTeamList = React.createClass({
     if (this.props.hasTeams) {
       return (
         <p>
-          {"You are not a member of any teams. "}
+          {'You are not a member of any teams. '}
           <a onClick={this.showAllTeams}>Join an existing team</a>
-          {" or "}
+          {' or '}
           <a href={this.urlPrefix() + '/teams/new/'}>create a new one</a>
-          {"."}
+          {'.'}
         </p>
       );
 
     }
     return (
       <p>
-        {"You dont have any teams for this organization yet. Get started by "}
+        {'You dont have any teams for this organization yet. Get started by '}
         <a href={this.urlPrefix() + '/teams/new/'}>creating your first team</a>.
       </p>
     );
