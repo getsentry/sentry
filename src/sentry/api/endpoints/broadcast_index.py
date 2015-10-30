@@ -18,10 +18,10 @@ class BroadcastIndexEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
-        # limit to only "recent" broadcasts
+        # limit to only a few "recent" broadcasts
         broadcasts = list(Broadcast.objects.filter(
             is_active=True
-        ).order_by('-date_added')[:10])
+        ).order_by('-date_added')[:5])
 
         return Response(serialize(broadcasts, request.user))
 
