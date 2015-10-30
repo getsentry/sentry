@@ -19,8 +19,12 @@ var Broadcasts = React.createClass({
 
   componentWillUnmount() {
     if (this.timer) {
-      clearTimeout(this.timer);
+      window.clearTimeout(this.timer);
       this.timer = null;
+    }
+    if (this.poller) {
+      window.clearTimeout(this.poller);
+      this.poller = null;
     }
   },
 
@@ -28,7 +32,10 @@ var Broadcasts = React.createClass({
     this.setState(this.getInitialState(), this.fetchData);
   },
 
-  fetchData() {
+  fetchData(callback) {
+    if (this.poller) {
+      window.clearTimeout(this.poller);
+    }
     api.request('/broadcasts/', {
       method: 'GET',
       success: (data) => {
@@ -36,12 +43,14 @@ var Broadcasts = React.createClass({
           broadcasts: data,
           loading: false
         });
+        this.poller = window.setTimeout(this.fetchData, 60000);
       },
       error: () => {
         this.setState({
           loading: false,
           error: true
         });
+        this.poller = window.setTimeout(this.fetchData, 60000);
       }
     });
   },
@@ -74,8 +83,11 @@ var Broadcasts = React.createClass({
         hasSeen: '1'
       },
       success: () => {
-        this.state.broadcasts.forEach((item) => {
-          item.hasSeen = true;
+        this.setState({
+          broadcasts: this.state.broadcasts.map((item) => {
+            item.hasSeen = true;
+            return item;
+          })
         });
       },
     });
@@ -88,7 +100,6 @@ var Broadcasts = React.createClass({
     }).length;
 
     let title = <span className="icon-globe" />;
-
     return (
       <DropdownLink
           topLevelClasses={`broadcasts ${this.props.className || ''} ${unseenCount && 'unseen'}`}

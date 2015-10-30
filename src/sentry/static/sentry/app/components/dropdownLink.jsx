@@ -1,5 +1,5 @@
+import jQuery from 'jquery';
 import React from 'react';
-import ReactDOM from 'react-dom';
 import classNames from 'classnames';
 
 require('bootstrap/js/dropdown');
@@ -19,40 +19,48 @@ const DropdownLink = React.createClass({
       caret: true,
     };
   },
+  getInitialState() {
+    return {
+      isOpen: false,
+    };
+  },
 
-  isOpen() {
-    return ReactDOM.findDOMNode(this).classList.contains('open');
+  componentDidMount() {
+    jQuery(this.refs.dropdownToggle).dropdown();
+    jQuery(this.refs.dropdownToggle.parentNode).on(
+      'shown.bs.dropdown', (e) => {
+        this.setState({
+          isOpen: true,
+        });
+        this.props.onOpen(e);
+      }).on(
+      'hidden.bs.dropdown', (e) => {
+        this.setState({
+          isOpen: false,
+        });
+        this.props.onClose(e);
+      });
   },
 
   close() {
-    ReactDOM.findDOMNode(this).classList.remove('open');
-  },
-
-  onToggle(e) {
-    if (this.isOpen()) {
-      if (this.props.onOpen) {
-        this.props.onOpen(e);
-      }
-    } else {
-      if (this.props.onClose) {
-        this.props.onClose(e);
-      }
-    }
+    this.setState({isOpen: false});
   },
 
   render() {
     let className = classNames({
-      'dropdown-toggle': true,
       'disabled': this.props.disabled,
     });
 
     let topLevelClasses = classNames({
       'dropdown' : true,
+      'open': this.state.isOpen,
     });
 
     return (
       <span className={classNames(this.props.topLevelClasses, topLevelClasses)}>
-        <a className={classNames(this.props.className, className)} data-toggle="dropdown" onClick={this.onToggle}>
+        <a className={classNames(this.props.className, className)}
+           data-toggle="dropdown"
+           ref="dropdownToggle">
           {this.props.title}
           {this.props.caret &&
             <i className="icon-arrow-down" />
