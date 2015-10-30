@@ -68,7 +68,7 @@ class SentryInternalClient(DjangoClient):
         except Exception:
             self.error_logger.error(
                 'Unable to fetch internal project for some unknown reason',
-                exec_info=True)
+                exc_info=True)
             return
 
         helper.context.bind_project(project)
