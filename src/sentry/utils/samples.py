@@ -47,7 +47,7 @@ def load_data(platform, default=None):
         'emptyList': [],
         'emptyMap': {},
         'length': 10837790,
-
+        'url': 'http://example.org/foo/bar/',
     }
     data['modules'] = {
         'my.package': '1.0.0',
