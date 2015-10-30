@@ -121,6 +121,18 @@ Once your system is prepared, symlink your source into the virtualenv:
 .. Note:: This command will install npm dependencies as well as compile
           static assets.
 
+You can also use pip to directly install the package from GitHub:
+
+.. code-block:: bash
+
+  $ pip install -e git+https://github.com/getsentry/sentry.git@master#egg=sentry-dev
+
+And more importantly, you can easily pin to a specific SHA:
+
+.. code-block:: bash
+
+  $ pip install -e git+https://github.com/getsentry/sentry.git@___SHA___#egg=sentry-dev
+
 
 Initializing the Configuration
 ------------------------------
