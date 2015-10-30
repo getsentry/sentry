@@ -43,6 +43,9 @@ class BroadcastIndexEndpoint(Endpoint):
             )
 
         if result.get('hasSeen'):
+            if not request.user.is_authenticated():
+                return Response(status=401)
+
             if ids:
                 unseen_queryset = queryset
             else:
