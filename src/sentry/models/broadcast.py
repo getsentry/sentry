@@ -13,17 +13,9 @@ from django.utils import timezone
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 
 
-BADGES = (
-    ('new', 'new'),
-    ('tip', 'tip'),
-)
-
-
 class Broadcast(Model):
     message = models.CharField(max_length=256)
     link = models.URLField(null=True, blank=True)
-    badge = models.CharField(max_length=32, choices=BADGES, null=True,
-                             blank=True)
     is_active = models.BooleanField(default=True, db_index=True)
     date_added = models.DateTimeField(default=timezone.now)
 
