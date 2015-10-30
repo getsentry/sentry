@@ -13,8 +13,8 @@ class ProjectStatsTest(APITestCase):
         project1 = self.create_project(name='foo')
         project2 = self.create_project(name='bar')
 
-        tsdb.incr(tsdb.models.project, project1.id, count=3)
-        tsdb.incr(tsdb.models.project, project2.id, count=5)
+        tsdb.incr(tsdb.models.project_total_received, project1.id, count=3)
+        tsdb.incr(tsdb.models.project_total_received, project2.id, count=5)
 
         url = reverse('sentry-api-0-project-stats', kwargs={
             'organization_slug': project1.organization.slug,
