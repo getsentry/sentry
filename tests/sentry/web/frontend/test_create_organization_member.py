@@ -4,7 +4,22 @@ from django.core import mail
 from django.core.urlresolvers import reverse
 
 from sentry.models import OrganizationMember
-from sentry.testutils import TestCase
+from sentry.testutils import PermissionTestCase, TestCase
+
+
+class CreateOrganizationMemberPermissionTest(PermissionTestCase):
+    def setUp(self):
+        super(CreateOrganizationMemberPermissionTest, self).setUp()
+        self.path = reverse('sentry-create-organization-member', args=[self.organization.slug])
+
+    def test_teamless_admin_cannot_load(self):
+        self.assert_teamless_admin_cannot_access(self.path)
+
+    def test_owner_can_load(self):
+        self.assert_owner_can_access(self.path)
+
+    def test_member_cannot_load(self):
+        self.assert_member_cannot_access(self.path)
 
 
 class CreateOrganizationMemberTest(TestCase):

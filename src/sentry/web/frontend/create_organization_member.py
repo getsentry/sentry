@@ -13,6 +13,8 @@ from sentry.web.forms.add_organization_member import AddOrganizationMemberForm
 
 
 class CreateOrganizationMemberView(OrganizationView):
+    required_scope = 'org:write'
+
     def get_form(self, request, organization):
         initial = {
             'role': organization.default_role,
