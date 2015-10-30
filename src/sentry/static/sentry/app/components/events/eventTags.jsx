@@ -1,11 +1,11 @@
-import React from "react";
-import {Link} from "react-router";
-import _ from "underscore";
+import React from 'react';
+import {Link} from 'react-router';
+import _ from 'underscore';
 
-import PropTypes from "../../proptypes";
+import PropTypes from '../../proptypes';
 
-import EventDataSection from "./eventDataSection";
-import {isUrl} from "../../utils";
+import EventDataSection from './eventDataSection';
+import {isUrl} from '../../utils';
 
 const EventTags = React.createClass({
   propTypes: {

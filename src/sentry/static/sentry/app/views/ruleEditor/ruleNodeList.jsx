@@ -1,7 +1,7 @@
-import React from "react";
+import React from 'react';
 
-import SelectInput from "../../components/selectInput";
-import RuleNode from "./ruleNode";
+import SelectInput from '../../components/selectInput';
+import RuleNode from './ruleNode';
 
 const RuleNodeList = React.createClass({
   getInitialState() {

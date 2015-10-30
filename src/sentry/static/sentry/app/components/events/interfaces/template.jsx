@@ -1,7 +1,7 @@
-import React from "react";
-import GroupEventDataSection from "../eventDataSection";
-import PropTypes from "../../../proptypes";
-import Frame from "./frame";
+import React from 'react';
+import GroupEventDataSection from '../eventDataSection';
+import PropTypes from '../../../proptypes';
+import Frame from './frame';
 
 const TemplateInterface = React.createClass({
   propTypes: {

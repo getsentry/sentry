@@ -1,8 +1,8 @@
-import {Link} from "react-router";
-import React from "react";
-import PropTypes from "../../proptypes";
-import DateTime from "../../components/dateTime";
-import FileSize from "../../components/fileSize";
+import {Link} from 'react-router';
+import React from 'react';
+import PropTypes from '../../proptypes';
+import DateTime from '../../components/dateTime';
+import FileSize from '../../components/fileSize';
 
 let GroupEventToolbar  = React.createClass({
   propTypes: {

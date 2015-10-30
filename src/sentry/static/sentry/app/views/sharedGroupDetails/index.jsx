@@ -1,16 +1,16 @@
-import React from "react";
-import jQuery from "jquery";
-import DocumentTitle from "react-document-title";
+import React from 'react';
+import jQuery from 'jquery';
+import DocumentTitle from 'react-document-title';
 
-import api from "../../api";
-import EventEntries from "../../components/events/eventEntries";
-import Footer from "../../components/footer";
-import Header from "../../components/header";
-import LoadingError from "../../components/loadingError";
-import LoadingIndicator from "../../components/loadingIndicator";
-import PropTypes from "../../proptypes";
+import api from '../../api';
+import EventEntries from '../../components/events/eventEntries';
+import Footer from '../../components/footer';
+import Header from '../../components/header';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
+import PropTypes from '../../proptypes';
 
-import SharedGroupHeader from "./sharedGroupHeader";
+import SharedGroupHeader from './sharedGroupHeader';
 
 const SharedGroupDetails = React.createClass({
 
@@ -34,11 +34,11 @@ const SharedGroupDetails = React.createClass({
 
   componentWillMount() {
     this.fetchData();
-    jQuery(document.body).addClass("shared-group");
+    jQuery(document.body).addClass('shared-group');
   },
 
   componentWillUnmount() {
-    jQuery(document.body).removeClass("shared-group");
+    jQuery(document.body).removeClass('shared-group');
   },
 
   getTitle() {

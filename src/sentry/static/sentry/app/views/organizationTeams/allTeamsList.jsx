@@ -1,9 +1,9 @@
-import React from "react";
+import React from 'react';
 
-import ConfigStore from "../../stores/configStore";
-import PropTypes from "../../proptypes";
+import ConfigStore from '../../stores/configStore';
+import PropTypes from '../../proptypes';
 
-import AllTeamsRow from "./allTeamsRow";
+import AllTeamsRow from './allTeamsRow';
 
 const AllTeamsList = React.createClass({
   propTypes: {

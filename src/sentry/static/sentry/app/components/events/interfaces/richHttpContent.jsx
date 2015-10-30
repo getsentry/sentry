@@ -1,11 +1,11 @@
-import React from "react";
+import React from 'react';
 
-import ClippedBox from "../../clippedBox";
-import DefinitionList from "./definitionList";
-import ContextData from "../../contextData";
+import ClippedBox from '../../clippedBox';
+import DefinitionList from './definitionList';
+import ContextData from '../../contextData';
 
-import {objectIsEmpty} from "../../../utils";
-import queryString from "query-string";
+import {objectIsEmpty} from '../../../utils';
+import queryString from 'query-string';
 
 const RichHttpContent = React.createClass({
 

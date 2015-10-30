@@ -1,14 +1,14 @@
-import React from "react";
-import {History, Link} from "react-router";
-import api from "../api";
+import React from 'react';
+import {History, Link} from 'react-router';
+import api from '../api';
 
-import GroupState from "../mixins/groupState";
+import GroupState from '../mixins/groupState';
 
-import DateTime from "../components/dateTime";
-import Gravatar from "../components/gravatar";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import Pagination from "../components/pagination";
+import DateTime from '../components/dateTime';
+import Gravatar from '../components/gravatar';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import Pagination from '../components/pagination';
 
 const GroupEvents = React.createClass({
   mixins: [

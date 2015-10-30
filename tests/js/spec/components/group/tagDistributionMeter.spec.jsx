@@ -1,20 +1,20 @@
-import React from "react";
-import ReactDOMServer from "react-dom/server";
+import React from 'react';
+import ReactDOMServer from 'react-dom/server';
 
-import TestUtils from "react-addons-test-utils";
+import TestUtils from 'react-addons-test-utils';
 
-import api from "app/api";
-import TagDistributionMeter from "app/components/group/tagDistributionMeter";
+import api from 'app/api';
+import TagDistributionMeter from 'app/components/group/tagDistributionMeter';
 
-describe("TagDistributionMeter", function() {
+describe('TagDistributionMeter', function() {
 
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(api, "request");
+    this.stubbedApiRequest = this.sandbox.stub(api, 'request');
 
     this.element = TestUtils.renderIntoDocument(
-      <TagDistributionMeter tag="browser" group={{id:"1337"}} orgId="123" projectId="456"/>
+      <TagDistributionMeter tag="browser" group={{id:'1337'}} orgId="123" projectId="456"/>
     );
   });
 
@@ -22,7 +22,7 @@ describe("TagDistributionMeter", function() {
     this.sandbox.restore();
   });
 
-  describe("fetchData()", function() {
+  describe('fetchData()', function() {
     it('should make a request to the groups/tags endpoint', function () {
       // NOTE: creation of OrganizationTeams causes a bunch of API requests to fire ...
       //       reset the request stub so that we can get an accurate count
@@ -35,7 +35,7 @@ describe("TagDistributionMeter", function() {
     });
   });
 
-  describe("renderBody()", function () {
+  describe('renderBody()', function () {
     it('should return null if loading', function (done) {
       this.element.setState({
         loading: true,

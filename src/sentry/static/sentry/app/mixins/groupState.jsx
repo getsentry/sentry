@@ -1,5 +1,5 @@
-import PropTypes from "../proptypes";
-import ProjectState from "./projectState";
+import PropTypes from '../proptypes';
+import ProjectState from './projectState';
 
 let GroupState = {
   mixins: [ProjectState],

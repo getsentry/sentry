@@ -1,6 +1,6 @@
-import React from "react";
-import jQuery from "jquery";
-import ReactDOM from "react-dom";
+import React from 'react';
+import jQuery from 'jquery';
+import ReactDOM from 'react-dom';
 
 const AutoSelectText = React.createClass({
   componentDidMount() {

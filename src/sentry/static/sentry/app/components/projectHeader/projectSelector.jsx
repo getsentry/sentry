@@ -1,10 +1,10 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import {Link} from "react-router";
-import jQuery from "jquery";
-import ConfigStore from "../../stores/configStore";
-import DropdownLink from "../dropdownLink";
-import MenuItem from "../menuItem";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import {Link} from 'react-router';
+import jQuery from 'jquery';
+import ConfigStore from '../../stores/configStore';
+import DropdownLink from '../dropdownLink';
+import MenuItem from '../menuItem';
 
 const ProjectSelector = React.createClass({
   contextTypes: {

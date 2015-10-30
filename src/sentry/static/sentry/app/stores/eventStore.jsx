@@ -1,5 +1,5 @@
-import jQuery from "jquery";
-import Reflux from "reflux";
+import jQuery from 'jquery';
+import Reflux from 'reflux';
 
 const EventStore = Reflux.createStore({
   init() {

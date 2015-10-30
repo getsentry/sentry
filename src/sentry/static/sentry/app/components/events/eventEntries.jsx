@@ -1,15 +1,15 @@
-import React from "react";
+import React from 'react';
 
-import {logException} from "../../utils/logging";
-import EventDataSection from "./eventDataSection";
-import EventErrors from "./errors";
-import EventExtraData from "./extraData";
-import EventPackageData from "./packageData";
-import EventTags from "./eventTags";
-import EventMessage from "./message";
-import EventUser from "./user";
-import PropTypes from "../../proptypes";
-import utils from "../../utils";
+import {logException} from '../../utils/logging';
+import EventDataSection from './eventDataSection';
+import EventErrors from './errors';
+import EventExtraData from './extraData';
+import EventPackageData from './packageData';
+import EventTags from './eventTags';
+import EventMessage from './message';
+import EventUser from './user';
+import PropTypes from '../../proptypes';
+import utils from '../../utils';
 
 const EventEntries = React.createClass({
   propTypes: {
@@ -34,11 +34,11 @@ const EventEntries = React.createClass({
 
   // TODO(dcramer): make this extensible
   interfaces: {
-    exception: require("./interfaces/exception"),
-    request: require("./interfaces/request"),
-    stacktrace: require("./interfaces/stacktrace"),
-    template: require("./interfaces/template"),
-    csp: require("./interfaces/csp"),
+    exception: require('./interfaces/exception'),
+    request: require('./interfaces/request'),
+    stacktrace: require('./interfaces/stacktrace'),
+    template: require('./interfaces/template'),
+    csp: require('./interfaces/csp'),
   },
 
   render(){
@@ -56,7 +56,7 @@ const EventEntries = React.createClass({
         }
         return (
           <Component
-            key={"entry-" + entryIdx}
+            key={'entry-' + entryIdx}
             group={group}
             event={evt}
             type={entry.type}

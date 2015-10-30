@@ -1,12 +1,12 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import TestUtils from "react-addons-test-utils";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import TestUtils from 'react-addons-test-utils';
 
-import DefinitionList from "app/components/events/interfaces/definitionList";
+import DefinitionList from 'app/components/events/interfaces/definitionList';
 
 describe('DefinitionList', function () {
-  describe("render", function () {
-    it("should render a definition list of key/value pairs", function () {
+  describe('render', function () {
+    it('should render a definition list of key/value pairs', function () {
       let data = [
         ['a', 'x'], ['b', 'y']
       ];
@@ -21,7 +21,7 @@ describe('DefinitionList', function () {
       expect(ReactDOM.findDOMNode(dds[1]).textContent).to.eql('y');
     });
 
-    it("should sort sort key/value pairs", function () {
+    it('should sort sort key/value pairs', function () {
       let data = [
         ['b', 'y'], ['a', 'x']
       ];
@@ -36,7 +36,7 @@ describe('DefinitionList', function () {
       expect(ReactDOM.findDOMNode(dds[1]).textContent).to.eql('y');
     });
 
-    it("should use a single space for values that are an empty string", function () {
+    it('should use a single space for values that are an empty string', function () {
       let data = [
         ['b', 'y'], ['a', ''] // empty string
       ];
@@ -51,7 +51,7 @@ describe('DefinitionList', function () {
       expect(ReactDOM.findDOMNode(dds[1]).textContent).to.eql('y');
     });
 
-    it("should coerce non-strings into strings", function () {
+    it('should coerce non-strings into strings', function () {
       let data = [
         ['a', false]
       ];
@@ -64,7 +64,7 @@ describe('DefinitionList', function () {
       expect(ReactDOM.findDOMNode(dds[0]).textContent).to.eql('false');
     });
 
-    it("shouldn't blow up on null", function () {
+    it('shouldn\'t blow up on null', function () {
       let data = [
         ['a', null]
       ];

@@ -1,6 +1,6 @@
-import React from "react";
-import {Link} from "react-router";
-import classNames from "classnames";
+import React from 'react';
+import {Link} from 'react-router';
+import classNames from 'classnames';
 
 const MenuItem = React.createClass({
   propTypes: {
@@ -50,9 +50,9 @@ const MenuItem = React.createClass({
 
   render() {
     let classes = {
-      "dropdown-header": this.props.header,
-      "divider": this.props.divider,
-      "active": this.props.isActive
+      'dropdown-header': this.props.header,
+      'divider': this.props.divider,
+      'active': this.props.isActive
     };
 
     let children = null;

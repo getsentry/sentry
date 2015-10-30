@@ -1,10 +1,10 @@
-import jQuery from "jquery";
-import React from "react";
+import jQuery from 'jquery';
+import React from 'react';
 
-import api from "../../api";
-import FlotChart from "../../components/flotChart";
-import LoadingError from "../../components/loadingError";
-import LoadingIndicator from "../../components/loadingIndicator";
+import api from '../../api';
+import FlotChart from '../../components/flotChart';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
 
 const EventChart = React.createClass({
   getInitialState() {
@@ -12,8 +12,8 @@ const EventChart = React.createClass({
       error: false,
       loading: true,
       rawData: {
-        "events.total": null,
-        "events.dropped": null,
+        'events.total': null,
+        'events.dropped': null,
       },
       stats: {received: [], rejected: []},
       systemTotal: {received: 0, rejected: 0, accepted: 0}
@@ -26,15 +26,15 @@ const EventChart = React.createClass({
 
   fetchData() {
     let statNameList = [
-      "events.total",
-      "events.dropped",
+      'events.total',
+      'events.dropped',
     ];
 
     statNameList.forEach((statName) => {
       // query the organization stats via a separate call as its possible the project stats
       // are too heavy
       api.request('/internal/stats/', {
-        method: "GET",
+        method: 'GET',
         data: {
           since: this.props.since,
           resolution: this.props.resolution,

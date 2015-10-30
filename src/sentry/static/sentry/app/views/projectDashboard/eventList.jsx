@@ -1,9 +1,9 @@
-import React from "react";
-import api from "../../api";
-import LoadingError from "../../components/loadingError";
-import LoadingIndicator from "../../components/loadingIndicator";
+import React from 'react';
+import api from '../../api';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
 
-import EventNode from "./eventNode";
+import EventNode from './eventNode';
 
 const EventList = React.createClass({
   propTypes: {
@@ -16,7 +16,7 @@ const EventList = React.createClass({
       groupList: [],
       loading: true,
       error: false,
-      statsPeriod: "24h"
+      statsPeriod: '24h'
     };
   },
 
@@ -34,15 +34,15 @@ const EventList = React.createClass({
   fetchData() {
     let minutes;
     switch(this.state.statsPeriod) {
-      case "15m":
-        minutes = "15";
+      case '15m':
+        minutes = '15';
         break;
-      case "60m":
-        minutes = "60";
+      case '60m':
+        minutes = '60';
         break;
-      case "24h":
+      case '24h':
       default:
-        minutes = "1440";
+        minutes = '1440';
         break;
     }
 

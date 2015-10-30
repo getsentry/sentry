@@ -1,18 +1,18 @@
-import React from "react";
-import moment from "moment";
+import React from 'react';
+import moment from 'moment';
 
-import ConfigStore from "../../stores/configStore";
-import Gravatar from "../../components/gravatar";
-import GroupState from "../../mixins/groupState";
-import {userDisplayName} from "../../utils/formatters";
-import TooltipMixin from "../../mixins/tooltip";
+import ConfigStore from '../../stores/configStore';
+import Gravatar from '../../components/gravatar';
+import GroupState from '../../mixins/groupState';
+import {userDisplayName} from '../../utils/formatters';
+import TooltipMixin from '../../mixins/tooltip';
 
 const GroupSeenBy = React.createClass({
   mixins: [
     GroupState,
     TooltipMixin({
       html: true,
-      selector: ".tip"
+      selector: '.tip'
     })
   ],
 
@@ -23,7 +23,7 @@ const GroupSeenBy = React.createClass({
     let seenByNodes = group.seenBy.filter((user, userIdx) => {
       return activeUser.id !== user.id;
     }).map((user, userIdx) => {
-      let title = userDisplayName(user) + '<br/>' + moment(user.lastSeen).format("LL");
+      let title = userDisplayName(user) + '<br/>' + moment(user.lastSeen).format('LL');
       return (
         <li key={userIdx} className="tip" data-title={title}>
           <Gravatar size={52} email={user.email} />

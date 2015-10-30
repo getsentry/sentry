@@ -1,5 +1,5 @@
-import Reflux from "reflux";
-import TeamActions from "../actions/teamActions";
+import Reflux from 'reflux';
+import TeamActions from '../actions/teamActions';
 
 const TeamStore = Reflux.createStore({
   init() {

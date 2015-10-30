@@ -1,6 +1,6 @@
-import StreamTagStore from "app/stores/streamTagStore";
+import StreamTagStore from 'app/stores/streamTagStore';
 
-describe("StreamTagStore", function () {
+describe('StreamTagStore', function () {
   beforeEach(() => {
     StreamTagStore.reset();
     this.sandbox = sinon.sandbox.create();
@@ -10,9 +10,9 @@ describe("StreamTagStore", function () {
     this.sandbox.restore();
   });
 
-  describe("onLoadTagsSuccess()", () => {
+  describe('onLoadTagsSuccess()', () => {
 
-    it("should add a new tag with empty values and trigger the new addition", () => {
+    it('should add a new tag with empty values and trigger the new addition', () => {
       this.sandbox.stub(StreamTagStore, 'trigger');
 
       StreamTagStore.onLoadTagsSuccess([{
@@ -29,7 +29,7 @@ describe("StreamTagStore", function () {
       expect(StreamTagStore.trigger.calledOnce).to.be.ok;
     });
 
-    it("should not overwrite predefined filters", () => {
+    it('should not overwrite predefined filters', () => {
       let isTag = StreamTagStore.tags.is;
       StreamTagStore.onLoadTagsSuccess([{
         key: 'is',

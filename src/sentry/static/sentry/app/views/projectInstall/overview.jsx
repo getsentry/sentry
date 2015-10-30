@@ -1,7 +1,7 @@
-import React from "react";
-import {Link} from "react-router";
+import React from 'react';
+import {Link} from 'react-router';
 
-import AutoSelectText from "../../components/autoSelectText";
+import AutoSelectText from '../../components/autoSelectText';
 
 const ProjectInstallOverview = React.createClass({
   getInitialState() {

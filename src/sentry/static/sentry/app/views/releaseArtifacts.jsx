@@ -1,12 +1,12 @@
-import React from "react";
-import {History} from "react-router";
-import jQuery from "jquery";
+import React from 'react';
+import {History} from 'react-router';
+import jQuery from 'jquery';
 
-import api from "../api";
-import FileSize from "../components/fileSize";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import Pagination from "../components/pagination";
+import api from '../api';
+import FileSize from '../components/fileSize';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import Pagination from '../components/pagination';
 
 const ReleaseArtifacts = React.createClass({
   contextTypes: {

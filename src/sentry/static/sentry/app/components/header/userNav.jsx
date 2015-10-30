@@ -1,8 +1,8 @@
-import React from "react";
-import ConfigStore from "../../stores/configStore";
-import DropdownLink from "../dropdownLink";
-import Gravatar from "../gravatar";
-import MenuItem from "../menuItem";
+import React from 'react';
+import ConfigStore from '../../stores/configStore';
+import DropdownLink from '../dropdownLink';
+import Gravatar from '../gravatar';
+import MenuItem from '../menuItem';
 
 const UserNav = React.createClass({
   shouldComponentUpdate(nextProps, nextState) {

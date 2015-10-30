@@ -1,7 +1,7 @@
-import React from "react";
-import Reflux from "reflux";
+import React from 'react';
+import Reflux from 'reflux';
 
-import SelectedGroupStore from "../../stores/selectedGroupStore";
+import SelectedGroupStore from '../../stores/selectedGroupStore';
 
 const GroupCheckBox = React.createClass({
   propTypes: {
@@ -9,7 +9,7 @@ const GroupCheckBox = React.createClass({
   },
 
   mixins: [
-    Reflux.listenTo(SelectedGroupStore, "onSelectedGroupChange")
+    Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange')
   ],
 
   getInitialState() {

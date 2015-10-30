@@ -1,7 +1,7 @@
-import React from "react";
+import React from 'react';
 
-import ApiChart from "./apiChart";
-import EventChart from "./eventChart";
+import ApiChart from './apiChart';
+import EventChart from './eventChart';
 
 const AdminOverview = React.createClass({
   getInitialState() {

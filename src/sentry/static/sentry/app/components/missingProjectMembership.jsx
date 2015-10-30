@@ -1,7 +1,7 @@
-import React from "react";
+import React from 'react';
 
-import AlertActions from "../actions/alertActions";
-import api from "../api";
+import AlertActions from '../actions/alertActions';
+import api from '../api';
 
 const ERR_JOIN = 'There was an error while trying to join the team.';
 
@@ -46,7 +46,7 @@ const MissingProjectMembership = React.createClass({
       <div className="container">
         <div className="box alert-box">
           <span className="icon icon-exclamation"></span>
-          <p>{"You're not a member of this project."}</p>
+          <p>{'You\'re not a member of this project.'}</p>
           {openMembership ?
             <p>To view this data you must first join the {team.name} team.</p>
           :

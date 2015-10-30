@@ -1,11 +1,11 @@
-import React from "react";
-import ConfigStore from "../../stores/configStore";
-import OrganizationState from "../../mixins/organizationState";
-import {Link} from "react-router";
+import React from 'react';
+import ConfigStore from '../../stores/configStore';
+import OrganizationState from '../../mixins/organizationState';
+import {Link} from 'react-router';
 
-import Broadcasts from "./broadcasts";
-import UserNav from "./userNav";
-import OrganizationSelector from "./organizationSelector";
+import Broadcasts from './broadcasts';
+import UserNav from './userNav';
+import OrganizationSelector from './organizationSelector';
 
 const Header = React.createClass({
   mixins: [OrganizationState],

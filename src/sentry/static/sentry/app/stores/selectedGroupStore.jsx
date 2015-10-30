@@ -1,5 +1,5 @@
-import Reflux from "reflux";
-import GroupStore from "./groupStore";
+import Reflux from 'reflux';
+import GroupStore from './groupStore';
 
 const SelectedGroupStore = Reflux.createStore({
   init() {

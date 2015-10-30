@@ -1,5 +1,5 @@
-import React from "react";
-import Reflux from "reflux";
+import React from 'react';
+import Reflux from 'reflux';
 import LoadingIndicator from '../components/loadingIndicator';
 
 const IndicatorStore = Reflux.createStore({
