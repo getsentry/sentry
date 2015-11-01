@@ -48,6 +48,7 @@ const DropdownLink = React.createClass({
 
   render() {
     let className = classNames({
+      'dropdown-toggle': true,
       'disabled': this.props.disabled,
     });
 
