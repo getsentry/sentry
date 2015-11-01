@@ -32,13 +32,13 @@ const DropdownLink = React.createClass({
         this.setState({
           isOpen: true,
         });
-        this.props.onOpen(e);
+        this.props.onOpen && this.props.onOpen(e);
       }).on(
       'hidden.bs.dropdown', (e) => {
         this.setState({
           isOpen: false,
         });
-        this.props.onClose(e);
+        this.props.onClose && this.props.onClose(e);
       });
   },
 
