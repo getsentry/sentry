@@ -4,6 +4,11 @@ import TimeSince from '../../components/timeSince';
 import ConfigStore from '../../stores/configStore';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 
+marked.setOptions({
+  // Disable all HTML input and only accept Markdown
+  sanitize: true
+});
+
 const Note = React.createClass({
   canEdit() {
     let user = ConfigStore.get('user');
