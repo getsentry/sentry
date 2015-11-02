@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.auth.utils import is_active_superuser
 from sentry.models import User
 
 
@@ -20,7 +21,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserDetailsEndpoint(UserEndpoint):
     def get(self, request, user):
         data = serialize(user, request.user)
-
+        data['isSuperuser'] = user == request.user and is_active_superuser(user)
         return Response(data)
 
     @sudo_required

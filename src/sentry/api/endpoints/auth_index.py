@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
 from django.contrib.auth import login, logout
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.response import Response
 
 from sentry.api import client
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
-from sentry.models import AnonymousUser
 
 
 class AuthIndexEndpoint(Endpoint):

@@ -13,7 +13,6 @@ class UserSerializer(Serializer):
         d = {
             'id': str(obj.id),
             'name': obj.get_display_name(),
-            'isSuperuser': obj.is_active_superuser(),
             'email': obj.email,
             'avatarUrl': get_gravatar_url(obj.email, size=32),
         }

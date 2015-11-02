@@ -551,7 +551,6 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'sentry.api.permissions.NoPermission',
     ),
-    'UNAUTHENTICATED_USER': 'sentry.models.AnonymousUser',
 }
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'

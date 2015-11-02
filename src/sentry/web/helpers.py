@@ -10,14 +10,16 @@ from __future__ import absolute_import, print_function
 import logging
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponse
 from django.template import loader, RequestContext, Context
 
 from sentry.api.serializers.base import serialize
 from sentry.auth import access
+from sentry.auth.utils import is_active_superuser
 from sentry.constants import EVENTS_PER_PAGE
-from sentry.models import AnonymousUser, Project, Team
+from sentry.models import Project, Team
 
 logger = logging.getLogger('sentry')
 
@@ -37,7 +39,7 @@ def group_is_public(group, user):
     if not user.is_authenticated():
         return True
     # superusers can always view events
-    if user.is_active_superuser():
+    if is_active_superuser(user):
         return False
     # project owners can view events
     if group.project in Project.objects.get_for_user(team=group.project.team, user=user):
