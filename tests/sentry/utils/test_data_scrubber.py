@@ -164,8 +164,8 @@ class SensitiveDataFilterTest(TestCase):
 
     def test_sanitize_url_escaped(self):
         proc = SensitiveDataFilter()
-        result = proc.sanitize('foo', "'redis://redis:foo@localhost:6379/0'")
-        self.assertEquals(result, "'redis://redis:%s@localhost:6379/0'" % proc.MASK)
+        result = proc.sanitize('foo', "foo 'redis://redis:foo@localhost:6379/0' bar")
+        self.assertEquals(result, "foo 'redis://redis:%s@localhost:6379/0' bar" % proc.MASK)
 
     def test_sanitize_http_body(self):
         data = {

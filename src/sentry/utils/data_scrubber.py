@@ -44,7 +44,7 @@ class SensitiveDataFilter(object):
     """
     MASK = '*' * 8
     VALUES_RE = re.compile(r'\b(?:\d[ -]*?){13,16}\b')
-    URL_PASSWORD_RE = re.compile(r'\b([\'"]?(?:[a-z0-9]+:)?//[^:]+:)([^@]+)@')
+    URL_PASSWORD_RE = re.compile(r'\b((?:[a-z0-9]+:)?//[^:]+:)([^@]+)@')
 
     def __init__(self, fields=None):
         if fields:
