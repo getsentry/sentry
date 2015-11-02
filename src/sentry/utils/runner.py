@@ -322,6 +322,9 @@ def initialize_app(config, skip_backend_validation=False):
     settings.SUDO_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
     settings.SUDO_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
 
+    settings.CSRF_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
+    settings.CSRF_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
+
     settings.CACHES['default']['VERSION'] = settings.CACHE_VERSION
 
     settings.ASSET_VERSION = get_asset_version(settings)
