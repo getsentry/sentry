@@ -9,7 +9,17 @@
 {% block org_members_nav %}active{% endblock %}
 
 {% block main %}
-  <a class="btn btn-primary btn-sm pull-right" href="{% url 'sentry-create-organization-member' organization.slug %}"><span class="icon-plus"></span> Invite Member</a>
+  {% if can_add_members %}
+    <a class="btn btn-primary btn-sm pull-right" href="{% url 'sentry-create-organization-member' organization.slug %}">
+      <span class="icon-plus"></span> Invite Member
+    </a>
+  {% else %}
+    <a class="btn btn-primary btn-sm btn-disabled tip pull-right"
+       title="You do not have enough permission to add new members">
+      <span class="icon-plus"></span> Invite Member
+    </a>
+  {% endif %}
+
   <h3>{% trans "Members" %}</h3>
 
   <p>{% blocktrans %}Members of your organization gain slightly elevated permissions over individual team members. For example, organization administrators can create new teams as well as manage all organization settings (including the list of admins).{% endblocktrans %}</p>
@@ -191,5 +201,6 @@
       }
     });
   });
+  $('.tip').tooltip();
   </script>
 {% endblock %}

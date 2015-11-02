@@ -41,6 +41,7 @@ class OrganizationMembersView(OrganizationView):
             request.access.has_scope('member:write')
             or request.access.has_scope('org:write')
         )
+        can_add_members = request.access.has_scope('org:write')
         can_remove_members = request.access.has_scope('member:delete')
 
         # pending requests
@@ -65,6 +66,7 @@ class OrganizationMembersView(OrganizationView):
             'member_list': member_list,
             'request_list': access_requests,
             'ref': request.GET.get('ref'),
+            'can_add_members': can_add_members,
             'can_remove_members': can_remove_members,
             'member_can_leave': member_can_leave,
         }
