@@ -24,6 +24,9 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         super(SentryLocaleMiddleware, self).process_request(request)
 
     def load_user_conf(self, request):
+        if not request.user.is_authenticated():
+            return
+
         language = UserOption.objects.get_value(
             user=request.user, project=None, key='language', default=None)
         if language:
