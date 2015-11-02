@@ -17,34 +17,10 @@ from django.template import loader, RequestContext, Context
 
 from sentry.api.serializers.base import serialize
 from sentry.auth import access
-from sentry.auth.utils import is_active_superuser
 from sentry.constants import EVENTS_PER_PAGE
-from sentry.models import Project, Team
+from sentry.models import Team
 
 logger = logging.getLogger('sentry')
-
-
-def group_is_public(group, user):
-    """
-    Return ``True`` if the this group if the user viewing it should see a restricted view.
-
-    This check should be used in combination with project membership checks, as we're only
-    verifying if the user should have a restricted view of something they already have access
-    to.
-    """
-    # if the group isn't public, this check doesn't matter
-    if not group.is_public:
-        return False
-    # anonymous users always are viewing as if it were public
-    if not user.is_authenticated():
-        return True
-    # superusers can always view events
-    if is_active_superuser(user):
-        return False
-    # project owners can view events
-    if group.project in Project.objects.get_for_user(team=group.project.team, user=user):
-        return False
-    return True
 
 
 _LOGIN_URL = None
