@@ -10,7 +10,6 @@ from __future__ import absolute_import
 
 import pytz
 
-from django.conf import settings
 from django.middleware.locale import LocaleMiddleware
 
 from sentry.models import UserOption
@@ -19,16 +18,6 @@ from sentry.utils.safe import safe_execute
 
 class SentryLocaleMiddleware(LocaleMiddleware):
     def process_request(self, request):
-        if settings.MAINTENANCE:
-            return
-
-        # We don't care about locale for anything under api
-        if request.path[:5] == '/api/':
-            return
-
-        if not request.user.is_authenticated():
-            return
-
         safe_execute(self.load_user_conf, request,
                      _with_transaction=False)
 
