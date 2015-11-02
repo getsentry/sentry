@@ -161,11 +161,14 @@ class SensitiveDataFilterTest(TestCase):
         # it'll change the value.
         result = proc.sanitize('foo', 'postgres:///path')
         self.assertEquals(result, 'postgres:///path')
-
-    def test_sanitize_url_escaped(self):
-        proc = SensitiveDataFilter()
         result = proc.sanitize('foo', "foo 'redis://redis:foo@localhost:6379/0' bar")
         self.assertEquals(result, "foo 'redis://redis:%s@localhost:6379/0' bar" % proc.MASK)
+        result = proc.sanitize('foo', "'redis://redis:foo@localhost:6379/0'")
+        self.assertEquals(result, "'redis://redis:%s@localhost:6379/0'" % proc.MASK)
+        result = proc.sanitize('foo', "foo redis://redis:foo@localhost:6379/0 bar")
+        self.assertEquals(result, "foo redis://redis:%s@localhost:6379/0 bar" % proc.MASK)
+        result = proc.sanitize('foo', "foo redis://redis:foo@localhost:6379/0 bar pg://matt:foo@localhost/1")
+        self.assertEquals(result, "foo redis://redis:%s@localhost:6379/0 bar pg://matt:%s@localhost/1" % (proc.MASK, proc.MASK))
 
     def test_sanitize_http_body(self):
         data = {
