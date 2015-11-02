@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework import permissions
 
+from sentry.auth.utils import is_active_superuser
 from sentry.models import ProjectKey
 
 
@@ -47,6 +48,6 @@ class ScopedPermission(permissions.BasePermission):
 
 class SuperuserPermission(permissions.BasePermission):
     def has_permission(self, request, view):
-        if request.user.is_active_superuser():
+        if is_active_superuser(request.user):
             return True
         return False

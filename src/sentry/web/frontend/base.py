@@ -13,6 +13,7 @@ from django.views.generic import View
 from sudo.views import redirect_to_sudo
 
 from sentry.auth import access
+from sentry.auth.utils import is_active_superuser
 from sentry.models import (
     Organization, OrganizationStatus, Project, Team
 )
@@ -38,7 +39,7 @@ class OrganizationMixin(object):
             organization_slug = request.session.get('activeorg')
 
         if organization_slug is not None:
-            if request.user.is_active_superuser():
+            if is_active_superuser(request.user):
                 try:
                     active_organization = Organization.objects.get_from_cache(
                         slug=organization_slug,

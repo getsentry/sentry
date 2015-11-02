@@ -6,6 +6,7 @@ from collections import defaultdict
 from django.conf import settings
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.auth.utils import is_active_superuser
 from sentry.models import (
     OrganizationAccessRequest, OrganizationMemberTeam, Project, ProjectStatus,
     Team
@@ -15,7 +16,7 @@ from sentry.models import (
 @register(Team)
 class TeamSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        if user.is_active_superuser() or settings.SENTRY_PUBLIC:
+        if is_active_superuser(user) or settings.SENTRY_PUBLIC:
             inactive_memberships = frozenset(
                 OrganizationMemberTeam.objects.filter(
                     team__in=item_list,

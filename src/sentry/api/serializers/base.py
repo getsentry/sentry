@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import AnonymousUser
+from django.contrib.auth.models import AnonymousUser
 
 
 registry = {}

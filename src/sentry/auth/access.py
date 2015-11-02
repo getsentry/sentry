@@ -6,6 +6,8 @@ from django.conf import settings
 
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
 
+from .utils import is_active_superuser
+
 
 class BaseAccess(object):
     is_active = False
@@ -49,7 +51,7 @@ def from_user(user, organization):
     if not organization:
         return DEFAULT
 
-    if user.is_active_superuser():
+    if is_active_superuser(user):
         return Access(
             scopes=settings.SENTRY_SCOPES,
             is_active=True,

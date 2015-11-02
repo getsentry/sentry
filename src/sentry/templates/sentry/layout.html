@@ -53,7 +53,7 @@
 <body class="{% block wrapperclass %}{% endblock %}">
   {% block body %}
   <div class="app">
-    {% if request.user.is_active_superuser %}
+    {% if request.user.is_superuser %}
         {% show_system_status %}
     {% endif %}
 
@@ -76,7 +76,7 @@
             </a>
             <ul class="dropdown-menu dropdown-menu-right">
               <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
-              {% if request.user.is_active_superuser %}
+              {% if request.user.is_superuser %}
                 <li><a href="{% url 'sentry-admin-overview' %}">{% trans "Admin" %}</a></li>
               {% endif %}
               <li><a href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a></li>

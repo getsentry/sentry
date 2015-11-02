@@ -7,6 +7,7 @@ from django.db import IntegrityError
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.auth.utils import is_active_superuser
 from sentry.models import AuditLogEntry, AuditLogEntryEvent, Team
 from sentry.web.frontend.base import TeamView
 
@@ -60,7 +61,7 @@ class TeamSettingsView(TeamView):
 
             return HttpResponseRedirect(reverse('sentry-manage-team', args=[organization.slug, team.slug]))
 
-        if request.user.is_active_superuser():
+        if is_active_superuser(request.user):
             can_remove_team = True
         else:
             can_remove_team = request.access.has_team_scope(team, 'team:delete')

@@ -10,6 +10,7 @@ from sentry.api.bases.organization import (
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
+from sentry.auth.utils import is_active_superuser
 from sentry.models import (
     AuditLogEntryEvent, OrganizationAccessRequest,
     OrganizationMember, OrganizationMemberTeam, Team
@@ -44,7 +45,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
     def _can_access(self, request, member):
         # TODO(dcramer): ideally org owners/admins could perform these actions
-        if request.user.is_active_superuser():
+        if is_active_superuser(request.user):
             return True
 
         if not request.user.is_authenticated():

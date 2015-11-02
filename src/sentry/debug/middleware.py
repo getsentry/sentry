@@ -9,6 +9,8 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.encoding import force_text
 
+from sentry.auth.utils import is_active_superuser
+
 
 class ToolbarCache(object):
     def __init__(self):
@@ -35,9 +37,7 @@ class DebugMiddleware(object):
         # TODO(dcramer): support VPN via INTERNAL_IPS + ipaddr maps
         if not settings.SENTRY_DEBUGGER:
             return False
-        if not request.user.is_authenticated():
-            return False
-        if not request.user.is_active_superuser():
+        if not is_active_superuser(request.user):
             return False
         if 'text/html' not in request.META.get('HTTP_ACCEPT', '*/*'):
             return False

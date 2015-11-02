@@ -23,6 +23,7 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.app import env
+from sentry.auth.utils import is_active_superuser
 from sentry.models import Team, Project, User
 from sentry.plugins import plugins
 from sentry.utils.http import absolute_uri
@@ -113,7 +114,7 @@ def manage_users(request):
 @transaction.atomic
 @csrf_protect
 def create_new_user(request):
-    if not request.user.is_active_superuser():
+    if not is_active_superuser(request.user):
         return HttpResponseRedirect(reverse('sentry'))
 
     form = NewUserForm(request.POST or None, initial={
@@ -160,7 +161,7 @@ def create_new_user(request):
 @requires_admin
 @csrf_protect
 def edit_user(request, user_id):
-    if not request.user.is_active_superuser():
+    if not is_active_superuser(request.user):
         return HttpResponseRedirect(reverse('sentry'))
 
     try:

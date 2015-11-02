@@ -4,6 +4,7 @@ import logging
 import traceback
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotAllowed
@@ -19,7 +20,7 @@ from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper,
 )
 from sentry.event_manager import EventManager
-from sentry.models import AnonymousUser, Project
+from sentry.models import Project
 from sentry.signals import event_received
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
