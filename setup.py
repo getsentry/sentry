@@ -95,7 +95,6 @@ install_requires = [
     'logan>=0.7.1,<0.8.0',
     'lxml>=3.4.1',
     'mock>=0.8.0,<1.1',
-    'markdown>=2.4.1,<2.5.0',
     'petname>=1.7,<1.8',
     'progressbar>=2.2,<2.4',
     'psycopg2>=2.5.0,<2.6.0',
