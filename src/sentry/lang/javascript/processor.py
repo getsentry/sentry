@@ -605,6 +605,13 @@ class SourceProcessor(object):
             filename = pending_file_list.pop()
             done_file_list.add(filename)
 
+            # tbh not entirely sure how this happens, but raven-js allows this
+            # to be caught. I think this comes from dev consoles and whatnot
+            # where there is no page. This just bails early instead of exposing
+            # a fetch error that may be confusing.
+            if filename == '<anonymous>':
+                continue
+
             if idx > self.max_fetches:
                 cache.add_error(filename, {
                     'type': EventError.JS_TOO_MANY_REMOTE_SOURCES,
