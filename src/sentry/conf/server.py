@@ -883,7 +883,7 @@ SENTRY_ROLES = (
             'member:read', 'member:write', 'member:delete',
             'project:read', 'project:write', 'project:delete',
             'team:read', 'team:write', 'team:delete',
-            'org:read',
+            'org:read', 'org:write',
         ]),
     },
     {
