@@ -601,7 +601,6 @@ class SourceProcessor(object):
 
         idx = 0
         while pending_file_list:
-            idx += 1
             filename = pending_file_list.pop()
             done_file_list.add(filename)
 
@@ -617,6 +616,8 @@ class SourceProcessor(object):
                     'type': EventError.JS_TOO_MANY_REMOTE_SOURCES,
                 })
                 continue
+
+            idx += 1
 
             # TODO: respect cache-control/max-age headers to some extent
             logger.debug('Fetching remote source %r', filename)
