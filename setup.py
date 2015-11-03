@@ -250,7 +250,7 @@ class BuildStatic(Command):
         os.environ['NODE_ENV'] = 'production'
 
         log.info("running [webpack]")
-        check_output([os.path.join('node_modules', '.bin', 'webpack'), '-p'],
+        check_output([os.path.join('node_modules', '.bin', 'webpack'), '-p', '--bail'],
                      cwd=work_path)
 
     def _write_version_file(self, version_info):
