@@ -41,7 +41,7 @@ environment:
 Logging Backend
 ---------------
 
-The the ``LoggingBackend`` reports all operations to the ``sentry.metrics``
+The ``LoggingBackend`` reports all operations to the ``sentry.metrics``
 logger. In addition to the metric name and value, log messages also include
 extra data such as the ``instance`` and ``tags`` values which can be displayed
 using a custom formatter.
