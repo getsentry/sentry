@@ -54,6 +54,9 @@ def merge_group(from_object_id, to_object_id, **kwargs):
         return
 
     new_group.update(
+        # TODO(dcramer): ideally these would be SQL clauses
+        first_seen=min(group.first_seen, new_group.first_seen),
+        last_seen=max(group.last_seen, new_group.last_seen),
         times_seen=F('times_seen') + group.times_seen,
         num_comments=F('num_comments') + group.num_comments,
     )
