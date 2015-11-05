@@ -201,10 +201,10 @@ class APIView(BaseView):
                     # so we need to explicitly check for that here. If Origin is not None,
                     # it can be safely assumed that it was checked previously and it's ok.
                     if origin is None and not is_valid_origin(origin, project):
-                        if origin is None:
-                            raise APIForbidden('Missing required attribute in authentication header: sentry_secret')
-                        # Special case an error message for a None origin when None wasn't allowed
-                        raise APIForbidden('Missing required Origin or Referer header')
+                        if request.method == 'GET':
+                            # Special case for GET request since it will never use a sentry_secret
+                            raise APIForbidden('Missing required Origin or Referer header')
+                        raise APIForbidden('Missing required attribute in authentication header: sentry_secret')
 
             response = super(APIView, self).dispatch(
                 request=request,
