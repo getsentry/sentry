@@ -193,18 +193,18 @@ class APIView(BaseView):
             Raven.tags_context(helper.context.get_tags_context())
 
             if auth.version != '2.0':
-                if request.method == 'GET':
-                    # GET only requires an Origin/Referer check
+                if request.method == 'GET' or not auth.secret_key:
+                    # We fall back to checking CORS if either:
+                    #  * Request was a GET or
+                    #  * Missing secret_key on any other method
                     # If an Origin isn't passed, it's possible that the project allows no origin,
                     # so we need to explicitly check for that here. If Origin is not None,
                     # it can be safely assumed that it was checked previously and it's ok.
                     if origin is None and not is_valid_origin(origin, project):
+                        if origin is None:
+                            raise APIForbidden('Missing required attribute in authentication header: sentry_secret')
                         # Special case an error message for a None origin when None wasn't allowed
                         raise APIForbidden('Missing required Origin or Referer header')
-                else:
-                    if not auth.secret_key:
-                        if origin is None and not is_valid_origin(origin, project):
-                            raise APIForbidden('Missing required attribute in authentication header: sentry_secret')
 
             response = super(APIView, self).dispatch(
                 request=request,
