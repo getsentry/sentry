@@ -193,7 +193,7 @@ class APIView(BaseView):
             Raven.tags_context(helper.context.get_tags_context())
 
             if auth.version != '2.0':
-                if request.method == 'GET' or not auth.secret_key:
+                if not auth.secret_key:
                     # We fall back to checking CORS if either:
                     #  * Request was a GET or
                     #  * Missing secret_key on any other method
