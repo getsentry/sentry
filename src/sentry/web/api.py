@@ -202,9 +202,9 @@ class APIView(BaseView):
                         # Special case an error message for a None origin when None wasn't allowed
                         raise APIForbidden('Missing required Origin or Referer header')
                 else:
-                    # Version 3 enforces secret key for server side requests
                     if not auth.secret_key:
-                        raise APIForbidden('Missing required attribute in authentication header: sentry_secret')
+                        if origin is None and not is_valid_origin(origin, project):
+                            raise APIForbidden('Missing required attribute in authentication header: sentry_secret')
 
             response = super(APIView, self).dispatch(
                 request=request,
