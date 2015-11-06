@@ -24,8 +24,7 @@ const EventPackageData = React.createClass({
 
     let children = [];
     packageKeys.forEach((key) => {
-      children.push(<dt key={'dt-' + key}>{key}</dt>);
-      children.push(<dd key={'dd-' + key}><pre>{packages[key]}</pre></dd>);
+      children.push(<tr><td key={'dt-' + key}>{key}</td><td key={'dd-' + key}><pre>{packages[key]}</pre></td></tr>);
     });
 
     return (
@@ -35,9 +34,9 @@ const EventPackageData = React.createClass({
           type="packages"
           title="Packages">
         <ClippedBox>
-          <dl className="vars">
+          <table className="table key-value">
             {children}
-          </dl>
+          </table>
         </ClippedBox>
       </EventDataSection>
     );
