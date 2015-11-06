@@ -56,7 +56,7 @@ var Broadcasts = React.createClass({
   },
 
   onOpen() {
-    this.timer = window.setTimeout(this.markSeen, 3000);
+    this.timer = window.setTimeout(this.markSeen, 1000);
   },
 
   onClose() {
