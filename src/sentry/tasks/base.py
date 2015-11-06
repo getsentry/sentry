@@ -24,6 +24,7 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
                 instance = '{}.{}'.format(name, stat_suffix(*args, **kwargs))
             else:
                 instance = name
+            Raven.tags_context({'task_name': name})
             with metrics.timer(key, instance=instance):
                 try:
                     result = func(*args, **kwargs)
