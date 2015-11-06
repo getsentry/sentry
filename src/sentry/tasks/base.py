@@ -8,6 +8,7 @@ sentry.tasks.base
 from __future__ import absolute_import
 
 from celery.task import current
+from raven.contrib.django.models import client as Raven
 from functools import wraps
 
 from sentry.celery import app
@@ -24,7 +25,10 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
             else:
                 instance = name
             with metrics.timer(key, instance=instance):
-                result = func(*args, **kwargs)
+                try:
+                    result = func(*args, **kwargs)
+                finally:
+                    Raven.context.clear()
             return result
         return app.task(name=name, **kwargs)(_wrapped)
     return wrapped
