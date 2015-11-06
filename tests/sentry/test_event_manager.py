@@ -307,11 +307,6 @@ class EventManagerTest(TransactionTestCase):
         data = manager.normalize()
         assert data['logger'] == DEFAULT_LOGGER_NAME
 
-    def test_bad_tag_key(self):
-        manager = EventManager(self.make_event(tags=[('foo bar', 'x')]))
-        data = manager.normalize()
-        assert data['tags'] == []
-
     def test_event_user(self):
         manager = EventManager(self.make_event(**{
             'sentry.interfaces.User': {

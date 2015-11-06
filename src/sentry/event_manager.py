@@ -10,7 +10,6 @@ from __future__ import absolute_import, print_function
 import logging
 import math
 import six
-import re
 
 from datetime import datetime, timedelta
 from django.conf import settings
@@ -22,13 +21,12 @@ from uuid import uuid4
 
 from sentry.app import buffer, tsdb
 from sentry.constants import (
-    CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH,
-    MAX_TAG_VALUE_LENGTH
+    CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Event, EventMapping, EventUser, Group, GroupHash, GroupStatus,
-    Project, Release, UserReport
+    Project, Release, TagKey, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import regression_signal
@@ -40,9 +38,6 @@ from sentry.utils.db import get_db_engine
 from sentry.utils.safe import safe_execute, trim, trim_dict
 from sentry.utils.strings import truncatechars
 from sentry.utils.validators import validate_ip
-
-# Valid pattern for tag key names
-TAG_KEY_RE = re.compile(r'^[a-zA-Z0-9_\.:-]+$')
 
 
 def count_limit(count):
@@ -203,7 +198,7 @@ class EventManager(object):
             data['logger'] = DEFAULT_LOGGER_NAME
         else:
             logger = trim(data['logger'].strip(), 64)
-            if TAG_KEY_RE.match(logger):
+            if TagKey.is_valid_key(logger):
                 data['logger'] = logger
             else:
                 data['logger'] = DEFAULT_LOGGER_NAME
@@ -258,12 +253,6 @@ class EventManager(object):
             key = six.text_type(key).strip()
             value = six.text_type(value).strip()
             if not (key and value):
-                continue
-
-            if len(value) > MAX_TAG_VALUE_LENGTH:
-                continue
-
-            if not TAG_KEY_RE.match(key):
                 continue
 
             data['tags'].append((key, value))

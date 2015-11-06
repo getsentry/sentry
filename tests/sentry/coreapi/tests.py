@@ -239,7 +239,7 @@ class ValidateDataTest(BaseAPITest):
             'message': 'foo',
             'tags': {'foo bar': 'baz bar'},
         })
-        assert data['tags'] == [('foo bar', 'baz bar')]
+        assert data['tags'] == [('foo-bar', 'baz bar')]
 
     def test_tags_out_of_bounds(self):
         data = self.helper.validate_data(self.project, {
