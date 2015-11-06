@@ -30,7 +30,7 @@ from sentry.constants import (
 )
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
-from sentry.models import EventError, Project, ProjectKey
+from sentry.models import EventError, Project, ProjectKey, TagKey
 from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header
@@ -467,6 +467,19 @@ class ClientApiHelper(object):
                         'value': pair,
                     })
                     continue
+
+                # support tags with spaces by converting them
+                k = k.replace(' ', '-')
+
+                if not TagKey.is_valid_key(k):
+                    self.log.info('Discarded invalid tag key: %s', k)
+                    data['errors'].append({
+                        'type': EventError.INVALID_DATA,
+                        'name': 'tags',
+                        'value': pair,
+                    })
+                    continue
+
                 tags.append((k, v))
             data['tags'] = tags
 

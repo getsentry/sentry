@@ -7,6 +7,8 @@ sentry.models.tagkey
 """
 from __future__ import absolute_import, print_function
 
+import re
+
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
@@ -16,6 +18,9 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
+
+# Valid pattern for tag key names
+TAG_KEY_RE = re.compile(r'^[a-zA-Z0-9_\.:-]+$')
 
 
 # TODO(dcramer): pull in enum library
@@ -68,6 +73,10 @@ class TagKey(Model):
         unique_together = (('project', 'key'),)
 
     __repr__ = sane_repr('project_id', 'key')
+
+    @classmethod
+    def is_valid_key(self, key):
+        return TAG_KEY_RE.match(key)
 
     def get_label(self):
         return self.label \
