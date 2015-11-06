@@ -9,6 +9,7 @@ sentry.tasks.store
 from __future__ import absolute_import
 
 from celery.utils.log import get_task_logger
+from raven.contrib.django.models import client as Raven
 from time import time
 
 from sentry.cache import default_cache
@@ -37,6 +38,9 @@ def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
         return
 
     project = data['project']
+    Raven.tags_context({
+        'project': project,
+    })
 
     # TODO(dcramer): ideally we would know if data changed by default
     has_changed = False
@@ -75,6 +79,9 @@ def save_event(cache_key=None, data=None, start_time=None, **kwargs):
         return
 
     project = data.pop('project')
+    Raven.tags_context({
+        'project': project,
+    })
 
     try:
         manager = EventManager(data)
