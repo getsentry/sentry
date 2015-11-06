@@ -234,6 +234,13 @@ class ValidateDataTest(BaseAPITest):
         })
         assert 'tags' not in data
 
+    def test_tags_with_spaces(self):
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo',
+            'tags': {'foo bar': 'baz bar'},
+        })
+        assert data['tags'] == [('foo bar', 'baz bar')]
+
     def test_tags_out_of_bounds(self):
         data = self.helper.validate_data(self.project, {
             'message': 'foo',
