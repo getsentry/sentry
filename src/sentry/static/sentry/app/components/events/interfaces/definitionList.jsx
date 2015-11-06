@@ -18,17 +18,25 @@ const DefinitionList = React.createClass({
   render() {
     let data = _.sortBy(this.props.data, (key, value) => key);
     return (
-      <dl className="vars">
+      <table className="table key-value">
         {data.map(([key, value]) => {
-          return [
-            <dt key={'dt-' + key}>{key}</dt>,
-            this.props.isContextData
-              ? <dd key={'dd-' + key}><ContextData data={value}/></dd>
-              : <dd key={'dd-' + key}><pre>{'' + value || ' '}</pre></dd>
-
-          ];
+          if (this.props.isContextData) {
+            return [
+              <tr>
+                <td key={'dt-' + key}>{key}</td>
+                <td key={'dd-' + key}><ContextData data={value}/></td>
+              </tr>
+            ];
+          } else {
+            return [
+              <tr>
+                <td key={'dt-' + key}>{key}</td>
+                <td key={'dd-' + key}><pre>{'' + value || ' '}</pre></td>
+              </tr>
+            ];
+          }
         })}
-      </dl>
+      </table>
     );
   }
 });
