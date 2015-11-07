@@ -837,8 +837,7 @@
 
   p {
     font-size: 12px;
-    margin-bottom: 10px;
-    font-weight: 600;
+    margin-bottom: 12px;
     line-height: 1.4;
 
     a.annotation {
@@ -988,7 +987,7 @@
     .transition(.1s opacity linear);
   }
 
-  &.vars {
+  &.key-value {
     display: none;
   }
 
@@ -1012,16 +1011,6 @@
   .ws {
     display: inline;
   }
-
-  dl.vars {
-    &.expandable {
-      display: block;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-    }
-  }
 }
 
 ol.context {
@@ -1031,8 +1020,12 @@ ol.context {
   border-radius: 3px;
   padding-left: 0;
 
-  .vars {
+  .key-value {
     display: none;
+
+    pre {
+      overflow: auto;
+    }
   }
 
   > li {
@@ -1070,8 +1063,8 @@ ol.context {
   }
 
   &.expanded {
-    .vars {
-      display: block;
+    .key-value {
+      display: table;
     }
 
     > li.active {
@@ -1080,37 +1073,6 @@ ol.context {
       list-style-type: inherit;
       border-radius: 0;
     }
-  }
-}
-
-dl.vars {
-  margin-top: 0;
-  margin-bottom: 15px;
-
-  dt, dd {
-    // margin-bottom: 10px;
-  }
-
-  dt {
-    padding-top: 7px;
-    width: 152px;
-    float: left;
-    font-weight: bold;
-    color: @gray-dark;
-    word-break: break-all;
-    padding-right: 10px;
-    font-size: 13px;
-    clear: both;
-  }
-
-  pre {
-    padding-top: 7px;
-    padding-bottom: 7px;
-    margin-bottom: 5px;
-    font-size: 12px;
-    color: @gray-dark;
-    white-space: pre-wrap;
-    word-break: break-all;
   }
 }
 

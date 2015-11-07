@@ -19,16 +19,11 @@ const FrameVariables = React.createClass({
 
     for (let key in data) {
       let value = data[key];
-      children.push(<dt key={'dt-' + key}>{key}</dt>);
-      children.push((
-        <dd key={'dd-' + key}>
-          <ContextData data={value} />
-        </dd>
-      ));
+      children.push(<tr><td key={'dt-' + key}>{key}</td><td><ContextData data={value} /></td></tr>);
     }
 
     return (
-      <dl className="vars expandable" onClick={this.preventToggling}>{children}</dl>
+      <table className="table key-value expandable" onClick={this.preventToggling}><tbody>{children}</tbody></table>
     );
   }
 });
