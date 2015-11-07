@@ -18,7 +18,8 @@ from django.utils.translation import ugettext, ugettext_lazy as _
 from pprint import saferepr
 from sentry.models import (
     ApiKey, AuthIdentity, AuthProvider, AuditLogEntry, Broadcast, HelpPage,
-    Option, Organization, OrganizationMember, Project, Team, User
+    Option, Organization, OrganizationMember, OrganizationMemberTeam, Project,
+    Team, User
 )
 
 csrf_protect_m = method_decorator(csrf_protect)
@@ -149,14 +150,13 @@ class TeamAdmin(admin.ModelAdmin):
             organization=obj.organization,
         )
 
+        # TODO(dcramer): maintain memberships where possible
         # remove invalid team links
-        queryset = OrganizationMember.objects.filter(
-            teams=obj,
+        OrganizationMemberTeam.objects.filter(
+            team=obj,
         ).exclude(
-            organization=obj.organization,
-        )
-        for member in queryset:
-            member.teams.remove(obj)
+            organizationmember__organization=obj.organization,
+        ).delete()
 
 admin.site.register(Team, TeamAdmin)
 
