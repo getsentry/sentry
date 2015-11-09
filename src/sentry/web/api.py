@@ -194,17 +194,18 @@ class APIView(BaseView):
 
             if auth.version != '2.0':
                 if not auth.secret_key:
-                    # We fall back to checking CORS if either:
-                    #  * Request was a GET or
-                    #  * Missing secret_key on any other method
-                    # If an Origin isn't passed, it's possible that the project allows no origin,
-                    # so we need to explicitly check for that here. If Origin is not None,
-                    # it can be safely assumed that it was checked previously and it's ok.
-                    if origin is None and not is_valid_origin(origin, project):
-                        if request.method == 'GET':
-                            # Special case for GET request since it will never use a sentry_secret
-                            raise APIForbidden('Missing required Origin or Referer header')
+                    # If we're missing a secret_key, check if we are allowed
+                    # to do a CORS request.
+
+                    # If we're missing an Origin/Referrer header entirely,
+                    # we only want to support this on GET requests. By allowing
+                    # un-authenticated CORS checks for POST, we basially
+                    # are obsoleting our need for a secret key entirely.
+                    if origin is None and request.method != 'GET':
                         raise APIForbidden('Missing required attribute in authentication header: sentry_secret')
+
+                    if not is_valid_origin(origin, project):
+                        raise APIForbidden('Missing required Origin or Referer header')
 
             response = super(APIView, self).dispatch(
                 request=request,
