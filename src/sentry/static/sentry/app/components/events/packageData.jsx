@@ -35,7 +35,9 @@ const EventPackageData = React.createClass({
           title="Packages">
         <ClippedBox>
           <table className="table key-value">
+            <tbody>
             {children}
+            </tbody>
           </table>
         </ClippedBox>
       </EventDataSection>
