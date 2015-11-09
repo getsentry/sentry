@@ -16,27 +16,40 @@ from hashlib import sha1
 from jsonfield import JSONField
 from uuid import uuid4
 
-from sentry.db.models import BoundedPositiveIntegerField, Model
+from sentry.db.models import (
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model
+)
+from sentry.utils.cache import Lock
 
 ONE_DAY = 60 * 60 * 24
 
 
-class File(Model):
+class FileBlob(Model):
     __core__ = False
 
-    name = models.CharField(max_length=128)
-    storage = models.CharField(max_length=128, null=True)
+    storage = models.CharField(max_length=128)
     storage_options = JSONField()
     path = models.TextField(null=True)
-    type = models.CharField(max_length=64)
     size = BoundedPositiveIntegerField(null=True)
-    checksum = models.CharField(max_length=40, null=True)
+    checksum = models.CharField(max_length=40, unique=True)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
-    headers = JSONField()
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_file'
+        db_table = 'sentry_fileblob'
+
+    @classmethod
+    def from_file(cls, fileobj):
+        """
+        Retrieve a FileBlob instance for the given file.
+
+        If not already present, this will cause it to be stored.
+
+        >>> blob = FileBlob.from_file(fileobj)
+        """
+        blob = cls()
+        blob.putfile(fileobj)
+        return blob
 
     def delete(self, *args, **kwargs):
         if self.path:
@@ -44,9 +57,8 @@ class File(Model):
         super(File, self).delete(*args, **kwargs)
 
     def generate_unique_path(self):
-        pieces = self.type.split('.')
-        pieces.extend(map(str, divmod(int(self.timestamp.strftime('%s')), ONE_DAY)))
-        pieces.append('%s-%s' % (uuid4().hex, self.name))
+        pieces = map(str, divmod(int(self.timestamp.strftime('%s')), ONE_DAY))
+        pieces.append('%s' % (uuid4().hex,))
         return '/'.join(pieces)
 
     def get_storage(self):
@@ -67,16 +79,7 @@ class File(Model):
         if commit:
             self.save()
 
-    def putfile(self, fileobj, commit=True):
-        """
-        Upload this given File's contents.
-
-        A file's content is idempotent and you may not re-save a given file.
-
-        >>> my_file = File(name='app.dsym', type='objc.dsym')
-        >>> my_file.putfile(fileobj, commit=False)
-        >>> my_file.save()
-        """
+    def putfile(self, fileobj):
         assert not self.path
 
         self.path = self.generate_unique_path()
@@ -91,17 +94,25 @@ class File(Model):
         self.size = size
         self.checksum = checksum.hexdigest()
 
-        storage = self.get_storage()
-        storage.save(self.path, fileobj)
+        with Lock('fileblob:upload:{}'.format(self.checksum)):
+            # test for presence
+            try:
+                existing = FileBlob.objects.get(checksum=self.checksum)
+            except FileBlob.DoesNotExist:
+                pass
+            else:
+                self.__dict__ = existing.__dict__
+                return
 
-        if commit:
+            storage = self.get_storage()
+            storage.save(self.path, fileobj)
             self.save()
 
     def getfile(self):
         """
         Return a file-like object for this File's content.
 
-        >>> with my_file.getfile() as src, open('/tmp/localfile', 'wb') as dst:
+        >>> with blob.getfile() as src, open('/tmp/localfile', 'wb') as dst:
         >>>     for chunk in src.chunks():
         >>>         dst.write(chunk)
         """
@@ -109,3 +120,66 @@ class File(Model):
 
         storage = self.get_storage()
         return storage.open(self.path)
+
+
+class File(Model):
+    __core__ = False
+
+    name = models.CharField(max_length=128)
+    type = models.CharField(max_length=64)
+    timestamp = models.DateTimeField(default=timezone.now, db_index=True)
+    headers = JSONField()
+    blob = FlexibleForeignKey('sentry.FileBlob', null=True)
+
+    # <Legacy fields>
+    storage = models.CharField(max_length=128, null=True)
+    storage_options = JSONField()
+    path = models.TextField(null=True)
+    size = BoundedPositiveIntegerField(null=True)
+    checksum = models.CharField(max_length=40, null=True)
+    # </Legacy fields>
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_file'
+
+    def delete(self, *args, **kwargs):
+        super(File, self).delete(*args, **kwargs)
+        if self.blob_id and not File.objects.filter(blob=self.blob_id).exists():
+            self.blob.deletefile()
+            self.blob.delete()
+
+    def ensure_blob(self):
+        if self.blob:
+            return
+
+        lock_key = 'fileblob:convert:{}'.format(self.checksum)
+        with Lock(lock_key):
+            blob, created = FileBlob.objects.get_or_create(
+                checksum=self.checksum,
+                defaults={
+                    'storage': self.storage,
+                    'storage_options': self.storage_options,
+                    'path': self.path,
+                    'size': self.size,
+                    'timestamp': self.timestamp,
+                },
+            )
+
+            # if this blob already existed, lets kill the duplicate
+            if not created:
+                get_storage_class(self.storage)(
+                    **self.storage_options
+                ).delete(self.path)
+
+            self.update(
+                blob=blob,
+                checksum=None,
+                path=None,
+                storage=None,
+                storage_options={},
+            )
+
+    def getfile(self, *args, **kwargs):
+        self.ensure_blob()
+        return self.blob.getfile(*args, **kwargs)
