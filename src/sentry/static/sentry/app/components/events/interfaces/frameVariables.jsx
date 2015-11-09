@@ -19,7 +19,7 @@ const FrameVariables = React.createClass({
 
     for (let key in data) {
       let value = data[key];
-      children.push(<tr key={key}><td>{key}</td><td><ContextData data={value} /></td></tr>);
+      children.push(<tr key={key}><td className="key">{key}</td><td className="value"><ContextData data={value} /></td></tr>);
     }
 
     return (

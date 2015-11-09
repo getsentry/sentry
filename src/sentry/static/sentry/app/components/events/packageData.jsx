@@ -24,7 +24,7 @@ const EventPackageData = React.createClass({
 
     let children = [];
     packageKeys.forEach((key) => {
-      children.push(<tr key={'dt-' + key}><td>{key}</td><td><pre>{packages[key]}</pre></td></tr>);
+      children.push(<tr key={'dt-' + key}><td className="key">{key}</td><td className="value"><pre>{packages[key]}</pre></td></tr>);
     });
 
     return (
