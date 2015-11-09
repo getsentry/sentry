@@ -19,6 +19,7 @@ const KeyValueList = React.createClass({
     let data = _.sortBy(this.props.data, (key, value) => key);
     return (
       <table className="table key-value">
+        <tbody>
         {data.map(([key, value]) => {
           if (this.props.isContextData) {
             return [
@@ -36,6 +37,7 @@ const KeyValueList = React.createClass({
             ];
           }
         })}
+        </tbody>
       </table>
     );
   }
