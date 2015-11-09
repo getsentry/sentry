@@ -12,13 +12,13 @@ describe('KeyValueList', function () {
       ];
       let elem = TestUtils.renderIntoDocument(<KeyValueList data={data} />);
 
-      let dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
-      expect(ReactDOM.findDOMNode(dts[0]).textContent).to.eql('a');
-      expect(ReactDOM.findDOMNode(dts[1]).textContent).to.eql('b');
+      let keys = TestUtils.scryRenderedDOMComponentsWithClass(elem, 'key');
+      expect(ReactDOM.findDOMNode(keys[0]).textContent).to.eql('a');
+      expect(ReactDOM.findDOMNode(keys[1]).textContent).to.eql('b');
 
-      let dds = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dd');
-      expect(ReactDOM.findDOMNode(dds[0]).textContent).to.eql('x');
-      expect(ReactDOM.findDOMNode(dds[1]).textContent).to.eql('y');
+      let values = TestUtils.scryRenderedDOMComponentsWithClass(elem, 'value');
+      expect(ReactDOM.findDOMNode(values[0]).textContent).to.eql('x');
+      expect(ReactDOM.findDOMNode(values[1]).textContent).to.eql('y');
     });
 
     it('should sort sort key/value pairs', function () {
@@ -27,13 +27,13 @@ describe('KeyValueList', function () {
       ];
       let elem = TestUtils.renderIntoDocument(<KeyValueList data={data} />);
 
-      let dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
-      expect(ReactDOM.findDOMNode(dts[0]).textContent).to.eql('a');
-      expect(ReactDOM.findDOMNode(dts[1]).textContent).to.eql('b');
+      let keys = TestUtils.scryRenderedDOMComponentsWithClass(elem, 'key');
+      expect(ReactDOM.findDOMNode(keys[0]).textContent).to.eql('a');
+      expect(ReactDOM.findDOMNode(keys[1]).textContent).to.eql('b');
 
-      let dds = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dd');
-      expect(ReactDOM.findDOMNode(dds[0]).textContent).to.eql('x');
-      expect(ReactDOM.findDOMNode(dds[1]).textContent).to.eql('y');
+      let values = TestUtils.scryRenderedDOMComponentsWithClass(elem, 'value');
+      expect(ReactDOM.findDOMNode(values[0]).textContent).to.eql('x');
+      expect(ReactDOM.findDOMNode(values[1]).textContent).to.eql('y');
     });
 
     it('should use a single space for values that are an empty string', function () {
@@ -42,13 +42,13 @@ describe('KeyValueList', function () {
       ];
       let elem = TestUtils.renderIntoDocument(<KeyValueList data={data} />);
 
-      let dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
-      expect(ReactDOM.findDOMNode(dts[0]).textContent).to.eql('a');
-      expect(ReactDOM.findDOMNode(dts[1]).textContent).to.eql('b');
+      let keys = TestUtils.scryRenderedDOMComponentsWithClass(elem, 'key');
+      expect(ReactDOM.findDOMNode(keys[0]).textContent).to.eql('a');
+      expect(ReactDOM.findDOMNode(keys[1]).textContent).to.eql('b');
 
-      let dds = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dd');
-      expect(ReactDOM.findDOMNode(dds[0]).textContent).to.eql(' ');
-      expect(ReactDOM.findDOMNode(dds[1]).textContent).to.eql('y');
+      let values = TestUtils.scryRenderedDOMComponentsWithClass(elem, 'value');
+      expect(ReactDOM.findDOMNode(values[0]).textContent).to.eql(' ');
+      expect(ReactDOM.findDOMNode(values[1]).textContent).to.eql('y');
     });
 
     it('should coerce non-strings into strings', function () {
@@ -57,11 +57,11 @@ describe('KeyValueList', function () {
       ];
       let elem = TestUtils.renderIntoDocument(<KeyValueList data={data} />);
 
-      let dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
-      expect(ReactDOM.findDOMNode(dts[0]).textContent).to.eql('a');
+      let keys = TestUtils.scryRenderedDOMComponentsWithClass(elem, 'key');
+      expect(ReactDOM.findDOMNode(keys[0]).textContent).to.eql('a');
 
-      let dds = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dd');
-      expect(ReactDOM.findDOMNode(dds[0]).textContent).to.eql('false');
+      let values = TestUtils.scryRenderedDOMComponentsWithClass(elem, 'value');
+      expect(ReactDOM.findDOMNode(values[0]).textContent).to.eql('false');
     });
 
     it('shouldn\'t blow up on null', function () {
@@ -70,11 +70,11 @@ describe('KeyValueList', function () {
       ];
       let elem = TestUtils.renderIntoDocument(<KeyValueList data={data} />);
 
-      let dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
-      expect(ReactDOM.findDOMNode(dts[0]).textContent).to.eql('a');
+      let keys = TestUtils.scryRenderedDOMComponentsWithClass(elem, 'key');
+      expect(ReactDOM.findDOMNode(keys[0]).textContent).to.eql('a');
 
-      let dds = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dd');
-      expect(ReactDOM.findDOMNode(dds[0]).textContent).to.eql('null');
+      let values = TestUtils.scryRenderedDOMComponentsWithClass(elem, 'value');
+      expect(ReactDOM.findDOMNode(values[0]).textContent).to.eql('null');
     });
   });
 });

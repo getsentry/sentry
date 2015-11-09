@@ -54,7 +54,7 @@ const RichHttpContent = React.createClass({
     try {
       // Sentry API abbreviates long query string values, sometimes resulting in
       // an un-parsable querystring ... stay safe kids
-      return <keyValueList data={this.objectToSortedTupleArray(queryString.parse(data))}/>;
+      return <KeyValueList data={this.objectToSortedTupleArray(queryString.parse(data))}/>;
     } catch (e) {
       return <pre>{data}</pre>;
     }
