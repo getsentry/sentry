@@ -3,7 +3,7 @@ import TestUtils from 'react-addons-test-utils';
 import stubReactComponents from '../../../../helpers/stubReactComponent';
 
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
-import DefinitionList from 'app/components/events/interfaces/definitionList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import ClippedBox from 'app/components/clippedBox';
 import ContextData from 'app/components/contextData';
 
@@ -18,7 +18,7 @@ describe('RichHttpContent', function () {
     };
     this.elem = TestUtils.renderIntoDocument(<RichHttpContent data={this.data} />);
     this.sandbox = sinon.sandbox.create();
-    stubReactComponents(this.sandbox, [ClippedBox, DefinitionList, ContextData]);
+    stubReactComponents(this.sandbox, [ClippedBox, KeyValueList, ContextData]);
   });
 
   afterEach(function () {
@@ -63,7 +63,7 @@ describe('RichHttpContent', function () {
       expect(out.type).to.eql('pre');
     });
 
-    it('should return a DefinitionList element when Content-Type is x-www-form-urlencoded', function () {
+    it('should return a KeyValueList element when Content-Type is x-www-form-urlencoded', function () {
       let out = this.elem.getBodySection({
         headers: [
           ['lol' , 'no'],
@@ -73,7 +73,7 @@ describe('RichHttpContent', function () {
       });
 
       // NOTE: ContextData is stubbed in tests; instead returns <div className="ContextData"/>
-      expect(out.props.className).to.eql('DefinitionList');
+      expect(out.props.className).to.eql('KeyValueList');
       expect(out.props.data).to.eql([
         ['bar', 'baz'],
         ['foo', 'bar']
@@ -148,4 +148,3 @@ describe('RichHttpContent', function () {
     });
   });
 });
-

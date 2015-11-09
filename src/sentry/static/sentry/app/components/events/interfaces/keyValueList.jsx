@@ -3,7 +3,7 @@ import _ from 'underscore';
 
 import ContextData from '../../contextData';
 
-const DefinitionList = React.createClass({
+const KeyValueList = React.createClass({
   propTypes: {
     data: React.PropTypes.array.isRequired,
     isContextData: React.PropTypes.bool
@@ -41,4 +41,4 @@ const DefinitionList = React.createClass({
   }
 });
 
-export default DefinitionList;
+export default KeyValueList;

@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from '../../proptypes';
 import {objectToArray} from '../../utils';
 import EventDataSection from './eventDataSection';
-import DefinitionList from './interfaces/definitionList';
+import KeyValueList from './interfaces/keyValueList';
 
 const EventExtraData = React.createClass({
   propTypes: {
@@ -24,7 +24,7 @@ const EventExtraData = React.createClass({
           event={this.props.event}
           type="extra"
           title="Additional Data">
-          <DefinitionList
+          <KeyValueList
               data={extraDataArray}
               isContextData={true}/>
       </EventDataSection>

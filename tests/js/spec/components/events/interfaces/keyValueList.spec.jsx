@@ -2,15 +2,15 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import TestUtils from 'react-addons-test-utils';
 
-import DefinitionList from 'app/components/events/interfaces/definitionList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
-describe('DefinitionList', function () {
+describe('KeyValueList', function () {
   describe('render', function () {
     it('should render a definition list of key/value pairs', function () {
       let data = [
         ['a', 'x'], ['b', 'y']
       ];
-      let elem = TestUtils.renderIntoDocument(<DefinitionList data={data} />);
+      let elem = TestUtils.renderIntoDocument(<KeyValueList data={data} />);
 
       let dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
       expect(ReactDOM.findDOMNode(dts[0]).textContent).to.eql('a');
@@ -25,7 +25,7 @@ describe('DefinitionList', function () {
       let data = [
         ['b', 'y'], ['a', 'x']
       ];
-      let elem = TestUtils.renderIntoDocument(<DefinitionList data={data} />);
+      let elem = TestUtils.renderIntoDocument(<KeyValueList data={data} />);
 
       let dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
       expect(ReactDOM.findDOMNode(dts[0]).textContent).to.eql('a');
@@ -40,7 +40,7 @@ describe('DefinitionList', function () {
       let data = [
         ['b', 'y'], ['a', ''] // empty string
       ];
-      let elem = TestUtils.renderIntoDocument(<DefinitionList data={data} />);
+      let elem = TestUtils.renderIntoDocument(<KeyValueList data={data} />);
 
       let dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
       expect(ReactDOM.findDOMNode(dts[0]).textContent).to.eql('a');
@@ -55,7 +55,7 @@ describe('DefinitionList', function () {
       let data = [
         ['a', false]
       ];
-      let elem = TestUtils.renderIntoDocument(<DefinitionList data={data} />);
+      let elem = TestUtils.renderIntoDocument(<KeyValueList data={data} />);
 
       let dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
       expect(ReactDOM.findDOMNode(dts[0]).textContent).to.eql('a');
@@ -68,7 +68,7 @@ describe('DefinitionList', function () {
       let data = [
         ['a', null]
       ];
-      let elem = TestUtils.renderIntoDocument(<DefinitionList data={data} />);
+      let elem = TestUtils.renderIntoDocument(<KeyValueList data={data} />);
 
       let dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
       expect(ReactDOM.findDOMNode(dts[0]).textContent).to.eql('a');
@@ -78,4 +78,3 @@ describe('DefinitionList', function () {
     });
   });
 });
-
