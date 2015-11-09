@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {objectToArray} from '../../../utils';
-import DefinitionList from './definitionList';
+import KeyValueList from './keyValueList';
 
 const CSPContent = React.createClass({
   propTypes: {
@@ -15,7 +15,7 @@ const CSPContent = React.createClass({
         <h4>
           <span>{data.effective_directive}</span>
         </h4>
-        <DefinitionList data={objectToArray(data)} isContextData={true}/>
+        <KeyValueList data={objectToArray(data)} isContextData={true}/>
       </div>
     );
   }

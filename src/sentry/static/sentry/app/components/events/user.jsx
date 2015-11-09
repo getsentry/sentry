@@ -1,7 +1,7 @@
 import _ from 'underscore';
 import React from 'react';
 import Gravatar from '../../components/gravatar';
-import DefinitionList from './interfaces/definitionList';
+import KeyValueList from './interfaces/keyValueList';
 import EventDataSection from './eventDataSection';
 
 
@@ -30,9 +30,9 @@ const EventUser = React.createClass({
           title="User">
         <div className="user-widget">
           <div className="pull-left"><Gravatar email={user.email} size={96} /></div>
-          <DefinitionList data={builtins} isContextData={false} />
+          <KeyValueList data={builtins} isContextData={false} />
           {children &&
-            <DefinitionList data={children} isContextData={true} />
+            <KeyValueList data={children} isContextData={true} />
           }
         </div>
       </EventDataSection>
