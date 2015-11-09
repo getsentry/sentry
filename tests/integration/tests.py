@@ -226,7 +226,7 @@ class SentryRemoteTest(TestCase):
         self.project.update_option('sentry:origins', '')
         kwargs = {'message': 'hello'}
         resp = self._postWithReferer(kwargs, referer=None, protocol='4')
-        assert resp.status_code == 200, (resp.status_code, resp.get('X-Sentry-Error'))
+        assert resp.status_code == 403, (resp.status_code, resp.get('X-Sentry-Error'))
 
     def test_signature(self):
         kwargs = {'message': 'hello'}
