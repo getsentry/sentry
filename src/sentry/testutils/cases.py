@@ -182,6 +182,29 @@ class BaseTestCase(Fixtures, Exam):
             )
         return resp
 
+    def _postWithReferer(self, data, key=None, referer='getsentry.com', protocol='4'):
+        if key is None:
+            key = self.projectkey.public_key
+
+        headers = {}
+        if referer is not None:
+            headers['HTTP_REFERER'] = referer
+
+        message = self._makeMessage(data)
+        qs = {
+            'sentry_version': protocol,
+            'sentry_client': 'raven-js/lol',
+            'sentry_key': key,
+        }
+        with self.tasks():
+            resp = self.client.post(
+                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urllib.urlencode(qs)),
+                data=message,
+                content_type='application/json',
+                **headers
+            )
+        return resp
+
     _postWithSignature = _postWithHeader
     _postWithNewSignature = _postWithHeader
 

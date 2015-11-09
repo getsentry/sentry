@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function
 
 from celery.utils.log import get_task_logger
 from django.db import IntegrityError, transaction
+from raven.contrib.django.models import client as Raven
 
 from sentry.plugins import plugins
 from sentry.tasks.base import instrumented_task
@@ -45,7 +46,12 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     from sentry.models import Project
     from sentry.rules.processor import RuleProcessor
 
-    project = Project.objects.get_from_cache(id=event.group.project_id)
+    project_id = event.group.project_id
+    Raven.tags_context({
+        'project': project_id,
+    })
+
+    project = Project.objects.get_from_cache(id=project_id)
 
     _capture_stats(event, is_new)
 
