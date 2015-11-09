@@ -1,6 +1,7 @@
 import React from 'react';
 
-import ContextData from '../../contextData';
+import {objectToArray} from '../../../utils';
+import KeyValueList from './keyValueList';
 
 const FrameVariables = React.createClass({
   propTypes: {
@@ -14,16 +15,10 @@ const FrameVariables = React.createClass({
   },
 
   render() {
-    let children = [];
-    let data = this.props.data;
-
-    for (let key in data) {
-      let value = data[key];
-      children.push(<tr key={key}><td className="key">{key}</td><td className="value"><ContextData data={value} /></td></tr>);
-    }
+    let data = objectToArray(this.props.data);
 
     return (
-      <table className="table key-value expandable" onClick={this.preventToggling}><tbody>{children}</tbody></table>
+      <KeyValueList data={data} isContextData={true} />
     );
   }
 });

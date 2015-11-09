@@ -1,8 +1,10 @@
 import React from 'react';
 import PropTypes from '../../proptypes';
 
+import {objectToArray} from '../../utils';
 import EventDataSection from './eventDataSection';
 import ClippedBox from '../clippedBox';
+import KeyValueList from './interfaces/keyValueList';
 
 const EventPackageData = React.createClass({
   propTypes: {
@@ -15,17 +17,7 @@ const EventPackageData = React.createClass({
   },
 
   render() {
-    let packages = this.props.event.packages;
-    let packageKeys = [];
-    for (let key in packages) {
-      packageKeys.push(key);
-    }
-    packageKeys.sort();
-
-    let children = [];
-    packageKeys.forEach((key) => {
-      children.push(<tr key={'dt-' + key}><td className="key">{key}</td><td className="value"><pre>{packages[key]}</pre></td></tr>);
-    });
+    let packages = objectToArray(this.props.event.packages);
 
     return (
       <EventDataSection
@@ -34,11 +26,7 @@ const EventPackageData = React.createClass({
           type="packages"
           title="Packages">
         <ClippedBox>
-          <table className="table key-value">
-            <tbody>
-            {children}
-            </tbody>
-          </table>
+          <KeyValueList data={packages} />
         </ClippedBox>
       </EventDataSection>
     );
