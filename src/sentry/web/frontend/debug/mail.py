@@ -14,16 +14,24 @@ from random import Random
 
 import pytz
 
+from django.contrib.webdesign.lorem_ipsum import words
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 
+from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
 from sentry.digests.notifications import (
     Notification,
     build_digest,
 )
 from sentry.models import (
-    Activity, Event, Group, Organization, Project, Rule, Team,
+    Activity,
+    Event,
+    Group,
+    Organization,
+    Project,
+    Rule,
+    Team,
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.samples import load_data
@@ -277,8 +285,9 @@ def digest(request):
         group = state['groups'][group_id] = Group(
             id=group_id,
             project=project,
-            message='This is example event #%s' % (group_id,),
-            culprit='widget.foo in bar',
+            message=words(int(random.paretovariate(1.05)), common=False),
+            culprit=words(int(random.paretovariate(1)), common=False),
+            level=random.choice(LOG_LEVELS.keys()),
         )
 
         offset = timedelta(seconds=0)
