@@ -3,20 +3,18 @@ from __future__ import absolute_import
 from django.conf import settings
 from django.core.files.base import ContentFile
 
-from sentry.models import File
+from sentry.models import FileBlob
 from sentry.testutils import TestCase
 
 
-class FileTest(TestCase):
-    def test_putfile(self):
+class FileBlobTest(TestCase):
+    def test_from_file(self):
         fileobj = ContentFile("foo bar")
 
-        my_file = File(name='app.dsym', type='release.artifact')
-        my_file.putfile(fileobj, commit=False)
-        my_file.save()
+        my_file1 = FileBlob.from_file(fileobj)
 
-        assert my_file.path
-        assert my_file.storage == settings.SENTRY_FILESTORE
+        assert my_file1.path
+        assert my_file1.storage == settings.SENTRY_FILESTORE
 
-        with self.assertRaises(Exception):
-            my_file.putfile(fileobj, commit=False)
+        my_file2 = FileBlob.from_file(fileobj)
+        assert my_file1 == my_file2
