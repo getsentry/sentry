@@ -184,7 +184,7 @@ def fetch_release_file(filename, release):
         release.id,
         md5(filename).hexdigest(),
     )
-    logger.debug('Checking cache for release artfiact %r (release_id=%s)',
+    logger.debug('Checking cache for release artifact %r (release_id=%s)',
                  filename, release.id)
     result = cache.get(cache_key)
     if result is None:
@@ -220,10 +220,6 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
 
     Attempts to fetch from the cache.
     """
-    cache_key = 'source:cache:v2:%s' % (
-        md5(url).hexdigest(),
-    )
-
     if release:
         result = fetch_release_file(url, release)
     elif not allow_scraping or not url.startswith(('http:', 'https:')):
@@ -234,6 +230,10 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         raise CannotFetchSource(error)
     else:
         result = None
+
+    cache_key = 'source:cache:v2:%s' % (
+        md5(url).hexdigest(),
+    )
 
     if result is None:
         logger.debug('Checking cache for url %r', url)
@@ -595,6 +595,15 @@ class SourceProcessor(object):
         sourcemaps = self.sourcemaps
 
         for f in frames:
+            # We can't even attempt to fetch source if abs_path is None
+            if f.abs_path is None:
+                continue
+            # tbh not entirely sure how this happens, but raven-js allows this
+            # to be caught. I think this comes from dev consoles and whatnot
+            # where there is no page. This just bails early instead of exposing
+            # a fetch error that may be confusing.
+            if f.abs_path == '<anonymous>':
+                continue
             pending_file_list.add(f.abs_path)
             if f.colno is not None:
                 sourcemap_capable.add(f.abs_path)
@@ -603,13 +612,6 @@ class SourceProcessor(object):
         while pending_file_list:
             filename = pending_file_list.pop()
             done_file_list.add(filename)
-
-            # tbh not entirely sure how this happens, but raven-js allows this
-            # to be caught. I think this comes from dev consoles and whatnot
-            # where there is no page. This just bails early instead of exposing
-            # a fetch error that may be confusing.
-            if filename == '<anonymous>':
-                continue
 
             if idx > self.max_fetches:
                 cache.add_error(filename, {
