@@ -169,7 +169,7 @@ class File(Model):
             )
 
             # if this blob already existed, lets kill the duplicate
-            if not created:
+            if self.path != blob.path:
                 get_storage_class(self.storage)(
                     **self.storage_options
                 ).delete(self.path)
