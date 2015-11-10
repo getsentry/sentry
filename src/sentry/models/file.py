@@ -176,10 +176,11 @@ class File(Model):
 
             self.update(
                 blob=blob,
-                checksum=None,
-                path=None,
-                storage=None,
-                storage_options={},
+                # TODO(dcramer): kill data when fully migrated
+                # checksum=None,
+                # path=None,
+                # storage=None,
+                # storage_options={},
             )
 
     def getfile(self, *args, **kwargs):
