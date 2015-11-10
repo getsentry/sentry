@@ -55,7 +55,7 @@ class FileBlob(Model):
     def delete(self, *args, **kwargs):
         if self.path:
             self.deletefile(commit=False)
-        super(File, self).delete(*args, **kwargs)
+        super(FileBlob, self).delete(*args, **kwargs)
 
     def generate_unique_path(self):
         pieces = map(str, divmod(int(self.timestamp.strftime('%s')), ONE_DAY))
@@ -83,10 +83,6 @@ class FileBlob(Model):
     def putfile(self, fileobj):
         assert not self.path
 
-        self.path = self.generate_unique_path()
-        self.storage = settings.SENTRY_FILESTORE
-        self.storage_options = settings.SENTRY_FILESTORE_OPTIONS
-
         size = 0
         checksum = sha1('')
         for chunk in fileobj:
@@ -102,8 +98,12 @@ class FileBlob(Model):
             except FileBlob.DoesNotExist:
                 pass
             else:
-                self.__dict__ = existing.__dict__
+                self.__dict__.update(existing.__dict__)
                 return
+
+            self.path = self.generate_unique_path()
+            self.storage = settings.SENTRY_FILESTORE
+            self.storage_options = settings.SENTRY_FILESTORE_OPTIONS
 
             storage = self.get_storage()
             storage.save(self.path, fileobj)
