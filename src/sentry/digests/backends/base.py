@@ -62,7 +62,7 @@ class Backend(object):
         # The ``increment_delay`` option defines how long each observation of
         # an event should delay scheduling (up until the ``maximum_delay``
         # after the last time a digest was processed.)
-        self.increment_delay = options.pop('increment_delay', 5)
+        self.increment_delay = options.pop('increment_delay', 10)
 
         # The ``codec`` option provides the strategy for encoding and decoding
         # records in the timeline.
