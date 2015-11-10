@@ -25,4 +25,4 @@ Resources
 * `Ask on Stack Overflow <http://stackoverflow.com/questions/ask?tags=sentry>`_
 * `Mailing List <https://groups.google.com/group/getsentry>`_
 * `IRC <irc://irc.freenode.net/sentry>`_  (irc.freenode.net, #sentry)
-* `Transifex <https://www.transifex.com/projects/p/sentry/>`_ (Translate Sentry!)
+* `Transifex <https://www.transifex.com/getsentry/sentry/>`_ (Translate Sentry!)
