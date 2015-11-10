@@ -48,19 +48,51 @@ class FileBlob(Model):
 
         >>> blob = FileBlob.from_file(fileobj)
         """
-        blob = cls()
-        blob.putfile(fileobj)
+        size = 0
+        checksum = sha1('')
+        for chunk in fileobj:
+            size += len(chunk)
+            checksum.update(chunk)
+        checksum = checksum.hexdigest()
+
+        lock_key = 'fileblob:upload:{}'.format(checksum)
+        # TODO(dcramer): the database here is safe, but if this lock expires
+        # and duplicate files are uploaded then we need to prune one
+        with Lock(lock_key, timeout=600):
+            # test for presence
+            try:
+                existing = FileBlob.objects.get(checksum=checksum)
+            except FileBlob.DoesNotExist:
+                pass
+            else:
+                return existing
+
+            blob = cls(
+                size=size,
+                checksum=checksum,
+                storage=settings.SENTRY_FILESTORE,
+                storage_options=settings.SENTRY_FILESTORE_OPTIONS,
+            )
+
+            blob.path = cls.generate_unique_path(blob.timestamp)
+
+            storage = blob.get_storage()
+            storage.save(blob.path, fileobj)
+            blob.save()
+
+        metrics.timing('filestore.blob-size', blob.size)
         return blob
+
+    @classmethod
+    def generate_unique_path(cls, timestamp):
+        pieces = map(str, divmod(int(timestamp.strftime('%s')), ONE_DAY))
+        pieces.append('%s' % (uuid4().hex,))
+        return '/'.join(pieces)
 
     def delete(self, *args, **kwargs):
         if self.path:
             self.deletefile(commit=False)
         super(FileBlob, self).delete(*args, **kwargs)
-
-    def generate_unique_path(self):
-        pieces = map(str, divmod(int(self.timestamp.strftime('%s')), ONE_DAY))
-        pieces.append('%s' % (uuid4().hex,))
-        return '/'.join(pieces)
 
     def get_storage(self):
         backend = self.storage
@@ -79,39 +111,6 @@ class FileBlob(Model):
 
         if commit:
             self.save()
-
-    def putfile(self, fileobj):
-        assert not self.path
-
-        size = 0
-        checksum = sha1('')
-        for chunk in fileobj:
-            size += len(chunk)
-            checksum.update(chunk)
-        self.size = size
-        self.checksum = checksum.hexdigest()
-
-        lock_key = 'fileblob:upload:{}'.format(self.checksum)
-        # TODO(dcramer): the database here is safe, but if this lock expires
-        # and duplicate files are uploaded then we need to prune one
-        with Lock(lock_key, timeout=600):
-            # test for presence
-            try:
-                existing = FileBlob.objects.get(checksum=self.checksum)
-            except FileBlob.DoesNotExist:
-                pass
-            else:
-                self.__dict__.update(existing.__dict__)
-                return
-
-            self.path = self.generate_unique_path()
-            self.storage = settings.SENTRY_FILESTORE
-            self.storage_options = settings.SENTRY_FILESTORE_OPTIONS
-
-            storage = self.get_storage()
-            storage.save(self.path, fileobj)
-            self.save()
-            metrics.timing('filestore.blob-size', self.size)
 
     def getfile(self):
         """
