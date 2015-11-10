@@ -213,7 +213,8 @@ def fetch_release_file(filename, release):
         else:
             result = (releasefile.file.headers, body, 200)
         cache.set(cache_key, result, 300)
-    elif result == -1:
+
+    if result == -1:
         result = None
 
     return result
