@@ -19,6 +19,7 @@ from uuid import uuid4
 from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, Model
 )
+from sentry.utils import metrics
 from sentry.utils.cache import Lock
 
 ONE_DAY = 60 * 60 * 24
@@ -107,6 +108,7 @@ class FileBlob(Model):
             storage = self.get_storage()
             storage.save(self.path, fileobj)
             self.save()
+            metrics.timing('filestore.blob-size', self.size)
 
     def getfile(self):
         """
