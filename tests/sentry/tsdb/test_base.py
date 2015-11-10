@@ -40,3 +40,8 @@ class BaseTSDBTest(TestCase):
         assert post_results[1] == [
             [1368889200, 15], [1368892800, 7]
         ]
+
+    def test_calculate_expiry(self):
+        timestamp = datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=pytz.UTC)
+        result = self.tsdb.calculate_expiry(10, 30, timestamp)
+        assert result == 1368890330
