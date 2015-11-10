@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from rest_framework import serializers
 from rest_framework.response import Response
-from urllib import unquote
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
@@ -75,8 +74,6 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
         :pparam string version: the version identifier of the release.
         :auth: required
         """
-        version = unquote(version)
-
         try:
             release = Release.objects.get(
                 project=project,
@@ -114,8 +111,6 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
         # TODO(dcramer): handle Activity creation
-        version = unquote(version)
-
         try:
             release = Release.objects.get(
                 project=project,
@@ -161,8 +156,6 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
         :pparam string version: the version identifier of the release.
         :auth: required
         """
-        version = unquote(version)
-
         try:
             release = Release.objects.get(
                 project=project,
