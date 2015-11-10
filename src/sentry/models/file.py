@@ -91,7 +91,10 @@ class FileBlob(Model):
         self.size = size
         self.checksum = checksum.hexdigest()
 
-        with Lock('fileblob:upload:{}'.format(self.checksum)):
+        lock_key = 'fileblob:upload:{}'.format(self.checksum)
+        # TODO(dcramer): the database here is safe, but if this lock expires
+        # and duplicate files are uploaded then we need to prune one
+        with Lock(lock_key, timeout=600):
             # test for presence
             try:
                 existing = FileBlob.objects.get(checksum=self.checksum)
@@ -156,7 +159,7 @@ class File(Model):
             return
 
         lock_key = 'fileblob:convert:{}'.format(self.checksum)
-        with Lock(lock_key):
+        with Lock(lock_key, timeout=60):
             blob, created = FileBlob.objects.get_or_create(
                 checksum=self.checksum,
                 defaults={
