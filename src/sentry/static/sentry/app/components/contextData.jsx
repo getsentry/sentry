@@ -80,6 +80,7 @@ const ContextData = React.createClass({
 
   renderValue(value) {
     function toggle(evt) {
+      evt.stopPropagation();
       jQuery(evt.target).parent().toggleClass('val-toggle-open');
       evt.preventDefault();
     }
