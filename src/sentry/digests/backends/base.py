@@ -57,7 +57,7 @@ class Backend(object):
 
         # The ``maximum_delay`` option defines the maximum amount of time (in
         # seconds) to wait between scheduling digests for delivery.
-        self.maximum_delay = options.pop('maximum_delay', 60 * 5)
+        self.maximum_delay = options.pop('maximum_delay', 60 * 10)
 
         # The ``increment_delay`` option defines how long each observation of
         # an event should delay scheduling (up until the ``maximum_delay``
