@@ -46,15 +46,19 @@ class Quota(object):
         return int(quota or 0)
 
     def get_project_quota(self, project):
-        from sentry.models import ProjectOption
+        from sentry.models import ProjectOption, Team
 
         project_quota = ProjectOption.objects.get_value(project, 'quotas:per_minute', '')
         if project_quota is None:
             project_quota = settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE
 
+        team = getattr(project, '_team_cache', None)
+        if not team:
+            team = Team.objects.get_from_cache(id=project.team_id)
+
         return self.translate_quota(
             project_quota,
-            self.get_team_quota(project.team),
+            self.get_team_quota(team),
         )
 
     def get_team_quota(self, team):
