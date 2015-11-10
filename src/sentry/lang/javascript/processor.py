@@ -204,9 +204,14 @@ def fetch_release_file(filename, release):
 
         logger.debug('Found release artifact %r (id=%s, release_id=%s)',
                      filename, releasefile.id, release.id)
-        with releasefile.file.getfile() as fp:
-            body = fp.read()
-        result = (releasefile.file.headers, body, 200)
+        try:
+            with releasefile.file.getfile() as fp:
+                body = fp.read()
+        except Exception as e:
+            logger.exception(unicode(e))
+            result = -1
+        else:
+            result = (releasefile.file.headers, body, 200)
         cache.set(cache_key, result, 300)
     elif result == -1:
         result = None
