@@ -23,7 +23,15 @@
                             0.5341796875,
                             0.62939453125
                         ],
-                        "'user'": "'dcramer'"
+                        "'user'": "'dcramer'",
+                        "'go_deeper'": [
+                            [
+                                {
+                                    "'foo'": "'bar'",
+                                    "'bar'": ["'baz'"]
+                                }
+                            ]
+                        ]
                     },
                     "'v'": {
                         "'message'": "u'This is a test message generated using ``raven test``'",
@@ -90,7 +98,15 @@
                             0.5341796875,
                             0.62939453125
                         ],
-                        "'user'": "'dcramer'"
+                        "'user'": "'dcramer'",
+                        "'go_deeper'": [
+                            [
+                                {
+                                    "'foo'": "'bar'",
+                                    "'bar'": ["'baz'"]
+                                }
+                            ]
+                        ]
                     },
                     "'stack'": true,
                     "'tags'": null,
@@ -136,7 +152,15 @@
                                 0.5341796875,
                                 0.62939453125
                             ],
-                            "'user'": "'dcramer'"
+                            "'user'": "'dcramer'",
+                            "'go_deeper'": [
+                                [
+                                    {
+                                        "'foo'": "'bar'",
+                                        "'bar'": ["'baz'"]
+                                    }
+                                ]
+                            ]
                         },
                         "'stack'": true,
                         "'data'": null,
