@@ -169,10 +169,11 @@ class File(Model):
             )
 
             # if this blob already existed, lets kill the duplicate
-            if self.path != blob.path:
-                get_storage_class(self.storage)(
-                    **self.storage_options
-                ).delete(self.path)
+            # TODO(dcramer): kill data when fully migrated
+            # if self.path != blob.path:
+            #     get_storage_class(self.storage)(
+            #         **self.storage_options
+            #     ).delete(self.path)
 
             self.update(
                 blob=blob,
