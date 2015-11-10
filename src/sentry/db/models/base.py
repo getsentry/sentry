@@ -109,5 +109,7 @@ class Model(BaseModel):
     class Meta:
         abstract = True
 
+    __repr__ = sane_repr('id')
+
 
 signals.post_save.connect(__model_post_save)
