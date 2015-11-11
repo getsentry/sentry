@@ -488,8 +488,9 @@
         border: 1px solid @trim;
         margin-left: 42px;
         border-radius: 3px;
-        font-size: 13px;
-        padding: 8px 15px;
+        font-size: 14px;
+        line-height: 18px;
+        padding: 10px 10px 0;
         position: relative;
 
         &:before {
@@ -519,15 +520,21 @@
         }
 
         p {
-          margin: 0;
+          margin: 0 0 10px;
 
           a {
             word-wrap: break-word;
           }
         }
 
+        pre {
+          font-size: 12px;
+          margin-bottom: 10px;
+        }
+
         .activity-author {
           font-weight: 600;
+          margin-bottom: 10px;
 
           small {
             font-weight: 300;
@@ -541,6 +548,7 @@
               padding: 0 7px;
               border-left: 1px solid lighten(@gray, 40);
               color: lighten(@gray, 30);
+              font-weight: normal;
               &:hover { color: #666; }
               &:hover.danger { color: #d21c25; }
               &:first-child { margin-left: 7px; }
