@@ -18,6 +18,7 @@ from django.template.loader import render_to_string
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
+from sentry import features
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
@@ -39,7 +40,7 @@ class MailPlugin(NotificationPlugin):
     project_conf_form = None
     subject_prefix = settings.EMAIL_SUBJECT_PREFIX
 
-    def _send_mail(self, subject, template=None, html_template=None, body=None,
+    def _build_message(self, subject, template=None, html_template=None, body=None,
                    project=None, group=None, headers=None, context=None):
         send_to = self.get_send_to(project)
         if not send_to:
@@ -59,7 +60,10 @@ class MailPlugin(NotificationPlugin):
             reference=group,
         )
         msg.add_users(send_to, project=project)
-        return msg.send()
+        return msg
+
+    def _send_mail(self, *args, **kwargs):
+        return self._build_message(*args, **kwargs).send()
 
     def send_test_mail(self, project=None):
         self._send_mail(
@@ -196,13 +200,16 @@ class MailPlugin(NotificationPlugin):
             'counts': counts,
         }
 
-        self._send_mail(
+        message = self._build_message(
             subject=render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
             template='sentry/emails/digests/body.txt',
             html_template='sentry/emails/digests/body.html',
             project=project,
             context=context,
         )
+
+        if features.has('projects:digests:deliver', project):
+            message.send()
 
 
 # Legacy compatibility
