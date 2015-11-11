@@ -1,0 +1,32 @@
+{
+    "culprit": "script-src 'self' 'unsafe-eval' 'unsafe-inline' www.example.com",
+    "message": "Blocked 'script' from 'example.org'",
+    "sentry.interfaces.Csp": {
+        "line_number": 304,
+        "blocked_uri": "https://example.com",
+        "referrer": "https://www.google.com/",
+        "status_code": 0,
+        "violated_directive": "script-src 'self' 'unsafe-eval' 'unsafe-inline' www.example.com",
+        "document_uri": "https://example.com/welcome/",
+        "original_policy": "default-src *; script-src 'self' 'unsafe-eval' 'unsafe-inline' www.example.com; img-src * data:",
+        "source_file": "https://example.com/welcome/",
+        "column_number": 305,
+        "effective_directive": "script-src"
+    },
+    "sentry.interfaces.Http": {
+        "url": "https://example.com/welcome/",
+        "headers": [
+            [
+                "Referer",
+                "https://www.google.com/"
+            ],
+            [
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) coc_coc_browser/51.2.109 Chrome/45.2.2454.109 Safari/537.36"
+            ]
+        ]
+    },
+    "sentry.interfaces.User": {
+        "ip_address": "127.0.0.1"
+    }
+}

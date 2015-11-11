@@ -69,6 +69,7 @@ class MailPreview(object):
 
 @login_required
 def new_event(request):
+    platform = request.GET.get('platform', 'python')
     org = Organization(
         id=1,
         slug='example',
@@ -99,7 +100,7 @@ def new_event(request):
         project=project,
         group=group,
         message=group.message,
-        data=load_data('python'),
+        data=load_data(platform),
     )
 
     rule = Rule(label="An example rule")

@@ -12,8 +12,10 @@ __all__ = ('Csp',)
 
 from urlparse import urlsplit, urlunsplit
 from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.safe import trim
+from sentry.web.helpers import render_to_string
 
 
 # Sourced from https://developer.mozilla.org/en-US/docs/Web/Security/CSP/CSP_policy_directives
@@ -92,6 +94,7 @@ class Csp(Interface):
     >>> }
     """
 
+    score = 1300
     display_score = 1300
 
     @classmethod
@@ -207,6 +210,18 @@ class Csp(Interface):
         if scheme in ('http', 'https'):
             return value
         return _unsplit(scheme, value)
+
+    def get_title(self):
+        return 'CSP Report'
+
+    def to_string(self, is_public=False, **kwargs):
+        return json.dumps({'csp-report': self.get_api_context()}, indent=2)
+
+    def to_email_html(self, event, **kwargs):
+        return render_to_string(
+            'sentry/partial/interfaces/csp_email.html',
+            {'data': self.get_api_context()}
+        )
 
     def get_path(self):
         return 'sentry.interfaces.Csp'
