@@ -149,8 +149,7 @@ class File(Model):
 
     def delete(self, *args, **kwargs):
         super(File, self).delete(*args, **kwargs)
-        if self.blob_id and not File.objects.filter(blob=self.blob_id).exists():
-            self.blob.deletefile()
+        if self.blob and not File.objects.filter(blob=self.blob).exists():
             self.blob.delete()
 
     def ensure_blob(self):
