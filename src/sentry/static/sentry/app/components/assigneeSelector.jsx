@@ -26,6 +26,20 @@ const AssigneeSelector = React.createClass({
     })
   ],
 
+  statics: {
+    filterMembers(memberList, filter) {
+      if (!filter)
+        return memberList;
+
+      filter = filter.toLowerCase();
+      return memberList.filter(item => {
+        let fullName = [item.name, item.email].join(' ').toLowerCase();
+
+        return fullName.indexOf(filter) !== -1;
+      });
+    }
+  },
+
   getInitialState() {
     let group = GroupStore.get(this.props.id);
 
@@ -126,20 +140,15 @@ const AssigneeSelector = React.createClass({
   render() {
     let loading = this.state.loading;
     let assignedTo = this.state.assignedTo;
-    let filter = this.state.filter;
 
     let className = 'assignee-selector anchor-right';
     if (!assignedTo) {
       className += ' unassigned';
     }
 
-    let memberNodes = [];
-    this.state.memberList.forEach(function(item){
-      let fullName = [item.name, item.email].join(' ').toLowerCase();
-      if (filter && fullName.indexOf(filter) === -1) {
-        return;
-      }
-      memberNodes.push(
+    let members = AssigneeSelector.filterMembers(this.state.memberList, this.state.filter);
+    let memberNodes = members.map((item) => {
+      return (
         <MenuItem key={item.id}
                   disabled={!loading}
                   onSelect={this.assignTo.bind(this, item)} >
@@ -148,7 +157,7 @@ const AssigneeSelector = React.createClass({
           {this.highlight(item.name || item.email, this.state.filter)}
         </MenuItem>
       );
-    }.bind(this));
+    });
 
     let tooltipTitle = null;
     if (assignedTo) {
