@@ -1,5 +1,6 @@
 import React from 'react';
 import jQuery from 'jquery';
+import {isUrl} from '../utils';
 
 function looksLikeObjectRepr(value) {
   let a = value[0];
@@ -108,13 +109,22 @@ const ContextData = React.createClass({
         return <span className="val-bool">{value ? 'True' : 'False'}</span>;
       } else if (typeof value === 'string' || value instanceof String) {
         let valueInfo = analyzeStringForRepr(value);
-        return (
-          <span className={
+
+        let out = [<span className={
             (valueInfo.isString ? 'val-string' : 'val-repr') +
             (valueInfo.isStripped ? ' val-stripped' : '') +
             (valueInfo.isMultiLine ? ' val-string-multiline' : '')}>{
-              valueInfo.repr}</span>
-        );
+              valueInfo.repr}</span>];
+
+        if (valueInfo.isString && isUrl(value)) {
+          out.push(
+            <a href={value} className="external-icon">
+              <em className="icon-open" />
+            </a>
+          );
+        }
+
+        return out;
       } else if (typeof value === 'number' || value instanceof Number) {
         return <span className="val-number">{value}</span>;
       } else if (value instanceof Array) {
