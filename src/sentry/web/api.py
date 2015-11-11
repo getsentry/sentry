@@ -450,6 +450,11 @@ class CspReportView(StoreView):
 
 
 @cache_control(max_age=3600, public=True)
+def robots_txt(request):
+    return HttpResponse("User-agent: *\nDisallow: /\n", content_type='text/plain')
+
+
+@cache_control(max_age=3600, public=True)
 def crossdomain_xml_index(request):
     response = render_to_response('sentry/crossdomain_index.xml')
     response['Content-Type'] = 'application/xml'
