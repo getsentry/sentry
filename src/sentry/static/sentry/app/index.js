@@ -51,6 +51,7 @@ export default {
     FlotChart: require("./components/flotChart"),
     HookStore: require("./stores/hookStore"),
     Indicators: require("./components/indicators"),
+    ListLink: require("./components/listLink"),
     Pagination: require("./components/pagination"),
     ProjectSelector: require("./components/projectHeader/projectSelector"),
     RuleEditor: require("./views/ruleEditor")
