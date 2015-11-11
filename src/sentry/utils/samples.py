@@ -32,6 +32,9 @@ def load_data(platform, default=None):
     if data is None:
         return
 
+    if platform == 'csp':
+        return data
+
     data['platform'] = platform
     data['message'] = 'This is an example %s exception' % (platform,)
     data['sentry.interfaces.User'] = {
