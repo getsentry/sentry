@@ -10,7 +10,7 @@ function getView(view, data) {
     case 'report':
       return <CSPContent data={data} />;
     case 'raw':
-      return <pre>{JSON.stringify({'report-uri': data}, null, 2)}</pre>;
+      return <pre>{JSON.stringify({'csp-report': data}, null, 2)}</pre>;
     case 'help':
       return <CSPHelp data={data} />;
     default:
