@@ -1,3 +1,8 @@
+Version 7.7.2
+-------------
+
+- Pin Celery dependency due to incompatibility.
+
 Version 7.7.1
 -------------
 
