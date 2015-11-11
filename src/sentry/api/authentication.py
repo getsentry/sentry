@@ -22,7 +22,7 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
         try:
             key = ApiKey.objects.get_from_cache(key=userid)
         except ApiKey.DoesNotExist:
-            return None
+            raise AuthenticationFailed('API key is not valid')
 
         if not key.is_active:
             raise AuthenticationFailed('Key is disabled')
