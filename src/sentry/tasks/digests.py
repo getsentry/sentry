@@ -1,12 +1,17 @@
 from __future__ import absolute_import
 
+import logging
 import time
 
+from sentry import features
 from sentry.digests.notifications import (
     build_digest,
     split_key,
 )
 from sentry.tasks.base import instrumented_task
+
+
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -41,6 +46,10 @@ def deliver_digest(key, schedule_timestamp=None):
     plugin, project = split_key(key)
     with digests.digest(key) as records:
         digest = build_digest(project, records)
+
+    if not features.has('projects:digests', project):
+        logger.info('Skipping %r, digests are disabled for %r.', digest, project)
+        return
 
     if digest:
         plugin.notify_digest(project, digest)
