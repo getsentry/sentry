@@ -195,3 +195,14 @@ class CrossDomainXmlIndexTest(TestCase):
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertTemplateUsed(resp, 'sentry/crossdomain_index.xml')
         assert '<site-control permitted-cross-domain-policies="all" />' in resp.content
+
+
+class RobotsTxtTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry-api-robots-txt')
+
+    def test_robots(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp['Content-Type'] == 'text/plain'

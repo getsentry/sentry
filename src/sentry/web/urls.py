@@ -338,6 +338,9 @@ urlpatterns += patterns(
     url(r'^$', HomeView.as_view(),
         name='sentry'),
 
+    url(r'^robots\.txt$', api.robots_txt,
+        name='sentry-api-robots-txt'),
+
     # crossdomain.xml
     url(r'^crossdomain\.xml$', api.crossdomain_xml_index,
         name='sentry-api-crossdomain-xml-index'),
