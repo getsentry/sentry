@@ -74,7 +74,7 @@ class NotificationPlugin(Plugin):
             # notification -- we also need to check rate limits, since
             # ``should_notify`` skips this step if the plugin supports digests.
             if not features.has('projects:digests:deliver', project):
-                if not self.__is_rate_limited(event.group, event):
+                if self.__is_rate_limited(event.group, event):
                     logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
                     logger.info('Notification for project %r dropped due to rate limiting', project)
                     return
