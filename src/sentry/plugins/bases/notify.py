@@ -65,10 +65,6 @@ class NotificationPlugin(Plugin):
 
         if hasattr(self, 'notify_digest'):
             project = event.group.project
-            if features.has('projects:digests:store', project):
-                key = unsplit_key(self, event.group.project)
-                if digests.add(key, event_to_record(event, rules)):
-                    deliver_digest.delay(key)
 
             # If digest delivery is disabled, we still need to send a
             # notification -- we also need to check rate limits, since
@@ -81,6 +77,11 @@ class NotificationPlugin(Plugin):
 
                 notification = Notification(event=event, rules=rules)
                 self.notify(notification)
+
+            if features.has('projects:digests:store', project):
+                key = unsplit_key(self, event.group.project)
+                if digests.add(key, event_to_record(event, rules)):
+                    deliver_digest.delay(key)
 
         else:
             notification = Notification(event=event, rules=rules)
