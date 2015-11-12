@@ -62,12 +62,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
     try:
         user = User.objects.filter(is_superuser=True)[0]
     except IndexError:
-        user, _ = User.objects.get_or_create(
-            username='sentry',
-            defaults={
-                'email': 'sentry@localhost',
-            }
-        )
+        user = None
 
     org, _ = Organization.objects.get_or_create(
         slug='sentry',
@@ -76,11 +71,12 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         }
     )
 
-    OrganizationMember.objects.get_or_create(
-        user=user,
-        organization=org,
-        role='owner',
-    )
+    if user:
+        OrganizationMember.objects.get_or_create(
+            user=user,
+            organization=org,
+            role='owner',
+        )
 
     team, _ = Team.objects.get_or_create(
         organization=org,
