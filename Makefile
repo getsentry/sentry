@@ -15,7 +15,7 @@ install-npm:
 install-python-tests:
 	pip install "file://`pwd`#egg=sentry[tests]"
 
-develop-only: update-submodules install-python-tests install-npm
+develop-only: update-submodules install-python install-python-tests install-npm
 
 develop: update-submodules setup-git develop-only install-python-tests
 	@echo ""
