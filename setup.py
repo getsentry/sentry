@@ -134,7 +134,7 @@ class BuildJavascriptCommand(BuildCommand):
         ('build-lib=', 'b',
          "directory for script runtime modules"),
         ('inplace', 'i',
-         "ignore build-lib and put compiled extensions into the source " +
+         "ignore build-lib and put compiled javascript files into the source " +
          "directory alongside your pure Python modules"),
         ('force', 'f',
          "Force rebuilding of static content. Defaults to rebuilding on version "
@@ -150,24 +150,53 @@ class BuildJavascriptCommand(BuildCommand):
         self.inplace = None
 
     def finalize_options(self):
-        # If we are invoked as part of a install command (cmd is finalized)
-        # we want to build into the source folder (src).  Otherwise we
-        # build into the build lib which means we copy our build_lib
-        # argument from the current value of the build command's
-        # build_lib argument with set_undefined_options
+        # This requires some explanation.  Basically what we want to do
+        # here is to control if we want to build in-place or into the
+        # build-lib folder.  Traditionally this is set by the `inplace`
+        # command line flag for build_ext.  However as we are a subcommand
+        # we need to grab this information from elsewhere.
+        #
+        # An in-place build puts the files generated into the source
+        # folder, a regular build puts the files into the build-lib
+        # folder.
+        #
+        # The following situations we need to cover:
+        #
+        #   command                         default in-place
+        #   setup.py build_js               0
+        #   setup.py build_ext              value of in-place for build_ext
+        #   setup.py build_ext --inplace    1
+        #   pip install --editable .        1
+        #   setup.py install                1
+        #   setup.py sdist                  0
+        #   setup.py bdist_wheel            0
+        #
+        # The way this is achieved is that build_js is invoked by two
+        # subcommands: bdist_ext (which is in our case always executed
+        # due to a custom distribution) or sdist.
+        #
+        # To find the default value of the inplace flag we inspect the
+        # install and build_ext commands.
         install = self.distribution.get_command_obj('install')
         build_ext = self.get_finalized_command('build_ext')
 
-        # In place builds or installs
-        if build_ext.inplace or install.finalized or self.inplace:
-            log.info('In-place building enabled. Building into source.')
+        # If we are not decided on in-place we are inplace if either
+        # build_ext is inplace or we are invoked through the install
+        # command (easiest check is to see if it's finalized).
+        if self.inplace is None:
+            self.inplace = (build_ext.inplace or install.finalized) and 1 or 0
+
+        log.info('building JavaScript support.')
+
+        # In place means build_lib is src.  We also log this.
+        if self.inplace:
+            log.info('In-place js building enabled')
             self.build_lib = 'src'
-            self.inplace = 1
+        # Otherwise we fetch build_lib from the build command.
         else:
-            self.inplace = 0
             self.set_undefined_options('build',
                                        ('build_lib', 'build_lib'))
-            log.info('Regular build. Build path is %s' %
+            log.info('regular js build: build path is %s' %
                      self.build_lib)
 
         if self.work_path is None:
@@ -246,6 +275,14 @@ class BuildJavascriptCommand(BuildCommand):
                 json.dumps(manifest, indent=2),
             ))
 
+        # if we were invoked from sdist, we need to inform sdist about
+        # which files we just generated.  Otherwise they will be missing
+        # in the manifest.  This adds the files for what webpack generates
+        # plus our own sentry-package.json file.
+        sdist = self.distribution.get_command_obj('sdist')
+        if sdist.finalized and not self.inplace:
+            self._update_sdist_manifest(sdist.filelist)
+
     def _build_static(self):
         work_path = self.work_path
 
@@ -268,17 +305,6 @@ class BuildJavascriptCommand(BuildCommand):
         check_output(['node_modules/.bin/webpack', '-p', '--bail'],
                      cwd=work_path, env=env)
 
-        # if we were invoked from sdist, we need to remember which files
-        # we just generated.
-        sdist = self.distribution.get_command_obj('sdist')
-        if sdist.finalized:
-            files = sdist.filelist
-            root = self.sentry_static_dist_path
-            for dirname, dirnames, filenames in os.walk(root):
-                for filename in filenames:
-                    filename = os.path.join(root, filename)
-                    files.append(filename[len(root):].lstrip(os.path.sep))
-
     def _write_version_file(self, version_info):
         manifest = {
             'createdAt': datetime.datetime.utcnow().isoformat() + 'Z',
@@ -289,6 +315,14 @@ class BuildJavascriptCommand(BuildCommand):
             json.dump(manifest, fp)
         return manifest
 
+    def _update_sdist_manifest(self, files):
+        root = self.sentry_static_dist_path
+        for dirname, dirnames, filenames in os.walk(root):
+            for filename in filenames:
+                filename = os.path.join(root, filename)
+                files.append(filename[len(root):].lstrip(os.path.sep))
+        files.append('sentry-package.json')
+
     @property
     def sentry_static_dist_path(self):
         return os.path.abspath(os.path.join(
@@ -296,22 +330,33 @@ class BuildJavascriptCommand(BuildCommand):
 
 
 class SentrySDistCommand(SDistCommand):
-    sub_commands = SDistCommand.sub_commands + \
-        [('build_js', None)]
+    # If we are not a light build we want to also execute build_js as
+    # part of our source build pipeline.
+    if not IS_LIGHT_BUILD:
+        sub_commands = SDistCommand.sub_commands + \
+            [('build_js', None)]
 
 
 class SentryBuildExtCommand(BuildExtCommand):
 
     def run(self):
         BuildExtCommand.run(self)
-        self.run_command('build_js')
+
+        # If we are not a light build we want to also execute build_js as
+        # part of our build_ext pipeline.  Because setuptools subclasses
+        # this thing really oddly we cannot use sub_commands but have to
+        # manually invoke it here.
+        if not IS_LIGHT_BUILD:
+            self.run_command('build_js')
 
 
 class ExtendedDistribution(Distribution):
 
     def has_ext_modules(self):
         # We need to always run build_ext so that we invoke the build_js
-        # command which is attached to our own build_ext.
+        # command which is attached to our own build_ext.  Otherwise
+        # distutils optimizes the invocation of build_ext and we never
+        # get the chance to run.
         return True
 
 
