@@ -6,6 +6,11 @@ var path = require("path"),
 var staticPrefix = "src/sentry/static/sentry",
     distPath = staticPrefix + "/dist";
 
+// this is set by setup.py sdist
+if (process.env.SENTRY_STATIC_DIST_PATH) {
+    distPath = process.env.SENTRY_STATIC_DIST_PATH;
+}
+
 var config = {
   context: path.join(__dirname, staticPrefix),
   entry: {
