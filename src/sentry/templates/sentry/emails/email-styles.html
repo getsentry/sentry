@@ -336,6 +336,7 @@
     text-transform: capitalize;
   }
   .level-info { background: #2788ce; }
+  .level-debug { background: #9BA5A9; }
   .level-warning { background: #f18500; }
   .level-error { background: #f43f20; }
   .level-fatal { background: #d20f2a; }
@@ -413,6 +414,24 @@
 
   .digest .rule div {
     font-weight: 600;
+  }
+
+  .digest td.error-level {
+    padding: 0;
+    padding-top: 12px;
+    width: 46px;
+    vertical-align: top;
+  }
+
+  .digest td.error-level .level {
+    display: block;
+    font-size: 9px;
+    padding: 4px 0;
+    text-transform: uppercase;
+  }
+
+  .digest td.event-detail {
+    padding-left: 18px;
   }
 
   table.event-list {

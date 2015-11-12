@@ -21,12 +21,13 @@
     <div class="container">
       <table class="event-list">
           <tr>
-              <th>Issue</th>
-              <th class="align-right">Events</th>
-              <th class="align-right">Users</th>
+              <th colspan="2">Issue</th>
           </tr>
           {% for group, records in groups.items|slice:":10" %}
               <tr>
+                  <td class="error-level">
+                      <span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span>
+                  </td>
                   <td class="event-detail">
                       {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
                       <a href="{% absolute_uri group_link %}">{{ group.message_short }}</a>
@@ -34,12 +35,6 @@
                         {{ group.title }}
                         <small>&mdash; {{ records.0.datetime|date:"N j, Y, P e" }}</small>
                       </p>
-                  </td>
-                  <td class="align-right">
-                      {{ group.event_count }}
-                  </td>
-                  <td class="align-right">
-                      {{ group.user_count }}
                   </td>
               </tr>
           {% endfor %}
