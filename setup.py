@@ -363,8 +363,8 @@ class ExtendedDistribution(Distribution):
 setup(
     name='sentry',
     version='8.0.0.dev0',
-    author='David Cramer',
-    author_email='dcramer@gmail.com',
+    author='Sentry',
+    author_email='hello@getsentry.com',
     url='https://getsentry.com',
     description='A realtime logging and aggregation server.',
     long_description=open(os.path.join(ROOT, 'README.rst')).read(),
