@@ -192,7 +192,7 @@ class SmartInstall(install):
 
 setup(
     name='sentry',
-    version='7.7.2',
+    version='7.7.3',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='https://www.getsentry.com',
