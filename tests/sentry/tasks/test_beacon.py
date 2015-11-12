@@ -30,7 +30,7 @@ class SendBeaconTest(TestCase):
             'version': sentry.get_version(),
             'data': {
                 'organizations': 1,
-                'users': 1,
+                'users': 0,
                 'projects': 1,
                 'teams': 1,
                 'events.24h': 0,
