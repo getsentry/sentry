@@ -33,7 +33,9 @@ import traceback
 from distutils import log
 from distutils.command.build import build as BuildCommand
 from setuptools.command.sdist import sdist as SDistCommand
+from setuptools.command.build_ext import build_ext as BuildExtCommand
 from setuptools import setup, find_packages
+from setuptools.dist import Distribution
 from subprocess import check_output
 
 
@@ -131,6 +133,9 @@ class BuildJavascriptCommand(BuildCommand):
          "The working directory for source files. Defaults to ."),
         ('build-lib=', 'b',
          "directory for script runtime modules"),
+        ('inplace', 'i',
+         "ignore build-lib and put compiled extensions into the source " +
+         "directory alongside your pure Python modules"),
         ('force', 'f',
          "Force rebuilding of static content. Defaults to rebuilding on version "
          "change detection."),
@@ -142,6 +147,7 @@ class BuildJavascriptCommand(BuildCommand):
         self.build_lib = None
         self.force = None
         self.work_path = None
+        self.inplace = None
 
     def finalize_options(self):
         # If we are invoked as part of a install command (cmd is finalized)
@@ -150,11 +156,19 @@ class BuildJavascriptCommand(BuildCommand):
         # argument from the current value of the build command's
         # build_lib argument with set_undefined_options
         install = self.distribution.get_command_obj('install')
-        if install.finalized:
+        build_ext = self.get_finalized_command('build_ext')
+
+        # In place builds or installs
+        if build_ext.inplace or install.finalized or self.inplace:
+            log.info('In-place building enabled. Building into source.')
             self.build_lib = 'src'
+            self.inplace = 1
         else:
+            self.inplace = 0
             self.set_undefined_options('build',
                                        ('build_lib', 'build_lib'))
+            log.info('Regular build. Build path is %s' %
+                     self.build_lib)
 
         if self.work_path is None:
             self.work_path = ROOT
@@ -281,14 +295,24 @@ class BuildJavascriptCommand(BuildCommand):
             self.build_lib, 'sentry/static/sentry/dist'))
 
 
-class SentryBuildCommand(BuildCommand):
-    sub_commands = BuildCommand.sub_commands + \
-        [('build_js', None)]
-
-
 class SentrySDistCommand(SDistCommand):
     sub_commands = SDistCommand.sub_commands + \
         [('build_js', None)]
+
+
+class SentryBuildExtCommand(BuildExtCommand):
+
+    def run(self):
+        BuildExtCommand.run(self)
+        self.run_command('build_js')
+
+
+class ExtendedDistribution(Distribution):
+
+    def has_ext_modules(self):
+        # We need to always run build_ext so that we invoke the build_js
+        # command which is attached to our own build_ext.
+        return True
 
 
 setup(
@@ -311,8 +335,8 @@ setup(
     },
     cmdclass={
         'sdist': SentrySDistCommand,
+        'build_ext': SentryBuildExtCommand,
         'build_js': BuildJavascriptCommand,
-        'build': SentryBuildCommand,
     },
     license='BSD',
     include_package_data=True,
@@ -330,4 +354,5 @@ setup(
         'Operating System :: POSIX :: Linux',
         'Topic :: Software Development'
     ],
+    distclass=ExtendedDistribution,
 )
