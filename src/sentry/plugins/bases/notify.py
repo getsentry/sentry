@@ -73,8 +73,12 @@ class NotificationPlugin(Plugin):
             # If digest delivery is disabled, we still need to send a
             # notification -- we also need to check rate limits, since
             # ``should_notify`` skips this step if the plugin supports digests.
-            if not features.has('projects:digests:deliver', project) \
-                    and not self.__is_rate_limited(event.group, event):
+            if not features.has('projects:digests:deliver', project):
+                if not self.__is_rate_limited(event.group, event):
+                    logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
+                    logger.info('Notification for project %r dropped due to rate limiting', project)
+                    return
+
                 notification = Notification(event=event, rules=rules)
                 self.notify(notification)
 
@@ -118,19 +122,11 @@ class NotificationPlugin(Plugin):
         return member_set
 
     def __is_rate_limited(self, group, event):
-        project = group.project
-
-        rate_limited = ratelimiter.is_limited(
-            project=project,
+        return ratelimiter.is_limited(
+            project=group.project,
             key=self.get_conf_key(),
             limit=10,
         )
-
-        if rate_limited:
-            logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
-            logger.info('Notification for project %s dropped due to rate limiting', project.id)
-
-        return not rate_limited
 
     def should_notify(self, group, event):
         if group.is_muted():
@@ -138,8 +134,10 @@ class NotificationPlugin(Plugin):
 
         # If the plugin doesn't support digests, perform rate limit checks to
         # support backwards compatibility with older plugins.
-        if not hasattr(self, 'notify_digest'):
-            return not self.__is_rate_limited(group, event)
+        if not hasattr(self, 'notify_digest') and self.__is_rate_limited(group, event):
+            logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
+            logger.info('Notification for project %r dropped due to rate limiting', group.project)
+            return False
 
         return True
 
