@@ -28,12 +28,11 @@ import json
 import os
 import os.path
 import sys
+import traceback
 
 from distutils import log
-from distutils.core import Command
-from setuptools.command.develop import develop
-from setuptools.command.install import install
-from setuptools.command.sdist import sdist
+from distutils.command.build import build as BuildCommand
+from setuptools.command.sdist import sdist as SDistCommand
 from setuptools import setup, find_packages
 from subprocess import check_output
 
@@ -124,34 +123,41 @@ postgres_pypy_requires = [
 ]
 
 
-class DevelopWithBuildStatic(develop):
-    def install_for_development(self):
-        if not IS_LIGHT_BUILD:
-            self.run_command('build_static')
-        return develop.install_for_development(self)
+class BuildJavascriptCommand(BuildCommand):
+    description = 'build javascript support files'
 
-
-class SdistWithBuildStatic(sdist):
-    def make_release_tree(self, *a, **kw):
-        dist_path = self.distribution.get_fullname()
-
-        sdist.make_release_tree(self, *a, **kw)
-
-        self.reinitialize_command('build_static', work_path=dist_path,
-                                  force=True)
-        self.run_command('build_static')
-
-
-class BuildStatic(Command):
     user_options = [
         ('work-path=', 'w',
          "The working directory for source files. Defaults to ."),
+        ('build-lib=', 'b',
+         "directory for script runtime modules"),
         ('force', 'f',
          "Force rebuilding of static content. Defaults to rebuilding on version "
          "change detection."),
     ]
 
     boolean_options = ['force']
+
+    def initialize_options(self):
+        self.build_lib = None
+        self.force = None
+        self.work_path = None
+
+    def finalize_options(self):
+        # If we are invoked as part of a install command (cmd is finalized)
+        # we want to build into the source folder (src).  Otherwise we
+        # build into the build lib which means we copy our build_lib
+        # argument from the current value of the build command's
+        # build_lib argument with set_undefined_options
+        install = self.distribution.get_command_obj('install')
+        if install.finalized:
+            self.build_lib = 'src'
+        else:
+            self.set_undefined_options('build',
+                                       ('build_lib', 'build_lib'))
+
+        if self.work_path is None:
+            self.work_path = ROOT
 
     def _get_package_version(self):
         """
@@ -201,14 +207,6 @@ class BuildStatic(Command):
             return True
         return False
 
-    def initialize_options(self):
-        self.work_path = None
-        self.force = None
-
-    def finalize_options(self):
-        if self.work_path is None:
-            self.work_path = ROOT
-
     def run(self):
         version_info = self._get_package_version()
         if not (self.force or self._needs_static(version_info)):
@@ -222,6 +220,7 @@ class BuildStatic(Command):
         try:
             self._build_static()
         except Exception:
+            traceback.print_exc()
             log.fatal("unable to build Sentry's static assets!\n"
                       "Hint: You might be running an invalid version of NPM.")
             sys.exit(1)
@@ -250,8 +249,21 @@ class BuildStatic(Command):
         os.environ['NODE_ENV'] = 'production'
 
         log.info("running [webpack]")
-        check_output([os.path.join('node_modules', '.bin', 'webpack'), '-p', '--bail'],
-                     cwd=work_path)
+        env = dict(os.environ)
+        env['SENTRY_STATIC_DIST_PATH'] = self.sentry_static_dist_path
+        check_output(['node_modules/.bin/webpack', '-p', '--bail'],
+                     cwd=work_path, env=env)
+
+        # if we were invoked from sdist, we need to remember which files
+        # we just generated.
+        sdist = self.distribution.get_command_obj('sdist')
+        if sdist.finalized:
+            files = sdist.filelist
+            root = self.sentry_static_dist_path
+            for dirname, dirnames, filenames in os.walk(root):
+                for filename in filenames:
+                    filename = os.path.join(root, filename)
+                    files.append(filename[len(root):].lstrip(os.path.sep))
 
     def _write_version_file(self, version_info):
         manifest = {
@@ -259,23 +271,24 @@ class BuildStatic(Command):
             'version': version_info['version'],
             'build': version_info['build'],
         }
-        with open(os.path.join(self.work_path, 'sentry-package.json'), 'w') as fp:
+        with open(os.path.join(self.build_lib, 'sentry-package.json'), 'w') as fp:
             json.dump(manifest, fp)
         return manifest
 
+    @property
+    def sentry_static_dist_path(self):
+        return os.path.abspath(os.path.join(
+            self.build_lib, 'sentry/static/sentry/dist'))
 
-class SmartInstall(install):
-    """
-    Installs Sentry into the Python environment.
 
-    If the package indicator is missing, this will also force a run of
-    `build_static` which is required for JavaScript assets and other things.
-    """
-    def run(self):
-        if not IS_LIGHT_BUILD:
-            self.reinitialize_command('build_static')
-            self.run_command('build_static')
-        install.run(self)
+class SentryBuildCommand(BuildCommand):
+    sub_commands = BuildCommand.sub_commands + \
+        [('build_js', None)]
+
+
+class SentrySDistCommand(SDistCommand):
+    sub_commands = SDistCommand.sub_commands + \
+        [('build_js', None)]
 
 
 setup(
@@ -297,10 +310,9 @@ setup(
         'postgres_pypy': install_requires + postgres_pypy_requires,
     },
     cmdclass={
-        'build_static': BuildStatic,
-        'develop': DevelopWithBuildStatic,
-        'sdist': SdistWithBuildStatic,
-        'install': SmartInstall,
+        'sdist': SentrySDistCommand,
+        'build_js': BuildJavascriptCommand,
+        'build': SentryBuildCommand,
     },
     license='BSD',
     include_package_data=True,
