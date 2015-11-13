@@ -189,6 +189,18 @@ class StacktraceTest(TestCase):
             '<function>',
         ])
 
+    def test_get_hash_ignores_ENHANCED_spring_classes(self):
+        interface = Frame.to_python({
+            'module': 'invalid.gruml.talkytalkyhub.common.config.'
+            'JipJipConfig$$EnhancerBySpringCGLIB$$1ebdddb0',
+            'function': 'jipJipManagementApplication'
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'invalid.gruml.talkytalkyhub.common.config.JipJipConfig',
+            'jipJipManagementApplication',
+        ])
+
     def test_get_hash_sanitizes_erb_templates(self):
         # This is Ruby specific
         interface = Frame.to_python({
