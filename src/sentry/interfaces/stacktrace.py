@@ -36,7 +36,7 @@ _filename_version_re = re.compile(r"""(?:
 # Java Spring specific anonymous classes.
 # see: http://mydailyjava.blogspot.co.at/2013/11/cglib-missing-manual.html
 _java_enhancer_re = re.compile(r'''
-\$\$[\w_]+?CGLIB\$\$[a-fA-F0-9]+
+(\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+
 ''', re.X)
 
 
@@ -124,7 +124,7 @@ def remove_filename_outliers(filename):
 
 def remove_module_outliers(module):
     """Remove things that augment the module but really should not."""
-    return _java_enhancer_re.sub('', module)
+    return _java_enhancer_re.sub(r'\1<auto>', module)
 
 
 def slim_frame_data(stacktrace,

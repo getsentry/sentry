@@ -197,7 +197,8 @@ class StacktraceTest(TestCase):
         })
         result = interface.get_hash()
         self.assertEquals(result, [
-            'invalid.gruml.talkytalkyhub.common.config.JipJipConfig',
+            'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
+            '$$EnhancerBySpringCGLIB$$<auto>',
             'jipJipManagementApplication',
         ])
 
@@ -211,7 +212,9 @@ class StacktraceTest(TestCase):
         })
         result = interface.get_hash()
         self.assertEquals(result, [
-            'invalid.gruml.talkytalkyhub.common.config.JipJipConfig',
+            'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
+            '$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>'
+            '$$FastClassBySpringCGLIB$$<auto>',
             'jipJipManagementApplication',
         ])
 
