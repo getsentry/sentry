@@ -166,7 +166,7 @@ LANGUAGES = (
     ('ur', gettext_noop('Urdu')),
     ('vi', gettext_noop('Vietnamese')),
     ('zh-cn', gettext_noop('Simplified Chinese')),
-    ('zh-cn', gettext_noop('Traditional Chinese')),
+    ('zh-tw', gettext_noop('Traditional Chinese')),
 )
 
 SITE_ID = 1
