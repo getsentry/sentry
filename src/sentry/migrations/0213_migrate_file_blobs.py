@@ -18,16 +18,17 @@ class Migration(DataMigration):
             if not file.storage:
                 continue
 
-            blob, created = FileBlob.objects.get_or_create(
-                checksum=file.checksum,
-                defaults={
-                    'storage': file.storage,
-                    'storage_options': file.storage_options,
-                    'path': file.path,
-                    'size': file.size,
-                    'timestamp': file.timestamp,
-                },
-            )
+            try:
+                blob = FileBlob.objects.get(checksum=file.checksum)
+            except FileBlob.DoesNotExist:
+                blob = FileBlob.objects.create(
+                    checksum=file.checksum,
+                    storage=file.storage,
+                    storage_options=file.storage_options,
+                    path=file.path,
+                    size=file.size,
+                    timestamp=file.timestamp,
+                )
 
             File.objects.filter(
                 id=file.id,
