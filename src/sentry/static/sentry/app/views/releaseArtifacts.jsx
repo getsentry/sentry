@@ -44,6 +44,8 @@ const ReleaseArtifacts = React.createClass({
     });
 
     api.request(endpoint, {
+      method: 'GET',
+      data: this.props.location.query,
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,
