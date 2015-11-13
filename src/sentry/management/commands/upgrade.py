@@ -28,7 +28,15 @@ class Command(BaseCommand):
     def handle(self, **options):
         call_command(
             'syncdb',
-            migrate=True,
+            interactive=(not options['noinput']),
+            traceback=options['traceback'],
+            verbosity=options['verbosity'],
+        )
+
+        call_command(
+            'migrate',
+            merge=True,
+            ignore_ghost_migrations=True,
             interactive=(not options['noinput']),
             traceback=options['traceback'],
             verbosity=options['verbosity'],
