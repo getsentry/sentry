@@ -195,7 +195,7 @@ const OrganizationStats = React.createClass({
         rejected: oRejected,
         blacklisted: oBlacklisted,
         accepted: oReceived - oRejected - oBlacklisted,
-        avgRate: parseInt((aReceived[0] / aReceived[1]) / 60, 10)
+        avgRate: (aReceived[1] ? parseInt((aReceived[0] / aReceived[1]) / 60, 10) : 0)
       },
       statsLoading: false
     });
