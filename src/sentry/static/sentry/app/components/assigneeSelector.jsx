@@ -107,6 +107,15 @@ const AssigneeSelector = React.createClass({
     });
   },
 
+  onInputKeyDown(evt) {
+    if (evt.key === 'Enter' && this.state.filter) {
+      let members = AssigneeSelector.filterMembers(this.state.memberList, this.state.filter);
+      if (members.length > 0) {
+        this.assignTo(members[0]);
+      }
+    }
+  },
+
   onDropdownOpen() {
     ReactDOM.findDOMNode(this.refs.filter).focus();
   },
@@ -183,6 +192,7 @@ const AssigneeSelector = React.createClass({
               <MenuItem noAnchor={true} key="filter">
                 <input type="text" className="form-control input-sm"
                        placeholder="Filter people" ref="filter"
+                       onKeyDown={this.onInputKeyDown}
                        onKeyUp={this.onFilterChange} />
               </MenuItem>
               {assignedTo ?
