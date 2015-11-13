@@ -36,7 +36,7 @@ _filename_version_re = re.compile(r"""(?:
 # Java Spring specific anonymous classes.
 # see: http://mydailyjava.blogspot.co.at/2013/11/cglib-missing-manual.html
 _java_enhancer_re = re.compile(r'''
-(\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+
+(\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+(_[0-9]+)?
 ''', re.X)
 
 
