@@ -48,10 +48,12 @@ export default {
 
     Alerts: require("./components/alerts"),
     ConfigStore: require("./stores/configStore"),
+    DropdownLink: require("./components/dropdownLink"),
     FlotChart: require("./components/flotChart"),
     HookStore: require("./stores/hookStore"),
     Indicators: require("./components/indicators"),
     ListLink: require("./components/listLink"),
+    MenuItem: require("./components/menuItem"),
     Pagination: require("./components/pagination"),
     ProjectSelector: require("./components/projectHeader/projectSelector"),
     RuleEditor: require("./views/ruleEditor")
