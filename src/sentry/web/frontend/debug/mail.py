@@ -14,7 +14,10 @@ from random import Random
 
 import pytz
 
-from django.contrib.webdesign.lorem_ipsum import words
+from django.contrib.webdesign.lorem_ipsum import (
+    WORDS,
+    words,
+)
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 
@@ -283,11 +286,15 @@ def digest(request):
     for i in xrange(random.randint(1, 30)):
         group_id = next(group_sequence)
 
+        culprit = '{module} in {function}'.format(
+            module='.'.join(random.sample(WORDS, random.randint(1, 4))),
+            function=random.choice(WORDS)
+        )
         group = state['groups'][group_id] = Group(
             id=group_id,
             project=project,
-            message=words(int(random.paretovariate(1.05)), common=False),
-            culprit=words(int(random.paretovariate(1)), common=False),
+            message=words(int(random.weibullvariate(8, 4)), common=False),
+            culprit=culprit,
             level=random.choice(LOG_LEVELS.keys()),
         )
 
