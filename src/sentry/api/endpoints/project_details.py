@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import logging
 
+from datetime import timedelta
+from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -9,7 +11,9 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
-from sentry.models import AuditLogEntryEvent, Project, ProjectStatus
+from sentry.models import (
+    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectStatus
+)
 from sentry.plugins import plugins
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -69,6 +73,20 @@ class ProjectSerializer(serializers.ModelSerializer):
 class ProjectDetailsEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
 
+    def _get_unresolved_count(self, project):
+        queryset = Group.objects.filter(
+            status=GroupStatus.UNRESOLVED,
+            project=project,
+        )
+
+        resolve_age = project.get_option('sentry:resolve_age', None)
+        if resolve_age:
+            queryset = queryset.filter(
+                last_seen__gte=timezone.now() - timedelta(hours=int(resolve_age)),
+            )
+
+        return queryset.count()
+
     @attach_scenarios([get_project_scenario])
     def get(self, request, project):
         """
@@ -102,6 +120,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         data['activePlugins'] = active_plugins
         data['team'] = serialize(project.team, request.user)
         data['organization'] = serialize(project.organization, request.user)
+
+        include = set(filter(bool, request.GET.get('include', '').split(',')))
+        if 'stats' in include:
+            data['stats'] = {
+                'unresolved': self._get_unresolved_count(project),
+            }
 
         return Response(data)
 
