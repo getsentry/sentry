@@ -39,7 +39,7 @@ const OrganizationSelector = React.createClass({
             </MenuItem>
           );
         })}
-        {features.has('organizations:create') &&
+        {features.has('organizations:create') && OrganizationStore.getAll().length && 
           <MenuItem divider={true} />
         }
         {features.has('organizations:create') &&
