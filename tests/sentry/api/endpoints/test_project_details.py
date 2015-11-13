@@ -44,6 +44,18 @@ class ProjectDetailsTest(APITestCase):
         assert response.status_code == 200
         assert response.data['id'] == str(project.id)
 
+    def test_with_stats(self):
+        project = self.create_project()
+        self.create_group(project=project)
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-project-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+        response = self.client.get(url + '?include=stats')
+        assert response.status_code == 200
+        assert response.data['stats']['unresolved'] == 1
+
 
 class ProjectUpdateTest(APITestCase):
     def test_simple(self):
