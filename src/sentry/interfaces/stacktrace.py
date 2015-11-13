@@ -33,6 +33,12 @@ _filename_version_re = re.compile(r"""(?:
     [a-f0-9]{40}       # sha1
 )/""", re.X | re.I)
 
+# Java Spring specific anonymous classes.
+# see: http://mydailyjava.blogspot.co.at/2013/11/cglib-missing-manual.html
+_java_enhancer_re = re.compile(r'''
+\$\$EnhancerBySpringCGLIB\$\$[a-fA-F0-9]+
+''', re.X)
+
 
 def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None):
     if lineno is None:
@@ -114,6 +120,11 @@ def remove_filename_outliers(filename):
     - Sometimes filename paths contain build numbers
     """
     return _filename_version_re.sub('<version>/', filename)
+
+
+def remove_module_outliers(module):
+    """Remove things that augment the module but really should not."""
+    return _java_enhancer_re.sub('', module)
 
 
 def slim_frame_data(stacktrace,
@@ -268,7 +279,7 @@ class Frame(Interface):
             if self.is_unhashable_module():
                 output.append('<module>')
             else:
-                output.append(self.module)
+                output.append(remove_module_outliers(self.module))
         elif self.filename and not self.is_url() and not self.is_caused_by():
             output.append(remove_filename_outliers(self.filename))
 
