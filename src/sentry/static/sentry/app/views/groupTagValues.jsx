@@ -77,7 +77,7 @@ const GroupTagValues = React.createClass({
       cursor: cursor
     });
 
-    this.history.pushState(null, this.props.location.path, queryParams);
+    this.history.pushState(null, this.props.location.pathname, queryParams);
   },
 
   render() {
