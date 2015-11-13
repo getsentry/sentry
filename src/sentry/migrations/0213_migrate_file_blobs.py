@@ -15,6 +15,9 @@ class Migration(DataMigration):
 
         lock_key = 'fileblob:convert:{}'.format(file.checksum)
         with Lock(lock_key, timeout=60):
+            if not file.storage:
+                continue
+
             blob, created = FileBlob.objects.get_or_create(
                 checksum=file.checksum,
                 defaults={
