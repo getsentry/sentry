@@ -84,7 +84,7 @@ class BasePaginator(object):
     def get_result(self, limit=100, cursor=None):
         # cursors are:
         #   (identifier(integer), row offset, is_prev)
-        if not cursor:
+        if cursor is None:
             cursor = Cursor(0, 0, 0)
 
         if cursor.value:
