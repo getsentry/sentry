@@ -53,7 +53,7 @@ class Backend(object):
         # The ``interval`` option defines the minimum amount of time (in
         # seconds) to wait between scheduling digests for delivery after the
         # initial scheduling.
-        self.interval = options.pop('interval', 120)
+        self.interval = options.pop('interval', 60 * 10)
 
         # The ``maximum_delay`` option defines the maximum amount of time (in
         # seconds) to wait between scheduling digests for delivery.
@@ -62,7 +62,7 @@ class Backend(object):
         # The ``increment_delay`` option defines how long each observation of
         # an event should delay scheduling (up until the ``maximum_delay``
         # after the last time a digest was processed.)
-        self.increment_delay = options.pop('increment_delay', 10)
+        self.increment_delay = options.pop('increment_delay', 30)
 
         # The ``codec`` option provides the strategy for encoding and decoding
         # records in the timeline.
