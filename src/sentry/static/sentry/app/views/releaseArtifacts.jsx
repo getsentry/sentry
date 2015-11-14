@@ -1,6 +1,5 @@
 import React from 'react';
 import {History} from 'react-router';
-import jQuery from 'jquery';
 
 import api from '../api';
 import FileSize from '../components/fileSize';
@@ -63,15 +62,6 @@ const ReleaseArtifacts = React.createClass({
     });
   },
 
-  onPage(cursor) {
-    let queryParams = jQuery.extend({}, this.props.location.query, {
-      cursor: cursor
-    });
-
-    let {orgId, projectId, version} = this.props.params;
-    this.history.pushState(null, `/${orgId}/${projectId}/releases/${version}/artifacts/`, queryParams);
-  },
-
   render() {
     if (this.state.loading)
       return <LoadingIndicator />;
@@ -100,7 +90,7 @@ const ReleaseArtifacts = React.createClass({
           })}
           </tbody>
         </table>
-        <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
+        <Pagination pageLinks={this.state.pageLinks}/>
       </div>
     );
   }

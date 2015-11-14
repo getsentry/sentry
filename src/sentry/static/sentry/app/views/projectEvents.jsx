@@ -60,7 +60,9 @@ const ProjectEvents = React.createClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevProps.params.projectId !== this.props.params.projectId) {
+    if (prevProps.params.projectId !== this.props.params.projectId ||
+      prevProps.location.search !== this.props.location.search)
+    {
       this._poller.disable();
       this.fetchData();
     }
@@ -149,14 +151,6 @@ const ProjectEvents = React.createClass({
     }
   },
 
-  onPage(cursor) {
-    let queryParams = jQuery.extend({}, this.props.location.query, {
-      cursor: cursor
-    });
-
-    this.history.pushState(null, this.props.location.pathname, queryParams);
-  },
-
   transitionTo() {
     let queryParams = {};
 
@@ -235,7 +229,7 @@ const ProjectEvents = React.createClass({
             eventIds={this.state.eventIds} />
         </div>
         {this.renderBody()}
-        <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
+        <Pagination pageLinks={this.state.pageLinks}/>
       </div>
     );
   }
