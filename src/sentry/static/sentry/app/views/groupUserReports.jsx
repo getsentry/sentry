@@ -28,6 +28,12 @@ const GroupUserReports = React.createClass({
     this.fetchData();
   },
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.location.search !== this.props.location.search) {
+      this.fetchData();
+    }
+  },
+
   fetchData() {
     let queryParams = this.props.params;
     let querystring = $.param(queryParams);
@@ -53,17 +59,6 @@ const GroupUserReports = React.createClass({
         });
       }
     });
-  },
-
-  onPage(cursor) {
-    let queryParams = $.extend({}, this.props.location.query, {cursor: cursor});
-
-    let {orgId, projectId, groupId} = this.props.params;
-    this.history.pushState(
-      null,
-      `/${orgId}/${projectId}/group/${groupId}/reports/`,
-      queryParams
-    );
   },
 
   render() {

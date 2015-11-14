@@ -90,14 +90,6 @@ const ProjectReleases = React.createClass({
     return '/projects/' + params.orgId + '/' + params.projectId + '/releases/?' + jQuery.param(queryParams);
   },
 
-  onPage(cursor) {
-    let queryParams = $.extend({}, this.props.location.query);
-    queryParams.cursor = cursor;
-
-    let {orgId, projectId} = this.props.params;
-    this.history.pushState(null, `/${orgId}/${projectId}/releases/`, queryParams);
-  },
-
   getReleaseTrackingUrl() {
     let params = this.props.params;
 

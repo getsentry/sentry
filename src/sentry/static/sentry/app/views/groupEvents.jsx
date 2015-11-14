@@ -30,7 +30,8 @@ const GroupEvents = React.createClass({
   },
 
   componentDidUpdate(prevProps) {
-    if (prevProps.params.groupId !== this.props.params.groupId) {
+    if (prevProps.params.groupId !== this.props.params.groupId ||
+      prevProps.location.search !== this.props.location.search) {
       this.fetchData();
     }
   },
@@ -61,17 +62,6 @@ const GroupEvents = React.createClass({
         });
       }
     });
-  },
-
-  onPage(cursor) {
-    let queryParams = {...this.props.location.query, cursor: cursor};
-
-    let {orgId, projectId, groupId} = this.props.params;
-    this.history.pushState(
-      null,
-      `/${orgId}/${projectId}/group/${groupId}/events/`,
-      queryParams
-    );
   },
 
   render() {
@@ -159,7 +149,7 @@ const GroupEvents = React.createClass({
             </tbody>
           </table>
         </div>
-        <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
+        <Pagination pageLinks={this.state.pageLinks}/>
       </div>
     );
   }
