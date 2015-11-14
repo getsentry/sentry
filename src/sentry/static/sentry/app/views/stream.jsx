@@ -230,10 +230,6 @@ const Stream = React.createClass({
         let links = parseLinkHeader(jqXHR.getResponseHeader('Link'));
         if (links && links.previous) {
           this._poller.setEndpoint(links.previous.href);
-
-          if (this.state.realtimeActive) {
-            this._poller.enable();
-          }
         }
       }
     });
@@ -286,14 +282,6 @@ const Stream = React.createClass({
     this.setState({
       tags: Object.assign({}, tags)
     });
-  },
-
-  onPage(cursor) {
-    let params = this.props.params;
-    let queryParams = $.extend({}, this.props.location.query);
-    queryParams.cursor = cursor;
-
-    this.history.pushState(null, `/${params.orgId}/${params.projectId}/`, queryParams);
   },
 
   onSearch(query) {
@@ -437,7 +425,7 @@ const Stream = React.createClass({
             </Sticky>
           </div>
           {this.renderStreamBody()}
-          <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
+          <Pagination pageLinks={this.state.pageLinks}/>
         </div>
         <StreamSidebar
           loading={this.state.tagsLoading}

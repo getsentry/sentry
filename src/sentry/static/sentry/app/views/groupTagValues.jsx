@@ -30,6 +30,12 @@ const GroupTagValues = React.createClass({
     this.fetchData();
   },
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.location.search !== this.props.location.search) {
+      this.fetchData();
+    }
+  },
+
   fetchData() {
     let params = this.props.params;
     let queryParams = this.props.location.query;
@@ -70,14 +76,6 @@ const GroupTagValues = React.createClass({
         });
       }
     });
-  },
-
-  onPage(cursor) {
-    let queryParams = jQuery.extend({}, this.props.location.query, {
-      cursor: cursor
-    });
-
-    this.history.pushState(null, this.props.location.pathname, queryParams);
   },
 
   render() {
@@ -138,7 +136,7 @@ const GroupTagValues = React.createClass({
             {children}
           </tbody>
         </table>
-        <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
+        <Pagination pageLinks={this.state.pageLinks}/>
       </div>
     );
   }

@@ -1,4 +1,3 @@
-import jQuery from 'jquery';
 import React from 'react';
 import {Link, History} from 'react-router';
 
@@ -62,13 +61,6 @@ const AdminOrganizations = React.createClass({
         });
       }
     });
-  },
-
-  onPage(cursor) {
-    let queryParams = jQuery.extend({}, this.props.location.query, {
-      cursor: cursor
-    });
-    this.history.pushState(null, '/manage/organizations/', queryParams);
   },
 
   onSearch(query) {
@@ -163,7 +155,7 @@ const AdminOrganizations = React.createClass({
             ))}
           </tbody>
         </table>
-        <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
+        <Pagination pageLinks={this.state.pageLinks}/>
       </div>
     );
   }
