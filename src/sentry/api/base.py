@@ -172,6 +172,8 @@ class Endpoint(APIView):
         input_cursor = request.GET.get('cursor')
         if input_cursor:
             input_cursor = Cursor.from_string(input_cursor)
+        else:
+            input_cursor = None
 
         assert per_page <= max(100, default_per_page)
 
