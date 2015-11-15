@@ -71,7 +71,7 @@ def make_record_key(timeline_key, record):
     return '{0}:{1}:{2}'.format(timeline_key, TIMELINE_RECORD_PATH_COMPONENT, record)
 
 
-# Ensures an timeline is scheduled to be digested, adjusting the schedule time
+# Ensures a timeline is scheduled to be digested, adjusting the schedule time
 # if necessary.
 # KEYS: {WAITING, READY, LAST_PROCESSED_TIMESTAMP}
 # ARGV: {
