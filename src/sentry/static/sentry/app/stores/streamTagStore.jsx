@@ -3,6 +3,11 @@ import _ from 'underscore';
 
 import StreamTagActions from '../actions/streamTagActions';
 import MemberListStore from './memberListStore';
+
+const getMemberListStoreUsernames = () => {
+  return MemberListStore.getAll().map(user => user.username || user.email);
+};
+
 const StreamTagStore = Reflux.createStore({
   listenables: StreamTagActions,
 
@@ -26,7 +31,7 @@ const StreamTagStore = Reflux.createStore({
       assigned: {
         key: 'assigned',
         name: 'Assigned To',
-        values: MemberListStore.getAll().map(user => user.username),
+        values: getMemberListStoreUsernames(),
         predefined: true
       }
     };
@@ -70,7 +75,7 @@ const StreamTagStore = Reflux.createStore({
 
   onMemberListStoreChange(members) {
     let assignedTag = this.tags.assigned;
-    assignedTag.values = MemberListStore.getAll().map(user => user.email);
+    assignedTag.values = getMemberListStoreUsernames();
     this.trigger(this.tags);
   }
 });
