@@ -40,6 +40,7 @@ General
   back to ``VISIBLE``.
 - Membership permissions have been overhauled and have been flattened into a single tiered
   role. Additionally owners will no longer be automatically added to new teams.
+- ``NotificationPlugin`` now requires ``is_configured`` to be declared.
 
 Client API
 ~~~~~~~~~~

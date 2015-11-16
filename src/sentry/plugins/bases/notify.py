@@ -129,7 +129,13 @@ class NotificationPlugin(Plugin):
             limit=10,
         )
 
+    def is_configured(self, project):
+        raise NotImplementedError
+
     def should_notify(self, group, event):
+        if not self.is_configured(project=event.project):
+            return False
+
         if group.is_muted():
             return False
 
