@@ -196,7 +196,9 @@ class MailPlugin(NotificationPlugin):
                 key=lambda record: record.timestamp,
             )
             notification = Notification(record.value.event, rules=record.value.rules)
-            return self.notify(notification)
+
+            if features.has('projects:digests:deliver', project):
+                return self.notify(notification)
 
         context = {
             'project': project,

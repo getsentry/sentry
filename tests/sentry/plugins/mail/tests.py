@@ -250,7 +250,12 @@ class MailPluginTest(TestCase):
 
     @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
     @mock.patch.object(MessageBuilder, 'send', autospec=True)
-    def test_notify_digest_single_record(self, send, notify):
+    @mock.patch.object(features, 'has')
+    def test_notify_digest_single_record(self, has, send, notify):
+        has.side_effect = lambda label, *a, **k: {
+            'projects:digests:deliver': True,
+        }.get(label, False)
+
         project = self.event.project
         rule = project.rule_set.all()[0]
         digest = build_digest(
