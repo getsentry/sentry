@@ -12,6 +12,7 @@ class SendRequestEmailTest(TestCase):
     def test_sends_email_to_everyone(self):
         owner = self.create_user('owner@example.com')
         team_admin = self.create_user('team-admin@example.com')
+        non_team_admin = self.create_user('non-team-admin@example.com')
         random_member = self.create_user('member@example.com')
         requesting_user = self.create_user('requesting@example.com')
 
@@ -31,6 +32,13 @@ class SendRequestEmailTest(TestCase):
             user=team_admin,
             role='admin',
             teams=[team],
+        )
+
+        self.create_member(
+            organization=org,
+            user=non_team_admin,
+            role='admin',
+            teams=[],
         )
 
         self.create_member(
