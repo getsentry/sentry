@@ -19,9 +19,10 @@ const ProjectDashboard = React.createClass({
   },
 
   getInitialState() {
-    return jQuery.extend({}, {
-      statsPeriod: this.props.defaultStatsPeriod
-    }, this.getQueryStringState());
+    return {
+      statsPeriod: this.props.defaultStatsPeriod,
+      ...this.getQueryStringState()
+    };
   },
 
   componentWillMount() {
@@ -106,17 +107,17 @@ const ProjectDashboard = React.createClass({
             <div className="btn-group">
               <Link
                 to={url}
-                query={jQuery.extend({}, routeQuery, {statsPeriod: '1h'})}
+                query={{...routeQuery, statsPeriod: '1h'}}
                 active={statsPeriod === '1h'}
                 className={'btn btn-sm btn-default' + (statsPeriod === '1h' ? ' active' : '')}>1h</Link>
               <Link
                 to={url}
-                query={jQuery.extend({}, routeQuery, {statsPeriod: '24h'})}
+                query={{...routeQuery, statsPeriod: '24h'}}
                 active={statsPeriod === '24h'}
                 className={'btn btn-sm btn-default' + (statsPeriod === '24h' ? ' active' : '')}>24h</Link>
               <Link
                 to={url}
-                query={jQuery.extend({}, routeQuery, {statsPeriod: '1w'})}
+                query={{...routeQuery, statsPeriod: '1w'}}
                 className={'btn btn-sm btn-default' + (statsPeriod === '1w' ? ' active' : '')}>1w</Link>
             </div>
           </div>
