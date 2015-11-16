@@ -1,4 +1,5 @@
 import StreamTagStore from 'app/stores/streamTagStore';
+import MemberListStore from 'app/stores/memberListStore';
 
 describe('StreamTagStore', function () {
   beforeEach(() => {
@@ -8,6 +9,29 @@ describe('StreamTagStore', function () {
 
   afterEach(() => {
     this.sandbox.restore();
+  });
+
+  describe('onMemberListStoreChange()', () => {
+    it('should map each user\'s username to the "assigned" value array', () => {
+      this.sandbox.stub(MemberListStore, 'getAll').returns([
+        {
+          username: 'janesmith',
+          email: 'janesmith@example.org'
+        }
+      ]);
+      StreamTagStore.onMemberListStoreChange();
+      expect(StreamTagStore.tags.assigned.values).to.eql(['janesmith']);
+    });
+
+    it('should fall back to email when username isn\'t available', () => {
+      this.sandbox.stub(MemberListStore, 'getAll').returns([
+        {
+          email: 'janesmith@example.org'
+        }
+      ]);
+      StreamTagStore.onMemberListStoreChange();
+      expect(StreamTagStore.tags.assigned.values).to.eql(['janesmith@example.org']);
+    });
   });
 
   describe('onLoadTagsSuccess()', () => {
