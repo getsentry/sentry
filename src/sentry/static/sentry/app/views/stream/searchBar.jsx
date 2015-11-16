@@ -243,7 +243,7 @@ const SearchBar = React.createClass({
     if (!terms || // no terms
         terms.length === 0 || // no terms
         terms.length === 1 && terms[0] === this.props.defaultQuery || // default term
-        /\s{2}|\s{1}/.test(query.slice(cursor - 1, cursor + 1))) // cursor on whitespace
+        /^\s+$/.test(query.slice(cursor - 1, cursor + 1))) // cursor on whitespace
     {
       // show default "help" search terms
       return void this.setState({
