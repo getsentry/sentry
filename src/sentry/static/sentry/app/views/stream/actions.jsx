@@ -114,6 +114,25 @@ const StreamActions = React.createClass({
     });
   },
 
+  onResolveProject(event) {
+    this.actionSelectedGroups(this.props.actionTypes.ALL, (itemIds) => {
+      let loadingIndicator = IndicatorStore.add('Saving changes..');
+
+      api.bulkUpdate({
+        orgId: this.props.orgId,
+        projectId: this.props.projectId,
+        itemIds: itemIds,
+        data: {
+          status: 'resolved',
+        }
+      }, {
+        complete: () => {
+          IndicatorStore.remove(loadingIndicator);
+        }
+      });
+    });
+  },
+
   onSelectedGroupChange() {
     this.setState({
       selectAllActive: SelectedGroupStore.allSelected(),
@@ -148,7 +167,6 @@ const StreamActions = React.createClass({
                buttonTitle="Resolve"
                confirmLabel="Resolve"
                tooltip="Set Status to Resolved"
-               canActionAll={true}
                onlyIfBulk={true}
                selectAllActive={this.state.selectAllActive}>
               <i aria-hidden="true" className="icon-checkmark"></i>
@@ -172,9 +190,22 @@ const StreamActions = React.createClass({
               key="actions"
               btnGroup={true}
               caret={false}
-              disabled={!this.state.anySelected}
               className="btn btn-sm btn-default hidden-xs action-more"
               title={<span className="icon-ellipsis"></span>}>
+              <MenuItem noAnchor={true}>
+                <ActionLink
+                   actionTypes={this.props.actionTypes}
+                   className="action-resolve-project"
+                   onAction={this.onResolveProject}
+                   actionLabel="resolve all issues within this project"
+                   extraDescription="This will resolve all unresolved issues throughout this project. This does not respect search filters."
+                   canActionAll={false}
+                   confirmLabel="Confirm"
+                   selectAllActive={this.state.selectAllActive}>
+                  Resolve all Issues in Project
+                </ActionLink>
+              </MenuItem>
+              <MenuItem divider={true} />
               <MenuItem noAnchor={true}>
                 <ActionLink
                    actionTypes={this.props.actionTypes}
