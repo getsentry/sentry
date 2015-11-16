@@ -81,6 +81,10 @@ class MailPlugin(NotificationPlugin):
             project.slug,
         ]))
 
+    def is_configured(self, project, **kwargs):
+        # Nothing to configure here
+        return True
+
     def should_notify(self, group, event):
         send_to = self.get_sendable_users(group.project)
         if not send_to:
