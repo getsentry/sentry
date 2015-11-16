@@ -83,9 +83,11 @@ const ProjectReleases = React.createClass({
 
   getProjectReleasesEndpoint() {
     let params = this.props.params;
-    let queryParams = $.extend({}, this.props.location.query);
-    queryParams.limit = 50;
-    queryParams.query = this.state.query;
+    let queryParams = {
+      ...this.props.location.query,
+      limit: 50,
+      query: this.state.query
+    };
 
     return '/projects/' + params.orgId + '/' + params.projectId + '/releases/?' + jQuery.param(queryParams);
   },
