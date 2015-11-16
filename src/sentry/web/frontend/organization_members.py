@@ -4,8 +4,7 @@ from django.db.models import Q
 
 from sentry import roles
 from sentry.models import (
-    AuthProvider, OrganizationAccessRequest, OrganizationMember,
-    OrganizationMemberTeam
+    AuthProvider, OrganizationAccessRequest, OrganizationMember
 )
 from sentry.web.frontend.base import OrganizationView
 
@@ -37,10 +36,8 @@ class OrganizationMembersView(OrganizationView):
                 and om.user is not None)
         )
 
-        can_approve_requests_globally = (
-            request.access.has_scope('member:write')
-            or request.access.has_scope('org:write')
-        )
+        # TODO(dcramer): ideally member:write could approve
+        can_approve_requests_globally = request.access.has_scope('org:write')
         can_add_members = request.access.has_scope('org:write')
         can_remove_members = request.access.has_scope('member:delete')
 
@@ -50,13 +47,10 @@ class OrganizationMembersView(OrganizationView):
                 team__organization=organization,
                 member__user__is_active=True,
             ).select_related('team', 'member__user'))
-        elif request.access.has_scope('team:write'):
+        elif request.access.has_scope('team:write') and request.access.teams:
             access_requests = list(OrganizationAccessRequest.objects.filter(
                 member__user__is_active=True,
-                team__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__organization=organization,
-                    organizationmember__user=request.user,
-                ).values('team'),
+                team__in=request.access.teams,
             ).select_related('team', 'member__user'))
         else:
             access_requests = []
