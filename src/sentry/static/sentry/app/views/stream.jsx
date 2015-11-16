@@ -1,7 +1,6 @@
 import React from 'react';
 import Reflux from 'reflux';
 import {History} from 'react-router';
-import $ from 'jquery';
 import Cookies from 'js-cookie';
 import Sticky from 'react-sticky';
 import classNames from 'classnames';
@@ -45,7 +44,7 @@ const Stream = React.createClass({
   },
 
   getInitialState() {
-    return $.extend({}, {
+    return {
       groupIds: [],
       selectAllActive: false,
       multiSelected: false,
@@ -61,8 +60,9 @@ const Stream = React.createClass({
       tags: StreamTagStore.getAllTags(),
       tagsLoading: true,
       isSidebarVisible: false,
-      isStickyHeader: false
-    }, this.getQueryStringState());
+      isStickyHeader: false,
+      ...this.getQueryStringState()
+    };
   },
 
   componentWillMount() {
@@ -184,10 +184,11 @@ const Stream = React.createClass({
 
     let url = this.getGroupListEndpoint();
 
-    let requestParams = $.extend({}, this.props.location.query, {
+    let requestParams = {
+      ...this.props.location.query,
       limit: this.props.maxItems,
       statsPeriod: this.state.statsPeriod
-    });
+    };
 
     if (!requestParams.hasOwnProperty('query')) {
       requestParams.query = this.props.defaultQuery;
@@ -280,7 +281,7 @@ const Stream = React.createClass({
   onStreamTagChange(tags) {
     // new object to trigger state change
     this.setState({
-      tags: Object.assign({}, tags)
+      tags: {...tags}
     });
   },
 
