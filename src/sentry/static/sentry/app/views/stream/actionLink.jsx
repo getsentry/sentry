@@ -116,7 +116,10 @@ const ActionLink = React.createClass({
 
         <Modal show={this.state.isModalOpen} title="Please confirm" animation={false} onHide={this.handleToggle}>
           <div className="modal-body">
-            <p><strong>Are you sure that you want to {this.props.actionLabel}?</strong></p>
+            <p><strong>Are you sure that you want to {actionLabel}?</strong></p>
+            {this.props.extraDescription &&
+              <p>{this.props.extraDescription}</p>
+            }
             <p>This action cannot be undone.</p>
           </div>
           <div className="modal-footer">
@@ -127,7 +130,13 @@ const ActionLink = React.createClass({
                       onClick={this.handleActionAll}>{confirmLabel} all recorded events</button>
             }
             <button type="button" className="btn btn-primary"
-                    onClick={this.handleActionSelected}>{confirmLabel} {numEvents} selected events</button>
+                    onClick={this.handleActionSelected}>
+              {numEvents !== 0 ?
+                `${confirmLabel} ${numEvents} selected events`
+              :
+                confirmLabel
+              }
+            </button>
           </div>
         </Modal>
       </a>
