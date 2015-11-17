@@ -23,11 +23,16 @@ any application.
 """
 from __future__ import absolute_import
 
+import sys
+
+if sys.version_info[:2] < (2, 7):
+    print 'Error: Sentry requires Python 2.7'
+    sys.exit(1)
+
 import datetime
 import json
 import os
 import os.path
-import sys
 import traceback
 
 from distutils import log
@@ -357,6 +362,9 @@ class ExtendedDistribution(Distribution):
         # command which is attached to our own build_ext.  Otherwise
         # distutils optimizes the invocation of build_ext and we never
         # get the chance to run.
+        return True
+
+    def is_pure(self):
         return True
 
 
