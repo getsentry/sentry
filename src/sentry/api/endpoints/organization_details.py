@@ -13,8 +13,7 @@ from sentry.api.serializers.models.organization import (
     DetailedOrganizationSerializer
 )
 from sentry.models import (
-    AuditLogEntryEvent, Organization,
-    OrganizationStatus
+    AuditLogEntryEvent, Organization, OrganizationOption, OrganizationStatus
 )
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -47,6 +46,8 @@ def update_organization_scenario(runner):
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
+    projectRateLimit = serializers.IntegerField(min_value=1, max_value=100)
+
     class Meta:
         model = Organization
         fields = ('name', 'slug')
@@ -56,6 +57,18 @@ class OrganizationSerializer(serializers.ModelSerializer):
         if Organization.objects.filter(slug=value).exclude(id=self.object.id):
             raise serializers.ValidationError('The slug "%s" is already in use.' % (value,))
         return attrs
+
+    def save(self):
+        rv = super(OrganizationSerializer, self).save()
+        # XXX(dcramer): this seems wrong, but cant find documentation on how to
+        # actually access this data
+        if 'projectRateLimit' in self.init_data:
+            OrganizationOption.objects.set_value(
+                organization=self.object,
+                key='sentry:project-rate-limit',
+                value=self.init_data['projectRateLimit'],
+            )
+        return rv
 
 
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
@@ -82,7 +95,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return Response(context)
 
     @attach_scenarios([update_organization_scenario])
-    @sudo_required
     def put(self, request, organization):
         """
         Update an Organization
@@ -111,7 +123,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 data=organization.get_audit_log_data(),
             )
 
-            return Response(serialize(organization, request.user))
+            return Response(serialize(
+                organization,
+                request.user,
+                DetailedOrganizationSerializer(),
+            ))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

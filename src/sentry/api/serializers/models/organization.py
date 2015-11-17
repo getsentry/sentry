@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
+from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth import access
 from sentry.models import (
-    Organization, OrganizationAccessRequest, Team, TeamStatus
+    Organization, OrganizationAccessRequest, OrganizationOption, Team,
+    TeamStatus
 )
 
 
@@ -38,6 +40,14 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         context = super(DetailedOrganizationSerializer, self).serialize(
             obj, attrs, user)
+        context['quota'] = {
+            'maxRate': quotas.get_organization_quota(obj),
+            'projectLimit': int(OrganizationOption.objects.get_value(
+                organization=obj,
+                key='sentry:project-rate-limit',
+                default=100,
+            )),
+        }
         context['teams'] = serialize(
             team_list, user, TeamWithProjectsSerializer())
         if env.request:
