@@ -13,6 +13,7 @@ import GroupTags from './views/groupTags';
 import GroupTagValues from './views/groupTagValues';
 import GroupUserReports from './views/groupUserReports';
 import OrganizationDetails from './views/organizationDetails';
+import OrganizationRateLimits from './views/organizationRateLimits';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
 import ProjectDashboard from './views/projectDashboard';
@@ -41,6 +42,7 @@ let routes = (
   <Route path="/" component={App}>
     <Route path="/organizations/:orgId/" component={OrganizationDetails}>
       <Route path="stats/" component={OrganizationStats} />
+      <Route path="rate-limits/" component={OrganizationRateLimits} />
     </Route>
 
     <Route path="/manage/" component={Admin}>
