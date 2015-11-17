@@ -6,6 +6,11 @@ import EventList from './projectDashboard/eventList';
 import ProjectState from '../mixins/projectState';
 import ProjectChart from './projectDashboard/chart';
 
+const PERIOD_HOUR = '1h';
+const PERIOD_DAY = '1d';
+const PERIOD_WEEK = '1w';
+const PERIODS = new Set([PERIOD_HOUR, PERIOD_DAY, PERIOD_WEEK]);
+
 
 const ProjectDashboard = React.createClass({
   mixins: [
@@ -14,7 +19,7 @@ const ProjectDashboard = React.createClass({
 
   getDefaultProps() {
     return {
-      defaultStatsPeriod: '1d'
+      defaultStatsPeriod: PERIOD_DAY
     };
   },
 
@@ -38,7 +43,7 @@ const ProjectDashboard = React.createClass({
     let currentQuery = props.location.query;
     let statsPeriod = currentQuery.statsPeriod;
 
-    if (statsPeriod !== '1w' && statsPeriod !== '1d' && statsPeriod != '1h') {
+    if (!PERIODS.has(statsPeriod)) {
       statsPeriod = props.defaultStatsPeriod;
     }
 
@@ -50,11 +55,11 @@ const ProjectDashboard = React.createClass({
   getStatsPeriodBeginTimestamp(statsPeriod) {
     let now = new Date().getTime() / 1000;
     switch (statsPeriod) {
-      case '1w':
+      case PERIOD_WEEK:
         return now - 3600 * 24 * 7;
-      case '1h':
+      case PERIOD_HOUR:
         return now - 3600;
-      case '1d':
+      case PERIOD_DAY:
       default:
         return now - 3600 * 24;
     }
@@ -62,11 +67,11 @@ const ProjectDashboard = React.createClass({
 
   getStatsPeriodResolution(statsPeriod) {
     switch (statsPeriod) {
-      case '1w':
+      case PERIOD_WEEK:
         return '1h';
-      case '1h':
+      case PERIOD_HOUR:
         return '10s';
-      case '1d':
+      case PERIOD_DAY:
       default:
         return '1h';
     }
@@ -107,18 +112,18 @@ const ProjectDashboard = React.createClass({
             <div className="btn-group">
               <Link
                 to={url}
-                query={{...routeQuery, statsPeriod: '1h'}}
-                active={statsPeriod === '1h'}
-                className={'btn btn-sm btn-default' + (statsPeriod === '1h' ? ' active' : '')}>1 hour</Link>
+                query={{...routeQuery, statsPeriod: PERIOD_HOUR}}
+                active={statsPeriod === PERIOD_HOUR}
+                className={'btn btn-sm btn-default' + (statsPeriod === PERIOD_HOUR ? ' active' : '')}>1 hour</Link>
               <Link
                 to={url}
-                query={{...routeQuery, statsPeriod: '1d'}}
-                active={statsPeriod === '1d'}
-                className={'btn btn-sm btn-default' + (statsPeriod === '1d' ? ' active' : '')}>1 day</Link>
+                query={{...routeQuery, statsPeriod: PERIOD_DAY}}
+                active={statsPeriod === PERIOD_DAY}
+                className={'btn btn-sm btn-default' + (statsPeriod === PERIOD_DAY ? ' active' : '')}>1 day</Link>
               <Link
                 to={url}
-                query={{...routeQuery, statsPeriod: '1w'}}
-                className={'btn btn-sm btn-default' + (statsPeriod === '1w' ? ' active' : '')}>1 week</Link>
+                query={{...routeQuery, statsPeriod: PERIOD_WEEK}}
+                className={'btn btn-sm btn-default' + (statsPeriod === PERIOD_WEEK ? ' active' : '')}>1 week</Link>
             </div>
           </div>
           <h3>Overview</h3>
