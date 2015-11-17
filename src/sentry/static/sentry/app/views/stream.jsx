@@ -70,8 +70,7 @@ const Stream = React.createClass({
 
     this._streamManager = new utils.StreamManager(GroupStore);
     this._poller = new utils.CursorPoller({
-      success: this.onRealtimePoll,
-      endpoint: this.getGroupListEndpoint()
+      success: this.onRealtimePoll
     });
 
     let realtime = Cookies.get('realtimeActive');
@@ -80,9 +79,6 @@ const Stream = React.createClass({
       this.setState({
         realtimeActive: realtimeActive
       });
-      if (realtimeActive) {
-        this._poller.enable();
-      }
     }
 
     this.fetchTags();
@@ -92,7 +88,6 @@ const Stream = React.createClass({
   componentWillReceiveProps(nextProps) {
     if (nextProps.location.search !== this.props.location.search) {
       this.setState(this.getQueryStringState(nextProps), this.fetchData);
-      this._poller.disable();
     }
   },
 
@@ -102,8 +97,9 @@ const Stream = React.createClass({
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.realtimeActive !== this.state.realtimeActive) {
+      // User toggled realtime button
       if (this.state.realtimeActive) {
-        this._poller.enable();
+        this.resumePolling();
       } else {
         this._poller.disable();
       }
@@ -198,6 +194,8 @@ const Stream = React.createClass({
       this.lastRequest.cancel();
     }
 
+    this._poller.disable();
+
     this.lastRequest = api.request(url, {
       method: 'GET',
       data: requestParams,
@@ -228,12 +226,21 @@ const Stream = React.createClass({
       complete: (jqXHR) => {
         this.lastRequest = null;
 
-        let links = parseLinkHeader(jqXHR.getResponseHeader('Link'));
-        if (links && links.previous) {
-          this._poller.setEndpoint(links.previous.href);
-        }
+        this.resumePolling();
       }
     });
+  },
+
+  resumePolling() {
+    if (!this.state.pageLinks)
+      return;
+
+    // Only resume polling if we're on the first page of results
+    let links = parseLinkHeader(this.state.pageLinks);
+    if (links && !links.previous.results && this.state.realtimeActive) {
+      this._poller.setEndpoint(links.previous.href);
+      this._poller.enable();
+    }
   },
 
   getGroupListEndpoint() {
