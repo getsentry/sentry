@@ -8,6 +8,7 @@ sentry.plugins.sentry_mail.models
 from __future__ import absolute_import
 
 import itertools
+import logging
 
 import sentry
 
@@ -19,6 +20,11 @@ from django.utils.safestring import mark_safe
 
 from sentry import features
 from sentry.digests.utilities import get_digest_metadata
+from sentry.models import (
+    Activity,
+    Release,
+    UserOption,
+)
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
@@ -27,6 +33,9 @@ from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.http import absolute_uri
 
 NOTSET = object()
+
+
+logger = logging.getLogger(__name__)
 
 
 class MailPlugin(NotificationPlugin):
@@ -101,22 +110,14 @@ class MailPlugin(NotificationPlugin):
         The results of this call can be fairly expensive to calculate, so the send_to list gets cached
         for 60 seconds.
         """
-        if project:
-            project_id = project.pk
-        else:
-            project_id = ''
-
         if not (project and project.team):
+            logger.debug('Tried to send notification to invalid project: %r', project)
             return []
 
-        conf_key = self.get_conf_key()
-        cache_key = '%s:send_to:%s' % (conf_key, project_id)
-
+        cache_key = '%s:send_to:%s' % (self.get_conf_key(), project.pk)
         send_to_list = cache.get(cache_key)
         if send_to_list is None:
-            send_to_list = self.get_sendable_users(project)
-
-            send_to_list = filter(bool, send_to_list)
+            send_to_list = filter(bool, self.get_sendable_users(project))
             cache.set(cache_key, send_to_list, 60)  # 1 minute cache
 
         return send_to_list
@@ -216,6 +217,102 @@ class MailPlugin(NotificationPlugin):
 
         if features.has('projects:digests:deliver', project):
             message.send()
+
+    def notify_about_activity(self, activity):
+        if activity.type not in (Activity.NOTE, Activity.ASSIGNED, Activity.RELEASE):
+            return
+
+        candidate_ids = set(self.get_send_to(activity.project))
+
+        # Never send a notification to the user that performed the action.
+        candidate_ids.discard(activity.user_id)
+
+        if activity.type == Activity.ASSIGNED:
+            # Only notify the assignee, and only if they are in the candidate set.
+            recipient_ids = candidate_ids & set((activity.data['assignee'],))
+        elif activity.type == Activity.NOTE:
+            recipient_ids = candidate_ids - set(
+                UserOption.objects.filter(
+                    user__in=candidate_ids,
+                    key='subscribe_notes',
+                    value=u'0',
+                ).values_list('user', flat=True)
+            )
+        else:
+            recipient_ids = candidate_ids
+
+        if not recipient_ids:
+            return
+
+        project = activity.project
+        org = project.organization
+        group = activity.group
+
+        headers = {}
+
+        context = {
+            'data': activity.data,
+            'author': activity.user,
+            'project': project,
+            'project_link': absolute_uri(reverse('sentry-stream', kwargs={
+                'organization_slug': org.slug,
+                'project_id': project.slug,
+            })),
+        }
+
+        if group:
+            group_link = absolute_uri('/{}/{}/group/{}/'.format(org.slug, project.slug, group.id))
+            activity_link = '{}activity/'.format(group_link)
+
+            headers.update({
+                'X-Sentry-Reply-To': group_id_to_email(group.id),
+            })
+
+            context.update({
+                'group': group,
+                'link': group_link,
+                'activity_link': activity_link,
+            })
+
+        # TODO(dcramer): abstract each activity email into its own helper class
+        if activity.type == Activity.RELEASE:
+            context.update({
+                'release': Release.objects.get(
+                    version=activity.data['version'],
+                    project=project,
+                ),
+                'release_link': absolute_uri(reverse('sentry-release-details', kwargs={
+                    'organization_slug': org.slug,
+                    'project_id': project.slug,
+                    'version': activity.data['version'],
+                })),
+            })
+
+        template_name = activity.get_type_display()
+
+        # TODO: Everything below should instead use `_send_mail` for consistency.
+        subject_prefix = project.get_option('subject_prefix', settings.EMAIL_SUBJECT_PREFIX)
+        if subject_prefix:
+            subject_prefix = subject_prefix.rstrip() + ' '
+
+        if group:
+            subject = '%s%s' % (subject_prefix, group.get_email_subject())
+        elif activity.type == Activity.RELEASE:
+            subject = '%sRelease %s' % (subject_prefix, activity.data['version'])
+        else:
+            raise NotImplementedError
+
+        msg = MessageBuilder(
+            subject=subject,
+            context=context,
+            template='sentry/emails/activity/{}.txt'.format(template_name),
+            html_template='sentry/emails/activity/{}.html'.format(template_name),
+            headers=headers,
+            reference=activity,
+            reply_reference=group,
+        )
+        msg.add_users(recipient_ids, project=project)
+        msg.send()
 
 
 # Legacy compatibility
