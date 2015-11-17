@@ -28,15 +28,14 @@ const NoteContainer = React.createClass({
 
   onDelete() {
     let {group, item} = this.props;
-
-    let loadingIndicator = IndicatorStore.add(t('Removing comment..'));
-
     // Optimistically remove from UI
     let index = GroupStore.removeActivity(group.id, item.id);
     if (index === -1) {
         // I dunno, the id wasn't found in the GroupStore
         return;
     }
+
+    let loadingIndicator = IndicatorStore.add(t('Removing comment..'));
 
     this.api.request('/issues/' + group.id + '/comments/' + item.id + '/' , {
       method: 'DELETE',

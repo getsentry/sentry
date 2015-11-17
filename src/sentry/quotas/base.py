@@ -62,6 +62,18 @@ class Quota(object):
         )
 
     def get_team_quota(self, team):
+        from sentry.models import Organization
+
+        org = getattr(team, '_organization_cache', None)
+        if not org:
+            org = Organization.objects.get_from_cache(id=team.organization_id)
+
+        return self.translate_quota(
+            settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE,
+            self.get_organization_quota(org)
+        )
+
+    def get_organization_quota(self, organization):
         return self.translate_quota(
             settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE,
             self.get_system_quota()
