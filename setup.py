@@ -43,6 +43,11 @@ from setuptools import setup, find_packages
 from setuptools.dist import Distribution
 from subprocess import check_output
 
+try:
+    from wheel.bdist_wheel import bdist_wheel as BDistWheelCommand
+except ImportError:
+    BDistWheelCommand = None
+
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
@@ -364,8 +369,25 @@ class ExtendedDistribution(Distribution):
         # get the chance to run.
         return True
 
-    def is_pure(self):
-        return True
+
+cmdclass = {
+    'sdist': SentrySDistCommand,
+    'build_ext': SentryBuildExtCommand,
+    'build_js': BuildJavascriptCommand,
+}
+
+
+if BDistWheelCommand is not None:
+    class SentryBDistWheelCommand(BDistWheelCommand):
+
+        def finalize_options(self):
+            BDistWheelCommand.finalize_options(self)
+            # Unfuck the default detection which we fucked outselves
+            # because we needed to override has_ext_modules to get our
+            # javascript shittery going.
+            self.root_is_pure = True
+
+    cmdclass['bdist_wheel'] = SentryBDistWheelCommand
 
 
 setup(
@@ -386,11 +408,7 @@ setup(
         'postgres': install_requires + postgres_requires,
         'postgres_pypy': install_requires + postgres_pypy_requires,
     },
-    cmdclass={
-        'sdist': SentrySDistCommand,
-        'build_ext': SentryBuildExtCommand,
-        'build_js': BuildJavascriptCommand,
-    },
+    cmdclass=cmdclass,
     license='BSD',
     include_package_data=True,
     entry_points={
