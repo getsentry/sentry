@@ -25,7 +25,10 @@ describe('Stream', function() {
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(Api, 'request');
+    this.stubbedApiRequest = this.sandbox.stub(Api, 'request', (url, options) => {
+      options.complete && options.complete();
+    });
+
     stubReactComponents(this.sandbox, [StreamGroup, StreamFilters, StreamSidebar, StreamActions, Sticky]);
 
     this.Element = (
@@ -41,23 +44,15 @@ describe('Stream', function() {
   });
 
   describe('fetchData()', function() {
-
     describe('complete handler', function () {
       beforeEach(function () {
-        this.stubbedApiRequest.restore();
-        this.sandbox.stub(Api, 'request', (url, options) => {
-          options.complete && options.complete({
-            getResponseHeader: () => this.linkHeader
-          });
-        });
-
         this.sandbox.stub(CursorPoller.prototype, 'setEndpoint');
       });
 
       it('should reset the poller endpoint and sets cursor URL', function() {
-        this.linkHeader = DEFAULT_LINKS_HEADER;
-
         let stream = TestUtils.renderIntoDocument(this.Element);
+        stream.state.pageLinks = DEFAULT_LINKS_HEADER;
+        stream.state.realtimeActive = true;
         stream.fetchData();
 
         expect(CursorPoller.prototype.setEndpoint
@@ -65,11 +60,22 @@ describe('Stream', function() {
           .to.be.true;
       });
 
-      it('should not set the poller if the \'previous\' link is missing', function () {
-        this.linkHeader =
-        '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
-
+      it('should not enable the poller if realtimeActive is false', function () {
         let stream = TestUtils.renderIntoDocument(this.Element);
+        stream.state.pageLinks = DEFAULT_LINKS_HEADER;
+        stream.state.realtimeActive = false;
+        stream.fetchData();
+
+        expect(CursorPoller.prototype.setEndpoint.notCalled).to.be.ok;
+      });
+
+      it('should not enable the poller if the \'previous\' link has results', function () {
+        let stream = TestUtils.renderIntoDocument(this.Element);
+        stream.state.pageLinks =
+          '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:1>; rel="previous"; results="true"; cursor="1443575731:0:1", ' +
+          '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
+
+        stream.state.realtimeActive = true;
         stream.fetchData();
 
         expect(CursorPoller.prototype.setEndpoint.notCalled).to.be.ok;
