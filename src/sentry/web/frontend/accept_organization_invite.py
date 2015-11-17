@@ -55,22 +55,16 @@ class AcceptOrganizationInviteView(BaseView):
 
         organization = om.organization
 
-        if om.has_global_access:
-            qs = Project.objects.filter(
-                team__organization=organization,
-            )
-        else:
-            qs = Project.objects.filter(
-                team__in=om.teams.all(),
-            )
-
-        qs = qs.select_related('team')
-
-        project_list = list(qs)
+        qs = Project.objects.filter(
+            organization=organization,
+        )
+        project_list = list(qs.select_related('team')[:25])
+        project_count = qs.count()
 
         context = {
             'organization': om.organization,
             'project_list': project_list,
+            'project_count': project_count,
             'needs_authentication': not request.user.is_authenticated(),
         }
 

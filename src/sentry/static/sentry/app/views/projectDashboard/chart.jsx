@@ -1,73 +1,64 @@
-import React from "react";
-import moment from "moment";
-import api from "../../api";
-import BarChart from "../../components/barChart";
-import LoadingError from "../../components/loadingError";
-import LoadingIndicator from "../../components/loadingIndicator";
-import RouteMixin from "../../mixins/routeMixin";
-import ProjectState from "../../mixins/projectState";
+import React from 'react';
+import moment from 'moment';
+import api from '../../api';
+import BarChart from '../../components/barChart';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
+import ProjectState from '../../mixins/projectState';
 
-var ProjectChart = React.createClass({
+const ProjectChart = React.createClass({
   mixins: [
-    RouteMixin,
     ProjectState,
   ],
 
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   getInitialState() {
     return {
+      loading: true,
       error: false,
       stats: [],
-      releaseList: [],
-      dateSince: (new Date().getTime() / 1000) - (3600 * 24 * 7)
+      releaseList: []
     };
-  },
-
-  getStatsEndpoint() {
-    var org = this.getOrganization();
-    var project = this.getProject();
-    return "/projects/" + org.slug + "/" + project.slug + "/stats/?resolution=1h";
-  },
-
-  getProjectReleasesEndpoint() {
-    var org = this.getOrganization();
-    var project = this.getProject();
-    return '/projects/' + org.slug + '/' + project.slug + '/releases/';
   },
 
   componentWillMount() {
     this.fetchData();
   },
 
-  routeDidChange(nextPath, nextParams) {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    if (params.orgId != nextParams.orgId || nextParams.projectId != params.projectId) {
-      this.fetchData();
-    }
+  componentWillReceiveProps() {
+    this.setState({
+      loading: true,
+      error: false
+    }, this.fetchData);
+  },
+
+  getStatsEndpoint() {
+    let org = this.getOrganization();
+    let project = this.getProject();
+    return '/projects/' + org.slug + '/' + project.slug + '/stats/?resolution=' + this.props.resolution;
+  },
+
+  getProjectReleasesEndpoint() {
+    let org = this.getOrganization();
+    let project = this.getProject();
+    return '/projects/' + org.slug + '/' + project.slug + '/releases/';
   },
 
   fetchData() {
-    this.setState({
-      error: false
-    });
-
     api.request(this.getStatsEndpoint(), {
       query: {
-        since: this.state.dateSince
+        since: this.props.dateSince
       },
       success: (data) => {
         this.setState({
           stats: data,
-          error: false
+          error: false,
+          loading: false
         });
       },
       error: () => {
         this.setState({
-          error: true
+          error: true,
+          loading: false
         });
       }
     });
@@ -82,12 +73,12 @@ var ProjectChart = React.createClass({
   },
 
   renderChart() {
-    var points = this.state.stats.map((point) => {
+    let points = this.state.stats.map((point) => {
       return {x: point[0], y: point[1]};
     });
-    var startX = (new Date().getTime() / 1000) - 3600 * 24 * 7;
-    var markers = this.state.releaseList.filter((release) => {
-      var date = new Date(release.dateCreated).getTime() / 1000;
+    let startX = (new Date().getTime() / 1000) - 3600 * 24 * 7;
+    let markers = this.state.releaseList.filter((release) => {
+      let date = new Date(release.dateCreated).getTime() / 1000;
       return date >= startX;
     }).map((release) => {
       return {
@@ -102,7 +93,7 @@ var ProjectChart = React.createClass({
           points={points}
           markers={markers}
           className="sparkline" />
-        <small className="date-legend">{moment(this.state.dateSince * 1000).format("LL")}</small>
+        <small className="date-legend">{moment(this.props.dateSince * 1000).format('LL')}</small>
       </div>
     );
   },

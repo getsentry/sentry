@@ -7,7 +7,6 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import constants
-from sentry.models import OrganizationMemberType
 from sentry.plugins import plugins, NotificationPlugin
 from sentry.web.forms.projects import NotificationSettingsForm
 from sentry.web.frontend.base import ProjectView
@@ -16,7 +15,7 @@ OK_SETTINGS_SAVED = _('Your settings were saved successfully.')
 
 
 class ProjectNotificationsView(ProjectView):
-    required_access = OrganizationMemberType.ADMIN
+    required_scope = 'project:write'
 
     def _iter_plugins(self):
         for plugin in plugins.all(version=1):
@@ -88,7 +87,7 @@ class ProjectNotificationsView(ProjectView):
                     enabled_plugins.append((plugin, mark_safe(content + view)))
                 elif content:
                     enabled_plugins.append((plugin, mark_safe(content)))
-            else:
+            elif plugin.can_configure_for_project(project):
                 other_plugins.append(plugin)
 
         context = {

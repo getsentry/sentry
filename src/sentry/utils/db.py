@@ -35,7 +35,6 @@ def is_sqlite(alias='default'):
 
 
 def has_charts(db):
-    engine = get_db_engine(db)
     if is_sqlite(db):
         return False
     return True

@@ -1,13 +1,12 @@
-import React from "react";
-import api from "../api";
-import Router from "react-router";
-import Alerts from "../components/alerts";
-import AlertActions from "../actions/alertActions.jsx";
-import Indicators from "../components/indicators";
-import LoadingIndicator from "../components/loadingIndicator";
-import OrganizationStore from "../stores/organizationStore";
+import React from 'react';
+import api from '../api';
+import Alerts from '../components/alerts';
+import AlertActions from '../actions/alertActions.jsx';
+import Indicators from '../components/indicators';
+import LoadingIndicator from '../components/loadingIndicator';
+import OrganizationStore from '../stores/organizationStore';
 
-var App = React.createClass({
+const App = React.createClass({
   getInitialState() {
     return {
       loading: false,
@@ -17,6 +16,9 @@ var App = React.createClass({
 
   componentWillMount() {
     api.request('/organizations/', {
+      query: {
+        'member': '1'
+      },
       success: (data) => {
         OrganizationStore.load(data);
         this.setState({
@@ -61,7 +63,7 @@ var App = React.createClass({
       <div>
         <Alerts className="messages-container" />
         <Indicators className="indicators-container" />
-        <Router.RouteHandler />
+        {this.props.children}
       </div>
     );
   }

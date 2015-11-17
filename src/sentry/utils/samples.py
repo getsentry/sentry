@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 import os.path
 
-from sentry.constants import DATA_ROOT, PLATFORM_ROOTS, PLATFORM_TITLES
+from sentry.constants import DATA_ROOT
 from sentry.event_manager import EventManager
 from sentry.utils import json
 
@@ -32,9 +32,11 @@ def load_data(platform, default=None):
     if data is None:
         return
 
+    if platform == 'csp':
+        return data
+
     data['platform'] = platform
-    data['message'] = 'This is an example %s exception' % (
-        PLATFORM_TITLES.get(platform, platform.title()),)
+    data['message'] = 'This is an example %s exception' % (platform,)
     data['sentry.interfaces.User'] = {
         "username": "getsentry",
         "id": "1671",
@@ -47,6 +49,8 @@ def load_data(platform, default=None):
         'results': [1, 2, 3, 4, 5],
         'emptyList': [],
         'emptyMap': {},
+        'length': 10837790,
+        'url': 'http://example.org/foo/bar/',
     }
     data['modules'] = {
         'my.package': '1.0.0',
@@ -75,7 +79,8 @@ def create_sample_event(project, platform=None, default=None, raw=True,
     if not platform and not default:
         return
 
-    platform = PLATFORM_ROOTS.get(platform, platform)
+    if platform:
+        platform = platform.split('-', 1)[0].split('_', 1)[0]
 
     data = load_data(platform, default)
 

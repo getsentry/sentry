@@ -14,9 +14,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError, make_option
 
-from sentry.models import (
-    Organization, OrganizationMember, OrganizationMemberType, User
-)
+from sentry import roles
+from sentry.models import Organization, OrganizationMember, User
 
 
 class Command(BaseCommand):
@@ -105,7 +104,6 @@ class Command(BaseCommand):
             OrganizationMember.objects.create(
                 organization=org,
                 user=user,
-                type=OrganizationMemberType.OWNER,
-                has_global_access=user.is_superuser,
+                role=roles.get_top_dog().id,
             )
             self.stdout.write('Added to organization: %s' % (org.slug,))

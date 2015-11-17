@@ -1,10 +1,9 @@
-import $ from "jquery";
-import React from "react";
-import ConfigStore from "../../stores/configStore";
-import Count from "../../components/count";
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import React from 'react';
+import ConfigStore from '../../stores/configStore';
+import Count from '../../components/count';
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-var getPercent = (item, total) => {
+let getPercent = (item, total) => {
   if (total === 0) {
     return '';
   }
@@ -14,19 +13,24 @@ var getPercent = (item, total) => {
   return parseInt(item / total * 100, 10) + '%';
 };
 
-var ProjectTable = React.createClass({
+const ProjectTable = React.createClass({
   mixins: [PureRenderMixin],
 
   render() {
-    var projectMap = this.props.projectMap;
-    var projectTotals = this.props.projectTotals;
-    var orgTotal = this.props.orgTotal;
-    var org = this.props.organization;
-    var urlPrefix = ConfigStore.get('urlPrefix') + '/' + org.slug;
+    let projectMap = this.props.projectMap;
+    let projectTotals = this.props.projectTotals;
+    let orgTotal = this.props.orgTotal;
+    let org = this.props.organization;
+    let urlPrefix = ConfigStore.get('urlPrefix') + '/' + org.slug;
 
     if (!projectTotals) {
       return <div/>;
     }
+
+    // Sort based on # events received in desc order
+    projectTotals.sort((a, b) => {
+      return b.received - a.received;
+    });
 
     return (
       <table className="table simple-list project-list">
@@ -34,13 +38,14 @@ var ProjectTable = React.createClass({
           <tr>
             <th>Project</th>
             <th className="align-right">Accepted</th>
-            <th className="align-right">Rejected</th>
+            <th className="align-right">Dropped<br/>(Rate Limit)</th>
+            <th className="align-right">Dropped<br/>(Blacklist)</th>
             <th className="align-right">Total</th>
           </tr>
         </thead>
         <tbody>
-          {$.map(projectTotals, (item) => {
-            var project = projectMap[item.id];
+          {projectTotals.map((item) => {
+            let project = projectMap[item.id];
 
             return (
               <tr key={item.id}>
@@ -54,6 +59,10 @@ var ProjectTable = React.createClass({
                 <td className="align-right">
                   <Count value={item.rejected} /><br/>
                   <small>{getPercent(item.rejected, orgTotal.rejected)}</small>
+                </td>
+                <td className="align-right">
+                  <Count value={item.blacklisted} /><br/>
+                  <small>{getPercent(item.blacklisted, orgTotal.blacklisted)}</small>
                 </td>
                 <td className="align-right">
                   <Count value={item.received} /><br/>

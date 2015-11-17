@@ -1,7 +1,7 @@
-import {getJavaFrame} from "app/components/events/interfaces/rawStacktraceContent";
+import {getJavaFrame} from 'app/components/events/interfaces/rawStacktraceContent';
 
-describe("RawStacktraceContent", function() {
-  describe("getJavaFrame()", function() {
+describe('RawStacktraceContent', function() {
+  describe('getJavaFrame()', function() {
     it('should render java frames', function () {
       expect(getJavaFrame({
         module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
@@ -25,3 +25,4 @@ describe("RawStacktraceContent", function() {
     });
   });
 });
+

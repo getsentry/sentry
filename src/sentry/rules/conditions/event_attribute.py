@@ -44,8 +44,9 @@ ATTR_CHOICES = [
     'exception.type',
     'exception.value',
     'user.id',
-    'user.ip_address',
     'user.email',
+    'user.username',
+    'user.ip_address',
     'http.method',
     'http.url',
     'stacktrace.code',
@@ -197,7 +198,7 @@ class EventAttributeCondition(EventCondition):
         except KeyError:
             attribute_values = []
 
-        attribute_values = [v.lower() for v in attribute_values]
+        attribute_values = [v.lower() for v in attribute_values if v is not None]
 
         if match == MatchType.EQUAL:
             for a_value in attribute_values:

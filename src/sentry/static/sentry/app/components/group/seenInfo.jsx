@@ -1,19 +1,21 @@
-import React from "react";
-import DateTime from "../../components/dateTime";
-import TimeSince from "../../components/timeSince";
-import Version from "../../components/version";
-import utils from "../../utils";
+import React from 'react';
+import DateTime from '../../components/dateTime';
+import TimeSince from '../../components/timeSince';
+import Version from '../../components/version';
+import utils from '../../utils';
 
-var SeenInfo = React.createClass({
+const SeenInfo = React.createClass({
   propTypes: {
     date: React.PropTypes.any.isRequired,
     release: React.PropTypes.shape({
       version: React.PropTypes.string.isRequired
-    })
+    }),
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   render() {
-    var {date, release} = this.props;
+    let {date, release} = this.props;
     return (
       <dl>
         <dt key={0}>When:</dt>
@@ -22,7 +24,7 @@ var SeenInfo = React.createClass({
         <dd key={3}><DateTime date={date} /></dd>
         {utils.defined(release) && [
           <dt key={4}>Release:</dt>,
-          <dd key={5}><Version version={release.version} /></dd>
+          <dd key={5}><Version orgId={this.props.orgId} projectId={this.props.projectId} version={release.version} /></dd>
         ]}
       </dl>
     );

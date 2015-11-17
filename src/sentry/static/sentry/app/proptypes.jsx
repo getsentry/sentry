@@ -1,6 +1,6 @@
-import React from "react";
+import React from 'react';
 
-var PropTypes = {
+let PropTypes = {
   AnyModel: React.PropTypes.shape({
     id: React.PropTypes.string.isRequired
   }),

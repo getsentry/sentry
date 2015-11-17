@@ -21,6 +21,10 @@ def get_interface(name):
     return interface
 
 
+class InterfaceValidationError(Exception):
+    pass
+
+
 class Interface(object):
     """
     An interface is a structured representation of data, which may
@@ -112,4 +116,4 @@ class Interface(object):
         body = self.to_string(event)
         if not body:
             return ''
-        return '<pre>%s</pre>' % (escape(body).replace('\n', '<br>'),)
+        return '<pre>%s</pre>' % (escape(body),)

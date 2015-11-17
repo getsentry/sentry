@@ -14,7 +14,7 @@ from sentry.db.models.query import create_or_update
 from sentry.constants import STATUS_CHOICES
 from sentry.models import (
     Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus,
-    GroupTagValue, Release, UserReport
+    GroupTagKey, GroupTagValue, Release, UserReport
 )
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
@@ -192,6 +192,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if last_release:
             last_release = self._get_release_info(request, group, last_release)
 
+        tags = list(GroupTagKey.objects.filter(
+            group=group,
+        )[:100])
+
         data.update({
             'firstRelease': first_release,
             'lastRelease': last_release,
@@ -199,6 +203,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             'seenBy': seen_by,
             'pluginActions': action_list,
             'userReportCount': UserReport.objects.filter(group=group).count(),
+            'tags': sorted(serialize(tags, request.user), key=lambda x: x['name']),
             'stats': {
                 '24h': hourly_stats,
                 '30d': daily_stats,
@@ -237,6 +242,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         result = serializer.object
 
+        acting_user = request.user if request.user.is_authenticated() else None
+
         # TODO(dcramer): we should allow assignment to anyone who has membership
         # even if that membership is not SSO linked
         if result.get('assignedTo') and not group.project.member_set.filter(user=result['assignedTo']).exists():
@@ -261,7 +268,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     project=group.project,
                     group=group,
                     type=Activity.SET_RESOLVED,
-                    user=request.user,
+                    user=acting_user,
                 )
         elif result.get('status'):
             group.status = STATUS_CHOICES[result['status']]
@@ -296,58 +303,11 @@ class GroupDetailsEndpoint(GroupEndpoint):
             ).delete()
 
         if 'assignedTo' in result:
-            now = timezone.now()
-
             if result['assignedTo']:
-                assignee, created = GroupAssignee.objects.get_or_create(
-                    group=group,
-                    defaults={
-                        'project': group.project,
-                        'user': result['assignedTo'],
-                        'date_added': now,
-                    }
-                )
-
-                if not created:
-                    affected = GroupAssignee.objects.filter(
-                        group=group,
-                    ).exclude(
-                        user=result['assignedTo'],
-                    ).update(
-                        user=result['assignedTo'],
-                        date_added=now
-                    )
-                else:
-                    affected = True
-
-                if affected:
-                    activity = Activity.objects.create(
-                        project=group.project,
-                        group=group,
-                        type=Activity.ASSIGNED,
-                        user=request.user,
-                        data={
-                            'assignee': result['assignedTo'].id,
-                        }
-                    )
-                    activity.send_notification()
-
+                GroupAssignee.objects.assign(group, result['assignedTo'],
+                                             acting_user)
             else:
-                affected = GroupAssignee.objects.filter(
-                    group=group,
-                )[:1].count()
-                GroupAssignee.objects.filter(
-                    group=group,
-                ).delete()
-
-                if affected > 0:
-                    activity = Activity.objects.create(
-                        project=group.project,
-                        group=group,
-                        type=Activity.UNASSIGNED,
-                        user=request.user,
-                    )
-                    activity.send_notification()
+                GroupAssignee.objects.deassign(group, acting_user)
 
         return Response(serialize(group, request.user))
 

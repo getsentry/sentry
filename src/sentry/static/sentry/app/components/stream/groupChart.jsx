@@ -1,21 +1,21 @@
-import React from "react";
-import Reflux from "reflux";
-import BarChart from "../barChart";
-import GroupStore from "../../stores/groupStore";
-import {valueIsEqual} from "../../utils";
+import React from 'react';
+import Reflux from 'reflux';
+import BarChart from '../barChart';
+import GroupStore from '../../stores/groupStore';
+import {valueIsEqual} from '../../utils';
 
-var GroupChart = React.createClass({
-  mixins: [
-    Reflux.listenTo(GroupStore, "onGroupChange")
-  ],
-
+const GroupChart = React.createClass({
   propTypes: {
     id: React.PropTypes.string.isRequired,
     statsPeriod: React.PropTypes.string.isRequired,
   },
 
+  mixins: [
+    Reflux.listenTo(GroupStore, 'onGroupChange')
+  ],
+
   getInitialState() {
-    var data = GroupStore.get(this.props.id);
+    let data = GroupStore.get(this.props.id);
     return {
       stats: data ? data.stats[this.props.statsPeriod] : null
     };
@@ -23,7 +23,7 @@ var GroupChart = React.createClass({
 
   componentWillReceiveProps(nextProps) {
     if (!valueIsEqual(nextProps, this.props)) {
-      var data = GroupStore.get(this.props.id);
+      let data = GroupStore.get(this.props.id);
       this.setState({
         stats: data.stats[this.props.statsPeriod]
       });
@@ -45,8 +45,8 @@ var GroupChart = React.createClass({
       return;
     }
 
-    var id = this.props.id;
-    var data = GroupStore.get(id);
+    let id = this.props.id;
+    let data = GroupStore.get(id);
 
     this.setState({
       stats: data.stats[this.props.statsPeriod],
@@ -57,7 +57,7 @@ var GroupChart = React.createClass({
     if (!this.state.stats)
       return null;
 
-    var chartData = this.state.stats.map((point) => {
+    let chartData = this.state.stats.map((point) => {
       return {x: point[0], y: point[1]};
     });
 

@@ -1,10 +1,12 @@
-import React from "react";
-import PropTypes from "../../proptypes";
+import React from 'react';
+import PropTypes from '../../proptypes';
 
-import EventDataSection from "./eventDataSection";
-import ClippedBox from "../clippedBox";
+import {objectToArray} from '../../utils';
+import EventDataSection from './eventDataSection';
+import ClippedBox from '../clippedBox';
+import KeyValueList from './interfaces/keyValueList';
 
-var EventPackageData = React.createClass({
+const EventPackageData = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired
@@ -15,18 +17,7 @@ var EventPackageData = React.createClass({
   },
 
   render() {
-    var packages = this.props.event.packages;
-    var packageKeys = [];
-    for (let key in packages) {
-      packageKeys.push(key);
-    }
-    packageKeys.sort();
-
-    var children = [];
-    packageKeys.forEach((key) => {
-      children.push(<dt key={'dt-' + key}>{key}</dt>);
-      children.push(<dd key={'dd-' + key}><pre>{packages[key]}</pre></dd>);
-    });
+    let packages = objectToArray(this.props.event.packages);
 
     return (
       <EventDataSection
@@ -35,9 +26,7 @@ var EventPackageData = React.createClass({
           type="packages"
           title="Packages">
         <ClippedBox>
-          <dl className="vars">
-            {children}
-          </dl>
+          <KeyValueList data={packages} />
         </ClippedBox>
       </EventDataSection>
     );

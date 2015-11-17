@@ -11,9 +11,18 @@ import logging
 
 from django import forms
 
-from sentry.app import ratelimiter
+from sentry import features
+from sentry.app import (
+    digests,
+    ratelimiter,
+)
+from sentry.digests.notifications import (
+    event_to_record,
+    unsplit_key,
+)
 from sentry.plugins import Notification, Plugin
 from sentry.models import UserOption
+from sentry.tasks.digests import deliver_digest
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -54,11 +63,35 @@ class NotificationPlugin(Plugin):
                 continue
             raise NotImplementedError('The default behavior for notification de-duplication does not support args')
 
-        notification = Notification(event=event, rules=rules)
-        self.notify(notification)
+        if hasattr(self, 'notify_digest'):
+            project = event.group.project
+
+            # If digest delivery is disabled, we still need to send a
+            # notification -- we also need to check rate limits, since
+            # ``should_notify`` skips this step if the plugin supports digests.
+            if not features.has('projects:digests:deliver', project):
+                if self.__is_rate_limited(event.group, event):
+                    logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
+                    logger.info('Notification for project %r dropped due to rate limiting', project)
+                    return
+
+                notification = Notification(event=event, rules=rules)
+                self.notify(notification)
+
+            if features.has('projects:digests:store', project):
+                key = unsplit_key(self, event.group.project)
+                if digests.add(key, event_to_record(event, rules)):
+                    deliver_digest.delay(key)
+
+        else:
+            notification = Notification(event=event, rules=rules)
+            self.notify(notification)
 
     def notify_users(self, group, event, fail_silently=False):
         raise NotImplementedError
+
+    def notify_about_activity(self, activity):
+        pass
 
     def get_sendable_users(self, project):
         conf_key = self.get_conf_key()
@@ -89,27 +122,35 @@ class NotificationPlugin(Plugin):
 
         return member_set
 
-    def should_notify(self, group, event):
-        if group.is_muted():
-            return False
-
-        project = group.project
-
-        rate_limited = ratelimiter.is_limited(
-            project=project,
+    def __is_rate_limited(self, group, event):
+        return ratelimiter.is_limited(
+            project=group.project,
             key=self.get_conf_key(),
             limit=10,
         )
 
-        if rate_limited:
-            logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
-            logger.info('Notification for project %s dropped due to rate limiting', project.id)
+    def is_configured(self, project):
+        raise NotImplementedError
 
-        return not rate_limited
+    def should_notify(self, group, event):
+        if not self.is_configured(project=event.project):
+            return False
+
+        if group.is_muted():
+            return False
+
+        # If the plugin doesn't support digests, perform rate limit checks to
+        # support backwards compatibility with older plugins.
+        if not hasattr(self, 'notify_digest') and self.__is_rate_limited(group, event):
+            logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
+            logger.info('Notification for project %r dropped due to rate limiting', group.project)
+            return False
+
+        return True
 
     def test_configuration(self, project):
         from sentry.utils.samples import create_sample_event
-        event = create_sample_event(project, default='python')
+        event = create_sample_event(project, platform='python')
         notification = Notification(event=event)
         return self.notify(notification)
 

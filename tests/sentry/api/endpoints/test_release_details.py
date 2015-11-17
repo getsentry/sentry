@@ -60,7 +60,7 @@ class ReleaseDeleteTest(APITestCase):
             project=project,
             version='1',
         )
-        releasefile = ReleaseFile.objects.create(
+        ReleaseFile.objects.create(
             project=project,
             release=release,
             file=File.objects.create(

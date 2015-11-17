@@ -115,3 +115,10 @@ class HttpTest(TestCase):
         ))
         assert result.url == 'http://example.com'
         assert result.full_url == 'http://example.com?foo=bar#fragment'
+
+    def test_header_value_list(self):
+        result = Http.to_python(dict(
+            url='http://example.com',
+            headers={'Foo': ['1', '2']},
+        ))
+        assert result.headers == [('Foo', '1, 2')]

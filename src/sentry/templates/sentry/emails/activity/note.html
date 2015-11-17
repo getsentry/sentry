@@ -1,14 +1,33 @@
 {% extends "sentry/emails/base.html" %}
 
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block preheader %}
+  New comment by {{ author.get_display_name }} in {{ group.project.get_full_name }}.
+{% endblock %}
+
 {% block header %}
-  <a href="{{ link }}" class="btn">View on Sentry</a>
-  <h1>Sentry</h1>
+  <a href="{{ activity_link }}" class="btn">View on Sentry</a>
+  {{ block.super }}
 {% endblock %}
 
 {% block main %}
+  <h3>New comment by {{ author.get_display_name }}</h3>
+
+  <table class="note">
+    <tr>
+      <td class="avatar-column">
+        <img class="avatar" width="48" height="48" src="{% gravatar_url author.email size 96 %}">
+      </td>
+      <td class="notch-column">
+        <img width="7" height="48" src="{% asset_url 'sentry' 'images/email/avatar-notch.png' %}">
+      </td>
+      <td>
+        <div class="note-body">{{ data.text|urlize|linebreaks }}</div>
+      </td>
+    </tr>
+  </table>
+
   {% include "sentry/emails/group_header.html" %}
-
-  <h2>New Note by <span class="highlight">{{ author }}</span></h2>
-
-  {{ data.text|urlize|linebreaks }}
 {% endblock %}

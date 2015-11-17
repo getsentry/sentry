@@ -1,17 +1,18 @@
-import React from "react";
-import ConfigStore from "../../stores/configStore";
-import OrganizationState from "../../mixins/organizationState";
-import {Link} from "react-router";
+import React from 'react';
+import ConfigStore from '../../stores/configStore';
+import OrganizationState from '../../mixins/organizationState';
+import {Link} from 'react-router';
 
-import UserNav from "./userNav";
-import OrganizationSelector from "./organizationSelector";
+import Broadcasts from './broadcasts';
+import UserNav from './userNav';
+import OrganizationSelector from './organizationSelector';
 
-var Header = React.createClass({
+const Header = React.createClass({
   mixins: [OrganizationState],
 
   render() {
-    var user = ConfigStore.get('user');
-    var logo;
+    let user = ConfigStore.get('user');
+    let logo;
 
     if (user) {
       logo = <span className="icon-sentry-logo"/>;
@@ -24,11 +25,9 @@ var Header = React.createClass({
       <header>
         <div className="container">
           <UserNav className="pull-right" />
-          <ul className="global-nav pull-right">
-            <li><a href="https://docs.getsentry.com">Docs</a></li>
-          </ul>
+          <Broadcasts className="pull-right" />
           {this.props.orgId ?
-            <Link to="organizationDetails" params={{orgId: this.props.orgId}} className="logo">{logo}</Link>
+            <Link to={`/${this.props.orgId}/`} className="logo">{logo}</Link>
             :
             <a href="/" className="logo">{logo}</a>
           }

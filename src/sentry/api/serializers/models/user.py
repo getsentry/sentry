@@ -13,7 +13,7 @@ class UserSerializer(Serializer):
         d = {
             'id': str(obj.id),
             'name': obj.get_display_name(),
-            'isSuperuser': obj.is_active_superuser(),
+            'username': obj.username,
             'email': obj.email,
             'avatarUrl': get_gravatar_url(obj.email, size=32),
         }
@@ -37,6 +37,6 @@ class UserSerializer(Serializer):
                 'language': options.get('language') or 'en',
                 'stacktraceOrder': stacktrace_order,
                 'timezone': options.get('timezone') or settings.SENTRY_DEFAULT_TIME_ZONE,
-
+                'clock24Hours': options.get('clock_24_hours') or False,
             }
         return d

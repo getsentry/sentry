@@ -1,13 +1,13 @@
 
-import Reflux from "reflux";
+import Reflux from 'reflux';
 
-var validHookNames = new Set([
+let validHookNames = new Set([
   'footer',
   'organization:header',
   'organization:sidebar'
 ]);
 
-var HookStore = Reflux.createStore({
+const HookStore = Reflux.createStore({
   init() {
     this.hooks = {};
   },
@@ -16,7 +16,7 @@ var HookStore = Reflux.createStore({
     if (!validHookNames.has(hookName)) {
       throw new Error('Invalid hook name: ' + hookName);
     }
-    if (typeof this.hooks[hookName] === "undefined") {
+    if (typeof this.hooks[hookName] === 'undefined') {
       this.hooks[hookName] = [];
     }
     this.hooks[hookName].push(callback);
@@ -24,7 +24,7 @@ var HookStore = Reflux.createStore({
   },
 
   remove(hookName, callback) {
-    if (typeof this.hooks[hookName] === "undefined") {
+    if (typeof this.hooks[hookName] === 'undefined') {
       return;
     }
     this.hooks[hookName] = this.hooks[hookName].filter((cb) => {

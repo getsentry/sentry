@@ -9,7 +9,7 @@ utilized for a couple of things, primarily:
 
 The remote server is operated by the Sentry team (getsentry.com), and the
 information reported follows the company's `privacy policy
-<https://www.getsentry.com/privacy/>`_.
+<https://getsentry.com/privacy/>`_.
 
 The following information is reported:
 

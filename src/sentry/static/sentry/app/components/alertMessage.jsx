@@ -1,21 +1,21 @@
-import React from "react";
+import React from 'react';
 import AlertActions from '../actions/alertActions';
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-var AlertMessage = React.createClass({
-  mixins: [PureRenderMixin],
-
+const AlertMessage = React.createClass({
   propTypes: {
     type: React.PropTypes.string,
     message: React.PropTypes.string
   },
+
+  mixins: [PureRenderMixin],
 
   closeAlert: function() {
     AlertActions.closeAlert(this.props.id);
   },
 
   render: function() {
-    var className = this.props.className || 'alert';
+    let className = this.props.className || 'alert';
     if (this.props.type !== '') {
       className += ' alert-' + this.props.type;
     }

@@ -1,16 +1,15 @@
-import React from "react";
-import Modal from "react-bootstrap/Modal";
-import OverlayMixin from "react-bootstrap/OverlayMixin";
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import React from 'react';
+import Modal from 'react-bootstrap/lib/Modal';
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-var LinkWithConfirmation = React.createClass({
-  mixins: [OverlayMixin, PureRenderMixin],
-
+const LinkWithConfirmation = React.createClass({
   propTypes: {
     disabled: React.PropTypes.bool,
     message: React.PropTypes.string.isRequired,
     onConfirm: React.PropTypes.func.isRequired
   },
+
+  mixins: [PureRenderMixin],
 
   getInitialState() {
     return {
@@ -36,37 +35,27 @@ var LinkWithConfirmation = React.createClass({
   },
 
   render() {
-    var className = this.props.className;
+    let className = this.props.className;
     if (this.props.disabled) {
       className += ' disabled';
     }
     return (
       <a className={className} disabled={this.props.disabled} onClick={this.onToggle} title={this.props.title}>
         {this.props.children}
+        <Modal show={this.state.isModalOpen} title="Please confirm" animation={false} onHide={this.onToggle}>
+          <div className="modal-body">
+            <p><strong>{this.props.message}</strong></p>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-default"
+                    onClick={this.onToggle}>Cancel</button>
+            <button type="button" className="btn btn-primary"
+                    onClick={this.onConfirm}>Confirm</button>
+          </div>
+        </Modal>
       </a>
-    );
-  },
-
-  renderOverlay() {
-    if (!this.state.isModalOpen) {
-      return <span/>;
-    }
-
-    return (
-      <Modal title="Please confirm" animation={false} onRequestHide={this.onToggle}>
-        <div className="modal-body">
-          <p><strong>{this.props.message}</strong></p>
-        </div>
-        <div className="modal-footer">
-          <button type="button" className="btn btn-default"
-                  onClick={this.onToggle}>Cancel</button>
-          <button type="button" className="btn btn-primary"
-                  onClick={this.onConfirm}>Confirm</button>
-        </div>
-      </Modal>
     );
   }
 });
 
 export default LinkWithConfirmation;
-

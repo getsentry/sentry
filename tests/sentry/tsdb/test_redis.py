@@ -1,10 +1,16 @@
+from __future__ import absolute_import
+
 import pytz
 
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 from sentry.testutils import TestCase
 from sentry.tsdb.base import TSDBModel, ONE_MINUTE, ONE_HOUR, ONE_DAY
 from sentry.tsdb.redis import RedisTSDB
+from sentry.utils.dates import to_timestamp
 
 
 class RedisTSDBTest(TestCase):
@@ -37,34 +43,110 @@ class RedisTSDBTest(TestCase):
         assert result == 'bf4e529197e56a48ae2737505b9736e4'
 
     def test_simple(self):
-        timestamp = datetime(2013, 5, 18, 15, 13, 58, tzinfo=pytz.UTC)
-        start = timestamp
-        self.db.incr(TSDBModel.project, 1, timestamp)
+        now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        dts = [now + timedelta(hours=i) for i in xrange(4)]
 
-        timestamp = datetime(2013, 5, 18, 16, 13, 58, tzinfo=pytz.UTC)
-        self.db.incr(TSDBModel.project, 1, timestamp, count=3)
+        def timestamp(d):
+            t = int(to_timestamp(d))
+            return t - (t % 3600)
 
-        timestamp = datetime(2013, 5, 18, 17, 13, 58, tzinfo=pytz.UTC)
-        self.db.incr(TSDBModel.project, 1, timestamp)
-
-        timestamp = datetime(2013, 5, 18, 18, 13, 58, tzinfo=pytz.UTC)
-        end = timestamp
+        self.db.incr(TSDBModel.project, 1, dts[0])
+        self.db.incr(TSDBModel.project, 1, dts[1], count=3)
+        self.db.incr(TSDBModel.project, 1, dts[2])
         self.db.incr_multi([
             (TSDBModel.project, 1),
             (TSDBModel.project, 2),
-        ], timestamp, count=4)
+        ], dts[3], count=4)
 
-        results = self.db.get_range(TSDBModel.project, [1], start, end)
+        results = self.db.get_range(TSDBModel.project, [1], dts[0], dts[-1])
         assert results == {
-            1: [(1368889200, 1), (1368892800, 3), (1368896400, 1), (1368900000, 4)],
+            1: [
+                (timestamp(dts[0]), 1),
+                (timestamp(dts[1]), 3),
+                (timestamp(dts[2]), 1),
+                (timestamp(dts[3]), 4),
+            ],
         }
-        results = self.db.get_range(TSDBModel.project, [2], start, end)
+        results = self.db.get_range(TSDBModel.project, [2], dts[0], dts[-1])
         assert results == {
-            2: [(1368889200, 0), (1368892800, 0), (1368896400, 0), (1368900000, 4)],
+            2: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 4),
+            ],
         }
 
-        results = self.db.get_sums(TSDBModel.project, [1, 2], start, end)
+        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
         assert results == {
             1: 9,
             2: 4,
+        }
+
+    def test_count_distinct(self):
+        now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        dts = [now + timedelta(hours=i) for i in xrange(4)]
+
+        model = TSDBModel.users_affected_by_group
+
+        def timestamp(d):
+            t = int(to_timestamp(d))
+            return t - (t % 3600)
+
+        self.db.record(
+            model,
+            1,
+            ('foo', 'bar'),
+            dts[0],
+        )
+
+        self.db.record(
+            model,
+            1,
+            ('baz',),
+            dts[1],
+        )
+
+        self.db.record_multi((
+            (
+                model,
+                1,
+                ('foo', 'bar', 'baz'),
+            ),
+            (
+                model,
+                2,
+                ('bar',),
+            ),
+        ), dts[2])
+
+        self.db.record(
+            model,
+            2,
+            ('foo',),
+            dts[3],
+        )
+
+        assert self.db.get_distinct_counts_series(model, [1], dts[0], dts[-1]) == {
+            1: [
+                (timestamp(dts[0]), 2),
+                (timestamp(dts[1]), 1),
+                (timestamp(dts[2]), 3),
+                (timestamp(dts[3]), 0),
+            ],
+        }
+
+        assert self.db.get_distinct_counts_series(model, [2], dts[0], dts[-1]) == {
+            2: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 1),
+                (timestamp(dts[3]), 1),
+            ],
+        }
+
+        results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1])
+        assert results == {
+            1: 3,
+            2: 2,
         }

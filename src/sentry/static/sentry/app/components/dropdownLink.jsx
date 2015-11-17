@@ -1,10 +1,10 @@
-import joinClasses from "react/lib/joinClasses";
-import classNames from "classnames";
-import React from "react";
+import jQuery from 'jquery';
+import React from 'react';
+import classNames from 'classnames';
 
-require("bootstrap/js/dropdown");
+require('bootstrap/js/dropdown');
 
-var DropdownLink = React.createClass({
+const DropdownLink = React.createClass({
   propTypes: {
     title:     React.PropTypes.node,
     caret:     React.PropTypes.bool,
@@ -19,46 +19,55 @@ var DropdownLink = React.createClass({
       caret: true,
     };
   },
+  getInitialState() {
+    return {
+      isOpen: false,
+    };
+  },
 
-  isOpen() {
-    return this.getDOMNode().classList.contains("open");
+  componentDidMount() {
+    jQuery(this.refs.dropdownToggle).dropdown();
+    jQuery(this.refs.dropdownToggle.parentNode).on(
+      'shown.bs.dropdown', (e) => {
+        this.setState({
+          isOpen: true,
+        });
+        this.props.onOpen && this.props.onOpen(e);
+      }).on(
+      'hidden.bs.dropdown', (e) => {
+        this.setState({
+          isOpen: false,
+        });
+        this.props.onClose && this.props.onClose(e);
+      });
   },
 
   close() {
-    this.getDOMNode().classList.remove("open");
-  },
-
-  onToggle(e) {
-    if (this.isOpen()) {
-      if (this.props.onOpen) {
-        this.props.onOpen(e);
-      }
-    } else {
-      if (this.props.onClose) {
-        this.props.onClose(e);
-      }
-    }
+    this.setState({isOpen: false});
   },
 
   render() {
-    var className = classNames({
-      "dropdown-toggle": true,
-      "disabled": this.props.disabled,
+    let className = classNames({
+      'dropdown-toggle': true,
+      'disabled': this.props.disabled,
     });
 
-    var topLevelClasses = classNames({
-      "dropdown" : true,
+    let topLevelClasses = classNames({
+      'dropdown' : true,
+      'open': this.state.isOpen,
     });
 
     return (
-      <span className={joinClasses(this.props.topLevelClasses, topLevelClasses)}>
-        <a className={joinClasses(this.props.className, className)} data-toggle="dropdown" onClick={this.onToggle}>
+      <span className={classNames(this.props.topLevelClasses, topLevelClasses)}>
+        <a className={classNames(this.props.className, className)}
+           data-toggle="dropdown"
+           ref="dropdownToggle">
           {this.props.title}
           {this.props.caret &&
             <i className="icon-arrow-down" />
           }
         </a>
-        <ul className={joinClasses(this.props.menuClasses, "dropdown-menu")}>
+        <ul className={classNames(this.props.menuClasses, 'dropdown-menu')}>
           {this.props.children}
         </ul>
       </span>

@@ -1,9 +1,8 @@
-import React from "react";
-import Router from "react-router";
-import joinClasses from "react/lib/joinClasses";
-import classNames from "classnames";
+import React from 'react';
+import {Link} from 'react-router';
+import classNames from 'classnames';
 
-var MenuItem = React.createClass({
+const MenuItem = React.createClass({
   propTypes: {
     header:    React.PropTypes.bool,
     divider:   React.PropTypes.bool,
@@ -16,12 +15,7 @@ var MenuItem = React.createClass({
     href:      React.PropTypes.string,
     // router link
     to:        React.PropTypes.string,
-    params:    React.PropTypes.object,
     query:     React.PropTypes.object,
-  },
-
-  contextTypes: {
-    router: React.PropTypes.func
   },
 
   handleClick(e) {
@@ -34,16 +28,15 @@ var MenuItem = React.createClass({
   renderAnchor() {
     if (this.props.to) {
       return (
-        <Router.Link
+        <Link
             to={this.props.to}
-            params={this.props.params}
             query={this.props.query}
             title={this.props.title}
             onClick={this.handleClick}
             className={this.props.linkClassName}
             tabIndex="-1">
           {this.props.children}
-        </Router.Link>
+        </Link>
       );
     }
     return (
@@ -56,13 +49,13 @@ var MenuItem = React.createClass({
   },
 
   render() {
-    var classes = {
-      "dropdown-header": this.props.header,
-      "divider": this.props.divider,
-      "active": this.props.isActive
+    let classes = {
+      'dropdown-header': this.props.header,
+      'divider': this.props.divider,
+      'active': this.props.isActive
     };
 
-    var children = null;
+    let children = null;
     if (this.props.noAnchor) {
       children = this.props.children;
     } else if (this.props.header) {
@@ -73,7 +66,7 @@ var MenuItem = React.createClass({
 
     return (
       <li {...this.props} role="presentation" title={null} href={null}
-        className={joinClasses(this.props.className, classNames(classes))}>
+        className={classNames(this.props.className, classes)}>
         {children}
       </li>
     );

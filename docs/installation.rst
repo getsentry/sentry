@@ -13,11 +13,15 @@ Some basic prerequisites which you'll need in order to run Sentry:
   assumes an ubuntu based system.
 * Python 2.7
 * ``python-setuptools``, ``python-pip``, ``python-dev``, ``libxslt1-dev``,
-  ``libxml2-dev``, ``libz-dev``, ``libffi-dev``, ``libssl-dev``
+  ``libxml2-dev``, ``libz-dev``, ``libffi-dev``, ``libssl-dev``, ``libpq-dev``
 * `PostgreSQL <http://www.postgresql.org/>`_
-* `Redis <http://redis.io>`_ (3.0.2 or newer)
+* `Redis <http://redis.io>`_ (2.8.9 or newer)
 * `Nginx <http://nginx.org>`_ (``nginx-full``)
 * A dedicated domain to host Sentry on (i.e. `sentry.yourcompany.com`).
+
+If you're building from source you'll also need:
+
+* Node.js 0.12 or newer.
 
 Hardware
 --------
@@ -102,27 +106,6 @@ via ``sentry``, and get something like the following:
   usage: [SENTRY_CONF=/path/to/settings.py] sentry [command] [options]
 
 
-Using Postgres or MySQL
-~~~~~~~~~~~~~~~~~~~~~~~
-
-We **highly** recommend using PostgreSQL for your database, or MySQL if
-you have no other choice. The default is sqlite and will handle very
-little load. If you're using MySQL, you should use InnoDB as your storage
-engine.
-
-These databases require additional packages, but Sentry provides a couple
-of meta packages to make things easier:
-
-::
-
-    # install sentry and its postgresql dependencies
-    apt-get install libpq-dev
-    pip install -U sentry[postgres]
-
-    # or if you choose, mysql
-    pip install -U sentry[mysql]
-
-
 Installing from Source
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -137,6 +120,18 @@ Once your system is prepared, symlink your source into the virtualenv:
 
 .. Note:: This command will install npm dependencies as well as compile
           static assets.
+
+You can also use pip to directly install the package from GitHub:
+
+.. code-block:: bash
+
+  $ pip install -e git+https://github.com/getsentry/sentry.git@master#egg=sentry-dev
+
+And more importantly, you can easily pin to a specific SHA:
+
+.. code-block:: bash
+
+  $ pip install -e git+https://github.com/getsentry/sentry.git@___SHA___#egg=sentry-dev
 
 
 Initializing the Configuration
@@ -165,12 +160,7 @@ not a fully supported database and should not be used in production**.
     # https://docs.djangoproject.com/en/1.6/ref/databases/
     DATABASES = {
         'default': {
-            # We suggest PostgreSQL for optimal performance
             'ENGINE': 'sentry.db.postgres',
-
-            # Alternatively you can use MySQL
-            'ENGINE': 'django.db.backends.mysql',
-
             'NAME': 'sentry',
             'USER': 'postgres',
             'PASSWORD': '',
@@ -245,11 +235,8 @@ you've created the database:
 
 .. code-block:: bash
 
-    # If you're using Postgres, and kept the database ``NAME`` as ``sentry``
+    # If you kept the database ``NAME`` as ``sentry``
     $ createdb -E utf-8 sentry
-
-    # alternatively if you're using MySQL, ensure you've created the database:
-    $ mysql -e 'create database sentry'
 
 Once done, you can create the initial schema using the ``upgrade`` command:
 
@@ -370,7 +357,7 @@ go.
 
   [program:sentry-web]
   directory=/www/sentry/
-  environment=SENTRY_CONF=/www/sentry/sentry.conf.py
+  environment=SENTRY_CONF="/www/sentry/sentry.conf.py"
   command=/www/sentry/bin/sentry start
   autostart=true
   autorestart=true
@@ -380,7 +367,7 @@ go.
 
   [program:sentry-worker]
   directory=/www/sentry/
-  environment=SENTRY_CONF=/www/sentry/sentry.conf.py
+  environment=SENTRY_CONF="/www/sentry/sentry.conf.py"
   command=/www/sentry/bin/sentry celery worker -B
   autostart=true
   autorestart=true

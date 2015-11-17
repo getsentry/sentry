@@ -1,9 +1,9 @@
+from __future__ import absolute_import
+
 from django.core.urlresolvers import reverse
 from mock import patch
 
-from sentry.models import (
-    OrganizationMemberType, Organization, OrganizationStatus
-)
+from sentry.models import Organization, OrganizationStatus
 from sentry.testutils import APITestCase
 
 
@@ -38,15 +38,15 @@ class OrganizationUpdateTest(APITestCase):
 
 class OrganizationDeleteTest(APITestCase):
     @patch('sentry.api.endpoints.organization_details.delete_organization')
-    def test_as_owner(self, mock_delete_organization):
+    def test_can_remove_as_owner(self, mock_delete_organization):
         org = self.create_organization()
 
         user = self.create_user(email='foo@example.com', is_superuser=False)
 
-        org.member_set.create(
+        self.create_member(
+            organization=org,
             user=user,
-            has_global_access=True,
-            type=OrganizationMemberType.OWNER,
+            role='owner',
         )
 
         self.login_as(user)
@@ -68,17 +68,15 @@ class OrganizationDeleteTest(APITestCase):
             countdown=3600,
         )
 
-    def test_as_admin(self):
+    def test_cannot_remove_as_admin(self):
         org = self.create_organization(owner=self.user)
 
         user = self.create_user(email='foo@example.com', is_superuser=False)
 
-        org.member_set.create_or_update(
+        self.create_member(
             organization=org,
             user=user,
-            values={
-                'type': OrganizationMemberType.ADMIN,
-            }
+            role='admin',
         )
 
         self.login_as(user=user)

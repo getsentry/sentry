@@ -321,8 +321,6 @@ def with_metadata(group_list, request):
 
 @register.inclusion_tag('sentry/plugins/bases/tag/widget.html')
 def render_tag_widget(group, tag):
-    cutoff = timezone.now() - timedelta(days=7)
-
     return {
         'title': tag['label'],
         'tag_name': tag['key'],

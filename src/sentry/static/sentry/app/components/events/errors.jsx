@@ -1,10 +1,10 @@
-import React from "react";
+import React from 'react';
 
-import EventDataSection from "./eventDataSection";
-import EventErrorItem from "./errorItem";
-import PropTypes from "../../proptypes";
+import EventDataSection from './eventDataSection';
+import EventErrorItem from './errorItem';
+import PropTypes from '../../proptypes';
 
-var EventErrors = React.createClass({
+const EventErrors = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired
@@ -28,9 +28,9 @@ var EventErrors = React.createClass({
   },
 
   render() {
-    var errors = this.props.event.errors;
-    var numErrors = errors.length;
-    var isOpen = this.state.isOpen;
+    let errors = this.props.event.errors;
+    let numErrors = errors.length;
+    let isOpen = this.state.isOpen;
     return (
       <EventDataSection
           group={this.props.group}

@@ -28,8 +28,9 @@ from sentry.constants import (
     CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_TAG_VALUE_LENGTH,
     MAX_TAG_KEY_LENGTH
 )
-from sentry.interfaces.base import get_interface
-from sentry.models import EventError, Project, ProjectKey
+from sentry.interfaces.base import get_interface, InterfaceValidationError
+from sentry.interfaces.csp import Csp
+from sentry.models import EventError, Project, ProjectKey, TagKey
 from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header
@@ -466,6 +467,19 @@ class ClientApiHelper(object):
                         'value': pair,
                     })
                     continue
+
+                # support tags with spaces by converting them
+                k = k.replace(' ', '-')
+
+                if not TagKey.is_valid_key(k):
+                    self.log.info('Discarded invalid tag key: %s', k)
+                    data['errors'].append({
+                        'type': EventError.INVALID_DATA,
+                        'name': 'tags',
+                        'value': pair,
+                    })
+                    continue
+
                 tags.append((k, v))
             data['tags'] = tags
 
@@ -508,7 +522,7 @@ class ClientApiHelper(object):
                 inst = interface.to_python(value)
                 data[inst.get_path()] = inst.to_json()
             except Exception as e:
-                if isinstance(e, AssertionError):
+                if isinstance(e, InterfaceValidationError):
                     log = self.log.info
                 else:
                     log = self.log.error
@@ -569,3 +583,45 @@ class ClientApiHelper(object):
         cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
         default_cache.set(cache_key, data, timeout=3600)
         preprocess_event.delay(cache_key=cache_key, start_time=time())
+
+
+class CspApiHelper(ClientApiHelper):
+    def origin_from_request(self, request):
+        # We don't use an origin here
+        return None
+
+    def validate_data(self, project, data):
+        # All keys are sent with hyphens, so we want to conver to underscores
+        report = dict(map(lambda v: (v[0].replace('-', '_'), v[1]), data.iteritems()))
+
+        try:
+            inst = Csp.to_python(report)
+        except Exception as exc:
+            raise APIForbidden('Invalid CSP Report: %s' % exc)
+
+        # Construct a faux Http interface based on the little information we have
+        headers = {}
+        if self.context.agent:
+            headers['User-Agent'] = self.context.agent
+        if inst.referrer:
+            headers['Referer'] = inst.referrer
+
+        return {
+            'logger': 'csp',
+            'project': project.id,
+            'message': inst.get_message(),
+            'culprit': inst.get_culprit(),
+            'tags': inst.get_tags(),
+            inst.get_path(): inst.to_json(),
+            # This is a bit weird, since we don't have nearly enough
+            # information to create an Http interface, but
+            # this automatically will pick up tags for the User-Agent
+            # which is actually important here for CSP
+            'sentry.interfaces.Http': {
+                'url': inst.document_uri,
+                'headers': headers,
+            },
+            'sentry.interfaces.User': {
+                'ip_address': self.context.ip_address,
+            }
+        }

@@ -8,8 +8,8 @@ import base64
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
+from django.utils.encoding import force_bytes
 from collections import namedtuple
-from hashlib import md5
 from os.path import splitext
 from requests.exceptions import RequestException
 from simplejson import JSONDecodeError
@@ -23,12 +23,11 @@ except ImportError:
         pass
 
 from sentry import http
-from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Release, ReleaseFile
 from sentry.utils.cache import cache
+from sentry.utils.hashlib import md5
 from sentry.utils.http import is_valid_origin
-from sentry.utils.strings import truncatechars
 
 from .cache import SourceCache, SourceMapCache
 from .sourcemaps import sourcemap_to_index, find_source
@@ -42,7 +41,7 @@ UNKNOWN_MODULE = '<unknown module>'
 CLEAN_MODULE_RE = re.compile(r"""^
 (?:/|  # Leading slashes
 (?:
-    (?:java)?scripts?|js|build|static|node_modules|bower_components|[_\.].*?|  # common folder prefixes
+    (?:java)?scripts?|js|build|static|node_modules|bower_components|[_\.~].*?|  # common folder prefixes
     v?(?:\d+\.)*\d+|   # version numbers, v1, 1.0.0
     [a-f0-9]{7,8}|     # short sha
     [a-f0-9]{32}|      # md5
@@ -156,7 +155,7 @@ def discover_sourcemap(result):
     sourcemap = result.headers.get('sourcemap', result.headers.get('x-sourcemap'))
 
     if not sourcemap:
-        parsed_body = result.body.splitlines()
+        parsed_body = result.body.split('\n')
         # Source maps are only going to exist at either the top or bottom of the document.
         # Technically, there isn't anything indicating *where* it should exist, so we
         # are generous and assume it's somewhere either in the first or last 5 lines.
@@ -183,9 +182,9 @@ def discover_sourcemap(result):
 def fetch_release_file(filename, release):
     cache_key = 'releasefile:%s:%s' % (
         release.id,
-        md5(filename.encode('utf-8')).hexdigest(),
+        md5(filename).hexdigest(),
     )
-    logger.debug('Checking cache for release artfiact %r (release_id=%s)',
+    logger.debug('Checking cache for release artifact %r (release_id=%s)',
                  filename, release.id)
     result = cache.get(cache_key)
     if result is None:
@@ -205,30 +204,42 @@ def fetch_release_file(filename, release):
 
         logger.debug('Found release artifact %r (id=%s, release_id=%s)',
                      filename, releasefile.id, release.id)
-        with releasefile.file.getfile() as fp:
-            body = fp.read()
-        result = (releasefile.file.headers, body, 200)
+        try:
+            with releasefile.file.getfile() as fp:
+                body = fp.read()
+        except Exception as e:
+            logger.exception(unicode(e))
+            result = -1
+        else:
+            result = (releasefile.file.headers, body, 200)
         cache.set(cache_key, result, 300)
-    elif result == -1:
+
+    if result == -1:
         result = None
 
     return result
 
 
-def fetch_url(url, project=None, release=None):
+def fetch_file(url, project=None, release=None, allow_scraping=True):
     """
     Pull down a URL, returning a UrlResult object.
 
     Attempts to fetch from the cache.
     """
-    cache_key = 'source:cache:v2:%s' % (
-        md5(url.encode('utf-8')).hexdigest(),
-    )
-
     if release:
         result = fetch_release_file(url, release)
+    elif not allow_scraping or not url.startswith(('http:', 'https:')):
+        error = {
+            'type': EventError.JS_MISSING_SOURCE,
+            'url': url,
+        }
+        raise CannotFetchSource(error)
     else:
         result = None
+
+    cache_key = 'source:cache:v2:%s' % (
+        md5(url).hexdigest(),
+    )
 
     if result is None:
         logger.debug('Checking cache for url %r', url)
@@ -238,7 +249,7 @@ def fetch_url(url, project=None, release=None):
         # lock down domains that are problematic
         domain = urlparse(url).netloc
         domain_key = 'source:blacklist:v2:%s' % (
-            md5(domain.encode('utf-8')).hexdigest(),
+            md5(domain).hexdigest(),
         )
         domain_result = cache.get(domain_key)
         if domain_result:
@@ -314,11 +325,12 @@ def fetch_url(url, project=None, release=None):
     return UrlResult(url, result[0], result[1])
 
 
-def fetch_sourcemap(url, project=None, release=None):
+def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
     if is_data_uri(url):
         body = base64.b64decode(url[BASE64_PREAMBLE_LENGTH:])
     else:
-        result = fetch_url(url, project=project, release=release)
+        result = fetch_file(url, project=project, release=release,
+                            allow_scraping=allow_scraping)
         body = result.body
 
     # According to various specs[1][2] a SourceMap may be prefixed to force
@@ -330,7 +342,8 @@ def fetch_sourcemap(url, project=None, release=None):
 
     try:
         return sourcemap_to_index(body)
-    except (JSONDecodeError, ValueError):
+    except (JSONDecodeError, ValueError, AssertionError) as exc:
+        logger.warn(unicode(exc))
         raise UnparseableSourcemap({
             'url': url,
         })
@@ -354,7 +367,7 @@ def generate_module(src):
         return UNKNOWN_MODULE
 
     filename, ext = splitext(urlsplit(src).path)
-    if ext not in ('.js', '.coffee'):
+    if ext not in ('.js', '.jsx', '.coffee'):
         return UNKNOWN_MODULE
 
     if filename.endswith('.min'):
@@ -370,10 +383,6 @@ def generate_module(src):
     return CLEAN_MODULE_RE.sub('', filename) or UNKNOWN_MODULE
 
 
-def generate_culprit(frame):
-    return '%s in %s' % (frame.module or frame.filename, frame.function)
-
-
 class SourceProcessor(object):
     """
     Attempts to fetch source code for javascript frames.
@@ -387,7 +396,8 @@ class SourceProcessor(object):
 
     Mutates the input ``data`` with expanded context if available.
     """
-    def __init__(self, max_fetches=MAX_RESOURCE_FETCHES):
+    def __init__(self, max_fetches=MAX_RESOURCE_FETCHES, allow_scraping=True):
+        self.allow_scraping = allow_scraping
         self.max_fetches = max_fetches
         self.cache = SourceCache()
         self.sourcemaps = SourceMapCache()
@@ -417,7 +427,6 @@ class SourceProcessor(object):
             frames.extend([
                 f for f in stacktrace.frames
                 if f.lineno is not None
-                and f.is_url()
             ])
         return frames
 
@@ -436,6 +445,7 @@ class SourceProcessor(object):
             logger.debug('No stacktrace for event %r', data['event_id'])
             return
 
+        # TODO(dcramer): we need this to do more than just sourcemaps
         frames = self.get_valid_frames(stacktraces)
         if not frames:
             logger.debug('Event %r has no frames with enough context to fetch remote source', data['event_id'])
@@ -456,9 +466,15 @@ class SourceProcessor(object):
         return data
 
     def fix_culprit(self, data, stacktraces):
-        culprit_frame = stacktraces[-1][1].frames[-1]
-        if culprit_frame.filename and culprit_frame.function:
-            data['culprit'] = truncatechars(generate_culprit(culprit_frame), MAX_CULPRIT_LENGTH)
+        # This is a bit weird, since the original culprit we get
+        # will be wrong, so we want to touch it up after we've processed
+        # a stack trace.
+
+        # In this case, we have a list of all stacktraces as a tuple
+        # (stacktrace as dict, stacktrace class)
+        # So we need to take the [1] index to get the Stacktrace class,
+        # then extract the culprit string from that.
+        data['culprit'] = stacktraces[-1][1].get_culprit_string()
 
     def update_stacktraces(self, stacktraces):
         for raw, interface in stacktraces:
@@ -468,13 +484,12 @@ class SourceProcessor(object):
         # TODO(dcramer): this doesn't really fit well with generic URLs so we
         # whitelist it to http/https
         for frame in frames:
-            if not frame.module and frame.abs_path.startswith(('http:', 'https:')):
+            if not frame.module and frame.abs_path.startswith(('http:', 'https:', 'webpack:')):
                 frame.module = generate_module(frame.abs_path)
 
     def expand_frames(self, frames):
         last_state = None
         state = None
-        has_changes = False
 
         cache = self.cache
         sourcemaps = self.sourcemaps
@@ -483,7 +498,6 @@ class SourceProcessor(object):
         for frame in frames:
             errors = cache.get_errors(frame.abs_path)
             if errors:
-                has_changes = True
                 all_errors.extend(errors)
 
             source = cache.get(frame.abs_path)
@@ -515,7 +529,7 @@ class SourceProcessor(object):
                     else:
                         all_errors.append({
                             'type': EventError.JS_MISSING_SOURCE,
-                            'url': abs_path.encode('utf-8'),
+                            'url': force_bytes(abs_path, errors='replace'),
                         })
 
                 # Store original data in annotation
@@ -540,8 +554,10 @@ class SourceProcessor(object):
 
                 filename = state.src
                 # special case webpack support
-                if filename.startswith('webpack://'):
-                    abs_path = filename
+                # abs_path will always be the full path with webpack:/// prefix.
+                # filename will be relative to that
+                if abs_path.startswith('webpack:'):
+                    filename = abs_path
                     # webpack seems to use ~ to imply "relative to resolver root"
                     # which is generally seen for third party deps
                     # (i.e. node_modules)
@@ -550,9 +566,20 @@ class SourceProcessor(object):
                     else:
                         filename = filename.split('webpack:///', 1)[-1]
 
+                    # As noted above, '~/' means they're coming from node_modules,
+                    # so these are not app dependencies
+                    if filename.startswith('~/'):
+                        frame.in_app = False
+                    # And conversely, local dependencies start with './'
+                    elif filename.startswith('./'):
+                        frame.in_app = True
+
+                    # We want to explicitly generate a webpack module name
+                    frame.module = generate_module(filename)
+
                 frame.abs_path = abs_path
                 frame.filename = filename
-                if abs_path.startswith(('http:', 'https:')):
+                if not frame.module and abs_path.startswith(('http:', 'https:', 'webpack:')):
                     frame.module = generate_module(abs_path)
 
             elif sourcemap_url:
@@ -574,13 +601,21 @@ class SourceProcessor(object):
         sourcemaps = self.sourcemaps
 
         for f in frames:
+            # We can't even attempt to fetch source if abs_path is None
+            if f.abs_path is None:
+                continue
+            # tbh not entirely sure how this happens, but raven-js allows this
+            # to be caught. I think this comes from dev consoles and whatnot
+            # where there is no page. This just bails early instead of exposing
+            # a fetch error that may be confusing.
+            if f.abs_path == '<anonymous>':
+                continue
             pending_file_list.add(f.abs_path)
             if f.colno is not None:
                 sourcemap_capable.add(f.abs_path)
 
         idx = 0
         while pending_file_list:
-            idx += 1
             filename = pending_file_list.pop()
             done_file_list.add(filename)
 
@@ -590,15 +625,18 @@ class SourceProcessor(object):
                 })
                 continue
 
+            idx += 1
+
             # TODO: respect cache-control/max-age headers to some extent
             logger.debug('Fetching remote source %r', filename)
             try:
-                result = fetch_url(filename, project=project, release=release)
+                result = fetch_file(filename, project=project, release=release,
+                                    allow_scraping=self.allow_scraping)
             except BadSource as exc:
                 cache.add_error(filename, exc.data)
                 continue
 
-            cache.add(filename, result.body.splitlines())
+            cache.add(filename, result.body.split('\n'))
             cache.alias(result.url, filename)
 
             sourcemap_url = discover_sourcemap(result)
@@ -625,6 +663,7 @@ class SourceProcessor(object):
                     sourcemap_url,
                     project=project,
                     release=release,
+                    allow_scraping=self.allow_scraping,
                 )
             except BadSource as exc:
                 cache.add_error(filename, exc.data)

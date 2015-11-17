@@ -1,33 +1,16 @@
 from __future__ import absolute_import
 
-__all__ = ['from_user', 'from_member', 'DEFAULT', 'SCOPES']
+__all__ = ['from_user', 'from_member', 'DEFAULT']
 
-from sentry.models import (
-    AuthIdentity, AuthProvider, OrganizationMember
-)
+from django.conf import settings
 
-SCOPES = set([
-    'org:read',
-    'org:write',
-    'org:delete',
-    'member:read',
-    'member:write',
-    'member:delete',
-    'team:read',
-    'team:write',
-    'team:delete',
-    'project:read',
-    'project:write',
-    'project:delete',
-    'event:read',
-    'event:write',
-    'event:delete',
-])
+from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
+
+from .utils import is_active_superuser
 
 
 class BaseAccess(object):
     is_active = False
-    is_global = False
     sso_is_valid = False
     teams = ()
     scopes = frozenset()
@@ -42,20 +25,25 @@ class BaseAccess(object):
             return False
         return team in self.teams
 
+    def has_team_scope(self, team, scope):
+        return self.has_team(team) and self.has_scope(scope)
+
     def to_django_context(self):
-        return {s.replace(':', '_'): self.has_scope(s) for s in SCOPES}
+        return {
+            s.replace(':', '_'): self.has_scope(s)
+            for s in settings.SENTRY_SCOPES
+        }
 
 
 class Access(BaseAccess):
     # TODO(dcramer): this is still a little gross, and ideally backend access
     # would be based on the same scopes as API access so theres clarity in
     # what things mean
-    def __init__(self, scopes, is_active, is_global, teams, sso_is_valid):
+    def __init__(self, scopes, is_active, teams, sso_is_valid):
         self.teams = teams
         self.scopes = scopes
 
         self.is_active = is_active
-        self.is_global = is_global
         self.sso_is_valid = sso_is_valid
 
 
@@ -63,11 +51,10 @@ def from_user(user, organization):
     if not organization:
         return DEFAULT
 
-    if user.is_superuser:
+    if is_active_superuser(user):
         return Access(
-            scopes=SCOPES,
+            scopes=settings.SENTRY_SCOPES,
             is_active=True,
-            is_global=True,
             teams=organization.team_set.all(),
             sso_is_valid=True,
         )
@@ -89,8 +76,6 @@ def from_user(user, organization):
 def from_member(member):
     # TODO(dcramer): we want to optimize this access pattern as its several
     # network hops and needed in a lot of places
-    teams = member.get_teams()
-
     try:
         auth_provider = AuthProvider.objects.get(
             organization=member.organization_id,
@@ -113,10 +98,9 @@ def from_member(member):
 
     return Access(
         is_active=True,
-        is_global=member.has_global_access,
         sso_is_valid=sso_is_valid,
         scopes=member.get_scopes(),
-        teams=teams,
+        teams=member.get_teams(),
     )
 
 
@@ -124,10 +108,6 @@ class NoAccess(BaseAccess):
     @property
     def sso_is_valid(self):
         return True
-
-    @property
-    def is_global(self):
-        return False
 
     @property
     def is_active(self):

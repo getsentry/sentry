@@ -1,10 +1,10 @@
-import React from "react";
-import Reflux from "reflux";
+import React from 'react';
+import Reflux from 'reflux';
 import IndicatorStore from '../stores/indicatorStore';
 
-var Indicators = React.createClass({
+const Indicators = React.createClass({
   mixins: [
-    Reflux.connect(IndicatorStore, "items")
+    Reflux.connect(IndicatorStore, 'items')
   ],
 
   getInitialState() {

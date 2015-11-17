@@ -1,39 +1,50 @@
 /*eslint-env node*/
 var path = require("path"),
-    webpack = require("webpack");
+    webpack = require("webpack"),
+    ExtractTextPlugin = require("extract-text-webpack-plugin");
 
 var staticPrefix = "src/sentry/static/sentry",
     distPath = staticPrefix + "/dist";
 
+// this is set by setup.py sdist
+if (process.env.SENTRY_STATIC_DIST_PATH) {
+    distPath = process.env.SENTRY_STATIC_DIST_PATH;
+}
+
 var config = {
   context: path.join(__dirname, staticPrefix),
   entry: {
+    // js
     "app": "app",
     "vendor": [
       "babel-core/polyfill",
       "bootstrap/js/dropdown",
       "bootstrap/js/tab",
       "bootstrap/js/tooltip",
+      "bootstrap/js/alert",
       "crypto-js/md5",
       "jquery",
       "marked",
       "moment",
       "moment-timezone",
       "raven-js",
-      "react/addons",
-      "react-datepicker",
       "react-document-title",
       "react-router",
       "react-bootstrap",
       "reflux",
-      "selectize",
       "select2",
       "flot/jquery.flot",
       "flot/jquery.flot.stack",
       "flot/jquery.flot.time",
       "flot-tooltip/jquery.flot.tooltip",
       "vendor/simple-slider/simple-slider"
-    ]
+    ],
+
+    // css
+    // NOTE: this will also create an empty "sentry.js" file
+    // TODO: figure out how to not generate this
+    "sentry": "less/sentry.less"
+
   },
   module: {
     loaders: [
@@ -46,6 +57,15 @@ var config = {
       {
         test: /\.json$/,
         loader: "json-loader"
+      },
+      {
+        test: /\.less$/,
+        include: path.join(__dirname, staticPrefix),
+        loader: ExtractTextPlugin.extract("style-loader", "css-loader!less-loader")
+      },
+      {
+        test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
+        loader: 'file-loader?name=' + '[name].[ext]'
       }
     ]
   },
@@ -58,12 +78,13 @@ var config = {
       "window.jQuery": "jquery",
       "root.jQuery": "jquery",
       Raven: "raven-js"
-    })
+    }),
+    new ExtractTextPlugin("[name].css")
   ],
   resolve: {
     alias: {
       "flot": path.join(__dirname, staticPrefix, "vendor", "jquery-flot"),
-      "flot-tooltip": path.join(__dirname, staticPrefix, "vendor", "jquery-flot-tooltip"),
+      "flot-tooltip": path.join(__dirname, staticPrefix, "vendor", "jquery-flot-tooltip")
     },
     modulesDirectories: [path.join(__dirname, staticPrefix), "node_modules"],
     extensions: ["", ".jsx", ".js", ".json"]
@@ -72,7 +93,8 @@ var config = {
     path: distPath,
     filename: "[name].js",
     libraryTarget: "var",
-    library: "exports"
+    library: "exports",
+    sourceMapFilename: "[name].js.map",
   },
   devtool: 'source-map'
 };

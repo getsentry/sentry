@@ -1,8 +1,8 @@
-import React from "react";
+import React from 'react';
 //import GroupEventDataSection from "../eventDataSection";
-import Frame from "./frame";
+import Frame from './frame';
 
-var StacktraceContent = React.createClass({
+const StacktraceContent = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
     includeSystemFrames: React.PropTypes.bool,
@@ -16,9 +16,9 @@ var StacktraceContent = React.createClass({
   },
 
   render() {
-    var data = this.props.data;
-    var firstFrameOmitted, lastFrameOmitted;
-    var includeSystemFrames = this.props.includeSystemFrames;
+    let data = this.props.data;
+    let firstFrameOmitted, lastFrameOmitted;
+    let includeSystemFrames = this.props.includeSystemFrames;
 
     if (data.framesOmitted) {
       firstFrameOmitted = data.framesOmitted[0];
@@ -28,7 +28,7 @@ var StacktraceContent = React.createClass({
       lastFrameOmitted = null;
     }
 
-    var frames = [];
+    let frames = [];
     data.frames.forEach((frame, frameIdx) => {
       if (includeSystemFrames || frame.inApp) {
         frames.push(<Frame key={frameIdx} data={frame} />);

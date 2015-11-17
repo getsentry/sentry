@@ -1,39 +1,39 @@
-import React from "react";
-import BarChart from "../../components/barChart";
-import PropTypes from "../../proptypes";
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import React from 'react';
+import BarChart from '../../components/barChart';
+import PropTypes from '../../proptypes';
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-var GroupChart = React.createClass({
-  mixins: [PureRenderMixin],
-
+const GroupChart = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     statsPeriod: React.PropTypes.string.isRequired
   },
 
+  mixins: [PureRenderMixin],
+
   render: function() {
-    var group = this.props.group;
-    var stats = group.stats[this.props.statsPeriod];
-    var points = stats.map((point) => {
+    let group = this.props.group;
+    let stats = group.stats[this.props.statsPeriod];
+    let points = stats.map((point) => {
       return {x: point[0], y: point[1]};
     });
-    var className = "bar-chart group-chart " + (this.props.className || '');
+    let className = 'bar-chart group-chart ' + (this.props.className || '');
 
-    var markers = [];
-    var firstSeenX = new Date(this.props.firstSeen).getTime() / 1000;
-    var lastSeenX = new Date(this.props.lastSeen).getTime() / 1000;
+    let markers = [];
+    let firstSeenX = new Date(this.props.firstSeen).getTime() / 1000;
+    let lastSeenX = new Date(this.props.lastSeen).getTime() / 1000;
     if (firstSeenX >= points[0].x) {
       markers.push({
-        label: "First seen",
+        label: 'First seen',
         x: firstSeenX,
-        className: "first-seen"
+        className: 'first-seen'
       });
     }
     if (lastSeenX >= points[0].x) {
       markers.push({
-        label: "Last seen",
+        label: 'Last seen',
         x: lastSeenX,
-        className: "last-seen"
+        className: 'last-seen'
       });
     }
 

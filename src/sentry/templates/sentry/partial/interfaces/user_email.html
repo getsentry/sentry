@@ -1,12 +1,7 @@
 {% load i18n %}
 {% load sentry_helpers %}
-<table>
+<table class="reset">
   <tr>
-    {% if user_email %}
-      <td style="width:84px;padding-top:10px;vertical-align:top">
-        <img src="{% gravatar_url user_email size 64 %}">
-      </td>
-    {% endif %}
     <td>
       <table>
         <colgroup>
@@ -48,5 +43,10 @@
         </tbody>
       </table>
     </td>
+    {% if user_email %}
+      <td style="padding-top:5px; width:64px; vertical-align:top; text-align: right;">
+        <img src="{% gravatar_url user_email size 64 %}" style="border-radius: 3px;">
+      </td>
+    {% endif %}
   </tr>
 </table>

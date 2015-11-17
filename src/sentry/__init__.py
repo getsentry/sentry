@@ -42,10 +42,10 @@ def get_revision():
 
 
 def get_version():
-    base = VERSION
     if __build__:
-        base = '%s (%s)' % (base, __build__)
-    return base
+        return '%s.%s' % (__version__, __build__)
+    return __version__
 
+__version__ = VERSION
 __build__ = get_revision()
 __docformat__ = 'restructuredtext en'

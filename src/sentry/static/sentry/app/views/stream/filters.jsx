@@ -1,44 +1,35 @@
-import React from "react";
-import FilterSelectLink from "./filterSelectLink";
-import SearchBar from "./searchBar";
-import SortOptions from "./sortOptions";
+import React from 'react';
 
-var StreamFilters = React.createClass({
+import FilterSelectLink from './filterSelectLink';
+import SearchBar from './searchBar';
+import SortOptions from './sortOptions';
+
+const StreamFilters = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
+  },
+
   contextTypes: {
-    router: React.PropTypes.func
+    location: React.PropTypes.object
   },
 
   getDefaultProps() {
     return {
-      defaultQuery: "",
-      sort: "",
-      filter: "",
-      query: "",
+      defaultQuery: '',
+      sort: '',
+      filter: '',
+      query: null,
       onFilterChange: function() {},
       onSortChange: function() {},
-      onSearch: function() {}
+      onSearch: function() {},
+      onSidebarToggle: function () {}
     };
   },
 
-  componentWillMount() {
-    this.setState({
-      activeButton: this.getActiveButton()
-    });
-  },
-
-  componentWillReceiveProps(nextProps) {
-    var activeButton = this.getActiveButton();
-    if (activeButton != this.state.activeButton) {
-      this.setState({
-        activeButton: activeButton
-      });
-    }
-  },
-
   getActiveButton() {
-    var router = this.context.router;
-    var queryParams = router.getCurrentQuery();
-    var activeButton;
+    let queryParams = this.context.location.query;
+    let activeButton;
     if (queryParams.bookmarks) {
       activeButton = 'bookmarks';
     } else if (queryParams.assigned) {
@@ -54,7 +45,7 @@ var StreamFilters = React.createClass({
   },
 
   render() {
-    var activeButton = this.state.activeButton;
+    let activeButton = this.getActiveButton();
     return (
       <div className="filter-nav stream-header">
         <div className="row">
@@ -66,11 +57,11 @@ var StreamFilters = React.createClass({
                 extraClass="btn btn-all-events" />
               <FilterSelectLink label="Bookmarks"
                 isActive={activeButton === 'bookmarks'}
-                onSelect={this.onFilterChange.bind(this, {bookmarks: "1"})}
+                onSelect={this.onFilterChange.bind(this, {bookmarks: '1'})}
                 extraClass="btn btn-middle btn-bookmarks" />
               <FilterSelectLink label="Assigned"
                 isActive={activeButton === 'assigned'}
-                onSelect={this.onFilterChange.bind(this, {assigned: "1"})}
+                onSelect={this.onFilterChange.bind(this, {assigned: '1'})}
                 extraClass="btn btn-assigned" />
             </div>
           </div>
@@ -83,12 +74,17 @@ var StreamFilters = React.createClass({
           </div>
           <div className="col-sm-5">
             <SearchBar
+              orgId={this.props.orgId}
+              projectId={this.props.projectId}
               ref="searchBar"
+              tags={this.props.tags}
               defaultQuery={this.props.defaultQuery}
               placeholder="Search for events, users, tags, and everything else."
               query={this.props.query}
               onSearch={this.props.onSearch}
+              disabled={this.props.isSearchDisabled}
               />
+            <a className="btn btn-default toggle-stream-sidebar" onClick={this.props.onSidebarToggle}><span className="icon-filter"></span></a>
           </div>
         </div>
       </div>

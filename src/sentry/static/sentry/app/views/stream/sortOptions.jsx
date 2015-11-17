@@ -1,9 +1,9 @@
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
-import React from "react";
-import DropdownLink from "../../components/dropdownLink";
-import MenuItem from "../../components/menuItem";
+import PureRenderMixin from 'react-addons-pure-render-mixin';
+import React from 'react';
+import DropdownLink from '../../components/dropdownLink';
+import MenuItem from '../../components/menuItem';
 
-var SortOptions = React.createClass({
+const SortOptions = React.createClass({
   mixins: [PureRenderMixin],
 
   getInitialState() {
@@ -42,7 +42,7 @@ var SortOptions = React.createClass({
   },
 
   render() {
-    var dropdownTitle = (
+    let dropdownTitle = (
       <span>
         <span>Sort by:</span>
         &nbsp; {this.getSortLabel(this.state.sortKey)}

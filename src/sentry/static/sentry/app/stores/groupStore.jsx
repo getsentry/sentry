@@ -1,17 +1,17 @@
-import jQuery from "jquery";
-import Reflux from "reflux";
-import AlertActions from "../actions/alertActions";
+import jQuery from 'jquery';
+import Reflux from 'reflux';
+import AlertActions from '../actions/alertActions';
 import GroupActions from '../actions/groupActions';
-import utils from "../utils";
+import utils from '../utils';
 
-var ERR_CHANGE_ASSIGNEE = 'Unable to change assignee. Please try again.';
-var ERR_SCHEDULE_DELETE = 'Unable to delete events. Please try again.';
-var ERR_SCHEDULE_MERGE = 'Unable to merge events. Please try again.';
-var ERR_UPDATE = 'Unable to update events. Please try again.';
-var OK_SCHEDULE_DELETE = 'The selected events have been scheduled for deletion.';
-var OK_SCHEDULE_MERGE = 'The selected events have been scheduled for merge.';
+const ERR_CHANGE_ASSIGNEE = 'Unable to change assignee. Please try again.';
+const ERR_SCHEDULE_DELETE = 'Unable to delete events. Please try again.';
+const ERR_SCHEDULE_MERGE = 'Unable to merge events. Please try again.';
+const ERR_UPDATE = 'Unable to update events. Please try again.';
+const OK_SCHEDULE_DELETE = 'The selected events have been scheduled for deletion.';
+const OK_SCHEDULE_MERGE = 'The selected events have been scheduled for merge.';
 
-var GroupStore = Reflux.createStore({
+const GroupStore = Reflux.createStore({
   listenables: [GroupActions],
 
   init() {
@@ -30,7 +30,7 @@ var GroupStore = Reflux.createStore({
   loadInitialData(items) {
     this.reset();
 
-    var itemIds = new Set();
+    let itemIds = new Set();
     items.forEach((item) => {
       itemIds.add(item.id);
       this.items.push(item);
@@ -44,8 +44,8 @@ var GroupStore = Reflux.createStore({
       items = [items];
     }
 
-    var itemsById = {};
-    var itemIds = new Set();
+    let itemsById = {};
+    let itemIds = new Set();
     items.forEach((item) => {
       itemsById[item.id] = item;
       itemIds.add(item.id);
@@ -58,7 +58,7 @@ var GroupStore = Reflux.createStore({
       }
     });
 
-    for (var itemId in itemsById) {
+    for (let itemId in itemsById) {
       this.items.push(itemsById[itemId]);
     }
 
@@ -97,10 +97,10 @@ var GroupStore = Reflux.createStore({
   },
 
   indexOfActivity(group_id, id) {
-    var group = this.get(group_id);
+    let group = this.get(group_id);
     if (!group) return -1;
 
-    for (var i = 0; i < group.activity.length; i++) {
+    for (let i = 0; i < group.activity.length; i++) {
       if (group.activity[i].id === id) {
         return i;
       }
@@ -108,8 +108,8 @@ var GroupStore = Reflux.createStore({
     return -1;
   },
 
-  addActivity(id, data, index=-1) {
-    var group = this.get(id);
+  addActivity(id, data, index = -1) {
+    let group = this.get(id);
     if (!group) return;
 
     // insert into beginning by default
@@ -125,10 +125,10 @@ var GroupStore = Reflux.createStore({
   },
 
   updateActivity(group_id, id, data) {
-    var group = this.get(group_id);
+    let group = this.get(group_id);
     if (!group) return;
 
-    var index = this.indexOfActivity(group_id, id);
+    let index = this.indexOfActivity(group_id, id);
     if (index === -1) return;
 
     // Here, we want to merge the new `data` being passed in
@@ -139,13 +139,13 @@ var GroupStore = Reflux.createStore({
   },
 
   removeActivity(group_id, id) {
-    var group = this.get(group_id);
+    let group = this.get(group_id);
     if (!group) return -1;
 
-    var index = this.indexOfActivity(group.id, id);
+    let index = this.indexOfActivity(group.id, id);
     if (index === -1) return -1;
 
-    var activity = group.activity.splice(index, 1);
+    let activity = group.activity.splice(index, 1);
 
     if (activity[0].type === 'note')
       group.numComments--;
@@ -155,21 +155,21 @@ var GroupStore = Reflux.createStore({
   },
 
   get(id) {
-    var pendingForId = [];
+    let pendingForId = [];
     this.pendingChanges.forEach(change => {
       if (change.id === id) {
         pendingForId.push(change);
       }
     });
 
-    for (var i = 0; i < this.items.length; i++) {
+    for (let i = 0; i < this.items.length; i++) {
       if (this.items[i].id === id) {
-        var rItem = this.items[i];
+        let rItem = this.items[i];
         if (pendingForId.length) {
           // copy the object so dirty state doesnt mutate original
           rItem = jQuery.extend(true, {}, rItem);
 
-          for (var c = 0; c < pendingForId.length; c++) {
+          for (let c = 0; c < pendingForId.length; c++) {
             rItem = jQuery.extend(true, rItem, pendingForId[c].params);
           }
         }
@@ -184,7 +184,7 @@ var GroupStore = Reflux.createStore({
 
   getAllItems() {
     // regroup pending changes by their itemID
-    var pendingById = {};
+    let pendingById = {};
     this.pendingChanges.forEach(change => {
       if (typeof pendingById[change.id] === 'undefined') {
         pendingById[change.id] = [];
@@ -193,7 +193,7 @@ var GroupStore = Reflux.createStore({
     });
 
     return this.items.map(item => {
-      var rItem = item;
+      let rItem = item;
       if (typeof pendingById[item.id] !== 'undefined') {
         // copy the object so dirty state doesnt mutate original
         rItem = jQuery.extend(true, {}, rItem);
@@ -217,7 +217,7 @@ var GroupStore = Reflux.createStore({
   },
 
   onAssignToSuccess(changeId, itemId, response) {
-    var item = this.get(itemId);
+    let item = this.get(itemId);
     if (!item) {
       return;
     }
@@ -242,7 +242,7 @@ var GroupStore = Reflux.createStore({
   },
 
   onDeleteSuccess(changeId, itemIds, response) {
-    var itemIdSet = new Set(itemIds);
+    let itemIdSet = new Set(itemIds);
     itemIds.forEach(itemId => {
       delete this.statuses[itemId];
       this.clearStatus(itemId, 'delete');
@@ -273,7 +273,7 @@ var GroupStore = Reflux.createStore({
     });
 
     // Remove all but parent id (items were merged into this one)
-    var mergedIdSet = new Set(mergedIds);
+    let mergedIdSet = new Set(mergedIds);
     this.items = this.items.filter(
       (item) => !mergedIdSet.has(item.id) || item.id === response.merge.parent
     );
@@ -283,7 +283,9 @@ var GroupStore = Reflux.createStore({
   },
 
   onUpdate(changeId, itemIds, data) {
-    if (typeof itemIds === 'undefined') this.items.map(item => item.id);
+    if (typeof itemIds === 'undefined') {
+      itemIds = this.items.map(item => item.id);
+    }
     itemIds.forEach(itemId => {
       this.addStatus(itemId, 'update');
       this.pendingChanges.push(changeId, itemId, data);

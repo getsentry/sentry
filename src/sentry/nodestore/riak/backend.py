@@ -9,7 +9,7 @@ sentry.nodestore.riak.backend
 from __future__ import absolute_import
 
 import six
-import json
+import simplejson as json
 
 from sentry.nodestore.base import NodeStorage
 from .client import RiakClient

@@ -1,15 +1,11 @@
-{% extends "sentry/bases/modal.html" %}
+{% extends "sentry/bases/auth.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
-{% block wrapperclass %} {{block.super }} auth{% endblock %}
-
-{% block footer %}{% endblock %}
-
-{% block content %}
+{% block auth_main %}
   <ul class="nav nav-tabs auth-toggle">
     <li{% if op == "login" %} class="active"{% endif %}>
       <a href="#login" data-toggle="tab">{% trans "Login" %}</a>

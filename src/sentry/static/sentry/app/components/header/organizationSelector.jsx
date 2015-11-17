@@ -1,12 +1,12 @@
-import React from "react";
+import React from 'react';
 
-import MenuItem from "../menuItem";
-import DropdownLink from "../dropdownLink";
-import AppState from "../../mixins/appState";
-import OrganizationStore from "../../stores/organizationStore";
-import ConfigStore from "../../stores/configStore";
+import MenuItem from '../menuItem';
+import DropdownLink from '../dropdownLink';
+import AppState from '../../mixins/appState';
+import OrganizationStore from '../../stores/organizationStore';
+import ConfigStore from '../../stores/configStore';
 
-var OrganizationSelector = React.createClass({
+const OrganizationSelector = React.createClass({
   mixins: [
     AppState,
   ],
@@ -16,30 +16,30 @@ var OrganizationSelector = React.createClass({
   },
 
   render() {
-    var singleOrganization = ConfigStore.get('singleOrganization');
-    var activeOrg = this.props.organization;
+    let singleOrganization = ConfigStore.get('singleOrganization');
+    let activeOrg = this.props.organization;
 
     if (singleOrganization || !activeOrg) {
       return null;
     }
 
-    var urlPrefix = ConfigStore.get('urlPrefix');
-    var features = ConfigStore.get('features');
+    let urlPrefix = ConfigStore.get('urlPrefix');
+    let features = ConfigStore.get('features');
 
     return (
       <DropdownLink
           menuClasses="dropdown-menu-right"
-          topLevelClasses={(this.props.className || "") + " org-selector"}
+          topLevelClasses={(this.props.className || '') + ' org-selector'}
           title={activeOrg.name}>
         {OrganizationStore.getAll().map((org) => {
           return (
-            <MenuItem key={org.slug} to="organizationDetails" params={{orgId: org.slug}}
+            <MenuItem key={org.slug} to={`/${org.slug}/`}
                       isActive={activeOrg.id === org.id}>
               {org.name}
             </MenuItem>
           );
         })}
-        {features.has('organizations:create') &&
+        {features.has('organizations:create') && OrganizationStore.getAll().length && 
           <MenuItem divider={true} />
         }
         {features.has('organizations:create') &&

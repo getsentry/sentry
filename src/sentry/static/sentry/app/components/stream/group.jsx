@@ -1,38 +1,36 @@
-import jQuery from "jquery";
-import React from "react";
-import Reflux from "reflux";
-import Router from "react-router";
+import jQuery from 'jquery';
+import React from 'react';
+import Reflux from 'reflux';
+import {Link} from 'react-router';
 
-import AssigneeSelector from "../assigneeSelector";
-import Count from "../count";
-import GroupChart from "./groupChart";
-import GroupCheckBox from "./groupCheckBox";
-import TimeSince from "../timeSince";
+import AssigneeSelector from '../assigneeSelector';
+import Count from '../count';
+import GroupChart from './groupChart';
+import GroupCheckBox from './groupCheckBox';
+import TimeSince from '../timeSince';
 
-import GroupStore from "../../stores/groupStore";
-import SelectedGroupStore from "../../stores/selectedGroupStore";
+import GroupStore from '../../stores/groupStore';
+import SelectedGroupStore from '../../stores/selectedGroupStore';
 
-import {valueIsEqual} from "../../utils";
+import {valueIsEqual} from '../../utils';
 
-var StreamGroup = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
-  mixins: [
-    Reflux.listenTo(GroupStore, "onGroupChange")
-  ],
-
+const StreamGroup = React.createClass({
   propTypes: {
     id: React.PropTypes.string.isRequired,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
     statsPeriod: React.PropTypes.string.isRequired,
     canSelect: React.PropTypes.bool
   },
 
+  mixins: [
+    Reflux.listenTo(GroupStore, 'onGroupChange')
+  ],
+
   getDefaultProps() {
     return {
       canSelect: true,
-      id: "",
+      id: '',
       statsPeriod: '24h'
     };
   },
@@ -65,8 +63,8 @@ var StreamGroup = React.createClass({
     if (!itemIds.has(this.props.id)) {
       return;
     }
-    var id = this.props.id;
-    var data = GroupStore.get(id);
+    let id = this.props.id;
+    let data = GroupStore.get(id);
     this.setState({
       data: data,
     });
@@ -84,36 +82,26 @@ var StreamGroup = React.createClass({
   },
 
   render() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    var data = this.state.data;
-    var userCount = 0;
+    let data = this.state.data;
+    let userCount = data.userCount;
 
-    if (data.tags.user !== undefined) {
-      userCount = data.tags.user.count;
-    }
-
-    var className = "group row";
+    let className = 'group row';
     if (data.isBookmarked) {
-      className += " isBookmarked";
+      className += ' isBookmarked';
     }
     if (data.hasSeen) {
-      className += " hasSeen";
+      className += ' hasSeen';
     }
-    if (data.status === "resolved") {
-      className += " isResolved";
+    if (data.status === 'resolved') {
+      className += ' isResolved';
     }
-    if (data.status === "muted") {
-      className += " isMuted";
+    if (data.status === 'muted') {
+      className += ' isMuted';
     }
 
-    className += " level-" + data.level;
+    className += ' level-' + data.level;
 
-    var routeParams = {
-      orgId: params.orgId,
-      projectId: params.projectId,
-      groupId: data.id
-    };
+    let {id, orgId, projectId} = this.props;
 
     return (
       <li className={className} onClick={this.toggleSelect}>
@@ -124,12 +112,12 @@ var StreamGroup = React.createClass({
             </div>
           }
           <h3 className="truncate">
-            <Router.Link to="groupDetails" params={routeParams}>
+            <Link to={`/${orgId}/${projectId}/group/${data.id}/`}>
               <span className="error-level truncate">{data.level}</span>
               <span className="icon icon-soundoff"></span>
               <span className="icon icon-bookmark"></span>
               {data.title}
-            </Router.Link>
+            </Link>
           </h3>
           <div className="event-message truncate">
             <span className="message">{data.culprit}</span>
@@ -144,17 +132,17 @@ var StreamGroup = React.createClass({
               </li>
               {data.numComments !== 0 &&
                 <li>
-                  <Router.Link to="groupActivity" params={routeParams} className="comments">
+                  <Link to={`/${orgId}/${projectId}/group/${id}/activity/`} className="comments">
                     <span className="icon icon-comments"></span>
                     <span className="tag-count">{data.numComments}</span>
-                  </Router.Link>
+                  </Link>
                 </li>
               }
               {data.logger &&
                 <li className="event-annotation">
-                  <Router.Link to="stream" params={params} query={{query: "logger:" + data.logger}}>
+                  <Link to={`/${orgId}/${projectId}`} query={{query: 'logger:' + data.logger}}>
                     {data.logger}
-                  </Router.Link>
+                  </Link>
                 </li>
               }
               {data.annotations.map((annotation, key) => {

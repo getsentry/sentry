@@ -4,12 +4,14 @@ from django import forms
 from django.db import transaction, IntegrityError
 
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberType
+    AuditLogEntry, AuditLogEntryEvent, OrganizationMember
 )
 
 
 class InviteOrganizationMemberForm(forms.ModelForm):
+    # override this to ensure the field is required
+    email = forms.EmailField()
+
     class Meta:
         fields = ('email',)
         model = OrganizationMember
@@ -17,12 +19,12 @@ class InviteOrganizationMemberForm(forms.ModelForm):
     def save(self, actor, organization, ip_address):
         om = super(InviteOrganizationMemberForm, self).save(commit=False)
         om.organization = organization
-        om.type = OrganizationMemberType.MEMBER
 
         try:
             existing = OrganizationMember.objects.filter(
                 organization=organization,
                 user__email__iexact=om.email,
+                user__is_active=True,
             )[0]
         except IndexError:
             pass

@@ -40,13 +40,12 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         else:
             lookup_key = key
 
-        try:
-            tagkey = TagKey.objects.get(
-                project=group.project_id,
-                key=lookup_key,
-                status=TagKeyStatus.VISIBLE,
-            )
-        except TagKey.DoesNotExist:
+        tagkey = TagKey.objects.filter(
+            project=group.project_id,
+            key=lookup_key,
+            status=TagKeyStatus.VISIBLE,
+        )
+        if not tagkey.exists():
             raise ResourceDoesNotExist
 
         queryset = GroupTagValue.objects.filter(

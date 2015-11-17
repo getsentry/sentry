@@ -25,6 +25,9 @@ class AuthIdentity(Model):
 
     __repr__ = sane_repr('user_id', 'auth_provider_id')
 
+    def __unicode__(self):
+        return self.ident
+
     def get_audit_log_data(self):
         return {
             'user_id': self.user_id,

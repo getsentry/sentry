@@ -9,11 +9,19 @@ from django.utils import timezone
 from exam import fixture
 from mock import Mock
 
+from sentry import features
+from sentry.digests.notifications import (
+    build_digest,
+    event_to_record,
+)
 from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import Event, Group, Rule
+from sentry.models import (
+    Event, Group, OrganizationMember, OrganizationMemberTeam, Rule
+)
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.testutils import TestCase
+from sentry.utils.email import MessageBuilder
 
 
 class MailPluginTest(TestCase):
@@ -119,7 +127,7 @@ class MailPluginTest(TestCase):
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
             self.plugin.notify(notification)
 
-        _send_mail.assert_called_once()
+        assert _send_mail.call_count is 1
         args, kwargs = _send_mail.call_args
         self.assertEquals(kwargs.get('project'), self.project)
         self.assertEquals(kwargs.get('group'), group)
@@ -149,7 +157,7 @@ class MailPluginTest(TestCase):
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
             self.plugin.notify(notification)
 
-        _send_mail.assert_called_once()
+        assert _send_mail.call_count is 1
         args, kwargs = _send_mail.call_args
         assert kwargs.get('subject') == u"[{0} {1}] ERROR: hello world".format(
             self.team.name, self.project.name)
@@ -159,7 +167,7 @@ class MailPluginTest(TestCase):
 
         user = self.create_user(email='foo@example.com', is_active=True)
         user2 = self.create_user(email='baz@example.com', is_active=True)
-        user3 = self.create_user(email='baz2@example.com', is_active=True)
+        self.create_user(email='baz2@example.com', is_active=True)
 
         # user with inactive account
         self.create_user(email='bar@example.com', is_active=False)
@@ -170,8 +178,14 @@ class MailPluginTest(TestCase):
         team = self.create_team(organization=organization)
 
         project = self.create_project(name='Test', team=team)
-        organization.member_set.get_or_create(user=user)
-        organization.member_set.get_or_create(user=user2)
+        OrganizationMemberTeam.objects.create(
+            organizationmember=OrganizationMember.objects.get(
+                user=user,
+                organization=organization,
+            ),
+            team=team,
+        )
+        self.create_member(user=user2, organization=organization, teams=[team])
 
         # all members
         assert (sorted(set([user.pk, user2.pk])) ==
@@ -185,8 +199,7 @@ class MailPluginTest(TestCase):
 
         user4 = User.objects.create(username='baz4', email='bar@example.com',
                                     is_active=True)
-        organization.member_set.get_or_create(user=user4)
-
+        self.create_member(user=user4, organization=organization, teams=[team])
         assert user4.pk in self.plugin.get_sendable_users(project)
 
         # disabled by default user4
@@ -213,3 +226,44 @@ class MailPluginTest(TestCase):
 
         msg = mail.outbox[0]
         assert msg.subject == u'[Sentry] [foo Bar] ERROR: רונית מגן'
+
+    @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
+    @mock.patch.object(MessageBuilder, 'send', autospec=True)
+    @mock.patch.object(features, 'has')
+    def test_notify_digest(self, has, send, notify):
+        has.side_effect = lambda label, *a, **k: {
+            'projects:digests:deliver': True,
+        }.get(label, False)
+
+        project = self.event.project
+        rule = project.rule_set.all()[0]
+        digest = build_digest(
+            project,
+            (
+                event_to_record(self.create_event(group=self.create_group()), (rule,)),
+                event_to_record(self.event, (rule,)),
+            ),
+        )
+        self.plugin.notify_digest(project, digest)
+        assert send.call_count is 1
+        assert notify.call_count is 0
+
+    @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
+    @mock.patch.object(MessageBuilder, 'send', autospec=True)
+    @mock.patch.object(features, 'has')
+    def test_notify_digest_single_record(self, has, send, notify):
+        has.side_effect = lambda label, *a, **k: {
+            'projects:digests:deliver': True,
+        }.get(label, False)
+
+        project = self.event.project
+        rule = project.rule_set.all()[0]
+        digest = build_digest(
+            project,
+            (
+                event_to_record(self.event, (rule,)),
+            ),
+        )
+        self.plugin.notify_digest(project, digest)
+        assert send.call_count is 1
+        assert notify.call_count is 1

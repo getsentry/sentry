@@ -8,8 +8,8 @@ sentry.db.models.manager
 
 from __future__ import absolute_import, print_function
 
-import hashlib
 import logging
+import six
 import threading
 import weakref
 
@@ -19,8 +19,7 @@ from django.db.models import Manager, Model
 from django.db.models.signals import (
     post_save, post_delete, post_init, class_prepared)
 from django.utils.encoding import smart_str
-
-import six
+from hashlib import md5
 
 from sentry.utils.cache import cache
 
@@ -63,7 +62,7 @@ def make_key(model, prefix, kwargs):
         kwargs_bits.append('%s=%s' % (k, v))
     kwargs_bits = ':'.join(kwargs_bits)
 
-    return '%s:%s:%s' % (prefix, model.__name__, hashlib.md5(kwargs_bits).hexdigest())
+    return '%s:%s:%s' % (prefix, model.__name__, md5(kwargs_bits).hexdigest())
 
 
 class BaseManager(Manager):
@@ -75,6 +74,7 @@ class BaseManager(Manager):
     def __init__(self, *args, **kwargs):
         self.cache_fields = kwargs.pop('cache_fields', [])
         self.cache_ttl = kwargs.pop('cache_ttl', 60 * 5)
+        self.cache_version = kwargs.pop('cache_version', None)
         self.__local_cache = threading.local()
         super(BaseManager, self).__init__(*args, **kwargs)
 
@@ -85,6 +85,11 @@ class BaseManager(Manager):
 
     def _set_cache(self, value):
         self.__local_cache.value = value
+
+    def _generate_cache_version(self):
+        return md5(
+            '&'.join(sorted(f.attname for f in self.model._meta.fields))
+        ).hexdigest()[:3]
 
     __cache = property(_get_cache, _set_cache)
 
@@ -109,6 +114,9 @@ class BaseManager(Manager):
         if not self.cache_fields:
             return
 
+        if not self.cache_version:
+            self.cache_version = self._generate_cache_version()
+
         post_init.connect(self.__post_init, sender=sender, weak=False)
         post_save.connect(self.__post_save, sender=sender, weak=False)
         post_delete.connect(self.__post_delete, sender=sender, weak=False)
@@ -118,7 +126,10 @@ class BaseManager(Manager):
         Updates the tracked state of an instance.
         """
         if instance.pk:
-            self.__cache[instance] = dict((f, getattr(instance, f)) for f in self.cache_fields)
+            self.__cache[instance] = {
+                f: self.__value_for_field(instance, f)
+                for f in self.cache_fields
+            }
         else:
             self.__cache[instance] = UNSAVED
 
@@ -140,14 +151,25 @@ class BaseManager(Manager):
             if key in pk_names:
                 continue
             # store pointers
-            cache.set(self.__get_lookup_cache_key(**{key: getattr(instance, key)}), pk_val, self.cache_ttl)  # 1 hour
+            value = self.__value_for_field(instance, key)
+            cache.set(
+                key=self.__get_lookup_cache_key(**{key: value}),
+                value=pk_val,
+                timeout=self.cache_ttl,
+                version=self.cache_version,
+            )
 
         # Ensure we don't serialize the database into the cache
         db = instance._state.db
         instance._state.db = None
         # store actual object
         try:
-            cache.set(self.__get_lookup_cache_key(**{pk_name: pk_val}), instance, self.cache_ttl)
+            cache.set(
+                key=self.__get_lookup_cache_key(**{pk_name: pk_val}),
+                value=instance,
+                timeout=self.cache_ttl,
+                version=self.cache_version,
+            )
         except Exception as e:
             logger.error(e, exc_info=True)
         instance._state.db = db
@@ -158,8 +180,12 @@ class BaseManager(Manager):
                 if key not in self.__cache[instance]:
                     continue
                 value = self.__cache[instance][key]
-                if value != getattr(instance, key):
-                    cache.delete(self.__get_lookup_cache_key(**{key: value}))
+                current_value = self.__value_for_field(instance, key)
+                if value != current_value:
+                    cache.delete(
+                        key=self.__get_lookup_cache_key(**{key: value}),
+                        version=self.cache_version,
+                    )
 
         self.__cache_state(instance)
 
@@ -172,12 +198,32 @@ class BaseManager(Manager):
             if key in ('pk', pk_name):
                 continue
             # remove pointers
-            cache.delete(self.__get_lookup_cache_key(**{key: getattr(instance, key)}))
+            value = self.__value_for_field(instance, key)
+            cache.delete(
+                key=self.__get_lookup_cache_key(**{key: value}),
+                version=self.cache_version,
+            )
         # remove actual object
-        cache.delete(self.__get_lookup_cache_key(**{pk_name: instance.pk}))
+        cache.delete(
+            key=self.__get_lookup_cache_key(**{pk_name: instance.pk}),
+            version=self.cache_version,
+        )
 
     def __get_lookup_cache_key(self, **kwargs):
         return make_key(self.model, 'modelcache', kwargs)
+
+    def __value_for_field(self, instance, key):
+        """
+        Return the cacheable value for a field.
+
+        ForeignKey's will cache via the primary key rather than using an
+        instance ref. This is needed due to the way lifecycle of models works
+        as otherwise we end up doing wasteful queries.
+        """
+        if key == 'pk':
+            return instance.pk
+        field = instance._meta.get_field(key)
+        return getattr(instance, field.attname)
 
     def contribute_to_class(self, model, name):
         super(BaseManager, self).contribute_to_class(model, name)
@@ -197,6 +243,10 @@ class BaseManager(Manager):
         if key == 'pk':
             key = pk_name
 
+        # We store everything by key references (vs instances)
+        if isinstance(value, Model):
+            value = value.pk
+
         # Kill __exact since it's the default behavior
         if key.endswith('__exact'):
             key = key.split('__exact', 1)[0]
@@ -204,7 +254,7 @@ class BaseManager(Manager):
         if key in self.cache_fields or key == pk_name:
             cache_key = self.__get_lookup_cache_key(**{key: value})
 
-            retval = cache.get(cache_key)
+            retval = cache.get(cache_key, version=self.cache_version)
             if retval is None:
                 result = self.get(**kwargs)
                 # Ensure we're pushing it into the cache
@@ -242,11 +292,11 @@ class BaseManager(Manager):
 
         object_node_list = []
         for name in node_names:
-            object_node_list.extend(
-                ((i, getattr(i, name))
+            object_node_list.extend((
+                (i, getattr(i, name))
                 for i in object_list
-                if getattr(i, name).id)
-            )
+                if getattr(i, name).id
+            ))
 
         node_ids = [n.id for _, n in object_node_list]
         if not node_ids:
@@ -261,7 +311,7 @@ class BaseManager(Manager):
     def uncache_object(self, instance_id):
         pk_name = self.model._meta.pk.name
         cache_key = self.__get_lookup_cache_key(**{pk_name: instance_id})
-        cache.delete(cache_key)
+        cache.delete(cache_key, version=self.cache_version)
 
     def post_save(self, instance, **kwargs):
         """

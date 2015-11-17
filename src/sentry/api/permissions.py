@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 from rest_framework import permissions
 
-from sentry.models import OrganizationMemberType, ProjectKey
+from sentry.auth.utils import is_active_superuser
+from sentry.models import ProjectKey
 
 
 class NoPermission(permissions.BasePermission):
@@ -29,17 +30,6 @@ class ScopedPermission(permissions.BasePermission):
         'DELETE': (),
     }
 
-    # this is the general mapping of VERB => OrganizationMemberType, it however
-    # does not enforce organization-level (i.e. has_global-access) vs project
-    # level so that should be done per subclass
-    access_map = {
-        'HEAD': None,
-        'GET': None,
-        'POST': OrganizationMemberType.ADMIN,
-        'PUT': OrganizationMemberType.ADMIN,
-        'DELETE': OrganizationMemberType.OWNER,
-    }
-
     def has_permission(self, request, view):
         # session-based auth has all scopes for a logged in user
         if not request.auth:
@@ -58,6 +48,6 @@ class ScopedPermission(permissions.BasePermission):
 
 class SuperuserPermission(permissions.BasePermission):
     def has_permission(self, request, view):
-        if request.user.is_superuser:
+        if is_active_superuser(request.user):
             return True
         return False

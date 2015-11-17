@@ -1,47 +1,50 @@
-import React from "react";
-import Reflux from "reflux";
-import $ from "jquery";
-import Cookies from "js-cookie";
-import api from "../api";
-import GroupStore from "../stores/groupStore";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import Pagination from "../components/pagination";
-import RouteMixin from "../mixins/routeMixin";
+import React from 'react';
+import Reflux from 'reflux';
+import {History} from 'react-router';
+import Cookies from 'js-cookie';
+import Sticky from 'react-sticky';
+import classNames from 'classnames';
+import _ from 'underscore';
+
+import api from '../api';
+
+import GroupStore from '../stores/groupStore';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import Pagination from '../components/pagination';
 import StreamGroup from '../components/stream/group';
 import StreamActions from './stream/actions';
+import StreamTagActions from '../actions/streamTagActions';
+import StreamTagStore from '../stores/streamTagStore';
 import StreamFilters from './stream/filters';
-import utils from "../utils";
-import Sticky from 'react-sticky';
+import StreamSidebar from './stream/sidebar';
+import utils from '../utils';
+import parseLinkHeader from '../utils/parseLinkHeader';
 
-
-var Stream = React.createClass({
-  mixins: [
-    Reflux.listenTo(GroupStore, "onGroupChange"),
-    RouteMixin
-  ],
-
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
+const Stream = React.createClass({
   propTypes: {
-    setProjectNavSection: React.PropTypes.func.isRequired
+    setProjectNavSection: React.PropTypes.func
   },
+
+  mixins: [
+    Reflux.listenTo(GroupStore, 'onGroupChange'),
+    Reflux.listenTo(StreamTagStore, 'onStreamTagChange'),
+    History
+  ],
 
   getDefaultProps() {
     return {
       // intentional trailing whitespace / better UX for when uesrs focus on search input
-      defaultQuery: "is:unresolved ",
+      defaultQuery: 'is:unresolved ',
 
-      defaultSort: "date",
-      defaultStatsPeriod: "24h",
+      defaultSort: 'date',
+      defaultStatsPeriod: '24h',
       maxItems: 25
     };
   },
 
   getInitialState() {
-    return $.extend({}, {
+    return {
       groupIds: [],
       selectAllActive: false,
       multiSelected: false,
@@ -53,12 +56,13 @@ var Stream = React.createClass({
       error: false,
       query: this.props.defaultQuery,
       sort: this.props.defaultSort,
-      filter: {}
-    }, this.getQueryStringState());
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return !utils.valueIsEqual(this.state, nextState, true);
+      filter: {},
+      tags: StreamTagStore.getAllTags(),
+      tagsLoading: true,
+      isSidebarVisible: false,
+      isStickyHeader: false,
+      ...this.getQueryStringState()
+    };
   },
 
   componentWillMount() {
@@ -70,9 +74,9 @@ var Stream = React.createClass({
       endpoint: this.getGroupListEndpoint()
     });
 
-    var realtime = Cookies.get("realtimeActive");
+    let realtime = Cookies.get('realtimeActive');
     if (realtime) {
-      var realtimeActive = realtime === "true";
+      let realtimeActive = realtime === 'true';
       this.setState({
         realtimeActive: realtimeActive
       });
@@ -81,7 +85,29 @@ var Stream = React.createClass({
       }
     }
 
+    this.fetchTags();
     this.fetchData();
+  },
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.location.search !== this.props.location.search) {
+      this.setState(this.getQueryStringState(nextProps), this.fetchData);
+      this._poller.disable();
+    }
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return !_.isEqual(this.state, nextState, true);
+  },
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.realtimeActive !== this.state.realtimeActive) {
+      if (this.state.realtimeActive) {
+        this._poller.enable();
+      } else {
+        this._poller.disable();
+      }
+    }
   },
 
   componentWillUnmount() {
@@ -89,28 +115,50 @@ var Stream = React.createClass({
     GroupStore.reset();
   },
 
-  getQueryStringState() {
-    var currentQuery = this.context.router.getCurrentQuery();
+  fetchTags() {
+    StreamTagStore.reset();
+    StreamTagActions.loadTags();
 
-    var filter = {};
+    this.setState({
+      tagsLoading: true
+    });
+
+    let params = this.props.params;
+    api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
+      success: (tags) => {
+        this.setState({tagsLoading: false});
+        StreamTagActions.loadTagsSuccess(tags);
+      },
+      error: (error) => {
+        this.setState({tagsLoading: false});
+        StreamTagActions.loadTagsError();
+      }
+    });
+  },
+
+  getQueryStringState(props) {
+    props = props || this.props;
+    let currentQuery = props.location.query;
+
+    let filter = {};
     if (currentQuery.bookmarks) {
-      filter = { bookmarks: "1" };
+      filter = { bookmarks: '1' };
     } else if (currentQuery.assigned) {
-      filter = { assigned: "1" };
+      filter = { assigned: '1' };
     }
 
-    var query =
-      currentQuery.hasOwnProperty("query") ?
+    let query =
+      currentQuery.hasOwnProperty('query') ?
       currentQuery.query :
       this.props.defaultQuery;
 
-    var sort =
-      currentQuery.hasOwnProperty("sort") ?
+    let sort =
+      currentQuery.hasOwnProperty('sort') ?
       currentQuery.sort :
       this.props.defaultSort;
 
-    var statsPeriod =
-      currentQuery.hasOwnProperty("statsPeriod") ?
+    let statsPeriod =
+      currentQuery.hasOwnProperty('statsPeriod') ?
       currentQuery.statsPeriod :
       this.props.defaultStatsPeriod;
 
@@ -126,23 +174,6 @@ var Stream = React.createClass({
     };
   },
 
-  routeDidChange() {
-    this.setState(this.getQueryStringState());
-    this._poller.disable();
-    this.fetchData();
-  },
-
-  componentDidUpdate(prevProps, prevState) {
-    this._poller.setEndpoint(this.getGroupListEndpoint());
-    if (prevState.realtimeActive !== this.state.realtimeActive) {
-      if (this.state.realtimeActive) {
-        this._poller.enable();
-      } else {
-        this._poller.disable();
-      }
-    }
-  },
-
   fetchData() {
     GroupStore.loadInitialData([]);
 
@@ -151,15 +182,15 @@ var Stream = React.createClass({
       error: false
     });
 
-    var url = this.getGroupListEndpoint();
+    let url = this.getGroupListEndpoint();
 
-    var router = this.context.router;
-    var requestParams = $.extend({}, router.getCurrentQuery(), {
+    let requestParams = {
+      ...this.props.location.query,
       limit: this.props.maxItems,
       statsPeriod: this.state.statsPeriod
-    });
+    };
 
-    if (!requestParams.hasOwnProperty("query")) {
+    if (!requestParams.hasOwnProperty('query')) {
       requestParams.query = this.props.defaultQuery;
     }
 
@@ -170,14 +201,14 @@ var Stream = React.createClass({
     this.lastRequest = api.request(url, {
       method: 'GET',
       data: requestParams,
-      success: (data, _, jqXHR) => {
+      success: (data, ignore, jqXHR) => {
         // Was this the result of an event SHA search? If so, redirect
         // to corresponding group details
         if (data.length === 1 && /^[a-zA-Z0-9]{32}$/.test(requestParams.query.trim())) {
-          const params = $.extend({}, router.getCurrentParams(), {
-            groupId: data[0].id
-          });
-          return void this.context.router.transitionTo('groupDetails', params);
+          let params = this.props.params;
+          let groupId = data[0].id;
+
+          return void this.history.pushState(null, `/${params.orgId}/${params.projectId}/group/${groupId}/`);
         }
 
         this._streamManager.push(data);
@@ -194,26 +225,25 @@ var Stream = React.createClass({
           loading: false
         });
       },
-      complete: () => {
+      complete: (jqXHR) => {
         this.lastRequest = null;
 
-        if (this.state.realtimeActive) {
-          this._poller.setEndpoint(url);
-          this._poller.enable();
+        let links = parseLinkHeader(jqXHR.getResponseHeader('Link'));
+        if (links && links.previous) {
+          this._poller.setEndpoint(links.previous.href);
         }
       }
     });
   },
 
   getGroupListEndpoint() {
-    var router = this.context.router,
-      params = router.getCurrentParams();
+    let params = this.props.params;
 
     return '/projects/' + params.orgId + '/' + params.projectId + '/groups/';
   },
 
   onRealtimeChange(realtime) {
-    Cookies.set("realtimeActive", realtime.toString());
+    Cookies.set('realtimeActive', realtime.toString());
     this.setState({
       realtimeActive: realtime
     });
@@ -240,7 +270,7 @@ var Stream = React.createClass({
   },
 
   onGroupChange() {
-    var groupIds = this._streamManager.getAllItems().map((item) => item.id);
+    let groupIds = this._streamManager.getAllItems().map((item) => item.id);
     if (!utils.valueIsEqual(groupIds, this.state.groupIds)) {
       this.setState({
         groupIds: groupIds
@@ -248,13 +278,11 @@ var Stream = React.createClass({
     }
   },
 
-  onPage(cursor) {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    var queryParams = $.extend({}, router.getCurrentQuery());
-    queryParams.cursor = cursor;
-
-    router.transitionTo('stream', params, queryParams);
+  onStreamTagChange(tags) {
+    // new object to trigger state change
+    this.setState({
+      tags: {...tags}
+    });
   },
 
   onSearch(query) {
@@ -275,11 +303,22 @@ var Stream = React.createClass({
     }, this.transitionTo);
   },
 
-  transitionTo() {
-    var router = this.context.router;
-    var queryParams = {};
+  onSidebarToggle() {
+    this.setState({
+      isSidebarVisible: !this.state.isSidebarVisible
+    });
+  },
 
-    for (var prop in this.state.filter) {
+  onStickyStateChange(state) {
+    this.setState({
+      isStickyHeader: state
+    });
+  },
+
+  transitionTo() {
+    let queryParams = {};
+
+    for (let prop in this.state.filter) {
       queryParams[prop] = this.state.filter[prop];
     }
 
@@ -295,12 +334,21 @@ var Stream = React.createClass({
       queryParams.statsPeriod = this.state.statsPeriod;
     }
 
-    router.transitionTo('stream', router.getCurrentParams(), queryParams);
+    let params = this.props.params;
+    this.history.pushState(null, `/${params.orgId}/${params.projectId}/`, queryParams);
   },
 
   renderGroupNodes(ids, statsPeriod) {
-    var groupNodes = ids.map((id) => {
-      return <StreamGroup key={id} id={id} statsPeriod={statsPeriod} />;
+    let {orgId, projectId} = this.props.params;
+    let groupNodes = ids.map((id) => {
+      return (
+        <StreamGroup
+          key={id}
+          id={id}
+          orgId={orgId}
+          projectId={projectId}
+          statsPeriod={statsPeriod} />
+      );
     });
 
     return (<ul className="group-list" ref="groupList">{groupNodes}</ul>);
@@ -324,7 +372,7 @@ var Stream = React.createClass({
   },
 
   renderStreamBody() {
-    var body;
+    let body;
 
     if (this.state.loading) {
       body = this.renderLoading();
@@ -340,33 +388,54 @@ var Stream = React.createClass({
   },
 
   render() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
+    let params = this.props.params;
 
+    let classes = ['stream-row'];
+    if (this.state.isSidebarVisible)
+      classes.push('show-sidebar');
+
+    let {orgId, projectId} = this.props.params;
     return (
-      <div>
-        <StreamFilters
-          query={this.state.query}
-          sort={this.state.sort}
-          defaultQuery={this.props.defaultQuery}
-          onSortChange={this.onSortChange}
-          onFilterChange={this.onFilterChange}
-          onSearch={this.onSearch} />
+      <div className={classNames(classes)}>
+        <div className="stream-content">
+          <StreamFilters
+            orgId={orgId}
+            projectId={projectId}
+            query={this.state.query}
+            sort={this.state.sort}
+            tags={this.state.tags}
+            defaultQuery={this.props.defaultQuery}
+            onSortChange={this.onSortChange}
+            onFilterChange={this.onFilterChange}
+            onSearch={this.onSearch}
+            onSidebarToggle={this.onSidebarToggle}
+            isSearchDisabled={this.state.isSidebarVisible}
+          />
           <div className="group-header">
-            <Sticky>
-              <StreamActions
-                orgId={params.orgId}
-                projectId={params.projectId}
-                onSelectStatsPeriod={this.onSelectStatsPeriod}
-                onRealtimeChange={this.onRealtimeChange}
-                realtimeActive={this.state.realtimeActive}
-                statsPeriod={this.state.statsPeriod}
-                groupIds={this.state.groupIds} />
+            <Sticky onStickyStateChange={this.onStickyStateChange}>
+              <div className={this.state.isStickyHeader ? 'container' : null}>
+                <StreamActions
+                  orgId={params.orgId}
+                  projectId={params.projectId}
+                  onSelectStatsPeriod={this.onSelectStatsPeriod}
+                  onRealtimeChange={this.onRealtimeChange}
+                  realtimeActive={this.state.realtimeActive}
+                  statsPeriod={this.state.statsPeriod}
+                  groupIds={this.state.groupIds} />
+              </div>
             </Sticky>
           </div>
           {this.renderStreamBody()}
-          <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
-
+          <Pagination pageLinks={this.state.pageLinks}/>
+        </div>
+        <StreamSidebar
+          loading={this.state.tagsLoading}
+          tags={this.state.tags}
+          query={this.state.query}
+          onQueryChange={this.onSearch}
+          orgId={params.orgId}
+          projectId={params.projectId}
+          />
       </div>
     );
   }

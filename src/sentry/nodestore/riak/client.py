@@ -223,7 +223,7 @@ class ConnectionManager(object):
                 conn = self.strategy.next(self.connections)
                 try:
                     return conn.urlopen(method, path, **kwargs)
-                except HTTPError as e:
+                except HTTPError:
                     self.mark_dead(conn)
 
                     if len(self.connections) == 0:

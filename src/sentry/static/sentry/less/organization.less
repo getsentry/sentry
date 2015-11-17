@@ -41,7 +41,6 @@
   }
 
   .box-header {
-
     .actions {
         a {
           font-size: 13px;
@@ -77,6 +76,19 @@
   .box-content {
     .clearfix();
     position: relative;
+
+    .project-list-empty {
+      margin: 20px 0;
+      text-align: center;
+
+      a {
+        color: @linkColor;
+
+        &:hover {
+          color: @linkColorHover;
+        }
+      }
+    }
   }
 
   .loading {
@@ -212,10 +224,6 @@ table.project-list {
           height: 20px;
         }
       }
-    }
-    &:hover.clickable td {
-      background-color: @bgColor;
-      cursor: pointer;
     }
 
     &:hover td a {

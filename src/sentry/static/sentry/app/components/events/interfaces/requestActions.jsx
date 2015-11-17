@@ -1,13 +1,13 @@
-import React from "react";
-import ConfigStore from "../../../stores/configStore";
+import React from 'react';
+import ConfigStore from '../../../stores/configStore';
 
-var RequestActions = React.createClass({
+const RequestActions = React.createClass({
   render(){
-    var org = this.props.organization;
-    var project = this.props.project;
-    var group = this.props.group;
-    var evt = this.props.event;
-    var urlPrefix = (
+    let org = this.props.organization;
+    let project = this.props.project;
+    let group = this.props.group;
+    let evt = this.props.event;
+    let urlPrefix = (
       ConfigStore.get('urlPrefix') + '/' + org.slug + '/' +
       project.slug + '/group/' + group.id
     );

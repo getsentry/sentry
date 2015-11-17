@@ -11,24 +11,22 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
         super(OrganizationAuthSettingsPermissionTest, self).setUp()
         self.path = reverse('sentry-organization-auth-settings', args=[self.organization.slug])
 
-    def test_teamless_owner_cannot_load(self):
+    def test_teamless_admin_cannot_load(self):
         with self.feature('organizations:sso'):
-            self.assert_teamless_owner_cannot_access(self.path)
+            self.assert_teamless_admin_cannot_access(self.path)
 
-    def test_org_admin_cannot_load(self):
+    def test_team_admin_cannot_load(self):
         with self.feature('organizations:sso'):
-            self.assert_org_admin_cannot_access(self.path)
+            self.assert_team_admin_cannot_access(self.path)
 
-    def test_org_owner_can_load(self):
+    def test_owner_can_load(self):
         with self.feature('organizations:sso'):
-            self.assert_org_owner_can_access(self.path)
+            self.assert_owner_can_access(self.path)
 
 
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
     def test_renders_with_context(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
 
         path = reverse('sentry-organization-auth-settings', args=[organization.slug])
 
@@ -46,8 +44,6 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     def test_can_start_auth_flow(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
 
         path = reverse('sentry-organization-auth-settings', args=[organization.slug])
 
@@ -61,8 +57,6 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     def test_disable_provider(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
 
         auth_provider = AuthProvider.objects.create(
             organization=organization,

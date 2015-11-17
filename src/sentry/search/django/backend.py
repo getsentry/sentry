@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 from django.db.models import Q
 
-from sentry.api.paginator import Paginator
+from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.search.base import SearchBackend
 from sentry.search.django.constants import (
     SORT_CLAUSES, SQLITE_SORT_CLAUSES, MYSQL_SORT_CLAUSES, MSSQL_SORT_CLAUSES,
@@ -27,7 +27,7 @@ class DjangoSearchBackend(SearchBackend):
               bookmarked_by=None, assigned_to=None, first_release=None,
               sort_by='date', date_filter='last_seen', date_from=None,
               date_to=None, cursor=None, limit=100):
-        from sentry.models import Group
+        from sentry.models import Group, GroupStatus
 
         queryset = Group.objects.filter(project=project)
         if query:
@@ -40,7 +40,15 @@ class DjangoSearchBackend(SearchBackend):
                 Q(culprit__icontains=query)
             )
 
-        if status is not None:
+        if status is None:
+            queryset = queryset.exclude(
+                status__in=(
+                    GroupStatus.PENDING_DELETION,
+                    GroupStatus.DELETION_IN_PROGRESS,
+                    GroupStatus.PENDING_MERGE,
+                )
+            )
+        else:
             queryset = queryset.filter(status=status)
 
         if bookmarked_by:
@@ -112,9 +120,22 @@ class DjangoSearchBackend(SearchBackend):
 
         # HACK: don't sort by the same column twice
         if sort_by == 'date':
-            queryset = queryset.order_by('-sort_value')
+            paginator_cls = DateTimePaginator
+            sort_clause = '-last_seen'
+        elif sort_by == 'priority':
+            paginator_cls = Paginator
+            sort_clause = '-score'
+        elif sort_by == 'new':
+            paginator_cls = DateTimePaginator
+            sort_clause = '-first_seen'
+        elif sort_by == 'freq':
+            paginator_cls = Paginator
+            sort_clause = '-times_seen'
         else:
-            queryset = queryset.order_by('-sort_value', '-last_seen')
+            paginator_cls = Paginator
+            sort_clause = '-sort_value'
 
-        paginator = Paginator(queryset, '-sort_value')
+        queryset = queryset.order_by(sort_clause)
+
+        paginator = paginator_cls(queryset, sort_clause)
         return paginator.get_result(limit, cursor)

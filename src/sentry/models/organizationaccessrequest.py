@@ -7,10 +7,10 @@ sentry.models.organizationmember
 """
 from __future__ import absolute_import, print_function
 
-import logging
-
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 
+from sentry import roles
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.http import absolute_uri
 
@@ -27,6 +27,7 @@ class OrganizationAccessRequest(Model):
     __repr__ = sane_repr('team_id', 'member_id')
 
     def send_request_email(self):
+        from sentry.models import OrganizationMember
         from sentry.utils.email import MessageBuilder
 
         user = self.member.user
@@ -50,11 +51,23 @@ class OrganizationAccessRequest(Model):
             context=context,
         )
 
-        try:
-            msg.send([email])
-        except Exception as e:
-            logger = logging.getLogger('sentry.mail.errors')
-            logger.exception(e)
+        global_roles = [
+            r.id for r in roles.with_scope('org:write')
+            if r.is_global
+        ]
+        team_roles = [
+            r.id for r in roles.with_scope('team:write')
+        ]
+
+        # find members which are either team scoped or have access to all teams
+        member_list = OrganizationMember.objects.filter(
+            Q(role__in=global_roles) |
+            Q(teams=self.team, role__in=team_roles),
+            organization=self.team.organization,
+            user__isnull=False,
+        ).select_related('user')
+
+        msg.send_async([m.user.email for m in member_list])
 
     def send_approved_email(self):
         from sentry.utils.email import MessageBuilder
@@ -77,8 +90,4 @@ class OrganizationAccessRequest(Model):
             context=context,
         )
 
-        try:
-            msg.send([email])
-        except Exception as e:
-            logger = logging.getLogger('sentry.mail.errors')
-            logger.exception(e)
+        msg.send_async([email])

@@ -5,7 +5,7 @@ import os.path
 
 from mock import patch
 
-from sentry.models import Event, File, Release, ReleaseFile
+from sentry.models import Event, File, FileBlob, Release, ReleaseFile
 from sentry.testutils import TestCase
 
 BASE64_SOURCEMAP = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0='
@@ -21,8 +21,8 @@ def load_fixture(name):
 
 
 class JavascriptIntegrationTest(TestCase):
-    @patch('sentry.lang.javascript.processor.fetch_url')
-    def test_source_expansion(self, mock_fetch_url):
+    @patch('sentry.lang.javascript.processor.fetch_file')
+    def test_source_expansion(self, mock_fetch_file):
         data = {
             'message': 'hello',
             'platform': 'javascript',
@@ -49,15 +49,16 @@ class JavascriptIntegrationTest(TestCase):
             }
         }
 
-        mock_fetch_url.return_value.body = '\n'.join('hello world')
+        mock_fetch_file.return_value.body = '\n'.join('hello world')
 
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        mock_fetch_url.assert_called_once_with(
+        mock_fetch_file.assert_called_once_with(
             'http://example.com/foo.js',
             project=self.project,
             release=None,
+            allow_scraping=True,
         )
 
         event = Event.objects.get()
@@ -74,9 +75,9 @@ class JavascriptIntegrationTest(TestCase):
         assert frame.context_line == 'h'
         assert frame.post_context == ['e', 'l', 'l', 'o', ' ']
 
-    @patch('sentry.lang.javascript.processor.fetch_url')
+    @patch('sentry.lang.javascript.processor.fetch_file')
     @patch('sentry.lang.javascript.processor.discover_sourcemap')
-    def test_inlined_sources(self, mock_discover_sourcemap, mock_fetch_url):
+    def test_inlined_sources(self, mock_discover_sourcemap, mock_fetch_file):
         data = {
             'message': 'hello',
             'platform': 'javascript',
@@ -99,16 +100,17 @@ class JavascriptIntegrationTest(TestCase):
 
         mock_discover_sourcemap.return_value = BASE64_SOURCEMAP
 
-        mock_fetch_url.return_value.url = 'http://example.com/test.min.js'
-        mock_fetch_url.return_value.body = '\n'.join('<generated source>')
+        mock_fetch_file.return_value.url = 'http://example.com/test.min.js'
+        mock_fetch_file.return_value.body = '\n'.join('<generated source>')
 
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        mock_fetch_url.assert_called_once_with(
+        mock_fetch_file.assert_called_once_with(
             'http://example.com/test.min.js',
             project=self.project,
             release=None,
+            allow_scraping=True,
         )
 
         event = Event.objects.get()
@@ -177,12 +179,13 @@ class JavascriptIntegrationTest(TestCase):
             version='abc',
         )
 
-        f1 = File(
+        f1 = File.objects.create(
             name='file.min.js',
             type='release.file',
             headers={'Content-Type': 'application/json'},
+            blob=FileBlob.from_file(open(get_fixture_path('file.min.js'), 'rb'))
         )
-        f1.putfile(open(get_fixture_path(f1.name), 'rb'))
+
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f1.name),
             release=release,
@@ -190,12 +193,12 @@ class JavascriptIntegrationTest(TestCase):
             file=f1,
         )
 
-        f2 = File(
+        f2 = File.objects.create(
             name='file1.js',
             type='release.file',
             headers={'Content-Type': 'application/json'},
+            blob=FileBlob.from_file(open(get_fixture_path('file1.js'), 'rb'))
         )
-        f2.putfile(open(get_fixture_path(f2.name), 'rb'))
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f2.name),
             release=release,
@@ -203,12 +206,12 @@ class JavascriptIntegrationTest(TestCase):
             file=f2,
         )
 
-        f3 = File(
+        f3 = File.objects.create(
             name='file2.js',
             type='release.file',
             headers={'Content-Type': 'application/json'},
+            blob=FileBlob.from_file(open(get_fixture_path('file2.js'), 'rb'))
         )
-        f3.putfile(open(get_fixture_path(f3.name), 'rb'))
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f3.name),
             release=release,
@@ -216,12 +219,12 @@ class JavascriptIntegrationTest(TestCase):
             file=f3,
         )
 
-        f4 = File(
+        f4 = File.objects.create(
             name='file.sourcemap.js',
             type='release.file',
             headers={'Content-Type': 'application/json'},
+            blob=FileBlob.from_file(open(get_fixture_path('file.sourcemap.js'), 'rb'))
         )
-        f4.putfile(open(get_fixture_path(f4.name), 'rb'))
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f4.name),
             release=release,

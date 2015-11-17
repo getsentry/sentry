@@ -1,6 +1,6 @@
-import React from "react";
+import React from 'react';
 
-var TeamStatsBar = React.createClass({
+const TeamStatsBar = React.createClass({
   render() {
     return (
       <div className="row team-stats">

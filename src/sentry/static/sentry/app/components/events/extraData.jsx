@@ -1,12 +1,11 @@
-import React from "react";
-import _ from "underscore";
+import React from 'react';
 
-import PropTypes from "../../proptypes";
+import PropTypes from '../../proptypes';
+import {objectToArray} from '../../utils';
+import EventDataSection from './eventDataSection';
+import KeyValueList from './interfaces/keyValueList';
 
-import EventDataSection from "./eventDataSection";
-import DefinitionList from "./interfaces/definitionList";
-
-var EventExtraData = React.createClass({
+const EventExtraData = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired
@@ -17,9 +16,7 @@ var EventExtraData = React.createClass({
   },
 
   render() {
-    let extraDataArray = _.chain(this.props.event.context)
-      .map((val, key) => [key, val])
-      .value();
+    let extraDataArray = objectToArray(this.props.event.context);
 
     return (
       <EventDataSection
@@ -27,7 +24,9 @@ var EventExtraData = React.createClass({
           event={this.props.event}
           type="extra"
           title="Additional Data">
-          <DefinitionList data={extraDataArray} isContextData={true}/>
+          <KeyValueList
+              data={extraDataArray}
+              isContextData={true}/>
       </EventDataSection>
     );
   }

@@ -7,9 +7,57 @@ import mock
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.models import OrganizationMember, ProjectKey, User
+from sentry.models import ProjectKey
 from sentry.testutils import TestCase
 from sentry.utils import json
+
+
+class CspReportViewTest(TestCase):
+    @fixture
+    def path(self):
+        path = reverse('sentry-api-csp-report', kwargs={'project_id': self.project.id})
+        return path + '?sentry_key=%s&sentry_version=5' % self.projectkey.public_key
+
+    def test_get_response(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 405, resp.content
+
+    def test_invalid_content_type(self):
+        resp = self.client.post(self.path, content_type='text/plain')
+        assert resp.status_code == 400, resp.content
+
+    def test_missing_csp_report(self):
+        resp = self.client.post(self.path,
+            content_type='application/csp-report',
+            data='{"lol":1}',
+            HTTP_USER_AGENT='awesome',
+        )
+        assert resp.status_code == 400, resp.content
+
+    @mock.patch('sentry.utils.http.get_origins')
+    def test_bad_origin(self, get_origins):
+        get_origins.return_value = ['example.com']
+        resp = self.client.post(self.path,
+            content_type='application/csp-report',
+            data='{"csp-report":{"document-uri":"http://lolnope.com"}}',
+            HTTP_USER_AGENT='awesome',
+        )
+        assert resp.status_code == 403, resp.content
+
+        get_origins.return_value = ['*']
+        resp = self.client.post(self.path,
+            content_type='application/csp-report',
+            data='{"csp-report":{"document-uri":"about:blank"}}',
+            HTTP_USER_AGENT='awesome',
+        )
+        assert resp.status_code == 403, resp.content
+
+    @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
+    @mock.patch('sentry.web.api.CspReportView.process')
+    def test_post_success(self, process):
+        process.return_value = 'ok'
+        resp = self._postCspWithHeader({'csp-report': {'document-uri': 'http://example.com'}})
+        assert resp.status_code == 201, resp.content
 
 
 class StoreViewTest(TestCase):
@@ -66,6 +114,11 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, resp.content
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')
+
+    @mock.patch('sentry.web.api.is_valid_ip', mock.Mock(return_value=False))
+    def test_request_with_backlisted_ip(self):
+        resp = self._postWithHeader({})
+        assert resp.status_code == 403, resp.content
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrubs_ip_address(self, mock_insert_data_to_database):
@@ -144,87 +197,12 @@ class CrossDomainXmlIndexTest(TestCase):
         assert '<site-control permitted-cross-domain-policies="all" />' in resp.content
 
 
-class SearchUsersTest(TestCase):
+class RobotsTxtTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-api-search-users', args=[self.organization.slug])
+        return reverse('sentry-api-robots-txt')
 
-    def setUp(self):
-        super(SearchUsersTest, self).setUp()
-        self.login_as(self.user)
-
-    def test_finds_users_from_organization_members(self):
-        otheruser = User.objects.create(first_name='Bob Ross', username='bobross', email='bob@example.com')
-        OrganizationMember.objects.create(
-            organization=self.team.organization,
-            user=otheruser,
-        )
-
-        resp = self.client.get(self.path, {'query': 'bob'})
-
+    def test_robots(self):
+        resp = self.client.get(self.path)
         assert resp.status_code == 200
-        assert resp['Content-Type'] == 'application/json'
-        assert json.loads(resp.content) == {
-            'results': [{
-                'id': otheruser.id,
-                'first_name': otheruser.first_name,
-                'username': otheruser.username,
-                'email': otheruser.email,
-            }],
-            'query': 'bob',
-        }
-
-    def test_does_not_include_users_who_are_not_members(self):
-        User.objects.create(first_name='Bob Ross', username='bobross', email='bob@example.com')
-
-        resp = self.client.get(self.path, {'query': 'bob'})
-
-        assert resp.status_code == 200
-        assert resp['Content-Type'] == 'application/json'
-        assert json.loads(resp.content) == {
-            'results': [],
-            'query': 'bob',
-        }
-
-
-class SearchProjectsTest(TestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-api-search-projects', args=[self.organization.slug])
-
-    def setUp(self):
-        super(SearchProjectsTest, self).setUp()
-        self.login_as(self.user)
-
-    def test_finds_projects_from_org(self):
-        project = self.create_project(
-            organization=self.organization,
-            team=self.team,
-            name='Sample',
-        )
-        resp = self.client.get(self.path, {'query': 'sample'})
-
-        assert resp.status_code == 200
-        assert resp['Content-Type'] == 'application/json'
-        assert json.loads(resp.content) == {
-            'results': [{
-                'id': project.id,
-                'slug': project.slug,
-                'name': project.name,
-            }],
-            'query': 'sample',
-        }
-
-    def test_does_not_include_projects_from_other_organizations(self):
-        org = self.create_organization(owner=self.user, name='Sample')
-        team = self.create_team(organization=org, name='Sample')
-        self.create_project(organization=org, team=team, name='Sample')
-
-        resp = self.client.get(self.path, {'query': 'sample'})
-
-        assert resp.status_code == 200
-        assert resp['Content-Type'] == 'application/json'
-        assert json.loads(resp.content) == {
-            'results': [],
-            'query': 'sample',
-        }
+        assert resp['Content-Type'] == 'text/plain'

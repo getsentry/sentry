@@ -11,7 +11,7 @@ from pkg_resources import parse_version as Version
 
 from sentry import options
 from sentry.models import (
-    Organization, OrganizationMember, OrganizationMemberType, Project, User,
+    Organization, OrganizationMember, Project, User,
     Team, ProjectKey, TagKey, TagValue, GroupTagValue, GroupTagKey, Activity
 )
 from sentry.signals import buffer_incr_complete, regression_signal
@@ -47,7 +47,7 @@ def create_default_projects(created_models, verbosity=2, **kwargs):
     )
 
     if settings.SENTRY_FRONTEND_PROJECT:
-        project = create_default_project(
+        create_default_project(
             id=settings.SENTRY_FRONTEND_PROJECT,
             name='Frontend',
             slug='frontend',
@@ -62,12 +62,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
     try:
         user = User.objects.filter(is_superuser=True)[0]
     except IndexError:
-        user, _ = User.objects.get_or_create(
-            username='sentry',
-            defaults={
-                'email': 'sentry@localhost',
-            }
-        )
+        user = None
 
     org, _ = Organization.objects.get_or_create(
         slug='sentry',
@@ -76,14 +71,12 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         }
     )
 
-    OrganizationMember.objects.get_or_create(
-        user=user,
-        organization=org,
-        defaults={
-            'type': OrganizationMemberType.OWNER,
-            'has_global_access': True,
-        },
-    )
+    if user:
+        OrganizationMember.objects.get_or_create(
+            user=user,
+            organization=org,
+            role='owner',
+        )
 
     team, _ = Team.objects.get_or_create(
         organization=org,

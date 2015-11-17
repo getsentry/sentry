@@ -1,13 +1,13 @@
-import React from "react/addons";
-var TestUtils = React.addons.TestUtils;
-import stubReactComponents from "../../../../helpers/stubReactComponent";
+import React from 'react';
+import TestUtils from 'react-addons-test-utils';
+import stubReactComponents from '../../../../helpers/stubReactComponent';
 
-import RichHttpContent from "app/components/events/interfaces/richHttpContent";
-import DefinitionList from "app/components/events/interfaces/definitionList";
-import ClippedBox from "app/components/clippedBox";
-import ContextData from "app/components/contextData";
+import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import ClippedBox from 'app/components/clippedBox';
+import ContextData from 'app/components/contextData';
 
-describe("RichHttpContent", function () {
+describe('RichHttpContent', function () {
   beforeEach(function () {
     this.data = {
       query: '',
@@ -18,15 +18,15 @@ describe("RichHttpContent", function () {
     };
     this.elem = TestUtils.renderIntoDocument(<RichHttpContent data={this.data} />);
     this.sandbox = sinon.sandbox.create();
-    stubReactComponents(this.sandbox, [ClippedBox, DefinitionList, ContextData]);
+    stubReactComponents(this.sandbox, [ClippedBox, KeyValueList, ContextData]);
   });
 
   afterEach(function () {
     this.sandbox.restore();
   });
 
-  describe("objectToSortedTupleArray", function () {
-    it("should convert a key/value object to a sorted array of key/value tuples", function () {
+  describe('objectToSortedTupleArray', function () {
+    it('should convert a key/value object to a sorted array of key/value tuples', function () {
       let elem = this.elem;
       expect(elem.objectToSortedTupleArray({
         awe: 'some',
@@ -53,8 +53,8 @@ describe("RichHttpContent", function () {
     });
   });
 
-  describe("getBodySection", function () {
-    it("should return plain-text when unrecognized Content-Type and not parsable as JSON", function () {
+  describe('getBodySection', function () {
+    it('should return plain-text when unrecognized Content-Type and not parsable as JSON', function () {
       let out = this.elem.getBodySection({
         headers: [], // no content-type header,
         data: 'helloworld'
@@ -63,24 +63,24 @@ describe("RichHttpContent", function () {
       expect(out.type).to.eql('pre');
     });
 
-    it("should return a DefinitionList element when Content-Type is x-www-form-urlencoded", function () {
-      var out = this.elem.getBodySection({
+    it('should return a KeyValueList element when Content-Type is x-www-form-urlencoded', function () {
+      let out = this.elem.getBodySection({
         headers: [
           ['lol' , 'no'],
           ['Content-Type', 'application/x-www-form-urlencoded']
         ], // no content-type header,
-        data: "foo=bar&bar=baz"
+        data: 'foo=bar&bar=baz'
       });
 
       // NOTE: ContextData is stubbed in tests; instead returns <div className="ContextData"/>
-      expect(out.props.className).to.eql('DefinitionList');
+      expect(out.props.className).to.eql('KeyValueList');
       expect(out.props.data).to.eql([
         ['bar', 'baz'],
         ['foo', 'bar']
       ]);
     });
 
-    it("should return plain-text when Content-Type is x-www-form-urlencoded and query string cannot be parsed", function () {
+    it('should return plain-text when Content-Type is x-www-form-urlencoded and query string cannot be parsed', function () {
       let out = this.elem.getBodySection({
         headers: [
           ['Content-Type', 'application/x-www-form-urlencoded']
@@ -91,8 +91,8 @@ describe("RichHttpContent", function () {
       expect(out.type).to.eql('pre');
     });
 
-    it("should return a ContextData element when Content-Type is application/json", function () {
-      var out = this.elem.getBodySection({
+    it('should return a ContextData element when Content-Type is application/json', function () {
+      let out = this.elem.getBodySection({
         headers: [
           ['lol' , 'no'],
           ['Content-Type', 'application/json']
@@ -107,8 +107,8 @@ describe("RichHttpContent", function () {
       });
     });
 
-    it("should return a ContextData element when content is JSON, ignoring Content-Type", function () {
-      var out = this.elem.getBodySection({
+    it('should return a ContextData element when content is JSON, ignoring Content-Type', function () {
+      let out = this.elem.getBodySection({
         headers: [
           ['Content-Type', 'application/x-www-form-urlencoded']
         ], // no content-type header,
@@ -122,7 +122,7 @@ describe("RichHttpContent", function () {
       });
     });
 
-    it("should return plain-text when JSON is not parsable", function () {
+    it('should return plain-text when JSON is not parsable', function () {
       let out = this.elem.getBodySection({
         headers: [
           ['lol' , 'no'],
@@ -132,6 +132,19 @@ describe("RichHttpContent", function () {
       });
 
       expect(out.type).to.eql('pre');
+    });
+
+    it('should now blow up in a malformed uri', function () {
+      // > decodeURIComponent('a%AFc')
+      // URIError: URI malformed
+      let data = {
+        query: 'a%AFc',
+        data: '',
+        headers: [],
+        cookies: [],
+        env: {}
+      };
+      expect(() => TestUtils.renderIntoDocument(<RichHttpContent data={data} />)).to.not.throw(URIError);
     });
   });
 });

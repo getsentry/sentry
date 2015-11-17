@@ -1,19 +1,14 @@
-import React from "react";
-import Reflux from "reflux";
-import api from "../../api";
-import ActionLink from "./actionLink";
-import DropdownLink from "../../components/dropdownLink";
-import IndicatorStore from "../../stores/indicatorStore";
-import MenuItem from "../../components/menuItem";
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
-import SelectedGroupStore from "../../stores/selectedGroupStore";
+import React from 'react';
+import Reflux from 'reflux';
+import api from '../../api';
+import ActionLink from './actionLink';
+import DropdownLink from '../../components/dropdownLink';
+import IndicatorStore from '../../stores/indicatorStore';
+import MenuItem from '../../components/menuItem';
+import PureRenderMixin from 'react-addons-pure-render-mixin';
+import SelectedGroupStore from '../../stores/selectedGroupStore';
 
-var StreamActions = React.createClass({
-  mixins: [
-    Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
-    PureRenderMixin
-  ],
-
+const StreamActions = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
@@ -22,6 +17,20 @@ var StreamActions = React.createClass({
     onSelectStatsPeriod: React.PropTypes.func.isRequired,
     realtimeActive: React.PropTypes.bool.isRequired,
     statsPeriod: React.PropTypes.string.isRequired
+  },
+
+  mixins: [
+    Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
+    PureRenderMixin
+  ],
+
+  getDefaultProps() {
+    return {
+      actionTypes: {
+        ALL: 'all',
+        SELECTED: 'selected'
+      }
+    };
   },
 
   getInitialState() {
@@ -33,26 +42,17 @@ var StreamActions = React.createClass({
     };
   },
 
-  getDefaultProps() {
-    return {
-      actionTypes: {
-        ALL: 'all',
-        SELECTED: 'selected'
-      }
-    };
-  },
-
   selectStatsPeriod(period) {
     return this.props.onSelectStatsPeriod(period);
   },
 
   actionSelectedGroups(actionType, callback) {
-    var selectedIds;
+    let selectedIds;
 
     if (actionType === this.props.actionTypes.ALL) {
-      selectedIds = this.props.groupIds;
+      selectedIds = undefined; // undefined means "all"
     } else if (actionType === this.props.actionTypes.SELECTED) {
-      var itemIdSet = SelectedGroupStore.getSelectedIds();
+      let itemIdSet = SelectedGroupStore.getSelectedIds();
       selectedIds = this.props.groupIds.filter(
         (itemId) => itemIdSet.has(itemId)
       );
@@ -67,7 +67,7 @@ var StreamActions = React.createClass({
 
   onUpdate(data, event, actionType) {
     this.actionSelectedGroups(actionType, (itemIds) => {
-      var loadingIndicator = IndicatorStore.add('Saving changes..');
+      let loadingIndicator = IndicatorStore.add('Saving changes..');
 
       api.bulkUpdate({
         orgId: this.props.orgId,
@@ -83,7 +83,7 @@ var StreamActions = React.createClass({
   },
 
   onDelete(event, actionType) {
-    var loadingIndicator = IndicatorStore.add('Removing events..');
+    let loadingIndicator = IndicatorStore.add('Removing events..');
 
     this.actionSelectedGroups(actionType, (itemIds) => {
       api.bulkDelete({
@@ -99,13 +99,32 @@ var StreamActions = React.createClass({
   },
 
   onMerge(event, actionType) {
-    var loadingIndicator = IndicatorStore.add('Merging events..');
+    let loadingIndicator = IndicatorStore.add('Merging events..');
 
     this.actionSelectedGroups(actionType, (itemIds) => {
       api.merge({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
         itemIds: itemIds,
+      }, {
+        complete: () => {
+          IndicatorStore.remove(loadingIndicator);
+        }
+      });
+    });
+  },
+
+  onResolveProject(event) {
+    this.actionSelectedGroups(this.props.actionTypes.ALL, (itemIds) => {
+      let loadingIndicator = IndicatorStore.add('Saving changes..');
+
+      api.bulkUpdate({
+        orgId: this.props.orgId,
+        projectId: this.props.projectId,
+        itemIds: itemIds,
+        data: {
+          status: 'resolved',
+        }
       }, {
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
@@ -144,14 +163,12 @@ var StreamActions = React.createClass({
                actionTypes={this.props.actionTypes}
                className="btn btn-default btn-sm action-resolve"
                disabled={!this.state.anySelected}
-               onAction={this.onUpdate.bind(this, {status: "resolved"})}
+               onAction={this.onUpdate.bind(this, {status: 'resolved'})}
                buttonTitle="Resolve"
                confirmLabel="Resolve"
                tooltip="Set Status to Resolved"
-               canActionAll={true}
                onlyIfBulk={true}
-               selectAllActive={this.state.selectAllActive}
-               groupIds={this.props.groupIds}>
+               selectAllActive={this.state.selectAllActive}>
               <i aria-hidden="true" className="icon-checkmark"></i>
             </ActionLink>
             <ActionLink
@@ -165,8 +182,7 @@ var StreamActions = React.createClass({
                tooltip="Add to Bookmarks"
                canActionAll={false}
                onlyIfBulk={true}
-               selectAllActive={this.state.selectAllActive}
-               groupIds={this.props.groupIds}>
+               selectAllActive={this.state.selectAllActive}>
               <i aria-hidden="true" className="icon-bookmark"></i>
             </ActionLink>
 
@@ -174,9 +190,22 @@ var StreamActions = React.createClass({
               key="actions"
               btnGroup={true}
               caret={false}
-              disabled={!this.state.anySelected}
               className="btn btn-sm btn-default hidden-xs action-more"
               title={<span className="icon-ellipsis"></span>}>
+              <MenuItem noAnchor={true}>
+                <ActionLink
+                   actionTypes={this.props.actionTypes}
+                   className="action-resolve-project"
+                   onAction={this.onResolveProject}
+                   actionLabel="resolve all issues within this project"
+                   extraDescription="This will resolve all unresolved issues throughout this project. This does not respect search filters."
+                   canActionAll={false}
+                   confirmLabel="Confirm"
+                   selectAllActive={this.state.selectAllActive}>
+                  Resolve all Issues in Project
+                </ActionLink>
+              </MenuItem>
+              <MenuItem divider={true} />
               <MenuItem noAnchor={true}>
                 <ActionLink
                    actionTypes={this.props.actionTypes}
@@ -185,8 +214,7 @@ var StreamActions = React.createClass({
                    onAction={this.onMerge}
                    confirmLabel="Merge"
                    canActionAll={false}
-                   selectAllActive={this.state.selectAllActive}
-                   groupIds={this.props.groupIds}>
+                   selectAllActive={this.state.selectAllActive}>
                   Merge Events
                 </ActionLink>
               </MenuItem>
@@ -200,8 +228,7 @@ var StreamActions = React.createClass({
                    actionLabel="remove these {count} events from your bookmarks"
                    onlyIfBulk={true}
                    canActionAll={false}
-                   selectAllActive={this.state.selectAllActive}
-                   groupIds={this.props.groupIds}>
+                   selectAllActive={this.state.selectAllActive}>
                   Remove from Bookmarks
                 </ActionLink>
               </MenuItem>
@@ -211,7 +238,7 @@ var StreamActions = React.createClass({
                    actionTypes={this.props.actionTypes}
                    className="action-unresolve"
                    disabled={!this.state.anySelected}
-                   onAction={this.onUpdate.bind(this, {status: "unresolved"})}
+                   onAction={this.onUpdate.bind(this, {status: 'unresolved'})}
                    neverConfirm={true}
                    confirmLabel="Unresolve"
                    onlyIfBulk={false}
@@ -226,13 +253,12 @@ var StreamActions = React.createClass({
                    actionTypes={this.props.actionTypes}
                    className="action-mute"
                    disabled={!this.state.anySelected}
-                   onAction={this.onUpdate.bind(this, {status: "muted"})}
+                   onAction={this.onUpdate.bind(this, {status: 'muted'})}
                    neverConfirm={true}
                    confirmLabel="Mute"
                    onlyIfBulk={false}
                    canActionAll={false}
-                   selectAllActive={this.state.selectAllActive}
-                   groupIds={this.props.groupIds}>
+                   selectAllActive={this.state.selectAllActive}>
                   Set status to: Muted
                 </ActionLink>
               </MenuItem>
@@ -245,8 +271,7 @@ var StreamActions = React.createClass({
                    onAction={this.onDelete}
                    confirmLabel="Delete"
                    canActionAll={false}
-                   selectAllActive={this.state.selectAllActive}
-                   groupIds={this.props.groupIds}>
+                   selectAllActive={this.state.selectAllActive}>
                   Delete Events
                 </ActionLink>
               </MenuItem>
@@ -267,7 +292,7 @@ var StreamActions = React.createClass({
         <div className="hidden-sm stream-actions-assignee col-md-1"></div>
         <div className="stream-actions-level col-md-1 hidden-xs"></div>
         <div className="hidden-sm hidden-xs stream-actions-graph col-md-2">
-          Graph:
+          <span className="stream-actions-graph-label">Graph:</span>
           <ul className="toggle-graph">
             <li className={this.props.statsPeriod === '24h' ? 'active' : ''}>
               <a onClick={this.selectStatsPeriod.bind(this, '24h')}>24h</a>

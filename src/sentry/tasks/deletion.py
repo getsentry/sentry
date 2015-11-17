@@ -8,10 +8,11 @@ sentry.tasks.deletion
 
 from __future__ import absolute_import
 
-
 from celery.utils.log import get_task_logger
 
+from sentry.exceptions import DeleteAborted
 from sentry.utils.query import bulk_delete_objects
+from sentry.signals import pending_delete
 from sentry.tasks.base import instrumented_task, retry
 
 logger = get_task_logger(__name__)
@@ -31,10 +32,11 @@ def delete_organization(object_id, continuous=True, **kwargs):
         return
 
     if o.status == OrganizationStatus.VISIBLE:
-        raise ValueError('Aborting organization deletion as status is invalid')
+        raise DeleteAborted('Aborting organization deletion as status is invalid')
 
     if o.status != OrganizationStatus.DELETION_IN_PROGRESS:
         o.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
+        pending_delete.send(sender=Organization, instance=o)
 
     for team in Team.objects.filter(organization=o).order_by('id')[:1]:
         logger.info('Removing Team id=%s where organization=%s', team.id, o.id)
@@ -66,9 +68,10 @@ def delete_team(object_id, continuous=True, **kwargs):
         return
 
     if t.status == TeamStatus.VISIBLE:
-        raise ValueError('Aborting team deletion as status is invalid')
+        raise DeleteAborted('Aborting team deletion as status is invalid')
 
     if t.status != TeamStatus.DELETION_IN_PROGRESS:
+        pending_delete.send(sender=Team, instance=t)
         t.update(status=TeamStatus.DELETION_IN_PROGRESS)
 
     # Delete 1 project at a time since this is expensive by itself
@@ -99,9 +102,10 @@ def delete_project(object_id, continuous=True, **kwargs):
         return
 
     if p.status == ProjectStatus.VISIBLE:
-        raise ValueError('Aborting project deletion as status is invalid')
+        raise DeleteAborted('Aborting project deletion as status is invalid')
 
     if p.status != ProjectStatus.DELETION_IN_PROGRESS:
+        pending_delete.send(sender=Project, instance=p)
         p.update(status=ProjectStatus.DELETION_IN_PROGRESS)
 
     # XXX: remove keys first to prevent additional data from flowing in

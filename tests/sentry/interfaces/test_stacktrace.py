@@ -6,6 +6,7 @@ import mock
 
 from exam import fixture
 
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.stacktrace import (
     Frame, Stacktrace, get_context, slim_frame_data
 )
@@ -42,7 +43,7 @@ class StacktraceTest(TestCase):
         assert interface == event.interfaces['sentry.interfaces.Stacktrace']
 
     def test_requires_filename(self):
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(InterfaceValidationError):
             Stacktrace.to_python(dict(frames=[{}]))
 
         Stacktrace.to_python(dict(frames=[{
@@ -203,6 +204,7 @@ class StacktraceTest(TestCase):
         interface = Frame.to_python({
             'context_line': 'hello world',
             'filename': 'http://foo.com/foo.py',
+            'function': 'test',
         })
         result = interface.get_hash()
         self.assertEquals(result, ['hello world'])
@@ -211,6 +213,7 @@ class StacktraceTest(TestCase):
         interface = Frame.to_python({
             'context_line': 'hello world',
             'filename': 'https://foo.com/foo.py',
+            'function': 'test',
         })
         result = interface.get_hash()
         self.assertEquals(result, ['hello world'])
@@ -219,6 +222,7 @@ class StacktraceTest(TestCase):
         interface = Frame.to_python({
             'context_line': 'hello world',
             'abs_path': 'https://foo.com/foo.py',
+            'function': 'test',
             'filename': 'foo.py',
         })
         result = interface.get_hash()
@@ -278,6 +282,18 @@ class StacktraceTest(TestCase):
         result = interface.get_hash()
         assert result != []
 
+    def test_get_hash_does_not_group_different_js_errors(self):
+        interface = Stacktrace.to_python({
+            'frames': [{
+                'context_line': '{snip}',
+                'lineno': 20,
+                'filename': 'https://foo.com/index.js',
+                'function': '?',
+            }],
+        })
+        result = interface.get_hash()
+        assert result == []
+
     @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_stacktrace')
     def test_to_string_returns_stacktrace(self, get_stacktrace):
         event = mock.Mock(spec=Event())
@@ -329,23 +345,23 @@ class StacktraceTest(TestCase):
         self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo", line 3, in biz\n    def foo(r):\n  File "bar", line 5, in baz\n    return None')
 
     def test_bad_input(self):
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(InterfaceValidationError):
             Frame.to_python({
                 'filename': 1,
             })
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(InterfaceValidationError):
             Frame.to_python({
                 'filename': 'foo',
                 'abs_path': 1,
             })
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(InterfaceValidationError):
             Frame.to_python({
                 'function': 1,
             })
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(InterfaceValidationError):
             Frame.to_python({
                 'module': 1,
             })

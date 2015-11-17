@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import hashlib
+from hashlib import sha256
 import hmac
 
 from django.contrib import messages
@@ -11,7 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 from uuid import uuid1
 
 from sentry import constants
-from sentry.models import OrganizationMemberType, ProjectOption
+from sentry.models import ProjectOption
 from sentry.plugins import plugins, ReleaseTrackingPlugin
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import ProjectView
@@ -23,7 +23,7 @@ ERR_NO_FEATURE = _('The release tracking feature is not enabled for this project
 
 
 class ProjectReleaseTrackingView(ProjectView):
-    required_access = OrganizationMemberType.ADMIN
+    required_scope = 'project:write'
 
     def _iter_plugins(self):
         for plugin in plugins.all(version=2):
@@ -56,7 +56,7 @@ class ProjectReleaseTrackingView(ProjectView):
         return hmac.new(
             key=str(token),
             msg='{}-{}'.format(plugin_id, project_id),
-            digestmod=hashlib.sha256
+            digestmod=sha256
         ).hexdigest()
 
     def handle(self, request, organization, team, project):
@@ -92,7 +92,7 @@ class ProjectReleaseTrackingView(ProjectView):
                 }))
                 content = plugin.get_release_doc_html(hook_url=hook_url)
                 enabled_plugins.append((plugin, mark_safe(content)))
-            else:
+            elif plugin.can_configure_for_project(project):
                 other_plugins.append(plugin)
 
         context = {

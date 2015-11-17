@@ -1,18 +1,17 @@
-var React = require("react/addons");
-var TestUtils = React.addons.TestUtils;
+import React from 'react';
+import TestUtils from 'react-addons-test-utils';
 
-var api = require("app/api");
-var stubReactComponents = require("../../../helpers/stubReactComponent");
+import api from 'app/api';
+import stubReactComponents from '../../../helpers/stubReactComponent';
+import ActionLink from 'app/views/stream/actionLink';
+import Modal from 'react-bootstrap/lib/Modal';
 
-var ActionLink = require("app/views/stream/actionLink");
-import Modal from "react-bootstrap/Modal";
-
-describe("ActionLink", function() {
+describe('ActionLink', function() {
 
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(api, "request");
+    this.stubbedApiRequest = this.sandbox.stub(api, 'request');
     stubReactComponents(this.sandbox, [Modal]);
   });
 
@@ -20,9 +19,11 @@ describe("ActionLink", function() {
     this.sandbox.restore();
   });
 
-  describe("shouldConfirm()", function() {
+  describe('shouldConfirm()', function() {
     it('should always return true by default', function () {
-      var actionLink = TestUtils.renderIntoDocument(<ActionLink/>);
+      let actionLink = TestUtils.renderIntoDocument(
+        <ActionLink onAction={function(){}} selectAllActive={false}/>
+      );
 
       expect(actionLink.shouldConfirm(0)).to.be.true;
       expect(actionLink.shouldConfirm(1)).to.be.true;
@@ -30,7 +31,9 @@ describe("ActionLink", function() {
     });
 
     it('should return false when props.neverConfirm is true', function () {
-      var actionLink = TestUtils.renderIntoDocument(<ActionLink neverConfirm={true}/>);
+      let actionLink = TestUtils.renderIntoDocument(
+        <ActionLink neverConfirm={true} onAction={function(){}} selectAllActive={false}/>
+      );
 
       expect(actionLink.shouldConfirm(0)).to.be.false;
       expect(actionLink.shouldConfirm(1)).to.be.false;
@@ -39,7 +42,9 @@ describe("ActionLink", function() {
 
 
     it('should return (mostly) true when props.onlyIfBulk is true and all are selected', function () {
-      var actionLink = TestUtils.renderIntoDocument(<ActionLink onlyIfBulk={true} selectAllActive={true}/>);
+      let actionLink = TestUtils.renderIntoDocument(
+        <ActionLink onlyIfBulk={true} selectAllActive={true} onAction={function(){}}/>
+      );
 
       expect(actionLink.shouldConfirm(1)).to.be.false; // EDGE CASE: if just 1, shouldn't confirm even if "all" selected
       expect(actionLink.shouldConfirm(2)).to.be.true;
@@ -47,7 +52,9 @@ describe("ActionLink", function() {
     });
 
     it('should return false when props.onlyIfBulk is true and not all are selected', function () {
-      var actionLink = TestUtils.renderIntoDocument(<ActionLink onlyIfBulk={true} selectAllActive={false}/>);
+      let actionLink = TestUtils.renderIntoDocument(
+        <ActionLink onlyIfBulk={true} selectAllActive={false} onAction={function(){}}/>
+      );
 
       expect(actionLink.shouldConfirm(1)).to.be.false;
       expect(actionLink.shouldConfirm(2)).to.be.false;
@@ -55,3 +62,4 @@ describe("ActionLink", function() {
     });
   });
 });
+

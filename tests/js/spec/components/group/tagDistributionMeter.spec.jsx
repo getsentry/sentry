@@ -1,38 +1,28 @@
-var React = require("react/addons");
-var TestUtils = React.addons.TestUtils;
+import React from 'react';
+import ReactDOMServer from 'react-dom/server';
 
-var api = require("app/api");
-var TagDistributionMeter = require("app/components/group/tagDistributionMeter");
-var stubRouter = require("../../../helpers/stubRouter");
-var stubContext = require("../../../helpers/stubContext");
+import TestUtils from 'react-addons-test-utils';
 
-describe("TagDistributionMeter", function() {
+import api from 'app/api';
+import TagDistributionMeter from 'app/components/group/tagDistributionMeter';
+
+describe('TagDistributionMeter', function() {
 
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(api, "request");
+    this.stubbedApiRequest = this.sandbox.stub(api, 'request');
 
-    let ContextStubbedTagDistributionMeter = stubContext(TagDistributionMeter, {
-      organization: { id: 1337 },
-      router: stubRouter({
-        getCurrentParams() {
-          return { orgId: "123" };
-        },
-        getCurrentQuery() {
-          return { limit: 0 };
-        }
-      })
-    });
-
-    this.element = TestUtils.renderIntoDocument(<ContextStubbedTagDistributionMeter tag="browser" group={{id:1337}}/>).refs.wrapped;
+    this.element = TestUtils.renderIntoDocument(
+      <TagDistributionMeter tag="browser" group={{id:'1337'}} orgId="123" projectId="456"/>
+    );
   });
 
   afterEach(function() {
     this.sandbox.restore();
   });
 
-  describe("fetchData()", function() {
+  describe('fetchData()', function() {
     it('should make a request to the groups/tags endpoint', function () {
       // NOTE: creation of OrganizationTeams causes a bunch of API requests to fire ...
       //       reset the request stub so that we can get an accurate count
@@ -45,7 +35,7 @@ describe("TagDistributionMeter", function() {
     });
   });
 
-  describe("renderBody()", function () {
+  describe('renderBody()', function () {
     it('should return null if loading', function (done) {
       this.element.setState({
         loading: true,
@@ -75,7 +65,7 @@ describe("TagDistributionMeter", function() {
         }
       }, () => {
         let out = this.element.renderBody();
-        expect(React.renderToStaticMarkup(out)).to.eql('<p>No recent data.</p>');
+        expect(ReactDOMServer.renderToStaticMarkup(out)).to.eql('<p>No recent data.</p>');
         done();
       });
     });
@@ -97,3 +87,4 @@ describe("TagDistributionMeter", function() {
     });
   });
 });
+

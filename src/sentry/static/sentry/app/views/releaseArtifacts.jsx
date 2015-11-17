@@ -1,18 +1,18 @@
-import React from "react";
-import PropTypes from "../proptypes";
-import jQuery from "jquery";
+import React from 'react';
+import {History} from 'react-router';
 
-import api from "../api";
-import FileSize from "../components/fileSize";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import Pagination from "../components/pagination";
+import api from '../api';
+import FileSize from '../components/fileSize';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import Pagination from '../components/pagination';
 
-var ReleaseArtifacts = React.createClass({
+const ReleaseArtifacts = React.createClass({
   contextTypes: {
-    router: React.PropTypes.func,
-    release: PropTypes.AnyModel
+    release: React.PropTypes.object
   },
+
+  mixins: [ History ],
 
   getInitialState() {
     return {
@@ -27,14 +27,15 @@ var ReleaseArtifacts = React.createClass({
     this.fetchData();
   },
 
-  routeDidChange() {
-    this.fetchData();
+  componentDidUpdate(prevProps) {
+    if (this.props.location.search !== prevProps.location.search) {
+      this.fetchData();
+    }
   },
 
   fetchData() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    var endpoint = '/projects/' + params.orgId + '/' + params.projectId + '/releases/' + params.version + '/files/';
+    let params = this.props.params;
+    let endpoint = '/projects/' + params.orgId + '/' + params.projectId + '/releases/' + params.version + '/files/';
 
     this.setState({
       loading: true,
@@ -42,6 +43,8 @@ var ReleaseArtifacts = React.createClass({
     });
 
     api.request(endpoint, {
+      method: 'GET',
+      data: this.props.location.query,
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,
@@ -57,15 +60,6 @@ var ReleaseArtifacts = React.createClass({
         });
       }
     });
-  },
-
-  onPage(cursor) {
-    var router = this.context.router;
-    var queryParams = jQuery.extend({}, router.getCurrentQuery(), {
-      cursor: cursor
-    });
-
-    router.transitionTo('releaseArtifacts', router.getCurrentParams(), queryParams);
   },
 
   render() {
@@ -85,6 +79,7 @@ var ReleaseArtifacts = React.createClass({
     return (
       <div>
         <table className="table">
+          <tbody>
           {this.state.fileList.map((file) => {
             return (
               <tr key={file.id}>
@@ -93,8 +88,9 @@ var ReleaseArtifacts = React.createClass({
               </tr>
             );
           })}
+          </tbody>
         </table>
-        <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
+        <Pagination pageLinks={this.state.pageLinks}/>
       </div>
     );
   }

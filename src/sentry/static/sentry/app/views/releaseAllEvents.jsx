@@ -1,29 +1,26 @@
-import React from "react";
-import Router from "react-router";
-import GroupList from "../components/groupList";
-import PropTypes from "../proptypes";
+import React from 'react';
+import {Link} from 'react-router';
+import GroupList from '../components/groupList';
 
-var ReleaseAllEvents = React.createClass({
+const ReleaseAllEvents = React.createClass({
   contextTypes: {
-    router: React.PropTypes.func,
-    release: PropTypes.AnyModel
+    release: React.PropTypes.object
   },
 
   render() {
-    var params = this.context.router.getCurrentParams();
+    let {orgId, projectId} = this.props.params;
     return (
       <div>
         <div className="alert alert-block">
-          <Router.Link to="stream" params={{
-            orgId: params.orgId,
-            projectId: params.projectId
-          }} query={{
-            query: "release:" + this.context.release.version
+          <Link to={`/${orgId}/${projectId}/`} query={{
+            query: 'release:' + this.context.release.version
           }}>
             <span className="icon icon-open"></span> View all events seen in this release in the stream
-          </Router.Link>
+          </Link>
         </div>
         <GroupList
+          orgId={orgId}
+          projectId={projectId}
           query={'release:"' + this.context.release.version + '"'}
           canSelectGroups={false} bulkActions={false} />
       </div>

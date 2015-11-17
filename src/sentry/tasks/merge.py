@@ -21,6 +21,7 @@ logger = get_task_logger(__name__)
                    default_retry_delay=60 * 5, max_retries=None)
 @retry
 def merge_group(from_object_id, to_object_id, **kwargs):
+    # TODO(mattrobenolt): Write tests for all of this
     from sentry.models import (
         Activity, Group, GroupAssignee, GroupHash, GroupRuleStatus, GroupTagKey,
         GroupTagValue, EventMapping, Event, UserReport
@@ -53,7 +54,11 @@ def merge_group(from_object_id, to_object_id, **kwargs):
         return
 
     new_group.update(
+        # TODO(dcramer): ideally these would be SQL clauses
+        first_seen=min(group.first_seen, new_group.first_seen),
+        last_seen=max(group.last_seen, new_group.last_seen),
         times_seen=F('times_seen') + group.times_seen,
+        num_comments=F('num_comments') + group.num_comments,
     )
 
     group.delete()

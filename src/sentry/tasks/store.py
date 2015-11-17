@@ -9,6 +9,7 @@ sentry.tasks.store
 from __future__ import absolute_import
 
 from celery.utils.log import get_task_logger
+from raven.contrib.django.models import client as Raven
 from time import time
 
 from sentry.cache import default_cache
@@ -21,7 +22,10 @@ logger = get_task_logger(__name__)
 
 @instrumented_task(
     name='sentry.tasks.store.preprocess_event',
-    queue='events')
+    queue='events',
+    time_limit=65,
+    soft_time_limit=60,
+)
 def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
     from sentry.plugins import plugins
 
@@ -29,15 +33,20 @@ def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
         data = default_cache.get(cache_key)
 
     if data is None:
+        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'pre'})
         logger.error('Data not available in preprocess_event (cache_key=%s)', cache_key)
         return
 
     project = data['project']
+    Raven.tags_context({
+        'project': project,
+    })
 
     # TODO(dcramer): ideally we would know if data changed by default
     has_changed = False
     for plugin in plugins.all(version=2):
-        for processor in (safe_execute(plugin.get_event_preprocessors) or ()):
+        processors = safe_execute(plugin.get_event_preprocessors, _with_transaction=False)
+        for processor in (processors or ()):
             result = safe_execute(processor, data)
             if result:
                 data = result
@@ -66,9 +75,13 @@ def save_event(cache_key=None, data=None, start_time=None, **kwargs):
         data = default_cache.get(cache_key)
 
     if data is None:
+        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
         return
 
     project = data.pop('project')
+    Raven.tags_context({
+        'project': project,
+    })
 
     try:
         manager = EventManager(data)

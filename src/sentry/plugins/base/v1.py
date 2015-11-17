@@ -14,11 +14,14 @@ import logging
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from threading import local
+from hashlib import md5
 
 from sentry.auth import access
 from sentry.plugins.base.response import Response
 from sentry.plugins.base.view import PluggableViewMixin
-from sentry.plugins.base.configuration import default_plugin_config
+from sentry.plugins.base.configuration import (
+    default_plugin_config, default_plugin_options,
+)
 
 
 class PluginMount(type):
@@ -167,6 +170,47 @@ class IPlugin(local, PluggableViewMixin):
             return self.get_conf_title().lower().replace(' ', '_')
         return self.conf_key
 
+    def get_conf_form(self, project=None):
+        """
+        Returns the Form required to configure the plugin.
+
+        >>> plugin.get_conf_form(project)
+        """
+        if project is not None:
+            return self.project_conf_form
+        return self.site_conf_form
+
+    def get_conf_template(self, project=None):
+        """
+        Returns the template required to render the configuration page.
+
+        >>> plugin.get_conf_template(project)
+        """
+        if project is not None:
+            return self.project_conf_template
+        return self.site_conf_template
+
+    def get_conf_options(self, project=None):
+        """
+        Returns a dict of all of the configured options for a project.
+
+        >>> plugin.get_conf_options(project)
+        """
+        return default_plugin_options(self, project)
+
+    def get_conf_version(self, project):
+        """
+        Returns a version string that represents the current configuration state.
+
+        If any option changes or new options added, the version will change.
+
+        >>> plugin.get_conf_version(project)
+        """
+        options = self.get_conf_options(project)
+        return md5(
+            '&'.join(sorted('%s=%s' % o for o in options.iteritems()))
+        ).hexdigest()[:3]
+
     def get_conf_title(self):
         """
         Returns a string representing the title to be shown on the configuration page.
@@ -181,8 +225,29 @@ class IPlugin(local, PluggableViewMixin):
 
     def can_enable_for_projects(self):
         """
-        Returns a boolean describing whether this plugin can be enabled on a per project basis
+        Returns a boolean describing whether this plugin can be enabled for
+        projects.
         """
+        return True
+
+    def can_configure_for_project(self, project):
+        """
+        Returns a boolean describing whether this plugin can be enabled on
+        a per project basis
+        """
+        from sentry import features
+
+        if not self.enabled:
+            return False
+        if not self.can_enable_for_projects():
+            return False
+
+        if not features.has('projects:plugins', project, self, actor=None):
+            return False
+
+        if not self.can_disable:
+            return True
+
         return True
 
     def get_form_initial(self, project=None):
@@ -405,6 +470,9 @@ class IPlugin(local, PluggableViewMixin):
     def configure(self, request, project=None):
         """Configures the plugin."""
         return default_plugin_config(self, project, request)
+
+    def get_url_module(self):
+        """Allows a plugin to return the import path to a URL module."""
 
 
 class Plugin(IPlugin):

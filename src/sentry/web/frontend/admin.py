@@ -7,9 +7,9 @@ sentry.web.frontend.admin
 """
 from __future__ import absolute_import, print_function
 
-import datetime
 import logging
 import pkg_resources
+import six
 import sys
 import uuid
 
@@ -20,12 +20,10 @@ from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.db.models import Count
 from django.http import HttpResponseRedirect, HttpResponse
-from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
 
-import six
-
 from sentry.app import env
+from sentry.auth.utils import is_active_superuser
 from sentry.models import Team, Project, User
 from sentry.plugins import plugins
 from sentry.utils.http import absolute_uri
@@ -116,7 +114,7 @@ def manage_users(request):
 @transaction.atomic
 @csrf_protect
 def create_new_user(request):
-    if not request.user.is_superuser:
+    if not is_active_superuser(request.user):
         return HttpResponseRedirect(reverse('sentry'))
 
     form = NewUserForm(request.POST or None, initial={
@@ -132,25 +130,12 @@ def create_new_user(request):
 
         user.save()
 
-        if form.cleaned_data['create_project']:
-            project = Project.objects.create(
-                name='%s\'s New Project' % user.username.capitalize()
-            )
-            member = project.organization.member_set.get(user=user)
-            key = project.key_set.get(user=user)
-
         if form.cleaned_data['send_welcome_mail']:
             context = {
                 'username': user.username,
                 'password': password,
                 'url': absolute_uri(reverse('sentry')),
             }
-            if form.cleaned_data['create_project']:
-                context.update({
-                    'project': project,
-                    'member': member,
-                    'dsn': key.get_dsn(),
-                })
             body = render_to_string('sentry/emails/welcome_mail.txt', context, request)
 
             try:
@@ -176,7 +161,7 @@ def create_new_user(request):
 @requires_admin
 @csrf_protect
 def edit_user(request, user_id):
-    if not request.user.is_superuser:
+    if not is_active_superuser(request.user):
         return HttpResponseRedirect(reverse('sentry'))
 
     try:
@@ -351,19 +336,4 @@ def status_mail(request):
         'EMAIL_PORT': settings.EMAIL_PORT,
         'EMAIL_USE_TLS': settings.EMAIL_USE_TLS,
         'SERVER_EMAIL': settings.SERVER_EMAIL,
-    }, request)
-
-
-@requires_admin
-def overview(request):
-    new_projects = Project.objects.filter(
-        date_added__gte=timezone.now() - datetime.timedelta(hours=24),
-    ).count()
-    statistics = (
-        ('Projects', Project.objects.count()),
-        ('Projects (24h)', new_projects),
-    )
-
-    return render_to_response('sentry/admin/stats.html', {
-        'statistics': statistics,
     }, request)

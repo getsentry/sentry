@@ -1,23 +1,27 @@
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 
-develop-only: update-submodules
-	@echo "--> Installing dependencies"
-	npm install
+install-python:
+	@echo "--> Installing Python dependencies"
 	pip install "setuptools>=0.9.8"
 	# order matters here, base package must install first
 	pip install -e .
 	pip install "file://`pwd`#egg=sentry[dev]"
 
-develop: update-submodules setup-git develop-only
+install-npm:
+	@echo "--> Installing Node dependencies"
+	npm install
+
+install-python-tests:
 	pip install "file://`pwd`#egg=sentry[tests]"
+
+develop-only: update-submodules install-python install-python-tests install-npm
+
+develop: update-submodules setup-git develop-only install-python-tests
 	@echo ""
 
-dev-postgres: develop
+dev-postgres: install-python
 	pip install "file://`pwd`#egg=sentry[postgres]"
-
-dev-mysql: develop
-	pip install "file://`pwd`#egg=sentry[mysql]"
 
 dev-docs:
 	pip install -r doc-requirements.txt
@@ -40,7 +44,7 @@ build: locale
 
 clean:
 	@echo "--> Cleaning static cache"
-	${NPM_ROOT}/.bin/gulp clean
+	rm dist/* static/dist/*
 	@echo "--> Cleaning pyc files"
 	find . -name "*.pyc" -delete
 	@echo ""
@@ -80,7 +84,7 @@ test-cli:
 
 test-js:
 	@echo "--> Running JavaScript tests"
-	@node_modules/.bin/webpack
+	@${NPM_ROOT}/.bin/webpack
 	@npm run test
 	@echo ""
 
@@ -89,18 +93,22 @@ test-python:
 	py.test tests || exit 1
 	@echo ""
 
-lint: lint-python lint-js
 
-lint-python:
-	@echo "--> Linting Python files"
-	PYFLAKES_NODOCTEST=1 flake8 src/sentry tests
+test-python-coverage:
+	@echo "--> Running Python tests"
+	coverage run --source=src/sentry -m py.test tests
 	@echo ""
 
-lint-js:
-	@echo "--> Linting JavaScript files"
-	@npm install
-	@npm run lint
+
+lint:
+	@echo "--> Linting all the things"
+	bin/lint src/sentry tests
 	@echo ""
+
+# These are just aliases for backwards compat
+# our linter does both now
+lint-python: lint
+lint-js: lint
 
 coverage: develop
 	coverage run --source=src/sentry -m py.test
@@ -116,4 +124,53 @@ extract-api-docs:
 	rm -rf api-docs/cache/*
 	cd api-docs; python generator.py
 
-.PHONY: develop dev-postgres dev-mysql dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python lint lint-python lint-js coverage run-uwsgi publish
+
+.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python test-python-coverage lint lint-python lint-js coverage run-uwsgi publish
+
+
+############################
+# Halt, Travis stuff below #
+############################
+
+# Bases for all builds
+travis-upgrade-pip:
+	python -m pip install --upgrade pip==7.1.2
+travis-setup-cassandra:
+	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.0.3
+	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.0.3
+travis-install-python: travis-upgrade-pip install-python-tests travis-setup-cassandra
+	python -m pip install codecov
+travis-noop:
+	@echo "nothing to do here."
+
+.PHONY: travis-upgrade-pip travis-setup-cassandra travis-install-python travis-noop
+
+# Install steps
+travis-install-sqlite: travis-install-python
+travis-install-postgres: travis-install-python dev-postgres
+	psql -c 'create database sentry;' -U postgres
+travis-install-webpack: travis-install-js
+travis-install-js: install-npm
+travis-install-cli: travis-install-python
+
+.PHONY: travis-install-sqlite travis-install-postgres travis-install-webpack travis-install-js travis-install-cli
+
+# Lint steps
+travis-lint-sqlite: lint
+travis-lint-postgres: lint
+travis-lint-webpack: travis-noop
+travis-lint-js: lint
+travis-lint-cli: travis-noop
+
+.PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-webpack travis-lint-js travis-lint-cli
+
+# Test steps
+travis-test-sqlite: test-python-coverage
+travis-test-postgres: test-python-coverage
+travis-test-webpack:
+	@echo "--> Compiling webpack"
+	${NPM_ROOT}/.bin/webpack
+travis-test-js: test-js
+travis-test-ci: test-ci
+
+.PHONY: travis-test-sqlite travis-test-postgres travis-test-webpack travis-test-js travis-test-cli

@@ -16,7 +16,7 @@ from urllib import urlencode
 from urlparse import parse_qsl, urlsplit, urlunsplit
 
 from sentry.constants import HTTP_METHODS
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils import json
 from sentry.utils.safe import trim, trim_dict, trim_pairs
 from sentry.web.helpers import render_to_string
@@ -32,6 +32,13 @@ def format_headers(value):
     result = []
     cookie_header = None
     for k, v in value:
+        # If a header value is a list of header,
+        # we want to normalize this into a comma separated list
+        # This is how most other libraries handle this.
+        # See: urllib3._collections:HTTPHeaderDict.itermerged
+        if isinstance(v, list):
+            v = ', '.join(v)
+
         if k.lower() == 'cookie':
             cookie_header = v
         else:
@@ -71,14 +78,12 @@ class Http(Interface):
     >>>  {
     >>>     "url": "http://absolute.uri/foo",
     >>>     "method": "POST",
-    >>>     "data": {
-    >>>         "foo": "bar"
-    >>>     },
+    >>>     "data": "foo=bar",
     >>>     "query_string": "hello=world",
     >>>     "cookies": "foo=bar",
-    >>>     "headers": {
-    >>>         "Content-Type": "text/html"
-    >>>     },
+    >>>     "headers": [
+    >>>         ["Content-Type", "text/html"]
+    >>>     ],
     >>>     "env": {
     >>>         "REMOTE_ADDR": "192.168.0.1"
     >>>     }
@@ -94,13 +99,15 @@ class Http(Interface):
 
     @classmethod
     def to_python(cls, data):
-        assert data.get('url')
+        if not data.get('url'):
+            raise InterfaceValidationError("No value for 'url'")
 
         kwargs = {}
 
         if data.get('method'):
             method = data['method'].upper()
-            assert method in HTTP_METHODS
+            if method not in HTTP_METHODS:
+                raise InterfaceValidationError("Invalid value for 'method'")
             kwargs['method'] = method
         else:
             kwargs['method'] = None
@@ -169,6 +176,7 @@ class Http(Interface):
             'short_url': self.url,
             'method': self.method,
             'query_string': self.query_string,
+            'fragment': self.fragment,
         })
 
     def get_alias(self):

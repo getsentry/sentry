@@ -1,8 +1,9 @@
-import React from "react";
+import React from 'react';
 
-import ContextData from "../../contextData";
+import {objectToArray} from '../../../utils';
+import KeyValueList from './keyValueList';
 
-var FrameVariables = React.createClass({
+const FrameVariables = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired
   },
@@ -14,21 +15,10 @@ var FrameVariables = React.createClass({
   },
 
   render() {
-    var children = [];
-    var data = this.props.data;
-
-    for (var key in data) {
-      var value = data[key];
-      children.push(<dt key={'dt-' + key}>{key}</dt>);
-      children.push((
-        <dd key={'dd-' + key}>
-          <ContextData data={value} />
-        </dd>
-      ));
-    }
+    let data = objectToArray(this.props.data);
 
     return (
-      <dl className="vars expandable" onClick={this.preventToggling}>{children}</dl>
+      <KeyValueList data={data} isContextData={true} onClick={this.preventToggling} />
     );
   }
 });

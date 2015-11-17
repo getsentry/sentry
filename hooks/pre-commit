@@ -1,41 +1,19 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
 
-import glob
 import os
 import sys
 
-os.environ['PYFLAKES_NODOCTEST'] = '1'
+from glob import glob
 
-# pep8.py uses sys.argv to find setup.cfg
-sys.argv = [os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)]
+from sentry.lint.engine import check_files
+
 
 # git usurbs your bin path for hooks and will always run system python
 if 'VIRTUAL_ENV' in os.environ:
-    site_packages = glob.glob(
+    site_packages = glob(
         '%s/lib/*/site-packages' % os.environ['VIRTUAL_ENV'])[0]
     sys.path.insert(0, site_packages)
-
-
-def py_lint(files_modified):
-    from flake8.main import DEFAULT_CONFIG
-    from flake8.engine import get_style_guide
-
-    # remove non-py files and files which no longer exist
-    files_modified = filter(lambda x: x.endswith('.py'), files_modified)
-
-    flake8_style = get_style_guide(parse_argv=True, config_file=DEFAULT_CONFIG)
-    report = flake8_style.check_files(files_modified)
-
-    return report.total_errors != 0
-
-
-def js_lint(files_modified):
-    has_errors = False
-    files_modified = filter(lambda x: x.endswith(('.js', '.jsx')), files_modified)
-    if files_modified and os.system('npm run-script lint'):
-        has_errors = True
-
-    return has_errors
 
 
 def main():
@@ -47,9 +25,8 @@ def main():
 
     files_modified = filter(lambda x: os.path.exists(x), files_modified)
 
-    if any((py_lint(files_modified), js_lint(files_modified))):
-        return 1
-    return 0
+    return check_files(files_modified)
+
 
 if __name__ == '__main__':
     sys.exit(main())

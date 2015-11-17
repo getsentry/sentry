@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -9,6 +10,7 @@ from sentry.api.bases.organization import (
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
+from sentry.auth.utils import is_active_superuser
 from sentry.models import (
     AuditLogEntryEvent, OrganizationAccessRequest,
     OrganizationMember, OrganizationMemberTeam, Team
@@ -22,14 +24,19 @@ class OrganizationMemberTeamSerializer(serializers.Serializer):
 
 
 class RelaxedOrganizationPermission(OrganizationPermission):
+    _allowed_scopes = [
+        'org:read', 'org:write', 'org:delete',
+        'member:read', 'member:write', 'member:delete',
+    ]
+
     scope_map = {
-        'GET': ['org:read', 'org:write', 'org:delete'],
-        'POST': ['org:read', 'org:write', 'org:delete'],
-        'PUT': ['org:read', 'org:write', 'org:delete'],
+        'GET': _allowed_scopes,
+        'POST': _allowed_scopes,
+        'PUT': _allowed_scopes,
 
         # DELETE checks for role comparison as you can either remove a member
         # with a lower access role, or yourself, without having the req. scope
-        'DELETE': ['org:read', 'org:write', 'org:delete'],
+        'DELETE': _allowed_scopes,
     }
 
 
@@ -38,7 +45,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
     def _can_access(self, request, member):
         # TODO(dcramer): ideally org owners/admins could perform these actions
-        if request.user.is_superuser:
+        if is_active_superuser(request.user):
             return True
 
         if not request.user.is_authenticated():
@@ -54,9 +61,11 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             queryset = OrganizationMember.objects.filter(
                 organization=organization,
                 user__id=request.user.id,
+                user__is_active=True,
             )
         else:
             queryset = OrganizationMember.objects.filter(
+                Q(user__is_active=True) | Q(user__isnull=True),
                 organization=organization,
                 id=member_id,
             )
@@ -90,44 +99,39 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not om.has_global_access:
-            try:
-                omt = OrganizationMemberTeam.objects.get(
+        try:
+            omt = OrganizationMemberTeam.objects.get(
+                team=team,
+                organizationmember=om,
+            )
+        except OrganizationMemberTeam.DoesNotExist:
+            if not (request.access.has_scope('org:write') or organization.flags.allow_joinleave):
+                omt, created = OrganizationAccessRequest.objects.get_or_create(
                     team=team,
-                    organizationmember=om,
+                    member=om,
                 )
-            except OrganizationMemberTeam.DoesNotExist:
-                # TODO(dcramer): this should create a pending request and
-                # return a 202
-                if not organization.flags.allow_joinleave:
-                    omt, created = OrganizationAccessRequest.objects.get_or_create(
-                        team=team,
-                        member=om,
-                    )
-                    if created:
-                        omt.send_request_email()
-                    return Response(status=202)
+                if created:
+                    omt.send_request_email()
+                return Response(status=202)
 
-                omt = OrganizationMemberTeam(
-                    team=team,
-                    organizationmember=om,
-                    is_active=False,
-                )
-
+            omt = OrganizationMemberTeam.objects.create(
+                team=team,
+                organizationmember=om,
+                is_active=True,
+            )
+        else:
             if omt.is_active:
                 return Response(status=204)
-        else:
-            try:
-                omt = OrganizationMemberTeam.objects.get(
+            elif not (request.access.has_scope('org:write') or organization.flags.allow_joinleave):
+                omt, created = OrganizationAccessRequest.objects.get_or_create(
                     team=team,
-                    organizationmember=om,
+                    member=om,
                 )
-            except OrganizationMemberTeam.DoesNotExist:
-                # if the relationship doesnt exist, they're already a member
-                return Response(status=204)
-
-        omt.is_active = True
-        omt.save()
+                if created:
+                    omt.send_request_email()
+                return Response(status=202)
+            omt.is_active = True
+            omt.save()
 
         self.create_audit_entry(
             request=request,
@@ -163,29 +167,15 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not om.has_global_access:
-            try:
-                omt = OrganizationMemberTeam.objects.get(
-                    team=team,
-                    organizationmember=om,
-                )
-            except OrganizationMemberTeam.DoesNotExist:
-                # if the relationship doesnt exist, they're already a member
-                return Response(serialize(
-                    team, request.user, TeamWithProjectsSerializer()), status=200)
-        else:
-            try:
-                omt = OrganizationMemberTeam.objects.get(
-                    team=team,
-                    organizationmember=om,
-                    is_active=True,
-                )
-            except OrganizationMemberTeam.DoesNotExist:
-                omt = OrganizationMemberTeam(
-                    team=team,
-                    organizationmember=om,
-                    is_active=True,
-                )
+        try:
+            omt = OrganizationMemberTeam.objects.get(
+                team=team,
+                organizationmember=om,
+            )
+        except OrganizationMemberTeam.DoesNotExist:
+            # if the relationship doesnt exist, they're already a member
+            return Response(serialize(
+                team, request.user, TeamWithProjectsSerializer()), status=200)
 
         if omt.is_active:
             omt.is_active = False

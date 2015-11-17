@@ -1,37 +1,18 @@
 from __future__ import absolute_import
 
-from collections import defaultdict
+from django.db.models import Q
 
+from sentry import roles
 from sentry.models import (
-    AuthProvider, OrganizationAccessRequest, OrganizationMember,
-    OrganizationMemberTeam, OrganizationMemberType
+    AuthProvider, OrganizationAccessRequest, OrganizationMember
 )
 from sentry.web.frontend.base import OrganizationView
 
 
 class OrganizationMembersView(OrganizationView):
     def handle(self, request, organization):
-        if request.user.is_superuser:
-            authorizing_access = OrganizationMemberType.OWNER
-            access_is_global = True
-        else:
-            member = OrganizationMember.objects.get(
-                user=request.user,
-                organization=organization,
-            )
-            authorizing_access = member.type
-            access_is_global = member.has_global_access
-
-        queryset = OrganizationMemberTeam.objects.filter(
-            organizationmember__organization=organization,
-            is_active=True,
-        ).select_related('team')
-
-        team_map = defaultdict(list)
-        for omt in queryset:
-            team_map[omt.organizationmember_id].append(omt.team)
-
         queryset = OrganizationMember.objects.filter(
+            Q(user__is_active=True) | Q(user__isnull=True),
             organization=organization,
         ).select_related('user')
 
@@ -45,20 +26,31 @@ class OrganizationMembersView(OrganizationView):
         member_list = []
         for om in queryset:
             needs_sso = bool(auth_provider and not getattr(om.flags, 'sso:linked'))
-            member_list.append((om, team_map[om.id], needs_sso))
+            member_list.append((om, needs_sso))
 
         # if the member is not the only owner we allow them to leave the org
         member_can_leave = any(
-            1 for om, _, _ in member_list
-            if (om.type == OrganizationMemberType.OWNER
+            1 for om, _ in member_list
+            if (om.role == roles.get_top_dog().id
                 and om.user != request.user
                 and om.user is not None)
         )
 
+        # TODO(dcramer): ideally member:write could approve
+        can_approve_requests_globally = request.access.has_scope('org:write')
+        can_add_members = request.access.has_scope('org:write')
+        can_remove_members = request.access.has_scope('member:delete')
+
         # pending requests
-        if access_is_global and authorizing_access <= OrganizationMemberType.ADMIN:
+        if can_approve_requests_globally:
             access_requests = list(OrganizationAccessRequest.objects.filter(
                 team__organization=organization,
+                member__user__is_active=True,
+            ).select_related('team', 'member__user'))
+        elif request.access.has_scope('team:write') and request.access.teams:
+            access_requests = list(OrganizationAccessRequest.objects.filter(
+                member__user__is_active=True,
+                team__in=request.access.teams,
             ).select_related('team', 'member__user'))
         else:
             access_requests = []
@@ -68,7 +60,8 @@ class OrganizationMembersView(OrganizationView):
             'member_list': member_list,
             'request_list': access_requests,
             'ref': request.GET.get('ref'),
-            'authorizing_access': authorizing_access,
+            'can_add_members': can_add_members,
+            'can_remove_members': can_remove_members,
             'member_can_leave': member_can_leave,
         }
 

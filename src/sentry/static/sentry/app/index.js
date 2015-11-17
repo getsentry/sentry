@@ -38,17 +38,23 @@ export default {
   moment: require("moment"),
   Raven: require("raven-js"),
   React: require("react"),
+  ReactDOM: require("react-dom"),
   Router: require("react-router"),
 
   Sentry: {
     api: require("./api"),
     routes: require("./routes"),
+    createHistory: require("history/lib/createBrowserHistory"),
 
     Alerts: require("./components/alerts"),
     ConfigStore: require("./stores/configStore"),
+    DropdownLink: require("./components/dropdownLink"),
     FlotChart: require("./components/flotChart"),
     HookStore: require("./stores/hookStore"),
     Indicators: require("./components/indicators"),
+    ListLink: require("./components/listLink"),
+    MenuItem: require("./components/menuItem"),
+    Pagination: require("./components/pagination"),
     ProjectSelector: require("./components/projectHeader/projectSelector"),
     RuleEditor: require("./views/ruleEditor")
   }

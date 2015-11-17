@@ -9,7 +9,17 @@
 {% block org_members_nav %}active{% endblock %}
 
 {% block main %}
-  <a class="btn btn-primary btn-sm pull-right" href="{% url 'sentry-create-organization-member' organization.slug %}"><span class="icon-plus"></span> Invite Member</a>
+  {% if can_add_members %}
+    <a class="btn btn-primary btn-sm pull-right" href="{% url 'sentry-create-organization-member' organization.slug %}">
+      <span class="icon-plus"></span> Invite Member
+    </a>
+  {% else %}
+    <a class="btn btn-primary btn-sm btn-disabled tip pull-right"
+       title="You do not have enough permission to add new members">
+      <span class="icon-plus"></span> Invite Member
+    </a>
+  {% endif %}
+
   <h3>{% trans "Members" %}</h3>
 
   <p>{% blocktrans %}Members of your organization gain slightly elevated permissions over individual team members. For example, organization administrators can create new teams as well as manage all organization settings (including the list of admins).{% endblocktrans %}</p>
@@ -57,12 +67,13 @@
         <th>Member</th>
         <th>&nbsp;</th>
         <th>Role</th>
-        <th>Teams</th>
-        <th class="squash">&nbsp;</th>
+        {% if can_remove_members or member_can_leave %}
+          <th class="squash">&nbsp;</th>
+        {% endif %}
       </tr>
     </thead>
     <tbody>
-      {% for member, team_list, needs_sso in member_list %}
+      {% for member, needs_sso in member_list %}
         <tr>
           <td class="table-user-info">
             <img class="avatar" src="{% gravatar_url member.get_email size 80 %}">
@@ -83,26 +94,23 @@
               <a href="javascript:void(0)" class="resend-invite btn btn-sm btn-primary" data-member-id="{{ member.id }}" style="padding: 0 4px; margin-top: 2px">Resend invite</a>
             {% endif %}
           </td>
-          <td>{{ member.get_type_display }}</td>
-          <td>
-            {% if member.has_global_access %}
-              <span class="tip" title="Access to all teams">&infin;</span>
-            {% elif team_list|length > 1 %}
-              <span class="tip"
-                    title="{% for team in team_list %}{{ team.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">
-                {{ team_list|length }} teams
-              </span>
-            {% else %}
-              {{ team_list.0.name }}
-            {% endif %}
-          </td>
+          <td>{{ member.get_role_display }}</td>
+          {% if can_remove_members or member_can_leave %}
           <td class="align-right squash">
-            {% if authorizing_access <= member.type %}
-              {% if member.user != request.user or member_can_leave %}
-              <a href="javascript:void(0)" class="btn btn-default btn-sm remove-member" data-member-id="{{ member.id }}"><span class="icon icon-trash"></span> &nbsp;Remove</a>
-              {% endif %}
+            {% if member.user != request.user and can_remove_members %}
+              <a href="javascript:void(0)" class="btn btn-default btn-sm remove-member"
+                  data-member-id="{{ member.id }}">
+                <span class="icon icon-trash"></span> &nbsp;Remove
+              </a>
+            {% elif member.user == request.user and member_can_leave %}
+              <a href="javascript:void(0)" class="btn btn-default btn-sm remove-member"
+                  data-member-id="{{ member.id }}"
+                  data-message="Are you sure you wish to leave this organization?">
+                <span class="icon icon-trash"></span> &nbsp;Leave
+              </a>
             {% endif %}
           </td>
+          {% endif %}
         </tr>
       {% endfor %}
     </tbody>
@@ -117,11 +125,13 @@
   </style>
   <script>
   $('.remove-member').click(function(){
-    if (!confirm('Are you sure you wish to remove this member?')) {
+    var $this = $(this);
+    var msg = $this.data('message') || 'Are you sure you wish to remove this member?';
+
+    if (!confirm(msg)) {
       return;
     }
 
-    var $this = $(this);
     $.ajax({
       url: '{{ URL_PREFIX }}/api/0/organizations/{{ organization.slug }}/members/' + $this.data('member-id') + '/',
       method: 'DELETE',
@@ -191,5 +201,6 @@
       }
     });
   });
+  $('.tip').tooltip();
   </script>
 {% endblock %}

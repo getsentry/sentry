@@ -1,22 +1,14 @@
-"""
-sentry.web.views
-~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 import logging
 import traceback
 
-from datetime import timedelta
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
-from django.db.models import Sum, Q
-from django.http import HttpResponse, HttpResponseRedirect
-from django.utils import timezone
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotAllowed
+from django.utils.encoding import force_bytes
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View as BaseView
@@ -24,22 +16,19 @@ from functools import wraps
 from raven.contrib.django.models import client as Raven
 
 from sentry import app
-from sentry.app import tsdb
 from sentry.coreapi import (
-    APIError, APIForbidden, APIRateLimited, ClientApiHelper
+    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper,
 )
 from sentry.event_manager import EventManager
-from sentry.models import (
-    AnonymousUser, Group, GroupStatus, Project, TagValue, User
-)
+from sentry.models import Project
 from sentry.signals import event_received
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.data_scrubber import SensitiveDataFilter
-from sentry.utils.javascript import to_json
-from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
+from sentry.utils.http import (
+    is_valid_origin, get_origins, is_same_domain, is_valid_ip,
+)
 from sentry.utils.safe import safe_execute
-from sentry.web.decorators import has_access
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger('sentry')
@@ -68,6 +57,8 @@ def api(func):
 
 
 class APIView(BaseView):
+    helper_cls = ClientApiHelper
+
     def _get_project_from_id(self, project_id):
         if not project_id:
             return
@@ -92,7 +83,7 @@ class APIView(BaseView):
     @csrf_exempt
     @never_cache
     def dispatch(self, request, project_id=None, *args, **kwargs):
-        helper = ClientApiHelper(
+        helper = self.helper_cls(
             agent=request.META.get('HTTP_USER_AGENT'),
             project_id=project_id,
             ip_address=request.META['REMOTE_ADDR'],
@@ -107,7 +98,7 @@ class APIView(BaseView):
                                       *args, **kwargs)
         except APIError as e:
             context = {
-                'error': unicode(e.msg).encode('utf-8'),
+                'error': force_bytes(e.msg, errors='replace'),
             }
             if e.name:
                 context['error_name'] = e.name
@@ -194,6 +185,7 @@ class APIView(BaseView):
                 if not project_:
                     raise APIError('Unable to identify project')
                 project = project_
+                helper.context.bind_project(project)
             elif project_ != project:
                 raise APIError('Two different project were specified')
 
@@ -201,18 +193,19 @@ class APIView(BaseView):
             Raven.tags_context(helper.context.get_tags_context())
 
             if auth.version != '2.0':
-                if request.method == 'GET':
-                    # GET only requires an Origin/Referer check
-                    # If an Origin isn't passed, it's possible that the project allows no origin,
-                    # so we need to explicitly check for that here. If Origin is not None,
-                    # it can be safely assumed that it was checked previously and it's ok.
-                    if origin is None and not is_valid_origin(origin, project):
-                        # Special case an error message for a None origin when None wasn't allowed
-                        raise APIForbidden('Missing required Origin or Referer header')
-                else:
-                    # Version 3 enforces secret key for server side requests
-                    if not auth.secret_key:
+                if not auth.secret_key:
+                    # If we're missing a secret_key, check if we are allowed
+                    # to do a CORS request.
+
+                    # If we're missing an Origin/Referrer header entirely,
+                    # we only want to support this on GET requests. By allowing
+                    # un-authenticated CORS checks for POST, we basially
+                    # are obsoleting our need for a secret key entirely.
+                    if origin is None and request.method != 'GET':
                         raise APIForbidden('Missing required attribute in authentication header: sentry_secret')
+
+                    if not is_valid_origin(origin, project):
+                        raise APIForbidden('Missing required Origin or Referer header')
 
             response = super(APIView, self).dispatch(
                 request=request,
@@ -287,9 +280,20 @@ class StoreView(APIView):
         return response
 
     def process(self, request, project, auth, helper, data, **kwargs):
-        metrics.incr('events.total', 1)
+        metrics.incr('events.total')
 
-        event_received.send_robust(ip=request.META['REMOTE_ADDR'], sender=type(self))
+        remote_addr = request.META['REMOTE_ADDR']
+        event_received.send_robust(ip=remote_addr, sender=type(self))
+
+        if not is_valid_ip(remote_addr, project):
+            app.tsdb.incr_multi([
+                (app.tsdb.models.project_total_received, project.id),
+                (app.tsdb.models.project_total_blacklisted, project.id),
+                (app.tsdb.models.organization_total_received, project.organization_id),
+                (app.tsdb.models.organization_total_blacklisted, project.organization_id),
+            ])
+            metrics.incr('events.blacklisted')
+            raise APIForbidden('Blacklisted IP address: %s' % (remote_addr,))
 
         # TODO: improve this API (e.g. make RateLimit act on __ne__)
         rate_limit = safe_execute(app.quotas.is_rate_limited, project=project,
@@ -297,14 +301,18 @@ class StoreView(APIView):
         if isinstance(rate_limit, bool):
             rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
 
-        if rate_limit is not None and rate_limit.is_limited:
+        # XXX(dcramer): when the rate limiter fails we drop events to ensure
+        # it cannot cascade
+        if rate_limit is None or rate_limit.is_limited:
+            if rate_limit is None:
+                helper.log.debug('Dropped event due to error with rate limiter')
             app.tsdb.incr_multi([
                 (app.tsdb.models.project_total_received, project.id),
                 (app.tsdb.models.project_total_rejected, project.id),
                 (app.tsdb.models.organization_total_received, project.organization_id),
                 (app.tsdb.models.organization_total_rejected, project.organization_id),
             ])
-            metrics.incr('events.dropped', 1)
+            metrics.incr('events.dropped')
             raise APIRateLimited(rate_limit.retry_after)
         else:
             app.tsdb.incr_multi([
@@ -314,16 +322,17 @@ class StoreView(APIView):
 
         content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')
 
-        if content_encoding == 'gzip':
-            data = helper.decompress_gzip(data)
-        elif content_encoding == 'deflate':
-            data = helper.decompress_deflate(data)
-        elif not data.startswith('{'):
-            data = helper.decode_and_decompress_data(data)
-        data = helper.safely_load_json_string(data)
+        if isinstance(data, basestring):
+            if content_encoding == 'gzip':
+                data = helper.decompress_gzip(data)
+            elif content_encoding == 'deflate':
+                data = helper.decompress_deflate(data)
+            elif not data.startswith('{'):
+                data = helper.decode_and_decompress_data(data)
+            data = helper.safely_load_json_string(data)
 
         # mutates data
-        helper.validate_data(project, data)
+        data = helper.validate_data(project, data)
 
         # mutates data
         manager = EventManager(data, version=auth.version)
@@ -333,7 +342,7 @@ class StoreView(APIView):
 
         # insert IP address if not available
         if auth.is_public and not scrub_ip_address:
-            helper.ensure_has_ip(data, request.META['REMOTE_ADDR'])
+            helper.ensure_has_ip(data, remote_addr)
 
         event_id = data['event_id']
 
@@ -363,211 +372,86 @@ class StoreView(APIView):
         return event_id
 
 
-@never_cache
-@csrf_exempt
-@has_access
-def get_group_trends(request, organization, team):
-    minutes = int(request.REQUEST.get('minutes', 15))
-    limit = min(100, int(request.REQUEST.get('limit', 10)))
+class CspReportView(StoreView):
+    helper_cls = CspApiHelper
+    content_types = ('application/csp-report', 'application/json')
 
-    project_list = Project.objects.get_for_user(team=team, user=request.user)
+    def _dispatch(self, request, helper, project_id=None, origin=None,
+                  *args, **kwargs):
+        # NOTE: We need to override the auth flow for a CSP report!
+        # A CSP report is sent as a POST request with no Origin or Referer
+        # header. What we're left with is a 'document-uri' key which is
+        # inside of the JSON body of the request. This 'document-uri' value
+        # should be treated as an origin check since it refers to the page
+        # that triggered the report. The Content-Type is supposed to be
+        # `application/csp-report`, but FireFox sends it as `application/json`.
+        if request.method != 'POST':
+            return HttpResponseNotAllowed(['POST'])
 
-    project_dict = dict((p.id, p) for p in project_list)
+        if request.META.get('CONTENT_TYPE') not in self.content_types:
+            raise APIError('Invalid Content-Type')
 
-    base_qs = Group.objects.filter(
-        project__in=project_list,
-        status=0,
-    )
+        request.user = AnonymousUser()
 
-    cutoff = timedelta(minutes=minutes)
-    cutoff_dt = timezone.now() - cutoff
+        project = self._get_project_from_id(project_id)
+        helper.context.bind_project(project)
+        Raven.tags_context(helper.context.get_tags_context())
 
-    group_list = list(base_qs.filter(
-        status=GroupStatus.UNRESOLVED,
-        last_seen__gte=cutoff_dt
-    ).extra(select={'sort_value': 'score'}).order_by('-score')[:limit])
+        # This is yanking the auth from the querystring since it's not
+        # in the POST body. This means we expect a `sentry_key` and
+        # `sentry_version` to be set in querystring
+        auth = self._parse_header(request, helper, project)
 
-    for group in group_list:
-        group._project_cache = project_dict.get(group.project_id)
+        project_ = helper.project_from_auth(auth)
+        if project_ != project:
+            raise APIError('Two different project were specified')
 
-    data = to_json(group_list, request)
+        helper.context.bind_auth(auth)
+        Raven.tags_context(helper.context.get_tags_context())
 
-    response = HttpResponse(data)
-    response['Content-Type'] = 'application/json'
+        return super(APIView, self).dispatch(
+            request=request,
+            project=project,
+            auth=auth,
+            helper=helper,
+            **kwargs
+        )
 
-    return response
+    def post(self, request, project, auth, helper, **kwargs):
+        data = helper.safely_load_json_string(request.body)
 
+        # Do origin check based on the `document-uri` key as explained
+        # in `_dispatch`.
+        try:
+            report = data['csp-report']
+        except KeyError:
+            raise APIError('Missing csp-report')
 
-@never_cache
-@csrf_exempt
-@has_access
-def get_new_groups(request, organization, team):
-    minutes = int(request.REQUEST.get('minutes', 15))
-    limit = min(100, int(request.REQUEST.get('limit', 10)))
+        origin = report.get('document-uri')
 
-    project_list = Project.objects.get_for_user(team=team, user=request.user)
+        # No idea, but this is garbage
+        if origin == 'about:blank':
+            raise APIForbidden('Invalid document-uri')
 
-    project_dict = dict((p.id, p) for p in project_list)
+        if not is_valid_origin(origin, project):
+            raise APIForbidden('Invalid document-uri')
 
-    cutoff = timedelta(minutes=minutes)
-    cutoff_dt = timezone.now() - cutoff
-
-    group_list = list(Group.objects.filter(
-        project__in=project_dict.keys(),
-        status=GroupStatus.UNRESOLVED,
-        active_at__gte=cutoff_dt,
-    ).extra(select={'sort_value': 'score'}).order_by('-score', '-first_seen')[:limit])
-
-    for group in group_list:
-        group._project_cache = project_dict.get(group.project_id)
-
-    data = to_json(group_list, request)
-
-    response = HttpResponse(data)
-    response['Content-Type'] = 'application/json'
-
-    return response
-
-
-@never_cache
-@csrf_exempt
-@has_access
-def get_resolved_groups(request, organization, team):
-    minutes = int(request.REQUEST.get('minutes', 15))
-    limit = min(100, int(request.REQUEST.get('limit', 10)))
-
-    project_list = Project.objects.get_for_user(team=team, user=request.user)
-
-    project_dict = dict((p.id, p) for p in project_list)
-
-    cutoff = timedelta(minutes=minutes)
-    cutoff_dt = timezone.now() - cutoff
-
-    group_list = list(Group.objects.filter(
-        project__in=project_list,
-        status=GroupStatus.RESOLVED,
-        resolved_at__gte=cutoff_dt,
-    ).order_by('-score')[:limit])
-
-    for group in group_list:
-        group._project_cache = project_dict.get(group.project_id)
-
-    data = to_json(group_list, request)
-
-    response = HttpResponse(json.dumps(data))
-    response['Content-Type'] = 'application/json'
-
-    return response
+        response_or_event_id = self.process(
+            request,
+            project=project,
+            auth=auth,
+            helper=helper,
+            data=report,
+            **kwargs
+        )
+        if isinstance(response_or_event_id, HttpResponse):
+            return response_or_event_id
+        return HttpResponse(status=201)
 
 
-@never_cache
-@csrf_exempt
-@has_access
-def get_stats(request, organization, team):
-    minutes = int(request.REQUEST.get('minutes', 15))
-
-    project_list = Project.objects.get_for_user(team=team, user=request.user)
-
-    cutoff = timedelta(minutes=minutes)
-
-    end = timezone.now()
-    start = end - cutoff
-
-    # TODO(dcramer): this is used in an unreleased feature. reimplement it using
-    # new API and tsdb
-    results = tsdb.get_range(
-        model=tsdb.models.project,
-        keys=[p.id for p in project_list],
-        start=start,
-        end=end,
-    )
-    num_events = 0
-    for project, points in results.iteritems():
-        num_events += sum(p[1] for p in points)
-
-    # XXX: This is too slow if large amounts of groups are resolved
-    # TODO(dcramer); move this into tsdb
-    num_resolved = Group.objects.filter(
-        project__in=project_list,
-        status=GroupStatus.RESOLVED,
-        resolved_at__gte=start,
-    ).aggregate(t=Sum('times_seen'))['t'] or 0
-
-    data = {
-        'events': num_events,
-        'resolved': num_resolved,
-    }
-
-    response = HttpResponse(json.dumps(data))
-    response['Content-Type'] = 'application/json'
-
-    return response
-
-
-@never_cache
-@csrf_exempt
-@has_access
-def search_tags(request, organization, project):
-    limit = min(100, int(request.GET.get('limit', 10)))
-    name = request.GET['name']
-    query = request.GET['query']
-
-    results = list(TagValue.objects.filter(
-        project=project,
-        key=name,
-        value__icontains=query,
-    ).values_list('value', flat=True).order_by('value')[:limit])
-
-    response = HttpResponse(json.dumps({
-        'results': results,
-        'query': query,
-    }))
-    response['Content-Type'] = 'application/json'
-
-    return response
-
-
-@never_cache
-@csrf_exempt
-@has_access
-def search_users(request, organization):
-    limit = min(100, int(request.GET.get('limit', 10)))
-    query = request.GET['query']
-
-    results = list(User.objects.filter(
-        Q(email__istartswith=query) | Q(first_name__istartswith=query) | Q(username__istartswith=query),
-    ).filter(
-        sentry_orgmember_set__organization=organization,
-    ).distinct().order_by('first_name', 'email').values('id', 'username', 'first_name', 'email')[:limit])
-
-    response = HttpResponse(json.dumps({
-        'results': results,
-        'query': query,
-    }))
-    response['Content-Type'] = 'application/json'
-
-    return response
-
-
-@never_cache
-@csrf_exempt
-@has_access
-def search_projects(request, organization):
-    limit = min(100, int(request.GET.get('limit', 10)))
-    query = request.GET['query']
-
-    results = list(Project.objects.filter(
-        Q(name__istartswith=query) | Q(slug__istartswith=query),
-        organization=organization,
-    ).distinct().order_by('name', 'slug').values('id', 'name', 'slug')[:limit])
-
-    response = HttpResponse(json.dumps({
-        'results': results,
-        'query': query,
-    }))
-    response['Content-Type'] = 'application/json'
-
-    return response
+@cache_control(max_age=3600, public=True)
+def robots_txt(request):
+    return HttpResponse("User-agent: *\nDisallow: /\n", content_type='text/plain')
 
 
 @cache_control(max_age=3600, public=True)
@@ -588,7 +472,7 @@ def crossdomain_xml(request, project_id):
         return HttpResponse(status=404)
 
     origin_list = get_origins(project)
-    if origin_list == '*':
+    if origin_list == ['*']:
         origin_list = [origin_list]
 
     response = render_to_response('sentry/crossdomain.xml', {

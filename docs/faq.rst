@@ -55,23 +55,9 @@ and users?
             OrganizationmemberType
         )
 
-        user = User()
-        user.username = 'admin'
-        user.email = 'admin@localhost'
-        user.is_superuser = True
-        user.set_password('admin')
-        user.save()
-
         organization = Organization()
         organization.name = 'MyOrg'
         organization.save()
-
-        OrganizationMember.objects.create(
-            organization=organization,
-            user=user,
-            type=OrganizationMemberType.OWNER,
-            has_global_access=True,
-        )
 
         team = Team()
         team.name = 'Sentry'
@@ -83,6 +69,24 @@ and users?
         project.name = 'Default'
         project.organization = organization
         project.save()
+
+        user = User()
+        user.username = 'admin'
+        user.email = 'admin@localhost'
+        user.is_superuser = True
+        user.set_password('admin')
+        user.save()
+
+        member = OrganizationMember.objects.create(
+            organization=organization,
+            user=user,
+            role='owner',
+        )
+
+        OrganizationMemberTeam.objects.create(
+            organizationmember=member,
+            team=team,
+        )
 
         key = ProjectKey.objects.filter(project=project)[0]
         print 'SENTRY_DSN = "%s"' % (key.get_dsn(),)

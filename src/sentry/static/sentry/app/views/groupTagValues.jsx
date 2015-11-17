@@ -1,21 +1,20 @@
-import React from "react";
-import Router from "react-router";
-import jQuery from "jquery";
-import api from "../api";
-import Count from "../components/count";
-import GroupState from "../mixins/groupState";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import Pagination from "../components/pagination";
-import TimeSince from "../components/timeSince";
-import {isUrl, percent} from "../utils";
+import React from 'react';
+import {Link, History} from 'react-router';
+import jQuery from 'jquery';
+import api from '../api';
+import Count from '../components/count';
+import GroupState from '../mixins/groupState';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import Pagination from '../components/pagination';
+import TimeSince from '../components/timeSince';
+import {isUrl, percent} from '../utils';
 
-var GroupTagValues = React.createClass({
-  mixins: [GroupState],
-
-  contextTypes: {
-    router: React.PropTypes.func
-  },
+const GroupTagValues = React.createClass({
+  mixins: [
+    History,
+    GroupState
+  ],
 
   getInitialState() {
     return {
@@ -31,11 +30,16 @@ var GroupTagValues = React.createClass({
     this.fetchData();
   },
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.location.search !== this.props.location.search) {
+      this.fetchData();
+    }
+  },
+
   fetchData() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    var queryParams = router.getCurrentQuery();
-    var querystring = jQuery.param(queryParams);
+    let params = this.props.params;
+    let queryParams = this.props.location.query;
+    let querystring = jQuery.param(queryParams);
 
     this.setState({
       loading: true,
@@ -74,15 +78,6 @@ var GroupTagValues = React.createClass({
     });
   },
 
-  onPage(cursor) {
-    var router = this.context.router;
-    var queryParams = jQuery.extend({}, router.getCurrentQuery(), {
-      cursor: cursor
-    });
-
-    router.transitionTo('groupTagValues', router.getCurrentParams(), queryParams);
-  },
-
   render() {
     if (this.state.loading) {
       return <LoadingIndicator />;
@@ -90,11 +85,11 @@ var GroupTagValues = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    var router = this.context.router;
-    var tagKey = this.state.tagKey;
-    var children = this.state.tagValueList.map((tagValue, tagValueIdx) => {
-      var pct = percent(tagValue.count, tagKey.totalValues).toFixed(2);
-      var params = router.getCurrentParams();
+    let tagKey = this.state.tagKey;
+    let children = this.state.tagValueList.map((tagValue, tagValueIdx) => {
+      let pct = percent(tagValue.count, tagKey.totalValues).toFixed(2);
+      let orgId = this.getOrganization().slug;
+      let projectId = this.getProject().slug;
       return (
         <tr key={tagValueIdx}>
           <td className="bar-cell">
@@ -102,14 +97,13 @@ var GroupTagValues = React.createClass({
             <span className="label">{pct}%</span>
           </td>
           <td>
-            <Router.Link
-                to="stream"
-                params={params}
+            <Link
+                to={`/${orgId}/${projectId}/`}
                 query={{query: tagKey.key + ':' + '"' + tagValue.value + '"'}}>
               {tagValue.name}
-            </Router.Link>
+            </Link>
             {isUrl(tagValue.value) &&
-              <a href={tagValue.value} className="external">
+              <a href={tagValue.value} className="external-icon">
                 <em className="icon-open" />
               </a>
             }
@@ -142,7 +136,7 @@ var GroupTagValues = React.createClass({
             {children}
           </tbody>
         </table>
-        <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
+        <Pagination pageLinks={this.state.pageLinks}/>
       </div>
     );
   }

@@ -1,7 +1,7 @@
-import Reflux from "reflux";
+import Reflux from 'reflux';
 import AlertActions from '../actions/alertActions';
 
-var AlertStore = Reflux.createStore({
+const AlertStore = Reflux.createStore({
   listenables: AlertActions,
 
   init: function() {

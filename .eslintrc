@@ -1,4 +1,5 @@
 {
+  "parser": "babel-eslint",
   "ecmaFeatures": {
     "jsx": true,
     "modules": true
@@ -79,6 +80,7 @@
     }],
     "eqeqeq": 0,                     // http://eslint.org/docs/rules/eqeqeq [REVISIT ME]
     "guard-for-in": 0,               // http://eslint.org/docs/rules/guard-for-in [REVISIT ME]
+    "jsx-quotes": [2, "prefer-double"], // http://eslint.org/docs/rules/jsx-quotes
     "no-caller": 2,                  // http://eslint.org/docs/rules/no-caller
     "no-else-return": 0,             // http://eslint.org/docs/rules/no-else-return [REVISIT ME]
     "no-eq-null": 2,                 // http://eslint.org/docs/rules/no-eq-null
@@ -106,17 +108,18 @@
     "no-sequences": 2,               // http://eslint.org/docs/rules/no-sequences
     "no-throw-literal": 2,           // http://eslint.org/docs/rules/no-throw-literal
     "no-with": 2,                    // http://eslint.org/docs/rules/no-with
+    "quotes": [2, "single"],         // http://eslint.org/docs/rules/quotes.html
     "radix": 2,                      // http://eslint.org/docs/rules/radix
+    "space-infix-ops": 2,            // http://eslint.org/docs/rules/space-infix-ops.html
     "vars-on-top": 0,                // http://eslint.org/docs/rules/vars-on-top
     "wrap-iife": [2, "any"],         // http://eslint.org/docs/rules/wrap-iife
     "yoda": 2,                       // http://eslint.org/docs/rules/yoda
 
     /**
-     * JSX style
+     * React
      */
     "react/display-name": 0,         // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/display-name.md
-    "react/jsx-quotes": [2, "double"], // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-quotes.md
-    "react/no-multi-comp": 2,        // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-multi-comp.md
+    "react/no-multi-comp": [1, {"ignoreStateless": true}], // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-multi-comp.md
     "react/jsx-no-undef": 2,         // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-no-undef.md
     "react/jsx-no-duplicate-props": 2, // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-no-duplicate-props.md
     "react/jsx-uses-react": 2,       // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-uses-react.md
@@ -126,6 +129,7 @@
     "react/no-unknown-property": 2,  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unknown-property.md
     "react/react-in-jsx-scope": 2,   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/react-in-jsx-scope.md
     "react/self-closing-comp": 2,    // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/self-closing-comp.md
+    "react/sort-comp": 2,            // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/sort-comp.md
     "react/wrap-multilines": 2,      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/wrap-multilines.md
   }
 }

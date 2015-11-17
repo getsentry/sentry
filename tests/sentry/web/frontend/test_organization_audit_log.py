@@ -14,18 +14,16 @@ class OrganizationAuditLogPermissionTest(PermissionTestCase):
     def test_teamless_admin_cannot_load(self):
         self.assert_teamless_admin_cannot_access(self.path)
 
-    def test_org_member_cannot_load(self):
-        self.assert_org_member_cannot_access(self.path)
+    def test_member_cannot_load(self):
+        self.assert_member_cannot_access(self.path)
 
-    def test_org_admin_can_load(self):
-        self.assert_org_admin_can_access(self.path)
+    def test_owner_can_load(self):
+        self.assert_owner_can_access(self.path)
 
 
 class OrganizationAuditLogTest(TestCase):
     def test_renders_with_context(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
 
         path = reverse('sentry-organization-audit-log', args=[organization.slug])
 

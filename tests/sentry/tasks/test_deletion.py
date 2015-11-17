@@ -1,11 +1,14 @@
+from __future__ import absolute_import
+
 from mock import patch
 
+from sentry.exceptions import DeleteAborted
 from sentry.models import (
-    GroupTagKey, GroupTagValue, Organization, OrganizationStatus, TagKey,
-    TagValue, Team, TeamStatus
+    GroupTagKey, GroupTagValue, Organization, OrganizationStatus, Project,
+    ProjectStatus, TagKey, TagValue, Team, TeamStatus
 )
 from sentry.tasks.deletion import (
-    delete_organization, delete_tag_key, delete_team
+    delete_organization, delete_project, delete_tag_key, delete_team
 )
 from sentry.testutils import TestCase
 
@@ -16,13 +19,27 @@ class DeleteOrganizationTest(TestCase):
             name='test',
             status=OrganizationStatus.PENDING_DELETION,
         )
-        team1 = self.create_team(organization=org, name='test1')
-        team2 = self.create_team(organization=org, name='test2')
+        self.create_team(organization=org, name='test1')
+        self.create_team(organization=org, name='test2')
 
         with self.tasks():
             delete_organization(object_id=org.id)
 
         assert not Organization.objects.filter(id=org.id).exists()
+
+    def test_cancels_without_pending_status(self):
+        org = self.create_organization(
+            name='test',
+            status=OrganizationStatus.VISIBLE,
+        )
+        self.create_team(organization=org, name='test1')
+        self.create_team(organization=org, name='test2')
+
+        with self.assertRaises(DeleteAborted):
+            with self.tasks():
+                delete_organization(object_id=org.id)
+
+        assert Organization.objects.filter(id=org.id).exists()
 
 
 class DeleteTeamTest(TestCase):
@@ -31,13 +48,51 @@ class DeleteTeamTest(TestCase):
             name='test',
             status=TeamStatus.PENDING_DELETION,
         )
-        project1 = self.create_project(team=team, name='test1')
-        project2 = self.create_project(team=team, name='test2')
+        self.create_project(team=team, name='test1')
+        self.create_project(team=team, name='test2')
 
         with self.tasks():
             delete_team(object_id=team.id)
 
         assert not Team.objects.filter(id=team.id).exists()
+
+    def test_cancels_without_pending_status(self):
+        team = self.create_team(
+            name='test',
+            status=TeamStatus.VISIBLE,
+        )
+        self.create_project(team=team, name='test1')
+        self.create_project(team=team, name='test2')
+
+        with self.assertRaises(DeleteAborted):
+            with self.tasks():
+                delete_team(object_id=team.id)
+
+        assert Team.objects.filter(id=team.id).exists()
+
+
+class DeleteProjectTest(TestCase):
+    def test_simple(self):
+        project = self.create_project(
+            name='test',
+            status=ProjectStatus.PENDING_DELETION,
+        )
+
+        with self.tasks():
+            delete_project(object_id=project.id)
+
+        assert not Project.objects.filter(id=project.id).exists()
+
+    def test_cancels_without_pending_status(self):
+        project = self.create_project(
+            name='test',
+            status=ProjectStatus.VISIBLE,
+        )
+        with self.assertRaises(DeleteAborted):
+            with self.tasks():
+                delete_project(object_id=project.id)
+
+        assert Project.objects.filter(id=project.id).exists()
 
 
 class DeleteTagKeyTest(TestCase):

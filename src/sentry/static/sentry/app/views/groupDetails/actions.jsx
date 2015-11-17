@@ -1,23 +1,23 @@
-import React from "react";
-import api from "../../api";
-import DropdownLink from "../../components/dropdownLink";
-import GroupState from "../../mixins/groupState";
-import IndicatorStore from "../../stores/indicatorStore";
-import MenuItem from "../../components/menuItem";
-import LinkWithConfirmation from "../../components/linkWithConfirmation";
+import React from 'react';
+import {History} from 'react-router';
+import api from '../../api';
+import DropdownLink from '../../components/dropdownLink';
+import GroupState from '../../mixins/groupState';
+import IndicatorStore from '../../stores/indicatorStore';
+import MenuItem from '../../components/menuItem';
+import LinkWithConfirmation from '../../components/linkWithConfirmation';
 
-var GroupActions = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
-  mixins: [GroupState],
+const GroupActions = React.createClass({
+  mixins: [
+    GroupState,
+    History
+  ],
 
   onDelete() {
-    var group = this.getGroup();
-    var project = this.getProject();
-    var org = this.getOrganization();
-    var loadingIndicator = IndicatorStore.add('Delete event..');
+    let group = this.getGroup();
+    let project = this.getProject();
+    let org = this.getOrganization();
+    let loadingIndicator = IndicatorStore.add('Delete event..');
 
     api.bulkDelete({
       orgId: org.slug,
@@ -29,17 +29,14 @@ var GroupActions = React.createClass({
       }
     });
 
-    this.context.router.transitionTo('stream', {
-      orgId: org.slug,
-      projectId: project.slug
-    });
+    this.history.pushState(null, `/${org.slug}/${project.slug}/`);
   },
 
   onToggleResolve() {
-    var group = this.getGroup();
-    var project = this.getProject();
-    var org = this.getOrganization();
-    var loadingIndicator = IndicatorStore.add('Saving changes..');
+    let group = this.getGroup();
+    let project = this.getProject();
+    let org = this.getOrganization();
+    let loadingIndicator = IndicatorStore.add('Saving changes..');
 
     api.bulkUpdate({
       orgId: org.slug,
@@ -56,10 +53,10 @@ var GroupActions = React.createClass({
   },
 
   onToggleBookmark() {
-    var group = this.getGroup();
-    var project = this.getProject();
-    var org = this.getOrganization();
-    var loadingIndicator = IndicatorStore.add('Saving changes..');
+    let group = this.getGroup();
+    let project = this.getProject();
+    let org = this.getOrganization();
+    let loadingIndicator = IndicatorStore.add('Saving changes..');
 
     api.bulkUpdate({
       orgId: org.slug,
@@ -76,16 +73,16 @@ var GroupActions = React.createClass({
   },
 
   render() {
-    var group = this.getGroup();
+    let group = this.getGroup();
 
-    var resolveClassName = "group-resolve btn btn-default btn-sm";
-    if (group.status === "resolved") {
-      resolveClassName += " active";
+    let resolveClassName = 'group-resolve btn btn-default btn-sm';
+    if (group.status === 'resolved') {
+      resolveClassName += ' active';
     }
 
-    var bookmarkClassName = "group-bookmark btn btn-default btn-sm";
+    let bookmarkClassName = 'group-bookmark btn btn-default btn-sm';
     if (group.isBookmarked) {
-      bookmarkClassName += " active";
+      bookmarkClassName += ' active';
     }
 
     return (

@@ -1,7 +1,7 @@
-import PropTypes from "../proptypes";
-import TeamState from "./teamState";
+import PropTypes from '../proptypes';
+import TeamState from './teamState';
 
-var ProjectState = {
+let ProjectState = {
   mixins: [TeamState],
 
   contextTypes: {

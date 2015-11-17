@@ -1,6 +1,6 @@
-import React from "react";
+import React from 'react';
 
-var EventErrorItem = React.createClass({
+const EventErrorItem = React.createClass({
   getInitialState(){
     return {
       isOpen: false,
@@ -16,8 +16,8 @@ var EventErrorItem = React.createClass({
   },
 
   render() {
-    var error = this.props.error;
-    var isOpen = this.state.isOpen;
+    let error = this.props.error;
+    let isOpen = this.state.isOpen;
     return (
       <li>
         {error.message}

@@ -58,6 +58,13 @@ class EventSerializer(Serializer):
             }
             errors.append(error_result)
 
+        tags = sorted([
+            {
+                'key': k.split('sentry:', 1)[-1],
+                'value': v
+            } for k, v in obj.get_tags()
+        ], key=lambda x: x['key'])
+
         # TODO(dcramer): move release serialization here
         d = {
             'id': str(obj.id),
@@ -69,7 +76,7 @@ class EventSerializer(Serializer):
             'user': attrs['user'],
             'context': obj.data.get('extra', {}),
             'packages': obj.data.get('modules', {}),
-            'tags': dict(obj.get_tags()),
+            'tags': tags,
             'platform': obj.platform,
             'dateCreated': obj.datetime,
             'timeSpent': obj.time_spent,

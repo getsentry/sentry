@@ -1,10 +1,10 @@
-import React from "react";
-import Router from "react-router";
-import EventStore from "../../stores/eventStore";
-import Gravatar from "../gravatar";
-import TimeSince from "../timeSince";
+import React from 'react';
+import Router from 'react-router';
+import EventStore from '../../stores/eventStore';
+import Gravatar from '../gravatar';
+import TimeSince from '../timeSince';
 
-var EventRow = React.createClass({
+const EventRow = React.createClass({
   propTypes: {
     id: React.PropTypes.string.isRequired
   },
@@ -28,16 +28,11 @@ var EventRow = React.createClass({
   },
 
   render() {
-    var event = this.state.event;
-    var linkParams = {
-      eventId: event.id,
-      orgId: this.props.orgSlug,
-      projectId: this.props.projectSlug,
-      groupId: event.groupID
-    };
+    let event = this.state.event;
+    let eventLink = `/${this.props.orgSlug}/${this.props.projectSlug}/groups/${event.groupID}/events/${event.id}/`;
 
-    var tagList = [];
-    for (var key in event.tags) {
+    let tagList = [];
+    for (let key in event.tags) {
       tagList.push([key, event.tags[key]]);
     }
 
@@ -45,8 +40,7 @@ var EventRow = React.createClass({
       <tr>
         <td>
           <h5>
-            <Router.Link to="groupEventDetails"
-                params={linkParams}>{event.message}</Router.Link>
+            <Router.Link to={eventLink}>{event.message}</Router.Link>
           </h5>
           <small className="tagList">{tagList.map((tag) => {
             return <span key={tag[0]}>{tag[0]} = {tag[1]} </span>;

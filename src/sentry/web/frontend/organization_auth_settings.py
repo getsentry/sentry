@@ -8,12 +8,11 @@ from django.db.models import F
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import features
+from sentry import features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, AuthProvider, OrganizationMember,
-    OrganizationMemberType
+    AuditLogEntry, AuditLogEntryEvent, AuthProvider, OrganizationMember
 )
 from sentry.plugins import Response
 from sentry.utils import db
@@ -33,10 +32,15 @@ class AuthProviderSettingsForm(forms.Form):
         help_text=_('Require members use a valid linked SSO account to access this organization'),
         required=False,
     )
+    default_role = forms.ChoiceField(
+        label=_('Default Role'),
+        choices=roles.get_choices(),
+        help_text=_('The default role new members will receive when logging in for the first time.'),
+    )
 
 
 class OrganizationAuthSettingsView(OrganizationView):
-    required_access = OrganizationMemberType.OWNER
+    required_scope = 'org:delete'
 
     def _disable_provider(self, request, organization, auth_provider):
         AuditLogEntry.objects.create(
@@ -106,12 +110,16 @@ class OrganizationAuthSettingsView(OrganizationView):
             data=request.POST if request.POST.get('op') == 'settings' else None,
             initial={
                 'require_link': not auth_provider.flags.allow_unlinked,
+                'default_role': organization.default_role,
             },
         )
 
         if form.is_valid():
             auth_provider.flags.allow_unlinked = not form.cleaned_data['require_link']
             auth_provider.save()
+
+            organization.default_role = form.cleaned_data['default_role']
+            organization.save()
 
         view = provider.get_configure_view()
         response = view(request, organization, auth_provider)

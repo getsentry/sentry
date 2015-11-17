@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
+from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
 from sentry.app import raven
-from sentry.models import AnonymousUser, ApiKey, ProjectKey
+from sentry.models import ApiKey, ProjectKey
 
 
 class QuietBasicAuthentication(BasicAuthentication):
@@ -21,7 +22,7 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
         try:
             key = ApiKey.objects.get_from_cache(key=userid)
         except ApiKey.DoesNotExist:
-            return None
+            raise AuthenticationFailed('API key is not valid')
 
         if not key.is_active:
             raise AuthenticationFailed('Key is disabled')

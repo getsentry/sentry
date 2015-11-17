@@ -223,8 +223,7 @@ class AuthHelper(object):
             except OrganizationMember.DoesNotExist:
                 member = OrganizationMember.objects.create(
                     organization=organization,
-                    type=auth_provider.default_role,
-                    has_global_access=auth_provider.default_global_access,
+                    role=organization.default_role,
                     user=user,
                     flags=getattr(OrganizationMember.flags, 'sso:linked'),
                 )
@@ -269,8 +268,6 @@ class AuthHelper(object):
 
     def _handle_new_user(self, identity):
         auth_provider = self.auth_provider
-        organization = self.organization
-        request = self.request
 
         user = User.objects.create(
             username=uuid4().hex,
@@ -298,8 +295,7 @@ class AuthHelper(object):
 
         om = OrganizationMember.objects.create(
             organization=organization,
-            type=auth_provider.default_role,
-            has_global_access=auth_provider.default_global_access,
+            role=organization.default_role,
             user=user,
             flags=getattr(OrganizationMember.flags, 'sso:linked'),
         )
@@ -337,6 +333,9 @@ class AuthHelper(object):
         """
         auth_provider = self.auth_provider
         request = self.request
+
+        # TODO(dcramer): check for an existing user with the given email address
+        # and if one exists, ask them to verify the account for merge
 
         try:
             auth_identity = AuthIdentity.objects.get(

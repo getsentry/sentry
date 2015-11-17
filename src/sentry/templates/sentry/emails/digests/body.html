@@ -1,0 +1,64 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load sentry_helpers %}
+
+{% block bodyclass %}digest{% endblock %}
+
+{% block content %}
+
+<div class="container" style="padding-top: 30px;">
+  <h2 style="margin-bottom: 30px">{{ counts|length }} new notification{{ counts|pluralize }} from <a href="{{ project.get_absolute_url }}">{{ project.name }}</a></h2>
+</div>
+
+{% for rule, groups in digest.iteritems %}
+
+    <div class="rule">
+      <div class="container">
+        {{ rule.label }}
+      </div>
+    </div>
+
+    <div class="container">
+      <table class="event-list">
+          <tr>
+              <th colspan="2">Issue</th>
+          </tr>
+          {% for group, records in groups.items|slice:":10" %}
+              <tr>
+                  <td class="error-level">
+                      <span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span>
+                  </td>
+                  <td class="event-detail">
+                      {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
+                      <a href="{% absolute_uri group_link %}">{{ group.message_short }}</a>
+                      <p>
+                        {{ group.title }}
+                        <small>&mdash; {{ records.0.datetime|date:"N j, Y, P e" }}</small>
+                      </p>
+                  </td>
+              </tr>
+          {% endfor %}
+          {% with groups.items|slice:"10:" as remainder %}
+            {% if remainder %}
+                <tr>
+                    <td colspan="3" class="more-events">
+                        and {{ remainder|length }} more issue{{ remainder|pluralize }}
+                    </td>
+                </tr>
+            {% endif %}
+          {% endwith %}
+      </table>
+    </div>
+{% endfor %}
+
+<div class="container">
+  <div class="footer" style="margin-top: 30px">
+    {% block footer %}
+    <a href="{% absolute_uri %}" style="float:right">Home</a>
+    {% url 'sentry-account-settings-notifications' as settings_link %}
+    <a href="{% absolute_uri settings_link %}">Notification Settings</a>
+    {% endblock %}
+  </div>
+</div>
+
+{% endblock %}

@@ -21,6 +21,8 @@ import sys
 import tempfile
 import urlparse
 
+import sentry
+
 gettext_noop = lambda s: s
 
 socket.setdefaulttimeout(5)
@@ -39,15 +41,14 @@ APPEND_SLASH = True
 
 PROJECT_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
 
-NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'node_modules')
+# XXX(dcramer): handle case when we've installed from source vs just running
+# this straight out of the repository
+if 'site-packages' in __file__:
+    NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, 'node_modules')
+else:
+    NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'node_modules')
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
-
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
-    }
-}
 
 DATABASES = {
     'default': {
@@ -165,7 +166,7 @@ LANGUAGES = (
     ('ur', gettext_noop('Urdu')),
     ('vi', gettext_noop('Vietnamese')),
     ('zh-cn', gettext_noop('Simplified Chinese')),
-    ('zh-cn', gettext_noop('Traditional Chinese')),
+    ('zh-tw', gettext_noop('Traditional Chinese')),
 )
 
 SITE_ID = 1
@@ -264,6 +265,8 @@ STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 )
 
+ASSET_VERSION = 0
+
 # setup a default media root to somewhere useless
 MEDIA_ROOT = '/tmp/sentry-media'
 
@@ -352,9 +355,7 @@ SOCIAL_AUTH_PROTECTED_USER_FIELDS = ['email']
 from kombu import Exchange, Queue
 
 BROKER_URL = "django://"
-BROKER_TRANSPORT_OPTIONS = {
-    'socket_timeout': 60,
-}
+BROKER_TRANSPORT_OPTIONS = {}
 
 CELERY_ALWAYS_EAGER = True
 CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
@@ -372,6 +373,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.beacon',
     'sentry.tasks.check_auth',
     'sentry.tasks.deletion',
+    'sentry.tasks.digests',
     'sentry.tasks.email',
     'sentry.tasks.index',
     'sentry.tasks.merge',
@@ -380,6 +382,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.ping',
     'sentry.tasks.post_process',
     'sentry.tasks.process_buffer',
+    'sentry.tasks.sync_docs',
 )
 CELERY_QUEUES = [
     Queue('default', routing_key='default'),
@@ -391,6 +394,8 @@ CELERY_QUEUES = [
     Queue('update', routing_key='update'),
     Queue('email', routing_key='email'),
     Queue('options', routing_key='options'),
+    Queue('digests.delivery', routing_key='digests.delivery'),
+    Queue('digests.scheduling', routing_key='digests.scheduling'),
 ]
 
 CELERY_ROUTES = ('sentry.queue.routers.SplitQueueRouter',)
@@ -439,6 +444,14 @@ CELERYBEAT_SCHEDULE = {
             'queue': 'counters-0',
         }
     },
+    'sync-docs': {
+        'task': 'sentry.tasks.sync_docs',
+        'schedule': timedelta(seconds=3600),
+        'options': {
+            'expires': 3600,
+            'queue': 'update',
+        }
+    },
     'sync-options': {
         'task': 'sentry.tasks.options.sync_options',
         'schedule': timedelta(seconds=10),
@@ -447,6 +460,13 @@ CELERYBEAT_SCHEDULE = {
             'queue': 'options',
         }
     },
+    'schedule-digests': {
+        'task': 'sentry.tasks.digests.schedule_digests',
+        'schedule': timedelta(seconds=30),
+        'options': {
+            'expires': 30,
+        },
+    }
 }
 
 LOGGING = {
@@ -530,7 +550,7 @@ REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
     'DEFAULT_PERMISSION_CLASSES': (
         'sentry.api.permissions.NoPermission',
-    )
+    ),
 }
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
@@ -561,14 +581,13 @@ DEBUG_TOOLBAR_PATCH_SETTINGS = False
 
 SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 
-SENTRY_CACHE_BACKEND = 'default'
-
 SENTRY_FEATURES = {
     'auth:register': True,
     'organizations:create': True,
-    'organizations:sso': False,
+    'organizations:sso': True,
     'projects:quotas': True,
     'projects:user-reports': True,
+    'projects:plugins': True,
 }
 
 # Default time zone for localization in the UI.
@@ -633,11 +652,6 @@ SENTRY_WEB_HOST = 'localhost'
 SENTRY_WEB_PORT = 9000
 SENTRY_WEB_OPTIONS = {}
 
-# UDP Service
-SENTRY_UDP_HOST = 'localhost'
-SENTRY_UDP_PORT = 9001
-SENTRY_USE_IPV6_UDP = False
-
 # SMTP Service
 SENTRY_ENABLE_EMAIL_REPLIES = False
 SENTRY_SMTP_HOSTNAME = 'localhost'
@@ -652,6 +666,7 @@ SENTRY_INTERFACES = {
     'template': 'sentry.interfaces.template.Template',
     'query': 'sentry.interfaces.query.Query',
     'user': 'sentry.interfaces.user.User',
+    'csp': 'sentry.interfaces.csp.Csp',
 
     'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
     'sentry.interfaces.Message': 'sentry.interfaces.message.Message',
@@ -660,6 +675,7 @@ SENTRY_INTERFACES = {
     'sentry.interfaces.Query': 'sentry.interfaces.query.Query',
     'sentry.interfaces.Http': 'sentry.interfaces.http.Http',
     'sentry.interfaces.User': 'sentry.interfaces.user.User',
+    'sentry.interfaces.Csp': 'sentry.interfaces.csp.Csp',
 }
 
 # Should users without superuser permissions be allowed to
@@ -687,6 +703,23 @@ SENTRY_BUFFER_OPTIONS = {}
 # and causes serious confusion with the default django cache
 SENTRY_CACHE = None
 SENTRY_CACHE_OPTIONS = {}
+
+# The internal Django cache is still used in many places
+# TODO(dcramer): convert uses over to Sentry's backend
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+    }
+}
+
+# The cache version affects both Django's internal cache (at runtime) as well
+# as Sentry's cache. This automatically overrides VERSION on the default
+# CACHES backend.
+CACHE_VERSION = 1
+
+# Digests backend
+SENTRY_DIGESTS = 'sentry.digests.backends.dummy.DummyBackend'
+SENTRY_DIGESTS_OPTIONS = {}
 
 # Quota backend
 SENTRY_QUOTAS = 'sentry.quotas.Quota'
@@ -737,16 +770,10 @@ SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = 'sentry.'
 
-# URL to embed in js documentation
-SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.20/jquery,native/raven.min.js'
-
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
 SENTRY_ENDPOINT = None
 SENTRY_PUBLIC_ENDPOINT = None
-
-# Early draft features. Not slated or public release yet.
-SENTRY_ENABLE_EXPLORE_CODE = False
 
 # Prevent variables (e.g. context locals, http data, etc) from exceeding this
 # size in characters
@@ -765,7 +792,7 @@ SENTRY_MAX_HTTP_BODY_SIZE = 4096 * 4  # 16kb
 SENTRY_MAX_DICTIONARY_ITEMS = 50
 
 SENTRY_MAX_MESSAGE_LENGTH = 1024 * 8
-SENTRY_MAX_STACKTRACE_FRAMES = 25
+SENTRY_MAX_STACKTRACE_FRAMES = 50
 SENTRY_MAX_EXCEPTIONS = 25
 
 # Gravatar service base url
@@ -798,6 +825,79 @@ SENTRY_DISALLOWED_IPS = (
 # 'first_name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ('email',)
 
+SENTRY_SCOPES = set([
+    'org:read',
+    'org:write',
+    'org:delete',
+    'member:read',
+    'member:write',
+    'member:delete',
+    'team:read',
+    'team:write',
+    'team:delete',
+    'project:read',
+    'project:write',
+    'project:delete',
+    'event:read',
+    'event:write',
+    'event:delete',
+])
+
+SENTRY_DEFAULT_ROLE = 'member'
+
+# Roles are ordered, which represents a sort-of hierarchy, as well as how
+# they're presented in the UI. This is primarily important in that a member
+# that is earlier in the chain cannot manage the settings of a member later
+# in the chain (they still require the appropriate scope).
+SENTRY_ROLES = (
+    {
+        'id': 'member',
+        'name': 'Member',
+        'desc': 'Members can view and act on events, as well as view most other data within the organization.',
+        'scopes': set([
+            'event:read', 'event:write', 'event:delete',
+            'project:read', 'org:read', 'member:read', 'team:read',
+        ]),
+    },
+    {
+        'id': 'admin',
+        'name': 'Admin',
+        'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.',
+        'scopes': set([
+            'event:read', 'event:write', 'event:delete',
+            'org:read', 'member:read',
+            'project:read', 'project:write', 'project:delete',
+            'team:read', 'team:write', 'team:delete',
+        ]),
+    },
+    {
+        'id': 'manager',
+        'name': 'Manager',
+        'desc': 'Gains admin access on all teams as well as the ability to add and remove members.',
+        'is_global': True,
+        'scopes': set([
+            'event:read', 'event:write', 'event:delete',
+            'member:read', 'member:write', 'member:delete',
+            'project:read', 'project:write', 'project:delete',
+            'team:read', 'team:write', 'team:delete',
+            'org:read', 'org:write',
+        ]),
+    },
+    {
+        'id': 'owner',
+        'name': 'Owner',
+        'desc': 'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
+        'is_global': True,
+        'scopes': set([
+            'org:read', 'org:write', 'org:delete',
+            'member:read', 'member:write', 'member:delete',
+            'team:read', 'team:write', 'team:delete',
+            'project:read', 'project:write', 'project:delete',
+            'event:read', 'event:write', 'event:delete',
+        ]),
+    },
+)
+
 # See sentry/options/__init__.py for more information
 SENTRY_OPTIONS = {}
 
@@ -809,8 +909,21 @@ SENTRY_USE_BIG_INTS = False
 SENTRY_API_RESPONSE_DELAY = 0
 
 # Watchers for various application purposes (such as compiling static media)
+# XXX(dcramer): this doesn't work outside of a source distribution as the
+# webpack.config.js is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
-    [os.path.join(NODE_MODULES_ROOT, '.bin', 'gulp'), 'watch:css'],
     [os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '-d', '--watch',
      "--config={}".format(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))],
 )
+
+
+def get_raven_config():
+    return {
+        'release': sentry.__build__,
+        'register_signals': True,
+        'include_paths': [
+            'sentry',
+        ],
+    }
+
+RAVEN_CONFIG = get_raven_config()

@@ -5,10 +5,9 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import features
+from sentry import features, roles
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Organization, OrganizationMember,
-    OrganizationMemberType
+    AuditLogEntry, AuditLogEntryEvent, Organization, OrganizationMember
 )
 from sentry.web.frontend.base import BaseView
 
@@ -37,8 +36,7 @@ class CreateOrganizationView(BaseView):
             OrganizationMember.objects.create(
                 organization=org,
                 user=request.user,
-                type=OrganizationMemberType.OWNER,
-                has_global_access=True,
+                role=roles.get_top_dog().id,
             )
 
             AuditLogEntry.objects.create(

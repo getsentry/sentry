@@ -1,7 +1,7 @@
-import jQuery from "jquery";
-import Reflux from "reflux";
+import jQuery from 'jquery';
+import Reflux from 'reflux';
 
-var EventStore = Reflux.createStore({
+const EventStore = Reflux.createStore({
   init() {
     this.reset();
   },
@@ -13,7 +13,7 @@ var EventStore = Reflux.createStore({
   loadInitialData(items) {
     this.reset();
 
-    var itemIds = new Set();
+    let itemIds = new Set();
     items.forEach((item) => {
       itemIds.add(item.id);
       this.items.push(item);
@@ -27,8 +27,8 @@ var EventStore = Reflux.createStore({
       items = [items];
     }
 
-    var itemsById = {};
-    var itemIds = new Set();
+    let itemsById = {};
+    let itemIds = new Set();
     items.forEach((item) => {
       itemsById[item.id] = item;
       itemIds.add(item.id);
@@ -41,7 +41,7 @@ var EventStore = Reflux.createStore({
       }
     });
 
-    for (var itemId in itemsById) {
+    for (let itemId in itemsById) {
       this.items.push(itemsById[itemId]);
     }
 
@@ -59,7 +59,7 @@ var EventStore = Reflux.createStore({
   },
 
   get(id) {
-    for (var i = 0; i < this.items.length; i++) {
+    for (let i = 0; i < this.items.length; i++) {
       if (this.items[i].id === id) {
         return this.items[i];
       }

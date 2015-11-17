@@ -1,20 +1,22 @@
-import React from "react";
+import React from 'react';
 
-import {logException} from "../../utils/logging";
-import EventDataSection from "./eventDataSection";
-import EventErrors from "./errors";
-import EventExtraData from "./extraData";
-import EventPackageData from "./packageData";
-import EventTags from "./eventTags";
-import EventMessage from "./message";
-import EventUser from "./user";
-import PropTypes from "../../proptypes";
-import utils from "../../utils";
+import {logException} from '../../utils/logging';
+import EventDataSection from './eventDataSection';
+import EventErrors from './errors';
+import EventExtraData from './extraData';
+import EventPackageData from './packageData';
+import EventTags from './eventTags';
+import EventMessage from './message';
+import EventUser from './user';
+import PropTypes from '../../proptypes';
+import utils from '../../utils';
 
-var EventEntries = React.createClass({
+const EventEntries = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
     // TODO(dcramer): ideally isShare would be replaced with simple permission
     // checks
     isShare: React.PropTypes.bool
@@ -26,34 +28,35 @@ var EventEntries = React.createClass({
     };
   },
 
-  // TODO(dcramer): make this extensible
-  interfaces: {
-    exception: require("./interfaces/exception"),
-    request: require("./interfaces/request"),
-    stacktrace: require("./interfaces/stacktrace"),
-    template: require("./interfaces/template")
-  },
-
   shouldComponentUpdate(nextProps, nextState) {
     return this.props.event.id !== nextProps.event.id;
   },
 
-  render(){
-    var group = this.props.group;
-    var evt = this.props.event;
-    var isShare = this.props.isShare;
+  // TODO(dcramer): make this extensible
+  interfaces: {
+    exception: require('./interfaces/exception'),
+    request: require('./interfaces/request'),
+    stacktrace: require('./interfaces/stacktrace'),
+    template: require('./interfaces/template'),
+    csp: require('./interfaces/csp'),
+  },
 
-    var entries = evt.entries.map((entry, entryIdx) => {
+  render(){
+    let group = this.props.group;
+    let evt = this.props.event;
+    let isShare = this.props.isShare;
+
+    let entries = evt.entries.map((entry, entryIdx) => {
       try {
-        var Component = this.interfaces[entry.type];
+        let Component = this.interfaces[entry.type];
         if (!Component) {
           /*eslint no-console:0*/
-          console.error('Unregistered interface: ' + entry.type);
+          window.console && console.error && console.error('Unregistered interface: ' + entry.type);
           return null;
         }
         return (
           <Component
-            key={"entry-" + entryIdx}
+            key={'entry-' + entryIdx}
             group={group}
             event={evt}
             type={entry.type}
@@ -74,6 +77,7 @@ var EventEntries = React.createClass({
       }
     });
 
+    let {orgId, projectId} = this.props;
     return (
       <div>
         {!utils.objectIsEmpty(evt.errors) &&
@@ -86,7 +90,9 @@ var EventEntries = React.createClass({
           event={evt} />
         <EventTags
           group={group}
-          event={evt} />
+          event={evt}
+          orgId={orgId}
+          projectId={projectId} />
         {!utils.objectIsEmpty(evt.user) &&
           <EventUser
             group={group}

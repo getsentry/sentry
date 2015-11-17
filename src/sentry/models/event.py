@@ -88,50 +88,17 @@ class Event(Model):
 
     @memoize
     def ip_address(self):
-        user_data = self.data.get('sentry.interfaces.User')
+        user_data = self.data.get('sentry.interfaces.User', self.data.get('user'))
         if user_data:
             value = user_data.get('ip_address')
             if value:
                 return value
 
-        http_data = self.data.get('sentry.interfaces.Http')
+        http_data = self.data.get('sentry.interfaces.Http', self.data.get('http'))
         if http_data and 'env' in http_data:
             value = http_data['env'].get('REMOTE_ADDR')
             if value:
                 return value
-
-        return None
-
-    @memoize
-    def user_ident(self):
-        """
-        The identifier from a user is considered from several interfaces.
-
-        In order:
-
-        - User.id
-        - User.email
-        - User.username
-        - Http.env.REMOTE_ADDR
-
-        """
-        user_data = self.data.get('sentry.interfaces.User', self.data.get('user'))
-        if user_data:
-            ident = user_data.get('id')
-            if ident:
-                return 'id:%s' % (ident,)
-
-            ident = user_data.get('email')
-            if ident:
-                return 'email:%s' % (ident,)
-
-            ident = user_data.get('username')
-            if ident:
-                return 'username:%s' % (ident,)
-
-        ident = self.ip_address
-        if ident:
-            return 'ip:%s' % (ident,)
 
         return None
 

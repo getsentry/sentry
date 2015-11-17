@@ -12,7 +12,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import File, Release, ReleaseFile
+from sentry.models import File, FileBlob, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -91,7 +91,7 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
 
         file_list = ReleaseFile.objects.filter(
             release=release,
-        ).select_related('file').order_by('name')
+        ).select_related('file', 'file__blob').order_by('name')
 
         return self.paginate(
             request=request,
@@ -157,14 +157,14 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
             else:
                 headers[k] = v.strip()
 
-        # TODO(dcramer): File's are unique on (name, checksum) so we need to
-        # ensure that this file does not already exist for other purposes
-        file = File(
+        blob = FileBlob.from_file(fileobj)
+
+        file = File.objects.create(
             name=name,
             type='release.file',
             headers=headers,
+            blob=blob,
         )
-        file.putfile(fileobj)
 
         try:
             with transaction.atomic():

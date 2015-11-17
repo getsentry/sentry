@@ -1,30 +1,33 @@
-import React from "react";
-import Reflux from "reflux";
-import Router from "react-router";
-import api from "../api";
-import DocumentTitle from "react-document-title";
-import GroupHeader from "./groupDetails/header";
-import GroupStore from "../stores/groupStore";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import PropTypes from "../proptypes";
+import React from 'react';
+import Reflux from 'reflux';
+import api from '../api';
+import DocumentTitle from 'react-document-title';
+import GroupHeader from './groupDetails/header';
+import GroupStore from '../stores/groupStore';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import PropTypes from '../proptypes';
 
-var GroupDetails = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
+let ERROR_TYPES = {
+  GROUP_NOT_FOUND: 'GROUP_NOT_FOUND'
+};
+
+const GroupDetails = React.createClass({
+  childContextTypes: {
+    group: PropTypes.Group,
   },
 
   mixins: [
-    Reflux.listenTo(GroupStore, "onGroupChange")
+    Reflux.listenTo(GroupStore, 'onGroupChange')
   ],
 
-  propTypes: {
-    memberList: React.PropTypes.instanceOf(Array).isRequired,
-    setProjectNavSection: React.PropTypes.func.isRequired
-  },
-
-  childContextTypes: {
-    group: PropTypes.Group,
+  getInitialState() {
+    return {
+      group: null,
+      loading: true,
+      error: false,
+      errorType: null
+    };
   },
 
   getChildContext() {
@@ -33,43 +36,44 @@ var GroupDetails = React.createClass({
     };
   },
 
-  getInitialState() {
-    return {
-      group: null,
-      loading: true,
-      error: false
-    };
-  },
-
   componentWillMount() {
     this.props.setProjectNavSection('stream');
     this.fetchData();
   },
 
-  fetchData() {
-    this.setState({
-      loading: true,
-      error: false
-    });
+  remountComponent() {
+    this.setState(this.getInitialState(), this.fetchData);
+  },
 
+  fetchData() {
     api.request(this.getGroupDetailsEndpoint(), {
       success: (data) => {
         this.setState({
-          loading: false
+          loading: false,
+          error: false,
+          errorType: null
         });
 
         GroupStore.loadInitialData([data]);
-      }, error: () => {
+      }, error: (_, textStatus, errorThrown) => {
+        let errorType = null;
+        switch (errorThrown) {
+          case 'NOT FOUND':
+            errorType = ERROR_TYPES.GROUP_NOT_FOUND;
+            break;
+          default:
+        }
         this.setState({
           loading: false,
-          error: true
+          error: true,
+          errorType: errorType
         });
       }
     });
   },
 
   onGroupChange(itemIds) {
-    var id = this.context.router.getCurrentParams().groupId;
+    let id = this.props.params.groupId;
     if (itemIds.has(id)) {
       this.setState({
         group: GroupStore.get(id),
@@ -78,7 +82,7 @@ var GroupDetails = React.createClass({
   },
 
   getGroupDetailsEndpoint() {
-    var id = this.context.router.getCurrentParams().groupId;
+    let id = this.props.params.groupId;
 
     return '/groups/' + id + '/';
   },
@@ -90,13 +94,20 @@ var GroupDetails = React.createClass({
   },
 
   render() {
-    var group = this.state.group;
-    var params = this.context.router.getCurrentParams();
+    let group = this.state.group;
+    let params = this.props.params;
 
-    if (this.state.loading || !group)
+    if (this.state.error) {
+      switch (this.state.errorType) {
+        case ERROR_TYPES.GROUP_NOT_FOUND:
+          return (
+            <div className="alert alert-block">The issue you were looking for was not found.</div>
+          );
+        default:
+          return <LoadingError onRetry={this.remountComponent} />;
+      }
+    } else if (this.state.loading || !group)
       return <LoadingIndicator />;
-    else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
 
     return (
       <DocumentTitle title={this.getTitle()}>
@@ -106,9 +117,10 @@ var GroupDetails = React.createClass({
               projectId={params.projectId}
               group={group}
               memberList={this.props.memberList} />
-          <Router.RouteHandler
-              memberList={this.props.memberList}
-              group={group} />
+          {React.cloneElement(this.props.children, {
+              memberList: this.props.memberList,
+              group: group
+          })}
         </div>
       </DocumentTitle>
     );

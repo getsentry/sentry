@@ -1,13 +1,13 @@
-import React from "react";
-import _ from "underscore";
-import classNames from "classnames";
-import {defined, objectIsEmpty} from "../../../utils";
+import React from 'react';
+import _ from 'underscore';
+import classNames from 'classnames';
+import {defined, objectIsEmpty, isUrl} from '../../../utils';
 
-import TooltipMixin from "../../../mixins/tooltip";
-import FrameVariables from "./frameVariables";
+import TooltipMixin from '../../../mixins/tooltip';
+import FrameVariables from './frameVariables';
 
 
-var Frame = React.createClass({
+const Frame = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired
   },
@@ -15,8 +15,8 @@ var Frame = React.createClass({
   mixins: [
     TooltipMixin({
       html: true,
-      selector: ".tip",
-      trigger: "click"
+      selector: '.tip',
+      trigger: 'click'
     })
   ],
 
@@ -27,13 +27,6 @@ var Frame = React.createClass({
     return {
       isExpanded: defined(this.props.isExpanded) ? this.props.isExpanded : false
     };
-  },
-
-  isUrl(filename) {
-    if (!filename) {
-      return false;
-    }
-    return filename.indexOf('http:') !== -1 || filename.indexOf('https:') !== -1;
   },
 
   toggleContext(evt) {
@@ -48,24 +41,30 @@ var Frame = React.createClass({
 
     // TODO: is there a way to render a react element as a string? All the
     // documented methods don't exist on the client (meant for server rendering)
-    let escapedAbsPath = this.isUrl(data.origAbsPath)
+    let escapedAbsPath = isUrl(data.origAbsPath)
       ? `<a href="${_.escape(data.origAbsPath)}">${_.escape(data.origAbsPath)}</a>`
       : _.escape(data.origAbsPath);
 
-    return (`
-      <div>
-        <strong>Original Filename</strong><br/>
-        ${escapedAbsPath}<br/>
-        <strong>Line Number</strong><br/>
-        ${_.escape(data.origLineNo)}<br/>
-        <strong>Column Number</strong><br/>
-        ${_.escape(data.origColNo)}<br/>
-        <strong>Function</strong><br/>
-        ${_.escape(data.origFunction)}<br/>
-        <strong>Source Map</strong><br/>
-        <a href="${_.escape(data.mapUrl)}">${_.escape(data.map)}<br/>
-      </div>
-    `);
+    let out = `
+    <div>
+      <strong>Original Filename</strong><br/>
+      ${escapedAbsPath}<br/>
+      <strong>Line Number</strong><br/>
+      ${_.escape(data.origLineNo)}<br/>
+      <strong>Column Number</strong><br/>
+      ${_.escape(data.origColNo)}<br/>
+      <strong>Function</strong><br/>
+      ${_.escape(data.origFunction)}<br/>
+      <strong>Source Map</strong><br/>`;
+
+    // mapUrl not always present; e.g. uploaded source maps
+    out += data.mapUrl
+      ? `<a href="${_.escape(data.mapUrl)}">${_.escape(data.map)}<br/>`
+      : `${_.escape(data.map)}<br/>`;
+
+    out += '</div>';
+
+    return out;
   },
 
   renderTitle() {
@@ -74,7 +73,7 @@ var Frame = React.createClass({
 
     if (defined(data.filename || data.module)) {
       title.push(<code key="filename">{data.filename || data.module}</code>);
-      if (this.isUrl(data.absPath)) {
+      if (isUrl(data.absPath)) {
         title.push(<a href={data.absPath} className="icon-open" key="share" target="_blank" />);
       }
       if (defined(data.function)) {
@@ -99,7 +98,7 @@ var Frame = React.createClass({
 
     if (defined(data.origAbsPath)) {
       title.push(
-        <a className="in-at tip original-src" title={this.renderOriginalSourceInfo()}>
+        <a key="original-src" className="in-at tip original-src" title={this.renderOriginalSourceInfo()}>
           <span className="icon-question" />
         </a>
       );
@@ -115,13 +114,15 @@ var Frame = React.createClass({
     let data = this.props.data;
     let context = '';
 
-    let outerClassName = "context";
+    let outerClassName = 'context';
     if (this.state.isExpanded) {
-      outerClassName += " expanded";
+      outerClassName += ' expanded';
     }
 
     let hasContextSource = defined(data.context) && data.context.length;
+    let hasExtendedSource = hasContextSource && data.context.length > 1;
     let hasContextVars = !objectIsEmpty(data.vars);
+    let expandable = hasExtendedSource || hasContextVars;
 
     if (hasContextSource || hasContextVars) {
       let startLineNo = hasContextSource ? data.context[0][0] : '';
@@ -129,13 +130,13 @@ var Frame = React.createClass({
         <ol start={startLineNo} className={outerClassName}
             onClick={this.toggleContext}>
           {defined(data.errors) &&
-          <li className="expandable error"
-              key="errors">{data.errors.join(", ")}</li>
+          <li className={expandable ? 'expandable error' : 'error'}
+              key="errors">{data.errors.join(', ')}</li>
           }
           {(data.context || []).map((line) => {
-            let liClassName = "expandable";
+            let liClassName = 'expandable';
             if (line[0] === data.lineNo) {
-              liClassName += " active";
+              liClassName += ' active';
             }
 
             let lineWs;
@@ -168,9 +169,9 @@ var Frame = React.createClass({
     let data = this.props.data;
 
     let className = classNames({
-      "frame": true,
-      "system-frame": !data.inApp,
-      "frame-errors": data.errors,
+      'frame': true,
+      'system-frame': !data.inApp,
+      'frame-errors': data.errors,
     });
 
     let context = this.renderContext();
@@ -183,7 +184,7 @@ var Frame = React.createClass({
               title="Toggle context"
               onClick={this.toggleContext}
               className="btn btn-sm btn-default btn-toggle">
-              <span className={this.state.isExpanded ? "icon-minus" : "icon-plus"}/>
+              <span className={this.state.isExpanded ? 'icon-minus' : 'icon-plus'}/>
             </a>
             : ''
           }

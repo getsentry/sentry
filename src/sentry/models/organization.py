@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import roles
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, Model,
@@ -34,45 +35,29 @@ class OrganizationManager(BaseManager):
     # def get_by_natural_key(self, slug):
     #     return self.get(slug=slug)
 
-    def get_for_user(self, user, access=None):
+    def get_for_user(self, user, scope=None):
         """
         Returns a set of all organizations a user has access to.
-
-        Each <Organization> returned has an ``member_type`` attribute which
-        holds the OrganizationMemberType value.
         """
-        from sentry.models import OrganizationMember, OrganizationMemberType
-
-        results = []
+        from sentry.models import OrganizationMember
 
         if not user.is_authenticated():
-            return results
+            return []
 
-        if settings.SENTRY_PUBLIC and access is None:
-            qs = self.filter(status=OrganizationStatus.VISIBLE)
-            for org in qs:
-                org.member_type = OrganizationMemberType.MEMBER
-                results.append(org)
+        if settings.SENTRY_PUBLIC and scope is None:
+            return list(self.filter(status=OrganizationStatus.VISIBLE))
 
-        else:
-            qs = OrganizationMember.objects.filter(
-                user=user,
-                organization__status=OrganizationStatus.VISIBLE,
-            ).select_related('organization')
-            if access is not None:
-                # if we're requesting specific access the member *must* have
-                # global access to teams
-                qs = qs.filter(
-                    type__lte=access,
-                    has_global_access=True,
-                )
+        results = list(OrganizationMember.objects.filter(
+            user=user,
+            organization__status=OrganizationStatus.VISIBLE,
+        ).select_related('organization'))
 
-            for om in qs:
-                org = om.organization
-                org.member_type = om.type
-                results.append(org)
-
-        return results
+        if scope is not None:
+            return [
+                r.organization for r in results
+                if scope not in r.get_scopes()
+            ]
+        return [r.organization for r in results]
 
 
 class Organization(Model):
@@ -88,10 +73,15 @@ class Organization(Model):
     ), default=OrganizationStatus.VISIBLE)
     date_added = models.DateTimeField(default=timezone.now)
     members = models.ManyToManyField(settings.AUTH_USER_MODEL, through='sentry.OrganizationMember', related_name='org_memberships')
+    default_role = models.CharField(
+        choices=roles.get_choices(),
+        max_length=32,
+        default=roles.get_default().id,
+    )
 
     flags = BitField(flags=(
         ('allow_joinleave', 'Allow members to join and leave teams without requiring approval.'),
-    ), default=0)
+    ), default=1)
 
     objects = OrganizationManager(cache_fields=(
         'pk',
@@ -152,22 +142,24 @@ class Organization(Model):
             'name': self.name,
             'status': self.status,
             'flags': self.flags,
+            'default_role': self.default_role,
         }
 
     def get_default_owner(self):
-        from sentry.models import OrganizationMemberType, User
+        if not hasattr(self, '_default_owner'):
+            from sentry.models import User
 
-        return User.objects.filter(
-            sentry_orgmember_set__type=OrganizationMemberType.OWNER,
-            sentry_orgmember_set__organization=self,
-        )[0]
+            self._default_owner = User.objects.filter(
+                sentry_orgmember_set__role=roles.get_top_dog().id,
+                sentry_orgmember_set__organization=self,
+            )[0]
+        return self._default_owner
 
     def has_single_owner(self):
-        from sentry.models import OrganizationMember, OrganizationMemberType
+        from sentry.models import OrganizationMember
         count = OrganizationMember.objects.filter(
             organization=self,
-            type=OrganizationMemberType.OWNER,
-            has_global_access=True,
+            role='owner',
             user__isnull=False,
         ).count()
         return count == 1
@@ -178,10 +170,6 @@ class Organization(Model):
             Project, Team
         )
 
-        team_list = list(Team.objects.filter(
-            organization=to_org,
-        ))
-
         for from_member in OrganizationMember.objects.filter(organization=from_org):
             try:
                 to_member = OrganizationMember.objects.get(
@@ -191,17 +179,19 @@ class Organization(Model):
             except OrganizationMember.DoesNotExist:
                 from_member.update(organization=to_org)
                 to_member = from_member
-
-            if to_member.has_global_access:
-                for team in team_list:
-                    OrganizationMemberTeam.objects.get_or_create(
+            else:
+                qs = OrganizationMemberTeam.objects.filter(
+                    organizationmember=from_member,
+                    is_active=True,
+                ).select_related()
+                for omt in qs:
+                    OrganizationMemberTeam.objects.create_or_update(
                         organizationmember=to_member,
-                        team=team,
+                        team=omt.team,
                         defaults={
-                            'is_active': False,
+                            'is_active': True,
                         },
                     )
-
         for model in (Team, Project, ApiKey, AuditLogEntry):
             model.objects.filter(
                 organization=from_org,

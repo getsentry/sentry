@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.models import Team
+from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 from sentry.testutils import APITestCase
 
 
@@ -63,6 +63,17 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert team.name == 'hello world'
         assert team.slug == 'foobar'
         assert team.organization == self.organization
+
+        member = OrganizationMember.objects.get(
+            user=self.user,
+            organization=self.organization,
+        )
+
+        assert OrganizationMemberTeam.objects.filter(
+            organizationmember=member,
+            team=team,
+            is_active=True,
+        ).exists()
 
     def test_without_slug(self):
         self.login_as(user=self.user)

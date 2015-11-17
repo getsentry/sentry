@@ -7,14 +7,20 @@ sentry.plugins.sentry_mail.models
 """
 from __future__ import absolute_import
 
+import itertools
+from collections import Counter
+
 import sentry
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.template.loader import render_to_string
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
+from sentry import features
 from sentry.plugins import register
+from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils.cache import cache
 from sentry.utils.email import MessageBuilder, group_id_to_email
@@ -34,7 +40,7 @@ class MailPlugin(NotificationPlugin):
     project_conf_form = None
     subject_prefix = settings.EMAIL_SUBJECT_PREFIX
 
-    def _send_mail(self, subject, template=None, html_template=None, body=None,
+    def _build_message(self, subject, template=None, html_template=None, body=None,
                    project=None, group=None, headers=None, context=None):
         send_to = self.get_send_to(project)
         if not send_to:
@@ -54,7 +60,10 @@ class MailPlugin(NotificationPlugin):
             reference=group,
         )
         msg.add_users(send_to, project=project)
-        return msg.send()
+        return msg
+
+    def _send_mail(self, *args, **kwargs):
+        return self._build_message(*args, **kwargs).send()
 
     def send_test_mail(self, project=None):
         self._send_mail(
@@ -72,33 +81,9 @@ class MailPlugin(NotificationPlugin):
             project.slug,
         ]))
 
-    def on_alert(self, alert):
-        project = alert.project
-        subject = '[{0} {1}] ALERT: {2}'.format(
-            project.team.name,
-            project.name,
-            alert.message,
-        )
-        template = 'sentry/emails/alert.txt'
-        html_template = 'sentry/emails/alert.html'
-
-        context = {
-            'alert': alert,
-            'link': alert.get_absolute_url(),
-        }
-
-        headers = {
-            'X-Sentry-Project': project.name,
-        }
-
-        self._send_mail(
-            subject=subject,
-            template=template,
-            html_template=html_template,
-            project=project,
-            headers=headers,
-            context=context,
-        )
+    def is_configured(self, project, **kwargs):
+        # Nothing to configure here
+        return True
 
     def should_notify(self, group, event):
         send_to = self.get_sendable_users(group.project)
@@ -192,6 +177,45 @@ class MailPlugin(NotificationPlugin):
             headers=headers,
             context=context,
         )
+
+    def notify_digest(self, project, digest):
+        counts = Counter()
+        for rule, groups in digest.iteritems():
+            counts.update(groups.keys())
+
+        # If there is only one group in this digest (regardless of how many
+        # rules it appears in), we should just render this using the single
+        # notification template. If there is more than one record for a group,
+        # just choose the most recent one.
+        if len(counts) == 1:
+            group = counts.keys()[0]
+            record = max(
+                itertools.chain.from_iterable(
+                    groups.get(group, []) for groups in digest.itervalues(),
+                ),
+                key=lambda record: record.timestamp,
+            )
+            notification = Notification(record.value.event, rules=record.value.rules)
+
+            if features.has('projects:digests:deliver', project):
+                return self.notify(notification)
+
+        context = {
+            'project': project,
+            'digest': digest,
+            'counts': counts,
+        }
+
+        message = self._build_message(
+            subject=render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
+            template='sentry/emails/digests/body.txt',
+            html_template='sentry/emails/digests/body.html',
+            project=project,
+            context=context,
+        )
+
+        if features.has('projects:digests:deliver', project):
+            message.send()
 
 
 # Legacy compatibility

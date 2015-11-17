@@ -1,8 +1,7 @@
+import Reflux from 'reflux';
+import TeamActions from '../actions/teamActions';
 
-import Reflux from "reflux";
-import TeamActions from "../actions/teamActions";
-
-var TeamStore = Reflux.createStore({
+const TeamStore = Reflux.createStore({
   init() {
     this.items = [];
 
@@ -22,7 +21,7 @@ var TeamStore = Reflux.createStore({
     if (!response) {
       return;
     }
-    var item = this.getBySlug(itemId);
+    let item = this.getBySlug(itemId);
     if (!item) {
       this.items.push(response);
     } else {
@@ -33,7 +32,7 @@ var TeamStore = Reflux.createStore({
 
   getById(id) {
     id = '' + id;
-    for (var i=0; i<this.items.length; i++) {
+    for (let i = 0; i < this.items.length; i++) {
       if (this.items[i].id === id) {
         return this.items[i];
       }
@@ -42,7 +41,7 @@ var TeamStore = Reflux.createStore({
   },
 
   getBySlug(slug) {
-    for (var i=0; i<this.items.length; i++) {
+    for (let i = 0; i < this.items.length; i++) {
       if (this.items[i].slug === slug) {
         return this.items[i];
       }

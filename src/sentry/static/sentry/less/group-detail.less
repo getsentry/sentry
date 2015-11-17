@@ -6,6 +6,7 @@
 .group-detail {
   position: relative;
   margin: 0 0 20px;
+  clear: both;
 
   &:before {
     position: absolute;
@@ -34,10 +35,19 @@
     line-height: 1.2;
   }
 
-  .event-message {
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
+  .error-level {
+    padding: 3px 4px;
+    font-size: 11px;
+    color: #fff;
+    border-radius: 2px;
+    text-transform: capitalize;
+    margin-right: 8px;
+    line-height: 1;
+    min-width: 50px;
+    text-align: center;
+    display: inline-block;
+    position: relative;
+    top: -1px;
   }
 
   .event-meta {
@@ -369,7 +379,7 @@
 
   .activity-field {
     .transition(padding .2s ease-in-out);
-    margin: -8px -15px;
+    margin: -10px -10px 0;
 
     textarea, .note-preview {
       display: block;
@@ -478,8 +488,9 @@
         border: 1px solid @trim;
         margin-left: 42px;
         border-radius: 3px;
-        font-size: 13px;
-        padding: 8px 15px;
+        font-size: 14px;
+        line-height: 18px;
+        padding: 10px 10px 0;
         position: relative;
 
         &:before {
@@ -509,11 +520,21 @@
         }
 
         p {
-          margin: 0;
+          margin: 0 0 10px;
+
+          a {
+            word-wrap: break-word;
+          }
+        }
+
+        pre {
+          font-size: 12px;
+          margin-bottom: 10px;
         }
 
         .activity-author {
           font-weight: 600;
+          margin-bottom: 10px;
 
           small {
             font-weight: 300;
@@ -527,6 +548,7 @@
               padding: 0 7px;
               border-left: 1px solid lighten(@gray, 40);
               color: lighten(@gray, 30);
+              font-weight: normal;
               &:hover { color: #666; }
               &:hover.danger { color: #d21c25; }
               &:first-child { margin-left: 7px; }
@@ -608,7 +630,7 @@
 */
 
 .event-toolbar {
-  margin: 0 0 20px;
+  margin: 0 0 15px;
   position: relative;
   z-index: 1;
   .clearfix;
@@ -616,6 +638,7 @@
   h4 {
     line-height: 1.3;
     margin: 0;
+    font-size: 16px;
   }
 
   .icon-skip-forward, .icon-skip-back {
@@ -713,6 +736,10 @@
 
   .btn-group {
     margin-top: -15px;
+  }
+
+  .table {
+    margin-bottom: 0;
   }
 }
 
@@ -822,7 +849,8 @@
 
   p {
     font-size: 12px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    line-height: 1.4;
 
     a.annotation {
       &.trigger-popover {
@@ -846,6 +874,12 @@
     font-size: 12px;
     margin-right: 3px;
     margin-left: 3px;
+    position: relative;
+    top: 1px;
+  }
+
+  .icon-question {
+    font-size: 15px;
     position: relative;
     top: 1px;
   }
@@ -895,7 +929,7 @@
     margin-top: -5px;
     margin-bottom: 15px;
 
-    dl.vars {
+    table.key-value {
       margin-top: 20px;
     }
   }
@@ -906,7 +940,7 @@
     margin-left: 10px;
   }
 
-  > div > dl.vars {
+  > div > table.key-value {
     margin-bottom: 5px;
     > tbody > tr > th {
       color: @gray-dark;
@@ -920,7 +954,7 @@
     float: right;
     .square(18px);
     padding: 0;
-    margin-top: 4px;
+    margin-top: -3px;
     line-height: 18px;
     font-size: 9px;
     text-align: center;
@@ -965,7 +999,7 @@
     .transition(.1s opacity linear);
   }
 
-  &.vars {
+  &.key-value {
     display: none;
   }
 
@@ -989,30 +1023,24 @@
   .ws {
     display: inline;
   }
-
-  dl.vars {
-    &.expandable {
-      display: block;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-    }
-  }
 }
 
 ol.context {
-  cursor: pointer;
   margin: 0;
   list-style-position: inside;
   border-radius: 3px;
   padding-left: 0;
 
-  .vars {
+  .key-value {
     display: none;
+
+    pre {
+      overflow: auto;
+    }
   }
 
   > li {
+    cursor: pointer;
     padding-left: 15px;
     font-family: @font-family-code;
     color: #222;
@@ -1047,8 +1075,8 @@ ol.context {
   }
 
   &.expanded {
-    .vars {
-      display: block;
+    .key-value {
+      display: table;
     }
 
     > li.active {
@@ -1057,37 +1085,6 @@ ol.context {
       list-style-type: inherit;
       border-radius: 0;
     }
-  }
-}
-
-dl.vars {
-  margin-top: 0;
-  margin-bottom: 15px;
-
-  dt, dd {
-    // margin-bottom: 10px;
-  }
-
-  dt {
-    padding-top: 7px;
-    width: 152px;
-    float: left;
-    font-weight: bold;
-    color: @gray-dark;
-    word-break: break-all;
-    padding-right: 10px;
-    font-size: 13px;
-    clear: both;
-  }
-
-  pre {
-    padding-top: 7px;
-    padding-bottom: 7px;
-    margin-bottom: 5px;
-    font-size: 12px;
-    color: @gray-dark;
-    white-space: pre-wrap;
-    word-break: break-all;
   }
 }
 

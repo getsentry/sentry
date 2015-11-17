@@ -1,22 +1,22 @@
 
-import Reflux from "reflux";
+import Reflux from 'reflux';
 
 
 // TODO(dcramer): we should probably just make every parameter update
 // work on bulk groups
-var GroupActions = Reflux.createActions([
-  "assignTo",
-  "assignToError",
-  "assignToSuccess",
-  "delete",
-  "deleteError",
-  "deleteSuccess",
-  "update",
-  "updateError",
-  "updateSuccess",
-  "merge",
-  "mergeError",
-  "mergeSuccess"
+let GroupActions = Reflux.createActions([
+  'assignTo',
+  'assignToError',
+  'assignToSuccess',
+  'delete',
+  'deleteError',
+  'deleteSuccess',
+  'update',
+  'updateError',
+  'updateSuccess',
+  'merge',
+  'mergeError',
+  'mergeSuccess'
 ]);
 
 

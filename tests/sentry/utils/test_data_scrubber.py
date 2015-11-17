@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
 from sentry.testutils import TestCase
 from sentry.utils.data_scrubber import SensitiveDataFilter
 
@@ -159,6 +161,14 @@ class SensitiveDataFilterTest(TestCase):
         # it'll change the value.
         result = proc.sanitize('foo', 'postgres:///path')
         self.assertEquals(result, 'postgres:///path')
+        result = proc.sanitize('foo', "foo 'redis://redis:foo@localhost:6379/0' bar")
+        self.assertEquals(result, "foo 'redis://redis:%s@localhost:6379/0' bar" % proc.MASK)
+        result = proc.sanitize('foo', "'redis://redis:foo@localhost:6379/0'")
+        self.assertEquals(result, "'redis://redis:%s@localhost:6379/0'" % proc.MASK)
+        result = proc.sanitize('foo', "foo redis://redis:foo@localhost:6379/0 bar")
+        self.assertEquals(result, "foo redis://redis:%s@localhost:6379/0 bar" % proc.MASK)
+        result = proc.sanitize('foo', "foo redis://redis:foo@localhost:6379/0 bar pg://matt:foo@localhost/1")
+        self.assertEquals(result, "foo redis://redis:%s@localhost:6379/0 bar pg://matt:%s@localhost/1" % (proc.MASK, proc.MASK))
 
     def test_sanitize_http_body(self):
         data = {
@@ -168,7 +178,7 @@ class SensitiveDataFilterTest(TestCase):
         }
 
         proc = SensitiveDataFilter()
-        result = proc.apply(data)
+        proc.apply(data)
         self.assertTrue('sentry.interfaces.Http' in data)
         http = data['sentry.interfaces.Http']
         self.assertEquals(http['data'], proc.MASK)
@@ -181,5 +191,5 @@ class SensitiveDataFilterTest(TestCase):
         }
 
         proc = SensitiveDataFilter()
-        result = proc.apply(data)
+        proc.apply(data)
         self.assertEquals(data['extra'], {'foo': 1})

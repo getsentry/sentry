@@ -1,28 +1,29 @@
-import marked from "marked";
-import React from "react";
-import api from "../../api";
-import GroupStore from "../../stores/groupStore";
-import IndicatorStore from "../../stores/indicatorStore";
-import {logException} from "../../utils/logging";
-import {getItem, setItem} from "../../utils/localStorage";
+import marked from 'marked';
+import React from 'react';
+import api from '../../api';
+import GroupStore from '../../stores/groupStore';
+import IndicatorStore from '../../stores/indicatorStore';
+import {logException} from '../../utils/logging';
+import {getItem, setItem} from '../../utils/localStorage';
 
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 const localStorageKey = 'noteinput:latest';
+const DEFAULT_ERROR_JSON = {detail: 'Unknown error. Please try again.'};
 
-var NoteInput = React.createClass({
+const NoteInput = React.createClass({
   mixins: [PureRenderMixin],
 
   getInitialState() {
-    var {item, group} = this.props;
-    var updating = !!item;
-    var defaultText = '';
+    let {item, group} = this.props;
+    let updating = !!item;
+    let defaultText = '';
 
     if (updating) {
       defaultText = item.data.text;
     } else {
-      var storage = getItem(localStorageKey);
+      let storage = getItem(localStorageKey);
       if (storage) {
-        var {groupId, value} = JSON.parse(storage);
+        let {groupId, value} = JSON.parse(storage);
         if (groupId === group.id) {
           defaultText = value;
         }
@@ -86,9 +87,9 @@ var NoteInput = React.createClass({
   },
 
   create() {
-    var {group} = this.props;
+    let {group} = this.props;
 
-    var loadingIndicator = IndicatorStore.add('Posting comment..');
+    let loadingIndicator = IndicatorStore.add('Posting comment..');
 
     api.request('/groups/' + group.id + '/notes/', {
       method: 'POST',
@@ -100,7 +101,7 @@ var NoteInput = React.createClass({
           loading: false,
           preview: false,
           error: true,
-          errorJSON: JSON.parse(error.responseJSON)
+          errorJSON: error.responseJSON || DEFAULT_ERROR_JSON
         });
       },
       success: (data) => {
@@ -120,9 +121,9 @@ var NoteInput = React.createClass({
   },
 
   update() {
-    var {group, item} = this.props;
+    let {group, item} = this.props;
 
-    var loadingIndicator = IndicatorStore.add('Updating comment..');
+    let loadingIndicator = IndicatorStore.add('Updating comment..');
 
     api.request('/groups/' + group.id + '/notes/' + item.id + '/', {
       method: 'PUT',
@@ -134,7 +135,7 @@ var NoteInput = React.createClass({
           loading: false,
           preview: false,
           error: true,
-          errorJSON: JSON.parse(error.responseJSON)
+          errorJSON: error.responseJSON || DEFAULT_ERROR_JSON
         });
       },
       success: (data) => {
@@ -178,7 +179,7 @@ var NoteInput = React.createClass({
     // onFocus event
     if (!this.state._hasFocused) {
       this.setState({_hasFocused: true});
-      var value = e.target.value;
+      let value = e.target.value;
       e.target.value = '';
       e.target.value = value;
     }
@@ -192,8 +193,8 @@ var NoteInput = React.createClass({
   },
 
   render() {
-    var {error, errorJSON, loading, preview, updating, value} = this.state;
-    var classNames = 'activity-field';
+    let {error, errorJSON, loading, preview, updating, value} = this.state;
+    let classNames = 'activity-field';
     if (error) {
       classNames += ' error';
     }
@@ -201,17 +202,20 @@ var NoteInput = React.createClass({
       classNames += ' loading';
     }
 
-    var btnText = updating ? 'Save' : 'Post';
+    let btnText = updating ? 'Save' : 'Post';
 
     return (
       <form className={classNames} onSubmit={this.onSubmit}>
         <div className="activity-notes">
           <ul className="nav nav-tabs">
-            <li className={!preview ? "active" : ""}>
-              <a onClick={this.toggleEdit}>{updating ? "Edit" : "Write"}</a>
+            <li className={!preview ? 'active' : ''}>
+              <a onClick={this.toggleEdit}>{updating ? 'Edit' : 'Write'}</a>
             </li>
-            <li className={preview ? "active" : ""}>
+            <li className={preview ? 'active' : ''}>
               <a onClick={this.togglePreview}>Preview</a>
+            </li>
+            <li className="markdown">
+              <span className="icon-markdown" /><span className="supported">Markdown supported</span>
             </li>
           </ul>
           {preview ?

@@ -29,6 +29,10 @@
             {{ field|as_crispy_field }}
         {% endwith %}
 
+        {% with form.clock_24_hours as field %}
+            {{ field|as_crispy_field }}
+        {% endwith %}
+
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
         </div>

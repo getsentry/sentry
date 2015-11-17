@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from mock import patch
 
 from sentry.models import (
-    AuthProvider, OrganizationMember, OrganizationMemberType
+    AuthProvider, OrganizationMember
 )
 from sentry.testutils import APITestCase
 
@@ -15,11 +15,10 @@ class UpdateOrganizationMemberTest(APITestCase):
         self.login_as(user=self.user)
 
         organization = self.create_organization(name='foo', owner=self.user)
-        member_om = OrganizationMember.objects.create(
+        member_om = self.create_member(
             organization=organization,
             email='foo@example.com',
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=False,
+            role='member',
         )
 
         path = reverse('sentry-api-0-organization-member-details', args=[organization.slug, member_om.id])
@@ -37,11 +36,10 @@ class UpdateOrganizationMemberTest(APITestCase):
 
         organization = self.create_organization(name='foo', owner=self.user)
         member = self.create_user('bar@example.com')
-        member_om = OrganizationMember.objects.create(
+        member_om = self.create_member(
             organization=organization,
             user=member,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=False,
+            role='member',
         )
         AuthProvider.objects.create(organization=organization, provider='dummy')
 
@@ -60,11 +58,10 @@ class UpdateOrganizationMemberTest(APITestCase):
 
         organization = self.create_organization(name='foo', owner=self.user)
         member = self.create_user('bar@example.com')
-        member_om = OrganizationMember.objects.create(
+        member_om = self.create_member(
             organization=organization,
             user=member,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=False,
+            role='member',
         )
 
         path = reverse('sentry-api-0-organization-member-details', args=[organization.slug, member_om.id])
@@ -83,11 +80,10 @@ class DeleteOrganizationMemberTest(APITestCase):
         organization = self.create_organization(name='foo', owner=self.user)
         member = self.create_user('bar@example.com')
 
-        member_om = OrganizationMember.objects.create(
+        member_om = self.create_member(
             organization=organization,
             user=member,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=False,
+            role='member',
         )
 
         path = reverse('sentry-api-0-organization-member-details', args=[organization.slug, member_om.id])
@@ -100,15 +96,45 @@ class DeleteOrganizationMemberTest(APITestCase):
 
         assert not OrganizationMember.objects.filter(id=member_om.id).exists()
 
+    def test_cannot_delete_member_with_higher_access(self):
+        self.login_as(user=self.user)
+
+        organization = self.create_organization(name='foo', owner=self.user)
+
+        other_user = self.create_user('bar@example.com')
+
+        self.create_member(
+            organization=organization,
+            role='manager',
+            user=other_user,
+        )
+
+        owner_om = OrganizationMember.objects.get(
+            organization=organization,
+            user=self.user,
+        )
+
+        assert owner_om.role == 'owner'
+
+        path = reverse('sentry-api-0-organization-member-details', args=[organization.slug, owner_om.id])
+
+        self.login_as(other_user)
+
+        resp = self.client.delete(path)
+
+        assert resp.status_code == 400
+
+        assert OrganizationMember.objects.filter(id=owner_om.id).exists()
+
     def test_cannot_delete_only_owner(self):
         self.login_as(user=self.user)
 
         organization = self.create_organization(name='foo', owner=self.user)
 
         # create a pending member, which shouldn't be counted in the checks
-        OrganizationMember.objects.create(
+        self.create_member(
             organization=organization,
-            type=OrganizationMemberType.OWNER,
+            role='owner',
             email='bar@example.com',
         )
 
@@ -116,6 +142,8 @@ class DeleteOrganizationMemberTest(APITestCase):
             organization=organization,
             user=self.user,
         )
+
+        assert owner_om.role == 'owner'
 
         path = reverse('sentry-api-0-organization-member-details', args=[organization.slug, owner_om.id])
 

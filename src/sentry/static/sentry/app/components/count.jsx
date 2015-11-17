@@ -1,8 +1,12 @@
-import React from "react";
+import React from 'react';
 
-var Count = React.createClass({
+const Count = React.createClass({
   propTypes: {
     value: React.PropTypes.any.isRequired
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return this.props.value !== nextProps.value;
   },
 
   numberFormats: [
@@ -12,17 +16,17 @@ var Count = React.createClass({
   ],
 
   floatFormat(number, places) {
-      var multi = Math.pow(10, places);
+      let multi = Math.pow(10, places);
       return parseInt(number * multi, 10) / multi;
   },
 
   formatNumber(number){
-      var b, x, y, o, p;
+      let b, x, y, o, p;
 
       number = parseInt(number, 10);
 
       /*eslint no-cond-assign:0*/
-      for (var i=0; (b=this.numberFormats[i]); i++){
+      for (let i = 0; (b = this.numberFormats[i]); i++){
           x = b[0];
           y = b[1];
           o = Math.floor(number / x);
@@ -34,10 +38,6 @@ var Count = React.createClass({
           }
       }
       return '' + number;
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return this.props.value !== nextProps.value;
   },
 
   render() {

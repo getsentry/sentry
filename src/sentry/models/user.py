@@ -70,11 +70,13 @@ class User(BaseModel, AbstractBaseUser):
 
     def has_perm(self, perm_name):
         warnings.warn('User.has_perm is deprecated', DeprecationWarning)
-        return self.is_superuser
+        from sentry.auth.utils import is_active_superuser
+        return is_active_superuser(self)
 
     def has_module_perms(self, app_label):
         # the admin requires this method
-        return self.is_superuser
+        from sentry.auth.utils import is_active_superuser
+        return is_active_superuser(self)
 
     def get_display_name(self):
         return self.first_name or self.email or self.username

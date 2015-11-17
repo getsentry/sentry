@@ -34,15 +34,8 @@ CONF_ROOT = os.path.dirname(__file__)
 
 DATABASES = {
     'default': {
-        # You can swap out the engine for MySQL easily by changing this value
-        # to ``django.db.backends.mysql`` or to PostgreSQL with
-        # ``sentry.db.postgres``
-
-        # If you change this, you'll also need to install the appropriate python
-        # package: psycopg2 (Postgres) or mysql-python
-        'ENGINE': 'django.db.backends.sqlite3',
-
-        'NAME': os.path.join(CONF_ROOT, 'sentry.db'),
+        'ENGINE': 'sentry.db.postgres',
+        'NAME': 'sentry',
         'USER': 'postgres',
         'PASSWORD': '',
         'HOST': '',
@@ -159,6 +152,14 @@ SENTRY_QUOTAS = 'sentry.quotas.redis.RedisQuota'
 
 SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
 
+###########
+# Digests #
+###########
+
+# The digest backend powers notification summaries.
+
+SENTRY_DIGESTS = 'sentry.digests.backends.redis.RedisBackend'
+
 ################
 # File storage #
 ################
@@ -199,7 +200,7 @@ SENTRY_WEB_OPTIONS = {
 ###############
 
 # For more information check Django's documentation:
-#  https://docs.djangoproject.com/en/1.3/topics/email/?from=olddocs#e-mail-backends
+# https://docs.djangoproject.com/en/1.6/topics/email/
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
@@ -289,6 +290,16 @@ def initialize_gevent():
         make_psycopg_green()
 
 
+def get_asset_version(settings):
+    path = os.path.join(settings.STATIC_ROOT, 'version')
+    try:
+        with open(path) as fp:
+            return fp.read().strip()
+    except IOError:
+        from time import time
+        return int(time())
+
+
 def initialize_app(config, skip_backend_validation=False):
     settings = config['settings']
 
@@ -310,6 +321,18 @@ def initialize_app(config, skip_backend_validation=False):
 
     settings.SUDO_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
     settings.SUDO_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
+    settings.SUDO_COOKIE_PATH = getattr(settings, 'SESSION_COOKIE_PATH', '/')
+
+    settings.CSRF_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
+    settings.CSRF_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
+    settings.CSRF_COOKIE_PATH = getattr(settings, 'SESSION_COOKIE_PATH', '/')
+
+    settings.CACHES['default']['VERSION'] = settings.CACHE_VERSION
+
+    settings.ASSET_VERSION = get_asset_version(settings)
+    settings.STATIC_URL = settings.STATIC_URL.format(
+        version=settings.ASSET_VERSION,
+    )
 
     if USE_GEVENT:
         from django.db import connections
@@ -331,12 +354,18 @@ def initialize_app(config, skip_backend_validation=False):
 def validate_backends():
     from sentry import app
 
-    app.buffer.validate()
-    app.nodestore.validate()
-    app.quotas.validate()
-    app.search.validate()
-    app.ratelimiter.validate()
-    app.tsdb.validate()
+    backends = (
+        app.buffer,
+        app.digests,
+        app.nodestore,
+        app.quotas,
+        app.ratelimiter,
+        app.search,
+        app.tsdb,
+    )
+
+    for backend in backends:
+        backend.validate()
 
 
 def fix_south(settings):

@@ -1,10 +1,6 @@
-import React from "react";
+import React from 'react';
 
-var FilterSelectLink = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
+const FilterSelectLink = React.createClass({
   propTypes: {
     label: React.PropTypes.string,
     onSelect: React.PropTypes.func,
@@ -18,7 +14,7 @@ var FilterSelectLink = React.createClass({
   },
 
   render() {
-    var className = this.props.extraClass;
+    let className = this.props.extraClass;
 
     if (this.props.isActive) {
       className += ' active';

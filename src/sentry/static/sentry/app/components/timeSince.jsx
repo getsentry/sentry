@@ -1,10 +1,25 @@
-import React from "react";
-import moment from "moment";
+import React from 'react';
+import moment from 'moment';
+import PureRenderMixin from 'react-addons-pure-render-mixin';
+import ConfigStore from '../stores/configStore.jsx';
 
-var TimeSince = React.createClass({
+const TimeSince = React.createClass({
   propTypes: {
     date: React.PropTypes.any.isRequired,
     suffix: React.PropTypes.string
+  },
+
+  mixins: [
+    PureRenderMixin
+  ],
+
+  statics: {
+    getDateObj(date) {
+      if (typeof date === 'string' || typeof date === 'number') {
+        date = new Date(date);
+      }
+      return date;
+    }
   },
 
   getDefaultProps() {
@@ -13,39 +28,49 @@ var TimeSince = React.createClass({
     };
   },
 
-  componentDidMount() {
-    var delay = 2600;
+  getInitialState() {
+    return {
+      relative: this.getRelativeDate()
+    };
+  },
 
-    this.ticker = setInterval(this.ensureValidity, delay);
+  componentDidMount() {
+    this.setRelativeDateTicker();
   },
 
   componentWillUnmount() {
     if (this.ticker) {
-      clearInterval(this.ticker);
+      clearTimeout(this.ticker);
       this.ticker = null;
     }
   },
 
-  ensureValidity() {
-    // TODO(dcramer): this should ensure we actually *need* to update the value
-    this.forceUpdate();
+  setRelativeDateTicker() {
+    const ONE_MINUTE_IN_MS = 3600;
+
+    this.ticker = setTimeout(() => {
+      this.setState({
+        relative: this.getRelativeDate()
+      });
+      this.setRelativeDateTicker();
+    }, ONE_MINUTE_IN_MS);
   },
 
-  shouldComponentUpdate(nextProps, nextState) {
-    return this.props.date !== nextProps.date;
+  getRelativeDate() {
+    let date = TimeSince.getDateObj(this.props.date);
+    return moment(date).fromNow(true);
   },
 
   render() {
-    var date = this.props.date;
-
-    if (typeof date === "string" || typeof date === "number") {
-      date = new Date(date);
-    }
+    let date = TimeSince.getDateObj(this.props.date);
+    let user = ConfigStore.get('user');
+    let options = user ? user.options : {};
+    let format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
 
     return (
       <time
         dateTime={date.toISOString()}
-        title={date.toString()}>{moment(date).fromNow(true)} {this.props.suffix || ''}</time>
+        title={moment(date).format(format)}>{this.state.relative} {this.props.suffix || ''}</time>
     );
   }
 });

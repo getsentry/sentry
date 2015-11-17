@@ -1,16 +1,18 @@
 from __future__ import absolute_import
 
 from django.db import transaction
+from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.response import Response
 
+from sentry import roles
 from sentry.api.bases.organization import (
     OrganizationEndpoint, OrganizationPermission
 )
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.auth.utils import is_active_superuser
 from sentry.models import (
-    AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember,
-    OrganizationMemberType
+    AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember
 )
 
 ERR_NO_AUTH = 'You cannot remove this member with an unauthenticated API request.'
@@ -28,7 +30,7 @@ class OrganizationMemberSerializer(serializers.Serializer):
     reinvite = serializers.BooleanField()
 
 
-class RelaxedOrganizationPermission(OrganizationPermission):
+class RelaxedMemberPermission(OrganizationPermission):
     scope_map = {
         'GET': ['member:read', 'member:write', 'member:delete'],
         'POST': ['member:write', 'member:delete'],
@@ -41,30 +43,32 @@ class RelaxedOrganizationPermission(OrganizationPermission):
 
 
 class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
-    permission_classes = [RelaxedOrganizationPermission]
+    permission_classes = [RelaxedMemberPermission]
 
     def _get_member(self, request, organization, member_id):
         if member_id == 'me':
             queryset = OrganizationMember.objects.filter(
                 organization=organization,
                 user__id=request.user.id,
+                user__is_active=True,
             )
         else:
             queryset = OrganizationMember.objects.filter(
+                Q(user__is_active=True) | Q(user__isnull=True),
                 organization=organization,
                 id=member_id,
             )
         return queryset.select_related('user').get()
 
     def _is_only_owner(self, member):
-        if member.type != OrganizationMemberType.OWNER:
+        if member.role != roles.get_top_dog().id:
             return False
 
         queryset = OrganizationMember.objects.filter(
             organization=member.organization_id,
-            type=OrganizationMemberType.OWNER,
-            has_global_access=True,
+            role=roles.get_top_dog().id,
             user__isnull=False,
+            user__is_active=True,
         ).exclude(id=member.id)
         if queryset.exists():
             return False
@@ -99,29 +103,26 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         return Response(status=204)
 
     def delete(self, request, organization, member_id):
-        if request.user.is_superuser:
-            authorizing_access = OrganizationMemberType.OWNER
-        elif request.user.is_authenticated():
-            try:
-                authorizing_access = OrganizationMember.objects.get(
-                    organization=organization,
-                    user=request.user,
-                    has_global_access=True,
-                ).type
-            except OrganizationMember.DoesNotExist:
-                return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
-        elif request.access.has_scope('member:delete'):
-            authorizing_access = OrganizationMemberType.OWNER
-        else:
-            return Response({'detail': ERR_INSUFFICIENT_SCOPE}, status=400)
-
         try:
             om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if om.type < authorizing_access:
-            return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
+        if request.user.is_authenticated() and not is_active_superuser(request.user):
+            try:
+                acting_member = OrganizationMember.objects.get(
+                    organization=organization,
+                    user=request.user,
+                )
+            except OrganizationMember.DoesNotExist:
+                return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
+            else:
+                if not acting_member.can_manage_member(om):
+                    return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
+
+        # TODO(dcramer): do we even need this check?
+        elif not request.access.has_scope('member:delete'):
+            return Response({'detail': ERR_INSUFFICIENT_SCOPE}, status=400)
 
         if self._is_only_owner(om):
             return Response({'detail': ERR_ONLY_OWNER}, status=403)

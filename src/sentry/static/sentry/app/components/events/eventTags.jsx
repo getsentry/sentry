@@ -1,34 +1,26 @@
-import React from "react";
-import Router from "react-router";
-import _ from "underscore";
+import React from 'react';
+import {Link} from 'react-router';
+import _ from 'underscore';
 
-import PropTypes from "../../proptypes";
+import PropTypes from '../../proptypes';
 
-import EventDataSection from "./eventDataSection";
-import {isUrl} from "../../utils";
+import EventDataSection from './eventDataSection';
+import {isUrl} from '../../utils';
 
-var EventTags = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
+const EventTags = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    event: PropTypes.Event.isRequired,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   render() {
-    var params = this.context.router.getCurrentParams();
-
     let tags = this.props.event.tags;
     if (_.isEmpty(tags))
       return null;
 
-    let sortedTags = _.chain(tags)
-      .map((val, key) => [key, val])
-      .sortBy(([key,]) => key)
-      .value();
-
+    let {orgId, projectId} = this.props;
     return (
       <EventDataSection
           group={this.props.group}
@@ -36,17 +28,16 @@ var EventTags = React.createClass({
           title="Tags"
           type="tags">
         <ul className="mini-tag-list">
-          {sortedTags.map(([key, value]) => {
+          {tags.map((tag) => {
             return (
-              <li key={key}>
-                {key} = <Router.Link
-                  to="stream"
-                  params={params}
-                  query={{query: `${key}:"${value}"`}}>
-                  {value}
-                </Router.Link>
-                {isUrl(value) &&
-                  <a href={value} className="external">
+              <li key={tag.key}>
+                {tag.key} = <Link
+                  to={`/${orgId}/${projectId}/`}
+                  query={{query: `${tag.key}:"${tag.value}"`}}>
+                  {tag.value}
+                </Link>
+                {isUrl(tag.value) &&
+                  <a href={tag.value} className="external-icon">
                     <em className="icon-open" />
                   </a>
                 }

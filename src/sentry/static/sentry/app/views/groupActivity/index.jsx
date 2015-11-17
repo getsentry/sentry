@@ -1,37 +1,37 @@
-import React from "react";
-import Gravatar from "../../components/gravatar";
-import GroupState from "../../mixins/groupState";
-import MemberListStore from "../../stores/memberListStore";
-import TimeSince from "../../components/timeSince";
-import ConfigStore from "../../stores/configStore";
+import React from 'react';
+import Gravatar from '../../components/gravatar';
+import GroupState from '../../mixins/groupState';
+import MemberListStore from '../../stores/memberListStore';
+import TimeSince from '../../components/timeSince';
+import ConfigStore from '../../stores/configStore';
 
-import NoteContainer from "./noteContainer";
-import NoteInput from "./noteInput";
+import NoteContainer from './noteContainer';
+import NoteInput from './noteInput';
 
-var formatActivity = function(item) {
-  var data = item.data;
+let formatActivity = function(item) {
+  let data = item.data;
 
   switch(item.type) {
-    case "note":
-      return "left a comment";
-    case "set_resolved":
-      return "marked this event as resolved";
-    case "set_unresolved":
-      return "marked this event as unresolved";
-    case "set_muted":
-      return "marked this event as muted";
-    case "set_public":
-      return "made this event public";
-    case "set_private":
-      return "made this event private";
-    case "set_regression":
-      return "marked this event as a regression";
-    case "create_issue":
+    case 'note':
+      return 'left a comment';
+    case 'set_resolved':
+      return 'marked this event as resolved';
+    case 'set_unresolved':
+      return 'marked this event as unresolved';
+    case 'set_muted':
+      return 'marked this event as muted';
+    case 'set_public':
+      return 'made this event public';
+    case 'set_private':
+      return 'made this event private';
+    case 'set_regression':
+      return 'marked this event as a regression';
+    case 'create_issue':
       return <span>created an issue on {data.provider} titled <a href={data.location}>{data.title}</a></span>;
-    case "first_seen":
-      return "first saw this event";
-    case "assigned":
-      var assignee;
+    case 'first_seen':
+      return 'first saw this event';
+    case 'assigned':
+      let assignee;
       if (data.assignee === item.user.id) {
         assignee = 'themselves';
       } else {
@@ -39,36 +39,33 @@ var formatActivity = function(item) {
         assignee = (assignee ? assignee.email : 'an unknown user');
       }
       return `assigned this event to ${assignee}`;
-    case "unassigned":
-      return "unassigned this event";
+    case 'unassigned':
+      return 'unassigned this event';
     default:
-      return ""; // should never hit (?)
+      return ''; // should never hit (?)
   }
 };
 
-var GroupActivity = React.createClass({
+const GroupActivity = React.createClass({
   // TODO(dcramer): only re-render on group/activity change
-  contextTypes: {
-    router: React.PropTypes.func
-  },
 
   mixins: [GroupState],
 
   render() {
-    var group = this.props.group;
-    var me = ConfigStore.get('user');
+    let group = this.props.group;
+    let me = ConfigStore.get('user');
 
-    var children = group.activity.map((item, itemIdx) => {
-      var avatar = (item.user ?
+    let children = group.activity.map((item, itemIdx) => {
+      let avatar = (item.user ?
         <Gravatar email={item.user.email} size={64} className="avatar" /> :
         <div className="avatar sentry"><span className="icon-sentry-logo"></span></div>);
 
-      var author = {
+      let author = {
         name: item.user ? item.user.name : 'Sentry',
         avatar: avatar,
       };
 
-      var label = formatActivity(item);
+      let label = formatActivity(item);
 
       if (item.type === 'note') {
         return (

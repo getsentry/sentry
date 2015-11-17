@@ -1,13 +1,13 @@
-import React from "react";
+import React from 'react';
 
-import ClippedBox from "../../clippedBox";
-import DefinitionList from "./definitionList";
-import ContextData from "../../contextData";
+import ClippedBox from '../../clippedBox';
+import KeyValueList from './keyValueList';
+import ContextData from '../../contextData';
 
-import {objectIsEmpty} from "../../../utils";
-import queryString from "query-string";
+import {objectIsEmpty} from '../../../utils';
+import queryString from 'query-string';
 
-var RichHttpContent = React.createClass({
+const RichHttpContent = React.createClass({
 
   /**
    * Converts an object of body/querystring key/value pairs
@@ -54,7 +54,7 @@ var RichHttpContent = React.createClass({
     try {
       // Sentry API abbreviates long query string values, sometimes resulting in
       // an un-parsable querystring ... stay safe kids
-      return <DefinitionList data={this.objectToSortedTupleArray(queryString.parse(data))}/>;
+      return <KeyValueList data={this.objectToSortedTupleArray(queryString.parse(data))}/>;
     } catch (e) {
       return <pre>{data}</pre>;
     }
@@ -66,7 +66,7 @@ var RichHttpContent = React.createClass({
       <div>
         {data.query &&
           <ClippedBox title="Query String">
-            <DefinitionList data={this.objectToSortedTupleArray(queryString.parse(data.query))}/>
+            {this.getQueryStringOrRaw(data.query)}
           </ClippedBox>
         }
         {data.fragment &&
@@ -83,17 +83,17 @@ var RichHttpContent = React.createClass({
 
         {data.cookies && !objectIsEmpty(data.cookies) &&
           <ClippedBox title="Cookies" defaultCollapsed>
-            <DefinitionList data={data.cookies} />
+            <KeyValueList data={data.cookies} />
           </ClippedBox>
         }
         {!objectIsEmpty(data.headers) &&
           <ClippedBox title="Headers">
-            <DefinitionList data={data.headers} />
+            <KeyValueList data={data.headers} />
           </ClippedBox>
         }
         {!objectIsEmpty(data.env) &&
           <ClippedBox title="Environment" defaultCollapsed>
-            <DefinitionList data={this.objectToSortedTupleArray(data.env)}/>
+            <KeyValueList data={this.objectToSortedTupleArray(data.env)}/>
           </ClippedBox>
         }
       </div>

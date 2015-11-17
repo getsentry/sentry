@@ -1,22 +1,17 @@
-import React from "react";
-import Router from "react-router";
-import {Link} from "react-router";
-import ApiMixin from "../mixins/apiMixin";
-import Count from "../components/count";
-import GroupState from "../mixins/groupState";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import {percent} from "../utils";
+import React from 'react';
+import {Link} from 'react-router';
+import ApiMixin from '../mixins/apiMixin';
+import Count from '../components/count';
+import GroupState from '../mixins/groupState';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import {percent} from '../utils';
 
-var GroupTags = React.createClass({
+const GroupTags = React.createClass({
   mixins: [
     ApiMixin,
     GroupState
   ],
-
-  contextTypes: {
-    router: React.PropTypes.func
-  },
 
   getInitialState() {
     return {
@@ -68,42 +63,36 @@ var GroupTags = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    var children = [];
-    var router = this.context.router;
+    let children = [];
+
+    let orgId = this.getOrganization().slug;
+    let projectId = this.getProject().slug;
+    let groupId = this.getGroup().id;
 
     if (this.state.tagList) {
       children = this.state.tagList.map((tag, tagIdx) => {
-        var valueChildren = tag.topValues.map((tagValue, tagValueIdx) => {
-          var pct = percent(tagValue.count, tag.totalValues);
-          var params = router.getCurrentParams();
+        let valueChildren = tag.topValues.map((tagValue, tagValueIdx) => {
+          let pct = percent(tagValue.count, tag.totalValues);
           return (
             <li key={tagValueIdx}>
-              <Router.Link
+              <Link
                   className="tag-bar"
-                  to="stream"
-                  params={params}
+                  to={`/${orgId}/${projectId}/`}
                   query={{query: tag.key + ':' + '"' + tagValue.value + '"'}}>
                 <span className="tag-bar-background" style={{width: pct + '%'}}></span>
                 <span className="tag-bar-label">{tagValue.name}</span>
                 <span className="tag-bar-count"><Count value={tagValue.count} /></span>
-              </Router.Link>
+              </Link>
             </li>
           );
         });
-
-        var routeParams = {
-          orgId: this.getOrganization().slug,
-          projectId: this.getProject().slug,
-          groupId: this.getGroup().id,
-          tagKey: tag.key
-        };
 
         return (
           <div className="col-md-6" key={tagIdx}>
             <div className="box">
               <div className="box-header">
                 <span className="pull-right">
-                  <Link to="groupTagValues" params={routeParams}>More Details</Link>
+                  <Link className="btn btn-default btn-sm" to={`/${orgId}/${projectId}/group/${groupId}/tags/${tag.key}/`}>More Details</Link>
                 </span>
                 <h5>{tag.name} (<Count value={tag.uniqueValues} />)</h5>
               </div>

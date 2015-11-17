@@ -1,30 +1,34 @@
-import React from "react";
-import Router from "react-router";
-import api from "../../api";
-import AssigneeSelector from "../../components/assigneeSelector";
-import Count from "../../components/count";
-import GroupActions from "./actions";
-import GroupSeenBy from "./seenBy";
-import IndicatorStore from "../../stores/indicatorStore";
-import ListLink from "../../components/listLink";
-import ProjectState from "../../mixins/projectState";
+import React from 'react';
+// import Router from "react-router";
+import {Link, History} from 'react-router';
+import api from '../../api';
+import AssigneeSelector from '../../components/assigneeSelector';
+import Count from '../../components/count';
+import GroupActions from './actions';
+import GroupSeenBy from './seenBy';
+import IndicatorStore from '../../stores/indicatorStore';
+import ListLink from '../../components/listLink';
+import ProjectState from '../../mixins/projectState';
 
-var GroupHeader = React.createClass({
-  mixins: [ProjectState],
-
-  contextTypes: {
-    router: React.PropTypes.func.isRequired
-  },
-
+const GroupHeader = React.createClass({
   propTypes: {
     memberList: React.PropTypes.instanceOf(Array).isRequired
   },
 
+  contextTypes: {
+    location: React.PropTypes.object
+  },
+
+  mixins: [
+    ProjectState,
+    History
+  ],
+
   onToggleMute() {
-    var group = this.props.group;
-    var project = this.getProject();
-    var org = this.getOrganization();
-    var loadingIndicator = IndicatorStore.add('Saving changes..');
+    let group = this.props.group;
+    let project = this.getProject();
+    let org = this.getOrganization();
+    let loadingIndicator = IndicatorStore.add('Saving changes..');
 
     api.bulkUpdate({
       orgId: org.slug,
@@ -41,16 +45,15 @@ var GroupHeader = React.createClass({
   },
 
   onShare() {
-    return this.context.router.transitionTo('sharedGroupDetails', {
-      shareId: this.props.group.shareId
-    });
+    let {shareId} = this.props.group;
+    return this.history.pushState(null, `/share/group/${shareId}/`);
   },
 
   onTogglePublic() {
-    var group = this.props.group;
-    var project = this.getProject();
-    var org = this.getOrganization();
-    var loadingIndicator = IndicatorStore.add('Saving changes..');
+    let group = this.props.group;
+    let project = this.getProject();
+    let org = this.getOrganization();
+    let loadingIndicator = IndicatorStore.add('Saving changes..');
 
     api.bulkUpdate({
       orgId: org.slug,
@@ -67,44 +70,40 @@ var GroupHeader = React.createClass({
   },
 
   render() {
-    var group = this.props.group,
-        userCount = 0,
+    let group = this.props.group,
+        userCount = group.userCount,
         features = this.getProjectFeatures();
 
-    if (group.tags.user !== undefined) {
-      userCount = group.tags.user.count;
-    }
-
-    var className = "group-detail";
+    let className = 'group-detail level-' + group.level;
     if (group.isBookmarked) {
-      className += " isBookmarked";
+      className += ' isBookmarked';
     }
     if (group.hasSeen) {
-      className += " hasSeen";
+      className += ' hasSeen';
     }
-    if (group.status === "resolved") {
-      className += " isResolved";
+    if (group.status === 'resolved') {
+      className += ' isResolved';
     }
 
-    var params = this.context.router.getCurrentParams();
+    let groupId = group.id,
+      projectId = this.getProject().slug,
+      orgId = this.getOrganization().slug;
 
     return (
       <div className={className}>
         <div className="row">
           <div className="col-sm-8">
-            <Router.Link to="projectDetails" params={params} className="back-arrow">
-              <span className="icon-arrow-left"></span>
-            </Router.Link>
             <h3>
               {group.title}
             </h3>
             <div className="event-message">
+              <span className="error-level">{group.level}</span>
               <span className="message">{group.culprit}</span>
               {group.logger &&
                 <span className="event-annotation">
-                  <Router.Link to="stream" params={params} query={{query: "logger:" + group.logger}}>
+                  <Link to={`/${orgId}/${projectId}/`} query={{query: 'logger:' + group.logger}}>
                     {group.logger}
-                  </Router.Link>
+                  </Link>
                 </span>
               }
               {group.annotations.map((annotation) => {
@@ -152,26 +151,28 @@ var GroupHeader = React.createClass({
           </div>
         </div>
         <ul className="nav nav-tabs">
-          <ListLink to="groupOverview" params={params} isActive={function (to) {
-            // "Details" tab is active for overview *or* event details
-            let router = this.context.router;
-            return router.isActive('groupOverview') || router.isActive('groupEventDetails');
-          }}>
+          <ListLink to={`/${orgId}/${projectId}/group/${groupId}/`} isActive={function (to) {
+            let rootGroupPath = `/${orgId}/${projectId}/group/${groupId}/`;
+            let pathname = this.context.location.pathname;
+
+            // Because react-router 1.0 removes router.isActive(route)
+            return pathname === rootGroupPath || /events\/\w+\/$/.test(pathname);
+          }.bind(this)}>
             Details
           </ListLink>
-          <ListLink to="groupEvents" params={params}>
-            Similar Events
-          </ListLink>
-          <ListLink to="groupActivity" params={params}>
+          <ListLink to={`/${orgId}/${projectId}/group/${groupId}/activity/`}>
             Comments <span className="badge animated">{group.numComments}</span>
           </ListLink>
           {features.has('user-reports') &&
-            <ListLink to="groupUserReports" params={params}>
+            <ListLink to={`/${orgId}/${projectId}/group/${groupId}/reports/`}>
               User Reports <span className="badge animated">{group.userReportCount}</span>
             </ListLink>
           }
-          <ListLink to="groupTags" params={params}>
+          <ListLink to={`/${orgId}/${projectId}/group/${groupId}/tags/`}>
             Tags
+          </ListLink>
+          <ListLink to={`/${orgId}/${projectId}/group/${groupId}/events/`}>
+            Similar Events
           </ListLink>
         </ul>
       </div>

@@ -11,14 +11,14 @@ class RemoveOrganizationPermissionTest(PermissionTestCase):
         super(RemoveOrganizationPermissionTest, self).setUp()
         self.path = reverse('sentry-remove-organization', args=[self.organization.slug])
 
-    def test_teamless_owner_cannot_load(self):
-        self.assert_teamless_owner_cannot_access(self.path)
+    def test_teamless_admin_cannot_load(self):
+        self.assert_teamless_admin_cannot_access(self.path)
 
-    def test_org_admin_cannot_load(self):
-        self.assert_org_admin_cannot_access(self.path)
+    def test_team_admin_cannot_load(self):
+        self.assert_team_admin_cannot_access(self.path)
 
-    def test_org_owner_can_load(self):
-        self.assert_org_owner_can_access(self.path)
+    def test_owner_can_load(self):
+        self.assert_owner_can_access(self.path)
 
 
 class RemoveOrganizationTest(TestCase):
@@ -43,8 +43,6 @@ class RemoveOrganizationTest(TestCase):
         assert resp.context['team_list']
 
     def test_success(self):
-        user2 = self.create_user('bar@example.com')
-
         resp = self.client.post(self.path)
 
         assert resp.status_code == 302
@@ -59,10 +57,6 @@ class RemoveOrganizationTest(TestCase):
         org = self.create_organization()
 
         self.login_as(self.user)
-
-        url = reverse('sentry-api-0-organization-details', kwargs={
-            'organization_slug': org.slug,
-        })
 
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
             resp = self.client.post(self.path)

@@ -1,40 +1,35 @@
-import React from "react";
-import Router from "react-router";
-import Count from "../../components/count";
-import PropTypes from "../../proptypes";
-import TimeSince from "../../components/timeSince";
-import ProjectState from "../../mixins/projectState";
+import React from 'react';
+import {Link} from 'react-router';
+import Count from '../../components/count';
+import PropTypes from '../../proptypes';
+import TimeSince from '../../components/timeSince';
+import ProjectState from '../../mixins/projectState';
 
-var EventNode = React.createClass({
-  mixins: [ProjectState],
-
+const EventNode = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired
   },
 
-  makeGroupLink(title) {
-    var group = this.props.group;
-    var org = this.getOrganization();
+  mixins: [ProjectState],
 
-    var params = {
-      orgId: org.slug,
-      projectId: group.project.slug,
-      groupId: group.id
-    };
+  makeGroupLink(title) {
+    let group = this.props.group;
+    let org = this.getOrganization();
+
+    let orgId = org.slug;
+    let projectId = group.project.slug;
+    let groupId = group.id;
 
     return (
-      <Router.Link to="groupDetails" params={params}>
+      <Link to={`/${orgId}/${projectId}/group/${groupId}/`}>
         {title}
-      </Router.Link>
+      </Link>
     );
   },
 
   render() {
-    var group = this.props.group;
-
-    var userCount = (group.tags.user !== undefined ?
-      userCount = group.tags.user.count :
-      0);
+    let group = this.props.group;
+    let userCount = group.userCount;
 
     return (
       <li className="group">

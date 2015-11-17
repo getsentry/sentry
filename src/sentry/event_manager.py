@@ -15,19 +15,18 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+from django.utils.encoding import force_bytes
 from hashlib import md5
-from raven.utils.encoding import to_string
 from uuid import uuid4
 
 from sentry.app import buffer, tsdb
 from sentry.constants import (
-    CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH,
-    MAX_TAG_VALUE_LENGTH
+    CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Event, EventMapping, Group, GroupHash, GroupStatus, Project,
-    Release, UserReport
+    Activity, Event, EventMapping, EventUser, Group, GroupHash, GroupStatus,
+    Project, Release, TagKey, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import regression_signal
@@ -37,6 +36,8 @@ from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.db import get_db_engine
 from sentry.utils.safe import safe_execute, trim, trim_dict
+from sentry.utils.strings import truncatechars
+from sentry.utils.validators import validate_ip
 
 
 def count_limit(count):
@@ -58,7 +59,7 @@ def time_limit(silence):  # ~ 3600 per hour
 def md5_from_hash(hash_bits):
     result = md5()
     for bit in hash_bits:
-        result.update(to_string(bit))
+        result.update(force_bytes(bit, errors='replace'))
     return result.hexdigest()
 
 
@@ -107,6 +108,31 @@ else:
             return False
 
         return True
+
+
+def generate_culprit(data):
+    culprit = ''
+
+    try:
+        stacktraces = [
+            e['stacktrace']
+            for e in data['sentry.interfaces.Exception']['values']
+            if e.get('stacktrace')
+        ]
+    except KeyError:
+        if 'sentry.interfaces.Stacktrace' in data:
+            stacktraces = [data['sentry.interfaces.Stacktrace']]
+        else:
+            stacktraces = None
+
+    if not stacktraces:
+        if 'sentry.interfaces.Http' in data:
+            culprit = data['sentry.interfaces.Http'].get('url', '')
+    else:
+        from sentry.interfaces.stacktrace import Stacktrace
+        culprit = Stacktrace.to_python(stacktraces[-1]).get_culprit_string()
+
+    return truncatechars(culprit, MAX_CULPRIT_LENGTH)
 
 
 def plugin_is_regression(group, event):
@@ -171,7 +197,11 @@ class EventManager(object):
         if not data.get('logger'):
             data['logger'] = DEFAULT_LOGGER_NAME
         else:
-            data['logger'] = trim(data['logger'], 64)
+            logger = trim(data['logger'].strip(), 64)
+            if TagKey.is_valid_key(logger):
+                data['logger'] = logger
+            else:
+                data['logger'] = DEFAULT_LOGGER_NAME
 
         if data.get('platform'):
             data['platform'] = trim(data['platform'], 64)
@@ -195,7 +225,7 @@ class EventManager(object):
         if not data.get('event_id'):
             data['event_id'] = uuid4().hex
 
-        data.setdefault('message', None)
+        data.setdefault('message', '')
         data.setdefault('culprit', None)
         data.setdefault('time_spent', None)
         data.setdefault('server_name', None)
@@ -225,8 +255,6 @@ class EventManager(object):
             if not (key and value):
                 continue
 
-            if len(value) > MAX_TAG_VALUE_LENGTH:
-                continue
             data['tags'].append((key, value))
 
         if not isinstance(data['extra'], dict):
@@ -264,9 +292,18 @@ class EventManager(object):
             del data['sentry.interfaces.Stacktrace']
 
         if 'sentry.interfaces.Http' in data:
-            # default the culprit to the url
-            if not data['culprit']:
-                data['culprit'] = data['sentry.interfaces.Http']['url']
+            try:
+                ip_address = validate_ip(
+                    data['sentry.interfaces.Http'].get(
+                        'env', {}).get('REMOTE_ADDR'),
+                    required=False,
+                )
+            except ValueError:
+                ip_address = None
+            if ip_address:
+                data.setdefault('sentry.interfaces.User', {})
+                data['sentry.interfaces.User'].setdefault(
+                    'ip_address', ip_address)
 
         if data['time_spent']:
             data['time_spent'] = int(data['time_spent'])
@@ -282,8 +319,6 @@ class EventManager(object):
 
     @suppress_exceptions
     def save(self, project, raw=False):
-        # TODO: culprit should default to "most recent" frame in stacktraces when
-        # it's not provided.
         project = Project.objects.get_from_cache(id=project)
 
         data = self.data.copy()
@@ -293,7 +328,7 @@ class EventManager(object):
         message = data.pop('message')
         level = data.pop('level')
 
-        culprit = data.pop('culprit', None) or ''
+        culprit = data.pop('culprit', None)
         time_spent = data.pop('time_spent', None)
         logger_name = data.pop('logger', None)
         server_name = data.pop('server_name', None)
@@ -302,6 +337,9 @@ class EventManager(object):
         fingerprint = data.pop('fingerprint', None)
         platform = data.pop('platform', None)
         release = data.pop('release', None)
+
+        if not culprit:
+            culprit = generate_culprit(data)
 
         date = datetime.fromtimestamp(data.pop('timestamp'))
         date = date.replace(tzinfo=timezone.utc)
@@ -337,6 +375,11 @@ class EventManager(object):
                                       _with_transaction=False)
             if added_tags:
                 tags.extend(added_tags)
+
+        event_user = self._get_event_user(project, data)
+        if event_user:
+            tags.append(('sentry:user', event_user.tag_value))
+
         # XXX(dcramer): we're relying on mutation of the data object to ensure
         # this propagates into Event
         data['tags'] = tags
@@ -380,14 +423,11 @@ class EventManager(object):
                 datetime=date,
             )
 
-        group, is_new, is_regression, is_sample = safe_execute(
-            self._save_aggregate,
+        group, is_new, is_regression, is_sample = self._save_aggregate(
             event=event,
             hashes=hashes,
             **group_kwargs
         )
-
-        using = group._state.db
 
         event.group = group
         event.group_id = group.id
@@ -415,6 +455,12 @@ class EventManager(object):
                 self.logger.info('Duplicate Event found for event_id=%s', event_id)
                 return event
 
+        if event_user:
+            tsdb.record_multi((
+                (tsdb.models.users_affected_by_group, group.id, (event_user.tag_value,)),
+                (tsdb.models.users_affected_by_project, project.id, (event_user.tag_value,)),
+            ), timestamp=event.datetime)
+
         if is_new and release:
             buffer.incr(Release, {'new_groups': 1}, {
                 'id': release.id,
@@ -424,6 +470,9 @@ class EventManager(object):
                      _with_transaction=False)
 
         if not raw:
+            if not project.first_event:
+                project.update(first_event=date)
+
             post_process_group.delay(
                 group=group,
                 event=event,
@@ -441,6 +490,30 @@ class EventManager(object):
             regression_signal.send_robust(sender=Group, instance=group)
 
         return event
+
+    def _get_event_user(self, project, data):
+        user_data = data.get('sentry.interfaces.User')
+        if not user_data:
+            return
+
+        euser = EventUser(
+            project=project,
+            ident=user_data.get('id'),
+            email=user_data.get('email'),
+            username=user_data.get('username'),
+            ip_address=user_data.get('ip_address'),
+        )
+
+        if not euser.tag_value:
+            return
+
+        try:
+            with transaction.atomic():
+                euser.save()
+        except IntegrityError:
+            pass
+
+        return euser
 
     def _find_hashes(self, project, hash_list):
         matches = []
@@ -472,13 +545,12 @@ class EventManager(object):
 
         return GroupHash.objects.filter(
             project=group.project,
-            hash__in=bad_hashes,
+            hash__in=[h.hash for h in bad_hashes],
         ).update(
             group=group,
         )
 
     def _save_aggregate(self, event, hashes, **kwargs):
-        time_spent = event.time_spent
         project = event.project
 
         # attempt to find a matching hash
@@ -538,7 +610,7 @@ class EventManager(object):
         tsdb.incr_multi([
             (tsdb.models.group, group.id),
             (tsdb.models.project, project.id),
-        ])
+        ], timestamp=event.datetime)
 
         return group, is_new, is_regression, is_sample
 

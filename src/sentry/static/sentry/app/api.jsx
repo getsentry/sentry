@@ -1,6 +1,6 @@
-import $ from "jquery";
-import GroupActions from "./actions/groupActions";
-import TeamActions from "./actions/teamActions";
+import $ from 'jquery';
+import GroupActions from './actions/groupActions';
+import TeamActions from './actions/teamActions';
 
 class Request {
   constructor(xhr) {
@@ -19,12 +19,12 @@ class Client {
     if (typeof options === 'undefined') {
       options = {};
     }
-    this.baseUrl = options.baseUrl || "/api/0";
+    this.baseUrl = options.baseUrl || '/api/0';
     this.activeRequests = {};
   }
 
   uniqueId() {
-    var s4 = () => {
+    let s4 = () => {
       return Math.floor((1 + Math.random()) * 0x10000)
                  .toString(16)
                  .substring(1);
@@ -35,12 +35,12 @@ class Client {
 
   wrapCallback(id, func, cleanup) {
     /*eslint consistent-return:0*/
-    if (typeof func === "undefined") {
+    if (typeof func === 'undefined') {
       return;
     }
 
     return (...args) => {
-      var req = this.activeRequests[id];
+      let req = this.activeRequests[id];
       if (cleanup === true) {
         delete this.activeRequests[id];
       }
@@ -51,16 +51,16 @@ class Client {
   }
 
   request(path, options = {}) {
-    var query = $.param(options.query || "", true);
-    var method = options.method || (options.data ? "POST" : "GET");
-    var data = options.data;
-    var id = this.uniqueId();
+    let query = $.param(options.query || '', true);
+    let method = options.method || (options.data ? 'POST' : 'GET');
+    let data = options.data;
+    let id = this.uniqueId();
 
-    if (typeof data !== "undefined" && method !== 'GET') {
+    if (typeof data !== 'undefined' && method !== 'GET') {
       data = JSON.stringify(data);
     }
 
-    var fullUrl;
+    let fullUrl;
     if (path.indexOf(this.baseUrl) === -1) {
       fullUrl = this.baseUrl + path;
     } else {
@@ -91,7 +91,7 @@ class Client {
   }
 
   _chain(...funcs) {
-    funcs = funcs.filter((f) => typeof f !== "undefined" && f);
+    funcs = funcs.filter((f) => typeof f !== 'undefined' && f);
     return (...args) => {
       funcs.forEach((func) => {
         func.apply(funcs, args);
@@ -100,7 +100,7 @@ class Client {
   }
 
   _wrapRequest(path, options, extraParams) {
-    if (typeof extraParams === "undefined") {
+    if (typeof extraParams === 'undefined') {
       extraParams = {};
     }
 
@@ -112,15 +112,15 @@ class Client {
   }
 
   bulkDelete(params, options) {
-    var path = "/projects/" + params.orgId + "/" + params.projectId + "/groups/";
-    var query = (params.itemIds ? {id: params.itemIds} : undefined);
-    var id = this.uniqueId();
+    let path = '/projects/' + params.orgId + '/' + params.projectId + '/groups/';
+    let query = (params.itemIds ? {id: params.itemIds} : undefined);
+    let id = this.uniqueId();
 
     GroupActions.delete(id, params.itemIds);
 
     return this._wrapRequest(path, {
       query: query,
-      method: "DELETE",
+      method: 'DELETE',
       success: (response) => {
         GroupActions.deleteSuccess(id, params.itemIds, response);
       },
@@ -131,15 +131,15 @@ class Client {
   }
 
   bulkUpdate(params, options) {
-    var path = "/projects/" + params.orgId + "/" + params.projectId + "/groups/";
-    var query = (params.itemIds ? {id: params.itemIds} : undefined);
-    var id = this.uniqueId();
+    let path = '/projects/' + params.orgId + '/' + params.projectId + '/groups/';
+    let query = (params.itemIds ? {id: params.itemIds} : undefined);
+    let id = this.uniqueId();
 
     GroupActions.update(id, params.itemIds, params.data);
 
     return this._wrapRequest(path, {
       query: query,
-      method: "PUT",
+      method: 'PUT',
       data: params.data,
       success: (response) => {
         GroupActions.updateSuccess(id, params.itemIds, response);
@@ -151,15 +151,15 @@ class Client {
   }
 
   merge(params, options) {
-    var path = "/projects/" + params.orgId + "/" + params.projectId + "/groups/";
-    var query = (params.itemIds ? {id: params.itemIds} : undefined);
-    var id = this.uniqueId();
+    let path = '/projects/' + params.orgId + '/' + params.projectId + '/groups/';
+    let query = (params.itemIds ? {id: params.itemIds} : undefined);
+    let id = this.uniqueId();
 
     GroupActions.merge(id, params.itemIds);
 
     return this._wrapRequest(path, {
       query: query,
-      method: "PUT",
+      method: 'PUT',
       data: {merge: 1},
       success: (response) => {
         GroupActions.mergeSuccess(id, params.itemIds, response);
@@ -171,13 +171,13 @@ class Client {
   }
 
   assignTo(params, options) {
-    var path = "/groups/" + params.id + "/";
-    var id = this.uniqueId();
+    let path = '/groups/' + params.id + '/';
+    let id = this.uniqueId();
 
     GroupActions.assignTo(id, params.id, {email: params.email});
 
     return this._wrapRequest(path, {
-      method: "PUT",
+      method: 'PUT',
       data: {assignedTo: params.email},
       success: (response) => {
         GroupActions.assignToSuccess(id, params.id, response);
@@ -189,13 +189,13 @@ class Client {
   }
 
   joinTeam(params, options) {
-    var path = "/organizations/" + params.orgId + "/members/" + (params.memberId || 'me') + "/teams/" + params.teamId + "/";
-    var id = this.uniqueId();
+    let path = '/organizations/' + params.orgId + '/members/' + (params.memberId || 'me') + '/teams/' + params.teamId + '/';
+    let id = this.uniqueId();
 
     TeamActions.update(id, params.teamId);
 
     return this._wrapRequest(path, {
-      method: "POST",
+      method: 'POST',
       success: (response) => {
         TeamActions.updateSuccess(id, params.teamId, response);
       },
@@ -206,13 +206,13 @@ class Client {
   }
 
   leaveTeam(params, options) {
-    var path = "/organizations/" + params.orgId + "/members/" + (params.memberId || 'me') + "/teams/" + params.teamId + "/";
-    var id = this.uniqueId();
+    let path = '/organizations/' + params.orgId + '/members/' + (params.memberId || 'me') + '/teams/' + params.teamId + '/';
+    let id = this.uniqueId();
 
     TeamActions.update(id, params.teamId);
 
     return this._wrapRequest(path, {
-      method: "DELETE",
+      method: 'DELETE',
       success: (response) => {
         TeamActions.updateSuccess(id, params.teamId, response);
       },

@@ -1,11 +1,11 @@
-import React from "react";
-import ConfigStore from "../../../stores/configStore";
-import GroupEventDataSection from "../eventDataSection";
-import PropTypes from "../../../proptypes";
-import rawStacktraceContent from "./rawStacktraceContent";
-import StacktraceContent from "./stacktraceContent";
+import React from 'react';
+import ConfigStore from '../../../stores/configStore';
+import GroupEventDataSection from '../eventDataSection';
+import PropTypes from '../../../proptypes';
+import rawStacktraceContent from './rawStacktraceContent';
+import StacktraceContent from './stacktraceContent';
 
-var StacktraceInterface = React.createClass({
+const StacktraceInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
@@ -14,25 +14,25 @@ var StacktraceInterface = React.createClass({
   },
 
   getInitialState() {
-    var user = ConfigStore.get("user");
+    let user = ConfigStore.get('user');
     // user may not be authenticated
-    var options = user ? user.options : {};
-    var platform = this.props.event.platform;
-    var newestFirst;
+    let options = user ? user.options : {};
+    let platform = this.props.event.platform;
+    let newestFirst;
     switch (options.stacktraceOrder) {
-      case "newestFirst":
+      case 'newestFirst':
         newestFirst = true;
         break;
-      case "newestLast":
+      case 'newestLast':
         newestFirst = false;
         break;
-      case "default": // is "default" a valid value? or bad case statement
+      case 'default': // is "default" a valid value? or bad case statement
       default:
-        newestFirst = (platform === "python");
+        newestFirst = (platform === 'python');
     }
 
     return {
-      stackView: (this.props.data.hasSystemFrames ? "app" : "full"),
+      stackView: (this.props.data.hasSystemFrames ? 'app' : 'full'),
       newestFirst: newestFirst
     };
   },
@@ -44,20 +44,20 @@ var StacktraceInterface = React.createClass({
   },
 
   render() {
-    var group = this.props.group;
-    var evt = this.props.event;
-    var data = this.props.data;
-    var stackView = this.state.stackView;
-    var newestFirst = this.state.newestFirst;
+    let group = this.props.group;
+    let evt = this.props.event;
+    let data = this.props.data;
+    let stackView = this.state.stackView;
+    let newestFirst = this.state.newestFirst;
 
-    var title = (
+    let title = (
       <div>
         <div className="btn-group">
           {data.hasSystemFrames &&
-            <a className={(stackView === "app" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "app")}>App Only</a>
+            <a className={(stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'app')}>App Only</a>
           }
-          <a className={(stackView === "full" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "full")}>Full</a>
-          <a className={(stackView === "raw" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "raw")}>Raw</a>
+          <a className={(stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'full')}>Full</a>
+          <a className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'raw')}>Raw</a>
         </div>
         <h3>
           {'Stacktrace '}
@@ -77,14 +77,14 @@ var StacktraceInterface = React.createClass({
           type={this.props.type}
           title={title}
           wrapTitle={false}>
-        {stackView === "raw" ?
+        {stackView === 'raw' ?
           <pre className="traceback plain">
             {rawStacktraceContent(data, this.props.platform)}
           </pre>
         :
           <StacktraceContent
               data={data}
-              includeSystemFrames={stackView === "full"}
+              includeSystemFrames={stackView === 'full'}
               platform={evt.platform}
               newestFirst={newestFirst} />
         }

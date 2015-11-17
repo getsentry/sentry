@@ -1,14 +1,14 @@
-import React from "react";
-import Reflux from "reflux";
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import React from 'react';
+import Reflux from 'reflux';
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 import AlertStore from '../stores/alertStore';
 import AlertMessage from './alertMessage';
 
-var Alerts = React.createClass({
+const Alerts = React.createClass({
   mixins: [
     PureRenderMixin,
-    Reflux.connect(AlertStore, "alerts")
+    Reflux.connect(AlertStore, 'alerts')
   ],
 
   getInitialState() {

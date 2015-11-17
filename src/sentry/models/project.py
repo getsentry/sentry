@@ -13,11 +13,10 @@ import warnings
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.db.models import F, Q
+from django.db.models import F
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import PLATFORM_TITLES, PLATFORM_LIST
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
@@ -37,7 +36,7 @@ class ProjectStatus(object):
 
 class ProjectManager(BaseManager):
     # TODO(dcramer): we might want to cache this per user
-    def get_for_user(self, team, user, access=None, _skip_team_check=False):
+    def get_for_user(self, team, user, _skip_team_check=False):
         from sentry.models import Team
 
         if not (user and user.is_authenticated()):
@@ -47,7 +46,6 @@ class ProjectManager(BaseManager):
             team_list = Team.objects.get_for_user(
                 organization=team.organization,
                 user=user,
-                access=access,
             )
 
             try:
@@ -74,11 +72,6 @@ class Project(Model):
     Projects are permission based namespaces which generally
     are the top level entry point for all data.
     """
-    PLATFORM_CHOICES = tuple(
-        (p, PLATFORM_TITLES.get(p, p.title()))
-        for p in PLATFORM_LIST
-    ) + (('other', 'Other'),)
-
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
     organization = FlexibleForeignKey('sentry.Organization')
@@ -90,6 +83,9 @@ class Project(Model):
         (ProjectStatus.PENDING_DELETION, _('Pending Deletion')),
         (ProjectStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
     ), db_index=True)
+    # projects that were created before this field was present
+    # will have their first_event field set to date_added
+    first_event = models.DateTimeField(null=True)
 
     objects = ProjectManager(cache_fields=[
         'pk',
@@ -194,14 +190,11 @@ class Project(Model):
     def member_set(self):
         from sentry.models import OrganizationMember
         return self.organization.member_set.filter(
-            Q(organizationmemberteam__team=self.team) |
-            Q(has_global_access=True),
-            user__is_active=True,
-        ).exclude(
             id__in=OrganizationMember.objects.filter(
-                organizationmemberteam__is_active=False,
+                organizationmemberteam__is_active=True,
                 organizationmemberteam__team=self.team,
-            ).values('id')
+            ).values('id'),
+            user__is_active=True,
         ).distinct()
 
     def has_access(self, user, access=None):

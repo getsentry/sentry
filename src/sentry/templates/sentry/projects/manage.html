@@ -6,7 +6,7 @@
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block wrapperclass %} {{ block.super }} show-rightbar settings{% endblock %}
+{% block wrapperclass %} {{ block.super }} show-rightbar settings white-bg{% endblock %}
 
 {% block controller %}ManageProjectCtrl{% endblock %}
 
@@ -16,7 +16,7 @@
       <a href="{% url 'sentry-dashboard' project.organization.slug project.slug %}">Dashboard</a>
     </li>
     <li>
-      <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">Stream</a>
+      <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">Issues</a>
     </li>
     <li>
       <a href="{% url 'sentry-releases' project.organization.slug project.slug %}">Releases</a>
@@ -70,6 +70,7 @@
         {% endwith %}
         {{ form.scrape_javascript|as_crispy_field }}
         {{ form.token|as_crispy_field }}
+        {{ form.blacklisted_ips|as_crispy_field }}
       </div>
     </div>
 
@@ -176,6 +177,12 @@
     <li{% if page == 'release-tracking' %} class="active"{% endif %}>
         <a href="{% url 'sentry-project-release-tracking' project.organization.slug project.slug %}">{% trans "Release Tracking" %}</a>
     </li>
+  </ul>
+  <h6 class="nav-header">{% trans "Setup" %}</h6>
+  <ul class="nav nav-stacked">
+    <li>
+        <a href="{% url 'sentry-project-setup' project.organization.slug project.slug %}">{% trans "Instructions" %}</a>
+    </li>
     <li{% if page == 'keys' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "Client Keys" %}</a>
     </li>
@@ -184,7 +191,7 @@
     <h6 class="nav-header">{% trans "Integrations" %}</h6>
     <ul class="nav nav-stacked">
       <li class="{% if page == 'plugins' %} active{% endif %}">
-        <a href="{% url 'sentry-manage-project-plugins' project.organization.slug project.slug %}">{% trans "All Integrations" %} ({{ PLUGINS|length }})</a>
+        <a href="{% url 'sentry-manage-project-plugins' project.organization.slug project.slug %}">{% trans "All Integrations" %}</a>
       </li>
     {% for p in plugins %}
       <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>

@@ -1,19 +1,24 @@
-import marked from "marked";
-import React from "react";
-import TimeSince from "../../components/timeSince";
-import ConfigStore from "../../stores/configStore";
-import LinkWithConfirmation from "../../components/linkWithConfirmation";
+import marked from 'marked';
+import React from 'react';
+import TimeSince from '../../components/timeSince';
+import ConfigStore from '../../stores/configStore';
+import LinkWithConfirmation from '../../components/linkWithConfirmation';
 
-var Note = React.createClass({
+marked.setOptions({
+  // Disable all HTML input and only accept Markdown
+  sanitize: true
+});
+
+const Note = React.createClass({
   canEdit() {
-    var user = ConfigStore.get('user');
+    let user = ConfigStore.get('user');
     return user.isSuperuser || user.id === this.props.item.user.id;
   },
 
   render() {
-    var {item, author, onEdit, onDelete} = this.props;
+    let {item, author, onEdit, onDelete} = this.props;
 
-    var noteBody = marked(item.data.text);
+    let noteBody = marked(item.data.text);
     return (
       <div>
         <TimeSince date={item.dateCreated} />

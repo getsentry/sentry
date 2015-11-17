@@ -27,3 +27,7 @@ class CacheNotPopulated(Exception):
 
 class InvalidConfiguration(Exception):
     pass
+
+
+class DeleteAborted(Exception):
+    pass

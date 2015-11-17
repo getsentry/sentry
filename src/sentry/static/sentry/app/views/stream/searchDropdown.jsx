@@ -1,11 +1,11 @@
-import React from "react";
-import classNames from "classnames";
+import React from 'react';
+import classNames from 'classnames';
 
-import LoadingIndicator from "../../components/loadingIndicator";
+import LoadingIndicator from '../../components/loadingIndicator';
 
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 
-var SearchDropdown = React.createClass({
+const SearchDropdown = React.createClass({
   mixins: [PureRenderMixin],
 
   getDefaultProps() {
@@ -47,8 +47,8 @@ var SearchDropdown = React.createClass({
             ? <li key="loading" className="search-autocomplete-item"><LoadingIndicator mini={true}/></li>
             : this.props.items.map((item) => {
               return (
-                <li key={item.value || item.desc} className={classNames("search-autocomplete-item", item.active && 'active')} onClick={this.onClick.bind(this, item.value)}>
-                  <span className={classNames("icon", item.className)}></span>
+                <li key={item.value || item.desc} className={classNames('search-autocomplete-item', item.active && 'active')} onClick={this.onClick.bind(this, item.value)}>
+                  <span className={classNames('icon', item.className)}></span>
                   <h4>{ item.title && item.title + ' - '}<span className="search-description">{this.renderDescription(item)}</span></h4>
                   {item.example ?
                     <p className="search-example">{item.example}</p> : ''

@@ -7,8 +7,6 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.api import client
-from sentry.models import OrganizationMemberType
-from sentry.permissions import can_remove_project
 from sentry.web.frontend.base import ProjectView
 
 
@@ -17,7 +15,7 @@ class RemoveProjectForm(forms.Form):
 
 
 class RemoveProjectView(ProjectView):
-    required_access = OrganizationMemberType.OWNER
+    required_scope = 'project:delete'
     sudo_required = True
 
     def get_form(self, request):
@@ -25,22 +23,7 @@ class RemoveProjectView(ProjectView):
             return RemoveProjectForm(request.POST)
         return RemoveProjectForm()
 
-    def get(self, request, organization, team, project):
-        if not can_remove_project(request.user, project):
-            return HttpResponseRedirect(reverse('sentry'))
-
-        form = self.get_form(request)
-
-        context = {
-            'form': form,
-        }
-
-        return self.respond('sentry/projects/remove.html', context)
-
-    def post(self, request, organization, team, project):
-        if not can_remove_project(request.user, project):
-            return HttpResponseRedirect(reverse('sentry'))
-
+    def handle(self, request, organization, team, project):
         form = self.get_form(request)
 
         if form.is_valid():

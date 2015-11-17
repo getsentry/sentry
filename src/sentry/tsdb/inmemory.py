@@ -59,6 +59,44 @@ class InMemoryTSDB(BaseTSDB):
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
+    def record(self, model, key, values, timestamp=None):
+        if timestamp is None:
+            timestamp = timezone.now()
+
+        for rollup, max_values in self.rollups:
+            r = self.normalize_to_rollup(timestamp, rollup)
+            self.sets[model][key][r].update(values)
+
+    def get_distinct_counts_series(self, model, keys, start, end=None, rollup=None):
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+
+        results = {}
+        for key in keys:
+            source = self.sets[model][key]
+            counts = results[key] = []
+            for timestamp in series:
+                r = self.normalize_ts_to_rollup(timestamp, rollup)
+                counts.append((timestamp, len(source[r])))
+
+        return results
+
+    def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+
+        results = {}
+        for key in keys:
+            source = self.sets[model][key]
+            values = set()
+            for timestamp in series:
+                r = self.normalize_ts_to_rollup(timestamp, rollup)
+                values.update(source[r])
+            results[key] = len(values)
+
+        return results
+
     def flush(self):
         # model => key => timestamp = count
         self.data = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+
+        # self.sets[model][key][rollup] = set of elements
+        self.sets = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))

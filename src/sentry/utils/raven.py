@@ -65,10 +65,15 @@ class SentryInternalClient(DjangoClient):
             self.error_logger.error('Internal project (id=%s) does not exist',
                                     settings.SENTRY_PROJECT)
             return
+        except Exception:
+            self.error_logger.error(
+                'Unable to fetch internal project for some unknown reason',
+                exc_info=True)
+            return
 
         helper.context.bind_project(project)
 
-        metrics.incr('events.total', 1)
+        metrics.incr('events.total')
 
         kwargs['project'] = project.id
         try:

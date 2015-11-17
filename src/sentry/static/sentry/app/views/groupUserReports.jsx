@@ -1,20 +1,19 @@
-import $ from "jquery";
-import React from "react";
-import api from "../api";
-import Gravatar from "../components/gravatar";
-import GroupState from "../mixins/groupState";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import TimeSince from "../components/timeSince";
-import utils from "../utils";
+import $ from 'jquery';
+import React from 'react';
+import {History} from 'react-router';
+import api from '../api';
+import Gravatar from '../components/gravatar';
+import GroupState from '../mixins/groupState';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import TimeSince from '../components/timeSince';
+import utils from '../utils';
 
-var GroupUserReports = React.createClass({
-  // TODO(dcramer): only re-render on group/activity change
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
-  mixins: [GroupState],
+const GroupUserReports = React.createClass({
+  mixins: [
+    GroupState,
+    History
+  ],
 
   getInitialState() {
     return {
@@ -29,9 +28,15 @@ var GroupUserReports = React.createClass({
     this.fetchData();
   },
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.location.search !== this.props.location.search) {
+      this.fetchData();
+    }
+  },
+
   fetchData() {
-    var queryParams = this.context.router.getCurrentQuery();
-    var querystring = $.param(queryParams);
+    let queryParams = this.props.params;
+    let querystring = $.param(queryParams);
 
     this.setState({
       loading: true,
@@ -56,13 +61,6 @@ var GroupUserReports = React.createClass({
     });
   },
 
-  onPage(cursor) {
-    var router = this.context.router;
-    var queryParams = $.extend({}, router.getCurrentQuery(), {cursor: cursor});
-
-    router.transitionTo('groupUserReports', this.context.router.getCurrentParams(), queryParams);
-  },
-
   render() {
     if (this.state.loading) {
       return <LoadingIndicator />;
@@ -70,8 +68,8 @@ var GroupUserReports = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    var children = this.state.reportList.map((item, itemIdx) => {
-      var body = utils.nl2br(utils.urlize(utils.escape(item.comments)));
+    let children = this.state.reportList.map((item, itemIdx) => {
+      let body = utils.nl2br(utils.urlize(utils.escape(item.comments)));
 
       return (
         <li className="activity-note" key={itemIdx}>

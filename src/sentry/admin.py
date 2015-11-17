@@ -15,10 +15,11 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from django.utils.translation import ugettext, ugettext_lazy as _
-
+from pprint import saferepr
 from sentry.models import (
     ApiKey, AuthIdentity, AuthProvider, AuditLogEntry, Broadcast, HelpPage,
-    Organization, OrganizationMember, Project, Team, User
+    Option, Organization, OrganizationMember, OrganizationMemberTeam, Project,
+    Team, User
 )
 
 csrf_protect_m = method_decorator(csrf_protect)
@@ -26,11 +27,27 @@ sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
 
 
 class BroadcastAdmin(admin.ModelAdmin):
-    list_display = ('message', 'is_active', 'date_added')
+    list_display = ('title', 'message', 'is_active', 'date_added')
     list_filter = ('is_active',)
-    search_fields = ('message', 'url')
+    search_fields = ('title', 'message', 'link')
 
 admin.site.register(Broadcast, BroadcastAdmin)
+
+
+class OptionAdmin(admin.ModelAdmin):
+    list_display = ('key', 'last_updated')
+    fields = ('key', 'value_repr', 'last_updated')
+    readonly_fields = ('key', 'value_repr', 'last_updated')
+    search_fields = ('key',)
+
+    def value_repr(self, instance):
+        return '<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(escape(saferepr(instance.value)))
+
+    value_repr.short_description = "Value"
+    value_repr.allow_tags = True
+
+
+admin.site.register(Option, OptionAdmin)
 
 
 class ProjectAdmin(admin.ModelAdmin):
@@ -67,8 +84,15 @@ class OrganizationTeamInline(admin.TabularInline):
 class OrganizationMemberInline(admin.TabularInline):
     model = OrganizationMember
     extra = 1
-    fields = ('user', 'type', 'organization')
+    fields = ('user', 'organization', 'role')
     raw_id_fields = ('user', 'organization')
+
+
+class AuthIdentityInline(admin.TabularInline):
+    model = AuthIdentity
+    extra = 1
+    fields = ('user', 'auth_provider', 'ident', 'data', 'last_verified')
+    raw_id_fields = ('user', 'auth_provider')
 
 
 class OrganizationAdmin(admin.ModelAdmin):
@@ -84,7 +108,7 @@ admin.site.register(Organization, OrganizationAdmin)
 
 class AuthProviderAdmin(admin.ModelAdmin):
     list_display = ('organization', 'provider', 'date_added')
-    search_fields = ('organization',)
+    search_fields = ('organization__name',)
     raw_id_fields = ('organization', 'default_teams')
     list_filter = ('provider',)
 
@@ -94,7 +118,8 @@ admin.site.register(AuthProvider, AuthProviderAdmin)
 class AuthIdentityAdmin(admin.ModelAdmin):
     list_display = ('user', 'auth_provider', 'ident', 'date_added', 'last_verified')
     list_filter = ('auth_provider__provider',)
-    search_fields = ('user', 'auth_provider__organization')
+    search_fields = ('user__email', 'user__username',
+                     'auth_provider__organization__name')
     raw_id_fields = ('user', 'auth_provider')
 
 admin.site.register(AuthIdentity, AuthIdentityAdmin)
@@ -125,14 +150,13 @@ class TeamAdmin(admin.ModelAdmin):
             organization=obj.organization,
         )
 
+        # TODO(dcramer): maintain memberships where possible
         # remove invalid team links
-        queryset = OrganizationMember.objects.filter(
-            teams=obj,
+        OrganizationMemberTeam.objects.filter(
+            team=obj,
         ).exclude(
-            organization=obj.organization,
-        )
-        for member in queryset:
-            member.teams.remove(obj)
+            organizationmember__organization=obj.organization,
+        ).delete()
 
 admin.site.register(Team, TeamAdmin)
 
@@ -159,7 +183,7 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'is_managed')
     search_fields = ('username', 'first_name', 'last_name', 'email')
     ordering = ('username',)
-    inlines = (OrganizationMemberInline,)
+    inlines = (OrganizationMemberInline, AuthIdentityInline)
 
     def get_fieldsets(self, request, obj=None):
         if not obj:

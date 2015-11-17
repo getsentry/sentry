@@ -10,10 +10,10 @@ from __future__ import absolute_import
 import time
 
 from django.conf import settings
-from rb import Cluster
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.quotas.base import Quota, RateLimited, NotRateLimited
+from sentry.utils.redis import make_rb_cluster
 
 
 class RedisQuota(Quota):
@@ -25,7 +25,7 @@ class RedisQuota(Quota):
             options = settings.SENTRY_REDIS_OPTIONS
         super(RedisQuota, self).__init__(**options)
         options.setdefault('hosts', {0: {}})
-        self.cluster = Cluster(options['hosts'])
+        self.cluster = make_rb_cluster(options['hosts'])
 
     def validate(self):
         try:

@@ -1,15 +1,10 @@
-import React from "react";
+import React from 'react';
 
-import Count from "../../components/count";
+import Count from '../../components/count';
 
-var SharedGroupHeader = React.createClass({
+const SharedGroupHeader = React.createClass({
   render() {
-    var group = this.props.group,
-        userCount = 0;
-
-    if (group.tags.user !== undefined) {
-      userCount = group.tags.user.count;
-    }
+    let group = this.props.group, userCount = group.userCount;
 
     return (
       <div className="group-detail">

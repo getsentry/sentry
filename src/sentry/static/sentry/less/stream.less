@@ -16,24 +16,17 @@
     border-top-color: transparent;
     border-bottom-color: transparent;
     box-shadow: 0 1px 0 rgba(52, 60, 69, 0.15);
-    background: lighten(#f5f8fa, 1.75); // alpha transparency too slow, so using fixed color
+    background: @headerBgColor; // alpha transparency too slow, so using fixed color
     margin: 0 auto;
   }
 }
 
-@media(max-width:1200px) {
-  .sticky .stream-actions {
-    border: none;
-    padding-left: 16px; // 15 + 1px border
-    padding-right: 26px; // 15 + 1px border + original 10px
+.show-sidebar .sticky {
+  .stream-actions {
+    margin-right: 25%;
   }
 }
 
-@media (min-width: 1300px) {
-  .sticky .stream-actions {
-    width: 1220px !important;
-  }
-}
 .sticky+.group-list {
   margin-top: 64px;
 }
@@ -62,7 +55,7 @@
 }
 
 .stream-actions {
-  background: lighten(#f5f8fa, 1.75);
+  background: @headerBgColor;
   border: 1px solid @trim;
   border-bottom: none;
   border-radius: 3px 3px 0 0;
@@ -192,19 +185,6 @@
     padding-right: 10px;
     background: #fff;
     .transition(all .4s ease-in-out);
-
-    &.level-info .error-level {
-      background: @blue;
-    }
-    &.level-warning .error-level {
-      background: @yellow;
-    }
-    &.level-error .error-level {
-      background: @sentry-orange;
-    }
-    &.level-fatal .error-level {
-      background: @red;
-    }
 
     .icon-bookmark, .icon-soundoff {
       padding-right: 5px;
@@ -361,7 +341,6 @@
         text-transform: capitalize;
         text-align: center;
         color: #fff;
-        background: @gray-light;
         padding: 2px 4px;
         width: 50px;
         display: block;
@@ -383,6 +362,7 @@
       font-size: 14px;
       margin-bottom: 6px;
       color: @gray;
+      word-wrap: break-word;
     }
     .event-extra {
       color: @gray-light;
@@ -580,6 +560,7 @@
     .list-unstyled;
     margin-left: 10px;
     margin-bottom: 0;
+    font-size: 14px;
 
    .dropdown-toggle {
       line-height: 38px;
@@ -630,6 +611,90 @@
 }
 
 /**
+* Stream Columns
+* ============================================================================
+*/
+
+.stream-row {
+  .clearfix();
+
+  .search {
+    float: left;
+    width: 82%;
+  }
+
+  .toggle-stream-sidebar {
+    float: left;
+    width: 16%;
+    margin-left: 2%;
+    height: 38px;
+
+    .icon-filter {
+      font-size: 19px;
+    }
+  }
+
+  .stream-content, .stream-sidebar {
+    float: left;
+    .transition(all .2s ease-in-out);
+  }
+
+  .stream-content {
+    width: 100%;
+  }
+
+  .stream-sidebar {
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    opacity: 0;
+    padding-left: 20px;
+
+    .stream-tag-filter {
+      margin-bottom: 1em;
+
+      form {
+        position: relative;
+      }
+    }
+
+    h6 {
+      color: lighten(@gray, 10);
+      margin-bottom: 10px;
+    }
+
+    .select2-container {
+      width: 100%;
+      max-width: 100%;
+      padding: 6px 12px;
+    }
+  }
+
+  &.show-sidebar {
+    .toggle-stream-sidebar {
+      .btn-primary;
+      box-shadow: inset 0 1px 1px rgba(0,0,0,.06);
+    }
+    .stream-content {
+      width: 75%;
+    }
+
+    .stream-actions-graph-label {
+      display: none;
+    }
+
+    .stream-sidebar {
+      width: 25%;
+      visibility: visible;
+      opacity: 1;
+      height: auto;
+      overflow: visible;
+    }
+  }
+}
+
+/**
 * Stream Pagination
 * ============================================================================
 */
@@ -647,7 +712,7 @@
 * ============================================================================
 */
 
-.empty-stream {
+.alert-box, .empty-stream {
   border: 1px solid @trim;
   border-radius: 0 0 2px 2px;
   text-align: center;
@@ -688,7 +753,7 @@
   .stream-actions {
     .stream-actions-count, .stream-actions-users {
       font-size: 13px;
-      padding-top: 12px;
+      padding-top: 8px;
     }
   }
 }
@@ -696,5 +761,20 @@
 @media(max-width: 767px) {
   .event-users, .event-count {
     padding-top: 33px !important;
+  }
+
+  .search {
+    width: 100% !important;
+  }
+
+  .toggle-stream-sidebar {
+    display: none;
+  }
+
+  .stream-content {
+    width: 100% !important;
+  }
+  .stream-sidebar {
+    display: none;
   }
 }

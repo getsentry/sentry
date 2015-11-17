@@ -1,15 +1,15 @@
-import _ from "underscore";
-import React from "react";
-import Gravatar from "../../components/gravatar";
-import DefinitionList from "./interfaces/definitionList";
-import EventDataSection from "./eventDataSection";
+import _ from 'underscore';
+import React from 'react';
+import Gravatar from '../../components/gravatar';
+import KeyValueList from './interfaces/keyValueList';
+import EventDataSection from './eventDataSection';
 
 
-var EventUser = React.createClass({
+const EventUser = React.createClass({
   render() {
-    var user = this.props.event.user;
-    var builtins = [];
-    var children = [];
+    let user = this.props.event.user;
+    let builtins = [];
+    let children = [];
 
     // Handle our native attributes special
     user.id && builtins.push(['ID', user.id]);
@@ -30,9 +30,9 @@ var EventUser = React.createClass({
           title="User">
         <div className="user-widget">
           <div className="pull-left"><Gravatar email={user.email} size={96} /></div>
-          <DefinitionList data={builtins} isContextData={false} />
+          <KeyValueList data={builtins} isContextData={false} />
           {children &&
-            <DefinitionList data={children} isContextData={true} />
+            <KeyValueList data={children} isContextData={true} />
           }
         </div>
       </EventDataSection>

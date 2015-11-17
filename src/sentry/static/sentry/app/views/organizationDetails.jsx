@@ -1,27 +1,30 @@
-import React from "react";
-import Router from "react-router";
-import api from "../api";
-import DocumentTitle from "react-document-title";
-import Footer from "../components/footer";
-import Header from "../components/header";
-import HookStore from "../stores/hookStore";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import PropTypes from "../proptypes";
-import RouteMixin from "../mixins/routeMixin";
-import TeamStore from "../stores/teamStore";
+import React from 'react';
+import api from '../api';
+import DocumentTitle from 'react-document-title';
+import Footer from '../components/footer';
+import Header from '../components/header';
+import HookStore from '../stores/hookStore';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import PropTypes from '../proptypes';
+import TeamStore from '../stores/teamStore';
 
-var OrganizationDetails = React.createClass({
-  mixins: [
-    RouteMixin
-  ],
+let ERROR_TYPES = {
+  ORG_NOT_FOUND: 'ORG_NOT_FOUND'
+};
 
+const OrganizationDetails = React.createClass({
   childContextTypes: {
     organization: PropTypes.Organization
   },
 
-  contextTypes: {
-    router: React.PropTypes.func
+  getInitialState() {
+    return {
+      loading: true,
+      error: false,
+      errorType: null,
+      organization: null
+    };
   },
 
   getChildContext() {
@@ -30,58 +33,54 @@ var OrganizationDetails = React.createClass({
     };
   },
 
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      organization: null
-    };
-  },
-
   componentWillMount() {
     this.fetchData();
+  },
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.params.orgId !== this.props.params.orgId) {
+      this.remountComponent();
+    }
   },
 
   componentWillUnmount() {
     TeamStore.reset();
   },
 
-  routeDidChange(nextPath, nextParams) {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    if (nextParams.orgId != params.orgId) {
-      this.fetchData();
-    }
+  remountComponent() {
+    this.setState(this.getInitialState(), this.fetchData);
   },
 
   fetchData() {
-    this.setState({
-      loading: true,
-      error: false
-    });
-
     api.request(this.getOrganizationDetailsEndpoint(), {
       success: (data) => {
         this.setState({
           organization: data,
-          loading: false
+          loading: false,
+          error: false,
+          errorType: null
         });
 
         TeamStore.loadInitialData(data.teams);
-      },
-      error: () => {
+      }, error: (_, textStatus, errorThrown) => {
+        let errorType = null;
+        switch (errorThrown) {
+          case 'NOT FOUND':
+            errorType = ERROR_TYPES.ORG_NOT_FOUND;
+            break;
+          default:
+        }
         this.setState({
           loading: false,
-          error: true
+          error: true,
+          errorType: errorType,
         });
       }
     });
   },
 
   getOrganizationDetailsEndpoint() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    return '/organizations/' + params.orgId + '/';
+    return '/organizations/' + this.props.params.orgId + '/';
   },
 
   getTitle() {
@@ -97,24 +96,34 @@ var OrganizationDetails = React.createClass({
             Loading data for your organization.
           </LoadingIndicator>
         );
-    } else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
+    } else if (this.state.error) {
+      switch (this.state.errorType) {
+        case ERROR_TYPES.ORG_NOT_FOUND:
+          return (
+            <div className="container">
+              <div className="alert alert-block">The organization you were looking for was not found.</div>
+            </div>
+          );
+        default:
+          return <LoadingError onRetry={this.remountComponent} />;
+      }
+    }
 
     // Allow injection via getsentry et all
-    var org = this.state.organization;
-    var children = [];
+    let org = this.state.organization;
+    let children = [];
     HookStore.get('organization:header').forEach((cb) => {
       children.push(cb(org));
     });
 
-    var params = this.context.router.getCurrentParams();
+    let params = this.props.params;
 
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
           {children}
           <Header orgId={params.orgId}/>
-          <Router.RouteHandler />
+          {this.props.children}
           <Footer />
         </div>
       </DocumentTitle>

@@ -12,7 +12,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.constants import (
-    DEFAULT_SORT_OPTION, STATUS_CHOICES, STATUS_UNRESOLVED
+    DEFAULT_SORT_OPTION, STATUS_CHOICES
 )
 from sentry.db.models.query import create_or_update
 from sentry.models import (
@@ -202,24 +202,26 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 ))
 
         if query is not None:
-            query_kwargs.update(parse_query(query, request.user))
+            query_kwargs.update(parse_query(project, query, request.user))
 
         cursor_result = search.query(**query_kwargs)
 
         results = list(cursor_result)
 
-        # HACK: remove auto resolved entries
-        if query_kwargs.get('status') == STATUS_UNRESOLVED:
-            results = [
-                r for r in results
-                if not r.is_resolved()
-            ]
-
-        response = Response(serialize(
+        context = serialize(
             results, request.user, StreamGroupSerializer(
                 stats_period=stats_period
             )
-        ))
+        )
+
+        # HACK: remove auto resolved entries
+        if query_kwargs.get('status') == GroupStatus.UNRESOLVED:
+            context = [
+                r for r in context
+                if r['status'] == 'unresolved'
+            ]
+
+        response = Response(context)
         response['Link'] = ', '.join([
             self.build_cursor_link(request, 'previous', cursor_result.prev),
             self.build_cursor_link(request, 'next', cursor_result.next),
@@ -292,6 +294,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         result = dict(serializer.object)
 
+        acting_user = request.user if request.user.is_authenticated() else None
+
         # validate that we've passed a selector for non-status bulk operations
         if not group_ids and result.keys() != ['status']:
             return Response('{"detail": "You must specify a list of IDs for this operation"}', status=400)
@@ -326,7 +330,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         project=group.project,
                         group=group,
                         type=Activity.SET_RESOLVED,
-                        user=request.user,
+                        user=acting_user,
                     )
                     activity.send_notification()
 
@@ -350,7 +354,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         project=group.project,
                         group=group,
                         type=activity_type,
-                        user=request.user,
+                        user=acting_user,
                     )
                     activity.send_notification()
 
@@ -396,7 +400,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     project=group.project,
                     group=group,
                     type=Activity.SET_PUBLIC,
-                    user=request.user,
+                    user=acting_user,
                 )
         elif result.get('isPublic') is False:
             Group.objects.filter(
@@ -410,7 +414,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     project=group.project,
                     group=group,
                     type=Activity.SET_PRIVATE,
-                    user=request.user,
+                    user=acting_user,
                 )
 
         # XXX(dcramer): this feels a bit shady like it should be its own

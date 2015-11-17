@@ -1,35 +1,29 @@
-import jQuery from "jquery";
-import React from "react";
-import api from "../../api";
-import LoadingError from "../../components/loadingError";
-import LoadingIndicator from "../../components/loadingIndicator";
-import Pagination from "../../components/pagination";
-import RouteMixin from "../../mixins/routeMixin";
-import SearchBar from "./searchBar.jsx";
+import jQuery from 'jquery';
+import React from 'react';
+import {History} from 'react-router';
+import api from '../../api';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
+import Pagination from '../../components/pagination';
+import SearchBar from '../../components/searchBar.jsx';
 
-import ReleaseList from "./releaseList";
+import ReleaseList from './releaseList';
 
-var ProjectReleases = React.createClass({
-  mixins: [
-    RouteMixin
-  ],
+const ProjectReleases = React.createClass({
+  propTypes: {
+    setProjectNavSection: React.PropTypes.func
+  },
+
+  mixins: [ History ],
 
   getDefaultProps() {
     return {
-      defaultQuery: ""
+      defaultQuery: ''
     };
   },
 
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
-  propTypes: {
-    setProjectNavSection: React.PropTypes.func.isRequired
-  },
-
   getInitialState() {
-    var queryParams = this.context.router.getCurrentQuery();
+    let queryParams = this.props.location.query;
 
     return {
       releaseList: [],
@@ -40,26 +34,27 @@ var ProjectReleases = React.createClass({
     };
   },
 
-  onSearch(query) {
-    var router = this.context.router;
-
-    var targetQueryParams = {};
-    if (query !== '')
-      targetQueryParams.query = query;
-
-    router.transitionTo("projectReleases", router.getCurrentParams(), targetQueryParams);
-  },
-
   componentWillMount() {
     this.props.setProjectNavSection('releases');
     this.fetchData();
   },
 
-  routeDidChange() {
-    var queryParams = this.context.router.getCurrentQuery();
-    this.setState({
-      query: queryParams.query
-    }, this.fetchData);
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.location.search !== this.props.location.search) {
+      let queryParams = nextProps.location.query;
+      this.setState({
+        query: queryParams.query
+      }, this.fetchData);
+    }
+  },
+
+  onSearch(query) {
+    let targetQueryParams = {};
+    if (query !== '')
+      targetQueryParams.query = query;
+
+    let {orgId, projectId} = this.props.params;
+    this.history.pushState(null, `/${orgId}/${projectId}/releases/`, targetQueryParams);
   },
 
   fetchData() {
@@ -87,40 +82,33 @@ var ProjectReleases = React.createClass({
   },
 
   getProjectReleasesEndpoint() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    var queryParams = $.extend({}, router.getCurrentQuery());
-    queryParams.limit = 50;
-    queryParams.query = this.state.query;
+    let params = this.props.params;
+    let queryParams = {
+      ...this.props.location.query,
+      limit: 50,
+      query: this.state.query
+    };
 
     return '/projects/' + params.orgId + '/' + params.projectId + '/releases/?' + jQuery.param(queryParams);
   },
 
-  onPage(cursor) {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    var queryParams = $.extend({}, router.getCurrentQuery());
-    queryParams.cursor = cursor;
-
-    router.transitionTo('projectReleases', params, queryParams);
-  },
-
   getReleaseTrackingUrl() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
+    let params = this.props.params;
 
     return '/' + params.orgId + '/' + params.projectId + '/settings/release-tracking/';
   },
 
   renderStreamBody() {
-    var body;
+    let body;
+
+    let params = this.props.params;
 
     if (this.state.loading)
       body = this.renderLoading();
     else if (this.state.error)
       body = <LoadingError onRetry={this.fetchData} />;
     else if (this.state.releaseList.length > 0)
-      body = <ReleaseList releaseList={this.state.releaseList} />;
+      body = <ReleaseList orgId={params.orgId} projectId={params.projectId} releaseList={this.state.releaseList} />;
     else if (this.state.query && this.state.query !== this.props.defaultQuery)
       body = this.renderNoQueryResults();
     else
@@ -168,7 +156,6 @@ var ProjectReleases = React.createClass({
             <SearchBar defaultQuery=""
               placeholder="Search for a release."
               query={this.state.query}
-              onQueryChange={this.onQueryChange}
               onSearch={this.onSearch}
             />
           </div>

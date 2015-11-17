@@ -12,10 +12,10 @@ class OrganizationsListTest(APITestCase):
     def path(self):
         return reverse('sentry-api-0-organizations')
 
-    def test_simple(self):
+    def test_membership(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
-        response = self.client.get(self.path)
+        response = self.client.get('{}?member=1'.format(self.path))
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == str(org.id)

@@ -14,8 +14,9 @@ from random import randrange
 
 from django.conf import settings
 from django.core.mail import get_connection, EmailMultiAlternatives
-from django.core.signing import Signer
-from django.utils.encoding import force_bytes
+from django.core.signing import Signer, BadSignature
+from django.utils.crypto import constant_time_compare
+from django.utils.encoding import force_bytes, force_str, force_text
 from django.utils.functional import cached_property
 from email.utils import parseaddr
 
@@ -24,10 +25,40 @@ from sentry.web.helpers import render_to_string
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
-signer = Signer()
-
 SMTP_HOSTNAME = getattr(settings, 'SENTRY_SMTP_HOSTNAME', 'localhost')
 ENABLE_EMAIL_REPLIES = getattr(settings, 'SENTRY_ENABLE_EMAIL_REPLIES', False)
+
+
+class _CaseInsensitiveSigner(Signer):
+    """
+    Generate a signature that is comprised of only lowercase letters.
+
+    WARNING: Do not use this for anything that needs to be cryptographically
+    secure! This is losing entropy and has a much higher chance of collision
+    due to dropping to lowercase letters. For our purposes, this lack of entropy
+    is ok and doesn't pose a risk.
+
+    NOTE: This is needed strictly for signatures used in email addresses. Some
+    clients, coughAirmailcough, treat email addresses as being case-insensitive,
+    and sends the value as all lowercase.
+    """
+    def signature(self, value):
+        sig = super(_CaseInsensitiveSigner, self).signature(value)
+        return sig.lower()
+
+    def unsign(self, signed_value):
+        # This unsign is identical to subclass except for the lowercasing
+        # See: https://github.com/django/django/blob/1.6.11/django/core/signing.py#L165-L172
+        signed_value = force_str(signed_value)
+        if self.sep not in signed_value:
+            raise BadSignature('No "%s" found in value' % self.sep)
+        value, sig = signed_value.rsplit(self.sep, 1)
+        if constant_time_compare(sig.lower(), self.signature(value)):
+            return force_text(value)
+        raise BadSignature('Signature "%s" does not match' % sig)
+
+
+signer = _CaseInsensitiveSigner()
 
 
 def email_to_group_id(address):
@@ -80,7 +111,7 @@ FROM_EMAIL_DOMAIN = domain_from_email(settings.DEFAULT_FROM_EMAIL)
 class MessageBuilder(object):
     def __init__(self, subject, context=None, template=None, html_template=None,
                  body=None, html_body=None, headers=None, reference=None,
-                 reply_reference=None):
+                 reply_reference=None, from_email=None):
         assert not (body and template)
         assert not (html_body and html_template)
         assert context or not (template or html_template)
@@ -94,7 +125,7 @@ class MessageBuilder(object):
         self.headers = headers
         self.reference = reference  # The object that generated this message
         self.reply_reference = reply_reference  # The object this message is replying about
-
+        self.from_email = from_email or settings.SERVER_EMAIL
         self._send_to = set()
 
     @cached_property
@@ -195,7 +226,7 @@ class MessageBuilder(object):
         msg = EmailMultiAlternatives(
             subject,
             self.txt_body,
-            settings.SERVER_EMAIL,
+            self.from_email,
             (to,),
             headers=headers
         )

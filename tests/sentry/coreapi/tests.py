@@ -9,19 +9,20 @@ from uuid import UUID
 
 from sentry.coreapi import (
     APIError, APIUnauthorized, Auth, ClientApiHelper, InvalidFingerprint,
-    InvalidTimestamp, get_interface
+    InvalidTimestamp, get_interface, CspApiHelper, APIForbidden,
 )
 from sentry.testutils import TestCase
 
 
 class BaseAPITest(TestCase):
+    helper_cls = ClientApiHelper
+
     def setUp(self):
         self.user = self.create_user('coreapi@example.com')
         self.team = self.create_team(name='Foo')
         self.project = self.create_project(team=self.team)
-        self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
         self.pk = self.project.key_set.get_or_create()[0]
-        self.helper = ClientApiHelper()
+        self.helper = self.helper_cls(agent='Awesome Browser', ip_address='69.69.69.69')
 
 
 class AuthFromRequestTest(BaseAPITest):
@@ -233,6 +234,13 @@ class ValidateDataTest(BaseAPITest):
         })
         assert 'tags' not in data
 
+    def test_tags_with_spaces(self):
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo',
+            'tags': {'foo bar': 'baz bar'},
+        })
+        assert data['tags'] == [('foo-bar', 'baz bar')]
+
     def test_tags_out_of_bounds(self):
         data = self.helper.validate_data(self.project, {
             'message': 'foo',
@@ -332,3 +340,37 @@ class EnsureHasIpTest(BaseAPITest):
         out = {}
         self.helper.ensure_has_ip(out, '127.0.0.1')
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
+
+
+class CspApiHelperTest(BaseAPITest):
+    helper_cls = CspApiHelper
+
+    def test_validate_basic(self):
+        report = {
+            "document-uri": "http://45.55.25.245:8123/csp",
+            "referrer": "http://example.com",
+            "violated-directive": "img-src https://45.55.25.245:8123/",
+            "effective-directive": "img-src",
+            "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
+            "blocked-uri": "http://google.com",
+            "status-code": 200
+        }
+        result = self.helper.validate_data(self.project, report)
+        assert result['logger'] == 'csp'
+        assert result['project'] == self.project.id
+        assert 'message' in result
+        assert 'culprit' in result
+        assert 'tags' in result
+        assert result['sentry.interfaces.User'] == {'ip_address': '69.69.69.69'}
+        assert result['sentry.interfaces.Http'] == {
+            'url': 'http://45.55.25.245:8123/csp',
+            'headers': {
+                'User-Agent': 'Awesome Browser',
+                'Referer': 'http://example.com'
+            }
+        }
+
+    @mock.patch('sentry.interfaces.csp.Csp.to_python', mock.Mock(side_effect=Exception))
+    def test_validate_raises_invalid_interface(self):
+        with self.assertRaises(APIForbidden):
+            self.helper.validate_data(self.project, {})

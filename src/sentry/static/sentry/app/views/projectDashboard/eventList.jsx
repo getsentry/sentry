@@ -1,20 +1,11 @@
-import React from "react";
-import api from "../../api";
-import LoadingError from "../../components/loadingError";
-import LoadingIndicator from "../../components/loadingIndicator";
-import RouteMixin from "../../mixins/routeMixin";
+import React from 'react';
+import api from '../../api';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
 
-import EventNode from "./eventNode";
+import EventNode from './eventNode';
 
-var EventList = React.createClass({
-  mixins: [
-    RouteMixin
-  ],
-
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
+const EventList = React.createClass({
   propTypes: {
     title: React.PropTypes.string.isRequired,
     endpoint: React.PropTypes.string.isRequired
@@ -25,7 +16,7 @@ var EventList = React.createClass({
       groupList: [],
       loading: true,
       error: false,
-      statsPeriod: "24h"
+      statsPeriod: '24h'
     };
   },
 
@@ -33,37 +24,25 @@ var EventList = React.createClass({
     this.fetchData();
   },
 
-  routeDidChange(nextPath, nextParams) {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    if (nextParams.teamId != params.teamId) {
-      this.fetchData();
-    }
-  },
-
-  componentDidUpdate(_, prevState) {
-    if (this.state.statsPeriod != prevState.statsPeriod) {
-      this.fetchData();
-    }
-  },
-
-  fetchData() {
+  componentWillReceiveProps() {
     this.setState({
       loading: true,
       error: false
-    });
+    }, this.fetchData);
+  },
 
-    var minutes;
+  fetchData() {
+    let minutes;
     switch(this.state.statsPeriod) {
-      case "15m":
-        minutes = "15";
+      case '15m':
+        minutes = '15';
         break;
-      case "60m":
-        minutes = "60";
+      case '60m':
+        minutes = '60';
         break;
-      case "24h":
+      case '24h':
       default:
-        minutes = "1440";
+        minutes = '1440';
         break;
     }
 
@@ -95,7 +74,7 @@ var EventList = React.createClass({
   },
 
   render() {
-    var eventNodes = this.state.groupList.map((item) => {
+    let eventNodes = this.state.groupList.map((item) => {
       return <EventNode group={item} key={item.id} />;
     });
 

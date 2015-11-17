@@ -9,16 +9,17 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.db import models
-from django.utils.encoding import smart_str
-from hashlib import md5
-from rb import Cluster
+from django.utils.encoding import force_bytes
 from time import time
 
 from sentry.buffer import Buffer
 from sentry.exceptions import InvalidConfiguration
 from sentry.tasks.process_buffer import process_incr
+from sentry.utils import metrics
 from sentry.utils.compat import pickle
+from sentry.utils.hashlib import md5
 from sentry.utils.imports import import_string
+from sentry.utils.redis import make_rb_cluster
 
 
 class RedisBuffer(Buffer):
@@ -33,7 +34,7 @@ class RedisBuffer(Buffer):
         options.setdefault('hosts', {
             0: {},
         })
-        self.cluster = Cluster(options['hosts'])
+        self.cluster = make_rb_cluster(options['hosts'])
 
     def validate(self):
         try:
@@ -45,7 +46,7 @@ class RedisBuffer(Buffer):
     def _coerce_val(self, value):
         if isinstance(value, models.Model):
             value = value.pk
-        return smart_str(value)
+        return force_bytes(value, errors='replace')
 
     def _make_key(self, model, filters):
         """
@@ -53,8 +54,8 @@ class RedisBuffer(Buffer):
         """
         return 'b:k:%s:%s' % (
             model._meta,
-            md5(smart_str('&'.join('%s=%s' % (k, self._coerce_val(v))
-                for k, v in sorted(filters.iteritems())))).hexdigest(),
+            md5('&'.join('%s=%s' % (k, self._coerce_val(v))
+                for k, v in sorted(filters.iteritems()))).hexdigest(),
         )
 
     def _make_lock_key(self, key):
@@ -102,13 +103,16 @@ class RedisBuffer(Buffer):
                 keys = conn.zrange(self.pending_key, 0, -1)
                 if not keys:
                     continue
+                keycount = 0
                 for key in keys:
+                    keycount += 1
                     process_incr.apply_async(kwargs={
                         'key': key,
                     })
                 pipe = conn.pipeline()
                 pipe.zrem(self.pending_key, *keys)
                 pipe.execute()
+                metrics.timing('buffer.pending-size', keycount)
         finally:
             client.delete(lock_key)
 
@@ -118,22 +122,27 @@ class RedisBuffer(Buffer):
         # prevent a stampede due to the way we use celery etas + duplicate
         # tasks
         if not client.set(lock_key, '1', nx=True, ex=10):
+            metrics.incr('buffer.revoked', tags={'reason': 'locked'})
             self.logger.info('Skipped process on %s; unable to get lock', key)
             return
 
-        with self.cluster.map() as conn:
-            values = conn.hgetall(key)
-            conn.delete(key)
+        conn = self.cluster.get_local_client_for_key(key)
+        pipe = conn.pipeline()
+        pipe.hgetall(key)
+        pipe.zrem(self.pending_key, key)
+        pipe.delete(key)
+        values = pipe.execute()[0]
 
-        if not values.value:
+        if not values:
+            metrics.incr('buffer.revoked', tags={'reason': 'empty'})
             self.logger.info('Skipped process on %s; no values found', key)
             return
 
-        model = import_string(values.value['m'])
-        filters = pickle.loads(values.value['f'])
+        model = import_string(values['m'])
+        filters = pickle.loads(values['f'])
         incr_values = {}
         extra_values = {}
-        for k, v in values.value.iteritems():
+        for k, v in values.iteritems():
             if k.startswith('i+'):
                 incr_values[k[2:]] = int(v)
             elif k.startswith('e+'):

@@ -1,25 +1,19 @@
-import React from "react";
-import api from "../api";
-import ApiMixin from "../mixins/apiMixin";
-import EventEntries from "../components/events/eventEntries";
-import GroupEventToolbar from "./groupDetails/eventToolbar";
-import GroupSidebar from "../components/group/sidebar";
-import GroupState from "../mixins/groupState";
-import MutedBox from "../components/mutedBox";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import RouteMixin from "../mixins/routeMixin";
+import React from 'react';
+import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
+import EventEntries from '../components/events/eventEntries';
+import GroupEventToolbar from './groupDetails/eventToolbar';
+import GroupSidebar from '../components/group/sidebar';
+import GroupState from '../mixins/groupState';
+import MutedBox from '../components/mutedBox';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
 
 
-var GroupEventDetails = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
+const GroupEventDetails = React.createClass({
   mixins: [
     ApiMixin,
-    GroupState,
-    RouteMixin
+    GroupState
   ],
 
   getInitialState() {
@@ -35,14 +29,16 @@ var GroupEventDetails = React.createClass({
     this.fetchData();
   },
 
-  routeDidChange(prevPath) {
-    this.fetchData();
+  componentDidUpdate(prevProps) {
+    if (prevProps.params.eventId !== this.props.params.eventId) {
+      this.fetchData();
+    }
   },
 
   fetchData() {
-    var eventId = this.context.router.getCurrentParams().eventId || 'latest';
+    let eventId = this.props.params.eventId || 'latest';
 
-    var url = (eventId === 'latest' || eventId === 'oldest' ?
+    let url = (eventId === 'latest' || eventId === 'oldest' ?
       '/groups/' + this.getGroup().id + '/events/' + eventId + '/' :
       '/events/' + eventId + '/');
 
@@ -77,9 +73,9 @@ var GroupEventDetails = React.createClass({
   },
 
   render() {
-    var group = this.getGroup();
-    var evt = this.state.event;
-    var params = this.context.router.getCurrentParams();
+    let group = this.getGroup();
+    let evt = this.state.event;
+    let params = this.props.params;
 
     return (
       <div>
@@ -98,7 +94,11 @@ var GroupEventDetails = React.createClass({
             : (this.state.error ?
               <LoadingError onRetry={this.fetchData} />
             :
-              <EventEntries group={group} event={evt} />
+              <EventEntries
+                group={group}
+                event={evt}
+                orgId={params.orgId}
+                projectId={params.projectId} />
             )}
           </div>
           <div className="col-md-3">

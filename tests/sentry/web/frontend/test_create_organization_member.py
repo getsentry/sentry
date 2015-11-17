@@ -3,8 +3,23 @@ from __future__ import absolute_import
 from django.core import mail
 from django.core.urlresolvers import reverse
 
-from sentry.models import OrganizationMember, OrganizationMemberType
-from sentry.testutils import TestCase
+from sentry.models import OrganizationMember
+from sentry.testutils import PermissionTestCase, TestCase
+
+
+class CreateOrganizationMemberPermissionTest(PermissionTestCase):
+    def setUp(self):
+        super(CreateOrganizationMemberPermissionTest, self).setUp()
+        self.path = reverse('sentry-create-organization-member', args=[self.organization.slug])
+
+    def test_teamless_admin_cannot_load(self):
+        self.assert_teamless_admin_cannot_access(self.path)
+
+    def test_owner_can_load(self):
+        self.assert_owner_can_access(self.path)
+
+    def test_member_cannot_load(self):
+        self.assert_member_cannot_access(self.path)
 
 
 class CreateOrganizationMemberTest(TestCase):
@@ -25,7 +40,6 @@ class CreateOrganizationMemberTest(TestCase):
 
         with self.settings(SENTRY_ENABLE_INVITES=True):
             resp = self.client.post(path, {
-                'type': OrganizationMemberType.MEMBER,
                 'email': 'foo@example.com',
             })
         assert resp.status_code == 302
@@ -35,7 +49,6 @@ class CreateOrganizationMemberTest(TestCase):
             email='foo@example.com',
         )
 
-        assert member.type == OrganizationMemberType.MEMBER
         assert member.user is None
 
         redirect_uri = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
@@ -55,12 +68,11 @@ class CreateOrganizationMemberTest(TestCase):
         member = OrganizationMember.objects.create(
             organization=organization,
             user=user,
-            type=OrganizationMemberType.MEMBER,
+            role='member',
         )
 
         with self.settings(SENTRY_ENABLE_INVITES=True):
             resp = self.client.post(path, {
-                'type': OrganizationMemberType.ADMIN,
                 'email': 'foo@example.com',
             })
 
@@ -68,7 +80,6 @@ class CreateOrganizationMemberTest(TestCase):
 
         member = OrganizationMember.objects.get(id=member.id)
 
-        assert member.type == OrganizationMemberType.MEMBER
         assert member.email is None
 
         redirect_uri = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
@@ -83,7 +94,6 @@ class CreateOrganizationMemberTest(TestCase):
 
         with self.settings(SENTRY_ENABLE_INVITES=False):
             resp = self.client.post(path, {
-                'type': OrganizationMemberType.MEMBER,
                 'user': 'foo@example.com',
             })
         assert resp.status_code == 302
@@ -93,7 +103,6 @@ class CreateOrganizationMemberTest(TestCase):
             user=user,
         )
 
-        assert member.type == OrganizationMemberType.MEMBER
         assert member.email is None
 
         redirect_uri = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
@@ -106,7 +115,6 @@ class CreateOrganizationMemberTest(TestCase):
 
         with self.settings(SENTRY_ENABLE_INVITES=False):
             resp = self.client.post(path, {
-                'type': OrganizationMemberType.MEMBER,
                 'user': 'bar@example.com',
             })
 

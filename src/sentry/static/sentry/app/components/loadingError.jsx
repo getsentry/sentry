@@ -1,6 +1,6 @@
-import React from "react";
+import React from 'react';
 
-var LoadingError = React.createClass({
+const LoadingError = React.createClass({
   propTypes: {
     onRetry: React.PropTypes.func,
     message: React.PropTypes.string
@@ -8,7 +8,7 @@ var LoadingError = React.createClass({
 
   getDefaultProps() {
     return {
-      message: "There was an error loading data."
+      message: 'There was an error loading data.'
     };
   },
 

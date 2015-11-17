@@ -16,7 +16,7 @@ from uuid import uuid4
 
 from sentry.models import (
     Activity, Event, Group, Organization, OrganizationMember,
-    OrganizationMemberTeam, OrganizationMemberType, Project, Team, User
+    OrganizationMemberTeam, Project, Team, User
 )
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress
@@ -47,11 +47,22 @@ class Fixtures(object):
 
     @fixture
     def team(self):
-        return self.create_team(
+        team = self.create_team(
             organization=self.organization,
             name='foo',
             slug='foo',
         )
+        # XXX: handle legacy team fixture
+        queryset = OrganizationMember.objects.filter(
+            organization=self.organization,
+        )
+        for om in queryset:
+            OrganizationMemberTeam.objects.create(
+                team=team,
+                organizationmember=om,
+                is_active=True,
+            )
+        return team
 
     @fixture
     def project(self):
@@ -88,13 +99,12 @@ class Fixtures(object):
         self.create_member(
             organization=org,
             user=owner,
-            type=OrganizationMemberType.OWNER,
-            has_global_access=True,
+            role='owner',
         )
         return org
 
     def create_member(self, teams=None, **kwargs):
-        kwargs.setdefault('type', OrganizationMemberType.MEMBER)
+        kwargs.setdefault('role', 'member')
 
         om = OrganizationMember.objects.create(**kwargs)
         if teams:
@@ -102,6 +112,7 @@ class Fixtures(object):
                 OrganizationMemberTeam.objects.create(
                     team=team,
                     organizationmember=om,
+                    is_active=True,
                 )
         return om
 
@@ -134,6 +145,7 @@ class Fixtures(object):
 
         kwargs.setdefault('username', email)
         kwargs.setdefault('is_staff', True)
+        kwargs.setdefault('is_active', True)
         kwargs.setdefault('is_superuser', False)
 
         user = User(email=email, **kwargs)

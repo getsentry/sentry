@@ -1,8 +1,13 @@
+from __future__ import absolute_import
+
 import os.path
+
 from sentry.models import Activity
 from sentry.services.smtp import SentrySMTPServer, STATUS
 from sentry.testutils import TestCase
-from sentry.utils.email import group_id_to_email, email_to_group_id
+from sentry.utils.email import (
+    group_id_to_email, email_to_group_id, _CaseInsensitiveSigner,
+)
 
 fixture = open(os.path.dirname(os.path.realpath(__file__)) + '/email.txt').read()
 
@@ -34,3 +39,12 @@ class SentrySMTPTest(TestCase):
     def test_process_message_invalid_email(self):
         with self.tasks():
             self.assertEqual(self.server.process_message('', self.user.email, ['lol@localhost'], fixture), STATUS[550])
+
+
+class CaseInsensitiveSignerTests(TestCase):
+    def test_it_works(self):
+        with self.settings(SECRET_KEY='a'):
+            signer = _CaseInsensitiveSigner()
+            assert signer.unsign(signer.sign('foo')) == 'foo'
+            assert signer.sign('foo') == 'foo:wkpxg5djz3d4m0zktktfl9hdzw4'
+            assert signer.unsign('foo:WKPXG5DJZ3D4M0ZKTKTFL9HDZW4') == 'foo'

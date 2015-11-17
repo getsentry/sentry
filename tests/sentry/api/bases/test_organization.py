@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from mock import Mock
 
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.models import ApiKey, OrganizationMemberType, ProjectKey
+from sentry.models import ApiKey, ProjectKey
 from sentry.testutils import TestCase
 
 
@@ -30,24 +30,12 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
         user = self.create_user(is_superuser=True)
         assert self.has_object_perm(None, user, self.org)
 
-    def test_org_member_with_global_access(self):
+    def test_org_member(self):
         user = self.create_user()
-        om = self.create_member(
+        self.create_member(
             user=user,
             organization=self.org,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=True,
-        )
-        assert self.has_object_perm(None, user, self.org, 'GET')
-        assert not self.has_object_perm(None, user, self.org, 'POST')
-
-    def test_org_member_without_global_access(self):
-        user = self.create_user()
-        om = self.create_member(
-            user=user,
-            organization=self.org,
-            type=OrganizationMemberType.MEMBER,
-            has_global_access=False,
+            role='member',
         )
         assert self.has_object_perm(None, user, self.org, 'GET')
         assert not self.has_object_perm(None, user, self.org, 'POST')

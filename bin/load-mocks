@@ -12,11 +12,11 @@ from hashlib import md5
 from pytz import utc
 from random import randint
 
+from sentry import roles
 from sentry.app import tsdb, buffer
 from sentry.models import (
-    Activity, File, GroupMeta, Organization, OrganizationAccessRequest,
-    OrganizationMember, OrganizationMemberType, Project, Release, ReleaseFile,
-    Team, User, UserReport
+    Activity, Broadcast, File, GroupMeta, Organization, OrganizationAccessRequest,
+    OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport
 )
 from sentry.utils.samples import create_sample_event
 
@@ -124,6 +124,12 @@ def main(num_events=1):
         ('Captain Planet', ('Earth', 'Fire', 'Wind', 'Water', 'Heart')),
     )
 
+    Broadcast.objects.create(
+        title="Learn about Source Maps",
+        message="Source maps are JSON files that contain information on how to map your transpiled source code back to their original source.",
+        link="https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry",
+    )
+
     if settings.SENTRY_SINGLE_ORGANIZATION:
         org = Organization.get_default()
     else:
@@ -135,21 +141,16 @@ def main(num_events=1):
     OrganizationMember.objects.get_or_create(
         user=user,
         organization=org,
-        defaults={
-            'type': OrganizationMemberType.OWNER,
-            'has_global_access': True,
-        }
+        role=roles.get_top_dog().id,
     )
 
     dummy_member, _ = OrganizationMember.objects.get_or_create(
         user=dummy_user,
         organization=org,
         defaults={
-            'has_global_access': False,
+            'role': roles.get_default().id,
         }
     )
-    if dummy_member.has_global_access:
-        dummy_member.update(has_global_access=False)
 
     for team_name, project_names in mocks:
         print('> Mocking team {}'.format(team_name))

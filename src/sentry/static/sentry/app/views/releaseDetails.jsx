@@ -1,37 +1,30 @@
-import React from "react";
-import Router from "react-router";
-import api from "../api";
-import Count from "../components/count";
-import DocumentTitle from "react-document-title";
-import ListLink from "../components/listLink";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import ProjectState from "../mixins/projectState";
-import TimeSince from "../components/timeSince";
-import Version from "../components/version";
+import React from 'react';
+import api from '../api';
+import Count from '../components/count';
+import DocumentTitle from 'react-document-title';
+import ListLink from '../components/listLink';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import ProjectState from '../mixins/projectState';
+import TimeSince from '../components/timeSince';
+import Version from '../components/version';
 
-var ReleaseDetails = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
+const ReleaseDetails = React.createClass({
+  propTypes: {
+    setProjectNavSection: React.PropTypes.func
   },
 
-  mixins: [
-    ProjectState
-  ],
-
-  propTypes: {
-    setProjectNavSection: React.PropTypes.func.isRequired
+  contextTypes: {
+    location: React.PropTypes.object
   },
 
   childContextTypes: {
     release: React.PropTypes.object
   },
 
-  getChildContext() {
-    return {
-      release: this.state.release
-    };
-  },
+  mixins: [
+    ProjectState
+  ],
 
   getInitialState() {
     return {
@@ -41,15 +34,21 @@ var ReleaseDetails = React.createClass({
     };
   },
 
+  getChildContext() {
+    return {
+      release: this.state.release
+    };
+  },
+
   componentWillMount() {
     this.props.setProjectNavSection('releases');
     this.fetchData();
   },
 
   getTitle() {
-    var project = this.getProject();
-    var team = this.getTeam();
-    var params = this.context.router.getCurrentParams();
+    let project = this.getProject();
+    let team = this.getTeam();
+    let params = this.props.params;
     return 'Release ' + params.version + ' | ' + team.name + ' / ' + project.name;
   },
 
@@ -75,10 +74,10 @@ var ReleaseDetails = React.createClass({
   },
 
   getReleaseDetailsEndpoint() {
-    var params = this.context.router.getCurrentParams();
-    var orgId = params.orgId;
-    var projectId = params.projectId;
-    var version = params.version;
+    let params = this.props.params;
+    let orgId = params.orgId;
+    let projectId = params.projectId;
+    let version = params.version;
 
     return '/projects/' + orgId + '/' + projectId + '/releases/' + version + '/';
   },
@@ -89,19 +88,16 @@ var ReleaseDetails = React.createClass({
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
-    var release = this.state.release;
-    var params = this.context.router.getCurrentParams();
+    let release = this.state.release;
 
+    let {orgId, projectId} = this.props.params;
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className={this.props.classname}>
           <div className="release-details">
             <div className="row">
               <div className="col-sm-6 col-xs-12">
-                <Router.Link to="projectReleases" params={params} className="back-arrow">
-                  <span className="icon-arrow-left"></span>
-                </Router.Link>
-                <h3>Release <strong><Version version={release.version} anchor={false} /></strong></h3>
+                <h3>Release <strong><Version orgId={orgId} projectId={projectId} version={release.version} anchor={false} /></strong></h3>
                 <div className="release-meta">
                   <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
                 </div>
@@ -134,12 +130,18 @@ var ReleaseDetails = React.createClass({
               </div>
             </div>
             <ul className="nav nav-tabs">
-              <ListLink to="releaseNewEvents" params={params}>New Events</ListLink>
-              <ListLink to="releaseAllEvents" params={params}>All Events</ListLink>
-              <ListLink to="releaseArtifacts" params={params} className="pull-right">Artifacts</ListLink>
+              <ListLink to={`/${orgId}/${projectId}/releases/${release.version}/`} isActive={(to)=> {
+                // react-router isActive will return true for any route that is part of the active route
+                // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
+                return to === this.context.location.pathname;
+              }}>New Events</ListLink>
+              <ListLink to={`/${orgId}/${projectId}/releases/${release.version}/all-events/`}>All Events</ListLink>
+              <ListLink to={`/${orgId}/${projectId}/releases/${release.version}/artifacts/`} className="pull-right">Artifacts</ListLink>
             </ul>
           </div>
-          <Router.RouteHandler />
+          {React.cloneElement(this.props.children, {
+            release: release,
+          })}
         </div>
       </DocumentTitle>
     );

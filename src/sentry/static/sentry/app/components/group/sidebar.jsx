@@ -1,21 +1,16 @@
-import React from "react";
-import GroupChart from "./chart";
-import GroupState from "../../mixins/groupState";
-import SeenInfo from "./seenInfo";
-import TagDistributionMeter from "./tagDistributionMeter";
+import React from 'react';
+import GroupChart from './chart';
+import GroupState from '../../mixins/groupState';
+import SeenInfo from './seenInfo';
+import TagDistributionMeter from './tagDistributionMeter';
 
-var GroupSidebar = React.createClass({
+const GroupSidebar = React.createClass({
   mixins: [GroupState],
 
   render(){
-    var orgId = this.getOrganization().slug;
-    var projectId = this.getProject().slug;
-    var group = this.getGroup();
-    var tagList = [];
-    for (var key in group.tags) {
-      tagList.push([group.tags[key].name, key]);
-    }
-    tagList.sort();
+    let orgId = this.getOrganization().slug;
+    let projectId = this.getProject().slug;
+    let group = this.getGroup();
 
     return (
       <div className="group-stats">
@@ -44,13 +39,15 @@ var GroupSidebar = React.createClass({
             release={group.lastRelease} />
 
         <h6><span>Tags</span></h6>
-        {tagList.map((data) => {
+        {group.tags.map((data) => {
           return (
             <TagDistributionMeter
-              key={data[0]}
+              key={data.key}
+              orgId={orgId}
+              projectId={projectId}
               group={group}
-              name={data[0]}
-              tag={data[1]} />
+              name={data.name}
+              tag={data.key} />
           );
         })}
       </div>

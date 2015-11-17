@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import AnonymousUser
+from django.contrib.auth.models import AnonymousUser
 
 
 registry = {}
@@ -17,10 +17,16 @@ def serialize(objects, user=None, serializer=None):
 
     # elif isinstance(obj, dict):
     #     return dict((k, serialize(v, request=request)) for k, v in obj.iteritems())
+
     if serializer is None:
-        try:
-            serializer = registry[type(objects[0])]
-        except KeyError:
+        # find the first object that is in the registry
+        for o in objects:
+            try:
+                serializer = registry[type(o)]
+                break
+            except KeyError:
+                pass
+        else:
             return objects
 
     attrs = serializer.get_attrs(item_list=objects, user=user)
@@ -35,8 +41,10 @@ def register(type):
 
 
 class Serializer(object):
-    def __call__(self, *args, **kwargs):
-        return self.serialize(*args, **kwargs)
+    def __call__(self, obj, attrs, user):
+        if obj is None:
+            return
+        return self.serialize(obj, attrs, user)
 
     def get_attrs(self, item_list, user):
         return {}

@@ -3,10 +3,12 @@ from __future__ import absolute_import
 import itertools
 
 from collections import defaultdict
+from django.conf import settings
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.auth.utils import is_active_superuser
 from sentry.models import (
-    OrganizationAccessRequest, OrganizationMemberType, Project, ProjectStatus,
+    OrganizationAccessRequest, OrganizationMemberTeam, Project, ProjectStatus,
     Team
 )
 
@@ -14,53 +16,56 @@ from sentry.models import (
 @register(Team)
 class TeamSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        organization = item_list[0].organization
-        # TODO(dcramer): in most cases this data should already be in memory
-        # and we're simply duplicating efforts here
-        team_map = dict(
-            (t.id, t) for t in Team.objects.get_for_user(
-                organization=organization,
-                user=user,
+        if is_active_superuser(user) or settings.SENTRY_PUBLIC:
+            inactive_memberships = frozenset(
+                OrganizationMemberTeam.objects.filter(
+                    team__in=item_list,
+                    organizationmember__user=user,
+                    is_active=False,
+                ).values_list('team', flat=True)
             )
-        )
+            memberships = frozenset([
+                t.id for t in item_list
+                if t.id not in inactive_memberships
+            ])
+        elif user.is_authenticated():
+            memberships = frozenset(
+                OrganizationMemberTeam.objects.filter(
+                    organizationmember__user=user,
+                    team__in=item_list,
+                    is_active=True,
+                ).values_list('team', flat=True)
+            )
+        else:
+            memberships = frozenset()
 
         if user.is_authenticated():
             access_requests = frozenset(
                 OrganizationAccessRequest.objects.filter(
                     team__in=item_list,
                     member__user=user,
-                ).values_list('team')
+                ).values_list('team', flat=True)
             )
         else:
             access_requests = frozenset()
 
         result = {}
         for team in item_list:
-            try:
-                access_type = team_map[team.id].access_type
-            except KeyError:
-                access_type = None
-
             result[team] = {
-                'access_type': access_type,
                 'pending_request': team.id in access_requests,
+                'is_member': team.id in memberships,
             }
         return result
 
     def serialize(self, obj, attrs, user):
-        d = {
+        return {
             'id': str(obj.id),
             'slug': obj.slug,
             'name': obj.name,
             'dateCreated': obj.date_added,
-            'isMember': attrs['access_type'] is not None,
+            'isMember': attrs['is_member'],
             'isPending': attrs['pending_request'],
-            'permission': {
-                'owner': attrs['access_type'] <= OrganizationMemberType.OWNER,
-                'admin': attrs['access_type'] <= OrganizationMemberType.ADMIN,
-            }
         }
-        return d
 
 
 class TeamWithProjectsSerializer(TeamSerializer):
@@ -81,7 +86,5 @@ class TeamWithProjectsSerializer(TeamSerializer):
 
     def serialize(self, obj, attrs, user):
         d = super(TeamWithProjectsSerializer, self).serialize(obj, attrs, user)
-        # project lists are only available if you're a member
-        if d['isMember']:
-            d['projects'] = attrs['projects']
+        d['projects'] = attrs['projects']
         return d

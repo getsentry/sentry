@@ -1,268 +1,49 @@
 {% load sentry_helpers %}
+{% load sentry_assets %}
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf-8" />
-        <style type="text/css">
-        body, .main {
-            width: 100%;
-            font-size: 14px;
-            font-family: "Helvetica Neue", helvetica, sans-serif;
-            border: 0;
-            padding: 0;
-            margin: 0;
-            background-color: #fff;
-        }
-        * {
-            font-weight: 200;
-        }
-        pre {
-           white-space: pre;
-           white-space: pre-wrap;
-           margin-bottom: 15px;
-        }
-        a {
-            color: #278ced;
-            font-weight: bold;
-            text-decoration: none;
-        }
-        pre, code {
-            font-size: 14px;
-            font-weight: normal;
-            font-family: Menlo, Monaco, "Courier New", monospace;
-        }
-        pre, blockquote {
-            margin-bottom: 30px;
-        }
-        table {
-            width: 100%;
-        }
-        td {
-            padding: 0;
-            margin: 0;
-        }
-        td {
-            text-align: center;
-        }
-        blockquote {
-            color: #000;
-            border: 0;
-            padding: 0;
-            margin-left: 0;
-        }
-        blockquote cite {
-            font-weight: 700;
-            font-style: normal;
-        }
-        .body {
-            max-width: 600px;
-            margin: 0 auto;
-            text-align: left;
-        }
-        .header {
-            padding: 20px 0;
-            font-size: 14px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #eee;
-        }
-        .header .btn {
-            float: right;
-            color: #fff;
-            background: #f43f20;
-            padding: 8px 15px;
-            line-height: 18px;
-            margin: 4px 0;
-            font-weight: normal;
-            border-radius: 4px;
-        }
-        .header h1 {
-            margin: 0;
-            padding: 0;
-            font-weight: normal;
-            font-size: 38px;
-            line-height: 42px;
-            color: #000;
-            letter-spacing: -1px;
-        }
-        .header h1 small {
-            font-size: 14px;
-            margin-left: 10px;
-            color: #ccc;
-            font-weight: normal;
-        }
-        .footer {
-            border-top: 2px solid #eee;
-            padding: 40px 0;
-        }
+<head>
+  <meta charset="utf-8" />
 
-        h2 {
-            font-size: 20px;
-            font-weight: 700;
-            margin: 0 0 20px;
-        }
-        h2 .highlight {
-            background: #eee;
-            color: #000;
-            padding: 0 5px;
-        }
+  {% include "sentry/emails/email-styles.html" %}
 
-        h3 {
-            font-size: 18px;
-            font-weight: 700;
-            margin: 0 0 20px;
-        }
-
-        .inner {
-            background: #fff;
-            padding: 10px 0;
-        }
-        .inner pre,
-        .inner p,
-        .inner table {
-            margin-bottom: 15px;
-        }
-        .inner table th,
-        .inner table td {
-            text-align: left;
-            padding: 5px 0;
-        }
-        .inner table th {
-            min-width: 60px;
-            color: #666;
-        }
-        .interface {
-            margin-bottom: 30px;
-        }
-        .interface .title {
-            margin-bottom: 15px;
-        }
-        pre.message {
-            margin-bottom: 30px;
-        }
-        .tag-list {
-            list-style: none;
-            margin: 0 0 30px;
-            padding: 0;
-        }
-        .tag-list li {
-            display: inline;
-            background: #eee;
-            padding: 2px 5px;
-            margin-right: 10px;
-            margin-bottom: 5px;
-            border-radius: 4px;
-        }
-        .tag-list li strong {
-            font-weight: 200;
-        }
-
-        .event {
-            position: relative;
-            padding: 0 0 0 80px;
-            margin: 0 0 30px;
-            position: relative;
-            min-height: 60px; /* count height */
-        }
-
-        .event h3 {
-            padding: 0;
-            margin: 0 0 4px;
-            font-size: 16px;
-            line-height: 20px;
-            font-weight: bold;
-            width: 85%;
-            white-space: nowrap;
-            overflow: hidden;
-            /*text-overflow: ellipsis;*/
-        }
-
-        .event h3 a {
-            color: #465262;
-        }
-        .event .count {
-            color: #fff;
-            position: absolute;
-            left: 0px;
-            width: 60px;
-            height: 60px;
-            border-radius: 60px;
-            line-height: 60px;
-            background: #cfd3da;
-            text-align: center;
-            font-size: 17px;
-            font-weight: bold;
-            letter-spacing: -1px;
-            overflow: hidden;
-        }
-        .level-info .count { background: #2788ce; }
-        .level-warning .count { background: #f18500; }
-        .level-error .count { background: #f43f20; }
-        .level-fatal .count { background: #d20f2a; }
-        .event .count .span {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 100%;
-            text-align: center;
-            line-height: inherit;
-            display: block;
-        }
-        .event .message {
-            color: #898f98;
-            margin: 0 0 4px;
-            padding: 0;
-            font-size: 14px;
-            padding-right: 24px;
-            white-space: nowrap;
-            overflow: hidden;
-            /*text-overflow: ellipsis;*/
-        }
-        .event .meta {
-            color: #b6bcc2;
-            font-size: 12px;
-        }
-        .event .tag a {
-            font-weight: normal;
-            color: inherit;
-        }
-        .event .tag {
-            margin-left: 10px;
-        }
-        .via {
-            border: 1px solid #ddd;
-            background: #eee;
-            text-align: center;
-            padding: 15px;
-        }
-        </style>
-    </head>
-    <body{% block bodyclass %}{% endblock %}>
-        <table class="main">
-            <tr>
-                <td>
-                    {% block content %}
-                        <div class="body">
-                            <div class="header">
-                                {% block header %}
-                                    <h1>Sentry</h1>
-                                {% endblock %}
-                            </div>
-                            <div class="inner">
-                                {% block main %}
-                                    <p>This is the body of an email</p>
-                                {% endblock %}
-                            </div>
-                            <div class="footer">
-                                {% block footer %}
-                                    <a href="{% absolute_uri %}" style="float:right">Home</a>
-                                    {% url 'sentry-account-settings-notifications' as settings_link %}
-                                    <a href="{% absolute_uri settings_link %}">Notification Settings</a>
-                                {% endblock %}
-                            </div>
-                        </div>
-                    {% endblock %}
-                </td>
-            </tr>
-        </table>
-    </body>
+</head>
+<body class="{% block bodyclass %}{% endblock %}">
+<div class="preheader">{% block preheader %}{% endblock %}</div>
+<table class="main">
+  <tr>
+    <td>
+      <div class="header">
+        <div class="container">
+          {% block header %}
+          <h1>
+            <a href="{% absolute_uri %}"><img src="{% asset_url 'sentry' 'images/email/sentry_logo_full.png' %}" width="125px" height="29px" alt="Sentry"></a>
+          </h1>
+          {% endblock %}
+        </div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      {% block content %}
+      <div class="container">
+        <div class="inner">
+          {% block main %}
+          <p>This is the body of an email</p>
+          {% endblock %}
+        </div>
+        <div class="footer">
+          {% block footer %}
+          <a href="{% absolute_uri %}" style="float:right">Home</a>
+          {% url 'sentry-account-settings-notifications' as settings_link %}
+          <a href="{% absolute_uri settings_link %}">Notification Settings</a>
+          {% endblock %}
+        </div>
+      </div>
+      {% endblock %}
+    </td>
+  </tr>
+</table>
+</body>
 </html>

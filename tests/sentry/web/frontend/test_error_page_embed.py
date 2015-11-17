@@ -24,7 +24,6 @@ class ErrorPageEmbedTest(TestCase):
         )
 
     def test_invalid_referer(self):
-        path = reverse('sentry-error-page-embed')
         with self.settings(SENTRY_ALLOW_ORIGIN=None):
             resp = self.client.get(self.path, HTTP_REFERER='http://foo.com')
         assert resp.status_code == 403
@@ -35,7 +34,6 @@ class ErrorPageEmbedTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/error-page-embed.html')
 
     def test_submission(self):
-        path = reverse('sentry-error-page-embed')
         resp = self.client.post(self.path, {
             'name': 'Jane Doe',
             'email': 'jane@example.com',

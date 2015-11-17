@@ -1,28 +1,30 @@
-import React from "react";
-import Reflux from "reflux";
-import jQuery from "jquery";
-import api from "../api";
-import GroupListHeader from "../components/groupListHeader";
-import GroupStore from "../stores/groupStore";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import ProjectState from "../mixins/projectState";
-import StreamGroup from "../components/stream/group";
-import utils from "../utils";
+import React from 'react';
+import Reflux from 'reflux';
+import jQuery from 'jquery';
+import api from '../api';
+import GroupListHeader from '../components/groupListHeader';
+import GroupStore from '../stores/groupStore';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import ProjectState from '../mixins/projectState';
+import StreamGroup from '../components/stream/group';
+import utils from '../utils';
 
-var GroupList = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
+const GroupList = React.createClass({
   propTypes: {
     query: React.PropTypes.string.isRequired,
-    canSelectGroups: React.PropTypes.bool
+    canSelectGroups: React.PropTypes.bool,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
+  },
+
+  contextTypes: {
+    location: React.PropTypes.object
   },
 
   mixins: [
     ProjectState,
-    Reflux.listenTo(GroupStore, "onGroupChange"),
+    Reflux.listenTo(GroupStore, 'onGroupChange'),
   ],
 
   getDefaultProps() {
@@ -39,18 +41,21 @@ var GroupList = React.createClass({
     };
   },
 
-  shouldComponentUpdate(nextProps, nextState) {
-    return !utils.valueIsEqual(this.state, nextState, true);
-  },
-
   componentWillMount() {
     this._streamManager = new utils.StreamManager(GroupStore);
 
     this.fetchData();
   },
 
-  routeDidChange() {
-    this.fetchData();
+  shouldComponentUpdate(nextProps, nextState) {
+    return !utils.valueIsEqual(this.state, nextState, true);
+  },
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.orgId !== this.props.orgId ||
+      prevProps.projectId !== this.props.projectId) {
+      this.fetchData();
+    }
   },
 
   componentWillUnmount() {
@@ -85,19 +90,18 @@ var GroupList = React.createClass({
   },
 
   getGroupListEndpoint() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    var queryParams = router.getCurrentQuery();
+    let queryParams = this.context.location.query;
     queryParams.limit = 50;
     queryParams.sort = 'new';
     queryParams.query = this.props.query;
-    var querystring = jQuery.param(queryParams);
+    let querystring = jQuery.param(queryParams);
 
-    return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + querystring;
+    let props = this.props;
+    return '/projects/' + props.orgId + '/' + props.projectId + '/groups/?' + querystring;
   },
 
   onGroupChange() {
-    var groupIds = this._streamManager.getAllItems().map((item) => item.id);
+    let groupIds = this._streamManager.getAllItems().map((item) => item.id);
     if (!utils.valueIsEqual(groupIds, this.state.groupIds)) {
       this.setState({
         groupIds: groupIds
@@ -118,18 +122,28 @@ var GroupList = React.createClass({
         </div>
       );
 
-    var wrapperClass;
+    let wrapperClass;
 
     if (!this.props.bulkActions) {
-      wrapperClass = "stream-no-bulk-actions";
+      wrapperClass = 'stream-no-bulk-actions';
     }
+
+    let {orgId, projectId} = this.props;
 
     return (
       <div className={wrapperClass}>
         <GroupListHeader />
         <ul className="group-list">
           {this.state.groupIds.map((id) => {
-            return <StreamGroup key={id} id={id} canSelect={this.props.canSelectGroups} />;
+            return (
+              <StreamGroup
+                key={id}
+                id={id}
+                orgId={orgId}
+                projectId={projectId}
+                canSelect={this.props.canSelectGroups} 
+              />
+            );
           })}
         </ul>
       </div>

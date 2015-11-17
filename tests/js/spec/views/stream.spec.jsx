@@ -1,78 +1,87 @@
+import React from 'react';
+import TestUtils from 'react-addons-test-utils';
+import Cookies from 'js-cookie';
+import Sticky from 'react-sticky';  
+import Api from 'app/api';
+import CursorPoller from 'app/utils/cursorPoller';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Stream from 'app/views/stream';
+import StreamGroup from 'app/components/stream/group';
+import StreamFilters from 'app/views/stream/filters';
+import StreamSidebar from 'app/views/stream/sidebar';
+import StreamActions from 'app/views/stream/actions';
+import stubReactComponents from '../../helpers/stubReactComponent';
 
+const findWithClass = TestUtils.findRenderedDOMComponentWithClass;
+const findWithType = TestUtils.findRenderedComponentWithType;
 
-var React = require("react/addons");
-var Cookies = require("js-cookie");
+const DEFAULT_LINKS_HEADER =
+  '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
+  '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
 
-var Api = require("app/api");
-var CursorPoller = require("app/utils/cursorPoller");
-var LoadingError = require("app/components/loadingError");
-var LoadingIndicator = require("app/components/loadingIndicator");
-var Stream = require("app/views/stream");
-var StreamGroup = require("app/components/stream/group");
-var StreamFilters = require("app/views/stream/filters");
-var stubReactComponents = require("../../helpers/stubReactComponent");
-var stubContext = require("../../helpers/stubContext");
-var stubRouter = require("../../helpers/stubRouter");
-
-var TestUtils = React.addons.TestUtils;
-var findWithClass = TestUtils.findRenderedDOMComponentWithClass;
-var findWithType = TestUtils.findRenderedComponentWithType;
-
-describe("Stream", function() {
+describe('Stream', function() {
 
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(Api, "request");
-    stubReactComponents(this.sandbox, [StreamGroup, StreamFilters]);
+    this.stubbedApiRequest = this.sandbox.stub(Api, 'request');
+    stubReactComponents(this.sandbox, [StreamGroup, StreamFilters, StreamSidebar, StreamActions, Sticky]);
 
-    var ContextStubbedStream = stubContext(Stream, {
-      router: stubRouter({
-        getCurrentParams() {
-          return {
-            orgId: "123",
-            projectId: "456"
-          };
-        },
-        getCurrentQuery() {
-          return { limit: 0 };
-        }
-      })
-    });
-
-
-    this.Element = <ContextStubbedStream setProjectNavSection={function () {}}/>;
+    this.Element = (
+      <Stream
+        setProjectNavSection={function () {}}
+        location={{query:{}}}
+        params={{orgId: '123', projectId: '456'}}/>
+    );
   });
 
   afterEach(function() {
     this.sandbox.restore();
-    React.unmountComponentAtNode(document.body);
   });
 
-  describe("fetchData()", function() {
+  describe('fetchData()', function() {
 
-    it("resets the poller endpoint", function() {
-      var expectedUrl;
-      this.stubbedApiRequest.restore();
-      this.sandbox.stub(Api, "request", function(url, options) {
-        expectedUrl = url;
-        options.complete();
+    describe('complete handler', function () {
+      beforeEach(function () {
+        this.stubbedApiRequest.restore();
+        this.sandbox.stub(Api, 'request', (url, options) => {
+          options.complete && options.complete({
+            getResponseHeader: () => this.linkHeader
+          });
+        });
+
+        this.sandbox.stub(CursorPoller.prototype, 'setEndpoint');
       });
 
-      var stubbedSetEndpoint = this.sandbox.stub(CursorPoller.prototype, "setEndpoint");
+      it('should reset the poller endpoint and sets cursor URL', function() {
+        this.linkHeader = DEFAULT_LINKS_HEADER;
 
-      var wrapper = React.render(this.Element, document.body);
-      wrapper.refs.wrapped.fetchData();
+        let stream = TestUtils.renderIntoDocument(this.Element);
+        stream.fetchData();
 
-      expect(stubbedSetEndpoint.calledWith(expectedUrl)).to.be.true;
-    });
+        expect(CursorPoller.prototype.setEndpoint
+          .calledWith('http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:1'))
+          .to.be.true;
+      });
 
-    it("should cancel any previous, unfinished fetches", function () {
+      it('should not set the poller if the \'previous\' link is missing', function () {
+        this.linkHeader =
+        '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
+
+        let stream = TestUtils.renderIntoDocument(this.Element);
+        stream.fetchData();
+
+        expect(CursorPoller.prototype.setEndpoint.notCalled).to.be.ok;
+      });
+    }); // complete handler
+
+    it('should cancel any previous, unfinished fetches', function () {
       this.stubbedApiRequest.restore();
 
-      var requestCancel = this.sandbox.stub();
-      var requestOptions;
-      this.sandbox.stub(Api, "request", function (url, options) {
+      let requestCancel = this.sandbox.stub();
+      let requestOptions;
+      this.sandbox.stub(Api, 'request', function (url, options) {
         requestOptions = options;
         return {
           cancel: requestCancel
@@ -80,7 +89,7 @@ describe("Stream", function() {
       });
 
       // NOTE: fetchData called once after render automatically
-      var stream = React.render(this.Element, document.body).refs.wrapped;
+      let stream = TestUtils.renderIntoDocument(this.Element);
 
       // 2nd fetch should call cancel
       stream.fetchData();
@@ -89,98 +98,106 @@ describe("Stream", function() {
       expect(stream.lastRequest).to.be.ok;
 
       // when request "completes", lastRequest is cleared
-      requestOptions.complete();
+      requestOptions.complete({
+        getResponseHeader: () => DEFAULT_LINKS_HEADER
+      });
 
       expect(stream.lastRequest).to.be.null;
     });
-
   });
 
-  describe("render()", function() {
+  describe('render()', function() {
 
-    it("displays a loading indicator when component is loading", function() {
-      var wrapper = React.render(this.Element, document.body);
-      wrapper.refs.wrapped.setState({ loading: true });
-      var expected = findWithType(wrapper, LoadingIndicator);
+    it('displays a loading indicator when component is loading', function() {
+      let stream = TestUtils.renderIntoDocument(this.Element);
+      stream.setState({ loading: true });
+      let expected = findWithType(stream, LoadingIndicator);
+
       expect(expected).to.be.ok;
     });
 
-    it("displays an error when component has errored", function() {
-      var wrapper = React.render(this.Element, document.body);
-      wrapper.refs.wrapped.setState({
+    it('displays an error when component has errored', function() {
+      let stream = TestUtils.renderIntoDocument(this.Element);
+      stream.setState({
         error: true,
         loading: false
       });
-      var expected = findWithType(wrapper, LoadingError);
+      let expected = findWithType(stream, LoadingError);
       expect(expected).to.be.ok;
     });
 
-    it("displays the group list", function() {
-      var wrapper = React.render(this.Element, document.body);
-      wrapper.refs.wrapped.setState({
+    it('displays the group list', function() {
+      let stream = TestUtils.renderIntoDocument(this.Element);
+      stream.setState({
         error: false,
-        groupIds: ["1"],
+        groupIds: ['1'],
         loading: false
       });
-      var expected = findWithClass(wrapper, "group-list");
+      let expected = findWithClass(stream, 'group-list');
       expect(expected).to.be.ok;
     });
 
-    it("displays empty with no ids", function() {
-      var wrapper = React.render(this.Element, document.body);
-      wrapper.refs.wrapped.setState({
+    it('displays empty with no ids', function() {
+      let stream = TestUtils.renderIntoDocument(this.Element);
+      stream.setState({
         error: false,
         groupIds: [],
         loading: false
       });
-      var expected = findWithClass(wrapper, "empty-stream");
+      let expected = findWithClass(stream, 'empty-stream');
       expect(expected).to.be.ok;
     });
 
   });
 
-  describe("componentWillMount()", function() {
+  describe('componentWillMount()', function() {
 
     afterEach(function() {
-      Cookies.remove("realtimeActive");
+      Cookies.remove('realtimeActive');
     });
 
-    it("reads the realtimeActive state from a cookie", function() {
-      Cookies.set("realtimeActive", "false");
-      var wrapper = React.render(this.Element, document.body);
-      var expected = findWithClass(wrapper, "icon-play");
-      expect(expected).to.be.ok;
+    it('reads the realtimeActive state from a cookie', function(done) {
+      Cookies.set('realtimeActive', 'false');
+
+      let stream = TestUtils.renderIntoDocument(this.Element);
+      setTimeout(() => {
+        expect(stream.state.realtimeActive).to.not.be.ok;
+        done();
+      });
     });
 
-    it("reads the true realtimeActive state from a cookie", function() {
-      Cookies.set("realtimeActive", "true");
-      var wrapper = React.render(this.Element, document.body);
-      var expected = findWithClass(wrapper, "icon-pause");
-      expect(expected).to.be.ok;
-    });
+    it('reads the true realtimeActive state from a cookie', function(done) {
+      Cookies.set('realtimeActive', 'true');
+      let stream = TestUtils.renderIntoDocument(this.Element);
 
-  });
-
-  describe("onRealtimeChange", function() {
-
-    it("sets the realtimeActive state", function() {
-      var wrapper = React.render(this.Element, document.body);
-      wrapper.refs.wrapped.state.realtimeActive = false;
-      wrapper.refs.wrapped.onRealtimeChange(true);
-      expect(wrapper.refs.wrapped.state.realtimeActive).to.eql(true);
-      expect(Cookies.get("realtimeActive")).to.eql("true");
-
-      wrapper.refs.wrapped.onRealtimeChange(false);
-      expect(wrapper.refs.wrapped.state.realtimeActive).to.eql(false);
-      expect(Cookies.get("realtimeActive")).to.eql("false");
+      setTimeout(() => {
+        expect(stream.state.realtimeActive).to.be.ok;
+        done();
+      });
     });
 
   });
 
-  describe("getInitialState", function() {
+  describe('onRealtimeChange', function() {
 
-    it("sets the right defaults", function() {
-      var expected = {
+    it('sets the realtimeActive state', function() {
+      let stream = TestUtils.renderIntoDocument(this.Element);
+      stream.state.realtimeActive = false;
+      stream.onRealtimeChange(true);
+      expect(stream.state.realtimeActive).to.eql(true);
+      expect(Cookies.get('realtimeActive')).to.eql('true');
+
+      stream.onRealtimeChange(false);
+      expect(stream.state.realtimeActive).to.eql(false);
+      expect(Cookies.get('realtimeActive')).to.eql('false');
+    });
+
+  });
+
+  describe('getInitialState', function() {
+
+    it('sets the right defaults', function() {
+      let expected = {
         groupIds: [],
         selectAllActive: false,
         multiSelected: false,
@@ -191,10 +208,10 @@ describe("Stream", function() {
         loading: true,
         error: false
       };
-      var wrapper = React.render(this.Element, document.body);
-      var actual = wrapper.refs.wrapped.getInitialState();
+      let stream = TestUtils.renderIntoDocument(this.Element);
+      let actual = stream.getInitialState();
 
-      for (var property in expected) {
+      for (let property in expected) {
         expect(actual[property]).to.eql(expected[property]);
       }
     });
@@ -202,3 +219,4 @@ describe("Stream", function() {
   });
 
 });
+

@@ -1,24 +1,19 @@
-import React from "react";
-import Router from "react-router";
-import api from "../api";
+import React from 'react';
+import {History, Link} from 'react-router';
+import api from '../api';
 
-import GroupState from "../mixins/groupState";
-import RouteMixin from "../mixins/routeMixin";
+import GroupState from '../mixins/groupState';
 
-import DateTime from "../components/dateTime";
-import Gravatar from "../components/gravatar";
-import LoadingError from "../components/loadingError";
-import LoadingIndicator from "../components/loadingIndicator";
-import Pagination from "../components/pagination";
+import DateTime from '../components/dateTime';
+import Gravatar from '../components/gravatar';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import Pagination from '../components/pagination';
 
-var GroupEvents = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
+const GroupEvents = React.createClass({
   mixins: [
     GroupState,
-    RouteMixin
+    History
   ],
 
   getInitialState() {
@@ -34,8 +29,15 @@ var GroupEvents = React.createClass({
     this.fetchData();
   },
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.params.groupId !== this.props.params.groupId ||
+      prevProps.location.search !== this.props.location.search) {
+      this.fetchData();
+    }
+  },
+
   fetchData() {
-    var queryParams = this.context.router.getCurrentQuery();
+    let queryParams = this.props.location.query;
 
     this.setState({
       loading: true,
@@ -62,19 +64,6 @@ var GroupEvents = React.createClass({
     });
   },
 
-  routeDidChange() {
-    this.fetchData();
-  },
-
-  onPage(cursor) {
-    var router = this.context.router;
-    var queryParams = Object.assign({}, router.getCurrentQuery(), {
-      cursor: cursor
-    });
-
-    router.transitionTo('groupEvents', this.context.router.getCurrentParams(), queryParams);
-  },
-
   render() {
     if (this.state.loading) {
       return <LoadingIndicator />;
@@ -82,44 +71,41 @@ var GroupEvents = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    var group = this.getGroup();
-    var tagList = [];
-    for (var key in group.tags) {
-      tagList.push([group.tags[key].name, key]);
-    }
-    tagList.sort();
+    let group = this.getGroup();
+    let tagList = group.tags.filter((tag) => {
+      return tag.key !== 'user';
+    });
 
-    var hasUser = false;
-    for (var i = 0; i < this.state.eventList.length; i++) {
+    let hasUser = false;
+    for (let i = 0; i < this.state.eventList.length; i++) {
       if (this.state.eventList[i].user) {
         hasUser = true;
         break;
       }
     }
 
-    var children = this.state.eventList.map((event, eventIdx) => {
-      var linkParams = {
-        orgId: this.getOrganization().slug,
-        projectId: this.getProject().slug,
-        groupId: this.getGroup().id,
-        eventId: event.id
-      };
+    let {orgId, projectId, groupId} = this.props.params;
+
+    let children = this.state.eventList.map((event, eventIdx) => {
+      let tagMap = {};
+      event.tags.forEach((tag) => {
+        tagMap[tag.key] = tag.value;
+      });
 
       return (
         <tr key={eventIdx}>
           <td>
             <h5>
-              <Router.Link to="groupEventDetails"
-                           params={linkParams}>
+              <Link to={`/${orgId}/${projectId}/group/${groupId}/events/${event.id}/`}>
                 <DateTime date={event.dateCreated} />
-              </Router.Link>
+              </Link>
               <small>{event.eventID}</small>
             </h5>
           </td>
-          {tagList.map((tag, tagIdx) => {
+          {tagList.map((tag) => {
             return (
-              <td key={tagIdx}>
-                {event.tags[tag[1]]}
+              <td key={tag.key}>
+                {tagMap[tag.key]}
               </td>
             );
           })}
@@ -144,24 +130,26 @@ var GroupEvents = React.createClass({
         <div className="event-list">
           <table className="table">
             <thead>
-              <th>ID</th>
-              {tagList.map((tag, tagIdx) => {
-                return (
-                  <th key={tagIdx}>
-                    {tag[0]}
-                  </th>
-                );
-              })}
-              {hasUser &&
-                <th>User</th>
-              }
+              <tr>
+                <th>ID</th>
+                {tagList.map((tag) => {
+                  return (
+                    <th key={tag.key}>
+                      {tag.name}
+                    </th>
+                  );
+                })}
+                {hasUser &&
+                  <th>User</th>
+                }
+              </tr>
             </thead>
             <tbody>
               {children}
             </tbody>
           </table>
         </div>
-        <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
+        <Pagination pageLinks={this.state.pageLinks}/>
       </div>
     );
   }

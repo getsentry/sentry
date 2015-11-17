@@ -16,10 +16,10 @@ from six import string_types
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
-from urlparse import urljoin, urlparse
+from urlparse import urlparse
 
 from sentry.app import env
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
@@ -166,8 +166,9 @@ class Frame(Interface):
         function = data.get('function')
         module = data.get('module')
 
-        for v in (abs_path, filename, function, module):
-            assert isinstance(v, (string_types, NoneType))
+        for name in ('abs_path', 'filename', 'function', 'module'):
+            if not isinstance(data.get(name), (string_types, NoneType)):
+                raise InterfaceValidationError("Invalid value for '%s'" % name)
 
         # absolute path takes priority over filename
         # (in the end both will get set)
@@ -185,7 +186,11 @@ class Frame(Interface):
             else:
                 filename = abs_path
 
-        assert filename or function or module
+        if not (filename or function or module):
+            raise InterfaceValidationError("No 'filename' or 'function' or 'module'")
+
+        if function == '?':
+            function = None
 
         context_locals = data.get('vars') or {}
         if isinstance(context_locals, (list, tuple)):
@@ -213,12 +218,17 @@ class Frame(Interface):
         else:
             pre_context, post_context = None, None
 
+        try:
+            in_app = validate_bool(data.get('in_app'), False)
+        except AssertionError:
+            raise InterfaceValidationError("Invalid value for 'in_app'")
+
         kwargs = {
             'abs_path': trim(abs_path, 256),
             'filename': trim(filename, 256),
             'module': trim(module, 256),
             'function': trim(function, 256),
-            'in_app': validate_bool(data.get('in_app'), False),
+            'in_app': in_app,
             'context_line': context_line,
             # TODO(dcramer): trim pre/post_context
             'pre_context': pre_context,
@@ -265,6 +275,11 @@ class Frame(Interface):
         if self.context_line is None:
             can_use_context = False
         elif len(self.context_line) > 120:
+            can_use_context = False
+        elif self.is_url() and not self.function:
+            # the context is too risky to use here as it could be something
+            # coming from an HTML page or it could be minified/unparseable
+            # code, so lets defer to other lesser heuristics (like lineno)
             can_use_context = False
         elif self.function and self.is_unhashable_function():
             can_use_context = True
@@ -318,8 +333,8 @@ class Frame(Interface):
                 'origLineNo': self.data.get('orig_lineno', '?'),
                 'origColNo': self.data.get('orig_colno', '?'),
             })
-            if self.is_url():
-                data['mapUrl'] = urljoin(self.abs_path, self.data['sourcemap'])
+            if is_url(self.data['sourcemap']):
+                data['mapUrl'] = self.data['sourcemap']
         return data
 
     def is_url(self):
@@ -362,6 +377,15 @@ class Frame(Interface):
             'colno': self.colno,
             'context_line': self.context_line,
         }).strip('\n')
+
+    def get_culprit_string(self):
+        fileloc = self.module or self.filename
+        if not fileloc:
+            return ''
+        return '%s in %s' % (
+            fileloc,
+            self.function or '?',
+        )
 
 
 class Stacktrace(Interface):
@@ -413,9 +437,11 @@ class Stacktrace(Interface):
     ``post_context``
       A list of source code lines after context_line (in order) -- usually [lineno + 1:lineno + 5]
     ``in_app``
-      Signifies whether this frame is related to the execution of the relevant code in this stacktrace. For example,
-      the frames that might power the framework's webserver of your app are probably not relevant, however calls to
-      the framework's library once you start handling code likely are.
+      Signifies whether this frame is related to the execution of the relevant
+      code in this stacktrace. For example, the frames that might power the
+      framework's webserver of your app are probably not relevant, however calls
+      to the framework's library once you start handling code likely are. See
+      notes below on implicity ``in_app`` behavior.
     ``vars``
       A mapping of variables which were available within this frame (usually context-locals).
 
@@ -442,6 +468,18 @@ class Stacktrace(Interface):
     >>>     "frames_omitted": [13, 56]
     >>> }
 
+    Implicity ``in_app`` behavior exists when the value is not specified on all
+    frames within a stacktrace (or collectively within an exception if this is
+    part of a chain).
+
+    If **any frame** is marked with ``in_app=True`` or ``in_app=False``:
+
+    - Set ``in_app=False`` where ``in_app is None``
+
+    If **all frames** are marked identical values for ``in_app``:
+
+    - Set ``in_app=False`` on all frames
+
     .. note:: This interface can be passed as the 'stacktrace' key in addition
               to the full interface path.
     """
@@ -451,49 +489,73 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data):
-        assert data.get('frames')
+    def to_python(cls, data, has_system_frames=None):
+        if not data.get('frames'):
+            raise InterfaceValidationError("No 'frames' present")
 
         slim_frame_data(data)
 
+        if has_system_frames is None:
+            has_system_frames = cls.data_has_system_frames(data)
+
+        frame_list = [
+            # XXX(dcramer): handle PHP sending an empty array for a frame
+            Frame.to_python(f or {})
+            for f in data['frames']
+        ]
+
+        for frame in frame_list:
+            if not has_system_frames:
+                frame.in_app = False
+            elif frame.in_app is None:
+                frame.in_app = False
+
         kwargs = {
-            'frames': [
-                Frame.to_python(f)
-                for f in data['frames']
-            ],
+            'frames': frame_list,
         }
 
         if data.get('frames_omitted'):
-            assert len(data['frames_omitted']) == 2
+            if len(data['frames_omitted']) != 2:
+                raise InterfaceValidationError("Invalid value for 'frames_omitted'")
             kwargs['frames_omitted'] = data['frames_omitted']
         else:
             kwargs['frames_omitted'] = None
 
+        kwargs['has_system_frames'] = has_system_frames
+
         return cls(**kwargs)
 
-    def get_api_context(self, is_public=False, has_system_frames=None):
-        # if there are no system frames, pretend they're all part of the app
-        if has_system_frames is None:
-            has_system_frames = self.has_system_frames()
+    @classmethod
+    def data_has_system_frames(cls, data):
+        system_frames = 0
+        for frame in data['frames']:
+            # XXX(dcramer): handle PHP sending an empty array for a frame
+            if not isinstance(frame, dict):
+                continue
+            if not frame.get('in_app'):
+                system_frames += 1
 
-        frame_list = []
-        for frame in self.frames:
-            frame_context = frame.get_api_context(is_public=is_public)
-            if not has_system_frames:
-                frame_context['inApp'] = True
-            elif frame_context.get('inApp') is None:
-                frame_context['inApp'] = False
-            frame_list.append(frame_context)
+        if len(data['frames']) == system_frames:
+            return False
+        return bool(system_frames)
+
+    def get_api_context(self, is_public=False):
+        frame_list = [
+            f.get_api_context(is_public=is_public)
+            for f in self.frames
+        ]
 
         return {
             'frames': frame_list,
             'framesOmitted': self.frames_omitted,
+            'hasSystemFrames': self.has_system_frames,
         }
 
     def to_json(self):
         return {
             'frames': [f.to_json() for f in self.frames],
             'frames_omitted': self.frames_omitted,
+            'has_system_frames': self.has_system_frames,
         }
 
     def get_path(self):
@@ -520,7 +582,7 @@ class Stacktrace(Interface):
         # we could improve this check using that information.
         stack_invalid = (
             len(frames) == 1 and frames[0].lineno == 1
-            and frames[0].function in ('?', None) and frames[0].is_url()
+            and not frames[0].function and frames[0].is_url()
         )
 
         if stack_invalid:
@@ -536,17 +598,6 @@ class Stacktrace(Interface):
 
     def to_string(self, event, is_public=False, **kwargs):
         return self.get_stacktrace(event, system_frames=False, max_frames=10)
-
-    def has_system_frames(self):
-        system_frames = 0
-        frames = []
-        for frame in self.frames:
-            if not frame.in_app:
-                system_frames += 1
-
-        if len(frames) == system_frames:
-            system_frames = 0
-        return bool(system_frames)
 
     def get_stacktrace(self, event, system_frames=True, newest_first=None,
                        max_frames=None, header=True):
@@ -603,3 +654,12 @@ class Stacktrace(Interface):
         ]
 
         return '\n'.join(result)
+
+    def get_culprit_string(self):
+        default = None
+        for frame in reversed(self.frames):
+            if frame.in_app:
+                return frame.get_culprit_string()
+            elif default is None:
+                default = frame.get_culprit_string()
+        return default

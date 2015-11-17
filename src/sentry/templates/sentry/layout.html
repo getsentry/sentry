@@ -1,6 +1,7 @@
 {% load i18n %}
 {% load sentry_api %}
 {% load sentry_dsn %}
+{% load sentry_assets %}
 {% load sentry_features %}
 {% load sentry_helpers %}
 {% load sentry_react %}
@@ -15,33 +16,32 @@
   <meta name="robots" content="NONE,NOARCHIVE">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <link href="{% url 'sentry-media' "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
+  <link href="{% asset_url "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
 
   {% block css %}
-  <link href="{% url 'sentry-media' "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
+  <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
   {% endblock %}
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
-  <!--[if lt IE 9]>
-  <script type="text/javascript" src="{% url 'sentry-media' "sentry" "scripts/lib/html5shiv.js" %}"></script>
-  <![endif]-->
   {% block scripts %}
-  <script src="{% url 'sentry-media' "sentry" "dist/vendor.js" %}"></script>
-  <script src="{% url 'sentry-media' "sentry" "dist/app.js" %}"></script>
+  <script src="{% asset_url "sentry" "dist/vendor.js" %}" crossorigin="anonymous"></script>
+  <script src="{% asset_url "sentry" "dist/app.js" %}" crossorigin="anonymous"></script>
 
   <script>
-    (function(){
-      for (var n in window.exports) {
-        window[n] = window.exports[n];
-      }
-      window.$ = window.jQuery;
+    for (var n in window.exports) {
+      window[n] = window.exports[n];
+    }
+    window.$ = window.jQuery;
 
-      window.moment.locale({{ request.LANGUAGE_CODE|to_json|safe }});
-    }());
+    window.moment.locale({{ request.LANGUAGE_CODE|to_json|safe }});
+
+    // if the ads.js file loads below it will mark this variable as false
+    window.adblockSuspected = true;
 
     Sentry.ConfigStore.loadInitialData({% get_react_config %});
   </script>
+  <script src="{% asset_url 'sentry' 'js/ads.js' %}"></script>
 
   {% include "sentry/includes/ravenjs.html" %}
   {% endblock %}
@@ -53,7 +53,7 @@
 <body class="{% block wrapperclass %}{% endblock %}">
   {% block body %}
   <div class="app">
-    {% if request.user.is_active_superuser %}
+    {% if request.user.is_superuser %}
         {% show_system_status %}
     {% endif %}
 
@@ -76,7 +76,7 @@
             </a>
             <ul class="dropdown-menu dropdown-menu-right">
               <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
-              {% if request.user.is_active_superuser %}
+              {% if request.user.is_superuser %}
                 <li><a href="{% url 'sentry-admin-overview' %}">{% trans "Admin" %}</a></li>
               {% endif %}
               <li><a href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a></li>
@@ -186,7 +186,7 @@
   {% block selectize %}
   <script>
   $(function() {
-    $('select').select2();
+    $('select').select2({placeholder: '--'});
   });
   </script>
   {% endblock %}
@@ -194,11 +194,11 @@
   $('.auto-select').click(function() {
     if (document.selection) {
       var range = document.body.createTextRange();
-      range.moveToElementText(this);
+      range.moveToElementText(this.firstChild);
       range.select();
     } else if (window.getSelection) {
       var range = document.createRange();
-      range.selectNode(this);
+      range.selectNode(this.firstChild);
       window.getSelection().addRange(range);
     }
   });

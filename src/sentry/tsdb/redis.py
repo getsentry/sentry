@@ -7,6 +7,7 @@ sentry.tsdb.redis
 """
 from __future__ import absolute_import
 
+import logging
 import six
 
 from binascii import crc32
@@ -16,37 +17,54 @@ from django.conf import settings
 from django.utils import timezone
 from hashlib import md5
 
-from rb import Cluster
-
-from sentry.exceptions import InvalidConfiguration
 from sentry.tsdb.base import BaseTSDB
+from sentry.utils.dates import to_timestamp
+from sentry.utils.redis import (
+    check_cluster_versions,
+    make_rb_cluster,
+)
+from sentry.utils.versioning import Version
+
+
+logger = logging.getLogger(__name__)
 
 
 class RedisTSDB(BaseTSDB):
     """
-    A time series storage implementation which maps types + normalized epochs
-    to hash buckets.
+    A time series storage backend for Redis.
 
-    Since each hash keyspace is an epoch, TTLs are applied to the entire bucket.
+    The time series API supports two data types:
 
-    This ends up looking something like the following inside of Redis:
+        * simple counters
+        * distinct counters (number of unique elements seen)
 
-    {
-        "TSDBModel:epoch:shard": {
-            "Key": Count
+    The backend also supports virtual nodes (``vnodes``) which controls shard
+    distribution. This value should be set to the anticipated maximum number of
+    physical hosts and not modified after data has been written.
+
+    Simple counters are stored in hashes. The key of the hash is composed of
+    the model, epoch (which defines the start of the rollup period), and a
+    shard identifier. This allows TTLs to be applied to the entire bucket,
+    instead of having to be stored for every individual element in the rollup
+    period. This results in a data layout that looks something like this::
+
+        {
+            "<model>:<epoch>:<shard id>": {
+                "<key>": value,
+                ...
+            },
+            ...
         }
-    }
 
-    In our case, this translates to:
+    Distinct counters are stored using HyperLogLog, which provides a
+    cardinality estimate with a standard error of 0.8%. The data layout looks
+    something like this::
 
-    {
-        "Group:epoch:shard": {
-            "GroupID": Count
+        {
+            "<model>:<epoch>:<key>": value,
+            ...
         }
-    }
 
-    - ``vnodes`` controls the shard distribution and should ideally be set to
-      the maximum number of physical hosts.
     """
     def __init__(self, hosts=None, prefix='ts:', vnodes=64, **kwargs):
         # inherit default options from REDIS_OPTIONS
@@ -55,17 +73,18 @@ class RedisTSDB(BaseTSDB):
         if hosts is None:
             hosts = defaults.get('hosts', {0: {}})
 
-        self.cluster = Cluster(hosts)
+        self.cluster = make_rb_cluster(hosts)
         self.prefix = prefix
         self.vnodes = vnodes
         super(RedisTSDB, self).__init__(**kwargs)
 
     def validate(self):
-        try:
-            with self.cluster.all() as client:
-                client.ping()
-        except Exception as e:
-            raise InvalidConfiguration(unicode(e))
+        logger.info('Validating Redis version...')
+        check_cluster_versions(
+            self.cluster,
+            Version((2, 8, 9)),
+            label='TSDB',
+        )
 
     def make_key(self, model, epoch, model_key):
         if isinstance(model_key, six.integer_types):
@@ -103,13 +122,14 @@ class RedisTSDB(BaseTSDB):
         with self.cluster.map() as client:
             for rollup, max_values in self.rollups:
                 norm_rollup = normalize_to_rollup(timestamp, rollup)
-                expire = rollup * max_values
-
                 for model, key in items:
                     model_key = self.get_model_key(key)
                     hash_key = make_key(model, norm_rollup, model_key)
                     client.hincrby(hash_key, model_key, count)
-                    client.expire(hash_key, expire)
+                    client.expireat(
+                        hash_key,
+                        self.calculate_expiry(rollup, max_values, timestamp),
+                    )
 
     def get_range(self, model, keys, start, end, rollup=None):
         """
@@ -151,3 +171,92 @@ class RedisTSDB(BaseTSDB):
         for key, points in results_by_key.iteritems():
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
+
+    def make_distinct_counter_key(self, model, rollup, timestamp, key):
+        return '{prefix}{model}:{epoch}:{key}'.format(
+            prefix=self.prefix,
+            model=model.value,
+            epoch=self.normalize_ts_to_rollup(timestamp, rollup),
+            key=self.get_model_key(key),
+        )
+
+    def record(self, model, key, values, timestamp=None):
+        self.record_multi(((model, key, values),), timestamp)
+
+    def record_multi(self, items, timestamp=None):
+        """
+        Record an occurence of an item in a distinct counter.
+        """
+        if timestamp is None:
+            timestamp = timezone.now()
+
+        ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
+
+        with self.cluster.fanout() as client:
+            for model, key, values in items:
+                c = client.target_key(key)
+                for rollup, max_values in self.rollups:
+                    k = self.make_distinct_counter_key(
+                        model,
+                        rollup,
+                        ts,
+                        key,
+                    )
+                    c.pfadd(k, *values)
+                    c.expireat(
+                        k,
+                        self.calculate_expiry(
+                            rollup,
+                            max_values,
+                            timestamp,
+                        ),
+                    )
+
+    def get_distinct_counts_series(self, model, keys, start, end=None, rollup=None):
+        """
+        Fetch counts of distinct items for each rollup interval within the range.
+        """
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+
+        responses = {}
+        with self.cluster.fanout() as client:
+            for key in keys:
+                c = client.target_key(key)
+                r = responses[key] = []
+                for timestamp in series:
+                    r.append((
+                        timestamp,
+                        c.pfcount(
+                            self.make_distinct_counter_key(
+                                model,
+                                rollup,
+                                timestamp,
+                                key,
+                            ),
+                        ),
+                    ))
+
+        return {key: [(timestamp, promise.value) for timestamp, promise in value] for key, value in responses.iteritems()}
+
+    def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
+        """
+        Count distinct items during a time range.
+        """
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+
+        responses = {}
+        with self.cluster.fanout() as client:
+            for key in keys:
+                # XXX: The current versions of the Redis driver don't implement
+                # ``PFCOUNT`` correctly (although this is fixed in the Git
+                # master, so should be available in the next release) and only
+                # supports a single key argument -- not the variadic signature
+                # supported by the protocol -- so we have to call the commnand
+                # directly here instead.
+                ks = []
+                for timestamp in series:
+                    ks.append(self.make_distinct_counter_key(model, rollup, timestamp, key))
+
+                responses[key] = client.target_key(key).execute_command('PFCOUNT', *ks)
+
+        return {key: value.value for key, value in responses.iteritems()}

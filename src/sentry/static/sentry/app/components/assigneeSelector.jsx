@@ -1,32 +1,47 @@
-import React from "react";
-import Reflux from "reflux";
-import classNames from "classnames";
-import api from "../api";
-import Gravatar from "../components/gravatar";
-import GroupStore from "../stores/groupStore";
-import DropdownLink from "./dropdownLink";
-import MemberListStore from "../stores/memberListStore";
-import MenuItem from "./menuItem";
-import LoadingIndicator from "../components/loadingIndicator";
-import {userDisplayName} from "../utils/formatters";
-import {valueIsEqual} from "../utils";
-import TooltipMixin from "../mixins/tooltip";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import Reflux from 'reflux';
+import classNames from 'classnames';
+import api from '../api';
+import Gravatar from '../components/gravatar';
+import GroupStore from '../stores/groupStore';
+import DropdownLink from './dropdownLink';
+import MemberListStore from '../stores/memberListStore';
+import MenuItem from './menuItem';
+import LoadingIndicator from '../components/loadingIndicator';
+import {userDisplayName} from '../utils/formatters';
+import {valueIsEqual} from '../utils';
+import TooltipMixin from '../mixins/tooltip';
 
-var AssigneeSelector = React.createClass({
-  mixins: [
-    Reflux.listenTo(GroupStore, "onGroupChange"),
-    TooltipMixin({
-      html: true,
-      selector: ".tip"
-    })
-  ],
-
+const AssigneeSelector = React.createClass({
   propTypes: {
     id: React.PropTypes.string.isRequired
   },
 
+  mixins: [
+    Reflux.listenTo(GroupStore, 'onGroupChange'),
+    TooltipMixin({
+      html: true,
+      selector: '.tip'
+    })
+  ],
+
+  statics: {
+    filterMembers(memberList, filter) {
+      if (!filter)
+        return memberList;
+
+      filter = filter.toLowerCase();
+      return memberList.filter(item => {
+        let fullName = [item.name, item.email].join(' ').toLowerCase();
+
+        return fullName.indexOf(filter) !== -1;
+      });
+    }
+  },
+
   getInitialState() {
-    var group = GroupStore.get(this.props.id);
+    let group = GroupStore.get(this.props.id);
 
     return {
       assignedTo: group.assignedTo,
@@ -37,9 +52,9 @@ var AssigneeSelector = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    var loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
+    let loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
     if (nextProps.id != this.props.id || loading != this.state.loading) {
-      var group = GroupStore.get(this.props.id);
+      let group = GroupStore.get(this.props.id);
       this.setState({
         assignedTo: group.assignedTo,
         memberList: MemberListStore.getAll(),
@@ -59,11 +74,17 @@ var AssigneeSelector = React.createClass({
     return valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
   },
 
+  componentDidUpdate(prevProps, prevState) {
+    // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
+    let node = jQuery(ReactDOM.findDOMNode(this.refs.container));
+    node.hide().show(0);
+  },
+
   onGroupChange(itemIds) {
     if (!itemIds.has(this.props.id)) {
       return;
     }
-    var group = GroupStore.get(this.props.id);
+    let group = GroupStore.get(this.props.id);
     this.setState({
       assignedTo: group.assignedTo,
       loading: GroupStore.hasStatus(this.props.id, 'assignTo')
@@ -86,8 +107,17 @@ var AssigneeSelector = React.createClass({
     });
   },
 
+  onInputKeyDown(evt) {
+    if (evt.key === 'Enter' && this.state.filter) {
+      let members = AssigneeSelector.filterMembers(this.state.memberList, this.state.filter);
+      if (members.length > 0) {
+        this.assignTo(members[0]);
+      }
+    }
+  },
+
   onDropdownOpen() {
-    this.refs.filter.getDOMNode().focus();
+    ReactDOM.findDOMNode(this.refs.filter).focus();
   },
 
   onDropdownClose() {
@@ -101,7 +131,7 @@ var AssigneeSelector = React.createClass({
       return text;
     }
     highlightText = highlightText.toLowerCase();
-    var idx = text.toLowerCase().indexOf(highlightText);
+    let idx = text.toLowerCase().indexOf(highlightText);
     if (idx === -1) {
       return text;
     }
@@ -116,29 +146,18 @@ var AssigneeSelector = React.createClass({
     );
   },
 
-  componentDidUpdate(prevProps, prevState) {
-    // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
-    var node = jQuery(this.refs.container.getDOMNode());
-    node.hide().show(0);
-  },
-
   render() {
-    var loading = this.state.loading;
-    var assignedTo = this.state.assignedTo;
-    var filter = this.state.filter;
+    let loading = this.state.loading;
+    let assignedTo = this.state.assignedTo;
 
-    var className = "assignee-selector anchor-right";
+    let className = 'assignee-selector anchor-right';
     if (!assignedTo) {
-      className += " unassigned";
+      className += ' unassigned';
     }
 
-    var memberNodes = [];
-    this.state.memberList.forEach(function(item){
-      var fullName = [item.name, item.email].join(' ').toLowerCase();
-      if (filter && fullName.indexOf(filter) === -1) {
-        return;
-      }
-      memberNodes.push(
+    let members = AssigneeSelector.filterMembers(this.state.memberList, this.state.filter);
+    let memberNodes = members.map((item) => {
+      return (
         <MenuItem key={item.id}
                   disabled={!loading}
                   onSelect={this.assignTo.bind(this, item)} >
@@ -147,16 +166,16 @@ var AssigneeSelector = React.createClass({
           {this.highlight(item.name || item.email, this.state.filter)}
         </MenuItem>
       );
-    }.bind(this));
+    });
 
-    var tooltipTitle = null;
+    let tooltipTitle = null;
     if (assignedTo) {
       tooltipTitle = userDisplayName(assignedTo);
     }
 
     return (
       <div ref="container">
-        <div className={classNames(className, "tip")} title={tooltipTitle} >
+        <div className={classNames(className, 'tip')} title={tooltipTitle} >
           {loading ?
             <LoadingIndicator mini={true} />
           :
@@ -173,6 +192,7 @@ var AssigneeSelector = React.createClass({
               <MenuItem noAnchor={true} key="filter">
                 <input type="text" className="form-control input-sm"
                        placeholder="Filter people" ref="filter"
+                       onKeyDown={this.onInputKeyDown}
                        onKeyUp={this.onFilterChange} />
               </MenuItem>
               {assignedTo ?

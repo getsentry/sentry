@@ -1,4 +1,4 @@
-import {defined} from "../../../utils";
+import {defined} from '../../../utils';
 
 export function escapeQuotes(v) {
   return v.replace(/"/g, '\\"');
@@ -6,7 +6,7 @@ export function escapeQuotes(v) {
 
 // TODO(dcramer): support cookies
 export function getCurlCommand(data) {
-  var result = 'curl';
+  let result = 'curl';
 
   if (defined(data.method) && data.method !== 'GET') {
     result += ' \\\n -X ' + data.method;
@@ -28,7 +28,7 @@ export function getCurlCommand(data) {
     result += ' \\\n -H "' + header[0] + ': ' + escapeQuotes(header[1]) + '"';
   }
 
-  if (typeof data.data === "string") {
+  if (typeof data.data === 'string') {
     result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
   } else if (defined(data.data)) {
     result += ' \\\n --data "' + escapeQuotes(jQuery.param(data.data)) + '"';
