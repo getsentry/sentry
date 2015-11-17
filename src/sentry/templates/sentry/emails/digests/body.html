@@ -7,7 +7,8 @@
 {% block content %}
 
 <div class="container" style="padding-top: 30px;">
-  <h2 style="margin-bottom: 30px">{{ counts|length }} new notification{{ counts|pluralize }} from <a href="{{ project.get_absolute_url }}">{{ project.name }}</a></h2>
+  <h2>{{ counts|length }} new notification{{ counts|pluralize }} from <a href="{{ project.get_absolute_url }}">{{ project.name }}</a></h2>
+  <div class="dateline">{{ start|date:"N j, Y, P e" }} to {{ end|date:"N j, Y, P e" }}</div>
 </div>
 
 {% for rule, groups in digest.iteritems %}
