@@ -1,7 +1,7 @@
 from collections import Counter
 
 
-# TODO(tkaemming): This should probably just be part of `build_digest`.t
+# TODO(tkaemming): This should probably just be part of `build_digest`.
 def get_digest_metadata(digest):
     start = None
     end = None
