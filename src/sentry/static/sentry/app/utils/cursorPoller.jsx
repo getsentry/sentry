@@ -21,23 +21,27 @@ class CursorPoller {
     this._pollingEndpoint = url;
   }
 
-  enable(){
+  enable() {
     this._active = true;
     if (!this._timeoutId) {
       this._timeoutId = window.setTimeout(this.poll.bind(this), this.getDelay());
     }
   }
 
-  disable(){
+  disable() {
     this._active = false;
     if (this._timeoutId) {
       window.clearTimeout(this._timeoutId);
       this._timeoutId = null;
     }
+
+    if (this._lastRequest) {
+      this._lastRequest.cancel();
+    }
   }
 
   poll() {
-    api.request(this._pollingEndpoint, {
+    this._lastRequest = api.request(this._pollingEndpoint, {
       success: (data, _, jqXHR) => {
         // cancel in progress operation if disabled
         if (!this._active) {
@@ -60,6 +64,8 @@ class CursorPoller {
         this.options.success(data, jqXHR.getResponseHeader('Link'));
       },
       complete: () => {
+        this._lastRequest = null;
+
         if (this._active) {
           this._timeoutId = window.setTimeout(this.poll.bind(this), this.getDelay());
         }
