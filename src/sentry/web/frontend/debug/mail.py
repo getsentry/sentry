@@ -5,7 +5,6 @@ import logging
 import time
 import traceback
 import uuid
-from collections import Counter
 from datetime import (
     datetime,
     timedelta,
@@ -27,6 +26,7 @@ from sentry.digests.notifications import (
     Notification,
     build_digest,
 )
+from sentry.digests.utilities import get_digest_metadata
 from sentry.models import (
     Activity,
     Event,
@@ -326,11 +326,7 @@ def digest(request):
             state['user_counts'][group_id] = random.randint(10, 1e4)
 
     digest = build_digest(project, records, state)
-
-    # TODO(tkaemming): This duplication from ``MailPlugin.notify_digest`` is a code smell
-    counts = Counter()
-    for rule, groups in digest.iteritems():
-        counts.update(groups.keys())
+    start, end, counts = get_digest_metadata(digest)
 
     return MailPreview(
         html_template='sentry/emails/digests/body.html',
@@ -339,6 +335,8 @@ def digest(request):
             'project': project,
             'counts': counts,
             'digest': digest,
+            'start': start,
+            'end': end,
         },
     ).render()
 

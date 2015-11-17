@@ -8,7 +8,6 @@ sentry.plugins.sentry_mail.models
 from __future__ import absolute_import
 
 import itertools
-from collections import Counter
 
 import sentry
 
@@ -19,6 +18,7 @@ from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
 from sentry import features
+from sentry.digests.utilities import get_digest_metadata
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
@@ -179,9 +179,7 @@ class MailPlugin(NotificationPlugin):
         )
 
     def notify_digest(self, project, digest):
-        counts = Counter()
-        for rule, groups in digest.iteritems():
-            counts.update(groups.keys())
+        start, end, counts = get_digest_metadata(digest)
 
         # If there is only one group in this digest (regardless of how many
         # rules it appears in), we should just render this using the single
@@ -201,6 +199,8 @@ class MailPlugin(NotificationPlugin):
                 return self.notify(notification)
 
         context = {
+            'start': start,
+            'end': end,
             'project': project,
             'digest': digest,
             'counts': counts,

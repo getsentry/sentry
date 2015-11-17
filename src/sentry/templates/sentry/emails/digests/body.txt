@@ -1,4 +1,5 @@
 {% load sentry_helpers %}Notifications for {{ project.name }}
+{{ start|date:"N j, Y, P e" }} to {{ end|date:"N j, Y, P e" }}
 
 {% for rule, groups in digest.iteritems %}{{ rule.label }}
 
