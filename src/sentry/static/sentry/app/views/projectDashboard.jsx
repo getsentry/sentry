@@ -14,7 +14,7 @@ const ProjectDashboard = React.createClass({
 
   getDefaultProps() {
     return {
-      defaultStatsPeriod: '24h'
+      defaultStatsPeriod: '1d'
     };
   },
 
@@ -38,7 +38,7 @@ const ProjectDashboard = React.createClass({
     let currentQuery = props.location.query;
     let statsPeriod = currentQuery.statsPeriod;
 
-    if (statsPeriod !== '1w' && statsPeriod !== '24h' && statsPeriod != '1h') {
+    if (statsPeriod !== '1w' && statsPeriod !== '1d' && statsPeriod != '1h') {
       statsPeriod = props.defaultStatsPeriod;
     }
 
@@ -54,7 +54,7 @@ const ProjectDashboard = React.createClass({
         return now - 3600 * 24 * 7;
       case '1h':
         return now - 3600;
-      case '24h':
+      case '1d':
       default:
         return now - 3600 * 24;
     }
@@ -66,7 +66,7 @@ const ProjectDashboard = React.createClass({
         return '1h';
       case '1h':
         return '10s';
-      case '24h':
+      case '1d':
       default:
         return '1h';
     }
@@ -109,16 +109,16 @@ const ProjectDashboard = React.createClass({
                 to={url}
                 query={{...routeQuery, statsPeriod: '1h'}}
                 active={statsPeriod === '1h'}
-                className={'btn btn-sm btn-default' + (statsPeriod === '1h' ? ' active' : '')}>1h</Link>
+                className={'btn btn-sm btn-default' + (statsPeriod === '1h' ? ' active' : '')}>1 hour</Link>
               <Link
                 to={url}
-                query={{...routeQuery, statsPeriod: '24h'}}
-                active={statsPeriod === '24h'}
-                className={'btn btn-sm btn-default' + (statsPeriod === '24h' ? ' active' : '')}>24h</Link>
+                query={{...routeQuery, statsPeriod: '1d'}}
+                active={statsPeriod === '1d'}
+                className={'btn btn-sm btn-default' + (statsPeriod === '1d' ? ' active' : '')}>1 day</Link>
               <Link
                 to={url}
                 query={{...routeQuery, statsPeriod: '1w'}}
-                className={'btn btn-sm btn-default' + (statsPeriod === '1w' ? ' active' : '')}>1w</Link>
+                className={'btn btn-sm btn-default' + (statsPeriod === '1w' ? ' active' : '')}>1 week</Link>
             </div>
           </div>
           <h3>Overview</h3>
@@ -144,4 +144,3 @@ const ProjectDashboard = React.createClass({
 });
 
 export default ProjectDashboard;
-
