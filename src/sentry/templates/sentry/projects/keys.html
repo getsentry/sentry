@@ -22,7 +22,7 @@
     <table class="table table-bordered">
         <colgroup>
             <col/>
-            <col width="200px"/>
+            <col width="300px"/>
         </colgroup>
         <tbody>
             {% for key in key_list %}
@@ -36,6 +36,7 @@
                         <div class="form-control disabled auto-select">{{ key.dsn_private }}</div>
                     </td>
                     <td style="text-align:right;padding-top:50px !important;">
+                        <a class="btn btn-default btn-sm" href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">Info</a>
                         {% if ACCESS.project_write %}
                             {% if key.is_active %}
                                 <form method="POST" action="{% url 'sentry-disable-project-key' project.organization.slug project.slug key.id %}" style="display:inline">
