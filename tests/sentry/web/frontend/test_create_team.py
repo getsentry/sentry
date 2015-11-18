@@ -60,3 +60,27 @@ class CreateTeamTest(TestCase):
         redirect_uri = reverse('sentry-create-project', args=[organization.slug])
         assert resp['Location'] == 'http://testserver%s?team=%s' % (
             redirect_uri, team.slug)
+
+    def test_admin_can_create_team(self):
+        organization = self.create_organization()
+        path = reverse('sentry-create-team', args=[organization.slug])
+
+        admin = self.create_user('admin@example.com')
+        self.create_member(
+            organization=organization,
+            user=admin,
+            role='admin',
+            teams=[],
+        )
+
+        self.login_as(admin)
+
+        resp = self.client.post(path, {
+            'name': 'bar',
+        })
+        assert resp.status_code == 302, resp.context['form'].errors
+
+        assert Team.objects.filter(
+            organization=organization,
+            name='bar',
+        ).exists()
