@@ -50,10 +50,10 @@ class Backend(object):
     be transitioned to "waiting" instead.)
     """
     def __init__(self, **options):
-        # The ``interval`` option defines the minimum amount of time (in
+        # The ``minimum_delay`` option defines the minimum amount of time (in
         # seconds) to wait between scheduling digests for delivery after the
         # initial scheduling.
-        self.interval = options.pop('interval', 60 * 5)
+        self.minimum_delay = options.pop('minimum_delay', 60 * 5)
 
         # The ``maximum_delay`` option defines the maximum amount of time (in
         # seconds) to wait between scheduling digests for delivery.

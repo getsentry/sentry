@@ -523,7 +523,7 @@ class RedisBackend(Backend):
 
                     cleanup_records(pipeline)
                     pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
-                    pipeline.zadd(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), time.time() + self.interval, key)
+                    pipeline.zadd(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), time.time() + self.minimum_delay, key)
                     pipeline.setex(make_last_processed_timestamp_key(timeline_key), self.ttl, int(time.time()))
                     pipeline.execute()
 
