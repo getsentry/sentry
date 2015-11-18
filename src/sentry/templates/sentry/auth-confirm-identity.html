@@ -7,15 +7,48 @@
 {% block title %}{% trans "Confirm Identity" %} | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
-  <form class="form-stacked" action="" method="post">
-    {% csrf_token %}
-
-    <img src="{% gravatar_url identity.email size 36 %}" class="merge-avatar avatar">
-
-    <div class="align-center">
-      <p>We've identified you as {{ identity.email }}. If everything sounds good, we'll go ahead and create a new account for you with this email address.</p>
-
-      <p><button class="btn btn-primary" type="submit" name="op" value="newuser">Continue</button></p>
+  {% if existing_user %}
+    <div class="sso-link">
+      <img src="{% gravatar_url existing_user.email size 36 %}" class="merge-avatar avatar">
+      <span class="icon-arrow-right"></span>
+      <span class="icon-arrow-left"></span>
+      <img src="{% gravatar_url identity.email size 36 %}" class="merge-avatar avatar">
     </div>
-  </form>
+
+    <form class="form-stacked" action="" method="post" autocomplete="off">
+      {% csrf_token %}
+
+      <div class="align-center">
+        <p>We found an existing account for {{ identity.email }}.</p>
+        <p>Please confirm your credentials:</p>
+      </div>
+
+      {{ login_form|as_crispy_errors }}
+
+      {% for field in login_form %}
+        {{ field|as_crispy_field }}
+      {% endfor %}
+
+      <fieldset class="form-actions">
+        <button type="submit" class="btn btn-primary" name="op" value="login">{% trans "Login" %}</button>
+        <a class="pull-right" style="margin-top: 9px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+      </fieldset>
+    </form>
+  {% else %}
+    <form class="form-stacked" action="" method="post">
+      {% csrf_token %}
+
+      <div class="sso-link">
+        <img src="{% gravatar_url identity.email size 36 %}" class="merge-avatar avatar">
+      </div>
+
+      <div class="align-center">
+        <p>We've identified you as {{ identity.email }}.</p>
+
+        <p>We'll go ahead and create a new account for you with this email address.</p>
+
+        <p><button class="btn btn-primary" type="submit" name="op" value="newuser">Continue</button></p>
+      </div>
+    </form>
+  {% endif %}
 {% endblock %}
