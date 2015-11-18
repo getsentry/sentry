@@ -14,6 +14,7 @@ const GroupChart = React.createClass({
   render: function() {
     let group = this.props.group;
     let stats = group.stats[this.props.statsPeriod];
+    if (!stats || !stats.length) return null;
     let points = stats.map((point) => {
       return {x: point[0], y: point[1]};
     });
