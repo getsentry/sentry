@@ -370,6 +370,15 @@
       padding: 7px 15px 0;
       border-bottom: 1px solid @trim;
       margin-bottom: 0;
+
+      li {
+        margin-right: 13px;
+
+        &.markdown {
+          margin-right: 3px;
+        }
+      }
+
       > li a {
         font-size: 15px;
         padding-bottom: 5px;
@@ -379,7 +388,7 @@
 
   .activity-field {
     .transition(padding .2s ease-in-out);
-    margin: -10px -10px 0;
+    margin: -10px -13px 0;
 
     textarea, .note-preview {
       display: block;
@@ -390,7 +399,7 @@
       margin: 0;
       .transition(.2s ease-in-out all);
       border: 0;
-      padding: 15px 0 0 17px;
+      padding: 15px 0 0 15px;
       overflow: auto;
 
       .placeholder(lighten(@gray, 28));
@@ -401,10 +410,8 @@
     }
 
     .note-preview {
-      padding-bottom: 14px;
+      padding-bottom: 8px;
     }
-
-    textarea { margin-bottom: 10px; }
 
     .activity-actions {
       height: 35px;
@@ -490,7 +497,7 @@
         border-radius: 3px;
         font-size: 14px;
         line-height: 18px;
-        padding: 10px 10px 0;
+        padding: 10px 13px 0;
         position: relative;
 
         &:before {
@@ -519,7 +526,7 @@
           top: 11px;
         }
 
-        p, ul, ol, pre {
+        p, ul:not(.nav), ol, pre {
           margin-bottom: 10px;
         }
 
@@ -535,7 +542,8 @@
 
         .activity-author {
           font-weight: 600;
-          margin-bottom: 10px;
+          margin-bottom: 5px;
+          font-size: 13px;
 
           small {
             font-weight: 300;
