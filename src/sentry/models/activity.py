@@ -8,7 +8,6 @@ sentry.models.activity
 from __future__ import absolute_import
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import F
 from django.utils import timezone
@@ -17,7 +16,6 @@ from sentry.db.models import (
     Model, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField,
     sane_repr
 )
-from sentry.utils.http import absolute_uri
 from sentry.tasks import activity
 
 
@@ -96,117 +94,5 @@ class Activity(Model):
             if self.event:
                 self.event.update(num_comments=F('num_comments') - 1)
 
-    def get_recipients(self):
-        from sentry.models import UserOption
-
-        if self.type == Activity.ASSIGNED:
-            # dont email the user if they took the action
-            send_to = [self.data['assignee']]
-
-        else:
-            member_set = self.project.member_set.values_list('user', flat=True)
-
-            if not member_set:
-                return []
-
-            disabled = set(UserOption.objects.filter(
-                user__in=member_set,
-                key='subscribe_notes',
-                value=u'0',
-            ).values_list('user', flat=True))
-
-            send_to = [u for u in member_set if u not in disabled]
-
-        # never include the actor
-        send_to = [u for u in send_to if u != self.user_id]
-
-        return send_to
-
     def send_notification(self):
-        from sentry.models import Release
-        from sentry.utils.email import MessageBuilder, group_id_to_email
-
         activity.send_activity_notifications.delay(self.id)
-
-        if self.type not in (Activity.NOTE, Activity.ASSIGNED, Activity.RELEASE):
-            return
-
-        send_to = self.get_recipients()
-
-        if not send_to:
-            return
-
-        project = self.project
-        org = self.project.organization
-        group = self.group
-
-        if self.user:
-            author = self.user
-        else:
-            author = None
-
-        subject_prefix = self.project.get_option(
-            'subject_prefix', settings.EMAIL_SUBJECT_PREFIX)
-        if subject_prefix:
-            subject_prefix = subject_prefix.rstrip() + ' '
-
-        if self.group:
-            subject = '%s%s' % (subject_prefix, self.group.get_email_subject())
-        elif self.type == Activity.RELEASE:
-            subject = '%sRelease %s' % (subject_prefix, self.data['version'])
-        else:
-            raise NotImplementedError
-
-        headers = {}
-
-        context = {
-            'data': self.data,
-            'author': author,
-            'project': project,
-            'project_link': absolute_uri(reverse('sentry-stream', kwargs={
-                'organization_slug': org.slug,
-                'project_id': project.slug,
-            })),
-        }
-
-        if group:
-            group_link = absolute_uri('/{}/{}/group/{}/'.format(org.slug, project.slug, group.id))
-            activity_link = '{}activity/'.format(group_link)
-
-            headers.update({
-                'X-Sentry-Reply-To': group_id_to_email(group.id),
-            })
-
-            context.update({
-                'group': group,
-                'link': group_link,
-                'activity_link': activity_link,
-            })
-
-        # TODO(dcramer): abstract each activity email into its own helper class
-        if self.type == Activity.RELEASE:
-            context.update({
-                'release': Release.objects.get(
-                    version=self.data['version'],
-                    project=project,
-                ),
-                'release_link': absolute_uri(reverse('sentry-release-details', kwargs={
-                    'organization_slug': org.slug,
-                    'project_id': project.slug,
-                    'version': self.data['version'],
-                })),
-            })
-
-        template_name = self.get_type_display()
-
-        msg = MessageBuilder(
-            subject=subject,
-            context=context,
-            template='sentry/emails/activity/{}.txt'.format(template_name),
-            html_template='sentry/emails/activity/{}.html'.format(template_name),
-            headers=headers,
-            reference=self,
-            reply_reference=self.group,
-        )
-        msg.add_users(send_to, project=self.project)
-        msg.send_async()
