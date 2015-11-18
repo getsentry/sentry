@@ -8,6 +8,7 @@ sentry.options.manager
 from __future__ import absolute_import, print_function
 
 import logging
+from collections import namedtuple
 
 from django.conf import settings
 from django.utils import timezone
@@ -19,8 +20,13 @@ from sentry.utils.hashlib import md5
 
 
 CACHE_FETCH_ERR = 'Unable to fetch option cache for %s'
-
 CACHE_UPDATE_ERR = 'Unable to update option cache for %s'
+
+Key = namedtuple('Key', ('default', 'type', 'flags', 'cache_key'))
+
+
+class UnknownOption(KeyError):
+    pass
 
 
 class OptionsManager(object):
@@ -39,16 +45,16 @@ class OptionsManager(object):
     Overall this is a very loose consistency model which is designed to give simple
     dynamic configuration with maximum uptime, where defaults are always taken from
     constants in the global configuration.
-
-    - Values must be strings.
-    - Empty values are identical to null values which are represented by ''.
     """
     cache = default_cache
-
     logger = logging.getLogger('sentry')
+    registry = {}
 
     # we generally want to always persist
     ttl = None
+
+    FLAG_DEFAULT = 0b000
+    FLAG_IMMUTABLE = 0b001
 
     def __init__(self, cache=None, ttl=None, logger=None):
         if cache is not None:
@@ -71,6 +77,17 @@ class OptionsManager(object):
         >>> from sentry import options
         >>> options.set('option', 'value')
         """
+        try:
+            opt = self.registry[key]
+        except KeyError:
+            raise UnknownOption(key)
+
+        if not isinstance(value, opt.type):
+            raise TypeError('got %r, expected %r' % (type(value), opt.type))
+
+        # Enforce immutability on key
+        assert not (opt.flags & self.FLAG_IMMUTABLE), '%r cannot be changed' % key
+
         create_or_update(
             model=Option,
             key=key,
@@ -81,24 +98,29 @@ class OptionsManager(object):
         )
 
         try:
-            self.update_cached_value(key, value)
+            self.update_cached_value(opt.cache_key, value)
+            return True
         except Exception:
             self.logger.warn(CACHE_UPDATE_ERR, key, exc_info=True)
+            return False
 
     def get(self, key):
         """
         Get the value of an option prioritizing the cache, then the database,
         and finally the local configuration.
 
-        If no value is present for the key, an empty value ('') is returned.
+        If no value is present for the key, the default Option value is returned.
 
         >>> from sentry import options
         >>> options.get('option')
         """
-        cache_key = self._make_cache_key(key)
+        try:
+            opt = self.registry[key]
+        except KeyError:
+            raise UnknownOption(key)
 
         try:
-            result = self.cache.get(cache_key)
+            result = self.cache.get(opt.cache_key)
         except Exception:
             self.logger.warn(CACHE_FETCH_ERR, key, exc_info=True)
             result = None
@@ -110,7 +132,7 @@ class OptionsManager(object):
             try:
                 result = Option.objects.get(key=key).value
             except Option.DoesNotExist:
-                result = ''
+                result = opt.default
             except Exception as e:
                 self.logger.exception(unicode(e))
                 result = None
@@ -119,15 +141,18 @@ class OptionsManager(object):
             # able to successfully talk to the backend
             if result is not None and cache_success:
                 try:
-                    self.update_cached_value(key, result)
+                    self.update_cached_value(opt.cache_key, result)
                 except Exception:
                     self.logger.warn(CACHE_UPDATE_ERR, key, exc_info=True)
 
-        if not result:
-            # default to the hardcoded local configuration for this key
-            result = settings.SENTRY_OPTIONS.get(key)
+        if result is not None:
+            return result
 
-        return result or ''
+        try:
+            # default to the hardcoded local configuration for this key
+            return settings.SENTRY_OPTIONS[key]
+        except KeyError:
+            return opt.default
 
     def delete(self, key):
         """
@@ -139,16 +164,30 @@ class OptionsManager(object):
         >>> from sentry import options
         >>> options.delete('option')
         """
-        cache_key = self._make_cache_key(key)
+        try:
+            opt = self.registry[key]
+        except KeyError:
+            raise UnknownOption(key)
 
         Option.objects.filter(key=key).delete()
 
         try:
-            self.cache.delete(cache_key)
+            self.cache.delete(opt.cache_key)
+            return True
         except Exception:
             self.logger.warn(CACHE_UPDATE_ERR, key, exc_info=True)
+            return False
 
-    def update_cached_value(self, key, value):
-        cache_key = self._make_cache_key(key)
-
+    def update_cached_value(self, cache_key, value):
         self.cache.set(cache_key, value, self.ttl)
+
+    def register(self, key, default='', type=basestring, flags=FLAG_DEFAULT):
+        assert key not in self.registry, 'Option already registered: %r' % key
+        self.registry[key] = Key(default, type, flags, self._make_cache_key(key))
+
+    def unregister(self, key):
+        try:
+            del self.registry[key]
+        except KeyError:
+            # Raise here or nah?
+            raise UnknownOption(key)
