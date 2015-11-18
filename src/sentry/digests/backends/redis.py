@@ -231,7 +231,10 @@ class RedisBackend(Backend):
             label='Digests',
         )
 
-    def add(self, key, record):
+    def add(self, key, record, increment_delay=None, maximum_delay=None):
+        increment_delay = increment_delay if increment_delay is not None else self.increment_delay
+        maximum_delay = maximum_delay if maximum_delay is not None else self.maximum_delay
+
         timeline_key = make_timeline_key(self.namespace, key)
         record_key = make_record_key(timeline_key, record.key)
 
@@ -261,8 +264,8 @@ class RedisBackend(Backend):
                 (
                     key,
                     record.timestamp,
-                    self.increment_delay,
-                    self.maximum_delay,
+                    increment_delay,
+                    maximum_delay,
                 ),
                 pipeline,
             )
@@ -457,7 +460,9 @@ class RedisBackend(Backend):
                 raise RuntimeError('loop exceeded maximum iterations (%s)' % (maximum_iterations,))
 
     @contextmanager
-    def digest(self, key):
+    def digest(self, key, minimum_delay=None):
+        minimum_delay = minimum_delay if minimum_delay is not None else self.minimum_delay
+
         timeline_key = make_timeline_key(self.namespace, key)
         digest_key = make_digest_key(timeline_key)
 
@@ -523,7 +528,7 @@ class RedisBackend(Backend):
 
                     cleanup_records(pipeline)
                     pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
-                    pipeline.zadd(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), time.time() + self.minimum_delay, key)
+                    pipeline.zadd(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), time.time() + minimum_delay, key)
                     pipeline.setex(make_last_processed_timestamp_key(timeline_key), self.ttl, int(time.time()))
                     pipeline.execute()
 
