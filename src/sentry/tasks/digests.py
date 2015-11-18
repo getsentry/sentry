@@ -39,7 +39,8 @@ def deliver_digest(key, schedule_timestamp=None):
     from sentry.app import digests
 
     plugin, project = split_key(key)
-    with digests.digest(key) as records:
+    minimum_delay = plugin.get_option('digests:minimum_delay', project=project)
+    with digests.digest(key, minimum_delay=minimum_delay) as records:
         digest = build_digest(project, records)
 
     if digest:

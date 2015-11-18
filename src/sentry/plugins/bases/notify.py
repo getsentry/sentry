@@ -80,7 +80,9 @@ class NotificationPlugin(Plugin):
 
             if features.has('projects:digests:store', project):
                 key = unsplit_key(self, event.group.project)
-                if digests.add(key, event_to_record(event, rules)):
+                increment_delay = self.get_option('digests:increment_delay', project=project)
+                maximum_delay = self.get_option('digests:maximum_delay', project=project)
+                if digests.add(key, event_to_record(event, rules), increment_delay=increment_delay, maximum_delay=maximum_delay):
                     deliver_digest.delay(key)
 
         else:
