@@ -1,4 +1,4 @@
-import jQuery from "jquery";
+import jQuery from 'jquery';
 
 // setup jquery for CSRF tokens
 function getCookie(name) {
@@ -17,7 +17,7 @@ function getCookie(name) {
   return cookieValue;
 }
 
-var csrftoken = getCookie("csrf");
+var csrftoken = getCookie('csrf');
 
 function csrfSafeMethod(method) {
   // these HTTP methods do not require CSRF protection
@@ -26,7 +26,7 @@ function csrfSafeMethod(method) {
 jQuery.ajaxSetup({
   beforeSend: function(xhr, settings) {
     if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-      xhr.setRequestHeader("X-CSRFToken", csrftoken);
+      xhr.setRequestHeader('X-CSRFToken', csrftoken);
     }
   }
 });
@@ -34,30 +34,30 @@ jQuery.ajaxSetup({
 // these get exported to a global variable, which is important as its the only
 // way we can call into scoped objects
 export default {
-  i18n: require("locale"),
   jQuery: jQuery,
-  moment: require("moment"),
-  Raven: require("raven-js"),
-  React: require("react"),
-  ReactDOM: require("react-dom"),
-  Router: require("react-router"),
+  moment: require('moment'),
+  Raven: require('raven-js'),
+  React: require('react'),
+  ReactDOM: require('react-dom'),
+  Router: require('react-router'),
 
   Sentry: {
-    api: require("./api"),
-    routes: require("./routes"),
-    createHistory: require("history/lib/createBrowserHistory"),
+    api: require('./api'),
+    routes: require('./routes'),
+    createHistory: require('history/lib/createBrowserHistory'),
+    i18n: require('./locale'),
 
-    Alerts: require("./components/alerts"),
-    ConfigStore: require("./stores/configStore"),
-    DropdownLink: require("./components/dropdownLink"),
-    FlotChart: require("./components/flotChart"),
-    HookStore: require("./stores/hookStore"),
-    Indicators: require("./components/indicators"),
-    ListLink: require("./components/listLink"),
-    MenuItem: require("./components/menuItem"),
-    Pagination: require("./components/pagination"),
-    ProjectSelector: require("./components/projectHeader/projectSelector"),
-    RuleEditor: require("./views/ruleEditor")
+    Alerts: require('./components/alerts'),
+    ConfigStore: require('./stores/configStore'),
+    DropdownLink: require('./components/dropdownLink'),
+    FlotChart: require('./components/flotChart'),
+    HookStore: require('./stores/hookStore'),
+    Indicators: require('./components/indicators'),
+    ListLink: require('./components/listLink'),
+    MenuItem: require('./components/menuItem'),
+    Pagination: require('./components/pagination'),
+    ProjectSelector: require('./components/projectHeader/projectSelector'),
+    RuleEditor: require('./views/ruleEditor')
   }
 };
 

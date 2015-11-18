@@ -23,6 +23,7 @@ var config = {
       "bootstrap/js/tooltip",
       "bootstrap/js/alert",
       "crypto-js/md5",
+      "jed",
       "jquery",
       "marked",
       "moment",
