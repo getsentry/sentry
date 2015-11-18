@@ -95,7 +95,7 @@ class Backend(object):
     def validate(self):
         pass
 
-    def add(self, key, record):
+    def add(self, key, record, increment_delay=None, maximum_delay=None):
         """
         Add a record to a timeline.
 
@@ -110,7 +110,7 @@ class Backend(object):
         """
         raise NotImplementedError
 
-    def digest(self, key):
+    def digest(self, key, minimum_delay=None):
         """
         Extract records from a timeline for processing.
 
