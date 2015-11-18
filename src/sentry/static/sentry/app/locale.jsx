@@ -6,7 +6,6 @@ const i18n = new Jed({
   // This callback is called when a key is missing
   'missing_key_callback' : function(key) {
     // TODO(dcramer): this should log to Sentry
-    console.error(key);
   },
 
   'locale_data' : {
@@ -28,7 +27,8 @@ const i18n = new Jed({
   }
 });
 
-export const gettext = i18n.gettext;
-export const ngettext = i18n.ngettext;
-export const _ = i18n.gettext;
+export const gettext = i18n.gettext.bind(i18n);
+export const ngettext = i18n.ngettext.bind(i18n);
+export const t = i18n.gettext.bind(i18n);
+export const tn = i18n.ngettext.bind(i18n);
 export default i18n;
