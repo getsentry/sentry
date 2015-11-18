@@ -247,7 +247,7 @@ class DigestTestCase(BaseRedisBackendTestCase):
                 entries = list(entries)
                 assert entries == records[::-1]
 
-            next_scheduled_delivery = timestamp + backend.interval
+            next_scheduled_delivery = timestamp + backend.minimum_delay
             assert client.zscore(waiting_set_key, timeline) == next_scheduled_delivery
             assert int(client.get(make_last_processed_timestamp_key(timeline_key))) == int(timestamp)
 
@@ -314,4 +314,4 @@ class DigestTestCase(BaseRedisBackendTestCase):
                 entries = list(entries)
                 assert entries == (records + extra)[::-1]
 
-            assert client.zscore(waiting_set_key, timeline) == timestamp + backend.interval
+            assert client.zscore(waiting_set_key, timeline) == timestamp + backend.minimum_delay
