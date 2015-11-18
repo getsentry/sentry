@@ -34,6 +34,7 @@ jQuery.ajaxSetup({
 // these get exported to a global variable, which is important as its the only
 // way we can call into scoped objects
 export default {
+  i18n: require("locale"),
   jQuery: jQuery,
   moment: require("moment"),
   Raven: require("raven-js"),
