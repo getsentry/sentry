@@ -53,11 +53,11 @@ class Backend(object):
         # The ``interval`` option defines the minimum amount of time (in
         # seconds) to wait between scheduling digests for delivery after the
         # initial scheduling.
-        self.interval = options.pop('interval', 60 * 10)
+        self.interval = options.pop('interval', 60 * 5)
 
         # The ``maximum_delay`` option defines the maximum amount of time (in
         # seconds) to wait between scheduling digests for delivery.
-        self.maximum_delay = options.pop('maximum_delay', 60 * 60)
+        self.maximum_delay = options.pop('maximum_delay', 60 * 30)
 
         # The ``increment_delay`` option defines how long each observation of
         # an event should delay scheduling (up until the ``maximum_delay``
