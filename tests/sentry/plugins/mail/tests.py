@@ -16,7 +16,13 @@ from sentry.digests.notifications import (
 )
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
-    Event, Group, OrganizationMember, OrganizationMemberTeam, Rule
+    Activity,
+    Event,
+    Group,
+    OrganizationMember,
+    OrganizationMemberTeam,
+    Release,
+    Rule,
 )
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.models import MailPlugin
@@ -267,3 +273,57 @@ class MailPluginTest(TestCase):
         self.plugin.notify_digest(project, digest)
         assert send.call_count is 1
         assert notify.call_count is 1
+
+    def test_note(self):
+        user_foo = self.create_user('foo@example.com')
+
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=Activity.NOTE,
+            user=user_foo,
+            event=self.create_event('a' * 32, group=self.group),
+            data={
+                'text': 'sup guise',
+            },
+        )
+
+        self.project.team.organization.member_set.create(user=user_foo)
+
+        self.plugin.notify_about_activity(activity)
+
+        assert len(mail.outbox) == 1
+
+        msg = mail.outbox[0]
+
+        assert msg.subject == 'Re: [Sentry] [foo Bar] ERROR: Foo bar'
+        assert msg.to == [self.user.email]
+
+    def test_release(self):
+        user_foo = self.create_user('foo@example.com')
+
+        release = Release.objects.create(
+            project=self.project,
+            version='a' * 40,
+        )
+
+        activity = Activity.objects.create(
+            project=self.project,
+            type=Activity.RELEASE,
+            user=user_foo,
+            event=self.create_event('a' * 32, group=self.group),
+            data={
+                'version': release.version,
+            },
+        )
+
+        self.project.team.organization.member_set.create(user=user_foo)
+
+        self.plugin.notify_about_activity(activity)
+
+        assert len(mail.outbox) == 1
+
+        msg = mail.outbox[0]
+
+        assert msg.subject == '[Sentry] Release %s' % (release.version,)
+        assert msg.to == [self.user.email]
