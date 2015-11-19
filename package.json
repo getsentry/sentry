@@ -53,8 +53,9 @@
   },
   "devDependencies": {
     "babel-core": "5.8.33",
-    "babel-gettext-plugin": "getsentry/babel-gettext-plugin",
+    "babel-gettext-extractor": "^1.0.0",
     "babel-loader": "5.3.3",
+    "po-loader": "^0.3.1",
     "chai": "3.4.1",
     "js-cookie": "2.0.4",
     "karma": "0.13.15",

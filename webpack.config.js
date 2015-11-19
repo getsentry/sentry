@@ -16,6 +16,9 @@ var config = {
   entry: {
     // js
     "app": "app",
+    "translations": [
+      "app/translations"
+    ],
     "vendor": [
       "babel-core/polyfill",
       "bootstrap/js/dropdown",
@@ -55,7 +58,7 @@ var config = {
         include: path.join(__dirname, staticPrefix),
         exclude: /(vendor|node_modules)/,
         query: {
-          plugins: ['babel-gettext-plugin'],
+          plugins: ['babel-gettext-extractor'],
           extra: {
             gettext: {
               fileName: 'build/javascript.po',
@@ -69,6 +72,10 @@ var config = {
             }
           }
         }
+      },
+      {
+        test: /\.po$/,
+        loader: 'json!po',
       },
       {
         test: /\.json$/,

@@ -10,12 +10,14 @@ JS_EXTENSIONS = ('.js', '.jsx')
 
 
 def merge_message(msg, frontend_msg):
-    msg.locations = [
+    non_js_locations = [
         (fn, lineno) for fn, lineno in msg.locations
         if not fn.endswith(JS_EXTENSIONS)
-    ] + frontend_msg.locations
-    if not msg.user_comments and frontend_msg.user_comments:
+    ]
+    if (not msg.user_comments or not non_js_locations) \
+       and frontend_msg.user_comments:
         msg.user_comments = frontend_msg.usr_comments
+    msg.locations = non_js_locations + frontend_msg.locations
 
 
 @click.command()
