@@ -75,7 +75,10 @@ var config = {
       },
       {
         test: /\.po$/,
-        loader: 'json!po',
+        loader: 'po-catalog-loader',
+        query: {
+          referenceExtensions: ['.js', '.jsx']
+        }
       },
       {
         test: /\.json$/,
