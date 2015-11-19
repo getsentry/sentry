@@ -21,7 +21,10 @@ from sentry.digests.notifications import (
     unsplit_key,
 )
 from sentry.plugins import Notification, Plugin
-from sentry.models import UserOption
+from sentry.models import (
+    ProjectOption,
+    UserOption,
+)
 from sentry.tasks.digests import deliver_digest
 
 
@@ -79,9 +82,19 @@ class NotificationPlugin(Plugin):
                 self.notify(notification)
 
             if features.has('projects:digests:store', project):
-                key = unsplit_key(self, event.group.project)
-                if digests.add(key, event_to_record(event, rules)):
-                    deliver_digest.delay(key)
+                get_digest_option = lambda key: ProjectOption.objects.get_value(
+                    project,
+                    '{0}:digests:{1}'.format(self.get_conf_key(), key),
+                )
+                digest_key = unsplit_key(self, event.group.project)
+                immediate_delivery = digests.add(
+                    digest_key,
+                    event_to_record(event, rules),
+                    increment_delay=get_digest_option('increment_delay'),
+                    maximum_delay=get_digest_option('maximum_delay'),
+                )
+                if immediate_delivery:
+                    deliver_digest.delay(digest_key)
 
         else:
             notification = Notification(event=event, rules=rules)
