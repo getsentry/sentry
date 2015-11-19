@@ -7,6 +7,7 @@ sentry.models.broadcast
 """
 from __future__ import absolute_import
 
+from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 
@@ -21,6 +22,11 @@ class Broadcast(Model):
     message = models.CharField(max_length=256)
     link = models.URLField(null=True, blank=True)
     is_active = models.BooleanField(default=True, db_index=True)
+    date_expires = models.DateTimeField(
+        default=lambda: timezone.now() + timedelta(days=7),
+        null=True,
+        blank=True,
+    )
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
