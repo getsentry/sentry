@@ -177,7 +177,7 @@ class Group(Model):
         return self.get_status() == GroupStatus.RESOLVED
 
     def get_status(self):
-        # XXX(dcramer): GroupSerializer reimplements this logic)
+        # XXX(dcramer): GroupSerializer reimplements this logic
         from sentry.models import GroupSnooze
 
         if self.status == GroupStatus.MUTED:

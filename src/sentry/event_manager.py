@@ -13,7 +13,8 @@ import six
 
 from datetime import datetime, timedelta
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import connection, IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from hashlib import md5
@@ -25,8 +26,8 @@ from sentry.constants import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Event, EventMapping, EventUser, Group, GroupHash, GroupStatus,
-    Project, Release, TagKey, UserReport
+    Activity, Event, EventMapping, EventUser, Group, GroupHash, GroupResolution,
+    GroupStatus, Project, Release, TagKey, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import regression_signal
@@ -426,6 +427,7 @@ class EventManager(object):
         group, is_new, is_regression, is_sample = self._save_aggregate(
             event=event,
             hashes=hashes,
+            release=release,
             **group_kwargs
         )
 
@@ -550,7 +552,7 @@ class EventManager(object):
             group=group,
         )
 
-    def _save_aggregate(self, event, hashes, **kwargs):
+    def _save_aggregate(self, event, hashes, release, **kwargs):
         project = event.project
 
         # attempt to find a matching hash
@@ -597,7 +599,12 @@ class EventManager(object):
         can_sample = should_sample(event.datetime, group.last_seen, group.times_seen)
 
         if not is_new:
-            is_regression = self._process_existing_aggregate(group, event, kwargs)
+            is_regression = self._process_existing_aggregate(
+                group=group,
+                event=event,
+                data=kwargs,
+                release=release,
+            )
         else:
             is_regression = False
 
@@ -614,7 +621,80 @@ class EventManager(object):
 
         return group, is_new, is_regression, is_sample
 
-    def _process_existing_aggregate(self, group, event, data):
+    def _handle_regression(self, group, event, release):
+        if not group.is_resolved():
+            return
+
+        elif release:
+            # we only mark it as a regression if the event's release is newer than
+            # the release which we originally marked this as resolved
+            has_resolution = GroupResolution.objects.filter(
+                Q(release__date_added__gt=release.date_added) | Q(release=release),
+                group=group,
+            ).exists()
+            if has_resolution:
+                return
+
+        if not plugin_is_regression(group, event):
+            return
+
+        # we now think its a regression, rely on the database to validate that
+        # no one beat us to this
+        date = max(event.datetime, group.last_seen)
+        is_regression = bool(Group.objects.filter(
+            id=group.id,
+            # ensure we cant update things if the status has been set to
+            # muted
+            status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
+        ).exclude(
+            # add to the regression window to account for races here
+            active_at__gte=date - timedelta(seconds=5),
+        ).update(
+            active_at=date,
+            # explicitly set last_seen here as ``is_resolved()`` looks
+            # at the value
+            last_seen=date,
+            status=GroupStatus.UNRESOLVED
+        ))
+
+        group.active_at = date
+        group.status = GroupStatus.UNRESOLVED
+
+        # this technically could be missing a release, but
+        # really we wouldn't want to take this path if it was. It's a bit odd
+        # that it wouldn't be taken care of it, but the only case this should
+        # be possible is if you usually send a Release and then you stopped.
+        if is_regression and release:
+            # delete() API does not return affected rows
+            cursor = connection.cursor()
+            # TODO(dcramer): this could be more precise by including the filters
+            # present in the ``has_resolution`` check above
+            cursor.execute("DELETE FROM sentry_groupresolution WHERE group_id = %s", [group.id])
+            affected = cursor.rowcount > 0
+
+            if affected:
+                # if we had to remove the GroupResolution (i.e. we beat the
+                # the queue to handling this) then we need to also record
+                # the corresponding event
+                activity = Activity.objects.filter(
+                    group=group,
+                    type=Activity.SET_RESOLVED_IN_RELEASE,
+                ).order_by('-datetime')[0]
+
+                activity.update(data={
+                    'version': release.version,
+                })
+
+        if is_regression:
+            Activity.objects.create(
+                project=group.project,
+                group=group,
+                type=Activity.SET_REGRESSION,
+            )
+
+        return is_regression
+
+    def _process_existing_aggregate(self, group, event, data, release):
         date = max(event.datetime, group.last_seen)
         extra = {
             'last_seen': date,
@@ -627,25 +707,7 @@ class EventManager(object):
         if group.culprit != data['culprit']:
             extra['culprit'] = data['culprit']
 
-        is_regression = False
-        if group.is_resolved() and plugin_is_regression(group, event):
-            is_regression = bool(Group.objects.filter(
-                id=group.id,
-                # ensure we cant update things if the status has been set to
-                # muted
-                status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
-            ).exclude(
-                # add to the regression window to account for races here
-                active_at__gte=date - timedelta(seconds=5),
-            ).update(
-                active_at=date,
-                # explicitly set last_seen here as ``is_resolved()`` looks
-                # at the value
-                last_seen=date,
-                status=GroupStatus.UNRESOLVED
-            ))
-            group.active_at = date
-            group.status = GroupStatus.UNRESOLVED
+        is_regression = self._handle_regression(group, event, release)
 
         group.last_seen = extra['last_seen']
 

@@ -88,7 +88,16 @@ const GroupEventDetails = React.createClass({
                   orgId={params.orgId}
                   projectId={params.projectId} />
             }
-            <MutedBox status={group.status} snoozeUntil={group.snoozeUntil} />
+            {group.status === 'muted' &&
+              <MutedBox statusDetails={group.statusDetails} />
+            }
+            {group.status === 'resolved' && group.statusDetails.inNextRelease  &&
+              <div className="alert alert-info alert-block">
+                <span>This issue has been marked as being resolved in the next
+                  release. Until then, you will not get notified about new
+                  occurances.</span>
+              </div>
+            }
             {this.state.loading ?
               <LoadingIndicator />
             : (this.state.error ?

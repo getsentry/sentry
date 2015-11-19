@@ -12,7 +12,6 @@ const Snooze = {
   '30MINUTES': 30,
   '2HOURS': 60 * 2,
   '24HOURS': 60 * 24,
-  'FOREVER': null,
 };
 
 const GroupActions = React.createClass({
@@ -40,7 +39,7 @@ const GroupActions = React.createClass({
     this.history.pushState(null, `/${org.slug}/${project.slug}/`);
   },
 
-  onToggleResolve() {
+  onUpdate(data) {
     let group = this.getGroup();
     let project = this.getProject();
     let org = this.getOrganization();
@@ -50,9 +49,7 @@ const GroupActions = React.createClass({
       orgId: org.slug,
       projectId: project.slug,
       itemIds: [group.id],
-      data: {
-        status: group.status === 'resolved' ? 'unresolved' : 'resolved'
-      }
+      data: data,
     }, {
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
@@ -61,63 +58,13 @@ const GroupActions = React.createClass({
   },
 
   onToggleBookmark() {
-    let group = this.getGroup();
-    let project = this.getProject();
-    let org = this.getOrganization();
-    let loadingIndicator = IndicatorStore.add('Saving changes..');
-
-    api.bulkUpdate({
-      orgId: org.slug,
-      projectId: project.slug,
-      itemIds: [group.id],
-      data: {
-        isBookmarked: !group.isBookmarked
-      }
-    }, {
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      }
-    });
-  },
-
-  onRemoveSnooze() {
-    let group = this.getGroup();
-    let project = this.getProject();
-    let org = this.getOrganization();
-    let loadingIndicator = IndicatorStore.add('Saving changes..');
-
-    api.bulkUpdate({
-      orgId: org.slug,
-      projectId: project.slug,
-      itemIds: [group.id],
-      data: {
-        status: 'unresolved'
-      }
-    }, {
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      }
-    });
+    this.onUpdate({isBookmarked: !this.getGroup().isBookmarked});
   },
 
   onSnooze(duration) {
-    let group = this.getGroup();
-    let project = this.getProject();
-    let org = this.getOrganization();
-    let loadingIndicator = IndicatorStore.add('Saving changes..');
-
-    api.bulkUpdate({
-      orgId: org.slug,
-      projectId: project.slug,
-      itemIds: [group.id],
-      data: {
-        status: 'muted',
-        snoozeDuration: duration,
-      }
-    }, {
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      }
+    this.onUpdate({
+      status: 'muted',
+      snoozeDuration: duration,
     });
   },
 
@@ -142,22 +89,43 @@ const GroupActions = React.createClass({
     return (
       <div className="group-actions">
         <div className="btn-group">
-          <a className={resolveClassName}
-             title="Resolve"
-             onClick={this.onToggleResolve}>
-            <span className="icon-checkmark"></span>
-          </a>
+          {group.status === 'resolved' ?
+            <a className={resolveClassName}
+               title="Unresolve"
+               onClick={this.onUpdate.bind(this, {status: 'unresolved'})}>
+              <span className="icon-checkmark" />
+            </a>
+          :
+            [<a className={resolveClassName}
+               title="Resolve"
+               onClick={this.onUpdate.bind(this, {status: 'resolved'})}>
+              Resolve
+            </a>,
+            <DropdownLink
+              caret={true}
+              className={resolveClassName}
+              title="">
+              <MenuItem noAnchor={true}>
+                <a onClick={this.onUpdate.bind(this, {status: 'resolvedInNextRelease'})}>
+                  <strong>Resolve after Next Release</strong>
+                  <div className="help-text">Snooze this notification until the next release which then marks this as resolved.</div>
+                </a>
+              </MenuItem>
+            </DropdownLink>]
+          }
+        </div>
+        <div className="btn-group">
           <a className={bookmarkClassName}
              title="Bookmark"
              onClick={this.onToggleBookmark}>
-            <span className="icon-bookmark"></span>
+            <span className="icon-bookmark" />
           </a>
         </div>
         <div className="btn-group">
           {group.status === 'muted' ?
             <a className={snoozeClassName}
                title="Remove Snooze"
-               onClick={this.onRemoveSnooze}>
+               onClick={this.onUpdate.bind(this, {status: 'unresolved'})}>
               Snooze
             </a>
           :
@@ -175,7 +143,7 @@ const GroupActions = React.createClass({
                 <a onClick={this.onSnooze.bind(this, Snooze['24HOURS'])}>for 24 hours</a>
               </MenuItem>
               <MenuItem noAnchor={true}>
-                <a onClick={this.onSnooze.bind(this, Snooze.FOREVER)}>forever</a>
+                <a onClick={this.onUpdate.bind(this, {status: 'muted'})}>forever</a>
               </MenuItem>
             </DropdownLink>
           }

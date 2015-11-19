@@ -6,7 +6,8 @@ from django.utils import timezone
 from mock import patch
 
 from sentry.models import (
-    EventMapping, Group, GroupBookmark, GroupSeen, GroupSnooze, GroupStatus
+    Activity, EventMapping, Group, GroupBookmark, GroupResolution, GroupSeen,
+    GroupSnooze, GroupStatus, Release
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import parse_link_header
@@ -222,6 +223,7 @@ class GroupUpdateTest(APITestCase):
         assert response.status_code == 200, response.data
         assert response.data == {
             'status': 'resolved',
+            'statusDetails': {},
         }
 
         # the previously resolved entry should not be included
@@ -266,6 +268,7 @@ class GroupUpdateTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {
             'status': 'resolved',
+            'statusDetails': {},
         }
 
         new_group1 = Group.objects.get(id=group1.id)
@@ -282,6 +285,48 @@ class GroupUpdateTest(APITestCase):
         new_group4 = Group.objects.get(id=group4.id)
         assert new_group4.resolved_at is None
         assert new_group4.status == GroupStatus.UNRESOLVED
+
+    def test_set_resolved_in_next_release(self):
+        release = Release.objects.create(project=self.project, version='a')
+
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=reverse('sentry-api-0-project-group-index', kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+            }),
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'status': 'resolvedInNextRelease',
+        }, format='json')
+        assert response.status_code == 200
+        assert response.data == {
+            'status': 'resolved',
+            'statusDetails': {
+                'inNextRelease': True,
+            },
+        }
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        assert GroupResolution.objects.filter(
+            group=group,
+            release=release,
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+        )
+        assert activity.data['version'] == ''
 
     def test_set_unresolved(self):
         group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
@@ -301,6 +346,7 @@ class GroupUpdateTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {
             'status': 'unresolved',
+            'statusDetails': {},
         }
 
         group = Group.objects.get(id=group.id)
@@ -329,6 +375,7 @@ class GroupUpdateTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {
             'status': 'unresolved',
+            'statusDetails': {},
         }
 
         group = Group.objects.get(id=group.id)
@@ -360,8 +407,9 @@ class GroupUpdateTest(APITestCase):
 
         assert response.data == {
             'status': 'muted',
-            'snoozeDuration': 30,
-            'snoozeUntil': snooze.until,
+            'statusDetails': {
+                'snoozeUntil': snooze.until,
+            },
         }
 
         group = Group.objects.get(id=group.id)

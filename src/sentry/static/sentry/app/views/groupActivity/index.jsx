@@ -18,6 +18,12 @@ let formatActivity = function(item) {
       return 'left a comment';
     case 'set_resolved':
       return 'marked this issue as resolved';
+    case 'set_resolved_in_release':
+      return (data.version ?
+        `marked this issue as resolved in ${data.version}`
+      :
+        'marked this issue as resolved in the upcoming release'
+      );
     case 'set_unresolved':
       return 'marked this issue as unresolved';
     case 'set_muted':

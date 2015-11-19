@@ -4,6 +4,7 @@ from django.db import IntegrityError, transaction
 from django.db.models.signals import post_save
 
 from sentry.models import Release, TagValue
+from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 
 
 def ensure_release_exists(instance, created, **kwargs):
@@ -24,6 +25,21 @@ def ensure_release_exists(instance, created, **kwargs):
         pass
     else:
         instance.update(data={'release_id': release.id})
+
+
+def resolve_group_resolutions(instance, created, **kwargs):
+    if not created:
+        return
+
+    clear_expired_resolutions.delay(release_id=instance.id)
+
+
+post_save.connect(
+    resolve_group_resolutions,
+    sender=Release,
+    dispatch_uid="resolve_group_resolutions",
+    weak=False
+)
 
 
 post_save.connect(

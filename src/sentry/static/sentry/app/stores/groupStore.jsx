@@ -54,6 +54,10 @@ const GroupStore = Reflux.createStore({
     items.forEach((item, idx) => {
       if (itemsById[item.id]) {
         this.items[idx] = jQuery.extend(true, {}, item, itemsById[item.id]);
+        // HACK(dcramer): work around statusDetails not being consistent
+        if (typeof itemsById[item.id].statusDetails !== undefined) {
+          this.items[idx].statusDetails = itemsById[item.id].statusDetails;
+        }
         delete itemsById[item.id];
       }
     });
