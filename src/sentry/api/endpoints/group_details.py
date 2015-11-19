@@ -13,8 +13,8 @@ from sentry.api.serializers import serialize
 from sentry.db.models.query import create_or_update
 from sentry.constants import STATUS_CHOICES
 from sentry.models import (
-    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus,
-    GroupTagKey, GroupTagValue, Release, UserReport
+    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupSnooze,
+    GroupStatus, GroupTagKey, GroupTagValue, Release, UserReport
 )
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
@@ -57,6 +57,7 @@ class GroupSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
     hasSeen = serializers.BooleanField()
     assignedTo = UserField()
+    snoozeDuration = serializers.IntegerField()
 
 
 class GroupDetailsEndpoint(GroupEndpoint):
@@ -271,8 +272,27 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     user=acting_user,
                 )
         elif result.get('status'):
-            group.status = STATUS_CHOICES[result['status']]
-            group.save()
+            new_status = STATUS_CHOICES[result['status']]
+
+            if new_status == GroupStatus.MUTED:
+                if result.get('snoozeDuration'):
+                    snooze_until = timezone.now() + timedelta(
+                        minutes=int(result['snoozeDuration']),
+                    )
+                    GroupSnooze.objects.create_or_update(
+                        group=group,
+                        values={
+                            'until': snooze_until,
+                        }
+                    )
+                    result['snoozeUntil'] = snooze_until
+                else:
+                    GroupSnooze.objects.filter(
+                        group=group,
+                    ).delete()
+                    result['snoozeUntil'] = None
+
+            group.update(status=new_status)
 
         if result.get('hasSeen') and group.project.member_set.filter(user=request.user).exists():
             instance, created = create_or_update(
