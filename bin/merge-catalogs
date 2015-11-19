@@ -1,20 +1,45 @@
 #!/usr/bin/env python
 
+import click
 from babel.messages.pofile import read_po, write_po
 
 
-with open('src/sentry/locale/en/LC_MESSAGES/django.po') as f:
-    backend = read_po(f)
-with open('javascript.po') as f:
-    frontend = read_po(f)
+JS_EXTENSIONS = ('.js', '.jsx')
 
-for message in frontend:
-    if message.id == '':
-        continue
-    old_msg = backend.get(message.id)
-    message.locations = sorted(
-        set(message.locations) | set(old_msg and old_msg.locations or ()))
-    backend[message.id] = message
 
-with open('final.po', 'w') as f:
-    write_po(f, backend)
+def merge_locations(locations, frontend_locations):
+    return [(fn, lineno) for fn, lineno in locations
+            if not fn.endswith(JS_EXTENSIONS)] + frontend_locations
+
+
+@click.command()
+@click.argument('locale')
+def cli(locale):
+    catalog_file = 'src/sentry/locale/%s/LC_MESSAGES/django.po' % locale
+    with open(catalog_file) as f:
+        catalog = read_po(f)
+    with open('build/javascript.po') as f:
+        frontend = read_po(f)
+
+    for frontend_msg in frontend:
+        if frontend_msg.id == '':
+            continue
+        msg = catalog.get(frontend_msg.id)
+
+        # If the message is not yet in the catalog, then insert it as
+        # such.
+        if msg is None:
+            msg = frontend_msg
+        # Otherwise merge the record.  Locations are merged by removing
+        # all javascript locations and inserting new ones.
+        else:
+            msg.locations = merge_locations(
+                msg.locations, frontend_msg.locations)
+        catalog[msg.id] = msg
+
+    with open(catalog_file, 'w') as f:
+        write_po(f, catalog)
+
+
+if __name__ == '__main__':
+    cli()
