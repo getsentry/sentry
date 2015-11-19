@@ -50,6 +50,7 @@ clean:
 	@echo ""
 
 build/javascript.po:
+	mkdir -p build
 	./node_modules/.bin/webpack
 
 locale: build/javascript.po
