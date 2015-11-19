@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
+import os
 import click
+
 from babel.messages.pofile import read_po, write_po
 
 
@@ -16,9 +18,13 @@ def merge_locations(locations, frontend_locations):
 @click.argument('locale')
 def cli(locale):
     catalog_file = 'src/sentry/locale/%s/LC_MESSAGES/django.po' % locale
+    frontend_file = 'build/javascript.po'
+    if not os.path.isfile(frontend_file):
+        return
+
     with open(catalog_file) as f:
         catalog = read_po(f)
-    with open('build/javascript.po') as f:
+    with open(frontend_file) as f:
         frontend = read_po(f)
 
     for frontend_msg in frontend:
