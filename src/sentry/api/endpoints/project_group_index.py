@@ -346,18 +346,24 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 status=new_status,
             )
 
-            if new_status == GroupStatus.MUTED and result.get('snoozeDuration'):
-                snooze_until = timezone.now() + timedelta(
-                    minutes=int(result['snoozeDuration']),
-                )
-                for group in group_list:
-                    GroupSnooze.objects.create_or_update(
-                        group=group,
-                        values={
-                            'until': snooze_until,
-                        }
+            if new_status == GroupStatus.MUTED:
+                if result.get('snoozeDuration'):
+                    snooze_until = timezone.now() + timedelta(
+                        minutes=int(result['snoozeDuration']),
                     )
-                    result['snoozeUntil'] = snooze_until
+                    for group in group_list:
+                        GroupSnooze.objects.create_or_update(
+                            group=group,
+                            values={
+                                'until': snooze_until,
+                            }
+                        )
+                        result['snoozeUntil'] = snooze_until
+                else:
+                    GroupSnooze.objects.filter(
+                        group__in=group_list,
+                    ).delete()
+                    result['snoozeUntil'] = None
 
             if group_list and happened:
                 if new_status == GroupStatus.UNRESOLVED:
