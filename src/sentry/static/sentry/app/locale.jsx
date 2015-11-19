@@ -1,5 +1,12 @@
 import Jed from 'jed';
-import { getCurrentTranslations } from './translations';
+import ConfigStore from './stores/configStore';
+import { getTranslations } from './translations';
+
+export function getCurrentTranslations() {
+  let user = ConfigStore.get('user');
+  let lang = user && user.language || 'en';
+  return getTranslations(lang);
+}
 
 const i18n = new Jed({
   'domain' : 'sentry',

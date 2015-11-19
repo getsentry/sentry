@@ -1,6 +1,3 @@
-import ConfigStore from './stores/configStore';
-
-
 const translations = (function() {
   var ctx = require.context('../../../locale/', true, /\.po$/);
   var rv = {};
@@ -17,10 +14,4 @@ export function getTranslations(language) {
 
 export function translationsExist(language) {
   return translations[language] !== undefined;
-}
-
-export function getCurrentTranslations() {
-  let user = ConfigStore.get('user');
-  let lang = user && user.language || 'en';
-  return getTranslations(lang);
 }
