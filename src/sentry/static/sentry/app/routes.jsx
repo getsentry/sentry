@@ -30,6 +30,13 @@ import RouteNotFound from './views/routeNotFound';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
 
+function appendTrailingSlash(nextState, replaceState) {
+  var lastChar = nextState.location.pathname.slice(-1);
+  if (lastChar !== '/') {
+    replaceState(nextState, nextState.location.pathname + '/');
+  }
+}
+
 let routes = (
   <Route path="/" component={App}>
     <Route path="/organizations/:orgId/" component={OrganizationDetails}>
@@ -74,7 +81,7 @@ let routes = (
       </Route>
     </Route>
 
-    <Route path="*" component={RouteNotFound}/>
+    <Route path="*" component={RouteNotFound} onEnter={appendTrailingSlash}/>
   </Route>
 );
 
