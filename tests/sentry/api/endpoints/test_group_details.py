@@ -1,10 +1,12 @@
 from __future__ import absolute_import, print_function
 
+from datetime import timedelta
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 
 from sentry.models import (
-    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus,
-    GroupTagValue, Release
+    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupSnooze,
+    GroupStatus, GroupTagValue, Release
 )
 from sentry.testutils import APITestCase
 
@@ -68,6 +70,32 @@ class GroupUpdateTest(APITestCase):
             project=group.project.id,
         )
         assert group.status == GroupStatus.RESOLVED
+
+    def test_snooze_duration(self):
+        group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
+
+        self.login_as(user=self.user)
+
+        url = reverse('sentry-api-0-group-details', kwargs={
+            'group_id': group.id,
+        })
+
+        response = self.client.put(url, data={
+            'status': 'muted',
+            'snoozeDuration': 30,
+        }, format='json')
+
+        assert response.status_code == 200
+
+        snooze = GroupSnooze.objects.get(group=group)
+
+        assert snooze.until > timezone.now() + timedelta(minutes=29)
+        assert snooze.until < timezone.now() + timedelta(minutes=31)
+
+        assert response.data['snoozeUntil'] == snooze.until
+
+        group = Group.objects.get(id=group.id)
+        assert group.get_status() == GroupStatus.MUTED
 
     def test_bookmark(self):
         self.login_as(user=self.user)
