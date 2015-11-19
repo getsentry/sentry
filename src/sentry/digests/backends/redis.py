@@ -232,8 +232,11 @@ class RedisBackend(Backend):
         )
 
     def add(self, key, record, increment_delay=None, maximum_delay=None):
-        increment_delay = increment_delay if increment_delay is not None else self.increment_delay
-        maximum_delay = maximum_delay if maximum_delay is not None else self.maximum_delay
+        if increment_delay is None:
+            increment_delay = self.increment_delay
+
+        if maximum_delay is None:
+            maximum_delay = self.maximum_delay
 
         timeline_key = make_timeline_key(self.namespace, key)
         record_key = make_record_key(timeline_key, record.key)
@@ -461,7 +464,8 @@ class RedisBackend(Backend):
 
     @contextmanager
     def digest(self, key, minimum_delay=None):
-        minimum_delay = minimum_delay if minimum_delay is not None else self.minimum_delay
+        if minimum_delay is None:
+            minimum_delay = self.minimum_delay
 
         timeline_key = make_timeline_key(self.namespace, key)
         digest_key = make_digest_key(timeline_key)
