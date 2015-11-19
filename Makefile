@@ -57,7 +57,7 @@ locale: build/javascript.po
 	./bin/merge-catalogs en
 	cd src/sentry && sentry compilemessages
 
-update-transifex:
+update-transifex: build/javascript.po
 	pip install transifex-client
 	cd src/sentry && sentry makemessages -i static -l en
 	./bin/merge-catalogs en
