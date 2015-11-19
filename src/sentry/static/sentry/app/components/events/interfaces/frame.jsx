@@ -98,7 +98,7 @@ const Frame = React.createClass({
 
     if (defined(data.origAbsPath)) {
       title.push(
-        <a key="original-src" className="in-at tip original-src" title={this.renderOriginalSourceInfo()}>
+        <a key="original-src" className="in-at tip original-src" data-title={this.renderOriginalSourceInfo()}>
           <span className="icon-question" />
         </a>
       );
