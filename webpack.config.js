@@ -77,7 +77,8 @@ var config = {
         test: /\.po$/,
         loader: 'po-catalog-loader',
         query: {
-          referenceExtensions: ['.js', '.jsx']
+          referenceExtensions: ['.js', '.jsx'],
+          domain: 'sentry'
         }
       },
       {
