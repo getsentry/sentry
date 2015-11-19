@@ -1,5 +1,5 @@
 import Jed from 'jed';
-import { getTranslations } from './translations';
+import { getCurrentTranslations } from './translations';
 
 const i18n = new Jed({
   'domain' : 'sentry',
@@ -11,7 +11,7 @@ const i18n = new Jed({
 
   'locale_data': {
     // XXX: configure language here
-    'sentry': getTranslations('en')
+    'sentry': getCurrentTranslations()
   }
 });
 
