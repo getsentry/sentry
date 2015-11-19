@@ -15,7 +15,7 @@ from sudo.views import redirect_to_sudo
 from sentry.auth import access
 from sentry.auth.utils import is_active_superuser
 from sentry.models import (
-    Organization, OrganizationStatus, Project, Team
+    Organization, OrganizationMember, OrganizationStatus, Project, Team
 )
 from sentry.web.helpers import get_login_url, render_to_response
 
@@ -79,10 +79,17 @@ class OrganizationMixin(object):
                 logging.info('User is not a member of any organizations')
                 pass
 
-        if active_organization and active_organization.slug != request.session.get('activeorg'):
-            request.session['activeorg'] = active_organization.slug
+        if active_organization and self._is_org_member(request.user, active_organization):
+            if active_organization.slug != request.session.get('activeorg'):
+                request.session['activeorg'] = active_organization.slug
 
         return active_organization
+
+    def _is_org_member(self, user, organization):
+        return OrganizationMember.objects.filter(
+            user=user,
+            organization=organization,
+        ).exists()
 
     def get_active_team(self, request, organization, team_slug):
         """
