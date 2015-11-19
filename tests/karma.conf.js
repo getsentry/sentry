@@ -38,6 +38,13 @@ module.exports = function(config) {
             loader: "babel-loader"
           },
           {
+            test: /\.po$/,
+            loader: 'po-catalog-loader',
+            query: {
+              referenceExtensions: ['.js', '.jsx']
+            }
+          },
+          {
             test: /\.json$/,
             loader: "json-loader"
           }
