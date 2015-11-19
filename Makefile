@@ -49,16 +49,16 @@ clean:
 	find . -name "*.pyc" -delete
 	@echo ""
 
-build/javascript.po:
+build-js-po:
 	mkdir -p build
-	./node_modules/.bin/webpack
+	SENTRY_EXTRACT_TRANSLATIONS=1 ./node_modules/.bin/webpack
 
-locale: build/javascript.po
+locale: build-js-po
 	cd src/sentry && sentry makemessages -i static -l en
 	./bin/merge-catalogs en
 	cd src/sentry && sentry compilemessages
 
-update-transifex: build/javascript.po
+update-transifex: build-js-po
 	pip install transifex-client
 	cd src/sentry && sentry makemessages -i static -l en
 	./bin/merge-catalogs en

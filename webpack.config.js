@@ -11,6 +11,26 @@ if (process.env.SENTRY_STATIC_DIST_PATH) {
     distPath = process.env.SENTRY_STATIC_DIST_PATH;
 }
 
+var babelQuery = {
+  plugins: [],
+  extra: {}
+};
+
+// only extract po files if we need to
+if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
+  babelQuery.plugins.push('babel-gettext-extractor');
+  babelQuery.extra.gettext = {
+    fileName: 'build/javascript.po',
+    baseDirectory: path.join(__dirname, 'src/sentry'),
+    functionNames: {
+      gettext: ["msgid"],
+      ngettext: ["msgid", "msgid_plural", "count"],
+      t: ["msgid"],
+      tn: ["msgid", "msgid_plural", "count"],
+    },
+  };
+}
+
 var config = {
   context: path.join(__dirname, staticPrefix),
   entry: {
@@ -57,21 +77,7 @@ var config = {
         loader: "babel-loader",
         include: path.join(__dirname, staticPrefix),
         exclude: /(vendor|node_modules)/,
-        query: {
-          plugins: ['babel-gettext-extractor'],
-          extra: {
-            gettext: {
-              fileName: 'build/javascript.po',
-              baseDirectory: path.join(__dirname, 'src/sentry'),
-              functionNames: {
-                gettext: ["msgid"],
-                ngettext: ["msgid", "msgid_plural", "count"],
-                t: ["msgid"],
-                tn: ["msgid", "msgid_plural", "count"],
-              },
-            }
-          }
-        }
+        query: babelQuery
       },
       {
         test: /\.po$/,
