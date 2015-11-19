@@ -1,0 +1,56 @@
+#!/usr/bin/env python
+
+import os
+import click
+
+from babel.messages.pofile import read_po, write_po
+
+
+JS_EXTENSIONS = ('.js', '.jsx')
+
+
+def merge_message(msg, frontend_msg):
+    non_js_locations = [
+        (fn, lineno) for fn, lineno in msg.locations
+        if not fn.endswith(JS_EXTENSIONS)
+    ]
+    if (not msg.user_comments or not non_js_locations) \
+       and frontend_msg.user_comments:
+        msg.user_comments = frontend_msg.usr_comments
+    msg.locations = non_js_locations + frontend_msg.locations
+
+
+@click.command()
+@click.argument('locale')
+def cli(locale):
+    catalog_file = 'src/sentry/locale/%s/LC_MESSAGES/django.po' % locale
+    frontend_file = 'build/javascript.po'
+    if not os.path.isfile(frontend_file):
+        return
+
+    with open(catalog_file) as f:
+        catalog = read_po(f)
+    with open(frontend_file) as f:
+        frontend = read_po(f)
+
+    for frontend_msg in frontend:
+        if frontend_msg.id == '':
+            continue
+        msg = catalog.get(frontend_msg.id)
+
+        # If the message is not yet in the catalog, then insert it as
+        # such.
+        if msg is None:
+            msg = frontend_msg
+        # Otherwise merge the record.  Locations are merged by removing
+        # all javascript locations and inserting new ones.
+        else:
+            merge_message(msg, frontend_msg)
+        catalog[msg.id] = msg
+
+    with open(catalog_file, 'w') as f:
+        write_po(f, catalog)
+
+
+if __name__ == '__main__':
+    cli()

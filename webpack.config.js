@@ -16,6 +16,9 @@ var config = {
   entry: {
     // js
     "app": "app",
+    "translations": [
+      "app/translations"
+    ],
     "vendor": [
       "babel-core/polyfill",
       "bootstrap/js/dropdown",
@@ -23,6 +26,7 @@ var config = {
       "bootstrap/js/tooltip",
       "bootstrap/js/alert",
       "crypto-js/md5",
+      "jed",
       "jquery",
       "marked",
       "moment",
@@ -52,7 +56,30 @@ var config = {
         test: /\.jsx?$/,
         loader: "babel-loader",
         include: path.join(__dirname, staticPrefix),
-        exclude: /(vendor|node_modules)/
+        exclude: /(vendor|node_modules)/,
+        query: {
+          plugins: ['babel-gettext-extractor'],
+          extra: {
+            gettext: {
+              fileName: 'build/javascript.po',
+              baseDirectory: path.join(__dirname, 'src/sentry'),
+              functionNames: {
+                gettext: ["msgid"],
+                ngettext: ["msgid", "msgid_plural", "count"],
+                t: ["msgid"],
+                tn: ["msgid", "msgid_plural", "count"],
+              },
+            }
+          }
+        }
+      },
+      {
+        test: /\.po$/,
+        loader: 'po-catalog-loader',
+        query: {
+          referenceExtensions: ['.js', '.jsx'],
+          domain: 'sentry'
+        }
       },
       {
         test: /\.json$/,
