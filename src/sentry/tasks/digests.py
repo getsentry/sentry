@@ -6,6 +6,7 @@ from sentry.digests.notifications import (
     build_digest,
     split_key,
 )
+from sentry.models import ProjectOption
 from sentry.tasks.base import instrumented_task
 
 
@@ -39,7 +40,10 @@ def deliver_digest(key, schedule_timestamp=None):
     from sentry.app import digests
 
     plugin, project = split_key(key)
-    minimum_delay = plugin.get_option('digests:minimum_delay', project=project)
+    minimum_delay = ProjectOption.objects.get_value(
+        project,
+        '{0}:digests:{1}'.format(plugin.get_conf_key(), 'minimum_delay'),
+    )
     with digests.digest(key, minimum_delay=minimum_delay) as records:
         digest = build_digest(project, records)
 
