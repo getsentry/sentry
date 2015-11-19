@@ -59,7 +59,13 @@ var config = {
           extra: {
             gettext: {
               fileName: 'build/javascript.po',
-              baseDirectory: path.join(__dirname, 'src/sentry')
+              baseDirectory: path.join(__dirname, 'src/sentry'),
+              functionNames: {
+                gettext: ["msgid"],
+                ngettext: ["msgid", "msgid_plural", "count"],
+                t: ["msgid"],
+                tn: ["msgid", "msgid_plural", "count"],
+              },
             }
           }
         }
