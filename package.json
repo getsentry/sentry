@@ -16,6 +16,7 @@
     "extract-text-webpack-plugin": "0.8.2",
     "file-loader": "0.8.4",
     "history": "1.13.0",
+    "jed": "^1.1.0",
     "jquery": "2.1.4",
     "json-loader": "0.5.3",
     "less": "2.5.3",
@@ -52,7 +53,9 @@
   },
   "devDependencies": {
     "babel-core": "5.8.33",
+    "babel-gettext-extractor": "^1.0.0",
     "babel-loader": "5.3.3",
+    "po-catalog-loader": "^1.0.0",
     "chai": "3.4.1",
     "js-cookie": "2.0.4",
     "karma": "0.13.15",

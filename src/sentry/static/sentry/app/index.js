@@ -45,9 +45,9 @@ export default {
     api: require('./api'),
     routes: require('./routes'),
     createHistory: require('history/lib/createBrowserHistory'),
-
     Alerts: require('./components/alerts'),
     BarChart: require('./components/barChart'),
+    i18n: require('./locale'),
     ConfigStore: require('./stores/configStore'),
     DropdownLink: require('./components/dropdownLink'),
     FlotChart: require('./components/flotChart'),

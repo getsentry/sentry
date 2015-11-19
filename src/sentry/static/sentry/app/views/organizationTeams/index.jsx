@@ -1,6 +1,7 @@
 import React from 'react';
 import Reflux from 'reflux';
 
+import {t} from '../../locale';
 import api from '../../api';
 import ConfigStore from '../../stores/configStore';
 import OrganizationHomeContainer from '../../components/organizations/homeContainer';
@@ -97,32 +98,32 @@ const OrganizationTeams = React.createClass({
                 {access.has('project:write') ?
                   <a href={urlPrefix + '/projects/new/'} className="btn btn-primary btn-sm"
                      style={{marginRight: 5}}>
-                    <span className="icon-plus" /> Project
+                    <span className="icon-plus" /> {t('Project')}
                   </a>
                 :
                   <a className="btn btn-primary btn-sm btn-disabled tip"
-                     title="You do not have enough permission to create new projects"
+                     title={t('You do not have enough permission to create new projects')}
                      style={{marginRight: 5}}>
-                    <span className="icon-plus" /> Project
+                    <span className="icon-plus" /> {t('Project')}
                   </a>
                 }
                 {access.has('team:write') ?
                   <a href={urlPrefix + '/teams/new/'} className="btn btn-primary btn-sm">
-                    <span className="icon-plus" /> Team
+                    <span className="icon-plus" /> {t('Team')}
                   </a>
                 :
                   <a className="btn btn-primary btn-sm btn-disabled tip"
-                     title="You do not have enough permission to create new teams">
-                    <span className="icon-plus" /> Team
+                     title={t('You do not have enough permission to create new teams')}>
+                    <span className="icon-plus" /> {t('Team')}
                   </a>
                 }
               </div>
               <ul className="nav nav-tabs border-bottom">
                 <li className={activeNav === 'your-teams' && 'active'}>
-                  <a onClick={this.toggleTeams.bind(this, 'your-teams')}>Your Teams</a>
+                  <a onClick={this.toggleTeams.bind(this, 'your-teams')}>{t('Your Teams')}</a>
                 </li>
                 <li className={activeNav === 'all-teams' && 'active'}>
-                  <a onClick={this.toggleTeams.bind(this, 'all-teams')}>All Teams <span className="badge badge-soft">{allTeams.length}</span></a>
+                  <a onClick={this.toggleTeams.bind(this, 'all-teams')}>{t('All Teams')} <span className="badge badge-soft">{allTeams.length}</span></a>
                 </li>
               </ul>
               {activeNav == 'your-teams' ?
