@@ -34,10 +34,12 @@ class Activity(Model):
     RELEASE = 10
     ASSIGNED = 11
     UNASSIGNED = 12
+    SET_RESOLVED_IN_RELEASE = 13
 
     TYPE = (
         # (TYPE, verb-slug)
         (SET_RESOLVED, 'set_resolved'),
+        (SET_RESOLVED_IN_RELEASE, 'set_resolved_in_release'),
         (SET_UNRESOLVED, 'set_unresolved'),
         (SET_MUTED, 'set_muted'),
         (SET_PUBLIC, 'set_public'),

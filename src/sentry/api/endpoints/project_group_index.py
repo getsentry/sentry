@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 from datetime import datetime, timedelta
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
@@ -11,13 +12,11 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
-from sentry.constants import (
-    DEFAULT_SORT_OPTION, STATUS_CHOICES
-)
+from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, EventMapping, Group, GroupBookmark, GroupSeen, GroupSnooze,
-    GroupStatus, TagKey
+    Activity, EventMapping, Group, GroupBookmark, GroupResolution, GroupSeen,
+    GroupSnooze, GroupStatus, Release, TagKey
 )
 from sentry.search.utils import parse_query
 from sentry.tasks.deletion import delete_group
@@ -59,6 +58,14 @@ def list_project_aggregates_scenario(runner):
         path='/projects/%s/%s/groups/?statsPeriod=24h' % (
             runner.org.slug, project.slug),
     )
+
+
+STATUS_CHOICES = {
+    'resolved': GroupStatus.RESOLVED,
+    'unresolved': GroupStatus.UNRESOLVED,
+    'muted': GroupStatus.MUTED,
+    'resolvedInNextRelease': GroupStatus.UNRESOLVED,
+}
 
 
 class GroupSerializer(serializers.Serializer):
@@ -315,7 +322,51 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 return Response('{"detail": "Invalid status"}', status=400)
             filters.append(Q(status=status_filter))
 
-        if result.get('status') == 'resolved':
+        if result.get('status') == 'resolvedInNextRelease':
+            release = Release.objects.filter(
+                project=project,
+            ).order_by('-date_added')[0]
+
+            now = timezone.now()
+
+            for group in group_list:
+                try:
+                    with transaction.atomic():
+                        GroupResolution.objects.create(
+                            group=group,
+                            release=release,
+                        )
+                except IntegrityError:
+                    pass
+
+                happened = Group.objects.filter(
+                    id=group.id,
+                ).update(
+                    status=GroupStatus.RESOLVED,
+                    resolved_at=now,
+                )
+
+                if happened:
+                    activity = Activity.objects.create(
+                        project=group.project,
+                        group=group,
+                        type=Activity.SET_RESOLVED_IN_RELEASE,
+                        user=acting_user,
+                        data={
+                            # no version yet
+                            'version': '',
+                        }
+                    )
+                    activity.send_notification()
+
+            result.update({
+                'status': 'resolved',
+                'statusDetails': {
+                    'inNextRelease': True,
+                },
+            })
+
+        elif result.get('status') == 'resolved':
             now = timezone.now()
 
             happened = Group.objects.filter(*filters).exclude(
@@ -324,6 +375,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 status=GroupStatus.RESOLVED,
                 resolved_at=now,
             )
+
+            GroupResolution.objects.filter(
+                group__in=Group.objects.filter(*filters),
+            ).delete()
 
             if group_list and happened:
                 for group in group_list:
@@ -337,6 +392,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     )
                     activity.send_notification()
 
+            result['statusDetails'] = {}
+
         elif result.get('status'):
             new_status = STATUS_CHOICES[result['status']]
 
@@ -346,10 +403,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 status=new_status,
             )
 
+            GroupResolution.objects.filter(
+                group__in=Group.objects.filter(*filters),
+            ).delete()
+
             if new_status == GroupStatus.MUTED:
-                if result.get('snoozeDuration'):
+                snooze_duration = result.pop('snoozeDuration', None)
+                if snooze_duration:
                     snooze_until = timezone.now() + timedelta(
-                        minutes=int(result['snoozeDuration']),
+                        minutes=snooze_duration,
                     )
                     for group in group_list:
                         GroupSnooze.objects.create_or_update(
@@ -358,12 +420,17 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                 'until': snooze_until,
                             }
                         )
-                        result['snoozeUntil'] = snooze_until
+                        result['statusDetails'] = {
+                            'snoozeUntil': snooze_until,
+                        }
                 else:
                     GroupSnooze.objects.filter(
                         group__in=group_list,
                     ).delete()
-                    result['snoozeUntil'] = None
+                    snooze_until = None
+                    result['statusDetails'] = {}
+            else:
+                result['statusDetails'] = {}
 
             if group_list and happened:
                 if new_status == GroupStatus.UNRESOLVED:
@@ -372,8 +439,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 elif new_status == GroupStatus.MUTED:
                     activity_type = Activity.SET_MUTED
                     activity_data = {
-                        'snoozeUntil': result['snoozeUntil'],
-                        'snoozeDuration': result['snoozeDuration'],
+                        'snoozeUntil': snooze_until,
+                        'snoozeDuration': snooze_duration,
                     }
 
                 for group in group_list:
