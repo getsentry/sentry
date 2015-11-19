@@ -177,6 +177,17 @@ class Group(Model):
         return self.get_status() == GroupStatus.RESOLVED
 
     def get_status(self):
+        # XXX(dcramer): GroupSerializer reimplements this logic)
+        from sentry.models import GroupSnooze
+
+        try:
+            snooze = GroupSnooze.objects.get(group=self)
+        except GroupSnooze.DoesNotExist:
+            pass
+        else:
+            if snooze.until > timezone.now():
+                return GroupStatus.MUTED
+
         if self.status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
             return GroupStatus.RESOLVED
         return self.status

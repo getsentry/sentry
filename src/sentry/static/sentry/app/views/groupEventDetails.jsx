@@ -88,7 +88,7 @@ const GroupEventDetails = React.createClass({
                   orgId={params.orgId}
                   projectId={params.projectId} />
             }
-            <MutedBox status={group.status} />
+            <MutedBox status={group.status} snoozeUntil={group.snoozeUntil} />
             {this.state.loading ?
               <LoadingIndicator />
             : (this.state.error ?

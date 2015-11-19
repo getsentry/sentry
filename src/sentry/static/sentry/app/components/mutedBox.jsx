@@ -1,6 +1,8 @@
 import React from 'react';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
+import DateTime from './dateTime';
+
 const MutedBox = React.createClass({
   mixins: [PureRenderMixin],
 
@@ -10,7 +12,13 @@ const MutedBox = React.createClass({
     }
     return (
       <div className="alert alert-info alert-block">
-        This event has been muted. You will not be notified of any changes and it will not show up in the default feed.
+        {this.props.snoozeUntil ?
+          <span>This event has been snoozed until <strong><DateTime date={this.props.snoozeUntil} /></strong> &mdash; </span>
+        :
+          <span>This event has been muted &mdash; </span>
+        }
+        You will not be notified of any changes and it will not show up by
+        default in feeds.
       </div>
     );
   }
