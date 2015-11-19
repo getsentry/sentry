@@ -9,9 +9,13 @@ from babel.messages.pofile import read_po, write_po
 JS_EXTENSIONS = ('.js', '.jsx')
 
 
-def merge_locations(locations, frontend_locations):
-    return [(fn, lineno) for fn, lineno in locations
-            if not fn.endswith(JS_EXTENSIONS)] + frontend_locations
+def merge_message(msg, frontend_msg):
+    msg.locations = [
+        (fn, lineno) for fn, lineno in msg.locations
+        if not fn.endswith(JS_EXTENSIONS)
+    ] + frontend_msg.locations
+    if not msg.user_comments and frontend_msg.user_comments:
+        msg.user_comments = frontend_msg.usr_comments
 
 
 @click.command()
@@ -39,8 +43,7 @@ def cli(locale):
         # Otherwise merge the record.  Locations are merged by removing
         # all javascript locations and inserting new ones.
         else:
-            msg.locations = merge_locations(
-                msg.locations, frontend_msg.locations)
+            merge_message(msg, frontend_msg)
         catalog[msg.id] = msg
 
     with open(catalog_file, 'w') as f:
