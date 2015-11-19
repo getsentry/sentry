@@ -102,7 +102,7 @@ test-python:
 
 test-python-coverage:
 	@echo "--> Running Python tests"
-	coverage run --source=src/sentry -m py.test tests
+	coverage run --source=src/sentry,tests -m py.test tests
 	@echo ""
 
 
@@ -117,7 +117,7 @@ lint-python: lint
 lint-js: lint
 
 coverage: develop
-	coverage run --source=src/sentry -m py.test
+	make test-python-coverage
 	coverage html
 
 run-uwsgi:
