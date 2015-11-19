@@ -1,4 +1,5 @@
 import Jed from 'jed';
+import { getTranslations } from './translations';
 
 const i18n = new Jed({
   'domain' : 'sentry',
@@ -8,22 +9,9 @@ const i18n = new Jed({
     // TODO(dcramer): this should log to Sentry
   },
 
-  'locale_data' : {
-    // This is the domain key
-    'sentry' : {
-      // The empty string key is used as the configuration
-      // block for each domain
-      '' : {
-        // Domain name
-        'domain' : 'sentry',
-
-        // Language code
-        'lang' : 'en',
-
-        // Plural form function for language
-        'plural_forms' : 'nplurals=2; plural=(n != 1);'
-      },
-    }
+  'locale_data': {
+    // XXX: configure language here
+    'sentry': getTranslations('en')
   }
 });
 
