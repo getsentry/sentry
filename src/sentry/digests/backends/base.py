@@ -50,13 +50,13 @@ class Backend(object):
     be transitioned to "waiting" instead.)
     """
     def __init__(self, **options):
-        # The ``interval`` option defines the minimum amount of time (in
-        # seconds) to wait between scheduling digests for delivery after the
-        # initial scheduling.
-        self.interval = options.pop('interval', 60 * 5)
+        # The ``minimum_delay`` option defines the default minimum amount of
+        # time (in seconds) to wait between scheduling digests for delivery
+        # after the initial scheduling.
+        self.minimum_delay = options.pop('minimum_delay', 60 * 5)
 
-        # The ``maximum_delay`` option defines the maximum amount of time (in
-        # seconds) to wait between scheduling digests for delivery.
+        # The ``maximum_delay`` option defines the default maximum amount of
+        # time (in seconds) to wait between scheduling digests for delivery.
         self.maximum_delay = options.pop('maximum_delay', 60 * 30)
 
         # The ``increment_delay`` option defines how long each observation of
@@ -95,7 +95,7 @@ class Backend(object):
     def validate(self):
         pass
 
-    def add(self, key, record):
+    def add(self, key, record, increment_delay=None, maximum_delay=None):
         """
         Add a record to a timeline.
 
@@ -110,7 +110,7 @@ class Backend(object):
         """
         raise NotImplementedError
 
-    def digest(self, key):
+    def digest(self, key, minimum_delay=None):
         """
         Extract records from a timeline for processing.
 
