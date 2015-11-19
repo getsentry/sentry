@@ -30,6 +30,7 @@ class BroadcastAdmin(admin.ModelAdmin):
     list_display = ('title', 'message', 'is_active', 'date_added')
     list_filter = ('is_active',)
     search_fields = ('title', 'message', 'link')
+    readonly_fields = ('upstream_id', 'date_added')
 
 admin.site.register(Broadcast, BroadcastAdmin)
 
