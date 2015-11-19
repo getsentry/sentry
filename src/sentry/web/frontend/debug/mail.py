@@ -287,7 +287,9 @@ def digest(request):
         group_id = next(group_sequence)
 
         culprit = '{module} in {function}'.format(
-            module='.'.join(random.sample(WORDS, random.randint(1, 4))),
+            module='.'.join(
+                ''.join(random.sample(WORDS, random.randint(1, int(random.paretovariate(2.2))))) for word in xrange(1, 4)
+            ),
             function=random.choice(WORDS)
         )
         group = state['groups'][group_id] = Group(
