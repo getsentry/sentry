@@ -16,7 +16,7 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 class Broadcast(Model):
     __core__ = False
 
-    upstream_id = models.CharField(max_length=32, null=True)
+    upstream_id = models.CharField(max_length=32, null=True, blank=True)
     title = models.CharField(max_length=32)
     message = models.CharField(max_length=256)
     link = models.URLField(null=True, blank=True)
