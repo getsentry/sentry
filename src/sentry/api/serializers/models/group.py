@@ -8,8 +8,8 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.models import (
-    Group, GroupAssignee, GroupBookmark, GroupMeta, GroupSeen, GroupStatus,
-    GroupTagKey
+    Group, GroupAssignee, GroupBookmark, GroupMeta, GroupSeen, GroupSnooze,
+    GroupStatus, GroupTagKey
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -52,6 +52,12 @@ class GroupSerializer(Serializer):
             ).values_list('group', 'values_seen')
         )
 
+        snoozes = dict(
+            GroupSnooze.objects.filter(
+                group__in=item_list,
+            ).values_list('group', 'until')
+        )
+
         result = {}
         for item in item_list:
             active_date = item.active_at or item.last_seen
@@ -68,11 +74,17 @@ class GroupSerializer(Serializer):
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'annotations': annotations,
                 'user_count': user_counts.get(item.id, 0),
+                'snooze': snoozes.get(item.id),
             }
         return result
 
     def serialize(self, obj, attrs, user):
-        status = obj.get_status()
+        status = obj.status
+        if attrs['snooze']:
+            status = GroupStatus.MUTED
+        elif status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
+            status = GroupStatus.RESOLVED
+
         if status == GroupStatus.RESOLVED:
             status_label = 'resolved'
         elif status == GroupStatus.MUTED:
@@ -90,7 +102,7 @@ class GroupSerializer(Serializer):
         else:
             permalink = None
 
-        d = {
+        return {
             'id': str(obj.id),
             'shareId': obj.get_share_id(),
             'count': str(obj.times_seen),
@@ -104,6 +116,7 @@ class GroupSerializer(Serializer):
             'logger': obj.logger or None,
             'level': LOG_LEVELS.get(obj.level, 'unknown'),
             'status': status_label,
+            'snoozeUntil': attrs['snooze'],
             'isPublic': obj.is_public,
             'project': {
                 'name': obj.project.name,
@@ -115,7 +128,6 @@ class GroupSerializer(Serializer):
             'hasSeen': attrs['has_seen'],
             'annotations': attrs['annotations'],
         }
-        return d
 
 
 class StreamGroupSerializer(GroupSerializer):

@@ -134,16 +134,6 @@ const GroupHeader = React.createClass({
         <GroupSeenBy />
         <GroupActions />
         <div className="pull-right">
-          <div className={(group.status === 'muted' ? 'on ' : '') + 'group-notifications'}>
-            <a onClick={this.onToggleMute}>
-              <span className="icon" />
-              {group.status !== 'muted' ?
-                'Mute notifications'
-              :
-                'Un-mute notifications'
-              }
-            </a>
-          </div>
           <div className="group-privacy">
             <a onClick={this.onShare}>
               <span className="icon" /> Share this event
