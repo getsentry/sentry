@@ -6,7 +6,7 @@ from django.utils import timezone
 from mock import patch
 
 from sentry.models import (
-    EventMapping, Group, GroupBookmark, GroupSeen, GroupStatus
+    EventMapping, Group, GroupBookmark, GroupSeen, GroupSnooze, GroupStatus
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import parse_link_header
@@ -305,6 +305,39 @@ class GroupUpdateTest(APITestCase):
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
+
+    def test_snooze_duration(self):
+        group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=reverse('sentry-api-0-project-group-index', kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+            }),
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'status': 'muted',
+            'snoozeDuration': 30,
+        }, format='json')
+
+        assert response.status_code == 200
+
+        snooze = GroupSnooze.objects.get(group=group)
+
+        assert snooze.until > timezone.now() + timedelta(minutes=29)
+        assert snooze.until < timezone.now() + timedelta(minutes=31)
+
+        assert response.data == {
+            'status': 'muted',
+            'snoozeDuration': 30,
+            'snoozeUntil': snooze.until,
+        }
+
+        group = Group.objects.get(id=group.id)
+        assert group.get_status() == GroupStatus.MUTED
 
     def test_set_bookmarked(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)

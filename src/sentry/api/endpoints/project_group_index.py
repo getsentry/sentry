@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
@@ -16,7 +16,8 @@ from sentry.constants import (
 )
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, EventMapping, Group, GroupBookmark, GroupSeen, GroupStatus, TagKey
+    Activity, EventMapping, Group, GroupBookmark, GroupSeen, GroupSnooze,
+    GroupStatus, TagKey
 )
 from sentry.search.utils import parse_query
 from sentry.tasks.deletion import delete_group
@@ -68,6 +69,7 @@ class GroupSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
     isPublic = serializers.BooleanField()
     merge = serializers.BooleanField()
+    snoozeDuration = serializers.IntegerField()
 
 
 class ProjectGroupIndexEndpoint(ProjectEndpoint):
@@ -266,6 +268,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :param string status: the new status for the groups.  Valid values
                               are ``"resolved"``, ``"unresolved"`` and
                               ``"muted"``.
+        :param int snoozeDuration: the number of minutes to mute this issue.
         :param boolean isPublic: sets the group to public or private.
         :param boolean merge: allows to merge or unmerge different groups.
         :param boolean hasSeen: in case this API call is invoked with a user
@@ -342,6 +345,20 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             ).update(
                 status=new_status,
             )
+
+            if new_status == GroupStatus.MUTED and result.get('snoozeDuration'):
+                snooze_until = timezone.now() + timedelta(
+                    minutes=int(result['snoozeDuration']),
+                )
+                for group in group_list:
+                    GroupSnooze.objects.create_or_update(
+                        group=group,
+                        values={
+                            'until': snooze_until,
+                        }
+                    )
+                    result['snoozeUntil'] = snooze_until
+
             if group_list and happened:
                 if new_status == GroupStatus.UNRESOLVED:
                     activity_type = Activity.SET_UNRESOLVED
