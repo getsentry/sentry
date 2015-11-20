@@ -40,7 +40,7 @@ from .helpers import AuthProvider, Feature, get_auth_header, TaskRunner
 
 
 class BaseTestCase(Fixtures, Exam):
-    urls = 'tests.sentry.web.urls'
+    urls = 'sentry.web.urls'
 
     def assertRequiresAuthentication(self, path, method='GET'):
         resp = getattr(self.client, method.lower())(path)
