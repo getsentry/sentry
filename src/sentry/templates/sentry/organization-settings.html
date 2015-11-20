@@ -29,6 +29,10 @@
         {{ form.default_role|as_crispy_field }}
         {{ form.allow_joinleave|as_crispy_field }}
 
+        <legend>Security &amp; Privacy</legend>
+
+        {{ form.enhanced_privacy|as_crispy_field }}
+
         <fieldset class="form-actions">
           <button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button>
         </fieldset>
