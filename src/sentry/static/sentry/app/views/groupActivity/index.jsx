@@ -1,4 +1,6 @@
 import React from 'react';
+
+import Duration from '../../components/duration';
 import Gravatar from '../../components/gravatar';
 import GroupState from '../../mixins/groupState';
 import MemberListStore from '../../stores/memberListStore';
@@ -19,6 +21,9 @@ let formatActivity = function(item) {
     case 'set_unresolved':
       return 'marked this event as unresolved';
     case 'set_muted':
+      if (data.snoozeDuration) {
+        return <span>snoozed this issue for <Duration seconds={data.snoozeDuration * 60} /></span>;
+      }
       return 'marked this event as muted';
     case 'set_public':
       return 'made this event public';
