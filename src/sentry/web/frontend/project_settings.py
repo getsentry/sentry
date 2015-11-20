@@ -23,6 +23,10 @@ BLANK_CHOICE = [("", "")]
 class EditProjectForm(forms.ModelForm):
     name = forms.CharField(label=_('Project Name'), max_length=200,
         widget=forms.TextInput(attrs={'placeholder': _('Production')}))
+    slug = forms.SlugField(
+        label=_('Short name'),
+        help_text=_('A unique ID used to identify this project.'),
+    )
     team = CustomTypedChoiceField(choices=(), coerce=int, required=False)
     origins = OriginsField(label=_('Allowed Domains'), required=False,
         help_text=_('Separate multiple entries with a newline.'))
