@@ -13,6 +13,11 @@ from sentry.web.frontend.base import TeamView
 
 
 class EditTeamForm(forms.ModelForm):
+    slug = forms.SlugField(
+        label=_('Short name'),
+        help_text=_('A unique ID used to identify this team.'),
+    )
+
     class Meta:
         fields = ('name', 'slug',)
         model = Team

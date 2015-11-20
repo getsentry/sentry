@@ -15,7 +15,10 @@ from sentry.web.frontend.base import OrganizationView
 
 class OrganizationSettingsForm(forms.ModelForm):
     name = forms.CharField(help_text=_('The name of your organization. i.e. My Company'))
-    slug = forms.SlugField(help_text=_('A unique ID used to identify this organization.'))
+    slug = forms.SlugField(
+        label=_('Short name'),
+        help_text=_('A unique ID used to identify this organization.'),
+    )
     allow_joinleave = forms.BooleanField(
         label=_('Open Membership'),
         help_text=_('Allow organization members to freely join or leave any team.'),
