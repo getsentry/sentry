@@ -29,6 +29,11 @@ class OrganizationSettingsForm(forms.ModelForm):
         choices=roles.get_choices(),
         help_text=_('The default role new members will receive.'),
     )
+    enhanced_privacy = forms.BooleanField(
+        label=_('Enhanced Privacy'),
+        help_text=_('Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.'),
+        required=False,
+    )
 
     class Meta:
         fields = ('name', 'slug', 'default_role')
@@ -44,7 +49,8 @@ class OrganizationSettingsView(OrganizationView):
             instance=organization,
             initial={
                 'default_role': organization.default_role,
-                'allow_joinleave': bool(getattr(organization.flags, 'allow_joinleave')),
+                'allow_joinleave': bool(organization.flags.allow_joinleave),
+                'enhanced_privacy': bool(organization.flags.enhanced_privacy),
             }
         )
 
@@ -52,7 +58,8 @@ class OrganizationSettingsView(OrganizationView):
         form = self.get_form(request, organization)
         if form.is_valid():
             instance = form.save(commit=False)
-            setattr(instance.flags, 'allow_joinleave', form.cleaned_data['allow_joinleave'])
+            instance.flags.allow_joinleave = form.cleaned_data['allow_joinleave']
+            instance.flags.enhanced_privacy = form.cleaned_data['enhanced_privacy']
             instance.save()
 
             AuditLogEntry.objects.create(

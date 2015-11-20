@@ -126,16 +126,7 @@ class MailPlugin(NotificationPlugin):
         event = notification.event
         group = event.group
         project = group.project
-
-        interface_list = []
-        for interface in event.interfaces.itervalues():
-            body = interface.to_email_html(event)
-            if not body:
-                continue
-            text_body = interface.to_string(event)
-            interface_list.append(
-                (interface.get_title(), mark_safe(body), text_body)
-            )
+        org = group.organization
 
         subject = group.get_email_subject()
 
@@ -147,19 +138,38 @@ class MailPlugin(NotificationPlugin):
         rules = []
         for rule in notification.rules:
             rule_link = reverse('sentry-edit-project-rule', args=[
-                group.organization.slug, project.slug, rule.id
+                org.slug, project.slug, rule.id
             ])
             rules.append((rule.label, rule_link))
+
+        enhanced_privacy = org.flags.enhanced_privacy
 
         context = {
             'project_label': project.get_full_name(),
             'group': group,
             'event': event,
-            'tags': event.get_tags(),
             'link': link,
-            'interfaces': interface_list,
             'rules': rules,
+            'enhanced_privacy': enhanced_privacy,
         }
+
+        # if the organization has enabled enhanced privacy controls we dont send
+        # data which may show PII or source code
+        if not enhanced_privacy:
+            interface_list = []
+            for interface in event.interfaces.itervalues():
+                body = interface.to_email_html(event)
+                if not body:
+                    continue
+                text_body = interface.to_string(event)
+                interface_list.append(
+                    (interface.get_title(), mark_safe(body), text_body)
+                )
+
+            context.update({
+                'tags': event.get_tags(),
+                'interfaces': interface_list,
+            })
 
         headers = {
             'X-Sentry-Logger': group.logger,
