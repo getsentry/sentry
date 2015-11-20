@@ -368,8 +368,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             if group_list and happened:
                 if new_status == GroupStatus.UNRESOLVED:
                     activity_type = Activity.SET_UNRESOLVED
+                    activity_data = {}
                 elif new_status == GroupStatus.MUTED:
                     activity_type = Activity.SET_MUTED
+                    activity_data = {
+                        'snoozeUntil': result['snoozeUntil'],
+                        'snoozeDuration': result['snoozeDuration'],
+                    }
 
                 for group in group_list:
                     group.status = new_status
@@ -378,6 +383,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         group=group,
                         type=activity_type,
                         user=acting_user,
+                        data=activity_data,
                     )
                     activity.send_notification()
 
