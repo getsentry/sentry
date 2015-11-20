@@ -17,24 +17,24 @@ let formatActivity = function(item) {
     case 'note':
       return 'left a comment';
     case 'set_resolved':
-      return 'marked this event as resolved';
+      return 'marked this issue as resolved';
     case 'set_unresolved':
-      return 'marked this event as unresolved';
+      return 'marked this issue as unresolved';
     case 'set_muted':
       if (data.snoozeDuration) {
         return <span>snoozed this issue for <Duration seconds={data.snoozeDuration * 60} /></span>;
       }
-      return 'marked this event as muted';
+      return 'muted this issue';
     case 'set_public':
-      return 'made this event public';
+      return 'made this issue public';
     case 'set_private':
-      return 'made this event private';
+      return 'made this issue private';
     case 'set_regression':
-      return 'marked this event as a regression';
+      return 'marked this issue as a regression';
     case 'create_issue':
       return <span>created an issue on {data.provider} titled <a href={data.location}>{data.title}</a></span>;
     case 'first_seen':
-      return 'first saw this event';
+      return 'first saw this issue';
     case 'assigned':
       let assignee;
       if (data.assignee === item.user.id) {
@@ -45,7 +45,7 @@ let formatActivity = function(item) {
       }
       return `assigned this event to ${assignee}`;
     case 'unassigned':
-      return 'unassigned this event';
+      return 'unassigned this issue';
     default:
       return ''; // should never hit (?)
   }
