@@ -162,7 +162,7 @@ const GroupHeader = React.createClass({
             Tags
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/group/${groupId}/events/`}>
-            Similar Events
+            Related Events
           </ListLink>
         </ul>
       </div>
