@@ -268,6 +268,9 @@ class OrganizationView(BaseView):
         # if the user is attempting to access an organization that *may* be
         # accessible if they simply re-authenticate, we want to allow that
         # this opens up a privacy hole, but the pros outweigh the cons
+        if not organization_slug:
+            return False
+
         active_organization = self.get_active_organization(
             request=request,
             organization_slug=organization_slug,
