@@ -7,8 +7,12 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import constants
+from sentry.app import digests
 from sentry.plugins import plugins, NotificationPlugin
-from sentry.web.forms.projects import NotificationSettingsForm
+from sentry.web.forms.projects import (
+    DigestSettingsForm,
+    NotificationSettingsForm,
+)
 from sentry.web.frontend.base import ProjectView
 
 OK_SETTINGS_SAVED = _('Your settings were saved successfully.')
@@ -49,6 +53,20 @@ class ProjectNotificationsView(ProjectView):
             return HttpResponseRedirect(request.path)
 
         if op == 'save-settings':
+            digests_form = DigestSettingsForm(
+                data=request.POST,
+                prefix='digests',
+                initial={
+                    'minimum_delay': project.get_option(
+                        'digests:mail:minimum_delay',
+                        digests.minimum_delay / 60,
+                    ),
+                    'maximum_delay': project.get_option(
+                        'digests:mail:maximum_delay',
+                        digests.maximum_delay / 60,
+                    ),
+                },
+            )
             general_form = NotificationSettingsForm(
                 data=request.POST,
                 prefix='general',
@@ -57,14 +75,28 @@ class ProjectNotificationsView(ProjectView):
                         'mail:subject_prefix', settings.EMAIL_SUBJECT_PREFIX),
                 },
             )
-            if general_form.is_valid():
-                project.update_option(
-                    'mail:subject_prefix', general_form.cleaned_data['subject_prefix'])
+            if general_form.is_valid() and digests_form.is_valid():
+                project.update_option('mail:subject_prefix', general_form.cleaned_data['subject_prefix'])
+                project.update_option('digests:mail:minimum_delay', digests_form.cleaned_data['minimum_delay'] * 60)
+                project.update_option('digests:mail:maximum_delay', digests_form.cleaned_data['maximum_delay'] * 60)
                 messages.add_message(
                     request, messages.SUCCESS,
                     OK_SETTINGS_SAVED)
                 return HttpResponseRedirect(request.path)
         else:
+            digests_form = DigestSettingsForm(
+                prefix='digests',
+                initial={
+                    'minimum_delay': project.get_option(
+                        'digests:mail:minimum_delay',
+                        digests.minimum_delay,
+                    ) / 60,
+                    'maximum_delay': project.get_option(
+                        'digests:mail:maximum_delay',
+                        digests.maximum_delay,
+                    ) / 60,
+                },
+            )
             general_form = NotificationSettingsForm(
                 prefix='general',
                 initial={
@@ -95,6 +127,7 @@ class ProjectNotificationsView(ProjectView):
             'enabled_plugins': enabled_plugins,
             'other_plugins': other_plugins,
             'general_form': general_form,
+            'digests_form': digests_form,
         }
 
         return self.respond('sentry/project-notifications.html', context)
