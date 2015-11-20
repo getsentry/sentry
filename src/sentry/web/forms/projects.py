@@ -12,12 +12,32 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import ProjectOption
+from sentry.web.forms.fields import RangeField
 
 
 class NotificationSettingsForm(forms.Form):
     subject_prefix = forms.CharField(
         label=_('Mail Subject Prefix'), required=False,
         help_text=_('Choose a custom prefix for emails from this project.'))
+
+
+class DigestSettingsForm(forms.Form):
+    minimum_delay = RangeField(
+        label=_('Minimum delay between digest delivery'),
+        required=False,
+        min_value=1, max_value=60,
+    )
+    maximum_delay = RangeField(
+        label=_('Maximum delay between digest delivery'),
+        required=False,
+        min_value=1, max_value=60,
+    )
+
+    def clean(self):
+        cleaned = super(DigestSettingsForm, self).clean()
+        if cleaned['minimum_delay'] > cleaned['minimum_delay']:
+            raise forms.ValidationError(_('Minimum delay must be greater or equal to maximum delay.'))
+        return cleaned
 
 
 class ProjectQuotasForm(forms.Form):
