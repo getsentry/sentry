@@ -33,8 +33,8 @@
     </div>
 
     {% if enhanced_privacy %}
-      <p><em>Details about this issue are not shown in this notification since enhanced privacy
-        controls are enabled. For more details about this issue, view this issue on Sentry.</em></p>
+      <div class="notice">Details about this issue are not shown in this notification since enhanced privacy
+        controls are enabled. For more details about this issue, <a href="{{ link }}">view this issue on Sentry</a>.</div>
     {% else %}
       {% for label, html, _ in interfaces %}
       <div class="interface">
