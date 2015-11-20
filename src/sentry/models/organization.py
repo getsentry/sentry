@@ -81,6 +81,7 @@ class Organization(Model):
 
     flags = BitField(flags=(
         ('allow_joinleave', 'Allow members to join and leave teams without requiring approval.'),
+        ('enhanced_privacy', 'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.'),
     ), default=1)
 
     objects = OrganizationManager(cache_fields=(

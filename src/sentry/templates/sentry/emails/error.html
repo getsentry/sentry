@@ -32,25 +32,30 @@
       <div class="event-date">{{ event.datetime }} UTC</div>
     </div>
 
-    {% for label, html, _ in interfaces %}
-    <div class="interface">
-        <h3 class="title">{{ label }}</h3>
-        {{ html }}
-    </div>
-    {% endfor %}
-
-    {% if tags %}
-      <h3>Tags</h3>
-
-      <ul class="tag-list">
-      {% for tag_key, tag_value in tags %}
-        <li>
-            <strong>{{ tag_key }}</strong>
-            <em>=</em>
-            <span><a href="{% absolute_uri project_link %}?{{ tag_key }}={{ tag_value }}">{{ tag_value }}</a> {% if tag_value|is_url %}<a href="{{ tag_value|truncatechars:50 }}" class="icon-share"></a>{% endif %}</span>
-        </li>
+    {% if enhanced_privacy %}
+      <p><em>Details about this issue are not shown in this notification since enhanced privacy
+        controls are enabled. For more details about this issue, view this issue on Sentry.</em></p>
+    {% else %}
+      {% for label, html, _ in interfaces %}
+      <div class="interface">
+          <h3 class="title">{{ label }}</h3>
+          {{ html }}
+      </div>
       {% endfor %}
-      </ul>
+
+      {% if tags %}
+        <h3>Tags</h3>
+
+        <ul class="tag-list">
+        {% for tag_key, tag_value in tags %}
+          <li>
+              <strong>{{ tag_key }}</strong>
+              <em>=</em>
+              <span><a href="{% absolute_uri project_link %}?{{ tag_key }}={{ tag_value }}">{{ tag_value }}</a> {% if tag_value|is_url %}<a href="{{ tag_value|truncatechars:50 }}" class="icon-share"></a>{% endif %}</span>
+          </li>
+        {% endfor %}
+        </ul>
+      {% endif %}
     {% endif %}
 
     {% if rules %}
