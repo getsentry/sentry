@@ -2,8 +2,10 @@
 
 from __future__ import absolute_import
 
-import mock
+import functools
 
+import mock
+from django.template.loader import render_to_string
 from exam import fixture
 
 from sentry.interfaces.base import InterfaceValidationError
@@ -456,3 +458,43 @@ class SlimFrameDataTest(TestCase):
             assert value['vars'] is not None
             assert value['pre_context'] is not None
             assert value['post_context'] is not None
+
+
+def test_java_frame_rendering():
+    render = functools.partial(render_to_string, 'sentry/partial/frames/java.txt')
+
+    # This is the ideal case.
+    assert render({
+        'module': 'com.getsentry.example.Example',
+        'function': 'test',
+        'filename': 'Example.java',
+        'lineno': 1,
+    }).strip() == 'at com.getsentry.example.Example.test(Example.java:1)'
+
+    # Legacy support for frames without filename.
+    assert render({
+        'module': 'com.getsentry.example.Example',
+        'function': 'test',
+        'lineno': 1,
+    }).strip() == 'at com.getsentry.example.Example.test'
+
+    # (This shouldn't happen, but...)
+    assert render({
+        'module': 'com.getsentry.example.Example',
+        'function': 'test',
+        'filename': 'foo/bar/Example.java',
+        'lineno': 1,
+    }).strip() == 'at com.getsentry.example.Example.test(Example.java:1)'
+
+    # Native methods don't have line numbers.
+    assert render({
+        'function': 'test',
+        'filename': 'Example.java',
+        'lineno': -2,
+    }).strip() == 'at test(Example.java)'
+
+    assert render({
+        'function': 'test',
+        'filename': 'Example.java',
+        'lineno': 1,
+    }).strip() == 'at test(Example.java:1)'
