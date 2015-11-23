@@ -81,7 +81,8 @@ class GroupSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         status = obj.status
         if attrs['snooze']:
-            status = GroupStatus.MUTED
+            if attrs['snooze'] < timezone.now() and status == GroupStatus.MUTED:
+                status = GroupStatus.UNRESOLVED
         elif status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
             status = GroupStatus.RESOLVED
 

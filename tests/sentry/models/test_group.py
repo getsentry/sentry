@@ -88,3 +88,13 @@ class GroupTest(TestCase):
             until=timezone.now() - timedelta(minutes=1),
         )
         assert not group.is_muted()
+
+    def test_status_with_expired_snooze(self):
+        group = self.create_group(
+            status=GroupStatus.MUTED,
+        )
+        GroupSnooze.objects.create(
+            group=group,
+            until=timezone.now() - timedelta(minutes=1),
+        )
+        assert group.get_status() is GroupStatus.UNRESOLVED
