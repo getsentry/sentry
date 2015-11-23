@@ -153,6 +153,7 @@ CLIENT_RESERVED_ATTRS = (
     'tags',
     'platform',
     'release',
+    'environment',
 )
 
 DEFAULT_SCRUBBED_FIELDS = (
