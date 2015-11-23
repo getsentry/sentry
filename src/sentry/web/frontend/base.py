@@ -52,7 +52,7 @@ class OrganizationMixin(object):
             organization_slug = request.session.get('activeorg')
 
         if organization_slug is not None:
-            if is_active_superuser(request.user):
+            if is_active_superuser(request):
                 try:
                     active_organization = Organization.objects.get_from_cache(
                         slug=organization_slug,
@@ -238,7 +238,7 @@ class OrganizationView(BaseView):
     def get_access(self, request, organization, *args, **kwargs):
         if organization is None:
             return access.DEFAULT
-        return access.from_user(request.user, organization)
+        return access.from_request(request, organization)
 
     def get_context_data(self, request, organization, **kwargs):
         context = super(OrganizationView, self).get_context_data(request)

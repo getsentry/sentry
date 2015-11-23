@@ -21,7 +21,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserDetailsEndpoint(UserEndpoint):
     def get(self, request, user):
         data = serialize(user, request.user)
-        data['isSuperuser'] = user == request.user and is_active_superuser(user)
+        data['isSuperuser'] = user == request.user and is_active_superuser(request)
         return Response(data)
 
     @sudo_required

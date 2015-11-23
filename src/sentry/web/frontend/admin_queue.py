@@ -7,7 +7,7 @@ from sentry.web.frontend.base import BaseView
 
 class AdminQueueView(BaseView):
     def has_permission(self, request):
-        return is_active_superuser(request.user)
+        return is_active_superuser(request)
 
     def handle(self, request):
         context = {
