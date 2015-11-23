@@ -48,6 +48,8 @@ class User(BaseModel, AbstractBaseUser):
                     'modifying their account (username, password, etc).'))
 
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
+    last_password_change = models.DateTimeField(_('last password change'),
+                                                null=True, blank=True)
 
     objects = UserManager(cache_fields=['pk'])
 
@@ -86,6 +88,10 @@ class User(BaseModel, AbstractBaseUser):
 
     def get_short_name(self):
         return self.username
+
+    def set_password(self, raw_password):
+        super(User, self).set_password(raw_password)
+        self.last_password_change = timezone.now()
 
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
