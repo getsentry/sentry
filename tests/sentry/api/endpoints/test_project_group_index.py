@@ -306,6 +306,34 @@ class GroupUpdateTest(APITestCase):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
 
+    def test_set_unresolved_on_snooze(self):
+        group = self.create_group(checksum='a' * 32, status=GroupStatus.MUTED)
+
+        GroupSnooze.objects.create(
+            group=group,
+            until=timezone.now() - timedelta(days=1),
+        )
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=reverse('sentry-api-0-project-group-index', kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+            }),
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'status': 'unresolved',
+        }, format='json')
+        assert response.status_code == 200
+        assert response.data == {
+            'status': 'unresolved',
+        }
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
     def test_snooze_duration(self):
         group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
 

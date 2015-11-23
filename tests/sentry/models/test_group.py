@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import timedelta, datetime
 from django.utils import timezone
 
-from sentry.models import GroupStatus
+from sentry.models import GroupSnooze, GroupStatus
 from sentry.testutils import TestCase
 
 
@@ -78,3 +78,13 @@ class GroupTest(TestCase):
 
         assert group.get_latest_event().event_id == '3'
         assert group.get_oldest_event().event_id == '0'
+
+    def test_is_muted_with_expired_snooze(self):
+        group = self.create_group(
+            status=GroupStatus.MUTED,
+        )
+        GroupSnooze.objects.create(
+            group=group,
+            until=timezone.now() - timedelta(minutes=1),
+        )
+        assert not group.is_muted()
