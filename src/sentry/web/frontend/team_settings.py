@@ -66,7 +66,7 @@ class TeamSettingsView(TeamView):
 
             return HttpResponseRedirect(reverse('sentry-manage-team', args=[organization.slug, team.slug]))
 
-        if is_active_superuser(request.user):
+        if is_active_superuser(request):
             can_remove_team = True
         else:
             can_remove_team = request.access.has_team_scope(team, 'team:delete')

@@ -21,7 +21,7 @@ class TeamPermission(ScopedPermission):
                 return False
             return request.auth.organization_id == team.organization_id
 
-        request.access = access.from_user(request.user, team.organization)
+        request.access = access.from_request(request, team.organization)
 
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_team_scope(team, s) for s in allowed_scopes)

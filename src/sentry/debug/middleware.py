@@ -37,7 +37,7 @@ class DebugMiddleware(object):
         # TODO(dcramer): support VPN via INTERNAL_IPS + ipaddr maps
         if not settings.SENTRY_DEBUGGER:
             return False
-        if not is_active_superuser(request.user):
+        if not is_active_superuser(request):
             return False
         if 'text/html' not in request.META.get('HTTP_ACCEPT', '*/*'):
             return False
