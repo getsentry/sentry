@@ -47,17 +47,23 @@ class Access(BaseAccess):
         self.sso_is_valid = sso_is_valid
 
 
-def from_user(user, organization):
+def from_request(request, organization):
     if not organization:
         return DEFAULT
 
-    if is_active_superuser(user):
+    if is_active_superuser(request):
         return Access(
             scopes=settings.SENTRY_SCOPES,
             is_active=True,
             teams=organization.team_set.all(),
             sso_is_valid=True,
         )
+    return from_user(request.user, organization)
+
+
+def from_user(user, organization):
+    if not organization:
+        return DEFAULT
 
     if user.is_anonymous():
         return DEFAULT

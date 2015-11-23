@@ -21,7 +21,7 @@ class ProjectPermission(ScopedPermission):
                 return request.auth.project_id == project.id
             return request.auth.organization_id == project.organization_id
 
-        request.access = access.from_user(request.user, project.organization)
+        request.access = access.from_request(request, project.organization)
 
         for scope in self.scope_map.get(request.method, []):
             if request.access.has_team_scope(project.team, scope):

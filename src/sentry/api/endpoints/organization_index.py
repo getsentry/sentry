@@ -64,7 +64,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 queryset = queryset.filter(
                     id=request.auth.organization.id
                 )
-        elif member_only or not is_active_superuser(request.user):
+        elif member_only or not is_active_superuser(request):
             queryset = queryset.filter(
                 id__in=OrganizationMember.objects.filter(
                     user=request.user,

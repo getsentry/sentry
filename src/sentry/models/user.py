@@ -70,13 +70,20 @@ class User(BaseModel, AbstractBaseUser):
 
     def has_perm(self, perm_name):
         warnings.warn('User.has_perm is deprecated', DeprecationWarning)
-        from sentry.auth.utils import is_active_superuser
-        return is_active_superuser(self)
+        return self._has_superuser_perm()
 
     def has_module_perms(self, app_label):
-        # the admin requires this method
+        warnings.warn('User.has_module_perms is deprecated', DeprecationWarning)
+        return self._has_superuser_perm()
+
+    def _has_superuser_perm(self):
         from sentry.auth.utils import is_active_superuser
-        return is_active_superuser(self)
+        from sentry.app import env
+        if not env.request:
+            return False
+        if env.request.user != self:
+            return False
+        return is_active_superuser(env.request)
 
     def get_display_name(self):
         return self.first_name or self.email or self.username
@@ -125,7 +132,3 @@ class User(BaseModel, AbstractBaseUser):
         AuthIdentity.objects.filter(
             user=from_user,
         ).update(user=to_user)
-
-    def is_active_superuser(self):
-        # TODO(dcramer): add VPN support via INTERNAL_IPS + ipaddr ranges
-        return self.is_superuser
