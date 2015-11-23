@@ -66,7 +66,7 @@ class OrganizationMemberSettingsView(OrganizationView):
 
         can_admin = request.access.has_scope('member:delete')
 
-        if can_admin and not is_active_superuser(request.user):
+        if can_admin and not is_active_superuser(request):
             acting_member = OrganizationMember.objects.get(
                 user=request.user,
                 organization=organization,

@@ -4,13 +4,14 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import ScopedPermission
 from sentry.models import User
+from sentry.auth.utils import is_active_superuser
 
 
 class UserPermission(ScopedPermission):
     def has_object_permission(self, request, view, user):
         if request.auth:
             return False
-        if request.user.is_superuser:
+        if is_active_superuser(request):
             return True
         return request.user == user
 

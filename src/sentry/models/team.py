@@ -14,6 +14,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.app import env
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
@@ -40,7 +41,7 @@ class TeamManager(BaseManager):
             status=TeamStatus.VISIBLE
         )
 
-        if is_active_superuser(user) or settings.SENTRY_PUBLIC:
+        if is_active_superuser(env.request) or settings.SENTRY_PUBLIC:
             team_list = list(base_team_qs)
 
         else:
