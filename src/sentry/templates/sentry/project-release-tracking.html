@@ -16,18 +16,22 @@
       <h3>{% trans "Client Configuration" %}</h3>
     </div>
     <div class="box-content with-padding">
-      <p>At the very minimum you will need to bind the <code>release</code> attribute in your application:</p>
+      <p>Start by binding the <code>release</code> attribute in your application:</p>
 
       <pre>// See SDK documentation for language specific usage.
 Raven.config({
   release: '0e4fdef81448dcfa0e16ecc4433ff3997aa53572'
 });</pre>
 
-      <p>In addition, configuring a release hook (or other interaction) will ensure accurate metadata around a given release.</p>
+      <p>This will annotate each event with the version of your application, as well as
+        automatically create a release entity in the system the first time it's seen.<p>
+
+      <p>In addition you may configure a release hook (or use our API) to push a release
+        and include additional metadata with it.</p>
     </div>
   </div>
 
-  {% if enabled_plugins or other_plugins %}
+  {% if enabled_plugins %}
     <div class="box">
       <div class="box-header">
         <h3>{% trans "Token" %}</h3>
@@ -43,7 +47,9 @@ Raven.config({
         </form>
       </div>
     </div>
+  {% endif %}
 
+  {% if enabled_plugins or other_plugins %}
     {% for plugin, content in enabled_plugins %}
       <div class="box">
         <div class="box-header">
