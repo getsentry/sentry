@@ -180,13 +180,18 @@ class Group(Model):
         # XXX(dcramer): GroupSerializer reimplements this logic)
         from sentry.models import GroupSnooze
 
-        try:
-            snooze = GroupSnooze.objects.get(group=self)
-        except GroupSnooze.DoesNotExist:
-            pass
-        else:
-            if snooze.until > timezone.now():
-                return GroupStatus.MUTED
+        if self.status == GroupStatus.MUTED:
+            try:
+                snooze = GroupSnooze.objects.get(group=self)
+            except GroupSnooze.DoesNotExist:
+                pass
+            else:
+                # XXX(dcramer): if the snooze row exists then we need
+                # to confirm its still valid
+                if snooze.until > timezone.now():
+                    return GroupStatus.MUTED
+                else:
+                    return GroupStatus.UNRESOLVED
 
         if self.status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
             return GroupStatus.RESOLVED
