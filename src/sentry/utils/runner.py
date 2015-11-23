@@ -179,7 +179,7 @@ SENTRY_FILESTORE_OPTIONS = {
 # You MUST configure the absolute URI root for Sentry:
 SENTRY_URL_PREFIX = 'http://sentry.example.com'  # No trailing slash!
 
-# If you're using a reverse proxy, you should enable the X-Forwarded-Proto
+# If you're using a reverse SSL proxy, you should enable the X-Forwarded-Proto
 # header and uncomment the following settings
 # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # SESSION_COOKIE_SECURE = True
