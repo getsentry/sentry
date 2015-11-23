@@ -126,7 +126,13 @@ const GroupHeader = React.createClass({
               </div>
               <div className="col-xs-4 count align-right">
                 <h6 className="nav-header">Users</h6>
-                <Count className="count" value={userCount} />
+                {userCount !== 0 ?
+                  <Link to={`/${orgId}/${projectId}/group/${groupId}/tags/user/`}>
+                    <Count className="count" value={userCount} />
+                  </Link>
+                :
+                  0
+                }
               </div>
             </div>
           </div>
