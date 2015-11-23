@@ -371,6 +371,7 @@ CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
 CELERY_IMPORTS = (
     'sentry.tasks.beacon',
+    'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.check_auth',
     'sentry.tasks.deletion',
     'sentry.tasks.digests',
@@ -466,7 +467,14 @@ CELERYBEAT_SCHEDULE = {
         'options': {
             'expires': 30,
         },
-    }
+    },
+    'clear-expired-snoozes': {
+        'task': 'sentry.tasks.clear_expired_snoozes',
+        'schedule': timedelta(minutes=5),
+        'options': {
+            'expires': 300,
+        },
+    },
 }
 
 LOGGING = {
