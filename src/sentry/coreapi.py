@@ -26,7 +26,7 @@ from sentry.app import env
 from sentry.cache import default_cache
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_TAG_VALUE_LENGTH,
-    MAX_TAG_KEY_LENGTH
+    MAX_TAG_KEY_LENGTH, VALID_PLATFORMS
 )
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
@@ -383,6 +383,9 @@ class ClientApiHelper(object):
                     'name': 'fingerprint',
                     'value': data['fingerprint'],
                 })
+
+        if 'platform' not in data or data['platform'] not in VALID_PLATFORMS:
+            data['platform'] = 'other'
 
         if data.get('modules') and type(data['modules']) != dict:
             self.log.info(
