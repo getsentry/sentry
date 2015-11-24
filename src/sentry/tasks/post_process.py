@@ -13,6 +13,7 @@ from django.db import IntegrityError, transaction
 from raven.contrib.django.models import client as Raven
 
 from sentry.plugins import plugins
+from sentry.signals import event_processed
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -69,6 +70,13 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
             is_regresion=is_regression,
             is_sample=is_sample,
         )
+
+    event_processed.send_robust(
+        sender=post_process_group,
+        project=project,
+        group=event.group,
+        event=event,
+    )
 
 
 def record_additional_tags(event):
