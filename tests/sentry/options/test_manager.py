@@ -57,6 +57,26 @@ class OptionsManagerTest(TestCase):
         self.manager.get('sentry:foo')
         self.manager.set('sentry:foo', 'bar')
 
+    def test_types(self):
+        self.manager.register('some-int', type=int)
+        with self.assertRaises(TypeError):
+            self.manager.set('some-int', 'foo')
+        self.manager.set('some-int', 1)
+        assert self.manager.get('some-int') == 1
+
+    def test_default(self):
+        self.manager.register('awesome', default='lol')
+        assert self.manager.get('awesome') == 'lol'
+        self.manager.set('awesome', 'bar')
+        assert self.manager.get('awesome') == 'bar'
+        self.manager.delete('awesome')
+        assert self.manager.get('awesome') == 'lol'
+
+    def test_immutible(self):
+        self.manager.register('immutible', flags=OptionsManager.FLAG_IMMUTABLE)
+        with self.assertRaises(AssertionError):
+            self.manager.set('immutible', 'thing')
+
     def test_db_unavailable(self):
         with patch.object(Option.objects, 'get_queryset', side_effect=Exception()):
             # we can't update options if the db is unavailable
