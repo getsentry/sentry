@@ -25,7 +25,7 @@ def login_required(func):
 def requires_admin(func):
     @wraps(func)
     def wrapped(request, *args, **kwargs):
-        if not request.user.is_staff:
+        if not request.is_superuser():
             return render_to_response('sentry/missing_permissions.html', status=400)
         return func(request, *args, **kwargs)
     return login_required(wrapped)

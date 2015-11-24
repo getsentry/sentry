@@ -6,9 +6,7 @@ from django.contrib import admin
 
 class RestrictiveAdminSite(admin.AdminSite):
     def has_permission(self, request):
-        from sentry.auth.utils import is_active_superuser
-
-        return is_active_superuser(request)
+        return request.is_superuser()
 
 
 def make_site():

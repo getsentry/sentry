@@ -53,7 +53,7 @@
 <body class="{% block wrapperclass %}{% endblock %}">
   {% block body %}
   <div class="app">
-    {% if request.user.is_superuser %}
+    {% if request.is_superuser %}
         {% show_system_status %}
     {% endif %}
 
@@ -168,7 +168,7 @@
       <div class="container">
         {% block footer %}
         <div class="pull-right">
-          {% if request.user.is_staff %}
+          {% if request.is_superuser %}
           <a href="{% url 'sentry-admin-status' %}">{% trans "Admin" %}</a>
           {% endif %}
           {% block support_link %}{% endblock %}

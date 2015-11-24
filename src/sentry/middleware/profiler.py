@@ -12,7 +12,6 @@ import StringIO
 from django.conf import settings
 from django.http import HttpResponse
 
-from sentry.auth.utils import is_active_superuser
 
 words_re = re.compile(r'\s+')
 
@@ -40,7 +39,7 @@ class ProfileMiddleware(object):
             return False
         if settings.DEBUG:
             return True
-        if is_active_superuser(request):
+        if request.is_superuser():
             return True
         return False
 
