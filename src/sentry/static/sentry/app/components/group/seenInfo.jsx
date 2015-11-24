@@ -21,7 +21,7 @@ const SeenInfo = React.createClass({
         <dt key={0}>When:</dt>
         <dd key={1}><TimeSince date={date} /></dd>
         <dt key={2}>Date:</dt>
-        <dd key={3}><DateTime date={date} /></dd>
+        <dd key={3}><DateTime date={date} seconds={true} /></dd>
         {utils.defined(release) && [
           <dt key={4}>Release:</dt>,
           <dd key={5}><Version orgId={this.props.orgId} projectId={this.props.projectId} version={release.version} /></dd>
