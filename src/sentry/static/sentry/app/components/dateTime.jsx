@@ -22,7 +22,7 @@ const DateTime = React.createClass({
     let user = ConfigStore.get('user');
     let options = user ? user.options : {};
     let format = (
-      options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : this.getdefaultFormat()
+      options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : this.getDefaultFormat()
     );
 
     if (typeof date === 'string' || typeof date === 'number') {
