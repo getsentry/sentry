@@ -9,7 +9,6 @@ from sentry.api.base import DocSection, Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.auth.utils import is_active_superuser
 from sentry.models import (
     AuditLogEntryEvent, Organization, OrganizationMember, OrganizationStatus
 )
@@ -64,7 +63,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 queryset = queryset.filter(
                     id=request.auth.organization.id
                 )
-        elif member_only or not is_active_superuser(request):
+        elif member_only or not request.is_superuser():
             queryset = queryset.filter(
                 id__in=OrganizationMember.objects.filter(
                     user=request.user,
