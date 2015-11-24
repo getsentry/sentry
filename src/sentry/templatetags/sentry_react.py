@@ -5,6 +5,7 @@ import sentry
 from django import template
 from django.conf import settings
 from django.utils.html import mark_safe
+from django.contrib.messages import get_messages
 from pkg_resources import parse_version
 
 from sentry import features, options
@@ -35,8 +36,10 @@ def _get_version_info():
 def get_react_config(context):
     if 'request' in context:
         user = context['request'].user
+        messages = get_messages(context['request'])
     else:
         user = None
+        messages = []
 
     if user:
         user = extract_lazy_object(user)
@@ -53,6 +56,10 @@ def get_react_config(context):
         'version': _get_version_info(),
         'features': enabled_features,
         'mediaUrl': get_asset_url('sentry', ''),
+        'messages': [{
+            'message': msg.message,
+            'level': msg.tags,
+        } for msg in messages],
     }
     if user and user.is_authenticated():
         context.update({
