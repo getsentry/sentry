@@ -5,6 +5,7 @@ import AlertActions from '../actions/alertActions.jsx';
 import Indicators from '../components/indicators';
 import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationStore from '../stores/organizationStore';
+import ConfigStore from '../stores/configStore';
 
 const App = React.createClass({
   getInitialState() {
@@ -42,6 +43,10 @@ const App = React.createClass({
         }
       },
       error: () => {} // TODO: do something?
+    });
+
+    ConfigStore.get('messages').forEach((msg) => {
+      AlertActions.addAlert(msg.message, msg.level);
     });
 
   },
