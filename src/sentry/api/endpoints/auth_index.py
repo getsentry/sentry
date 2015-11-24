@@ -48,7 +48,7 @@ class AuthIndexEndpoint(Endpoint):
         # Must use the real request object that Django knows about
         login(request._request, request.user)
 
-        return client.get('/users/me/', request.user, request.auth)
+        return client.get('/users/me/', request=request)
 
     def delete(self, request, *args, **kwargs):
         """
