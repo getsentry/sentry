@@ -77,10 +77,7 @@ class OptionsManager(object):
         >>> from sentry import options
         >>> options.set('option', 'value')
         """
-        try:
-            opt = self.registry[key]
-        except KeyError:
-            raise UnknownOption(key)
+        opt = self.lookup_key(key)
 
         if not isinstance(value, opt.type):
             raise TypeError('got %r, expected %r' % (type(value), opt.type))
@@ -104,6 +101,18 @@ class OptionsManager(object):
             self.logger.warn(CACHE_UPDATE_ERR, key, exc_info=True)
             return False
 
+    def lookup_key(self, key):
+        try:
+            return self.registry[key]
+        except KeyError:
+            # HACK: Historically, Options were used for random adhoc things.
+            # Fortunately, they all share the same prefix, 'sentry:', so
+            # we special case them here and construct a faux key until we migrate.
+            if key[:7] == 'sentry:':
+                self.logger.info('Using legacy key: %s', key, exc_info=True)
+                return Key('', object, self.FLAG_DEFAULT, self._make_cache_key(key))
+            raise UnknownOption(key)
+
     def get(self, key):
         """
         Get the value of an option prioritizing the cache, then the database,
@@ -114,32 +123,29 @@ class OptionsManager(object):
         >>> from sentry import options
         >>> options.get('option')
         """
-        try:
-            opt = self.registry[key]
-        except KeyError:
-            raise UnknownOption(key)
+        opt = self.lookup_key(key)
 
         try:
             result = self.cache.get(opt.cache_key)
         except Exception:
             self.logger.warn(CACHE_FETCH_ERR, key, exc_info=True)
             result = None
-            cache_success = False
-        else:
-            cache_success = True
 
         if result is None:
             try:
                 result = Option.objects.get(key=key).value
+                db_success = True
             except Option.DoesNotExist:
-                result = opt.default
+                result = None
+                db_success = False
             except Exception as e:
                 self.logger.exception(unicode(e))
                 result = None
+                db_success = False
 
             # we only attempt to populate the cache if we were previously
             # able to successfully talk to the backend
-            if result is not None and cache_success:
+            if result is not None and db_success:
                 try:
                     self.update_cached_value(opt.cache_key, result)
                 except Exception:
@@ -164,10 +170,7 @@ class OptionsManager(object):
         >>> from sentry import options
         >>> options.delete('option')
         """
-        try:
-            opt = self.registry[key]
-        except KeyError:
-            raise UnknownOption(key)
+        opt = self.lookup_key(key)
 
         Option.objects.filter(key=key).delete()
 

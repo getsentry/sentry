@@ -2,11 +2,11 @@
 
 from __future__ import absolute_import
 
-from exam import fixture
+from exam import fixture, around
 from mock import patch
 
 from sentry.models import Option
-from sentry.options.manager import OptionsManager
+from sentry.options.manager import OptionsManager, UnknownOption
 from sentry.testutils import TestCase
 
 
@@ -14,6 +14,12 @@ class OptionsManagerTest(TestCase):
     @fixture
     def manager(self):
         return OptionsManager()
+
+    @around
+    def register(self):
+        self.manager.register('foo')
+        yield
+        self.manager.unregister('foo')
 
     def test_simple(self):
         assert self.manager.get('foo') == ''
@@ -28,6 +34,28 @@ class OptionsManagerTest(TestCase):
         self.manager.delete('foo')
 
         assert self.manager.get('foo') == ''
+
+    def test_unregistered_key(self):
+        with self.assertRaises(UnknownOption):
+            self.manager.get('does-not-exit')
+
+        with self.assertRaises(UnknownOption):
+            self.manager.set('does-not-exist', 'bar')
+
+        self.manager.register('does-not-exist')
+        self.manager.get('does-not-exist')  # Just shouldn't raise
+        self.manager.unregister('does-not-exist')
+
+        with self.assertRaises(UnknownOption):
+            self.manager.get('does-not-exist')
+
+    def test_legacy_key(self):
+        """
+        Allow sentry: prefixed keys without any registration
+        """
+        # These just shouldn't blow up since they are implicitly registered
+        self.manager.get('sentry:foo')
+        self.manager.set('sentry:foo', 'bar')
 
     def test_db_unavailable(self):
         with patch.object(Option.objects, 'get_queryset', side_effect=Exception()):
