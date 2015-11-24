@@ -22,9 +22,11 @@ class ApiClient(object):
 
     ApiError = ApiError
 
-    def request(self, method, path, user, auth=None, params=None, data=None,
-                is_sudo=False):
+    def request(self, method, path, user=None, auth=None, params=None, data=None,
+                is_sudo=False, request=None):
         full_path = self.prefix + path
+
+        assert not (request and (user or auth)), 'use either request or auth'
 
         resolver_match = resolve(full_path)
         callback, callback_args, callback_kwargs = resolver_match
@@ -33,11 +35,20 @@ class ApiClient(object):
             # we encode to ensure compatibility
             data = json.loads(json.dumps(data))
 
+        if request:
+            user = request.user
+            auth = request.auth
+
         rf = APIRequestFactory()
         mock_request = getattr(rf, method.lower())(full_path, data)
         mock_request.auth = auth
         mock_request.user = user
         mock_request.is_sudo = lambda: is_sudo
+
+        if request:
+            # superuser checks require access to IP
+            mock_request.META['REMOTE_ADDR'] = request.META['REMOTE_ADDR']
+
         force_authenticate(mock_request, user, auth)
 
         if params:
