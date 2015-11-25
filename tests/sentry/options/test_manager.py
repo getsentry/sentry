@@ -35,7 +35,7 @@ class OptionsManagerTest(TestCase):
 
         assert self.manager.get('foo') == ''
 
-    def test_unregistered_key(self):
+    def test_register(self):
         with self.assertRaises(UnknownOption):
             self.manager.get('does-not-exit')
 
@@ -53,6 +53,9 @@ class OptionsManagerTest(TestCase):
             # This key should already exist, and we can't re-register
             self.manager.register('foo')
 
+        with self.assertRaises(TypeError):
+            self.manager.register('wrong-type', default=1, type=basestring)
+
     def test_legacy_key(self):
         """
         Allow sentry: prefixed keys without any registration
@@ -65,7 +68,7 @@ class OptionsManagerTest(TestCase):
         assert self.manager.get('sentry:foo') == ''
 
     def test_types(self):
-        self.manager.register('some-int', type=int)
+        self.manager.register('some-int', type=int, default=0)
         with self.assertRaises(TypeError):
             self.manager.set('some-int', 'foo')
         self.manager.set('some-int', 1)
