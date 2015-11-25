@@ -36,7 +36,11 @@ let formatActivity = function(item) {
     case 'set_private':
       return 'made this issue private';
     case 'set_regression':
-      return 'marked this issue as a regression';
+      return (data.version ?
+        `marked this issue as a regression in ${data.version}`
+      :
+        'marked this issue as a regression'
+      );
     case 'create_issue':
       return <span>created an issue on {data.provider} titled <a href={data.location}>{data.title}</a></span>;
     case 'first_seen':

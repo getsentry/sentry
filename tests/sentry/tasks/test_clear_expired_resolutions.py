@@ -22,10 +22,10 @@ class ClearExpiredResolutionsTest(TestCase):
 
         group1 = self.create_group(
             project=project,
-            status=GroupStatus.UNRESOLVED,
+            status=GroupStatus.RESOLVED,
             active_at=timezone.now(),
         )
-        GroupResolution.objects.create(
+        resolution1 = GroupResolution.objects.create(
             group=group1,
             release=old_release,
         )
@@ -33,6 +33,7 @@ class ClearExpiredResolutionsTest(TestCase):
             group=group1,
             project=project,
             type=Activity.SET_RESOLVED_IN_RELEASE,
+            ident=resolution1.id,
             data={'version': ''},
         )
 
@@ -46,7 +47,7 @@ class ClearExpiredResolutionsTest(TestCase):
             status=GroupStatus.UNRESOLVED,
             active_at=timezone.now(),
         )
-        GroupResolution.objects.create(
+        resolution2 = GroupResolution.objects.create(
             group=group2,
             release=new_release,
         )
@@ -54,6 +55,7 @@ class ClearExpiredResolutionsTest(TestCase):
             group=group2,
             project=project,
             type=Activity.SET_RESOLVED_IN_RELEASE,
+            ident=resolution2.id,
             data={'version': ''},
         )
 
