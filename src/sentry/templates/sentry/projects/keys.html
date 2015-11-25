@@ -6,59 +6,50 @@
 {% block title %}{% trans "Client Keys" %} | {{ block.super }}{% endblock %}
 
 {% block main %}
-    {% if ACCESS.project_write %}
-        <form method="post" class="pull-right" action="{% url 'sentry-new-project-key' project.organization.slug project.slug %}"
-               style="position: relative; top: -6px;">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-primary btn-sm">{% trans "Generate New Key" %}</button>
-        </form>
-    {% endif %}
-    <h2>{% trans "Client Keys" %}</h2>
+  {% if ACCESS.project_write %}
+  <form method="post" class="pull-right" action="{% url 'sentry-new-project-key' project.organization.slug project.slug %}">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-primary" style="margin-top: -3px;">{% trans "Generate New Key" %}</button>
+  </form>
+  {% endif %}
+  <h2>{% trans "Client Keys" %}</h2>
 
-    <p>To send data to Sentry you will need to configure an SDK with a client key (usually referred to as the
-        <code>SENTRY_DSN</code> value). For more information on integrating Sentry with your application take
-        a look at our <a href="https://docs.getsentry.com">documentation</a>.</p>
+  <p>To send data to Sentry you will need to configure an SDK with a client key (usually referred to as the
+    <code>SENTRY_DSN</code> value). For more information on integrating Sentry with your application take
+    a look at our <a href="https://docs.getsentry.com">documentation</a>.</p>
 
-    <table class="table table-bordered">
-        <colgroup>
-            <col/>
-            <col width="300px"/>
-        </colgroup>
-        <tbody>
-            {% for key in key_list %}
-                <tr>
-                    <td>
-                        {% if key.label %}
-                            <h5 style="margin-bottom: 0;"><a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.label }}</a></h5>
-                        {% else %}
-                            <h5 style="margin-bottom: 0;"><a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.public_key }}</a></h5>
-                        {% endif %}<br>
-                        <div class="form-control disabled auto-select">{{ key.dsn_private }}</div>
-                    </td>
-                    <td style="text-align:right;padding-top:50px !important;">
-                        <a class="btn btn-default btn-sm" href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">Info</a>
-                        {% if ACCESS.project_write %}
-                            {% if key.is_active %}
-                                <form method="POST" action="{% url 'sentry-disable-project-key' project.organization.slug project.slug key.id %}" style="display:inline">
-                                    {% csrf_token %}
-                                    <input type="submit" class="btn btn-default btn-sm" value="{% trans "Disable" %}">
-                                </form>
-                            {% else %}
-                                <form method="POST" action="{% url 'sentry-enable-project-key' project.organization.slug project.slug key.id %}" style="display:inline">
-                                    {% csrf_token %}
-                                    <input type="submit" class="btn btn-primary btn-sm" value="{% trans "Enable" %}">
-                                </form>
-                            {% endif %}
-                        {% endif %}
-                        {% if ACCESS.project_write %}
-                            <form method="POST" action="{% url 'sentry-remove-project-key' project.organization.slug project.slug key.id %}" style="display:inline">
-                                {% csrf_token %}
-                                <input type="submit" class="btn btn-danger btn-sm" value="{% trans "Revoke" %}">
-                            </form>
-                        {% endif %}
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-{% endblock %}
+    <div class="client-key-list">
+      {% for key in key_list %}
+        <div class="client-key-item">
+          <div class="pull-right">
+            <a class="btn btn-default btn-sm" href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">Info</a>
+            {% if ACCESS.project_write %}
+              {% if key.is_active %}
+              <form method="POST" action="{% url 'sentry-disable-project-key' project.organization.slug project.slug key.id %}" style="display:inline">
+                {% csrf_token %}
+                <input type="submit" class="btn btn-default btn-sm" value="{% trans "Disable" %}">
+              </form>
+              {% else %}
+              <form method="POST" action="{% url 'sentry-enable-project-key' project.organization.slug project.slug key.id %}" style="display:inline">
+                {% csrf_token %}
+                <input type="submit" class="btn btn-primary btn-sm" value="{% trans "Enable" %}">
+              </form>
+              {% endif %}
+            {% endif %}
+            {% if ACCESS.project_write %}
+              <form method="POST" action="{% url 'sentry-remove-project-key' project.organization.slug project.slug key.id %}" style="display:inline">
+                {% csrf_token %}
+                <input type="submit" class="btn btn-default btn-sm btn-revoke" value="{% trans "Revoke" %}">
+              </form>
+            {% endif %}
+          </div>
+          {% if key.label %}
+            <h5><a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.label }}</a></h5>
+          {% else %}
+            <h5><a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.public_key }}</a></h5>
+          {% endif %}
+          <div class="form-control disabled auto-select">{{ key.dsn_private }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endblock %}
