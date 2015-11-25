@@ -195,3 +195,9 @@ class Backend(object):
         increased) or both.
         """
         raise NotImplementedError
+
+    def delete(self, key):
+        """
+        Delete a timeline and all of it's contents from the database.
+        """
+        raise NotImplementedError
