@@ -206,6 +206,38 @@ class RedisBackendTestCase(BaseRedisBackendTestCase):
                 assert entry.key == 'timelines:{0}'.format(i)
                 assert entry.timestamp == float(i)
 
+    def test_delete(self):
+        timeline = 'timeline'
+        backend = self.get_backend()
+
+        timeline_key = make_timeline_key(backend.namespace, timeline)
+        digest_key = make_digest_key(timeline_key)
+        waiting_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_WAITING)
+        ready_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_READY)
+
+        connection = backend.cluster.get_local_client_for_key(timeline_key)
+        connection.zadd(waiting_set_key, 0, timeline)
+        connection.zadd(ready_set_key, 0, timeline)
+        connection.zadd(timeline_key, 0, '1')
+        connection.set(make_record_key(timeline_key, '1'), 'data')
+        connection.zadd(digest_key, 0, '2')
+        connection.set(make_record_key(timeline_key, '2'), 'data')
+
+        keys = (
+            waiting_set_key,
+            ready_set_key,
+            digest_key,
+            timeline_key,
+            make_record_key(timeline_key, '1'),
+            make_record_key(timeline_key, '2')
+        )
+
+        def check_keys_exist():
+            return map(connection.exists, keys)
+
+        with self.assertChanges(check_keys_exist, before=[True] * len(keys), after=[False] * len(keys)):
+            backend.delete(timeline)
+
 
 class ExpectedError(Exception):
     pass

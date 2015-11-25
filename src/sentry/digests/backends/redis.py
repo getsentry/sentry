@@ -134,11 +134,12 @@ return true
 # Trims a timeline to a maximum number of records.
 # Returns the number of keys that were deleted.
 # KEYS: {TIMELINE}
-# ARGV: {LIMIT}
+# ARGV: {LIMIT, PREFIX}
 TRUNCATE_TIMELINE_SCRIPT = """\
 local keys = redis.call('ZREVRANGE', KEYS[1], ARGV[1], -1)
+local prefix = ARGV[2] or KEYS[1]
 for i, record in pairs(keys) do
-    redis.call('DEL', KEYS[1] .. ':{TIMELINE_RECORD_PATH_COMPONENT}:' .. record)
+    redis.call('DEL', prefix .. ':{TIMELINE_RECORD_PATH_COMPONENT}:' .. record)
     redis.call('ZREM', KEYS[1], record)
 end
 return table.getn(keys)
@@ -561,3 +562,16 @@ class RedisBackend(Backend):
                 except WatchError:
                     logger.debug('Could not remove timeline from schedule, rescheduling instead')
                     reschedule()
+
+    def delete(self, key):
+        timeline_key = make_timeline_key(self.namespace, key)
+
+        connection = self.cluster.get_local_client_for_key(timeline_key)
+        with Lock(timeline_key, nowait=True, timeout=30), \
+                connection.pipeline() as pipeline:
+            truncate_timeline((timeline_key,), (0,), pipeline)
+            truncate_timeline((make_digest_key(timeline_key),), (0, timeline_key), pipeline)
+            pipeline.delete(make_last_processed_timestamp_key(timeline_key))
+            pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
+            pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), key)
+            pipeline.execute()
