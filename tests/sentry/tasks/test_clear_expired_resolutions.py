@@ -3,7 +3,10 @@ from __future__ import absolute_import
 from datetime import timedelta
 from django.utils import timezone
 
-from sentry.models import Activity, Group, GroupResolution, GroupStatus, Release
+from sentry.models import (
+    Activity, Group, GroupResolution, GroupResolutionStatus, GroupStatus,
+    Release
+)
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.testutils import TestCase
 
@@ -68,6 +71,13 @@ class ClearExpiredResolutionsTest(TestCase):
         assert Group.objects.get(
             id=group2.id,
         ).status == GroupStatus.UNRESOLVED
+
+        # rows should not get removed as it breaks regression behavior
+        resolution1 = GroupResolution.objects.get(id=resolution1.id)
+        assert resolution1.status == GroupResolutionStatus.RESOLVED
+
+        resolution2 = GroupResolution.objects.get(id=resolution2.id)
+        assert resolution2.status == GroupResolutionStatus.PENDING
 
         activity1 = Activity.objects.get(id=activity1.id)
         assert activity1.data['version'] == new_release.version
