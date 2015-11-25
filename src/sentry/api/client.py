@@ -14,7 +14,13 @@ class ApiError(Exception):
         self.body = body
 
     def __unicode__(self):
-        return 'status=%s body=%s' % (self.status_code, self.body)
+        return u'status={} body={}'.format(self.status_code, self.body)
+
+    def __str__(self):
+        return self.__unicode__().encode('utf-8')
+
+    def __repr__(self):
+        return u'<ApiError: {}>'.format(self.__unicode__())
 
 
 class ApiClient(object):
