@@ -50,6 +50,7 @@ def deliver_digest(key, schedule_timestamp=None):
         plugin, project = split_key(key)
     except Project.DoesNotExist as error:
         logger.info('Cannot deliver digest %r due to error: %s', key, error)
+        digests.delete(key)
         return
 
     minimum_delay = ProjectOption.objects.get_value(
