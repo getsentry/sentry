@@ -7,12 +7,28 @@ sentry.tasks.base
 """
 from __future__ import absolute_import
 
+import resource
+from contextlib import contextmanager
+from functools import wraps
+
 from celery.task import current
 from raven.contrib.django.models import client as Raven
-from functools import wraps
 
 from sentry.celery import app
 from sentry.utils import metrics
+
+
+def get_rss_usage():
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+
+
+@contextmanager
+def track_memory_usage(metric, **kwargs):
+    before = get_rss_usage()
+    try:
+        yield
+    finally:
+        metrics.timing(metric, get_rss_usage() - before, **kwargs)
 
 
 def instrumented_task(name, stat_suffix=None, **kwargs):
@@ -25,7 +41,8 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
             else:
                 instance = name
             Raven.tags_context({'task_name': name})
-            with metrics.timer(key, instance=instance):
+            with metrics.timer(key, instance=instance), \
+                    track_memory_usage('jobs.memory', instance=instance):
                 try:
                     result = func(*args, **kwargs)
                 finally:
