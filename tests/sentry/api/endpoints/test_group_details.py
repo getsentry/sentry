@@ -92,7 +92,7 @@ class GroupUpdateTest(APITestCase):
         assert snooze.until > timezone.now() + timedelta(minutes=29)
         assert snooze.until < timezone.now() + timedelta(minutes=31)
 
-        assert response.data['snoozeUntil'] == snooze.until
+        assert response.data['statusDetails']['snoozeUntil'] == snooze.until
 
         group = Group.objects.get(id=group.id)
         assert group.get_status() == GroupStatus.MUTED
