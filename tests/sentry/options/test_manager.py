@@ -72,10 +72,30 @@ class OptionsManagerTest(TestCase):
         self.manager.delete('awesome')
         assert self.manager.get('awesome') == 'lol'
 
-    def test_immutible(self):
+    def test_flag_immutible(self):
         self.manager.register('immutible', flags=OptionsManager.FLAG_IMMUTABLE)
         with self.assertRaises(AssertionError):
             self.manager.set('immutible', 'thing')
+
+    def test_flag_nostore(self):
+        self.manager.register('nostore', flags=OptionsManager.FLAG_NOSTORE)
+        with self.assertRaises(AssertionError):
+            self.manager.set('nostore', 'thing')
+
+        # Make sure that we don't touch either of the stores
+        with patch.object(self.manager.cache, 'get', side_effect=Exception()):
+            with patch.object(Option.objects, 'get_queryset', side_effect=Exception()):
+                assert self.manager.get('nostore') == ''
+
+                with self.settings(SENTRY_OPTIONS={'nostore': 'foo'}):
+                    assert self.manager.get('nostore') == 'foo'
+
+    def test_flag_storeonly(self):
+        self.manager.register('storeonly', flags=OptionsManager.FLAG_STOREONLY)
+        assert self.manager.get('storeonly') == ''
+
+        with self.settings(SENTRY_OPTIONS={'storeonly': 'something-else!'}):
+            assert self.manager.get('storeonly') == ''
 
     def test_db_unavailable(self):
         with patch.object(Option.objects, 'get_queryset', side_effect=Exception()):
