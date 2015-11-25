@@ -22,7 +22,7 @@ from sentry.utils.hashlib import md5
 CACHE_FETCH_ERR = 'Unable to fetch option cache for %s'
 CACHE_UPDATE_ERR = 'Unable to update option cache for %s'
 
-Key = namedtuple('Key', ('default', 'type', 'flags', 'cache_key'))
+Key = namedtuple('Key', ('name', 'default', 'type', 'flags', 'cache_key'))
 
 
 class UnknownOption(KeyError):
@@ -54,7 +54,13 @@ class OptionsManager(object):
     ttl = None
 
     FLAG_DEFAULT = 0b000
+    # Value can't be changed at runtime
     FLAG_IMMUTABLE = 0b001
+    # Don't check/set in the datastore. Option only exists from file.
+    FLAG_NOSTORE = 0b010
+    # Values that should only exist in datastore, and shouldn't exist in
+    # config files.
+    FLAG_STOREONLY = 0b100
 
     def __init__(self, cache=None, ttl=None, logger=None):
         if cache is not None:
@@ -79,11 +85,13 @@ class OptionsManager(object):
         """
         opt = self.lookup_key(key)
 
+        # If an option isn't able to exist in the store, we can't set it at runtime
+        assert not (opt.flags & self.FLAG_NOSTORE), '%r cannot be changed at runtime' % key
+        # Enforce immutability on key
+        assert not (opt.flags & self.FLAG_IMMUTABLE), '%r cannot be changed at runtime' % key
+
         if not isinstance(value, opt.type):
             raise TypeError('got %r, expected %r' % (type(value), opt.type))
-
-        # Enforce immutability on key
-        assert not (opt.flags & self.FLAG_IMMUTABLE), '%r cannot be changed' % key
 
         create_or_update(
             model=Option,
@@ -110,7 +118,7 @@ class OptionsManager(object):
             # we special case them here and construct a faux key until we migrate.
             if key[:7] == 'sentry:':
                 self.logger.info('Using legacy key: %s', key, exc_info=True)
-                return Key('', object, self.FLAG_DEFAULT, self._make_cache_key(key))
+                return Key(key, '', object, self.FLAG_DEFAULT, self._make_cache_key(key))
             raise UnknownOption(key)
 
     def get(self, key):
@@ -125,40 +133,46 @@ class OptionsManager(object):
         """
         opt = self.lookup_key(key)
 
-        try:
-            result = self.cache.get(opt.cache_key)
-        except Exception:
-            self.logger.warn(CACHE_FETCH_ERR, key, exc_info=True)
-            result = None
+        if not (opt.flags & self.FLAG_NOSTORE):
+            result = self.fetch_from_store(opt)
+            if result is not None:
+                return result
 
-        if result is None:
-            try:
-                result = Option.objects.get(key=key).value
-                db_success = True
-            except Option.DoesNotExist:
-                result = None
-                db_success = False
-            except Exception as e:
-                self.logger.exception(unicode(e))
-                result = None
-                db_success = False
-
-            # we only attempt to populate the cache if we were previously
-            # able to successfully talk to the backend
-            if result is not None and db_success:
-                try:
-                    self.update_cached_value(opt.cache_key, result)
-                except Exception:
-                    self.logger.warn(CACHE_UPDATE_ERR, key, exc_info=True)
-
-        if result is not None:
-            return result
+        # Some values we don't want to allow them to be configured through
+        # config files and should only exist in the datastore
+        if opt.flags & self.FLAG_STOREONLY:
+            return opt.default
 
         try:
             # default to the hardcoded local configuration for this key
             return settings.SENTRY_OPTIONS[key]
         except KeyError:
             return opt.default
+
+    def fetch_from_store(self, opt):
+        try:
+            result = self.cache.get(opt.cache_key)
+        except Exception:
+            self.logger.warn(CACHE_FETCH_ERR, opt.name, exc_info=True)
+            result = None
+
+        if result is None:
+            try:
+                result = Option.objects.get(key=opt.name).value
+            except Option.DoesNotExist:
+                result = None
+            except Exception as e:
+                self.logger.exception(unicode(e))
+                result = None
+            else:
+                # we only attempt to populate the cache if we were previously
+                # able to successfully talk to the backend
+                try:
+                    self.update_cached_value(opt.cache_key, result)
+                except Exception:
+                    self.logger.warn(CACHE_UPDATE_ERR, opt.name, exc_info=True)
+
+        return result
 
     def delete(self, key):
         """
@@ -171,6 +185,11 @@ class OptionsManager(object):
         >>> options.delete('option')
         """
         opt = self.lookup_key(key)
+
+        # If an option isn't able to exist in the store, we can't set it at runtime
+        assert not (opt.flags & self.FLAG_NOSTORE), '%r cannot be changed at runtime' % key
+        # Enforce immutability on key
+        assert not (opt.flags & self.FLAG_IMMUTABLE), '%r cannot be changed at runtime' % key
 
         Option.objects.filter(key=key).delete()
 
@@ -186,7 +205,7 @@ class OptionsManager(object):
 
     def register(self, key, default='', type=basestring, flags=FLAG_DEFAULT):
         assert key not in self.registry, 'Option already registered: %r' % key
-        self.registry[key] = Key(default, type, flags, self._make_cache_key(key))
+        self.registry[key] = Key(key, default, type, flags, self._make_cache_key(key))
 
     def unregister(self, key):
         try:
