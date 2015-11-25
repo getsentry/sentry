@@ -635,6 +635,9 @@ class EventManager(object):
             if has_resolution:
                 return
 
+        else:
+            has_resolution = False
+
         if not plugin_is_regression(group, event):
             return
 
@@ -660,36 +663,47 @@ class EventManager(object):
         group.active_at = date
         group.status = GroupStatus.UNRESOLVED
 
-        # this technically could be missing a release, but
-        # really we wouldn't want to take this path if it was. It's a bit odd
-        # that it wouldn't be taken care of it, but the only case this should
-        # be possible is if you usually send a Release and then you stopped.
         if is_regression and release:
-            # delete() API does not return affected rows
-            cursor = connection.cursor()
-            # TODO(dcramer): this could be more precise by including the filters
-            # present in the ``has_resolution`` check above
-            cursor.execute("DELETE FROM sentry_groupresolution WHERE group_id = %s", [group.id])
-            affected = cursor.rowcount > 0
+            # resolutions are only valid if the state of the group is still
+            # resolved -- if it were to change the resolution should get removed
+            try:
+                resolution = GroupResolution.objects.get(
+                    group=group,
+                )
+            except GroupResolution.DoesNotExist:
+                affected = False
+            else:
+                cursor = connection.cursor()
+                # delete() API does not return affected rows
+                cursor.execute("DELETE FROM sentry_groupresolution WHERE id = %s", [resolution.id])
+                affected = cursor.rowcount > 0
 
             if affected:
                 # if we had to remove the GroupResolution (i.e. we beat the
                 # the queue to handling this) then we need to also record
                 # the corresponding event
-                activity = Activity.objects.filter(
-                    group=group,
-                    type=Activity.SET_RESOLVED_IN_RELEASE,
-                ).order_by('-datetime')[0]
-
-                activity.update(data={
-                    'version': release.version,
-                })
+                try:
+                    activity = Activity.objects.filter(
+                        group=group,
+                        type=Activity.SET_RESOLVED_IN_RELEASE,
+                        ident=resolution.id,
+                    ).order_by('-datetime')[0]
+                except IndexError:
+                    # XXX: handle missing data, as its not overly important
+                    pass
+                else:
+                    activity.update(data={
+                        'version': release.version,
+                    })
 
         if is_regression:
             Activity.objects.create(
                 project=group.project,
                 group=group,
                 type=Activity.SET_REGRESSION,
+                data={
+                    'version': release.version if release else '',
+                }
             )
 
         return is_regression

@@ -269,7 +269,7 @@ class EventManagerTest(TransactionTestCase):
 
         group.update(status=GroupStatus.RESOLVED)
 
-        GroupResolution.objects.create(
+        resolution = GroupResolution.objects.create(
             release=old_release,
             group=group,
         )
@@ -277,6 +277,7 @@ class EventManagerTest(TransactionTestCase):
             group=group,
             project=group.project,
             type=Activity.SET_RESOLVED_IN_RELEASE,
+            ident=resolution.id,
             data={'version': ''},
         )
 
