@@ -10,7 +10,7 @@ from __future__ import absolute_import
 import re
 import six
 
-from sentry.constants import DEFAULT_SCRUBBED_FIELDS
+from sentry.constants import DEFAULT_SCRUBBED_FIELDS, FILTER_MASK
 
 
 def varmap(func, var, context=None, name=None):
@@ -42,7 +42,6 @@ class SensitiveDataFilter(object):
     Asterisk out things that look like passwords, credit card numbers,
     and API keys in frames, http, and basic extra data.
     """
-    MASK = '*' * 8
     VALUES_RE = re.compile(r'\b(?:\d[ -]*?){13,16}\b')
     URL_PASSWORD_RE = re.compile(r'\b((?:[a-z0-9]+:)?//[^:]+:)([^@]+)@')
 
@@ -74,13 +73,13 @@ class SensitiveDataFilter(object):
 
         if isinstance(value, six.string_types):
             if self.VALUES_RE.search(value):
-                return self.MASK
+                return FILTER_MASK
 
             # Check if the value is a url-like object
             # that contains a password
             # e.g. postgres://foo:password@example.com/db
             if '//' in value and '@' in value:
-                value = self.URL_PASSWORD_RE.sub(r'\1' + self.MASK + '@', value)
+                value = self.URL_PASSWORD_RE.sub(r'\1' + FILTER_MASK + '@', value)
 
         if isinstance(key, six.string_types):
             key = key.lower()
@@ -96,7 +95,7 @@ class SensitiveDataFilter(object):
         for field in self.fields:
             if field in key or field in value:
                 # store mask as a fixed length for security
-                return self.MASK
+                return FILTER_MASK
         return original_value
 
     def filter_stacktrace(self, data):
