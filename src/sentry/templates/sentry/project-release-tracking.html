@@ -31,23 +31,43 @@ Raven.config({
     </div>
   </div>
 
-  {% if enabled_plugins %}
-    <div class="box">
-      <div class="box-header">
-        <h3>{% trans "Token" %}</h3>
-      </div>
-      <div class="box-content with-padding">
-        <form method="POST">
-          {% csrf_token %}
-            <p>Your token is a unique secret which is used to generate deploy hook URLs. If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.</p>
-            <p>
-              <code style="display:inline-block" class="auto-select">{{ token }}</code>
-              <button type="submit" class="btn btn-sm btn-danger" name="op" value="regenerate-token">Regenerate Token</button>
-            </p>
-        </form>
-      </div>
+  <div class="box">
+    <div class="box-header">
+      <h3>{% trans "Token" %}</h3>
     </div>
-  {% endif %}
+    <div class="box-content with-padding">
+      <form method="POST">
+        {% csrf_token %}
+          <p>Your token is a unique secret which is used to generate deploy hook URLs. If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.</p>
+          <p>
+            <code style="display:inline-block" class="auto-select">{{ token }}</code>
+            <button type="submit" class="btn btn-sm btn-danger" name="op" value="regenerate-token">Regenerate Token</button>
+          </p>
+      </form>
+    </div>
+  </div>
+
+
+  <div class="box">
+    <div class="box-header">
+      <h3>{% trans "Webhook" %}</h3>
+    </div>
+    <div class="box-content with-padding">
+      <form method="POST">
+        {% csrf_token %}
+          <p>If you simply want to integrate with an existing system, sometimes its easiest just to use a webhook.</p>
+
+          <pre class="auto-select">{{ webhook_url }}</pre>
+
+          <p>The release webhook accepts the same parameters as the "Create a new Release" API endpoint, for example:</p>
+
+          <pre class="auto-select">curl {{ webhook_url }} \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"version": "abcdefg"}'</pre>
+      </form>
+    </div>
+  </div>
 
   {% if enabled_plugins or other_plugins %}
     {% for plugin, content in enabled_plugins %}

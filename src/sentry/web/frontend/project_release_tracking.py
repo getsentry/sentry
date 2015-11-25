@@ -100,6 +100,11 @@ class ProjectReleaseTrackingView(ProjectView):
             'token': token,
             'enabled_plugins': enabled_plugins,
             'other_plugins': other_plugins,
+            'webhook_url': absolute_uri(reverse('sentry-release-hook', kwargs={
+                'plugin_id': 'builtin',
+                'project_id': project.id,
+                'signature': self._get_signature(project.id, 'builtin', token),
+            }))
         }
 
         return self.respond('sentry/project-release-tracking.html', context)
