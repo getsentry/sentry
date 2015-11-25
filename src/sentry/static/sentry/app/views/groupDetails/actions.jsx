@@ -118,13 +118,6 @@ const GroupActions = React.createClass({
           }
         </div>
         <div className="btn-group">
-          <a className={bookmarkClassName}
-             title="Bookmark"
-             onClick={this.onToggleBookmark}>
-            <span className="icon-bookmark" />
-          </a>
-        </div>
-        <div className="btn-group">
           {group.status === 'muted' ?
             <a className={snoozeClassName}
                title="Remove Snooze"
@@ -150,6 +143,13 @@ const GroupActions = React.createClass({
               </MenuItem>
             </DropdownLink>
           }
+        </div>
+        <div className="btn-group">
+          <a className={bookmarkClassName}
+             title="Bookmark"
+             onClick={this.onToggleBookmark}>
+            <span className="icon-bookmark" />
+          </a>
         </div>
         <div className="btn-group">
           <LinkWithConfirmation
