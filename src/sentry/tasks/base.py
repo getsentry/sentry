@@ -42,7 +42,7 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
                 instance = name
             Raven.tags_context({'task_name': name})
             with metrics.timer(key, instance=instance), \
-                    track_memory_usage('jobs.memory', instance=instance):
+                    track_memory_usage('jobs.memory_change', instance=instance):
                 try:
                     result = func(*args, **kwargs)
                 finally:
