@@ -191,3 +191,5 @@ OK_PLUGIN_SAVED = _('Configuration for the {name} integration has been saved.')
 
 # Key to use when ordering a list of events manually
 EVENT_ORDERING_KEY = attrgetter('datetime', 'id')
+
+FILTER_MASK = '[Filtered]'
