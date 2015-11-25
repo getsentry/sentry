@@ -49,13 +49,20 @@ class OptionsManagerTest(TestCase):
         with self.assertRaises(UnknownOption):
             self.manager.get('does-not-exist')
 
+        with self.assertRaises(AssertionError):
+            # This key should already exist, and we can't re-register
+            self.manager.register('foo')
+
     def test_legacy_key(self):
         """
         Allow sentry: prefixed keys without any registration
         """
         # These just shouldn't blow up since they are implicitly registered
-        self.manager.get('sentry:foo')
+        assert self.manager.get('sentry:foo') == ''
         self.manager.set('sentry:foo', 'bar')
+        assert self.manager.get('sentry:foo') == 'bar'
+        assert self.manager.delete('sentry:foo')
+        assert self.manager.get('sentry:foo') == ''
 
     def test_types(self):
         self.manager.register('some-int', type=int)
@@ -76,6 +83,8 @@ class OptionsManagerTest(TestCase):
         self.manager.register('immutible', flags=OptionsManager.FLAG_IMMUTABLE)
         with self.assertRaises(AssertionError):
             self.manager.set('immutible', 'thing')
+        with self.assertRaises(AssertionError):
+            self.manager.delete('immutible')
 
     def test_flag_nostore(self):
         self.manager.register('nostore', flags=OptionsManager.FLAG_NOSTORE)
@@ -89,6 +98,9 @@ class OptionsManagerTest(TestCase):
 
                 with self.settings(SENTRY_OPTIONS={'nostore': 'foo'}):
                     assert self.manager.get('nostore') == 'foo'
+
+        with self.assertRaises(AssertionError):
+            self.manager.delete('nostore')
 
     def test_flag_storeonly(self):
         self.manager.register('storeonly', flags=OptionsManager.FLAG_STOREONLY)
