@@ -8,6 +8,7 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import PropTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
+import {t} from '../locale';
 
 let ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND'
@@ -101,7 +102,9 @@ const OrganizationDetails = React.createClass({
         case ERROR_TYPES.ORG_NOT_FOUND:
           return (
             <div className="container">
-              <div className="alert alert-block">The organization you were looking for was not found.</div>
+              <div className="alert alert-block">
+                {t('The organization you were looking for was not found.')}
+              </div>
             </div>
           );
         default:

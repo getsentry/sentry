@@ -10,6 +10,7 @@ import ProjectHeader from '../components/projectHeader';
 import OrganizationState from '../mixins/organizationState';
 import PropTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
+import {t} from '../locale';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
@@ -150,7 +151,9 @@ const ProjectDetails = React.createClass({
         case ERROR_TYPES.PROJECT_NOT_FOUND:
           return (
             <div className="container">
-              <div className="alert alert-block">The project you were looking for was not found.</div>
+              <div className="alert alert-block">
+                {t('The project you were looking for was not found.')}
+              </div>
             </div>
           );
         case ERROR_TYPES.MISSING_MEMBERSHIP:
