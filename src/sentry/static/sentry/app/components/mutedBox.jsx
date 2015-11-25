@@ -7,15 +7,13 @@ const MutedBox = React.createClass({
   mixins: [PureRenderMixin],
 
   render() {
-    if (this.props.status !== 'muted') {
-      return null;
-    }
+    let statusDetails = this.props.statusDetails;
     return (
       <div className="alert alert-info alert-block">
-        {this.props.snoozeUntil ?
-          <span>This event has been snoozed until <strong><DateTime date={this.props.snoozeUntil} /></strong> &mdash; </span>
+        {statusDetails.snoozeUntil ?
+          <span>This issue has been snoozed until <strong><DateTime date={statusDetails.snoozeUntil} /></strong> &mdash; </span>
         :
-          <span>This event has been muted &mdash; </span>
+          <span>This issue has been muted &mdash; </span>
         }
         You will not be notified of any changes and it will not show up by
         default in feeds.

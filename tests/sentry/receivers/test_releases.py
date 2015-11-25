@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from mock import patch
+
 from sentry.models import Release, TagValue
 from sentry.testutils import TestCase
 
@@ -23,3 +25,16 @@ class EnsureReleaseExistsTest(TestCase):
 
         # ensure we dont hit some kind of error saving it again
         tv.save()
+
+
+class ResolveGroupResolutions(TestCase):
+    @patch('sentry.tasks.clear_expired_resolutions.clear_expired_resolutions.delay')
+    def test_simple(self, mock_delay):
+        release = Release.objects.create(
+            version='a',
+            project=self.project,
+        )
+
+        mock_delay.assert_called_once_with(
+            release_id=release.id,
+        )

@@ -8,8 +8,8 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.models import (
-    Group, GroupAssignee, GroupBookmark, GroupMeta, GroupSeen, GroupSnooze,
-    GroupStatus, GroupTagKey
+    Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution, GroupSeen,
+    GroupSnooze, GroupStatus, GroupTagKey
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -58,6 +58,12 @@ class GroupSerializer(Serializer):
             ).values_list('group', 'until')
         )
 
+        resolutions = dict(
+            GroupResolution.objects.filter(
+                group__in=item_list,
+            ).values_list('group', 'release')
+        )
+
         result = {}
         for item in item_list:
             active_date = item.active_at or item.last_seen
@@ -75,6 +81,7 @@ class GroupSerializer(Serializer):
                 'annotations': annotations,
                 'user_count': user_counts.get(item.id, 0),
                 'snooze': snoozes.get(item.id),
+                'resolution': resolutions.get(item.id),
             }
         return result
 
@@ -97,6 +104,18 @@ class GroupSerializer(Serializer):
         else:
             status_label = 'unresolved'
 
+        # TODO(dcramer): these are pretty arbitrary and not defined anywhere
+        if status_label == 'resolved' and attrs['resolution']:
+            status_details = {
+                'inNextRelease': True,
+            }
+        elif status_label == 'muted' and attrs['snooze']:
+            status_details = {
+                'snoozeUntil': attrs['snooze'],
+            }
+        else:
+            status_details = {}
+
         if obj.team:
             permalink = absolute_uri(reverse('sentry-group', args=[
                 obj.organization.slug, obj.project.slug, obj.id]))
@@ -117,7 +136,7 @@ class GroupSerializer(Serializer):
             'logger': obj.logger or None,
             'level': LOG_LEVELS.get(obj.level, 'unknown'),
             'status': status_label,
-            'snoozeUntil': attrs['snooze'],
+            'statusDetails': status_details,
             'isPublic': obj.is_public,
             'project': {
                 'name': obj.project.name,

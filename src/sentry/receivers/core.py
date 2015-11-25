@@ -12,9 +12,9 @@ from pkg_resources import parse_version as Version
 from sentry import options
 from sentry.models import (
     Organization, OrganizationMember, Project, User,
-    Team, ProjectKey, TagKey, TagValue, GroupTagValue, GroupTagKey, Activity
+    Team, ProjectKey, TagKey, TagValue, GroupTagValue, GroupTagKey
 )
-from sentry.signals import buffer_incr_complete, regression_signal
+from sentry.signals import buffer_incr_complete
 from sentry.utils import db
 
 PROJECT_SEQUENCE_FIX = """
@@ -181,18 +181,6 @@ def record_group_tag_count(filters, created, **kwargs):
         'group_id': group_id,
         'key': filters['key'],
     })
-
-
-@regression_signal.connect(weak=False)
-def create_regression_activity(instance, **kwargs):
-    if instance.times_seen == 1:
-        # this event is new
-        return
-    Activity.objects.create(
-        project=instance.project,
-        group=instance,
-        type=Activity.SET_REGRESSION,
-    )
 
 
 # Anything that relies on default objects that may not exist with default

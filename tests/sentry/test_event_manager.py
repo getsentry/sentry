@@ -4,9 +4,11 @@ from __future__ import absolute_import, print_function
 
 import logging
 
-from mock import patch
-
+from datetime import timedelta
 from django.conf import settings
+from django.utils import timezone
+from mock import patch
+from time import time
 
 from sentry.app import tsdb
 from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
@@ -14,7 +16,9 @@ from sentry.event_manager import (
     EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint,
     generate_culprit,
 )
-from sentry.models import Event, Group, GroupStatus, EventMapping
+from sentry.models import (
+    Activity, Event, Group, GroupResolution, GroupStatus, EventMapping, Release
+)
 from sentry.testutils import TestCase, TransactionTestCase
 
 
@@ -242,6 +246,78 @@ class EventManagerTest(TransactionTestCase):
 
         group = Group.objects.get(id=group.id)
         assert group.is_resolved()
+
+    @patch('sentry.event_manager.plugin_is_regression')
+    def test_marks_as_unresolved_only_with_new_release(self, plugin_is_regression):
+        plugin_is_regression.return_value = True
+
+        old_release = Release.objects.create(
+            version='a',
+            project=self.project,
+            date_added=timezone.now() - timedelta(minutes=30),
+        )
+
+        manager = EventManager(self.make_event(
+            event_id='a' * 32,
+            checksum='a' * 32,
+            timestamp=time() - 50000,  # need to work around active_at
+            release=old_release.version,
+        ))
+        event = manager.save(1)
+
+        group = event.group
+
+        group.update(status=GroupStatus.RESOLVED)
+
+        GroupResolution.objects.create(
+            release=old_release,
+            group=group,
+        )
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+            data={'version': ''},
+        )
+
+        manager = EventManager(self.make_event(
+            event_id='b' * 32,
+            checksum='a' * 32,
+            timestamp=time(),
+            release=old_release.version,
+        ))
+        event = manager.save(1)
+        assert event.group_id == group.id
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        activity = Activity.objects.get(id=activity.id)
+        assert activity.data['version'] == ''
+
+        assert GroupResolution.objects.filter(group=group).exists()
+
+        manager = EventManager(self.make_event(
+            event_id='c' * 32,
+            checksum='a' * 32,
+            timestamp=time(),
+            release='b',
+        ))
+        event = manager.save(1)
+        assert event.group_id == group.id
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
+        activity = Activity.objects.get(id=activity.id)
+        assert activity.data['version'] == 'b'
+
+        assert not GroupResolution.objects.filter(group=group).exists()
+
+        assert Activity.objects.filter(
+            group=group,
+            type=Activity.SET_REGRESSION,
+        ).exists()
 
     @patch('sentry.models.Group.is_resolved')
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):
