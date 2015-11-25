@@ -17,6 +17,7 @@ const StreamTagStore = Reflux.createStore({
   },
 
   reset() {
+    // TODO(mitsuhiko): what do we do with translations here?
     this.tags = {
       is: {
         key: 'is',
