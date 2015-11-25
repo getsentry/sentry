@@ -332,26 +332,29 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             for group in group_list:
                 try:
                     with transaction.atomic():
-                        GroupResolution.objects.create(
+                        resolution, created = GroupResolution.objects.create(
                             group=group,
                             release=release,
-                        )
+                        ), True
                 except IntegrityError:
-                    pass
+                    resolution, created = GroupResolution.objects.get(
+                        group=group,
+                    ), False
 
-                happened = Group.objects.filter(
+                Group.objects.filter(
                     id=group.id,
                 ).update(
                     status=GroupStatus.RESOLVED,
                     resolved_at=now,
                 )
 
-                if happened:
+                if created:
                     activity = Activity.objects.create(
                         project=group.project,
                         group=group,
                         type=Activity.SET_RESOLVED_IN_RELEASE,
                         user=acting_user,
+                        ident=resolution.id,
                         data={
                             # no version yet
                             'version': '',
