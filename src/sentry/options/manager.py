@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 from collections import namedtuple
+from types import NoneType
 
 from django.conf import settings
 from django.utils import timezone
@@ -211,6 +212,11 @@ class OptionsManager(object):
 
     def register(self, key, default='', type=basestring, flags=FLAG_DEFAULT):
         assert key not in self.registry, 'Option already registered: %r' % key
+        # We disallow None as a value for options since this is ambiguous and doesn't
+        # really make sense as config options. There should be a sensible default
+        # value instead that matches the type expected, rather than relying on None.
+        if type is NoneType:
+            raise TypeError('Options must not be NoneType')
         if not isinstance(default, type):
             raise TypeError('got %r, expected %r' % (_type(default), type))
         self.registry[key] = Key(key, default, type, flags, self._make_cache_key(key))

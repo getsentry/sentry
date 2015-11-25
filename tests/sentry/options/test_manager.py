@@ -56,6 +56,9 @@ class OptionsManagerTest(TestCase):
         with self.assertRaises(TypeError):
             self.manager.register('wrong-type', default=1, type=basestring)
 
+        with self.assertRaises(TypeError):
+            self.manager.register('none-type', default=None, type=type(None))
+
     def test_legacy_key(self):
         """
         Allow sentry: prefixed keys without any registration
