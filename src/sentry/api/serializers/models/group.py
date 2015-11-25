@@ -8,8 +8,8 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.models import (
-    Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution, GroupSeen,
-    GroupSnooze, GroupStatus, GroupTagKey
+    Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,
+    GroupResolutionStatus, GroupSeen, GroupSnooze, GroupStatus, GroupTagKey
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -58,9 +58,10 @@ class GroupSerializer(Serializer):
             ).values_list('group', 'until')
         )
 
-        resolutions = dict(
+        pending_resolutions = dict(
             GroupResolution.objects.filter(
                 group__in=item_list,
+                status=GroupResolutionStatus.PENDING,
             ).values_list('group', 'release')
         )
 
@@ -81,7 +82,7 @@ class GroupSerializer(Serializer):
                 'annotations': annotations,
                 'user_count': user_counts.get(item.id, 0),
                 'snooze': snoozes.get(item.id),
-                'resolution': resolutions.get(item.id),
+                'pending_resolution': pending_resolutions.get(item.id),
             }
         return result
 
@@ -98,7 +99,7 @@ class GroupSerializer(Serializer):
             status_details['autoResolved'] = True
         if status == GroupStatus.RESOLVED:
             status_label = 'resolved'
-            if attrs['resolution']:
+            if attrs['pending_resolution']:
                 status_details['inNextRelease'] = True
         elif status == GroupStatus.MUTED:
             status_label = 'muted'

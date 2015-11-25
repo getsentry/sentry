@@ -7,7 +7,9 @@ from django.utils import timezone
 from mock import patch
 
 from sentry.api.serializers import serialize
-from sentry.models import GroupResolution, GroupSnooze, GroupStatus, Release
+from sentry.models import (
+    GroupResolution, GroupResolutionStatus, GroupSnooze, GroupStatus, Release
+)
 from sentry.testutils import TestCase
 
 
@@ -57,6 +59,25 @@ class GroupSerializerTest(TestCase):
         result = serialize(group, user)
         assert result['status'] == 'resolved'
         assert result['statusDetails'] == {'inNextRelease': True}
+
+    def test_resolved_in_next_release_expired_resolution(self):
+        release = Release.objects.create(
+            project=self.project,
+            version='a',
+        )
+        user = self.create_user()
+        group = self.create_group(
+            status=GroupStatus.RESOLVED,
+        )
+        GroupResolution.objects.create(
+            group=group,
+            release=release,
+            status=GroupResolutionStatus.RESOLVED,
+        )
+
+        result = serialize(group, user)
+        assert result['status'] == 'resolved'
+        assert result['statusDetails'] == {}
 
     @patch('sentry.models.Group.is_over_resolve_age')
     def test_auto_resolved(self, mock_is_over_resolve_age):
