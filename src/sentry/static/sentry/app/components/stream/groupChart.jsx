@@ -54,7 +54,7 @@ const GroupChart = React.createClass({
   },
 
   render() {
-    if (!this.state.stats)
+    if (!this.state.stats || !this.state.stats.length)
       return null;
 
     let chartData = this.state.stats.map((point) => {
