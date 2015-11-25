@@ -4,28 +4,40 @@ import AlertActions from '../actions/alertActions';
 const AlertStore = Reflux.createStore({
   listenables: AlertActions,
 
-  init: function() {
+  init() {
     this.alerts = [];
     this.count = 0;
   },
 
-  onAddAlert: function(message, type){
+  onAddAlert(message, type, expireAfter) {
     // intentionally recreate array via concat because of Reflux
     // "bug" where React components are given same reference to tracked
     // data objects, and don't *see* that values have changed
+    var alertId = this.count++;
+
     this.alerts = this.alerts.concat([{
-      id: this.count++,
+      id: alertId,
       message: message,
       type: type
     }]);
 
+    if (typeof expireAfter === 'undefined') {
+      expireAfter = 5000;
+    }
+    if (expireAfter) {
+      window.setTimeout(() => {
+        this.onCloseAlert(alertId);
+      }, expireAfter);
+    }
+
     this.trigger(this.alerts);
   },
 
-  onCloseAlert: function(id){
+  onCloseAlert(id) {
+    // TODO(dcramer): we need some animations here for closing alerts
     this.alerts = this.alerts.filter(item => item.id !== id);
     this.trigger(this.alerts);
-  }
+  },
 });
 
 export default AlertStore;
