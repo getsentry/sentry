@@ -3,6 +3,7 @@ import React from 'react';
 import EventDataSection from './eventDataSection';
 import EventErrorItem from './errorItem';
 import PropTypes from '../../proptypes';
+import {t, tn} from '../../locale';
 
 const EventErrors = React.createClass({
   propTypes: {
@@ -38,8 +39,12 @@ const EventErrors = React.createClass({
           type="errors"
           className="errors">
         <p>
-          <a className="pull-right" onClick={this.toggle}>{isOpen ? 'Hide' : 'Show'}</a>
-          There {numErrors != 1 ? ('were ' + numErrors + ' errors') : 'was 1 error'} encountered while processing this event.
+          <a className="pull-right" onClick={this.toggle}>{isOpen ? t('Hide') : t('Show')}</a>
+          {
+            tn('There was 1 error encountered while processing this event',
+               'There were %d errors encountered while processing this event',
+               numErrors)
+          }
         </p>
         <ul style={{display: isOpen ? 'block' : 'none'}}>
           {errors.map((error, errorIdx) => {

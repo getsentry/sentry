@@ -5,6 +5,7 @@ import DropdownLink from '../dropdownLink';
 import AppState from '../../mixins/appState';
 import OrganizationStore from '../../stores/organizationStore';
 import ConfigStore from '../../stores/configStore';
+import {t} from '../../locale';
 
 const OrganizationSelector = React.createClass({
   mixins: [
@@ -43,7 +44,7 @@ const OrganizationSelector = React.createClass({
           <MenuItem divider={true} />
         }
         {features.has('organizations:create') &&
-          <MenuItem href={urlPrefix + '/organizations/new/'}>New Organization</MenuItem>
+          <MenuItem href={urlPrefix + '/organizations/new/'}>{t('New Organization')}</MenuItem>
         }
       </DropdownLink>
     );

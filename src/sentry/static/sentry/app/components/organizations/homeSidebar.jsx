@@ -5,6 +5,7 @@ import OrganizationState from '../../mixins/organizationState';
 
 import ConfigStore from '../../stores/configStore';
 import HookStore from '../../stores/hookStore';
+import {t} from '../../locale';
 
 const HomeSidebar = React.createClass({
   mixins: [OrganizationState],
@@ -24,16 +25,16 @@ const HomeSidebar = React.createClass({
     let orgId = org.slug;
     return (
       <div>
-        <h6 className="nav-header">General</h6>
+        <h6 className="nav-header">{t('General')}</h6>
         <ul className="nav nav-stacked">
-          <ListLink to={`/${orgId}/`}>Projects</ListLink>
+          <ListLink to={`/${orgId}/`}>{t('Projects')}</ListLink>
           {access.has('org:read') &&
-            <ListLink to={`/organizations/${orgId}/stats/`}>Stats</ListLink>
+            <ListLink to={`/organizations/${orgId}/stats/`}>{t('Stats')}</ListLink>
           }
         </ul>
         {access.has('org:read') &&
           <div>
-            <h6 className="nav-header">Manage</h6>
+            <h6 className="nav-header">{t('Manage')}</h6>
             <ul className="nav nav-stacked">
               {access.has('org:read') &&
                 <li>
@@ -46,16 +47,16 @@ const HomeSidebar = React.createClass({
                 </li>
               }
               {features.has('sso') && access.has('org:write') &&
-                <li><a href={urlPrefix + '/auth/'}>Auth</a></li>
+                <li><a href={urlPrefix + '/auth/'}>{t('Auth')}</a></li>
               }
               {access.has('org:write') &&
-                <li><a href={urlPrefix + '/api-keys/'}>API Keys</a></li>
+                <li><a href={urlPrefix + '/api-keys/'}>{t('API Keys')}</a></li>
               }
               {access.has('org:write') &&
-                <li><a href={urlPrefix + '/audit-log/'}>Audit Log</a></li>
+                <li><a href={urlPrefix + '/audit-log/'}>{t('Audit Log')}</a></li>
               }
               {access.has('org:write') &&
-                <li><a href={urlPrefix + '/settings/'}>Settings</a></li>
+                <li><a href={urlPrefix + '/settings/'}>{t('Settings')}</a></li>
               }
             </ul>
           </div>

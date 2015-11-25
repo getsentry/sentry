@@ -2,6 +2,7 @@ import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 import Frame from './frame';
+import {t} from '../../../locale';
 
 const TemplateInterface = React.createClass({
   propTypes: {
@@ -21,7 +22,7 @@ const TemplateInterface = React.createClass({
         group={this.props.group}
         event={this.props.event}
         type={this.props.type}
-        title={<div>Template</div>}>
+        title={<div>{t('Template')}</div>}>
         <div className="traceback">
           <ul>
             <Frame data={this.props.data} isExpanded={true}/>
