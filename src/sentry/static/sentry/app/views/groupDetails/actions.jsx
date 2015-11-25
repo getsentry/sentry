@@ -121,8 +121,8 @@ const GroupActions = React.createClass({
               title="">
               <MenuItem noAnchor={true}>
                 <a onClick={this.onUpdate.bind(this, {status: 'resolvedInNextRelease'})}>
-                  <strong>Resolve after Next Release</strong>
-                  <div className="help-text">Snooze this notification until the next release which then marks this as resolved.</div>
+                  <strong>Resolved in next release</strong>
+                  <div className="help-text">Snooze notifications until this issue reoccurs in a future release.</div>
                 </a>
               </MenuItem>
             </DropdownLink>]
