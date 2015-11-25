@@ -40,7 +40,7 @@ class TeamManager(BaseManager):
             status=TeamStatus.VISIBLE
         )
 
-        if env.request.is_superuser() or settings.SENTRY_PUBLIC:
+        if env.request and env.request.is_superuser() or settings.SENTRY_PUBLIC:
             team_list = list(base_team_qs)
 
         else:
