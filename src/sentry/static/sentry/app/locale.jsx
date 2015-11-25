@@ -87,12 +87,8 @@ export function gettext(string, ...args) {
   return rv;
 }
 
-export function ngettext(singular, plural, num, ...args) {
-  let rv = i18n.ngettext(singular, plural, num);
-  if (args.length > 0) {
-    rv = format(rv, args);
-  }
-  return rv;
+export function ngettext(singular, plural, ...args) {
+  return format(i18n.ngettext(singular, plural, args[0] || 0), args);
 }
 
 export const t = gettext;
