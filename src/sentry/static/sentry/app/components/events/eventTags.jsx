@@ -6,6 +6,7 @@ import PropTypes from '../../proptypes';
 
 import EventDataSection from './eventDataSection';
 import {isUrl} from '../../utils';
+import {t} from '../../locale';
 
 const EventTags = React.createClass({
   propTypes: {
@@ -25,7 +26,7 @@ const EventTags = React.createClass({
       <EventDataSection
           group={this.props.group}
           event={this.props.event}
-          title="Tags"
+          title={t('Tags')}
           type="tags">
         <ul className="mini-tag-list">
           {tags.map((tag) => {
