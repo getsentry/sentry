@@ -1,6 +1,7 @@
 import React from 'react';
 import utils from '../utils';
 import {Link} from 'react-router';
+import {t} from '../locale';
 
 const Pagination = React.createClass({
   propTypes: {
@@ -37,13 +38,13 @@ const Pagination = React.createClass({
             query={{...location.query, cursor: links.previous.cursor}}
             className={previousPageClassName}
             disabled={links.previous.results === false}>
-            <span title="Previous" className="icon-arrow-left"></span>
+            <span title={t('Previous')} className="icon-arrow-left"></span>
           </Link>
           <Link to={this.props.to || location.pathname}
             query={{...location.query, cursor: links.next.cursor}}
             className={nextPageClassName}
             disabled={links.next.results === false}>
-            <span title="Next" className="icon-arrow-right"></span>
+            <span title={t('Next')} className="icon-arrow-right"></span>
           </Link>
         </div>
       </div>

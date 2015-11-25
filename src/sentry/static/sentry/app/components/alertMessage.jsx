@@ -1,6 +1,7 @@
 import React from 'react';
 import AlertActions from '../actions/alertActions';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
+import { t } from '../locale';
 
 const AlertMessage = React.createClass({
   propTypes: {
@@ -23,7 +24,7 @@ const AlertMessage = React.createClass({
     return (
       <div className={className}>
         <div className="container">
-          <button type="button" className="close" aria-label="Close"
+          <button type="button" className="close" aria-label={t('Close')}
                   onClick={this.closeAlert}>
             <span aria-hidden="true">&times;</span>
           </button>
