@@ -79,12 +79,12 @@ class OptionsManagerTest(TestCase):
         self.manager.delete('awesome')
         assert self.manager.get('awesome') == 'lol'
 
-    def test_flag_immutible(self):
-        self.manager.register('immutible', flags=OptionsManager.FLAG_IMMUTABLE)
+    def test_flag_immutable(self):
+        self.manager.register('immutable', flags=OptionsManager.FLAG_IMMUTABLE)
         with self.assertRaises(AssertionError):
-            self.manager.set('immutible', 'thing')
+            self.manager.set('immutable', 'thing')
         with self.assertRaises(AssertionError):
-            self.manager.delete('immutible')
+            self.manager.delete('immutable')
 
     def test_flag_nostore(self):
         self.manager.register('nostore', flags=OptionsManager.FLAG_NOSTORE)
