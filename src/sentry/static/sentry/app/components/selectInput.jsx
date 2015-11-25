@@ -58,7 +58,8 @@ const SelectInput = React.createClass({
         required: this.props.required,
         multiple: this.props.multiple,
         placeholder: this.props.placeholder,
-        className: this.props.className
+        className: this.props.className,
+        value: this.props.value,
     };
     return (
       <select {...opts}>
