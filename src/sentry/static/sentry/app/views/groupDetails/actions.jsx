@@ -76,6 +76,8 @@ const GroupActions = React.createClass({
       resolveClassName += ' active';
     }
 
+    let resolveDropdownClasses = 'resolve-dropdown';
+
     let bookmarkClassName = 'group-bookmark btn btn-default btn-sm';
     if (group.isBookmarked) {
       bookmarkClassName += ' active';
@@ -104,6 +106,7 @@ const GroupActions = React.createClass({
             <DropdownLink
               caret={true}
               className={resolveClassName}
+              topLevelClasses={resolveDropdownClasses}
               title="">
               <MenuItem noAnchor={true}>
                 <a onClick={this.onUpdate.bind(this, {status: 'resolvedInNextRelease'})}>
