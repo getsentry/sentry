@@ -122,7 +122,9 @@ const GroupHeader = React.createClass({
               </div>
               <div className="col-xs-4 count align-right">
                 <h6 className="nav-header">Events</h6>
-                <Count className="count" value={group.count} />
+                <Link to={`/${orgId}/${projectId}/group/${groupId}/events/`}>
+                  <Count className="count" value={group.count} />
+                </Link>
               </div>
               <div className="col-xs-4 count align-right">
                 <h6 className="nav-header">Users</h6>
