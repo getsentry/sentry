@@ -37,9 +37,11 @@ def get_react_config(context):
     if 'request' in context:
         user = context['request'].user
         messages = get_messages(context['request'])
+        is_superuser = context['request'].is_superuser()
     else:
         user = None
         messages = []
+        is_superuser = False
 
     if user:
         user = extract_lazy_object(user)
@@ -66,6 +68,7 @@ def get_react_config(context):
             'isAuthenticated': True,
             'user': serialize(user, user),
         })
+        context['user']['isSuperuser'] = is_superuser
     else:
         context.update({
             'isAuthenticated': False,
