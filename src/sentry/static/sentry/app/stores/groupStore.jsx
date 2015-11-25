@@ -3,13 +3,8 @@ import Reflux from 'reflux';
 import AlertActions from '../actions/alertActions';
 import GroupActions from '../actions/groupActions';
 import utils from '../utils';
+import {t} from '../locale';
 
-const ERR_CHANGE_ASSIGNEE = 'Unable to change assignee. Please try again.';
-const ERR_SCHEDULE_DELETE = 'Unable to delete events. Please try again.';
-const ERR_SCHEDULE_MERGE = 'Unable to merge events. Please try again.';
-const ERR_UPDATE = 'Unable to update events. Please try again.';
-const OK_SCHEDULE_DELETE = 'The selected events have been scheduled for deletion.';
-const OK_SCHEDULE_MERGE = 'The selected events have been scheduled for merge.';
 
 const GroupStore = Reflux.createStore({
   listenables: [GroupActions],
@@ -217,7 +212,7 @@ const GroupStore = Reflux.createStore({
   // TODO(dcramer): This is not really the best place for this
   onAssignToError(changeId, itemId, error) {
     this.clearStatus(itemId, 'assignTo');
-    AlertActions.addAlert(ERR_CHANGE_ASSIGNEE, 'error');
+    AlertActions.addAlert(t('Unable to change assignee. Please try again.'), 'error');
   },
 
   onAssignToSuccess(changeId, itemId, response) {
@@ -241,7 +236,7 @@ const GroupStore = Reflux.createStore({
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'delete');
     });
-    AlertActions.addAlert(ERR_SCHEDULE_DELETE, 'error');
+    AlertActions.addAlert(t('Unable to delete events. Please try again.'), 'error');
     this.trigger(new Set(itemIds));
   },
 
@@ -252,7 +247,7 @@ const GroupStore = Reflux.createStore({
       this.clearStatus(itemId, 'delete');
     });
     this.items = this.items.filter((item) => !itemIdSet.has(item.id));
-    AlertActions.addAlert(OK_SCHEDULE_DELETE, 'success');
+    AlertActions.addAlert(t('The selected events have been scheduled for deletion.'), 'success');
     this.trigger(new Set(itemIds));
   },
 
@@ -267,7 +262,7 @@ const GroupStore = Reflux.createStore({
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'merge');
     });
-    AlertActions.addAlert(ERR_SCHEDULE_MERGE, 'error');
+    AlertActions.addAlert(t('Unable to merge events. Please try again.'), 'error');
     this.trigger(new Set(itemIds));
   },
 
@@ -282,7 +277,7 @@ const GroupStore = Reflux.createStore({
       (item) => !mergedIdSet.has(item.id) || item.id === response.merge.parent
     );
 
-    AlertActions.addAlert(OK_SCHEDULE_MERGE, 'success');
+    AlertActions.addAlert(t('The selected events have been scheduled for merge.'), 'success');
     this.trigger(new Set(mergedIds));
   },
 
@@ -303,7 +298,7 @@ const GroupStore = Reflux.createStore({
       this.clearStatus(itemId, 'update');
     });
     if (!failSilently) {
-      AlertActions.addAlert(ERR_UPDATE, 'error');
+      AlertActions.addAlert(t('Unable to update events. Please try again.'), 'error');
     }
     this.trigger(new Set(itemIds));
   },
