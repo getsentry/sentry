@@ -91,11 +91,17 @@ const GroupEventDetails = React.createClass({
             {group.status === 'muted' &&
               <MutedBox statusDetails={group.statusDetails} />
             }
-            {group.status === 'resolved' && group.statusDetails.inNextRelease  &&
+            {group.status === 'resolved' && group.statusDetails.inNextRelease &&
               <div className="alert alert-info alert-block">
                 <span>This issue has been marked as being resolved in the next
                   release. Until then, you will not get notified about new
                   occurances.</span>
+              </div>
+            }
+            {group.status === 'resolved' && group.statusDetails.autoResolved &&
+              <div className="alert alert-info alert-block">
+                <span>This issue was automatically marked was resolved due to
+                  the Auto Resolve configuration for this project.</span>
               </div>
             }
             {this.state.loading ?
