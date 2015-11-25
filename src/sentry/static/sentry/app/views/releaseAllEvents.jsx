@@ -1,6 +1,7 @@
 import React from 'react';
 import {Link} from 'react-router';
 import GroupList from '../components/groupList';
+import{t} from '../locale';
 
 const ReleaseAllEvents = React.createClass({
   contextTypes: {
@@ -15,7 +16,8 @@ const ReleaseAllEvents = React.createClass({
           <Link to={`/${orgId}/${projectId}/`} query={{
             query: 'release:' + this.context.release.version
           }}>
-            <span className="icon icon-open"></span> View all events seen in this release in the stream
+            <span className="icon icon-open"></span>
+            {t('View all events seen in this release in the stream')}
           </Link>
         </div>
         <GroupList

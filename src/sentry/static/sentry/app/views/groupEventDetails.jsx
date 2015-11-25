@@ -8,6 +8,7 @@ import GroupState from '../mixins/groupState';
 import MutedBox from '../components/mutedBox';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import {t} from '../locale';
 
 
 const GroupEventDetails = React.createClass({
@@ -93,15 +94,15 @@ const GroupEventDetails = React.createClass({
             }
             {group.status === 'resolved' && group.statusDetails.inNextRelease &&
               <div className="alert alert-info alert-block">
-                <span>This issue has been marked as being resolved in the next
+                <span>{t(`This issue has been marked as being resolved in the next
                   release. Until then, you will not get notified about new
-                  occurrences.</span>
+                  occurrences.`)}</span>
               </div>
             }
             {group.status === 'resolved' && group.statusDetails.autoResolved &&
               <div className="alert alert-info alert-block">
-                <span>This issue was automatically marked was resolved due to
-                  the Auto Resolve configuration for this project.</span>
+                <span>{t(`This issue was automatically marked was resolved due to
+                  the Auto Resolve configuration for this project.`)}</span>
               </div>
             }
             {this.state.loading ?

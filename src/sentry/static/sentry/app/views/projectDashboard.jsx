@@ -5,6 +5,7 @@ import {Link} from 'react-router';
 import EventList from './projectDashboard/eventList';
 import ProjectState from '../mixins/projectState';
 import ProjectChart from './projectDashboard/chart';
+import {t} from '../locale';
 
 const PERIOD_HOUR = '1h';
 const PERIOD_DAY = '1d';
@@ -114,19 +115,31 @@ const ProjectDashboard = React.createClass({
                 to={url}
                 query={{...routeQuery, statsPeriod: PERIOD_HOUR}}
                 active={statsPeriod === PERIOD_HOUR}
-                className={'btn btn-sm btn-default' + (statsPeriod === PERIOD_HOUR ? ' active' : '')}>1 hour</Link>
+                className={
+                  'btn btn-sm btn-default' + (
+                    statsPeriod === PERIOD_HOUR ? ' active' : '')}>
+                {t('1 hour')}
+              </Link>
               <Link
                 to={url}
                 query={{...routeQuery, statsPeriod: PERIOD_DAY}}
                 active={statsPeriod === PERIOD_DAY}
-                className={'btn btn-sm btn-default' + (statsPeriod === PERIOD_DAY ? ' active' : '')}>1 day</Link>
+                className={
+                  'btn btn-sm btn-default' + (
+                    statsPeriod === PERIOD_DAY ? ' active' : '')}>
+                {t('1 day')}
+              </Link>
               <Link
                 to={url}
                 query={{...routeQuery, statsPeriod: PERIOD_WEEK}}
-                className={'btn btn-sm btn-default' + (statsPeriod === PERIOD_WEEK ? ' active' : '')}>1 week</Link>
+                className={
+                  'btn btn-sm btn-default' + (
+                    statsPeriod === PERIOD_WEEK ? ' active' : '')}>
+                    {t('1 week')}
+              </Link>
             </div>
           </div>
-          <h3>Overview</h3>
+          <h3>{t('Overview')}</h3>
         </div>
         <ProjectChart
             dateSince={dateSince}
@@ -134,12 +147,12 @@ const ProjectDashboard = React.createClass({
         <div className="row">
           <div className="col-md-6">
             <EventList
-                title="Trending Events"
+                title={t('Trending Events')}
                 endpoint={this.getTrendingEventsEndpoint(dateSince)} />
           </div>
           <div className="col-md-6">
             <EventList
-                title="New Events"
+                title={t('New Events')}
                 endpoint={this.getNewEventsEndpoint(dateSince)} />
           </div>
         </div>
