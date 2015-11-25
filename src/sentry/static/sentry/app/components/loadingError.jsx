@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '../locale';
 
 const LoadingError = React.createClass({
   propTypes: {
@@ -8,7 +9,7 @@ const LoadingError = React.createClass({
 
   getDefaultProps() {
     return {
-      message: 'There was an error loading data.'
+      message: t('There was an error loading data.')
     };
   },
 
@@ -22,7 +23,7 @@ const LoadingError = React.createClass({
         <p>
           {this.props.message}
           {this.props.onRetry &&
-            <a onClick={this.props.onRetry} className="btn btn-sm">Retry</a>
+            <a onClick={this.props.onRetry} className="btn btn-sm">{t('Retry')}</a>
           }
         </p>
       </div>

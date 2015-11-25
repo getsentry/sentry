@@ -1,6 +1,7 @@
 import React from 'react';
 import ConfigStore from '../stores/configStore';
 import HookStore from '../stores/hookStore';
+import { t } from '../locale';
 
 const Footer = React.createClass({
   render() {
@@ -14,9 +15,9 @@ const Footer = React.createClass({
       <footer>
         <div className="container">
           <div className="pull-right">
-            <a href={config.urlPrefix + '/api/'}>API</a>
-            <a href={config.urlPrefix + '/docs/'}>Docs</a>
-            <a href="https://github.com/getsentry/sentry">Contribute</a>
+            <a href={config.urlPrefix + '/api/'}>{t('API')}</a>
+            <a href={config.urlPrefix + '/docs/'}>{t('Docs')}</a>
+            <a href="https://github.com/getsentry/sentry">{t('Contribute')}</a>
           </div>
           <div className="version pull-left">
             Sentry {config.version.current}

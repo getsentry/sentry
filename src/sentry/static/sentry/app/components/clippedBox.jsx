@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { t } from '../locale';
 
 const ClippedBox = React.createClass({
   propTypes: {
@@ -52,7 +53,9 @@ const ClippedBox = React.createClass({
         }
         {this.props.children}
         <div className="clip-fade">
-          <a onClick={this.reveal} className="show-more btn btn-primary btn-xs">Show more</a>
+          <a onClick={this.reveal} className="show-more btn btn-primary btn-xs">
+            {t('Show more')}
+          </a>
         </div>
       </div>
     );
