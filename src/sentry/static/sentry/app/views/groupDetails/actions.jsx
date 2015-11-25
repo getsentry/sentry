@@ -6,6 +6,7 @@ import GroupState from '../../mixins/groupState';
 import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
+import TooltipMixin from '../../mixins/tooltip';
 
 const Snooze = {
   // all values in minutes
@@ -17,7 +18,10 @@ const Snooze = {
 const GroupActions = React.createClass({
   mixins: [
     GroupState,
-    History
+    History,
+    TooltipMixin({
+      selector: '.tip'
+    }),
   ],
 
   onDelete() {
@@ -91,12 +95,19 @@ const GroupActions = React.createClass({
     return (
       <div className="group-actions">
         <div className="btn-group">
-          {group.status === 'resolved' ?
-            <a className={resolveClassName}
-               title="Unresolve"
-               onClick={this.onUpdate.bind(this, {status: 'unresolved'})}>
-              <span className="icon-checkmark" />
-            </a>
+          {group.status === 'resolved' ? (
+            group.statusDetails.autoResolved ?
+             <a className={resolveClassName + ' tip'}
+                 title="This event is resolved due to the Auto Resolve configuration for this project">
+                <span className="icon-checkmark" />
+              </a>
+            :
+              <a className={resolveClassName}
+                 title="Unresolve"
+                 onClick={this.onUpdate.bind(this, {status: 'unresolved'})}>
+                <span className="icon-checkmark" />
+              </a>
+            )
           :
             [<a className={resolveClassName}
                title="Resolve"
