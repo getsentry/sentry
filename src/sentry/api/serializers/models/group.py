@@ -87,14 +87,19 @@ class GroupSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         status = obj.status
+        status_details = {}
         if attrs['snooze']:
             if attrs['snooze'] < timezone.now() and status == GroupStatus.MUTED:
                 status = GroupStatus.UNRESOLVED
+            else:
+                status_details['snoozeUntil'] = attrs['snooze']
         elif status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
             status = GroupStatus.RESOLVED
-
+            status_details['autoResolved'] = True
         if status == GroupStatus.RESOLVED:
             status_label = 'resolved'
+            if attrs['resolution']:
+                status_details['inNextRelease'] = True
         elif status == GroupStatus.MUTED:
             status_label = 'muted'
         elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
@@ -103,18 +108,6 @@ class GroupSerializer(Serializer):
             status_label = 'pending_merge'
         else:
             status_label = 'unresolved'
-
-        # TODO(dcramer): these are pretty arbitrary and not defined anywhere
-        if status_label == 'resolved' and attrs['resolution']:
-            status_details = {
-                'inNextRelease': True,
-            }
-        elif status_label == 'muted' and attrs['snooze']:
-            status_details = {
-                'snoozeUntil': attrs['snooze'],
-            }
-        else:
-            status_details = {}
 
         if obj.team:
             permalink = absolute_uri(reverse('sentry-group', args=[
