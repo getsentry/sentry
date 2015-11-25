@@ -72,7 +72,7 @@ class OptionsManager(object):
         if logger is not None:
             self.logger = logger
 
-        self.registy = {}
+        self.registry = {}
 
     def _make_cache_key(self, key):
         return 'o:{0}'.format(md5(key).hexdigest())
