@@ -23,6 +23,8 @@ CACHE_FETCH_ERR = 'Unable to fetch option cache for %s'
 CACHE_UPDATE_ERR = 'Unable to update option cache for %s'
 
 Key = namedtuple('Key', ('name', 'default', 'type', 'flags', 'cache_key'))
+# Prevent outselves from clobbering the builtin
+_type = type
 
 
 class UnknownOption(KeyError):
@@ -93,7 +95,7 @@ class OptionsManager(object):
         assert not (opt.flags & self.FLAG_IMMUTABLE), '%r cannot be changed at runtime' % key
 
         if not isinstance(value, opt.type):
-            raise TypeError('got %r, expected %r' % (type(value), opt.type))
+            raise TypeError('got %r, expected %r' % (_type(value), opt.type))
 
         create_or_update(
             model=Option,
@@ -209,6 +211,8 @@ class OptionsManager(object):
 
     def register(self, key, default='', type=basestring, flags=FLAG_DEFAULT):
         assert key not in self.registry, 'Option already registered: %r' % key
+        if not isinstance(default, type):
+            raise TypeError('got %r, expected %r' % (_type(default), type))
         self.registry[key] = Key(key, default, type, flags, self._make_cache_key(key))
 
     def unregister(self, key):
