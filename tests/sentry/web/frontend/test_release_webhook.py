@@ -68,7 +68,7 @@ class ReleaseWebhookTest(TestCase):
 
 class BuiltinReleaseWebhookTest(TestCase):
     def setUp(self):
-        super(ReleaseWebhookTest, self).setUp()
+        super(BuiltinReleaseWebhookTest, self).setUp()
         self.organization = self.create_organization()
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(team=self.team)
