@@ -159,3 +159,7 @@ class OptionsManagerTest(TestCase):
 
             with patch.object(self.manager.cache, 'set', side_effect=Exception()):
                 assert self.manager.get('foo') == 'baz'
+
+    def test_unregister(self):
+        with self.assertRaises(UnknownOption):
+            self.manager.unregister('does-not-exist')
