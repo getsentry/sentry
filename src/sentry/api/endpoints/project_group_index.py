@@ -323,9 +323,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             filters.append(Q(status=status_filter))
 
         if result.get('status') == 'resolvedInNextRelease':
-            release = Release.objects.filter(
-                project=project,
-            ).order_by('-date_added')[0]
+            try:
+                release = Release.objects.filter(
+                    project=project,
+                ).order_by('-date_added')[0]
+            except IndexError:
+                return Response('{"detail": "No release data present in the system to indicate form a basis for \'Next Release\'"}', status=400)
 
             now = timezone.now()
 

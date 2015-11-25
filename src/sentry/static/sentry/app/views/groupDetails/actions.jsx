@@ -92,6 +92,8 @@ const GroupActions = React.createClass({
       snoozeClassName += ' active';
     }
 
+    let hasRelease = group.tags.filter(item => item.key === 'release').length;
+
     return (
       <div className="group-actions">
         <div className="btn-group">
@@ -120,10 +122,17 @@ const GroupActions = React.createClass({
               topLevelClasses={resolveDropdownClasses}
               title="">
               <MenuItem noAnchor={true}>
-                <a onClick={this.onUpdate.bind(this, {status: 'resolvedInNextRelease'})}>
-                  <strong>Resolved in next release</strong>
-                  <div className="help-text">Snooze notifications until this issue reoccurs in a future release.</div>
-                </a>
+                {hasRelease ?
+                  <a onClick={this.onUpdate.bind(this, {status: 'resolvedInNextRelease'})}>
+                    <strong>Resolved in next release</strong>
+                    <div className="help-text">Snooze notifications until this issue reoccurs in a future release.</div>
+                  </a>
+                :
+                  <a className="disabled tip" title="You need to send release data to Sentry in order to use this feature.">
+                    <strong>Resolved in next release</strong>
+                    <div className="help-text">Snooze notifications until this issue reoccurs in a future release.</div>
+                  </a>
+                }
               </MenuItem>
             </DropdownLink>]
           }
