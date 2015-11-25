@@ -118,6 +118,8 @@ class OptionsManager(object):
             # we special case them here and construct a faux key until we migrate.
             if key[:7] == 'sentry:':
                 self.logger.info('Using legacy key: %s', key, exc_info=True)
+                # History shows, there was an expectation of no types, and empty string
+                # as the default response value
                 return Key(key, '', object, self.FLAG_DEFAULT, self._make_cache_key(key))
             raise UnknownOption(key)
 
