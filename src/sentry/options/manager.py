@@ -56,7 +56,7 @@ class OptionsManager(object):
     # we generally want to always persist
     ttl = None
 
-    FLAG_DEFAULT = 0b000
+    DEFAULT_FLAGS = 0b000
     # Value can't be changed at runtime
     FLAG_IMMUTABLE = 0b001
     # Don't check/set in the datastore. Option only exists from file.
@@ -125,7 +125,7 @@ class OptionsManager(object):
                 self.logger.info('Using legacy key: %s', key, exc_info=True)
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
-                return Key(key, '', object, self.FLAG_DEFAULT, self._make_cache_key(key))
+                return Key(key, '', object, self.DEFAULT_FLAGS, self._make_cache_key(key))
             raise UnknownOption(key)
 
     def get(self, key):
@@ -210,7 +210,7 @@ class OptionsManager(object):
     def update_cached_value(self, cache_key, value):
         self.cache.set(cache_key, value, self.ttl)
 
-    def register(self, key, default='', type=basestring, flags=FLAG_DEFAULT):
+    def register(self, key, default='', type=basestring, flags=DEFAULT_FLAGS):
         assert key not in self.registry, 'Option already registered: %r' % key
         # We disallow None as a value for options since this is ambiguous and doesn't
         # really make sense as config options. There should be a sensible default
