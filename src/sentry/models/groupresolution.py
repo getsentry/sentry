@@ -2,7 +2,15 @@ from __future__ import absolute_import
 
 from django.db import models
 from django.utils import timezone
-from sentry.db.models import Model, FlexibleForeignKey, sane_repr
+from django.utils.translation import ugettext_lazy as _
+from sentry.db.models import (
+    BoundedPositiveIntegerField, Model, FlexibleForeignKey, sane_repr
+)
+
+
+class GroupResolutionStatus(object):
+    PENDING = 0
+    RESOLVED = 1
 
 
 class GroupResolution(Model):
@@ -22,6 +30,13 @@ class GroupResolution(Model):
     # which allows us to indicate if it still happens in newer versions
     release = FlexibleForeignKey('sentry.Release')
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
+    status = BoundedPositiveIntegerField(
+        default=GroupResolutionStatus.PENDING,
+        choices=(
+            (GroupResolutionStatus.PENDING, _('Pending')),
+            (GroupResolutionStatus.RESOLVED, _('Resolved')),
+        ),
+    )
 
     class Meta:
         db_table = 'sentry_groupresolution'
