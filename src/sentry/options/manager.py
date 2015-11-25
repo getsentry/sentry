@@ -48,7 +48,7 @@ class OptionsManager(object):
     """
     cache = default_cache
     logger = logging.getLogger('sentry')
-    registry = {}
+    registry = None
 
     # we generally want to always persist
     ttl = None
@@ -71,6 +71,8 @@ class OptionsManager(object):
 
         if logger is not None:
             self.logger = logger
+
+        self.registy = {}
 
     def _make_cache_key(self, key):
         return 'o:{0}'.format(md5(key).hexdigest())
