@@ -104,7 +104,7 @@ const ReleaseDetails = React.createClass({
               </div>
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
-                  <h6 className="nav-header">New Events</h6>
+                  <h6 className="nav-header">New Issues</h6>
                   <span className="stream-count"><Count value={release.newGroups} /></span>
                 </div>
               </div>
@@ -134,8 +134,8 @@ const ReleaseDetails = React.createClass({
                 // react-router isActive will return true for any route that is part of the active route
                 // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
                 return to === this.context.location.pathname;
-              }}>New Events</ListLink>
-              <ListLink to={`/${orgId}/${projectId}/releases/${release.version}/all-events/`}>All Events</ListLink>
+              }}>New Issues</ListLink>
+              <ListLink to={`/${orgId}/${projectId}/releases/${release.version}/all-events/`}>All Issues</ListLink>
               <ListLink to={`/${orgId}/${projectId}/releases/${release.version}/artifacts/`} className="pull-right">Artifacts</ListLink>
             </ul>
           </div>
