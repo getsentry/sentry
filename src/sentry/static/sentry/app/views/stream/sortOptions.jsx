@@ -2,6 +2,7 @@ import PureRenderMixin from 'react-addons-pure-render-mixin';
 import React from 'react';
 import DropdownLink from '../../components/dropdownLink';
 import MenuItem from '../../components/menuItem';
+import {t} from '../../locale';
 
 const SortOptions = React.createClass({
   mixins: [PureRenderMixin],
@@ -30,14 +31,14 @@ const SortOptions = React.createClass({
   getSortLabel(key) {
     switch (key) {
       case 'new':
-        return 'First Seen';
+        return t('First Seen');
       case 'priority':
-        return 'Priority';
+        return t('Priority');
       case 'freq':
-        return 'Frequency';
+        return t('Frequency');
       case 'date':
       default:
-        return 'Last Seen';
+        return t('Last Seen');
     }
   },
 

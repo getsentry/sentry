@@ -4,6 +4,7 @@ import React from 'react';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import TooltipMixin from '../../mixins/tooltip';
 
+// TODO(mitsuhiko): very unclear how to translate this
 const ActionLink = React.createClass({
   propTypes: {
     actionLabel: React.PropTypes.string,
