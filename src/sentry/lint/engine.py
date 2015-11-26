@@ -24,9 +24,27 @@ def get_files(path):
     return results
 
 
+def get_files_for_list(file_list):
+    if file_list is None:
+        files_to_check = get_files('.')
+
+    else:
+        files_to_check = []
+        for path in file_list:
+            if os.path.isdir(path):
+                files_to_check.extend(get_files(path))
+            else:
+                files_to_check.append(path)
+    return files_to_check
+
+
 def py_lint(file_list):
     from flake8.main import DEFAULT_CONFIG
     from flake8.engine import get_style_guide
+
+    if file_list is None:
+        file_list = ['src/sentry', 'tests']
+    file_list = get_files_for_list(file_list)
 
     # remove non-py files and files which no longer exist
     file_list = filter(lambda x: x.endswith('.py'), file_list)
@@ -37,19 +55,20 @@ def py_lint(file_list):
     return report.total_errors != 0
 
 
-def js_lint(file_list, check_all=False):
+def js_lint(file_list=None):
     if not os.path.exists('node_modules/.bin/eslint'):
         print '!! Skipping JavaScript linting because eslint is not installed.'
         return False
+    if file_list is None:
+        file_list = ['tests/js', 'src/sentry/static/sentry/app']
+    file_list = get_files_for_list(file_list)
+
     has_errors = False
-    if check_all:
-        has_errors = os.system('npm run-script lint')
-    else:
-        file_list = filter(lambda x: x.endswith(('.js', '.jsx')), file_list)
-        if file_list:
-            status = Popen(['node_modules/.bin/eslint', '--ext', '.jsx']
-                           + list(file_list)).wait()
-            has_errors = status != 0
+    file_list = filter(lambda x: x.endswith(('.js', '.jsx')), file_list)
+    if file_list:
+        status = Popen(['node_modules/.bin/eslint', '--ext', '.jsx']
+                       + list(file_list)).wait()
+        has_errors = status != 0
 
     return has_errors
 
@@ -62,20 +81,7 @@ def check_files(file_list=None):
     ]
 
     try:
-        if file_list is None:
-            files_to_check = get_files('.')
-            check_all = True
-
-        else:
-            check_all = False
-            files_to_check = []
-            for path in file_list:
-                if os.path.isdir(path):
-                    files_to_check.extend(get_files(path))
-                else:
-                    files_to_check.append(path)
-
-        if any((py_lint(files_to_check), js_lint(files_to_check, check_all))):
+        if any((py_lint(file_list), js_lint(file_list))):
             return 1
         return 0
     finally:
