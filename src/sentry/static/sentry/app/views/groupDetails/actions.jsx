@@ -7,6 +7,7 @@ import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import TooltipMixin from '../../mixins/tooltip';
+import {t} from '../../locale';
 
 const Snooze = {
   // all values in minutes
@@ -28,7 +29,7 @@ const GroupActions = React.createClass({
     let group = this.getGroup();
     let project = this.getProject();
     let org = this.getOrganization();
-    let loadingIndicator = IndicatorStore.add('Delete event..');
+    let loadingIndicator = IndicatorStore.add(t('Delete event..'));
 
     api.bulkDelete({
       orgId: org.slug,
@@ -47,7 +48,7 @@ const GroupActions = React.createClass({
     let group = this.getGroup();
     let project = this.getProject();
     let org = this.getOrganization();
-    let loadingIndicator = IndicatorStore.add('Saving changes..');
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
     api.bulkUpdate({
       orgId: org.slug,
@@ -100,7 +101,7 @@ const GroupActions = React.createClass({
           {group.status === 'resolved' ? (
             group.statusDetails.autoResolved ?
              <a className={resolveClassName + ' tip'}
-                 title="This event is resolved due to the Auto Resolve configuration for this project">
+                 title={t('This event is resolved due to the Auto Resolve configuration for this project')}>
                 <span className="icon-checkmark" />
               </a>
             :
@@ -124,13 +125,13 @@ const GroupActions = React.createClass({
               <MenuItem noAnchor={true}>
                 {hasRelease ?
                   <a onClick={this.onUpdate.bind(this, {status: 'resolvedInNextRelease'})}>
-                    <strong>Resolved in next release</strong>
-                    <div className="help-text">Snooze notifications until this issue reoccurs in a future release.</div>
+                    <strong>{t('Resolved in next release')}</strong>
+                    <div className="help-text">{t('Snooze notifications until this issue reoccurs in a future release.')}</div>
                   </a>
                 :
                   <a className="disabled tip" title="You need to send release data to Sentry in order to use this feature.">
-                    <strong>Resolved in next release</strong>
-                    <div className="help-text">Snooze notifications until this issue reoccurs in a future release.</div>
+                    <strong>{t('Resolved in next release.')}</strong>
+                    <div className="help-text">{t('Snooze notifications until this issue reoccurs in a future release.')}</div>
                   </a>
                 }
               </MenuItem>
@@ -142,7 +143,7 @@ const GroupActions = React.createClass({
             <a className={snoozeClassName}
                title="Remove Snooze"
                onClick={this.onUpdate.bind(this, {status: 'unresolved'})}>
-              Snooze
+             {t('Snooze')}
             </a>
           :
             <DropdownLink
@@ -150,23 +151,23 @@ const GroupActions = React.createClass({
               className={snoozeClassName}
               title="Snooze">
               <MenuItem noAnchor={true}>
-                <a onClick={this.onSnooze.bind(this, Snooze['30MINUTES'])}>for 30 minutes</a>
+                <a onClick={this.onSnooze.bind(this, Snooze['30MINUTES'])}>{t('for 30 minutes')}</a>
               </MenuItem>
               <MenuItem noAnchor={true}>
-                <a onClick={this.onSnooze.bind(this, Snooze['2HOURS'])}>for 2 hours</a>
+                <a onClick={this.onSnooze.bind(this, Snooze['2HOURS'])}>{t('for 2 hours')}</a>
               </MenuItem>
               <MenuItem noAnchor={true}>
-                <a onClick={this.onSnooze.bind(this, Snooze['24HOURS'])}>for 24 hours</a>
+                <a onClick={this.onSnooze.bind(this, Snooze['24HOURS'])}>{t('for 24 hours')}</a>
               </MenuItem>
               <MenuItem noAnchor={true}>
-                <a onClick={this.onUpdate.bind(this, {status: 'muted'})}>forever</a>
+                <a onClick={this.onUpdate.bind(this, {status: 'muted'})}>{t('forever')}</a>
               </MenuItem>
             </DropdownLink>
           }
         </div>
         <div className="btn-group">
           <a className={bookmarkClassName}
-             title="Bookmark"
+             title={t('Bookmark')}
              onClick={this.onToggleBookmark}>
             <span className="icon-bookmark" />
           </a>
@@ -174,8 +175,8 @@ const GroupActions = React.createClass({
         <div className="btn-group">
           <LinkWithConfirmation
                className="group-remove btn btn-default btn-sm"
-               title="Delete"
-               message="Deleting this event is permanent. Are you sure you wish to continue?"
+               title={t('Delete')}
+               message={t('Deleting this event is permanent. Are you sure you wish to continue?')}
                onConfirm={this.onDelete}>
             <span className="icon-trash"></span>
           </LinkWithConfirmation>
@@ -184,7 +185,7 @@ const GroupActions = React.createClass({
           <div className="btn-group more">
             <DropdownLink
                 className="btn btn-default btn-sm"
-                title="More">
+                title={t('More')}>
               {group.pluginActions.map((action, actionIdx) => {
                 return (
                   <MenuItem key={actionIdx} href={action[1]}>

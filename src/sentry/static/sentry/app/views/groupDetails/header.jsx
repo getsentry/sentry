@@ -9,6 +9,7 @@ import GroupSeenBy from './seenBy';
 import IndicatorStore from '../../stores/indicatorStore';
 import ListLink from '../../components/listLink';
 import ProjectState from '../../mixins/projectState';
+import {t} from '../../locale';
 
 const GroupHeader = React.createClass({
   propTypes: {
@@ -28,7 +29,7 @@ const GroupHeader = React.createClass({
     let group = this.props.group;
     let project = this.getProject();
     let org = this.getOrganization();
-    let loadingIndicator = IndicatorStore.add('Saving changes..');
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
     api.bulkUpdate({
       orgId: org.slug,
@@ -53,7 +54,7 @@ const GroupHeader = React.createClass({
     let group = this.props.group;
     let project = this.getProject();
     let org = this.getOrganization();
-    let loadingIndicator = IndicatorStore.add('Saving changes..');
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
     api.bulkUpdate({
       orgId: org.slug,
@@ -117,17 +118,17 @@ const GroupHeader = React.createClass({
           <div className="col-sm-4 stats">
             <div className="row">
               <div className="col-xs-4 assigned-to">
-                <h6 className="nav-header">Assigned</h6>
+                <h6 className="nav-header">{t('Assigned')}</h6>
                 <AssigneeSelector id={group.id} />
               </div>
               <div className="col-xs-4 count align-right">
-                <h6 className="nav-header">Events</h6>
+                <h6 className="nav-header">{t('Events')}</h6>
                 <Link to={`/${orgId}/${projectId}/group/${groupId}/events/`}>
                   <Count className="count" value={group.count} />
                 </Link>
               </div>
               <div className="col-xs-4 count align-right">
-                <h6 className="nav-header">Users</h6>
+                <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ?
                   <Link to={`/${orgId}/${projectId}/group/${groupId}/tags/user/`}>
                     <Count className="count" value={userCount} />
@@ -144,7 +145,7 @@ const GroupHeader = React.createClass({
         <div className="pull-right">
           <div className="group-privacy">
             <a onClick={this.onShare}>
-              <span className="icon" /> Share this event
+              <span className="icon" /> {t('Share this event')}
             </a>
           </div>
         </div>
@@ -156,21 +157,21 @@ const GroupHeader = React.createClass({
             // Because react-router 1.0 removes router.isActive(route)
             return pathname === rootGroupPath || /events\/\w+\/$/.test(pathname);
           }.bind(this)}>
-            Details
+            {t('Details')}
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/group/${groupId}/activity/`}>
-            Comments <span className="badge animated">{group.numComments}</span>
+            {t('Comments')} <span className="badge animated">{group.numComments}</span>
           </ListLink>
           {features.has('user-reports') &&
             <ListLink to={`/${orgId}/${projectId}/group/${groupId}/reports/`}>
-              User Reports <span className="badge animated">{group.userReportCount}</span>
+              {t('User Reports')} <span className="badge animated">{group.userReportCount}</span>
             </ListLink>
           }
           <ListLink to={`/${orgId}/${projectId}/group/${groupId}/tags/`}>
-            Tags
+            {t('Tags')}
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/group/${groupId}/events/`}>
-            Related Events
+            {t('Related Events')}
           </ListLink>
         </ul>
       </div>
