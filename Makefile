@@ -108,7 +108,7 @@ test-python-coverage:
 
 lint:
 	@echo "--> Linting all the things"
-	bin/lint src/sentry tests
+	bin/lint
 	@echo ""
 
 # These are just aliases for backwards compat
