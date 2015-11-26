@@ -37,15 +37,19 @@ def py_lint(file_list):
     return report.total_errors != 0
 
 
-def js_lint(file_list):
+def js_lint(file_list, check_all=False):
     if not os.path.exists('node_modules/.bin/eslint'):
         print '!! Skipping JavaScript linting because eslint is not installed.'
         return False
     has_errors = False
-    file_list = filter(lambda x: x.endswith(('.js', '.jsx')), file_list)
-    if file_list:
-        status = Popen(['node_modules/.bin/eslint'] + list(file_list)).wait()
-        has_errors = status != 0
+    if check_all:
+        has_errors = os.system('npm run-script lint')
+    else:
+        file_list = filter(lambda x: x.endswith(('.js', '.jsx')), file_list)
+        if file_list:
+            status = Popen(['node_modules/.bin/eslint', '--ext', '.jsx']
+                           + list(file_list)).wait()
+            has_errors = status != 0
 
     return has_errors
 
@@ -60,8 +64,10 @@ def check_files(file_list=None):
     try:
         if file_list is None:
             files_to_check = get_files('.')
+            check_all = True
 
         else:
+            check_all = False
             files_to_check = []
             for path in file_list:
                 if os.path.isdir(path):
@@ -69,7 +75,7 @@ def check_files(file_list=None):
                 else:
                     files_to_check.append(path)
 
-        if any((py_lint(files_to_check), js_lint(files_to_check))):
+        if any((py_lint(files_to_check), js_lint(files_to_check, check_all))):
             return 1
         return 0
     finally:
