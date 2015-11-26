@@ -5,6 +5,7 @@ import ConfigStore from '../../stores/configStore';
 import ListLink from '../../components/listLink';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
+import {t} from '../../locale';
 
 const ProjectSettings = React.createClass({
   propTypes: {
@@ -74,16 +75,16 @@ const ProjectSettings = React.createClass({
     return (
       <div className="row">
         <div className="col-md-2">
-          <h6 className="nav-header">Configuration</h6>
+          <h6 className="nav-header">{t('Configuration')}</h6>
           <ul className="nav nav-stacked">
-            <li><a href={`${settingsUrlRoot}/`}>Project Settings</a></li>
-            <li><a href={`${settingsUrlRoot}/notifications/`}>Notifications</a></li>
-            <li><a href={`${settingsUrlRoot}/rules/`}>Rules</a></li>
-            <li><a href={`${settingsUrlRoot}/tags/`}>Tags</a></li>
-            <li><a href={`${settingsUrlRoot}/issue-tracking/`}>Issue Tracking</a></li>
-            <li><a href={`${settingsUrlRoot}/release-tracking/`}>Release Tracking</a></li>
+            <li><a href={`${settingsUrlRoot}/`}>{t('Project Settings')}</a></li>
+            <li><a href={`${settingsUrlRoot}/notifications/`}>{t('Notifications')}</a></li>
+            <li><a href={`${settingsUrlRoot}/rules/`}>{t('Rules')}</a></li>
+            <li><a href={`${settingsUrlRoot}/tags/`}>{t('Tags')}</a></li>
+            <li><a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a></li>
+            <li><a href={`${settingsUrlRoot}/release-tracking/`}>{t('Release Tracking')}</a></li>
           </ul>
-          <h6 className="nav-header">Setup</h6>
+          <h6 className="nav-header">{t('Setup')}</h6>
           <ul className="nav nav-stacked">
             <ListLink to="install/" isActive={function (to) {
               let rootInstallPath = `/${orgId}/${projectId}/settings/install/`;
@@ -91,12 +92,12 @@ const ProjectSettings = React.createClass({
 
               // Because react-router 1.0 removes router.isActive(route)
               return pathname === rootInstallPath || /install\/[\w\-]+\/$/.test(pathname);
-            }.bind(this)}>Instructions</ListLink>
-            <li><a href={`${settingsUrlRoot}/keys/`}>Client Keys</a></li>
+            }.bind(this)}>{t('Instructions')}</ListLink>
+            <li><a href={`${settingsUrlRoot}/keys/`}>{t('Client Keys')}</a></li>
           </ul>
-          <h6 className="nav-header">Integrations</h6>
+          <h6 className="nav-header">{t('Integrations')}</h6>
           <ul className="nav nav-stacked">
-            <li><a href={`${settingsUrlRoot}/plugins/`}>All Integrations</a></li>
+            <li><a href={`${settingsUrlRoot}/plugins/`}>{t('All Integrations')}</a></li>
             {project.activePlugins.map((plugin) => {
               return <li><a href={`${settingsUrlRoot}/plugins/${plugin.id}/`}>{plugin.name}</a></li>;
             })}

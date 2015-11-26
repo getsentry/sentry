@@ -1,6 +1,7 @@
 import React from 'react';
 
 import Count from '../../components/count';
+import {t} from '../../locale';
 
 const SharedGroupHeader = React.createClass({
   render() {
@@ -20,18 +21,18 @@ const SharedGroupHeader = React.createClass({
           <div className="col-sm-3 stats">
             <div className="row">
               <div className="col-xs-6 count align-right">
-                <h6 className="nav-header">events</h6>
+                <h6 className="nav-header">{t('events')}</h6>
                 <Count value={group.count} />
               </div>
               <div className="col-xs-6 count align-right">
-                <h6 className="nav-header">users</h6>
+                <h6 className="nav-header">{t('users')}</h6>
                 <Count value={userCount} />
               </div>
             </div>
           </div>
         </div>
         <ul className="nav nav-tabs">
-          <li className="active"><a>Overview</a></li>
+          <li className="active"><a>{t('Overview')}</a></li>
         </ul>
       </div>
     );
