@@ -10,7 +10,7 @@ import Version from '../../components/version';
 
 import NoteContainer from './noteContainer';
 import NoteInput from './noteInput';
-import {t, tct} from '../../locale';
+import {t} from '../../locale';
 
 
 const GroupActivity = React.createClass({
@@ -30,8 +30,8 @@ const GroupActivity = React.createClass({
       case 'set_resolved_in_release':
         return (data.version ?
           t('%(author)s marked this issue as resolved in %(version)s', {
-            author,
-            <Version version={data.version} orgId={orgId} projectId={projectId} />
+            author: author,
+            version: <Version version={data.version} orgId={orgId} projectId={projectId} />
           })
         :
           t('%s marked this issue as resolved in the upcoming release')
