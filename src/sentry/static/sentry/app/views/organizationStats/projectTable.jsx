@@ -2,6 +2,7 @@ import React from 'react';
 import ConfigStore from '../../stores/configStore';
 import Count from '../../components/count';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
+import {t} from '../../locale';
 
 let getPercent = (item, total) => {
   if (total === 0) {
@@ -36,11 +37,11 @@ const ProjectTable = React.createClass({
       <table className="table simple-list project-list">
         <thead>
           <tr>
-            <th>Project</th>
-            <th className="align-right">Accepted</th>
-            <th className="align-right">Dropped<br/>(Rate Limit)</th>
-            <th className="align-right">Dropped<br/>(Blacklist)</th>
-            <th className="align-right">Total</th>
+            <th>{t('Project')}</th>
+            <th className="align-right">{t('Accepted')}</th>
+            <th className="align-right">{t('Dropped')}<br/>{t('(Rate Limit)')}</th>
+            <th className="align-right">{t('Dropped')}<br/>{t('(Blacklist)')}</th>
+            <th className="align-right">{t('Total')}</th>
           </tr>
         </thead>
         <tbody>
