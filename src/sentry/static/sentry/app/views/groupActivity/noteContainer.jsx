@@ -5,6 +5,7 @@ import GroupStore from '../../stores/groupStore';
 
 import Note from './note';
 import NoteInput from './noteInput';
+import {t} from '../../locale';
 
 const NoteContainer = React.createClass({
   getInitialState() {
@@ -24,7 +25,7 @@ const NoteContainer = React.createClass({
   onDelete() {
     let {group, item} = this.props;
 
-    let loadingIndicator = IndicatorStore.add('Removing comment..');
+    let loadingIndicator = IndicatorStore.add(t('Removing comment..'));
 
     // Optimistically remove from UI
     let index = GroupStore.removeActivity(group.id, item.id);

@@ -5,10 +5,14 @@ import GroupStore from '../../stores/groupStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import {logException} from '../../utils/logging';
 import {getItem, setItem} from '../../utils/localStorage';
+import {t} from '../../locale';
 
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 const localStorageKey = 'noteinput:latest';
-const DEFAULT_ERROR_JSON = {detail: 'Unknown error. Please try again.'};
+
+function makeDefaultErrorJson() {
+  return {detail: t('Unknown error. Please try again.')};
+}
 
 const NoteInput = React.createClass({
   mixins: [PureRenderMixin],
@@ -89,7 +93,7 @@ const NoteInput = React.createClass({
   create() {
     let {group} = this.props;
 
-    let loadingIndicator = IndicatorStore.add('Posting comment..');
+    let loadingIndicator = IndicatorStore.add(t('Posting comment..'));
 
     api.request('/groups/' + group.id + '/notes/', {
       method: 'POST',
@@ -101,7 +105,7 @@ const NoteInput = React.createClass({
           loading: false,
           preview: false,
           error: true,
-          errorJSON: error.responseJSON || DEFAULT_ERROR_JSON
+          errorJSON: error.responseJSON || makeDefaultErrorJson()
         });
       },
       success: (data) => {
@@ -123,7 +127,7 @@ const NoteInput = React.createClass({
   update() {
     let {group, item} = this.props;
 
-    let loadingIndicator = IndicatorStore.add('Updating comment..');
+    let loadingIndicator = IndicatorStore.add(t('Updating comment..'));
 
     api.request('/groups/' + group.id + '/notes/' + item.id + '/', {
       method: 'PUT',
@@ -135,7 +139,7 @@ const NoteInput = React.createClass({
           loading: false,
           preview: false,
           error: true,
-          errorJSON: error.responseJSON || DEFAULT_ERROR_JSON
+          errorJSON: error.responseJSON || makeDefaultErrorJson()
         });
       },
       success: (data) => {
@@ -202,20 +206,22 @@ const NoteInput = React.createClass({
       classNames += ' loading';
     }
 
-    let btnText = updating ? 'Save' : 'Post';
+    let btnText = updating ? t('Save Comment') : t('Post Comment');
 
     return (
       <form className={classNames} onSubmit={this.onSubmit}>
         <div className="activity-notes">
           <ul className="nav nav-tabs">
             <li className={!preview ? 'active' : ''}>
-              <a onClick={this.toggleEdit}>{updating ? 'Edit' : 'Write'}</a>
+              <a onClick={this.toggleEdit}>{updating ? t('Edit') : t('Write')}</a>
             </li>
             <li className={preview ? 'active' : ''}>
               <a onClick={this.togglePreview}>Preview</a>
             </li>
             <li className="markdown">
-              <span className="icon-markdown" /><span className="supported">Markdown supported</span>
+              <span className="icon-markdown" /><span className="supported">
+                {t('Markdown supported')}
+              </span>
             </li>
           </ul>
           {preview ?
@@ -235,9 +241,9 @@ const NoteInput = React.createClass({
               <small className="error">{errorJSON.detail}</small>
             }
             <button className="btn btn-default" type="submit"
-                    disabled={loading}>{btnText} Comment</button>
+                    disabled={loading}>{btnText}</button>
             {updating &&
-              <button className="btn btn-danger" onClick={this.onCancel}>Cancel</button>}
+              <button className="btn btn-danger" onClick={this.onCancel}>{t('Cancel')}</button>}
           </div>
         </div>
       </form>
