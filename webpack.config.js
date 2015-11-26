@@ -25,8 +25,10 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
     functionNames: {
       gettext: ["msgid"],
       ngettext: ["msgid", "msgid_plural", "count"],
+      gettextComponentTemplate: ["msgid"],
       t: ["msgid"],
       tn: ["msgid", "msgid_plural", "count"],
+      tct: ["msgid"]
     },
   };
 }

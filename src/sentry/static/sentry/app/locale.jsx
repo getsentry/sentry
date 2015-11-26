@@ -71,6 +71,75 @@ function argsInvolveReact(args) {
   return false;
 }
 
+export function parseComponentTemplate(string) {
+  let rv = {};
+
+  function process(startPos, group, inGroup) {
+    let regex = /\[([^:]*):|\]/g;
+    let match;
+    let buf = [];
+    let satisfied = false;
+
+    let pos = regex.lastIndex = startPos;
+    while ((match = regex.exec(string)) !== null) { // eslint-disable-line no-cond-assign
+      let substr = string.substr(pos, match.index - pos);
+      if (substr !== '') {
+        buf.push(substr);
+      }
+
+      if (match[0] == ']') {
+        if (inGroup) {
+          satisfied = true;
+          break;
+        } else {
+          pos = regex.lastIndex;
+          continue;
+        }
+      }
+
+      pos = regex.lastIndex = process(regex.lastIndex, match[1], true);
+      buf.push({group: match[1]});
+    }
+
+    let endPos = regex.lastIndex;
+    if (!satisfied) {
+      let rest = string.substr(pos);
+      if (rest) {
+        buf.push(rest);
+      }
+      endPos = string.length;
+    }
+
+    rv[group] = buf;
+    return endPos;
+  }
+
+  process(0, 'root', false);
+
+  return rv;
+}
+
+export function renderComponentTemplate(template, components) {
+  function renderGroup(group) {
+    let children = [];
+
+    (template[group] || []).forEach((item) => {
+      if (typeof item === 'string') {
+        children.push(item);
+      } else {
+        children.push(renderGroup(item.group));
+      }
+    });
+
+    // in case we cannot find our component, we call back to an empty
+    // span so that stuff shows up at least.
+    return React.cloneElement(
+      components[group] || <span></span>, {}, children);
+  }
+
+  return renderGroup('root');
+}
+
 export function format(formatString, args) {
   if (argsInvolveReact(args)) {
     return formatForReact(formatString, args);
@@ -91,5 +160,21 @@ export function ngettext(singular, plural, ...args) {
   return format(i18n.ngettext(singular, plural, args[0] || 0), args);
 }
 
+/* special form of gettext where you can render nested react
+   components in template strings.  Example:
+
+      gettextComponentTemplate('Welcome. Click [link:here]', {
+        root: <p/>,
+        link: <a href="#" />
+      });
+
+   the root string is always called "root", the rest is prefixed
+   with the name in the brackets */
+export function gettextComponentTemplate(template, components) {
+  let tmpl = parseComponentTemplate(gettext(template));
+  return renderComponentTemplate(tmpl, components);
+}
+
 export const t = gettext;
 export const tn = ngettext;
+export const tct = gettextComponentTemplate;
