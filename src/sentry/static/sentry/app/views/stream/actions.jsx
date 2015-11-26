@@ -7,6 +7,7 @@ import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
+import {t, tn} from '../../locale';
 
 const StreamActions = React.createClass({
   propTypes: {
@@ -67,7 +68,7 @@ const StreamActions = React.createClass({
 
   onUpdate(data, event, actionType) {
     this.actionSelectedGroups(actionType, (itemIds) => {
-      let loadingIndicator = IndicatorStore.add('Saving changes..');
+      let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
       api.bulkUpdate({
         orgId: this.props.orgId,
@@ -83,7 +84,7 @@ const StreamActions = React.createClass({
   },
 
   onDelete(event, actionType) {
-    let loadingIndicator = IndicatorStore.add('Removing events..');
+    let loadingIndicator = IndicatorStore.add(t('Removing events..'));
 
     this.actionSelectedGroups(actionType, (itemIds) => {
       api.bulkDelete({
@@ -99,7 +100,7 @@ const StreamActions = React.createClass({
   },
 
   onMerge(event, actionType) {
-    let loadingIndicator = IndicatorStore.add('Merging events..');
+    let loadingIndicator = IndicatorStore.add(t('Merging events..'));
 
     this.actionSelectedGroups(actionType, (itemIds) => {
       api.merge({
@@ -116,7 +117,7 @@ const StreamActions = React.createClass({
 
   onResolveProject(event) {
     this.actionSelectedGroups(this.props.actionTypes.ALL, (itemIds) => {
-      let loadingIndicator = IndicatorStore.add('Saving changes..');
+      let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
       api.bulkUpdate({
         orgId: this.props.orgId,
@@ -165,9 +166,14 @@ const StreamActions = React.createClass({
                className="btn btn-default btn-sm action-resolve"
                disabled={!this.state.anySelected}
                onAction={this.onUpdate.bind(this, {status: 'resolved'})}
-               buttonTitle="Resolve"
-               confirmLabel="Resolve"
-               tooltip="Set Status to Resolved"
+               buttonTitle={t('Resolve')}
+               confirmLabel={
+                 (count) => 
+                   tn('Resolve %d selected event',
+                      'Resolve %d selected events',
+                      count)
+               }
+               tooltip={t('Set Status to Resolved')}
                onlyIfBulk={true}
                selectAllActive={this.state.selectAllActive}>
               <i aria-hidden="true" className="icon-checkmark"></i>
@@ -178,9 +184,14 @@ const StreamActions = React.createClass({
                disabled={!this.state.anySelected}
                onAction={this.onUpdate.bind(this, {isBookmarked: true})}
                neverConfirm={true}
-               buttonTitle="Bookmark"
-               confirmLabel="Bookmark"
-               tooltip="Add to Bookmarks"
+               buttonTitle={t('Bookmark')}
+               confirmLabel={
+                 (count) => 
+                   tn('Bookmark %d selected event',
+                      'Bookmark %d selected events',
+                      count)
+               }
+               tooltip={t('Add to Bookmarks')}
                canActionAll={false}
                onlyIfBulk={true}
                selectAllActive={this.state.selectAllActive}>
@@ -198,12 +209,12 @@ const StreamActions = React.createClass({
                    actionTypes={this.props.actionTypes}
                    className="action-resolve-project"
                    onAction={this.onResolveProject}
-                   actionLabel="resolve all issues within this project"
-                   extraDescription="This will resolve all unresolved issues throughout this project. This does not respect search filters."
+                   confirmationQuestion={t('Are you sure you want to resolve all issues within this project?')}
+                   extraDescription={t('This will resolve all unresolved issues throughout this project. This does not respect search filters.')}
                    canActionAll={false}
-                   confirmLabel="Confirm"
+                   confirmLabel={t('Confirm')}
                    selectAllActive={this.state.selectAllActive}>
-                  Resolve all Issues in Project
+                  {t('Resolve all Issues in Project')}
                 </ActionLink>
               </MenuItem>
               <MenuItem divider={true} />
@@ -213,10 +224,15 @@ const StreamActions = React.createClass({
                    className="action-merge"
                    disabled={!this.state.multiSelected}
                    onAction={this.onMerge}
-                   confirmLabel="Merge"
+                   confirmLabel={
+                     (count) => 
+                       tn('Merge %d selected event',
+                          'Merge %d selected events',
+                          count)
+                   }
                    canActionAll={false}
                    selectAllActive={this.state.selectAllActive}>
-                  Merge Events
+                  {t('Merge Events')}
                 </ActionLink>
               </MenuItem>
               <MenuItem noAnchor={true}>
@@ -226,11 +242,16 @@ const StreamActions = React.createClass({
                    disabled={!this.state.anySelected}
                    onAction={this.onUpdate.bind(this, {isBookmarked: false})}
                    neverConfirm={true}
-                   actionLabel="remove these {count} events from your bookmarks"
+                   confirmationQuestion={
+                     (count) =>
+                       tn('Are you sure you want to remove this %d event from your bookmarks?',
+                          'Are you sure you want to remove these %d events from your bookmarks?',
+                          count)
+                   }
                    onlyIfBulk={true}
                    canActionAll={false}
                    selectAllActive={this.state.selectAllActive}>
-                  Remove from Bookmarks
+                 {t('Remove from Bookmarks')}
                 </ActionLink>
               </MenuItem>
               <MenuItem divider={true} />
@@ -241,12 +262,17 @@ const StreamActions = React.createClass({
                    disabled={!this.state.anySelected}
                    onAction={this.onUpdate.bind(this, {status: 'unresolved'})}
                    neverConfirm={true}
-                   confirmLabel="Unresolve"
+                   confirmLabel={
+                     (count) => 
+                       tn('Unresolve %d selected event',
+                          'Unresolve %d selected events',
+                          count)
+                   }
                    onlyIfBulk={false}
                    canActionAll={false}
                    selectAllActive={this.state.selectAllActive}
                    groupIds={this.props.groupIds}>
-                  Set status to: Unresolved
+                 {t('Set status to: Unresolved')}
                 </ActionLink>
               </MenuItem>
               <MenuItem noAnchor={true}>
@@ -256,11 +282,16 @@ const StreamActions = React.createClass({
                    disabled={!this.state.anySelected}
                    onAction={this.onUpdate.bind(this, {status: 'muted'})}
                    neverConfirm={true}
-                   confirmLabel="Mute"
+                   confirmLabel={
+                     (count) => 
+                       tn('Mute %d selected event',
+                          'Mute %d selected events',
+                          count)
+                   }
                    onlyIfBulk={false}
                    canActionAll={false}
                    selectAllActive={this.state.selectAllActive}>
-                  Set status to: Muted
+                 {t('Set status to: Muted')}
                 </ActionLink>
               </MenuItem>
               <MenuItem divider={true} />
@@ -270,10 +301,15 @@ const StreamActions = React.createClass({
                    className="action-delete"
                    disabled={!this.state.anySelected}
                    onAction={this.onDelete}
-                   confirmLabel="Delete"
+                   confirmLabel={
+                     (count) => 
+                       tn('Delete %d selected event',
+                          'Delete %d selected events',
+                          count)
+                   }
                    canActionAll={false}
                    selectAllActive={this.state.selectAllActive}>
-                  Delete Events
+                 {t('Delete Events')}
                 </ActionLink>
               </MenuItem>
             </DropdownLink>
@@ -293,18 +329,18 @@ const StreamActions = React.createClass({
         <div className="hidden-sm stream-actions-assignee col-md-1"></div>
         <div className="stream-actions-level col-md-1 hidden-xs"></div>
         <div className="hidden-sm hidden-xs stream-actions-graph col-md-2">
-          <span className="stream-actions-graph-label">Graph:</span>
+          <span className="stream-actions-graph-label">{t('Graph:')}</span>
           <ul className="toggle-graph">
             <li className={this.props.statsPeriod === '24h' ? 'active' : ''}>
-              <a onClick={this.selectStatsPeriod.bind(this, '24h')}>24h</a>
+              <a onClick={this.selectStatsPeriod.bind(this, '24h')}>{t('24h')}</a>
             </li>
             <li className={this.props.statsPeriod === '14d' ? 'active' : ''}>
-              <a onClick={this.selectStatsPeriod.bind(this, '14d')}>14d</a>
+              <a onClick={this.selectStatsPeriod.bind(this, '14d')}>{t('14d')}</a>
             </li>
           </ul>
         </div>
-        <div className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2">Events</div>
-        <div className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2">Users</div>
+        <div className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2">{t('Events')}</div>
+        <div className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2">{t('Users')}</div>
       </div>
     );
   }
