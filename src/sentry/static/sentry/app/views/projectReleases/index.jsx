@@ -6,6 +6,7 @@ import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import Pagination from '../../components/pagination';
 import SearchBar from '../../components/searchBar.jsx';
+import {t} from '../../locale';
 
 import ReleaseList from './releaseList';
 
@@ -130,7 +131,7 @@ const ProjectReleases = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>Sorry, no releases match your filters.</p>
+        <p>{t('Sorry, no releases match your filters.')}</p>
       </div>
     );
   },
@@ -139,8 +140,10 @@ const ProjectReleases = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>There don't seem to be any releases yet.</p>
-        <p><a href={this.getReleaseTrackingUrl()}>Learn how to integrate Release Tracking</a></p>
+        <p>{t('There don\'t seem to be any releases yet.')}</p>
+        <p><a href={this.getReleaseTrackingUrl()}>
+          {t('Learn how to integrate Release Tracking')}
+        </a></p>
       </div>
     );
   },
@@ -150,7 +153,7 @@ const ProjectReleases = React.createClass({
       <div>
         <div className="row release-list-header">
           <div className="col-sm-7">
-            <h3>Releases</h3>
+            <h3>{t('Releases')}</h3>
           </div>
           <div className="col-sm-5 release-search">
             <SearchBar defaultQuery=""
@@ -162,12 +165,12 @@ const ProjectReleases = React.createClass({
         </div>
         <div className="release-group-header">
           <div className="row">
-            <div className="col-sm-8 col-xs-6">Version</div>
+            <div className="col-sm-8 col-xs-6">{t('Version')}</div>
             <div className="col-sm-2 col-xs-3 release-stats align-right">
-              New Events
+              {t('New Events')}
             </div>
             <div className="col-sm-2 col-xs-3 release-stats align-right">
-              Last Event
+              {t('Last Event')}
             </div>
           </div>
         </div>
