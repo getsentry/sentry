@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import os
 import pep8
 import sys
+from subprocess import Popen
 
 os.environ['PYFLAKES_NODOCTEST'] = '1'
 
@@ -42,8 +43,9 @@ def js_lint(file_list):
         return False
     has_errors = False
     file_list = filter(lambda x: x.endswith(('.js', '.jsx')), file_list)
-    if file_list and os.system('npm run-script lint'):
-        has_errors = True
+    if file_list:
+        status = Popen(['node_modules/.bin/eslint'] + list(file_list)).wait()
+        has_errors = status != 0
 
     return has_errors
 
