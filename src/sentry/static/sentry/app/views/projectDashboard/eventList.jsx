@@ -2,6 +2,7 @@ import React from 'react';
 import api from '../../api';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
+import {t} from '../../locale';
 
 import EventNode from './eventNode';
 
@@ -85,8 +86,8 @@ const EventList = React.createClass({
             <div className="col-xs-8">
               <h3>{this.props.title}</h3>
             </div>
-            <div className="col-xs-2 align-right">Events</div>
-            <div className="col-xs-2 align-right">Users</div>
+            <div className="col-xs-2 align-right">{t('Events')}</div>
+            <div className="col-xs-2 align-right">{t('Users')}</div>
           </div>
         </div>
         <div className="box-content">
@@ -100,7 +101,7 @@ const EventList = React.createClass({
                 {eventNodes}
               </ul>
             :
-              <div className="group-list-empty">No data available.</div>
+              <div className="group-list-empty">{t('No data available.')}</div>
             ))}
           </div>
         </div>
