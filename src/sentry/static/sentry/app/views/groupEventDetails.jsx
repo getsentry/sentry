@@ -95,7 +95,7 @@ const GroupEventDetails = React.createClass({
               <div className="alert alert-info alert-block">
                 <span>This issue has been marked as being resolved in the next
                   release. Until then, you will not get notified about new
-                  occurances.</span>
+                  occurrences.</span>
               </div>
             }
             {group.status === 'resolved' && group.statusDetails.autoResolved &&
