@@ -6,12 +6,14 @@ import GroupState from '../../mixins/groupState';
 import MemberListStore from '../../stores/memberListStore';
 import TimeSince from '../../components/timeSince';
 import ConfigStore from '../../stores/configStore';
+import Version from '../../components/version';
 
 import NoteContainer from './noteContainer';
 import NoteInput from './noteInput';
 
-let formatActivity = function(item) {
+let formatActivity = function(item, params) {
   let data = item.data;
+  let {orgId, projectId} = params;
 
   switch(item.type) {
     case 'note':
@@ -20,7 +22,7 @@ let formatActivity = function(item) {
       return 'marked this issue as resolved';
     case 'set_resolved_in_release':
       return (data.version ?
-        `marked this issue as resolved in ${data.version}`
+        <span>marked this issue as resolved in <Version version={data.version} orgId={orgId} projectId={projectId} /></span>
       :
         'marked this issue as resolved in the upcoming release'
       );
@@ -37,7 +39,7 @@ let formatActivity = function(item) {
       return 'made this issue private';
     case 'set_regression':
       return (data.version ?
-        `marked this issue as a regression in ${data.version}`
+        <span>marked this issue as a regression in <Version version={data.version} orgId={orgId} projectId={projectId} /></span>
       :
         'marked this issue as a regression'
       );
@@ -80,7 +82,7 @@ const GroupActivity = React.createClass({
         avatar: avatar,
       };
 
-      let label = formatActivity(item);
+      let label = formatActivity(item, this.props.params);
 
       if (item.type === 'note') {
         return (
