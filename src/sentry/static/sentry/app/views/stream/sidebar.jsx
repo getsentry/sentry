@@ -3,6 +3,7 @@ import _ from 'underscore';
 import StreamTagFilter from './tagFilter';
 import LoadingIndicator from '../../components/loadingIndicator';
 import {queryToObj, objToQuery} from '../../utils/stream';
+import {t} from '../../locale';
 
 
 let TEXT_FILTER_DEBOUNCE_IN_MS = 300;
@@ -100,11 +101,11 @@ const StreamSidebar = React.createClass({
         :
           <div>
             <div className="stream-tag-filter">
-              <h6 className="nav-header">Text</h6>
+              <h6 className="nav-header">{t('Text')}</h6>
               <form onSubmit={this.onTextFilterSubmit}>
                 <input
                   className="form-control"
-                  placeholder="Search title and culprit text body"
+                  placeholder={t('Search title and culprit text body')}
                   onChange={this.onTextChange}
                   value={this.state.textFilter}
                 />

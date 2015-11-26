@@ -150,6 +150,7 @@ const StreamActions = React.createClass({
   },
 
   render() {
+    // TODO(mitsuhiko): very unclear how to translate this
     return (
       <div className="stream-actions row">
         <div className="stream-actions-left col-md-6 col-sm-8 col-xs-8">
