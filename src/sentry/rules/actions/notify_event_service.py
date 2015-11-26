@@ -53,7 +53,7 @@ class NotifyEventServiceAction(EventAction):
             self.logger.info('Rule failed should_notify check')
             return
 
-        metrics.incr('notifications.sent.{}'.format(plugin.slug))
+        metrics.incr('notifications.sent', instance=plugin.slug)
         yield self.future(plugin.rule_notify)
 
     def get_plugins(self):
