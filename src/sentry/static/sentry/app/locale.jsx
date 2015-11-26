@@ -75,7 +75,7 @@ export function parseComponentTemplate(string) {
   let rv = {};
 
   function process(startPos, group, inGroup) {
-    let regex = /\[([^:]*):|\]/g;
+    let regex = /\[(.*?)(:|\])|\]/g;
     let match;
     let buf = [];
     let satisfied = false;
@@ -97,7 +97,11 @@ export function parseComponentTemplate(string) {
         }
       }
 
-      pos = regex.lastIndex = process(regex.lastIndex, match[1], true);
+      if (match[2] == ']') {
+        pos = regex.lastIndex;
+      } else {
+        pos = regex.lastIndex = process(regex.lastIndex, match[1], true);
+      }
       buf.push({group: match[1]});
     }
 
@@ -133,8 +137,16 @@ export function renderComponentTemplate(template, components) {
 
     // in case we cannot find our component, we call back to an empty
     // span so that stuff shows up at least.
-    return React.cloneElement(
-      components[group] || <span></span>, {}, children);
+    var reference = components[group] || <span />;
+    if (!React.isValidElement(reference)) {
+      reference = <span>{reference}</span>;
+    }
+
+    if (children.length > 0) {
+      return React.cloneElement(reference, {}, children);
+    } else {
+      return reference;
+    }
   }
 
   return renderGroup('root');
