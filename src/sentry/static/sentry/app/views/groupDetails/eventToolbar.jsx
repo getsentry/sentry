@@ -3,6 +3,7 @@ import React from 'react';
 import PropTypes from '../../proptypes';
 import DateTime from '../../components/dateTime';
 import FileSize from '../../components/fileSize';
+import {t} from '../../locale';
 
 let GroupEventToolbar  = React.createClass({
   propTypes: {
@@ -24,7 +25,7 @@ let GroupEventToolbar  = React.createClass({
             key="oldest"
             to={`/${orgId}/${projectId}/group/${groupId}/events/oldest/`}
             className="btn btn-default"
-            title="Oldest">
+            title={t('Oldest')}>
             <span className="icon-skip-back"></span>
         </Link>
       :
@@ -35,26 +36,26 @@ let GroupEventToolbar  = React.createClass({
         <Link
             key="prev"
             to={`/${orgId}/${projectId}/group/${groupId}/events/${evt.previousEventID}/`}
-            className="btn btn-default">Older</Link>
+            className="btn btn-default">{t('Older')}</Link>
       :
         <a key="prev"
-           className="btn btn-default disabled">Older</a>
+           className="btn btn-default disabled">{t('Older')}</a>
       ),
       (evt.nextEventID ?
         <Link
             key="next"
             to={`/${orgId}/${projectId}/group/${groupId}/events/${evt.nextEventID}/`}
-            className="btn btn-default">Newer</Link>
+            className="btn btn-default">{t('Newer')}</Link>
       :
         <a key="next"
-           className="btn btn-default disabled">Newer</a>
+           className="btn btn-default disabled">{t('Newer')}</a>
       ),
       (evt.nextEventID ?
         <Link
           key="latest"
           to={`/${orgId}/${projectId}/group/${groupId}/events/latest/`}
           className="btn btn-default"
-          title="Newest">
+          title={t('Newest')}>
           <span className="icon-skip-forward"></span>
         </Link>
       :
