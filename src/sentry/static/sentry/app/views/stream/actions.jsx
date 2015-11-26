@@ -167,10 +167,16 @@ const StreamActions = React.createClass({
                disabled={!this.state.anySelected}
                onAction={this.onUpdate.bind(this, {status: 'resolved'})}
                buttonTitle={t('Resolve')}
+               confirmationQuestion={
+                 (count) =>
+                   tn('Are you sure you want to resolve these %d issue?',
+                      'Are you sure you want to resolve these %d issues?',
+                      count)
+               }
                confirmLabel={
                  (count) => 
-                   tn('Resolve %d selected event',
-                      'Resolve %d selected events',
+                   tn('Resolve %d selected issue',
+                      'Resolve %d selected issues',
                       count)
                }
                tooltip={t('Set Status to Resolved')}
@@ -187,8 +193,8 @@ const StreamActions = React.createClass({
                buttonTitle={t('Bookmark')}
                confirmLabel={
                  (count) => 
-                   tn('Bookmark %d selected event',
-                      'Bookmark %d selected events',
+                   tn('Bookmark %d selected issue',
+                      'Bookmark %d selected issues',
                       count)
                }
                tooltip={t('Add to Bookmarks')}
@@ -226,8 +232,8 @@ const StreamActions = React.createClass({
                    onAction={this.onMerge}
                    confirmLabel={
                      (count) => 
-                       tn('Merge %d selected event',
-                          'Merge %d selected events',
+                       tn('Merge %d selected issue',
+                          'Merge %d selected issues',
                           count)
                    }
                    canActionAll={false}
@@ -244,8 +250,8 @@ const StreamActions = React.createClass({
                    neverConfirm={true}
                    confirmationQuestion={
                      (count) =>
-                       tn('Are you sure you want to remove this %d event from your bookmarks?',
-                          'Are you sure you want to remove these %d events from your bookmarks?',
+                       tn('Are you sure you want to remove this %d issue from your bookmarks?',
+                          'Are you sure you want to remove these %d issues from your bookmarks?',
                           count)
                    }
                    onlyIfBulk={true}
@@ -264,8 +270,8 @@ const StreamActions = React.createClass({
                    neverConfirm={true}
                    confirmLabel={
                      (count) => 
-                       tn('Unresolve %d selected event',
-                          'Unresolve %d selected events',
+                       tn('Unresolve %d selected issue',
+                          'Unresolve %d selected issues',
                           count)
                    }
                    onlyIfBulk={false}
@@ -284,8 +290,8 @@ const StreamActions = React.createClass({
                    neverConfirm={true}
                    confirmLabel={
                      (count) => 
-                       tn('Mute %d selected event',
-                          'Mute %d selected events',
+                       tn('Mute %d selected issue',
+                          'Mute %d selected issues',
                           count)
                    }
                    onlyIfBulk={false}
@@ -303,8 +309,8 @@ const StreamActions = React.createClass({
                    onAction={this.onDelete}
                    confirmLabel={
                      (count) => 
-                       tn('Delete %d selected event',
-                          'Delete %d selected events',
+                       tn('Delete %d selected issue',
+                          'Delete %d selected issues',
                           count)
                    }
                    canActionAll={false}

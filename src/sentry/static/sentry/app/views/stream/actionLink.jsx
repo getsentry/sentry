@@ -33,7 +33,6 @@ const ActionLink = React.createClass({
       actionTypes: {},
       buttonTitle: null, // title="..." (optional)
       canActionAll: false,
-      confirmLabel: 'Edit',
       onlyIfBulk: false,
       neverConfirm: false,
       disabled: false
