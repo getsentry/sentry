@@ -230,6 +230,12 @@ const StreamActions = React.createClass({
                    className="action-merge"
                    disabled={!this.state.multiSelected}
                    onAction={this.onMerge}
+                   confirmationQuestion={
+                     (count) =>
+                       tn('Are you sure you want to merge %d issue?',
+                          'Are you sure you want to merge %d issues?',
+                          count)
+                   }
                    confirmLabel={
                      (count) => 
                        tn('Merge %d selected issue',
@@ -307,6 +313,12 @@ const StreamActions = React.createClass({
                    className="action-delete"
                    disabled={!this.state.anySelected}
                    onAction={this.onDelete}
+                   confirmationQuestion={
+                     (count) =>
+                       tn('Are you sure you want to delete %d issue?',
+                          'Are you sure you want to delete %d issues?',
+                          count)
+                   }
                    confirmLabel={
                      (count) => 
                        tn('Delete %d selected issue',
