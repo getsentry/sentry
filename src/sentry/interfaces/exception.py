@@ -14,6 +14,7 @@ from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.stacktrace import Stacktrace
+from sentry.utils import json
 from sentry.utils.safe import trim
 
 
@@ -53,7 +54,7 @@ class SingleException(Interface):
 
         value = data.get('value')
         if value and not isinstance(value, basestring):
-            value = unicode(value)
+            value = json.dumps(value)
         value = trim(data.get('value'), 4096)
 
         kwargs = {
