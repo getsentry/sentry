@@ -17,6 +17,8 @@ const KeyValueList = React.createClass({
   },
 
   render() {
+    // TODO(dcramer): use non-string keys as reserved words ("unauthorized")
+    // break rendering
     let data = _.sortBy(this.props.data, (key, value) => key);
     const props = (this.props.onClick) ? {onClick: this.props.onClick} : {};
     return (
@@ -25,14 +27,14 @@ const KeyValueList = React.createClass({
         {data.map(([key, value]) => {
           if (this.props.isContextData) {
             return [
-              <tr key={key}>
+              <tr>
                 <td className="key">{key}</td>
                 <td className="value"><ContextData data={value}/></td>
               </tr>
             ];
           } else {
             return [
-              <tr key={key}>
+              <tr>
                 <td className="key">{key}</td>
                 <td className="value"><pre>{'' + value || ' '}</pre></td>
               </tr>
