@@ -86,7 +86,7 @@ class SingleException(Interface):
 
         return {
             'type': self.type,
-            'value': self.value,
+            'value': unicode(self.value) if self.value else None,
             'module': self.module,
             'stacktrace': stacktrace,
         }
