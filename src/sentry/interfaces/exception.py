@@ -51,9 +51,14 @@ class SingleException(Interface):
         else:
             stacktrace = None
 
+        value = data.get('value')
+        if value and not isinstance(value, basestring):
+            value = unicode(value)
+        value = trim(data.get('value'), 4096)
+
         kwargs = {
             'type': trim(data.get('type'), 128),
-            'value': trim(data.get('value'), 4096),
+            'value': value,
             'module': trim(data.get('module'), 128),
             'stacktrace': stacktrace,
         }
