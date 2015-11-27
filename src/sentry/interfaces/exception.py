@@ -53,9 +53,9 @@ class SingleException(Interface):
             stacktrace = None
 
         value = data.get('value')
-        if value and not isinstance(value, basestring):
+        if value is not None and not isinstance(value, basestring):
             value = json.dumps(value)
-        value = trim(data.get('value'), 4096)
+        value = trim(value, 4096)
 
         kwargs = {
             'type': trim(data.get('type'), 128),

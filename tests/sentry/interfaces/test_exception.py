@@ -219,7 +219,7 @@ class SingleExceptionTest(TestCase):
             type='ValueError',
             value={'unauthorized': True},
         ))
-        assert result.value == '{"unauthorized": true}'
+        assert result.value == '{"unauthorized":true}'
 
 
 class TrimExceptionsTest(TestCase):
