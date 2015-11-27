@@ -214,6 +214,13 @@ class SingleExceptionTest(TestCase):
         ))
         assert not result.stacktrace
 
+    def test_coerces_object_value_to_string(self):
+        result = SingleException.to_python(dict(
+            type='ValueError',
+            value={'unauthorized': True},
+        ))
+        assert result.value == '{"unauthorized": true}'
+
 
 class TrimExceptionsTest(TestCase):
     def test_under_max(self):
