@@ -97,7 +97,7 @@ const GroupList = React.createClass({
     let querystring = jQuery.param(queryParams);
 
     let props = this.props;
-    return '/projects/' + props.orgId + '/' + props.projectId + '/groups/?' + querystring;
+    return '/projects/' + props.orgId + '/' + props.projectId + '/issues/?' + querystring;
   },
 
   onGroupChange() {
@@ -141,7 +141,7 @@ const GroupList = React.createClass({
                 id={id}
                 orgId={orgId}
                 projectId={projectId}
-                canSelect={this.props.canSelectGroups} 
+                canSelect={this.props.canSelectGroups}
               />
             );
           })}

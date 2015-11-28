@@ -22,10 +22,10 @@ class GroupPermission(ProjectPermission):
 class GroupEndpoint(Endpoint):
     permission_classes = (GroupPermission,)
 
-    def convert_args(self, request, group_id, *args, **kwargs):
+    def convert_args(self, request, issue_id, *args, **kwargs):
         try:
             group = Group.objects.select_related('project').get(
-                id=group_id,
+                id=issue_id,
             )
         except Group.DoesNotExist:
             raise ResourceDoesNotExist

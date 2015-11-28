@@ -84,7 +84,7 @@ const GroupDetails = React.createClass({
   getGroupDetailsEndpoint() {
     let id = this.props.params.groupId;
 
-    return '/groups/' + id + '/';
+    return '/issues/' + id + '/';
   },
 
   getTitle() {

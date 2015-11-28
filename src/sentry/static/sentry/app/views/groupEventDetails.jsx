@@ -39,7 +39,7 @@ const GroupEventDetails = React.createClass({
     let eventId = this.props.params.eventId || 'latest';
 
     let url = (eventId === 'latest' || eventId === 'oldest' ?
-      '/groups/' + this.getGroup().id + '/events/' + eventId + '/' :
+      '/issues/' + this.getGroup().id + '/events/' + eventId + '/' :
       '/events/' + eventId + '/');
 
     this.setState({

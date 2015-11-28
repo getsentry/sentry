@@ -71,7 +71,7 @@ const SharedGroupDetails = React.createClass({
   getGroupDetailsEndpoint() {
     let id = this.props.params.shareId;
 
-    return '/shared/groups/' + id + '/';
+    return '/shared/issues/' + id + '/';
   },
 
   render() {

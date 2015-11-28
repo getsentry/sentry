@@ -31,7 +31,7 @@ describe('TagDistributionMeter', function() {
       this.element.fetchData();
 
       expect(this.stubbedApiRequest.callCount).to.equal(1);
-      expect(this.stubbedApiRequest.getCall(0).args[0]).to.equal('/groups/1337/tags/browser/');
+      expect(this.stubbedApiRequest.getCall(0).args[0]).to.equal('/issues/1337/tags/browser/');
     });
   });
 

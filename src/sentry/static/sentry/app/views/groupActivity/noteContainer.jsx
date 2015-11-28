@@ -33,7 +33,7 @@ const NoteContainer = React.createClass({
         return;
     }
 
-    api.request('/groups/' + group.id + '/notes/' + item.id + '/' , {
+    api.request('/issues/' + group.id + '/comments/' + item.id + '/' , {
       method: 'DELETE',
       error: (error) => {
         // TODO(mattrobenolt): Show an actual error that this failed,

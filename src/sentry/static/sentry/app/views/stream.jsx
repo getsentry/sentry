@@ -246,7 +246,7 @@ const Stream = React.createClass({
   getGroupListEndpoint() {
     let params = this.props.params;
 
-    return '/projects/' + params.orgId + '/' + params.projectId + '/groups/';
+    return '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
   },
 
   onRealtimeChange(realtime) {
