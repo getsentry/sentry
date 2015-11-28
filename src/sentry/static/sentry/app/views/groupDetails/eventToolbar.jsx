@@ -22,7 +22,7 @@ let GroupEventToolbar  = React.createClass({
       (evt.previousEventID ?
         <Link
             key="oldest"
-            to={`/${orgId}/${projectId}/group/${groupId}/events/oldest/`}
+            to={`/${orgId}/${projectId}/issues/${groupId}/events/oldest/`}
             className="btn btn-default"
             title="Oldest">
             <span className="icon-skip-back"></span>
@@ -34,7 +34,7 @@ let GroupEventToolbar  = React.createClass({
       (evt.previousEventID ?
         <Link
             key="prev"
-            to={`/${orgId}/${projectId}/group/${groupId}/events/${evt.previousEventID}/`}
+            to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.previousEventID}/`}
             className="btn btn-default">Older</Link>
       :
         <a key="prev"
@@ -43,7 +43,7 @@ let GroupEventToolbar  = React.createClass({
       (evt.nextEventID ?
         <Link
             key="next"
-            to={`/${orgId}/${projectId}/group/${groupId}/events/${evt.nextEventID}/`}
+            to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.nextEventID}/`}
             className="btn btn-default">Newer</Link>
       :
         <a key="next"
@@ -52,7 +52,7 @@ let GroupEventToolbar  = React.createClass({
       (evt.nextEventID ?
         <Link
           key="latest"
-          to={`/${orgId}/${projectId}/group/${groupId}/events/latest/`}
+          to={`/${orgId}/${projectId}/issues/${groupId}/events/latest/`}
           className="btn btn-default"
           title="Newest">
           <span className="icon-skip-forward"></span>
@@ -65,7 +65,7 @@ let GroupEventToolbar  = React.createClass({
 
     // TODO: possible to define this as a route in react-router, but without a corresponding
     //       React component?
-    let jsonUrl = `/${orgId}/${projectId}/group/${groupId}/events/${evt.id}/json/`;
+    let jsonUrl = `/${orgId}/${projectId}/issues/${groupId}/events/${evt.id}/json/`;
 
     return (
       <div className="event-toolbar">

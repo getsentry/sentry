@@ -21,7 +21,7 @@ const EventNode = React.createClass({
     let groupId = group.id;
 
     return (
-      <Link to={`/${orgId}/${projectId}/group/${groupId}/`}>
+      <Link to={`/${orgId}/${projectId}/issues/${groupId}/`}>
         {title}
       </Link>
     );

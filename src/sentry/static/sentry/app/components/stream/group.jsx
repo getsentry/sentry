@@ -112,7 +112,7 @@ const StreamGroup = React.createClass({
             </div>
           }
           <h3 className="truncate">
-            <Link to={`/${orgId}/${projectId}/group/${data.id}/`}>
+            <Link to={`/${orgId}/${projectId}/issues/${data.id}/`}>
               <span className="error-level truncate">{data.level}</span>
               <span className="icon icon-soundoff"></span>
               <span className="icon icon-bookmark"></span>
@@ -132,7 +132,7 @@ const StreamGroup = React.createClass({
               </li>
               {data.numComments !== 0 &&
                 <li>
-                  <Link to={`/${orgId}/${projectId}/group/${id}/activity/`} className="comments">
+                  <Link to={`/${orgId}/${projectId}/issues/${id}/activity/`} className="comments">
                     <span className="icon icon-comments"></span>
                     <span className="tag-count">{data.numComments}</span>
                   </Link>

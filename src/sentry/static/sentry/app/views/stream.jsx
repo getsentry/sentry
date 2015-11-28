@@ -206,7 +206,7 @@ const Stream = React.createClass({
           let params = this.props.params;
           let groupId = data[0].id;
 
-          return void this.history.pushState(null, `/${params.orgId}/${params.projectId}/group/${groupId}/`);
+          return void this.history.pushState(null, `/${params.orgId}/${params.projectId}/issues/${groupId}/`);
         }
 
         this._streamManager.push(data);

@@ -96,7 +96,7 @@ const GroupEvents = React.createClass({
         <tr key={eventIdx}>
           <td>
             <h5>
-              <Link to={`/${orgId}/${projectId}/group/${groupId}/events/${event.id}/`}>
+              <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/${event.id}/`}>
                 <DateTime date={event.dateCreated} />
               </Link>
               <small>{event.eventID}</small>
