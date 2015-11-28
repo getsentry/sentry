@@ -212,7 +212,7 @@ export function ngettext(singular, plural, ...args) {
    the root string is always called "root", the rest is prefixed
    with the name in the brackets */
 export function gettextComponentTemplate(template, components) {
-  let tmpl = parseComponentTemplate(gettext(template));
+  let tmpl = parseComponentTemplate(i18n.gettext(template));
   return mark(renderComponentTemplate(tmpl, components));
 }
 
