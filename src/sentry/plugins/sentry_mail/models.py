@@ -271,7 +271,9 @@ class MailPlugin(NotificationPlugin):
         }
 
         if group:
-            group_link = absolute_uri('/{}/{}/group/{}/'.format(org.slug, project.slug, group.id))
+            group_link = absolute_uri('/{}/{}/issues/{}/'.format(
+                org.slug, project.slug, group.id
+            ))
             activity_link = '{}activity/'.format(group_link)
 
             headers.update({
@@ -291,11 +293,11 @@ class MailPlugin(NotificationPlugin):
                     version=activity.data['version'],
                     project=project,
                 ),
-                'release_link': absolute_uri(reverse('sentry-release-details', kwargs={
-                    'organization_slug': org.slug,
-                    'project_id': project.slug,
-                    'version': activity.data['version'],
-                })),
+                'release_link': absolute_uri('/{}/{}/releases/{}/'.format(
+                    org.slug,
+                    project.slug,
+                    activity.data['version'],
+                )),
             })
 
         template_name = activity.get_type_display()

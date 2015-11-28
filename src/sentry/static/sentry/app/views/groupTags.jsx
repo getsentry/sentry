@@ -92,7 +92,7 @@ const GroupTags = React.createClass({
             <div className="box">
               <div className="box-header">
                 <span className="pull-right">
-                  <Link className="btn btn-default btn-sm" to={`/${orgId}/${projectId}/group/${groupId}/tags/${tag.key}/`}>More Details</Link>
+                  <Link className="btn btn-default btn-sm" to={`/${orgId}/${projectId}/issues/${groupId}/tags/${tag.key}/`}>More Details</Link>
                 </span>
                 <h5>{tag.name} (<Count value={tag.uniqueValues} />)</h5>
               </div>

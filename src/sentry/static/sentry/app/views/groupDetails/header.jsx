@@ -46,7 +46,7 @@ const GroupHeader = React.createClass({
 
   onShare() {
     let {shareId} = this.props.group;
-    return this.history.pushState(null, `/share/group/${shareId}/`);
+    return this.history.pushState(null, `/share/issue/${shareId}/`);
   },
 
   onTogglePublic() {
@@ -122,14 +122,14 @@ const GroupHeader = React.createClass({
               </div>
               <div className="col-xs-4 count align-right">
                 <h6 className="nav-header">Events</h6>
-                <Link to={`/${orgId}/${projectId}/group/${groupId}/events/`}>
+                <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
                   <Count className="count" value={group.count} />
                 </Link>
               </div>
               <div className="col-xs-4 count align-right">
                 <h6 className="nav-header">Users</h6>
                 {userCount !== 0 ?
-                  <Link to={`/${orgId}/${projectId}/group/${groupId}/tags/user/`}>
+                  <Link to={`/${orgId}/${projectId}/issues/${groupId}/tags/user/`}>
                     <Count className="count" value={userCount} />
                   </Link>
                 :
@@ -149,8 +149,8 @@ const GroupHeader = React.createClass({
           </div>
         </div>
         <ul className="nav nav-tabs">
-          <ListLink to={`/${orgId}/${projectId}/group/${groupId}/`} isActive={function (to) {
-            let rootGroupPath = `/${orgId}/${projectId}/group/${groupId}/`;
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/`} isActive={function (to) {
+            let rootGroupPath = `/${orgId}/${projectId}/issues/${groupId}/`;
             let pathname = this.context.location.pathname;
 
             // Because react-router 1.0 removes router.isActive(route)
@@ -158,18 +158,18 @@ const GroupHeader = React.createClass({
           }.bind(this)}>
             Details
           </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/group/${groupId}/activity/`}>
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}>
             Comments <span className="badge animated">{group.numComments}</span>
           </ListLink>
           {features.has('user-reports') &&
-            <ListLink to={`/${orgId}/${projectId}/group/${groupId}/reports/`}>
+            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/reports/`}>
               User Reports <span className="badge animated">{group.userReportCount}</span>
             </ListLink>
           }
-          <ListLink to={`/${orgId}/${projectId}/group/${groupId}/tags/`}>
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/tags/`}>
             Tags
           </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/group/${groupId}/events/`}>
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
             Related Events
           </ListLink>
         </ul>
