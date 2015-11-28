@@ -1,6 +1,6 @@
 import Jed from 'jed';
 import ConfigStore from './stores/configStore';
-import { getTranslations } from './translations';
+import {getTranslations} from './translations';
 
 export function getCurrentTranslations() {
   let user = ConfigStore.get('user');

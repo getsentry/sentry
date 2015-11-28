@@ -13,20 +13,20 @@ describe('GroupStore', function () {
   describe('onMergeSuccess()', function () {
     it('should remove the non-parent merged ids', function () {
       GroupStore.items = [
-        { id: 1 },
-        { id: 2 },
-        { id: 3 },
-        { id: 4 }
+        {id: 1},
+        {id: 2},
+        {id: 3},
+        {id: 4}
       ];
 
       GroupStore.onMergeSuccess(null,
         [2, 3, 4], // items merged
-        { merge: { parent: 3 } } // merge API response
+        {merge: {parent: 3}} // merge API response
       );
 
       expect(GroupStore.items).to.eql([
-        { id: 1 },
-        { id: 3 } // parent
+        {id: 1},
+        {id: 3} // parent
       ]);
     });
   });
@@ -34,9 +34,9 @@ describe('GroupStore', function () {
   describe('onUpdate()', function () {
     it('should treat undefined itemIds argument as \'all\'', function () {
       GroupStore.items = [
-        { id: 1 },
-        { id: 2 },
-        { id: 3 },
+        {id: 1},
+        {id: 2},
+        {id: 3},
       ];
 
       this.sandbox.stub(GroupStore, 'trigger');
@@ -51,9 +51,9 @@ describe('GroupStore', function () {
   describe('onUpdateSuccess()', function () {
     it('should treat undefined itemIds argument as \'all\'', function () {
       GroupStore.items = [
-        { id: 1 },
-        { id: 2 },
-        { id: 3 },
+        {id: 1},
+        {id: 2},
+        {id: 3},
       ];
 
       this.sandbox.stub(GroupStore, 'trigger');

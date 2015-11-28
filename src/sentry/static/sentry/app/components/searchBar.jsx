@@ -33,7 +33,7 @@ const SearchBar = React.createClass({
 
   clearSearch() {
     this.setState(
-      { query: this.props.defaultQuery },
+      {query: this.props.defaultQuery},
       () => this.props.onSearch(this.state.query)
     );
   },
@@ -45,11 +45,11 @@ const SearchBar = React.createClass({
   },
 
   onQueryBlur() {
-    this.setState({ dropdownVisible: false });
+    this.setState({dropdownVisible: false});
   },
 
   onQueryChange(evt) {
-    this.setState({ query: evt.target.value });
+    this.setState({query: evt.target.value});
   },
 
   render() {

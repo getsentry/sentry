@@ -138,9 +138,9 @@ const Stream = React.createClass({
 
     let filter = {};
     if (currentQuery.bookmarks) {
-      filter = { bookmarks: '1' };
+      filter = {bookmarks: '1'};
     } else if (currentQuery.assigned) {
-      filter = { assigned: '1' };
+      filter = {assigned: '1'};
     }
 
     let query =

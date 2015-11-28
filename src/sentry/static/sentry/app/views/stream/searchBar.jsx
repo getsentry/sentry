@@ -122,7 +122,7 @@ const SearchBar = React.createClass({
 
   clearSearch() {
     this.setState(
-      { query: this.props.defaultQuery },
+      {query: this.props.defaultQuery},
       () => this.props.onSearch(this.state.query)
     );
   },
@@ -138,13 +138,13 @@ const SearchBar = React.createClass({
     // clicking a menu option
     this.blurTimeout = setTimeout(() => {
       this.blurTimeout = null;
-      this.setState({ dropdownVisible: false });
+      this.setState({dropdownVisible: false});
     }, this.DROPDOWN_BLUR_DURATION);
   },
 
   onQueryChange(evt) {
     this.setState(
-      { query: evt.target.value },
+      {query: evt.target.value},
       () => this.updateAutoCompleteItems()
     );
   },
@@ -190,7 +190,7 @@ const SearchBar = React.createClass({
       },
       method: 'GET',
       success: (values) => {
-        this.setState({ loading: false });
+        this.setState({loading: false});
         callback(values.map((v) => {
           // Wrap in quotes if there is a space
           return v.value.indexOf(' ') > -1 ? `"${v.value}"` : v.value;
@@ -217,7 +217,7 @@ const SearchBar = React.createClass({
       // If the cursor lands at the end of the input value, and the preceding character
       // is not whitespace, then add a space and move the cursor beyond that space.
       this.setState(
-        { query: this.state.query + ' ' },
+        {query: this.state.query + ' '},
         () => {
           ReactDOM.findDOMNode(this.refs.searchInput).setSelectionRange(cursor + 1, cursor + 1);
           this.updateAutoCompleteItems();
@@ -338,7 +338,7 @@ const SearchBar = React.createClass({
         : Math.max(state.activeSearchItem - 1, 0);
 
       searchItems[state.activeSearchItem].active = true;
-      this.setState({ searchItems: searchItems.slice(0) });
+      this.setState({searchItems: searchItems.slice(0)});
 
     } else if ((evt.key === 'Tab' || evt.key === 'Enter') && !this.isDefaultDropdown()) {
       evt.preventDefault();

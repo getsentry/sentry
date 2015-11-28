@@ -14,7 +14,7 @@ const ProjectReleases = React.createClass({
     setProjectNavSection: React.PropTypes.func
   },
 
-  mixins: [ History ],
+  mixins: [History],
 
   getDefaultProps() {
     return {
