@@ -1,5 +1,5 @@
 import React from 'react';
-import { Route, IndexRoute } from 'react-router';
+import {Redirect, Route, IndexRoute} from 'react-router';
 
 import Admin from './views/admin';
 import AdminOrganizations from './views/adminOrganizations';
@@ -48,7 +48,8 @@ let routes = (
       <IndexRoute component={AdminOverview} />
     </Route>
 
-    <Route path="/share/group/:shareId/" component={SharedGroupDetails} />
+    <Redirect from="/share/group/:shareId/" to="/share/issue/:groupId/" />
+    <Route path="/share/issue/:shareId/" component={SharedGroupDetails} />
 
     <Route path="/:orgId/" component={OrganizationDetails}>
       <IndexRoute component={OrganizationTeams} />
@@ -67,7 +68,8 @@ let routes = (
             <Route path=":platform/" component={ProjectInstallPlatform}/>
           </Route>
         </Route>
-        <Route path="group/:groupId/" component={GroupDetails}
+        <Redirect from="group/:groupId/" to="issues/:groupId/" />
+        <Route path="issues/:groupId/" component={GroupDetails}
                ignoreScrollBehavior>
           <IndexRoute component={GroupEventDetails} />
 

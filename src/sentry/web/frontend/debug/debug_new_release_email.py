@@ -37,11 +37,11 @@ class DebugNewReleaseEmailView(View):
             version=sha1(uuid4().hex).hexdigest(),
         )
 
-        release_link = absolute_uri(reverse('sentry-release-details', kwargs={
-            'organization_slug': org.slug,
-            'project_id': project.slug,
-            'version': release.version,
-        }))
+        release_link = absolute_uri('/{}/{}/releases/{}/'.format(
+            org.slug,
+            project.slug,
+            release.version,
+        ))
 
         project_link = absolute_uri(reverse('sentry-stream', kwargs={
             'organization_slug': org.slug,

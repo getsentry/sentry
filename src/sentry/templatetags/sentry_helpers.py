@@ -37,7 +37,6 @@ from sentry.constants import EVENTS_PER_PAGE
 from sentry.models import Organization
 from sentry.utils import json, to_unicode
 from sentry.utils.avatar import get_gravatar_url
-from sentry.utils.http import absolute_uri
 from sentry.utils.javascript import to_json
 from sentry.utils.strings import truncatechars
 from templatetag_sugar.register import tag
@@ -55,7 +54,11 @@ truncatechars.is_safe = True
 
 register.filter(to_json)
 
-register.simple_tag(absolute_uri)
+
+@register.simple_tag
+def absolute_uri(path='', *args):
+    from sentry.utils.http import absolute_uri
+    return absolute_uri(path.format(*args))
 
 
 @register.filter

@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.models import Project
 from sentry.testutils import TestCase, PermissionTestCase
+from sentry.utils.http import absolute_uri
 
 
 class CreateProjectPermissionTest(PermissionTestCase):
@@ -54,7 +55,7 @@ class CreateProjectTest(TestCase):
         assert project.team == team
 
         redirect_uri = reverse('sentry-stream', args=[organization.slug, project.slug])
-        assert resp['Location'] == 'http://testserver%ssettings/install/' % (redirect_uri,)
+        assert resp['Location'] == absolute_uri('%ssettings/install/' % (redirect_uri,))
 
     def test_multiple_teams(self):
         organization = self.create_organization()
@@ -73,4 +74,4 @@ class CreateProjectTest(TestCase):
         assert project.team == team
 
         redirect_uri = reverse('sentry-stream', args=[organization.slug, project.slug])
-        assert resp['Location'] == 'http://testserver%ssettings/install/' % (redirect_uri,)
+        assert resp['Location'] == absolute_uri('%ssettings/install/' % (redirect_uri,))

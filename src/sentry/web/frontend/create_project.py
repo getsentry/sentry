@@ -7,6 +7,7 @@ from django.core.urlresolvers import reverse
 from sentry.models import Project, Team
 from sentry.web.forms.add_project import AddProjectForm
 from sentry.web.frontend.base import OrganizationView
+from sentry.utils.http import absolute_uri
 
 
 ERR_NO_TEAMS = 'You cannot create a new project because there are no teams to assign it to.'
@@ -75,9 +76,10 @@ class CreateProjectView(OrganizationView):
         if form.is_valid():
             project = form.save(request.user, request.META['REMOTE_ADDR'])
 
-            url = reverse('sentry-project-setup', args=[organization.slug, project.slug])
-
-            return self.redirect(url)
+            return self.redirect(absolute_uri('/{}/{}/settings/install/'.format(
+                organization.slug,
+                project.slug,
+            )))
 
         context = {
             'form': form,
