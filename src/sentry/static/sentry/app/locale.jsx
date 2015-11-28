@@ -10,6 +10,9 @@ export function getCurrentTranslations() {
   return getTranslations(lang);
 }
 
+// XXX: flip this from somewhere
+const LOCALE_DEBUG = false;
+
 const i18n = new Jed({
   'domain' : 'sentry',
 
@@ -56,6 +59,7 @@ function formatForReact(formatString, args) {
       }
     }
   });
+
   return rv;
 }
 
@@ -152,6 +156,31 @@ export function renderComponentTemplate(template, components) {
   return renderGroup('root');
 }
 
+function mark(rv) {
+  if (!LOCALE_DEBUG) {
+    return rv;
+  }
+
+  var proxy = {
+    $$typeof: Symbol.for('react.element'),
+    type: 'span',
+    key: null,
+    ref: null,
+    props: {
+      className: 'translation-wrapper',
+      children: typeof rv === 'array' ? rv : [rv]
+    },
+    _owner: null,
+    _store: {}
+  };
+
+  proxy.toString = function() {
+    return '🇦🇹' + rv + '🇦🇹';
+  };
+
+  return proxy;
+}
+
 export function format(formatString, args) {
   if (argsInvolveReact(args)) {
     return formatForReact(formatString, args);
@@ -165,11 +194,11 @@ export function gettext(string, ...args) {
   if (args.length > 0) {
     rv = format(rv, args);
   }
-  return rv;
+  return mark(rv);
 }
 
 export function ngettext(singular, plural, ...args) {
-  return format(i18n.ngettext(singular, plural, args[0] || 0), args);
+  return mark(format(i18n.ngettext(singular, plural, args[0] || 0), args));
 }
 
 /* special form of gettext where you can render nested react
@@ -184,7 +213,7 @@ export function ngettext(singular, plural, ...args) {
    with the name in the brackets */
 export function gettextComponentTemplate(template, components) {
   let tmpl = parseComponentTemplate(gettext(template));
-  return renderComponentTemplate(tmpl, components);
+  return mark(renderComponentTemplate(tmpl, components));
 }
 
 export const t = gettext;
