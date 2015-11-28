@@ -82,15 +82,15 @@ const AllTeamsRow = React.createClass({
             <a className="btn btn-default btn-sm btn-loading btn-disabled">...</a>
           : (team.isMember ?
             <a className="leave-team btn btn-default btn-sm"
-               onClick={this.leaveTeam}>Leave Team</a>
+               onClick={this.leaveTeam}>{t('Leave Team')}</a>
           : (team.isPending ?
-            <a className="btn btn-default btn-sm btn-disabled">Request Pending</a>
+            <a className="btn btn-default btn-sm btn-disabled">{t('Request Pending')}</a>
           : (openMembership ?
             <a className="btn btn-default btn-sm"
-               onClick={this.joinTeam}>Join Team</a>
+               onClick={this.joinTeam}>{t('Join Team')}</a>
           :
             <a className="btn btn-default btn-sm"
-               onClick={this.joinTeam}>Request Access</a>
+               onClick={this.joinTeam}>{t('Request Access')}</a>
           )))}
         </td>
       </tr>
