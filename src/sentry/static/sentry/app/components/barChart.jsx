@@ -1,6 +1,6 @@
 import moment from 'moment';
 import React from 'react';
-import { valueIsEqual } from '../utils';
+import {valueIsEqual} from '../utils';
 import TooltipMixin from '../mixins/tooltip';
 
 const BarChart = React.createClass({
@@ -192,9 +192,9 @@ const BarChart = React.createClass({
       <a key={point.x}
          className="chart-column tip"
          data-point-index={pointIdx}
-         style={{ width: pointWidth }}
+         style={{width: pointWidth}}
        >
-        <span style={{ height: pct }}>{point.y}</span>
+        <span style={{height: pct}}>{point.y}</span>
       </a>
     );
   },

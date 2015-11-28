@@ -12,7 +12,7 @@ const ReleaseArtifacts = React.createClass({
     release: React.PropTypes.object
   },
 
-  mixins: [ History ],
+  mixins: [History],
 
   getInitialState() {
     return {

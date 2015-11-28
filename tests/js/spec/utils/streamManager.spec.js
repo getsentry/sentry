@@ -12,7 +12,7 @@ describe('StreamManager', function() {
   });
 
   it('allows options configuration', function() {
-    var options = { limit: 2 };
+    var options = {limit: 2};
     var mgr = new StreamManager(this.store, options);
 
     expect(mgr.limit).to.eql(options.limit);
@@ -30,7 +30,7 @@ describe('StreamManager', function() {
     it('adds items', function() {
       var storeAdd = sinon.spy(this.store, 'add');
       var mgr = new StreamManager(this.store);
-      var items = [{ id: 1 }];
+      var items = [{id: 1}];
       mgr.push(items);
 
       expect(mgr.idList.length).to.eql(1);
@@ -40,7 +40,7 @@ describe('StreamManager', function() {
     it('allows adding a single item', function() {
       var storeAdd = sinon.spy(this.store, 'add');
       var mgr = new StreamManager(this.store);
-      var item = { id: 1 };
+      var item = {id: 1};
       mgr.push(item);
 
       expect(mgr.idList.length).to.eql(1);
@@ -48,10 +48,10 @@ describe('StreamManager', function() {
     });
 
     it('trims after adding', function() {
-      var mgr = new StreamManager(this.store, { limit: 1 });
+      var mgr = new StreamManager(this.store, {limit: 1});
       var storeRemove = sinon.spy(this.store, 'remove');
       var mgrTrim = sinon.spy(mgr, 'trim');
-      mgr.push([{ id: 1 }, { id: 2 }]);
+      mgr.push([{id: 1}, {id: 2}]);
 
       expect(mgr.idList.length).to.eql(1);
       expect(storeRemove.calledWith(2)).to.be.true;
@@ -60,8 +60,8 @@ describe('StreamManager', function() {
 
     it('preserves NEW order of duplicates', function() {
       var mgr = new StreamManager(this.store);
-      mgr.push([{ id: 1 }, { id: 3 }]);
-      mgr.push([{ id: 1 }, { id: 2 }]); // New order of "1" if after "3"
+      mgr.push([{id: 1}, {id: 3}]);
+      mgr.push([{id: 1}, {id: 2}]); // New order of "1" if after "3"
 
       expect(mgr.idList).to.eql([3, 1, 2]);
     });
@@ -72,7 +72,7 @@ describe('StreamManager', function() {
 
     it('removes trailing items in excess of the limit', function() {
       var storeRemove = sinon.spy(this.store, 'remove');
-      var mgr = new StreamManager(this.store, { limit: 1 });
+      var mgr = new StreamManager(this.store, {limit: 1});
       mgr.idList = [1, 2, 3];
       mgr.trim();
 
@@ -84,7 +84,7 @@ describe('StreamManager', function() {
 
     it('does nothing with fewer items than limit', function() {
       var storeRemove = sinon.spy(this.store, 'remove');
-      var mgr = new StreamManager(this.store, { limit: 10 });
+      var mgr = new StreamManager(this.store, {limit: 10});
       mgr.idList = [1, 2, 3];
       mgr.trim();
 
@@ -99,27 +99,27 @@ describe('StreamManager', function() {
 
     it('retrives ordered items from store', function() {
       var storeGetAllItems = sinon.stub(this.store, 'getAllItems', function() {
-        return [{ id: 1 }, { id: 2 }];
+        return [{id: 1}, {id: 2}];
       });
       var mgr = new StreamManager(this.store);
-      mgr.push({ id: 2 });
-      mgr.push({ id: 1 });
+      mgr.push({id: 2});
+      mgr.push({id: 1});
       var items = mgr.getAllItems();
 
-      expect(items).to.eql([{ id: 2 }, { id: 1 }]);
+      expect(items).to.eql([{id: 2}, {id: 1}]);
       expect(storeGetAllItems.called).to.be.true;
     });
 
     it('does not mutate store', function() {
-      var storeItems = [{ id: 1 }, { id: 2 }];
+      var storeItems = [{id: 1}, {id: 2}];
       sinon.stub(this.store, 'getAllItems', function() {
         return storeItems;
       });
       var mgr = new StreamManager(this.store);
-      mgr.push([{ id: 2 }, { id: 1 }]);
+      mgr.push([{id: 2}, {id: 1}]);
       mgr.getAllItems();
 
-      expect(this.store.getAllItems()).to.eql([{ id: 1 }, { id: 2 }]);
+      expect(this.store.getAllItems()).to.eql([{id: 1}, {id: 2}]);
     });
 
   });
@@ -129,33 +129,33 @@ describe('StreamManager', function() {
     it('adds items to the start of the list', function() {
       var storeAdd = sinon.spy(this.store, 'add');
       var mgr = new StreamManager(this.store);
-      mgr.unshift([{ id: 2 }]);
-      mgr.unshift([{ id: 1 }]);
+      mgr.unshift([{id: 2}]);
+      mgr.unshift([{id: 1}]);
 
       expect(mgr.idList).to.eql([1, 2]);
-      expect(storeAdd.firstCall.calledWith([{ id: 2 }])).to.be.true;
-      expect(storeAdd.secondCall.calledWith([{ id: 1 }])).to.be.true;
+      expect(storeAdd.firstCall.calledWith([{id: 2}])).to.be.true;
+      expect(storeAdd.secondCall.calledWith([{id: 1}])).to.be.true;
     });
 
     it('moves duplicates to the start of the list', function() {
       var mgr = new StreamManager(this.store);
-      mgr.unshift([{ id: 2 }, { id: 1 }]);
-      mgr.unshift([{ id: 1 }]);
+      mgr.unshift([{id: 2}, {id: 1}]);
+      mgr.unshift([{id: 1}]);
 
       expect(mgr.idList).to.eql([1, 2]);
     });
 
     it('moves a duplicate array to the start of the list and preserves order', function() {
       var mgr = new StreamManager(this.store);
-      mgr.unshift([{ id: 3 }, { id: 2 }, { id: 1 }]);
-      mgr.unshift([{ id: 2 }, { id: 1 }]);
+      mgr.unshift([{id: 3}, {id: 2}, {id: 1}]);
+      mgr.unshift([{id: 2}, {id: 1}]);
 
       expect(mgr.idList).to.eql([2, 1, 3]);
     });
 
     it('allows adding a single item', function() {
       var mgr = new StreamManager(this.store);
-      mgr.unshift({ id: 1 });
+      mgr.unshift({id: 1});
 
       expect(mgr.idList).to.eql([1]);
     });

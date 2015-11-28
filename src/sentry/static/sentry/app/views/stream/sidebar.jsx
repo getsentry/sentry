@@ -59,7 +59,7 @@ const StreamSidebar = React.createClass({
   },
 
   onTextChange: function (evt) {
-    this.setState({ textFilter: evt.target.value });
+    this.setState({textFilter: evt.target.value});
   },
 
   debouncedTextChange: _.debounce(function(text) {

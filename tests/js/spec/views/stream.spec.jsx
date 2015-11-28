@@ -116,7 +116,7 @@ describe('Stream', function() {
 
     it('displays a loading indicator when component is loading', function() {
       let stream = TestUtils.renderIntoDocument(this.Element);
-      stream.setState({ loading: true });
+      stream.setState({loading: true});
       let expected = findWithType(stream, LoadingIndicator);
 
       expect(expected).to.be.ok;

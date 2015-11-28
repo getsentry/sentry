@@ -144,7 +144,7 @@ describe('SearchBar', function() {
       let stubbedOnSearch = this.sandbox.spy();
       let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar onSearch={stubbedOnSearch} orgId="123" projectId="456"/>).refs.wrapped;
 
-      TestUtils.Simulate.submit(wrapper.refs.searchForm, { preventDefault() {} });
+      TestUtils.Simulate.submit(wrapper.refs.searchForm, {preventDefault() {}});
 
       expect(stubbedOnSearch.called).to.be.true;
     });

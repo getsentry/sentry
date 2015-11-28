@@ -110,6 +110,9 @@
     "no-with": 2,                    // http://eslint.org/docs/rules/no-with
     "quotes": [2, "single"],         // http://eslint.org/docs/rules/quotes.html
     "radix": 2,                      // http://eslint.org/docs/rules/radix
+    "computed-property-spacing": [2, "never"], // http://eslint.org/docs/rules/space-in-brackets.html
+    "array-bracket-spacing": [2, "never"], // http://eslint.org/docs/rules/space-in-brackets.html
+    "object-curly-spacing": [2, "never"], // http://eslint.org/docs/rules/space-in-brackets.html
     "space-infix-ops": 2,            // http://eslint.org/docs/rules/space-infix-ops.html
     "vars-on-top": 0,                // http://eslint.org/docs/rules/vars-on-top
     "wrap-iife": [2, "any"],         // http://eslint.org/docs/rules/wrap-iife

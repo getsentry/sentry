@@ -18,7 +18,7 @@ describe('OrganizationTeams', function() {
     stubReactComponent(this.sandbox, [ExpandedTeamList, AllTeamsList, OrganizationHomeContainer]);
 
     let ContextStubbedOrganizationTeams = stubContext(OrganizationTeams, {
-      organization: { id: '1337' }
+      organization: {id: '1337'}
     });
 
     this.Element = <ContextStubbedOrganizationTeams params={{orgId:'123'}}/>;

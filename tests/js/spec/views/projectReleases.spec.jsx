@@ -17,7 +17,7 @@ describe('ProjectReleases', function () {
 
     this.props = {
       setProjectNavSection: function () {},
-      params: { orgId: '123', projectId: '456'},
+      params: {orgId: '123', projectId: '456'},
       location: {query: {limit: 0, query: 'derp'}}
     };
     this.projectReleases = TestUtils.renderIntoDocument(
@@ -56,7 +56,7 @@ describe('ProjectReleases', function () {
       expect(pushState.args[0]).to.eql([
         null,
         '/123/456/releases/',
-        { query: 'searchquery' }
+        {query: 'searchquery'}
       ]);
     });
   });
@@ -73,7 +73,7 @@ describe('ProjectReleases', function () {
         ...this.props,
         location: {
           search: '?query=newquery',
-          query: { query: 'newquery' }
+          query: {query: 'newquery'}
         }
       };
       projectReleases.componentWillReceiveProps(newProps);
