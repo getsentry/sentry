@@ -13,7 +13,7 @@ def list_tag_values_scenario(runner):
     group = Group.objects.filter(project=runner.default_project).first()
     runner.request(
         method='GET',
-        path='/groups/%s/tags/%s/values/' % (
+        path='/issues/%s/tags/%s/values/' % (
             group.id, 'browser'),
     )
 
@@ -28,9 +28,9 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         List a Tag's Values
         ```````````````````
 
-        Return a list of values associated with this key.
+        Return a list of values associated with this key for an issue.
 
-        :pparam string group_id: the ID of the group to retrieve.
+        :pparam string issue_id: the ID of the issue to retrieve.
         :pparam string key: the tag key to look the values up for.
         :auth: required
         """

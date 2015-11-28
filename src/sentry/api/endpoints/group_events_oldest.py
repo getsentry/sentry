@@ -15,7 +15,7 @@ def get_oldest_group_sample_scenario(runner):
     group = Group.objects.filter(project=project).last()
     runner.request(
         method='GET',
-        path='/groups/%s/events/oldest/' % group.id,
+        path='/issues/%s/events/oldest/' % group.id,
     )
 
 

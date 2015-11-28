@@ -15,7 +15,7 @@ def get_latest_group_sample_scenario(runner):
     group = Group.objects.filter(project=project).first()
     runner.request(
         method='GET',
-        path='/groups/%s/events/latest/' % group.id,
+        path='/issues/%s/events/latest/' % group.id,
     )
 
 

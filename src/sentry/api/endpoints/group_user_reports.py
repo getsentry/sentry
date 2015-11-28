@@ -9,12 +9,14 @@ from sentry.models import UserReport
 class GroupUserReportsEndpoint(GroupEndpoint):
     def get(self, request, group):
         """
-        List an aggregate's user reports
+        List User Reports
+        `````````````````
 
-        Return a list of user submitted crash reports for the given an aggregate.
+        Returns a list of user reports for an issue.
 
-            {method} {path}
-
+        :pparam string issue_id: the ID of the issue to retrieve.
+        :pparam string key: the tag key to look the values up for.
+        :auth: required
         """
 
         report_list = UserReport.objects.filter(

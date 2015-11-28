@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function
 
 from datetime import timedelta
-from django.core.urlresolvers import reverse
 from django.utils import timezone
 
 from sentry.models import (
@@ -17,9 +16,7 @@ class GroupDetailsTest(APITestCase):
 
         group = self.create_group()
 
-        url = reverse('sentry-api-0-group-details', kwargs={
-            'group_id': group.id,
-        })
+        url = '/api/0/issues/{}/'.format(group.id)
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -41,9 +38,8 @@ class GroupDetailsTest(APITestCase):
             value=release.version,
         )
 
-        url = reverse('sentry-api-0-group-details', kwargs={
-            'group_id': group.id,
-        })
+        url = '/api/0/issues/{}/'.format(group.id)
+
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -57,9 +53,8 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = reverse('sentry-api-0-group-details', kwargs={
-            'group_id': group.id,
-        })
+        url = '/api/0/issues/{}/'.format(group.id)
+
         response = self.client.put(url, data={
             'status': 'resolved',
         }, format='json')
@@ -76,9 +71,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = reverse('sentry-api-0-group-details', kwargs={
-            'group_id': group.id,
-        })
+        url = '/api/0/issues/{}/'.format(group.id)
 
         response = self.client.put(url, data={
             'status': 'muted',
@@ -102,9 +95,8 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = reverse('sentry-api-0-group-details', kwargs={
-            'group_id': group.id
-        })
+        url = '/api/0/issues/{}/'.format(group.id)
+
         response = self.client.put(url, data={
             'isBookmarked': '1',
         }, format='json')
@@ -120,9 +112,8 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = reverse('sentry-api-0-group-details', kwargs={
-            'group_id': group.id
-        })
+        url = '/api/0/issues/{}/'.format(group.id)
+
         response = self.client.put(url, data={
             'assignedTo': self.user.username,
         }, format='json')
@@ -160,9 +151,8 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = reverse('sentry-api-0-group-details', kwargs={
-            'group_id': group.id
-        })
+        url = '/api/0/issues/{}/'.format(group.id)
+
         response = self.client.put(url, data={
             'hasSeen': '1',
         }, format='json')
@@ -187,9 +177,8 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = reverse('sentry-api-0-group-details', kwargs={
-            'group_id': group.id
-        })
+        url = '/api/0/issues/{}/'.format(group.id)
+
         response = self.client.put(url, data={
             'hasSeen': '1',
         }, format='json')
@@ -206,9 +195,8 @@ class GroupDeleteTest(APITestCase):
 
         group = self.create_group()
 
-        url = reverse('sentry-api-0-group-details', kwargs={
-            'group_id': group.id
-        })
+        url = '/api/0/issues/{}/'.format(group.id)
+
         with self.tasks():
             response = self.client.delete(url, format='json')
 

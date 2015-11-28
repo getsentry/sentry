@@ -44,7 +44,7 @@ const GroupEvents = React.createClass({
       error: false
     });
 
-    api.request(`/groups/${this.getGroup().id}/events/`, {
+    api.request(`/issues/${this.getGroup().id}/events/`, {
       method: 'GET',
       data: queryParams,
       success: (data, _, jqXHR) => {
