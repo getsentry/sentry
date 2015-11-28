@@ -46,7 +46,7 @@ const GroupTagValues = React.createClass({
       error: false
     });
 
-    api.request('/groups/' + this.getGroup().id + '/tags/' + params.tagKey + '/', {
+    api.request('/issues/' + this.getGroup().id + '/tags/' + params.tagKey + '/', {
       success: (data) => {
         this.setState({
           tagKey: data,
@@ -61,7 +61,7 @@ const GroupTagValues = React.createClass({
       }
     });
 
-    api.request('/groups/' + this.getGroup().id + '/tags/' + params.tagKey + '/values/?' + querystring, {
+    api.request('/issues/' + this.getGroup().id + '/tags/' + params.tagKey + '/values/?' + querystring, {
       success: (data, _, jqXHR) => {
         this.setState({
           tagValueList: data,

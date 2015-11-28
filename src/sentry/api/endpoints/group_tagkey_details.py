@@ -15,7 +15,7 @@ def list_tag_details_scenario(runner):
     group = Group.objects.filter(project=runner.default_project).first()
     runner.request(
         method='GET',
-        path='/groups/%s/tags/%s/' % (
+        path='/issues/%s/tags/%s/' % (
             group.id, 'browser'),
     )
 
@@ -27,12 +27,12 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
     # @attach_scenarios([list_tag_details_scenario])
     def get(self, request, group, key):
         """
-        List Tag Details
-        ````````````````
+        Retrieve Tag Details
+        ````````````````````
 
-        Returns a list of details about the given tag key.
+        Returns details for given tag key related to an issue.
 
-        :pparam string group_id: the ID of the group to retrieve.
+        :pparam string issue_id: the ID of the issue to retrieve.
         :pparam string key: the tag key to look the values up for.
         :auth: required
         """

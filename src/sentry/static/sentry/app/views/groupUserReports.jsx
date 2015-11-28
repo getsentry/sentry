@@ -43,7 +43,7 @@ const GroupUserReports = React.createClass({
       error: false
     });
 
-    api.request('/groups/' + this.getGroup().id + '/user-reports/?' + querystring, {
+    api.request('/issues/' + this.getGroup().id + '/user-reports/?' + querystring, {
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,

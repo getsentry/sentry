@@ -1,7 +1,5 @@
 from __future__ import absolute_import, print_function
 
-from django.core.urlresolvers import reverse
-
 from sentry.testutils import APITestCase
 
 
@@ -12,9 +10,7 @@ class SharedGroupDetailsTest(APITestCase):
         group = self.create_group()
         event = self.create_event(group=group)
 
-        url = reverse('sentry-api-0-shared-group-details', kwargs={
-            'share_id': group.get_share_id(),
-        })
+        url = '/api/0/shared/issues/{}/'.format(group.get_share_id())
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
