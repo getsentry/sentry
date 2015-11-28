@@ -10,8 +10,18 @@ export function getCurrentTranslations() {
   return getTranslations(lang);
 }
 
-// XXX: flip this from somewhere
-const LOCALE_DEBUG = false;
+let LOCALE_DEBUG = false;
+
+if (sessionStorage && sessionStorage.getItem('localeDebug') == '1') {
+  LOCALE_DEBUG = true;
+}
+
+export function setLocaleDebug(value) {
+  sessionStorage.setItem('localeDebug', value ? '1' : '0');
+  /*eslint no-console:0*/
+  console.log('Locale debug is', value ? 'on' : 'off',
+              'Reload page to apply changes!');
+}
 
 const i18n = new Jed({
   'domain' : 'sentry',
