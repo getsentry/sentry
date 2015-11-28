@@ -24,6 +24,9 @@ from .endpoints.organization_access_request_details import OrganizationAccessReq
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_member_index import OrganizationMemberIndexEndpoint
+from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
+from .endpoints.organization_member_issues_bookmarked import OrganizationMemberIssuesBookmarkedEndpoint
+from .endpoints.organization_member_issues_viewed import OrganizationMemberIssuesViewedEndpoint
 from .endpoints.organization_member_team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
@@ -96,6 +99,15 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/$',
         OrganizationMemberDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-member-details'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/assigned/$',
+        OrganizationMemberIssuesAssignedEndpoint.as_view(),
+        name='sentry-api-0-organization-member-issues-assigned'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/bookmarked/$',
+        OrganizationMemberIssuesBookmarkedEndpoint.as_view(),
+        name='sentry-api-0-organization-member-issues-bookmarked'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/viewed/$',
+        OrganizationMemberIssuesViewedEndpoint.as_view(),
+        name='sentry-api-0-organization-member-issues-viewed'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$',
         OrganizationMemberTeamDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-member-team-details'),
