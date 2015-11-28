@@ -5,6 +5,7 @@ import {objectToArray} from '../../utils';
 import EventDataSection from './eventDataSection';
 import ClippedBox from '../clippedBox';
 import KeyValueList from './interfaces/keyValueList';
+import {t} from '../../locale';
 
 const EventPackageData = React.createClass({
   propTypes: {
@@ -24,7 +25,7 @@ const EventPackageData = React.createClass({
           group={this.props.group}
           event={this.props.event}
           type="packages"
-          title="Packages">
+          title={t('Packages')}>
         <ClippedBox>
           <KeyValueList data={packages} />
         </ClippedBox>

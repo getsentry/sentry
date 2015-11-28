@@ -6,6 +6,7 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import SearchBar from '../components/searchBar.jsx';
+import {t} from '../locale';
 
 const AdminOrganizations = React.createClass({
   mixins: [History],
@@ -96,7 +97,7 @@ const AdminOrganizations = React.createClass({
       <tr>
         <td colSpan="3">
           <span className="icon icon-exclamation" />
-          <p>Sorry, no results match your filters.</p>
+          <p>{t('Sorry, no results match your filters.')}</p>
         </td>
       </tr>
     );
@@ -124,11 +125,11 @@ const AdminOrganizations = React.createClass({
       <div>
         <div className="row">
           <div className="col-sm-7">
-            <h3>Organizations</h3>
+            <h3>{t('Organizations')}</h3>
           </div>
           <div className="col-sm-5">
             <SearchBar defaultQuery=""
-              placeholder="Search for an organization."
+              placeholder={t('Search for an organization.')}
               query={this.state.query}
               onSearch={this.onSearch}
             />
@@ -138,9 +139,9 @@ const AdminOrganizations = React.createClass({
         <table className="table">
           <thead>
             <tr>
-              <th>Organization</th>
-              <th style={{width: 100}}>Members</th>
-              <th style={{width: 100}}>Projects</th>
+              <th>{t('Organization')}</th>
+              <th style={{width: 100}}>{t('Members')}</th>
+              <th style={{width: 100}}>{t('Projects')}</th>
             </tr>
           </thead>
           <tbody>

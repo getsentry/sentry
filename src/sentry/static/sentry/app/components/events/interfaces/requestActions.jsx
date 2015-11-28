@@ -1,5 +1,6 @@
 import React from 'react';
 import ConfigStore from '../../../stores/configStore';
+import {t} from '../../../locale';
 
 const RequestActions = React.createClass({
   render(){
@@ -14,7 +15,7 @@ const RequestActions = React.createClass({
 
     return (
       <a href={urlPrefix + '/events/' + evt.id + '/replay/'}
-         className="btn btn-sm btn-default">Replay Request</a>
+         className="btn btn-sm btn-default">{t('Replay Request')}</a>
     );
   }
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
+import {t} from '../locale';
 
 const LinkWithConfirmation = React.createClass({
   propTypes: {
@@ -42,15 +43,15 @@ const LinkWithConfirmation = React.createClass({
     return (
       <a className={className} disabled={this.props.disabled} onClick={this.onToggle} title={this.props.title}>
         {this.props.children}
-        <Modal show={this.state.isModalOpen} title="Please confirm" animation={false} onHide={this.onToggle}>
+        <Modal show={this.state.isModalOpen} title={t('Please confirm')} animation={false} onHide={this.onToggle}>
           <div className="modal-body">
             <p><strong>{this.props.message}</strong></p>
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-default"
-                    onClick={this.onToggle}>Cancel</button>
+                    onClick={this.onToggle}>{t('Cancel')}</button>
             <button type="button" className="btn btn-primary"
-                    onClick={this.onConfirm}>Confirm</button>
+                    onClick={this.onConfirm}>{t('Confirm')}</button>
           </div>
         </Modal>
       </a>

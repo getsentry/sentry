@@ -3,6 +3,7 @@ import {Link} from 'react-router';
 import ConfigStore from '../../stores/configStore';
 
 import ProjectSelector from './projectSelector';
+import {t} from '../../locale';
 
 const ProjectHeader = React.createClass({
   render() {
@@ -20,23 +21,23 @@ const ProjectHeader = React.createClass({
               <ul className="nav nav-tabs">
                 <li className={navSection == 'dashboard' ? 'active' : ''}>
                   <Link to={`/${org.slug}/${project.slug}/dashboard/`}>
-                    Dashboard
+                    {t('Dashboard')}
                   </Link>
                 </li>
                 <li className={navSection == 'stream' ? 'active' : ''}>
                   <Link to={`/${org.slug}/${project.slug}/`}>
-                    Issues
+                    {t('Issues')}
                   </Link>
                 </li>
                 <li className={navSection == 'releases' ? 'active' : ''}>
                   <Link to={`/${org.slug}/${project.slug}/releases/`}>
-                    Releases
+                    {t('Releases')}
                   </Link>
                 </li>
                 {access.has('project:write') &&
                   <li className={navSection == 'settings' ? 'active' : ''}>
                     <a href={urlPrefix + `/${org.slug}/${project.slug}/settings/`}>
-                      Settings
+                      {t('Settings')}
                     </a>
                   </li>
                 }

@@ -8,6 +8,7 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import TimeSince from '../components/timeSince';
 import utils from '../utils';
+import {t} from '../locale';
 
 const GroupUserReports = React.createClass({
   mixins: [
@@ -99,8 +100,8 @@ const GroupUserReports = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>No user reports have been collected for this event.</p>
-        <p><a href="">Learn how to integrate User Crash Reports</a></p>
+        <p>{t('No user reports have been collected for this event.')}</p>
+        <p><a href="">{t('Learn how to integrate User Crash Reports')}</a></p>
       </div>
     );
   }

@@ -4,6 +4,8 @@ import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 import rawStacktraceContent from './rawStacktraceContent';
 import StacktraceContent from './stacktraceContent';
+import {t} from '../../../locale';
+
 
 const StacktraceInterface = React.createClass({
   propTypes: {
@@ -62,9 +64,9 @@ const StacktraceInterface = React.createClass({
         <h3>
           {'Stacktrace '}
           {newestFirst ?
-            <small>(most recent call last)</small>
+            <small>({t('most recent call last')})</small>
           :
-            <small>(most recent call first)</small>
+            <small>({t('most recent call first')})</small>
           }
         </h3>
       </div>

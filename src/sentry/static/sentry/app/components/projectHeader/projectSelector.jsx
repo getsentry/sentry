@@ -5,6 +5,7 @@ import jQuery from 'jquery';
 import ConfigStore from '../../stores/configStore';
 import DropdownLink from '../dropdownLink';
 import MenuItem from '../menuItem';
+import {t} from '../../locale';
 
 const ProjectSelector = React.createClass({
   contextTypes: {
@@ -164,7 +165,7 @@ const ProjectSelector = React.createClass({
             <input
               value={this.state.filter}
               type="text"
-              placeholder="Filter projects"
+              placeholder={t('Filter projects')}
               onChange={this.onFilterChange}
               onKeyUp={this.onKeyUp}
               onBlur={this.onFilterBlur}

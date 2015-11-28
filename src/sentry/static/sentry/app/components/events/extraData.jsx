@@ -4,6 +4,7 @@ import PropTypes from '../../proptypes';
 import {objectToArray} from '../../utils';
 import EventDataSection from './eventDataSection';
 import KeyValueList from './interfaces/keyValueList';
+import {t} from '../../locale';
 
 const EventExtraData = React.createClass({
   propTypes: {
@@ -23,7 +24,7 @@ const EventExtraData = React.createClass({
           group={this.props.group}
           event={this.props.event}
           type="extra"
-          title="Additional Data">
+          title={t('Additional Data')}>
           <KeyValueList
               data={extraDataArray}
               isContextData={true}/>

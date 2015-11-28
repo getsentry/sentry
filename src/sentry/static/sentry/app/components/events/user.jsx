@@ -3,6 +3,7 @@ import React from 'react';
 import Gravatar from '../../components/gravatar';
 import KeyValueList from './interfaces/keyValueList';
 import EventDataSection from './eventDataSection';
+import {t} from '../../locale';
 
 
 const EventUser = React.createClass({
@@ -27,7 +28,7 @@ const EventUser = React.createClass({
           group={this.props.group}
           event={this.props.event}
           type="user"
-          title="User">
+          title={t('User')}>
         <div className="user-widget">
           <div className="pull-left"><Gravatar email={user.email} size={96} /></div>
           <KeyValueList data={builtins} isContextData={false} />

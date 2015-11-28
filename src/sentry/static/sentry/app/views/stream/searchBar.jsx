@@ -8,6 +8,7 @@ import StreamTagStore from '../../stores/streamTagStore';
 import MemberListStore from '../../stores/memberListStore';
 
 import api from '../../api';
+import {t} from '../../locale';
 
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
@@ -54,28 +55,28 @@ const SearchBar = React.createClass({
 
       defaultSearchItems: [
         {
-          title: 'Tag',
-          desc: 'key/value pair associated to an event',
+          title: t('Tag'),
+          desc: t('key/value pair associated to an event'),
           example: 'browser:"Chrome 34"',
           className: 'icon-tag',
           value: 'browser:'
         },
         {
-          title: 'Status',
-          desc: 'State of an event',
+          title: t('Status'),
+          desc: t('State of an event'),
           example: 'is:resolved, unresolved, muted',
           className: 'icon-toggle',
           value: 'is:'
         },
         {
-          title: 'Assigned',
-          desc: 'team member assigned to an event',
+          title: t('Assigned'),
+          desc: t('team member assigned to an event'),
           example: 'assigned:[me|user@example.com]',
           className: 'icon-user',
           value: 'assigned:'
         },
         {
-          desc: 'or paste an event id to jump straight to it',
+          desc: t('or paste an event id to jump straight to it'),
           className: 'icon-hash',
           value: ''
         }

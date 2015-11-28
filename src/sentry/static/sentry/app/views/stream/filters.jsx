@@ -3,6 +3,7 @@ import React from 'react';
 import FilterSelectLink from './filterSelectLink';
 import SearchBar from './searchBar';
 import SortOptions from './sortOptions';
+import {t} from '../../locale';
 
 const StreamFilters = React.createClass({
   propTypes: {
@@ -51,15 +52,15 @@ const StreamFilters = React.createClass({
         <div className="row">
           <div className="col-sm-4 primary-filters">
             <div className="btn-group btn-group-justified">
-              <FilterSelectLink label="All Events"
+              <FilterSelectLink label={t('All Events')}
                 isActive={activeButton === 'all'}
                 onSelect={this.onFilterChange.bind(this, {})}
                 extraClass="btn btn-all-events" />
-              <FilterSelectLink label="Bookmarks"
+              <FilterSelectLink label={t('Bookmarks')}
                 isActive={activeButton === 'bookmarks'}
                 onSelect={this.onFilterChange.bind(this, {bookmarks: '1'})}
                 extraClass="btn btn-middle btn-bookmarks" />
-              <FilterSelectLink label="Assigned"
+              <FilterSelectLink label={t('Assigned')}
                 isActive={activeButton === 'assigned'}
                 onSelect={this.onFilterChange.bind(this, {assigned: '1'})}
                 extraClass="btn btn-assigned" />
@@ -79,7 +80,7 @@ const StreamFilters = React.createClass({
               ref="searchBar"
               tags={this.props.tags}
               defaultQuery={this.props.defaultQuery}
-              placeholder="Search for events, users, tags, and everything else."
+              placeholder={t('Search for events, users, tags, and everything else.')}
               query={this.props.query}
               onSearch={this.props.onSearch}
               disabled={this.props.isSearchDisabled}

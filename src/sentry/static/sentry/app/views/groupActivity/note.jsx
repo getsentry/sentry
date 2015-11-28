@@ -3,6 +3,7 @@ import React from 'react';
 import TimeSince from '../../components/timeSince';
 import ConfigStore from '../../stores/configStore';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
+import {t} from '../../locale';
 
 marked.setOptions({
   // Disable all HTML input and only accept Markdown
@@ -25,11 +26,11 @@ const Note = React.createClass({
         <div className="activity-author">{author.name}
         {this.canEdit() &&
           <span className="editor-tools">
-            <a onClick={onEdit}>Edit</a>
+            <a onClick={onEdit}>{t('Edit')}</a>
             <LinkWithConfirmation
               className="danger"
-              message="Are you sure you wish to delete this comment?"
-              onConfirm={onDelete}>Remove</LinkWithConfirmation>
+              message={t('Are you sure you wish to delete this comment?')}
+              onConfirm={onDelete}>{t('Remove')}</LinkWithConfirmation>
           </span>
         }
         </div>

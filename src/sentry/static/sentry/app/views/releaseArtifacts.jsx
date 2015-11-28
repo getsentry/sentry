@@ -6,6 +6,7 @@ import FileSize from '../components/fileSize';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
+import {t} from '../locale';
 
 const ReleaseArtifacts = React.createClass({
   contextTypes: {
@@ -71,7 +72,7 @@ const ReleaseArtifacts = React.createClass({
       return (
         <div className="box empty-stream">
           <span className="icon icon-exclamation"></span>
-          <p>There are no artifacts uploaded for this release.</p>
+          <p>{t('There are no artifacts uploaded for this release.')}</p>
         </div>
       );
 

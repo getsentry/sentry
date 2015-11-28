@@ -7,6 +7,7 @@ import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import PropTypes from '../proptypes';
+import {t} from '../locale';
 
 let ERROR_TYPES = {
   GROUP_NOT_FOUND: 'GROUP_NOT_FOUND'
@@ -101,7 +102,9 @@ const GroupDetails = React.createClass({
       switch (this.state.errorType) {
         case ERROR_TYPES.GROUP_NOT_FOUND:
           return (
-            <div className="alert alert-block">The issue you were looking for was not found.</div>
+            <div className="alert alert-block">
+              {t('The issue you were looking for was not found.')}
+            </div>
           );
         default:
           return <LoadingError onRetry={this.remountComponent} />;
