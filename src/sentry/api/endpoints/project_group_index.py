@@ -33,7 +33,7 @@ def bulk_update_aggregates_scenario(runner):
     group1, group2 = Group.objects.filter(project=project)[:2]
     runner.request(
         method='PUT',
-        path='/projects/%s/%s/groups/?id=%s&id=%s' % (
+        path='/projects/%s/%s/issues/?id=%s&id=%s' % (
             runner.org.slug, project.slug, group1.id, group2.id),
         data={'status': 'unresolved', 'isPublic': False}
     )
@@ -45,7 +45,7 @@ def bulk_remove_aggregates_scenario(runner):
         group1, group2 = Group.objects.filter(project=project)[:2]
         runner.request(
             method='DELETE',
-            path='/projects/%s/%s/groups/?id=%s&id=%s' % (
+            path='/projects/%s/%s/issues/?id=%s&id=%s' % (
                 runner.org.slug, project.slug, group1.id, group2.id),
         )
 
@@ -55,7 +55,7 @@ def list_project_aggregates_scenario(runner):
     project = runner.default_project
     runner.request(
         method='GET',
-        path='/projects/%s/%s/groups/?statsPeriod=24h' % (
+        path='/projects/%s/%s/issues/?statsPeriod=24h' % (
             runner.org.slug, project.slug),
     )
 

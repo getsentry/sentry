@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from exam import fixture
-from django.core.urlresolvers import reverse
 
 from sentry.models import Activity, Group
 from sentry.testutils import APITestCase
@@ -10,10 +9,10 @@ from sentry.testutils import APITestCase
 class GroupNotesDetailsTest(APITestCase):
     @fixture
     def url(self):
-        return reverse('sentry-api-0-group-notes-details', kwargs={
-            'group_id': self.group.id,
-            'note_id': self.activity.id,
-        })
+        return '/api/0/issues/{}/comments/{}/'.format(
+            self.group.id,
+            self.activity.id,
+        )
 
     def test_delete(self):
         self.login_as(user=self.user)

@@ -84,7 +84,7 @@ const ProjectDashboard = React.createClass({
       query: 'is:unresolved',
       since: dateSince
     });
-    return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + qs;
+    return '/projects/' + params.orgId + '/' + params.projectId + '/issues/?' + qs;
   },
 
   getNewEventsEndpoint(dateSince) {
@@ -94,7 +94,7 @@ const ProjectDashboard = React.createClass({
       query: 'is:unresolved',
       since: dateSince
     });
-    return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + qs;
+    return '/projects/' + params.orgId + '/' + params.projectId + '/issues/?' + qs;
   },
 
   render() {

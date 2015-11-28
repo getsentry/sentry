@@ -1,7 +1,7 @@
 import React from 'react';
 import TestUtils from 'react-addons-test-utils';
 import Cookies from 'js-cookie';
-import Sticky from 'react-sticky';  
+import Sticky from 'react-sticky';
 import Api from 'app/api';
 import CursorPoller from 'app/utils/cursorPoller';
 import LoadingError from 'app/components/loadingError';
@@ -17,8 +17,8 @@ const findWithClass = TestUtils.findRenderedDOMComponentWithClass;
 const findWithType = TestUtils.findRenderedComponentWithType;
 
 const DEFAULT_LINKS_HEADER =
-  '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
-  '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
+  '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
+  '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
 
 describe('Stream', function() {
 
@@ -56,7 +56,7 @@ describe('Stream', function() {
         stream.fetchData();
 
         expect(CursorPoller.prototype.setEndpoint
-          .calledWith('http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:1'))
+          .calledWith('http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:1'))
           .to.be.true;
       });
 
@@ -72,8 +72,8 @@ describe('Stream', function() {
       it('should not enable the poller if the \'previous\' link has results', function () {
         let stream = TestUtils.renderIntoDocument(this.Element);
         stream.state.pageLinks =
-          '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:1>; rel="previous"; results="true"; cursor="1443575731:0:1", ' +
-          '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/groups/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
+          '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:1>; rel="previous"; results="true"; cursor="1443575731:0:1", ' +
+          '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
 
         stream.state.realtimeActive = true;
         stream.fetchData();

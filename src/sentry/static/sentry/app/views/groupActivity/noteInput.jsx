@@ -91,7 +91,7 @@ const NoteInput = React.createClass({
 
     let loadingIndicator = IndicatorStore.add('Posting comment..');
 
-    api.request('/groups/' + group.id + '/notes/', {
+    api.request('/issues/' + group.id + '/comments/', {
       method: 'POST',
       data: {
         text: this.state.value
@@ -125,7 +125,7 @@ const NoteInput = React.createClass({
 
     let loadingIndicator = IndicatorStore.add('Updating comment..');
 
-    api.request('/groups/' + group.id + '/notes/' + item.id + '/', {
+    api.request('/issues/' + group.id + '/comments/' + item.id + '/', {
       method: 'PUT',
       data: {
         text: this.state.value

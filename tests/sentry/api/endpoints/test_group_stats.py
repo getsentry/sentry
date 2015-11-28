@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
-
 from sentry.app import tsdb
 from sentry.testutils import APITestCase
 
@@ -13,9 +11,7 @@ class GroupStatsTest(APITestCase):
         group1 = self.create_group()
         group2 = self.create_group()
 
-        url = reverse('sentry-api-0-group-stats', kwargs={
-            'group_id': group1.id,
-        })
+        url = '/api/0/issues/{}/stats/'.format(group1.id)
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content

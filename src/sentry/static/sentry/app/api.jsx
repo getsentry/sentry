@@ -112,7 +112,7 @@ class Client {
   }
 
   bulkDelete(params, options) {
-    let path = '/projects/' + params.orgId + '/' + params.projectId + '/groups/';
+    let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
     let query = (params.itemIds ? {id: params.itemIds} : undefined);
     let id = this.uniqueId();
 
@@ -131,7 +131,7 @@ class Client {
   }
 
   bulkUpdate(params, options) {
-    let path = '/projects/' + params.orgId + '/' + params.projectId + '/groups/';
+    let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
     let query = (params.itemIds ? {id: params.itemIds} : undefined);
     let id = this.uniqueId();
 
@@ -151,7 +151,7 @@ class Client {
   }
 
   merge(params, options) {
-    let path = '/projects/' + params.orgId + '/' + params.projectId + '/groups/';
+    let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
     let query = (params.itemIds ? {id: params.itemIds} : undefined);
     let id = this.uniqueId();
 
@@ -171,7 +171,7 @@ class Client {
   }
 
   assignTo(params, options) {
-    let path = '/groups/' + params.id + '/';
+    let path = '/issues/' + params.id + '/';
     let id = this.uniqueId();
 
     GroupActions.assignTo(id, params.id, {email: params.email});
