@@ -2,10 +2,9 @@ import React from 'react';
 
 import ListLink from '../listLink';
 import OrganizationState from '../../mixins/organizationState';
-import {t} from '../../locale';
-
 import ConfigStore from '../../stores/configStore';
 import HookStore from '../../stores/hookStore';
+import {t} from '../../locale';
 
 const HomeSidebar = React.createClass({
   mixins: [OrganizationState],
@@ -39,7 +38,7 @@ const HomeSidebar = React.createClass({
               {access.has('org:read') &&
                 <li>
                   <a href={urlPrefix + '/members/'}>
-                    {t('Members')}
+                    {t('Members')}&nbsp;
                     {access.has('org:write') && org.pendingAccessRequests > 0 &&
                       <span className="badge" style={{marginLeft: 5}}>{org.pendingAccessRequests}</span>
                     }

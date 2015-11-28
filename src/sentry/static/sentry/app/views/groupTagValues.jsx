@@ -9,6 +9,7 @@ import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import TimeSince from '../components/timeSince';
 import {isUrl, percent} from '../utils';
+import {t, tn} from '../locale';
 
 const GroupTagValues = React.createClass({
   mixins: [
@@ -119,17 +120,22 @@ const GroupTagValues = React.createClass({
       <div>
         <h3>
           {tagKey.name + ' '}
-          <small><Count value={tagKey.uniqueValues} /> unique historical values</small>
+          <small>{tn(
+            '%2$d unique historical value',
+            '%2$d unique historical values',
+            tagKey.uniqueValues,
+            <Count value={tagKey.uniqueValues} />
+          )}</small>
         </h3>
         <div className="alert alert-info alert-block">
-          Data is based on events seen in the last 7 days.
+          {t('Data is based on events seen in the last 7 days.')}
         </div>
         <table className="table table-striped">
           <thead>
             <tr>
               <th style={{width: 30}}>%</th>
-              <th>Value</th>
-              <th style={{width: 200}}>Last Seen</th>
+              <th>{t('Value')}</th>
+              <th style={{width: 200}}>{t('Last Seen')}</th>
             </tr>
           </thead>
           <tbody>

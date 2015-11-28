@@ -6,6 +6,7 @@ import api from '../../api';
 import OrganizationState from '../../mixins/organizationState';
 
 import {defined} from '../../utils';
+import {t} from '../../locale';
 
 const OrganizationStatOverview = React.createClass({
   propTypes: {
@@ -82,13 +83,13 @@ const OrganizationStatOverview = React.createClass({
 
     return (
       <div className={this.props.className}>
-        <h6 className="nav-header">Events Per Minute</h6>
+        <h6 className="nav-header">{t('Events Per Minute')}</h6>
         <p className="count">{this.state.epm}</p>
-        <h6 className="nav-header">Rejected in last 24h</h6>
+        <h6 className="nav-header">{t('Rejected in last 24h')}</h6>
         <p className={classNames(rejectedClasses)}>{this.state.totalRejected}</p>
         {access.has('org:read') &&
           <Link to={`/organizations/${this.props.orgId}/stats/`} className="stats-link">
-            View all stats
+            {t('View all stats')}
           </Link>
         }
       </div>

@@ -2,6 +2,7 @@ import React from 'react';
 
 import AlertActions from '../actions/alertActions';
 import api from '../api';
+import {t} from '../locale';
 
 const ERR_JOIN = 'There was an error while trying to join the team.';
 
@@ -48,21 +49,21 @@ const MissingProjectMembership = React.createClass({
           <span className="icon icon-exclamation"></span>
           <p>{'You\'re not a member of this project.'}</p>
           {openMembership ?
-            <p>To view this data you must first join the {team.name} team.</p>
+            <p>{t('To view this data you must first join the %s team.', team.name)}</p>
           :
-            <p>To view this data you must first request access to the {team.name} team.</p>
+            <p>{t('To view this data you must first request access to the %s team.', team.name)}</p>
           }
           <p>
             {this.state.loading ?
               <a className="btn btn-default btn-loading btn-disabled">...</a>
             : (team.isPending ?
-              <a className="btn btn-default btn-disabled">Request Pending</a>
+              <a className="btn btn-default btn-disabled">{t('Request Pending')}</a>
             : (openMembership ?
               <a className="btn btn-default"
-                 onClick={this.joinTeam}>Join Team</a>
+                 onClick={this.joinTeam}>{t('Join Team')}</a>
             :
               <a className="btn btn-default"
-                 onClick={this.joinTeam}>Request Access</a>
+                 onClick={this.joinTeam}>{t('Request Access')}</a>
             ))}
           </p>
         </div>

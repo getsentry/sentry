@@ -9,6 +9,7 @@ import LoadingIndicator from '../components/loadingIndicator';
 import ProjectState from '../mixins/projectState';
 import StreamGroup from '../components/stream/group';
 import utils from '../utils';
+import {t} from '../locale';
 
 const GroupList = React.createClass({
   propTypes: {
@@ -118,7 +119,7 @@ const GroupList = React.createClass({
       return (
         <div className="box empty-stream">
           <span className="icon icon-exclamation"></span>
-          <p>There don't seem to be any events fitting the query.</p>
+          <p>{t('There don\'t seem to be any events fitting the query.')}</p>
         </div>
       );
 

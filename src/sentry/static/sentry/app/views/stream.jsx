@@ -20,6 +20,7 @@ import StreamFilters from './stream/filters';
 import StreamSidebar from './stream/sidebar';
 import utils from '../utils';
 import parseLinkHeader from '../utils/parseLinkHeader';
+import {t} from '../locale';
 
 const Stream = React.createClass({
   propTypes: {
@@ -365,7 +366,7 @@ const Stream = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation"></span>
-        <p>Sorry, no events match your filters.</p>
+        <p>{t('Sorry, no events match your filters.')}</p>
       </div>
     );
   },

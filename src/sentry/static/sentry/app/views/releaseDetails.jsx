@@ -8,6 +8,7 @@ import LoadingIndicator from '../components/loadingIndicator';
 import ProjectState from '../mixins/projectState';
 import TimeSince from '../components/timeSince';
 import Version from '../components/version';
+import {t} from '../locale';
 
 const ReleaseDetails = React.createClass({
   propTypes: {
@@ -97,20 +98,20 @@ const ReleaseDetails = React.createClass({
           <div className="release-details">
             <div className="row">
               <div className="col-sm-6 col-xs-12">
-                <h3>Release <strong><Version orgId={orgId} projectId={projectId} version={release.version} anchor={false} /></strong></h3>
+                <h3>{t('Release')} <strong><Version orgId={orgId} projectId={projectId} version={release.version} anchor={false} /></strong></h3>
                 <div className="release-meta">
                   <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
                 </div>
               </div>
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
-                  <h6 className="nav-header">New Issues</h6>
+                  <h6 className="nav-header">{t('New Issues')}</h6>
                   <span className="stream-count"><Count value={release.newGroups} /></span>
                 </div>
               </div>
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
-                  <h6 className="nav-header">First Event</h6>
+                  <h6 className="nav-header">{t('First Event')}</h6>
                   {release.firstEvent ?
                     <span className="stream-count"><TimeSince date={release.firstEvent} /></span>
                   :
@@ -120,7 +121,7 @@ const ReleaseDetails = React.createClass({
               </div>
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
-                  <h6 className="nav-header">Last Event</h6>
+                  <h6 className="nav-header">{t('Last Event')}</h6>
                   {release.lastEvent ?
                     <span className="stream-count"><TimeSince date={release.lastEvent} /></span>
                   :
@@ -134,9 +135,9 @@ const ReleaseDetails = React.createClass({
                 // react-router isActive will return true for any route that is part of the active route
                 // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
                 return to === this.context.location.pathname;
-              }}>New Issues</ListLink>
-              <ListLink to={`/${orgId}/${projectId}/releases/${release.version}/all-events/`}>All Issues</ListLink>
-              <ListLink to={`/${orgId}/${projectId}/releases/${release.version}/artifacts/`} className="pull-right">Artifacts</ListLink>
+              }}>{t('New Issues')}</ListLink>
+              <ListLink to={`/${orgId}/${projectId}/releases/${release.version}/all-events/`}>{t('All Issues')}</ListLink>
+              <ListLink to={`/${orgId}/${projectId}/releases/${release.version}/artifacts/`} className="pull-right">{t('Artifacts')}</ListLink>
             </ul>
           </div>
           {React.cloneElement(this.props.children, {

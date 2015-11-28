@@ -8,6 +8,7 @@ import OrganizationHomeContainer from '../../components/organizations/homeContai
 import OrganizationState from '../../mixins/organizationState';
 
 import ProjectTable from './projectTable';
+import {t} from '../../locale';
 
 const OrganizationStats = React.createClass({
   mixins: [
@@ -233,7 +234,7 @@ const OrganizationStats = React.createClass({
     return [
       {
         data: stats.accepted,
-        label: 'Accepted',
+        label: t('Accepted'),
         color: 'rgba(86, 175, 232, 1)',
         shadowSize: 0,
         stack: true,
@@ -247,7 +248,7 @@ const OrganizationStats = React.createClass({
         data: stats.rejected,
         color: 'rgba(226, 76, 83, 1)',
         shadowSize: 0,
-        label: 'Dropped (Rate Limit)',
+        label: t('Dropped (Rate Limit)'),
         stack: true,
         lines: {
           lineWidth: 2,
@@ -259,7 +260,7 @@ const OrganizationStats = React.createClass({
         data: stats.blacklisted,
         color: 'rgba(247, 131, 0, 1)',
         shadowSize: 0,
-        label: 'Dropped (Blacklist)',
+        label: t('Dropped (Blacklist)'),
         stack: true,
         lines: {
           lineWidth: 2,
@@ -273,19 +274,19 @@ const OrganizationStats = React.createClass({
   render() {
     return (
       <OrganizationHomeContainer>
-        <h3>Stats</h3>
+        <h3>{t('Stats')}</h3>
         <div className="row">
           <div className="col-md-9">
-            <p>The chart below reflects events the system has received
+            <p>{t(`The chart below reflects events the system has received
             across your entire organization. Events are broken down into
             three categories: Accepted, Rate Limited, and Blacklisted. Rate
             Limited events are entries that the system threw away due to quotas
             being hit, and Blacklisted events are events that were blocked
-            due to your Blacklisted IPs setting.</p>
+            due to your Blacklisted IPs setting.`)}</p>
           </div>
           {!this.state.statsLoading &&
             <div className="col-md-3 stats-column">
-              <h6 className="nav-header">Events per minute</h6>
+              <h6 className="nav-header">{t('Events per minute')}</h6>
               <p className="count">{this.state.orgTotal.avgRate}</p>
             </div>
           }
@@ -306,7 +307,7 @@ const OrganizationStats = React.createClass({
 
         <div className="box">
           <div className="box-header">
-            <h3>Events by Project</h3>
+            <h3>{t('Events by Project')}</h3>
           </div>
           <div className="box-content">
             {this.state.statsLoading || this.state.projectsLoading ?

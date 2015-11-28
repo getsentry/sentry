@@ -5,6 +5,7 @@ import {defined, objectIsEmpty, isUrl} from '../../../utils';
 
 import TooltipMixin from '../../../mixins/tooltip';
 import FrameVariables from './frameVariables';
+import {t} from '../../../locale';
 
 
 const Frame = React.createClass({
@@ -45,17 +46,23 @@ const Frame = React.createClass({
       ? `<a href="${_.escape(data.origAbsPath)}">${_.escape(data.origAbsPath)}</a>`
       : _.escape(data.origAbsPath);
 
+    let originalFilenameText = t('Original Filename');
+    let lineNumberText = t('Line Number');
+    let columnNumberText = t('Column Number');
+    let functionText = t('Function');
+    let sourceMapText = t('Source Map');
+
     let out = `
     <div>
-      <strong>Original Filename</strong><br/>
+      <strong>${originalFilenameText}</strong><br/>
       ${escapedAbsPath}<br/>
-      <strong>Line Number</strong><br/>
+      <strong>${lineNumberText}</strong><br/>
       ${_.escape(data.origLineNo)}<br/>
-      <strong>Column Number</strong><br/>
+      <strong>${columnNumberText}</strong><br/>
       ${_.escape(data.origColNo)}<br/>
-      <strong>Function</strong><br/>
+      <strong>${functionText}</strong><br/>
       ${_.escape(data.origFunction)}<br/>
-      <strong>Source Map</strong><br/>`;
+      <strong>${sourceMapText}</strong><br/>`;
 
     // mapUrl not always present; e.g. uploaded source maps
     out += data.mapUrl
@@ -71,13 +78,16 @@ const Frame = React.createClass({
     let data = this.props.data;
     let title = [];
 
+    // TODO(mitsuhiko): this is terrible for translators but i'm too
+    // lazy to change this up right now.  This should be a format string
+
     if (defined(data.filename || data.module)) {
       title.push(<code key="filename">{data.filename || data.module}</code>);
       if (isUrl(data.absPath)) {
         title.push(<a href={data.absPath} className="icon-open" key="share" target="_blank" />);
       }
       if (defined(data.function)) {
-        title.push(<span className="in-at" key="in"> in </span>);
+        title.push(<span className="in-at" key="in"> {t('in')} </span>);
       }
     }
 
@@ -88,7 +98,7 @@ const Frame = React.createClass({
     if (defined(data.lineNo)) {
       // TODO(dcramer): we need to implement source mappings
       // title.push(<span className="pull-right blame"><a><span className="icon-mark-github"></span> View Code</a></span>);
-      title.push(<span className="in-at" key="at"> at line </span>);
+      title.push(<span className="in-at" key="at"> {t('at line')} </span>);
       if (defined(data.colNo)) {
         title.push(<code key="line">{data.lineNo}:{data.colNo}</code>);
       } else {
@@ -105,7 +115,7 @@ const Frame = React.createClass({
     }
 
     if (data.inApp) {
-      title.push(<span key="in-app"><span className="divider"/>application</span>);
+      title.push(<span key="in-app"><span className="divider"/>{t('application')}</span>);
     }
     return title;
   },
@@ -181,7 +191,7 @@ const Frame = React.createClass({
         <p>{this.renderTitle()}
           {context ?
             <a
-              title="Toggle context"
+              title={t('Toggle context')}
               onClick={this.toggleContext}
               className="btn btn-sm btn-default btn-toggle">
               <span className={this.state.isExpanded ? 'icon-minus' : 'icon-plus'}/>

@@ -3,6 +3,7 @@ import React from 'react';
 import api from '../../api';
 import DropdownLink from '../dropdownLink';
 import LoadingIndicator from '../loadingIndicator';
+import {t} from '../../locale';
 
 var Broadcasts = React.createClass({
   getInitialState() {
@@ -110,7 +111,7 @@ var Broadcasts = React.createClass({
         {loading ?
           <li><LoadingIndicator /></li>
         : (broadcasts.length === 0 ?
-          <li className="empty">No recent broadcasts from the Sentry team.</li>
+          <li className="empty">{t('No recent broadcasts from the Sentry team.')}</li>
         :
           broadcasts.map((item) => {
             return (
@@ -120,7 +121,7 @@ var Broadcasts = React.createClass({
                 }
                 {item.message}
                 {item.link &&
-                  <a href={item.link} className="read-more">Read more</a>
+                  <a href={item.link} className="read-more">{t('Read more')}</a>
                 }
               </li>
             );

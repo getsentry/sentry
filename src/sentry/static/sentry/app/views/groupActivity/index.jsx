@@ -10,63 +10,88 @@ import Version from '../../components/version';
 
 import NoteContainer from './noteContainer';
 import NoteInput from './noteInput';
+import {t} from '../../locale';
 
-let formatActivity = function(item, params) {
-  let data = item.data;
-  let {orgId, projectId} = params;
-
-  switch(item.type) {
-    case 'note':
-      return 'left a comment';
-    case 'set_resolved':
-      return 'marked this issue as resolved';
-    case 'set_resolved_in_release':
-      return (data.version ?
-        <span>marked this issue as resolved in <Version version={data.version} orgId={orgId} projectId={projectId} /></span>
-      :
-        'marked this issue as resolved in the upcoming release'
-      );
-    case 'set_unresolved':
-      return 'marked this issue as unresolved';
-    case 'set_muted':
-      if (data.snoozeDuration) {
-        return <span>snoozed this issue for <Duration seconds={data.snoozeDuration * 60} /></span>;
-      }
-      return 'muted this issue';
-    case 'set_public':
-      return 'made this issue public';
-    case 'set_private':
-      return 'made this issue private';
-    case 'set_regression':
-      return (data.version ?
-        <span>marked this issue as a regression in <Version version={data.version} orgId={orgId} projectId={projectId} /></span>
-      :
-        'marked this issue as a regression'
-      );
-    case 'create_issue':
-      return <span>created an issue on {data.provider} titled <a href={data.location}>{data.title}</a></span>;
-    case 'first_seen':
-      return 'first saw this issue';
-    case 'assigned':
-      let assignee;
-      if (data.assignee === item.user.id) {
-        assignee = 'themselves';
-      } else {
-        assignee = MemberListStore.getById(data.assignee);
-        assignee = (assignee ? assignee.email : 'an unknown user');
-      }
-      return `assigned this event to ${assignee}`;
-    case 'unassigned':
-      return 'unassigned this issue';
-    default:
-      return ''; // should never hit (?)
-  }
-};
 
 const GroupActivity = React.createClass({
   // TODO(dcramer): only re-render on group/activity change
 
   mixins: [GroupState],
+
+  formatActivity(author, item, params) {
+    let data = item.data;
+    let {orgId, projectId} = params;
+
+    switch(item.type) {
+      case 'note':
+        return t('%s left a comment', author);
+      case 'set_resolved':
+        return t('%s marked this issue as resolved', author);
+      case 'set_resolved_in_release':
+        return (data.version ?
+          t('%(author)s marked this issue as resolved in %(version)s', {
+            author: author,
+            version: <Version version={data.version} orgId={orgId} projectId={projectId} />
+          })
+        :
+          t('%s marked this issue as resolved in the upcoming release')
+        );
+      case 'set_unresolved':
+        return t('%s marked this issue as unresolved');
+      case 'set_muted':
+        if (data.snoozeDuration) {
+          return t('%(author)s snoozed this issue for %(duration)s', {
+            author: author,
+            duration: <Duration seconds={data.snoozeDuration * 60} />
+          });
+        }
+        return t('%s muted this issue', author);
+      case 'set_public':
+        return t('%s made this issue public', author);
+      case 'set_private':
+        return t('%s made this issue private', author);
+      case 'set_regression':
+        return (data.version ?
+          t('%(author)s marked this issue as a regression in %(version)s', {
+            author: author,
+            version: <Version version={data.version} orgId={orgId} projectId={projectId} />
+          })
+        :
+          t('%s marked this issue as a regression', author)
+        );
+      case 'create_issue':
+        return t('created an issue on %(provider)s titled %(title)s', {
+          provider: data.provider,
+          title: <a href={data.location}>{data.title}</a>
+        });
+      case 'first_seen':
+        return t('%s first saw this issue', author);
+      case 'assigned':
+        let assignee;
+        if (data.assignee === item.user.id) {
+          assignee = 'themselves';
+          return t('%s assigned this event to themselves', author);
+        } else {
+          assignee = MemberListStore.getById(data.assignee);
+          if (assignee.email) {
+            return t('%(author)s assigned this event to %(assignee)s', {
+              author: author,
+              assignee: assignee.email
+            });
+          } else {
+            return t('%s assigned this event to an unknown user', author);
+          }
+        }
+        return t('%(author)s assigned this event to %(assignee)s', {
+          author: author,
+          assignee: assignee.email
+        });
+      case 'unassigned':
+        return t('%s unassigned this issue', author);
+      default:
+        return ''; // should never hit (?)
+    }
+  },
 
   render() {
     let group = this.props.group;
@@ -82,8 +107,6 @@ const GroupActivity = React.createClass({
         avatar: avatar,
       };
 
-      let label = formatActivity(item, this.props.params);
-
       if (item.type === 'note') {
         return (
           <NoteContainer group={group} item={item} key={itemIdx} author={author} />
@@ -93,7 +116,14 @@ const GroupActivity = React.createClass({
           <li className="activity-item" key={itemIdx}>
             <TimeSince date={item.dateCreated} />
             <div className="activity-item-content">
-              {author.avatar} <span className="activity-author">{author.name}</span> {label}
+              {this.formatActivity(
+                <span>
+                  author.avatar,
+                  <span className="activity-author">author.name</span>
+                </span>,
+                item,
+                this.props.params
+              )}
             </div>
           </li>
         );

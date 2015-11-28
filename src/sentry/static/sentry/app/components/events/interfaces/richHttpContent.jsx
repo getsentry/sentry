@@ -6,6 +6,7 @@ import ContextData from '../../contextData';
 
 import {objectIsEmpty} from '../../../utils';
 import queryString from 'query-string';
+import {t} from '../../../locale';
 
 const RichHttpContent = React.createClass({
 
@@ -65,34 +66,34 @@ const RichHttpContent = React.createClass({
     return (
       <div>
         {data.query &&
-          <ClippedBox title="Query String">
+          <ClippedBox title={t('Query String')}>
             {this.getQueryStringOrRaw(data.query)}
           </ClippedBox>
         }
         {data.fragment &&
-          <ClippedBox title="Fragment">
+          <ClippedBox title={t('Fragment')}>
             <pre>{data.fragment}</pre>
           </ClippedBox>
         }
 
         {data.data &&
-          <ClippedBox title="Body">
+          <ClippedBox title={t('Body')}>
             {this.getBodySection(data)}
           </ClippedBox>
         }
 
         {data.cookies && !objectIsEmpty(data.cookies) &&
-          <ClippedBox title="Cookies" defaultCollapsed>
+          <ClippedBox title={t('Cookies')} defaultCollapsed>
             <KeyValueList data={data.cookies} />
           </ClippedBox>
         }
         {!objectIsEmpty(data.headers) &&
-          <ClippedBox title="Headers">
+          <ClippedBox title={t('Headers')}>
             <KeyValueList data={data.headers} />
           </ClippedBox>
         }
         {!objectIsEmpty(data.env) &&
-          <ClippedBox title="Environment" defaultCollapsed>
+          <ClippedBox title={t('Environment')} defaultCollapsed>
             <KeyValueList data={this.objectToSortedTupleArray(data.env)}/>
           </ClippedBox>
         }

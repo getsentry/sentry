@@ -2,6 +2,7 @@ import React from 'react';
 import DocumentTitle from 'react-document-title';
 import Footer from '../components/footer';
 import Header from '../components/header';
+import {t} from '../locale';
 
 const RouteNotFound = React.createClass({
   getTitle() {
@@ -18,9 +19,11 @@ const RouteNotFound = React.createClass({
             <div className="content">
               <section className="body">
                 <div className="page-header">
-                  <h2>Page Not Found</h2>
+                  <h2>{t('Page Not Found')}</h2>
                 </div>
-                <p className="alert-message notice">The page you are looking for was not found.</p>
+                <p className="alert-message notice">
+                  {t('The page you are looking for was not found.')}
+                </p>
               </section>
             </div>
           </div>

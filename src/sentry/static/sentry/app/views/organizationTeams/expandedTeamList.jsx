@@ -7,6 +7,7 @@ import BarChart from '../../components/barChart';
 import ConfigStore from '../../stores/configStore';
 import PropTypes from '../../proptypes';
 import {sortArray} from '../../utils';
+import {t, tct} from '../../locale';
 
 const ExpandedTeamList = React.createClass({
   propTypes: {
@@ -36,10 +37,10 @@ const ExpandedTeamList = React.createClass({
           <div className="box-header">
             <div className="pull-right actions hidden-xs">
               <a className="leave-team" onClick={this.leaveTeam.bind(this, team)}>
-                Leave Team
+                {t('Leave Team')}
               </a>
               <a className="team-settings" href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
-                Team Settings
+                {t('Team Settings')}
               </a>
             </div>
             <h3>{team.name}</h3>
@@ -59,10 +60,10 @@ const ExpandedTeamList = React.createClass({
           <div className="box-header">
             <div className="pull-right actions hidden-xs">
               <a className="leave-team" onClick={this.leaveTeam.bind(this, team)}>
-                Leave Team
+                {t('Leave Team')}
               </a>
               <a className="team-settings" href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
-                Team Settings
+                {t('Team Settings')}
               </a>
             </div>
             <h3>{team.name}</h3>
@@ -73,8 +74,9 @@ const ExpandedTeamList = React.createClass({
                 <tr>
                   <td>
                     <p className="project-list-empty">
-                      {'There are no projects in this team. Get started by '}
-                      <a href={this.urlPrefix() + '/projects/new/?team=' + team.slug}>creating your first project</a>.
+                      {tct('There are no projects in this team. Get started by [link:creating your first project].', {
+                        link: <a href={this.urlPrefix() + '/projects/new/?team=' + team.slug} />
+                      })}
                     </p>
                   </td>
                 </tr>
@@ -121,19 +123,19 @@ const ExpandedTeamList = React.createClass({
     if (this.props.hasTeams) {
       return (
         <p>
-          {'You are not a member of any teams. '}
-          <a onClick={this.showAllTeams}>Join an existing team</a>
-          {' or '}
-          <a href={this.urlPrefix() + '/teams/new/'}>create a new one</a>
-          {'.'}
+          {tct('You are not a member of any teams. [joinLink:Join an existing team] or [createLink:create a new one].', {
+            joinLink: <a onClick={this.showAllTeams} />,
+            createLink: <a href={this.urlPrefix() + '/teams/new/'} />
+          })}
         </p>
       );
 
     }
     return (
       <p>
-        {'You dont have any teams for this organization yet. Get started by '}
-        <a href={this.urlPrefix() + '/teams/new/'}>creating your first team</a>.
+        {tct('You dont have any teams for this organization yet. Get started by [link:creating your first team].', {
+          link: <a href={this.urlPrefix() + '/teams/new/'} />
+        })}
       </p>
     );
   },
