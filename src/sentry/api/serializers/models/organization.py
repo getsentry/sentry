@@ -21,6 +21,7 @@ class OrganizationSerializer(Serializer):
 class DetailedOrganizationSerializer(OrganizationSerializer):
     def serialize(self, obj, attrs, user):
         from sentry import features
+        from sentry.app import env
         from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 
         team_list = list(Team.objects.filter(
@@ -39,7 +40,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             obj, attrs, user)
         context['teams'] = serialize(
             team_list, user, TeamWithProjectsSerializer())
-        context['access'] = access.from_user(user, obj).scopes
+        if env.request:
+            context['access'] = access.from_request(env.request, obj).scopes
+        else:
+            context['access'] = access.from_user(user, obj).scopes
         context['features'] = feature_list
         context['pendingAccessRequests'] = OrganizationAccessRequest.objects.filter(
             team__organization=obj,
