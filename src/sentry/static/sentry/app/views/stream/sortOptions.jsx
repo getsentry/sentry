@@ -45,7 +45,7 @@ const SortOptions = React.createClass({
   render() {
     let dropdownTitle = (
       <span>
-        <span>Sort by:</span>
+        <span>{t('Sort by')}:</span>
         &nbsp; {this.getSortLabel(this.state.sortKey)}
       </span>
     );
