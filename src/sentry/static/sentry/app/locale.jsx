@@ -19,8 +19,8 @@ if (sessionStorage && sessionStorage.getItem('localeDebug') == '1') {
 export function setLocaleDebug(value) {
   sessionStorage.setItem('localeDebug', value ? '1' : '0');
   /*eslint no-console:0*/
-  console.log('Locale debug is', value ? 'on' : 'off',
-              'Reload page to apply changes!');
+  console.log('Locale debug is: ', value ? 'on' : 'off',
+              '. Reload page to apply changes!');
 }
 
 const i18n = new Jed({
