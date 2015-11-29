@@ -61,12 +61,14 @@ const ExceptionInterface = React.createClass({
           <a className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'raw')}>{t('Raw')}</a>
         </div>
         <h3>
-          {'Exception '}
-          {newestFirst ?
-            <small>({t('most recent call first')})</small>
-          :
-            <small>({t('most recent call last')})</small>
-          }
+          {t('Exception')}
+          <small style={{marginLeft: 5}}>
+            {newestFirst ?
+              t('most recent call first')
+            :
+              t('most recent call last')
+            }
+          </small>
         </h3>
       </div>
     );

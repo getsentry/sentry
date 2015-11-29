@@ -3,6 +3,7 @@ import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 import RichHttpContent from './richHttpContent';
 import {getCurlCommand} from './utils';
+import {t} from '../../../locale';
 
 import RequestActions from './requestActions';
 
@@ -71,7 +72,7 @@ const RequestInterface = React.createClass({
         </div>,
         <div className="btn-group">
           <a className={(view === 'rich' ? 'active' : '') + ' btn btn-default btn-sm'}
-             onClick={this.toggleView.bind(this, 'rich')}>Rich</a>
+             onClick={this.toggleView.bind(this, 'rich')}>{t('Rich')}</a>
           <a className={(view === 'curl' ? 'active' : '') + ' btn btn-default btn-sm'}
              onClick={this.toggleView.bind(this, 'curl')}><code>curl</code></a>
         </div>

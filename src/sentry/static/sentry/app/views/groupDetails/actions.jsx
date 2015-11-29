@@ -106,14 +106,14 @@ const GroupActions = React.createClass({
               </a>
             :
               <a className={resolveClassName}
-                 title="Unresolve"
+                 title={t('Unresolve')}
                  onClick={this.onUpdate.bind(this, {status: 'unresolved'})}>
                 <span className="icon-checkmark" />
               </a>
             )
           :
             [<a className={resolveClassName}
-               title="Resolve"
+               title={t('Resolve')}
                onClick={this.onUpdate.bind(this, {status: 'resolved'})}>
               Resolve
             </a>,
@@ -141,7 +141,7 @@ const GroupActions = React.createClass({
         <div className="btn-group">
           {group.status === 'muted' ?
             <a className={snoozeClassName}
-               title="Remove Snooze"
+               title={t('Remove Snooze')}
                onClick={this.onUpdate.bind(this, {status: 'unresolved'})}>
              {t('Snooze')}
             </a>
@@ -149,7 +149,7 @@ const GroupActions = React.createClass({
             <DropdownLink
               caret={false}
               className={snoozeClassName}
-              title="Snooze">
+              title={t('Snooze')}>
               <MenuItem noAnchor={true}>
                 <a onClick={this.onSnooze.bind(this, Snooze['30MINUTES'])}>{t('for 30 minutes')}</a>
               </MenuItem>
