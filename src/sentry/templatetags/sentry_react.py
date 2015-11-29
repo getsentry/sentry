@@ -37,7 +37,10 @@ def get_react_config(context):
     if 'request' in context:
         user = context['request'].user
         messages = get_messages(context['request'])
-        is_superuser = context['request'].is_superuser()
+        try:
+            is_superuser = context['request'].is_superuser()
+        except AttributeError:
+            is_superuser = False
     else:
         user = None
         messages = []
