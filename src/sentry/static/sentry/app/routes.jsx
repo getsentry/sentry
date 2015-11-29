@@ -48,7 +48,7 @@ let routes = (
       <IndexRoute component={AdminOverview} />
     </Route>
 
-    <Redirect from="/share/group/:shareId/" to="/share/issue/:groupId/" />
+    <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
     <Route path="/share/issue/:shareId/" component={SharedGroupDetails} />
 
     <Route path="/:orgId/" component={OrganizationDetails}>
