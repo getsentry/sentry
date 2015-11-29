@@ -34,10 +34,10 @@ const GroupActivity = React.createClass({
             version: <Version version={data.version} orgId={orgId} projectId={projectId} />
           })
         :
-          t('%s marked this issue as resolved in the upcoming release')
+          t('%s marked this issue as resolved in the upcoming release', author)
         );
       case 'set_unresolved':
-        return t('%s marked this issue as unresolved');
+        return t('%s marked this issue as unresolved', author);
       case 'set_muted':
         if (data.snoozeDuration) {
           return t('%(author)s snoozed this issue for %(duration)s', {
