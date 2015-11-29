@@ -1,10 +1,10 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# Copyright (C) 2015 THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
 # Chun-Hao,Liu <clive819@gmail.com>, 2014
-# Dca Hsu <dca35311@gmail.com>, 2013-2015
+# Dca Hsu <dcahsu@gmail.com>, 2013-2015
 # Sammy Lin <sammylintw@gmail.com>, 2015
 # Shuning Hong <>, 2012
 # Wang, Kai Ching <imdedr@gmail.com>, 2015
@@ -13,457 +13,430 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-28 05:31+0000\n"
-"PO-Revision-Date: 2015-07-28 05:31+0000\n"
-"Last-Translator: David Cramer <dcramer@gmail.com>\n"
-"Language-Team: Chinese (Taiwan) (http://www.transifex.com/projects/p/sentry/language/zh_TW/)\n"
+"POT-Creation-Date: 2015-11-29 23:19+0000\n"
+"PO-Revision-Date: 2015-11-29 23:19+0000\n"
+"Last-Translator: mitsuhiko <armin.ronacher@active-4.com>\n"
+"Language-Team: Chinese (Taiwan) (http://www.transifex.com/getsentry/sentry/language/zh_TW/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.1.1\n"
 "Language: zh_TW\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: admin.py:131
+#: admin.py:170
 msgid "Personal info"
 msgstr "個人資訊"
 
-#: admin.py:132
+#: admin.py:171
 msgid "Permissions"
 msgstr "許可"
 
-#: admin.py:133
+#: admin.py:172
 msgid "Important dates"
 msgstr "重要日期"
 
-#: admin.py:221
+#: admin.py:260
 msgid "Password changed successfully."
-msgstr "密碼更改成功"
+msgstr "密碼更改成功。"
 
-#: admin.py:231
+#: admin.py:270
 #, python-format
 msgid "Change password: %s"
 msgstr "更改密碼: %s"
 
-#: constants.py:36
+#: constants.py:37 static/sentry/app/views/stream/sortOptions.jsx:36
 msgid "Priority"
 msgstr "優先級"
 
-#: constants.py:37 constants.py:46
-#: templates/sentry/explore/tag_value_list.html:41
-#: templates/sentry/explore/code/list_tag.html:42
-#: templates/sentry/groups/group_list.html:119
+#: constants.py:38 constants.py:47
 #: templates/sentry/plugins/bases/tag/index.html:24
 #: templates/sentry/users/list.html:35
+#: static/sentry/app/views/stream/sortOptions.jsx:41
 msgid "Last Seen"
 msgstr "最後出現時間"
 
-#: constants.py:38 constants.py:47 templates/sentry/groups/group_list.html:122
+#: constants.py:39 constants.py:48
 #: templates/sentry/plugins/bases/tag/index.html:23
+#: static/sentry/app/views/stream/sortOptions.jsx:34
 msgid "First Seen"
 msgstr "首次出現時間"
 
-#: constants.py:39
+#: constants.py:40 static/sentry/app/views/stream/sortOptions.jsx:38
 msgid "Frequency"
 msgstr "頻率"
 
-#: constants.py:40
+#: constants.py:41
 msgid "Total Time Spent"
 msgstr "總花費時間"
 
-#: constants.py:41
+#: constants.py:42
 msgid "Average Time Spent"
 msgstr "平均花費時間"
 
-#: constants.py:45
+#: constants.py:46
 msgid "Score"
 msgstr "得分"
 
-#: constants.py:68 models/organizationmember.py:78
-#: web/forms/edit_organization_member.py:15
-msgid "Owner"
-msgstr "所有者"
-
-#: constants.py:69 models/organizationmember.py:77
-#: templates/sentry/layout.html:162 templates/sentry/bases/admin.html:6
-#: web/forms/__init__.py:49 web/forms/edit_organization_member.py:14
-msgid "Admin"
-msgstr "管理"
-
-#: constants.py:70 templates/sentry/partial/interfaces/user.html:6
-#: templates/sentry/users/list.html:34
-msgid "User"
-msgstr "用户"
-
-#: constants.py:71
-msgid "System Agent"
-msgstr "系統代理"
-
-#: constants.py:239
+#: constants.py:186
 #, python-brace-format
 msgid "The {name} integration has been enabled."
-msgstr ""
+msgstr "{name} 整合已經啟用"
 
-#: constants.py:241
+#: constants.py:188
 #, python-brace-format
 msgid "The {name} integration has been disabled."
-msgstr ""
+msgstr "{name} 整合已經停用"
 
-#: constants.py:243
+#: constants.py:190
 #, python-brace-format
 msgid "Configuration for the {name} integration has been saved."
-msgstr ""
+msgstr "對 {name} 的整合設定已經儲存。"
 
-#: auth/helper.py:25
+#: auth/helper.py:27
 msgid "You have successully linked your account to your SSO provider."
 msgstr "您已成功連結 單一登入(SSO) 到您的帳號"
 
-#: auth/helper.py:27
+#: auth/helper.py:29
 msgid ""
 "SSO has been configured for your organization and any existing members have "
 "been sent an email to link their accounts."
-msgstr ""
+msgstr "您的組織已經設定好SSO，我們已經向所有成員發送郵件來連結他們的帳戶。"
 
-#: auth/helper.py:29
+#: auth/helper.py:31
 msgid "There was an error encountered during authentication."
 msgstr "驗證過程出現錯誤。"
 
-#: auth/helper.py:31
+#: auth/helper.py:33
 msgid "You must be authenticated to link accounts."
 msgstr ""
 
-#: conf/server.py:94
-msgid "Afrikaans"
-msgstr ""
-
-#: conf/server.py:95
-msgid "Arabic"
-msgstr ""
-
-#: conf/server.py:96
-msgid "Azerbaijani"
-msgstr ""
-
 #: conf/server.py:97
-msgid "Bulgarian"
-msgstr ""
+msgid "Afrikaans"
+msgstr "Afrikaans"
 
 #: conf/server.py:98
-msgid "Belarusian"
-msgstr ""
+msgid "Arabic"
+msgstr "Arabic"
 
 #: conf/server.py:99
-msgid "Bengali"
-msgstr ""
+msgid "Azerbaijani"
+msgstr "Azerbaijani"
 
 #: conf/server.py:100
-msgid "Breton"
-msgstr ""
+msgid "Bulgarian"
+msgstr "Bulgarian"
 
 #: conf/server.py:101
-msgid "Bosnian"
-msgstr ""
+msgid "Belarusian"
+msgstr "Belarusian"
 
 #: conf/server.py:102
-msgid "Catalan"
-msgstr ""
+msgid "Bengali"
+msgstr "Bengali"
 
 #: conf/server.py:103
-msgid "Czech"
-msgstr ""
+msgid "Breton"
+msgstr "Breton"
 
 #: conf/server.py:104
-msgid "Welsh"
-msgstr ""
+msgid "Bosnian"
+msgstr "Bosnian"
 
 #: conf/server.py:105
-msgid "Danish"
-msgstr ""
+msgid "Catalan"
+msgstr "Catalan"
 
 #: conf/server.py:106
-msgid "German"
-msgstr ""
+msgid "Czech"
+msgstr "Czech"
 
 #: conf/server.py:107
-msgid "Greek"
-msgstr ""
+msgid "Welsh"
+msgstr "Welsh"
 
 #: conf/server.py:108
-msgid "English"
-msgstr ""
+msgid "Danish"
+msgstr "Danish"
 
 #: conf/server.py:109
-msgid "Esperanto"
-msgstr ""
+msgid "German"
+msgstr "German"
 
 #: conf/server.py:110
-msgid "Spanish"
-msgstr ""
+msgid "Greek"
+msgstr "Greek"
 
 #: conf/server.py:111
-msgid "Estonian"
-msgstr ""
+msgid "English"
+msgstr "English"
 
 #: conf/server.py:112
-msgid "Basque"
-msgstr ""
+msgid "Esperanto"
+msgstr "Esperanto"
 
 #: conf/server.py:113
-msgid "Persian"
-msgstr ""
+msgid "Spanish"
+msgstr "Spanish"
 
 #: conf/server.py:114
-msgid "Finnish"
-msgstr ""
+msgid "Estonian"
+msgstr "Estonian"
 
 #: conf/server.py:115
-msgid "French"
-msgstr ""
+msgid "Basque"
+msgstr "Basque"
 
 #: conf/server.py:116
-msgid "Irish"
-msgstr ""
+msgid "Persian"
+msgstr "Persian"
 
 #: conf/server.py:117
-msgid "Galician"
-msgstr ""
+msgid "Finnish"
+msgstr "Finnish"
 
 #: conf/server.py:118
-msgid "Hebrew"
-msgstr ""
+msgid "French"
+msgstr "French"
 
 #: conf/server.py:119
-msgid "Hindi"
-msgstr ""
+msgid "Irish"
+msgstr "Irish"
 
 #: conf/server.py:120
-msgid "Croatian"
-msgstr ""
+msgid "Galician"
+msgstr "Galician"
 
 #: conf/server.py:121
-msgid "Hungarian"
-msgstr ""
+msgid "Hebrew"
+msgstr "Hebrew"
 
 #: conf/server.py:122
-msgid "Interlingua"
-msgstr ""
+msgid "Hindi"
+msgstr "Hindi"
 
 #: conf/server.py:123
-msgid "Indonesian"
-msgstr ""
+msgid "Croatian"
+msgstr "Croatian"
 
 #: conf/server.py:124
-msgid "Icelandic"
-msgstr ""
+msgid "Hungarian"
+msgstr "Hungarian"
 
 #: conf/server.py:125
-msgid "Italian"
-msgstr ""
+msgid "Interlingua"
+msgstr "Interlingua"
 
 #: conf/server.py:126
-msgid "Japanese"
-msgstr ""
+msgid "Indonesian"
+msgstr "Indonesian"
 
 #: conf/server.py:127
-msgid "Georgian"
-msgstr ""
+msgid "Icelandic"
+msgstr "Icelandic"
 
 #: conf/server.py:128
-msgid "Kazakh"
-msgstr ""
+msgid "Italian"
+msgstr "Italian"
 
 #: conf/server.py:129
-msgid "Khmer"
-msgstr ""
+msgid "Japanese"
+msgstr "Japanese"
 
 #: conf/server.py:130
-msgid "Kannada"
-msgstr ""
+msgid "Georgian"
+msgstr "Georgian"
 
 #: conf/server.py:131
-msgid "Korean"
-msgstr ""
+msgid "Kazakh"
+msgstr "Kazakh"
 
 #: conf/server.py:132
-msgid "Luxembourgish"
-msgstr ""
+msgid "Khmer"
+msgstr "Khmer"
 
 #: conf/server.py:133
-msgid "Lithuanian"
-msgstr ""
+msgid "Kannada"
+msgstr "Kannada"
 
 #: conf/server.py:134
-msgid "Latvian"
-msgstr ""
+msgid "Korean"
+msgstr "Korean"
 
 #: conf/server.py:135
-msgid "Macedonian"
-msgstr ""
+msgid "Luxembourgish"
+msgstr "Luxembourgish"
 
 #: conf/server.py:136
-msgid "Malayalam"
-msgstr ""
+msgid "Lithuanian"
+msgstr "Lithuanian"
 
 #: conf/server.py:137
-msgid "Mongolian"
-msgstr ""
+msgid "Latvian"
+msgstr "Latvian"
 
 #: conf/server.py:138
-msgid "Burmese"
-msgstr ""
+msgid "Macedonian"
+msgstr "Macedonian"
 
 #: conf/server.py:139
-msgid "Norwegian Bokmal"
-msgstr ""
+msgid "Malayalam"
+msgstr "Malayalam"
 
 #: conf/server.py:140
-msgid "Nepali"
-msgstr ""
+msgid "Mongolian"
+msgstr "Mongolian"
 
 #: conf/server.py:141
-msgid "Dutch"
-msgstr ""
+msgid "Burmese"
+msgstr "Burmese"
 
 #: conf/server.py:142
-msgid "Norwegian Nynorsk"
-msgstr ""
+msgid "Norwegian Bokmal"
+msgstr "Norwegian Bokmal"
 
 #: conf/server.py:143
-msgid "Ossetic"
-msgstr ""
+msgid "Nepali"
+msgstr "Nepali"
 
 #: conf/server.py:144
-msgid "Punjabi"
-msgstr ""
+msgid "Dutch"
+msgstr "Dutch"
 
 #: conf/server.py:145
-msgid "Polish"
-msgstr ""
+msgid "Norwegian Nynorsk"
+msgstr "Norwegian Nynorsk"
 
 #: conf/server.py:146
-msgid "Portuguese"
-msgstr ""
+msgid "Ossetic"
+msgstr "Ossetic"
 
 #: conf/server.py:147
-msgid "Brazilian Portuguese"
-msgstr ""
+msgid "Punjabi"
+msgstr "Punjabi"
 
 #: conf/server.py:148
-msgid "Romanian"
-msgstr ""
+msgid "Polish"
+msgstr "Polish"
 
 #: conf/server.py:149
-msgid "Russian"
-msgstr ""
+msgid "Portuguese"
+msgstr "Portuguese"
 
 #: conf/server.py:150
-msgid "Slovak"
-msgstr ""
+msgid "Brazilian Portuguese"
+msgstr "Brazilian Portuguese"
 
 #: conf/server.py:151
-msgid "Slovenian"
-msgstr ""
+msgid "Romanian"
+msgstr "Romanian"
 
 #: conf/server.py:152
-msgid "Albanian"
-msgstr ""
+msgid "Russian"
+msgstr "Russian"
 
 #: conf/server.py:153
-msgid "Serbian"
-msgstr ""
+msgid "Slovak"
+msgstr "Slovak"
 
 #: conf/server.py:154
-msgid "Swedish"
-msgstr ""
+msgid "Slovenian"
+msgstr "Slovenian"
 
 #: conf/server.py:155
-msgid "Swahili"
-msgstr ""
+msgid "Albanian"
+msgstr "Albanian"
 
 #: conf/server.py:156
-msgid "Tamil"
-msgstr ""
+msgid "Serbian"
+msgstr "Serbian"
 
 #: conf/server.py:157
-msgid "Telugu"
-msgstr ""
+msgid "Swedish"
+msgstr "Swedish"
 
 #: conf/server.py:158
-msgid "Thai"
-msgstr ""
+msgid "Swahili"
+msgstr "Swahili"
 
 #: conf/server.py:159
-msgid "Turkish"
-msgstr ""
+msgid "Tamil"
+msgstr "Tamil"
 
 #: conf/server.py:160
-msgid "Tatar"
-msgstr ""
+msgid "Telugu"
+msgstr "Telugu"
 
 #: conf/server.py:161
-msgid "Udmurt"
-msgstr ""
+msgid "Thai"
+msgstr "Thai"
 
 #: conf/server.py:162
-msgid "Ukrainian"
-msgstr ""
+msgid "Turkish"
+msgstr "Turkish"
 
 #: conf/server.py:163
-msgid "Urdu"
-msgstr ""
+msgid "Tatar"
+msgstr "Tatar"
 
 #: conf/server.py:164
-msgid "Vietnamese"
-msgstr ""
+msgid "Udmurt"
+msgstr "Udmurt"
 
 #: conf/server.py:165
-msgid "Simplified Chinese"
-msgstr ""
+msgid "Ukrainian"
+msgstr "Ukrainian"
 
 #: conf/server.py:166
+msgid "Urdu"
+msgstr "Urdu"
+
+#: conf/server.py:167
+msgid "Vietnamese"
+msgstr "Vietnamese"
+
+#: conf/server.py:168
+msgid "Simplified Chinese"
+msgstr "Simplified Chinese"
+
+#: conf/server.py:169
 msgid "Traditional Chinese"
-msgstr ""
+msgstr "Traditional Chinese"
 
 #: db/models/fields/bounded.py:54 db/models/fields/bounded.py:68
 msgid "Big Integer"
+msgstr "大整數"
+
+#: debug/panels/base.py:41
+#, python-format
+msgid "%(calls)d call in %(duration).2fms"
+msgid_plural "%(calls)d calls in %(duration).2fms"
+msgstr[0] ""
+
+#: debug/panels/redis.py:79
+msgid "Redis"
 msgstr ""
 
-#: filters/builtins.py:22 models/alert.py:38 models/group.py:106
-msgid "Unresolved"
-msgstr "未解決"
-
-#: filters/builtins.py:23 models/alert.py:39 models/group.py:107
-msgid "Resolved"
-msgstr "已解決"
-
-#: filters/builtins.py:24 models/group.py:108
-msgid "Muted"
-msgstr "已靜音"
-
-#: filters/builtins.py:29 templates/sentry/organization-member-details.html:29
-#: templates/sentry/organization-member-settings.html:38
-msgid "Status"
-msgstr "狀態"
-
-#: interfaces/http.py:236 templates/sentry/partial/interfaces/http.html:10
+#: interfaces/http.py:186
 msgid "Request"
 msgstr "請求"
 
-#: interfaces/stacktrace.py:589
+#: interfaces/stacktrace.py:621
 msgid "Stacktrace (most recent call first):"
 msgstr "堆疊追蹤(最近的一次):"
 
-#: interfaces/stacktrace.py:591
+#: interfaces/stacktrace.py:623
 msgid "Stacktrace (most recent call last):"
 msgstr "堆疊追蹤(最近的一次):"
 
-#: models/apikey.py:52 models/project.py:87 models/projectkey.py:47
-#: models/team.py:117
+#: models/apikey.py:52 models/project.py:82 models/projectkey.py:47
+#: models/team.py:93
 msgid "Active"
-msgstr ""
+msgstr "啟用"
 
 #: models/apikey.py:53 models/projectkey.py:48
 msgid "Inactive"
-msgstr ""
+msgstr "停用"
 
 #: models/event.py:48
 msgid "message"
@@ -473,39 +446,47 @@ msgstr "訊息"
 msgid "messages"
 msgstr "訊息"
 
-#: models/event.py:62 models/group.py:264
+#: models/event.py:62 models/group.py:304
 msgid "error"
 msgstr "錯誤"
 
-#: models/group.py:128
+#: models/group.py:109
+msgid "Unresolved"
+msgstr "未解決"
+
+#: models/group.py:110 models/groupresolution.py:37
+msgid "Resolved"
+msgstr "已解決"
+
+#: models/group.py:111
+msgid "Muted"
+msgstr "已靜音"
+
+#: models/group.py:131
 msgid "grouped messages"
 msgstr "已分組訊息"
 
-#: models/group.py:129
+#: models/group.py:132
 msgid "grouped message"
 msgstr "已分組訊息"
 
-#: models/organization.py:85 models/tagkey.py:65
+#: models/groupresolution.py:36
+msgid "Pending"
+msgstr ""
+
+#: models/organization.py:70 models/tagkey.py:63
 msgid "Visible"
 msgstr "可見的"
 
-#: models/organization.py:86 models/project.py:88 models/tagkey.py:66
-#: models/team.py:118
+#: models/organization.py:71 models/project.py:83 models/tagkey.py:64
+#: models/team.py:94
 msgid "Pending Deletion"
 msgstr "刪除等待中"
 
-#: models/organization.py:87 models/project.py:89 models/tagkey.py:67
-#: models/team.py:119
+#: models/organization.py:72 models/project.py:84 models/tagkey.py:65
+#: models/team.py:95
 msgid "Deletion in Progress"
 msgstr "正在進行刪除"
-
-#: models/organizationmember.py:75
-msgid "Bot"
-msgstr "機器人"
-
-#: models/organizationmember.py:76 web/forms/edit_organization_member.py:13
-msgid "Member"
-msgstr "成員"
 
 #: models/user.py:26
 msgid "username"
@@ -569,58 +550,14 @@ msgstr "加入日期"
 msgid "user"
 msgstr "用戶"
 
-#: models/user.py:59
+#: models/user.py:59 static/sentry/app/components/groupListHeader.jsx:16
 msgid "users"
 msgstr "用戶"
 
-#: plugins/bases/notify.py:41
-msgid ""
-"Notify project members when a new event is seen for the first time, or when "
-"an already resolved event has changed back to unresolved."
-msgstr "當一個事件首次發生，或者一個已經解決的事件變成未解決的狀態時通知成員"
-
-#: plugins/sentry_interface_types/models.py:25
-msgid "Auto Tag: Interface Types"
-msgstr "自動標籤: Interface Types"
-
-#: plugins/sentry_mail/models.py:27
-#: templates/sentry/account/notifications.html:54
-#: templates/sentry/bases/admin.html:22
-msgid "Mail"
-msgstr "郵件"
-
-#: plugins/sentry_urls/models.py:24
-msgid "Auto Tag: URLs"
-msgstr "自動標籤: 網址"
-
-#: plugins/sentry_urls/models.py:29
-#: templates/sentry/partial/interfaces/http_email.html:5
-msgid "URL"
-msgstr "URL"
-
-#: plugins/sentry_useragents/models.py:48
-msgid "Auto Tag: Browsers"
-msgstr "自動標籤: 瀏覽器"
-
-#: plugins/sentry_useragents/models.py:50
-msgid "Browser Name"
-msgstr "瀏覽器名稱"
-
-#: plugins/sentry_useragents/models.py:77
-msgid "Auto Tag: Operating Systems"
-msgstr "自動標籤: 作業系統"
-
-#: plugins/sentry_useragents/models.py:79
-msgid "Operating System"
-msgstr "作業系統"
-
-#: plugins/sentry_useragents/models.py:107
-msgid "Auto Tag: Device"
-msgstr "自動標籤: 裝置"
-
-#: plugins/sentry_useragents/models.py:109
-msgid "Device"
-msgstr "裝置"
+#: plugins/base/configuration.py:61 web/frontend/project_notifications.py:14
+#: web/frontend/project_plugins.py:24 web/frontend/project_quotas.py:35
+msgid "Your settings were saved successfully."
+msgstr "設定已成功儲存。"
 
 #: plugins/sentry_webhooks/plugin.py:17
 msgid "Callback URLs"
@@ -629,10 +566,6 @@ msgstr "回傳網址"
 #: plugins/sentry_webhooks/plugin.py:20
 msgid "Enter callback URLs to POST new events to (one per line)."
 msgstr "輸入一個回傳網址用來送出事件(一行一個)"
-
-#: plugins/sentry_webhooks/plugin.py:40
-msgid "WebHooks"
-msgstr "網頁掛勾"
 
 #: templates/sentry/403-csrf-failure.html:5
 #: templates/sentry/403-csrf-failure.html:10
@@ -643,11 +576,28 @@ msgstr "CSRF 驗證失敗"
 msgid "A required security token was not found or was invalid."
 msgstr "要求的安全檢核碼不存在或是無效的"
 
+#: templates/sentry/403-csrf-failure.html:15
+msgid "If you're continually seeing this issue, try the following:"
+msgstr ""
+
+#: templates/sentry/403-csrf-failure.html:18
+msgid "Clear cookies (at least for Sentry's domain)."
+msgstr ""
+
+#: templates/sentry/403-csrf-failure.html:19
+msgid "Reload the page you're trying to submit (don't re-submit data)."
+msgstr ""
+
+#: templates/sentry/403-csrf-failure.html:20
+msgid "Re-enter the information, and submit the form again."
+msgstr ""
+
 #: templates/sentry/404.html:5 templates/sentry/404.html.py:10
+#: static/sentry/app/views/routeNotFound.jsx:22
 msgid "Page Not Found"
 msgstr "找不到網頁"
 
-#: templates/sentry/404.html:12
+#: templates/sentry/404.html:12 static/sentry/app/views/routeNotFound.jsx:25
 msgid "The page you are looking for was not found."
 msgstr "無法搜尋到您要求的網頁"
 
@@ -664,9 +614,6 @@ msgid "There was an internal server error while processing your request."
 msgstr "處理請求時發生伺服器內部錯誤。"
 
 #: templates/sentry/accept-organization-invite.html:5
-msgid "Team Invite"
-msgstr "團隊邀請"
-
 #: templates/sentry/accept-organization-invite.html:15
 msgid "Organization Invite"
 msgstr "組織邀請"
@@ -680,7 +627,7 @@ msgstr ""
 #, python-format
 msgid ""
 "You have been invited to join this organization, which manages "
-"<strong>%(project_count)s</strong> project(s):"
+"<strong>%(project_count)s</strong> project(s), including:"
 msgstr ""
 
 #: templates/sentry/accept-organization-invite.html:32
@@ -694,7 +641,6 @@ msgid "Login as an existing user"
 msgstr "登入已經存在的用戶"
 
 #: templates/sentry/accept-organization-invite.html:38
-#: templates/sentry/register.html:18
 msgid "Create a new account"
 msgstr "申請帳號"
 
@@ -703,46 +649,56 @@ msgstr "申請帳號"
 msgid "Join the %(org_name)s organization"
 msgstr "加入 %(org_name)s 組織"
 
-#: templates/sentry/admin-queue.html:8 templates/sentry/bases/admin.html:19
+#: templates/sentry/admin-queue.html:8 templates/sentry/bases/admin.html:13
 msgid "Queue"
 msgstr ""
 
-#: templates/sentry/auth-confirm-identity.html:9
-#: templates/sentry/auth-confirm-link.html:9
+#: templates/sentry/auth-confirm-identity.html:7
+#: templates/sentry/auth-confirm-link.html:7
 msgid "Confirm Identity"
 msgstr ""
 
-#: templates/sentry/auth-link-identity.html:8
+#: templates/sentry/auth-confirm-identity.html:33
+#: templates/sentry/auth-link-login.html:7
+#: templates/sentry/auth-link-login.html:31 templates/sentry/login.html:6
+#: templates/sentry/login.html.py:11 templates/sentry/login.html:37
+#: templates/sentry/organization-login.html:7
+#: templates/sentry/organization-login.html:31
+#: templates/sentry/organization-login.html:54
+msgid "Login"
+msgstr "登入"
+
+#: templates/sentry/auth-confirm-identity.html:34
+#: templates/sentry/auth-link-login.html:31 templates/sentry/login.html:37
+#: templates/sentry/organization-login.html:54
+msgid "Lost your password?"
+msgstr ""
+
+#: templates/sentry/auth-link-identity.html:7
 msgid "Link Identity"
 msgstr ""
 
 #: templates/sentry/create-organization-member.html:6
-#: templates/sentry/create-organization-member.html:14
+#: templates/sentry/create-organization-member.html:11
 msgid "Add Member to Organization"
 msgstr "加入一個成員到組織"
 
-#: templates/sentry/create-organization-member.html:19
+#: templates/sentry/create-organization-member.html:15
 msgid ""
 "Invite a member to join this organization via their email address. If they "
 "do not already have an account, they will first be asked to create one."
 msgstr ""
 
-#: templates/sentry/create-organization-member.html:20
-#: templates/sentry/create-organization-member.html:25
-msgid ""
-"You will be able to configure permissions and team access on the following "
-"page."
-msgstr "您將可以設定權限以及團隊權限在接下來的頁面"
-
-#: templates/sentry/create-organization-member.html:21
-msgid "Send Invite"
-msgstr "發送邀請"
-
-#: templates/sentry/create-organization-member.html:24
+#: templates/sentry/create-organization-member.html:17
 msgid "You may add a user by their username if they already have an account."
 msgstr "如果帳號已經被建立，您可以直接使用帳號來新增使用者 "
 
+#: templates/sentry/create-organization-member.html:28
+msgid "Add Member"
+msgstr ""
+
 #: templates/sentry/create-organization.html:6
+#: static/sentry/app/components/header/organizationSelector.jsx:47
 msgid "New Organization"
 msgstr "新組織"
 
@@ -757,22 +713,20 @@ msgid ""
 "organization-wide permissions to users."
 msgstr ""
 
-#: templates/sentry/create-organization.html:27
+#: templates/sentry/create-organization.html:25
 msgid "Create Organization"
 msgstr "建立組織"
 
 #: templates/sentry/create-project.html:5
-#: templates/sentry/organization-home.html:34
-#: templates/sentry/organization-home.html:36
 #: templates/sentry/projects/cannot_create_teams.html:5
 msgid "New Project"
 msgstr "新项目"
 
-#: templates/sentry/create-project.html:14
+#: templates/sentry/create-project.html:10
 msgid "Create a New Project"
 msgstr "建立新的專案"
 
-#: templates/sentry/create-project.html:18
+#: templates/sentry/create-project.html:13
 msgid ""
 "Projects allow you to scope events to a specific application in your "
 "organization. For example, you might have separate projects for production "
@@ -780,128 +734,60 @@ msgid ""
 "app."
 msgstr ""
 
-#: templates/sentry/create-team.html:6
-#: templates/sentry/organization-home.html:14
+#: templates/sentry/create-team.html:5
 msgid "New Team"
 msgstr "新團隊"
 
-#: templates/sentry/create-team.html:12
-msgid "Create a team"
-msgstr "建立團隊"
+#: templates/sentry/create-team.html:10
+msgid "Create a New Team"
+msgstr ""
 
 #: templates/sentry/create-team.html:13
-msgid "Add a project"
-msgstr "新增專案"
-
-#: templates/sentry/create-team.html:30
-msgid "Back"
-msgstr "返回"
-
-#: templates/sentry/create-team.html:35
-msgid "Skip this step"
-msgstr "跳過這個步驟"
-
-#: templates/sentry/create-team.html:38 templates/sentry/account/sudo.html:40
-msgid "Continue"
-msgstr "繼續"
-
-#: templates/sentry/dashboard.html:5 templates/sentry/layout.html:184
-msgid "Dashboard"
-msgstr "儀表盤"
-
-#: templates/sentry/dashboard.html:24
-#: templates/sentry/organization-stats.html:23
-#: templates/sentry/groups/details.html:26
-#: templates/sentry/groups/group_list.html:11
-msgid "Get yourself some JavaScripts dood"
-msgstr ""
-
-#: templates/sentry/dashboard.html:25
-#: templates/sentry/organization-stats.html:24 templates/sentry/wall.html:26
-#: templates/sentry/groups/details.html:25
-#: templates/sentry/groups/group_list.html:12
-msgid "Loading historical data..."
-msgstr "載入歷史資訊"
-
-#: templates/sentry/dashboard.html:31
-msgid "Trends"
-msgstr "趨勢"
-
-#: templates/sentry/dashboard.html:33 templates/sentry/dashboard.html.py:46
-msgid "15 minutes"
-msgstr "15 分鐘"
-
-#: templates/sentry/dashboard.html:34 templates/sentry/dashboard.html.py:47
-msgid "60 minutes"
-msgstr "60 分鐘"
-
-#: templates/sentry/dashboard.html:35 templates/sentry/dashboard.html.py:48
-msgid "24 hours"
-msgstr "24小時"
-
-#: templates/sentry/dashboard.html:39 templates/sentry/dashboard.html.py:52
-msgid "Loading ..."
-msgstr "載入中..."
-
-#: templates/sentry/dashboard.html:44
-msgid "New Events"
-msgstr "新事件"
-
-#: templates/sentry/dashboard.html:58
-#, python-format
 msgid ""
-"You do not have access to any projects. Would you like to <a "
-"href=\"%(link)s\">create a new project</a>?"
+"Teams group members' access to a specific focus, e.g. a major product or "
+"application that may have sub-projects."
 msgstr ""
 
-#: templates/sentry/get_started.html:13
-msgid "Getting Started"
-msgstr ""
-
-#: templates/sentry/layout.html:116
-msgid "Docs"
-msgstr "文件"
-
-#: templates/sentry/layout.html:124 templates/sentry/layout.html.py:130
-#: templates/sentry/layout.html:146 templates/sentry/layout.html.py:151
-msgid "Organizations"
-msgstr "組織"
-
-#: templates/sentry/layout.html:160 templates/sentry/bases/account.html:31
-#: web/forms/accounts.py:72 web/frontend/auth_organization_login.py:18
+#: templates/sentry/layout.html:78 templates/sentry/bases/account.html:21
+#: web/forms/accounts.py:73 static/sentry/app/components/header/userNav.jsx:31
 msgid "Account"
 msgstr "帳號"
 
-#: templates/sentry/layout.html:165
-msgid "Logout"
-msgstr "登出"
+#: templates/sentry/layout.html:80 templates/sentry/layout.html.py:172
+#: templates/sentry/bases/admin.html:7 web/forms/__init__.py:54
+#: static/sentry/app/components/header/userNav.jsx:33
+msgid "Admin"
+msgstr "管理員"
 
-#: templates/sentry/layout.html:169 templates/sentry/login.html:6
-#: templates/sentry/login.html.py:40
-#: templates/sentry/organization-login.html:8
-#: templates/sentry/organization-login.html:45
-msgid "Login"
-msgstr "登入"
+#: templates/sentry/layout.html:82
+#: static/sentry/app/components/header/userNav.jsx:35
+msgid "Sign out"
+msgstr ""
 
-#: templates/sentry/layout.html:230
+#: templates/sentry/layout.html:95 templates/sentry/layout.html.py:176
+#: static/sentry/app/components/footer.jsx:19
+msgid "Docs"
+msgstr "文件"
+
+#: templates/sentry/layout.html:175
+#: templates/sentry/project-release-tracking.html:117
+#: static/sentry/app/components/footer.jsx:18
+msgid "API"
+msgstr ""
+
+#: templates/sentry/layout.html:177 static/sentry/app/components/footer.jsx:20
 msgid "Contribute"
 msgstr "貢獻"
 
-#: templates/sentry/layout.html:230
-msgid "Translate"
-msgstr "協助翻譯"
+#: templates/sentry/login.html:15 templates/sentry/login.html.py:54
+#: templates/sentry/organization-login.html:35
+#: templates/sentry/organization-login.html:71
+msgid "Register"
+msgstr "註冊"
 
-#: templates/sentry/login.html:14 templates/sentry/organization-login.html:12
-msgid "New Account"
-msgstr "新帳號"
-
-#: templates/sentry/login.html:31
-msgid "Login to Sentry"
-msgstr "登入 Sentry"
-
-#: templates/sentry/login.html:40 templates/sentry/organization-login.html:45
-msgid "Lose your password?"
-msgstr "忘記密碼？"
+#: templates/sentry/login.html:19
+msgid "Single Sign-On"
+msgstr ""
 
 #: templates/sentry/missing_permissions.html:5
 #: templates/sentry/missing_permissions.html:8
@@ -924,77 +810,97 @@ msgid ""
 msgstr ""
 
 #: templates/sentry/organization-api-key-settings.html:7
-#: templates/sentry/organization-api-key-settings.html:13
+#: templates/sentry/organization-api-key-settings.html:12
 msgid "API Key Settings"
 msgstr "API 金鑰設定"
 
-#: templates/sentry/organization-api-key-settings.html:20
-#: templates/sentry/organization-member-settings.html:24
+#: templates/sentry/organization-api-key-settings.html:19
+#: templates/sentry/organization-member-settings.html:22
 #: templates/sentry/organization-settings.html:17
 #: templates/sentry/partial/form_base.html:5
-#: templates/sentry/teams/manage.html:26
+#: templates/sentry/teams/manage.html:20
 msgid "Please correct the errors below."
 msgstr "請修正以下錯誤："
 
-#: templates/sentry/organization-api-key-settings.html:27
+#: templates/sentry/organization-api-key-settings.html:33
 msgid "Key"
 msgstr "金鑰"
 
-#: templates/sentry/organization-api-key-settings.html:40
-#: templates/sentry/organization-member-settings.html:73
-#: templates/sentry/organization-settings.html:32
-#: templates/sentry/project-notifications.html:36
+#: templates/sentry/organization-api-key-settings.html:50
+#: templates/sentry/organization-member-settings.html:111
+#: templates/sentry/organization-settings.html:37
+#: templates/sentry/project-notifications.html:40
 #: templates/sentry/account/appearance.html:37
-#: templates/sentry/account/notifications.html:105
-#: templates/sentry/account/settings.html:41
+#: templates/sentry/account/notifications.html:91
+#: templates/sentry/account/settings.html:44
 #: templates/sentry/admin/users/edit.html:19
-#: templates/sentry/partial/_form.html:13
-#: templates/sentry/plugins/bases/issue/create_issue.html:25
-#: templates/sentry/projects/edit_key.html:72
-#: templates/sentry/projects/manage.html:52
-#: templates/sentry/projects/manage_tags.html:61
-#: templates/sentry/projects/quotas.html:37
-#: templates/sentry/teams/manage.html:47
+#: templates/sentry/partial/_form.html:16
+#: templates/sentry/projects/edit_key.html:74
+#: templates/sentry/projects/manage.html:95
+#: templates/sentry/projects/manage_tags.html:41
+#: templates/sentry/projects/quotas.html:38
+#: templates/sentry/teams/manage.html:32
 msgid "Save Changes"
 msgstr "儲存"
 
 #: templates/sentry/organization-api-keys.html:7
 #: templates/sentry/organization-api-keys.html:19
-#: templates/sentry/bases/organization.html:75
+#: templates/sentry/bases/organization.html:58
+#: static/sentry/app/components/organizations/homeSidebar.jsx:52
 msgid "API Keys"
 msgstr "API 金鑰"
 
 #: templates/sentry/organization-audit-log.html:6
-#: templates/sentry/bases/organization.html:47
+#: templates/sentry/bases/organization.html:65
+#: static/sentry/app/components/organizations/homeSidebar.jsx:55
 msgid "Audit Log"
 msgstr "稽核紀錄"
 
-#: templates/sentry/organization-audit-log.html:18
-msgid "Sentry keeps track of important events within your Organization."
+#: templates/sentry/organization-audit-log.html:17
+msgid "Sentry keeps track of important events within your organization."
 msgstr ""
 
-#: templates/sentry/organization-home.html:11
-msgid "Create a new Team"
-msgstr "建立團隊"
+#: templates/sentry/organization-auth-settings.html:5
+#: templates/sentry/bases/organization.html:50
+#: static/sentry/app/components/organizations/homeSidebar.jsx:49
+msgid "Auth"
+msgstr "認證"
 
 #: templates/sentry/organization-member-details.html:7
 msgid "Member Details"
 msgstr "成員細節"
 
-#: templates/sentry/organization-member-details.html:22
-#: templates/sentry/organization-member-settings.html:31
-#: web/forms/accounts.py:138 web/forms/accounts.py:248
+#: templates/sentry/organization-member-details.html:21
+#: templates/sentry/organization-member-settings.html:29
+msgid "Basics"
+msgstr ""
+
+#: templates/sentry/organization-member-details.html:28
+#: templates/sentry/organization-member-settings.html:36
+#: web/forms/accounts.py:146 web/forms/accounts.py:256
 msgid "Email"
 msgstr "Email"
 
-#: templates/sentry/organization-member-details.html:40
+#: templates/sentry/organization-member-details.html:36
+#: templates/sentry/organization-member-settings.html:44
+#: static/sentry/app/views/stream/searchBar.jsx:65
+msgid "Status"
+msgstr "狀態"
+
+#: templates/sentry/organization-member-details.html:48
+#: templates/sentry/organization-member-settings.html:56
+msgid "Added"
+msgstr ""
+
+#: templates/sentry/organization-member-details.html:60
+#: templates/sentry/organization-member-settings.html:68
 msgid "Role"
 msgstr "角色"
 
-#: templates/sentry/organization-member-details.html:48
-#: templates/sentry/organization-member-settings.html:52
-#: templates/sentry/bases/admin.html:27
-#: templates/sentry/bases/organization.html:34
+#: templates/sentry/organization-member-details.html:80
+#: templates/sentry/organization-member-settings.html:88
+#: templates/sentry/admin/teams/list.html:16
+#: templates/sentry/bases/admin.html:21
 msgid "Teams"
 msgstr "團隊"
 
@@ -1002,17 +908,18 @@ msgstr "團隊"
 msgid "Member Settings"
 msgstr "成員設定"
 
-#: templates/sentry/organization-member-settings.html:72
+#: templates/sentry/organization-member-settings.html:109
 msgid "Resend Invite"
 msgstr "重新發送邀請"
 
 #: templates/sentry/organization-members.html:7
-#: templates/sentry/organization-members.html:13
-#: templates/sentry/bases/organization.html:55
+#: templates/sentry/organization-members.html:23
+#: templates/sentry/bases/organization.html:38
+#: static/sentry/app/components/organizations/homeSidebar.jsx:41
 msgid "Members"
 msgstr "成員"
 
-#: templates/sentry/organization-members.html:16
+#: templates/sentry/organization-members.html:25
 msgid ""
 "Members of your organization gain slightly elevated permissions over "
 "individual team members. For example, organization administrators can create"
@@ -1020,34 +927,55 @@ msgid ""
 "of admins)."
 msgstr ""
 
-#: templates/sentry/organization-settings.html:30
+#: templates/sentry/organization-settings.html:46
+#: templates/sentry/organization-settings.html:52
 #: templates/sentry/remove-organization.html:35
 msgid "Remove Organization"
 msgstr "移除組織"
 
-#: templates/sentry/organization-stats.html:7
-#: templates/sentry/bases/organization.html:40
-msgid "Stats"
-msgstr "統計"
+#: templates/sentry/post-remove-account.html:5
+msgid "Remove Account"
+msgstr ""
+
+#: templates/sentry/post-remove-account.html:10
+msgid "Scheduled for Removal"
+msgstr ""
+
+#: templates/sentry/post-remove-account.html:13
+msgid "Your account has been deactivated and scheduled for removal."
+msgstr ""
+
+#: templates/sentry/post-remove-account.html:14
+msgid "Thanks for using Sentry! We hope to see you again soon!"
+msgstr ""
 
 #: templates/sentry/project-issue-tracking.html:7
-#: templates/sentry/project-issue-tracking.html:11
-#: templates/sentry/projects/manage.html:93
+#: templates/sentry/project-issue-tracking.html:10
+#: templates/sentry/projects/manage.html:173
+#: static/sentry/app/views/projectSettings/index.jsx:84
 msgid "Issue Tracking"
+msgstr "問題追蹤"
+
+#: templates/sentry/project-issue-tracking.html:36
+#: templates/sentry/project-notifications.html:66
+#: templates/sentry/project-release-tracking.html:95
+msgid "Inactive Integrations"
 msgstr ""
 
 #: templates/sentry/project-notifications.html:8
-#: templates/sentry/project-notifications.html:12
-#: templates/sentry/bases/account.html:33
-#: templates/sentry/projects/manage.html:79
+#: templates/sentry/project-notifications.html:11
+#: templates/sentry/bases/account.html:23
+#: templates/sentry/projects/manage.html:159
+#: static/sentry/app/views/projectSettings/index.jsx:81
 msgid "Notifications"
 msgstr "提醒"
 
-#: templates/sentry/project-notifications.html:19
-#: templates/sentry/projects/manage.html:87
-#: templates/sentry/projects/rules/list.html:8
+#: templates/sentry/project-notifications.html:18
+#: templates/sentry/projects/manage.html:167
+#: templates/sentry/projects/rules/list.html:10
+#: static/sentry/app/views/projectSettings/index.jsx:82
 msgid "Rules"
-msgstr ""
+msgstr "規則"
 
 #: templates/sentry/project-notifications.html:22
 #, python-format
@@ -1056,24 +984,56 @@ msgid ""
 "for this project</a>."
 msgstr ""
 
-#: templates/sentry/project-notifications.html:26
-#: templates/sentry/account/notifications.html:47
+#: templates/sentry/project-notifications.html:28
+#: templates/sentry/account/notifications.html:31
 msgid "General"
 msgstr "常規"
 
 #: templates/sentry/project-release-tracking.html:7
-#: templates/sentry/project-release-tracking.html:11
-#: templates/sentry/projects/manage.html:97
+#: templates/sentry/project-release-tracking.html:10
+#: templates/sentry/projects/manage.html:176
+#: static/sentry/app/views/projectSettings/index.jsx:85
 msgid "Release Tracking"
 msgstr ""
 
-#: templates/sentry/register.html:6 templates/sentry/register.html.py:31
-msgid "Register"
-msgstr "註冊"
+#: templates/sentry/project-release-tracking.html:16
+msgid "Client Configuration"
+msgstr ""
 
-#: templates/sentry/register.html:29
-msgid "Already have an account?"
-msgstr "已經擁有帳號？"
+#: templates/sentry/project-release-tracking.html:36
+msgid "Token"
+msgstr ""
+
+#: templates/sentry/project-release-tracking.html:53
+msgid "Webhook"
+msgstr ""
+
+#: templates/sentry/remove-account.html:7
+#: templates/sentry/remove-account.html:49
+#: templates/sentry/bases/account.html:17
+msgid "Close Account"
+msgstr ""
+
+#: templates/sentry/remove-account.html:15
+msgid "This will permanently remove all associated data for your user."
+msgstr ""
+
+#: templates/sentry/remove-account.html:17
+msgid "Closing your account is permanent and cannot be undone!"
+msgstr ""
+
+#: templates/sentry/remove-account.html:20
+msgid "If you continue, the following organizations will be removed:"
+msgstr ""
+
+#: templates/sentry/remove-account.html:50
+#: templates/sentry/remove-organization.html:36
+#: templates/sentry/admin/users/remove.html:17
+#: templates/sentry/projects/remove.html:30
+#: templates/sentry/teams/remove.html:38
+#: static/sentry/app/components/linkWithConfirmation.jsx:52
+msgid "Cancel"
+msgstr "取消"
 
 #: templates/sentry/remove-organization.html:16
 msgid "Removing this organization is permanent and cannot be undone!"
@@ -1083,38 +1043,24 @@ msgstr "移除組織是無法被還原的操作！"
 msgid "This will also remove the following teams and all associated projects:"
 msgstr "這將會移除相關的團隊以及附屬的專案"
 
-#: templates/sentry/remove-organization.html:35
-#: templates/sentry/admin/users/remove.html:17
-#: templates/sentry/projects/remove.html:18
-#: templates/sentry/teams/remove.html:27
-msgid "Cancel"
-msgstr "取消"
-
-#: templates/sentry/wall.html:34
-msgid "Trending"
-msgstr "趨勢"
-
-#: templates/sentry/wall.html:42
-msgid "New"
-msgstr "新"
-
 #: templates/sentry/account/appearance.html:7
-#: templates/sentry/bases/account.html:32
+#: templates/sentry/bases/account.html:22
 msgid "Appearance"
 msgstr "外觀"
 
-#: templates/sentry/account/appearance.html:16
+#: templates/sentry/account/appearance.html:15
+#: static/sentry/app/views/stream/actions.jsx:360
 msgid "Events"
 msgstr "事件"
 
-#: templates/sentry/account/appearance.html:25
+#: templates/sentry/account/appearance.html:22
 msgid "Localization"
 msgstr "語言與地區"
 
 #: templates/sentry/account/identities.html:7
-#: templates/sentry/bases/account.html:35
+#: templates/sentry/bases/account.html:25
 msgid "Identities"
-msgstr ""
+msgstr "身份"
 
 #: templates/sentry/account/identities.html:11
 msgid "Current Identities"
@@ -1132,31 +1078,36 @@ msgstr ""
 msgid "Notification Settings"
 msgstr "提醒設定"
 
-#: templates/sentry/account/notifications.html:41
+#: templates/sentry/account/notifications.html:25
 msgid ""
 "Notifications are generally sent when a new event is\n"
 "            seen, an already resolved event has changed to unresolved, or a\n"
 "            system-wide spike in events is detected."
 msgstr ""
 
-#: templates/sentry/account/notifications.html:55
+#: templates/sentry/account/notifications.html:37
+#: templates/sentry/bases/admin.html:16
+msgid "Mail"
+msgstr "郵件"
+
+#: templates/sentry/account/notifications.html:38
 msgid ""
 "Choose which projects you wish to receive email notifications for, as well "
 "as an alternative email address to send to."
 msgstr ""
 
-#: templates/sentry/account/notifications.html:56
+#: templates/sentry/account/notifications.html:39
 msgid ""
 "Note: You will never receive notifications if a project has them disabled "
 "(via the Project settings)"
 msgstr ""
 
-#: templates/sentry/account/notifications.html:72
-#: web/frontend/project_settings.py:26
+#: templates/sentry/account/notifications.html:57
+#: web/frontend/project_settings.py:24
 msgid "Project Name"
 msgstr "專案名稱"
 
-#: templates/sentry/account/notifications.html:74
+#: templates/sentry/account/notifications.html:59
 msgid "Email Address"
 msgstr "E-Mail 信箱"
 
@@ -1164,7 +1115,7 @@ msgstr "E-Mail 信箱"
 msgid "Account Settings"
 msgstr "帳號設定"
 
-#: templates/sentry/account/settings.html:33
+#: templates/sentry/account/settings.html:36
 msgid "You may also optionally change your password."
 msgstr "您也可以更改密碼（可選）"
 
@@ -1172,34 +1123,38 @@ msgstr "您也可以更改密碼（可選）"
 msgid "Confirm Password"
 msgstr "再一次確認密碼"
 
-#: templates/sentry/account/sudo.html:23
+#: templates/sentry/account/sudo.html:31
 msgid "Help us keep your account safe by confirming your password."
 msgstr "協助我們檢查您的密碼來保護您的帳號安全"
 
-#: templates/sentry/account/sudo.html:32
+#: templates/sentry/account/sudo.html:39
 msgid "Your password was not valid."
 msgstr "您的密碼不合法"
 
+#: templates/sentry/account/sudo.html:52
+msgid "Continue"
+msgstr "繼續"
+
 #: templates/sentry/account/recover/confirm.html:6
-#: templates/sentry/account/recover/confirm.html:11
+#: templates/sentry/account/recover/confirm.html:9
 #: templates/sentry/account/recover/failure.html:6
-#: templates/sentry/account/recover/failure.html:11
-#: templates/sentry/account/recover/index.html:8
-#: templates/sentry/account/recover/index.html:14
+#: templates/sentry/account/recover/failure.html:9
+#: templates/sentry/account/recover/index.html:6
+#: templates/sentry/account/recover/index.html:9
 #: templates/sentry/account/recover/sent.html:6
-#: templates/sentry/account/recover/sent.html:11
+#: templates/sentry/account/recover/sent.html:9
 msgid "Recover Account"
 msgstr "回復帳號"
 
-#: templates/sentry/account/recover/confirm.html:13
+#: templates/sentry/account/recover/confirm.html:11
 msgid "You have confirmed your email, and may now update your password below."
 msgstr ""
 
-#: templates/sentry/account/recover/confirm.html:23
+#: templates/sentry/account/recover/confirm.html:21
 msgid "Change Password"
 msgstr "變更密碼"
 
-#: templates/sentry/account/recover/failure.html:14
+#: templates/sentry/account/recover/failure.html:11
 #, python-format
 msgid ""
 "We were unable to confirm your identity. Either the link you followed is "
@@ -1207,110 +1162,57 @@ msgid ""
 "again</a>."
 msgstr ""
 
-#: templates/sentry/account/recover/index.html:15
-msgid ""
-"To recover a lost account, you will need to know your account's username. We will send a confirmation\n"
-"        email to this address which allows you to change your password."
+#: templates/sentry/account/recover/index.html:10
+msgid "We will send a confirmation email to this address:"
 msgstr ""
 
-#: templates/sentry/account/recover/index.html:28
+#: templates/sentry/account/recover/index.html:22
 msgid "Send Email"
 msgstr "寄送Email"
 
-#: templates/sentry/account/recover/sent.html:13
+#: templates/sentry/account/recover/sent.html:11
 msgid ""
 "We have sent an email to the address registered with this account containing"
 " further instructions to reset your password."
 msgstr ""
-
-#: templates/sentry/admin/stats.html:8 templates/sentry/bases/admin.html:18
-msgid "Overview"
-msgstr "概況"
-
-#: templates/sentry/admin/stats.html:12
-msgid "System Overview"
-msgstr "系統概況"
 
 #: templates/sentry/admin/projects/list.html:7
 msgid "Manage Projects"
 msgstr "管理项目"
 
 #: templates/sentry/admin/projects/list.html:18
-#: templates/sentry/admin/projects/list.html:72
-#: templates/sentry/admin/teams/list.html:18
-#: templates/sentry/admin/teams/list.html:64
-#: templates/sentry/admin/users/list.html:16
-#: templates/sentry/admin/users/list.html:74
-#: templates/sentry/explore/tag_details.html:35
-#: templates/sentry/explore/tag_details.html:54
-#: templates/sentry/explore/tag_value_details.html:37
-#: templates/sentry/explore/tag_value_details.html:56
-#: templates/sentry/explore/tag_value_list.html:29
-#: templates/sentry/explore/tag_value_list.html:63
-#: templates/sentry/explore/code/list_tag.html:30
-#: templates/sentry/explore/code/list_tag.html:68
-#: templates/sentry/explore/code/tag_details.html:42
-#: templates/sentry/explore/code/tag_details.html:61
-#: templates/sentry/groups/group_list.html:83
-#: templates/sentry/groups/group_list.html:85
-#: templates/sentry/groups/group_list.html:134
-#: templates/sentry/groups/group_list.html:136
-#: templates/sentry/partial/_pager.html:5
-#: templates/sentry/users/details.html:42
-#: templates/sentry/users/details.html:61 templates/sentry/users/list.html:23
-#: templates/sentry/users/list.html:52
-msgid "Previous"
-msgstr "上一個"
+#: templates/sentry/admin/teams/list.html:31
+#: templates/sentry/admin/users/edit.html:28
+#: templates/sentry/admin/users/list_projects.html:7
+#: templates/sentry/bases/admin.html:22
+#: templates/sentry/bases/organization.html:21
+#: static/sentry/app/components/organizations/homeSidebar.jsx:29
+msgid "Projects"
+msgstr "專案"
 
-#: templates/sentry/admin/projects/list.html:19
-#: templates/sentry/admin/projects/list.html:73
-#: templates/sentry/admin/teams/list.html:19
-#: templates/sentry/admin/teams/list.html:65
-#: templates/sentry/admin/users/list.html:17
-#: templates/sentry/admin/users/list.html:75
-#: templates/sentry/explore/tag_details.html:36
-#: templates/sentry/explore/tag_details.html:55
-#: templates/sentry/explore/tag_value_details.html:38
-#: templates/sentry/explore/tag_value_details.html:57
-#: templates/sentry/explore/tag_value_list.html:30
-#: templates/sentry/explore/tag_value_list.html:64
-#: templates/sentry/explore/code/list_tag.html:31
-#: templates/sentry/explore/code/list_tag.html:69
-#: templates/sentry/explore/code/tag_details.html:43
-#: templates/sentry/explore/code/tag_details.html:62
-#: templates/sentry/groups/group_list.html:88
-#: templates/sentry/groups/group_list.html:90
-#: templates/sentry/groups/group_list.html:139
-#: templates/sentry/groups/group_list.html:141
-#: templates/sentry/partial/_pager.html:6
-#: templates/sentry/users/details.html:43
-#: templates/sentry/users/details.html:62 templates/sentry/users/list.html:24
-#: templates/sentry/users/list.html:53
-msgid "Next"
-msgstr "下一個"
-
-#: templates/sentry/admin/projects/list.html:24
+#: templates/sentry/admin/projects/list.html:21
 msgid ""
 "You are viewing projects sorted by the number of events created in the last "
 "24 hours. Projects that have not sent any data are not shown in this view."
 msgstr ""
 
-#: templates/sentry/admin/projects/list.html:39
+#: templates/sentry/admin/projects/list.html:36
 #: templates/sentry/admin/users/edit.html:38
 #: templates/sentry/admin/users/list_projects.html:24
+#: static/sentry/app/views/organizationStats/projectTable.jsx:40
 msgid "Project"
 msgstr "專案"
 
-#: templates/sentry/admin/projects/list.html:40
+#: templates/sentry/admin/projects/list.html:37
 msgid "Events (24h)"
 msgstr "事件(24小時)"
 
-#: templates/sentry/admin/projects/list.html:41
-#: templates/sentry/admin/teams/list.html:37
+#: templates/sentry/admin/projects/list.html:38
+#: templates/sentry/admin/teams/list.html:32
 msgid "Date Added"
 msgstr "建立日期"
 
-#: templates/sentry/admin/projects/list.html:67
+#: templates/sentry/admin/projects/list.html:64
 msgid "There are no active projects in Sentry."
 msgstr "Sentry中沒有有效的專案。"
 
@@ -1318,32 +1220,35 @@ msgstr "Sentry中沒有有效的專案。"
 msgid "Server Status"
 msgstr "伺服器狀態"
 
-#: templates/sentry/admin/status/env.html:13
-#: templates/sentry/bases/admin.html:20
+#: templates/sentry/admin/status/env.html:12
+#: templates/sentry/bases/admin.html:14
+#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:96
 msgid "Environment"
 msgstr "環境"
 
-#: templates/sentry/admin/status/env.html:22
+#: templates/sentry/admin/status/env.html:17
 msgid "Server Version"
 msgstr "伺服器版本"
 
-#: templates/sentry/admin/status/env.html:26
+#: templates/sentry/admin/status/env.html:24
 msgid "Python Version"
 msgstr "Python版本"
 
-#: templates/sentry/admin/status/env.html:30
+#: templates/sentry/admin/status/env.html:28
 msgid "Configuration File"
 msgstr "配置文件"
 
-#: templates/sentry/admin/status/env.html:34
+#: templates/sentry/admin/status/env.html:32
 msgid "Uptime"
 msgstr "運作時間"
 
-#: templates/sentry/admin/status/env.html:40
+#: templates/sentry/admin/status/env.html:38
 msgid "Environment not found (are you using the builtin Sentry webserver?)."
 msgstr "找不到環境參數(您正在使用Sentry內建的伺服器嗎?)"
 
-#: templates/sentry/admin/status/env.html:44
+#: templates/sentry/admin/status/env.html:41
+#: templates/sentry/projects/manage.html:153
+#: static/sentry/app/views/projectSettings/index.jsx:78
 msgid "Configuration"
 msgstr "配置"
 
@@ -1351,73 +1256,73 @@ msgstr "配置"
 msgid "Mail Configuration"
 msgstr "Mail 設定"
 
-#: templates/sentry/admin/status/mail.html:13
+#: templates/sentry/admin/status/mail.html:12
 msgid "SMTP Settings"
 msgstr "SMTP 設定"
 
-#: templates/sentry/admin/status/mail.html:21
+#: templates/sentry/admin/status/mail.html:15
 msgid "From Address"
 msgstr "來源地址"
 
-#: templates/sentry/admin/status/mail.html:25
+#: templates/sentry/admin/status/mail.html:20
 msgid "Host"
 msgstr "主機"
 
-#: templates/sentry/admin/status/mail.html:29 web/forms/accounts.py:247
+#: templates/sentry/admin/status/mail.html:25 web/forms/accounts.py:255
 msgid "Username"
 msgstr "使用者名稱"
 
-#: templates/sentry/admin/status/mail.html:30
-#: templates/sentry/admin/status/mail.html:34
+#: templates/sentry/admin/status/mail.html:27
+#: templates/sentry/admin/status/mail.html:32
 msgid "not set"
 msgstr "沒有設定"
 
-#: templates/sentry/admin/status/mail.html:33 web/forms/accounts.py:73
-#: web/frontend/auth_organization_login.py:23
+#: templates/sentry/admin/status/mail.html:30 web/forms/accounts.py:78
 msgid "Password"
 msgstr "密碼"
 
-#: templates/sentry/admin/status/mail.html:37
+#: templates/sentry/admin/status/mail.html:35
 msgid "TLS?"
 msgstr "TLS?"
 
-#: templates/sentry/admin/status/mail.html:38
+#: templates/sentry/admin/status/mail.html:37
 msgid "Yes"
 msgstr "是"
 
-#: templates/sentry/admin/status/mail.html:38
+#: templates/sentry/admin/status/mail.html:37
 msgid "No"
 msgstr "否"
 
-#: templates/sentry/admin/status/mail.html:43
+#: templates/sentry/admin/status/mail.html:41
 msgid "Test Settings"
 msgstr "測試信箱設定"
 
-#: templates/sentry/admin/status/mail.html:48
+#: templates/sentry/admin/status/mail.html:46
 msgid ""
 "Send an email to your account's email address to confirm that everything is "
 "configured correctly."
 msgstr "發送一封測試信到您帳號指定的 E-mail 信箱確定您的配置是否正確。"
 
-#: templates/sentry/admin/status/mail.html:56
+#: templates/sentry/admin/status/mail.html:54
 #, python-format
 msgid "Send a test email to %(email)s"
 msgstr "發送測試信到 %(email)s"
 
 #: templates/sentry/admin/status/packages.html:8
-#: templates/sentry/bases/admin.html:21
+#: templates/sentry/bases/admin.html:15
+#: static/sentry/app/components/events/packageData.jsx:28
 msgid "Packages"
 msgstr "套件"
 
-#: templates/sentry/admin/status/packages.html:12
+#: templates/sentry/admin/status/packages.html:11
 msgid "Extensions"
 msgstr "擴充套件"
 
-#: templates/sentry/admin/status/packages.html:29
+#: templates/sentry/admin/status/packages.html:23
 msgid "No extensions registered."
 msgstr "沒有已經註冊的擴充套件"
 
-#: templates/sentry/admin/status/packages.html:32
+#: templates/sentry/admin/status/packages.html:26
 msgid "Modules"
 msgstr "模組"
 
@@ -1425,18 +1330,12 @@ msgstr "模組"
 msgid "Manage Teams"
 msgstr "管理團隊"
 
-#: templates/sentry/admin/teams/list.html:35
+#: templates/sentry/admin/teams/list.html:30
+#: static/sentry/app/views/organizationTeams/index.jsx:117
 msgid "Team"
 msgstr "團隊"
 
-#: templates/sentry/admin/teams/list.html:36
-#: templates/sentry/admin/users/edit.html:28
-#: templates/sentry/admin/users/list_projects.html:7
-#: templates/sentry/bases/admin.html:28
-msgid "Projects"
-msgstr "專案"
-
-#: templates/sentry/admin/teams/list.html:59
+#: templates/sentry/admin/teams/list.html:53
 msgid "There are no active teams in Sentry."
 msgstr "Sentry中沒有有效的團隊"
 
@@ -1462,25 +1361,31 @@ msgstr "日常事件"
 msgid "Manage Users"
 msgstr "管理用戶"
 
-#: templates/sentry/admin/users/list.html:32 web/forms/__init__.py:34
-#: web/forms/accounts.py:249 web/forms/add_project.py:14
-#: web/forms/add_team.py:10
+#: templates/sentry/admin/users/list.html:17
+#: templates/sentry/bases/admin.html:23
+#: static/sentry/app/views/stream/actions.jsx:361
+msgid "Users"
+msgstr "用戶"
+
+#: templates/sentry/admin/users/list.html:30 web/forms/__init__.py:41
+#: web/forms/accounts.py:257 web/forms/add_project.py:14
+#: web/forms/add_team.py:13
 msgid "Name"
 msgstr "姓名"
 
-#: templates/sentry/admin/users/list.html:33
+#: templates/sentry/admin/users/list.html:31
 msgid "Joined"
 msgstr "加入時間"
 
-#: templates/sentry/admin/users/list.html:34
+#: templates/sentry/admin/users/list.html:32
 msgid "Last Login"
 msgstr "上次登入時間"
 
-#: templates/sentry/admin/users/list.html:68
+#: templates/sentry/admin/users/list.html:66
 msgid "There are no users matching your query in Sentry."
 msgstr "沒有搜尋到吻合條件的用戶"
 
-#: templates/sentry/admin/users/list.html:72
+#: templates/sentry/admin/users/list.html:70
 msgid "Create a new user"
 msgstr "建立新用戶"
 
@@ -1493,272 +1398,55 @@ msgid "New User"
 msgstr "新用戶"
 
 #: templates/sentry/admin/users/remove.html:17
-#: templates/sentry/teams/remove.html:26
+#: static/sentry/app/components/linkWithConfirmation.jsx:54
 msgid "Confirm"
 msgstr "確認"
 
 #: templates/sentry/bases/account.html:6
-#: templates/sentry/bases/account.html:30
-#: templates/sentry/bases/explore.html:20
-#: templates/sentry/bases/organization.html:82
-#: templates/sentry/bases/settings.html:15
-#: templates/sentry/bases/stream.html:23
-#: templates/sentry/projects/manage.html:76
+#: templates/sentry/bases/organization.html:72
+#: static/sentry/app/components/organizations/homeSidebar.jsx:58
 msgid "Settings"
 msgstr "設定"
 
-#: templates/sentry/bases/admin.html:16
+#: templates/sentry/bases/admin.html:10
 msgid "System"
 msgstr "系統"
 
-#: templates/sentry/bases/admin.html:25
+#: templates/sentry/bases/admin.html:12
+#: static/sentry/app/views/sharedGroupDetails/sharedGroupHeader.jsx:35
+msgid "Overview"
+msgstr "概況"
+
+#: templates/sentry/bases/admin.html:19
+#: static/sentry/app/components/organizations/homeSidebar.jsx:36
 msgid "Manage"
 msgstr "管理"
 
-#: templates/sentry/bases/admin.html:29
-msgid "Users"
-msgstr "用戶"
-
-#: templates/sentry/bases/admin.html:34
+#: templates/sentry/bases/admin.html:28
 msgid "Plugins"
 msgstr "插件"
-
-#: templates/sentry/bases/explore.html:12
-#: templates/sentry/bases/settings.html:12
-#: templates/sentry/bases/stream.html:18
-msgid "Stream"
-msgstr "流"
-
-#: templates/sentry/bases/explore.html:15
-msgid "Explore"
-msgstr ""
-
-#: templates/sentry/bases/explore.html:37
-msgid "About Explore"
-msgstr ""
 
 #: templates/sentry/bases/organization.html:8
 msgid "Organization Settings"
 msgstr "組織設定"
 
-#: templates/sentry/bases/organization.html:18
-msgid "Invite Member"
-msgstr "邀請成員"
-
-#: templates/sentry/bases/organization.html:21
-msgid "New Member"
-msgstr "新成員"
-
-#: templates/sentry/bases/organization.html:67
-msgid "Auth"
-msgstr "認證"
-
-#: templates/sentry/bases/stream.html:11
-msgid "Search query or event ID"
-msgstr "搜尋條件或事件編號"
+#: templates/sentry/bases/organization.html:27
+#: static/sentry/app/components/organizations/homeSidebar.jsx:31
+msgid "Stats"
+msgstr "統計"
 
 #: templates/sentry/events/replay_request.html:6
+#: static/sentry/app/components/events/interfaces/requestActions.jsx:18
 msgid "Replay Request"
 msgstr "重放請求"
 
-#: templates/sentry/events/replay_request.html:22
+#: templates/sentry/events/replay_request.html:24
 msgid "Please fill out all fields."
 msgstr "請填寫所有欄位"
 
-#: templates/sentry/events/replay_request.html:32
+#: templates/sentry/events/replay_request.html:34
 msgid "Submit"
 msgstr "送出"
-
-#: templates/sentry/explore/tag_details.html:12
-msgid "Tag Details"
-msgstr "標籤細節"
-
-#: templates/sentry/explore/tag_list.html:39
-msgid ""
-"There don't seem to be any tags in the system yet. For more information on "
-"how you can tag data, check your client's documentation."
-msgstr ""
-
-#: templates/sentry/explore/tag_value_details.html:10
-#: templates/sentry/projects/manage.html:74
-msgid "Details"
-msgstr "詳細訊息"
-
-#: templates/sentry/explore/tag_value_details.html:12
-msgid "Key:"
-msgstr "金鑰:"
-
-#: templates/sentry/explore/tag_value_list.html:21
-#: templates/sentry/explore/code/list_tag.html:22
-#: templates/sentry/groups/group_list.html:53
-#: templates/sentry/users/list.html:15
-#, python-format
-msgid "Sort by: %(label)s"
-msgstr "排序方式：%(label)s"
-
-#: templates/sentry/explore/tag_value_list.html:35
-#: templates/sentry/explore/code/list_tag.html:36
-msgid ""
-"You dont seem to have any data recorded for this tag. For more information "
-"on how to send this information consult your client's documentation."
-msgstr ""
-
-#: templates/sentry/explore/tag_value_list.html:42
-#: templates/sentry/explore/code/list_tag.html:43
-#: templates/sentry/users/list.html:36
-msgid "Events Seen"
-msgstr ""
-
-#: templates/sentry/explore/code/list_tag.html:41
-msgid "Path"
-msgstr "路徑"
-
-#: templates/sentry/explore/code/tag_details.html:17
-msgid "Code Details"
-msgstr "程式碼詳細資訊"
-
-#: templates/sentry/explore/code/tag_details.html:19
-msgid "Filename:"
-msgstr "檔案名稱:"
-
-#: templates/sentry/explore/code/tag_details.html:22
-msgid "Function:"
-msgstr "函數:"
-
-#: templates/sentry/groups/details.html:48
-msgid "Add Note"
-msgstr "新增筆記"
-
-#: templates/sentry/groups/details.html:55
-msgid "Newer Sample"
-msgstr ""
-
-#: templates/sentry/groups/details.html:56
-msgid "Older Sample"
-msgstr ""
-
-#: templates/sentry/groups/details.html:81
-#: templates/sentry/partial/event_nav.html:27
-#: templates/sentry/projects/manage.html:90
-msgid "Tags"
-msgstr "標籤"
-
-#: templates/sentry/groups/details.html:84
-msgid "Samples"
-msgstr ""
-
-#: templates/sentry/groups/details.html:88
-msgid "Aggregate Details"
-msgstr "聚合後的詳細訊息"
-
-#: templates/sentry/groups/details.html:91
-msgid "Status:"
-msgstr "狀態："
-
-#: templates/sentry/groups/details.html:93
-msgid "First Seen:"
-msgstr "首次出現時間:"
-
-#: templates/sentry/groups/details.html:96
-msgid "Reopened At:"
-msgstr "重新開啟於:"
-
-#: templates/sentry/groups/details.html:99
-msgid "Last Seen:"
-msgstr "最後出現時間:"
-
-#: templates/sentry/groups/details.html:102
-msgid "Avg Duration:"
-msgstr "平均持續時間:"
-
-#: templates/sentry/groups/details.html:103
-#: templates/sentry/projects/plugins/list.html:38
-#: templates/sentry/projects/plugins/list.html:44
-msgid "n/a"
-msgstr "不可用"
-
-#: templates/sentry/groups/details.html:108
-msgid "Seen By"
-msgstr ""
-
-#: templates/sentry/groups/details.html:124
-#: templates/sentry/projects/keys.html:26
-msgid "Actions"
-msgstr "動作"
-
-#: templates/sentry/groups/details.html:127
-msgid "Mute Event"
-msgstr "靜音事件"
-
-#: templates/sentry/groups/details.html:129
-msgid "Unmute Event"
-msgstr "取消靜音事件"
-
-#: templates/sentry/groups/details.html:138
-msgid "Share Event"
-msgstr "分享事件"
-
-#: templates/sentry/groups/details.html:147
-msgid "Raw JSON Data"
-msgstr "原始 JSON 資料"
-
-#: templates/sentry/groups/details.html:150
-msgid "Are you sure you wish to delete all data for this event?"
-msgstr "您確定要刪除所有關於這個事件的資料嗎?"
-
-#: templates/sentry/groups/details.html:150
-msgid "Remove Event Data"
-msgstr "移除事件資料"
-
-#: templates/sentry/groups/event_list.html:11
-#, python-format
-msgid ""
-"This list only contains a portion of all events seen. For more information "
-"about how Sentry samples events, see the <a "
-"href=\"%(link)s\">documentation</a>."
-msgstr ""
-
-#: templates/sentry/groups/event_list.html:24
-#: templates/sentry/plugins/bases/tag/index.html:41
-msgid "There are no records recorded for this event."
-msgstr "沒有關於該事件的紀錄。"
-
-#: templates/sentry/groups/group_list.html:19
-msgid "Bookmarks"
-msgstr "書籤"
-
-#: templates/sentry/groups/group_list.html:22
-msgid "All Events"
-msgstr "所有事件"
-
-#: templates/sentry/groups/group_list.html:23
-msgid "Only Bookmarks"
-msgstr ""
-
-#: templates/sentry/groups/group_list.html:45
-msgid "Resolve All Events"
-msgstr ""
-
-#: templates/sentry/groups/group_list.html:48
-#: templates/sentry/groups/group_list.html:49
-msgid "Pause Updates"
-msgstr "暫停更新"
-
-#: templates/sentry/groups/group_list.html:48
-msgid "Enable Updates"
-msgstr "啟動更新"
-
-#: templates/sentry/groups/group_list.html:110
-msgid "All events are represented in UTC time."
-msgstr ""
-
-#: templates/sentry/groups/group_list.html:114
-msgid "Clear"
-msgstr "清除"
-
-#: templates/sentry/groups/group_list.html:115
-msgid "Apply"
-msgstr "套用"
 
 #: templates/sentry/groups/public_details.html:31
 msgid "Newer Event"
@@ -1768,583 +1456,76 @@ msgstr "較新的事件"
 msgid "Older Event"
 msgstr "較舊的事件"
 
-#: templates/sentry/groups/public_details.html:39
+#: templates/sentry/groups/public_details.html:37
 msgid ""
 "You are viewing a publicly available version of this event's data. Some "
 "information may not be available."
 msgstr ""
 
-#: templates/sentry/groups/tag_list.html:44
-msgid ""
-"There don't seem to be any tags stored for this event. For more information "
-"on how you can tag data, check your client's documentation."
+#: templates/sentry/groups/public_details.html:43
+msgid "Full message"
 msgstr ""
 
-#: templates/sentry/help/platform_index.html:6
-msgid "Platforms"
-msgstr "平台"
-
-#: templates/sentry/help/platform_index.html:12
-msgid "Clients"
-msgstr "客戶端"
-
-#: templates/sentry/help/platform_index.html:71
-msgid "If you already know what you're doing, here's your DSN:"
-msgstr ""
-
-#: templates/sentry/help/platform_index.html:76
-#, python-format
-msgid ""
-"If this is a client that only needs public access (like <a href=\"%(link)s"
-"\">raven-js</a>), you can use the following public DSN:"
-msgstr ""
-
-#: templates/sentry/partial/_event_details.html:30
-#: templates/sentry/partial/event_nav.html:39
-msgid "Additional Data"
-msgstr "附加数据"
-
-#: templates/sentry/partial/_event_details.html:41
-msgid "Package Versions"
-msgstr "套件版本"
-
-#: templates/sentry/partial/_form.html:15
+#: templates/sentry/partial/_form.html:14
 msgid "Test Configuration"
 msgstr "測試配置"
 
-#: templates/sentry/partial/data_values.html:16
-msgid "Index"
-msgstr "索引"
-
-#: templates/sentry/partial/data_values.html:17
-msgid "Value"
-msgstr "值"
-
-#: templates/sentry/partial/data_values.html:42
-msgid "Collapse Context"
-msgstr ""
-
-#: templates/sentry/partial/data_values.html:43
-#, python-format
-msgid "Expand Context (%(num)s hidden)"
-msgstr ""
-
-#: templates/sentry/partial/event_nav.html:23
-msgid "Top"
-msgstr "Top"
-
-#: templates/sentry/partial/event_nav.html:44
-msgid "Versions"
-msgstr "版本"
-
-#: templates/sentry/partial/client_config/connect.html:7
-#: templates/sentry/partial/client_config/express.html:7
-#: templates/sentry/partial/client_config/node.js.html:7
-#, python-format
-msgid "Start by installing <a href=\"%(link)s\">raven-node</a>:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/connect.html:11
-msgid ""
-"Register an instance of the Connect middleware <strong>after your main "
-"application handler</strong>:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/connect.html:20
-#: templates/sentry/partial/client_config/django.html:19
-#: templates/sentry/partial/client_config/express.html:17
-#: templates/sentry/partial/client_config/flask.html:19
-#: templates/sentry/partial/client_config/ios.html:23
-#: templates/sentry/partial/client_config/rails3.html:18
-#: templates/sentry/partial/client_config/sinatra.html:20
-msgid ""
-"That's it! Raven automatically installs an error handling hook to pipe all "
-"uncaught exceptions to Sentry."
-msgstr ""
-
-#: templates/sentry/partial/client_config/connect.html:22
-#: templates/sentry/partial/client_config/express.html:19
-#: templates/sentry/partial/client_config/node.js.html:29
-#, python-format
-msgid ""
-"For more information on other uses of Raven with Node.js, please see the <a "
-"href=\"%(link)s\">official documentation for raven-node</a>."
-msgstr ""
-
-#: templates/sentry/partial/client_config/csharp.html:3
-#, python-format
-msgid "Start by installing <a href=\"%(link)s\">raven-csharp</a>:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/csharp.html:5
-msgid "Initialize the client:"
-msgstr "初始化客戶端:"
-
-#: templates/sentry/partial/client_config/csharp.html:9
-msgid ""
-"To capture errors, you'll need to wrap your code in a simple try/catch "
-"block:"
-msgstr "為了要捕捉錯誤，您必須將您的程式碼放置於 try/catch 中:"
-
-#: templates/sentry/partial/client_config/csharp.html:21
-#, python-format
-msgid ""
-"For more information on other uses of Raven with C#, please see the <a "
-"href=\"%(link)s\">official documentation for raven-csharp</a>."
-msgstr ""
-
-#: templates/sentry/partial/client_config/django.html:6
-msgid "Then simply modify your Django configuration:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/django.html:8
-msgid "Set your DSN value"
-msgstr "設定您的 DSN 值"
-
-#: templates/sentry/partial/client_config/django.html:13
-msgid "Add raven to the list of installed apps"
-msgstr ""
-
-#: templates/sentry/partial/client_config/django.html:21
-#: templates/sentry/partial/client_config/python.html:40
-msgid ""
-"If you wish to test your connection to the server, you can use the raven "
-"test command:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/express.html:11
-msgid "Register an instance of the Express middleware:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/flask.html:6
-msgid "You'll also need blinker if you do not have it already:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/flask.html:10
-msgid "Blinker is required for signals to work within Flask."
-msgstr ""
-
-#: templates/sentry/partial/client_config/flask.html:12
-#: templates/sentry/partial/client_config/tornado.html:6
-msgid "Add the required configuration in your application setup:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/go.html:5
-#, python-format
-msgid "Start by installing <a href=\"%(link)s\">raven-go</a>."
-msgstr ""
-
-#: templates/sentry/partial/client_config/go.html:49
-#, python-format
-msgid ""
-"For more information on other uses of Raven with Go, please see the <a "
-"href=\"%(link)s\">official documentation for raven-go</a>."
-msgstr ""
-
-#: templates/sentry/partial/client_config/ios.html:3
-#, python-format
-msgid "Start by installing <a href=\"%(link)s\">raven-objc</a>:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/ios.html:8
-msgid ""
-"(Installing the client as a git submodule will make future updates easier)"
-msgstr ""
-
-#: templates/sentry/partial/client_config/ios.html:10
-msgid ""
-"Initialize the client. This is usually done in your app delegate's "
-"<code>application:didFinishLaunchingWithOptions</code>:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/ios.html:25
-#, python-format
-msgid ""
-"For more information on other uses of Raven with iOS, please see the <a "
-"href=\"%(link)s\">official documentation for raven-objc</a>."
-msgstr ""
-
-#: templates/sentry/partial/client_config/java.html:6
-msgid "You can manually send events using the EventBuilder:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/java.html:18
-#: templates/sentry/partial/client_config/javascript.html:35
-#: templates/sentry/partial/client_config/node.js.html:23
-#: templates/sentry/partial/client_config/php.html:20
-#: templates/sentry/partial/client_config/python.html:25
-msgid "record a simple message"
-msgstr ""
-
-#: templates/sentry/partial/client_config/java_base.html:16
-#, python-format
-msgid "Start by installing <a href=\"%(link)s\">raven-java</a>."
-msgstr ""
-
-#: templates/sentry/partial/client_config/java_base.html:18
-msgid "The easiest way to add the Raven dependency is with Maven:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/java_base.html:29
-#, python-format
-msgid ""
-"For more information on other uses of Raven with Java, please see the <a "
-"href=\"%(link)s\">official documentation for raven-java</a>."
-msgstr ""
-
-#: templates/sentry/partial/client_config/java_log4j.html:6
-#: templates/sentry/partial/client_config/java_log4j2.html:6
-#: templates/sentry/partial/client_config/java_logback.html:6
-msgid ""
-"You'll need to configure the SentryAppender in your logging configuration:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/java_logging.html:6
-msgid "You'll need to configure the SentryHandler in your logging.properties:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/javascript.html:3
-#, python-format
-msgid "Start by installing <a href=\"%(link)s\">raven-js</a>."
-msgstr ""
-
-#: templates/sentry/partial/client_config/javascript.html:9
-#, python-format
-msgid ""
-"Add any URLs which will be logging errors in your project's settings under "
-"<a href=\"%(project_link)s#client-security\">Client Security</a>:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/javascript.html:13
-msgid "Configure the client:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/javascript.html:25
-msgid "Add additional user context if it's available:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/javascript.html:32
-#: templates/sentry/partial/client_config/node.js.html:21
-#: templates/sentry/partial/client_config/php.html:18
-#: templates/sentry/partial/client_config/python.html:23
-msgid "Now call out to the raven client to capture events:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/javascript.html:38
-#: templates/sentry/partial/client_config/node.js.html:26
-#: templates/sentry/partial/client_config/php.html:23
-#: templates/sentry/partial/client_config/python.html:28
-msgid "capture an exception"
-msgstr ""
-
-#: templates/sentry/partial/client_config/javascript.html:45
-#, python-format
-msgid ""
-"For more information on other uses of Raven with Javascript, please see the "
-"<a href=\"%(link)s\">official documentation for raven-js</a>."
-msgstr ""
-
-#: templates/sentry/partial/client_config/node.js.html:11
-#: templates/sentry/partial/client_config/php.html:11
-#: templates/sentry/partial/client_config/python.html:6
-#: templates/sentry/partial/client_config/ruby.html:6
-msgid "Create an instance of the client:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/node.js.html:17
-#: templates/sentry/partial/client_config/php.html:31
-msgid ""
-"You can also optionally install a default error handler to catch all "
-"exceptions:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/php.html:3
-#, python-format
-msgid "Start by installing <a href=\"%(link)s\">raven-php</a>."
-msgstr ""
-
-#: templates/sentry/partial/client_config/php.html:5
-msgid "Register the autoloader:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/php.html:39
-msgid ""
-"<strong>Note:</strong> We dont recommend registering the generic error "
-"handler as it can be quite noisey."
-msgstr ""
-
-#: templates/sentry/partial/client_config/php.html:41
-#, python-format
-msgid ""
-"For more information on other uses of Raven with PHP, please see the <a "
-"href=\"%(link)s\">official documentation for raven-php</a>."
-msgstr ""
-
-#: templates/sentry/partial/client_config/pyramid.html:6
-#, python-format
-msgid ""
-"A filter factory for <a href=\"%(link)s\">PasteDeploy</a> exists to allow "
-"easily inserting Raven into a WSGI pipeline:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/pyramid.html:21
-msgid ""
-" In the <em>[filter:raven]</em> section, you must specify the entry-point "
-"for raven with the <em>use =</em> key. All other raven client parameters can"
-" be included in this section as well."
-msgstr ""
-
-#: templates/sentry/partial/client_config/pyramid.html:24
-msgid ""
-"Add the following lines to your project's <em>.ini</em> file to setup "
-"<em>SentryHandler</em>:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/python.html:34
-msgid ""
-"If you want to wrap a WSGI app to record uncaught exceptions, Raven provides"
-" a middleware for that:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/python_base.html:16
-#, python-format
-msgid "Start by installing <a href=\"%(link)s\">raven-python</a>:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/python_base.html:23
-#, python-format
-msgid ""
-"For more information on other uses of Raven with Python, please see the <a "
-"href=\"%(link)s\">official documentation for raven-python</a>."
-msgstr ""
-
-#: templates/sentry/partial/client_config/r.html:3
-#, python-format
-msgid "Start by installing <a href=\"%(link)s\">r-logging</a>:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/r.html:5
-msgid "Load the logging package:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/r.html:10
-msgid "Create a Sentry handler and add it to a logger:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/r.html:16
-msgid "Send events via the standard logging interface:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/r.html:25
-#, python-format
-msgid ""
-"For more information on other uses of the logging package, see the <a "
-"href=\"%(link)s\">documentation for r-logging</a>."
-msgstr ""
-
-#: templates/sentry/partial/client_config/rails3.html:6
-msgid "Add a <code>config/initializers/raven.rb</code> containing:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/ruby.html:14
-msgid "Now wrap your application to capture events:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/ruby_base.html:16
-#, python-format
-msgid "Start by installing <a href=\"%(link)s\">raven-ruby</a>:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/ruby_base.html:20
-msgid "Or add it to your <code>Gemfile</code>:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/ruby_base.html:27
-msgid ""
-"You may want to give things a try, you might want to use the included Rake "
-"task to test your configuration:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/ruby_base.html:31
-msgid ""
-"Note: If you're not bootstrapping the Raven gem somewhere that's included in"
-" your Rakefile, you'll have to manually pass the DSN value:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/ruby_base.html:35
-#, python-format
-msgid ""
-"For more information on other uses of Raven with Ruby, please see the <a "
-"href=\"%(link)s\">official documentation for raven-ruby</a>."
-msgstr ""
-
-#: templates/sentry/partial/client_config/sidekiq.html:6
-msgid "Configure the client within your application:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/sidekiq.html:14
-msgid ""
-"That's it! Raven automatically appends middleware to pipe all uncaught "
-"exceptions to Sentry."
-msgstr ""
-
-#: templates/sentry/partial/client_config/sinatra.html:6
-msgid "Configure the client and install the Rack middleware:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/tornado.html:22
-msgid ""
-"Once the sentry client is attached to the application, request handlers can "
-"automatically capture uncaught exceptions by inheriting the SentryMixin "
-"class."
-msgstr ""
-
-#: templates/sentry/partial/interfaces/chained_exception.html:7
-#: templates/sentry/partial/interfaces/stacktrace.html:6
-#: templates/sentry/partial/interfaces/template.html:5
-msgid "Raw"
-msgstr "原始"
-
-#: templates/sentry/partial/interfaces/chained_exception.html:15
-#: templates/sentry/partial/interfaces/exception.html:4
-msgid "Exception"
-msgstr "异常"
-
-#: templates/sentry/partial/interfaces/chained_exception.html:17
-#: templates/sentry/partial/interfaces/stacktrace.html:15
-msgid "most recent call first"
-msgstr ""
-
-#: templates/sentry/partial/interfaces/chained_exception.html:19
-#: templates/sentry/partial/interfaces/stacktrace.html:17
-msgid "most recent call last"
-msgstr ""
-
-#: templates/sentry/partial/interfaces/exception.html:12
-msgid "Type:"
-msgstr ""
-
-#: templates/sentry/partial/interfaces/exception.html:17
-msgid "Value:"
-msgstr ""
-
-#: templates/sentry/partial/interfaces/exception.html:23
-msgid "Location:"
-msgstr ""
-
-#: templates/sentry/partial/interfaces/http.html:6
-msgid "Copy as cURL"
-msgstr ""
-
-#: templates/sentry/partial/interfaces/http.html:8
-msgid "Replay this request"
-msgstr "重放这个请求"
-
-#: templates/sentry/partial/interfaces/http.html:19
-msgid "URL:"
-msgstr "URL:"
-
-#: templates/sentry/partial/interfaces/http.html:24
-msgid "Method:"
-msgstr "HTTP方法:"
-
-#: templates/sentry/partial/interfaces/http.html:30
-msgid "Query:"
-msgstr "请求参数:"
-
-#: templates/sentry/partial/interfaces/http.html:38
-msgid "Fragment:"
-msgstr ""
-
-#: templates/sentry/partial/interfaces/http.html:46
-msgid "Body:"
-msgstr "请求体:"
-
-#: templates/sentry/partial/interfaces/http.html:54
-msgid "Cookies:"
-msgstr "Cookies:"
-
-#: templates/sentry/partial/interfaces/http.html:62
-msgid "Headers:"
-msgstr "请求头:"
-
-#: templates/sentry/partial/interfaces/http.html:70
-msgid "Environment:"
-msgstr "环境变量:"
-
-#: templates/sentry/partial/interfaces/http_email.html:10
+#: templates/sentry/partial/_pager.html:5
+#: templates/sentry/users/details.html:42
+#: templates/sentry/users/details.html:59 templates/sentry/users/list.html:23
+#: templates/sentry/users/list.html:52
+#: static/sentry/app/components/pagination.jsx:41
+msgid "Previous"
+msgstr "上一個"
+
+#: templates/sentry/partial/_pager.html:6
+#: templates/sentry/users/details.html:43
+#: templates/sentry/users/details.html:60 templates/sentry/users/list.html:24
+#: templates/sentry/users/list.html:53
+#: static/sentry/app/components/pagination.jsx:47
+msgid "Next"
+msgstr "下一個"
+
+#: templates/sentry/partial/interfaces/http_email.html:8
+msgid "URL"
+msgstr "URL"
+
+#: templates/sentry/partial/interfaces/http_email.html:13
 msgid "Method"
 msgstr ""
 
-#: templates/sentry/partial/interfaces/http_email.html:15
+#: templates/sentry/partial/interfaces/http_email.html:19
 msgid "Query"
 msgstr ""
 
-#: templates/sentry/partial/interfaces/stacktrace.html:13
-msgid "Stacktrace"
-msgstr "调用栈:"
-
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:16
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:42
-msgid "Original Location"
+#: templates/sentry/partial/interfaces/http_email.html:27
+#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:74
+msgid "Fragment"
 msgstr ""
 
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:18
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:44
-msgid "Filename"
-msgstr "檔案名稱"
-
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:26
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:53
-msgid "Line Number"
-msgstr "行數"
-
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:28
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:57
-msgid "Column Number"
-msgstr ""
-
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:30
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:61
-msgid "Function"
-msgstr "功能"
-
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:32
-msgid "Sourcemap"
-msgstr ""
-
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:86
-#: templates/sentry/partial/interfaces/template.html:12
-msgid "Toggle Context"
-msgstr ""
-
-#: templates/sentry/partial/interfaces/template.html:6
-msgid "Template Error"
-msgstr "模板錯誤"
-
-#: templates/sentry/partial/interfaces/user.html:25
-#: templates/sentry/partial/interfaces/user_email.html:18
+#: templates/sentry/partial/interfaces/user_email.html:13
 msgid "ID:"
 msgstr "ID:"
 
-#: templates/sentry/partial/interfaces/user.html:31
-#: templates/sentry/partial/interfaces/user_email.html:24
+#: templates/sentry/partial/interfaces/user_email.html:19
 msgid "IP Address:"
 msgstr "IP位置:"
 
-#: templates/sentry/partial/interfaces/user.html:37
-#: templates/sentry/partial/interfaces/user_email.html:30
+#: templates/sentry/partial/interfaces/user_email.html:25
 msgid "Username:"
 msgstr "用戶名稱:"
 
-#: templates/sentry/partial/interfaces/user.html:43
-#: templates/sentry/partial/interfaces/user_email.html:36
+#: templates/sentry/partial/interfaces/user_email.html:31
 msgid "Email:"
 msgstr "Email:"
 
 #: templates/sentry/plugins/site_configuration.html:5
 msgid "Changes to your configuration were saved successfully."
 msgstr "对配置的修改已保存成功。"
+
+#: templates/sentry/plugins/bases/issue/create_issue.html:23
+msgid "Create Issue"
+msgstr ""
 
 #: templates/sentry/plugins/bases/issue/needs_auth.html:13
 #, python-format
@@ -2371,6 +1552,10 @@ msgstr ""
 msgid "Times Seen"
 msgstr "出現次數"
 
+#: templates/sentry/plugins/bases/tag/index.html:41
+msgid "There are no records recorded for this event."
+msgstr "沒有關於該事件的紀錄。"
+
 #: templates/sentry/projects/cannot_create_teams.html:9
 msgid ""
 "You are not able to create a new project because you are not a member of any"
@@ -2382,11 +1567,11 @@ msgstr ""
 msgid "Edit API Key"
 msgstr "編輯 API 金鑰"
 
-#: templates/sentry/projects/edit_key.html:22
+#: templates/sentry/projects/edit_key.html:25
 msgid "Created"
 msgstr ""
 
-#: templates/sentry/projects/edit_key.html:31
+#: templates/sentry/projects/edit_key.html:38
 msgid ""
 "Your credentials are bound to public and secret key (though both should be "
 "considered semi-secret). Different clients will require different "
@@ -2394,164 +1579,158 @@ msgid ""
 " in."
 msgstr ""
 
-#: templates/sentry/projects/edit_key.html:33
+#: templates/sentry/projects/edit_key.html:40
+#: static/sentry/app/views/projectInstall/overview.jsx:54
 msgid "DSN"
 msgstr "DSN"
 
-#: templates/sentry/projects/edit_key.html:39
+#: templates/sentry/projects/edit_key.html:46
 msgid "DSN (Public)"
 msgstr "DSN(公開)"
 
-#: templates/sentry/projects/edit_key.html:40
+#: templates/sentry/projects/edit_key.html:50
 #, python-format
 msgid ""
-"Use your public DSN with insecure clients such as <a href=\"%(link)s"
+"Use your public DSN with browser-based clients such as <a href=\"%(link)s"
 "\">raven-js</a>."
 msgstr ""
 
-#: templates/sentry/projects/edit_key.html:46
+#: templates/sentry/projects/edit_key.html:53
 msgid "Public Key"
 msgstr "公開金鑰"
 
-#: templates/sentry/projects/edit_key.html:52
+#: templates/sentry/projects/edit_key.html:59
 msgid "Secret Key"
 msgstr "安全金鑰"
 
-#: templates/sentry/projects/edit_key.html:58
+#: templates/sentry/projects/edit_key.html:65
 msgid "Project ID"
 msgstr "專案編號"
 
-#: templates/sentry/projects/keys.html:7
+#: templates/sentry/projects/keys.html:6
 #: templates/sentry/projects/keys.html:15
-msgid "Manage Client Keys"
-msgstr "管理客戶端金鑰"
+#: templates/sentry/projects/manage.html:185
+#: static/sentry/app/views/projectSettings/index.jsx:96
+msgid "Client Keys"
+msgstr ""
 
 #: templates/sentry/projects/keys.html:12
 msgid "Generate New Key"
 msgstr "產生新的金鑰"
 
-#: templates/sentry/projects/keys.html:25
-msgid "Client Key"
-msgstr "客戶端金鑰"
-
-#: templates/sentry/projects/keys.html:45
+#: templates/sentry/projects/keys.html:30
 msgid "Disable"
 msgstr "禁用"
 
-#: templates/sentry/projects/keys.html:50
+#: templates/sentry/projects/keys.html:35
 msgid "Enable"
 msgstr "啟用"
 
-#: templates/sentry/projects/keys.html:57
+#: templates/sentry/projects/keys.html:42
 msgid "Revoke"
 msgstr "重新配發"
 
-#: templates/sentry/projects/manage.html:19
+#: templates/sentry/projects/manage.html:29
+#: templates/sentry/projects/manage.html:156
+#: static/sentry/app/views/projectSettings/index.jsx:80
+msgid "Project Settings"
+msgstr ""
+
+#: templates/sentry/projects/manage.html:37
 msgid "Project Details"
 msgstr "專案詳細訊息"
 
-#: templates/sentry/projects/manage.html:33
+#: templates/sentry/projects/manage.html:48
 msgid "Event Settings"
 msgstr "事件設定"
 
-#: templates/sentry/projects/manage.html:43
+#: templates/sentry/projects/manage.html:60
 msgid "Client Security"
 msgstr "客戶端安全"
 
-#: templates/sentry/projects/manage.html:45
+#: templates/sentry/projects/manage.html:64
 #, python-format
 msgid ""
 "Configure origin URLs which Sentry should accept events from. This is used "
 "for communication with clients like <a href=\"%(link)s\">raven-js</a>."
 msgstr ""
 
-#: templates/sentry/projects/manage.html:46
+#: templates/sentry/projects/manage.html:66
 msgid ""
 "This will restrict requests based on the <code>Origin</code> and "
 "<code>Referer</code> headers."
 msgstr ""
 
-#: templates/sentry/projects/manage.html:55
-#: templates/sentry/projects/manage.html:57
-#: templates/sentry/projects/manage.html:60
+#: templates/sentry/projects/manage.html:77
+#: templates/sentry/projects/manage.html:86
 #: templates/sentry/projects/remove.html:6
-#: templates/sentry/projects/remove.html:18
+#: templates/sentry/projects/remove.html:11
+#: templates/sentry/projects/remove.html:29
 msgid "Remove Project"
 msgstr "删除项目"
 
-#: templates/sentry/projects/manage.html:57
-msgid ""
-"This project cannot be removed. It is used internally by the Sentry server."
-msgstr ""
-
-#: templates/sentry/projects/manage.html:60
+#: templates/sentry/projects/manage.html:81
 msgid "You do not have the required permission to remove this project."
 msgstr ""
 
 #: templates/sentry/projects/manage.html:83
+msgid ""
+"This project cannot be removed. It is used internally by the Sentry server."
+msgstr ""
+
+#: templates/sentry/projects/manage.html:163
 #: templates/sentry/projects/quotas.html:7
-#: templates/sentry/projects/quotas.html:11
+#: templates/sentry/projects/quotas.html:10
 msgid "Rate Limits"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:101
-msgid "Client Keys"
+#: templates/sentry/projects/manage.html:170
+#: templates/sentry/projects/manage_tags.html:7
+#: templates/sentry/projects/manage_tags.html:10
+#: static/sentry/app/components/events/eventTags.jsx:29
+msgid "Tags"
+msgstr "標籤"
+
+#: templates/sentry/projects/manage.html:179
+#: static/sentry/app/views/projectSettings/index.jsx:87
+msgid "Setup"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:103
-msgid "Help"
+#: templates/sentry/projects/manage.html:182
+#: static/sentry/app/views/projectSettings/index.jsx:95
+msgid "Instructions"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:105
-msgid "Setup &amp; Installation"
-msgstr ""
-
-#: templates/sentry/projects/manage.html:108
+#: templates/sentry/projects/manage.html:189
+#: templates/sentry/projects/plugins/list.html:10
+#: static/sentry/app/views/projectSettings/index.jsx:98
 msgid "Integrations"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:110
-#: templates/sentry/projects/plugins/list.html:7
-#: templates/sentry/projects/plugins/list.html:11
-msgid "Manage Integrations"
+#: templates/sentry/projects/manage.html:192
+#: static/sentry/app/views/projectSettings/index.jsx:100
+msgid "All Integrations"
 msgstr ""
 
-#: templates/sentry/projects/manage_tags.html:7
-#: templates/sentry/projects/manage_tags.html:11
-msgid "Manage Tags"
-msgstr ""
-
-#: templates/sentry/projects/manage_tags.html:14
+#: templates/sentry/projects/manage_tags.html:13
 msgid ""
 "Each event in Sentry may be annotated with various tags (key and value "
 "pairs). For more information on how send additional tags, see your client's "
 "documentation."
 msgstr ""
 
-#: templates/sentry/projects/manage_tags.html:25
-msgid ""
-"Filters allow you to do limited searching on the stream view based on a "
-"tag's value. They are selectable via the sidebar on the stream."
-msgstr ""
-
-#: templates/sentry/projects/manage_tags.html:31
-msgid ""
-"Annotations display the total number of unique values that have been seen "
-"for an event. They are rendered on the stream with each individual event."
-msgstr ""
-
-#: templates/sentry/projects/manage_tags.html:65
+#: templates/sentry/projects/manage_tags.html:45
 msgid "We have not yet recorded any tags for this project."
 msgstr ""
 
-#: templates/sentry/projects/quotas.html:14
+#: templates/sentry/projects/quotas.html:13
 msgid ""
 "With the nature of Sentry, sometimes the amount of data collected can be "
 "overwhelming. You can set rate limits per-project to ensure that a single "
 "flood of errors won't affect any other projects utilizing Sentry."
 msgstr ""
 
-#: templates/sentry/projects/quotas.html:16
+#: templates/sentry/projects/quotas.html:15
 msgid ""
 "Rate limits apply on a per-minute basis, which means that they rollover at "
 "the start of a new minute. When you attempt to send an event and the project"
@@ -2559,114 +1738,91 @@ msgid ""
 "response."
 msgstr ""
 
-#: templates/sentry/projects/quotas.html:19
+#: templates/sentry/projects/quotas.html:18
 msgid "Note: The Sentry application is not configured to manage rate limits."
 msgstr ""
 
-#: templates/sentry/projects/quotas.html:21
+#: templates/sentry/projects/quotas.html:20
 #, python-format
 msgid ""
 "Your team has <strong>%(team_quota)s events per minute</strong> allocated "
 "collectively among projects."
 msgstr ""
 
-#: templates/sentry/projects/quotas.html:23
+#: templates/sentry/projects/quotas.html:22
 #, python-format
 msgid ""
 "The Sentry system has <strong>%(system_quota)s events per minute</strong> "
 "allocated collectively among projects."
 msgstr ""
 
-#: templates/sentry/projects/remove.html:11
-msgid "WARNING: This operation is permanent and cannot be undone!"
+#: templates/sentry/projects/remove.html:18
+msgid "Removing this project is permanent and cannot be undone!"
 msgstr ""
 
-#: templates/sentry/projects/plugins/configure.html:11
+#: templates/sentry/projects/remove.html:20
+msgid "This will also remove the all associated event data."
+msgstr ""
+
+#: templates/sentry/projects/plugins/configure.html:15
 msgid "Enable Plugin"
 msgstr ""
 
-#: templates/sentry/projects/plugins/configure.html:13
+#: templates/sentry/projects/plugins/configure.html:21
 msgid "Disable Plugin"
 msgstr ""
 
-#: templates/sentry/projects/plugins/configure.html:17
+#: templates/sentry/projects/plugins/configure.html:27
 msgid "Are you sure you wish to reset all configuration for this plugin?"
 msgstr ""
 
-#: templates/sentry/projects/plugins/configure.html:17
+#: templates/sentry/projects/plugins/configure.html:29
 msgid "Reset Configuration"
 msgstr ""
 
-#: templates/sentry/projects/plugins/configure.html:19
-#, python-format
-msgid "Configure %(name)s"
-msgstr ""
-
-#: templates/sentry/projects/plugins/configure.html:25
+#: templates/sentry/projects/plugins/configure.html:38
 msgid "Changes to your project were saved successfully."
 msgstr "对项目的修改已保存成功。"
 
-#: templates/sentry/projects/plugins/list.html:18
-msgid "Integration"
+#: templates/sentry/projects/plugins/list.html:7
+msgid "Manage Integrations"
 msgstr ""
 
-#: templates/sentry/projects/plugins/list.html:19
-msgid "Version"
-msgstr ""
+#: templates/sentry/projects/plugins/list.html:24
+msgid "n/a"
+msgstr "不可用"
 
-#: templates/sentry/projects/plugins/list.html:20
-msgid "Enabled"
-msgstr "啟用"
-
-#: templates/sentry/projects/rules/list.html:7
-#: templates/sentry/projects/rules/new.html:19
+#: templates/sentry/projects/rules/list.html:8
 msgid "New Rule"
 msgstr "新規則:"
-
-#: templates/sentry/projects/rules/new.html:17
-msgid "Edit Rule"
-msgstr "編輯規則"
-
-#: templates/sentry/projects/rules/new.html:30
-msgid ""
-"There were errors with your submission. Please ensure all options are filled"
-" out correctly."
-msgstr ""
-
-#: templates/sentry/projects/rules/new.html:38
-msgid "Label:"
-msgstr ""
-
-#: templates/sentry/projects/rules/new.html:38
-msgid "e.g. My Rule Name"
-msgstr ""
-
-#: templates/sentry/projects/rules/new.html:77
-msgid "Save Rule"
-msgstr "儲存規則"
 
 #: templates/sentry/teams/base.html:5
 msgid "Team List"
 msgstr "團隊列表"
 
-#: templates/sentry/teams/manage.html:8
+#: templates/sentry/teams/manage.html:8 templates/sentry/teams/manage.html:11
+#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:66
 msgid "Team Settings"
 msgstr "團隊設定"
 
-#: templates/sentry/teams/manage.html:49 templates/sentry/teams/manage.html:51
-#: templates/sentry/teams/remove.html:6 templates/sentry/teams/remove.html:14
+#: templates/sentry/teams/manage.html:41 templates/sentry/teams/manage.html:47
+#: templates/sentry/teams/remove.html:6 templates/sentry/teams/remove.html:11
+#: templates/sentry/teams/remove.html:37
 msgid "Remove Team"
 msgstr "移除團隊"
 
-#: templates/sentry/teams/manage.html:51
-msgid "You do not have the required permission to remove this team."
-msgstr "您沒有權限刪除這個團隊"
-
-#: templates/sentry/teams/remove.html:19
-msgid ""
-"Are you sure you wish to remove this team? This change is permanent and "
-"cannot be undone!"
+#: templates/sentry/teams/remove.html:18
+msgid "Removing this team is permanent and cannot be undone!"
 msgstr ""
+
+#: templates/sentry/teams/remove.html:21
+msgid "This will also remove all associated projects and events:"
+msgstr ""
+
+#: templates/sentry/users/list.html:15
+#, python-format
+msgid "Sort by: %(label)s"
+msgstr "排序方式：%(label)s"
 
 #: templates/sentry/users/list.html:29
 msgid ""
@@ -2674,204 +1830,210 @@ msgid ""
 " send this information consult your client's documentation."
 msgstr ""
 
-#: templatetags/sentry_helpers.py:111
+#: templates/sentry/users/list.html:34
+#: static/sentry/app/components/events/user.jsx:31
+msgid "User"
+msgstr "用户"
+
+#: templates/sentry/users/list.html:36
+msgid "Events Seen"
+msgstr ""
+
+#: templatetags/sentry_helpers.py:114
 msgid "b"
 msgstr "b"
 
-#: templatetags/sentry_helpers.py:112
+#: templatetags/sentry_helpers.py:115
 msgid "m"
 msgstr "m"
 
-#: templatetags/sentry_helpers.py:113
+#: templatetags/sentry_helpers.py:116
 msgid "k"
 msgstr "k"
 
-#: templatetags/sentry_helpers.py:160
+#: templatetags/sentry_helpers.py:172
 msgid "never"
 msgstr "從不"
 
-#: templatetags/sentry_helpers.py:164
+#: templatetags/sentry_helpers.py:176
 msgid "0 minutes"
 msgstr "0 分鐘"
 
-#: templatetags/sentry_helpers.py:165
+#: templatetags/sentry_helpers.py:177
 msgid "just now"
 msgstr "剛剛"
 
-#: templatetags/sentry_helpers.py:166
+#: templatetags/sentry_helpers.py:178
+#: static/sentry/app/views/projectDashboard.jsx:130
 msgid "1 day"
 msgstr "1天"
 
-#: templatetags/sentry_helpers.py:167
+#: templatetags/sentry_helpers.py:179
 msgid "yesterday"
 msgstr "昨天"
 
-#: templatetags/sentry_helpers.py:168
+#: templatetags/sentry_helpers.py:180
 msgid " ago"
 msgstr "前"
 
-#: web/api.py:620
-msgid "Deletion has been queued and should occur shortly."
-msgstr ""
-
-#: web/forms/__init__.py:39
-msgid "Create a project for this user."
-msgstr "建立專案給這個用戶"
-
-#: web/forms/__init__.py:41
+#: web/forms/__init__.py:46
 msgid ""
 "Send this user a welcome email which will contain their generated password."
 msgstr "發送一封帶有密碼產生網址的歡迎信"
 
-#: web/forms/__init__.py:50
+#: web/forms/__init__.py:55
 msgid "Designates whether this user can perform administrative functions."
 msgstr ""
 
-#: web/forms/__init__.py:51
+#: web/forms/__init__.py:56
 msgid "Superuser"
 msgstr "超級使用者"
 
-#: web/forms/__init__.py:52
+#: web/forms/__init__.py:57
 msgid ""
 "Designates whether this user has all permissions without explicitly "
 "assigning them."
 msgstr ""
 
-#: web/forms/__init__.py:74
+#: web/forms/__init__.py:79
 msgid "Disable the account."
 msgstr "停用此帳號"
 
-#: web/forms/__init__.py:75
+#: web/forms/__init__.py:80
 msgid "Permanently remove the user and their data."
 msgstr "永久移除这个用户及其数据"
 
-#: web/forms/accounts.py:76
+#: web/forms/accounts.py:74
+msgid "username or email"
+msgstr "使用者名稱或email"
+
+#: web/forms/accounts.py:79
+msgid "password"
+msgstr "密碼"
+
+#: web/forms/accounts.py:84
 #, python-format
 msgid ""
 "Please enter a correct %(username)s and password. Note that both fields may "
 "be case-sensitive."
 msgstr ""
 
-#: web/forms/accounts.py:78
+#: web/forms/accounts.py:86
 msgid ""
 "Your Web browser doesn't appear to have cookies enabled. Cookies are "
 "required for logging in."
 msgstr ""
 
-#: web/forms/accounts.py:80
+#: web/forms/accounts.py:88
 msgid "This account is inactive."
 msgstr "這個用戶是無效的"
 
-#: web/forms/accounts.py:152
+#: web/forms/accounts.py:160
 msgid "An account is already registered with that email address."
 msgstr "此信箱已被註冊"
 
-#: web/forms/accounts.py:165
+#: web/forms/accounts.py:173
 msgid "Username or email"
 msgstr "使用者名稱或email"
 
-#: web/forms/accounts.py:173
+#: web/forms/accounts.py:181
 msgid "We were unable to find a matching user."
 msgstr "我們無法找到符合的使用者"
 
-#: web/forms/accounts.py:175
+#: web/forms/accounts.py:183
 msgid "Multiple accounts were found matching this email address."
 msgstr ""
 
-#: web/forms/accounts.py:184
+#: web/forms/accounts.py:192
 msgid "Designate an alternative email address to send email notifications to."
 msgstr ""
 
-#: web/forms/accounts.py:186
+#: web/forms/accounts.py:194
 msgid "Alerts"
 msgstr "警示"
 
-#: web/forms/accounts.py:188
+#: web/forms/accounts.py:196
 msgid "Automatically subscribe to notifications for new projects"
 msgstr ""
 
-#: web/forms/accounts.py:189
+#: web/forms/accounts.py:197
 msgid "Do not subscribe to notifications for new projects"
 msgstr ""
 
-#: web/forms/accounts.py:193
+#: web/forms/accounts.py:201
 msgid "Notes"
 msgstr "註記"
 
-#: web/forms/accounts.py:195
+#: web/forms/accounts.py:203
 msgid "Get notified about new notes"
 msgstr "當有新的註記時取得提醒"
 
-#: web/forms/accounts.py:196
+#: web/forms/accounts.py:204
 msgid "Do not subscribe to note notifications"
 msgstr ""
 
-#: web/forms/accounts.py:250
+#: web/forms/accounts.py:258
 msgid "New password"
 msgstr "新密碼"
 
-#: web/forms/accounts.py:289
+#: web/forms/accounts.py:297
 msgid "That username is already in use."
 msgstr "這個帳號名稱已經被使用"
 
-#: web/forms/accounts.py:317
+#: web/forms/accounts.py:325
 msgid "Language"
 msgstr "語言"
 
-#: web/forms/accounts.py:320
+#: web/forms/accounts.py:328
 msgid "Stacktrace order"
 msgstr "堆疊追蹤排序"
 
-#: web/forms/accounts.py:321
+#: web/forms/accounts.py:329
 msgid "Default (let Sentry decide)"
 msgstr "預設(讓Sentry決定)"
 
-#: web/forms/accounts.py:322
+#: web/forms/accounts.py:330
 msgid "Most recent call last"
 msgstr ""
 
-#: web/forms/accounts.py:323
+#: web/forms/accounts.py:331
 msgid "Most recent call first"
 msgstr ""
 
-#: web/forms/accounts.py:324
+#: web/forms/accounts.py:332
 msgid "Choose the default ordering of frames in stacktraces."
 msgstr ""
 
-#: web/forms/accounts.py:328
+#: web/forms/accounts.py:336
 msgid "Time zone"
 msgstr "時區"
 
+#: web/forms/accounts.py:339
+msgid "Use a 24-hour clock"
+msgstr ""
+
 #: web/forms/add_project.py:16
-msgid "e.g. Backend, Frontend, iOS, Android"
+msgid "i.e. API, Frontend, My Application Name"
 msgstr ""
 
-#: web/forms/add_project.py:22 web/frontend/project_settings.py:29
-msgid "Select a platform"
-msgstr "選擇平台"
-
-#: web/forms/add_team.py:12
-msgid "E.g. Platform, API, Website, ..."
+#: web/forms/add_team.py:15
+msgid "E.g. Operations, Web, Desktop, ..."
 msgstr ""
 
-#: web/forms/edit_organization_member.py:20
-msgid "Membership Type"
-msgstr ""
-
-#: web/forms/edit_organization_member.py:22
-msgid "This member should have access to all teams within the organization."
-msgstr ""
-
-#: web/forms/fields.py:79
+#: web/forms/fields.py:83
 msgid "Invalid username"
 msgstr "無效的使用者名稱"
 
-#: web/forms/fields.py:101
+#: web/forms/fields.py:105
 msgid "Not set"
 msgstr ""
 
-#: web/forms/fields.py:125
+#: web/forms/fields.py:129
 msgid "e.g. example.com or https://example.com"
+msgstr ""
+
+#: web/forms/fields.py:158
+msgid "e.g. 127.0.0.1 or 10.0.0.0/8"
 msgstr ""
 
 #: web/forms/projects.py:19
@@ -2901,33 +2063,25 @@ msgstr "標籤"
 msgid "The invite link you followed is not valid."
 msgstr ""
 
-#: web/frontend/accept_organization_invite.py:89
+#: web/frontend/accept_organization_invite.py:83
 #, python-format
 msgid "You are already a member of the %r organization."
-msgstr ""
+msgstr "您已經是組織 %r 的成員。"
 
-#: web/frontend/accept_organization_invite.py:112
+#: web/frontend/accept_organization_invite.py:106
 #, python-format
 msgid "You have been added to the %r organization."
 msgstr ""
 
-#: web/frontend/auth_link_identity.py:11
+#: web/frontend/auth_link_identity.py:15
 msgid ""
 "Either you are not a member of the given organization or it does not exist."
 msgstr ""
 
-#: web/frontend/auth_login.py:16
+#: web/frontend/auth_login.py:18
 msgid ""
 "The organization does not exist or does not have Single Sign-On enabled."
 msgstr ""
-
-#: web/frontend/auth_organization_login.py:19
-msgid "username or email"
-msgstr "使用者名稱或email"
-
-#: web/frontend/auth_organization_login.py:24
-msgid "password"
-msgstr "密碼"
 
 #: web/frontend/base.py:21
 msgid "You need to link your account with the SSO provider to continue."
@@ -2941,90 +2095,124 @@ msgstr "組織名稱"
 msgid "My Company"
 msgstr "我的公司"
 
-#: web/frontend/create_organization_member.py:42
+#: web/frontend/create_organization_member.py:37
 msgid "The organization member was added."
-msgstr "組織成員已經新增"
+msgstr "組織成員已經新增。"
 
-#: web/frontend/create_organization_member.py:45
+#: web/frontend/create_organization_member.py:40
 msgid "The organization member already exists."
-msgstr "組織成員已經存在"
+msgstr "組織成員已經存在。"
 
-#: web/frontend/generic.py:56
-msgid "Missing Permission"
-msgstr "權限遺失"
-
-#: web/frontend/generic.py:57
+#: web/frontend/disable_project_key.py:35
 #, python-format
-msgid "You do not have the required permissions to %s."
-msgstr ""
+msgid "The API key (%s) was disabled."
+msgstr "API 金鑰 (%s) 已經被禁用"
+
+#: web/frontend/edit_project_key.py:39
+#, python-format
+msgid "Changes to the API key (%s) were saved."
+msgstr "API 金鑰 (%s) 的變更已經被儲存"
+
+#: web/frontend/enable_project_key.py:35
+#, python-format
+msgid "The API key (%s) was enabled."
+msgstr "API 金鑰 (%s) 已經被啟用"
 
 #: web/frontend/organization_api_key_settings.py:16
-#: web/frontend/project_settings.py:33
+#: web/frontend/project_settings.py:31
 msgid "Allowed Domains"
 msgstr "允許的網域"
 
 #: web/frontend/organization_api_key_settings.py:17
-#: web/frontend/project_settings.py:34
+#: web/frontend/project_settings.py:32 web/frontend/project_settings.py:64
 msgid "Separate multiple entries with a newline."
 msgstr "使用換行來切割多筆資訊"
 
-#: web/frontend/organization_auth_settings.py:23
+#: web/frontend/organization_auth_settings.py:22
 msgid "The SSO feature is not enabled for this organization."
 msgstr ""
 
-#: web/frontend/organization_auth_settings.py:25
+#: web/frontend/organization_auth_settings.py:24
 msgid "SSO authentication has been disabled."
 msgstr ""
 
-#: web/frontend/organization_auth_settings.py:27
+#: web/frontend/organization_auth_settings.py:26
 msgid ""
 "A reminder email has been sent to members who have not yet linked their "
 "accounts."
 msgstr ""
 
-#: web/frontend/organization_auth_settings.py:32
+#: web/frontend/organization_auth_settings.py:31
 msgid "Require SSO"
 msgstr "要求 SSO"
 
-#: web/frontend/organization_auth_settings.py:33
+#: web/frontend/organization_auth_settings.py:32
 msgid ""
 "Require members use a valid linked SSO account to access this organization"
 msgstr ""
 
-#: web/frontend/organization_member_settings.py:28
+#: web/frontend/organization_auth_settings.py:36
+#: web/frontend/organization_settings.py:28
+msgid "Default Role"
+msgstr ""
+
+#: web/frontend/organization_auth_settings.py:38
+msgid ""
+"The default role new members will receive when logging in for the first "
+"time."
+msgstr ""
+
+#: web/frontend/organization_member_settings.py:30
 #, python-format
 msgid "An invitation to join %(organization)s has been sent to %(email)s"
 msgstr ""
 
-#: web/frontend/organization_member_settings.py:77
+#: web/frontend/organization_member_settings.py:83
 msgid "Your changes were saved."
 msgstr "您的變更已經被儲存"
 
-#: web/frontend/organization_settings.py:16
+#: web/frontend/organization_settings.py:17
 msgid "The name of your organization. i.e. My Company"
 msgstr "您的組織名稱. 範例: 我的公司"
 
-#: web/frontend/organization_settings.py:17
-msgid "A unique ID used to identify this organization."
-msgstr ""
-
 #: web/frontend/organization_settings.py:19
-msgid "Open Membership"
+#: web/frontend/project_settings.py:27 web/frontend/team_settings.py:16
+msgid "Short name"
 msgstr ""
 
 #: web/frontend/organization_settings.py:20
+msgid "A unique ID used to identify this organization."
+msgstr ""
+
+#: web/frontend/organization_settings.py:23
+msgid "Open Membership"
+msgstr ""
+
+#: web/frontend/organization_settings.py:24
 msgid "Allow organization members to freely join or leave any team."
 msgstr ""
 
-#: web/frontend/organization_settings.py:58
+#: web/frontend/organization_settings.py:30
+msgid "The default role new members will receive."
+msgstr ""
+
+#: web/frontend/organization_settings.py:33
+msgid "Enhanced Privacy"
+msgstr ""
+
+#: web/frontend/organization_settings.py:34
+msgid ""
+"Enable enhanced privacy controls to limit personally identifiable "
+"information (PII) as well as source code in things like notifications."
+msgstr ""
+
+#: web/frontend/organization_settings.py:75
 msgid "Changes to your organization were saved."
 msgstr ""
 
-#: web/frontend/project_notifications.py:16
-#: web/frontend/projects/plugins.py:38 web/frontend/projects/plugins.py:76
-#: web/frontend/projects/quotas.py:44 web/frontend/projects/tags.py:44
-msgid "Your settings were saved successfully."
-msgstr "設定已成功儲存。"
+#: web/frontend/project_quotas.py:12
+msgid "The quotas feature is not enabled for this project."
+msgstr "這個專案並沒有啟用配額功能"
 
 #: web/frontend/project_release_tracking.py:20
 msgid ""
@@ -3036,23 +2224,31 @@ msgstr ""
 msgid "The release tracking feature is not enabled for this project."
 msgstr ""
 
-#: web/frontend/project_settings.py:27
+#: web/frontend/project_rule_remove.py:25
+msgid "The rule was removed."
+msgstr "此規則已被刪除。"
+
+#: web/frontend/project_settings.py:25
 msgid "Production"
 msgstr ""
 
-#: web/frontend/project_settings.py:31
-msgid "Imply public access to any event for this project."
+#: web/frontend/project_settings.py:28
+msgid "A unique ID used to identify this project."
 msgstr ""
 
-#: web/frontend/project_settings.py:35
+#: web/frontend/project_settings.py:33
 msgid "Security token"
 msgstr "安全令牌"
 
-#: web/frontend/project_settings.py:36
+#: web/frontend/project_settings.py:34
 #, python-brace-format
 msgid ""
 "Outbound requests matching Allowed Domains will have the header \"X-Sentry-"
 "Token: {token}\" appended."
+msgstr ""
+
+#: web/frontend/project_settings.py:35
+msgid "Auto resolve"
 msgstr ""
 
 #: web/frontend/project_settings.py:37
@@ -3060,39 +2256,52 @@ msgid ""
 "Treat an event as resolved if it hasn't been seen for this amount of time."
 msgstr ""
 
-#: web/frontend/project_settings.py:40
+#: web/frontend/project_settings.py:39
 msgid "Data Scrubber"
 msgstr ""
 
-#: web/frontend/project_settings.py:41
+#: web/frontend/project_settings.py:40
 msgid ""
 "Apply server-side data scrubbing to prevent things like passwords and credit"
 " cards from being stored."
 msgstr ""
 
-#: web/frontend/project_settings.py:45
+#: web/frontend/project_settings.py:44
 msgid "Additional sensitive fields"
 msgstr ""
 
-#: web/frontend/project_settings.py:46
+#: web/frontend/project_settings.py:45
 msgid ""
 "Additional field names to match against when scrubbing data. Separate "
 "multiple entries with a newline."
 msgstr ""
 
-#: web/frontend/project_settings.py:48
+#: web/frontend/project_settings.py:47
 msgid "e.g. email"
 msgstr "e.g. email"
 
-#: web/frontend/project_settings.py:55
+#: web/frontend/project_settings.py:54
 msgid "Don't store IP Addresses"
 msgstr "不要儲存IP位置"
 
-#: web/frontend/project_settings.py:56
+#: web/frontend/project_settings.py:55
 msgid "Prevent IP addresses from being stored for new events."
 msgstr ""
 
-#: web/frontend/project_settings.py:212
+#: web/frontend/project_settings.py:59
+msgid "Enable JavaScript source fetching"
+msgstr ""
+
+#: web/frontend/project_settings.py:60
+msgid ""
+"Allow Sentry to scrape missing JavaScript source context when possible."
+msgstr ""
+
+#: web/frontend/project_settings.py:63
+msgid "Blacklisted IP Addresses"
+msgstr ""
+
+#: web/frontend/project_settings.py:195
 msgid "Changes to your project were saved."
 msgstr "您的專案變動已經被儲存"
 
@@ -3105,48 +2314,1011 @@ msgstr ""
 msgid "The %s organization has been scheduled for removal."
 msgstr ""
 
-#: web/frontend/remove_project.py:68
+#: web/frontend/remove_project.py:35
 #, python-format
 msgid "The project %r was scheduled for deletion."
 msgstr ""
 
-#: web/frontend/remove_team.py:51
-#, python-format
-msgid "The team %r was scheduled for deletion."
-msgstr ""
-
-#: web/frontend/team_settings.py:49
-msgid "Changes to your team were saved."
-msgstr "您的組織變動已經被儲存"
-
-#: web/frontend/projects/keys.py:111
-#, python-format
-msgid "Changes to the API key (%s) were saved."
-msgstr "API 金鑰 (%s) 的變更已經被儲存"
-
-#: web/frontend/projects/keys.py:153
+#: web/frontend/remove_project_key.py:38
 #, python-format
 msgid "The API key (%s) was revoked."
 msgstr "API 金鑰 (%s) 已經被重新配發"
 
-#: web/frontend/projects/keys.py:184
+#: web/frontend/remove_team.py:35
 #, python-format
-msgid "The API key (%s) was disabled."
-msgstr "API 金鑰 (%s) 已經被禁用"
+msgid "The team %r was scheduled for deletion."
+msgstr ""
 
-#: web/frontend/projects/keys.py:215
+#: web/frontend/team_settings.py:17
+msgid "A unique ID used to identify this team."
+msgstr ""
+
+#: web/frontend/team_settings.py:64
+msgid "Changes to your team were saved."
+msgstr "您的組織變動已經被儲存"
+
+#: static/sentry/app/components/loadingError.jsx:12
+msgid "There was an error loading data."
+msgstr ""
+
+#: static/sentry/app/components/loadingError.jsx:26
+msgid "Retry"
+msgstr ""
+
+#: static/sentry/app/components/projectHeader/projectSelector.jsx:168
+msgid "Filter projects"
+msgstr ""
+
+#: static/sentry/app/views/ruleEditor/index.jsx:108
+msgid ""
+"There was an error saving your changes. Make sure all fields are valid and "
+"try again."
+msgstr ""
+
+#: static/sentry/app/views/ruleEditor/index.jsx:121
 #, python-format
-msgid "The API key (%s) was enabled."
-msgstr "API 金鑰 (%s) 已經被啟用"
+msgid "Every time %s of these conditions are met:"
+msgstr ""
 
-#: web/frontend/projects/quotas.py:23
-msgid "The quotas feature is not enabled for this project."
-msgstr "這個專案並沒有啟用配額功能"
+#: static/sentry/app/views/ruleEditor/index.jsx:126
+msgid "all"
+msgstr ""
 
-#: web/frontend/projects/rules.py:172
-msgid "Changes to your rule were saved."
-msgstr "您的規則變更已經被儲存"
+#: static/sentry/app/views/ruleEditor/index.jsx:127
+msgid "any"
+msgstr ""
 
-#: web/frontend/projects/rules.py:224
-msgid "The rule was removed."
-msgstr "此規則已被刪除。"
+#: static/sentry/app/views/ruleEditor/index.jsx:128
+msgid "none"
+msgstr ""
+
+#: static/sentry/app/views/ruleEditor/index.jsx:146
+msgid ""
+"Ensure at least one condition is enabled and all required fields are filled "
+"in."
+msgstr ""
+
+#: static/sentry/app/views/ruleEditor/index.jsx:143
+msgid "Take these actions:"
+msgstr ""
+
+#: static/sentry/app/views/ruleEditor/index.jsx:156
+msgid "Save Rule"
+msgstr "儲存規則"
+
+#: static/sentry/app/views/adminOrganizations.jsx:100
+msgid "Sorry, no results match your filters."
+msgstr ""
+
+#: static/sentry/app/views/adminOrganizations.jsx:128
+msgid "Organizations"
+msgstr "組織"
+
+#: static/sentry/app/views/adminOrganizations.jsx:132
+msgid "Search for an organization."
+msgstr ""
+
+#: static/sentry/app/components/organizations/homeSidebar.jsx:27
+msgid "Organization"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails.jsx:106
+msgid "The issue you were looking for was not found."
+msgstr ""
+
+#: static/sentry/app/views/groupUserReports.jsx:103
+msgid "No user reports have been collected for this event."
+msgstr ""
+
+#: static/sentry/app/views/groupUserReports.jsx:104
+msgid "Learn how to integrate User Crash Reports"
+msgstr ""
+
+#: static/sentry/app/views/organizationDetails.jsx:106
+msgid "The organization you were looking for was not found."
+msgstr ""
+
+#: static/sentry/app/views/groupTagValues.jsx:123
+msgid "%2$d unique historical value"
+msgid_plural "%2$d unique historical values"
+msgstr[0] ""
+
+#: static/sentry/app/views/groupTagValues.jsx:131
+msgid "Data is based on events seen in the last 7 days."
+msgstr ""
+
+#: static/sentry/app/views/groupTagValues.jsx:137
+msgid "Value"
+msgstr "值"
+
+#: static/sentry/app/views/projectDashboard.jsx:121
+msgid "1 hour"
+msgstr ""
+
+#: static/sentry/app/views/projectDashboard.jsx:138
+msgid "1 week"
+msgstr ""
+
+#: static/sentry/app/views/projectDashboard.jsx:150
+msgid "Trending Events"
+msgstr ""
+
+#: static/sentry/app/views/projectReleases/index.jsx:170
+msgid "New Events"
+msgstr "新事件"
+
+#: static/sentry/app/views/projectInstall/overview.jsx:45
+msgid "Configure your application"
+msgstr ""
+
+#: static/sentry/app/views/projectInstall/overview.jsx:47
+msgid ""
+"Get started by selecting the platform or language that powers your "
+"application."
+msgstr ""
+
+#: static/sentry/app/views/projectInstall/overview.jsx:59
+msgid "Public DSN"
+msgstr ""
+
+#: static/sentry/app/views/projectInstall/overview.jsx:61
+msgid "Your public DSN should be used with JavaScript and ActionScript."
+msgstr ""
+
+#: static/sentry/app/views/projectInstall/overview.jsx:65
+msgid "Already have things setup? [link:Get your DSN]."
+msgstr ""
+
+#: static/sentry/app/views/projectInstall/overview.jsx:82
+msgid "Frameworks"
+msgstr ""
+
+#: static/sentry/app/views/projectInstall/platform.jsx:87
+msgid "Full Documentation"
+msgstr ""
+
+#: static/sentry/app/views/projectInstall/platform.jsx:90
+#, python-format
+msgid "Configure %(integration)s"
+msgstr ""
+
+#: static/sentry/app/views/projectInstall/platform.jsx:120
+msgid "Generic"
+msgstr ""
+
+#: static/sentry/app/views/projectDetails.jsx:155
+msgid "The project you were looking for was not found."
+msgstr ""
+
+#: static/sentry/app/views/releaseAllEvents.jsx:20
+msgid "View all events seen in this release in the stream"
+msgstr ""
+
+#: static/sentry/app/views/releaseArtifacts.jsx:75
+msgid "There are no artifacts uploaded for this release."
+msgstr ""
+
+#: static/sentry/app/components/group/seenInfo.jsx:27
+msgid "Release"
+msgstr ""
+
+#: static/sentry/app/views/releaseDetails.jsx:138
+msgid "New Issues"
+msgstr ""
+
+#: static/sentry/app/views/releaseDetails.jsx:114
+msgid "First Event"
+msgstr ""
+
+#: static/sentry/app/views/projectReleases/index.jsx:173
+msgid "Last Event"
+msgstr ""
+
+#: static/sentry/app/views/releaseDetails.jsx:139
+msgid "All Issues"
+msgstr ""
+
+#: static/sentry/app/views/releaseDetails.jsx:140
+msgid "Artifacts"
+msgstr ""
+
+#: static/sentry/app/views/releaseNewEvents.jsx:20
+msgid "View new events seen in this release in the stream"
+msgstr ""
+
+#: static/sentry/app/views/stream.jsx:369
+msgid "Sorry, no events match your filters."
+msgstr ""
+
+#: static/sentry/app/components/alertMessage.jsx:27
+msgid "Close"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:41
+msgid "Accepted"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/index.jsx:251
+msgid "Dropped (Rate Limit)"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/index.jsx:263
+msgid "Dropped (Blacklist)"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/index.jsx:289
+msgid "Events per minute"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/index.jsx:310
+msgid "Events by Project"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:27
+#, python-format
+msgid "%s left a comment"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:29
+#, python-format
+msgid "%s marked this issue as resolved"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:32
+#, python-format
+msgid "%(author)s marked this issue as resolved in %(version)s"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:37
+#, python-format
+msgid "%s marked this issue as resolved in the upcoming release"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:40
+#, python-format
+msgid "%s marked this issue as unresolved"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:43
+#, python-format
+msgid "%(author)s snoozed this issue for %(duration)s"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:48
+#, python-format
+msgid "%s muted this issue"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:50
+#, python-format
+msgid "%s made this issue public"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:52
+#, python-format
+msgid "%s made this issue private"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:55
+#, python-format
+msgid "%(author)s marked this issue as a regression in %(version)s"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:60
+#, python-format
+msgid "%s marked this issue as a regression"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:63
+#, python-format
+msgid "created an issue on %(provider)s titled %(title)s"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:68
+#, python-format
+msgid "%s first saw this issue"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:73
+#, python-format
+msgid "%s assigned this event to themselves"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:85
+#, python-format
+msgid "%(author)s assigned this event to %(assignee)s"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:82
+#, python-format
+msgid "%s assigned this event to an unknown user"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/index.jsx:90
+#, python-format
+msgid "%s unassigned this issue"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/index.jsx:105
+msgid "You do not have enough permission to create new projects"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/index.jsx:116
+msgid "You do not have enough permission to create new teams"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/index.jsx:123
+msgid "Your Teams"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/index.jsx:126
+msgid "All Teams"
+msgstr ""
+
+#: static/sentry/app/views/projectReleases/index.jsx:134
+msgid "Sorry, no releases match your filters."
+msgstr ""
+
+#: static/sentry/app/views/projectReleases/index.jsx:143
+msgid "There don't seem to be any releases yet."
+msgstr ""
+
+#: static/sentry/app/views/projectReleases/index.jsx:145
+msgid "Learn how to integrate Release Tracking"
+msgstr ""
+
+#: static/sentry/app/components/projectHeader/index.jsx:34
+msgid "Releases"
+msgstr ""
+
+#: static/sentry/app/views/projectReleases/index.jsx:168
+msgid "Version"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:51
+msgid "Saving changes.."
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:72
+msgid "Assigned"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/header.jsx:148
+msgid "Share this event"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/header.jsx:160
+msgid "Details"
+msgstr "詳細訊息"
+
+#: static/sentry/app/views/groupDetails/header.jsx:163
+msgid "Comments"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/header.jsx:167
+msgid "User Reports"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/header.jsx:174
+msgid "Related Events"
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:215
+msgid "Unable to change assignee. Please try again."
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:239
+msgid "Unable to delete events. Please try again."
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:250
+msgid "The selected events have been scheduled for deletion."
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:265
+msgid "Unable to merge events. Please try again."
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:280
+msgid "The selected events have been scheduled for merge."
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:301
+msgid "Unable to update events. Please try again."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:28
+msgid "Oldest"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:42
+msgid "Older"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:51
+msgid "Newer"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:58
+msgid "Newest"
+msgstr ""
+
+#: static/sentry/app/components/group/sidebar.jsx:19
+msgid "Last 24 Hours"
+msgstr ""
+
+#: static/sentry/app/components/group/sidebar.jsx:23
+msgid "Last 30 Days"
+msgstr ""
+
+#: static/sentry/app/components/group/chart.jsx:30
+msgid "First seen"
+msgstr ""
+
+#: static/sentry/app/components/group/chart.jsx:37
+msgid "Last seen"
+msgstr ""
+
+#: static/sentry/app/components/mutedBox.jsx:15
+#, python-format
+msgid "This issue has been snoozed until %s"
+msgstr ""
+
+#: static/sentry/app/components/mutedBox.jsx:20
+msgid "This issue has been muted"
+msgstr ""
+
+#: static/sentry/app/components/mutedBox.jsx:22
+msgid ""
+"You will not be notified of any changes and it will not show up by default "
+"in feeds."
+msgstr ""
+
+#: static/sentry/app/views/projectDashboard/eventList.jsx:104
+msgid "No data available."
+msgstr ""
+
+#: static/sentry/app/components/missingProjectMembership.jsx:52
+#, python-format
+msgid "To view this data you must first join the %s team."
+msgstr ""
+
+#: static/sentry/app/components/missingProjectMembership.jsx:54
+#, python-format
+msgid "To view this data you must first request access to the %s team."
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:87
+msgid "Request Pending"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:90
+msgid "Join Team"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:93
+msgid "Request Access"
+msgstr ""
+
+#: static/sentry/app/components/groupList.jsx:122
+msgid "There don't seem to be any events fitting the query."
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:87
+msgid "Removing events.."
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:103
+msgid "Merging events.."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:116
+msgid "Resolve"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:172
+#, python-format
+msgid "Are you sure you want to resolve these %d issue?"
+msgid_plural "Are you sure you want to resolve these %d issues?"
+msgstr[0] ""
+
+#: static/sentry/app/views/stream/actions.jsx:178
+#, python-format
+msgid "Resolve %d selected issue"
+msgid_plural "Resolve %d selected issues"
+msgstr[0] ""
+
+#: static/sentry/app/views/stream/actions.jsx:182
+msgid "Set Status to Resolved"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:170
+msgid "Bookmark"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:196
+#, python-format
+msgid "Bookmark %d selected issue"
+msgid_plural "Bookmark %d selected issues"
+msgstr[0] ""
+
+#: static/sentry/app/views/stream/actions.jsx:200
+msgid "Add to Bookmarks"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:218
+msgid "Are you sure you want to resolve all issues within this project?"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:219
+msgid ""
+"This will resolve all unresolved issues throughout this project. This does "
+"not respect search filters."
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:223
+msgid "Resolve all Issues in Project"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:235
+#, python-format
+msgid "Are you sure you want to merge %d issue?"
+msgid_plural "Are you sure you want to merge %d issues?"
+msgstr[0] ""
+
+#: static/sentry/app/views/stream/actions.jsx:241
+#, python-format
+msgid "Merge %d selected issue"
+msgid_plural "Merge %d selected issues"
+msgstr[0] ""
+
+#: static/sentry/app/views/stream/actions.jsx:247
+msgid "Merge Events"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:259
+#, python-format
+msgid "Are you sure you want to remove this %d issue from your bookmarks?"
+msgid_plural ""
+"Are you sure you want to remove these %d issues from your bookmarks?"
+msgstr[0] ""
+
+#: static/sentry/app/views/stream/actions.jsx:266
+msgid "Remove from Bookmarks"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:279
+#, python-format
+msgid "Unresolve %d selected issue"
+msgid_plural "Unresolve %d selected issues"
+msgstr[0] ""
+
+#: static/sentry/app/views/stream/actions.jsx:287
+msgid "Set status to: Unresolved"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:299
+#, python-format
+msgid "Mute %d selected issue"
+msgid_plural "Mute %d selected issues"
+msgstr[0] ""
+
+#: static/sentry/app/views/stream/actions.jsx:306
+msgid "Set status to: Muted"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:318
+#, python-format
+msgid "Are you sure you want to delete %d issue?"
+msgid_plural "Are you sure you want to delete %d issues?"
+msgstr[0] ""
+
+#: static/sentry/app/views/stream/actions.jsx:324
+#, python-format
+msgid "Delete %d selected issue"
+msgid_plural "Delete %d selected issues"
+msgstr[0] ""
+
+#: static/sentry/app/views/stream/actions.jsx:330
+msgid "Delete Events"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:350
+msgid "Graph:"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:353
+msgid "24h"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:356
+msgid "14d"
+msgstr ""
+
+#: static/sentry/app/views/stream/filters.jsx:55
+msgid "All Events"
+msgstr "所有事件"
+
+#: static/sentry/app/views/stream/filters.jsx:59
+msgid "Bookmarks"
+msgstr "書籤"
+
+#: static/sentry/app/views/stream/filters.jsx:83
+msgid "Search for events, users, tags, and everything else."
+msgstr ""
+
+#: static/sentry/app/views/stream/sidebar.jsx:104
+msgid "Text"
+msgstr ""
+
+#: static/sentry/app/views/stream/sidebar.jsx:108
+msgid "Search title and culprit text body"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:43
+msgid "Dropped"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:42
+msgid "(Rate Limit)"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:43
+msgid "(Blacklist)"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:44
+msgid "Total"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/noteContainer.jsx:28
+msgid "Removing comment.."
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/noteInput.jsx:14
+msgid "Unknown error. Please try again."
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/noteInput.jsx:96
+msgid "Posting comment.."
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/noteInput.jsx:130
+msgid "Updating comment.."
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/noteInput.jsx:209
+msgid "Save Comment"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/noteInput.jsx:209
+msgid "Post Comment"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/note.jsx:29
+msgid "Edit"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/noteInput.jsx:216
+msgid "Write"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/noteInput.jsx:223
+msgid "Markdown supported"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:40
+msgid ""
+"You don't have any teams for this organization yet. Get started by "
+"[link:creating your first team]."
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:85
+msgid "Leave Team"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:77
+msgid ""
+"There are no projects in this team. Get started by [link:creating your first"
+" project]."
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:126
+msgid ""
+"You are not a member of any teams. [joinLink:Join an existing team] or "
+"[createLink:create a new one]."
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:136
+msgid ""
+"You dont have any teams for this organization yet. Get started by "
+"[link:creating your first team]."
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:86
+msgid "Events Per Minute"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:88
+msgid "Rejected in last 24h"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:92
+msgid "View all stats"
+msgstr ""
+
+#: static/sentry/app/components/projectHeader/index.jsx:24
+msgid "Dashboard"
+msgstr "儀表盤"
+
+#: static/sentry/app/components/projectHeader/index.jsx:29
+msgid "Issues"
+msgstr ""
+
+#: static/sentry/app/components/groupListHeader.jsx:15
+msgid "events"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:32
+msgid "Delete event.."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:104
+msgid ""
+"This event is resolved due to the Auto Resolve configuration for this "
+"project"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:109
+msgid "Unresolve"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:128
+msgid "Resolved in next release"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:134
+msgid "Snooze notifications until this issue reoccurs in a future release."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:133
+msgid "Resolved in next release."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:144
+msgid "Remove Snooze"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:152
+msgid "Snooze"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:154
+msgid "for 30 minutes"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:157
+msgid "for 2 hours"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:160
+msgid "for 24 hours"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:163
+msgid "forever"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:178
+msgid "Delete"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:179
+msgid "Deleting this event is permanent. Are you sure you wish to continue?"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:188
+msgid "More"
+msgstr ""
+
+#: static/sentry/app/components/events/errors.jsx:42
+msgid "Hide"
+msgstr ""
+
+#: static/sentry/app/components/events/errors.jsx:42
+msgid "Show"
+msgstr ""
+
+#: static/sentry/app/components/events/errors.jsx:44
+#, python-format
+msgid "There was 1 error encountered while processing this event"
+msgid_plural "There were %d errors encountered while processing this event"
+msgstr[0] ""
+
+#: static/sentry/app/components/events/extraData.jsx:27
+msgid "Additional Data"
+msgstr "附加数据"
+
+#: static/sentry/app/components/events/interfaces/exception.jsx:58
+msgid "App Only"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/exception.jsx:60
+msgid "Full"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/csp.jsx:55
+msgid "Raw"
+msgstr "原始"
+
+#: static/sentry/app/components/events/interfaces/exception.jsx:64
+msgid "Exception"
+msgstr "异常"
+
+#: static/sentry/app/components/events/interfaces/stacktrace.jsx:69
+msgid "most recent call first"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/stacktrace.jsx:67
+msgid "most recent call last"
+msgstr ""
+
+#: static/sentry/app/components/events/message.jsx:13
+msgid "Message"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/request.jsx:75
+msgid "Rich"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/csp.jsx:54
+msgid "Report"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/csp.jsx:56
+msgid "Help"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/csp.jsx:58
+msgid "CSP Report"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/template.jsx:25
+msgid "Template"
+msgstr ""
+
+#: static/sentry/app/components/group/seenInfo.jsx:22
+msgid "When"
+msgstr ""
+
+#: static/sentry/app/components/group/seenInfo.jsx:24
+msgid "Date"
+msgstr ""
+
+#: static/sentry/app/components/groupListHeader.jsx:10
+msgid "Event"
+msgstr ""
+
+#: static/sentry/app/components/groupListHeader.jsx:13
+msgid "Last 24 hours"
+msgstr ""
+
+#: static/sentry/app/components/linkWithConfirmation.jsx:46
+msgid "Please confirm"
+msgstr ""
+
+#: static/sentry/app/views/stream/actionLink.jsx:127
+msgid "This action cannot be undone."
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:58
+msgid "Tag"
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:59
+msgid "key/value pair associated to an event"
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:66
+msgid "State of an event"
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:73
+msgid "team member assigned to an event"
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:79
+msgid "or paste an event id to jump straight to it"
+msgstr ""
+
+#: static/sentry/app/views/stream/sortOptions.jsx:48
+msgid "Sort by"
+msgstr ""
+
+#: static/sentry/app/components/header/broadcasts.jsx:114
+msgid "No recent broadcasts from the Sentry team."
+msgstr ""
+
+#: static/sentry/app/components/header/broadcasts.jsx:124
+msgid "Read more"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/note.jsx:32
+msgid "Are you sure you wish to delete this comment?"
+msgstr ""
+
+#: static/sentry/app/views/groupActivity/note.jsx:33
+msgid "Remove"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:38
+msgid "There was an error while trying to join the team."
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:66
+msgid "There was an error while trying to leave the team."
+msgstr ""
+
+#: static/sentry/app/components/events/errorItem.jsx:25
+msgid "Collapse"
+msgstr ""
+
+#: static/sentry/app/components/events/errorItem.jsx:25
+msgid "Expand"
+msgstr ""
+
+#: static/sentry/app/components/clippedBox.jsx:57
+msgid "Show more"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:69
+msgid "Query String"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:80
+msgid "Body"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:86
+msgid "Cookies"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:91
+msgid "Headers"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/frame.jsx:49
+msgid "Original Filename"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/frame.jsx:50
+msgid "Line Number"
+msgstr "行數"
+
+#: static/sentry/app/components/events/interfaces/frame.jsx:51
+msgid "Column Number"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/frame.jsx:52
+msgid "Function"
+msgstr "功能"
+
+#: static/sentry/app/components/events/interfaces/frame.jsx:53
+msgid "Source Map"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/frame.jsx:90
+msgid "in"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/frame.jsx:101
+msgid "at line"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/frame.jsx:118
+msgid "application"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/frame.jsx:194
+msgid "Toggle context"
+msgstr ""
