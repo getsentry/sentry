@@ -2,7 +2,7 @@ import {_} from 'underscore';
 
 const catalogs = (function() {
   var info = require('../../../locale/catalogs.json');
-  return info.supported_catalogs;
+  return info.supported_locales;
 })();
 
 const translations = (function() {
