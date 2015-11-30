@@ -24,7 +24,8 @@ SERVICES = {
 @click.option('--debug', default=False, is_flag=True)
 @click.argument('service', default='http', type=click.Choice(sorted(SERVICES.keys())))
 @configuration
-def start(service, bind, workers, debug, upgrade, noinput):
+@click.pass_context
+def start(ctx, service, bind, workers, debug, upgrade, noinput):
     "Start running a service."
     if bind:
         if ':' in bind:
@@ -38,8 +39,8 @@ def start(service, bind, workers, debug, upgrade, noinput):
 
     if upgrade:
         click.echo('Performing upgrade before service startup...')
-        from django.core.management import call_command
-        call_command('upgrade', verbosity=0, noinput=noinput)
+        from sentry.runner.commands.upgrade import upgrade
+        ctx.invoke(upgrade, verbosity=0, noinput=noinput)
 
     click.echo('Running service: %r' % service)
 
