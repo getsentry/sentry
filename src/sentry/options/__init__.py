@@ -7,9 +7,10 @@ sentry.options
 """
 from __future__ import absolute_import, print_function
 
-from .manager import OptionsManager
+from .manager import OptionsManager, OptionsLoader
 
 default_manager = OptionsManager()
+default_loader = OptionsLoader(default_manager)
 
 # expose public API
 get = default_manager.get

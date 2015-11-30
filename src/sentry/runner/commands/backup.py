@@ -1,10 +1,25 @@
+"""
+sentry.runner.commands.backup
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2015 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
 from __future__ import absolute_import, print_function
 
-import sys
+import click
+from sentry.runner.decorators import configuration
 
-from django.core import serializers
-from django.core.management.base import BaseCommand
-from django.db.models import get_apps
+
+@click.command(name='import')
+@click.argument('src', type=click.File('rb'))
+@configuration
+def import_(src):
+    "Imports data from a Sentry export."
+
+    from django.core import serializers
+    for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
+        obj.save()
 
 
 def sort_dependencies(app_list):
@@ -86,36 +101,32 @@ def sort_dependencies(app_list):
     return model_list
 
 
-class Command(BaseCommand):
-    help = 'Exports core metadata for the Sentry installation.'
+@click.command()
+@click.argument('dest', default='-', type=click.File('wb'))
+@configuration
+def export(dest):
+    "Exports core metadata for the Sentry installation."
 
-    def yield_objects(self):
+    from django.db.models import get_apps
+    from django.core import serializers
+
+    def yield_objects():
         app_list = [(a, None) for a in get_apps()]
 
         # Collate the objects to be serialized.
         for model in sort_dependencies(app_list):
             if not getattr(model, '__core__', True):
-                sys.stderr.write(">> Skipping model <%s>\n" % (model.__name__,))
+                click.echo(">> Skipping model <%s>" % (model.__name__,), err=True)
                 continue
 
             if model._meta.proxy:
-                sys.stderr.write(">> Skipping model <%s>\n" % (model.__name__,))
+                click.echo(">> Skipping model <%s>\n" % (model.__name__,), err=True)
                 continue
 
             queryset = model._base_manager.order_by(model._meta.pk.name)
             for obj in queryset.iterator():
                 yield obj
 
-    def handle(self, dest=None, **options):
-        if not dest:
-            sys.stderr.write('Usage: sentry export [dest]')
-            sys.exit(1)
-
-        if dest == '-':
-            dest = sys.stdout
-        else:
-            dest = open(dest, 'wb')
-
-        sys.stderr.write('>> Beggining export\n')
-        serializers.serialize("json", self.yield_objects(), indent=2, stream=dest,
-                              use_natural_keys=True)
+    click.echo('>> Beggining export', err=True)
+    serializers.serialize("json", yield_objects(), indent=2, stream=dest,
+                          use_natural_keys=True)
