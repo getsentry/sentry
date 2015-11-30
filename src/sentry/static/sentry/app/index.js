@@ -2,11 +2,11 @@ import jQuery from 'jquery';
 
 // setup jquery for CSRF tokens
 function getCookie(name) {
-  var cookieValue = null;
+  let cookieValue = null;
   if (document.cookie && document.cookie !== '') {
-    var cookies = document.cookie.split(';');
-    for (var i = 0; i < cookies.length; i++) {
-      var cookie = jQuery.trim(cookies[i]);
+    let cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      let cookie = jQuery.trim(cookies[i]);
       // Does this cookie string begin with the name we want?
       if (cookie.substring(0, name.length + 1) == (name + '=')) {
         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
@@ -17,7 +17,7 @@ function getCookie(name) {
   return cookieValue;
 }
 
-var csrftoken = getCookie('csrf');
+let csrftoken = getCookie('csrf');
 
 function csrfSafeMethod(method) {
   // these HTTP methods do not require CSRF protection
