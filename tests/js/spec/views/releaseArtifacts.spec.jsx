@@ -29,7 +29,7 @@ describe('ReleaseArtifacts', function() {
           params={{orgId: '123', projectId: '456', version: 'abcdef'}}/>
       );
 
-      var apiArgs = this.stubbedApiRequest.lastCall.args;
+      let apiArgs = this.stubbedApiRequest.lastCall.args;
       expect(apiArgs[0]).to.eql('/projects/123/456/releases/abcdef/files/');
       expect(apiArgs[1].data).to.have.property('cursor', '0:0:100');
     });

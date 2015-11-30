@@ -38,8 +38,8 @@ const i18n = new Jed({
 });
 
 function formatForReact(formatString, args) {
-  var rv = [];
-  var cursor = 0;
+  let rv = [];
+  let cursor = 0;
 
   // always re-parse, do not cache, because we change the match
   sprintf.parse(formatString).forEach((match, idx) => {
@@ -151,7 +151,7 @@ export function renderComponentTemplate(template, components) {
 
     // in case we cannot find our component, we call back to an empty
     // span so that stuff shows up at least.
-    var reference = components[group] || <span />;
+    let reference = components[group] || <span />;
     if (!React.isValidElement(reference)) {
       reference = <span>{reference}</span>;
     }
@@ -171,7 +171,7 @@ function mark(rv) {
     return rv;
   }
 
-  var proxy = {
+  let proxy = {
     $$typeof: Symbol.for('react.element'),
     type: 'span',
     key: null,

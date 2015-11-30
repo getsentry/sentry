@@ -5,7 +5,7 @@ import DropdownLink from '../dropdownLink';
 import LoadingIndicator from '../loadingIndicator';
 import {t} from '../../locale';
 
-var Broadcasts = React.createClass({
+const Broadcasts = React.createClass({
   getInitialState() {
     return {
       broadcasts: [],

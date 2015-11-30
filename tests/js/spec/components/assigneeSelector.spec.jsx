@@ -61,14 +61,14 @@ describe('AssigneeSelector', function() {
         assignedTo: null
       });
 
-      var assigneeSelector = this.assigneeSelector =
+      let assigneeSelector = this.assigneeSelector =
         TestUtils.renderIntoDocument(<AssigneeSelector id={1337}/>);
 
       this.sandbox.stub(assigneeSelector, 'assignTo');
     });
 
     it('should assign the first filtered member when the Enter key is pressed and filter is truthy', function () {
-      var assigneeSelector = this.assigneeSelector;
+      let assigneeSelector = this.assigneeSelector;
       assigneeSelector.state.filter = 'Jane';
 
       TestUtils.Simulate.keyDown(assigneeSelector.refs.filter,
@@ -79,7 +79,7 @@ describe('AssigneeSelector', function() {
     });
 
     it('should do nothing when the Enter key is pressed, but filter is the empty string', function () {
-      var assigneeSelector = this.assigneeSelector;
+      let assigneeSelector = this.assigneeSelector;
       assigneeSelector.state.filter = '';
 
       TestUtils.Simulate.keyDown(assigneeSelector.refs.filter,
@@ -89,7 +89,7 @@ describe('AssigneeSelector', function() {
     });
 
     it('should do nothing if a non-Enter key is pressed', function () {
-      var assigneeSelector = this.assigneeSelector;
+      let assigneeSelector = this.assigneeSelector;
       assigneeSelector.state.filter = 'Jane';
 
       TestUtils.Simulate.keyDown(assigneeSelector.refs.filter,
