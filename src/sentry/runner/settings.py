@@ -56,7 +56,7 @@ def generate_settings():
     """
     from base64 import b64encode
     output = CONFIG_TEMPLATE % dict(
-        default_key=b64encode(os.urandom(40)),
+        default_key=b64encode(os.urandom(42)),
     )
     return output
 
