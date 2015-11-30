@@ -58,11 +58,43 @@ def get_asset_version(settings):
         return int(time())
 
 
+# Options which must get extracted into Django settings while
+# bootstrapping. Everything else will get validated and used
+# as a part of OptionsManager.
+options_mapper = {
+    'cache.backend': 'SENTRY_CACHE',
+    'cache.options': 'SENTRY_CACHE_OPTIONS',
+    'system.databases': 'DATABASES',
+    'system.debug': 'DEBUG',
+    'system.secret-key': 'SECRET_KEY',
+    'redis.options': 'SENTRY_REDIS_OPTIONS',
+}
+
+
+def bootstrap_options(settings, config):
+    """
+    Quickly bootstrap options that come in from a config file
+    and convert options into Django settings that are
+    required to even initialize the rest of the app.
+    """
+    if config is None:
+        return
+    from sentry.utils.yaml import safe_load
+    with open(config, 'rb') as fp:
+        options = safe_load(fp)
+    for k, v in options.iteritems():
+        if k in options_mapper:
+            setattr(settings, options_mapper[k], v)
+        else:
+            # Stuff everything else into SENTRY_OPTIONS
+            # these will be validated later after bootstrapping
+            settings.SENTRY_OPTIONS[k] = v
+
+
 def initialize_app(config, skip_backend_validation=False):
     settings = config['settings']
 
-    from sentry.options import default_loader
-    default_loader.load(config['options'])
+    bootstrap_options(settings, config['options'])
 
     fix_south(settings)
 
@@ -153,9 +185,9 @@ def apply_legacy_settings(settings):
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
 
     if not settings.SENTRY_ADMIN_EMAIL:
-        show_big_error('SENTRY_ADMIN_EMAIL is not configured')
+        show_big_error('system.admin-email is not configured')
     elif not isinstance(settings.SENTRY_ADMIN_EMAIL, basestring):
-        show_big_error('SENTRY_ADMIN_EMAIL must be a string')
+        show_big_error('system.admin-email must be a string')
 
     if settings.SENTRY_URL_PREFIX in ('', 'http://sentry.example.com') and not settings.DEBUG:
         # Maybe also point to a piece of documentation for more information?
@@ -220,3 +252,5 @@ def on_configure(config):
         settings, 'kombu.contrib.django', 'djkombu_queue')
     skip_migration_if_applied(
         settings, 'social_auth', 'social_auth_association')
+
+    # TODO(mattrobenolt): Validate settings.SENTRY_OPTIONS.
