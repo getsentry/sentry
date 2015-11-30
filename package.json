@@ -53,7 +53,7 @@
   },
   "devDependencies": {
     "babel-core": "5.8.33",
-    "babel-gettext-extractor": "^1.0.0",
+    "babel-gettext-extractor": "^1.0.2",
     "babel-loader": "5.3.3",
     "chai": "3.4.1",
     "js-cookie": "2.0.4",
