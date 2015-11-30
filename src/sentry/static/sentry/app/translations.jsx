@@ -1,3 +1,5 @@
+import {_} from 'underscore';
+
 const catalogs = (function() {
   var info = require('../../../locale/catalogs.json');
   return info.supported_catalogs;
@@ -8,7 +10,7 @@ const translations = (function() {
   var rv = {};
   ctx.keys().forEach((translation) => {
     var langCode = translation.match(/([a-zA-Z_]+)/)[1];
-    if (catalogs.indexOf(langCode) >= 0) {
+    if (_.contains(catalogs, langCode)) {
       rv[langCode] = ctx(translation);
     }
   });
