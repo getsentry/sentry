@@ -65,6 +65,7 @@ update-transifex: build-js-po
 	./bin/merge-catalogs en
 	tx push -s
 	tx pull -a
+	./bin/find-good-catalogs > src/sentry/locale/catalogs.json
 	cd src/sentry && sentry compilemessages
 
 update-submodules:
