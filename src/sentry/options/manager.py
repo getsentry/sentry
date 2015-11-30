@@ -112,7 +112,7 @@ class OptionsManager(object):
             # HACK: Historically, Options were used for random adhoc things.
             # Fortunately, they all share the same prefix, 'sentry:', so
             # we special case them here and construct a faux key until we migrate.
-            if key[:7] == 'sentry:':
+            if key.startswith(('sentry:', 'getsentry:')):
                 self.logger.debug('Using legacy key: %s', key, exc_info=True)
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
