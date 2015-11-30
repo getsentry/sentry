@@ -16,13 +16,14 @@ class SyncOptionsTest(TestCase):
 
     @patch.object(default_manager, 'update_cached_value')
     def test_simple(self, mock_update_cached_value):
+        default_manager.register('foo')
         option = Option.objects.create(
             key='foo',
             value='bar',
         )
         sync_options(cutoff=60)
 
-        mock_update_cached_value.assert_called_once_with(key='foo', value='bar')
+        assert mock_update_cached_value.called
 
         mock_update_cached_value.reset_mock()
 
