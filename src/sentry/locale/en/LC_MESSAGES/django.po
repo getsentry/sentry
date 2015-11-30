@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-29 23:19+0000\n"
+"POT-Creation-Date: 2015-11-30 22:08+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2089,11 +2089,11 @@ msgstr ""
 msgid "You need to link your account with the SSO provider to continue."
 msgstr ""
 
-#: web/frontend/create_organization.py:16
+#: web/frontend/create_organization.py:17
 msgid "Organization Name"
 msgstr ""
 
-#: web/frontend/create_organization.py:17
+#: web/frontend/create_organization.py:18
 msgid "My Company"
 msgstr ""
 
@@ -2385,6 +2385,10 @@ msgstr ""
 msgid "Save Rule"
 msgstr ""
 
+#: static/sentry/app/components/alertMessage.jsx:27
+msgid "Close"
+msgstr ""
+
 #: static/sentry/app/views/adminOrganizations.jsx:100
 msgid "Sorry, no results match your filters."
 msgstr ""
@@ -2405,18 +2409,6 @@ msgstr ""
 msgid "The issue you were looking for was not found."
 msgstr ""
 
-#: static/sentry/app/views/groupUserReports.jsx:103
-msgid "No user reports have been collected for this event."
-msgstr ""
-
-#: static/sentry/app/views/groupUserReports.jsx:104
-msgid "Learn how to integrate User Crash Reports"
-msgstr ""
-
-#: static/sentry/app/views/organizationDetails.jsx:106
-msgid "The organization you were looking for was not found."
-msgstr ""
-
 #: static/sentry/app/views/groupTagValues.jsx:123
 msgid "%2$d unique historical value"
 msgid_plural "%2$d unique historical values"
@@ -2429,6 +2421,22 @@ msgstr ""
 
 #: static/sentry/app/views/groupTagValues.jsx:137
 msgid "Value"
+msgstr ""
+
+#: static/sentry/app/views/groupUserReports.jsx:103
+msgid "No user reports have been collected for this event."
+msgstr ""
+
+#: static/sentry/app/views/groupUserReports.jsx:104
+msgid "Learn how to integrate User Crash Reports"
+msgstr ""
+
+#: static/sentry/app/views/organizationDetails.jsx:106
+msgid "The organization you were looking for was not found."
+msgstr ""
+
+#: static/sentry/app/views/projectDetails.jsx:155
+msgid "The project you were looking for was not found."
 msgstr ""
 
 #: static/sentry/app/views/projectDashboard.jsx:121
@@ -2445,6 +2453,19 @@ msgstr ""
 
 #: static/sentry/app/views/projectReleases/index.jsx:170
 msgid "New Events"
+msgstr ""
+
+#: static/sentry/app/views/projectInstall/platform.jsx:87
+msgid "Full Documentation"
+msgstr ""
+
+#: static/sentry/app/views/projectInstall/platform.jsx:90
+#, python-format
+msgid "Configure %(integration)s"
+msgstr ""
+
+#: static/sentry/app/views/projectInstall/platform.jsx:120
+msgid "Generic"
 msgstr ""
 
 #: static/sentry/app/views/projectInstall/overview.jsx:45
@@ -2471,23 +2492,6 @@ msgstr ""
 
 #: static/sentry/app/views/projectInstall/overview.jsx:82
 msgid "Frameworks"
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/platform.jsx:87
-msgid "Full Documentation"
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/platform.jsx:90
-#, python-format
-msgid "Configure %(integration)s"
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/platform.jsx:120
-msgid "Generic"
-msgstr ""
-
-#: static/sentry/app/views/projectDetails.jsx:155
-msgid "The project you were looking for was not found."
 msgstr ""
 
 #: static/sentry/app/views/releaseAllEvents.jsx:20
@@ -2528,30 +2532,6 @@ msgstr ""
 
 #: static/sentry/app/views/stream.jsx:369
 msgid "Sorry, no events match your filters."
-msgstr ""
-
-#: static/sentry/app/components/alertMessage.jsx:27
-msgid "Close"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:41
-msgid "Accepted"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:251
-msgid "Dropped (Rate Limit)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:263
-msgid "Dropped (Blacklist)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:289
-msgid "Events per minute"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:310
-msgid "Events by Project"
 msgstr ""
 
 #: static/sentry/app/views/groupActivity/index.jsx:27
@@ -2639,6 +2619,26 @@ msgstr ""
 msgid "%s unassigned this issue"
 msgstr ""
 
+#: static/sentry/app/views/organizationStats/projectTable.jsx:41
+msgid "Accepted"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/index.jsx:251
+msgid "Dropped (Rate Limit)"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/index.jsx:263
+msgid "Dropped (Blacklist)"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/index.jsx:289
+msgid "Events per minute"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/index.jsx:310
+msgid "Events by Project"
+msgstr ""
+
 #: static/sentry/app/views/organizationTeams/index.jsx:105
 msgid "You do not have enough permission to create new projects"
 msgstr ""
@@ -2673,58 +2673,6 @@ msgstr ""
 
 #: static/sentry/app/views/projectReleases/index.jsx:168
 msgid "Version"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:51
-msgid "Saving changes.."
-msgstr ""
-
-#: static/sentry/app/views/stream/searchBar.jsx:72
-msgid "Assigned"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/header.jsx:148
-msgid "Share this event"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/header.jsx:160
-msgid "Details"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/header.jsx:163
-msgid "Comments"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/header.jsx:167
-msgid "User Reports"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/header.jsx:174
-msgid "Related Events"
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:215
-msgid "Unable to change assignee. Please try again."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:239
-msgid "Unable to delete events. Please try again."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:250
-msgid "The selected events have been scheduled for deletion."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:265
-msgid "Unable to merge events. Please try again."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:280
-msgid "The selected events have been scheduled for merge."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:301
-msgid "Unable to update events. Please try again."
 msgstr ""
 
 #: static/sentry/app/views/groupDetails/eventToolbar.jsx:28
@@ -2774,8 +2722,56 @@ msgid ""
 "default in feeds."
 msgstr ""
 
-#: static/sentry/app/views/projectDashboard/eventList.jsx:104
-msgid "No data available."
+#: static/sentry/app/stores/groupStore.jsx:215
+msgid "Unable to change assignee. Please try again."
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:239
+msgid "Unable to delete events. Please try again."
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:250
+msgid "The selected events have been scheduled for deletion."
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:265
+msgid "Unable to merge events. Please try again."
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:280
+msgid "The selected events have been scheduled for merge."
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:301
+msgid "Unable to update events. Please try again."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:52
+msgid "Saving changes.."
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:72
+msgid "Assigned"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/header.jsx:148
+msgid "Share this event"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/header.jsx:160
+msgid "Details"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/header.jsx:163
+msgid "Comments"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/header.jsx:167
+msgid "User Reports"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/header.jsx:174
+msgid "Related Events"
 msgstr ""
 
 #: static/sentry/app/components/missingProjectMembership.jsx:52
@@ -2800,6 +2796,10 @@ msgstr ""
 msgid "Request Access"
 msgstr ""
 
+#: static/sentry/app/views/projectDashboard/eventList.jsx:104
+msgid "No data available."
+msgstr ""
+
 #: static/sentry/app/components/groupList.jsx:122
 msgid "There don't seem to be any events fitting the query."
 msgstr ""
@@ -2812,7 +2812,7 @@ msgstr ""
 msgid "Merging events.."
 msgstr ""
 
-#: static/sentry/app/views/groupDetails/actions.jsx:116
+#: static/sentry/app/views/groupDetails/actions.jsx:117
 msgid "Resolve"
 msgstr ""
 
@@ -2834,7 +2834,7 @@ msgstr[1] ""
 msgid "Set Status to Resolved"
 msgstr ""
 
-#: static/sentry/app/views/groupDetails/actions.jsx:170
+#: static/sentry/app/views/groupDetails/actions.jsx:171
 msgid "Bookmark"
 msgstr ""
 
@@ -2964,22 +2964,6 @@ msgstr ""
 msgid "Search title and culprit text body"
 msgstr ""
 
-#: static/sentry/app/views/organizationStats/projectTable.jsx:43
-msgid "Dropped"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:42
-msgid "(Rate Limit)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:43
-msgid "(Blacklist)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:44
-msgid "Total"
-msgstr ""
-
 #: static/sentry/app/views/groupActivity/noteContainer.jsx:28
 msgid "Removing comment.."
 msgstr ""
@@ -3014,6 +2998,30 @@ msgstr ""
 
 #: static/sentry/app/views/groupActivity/noteInput.jsx:223
 msgid "Markdown supported"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:43
+msgid "Dropped"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:42
+msgid "(Rate Limit)"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:43
+msgid "(Blacklist)"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:44
+msgid "Total"
+msgstr ""
+
+#: static/sentry/app/components/projectHeader/index.jsx:24
+msgid "Dashboard"
+msgstr ""
+
+#: static/sentry/app/components/projectHeader/index.jsx:29
+msgid "Issues"
 msgstr ""
 
 #: static/sentry/app/views/organizationTeams/allTeamsList.jsx:40
@@ -3056,78 +3064,8 @@ msgstr ""
 msgid "View all stats"
 msgstr ""
 
-#: static/sentry/app/components/projectHeader/index.jsx:24
-msgid "Dashboard"
-msgstr ""
-
-#: static/sentry/app/components/projectHeader/index.jsx:29
-msgid "Issues"
-msgstr ""
-
 #: static/sentry/app/components/groupListHeader.jsx:15
 msgid "events"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:32
-msgid "Delete event.."
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:104
-msgid ""
-"This event is resolved due to the Auto Resolve configuration for this "
-"project"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:109
-msgid "Unresolve"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:128
-msgid "Resolved in next release"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:134
-msgid "Snooze notifications until this issue reoccurs in a future release."
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:133
-msgid "Resolved in next release."
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:144
-msgid "Remove Snooze"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:152
-msgid "Snooze"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:154
-msgid "for 30 minutes"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:157
-msgid "for 2 hours"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:160
-msgid "for 24 hours"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:163
-msgid "forever"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:178
-msgid "Delete"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:179
-msgid "Deleting this event is permanent. Are you sure you wish to continue?"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:188
-msgid "More"
 msgstr ""
 
 #: static/sentry/app/components/events/errors.jsx:42
@@ -3147,6 +3085,10 @@ msgstr[1] ""
 
 #: static/sentry/app/components/events/extraData.jsx:27
 msgid "Additional Data"
+msgstr ""
+
+#: static/sentry/app/components/events/message.jsx:13
+msgid "Message"
 msgstr ""
 
 #: static/sentry/app/components/events/interfaces/exception.jsx:58
@@ -3173,12 +3115,21 @@ msgstr ""
 msgid "most recent call last"
 msgstr ""
 
-#: static/sentry/app/components/events/message.jsx:13
-msgid "Message"
+# this means "rich" rendering (fancy tables)
+#: static/sentry/app/components/events/interfaces/request.jsx:77
+msgid "Rich"
 msgstr ""
 
-#: static/sentry/app/components/events/interfaces/request.jsx:75
-msgid "Rich"
+#: static/sentry/app/components/events/interfaces/template.jsx:25
+msgid "Template"
+msgstr ""
+
+#: static/sentry/app/components/group/seenInfo.jsx:22
+msgid "When"
+msgstr ""
+
+#: static/sentry/app/components/group/seenInfo.jsx:24
+msgid "Date"
 msgstr ""
 
 #: static/sentry/app/components/events/interfaces/csp.jsx:54
@@ -3193,16 +3144,66 @@ msgstr ""
 msgid "CSP Report"
 msgstr ""
 
-#: static/sentry/app/components/events/interfaces/template.jsx:25
-msgid "Template"
+#: static/sentry/app/views/groupDetails/actions.jsx:33
+msgid "Delete event.."
 msgstr ""
 
-#: static/sentry/app/components/group/seenInfo.jsx:22
-msgid "When"
+#: static/sentry/app/views/groupDetails/actions.jsx:105
+msgid ""
+"This event is resolved due to the Auto Resolve configuration for this "
+"project"
 msgstr ""
 
-#: static/sentry/app/components/group/seenInfo.jsx:24
-msgid "Date"
+#: static/sentry/app/views/groupDetails/actions.jsx:110
+msgid "Unresolve"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:129
+msgid "Resolved in next release"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:135
+msgid "Snooze notifications until this issue reoccurs in a future release."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:134
+msgid "Resolved in next release."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:145
+msgid "Remove Snooze"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:153
+msgid "Snooze"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:155
+msgid "for 30 minutes"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:158
+msgid "for 2 hours"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:161
+msgid "for 24 hours"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:164
+msgid "forever"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:179
+msgid "Delete"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:180
+msgid "Deleting this event is permanent. Are you sure you wish to continue?"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:189
+msgid "More"
 msgstr ""
 
 #: static/sentry/app/components/groupListHeader.jsx:10
