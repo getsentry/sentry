@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function
 
 import os
 import click
+from sentry.utils.imports import import_string
 
 
 @click.group()
@@ -26,33 +27,18 @@ def cli(ctx, config):
 
 
 # TODO(mattrobenolt): Autodiscover commands?
-from .commands.init import init
-cli.add_command(init)
-
-from .commands.start import start
-cli.add_command(start)
-
-from .commands.help import help
-cli.add_command(help)
-
-from .commands.repair import repair
-cli.add_command(repair)
-
-from .commands.django import django
-cli.add_command(django)
-
-from .commands.cleanup import cleanup
-cli.add_command(cleanup)
-
-from .commands.upgrade import upgrade
-cli.add_command(upgrade)
-
-from .commands.backup import import_, export
-cli.add_command(import_)
-cli.add_command(export)
-
-from .commands.createuser import createuser
-cli.add_command(createuser)
+map(lambda cmd: cli.add_command(import_string(cmd)), (
+    'sentry.runner.commands.cleanup.cleanup',
+    'sentry.runner.commands.createuser.createuser',
+    'sentry.runner.commands.django.django',
+    'sentry.runner.commands.backup.export',
+    'sentry.runner.commands.help.help',
+    'sentry.runner.commands.backup.import_',
+    'sentry.runner.commands.init.init',
+    'sentry.runner.commands.repair.repair',
+    'sentry.runner.commands.start.start',
+    'sentry.runner.commands.upgrade.upgrade',
+))
 
 
 def make_django_command(name, django_command=None, help=None):
@@ -70,6 +56,7 @@ def make_django_command(name, django_command=None, help=None):
     @click.argument('management_args', nargs=-1, type=click.UNPROCESSED)
     @click.pass_context
     def inner(ctx, management_args):
+        from sentry.runner.commands.django import django
         ctx.params['management_args'] = (django_command,) + management_args
         ctx.forward(django)
 
