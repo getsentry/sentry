@@ -5,6 +5,7 @@
 # Translators:
 # GYOUNGTAE KIM <epictrance@gmail.com>, 2013
 # hansim, 2013
+# JaeYong Lee <crizin@gmail.com>, 2015
 # Lee Ho Sung <lee.ho.sung@gmail.com>, 2014
 # realbeast <moleskine7@gmail.com>, 2013
 # sl kim <vizuan@gmail.com>, 2015
@@ -13,9 +14,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-29 23:19+0000\n"
-"PO-Revision-Date: 2015-11-29 23:19+0000\n"
-"Last-Translator: mitsuhiko <armin.ronacher@active-4.com>\n"
+"POT-Creation-Date: 2015-11-30 22:20+0000\n"
+"PO-Revision-Date: 2015-11-30 04:58+0000\n"
+"Last-Translator: JaeYong Lee <crizin@gmail.com>\n"
 "Language-Team: Korean (http://www.transifex.com/getsentry/sentry/language/ko/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -34,7 +35,7 @@ msgstr "권한"
 
 #: admin.py:172
 msgid "Important dates"
-msgstr ""
+msgstr "주요 일정"
 
 #: admin.py:260
 msgid "Password changed successfully."
@@ -137,7 +138,7 @@ msgstr "벵골어"
 
 #: conf/server.py:103
 msgid "Breton"
-msgstr ""
+msgstr "브르통어"
 
 #: conf/server.py:104
 msgid "Bosnian"
@@ -153,7 +154,7 @@ msgstr "체코어"
 
 #: conf/server.py:107
 msgid "Welsh"
-msgstr ""
+msgstr "웨일스어"
 
 #: conf/server.py:108
 msgid "Danish"
@@ -181,11 +182,11 @@ msgstr "스페인어"
 
 #: conf/server.py:114
 msgid "Estonian"
-msgstr ""
+msgstr "에스토니아어"
 
 #: conf/server.py:115
 msgid "Basque"
-msgstr ""
+msgstr "바스크어"
 
 #: conf/server.py:116
 msgid "Persian"
@@ -205,7 +206,7 @@ msgstr "아일랜드어"
 
 #: conf/server.py:120
 msgid "Galician"
-msgstr ""
+msgstr "갈리시아어"
 
 #: conf/server.py:121
 msgid "Hebrew"
@@ -225,7 +226,7 @@ msgstr "헝가리어"
 
 #: conf/server.py:125
 msgid "Interlingua"
-msgstr ""
+msgstr "국제어"
 
 #: conf/server.py:126
 msgid "Indonesian"
@@ -245,7 +246,7 @@ msgstr "일본어"
 
 #: conf/server.py:130
 msgid "Georgian"
-msgstr ""
+msgstr "그루지야어"
 
 #: conf/server.py:131
 msgid "Kazakh"
@@ -253,11 +254,11 @@ msgstr "카자흐어"
 
 #: conf/server.py:132
 msgid "Khmer"
-msgstr ""
+msgstr "크메르어"
 
 #: conf/server.py:133
 msgid "Kannada"
-msgstr ""
+msgstr "카나라어"
 
 #: conf/server.py:134
 msgid "Korean"
@@ -265,7 +266,7 @@ msgstr "한국어"
 
 #: conf/server.py:135
 msgid "Luxembourgish"
-msgstr ""
+msgstr "룩셈부르크어"
 
 #: conf/server.py:136
 msgid "Lithuanian"
@@ -289,11 +290,11 @@ msgstr "몽골어"
 
 #: conf/server.py:141
 msgid "Burmese"
-msgstr ""
+msgstr "버마어"
 
 #: conf/server.py:142
 msgid "Norwegian Bokmal"
-msgstr ""
+msgstr "노르웨이 보크몰"
 
 #: conf/server.py:143
 msgid "Nepali"
@@ -305,15 +306,15 @@ msgstr "네덜란드어"
 
 #: conf/server.py:145
 msgid "Norwegian Nynorsk"
-msgstr ""
+msgstr "노르웨이 뉘노르스크"
 
 #: conf/server.py:146
 msgid "Ossetic"
-msgstr ""
+msgstr "오세트어"
 
 #: conf/server.py:147
 msgid "Punjabi"
-msgstr ""
+msgstr "펀자브어"
 
 #: conf/server.py:148
 msgid "Polish"
@@ -325,7 +326,7 @@ msgstr "포르투갈어"
 
 #: conf/server.py:150
 msgid "Brazilian Portuguese"
-msgstr ""
+msgstr "브라질포르투갈어"
 
 #: conf/server.py:151
 msgid "Romanian"
@@ -337,7 +338,7 @@ msgstr "러시아어"
 
 #: conf/server.py:153
 msgid "Slovak"
-msgstr ""
+msgstr "슬로바키아어"
 
 #: conf/server.py:154
 msgid "Slovenian"
@@ -345,7 +346,7 @@ msgstr "슬로베니아어"
 
 #: conf/server.py:155
 msgid "Albanian"
-msgstr ""
+msgstr "알바니아어"
 
 #: conf/server.py:156
 msgid "Serbian"
@@ -361,11 +362,11 @@ msgstr "스와힐리어"
 
 #: conf/server.py:159
 msgid "Tamil"
-msgstr ""
+msgstr "타밀어"
 
 #: conf/server.py:160
 msgid "Telugu"
-msgstr ""
+msgstr "텔루구어"
 
 #: conf/server.py:161
 msgid "Thai"
@@ -377,11 +378,11 @@ msgstr "터키어"
 
 #: conf/server.py:163
 msgid "Tatar"
-msgstr ""
+msgstr " 타타르어"
 
 #: conf/server.py:164
 msgid "Udmurt"
-msgstr ""
+msgstr "우드무르트어"
 
 #: conf/server.py:165
 msgid "Ukrainian"
@@ -389,7 +390,7 @@ msgstr "우크라이나어"
 
 #: conf/server.py:166
 msgid "Urdu"
-msgstr ""
+msgstr "우르두어"
 
 #: conf/server.py:167
 msgid "Vietnamese"
@@ -415,7 +416,7 @@ msgstr[0] ""
 
 #: debug/panels/redis.py:79
 msgid "Redis"
-msgstr ""
+msgstr "Redis"
 
 #: interfaces/http.py:186
 msgid "Request"
@@ -700,11 +701,11 @@ msgstr ""
 #: templates/sentry/create-organization.html:6
 #: static/sentry/app/components/header/organizationSelector.jsx:47
 msgid "New Organization"
-msgstr ""
+msgstr "새 조직"
 
 #: templates/sentry/create-organization.html:11
 msgid "Create a New Organization"
-msgstr ""
+msgstr "새로운 조직 생성"
 
 #: templates/sentry/create-organization.html:14
 msgid ""
@@ -740,7 +741,7 @@ msgstr "새 팀"
 
 #: templates/sentry/create-team.html:10
 msgid "Create a New Team"
-msgstr ""
+msgstr "새로운 팀 생성"
 
 #: templates/sentry/create-team.html:13
 msgid ""
@@ -792,7 +793,7 @@ msgstr ""
 #: templates/sentry/missing_permissions.html:5
 #: templates/sentry/missing_permissions.html:8
 msgid "Forbidden"
-msgstr "접근불가"
+msgstr "접근 불가"
 
 #: templates/sentry/missing_permissions.html:13
 msgid "You do not have access to this page with your current permissions."
@@ -931,11 +932,11 @@ msgstr ""
 #: templates/sentry/organization-settings.html:52
 #: templates/sentry/remove-organization.html:35
 msgid "Remove Organization"
-msgstr ""
+msgstr "조직 삭제"
 
 #: templates/sentry/post-remove-account.html:5
 msgid "Remove Account"
-msgstr ""
+msgstr "계정 삭제"
 
 #: templates/sentry/post-remove-account.html:10
 msgid "Scheduled for Removal"
@@ -1129,7 +1130,7 @@ msgstr ""
 
 #: templates/sentry/account/sudo.html:39
 msgid "Your password was not valid."
-msgstr ""
+msgstr "비밀번호가 올바르지 않습니다."
 
 #: templates/sentry/account/sudo.html:52
 msgid "Continue"
@@ -1164,7 +1165,7 @@ msgstr ""
 
 #: templates/sentry/account/recover/index.html:10
 msgid "We will send a confirmation email to this address:"
-msgstr ""
+msgstr "이 이메일 주소로 확인 메일을 전송했습니다:"
 
 #: templates/sentry/account/recover/index.html:22
 msgid "Send Email"
@@ -1634,7 +1635,7 @@ msgstr ""
 #: templates/sentry/projects/manage.html:156
 #: static/sentry/app/views/projectSettings/index.jsx:80
 msgid "Project Settings"
-msgstr ""
+msgstr "프로젝트 설정"
 
 #: templates/sentry/projects/manage.html:37
 msgid "Project Details"
@@ -1905,112 +1906,112 @@ msgstr ""
 
 #: web/forms/accounts.py:74
 msgid "username or email"
-msgstr ""
+msgstr "사용자명 또는 이메일 주소"
 
 #: web/forms/accounts.py:79
 msgid "password"
-msgstr ""
+msgstr "비밀번호"
 
 #: web/forms/accounts.py:84
 #, python-format
 msgid ""
 "Please enter a correct %(username)s and password. Note that both fields may "
 "be case-sensitive."
-msgstr ""
+msgstr "올바른 %(username)s와 비밀번호를 입력해주세요. 두 필드 모두 대소문자를 구분합니다."
 
 #: web/forms/accounts.py:86
 msgid ""
 "Your Web browser doesn't appear to have cookies enabled. Cookies are "
 "required for logging in."
-msgstr ""
+msgstr "브라우저가 쿠키를 사용하지 않도록 설정된 것 같습니다. 로그인하려면 쿠키 사용을 활성화 해야 합니다."
 
 #: web/forms/accounts.py:88
 msgid "This account is inactive."
-msgstr ""
+msgstr "이 계정은 비활성화 되었습니다."
 
 #: web/forms/accounts.py:160
 msgid "An account is already registered with that email address."
-msgstr ""
+msgstr "이 이메일 주소로 등록된 계정이 이미 존재합니다."
 
 #: web/forms/accounts.py:173
 msgid "Username or email"
-msgstr ""
+msgstr "사용자명 또는 이메일 주소"
 
 #: web/forms/accounts.py:181
 msgid "We were unable to find a matching user."
-msgstr ""
+msgstr "입력하신 계정이 존재하지 않습니다."
 
 #: web/forms/accounts.py:183
 msgid "Multiple accounts were found matching this email address."
-msgstr ""
+msgstr "이 이메일주소에 해당하는 계정이 여러개 존재합니다."
 
 #: web/forms/accounts.py:192
 msgid "Designate an alternative email address to send email notifications to."
-msgstr ""
+msgstr "이메일 알림을 수신할 또다른 이메일 주소를 지정합니다."
 
 #: web/forms/accounts.py:194
 msgid "Alerts"
-msgstr ""
+msgstr "알림"
 
 #: web/forms/accounts.py:196
 msgid "Automatically subscribe to notifications for new projects"
-msgstr ""
+msgstr "새 프로젝트가 등록되면 자동으로 알림 수신"
 
 #: web/forms/accounts.py:197
 msgid "Do not subscribe to notifications for new projects"
-msgstr ""
+msgstr "새 프로젝트에 대해 알림 수신하지 않기"
 
 #: web/forms/accounts.py:201
 msgid "Notes"
-msgstr ""
+msgstr "노트 알림"
 
 #: web/forms/accounts.py:203
 msgid "Get notified about new notes"
-msgstr ""
+msgstr "새로운 노트가 등록되면 알림 수신"
 
 #: web/forms/accounts.py:204
 msgid "Do not subscribe to note notifications"
-msgstr ""
+msgstr "노트 알림 수신하지 않기"
 
 #: web/forms/accounts.py:258
 msgid "New password"
-msgstr ""
+msgstr "변경할 비밀번호"
 
 #: web/forms/accounts.py:297
 msgid "That username is already in use."
-msgstr ""
+msgstr "이 사용자 이름은 이미 사용 중입니다."
 
 #: web/forms/accounts.py:325
 msgid "Language"
-msgstr ""
+msgstr "언어"
 
 #: web/forms/accounts.py:328
 msgid "Stacktrace order"
-msgstr ""
+msgstr "Stacktrace 순서"
 
 #: web/forms/accounts.py:329
 msgid "Default (let Sentry decide)"
-msgstr ""
+msgstr "기본 (자동으로 결정하기)"
 
 #: web/forms/accounts.py:330
 msgid "Most recent call last"
-msgstr ""
+msgstr "먼저 호출된 것 부터"
 
 #: web/forms/accounts.py:331
 msgid "Most recent call first"
-msgstr ""
+msgstr "마지막에 호출된 것 부터"
 
 #: web/forms/accounts.py:332
 msgid "Choose the default ordering of frames in stacktraces."
-msgstr ""
+msgstr "Stacktrace 프레임의 표시 순서를 선택하세요."
 
 #: web/forms/accounts.py:336
 msgid "Time zone"
-msgstr ""
+msgstr "시간대"
 
 #: web/forms/accounts.py:339
 msgid "Use a 24-hour clock"
-msgstr ""
+msgstr "24시간제 사용"
 
 #: web/forms/add_project.py:16
 msgid "i.e. API, Frontend, My Application Name"
@@ -2030,11 +2031,11 @@ msgstr ""
 
 #: web/forms/fields.py:129
 msgid "e.g. example.com or https://example.com"
-msgstr ""
+msgstr "예) example.com 또는 https://example.com"
 
 #: web/forms/fields.py:158
 msgid "e.g. 127.0.0.1 or 10.0.0.0/8"
-msgstr ""
+msgstr "예) 127.0.0.1 또는 10.0.0.0/8"
 
 #: web/forms/projects.py:19
 msgid "Mail Subject Prefix"
@@ -2087,11 +2088,11 @@ msgstr ""
 msgid "You need to link your account with the SSO provider to continue."
 msgstr ""
 
-#: web/frontend/create_organization.py:16
+#: web/frontend/create_organization.py:17
 msgid "Organization Name"
 msgstr ""
 
-#: web/frontend/create_organization.py:17
+#: web/frontend/create_organization.py:18
 msgid "My Company"
 msgstr ""
 
@@ -2278,7 +2279,7 @@ msgstr ""
 
 #: web/frontend/project_settings.py:47
 msgid "e.g. email"
-msgstr ""
+msgstr "예) 이메일 주소"
 
 #: web/frontend/project_settings.py:54
 msgid "Don't store IP Addresses"
@@ -2414,10 +2415,6 @@ msgstr ""
 msgid "Learn how to integrate User Crash Reports"
 msgstr ""
 
-#: static/sentry/app/views/organizationDetails.jsx:106
-msgid "The organization you were looking for was not found."
-msgstr ""
-
 #: static/sentry/app/views/groupTagValues.jsx:123
 msgid "%2$d unique historical value"
 msgid_plural "%2$d unique historical values"
@@ -2431,21 +2428,13 @@ msgstr ""
 msgid "Value"
 msgstr ""
 
-#: static/sentry/app/views/projectDashboard.jsx:121
-msgid "1 hour"
+#: static/sentry/app/views/organizationDetails.jsx:106
+msgid "The organization you were looking for was not found."
 msgstr ""
 
-#: static/sentry/app/views/projectDashboard.jsx:138
-msgid "1 week"
+#: static/sentry/app/views/projectDetails.jsx:155
+msgid "The project you were looking for was not found."
 msgstr ""
-
-#: static/sentry/app/views/projectDashboard.jsx:150
-msgid "Trending Events"
-msgstr ""
-
-#: static/sentry/app/views/projectReleases/index.jsx:170
-msgid "New Events"
-msgstr "새 이벤트"
 
 #: static/sentry/app/views/projectInstall/overview.jsx:45
 msgid "Configure your application"
@@ -2473,6 +2462,22 @@ msgstr ""
 msgid "Frameworks"
 msgstr ""
 
+#: static/sentry/app/views/projectDashboard.jsx:121
+msgid "1 hour"
+msgstr "1 시간"
+
+#: static/sentry/app/views/projectDashboard.jsx:138
+msgid "1 week"
+msgstr "1 주일"
+
+#: static/sentry/app/views/projectDashboard.jsx:150
+msgid "Trending Events"
+msgstr ""
+
+#: static/sentry/app/views/projectReleases/index.jsx:170
+msgid "New Events"
+msgstr "새 이벤트"
+
 #: static/sentry/app/views/projectInstall/platform.jsx:87
 msgid "Full Documentation"
 msgstr ""
@@ -2484,10 +2489,6 @@ msgstr ""
 
 #: static/sentry/app/views/projectInstall/platform.jsx:120
 msgid "Generic"
-msgstr ""
-
-#: static/sentry/app/views/projectDetails.jsx:155
-msgid "The project you were looking for was not found."
 msgstr ""
 
 #: static/sentry/app/views/releaseAllEvents.jsx:20
@@ -2532,26 +2533,6 @@ msgstr ""
 
 #: static/sentry/app/components/alertMessage.jsx:27
 msgid "Close"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:41
-msgid "Accepted"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:251
-msgid "Dropped (Rate Limit)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:263
-msgid "Dropped (Blacklist)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:289
-msgid "Events per minute"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:310
-msgid "Events by Project"
 msgstr ""
 
 #: static/sentry/app/views/groupActivity/index.jsx:27
@@ -2639,20 +2620,24 @@ msgstr ""
 msgid "%s unassigned this issue"
 msgstr ""
 
-#: static/sentry/app/views/organizationTeams/index.jsx:105
-msgid "You do not have enough permission to create new projects"
+#: static/sentry/app/views/organizationStats/projectTable.jsx:41
+msgid "Accepted"
 msgstr ""
 
-#: static/sentry/app/views/organizationTeams/index.jsx:116
-msgid "You do not have enough permission to create new teams"
+#: static/sentry/app/views/organizationStats/index.jsx:251
+msgid "Dropped (Rate Limit)"
 msgstr ""
 
-#: static/sentry/app/views/organizationTeams/index.jsx:123
-msgid "Your Teams"
+#: static/sentry/app/views/organizationStats/index.jsx:263
+msgid "Dropped (Blacklist)"
 msgstr ""
 
-#: static/sentry/app/views/organizationTeams/index.jsx:126
-msgid "All Teams"
+#: static/sentry/app/views/organizationStats/index.jsx:289
+msgid "Events per minute"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/index.jsx:310
+msgid "Events by Project"
 msgstr ""
 
 #: static/sentry/app/views/projectReleases/index.jsx:134
@@ -2675,7 +2660,55 @@ msgstr ""
 msgid "Version"
 msgstr ""
 
-#: static/sentry/app/views/groupDetails/actions.jsx:51
+#: static/sentry/app/views/organizationTeams/index.jsx:105
+msgid "You do not have enough permission to create new projects"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/index.jsx:116
+msgid "You do not have enough permission to create new teams"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/index.jsx:123
+msgid "Your Teams"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/index.jsx:126
+msgid "All Teams"
+msgstr ""
+
+#: static/sentry/app/components/group/sidebar.jsx:19
+msgid "Last 24 Hours"
+msgstr ""
+
+#: static/sentry/app/components/group/sidebar.jsx:23
+msgid "Last 30 Days"
+msgstr ""
+
+#: static/sentry/app/components/group/chart.jsx:30
+msgid "First seen"
+msgstr ""
+
+#: static/sentry/app/components/group/chart.jsx:37
+msgid "Last seen"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:28
+msgid "Oldest"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:42
+msgid "Older"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:51
+msgid "Newer"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:58
+msgid "Newest"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:52
 msgid "Saving changes.."
 msgstr ""
 
@@ -2701,6 +2734,21 @@ msgstr ""
 
 #: static/sentry/app/views/groupDetails/header.jsx:174
 msgid "Related Events"
+msgstr "관련된 이벤트"
+
+#: static/sentry/app/components/mutedBox.jsx:15
+#, python-format
+msgid "This issue has been snoozed until %s"
+msgstr ""
+
+#: static/sentry/app/components/mutedBox.jsx:20
+msgid "This issue has been muted"
+msgstr ""
+
+#: static/sentry/app/components/mutedBox.jsx:22
+msgid ""
+"You will not be notified of any changes and it will not show up by default "
+"in feeds."
 msgstr ""
 
 #: static/sentry/app/stores/groupStore.jsx:215
@@ -2727,57 +2775,6 @@ msgstr ""
 msgid "Unable to update events. Please try again."
 msgstr ""
 
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:28
-msgid "Oldest"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:42
-msgid "Older"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:51
-msgid "Newer"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:58
-msgid "Newest"
-msgstr ""
-
-#: static/sentry/app/components/group/sidebar.jsx:19
-msgid "Last 24 Hours"
-msgstr ""
-
-#: static/sentry/app/components/group/sidebar.jsx:23
-msgid "Last 30 Days"
-msgstr ""
-
-#: static/sentry/app/components/group/chart.jsx:30
-msgid "First seen"
-msgstr ""
-
-#: static/sentry/app/components/group/chart.jsx:37
-msgid "Last seen"
-msgstr ""
-
-#: static/sentry/app/components/mutedBox.jsx:15
-#, python-format
-msgid "This issue has been snoozed until %s"
-msgstr ""
-
-#: static/sentry/app/components/mutedBox.jsx:20
-msgid "This issue has been muted"
-msgstr ""
-
-#: static/sentry/app/components/mutedBox.jsx:22
-msgid ""
-"You will not be notified of any changes and it will not show up by default "
-"in feeds."
-msgstr ""
-
-#: static/sentry/app/views/projectDashboard/eventList.jsx:104
-msgid "No data available."
-msgstr ""
-
 #: static/sentry/app/components/missingProjectMembership.jsx:52
 #, python-format
 msgid "To view this data you must first join the %s team."
@@ -2800,6 +2797,10 @@ msgstr ""
 msgid "Request Access"
 msgstr ""
 
+#: static/sentry/app/views/projectDashboard/eventList.jsx:104
+msgid "No data available."
+msgstr ""
+
 #: static/sentry/app/components/groupList.jsx:122
 msgid "There don't seem to be any events fitting the query."
 msgstr ""
@@ -2812,7 +2813,7 @@ msgstr ""
 msgid "Merging events.."
 msgstr ""
 
-#: static/sentry/app/views/groupDetails/actions.jsx:116
+#: static/sentry/app/views/groupDetails/actions.jsx:117
 msgid "Resolve"
 msgstr ""
 
@@ -2832,7 +2833,7 @@ msgstr[0] ""
 msgid "Set Status to Resolved"
 msgstr ""
 
-#: static/sentry/app/views/groupDetails/actions.jsx:170
+#: static/sentry/app/views/groupDetails/actions.jsx:171
 msgid "Bookmark"
 msgstr ""
 
@@ -2955,20 +2956,12 @@ msgstr ""
 msgid "Search title and culprit text body"
 msgstr ""
 
-#: static/sentry/app/views/organizationStats/projectTable.jsx:43
-msgid "Dropped"
-msgstr ""
+#: static/sentry/app/components/projectHeader/index.jsx:24
+msgid "Dashboard"
+msgstr "대시보드"
 
-#: static/sentry/app/views/organizationStats/projectTable.jsx:42
-msgid "(Rate Limit)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:43
-msgid "(Blacklist)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:44
-msgid "Total"
+#: static/sentry/app/components/projectHeader/index.jsx:29
+msgid "Issues"
 msgstr ""
 
 #: static/sentry/app/views/groupActivity/noteContainer.jsx:28
@@ -3007,10 +3000,36 @@ msgstr ""
 msgid "Markdown supported"
 msgstr ""
 
-#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:40
-msgid ""
-"You don't have any teams for this organization yet. Get started by "
-"[link:creating your first team]."
+#: static/sentry/app/views/organizationStats/projectTable.jsx:43
+msgid "Dropped"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:42
+msgid "(Rate Limit)"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:43
+msgid "(Blacklist)"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:44
+msgid "Total"
+msgstr ""
+
+#: static/sentry/app/components/groupListHeader.jsx:15
+msgid "events"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:86
+msgid "Events Per Minute"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:88
+msgid "Rejected in last 24h"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:92
+msgid "View all stats"
 msgstr ""
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:85
@@ -3035,99 +3054,19 @@ msgid ""
 "[link:creating your first team]."
 msgstr ""
 
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:86
-msgid "Events Per Minute"
-msgstr ""
-
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:88
-msgid "Rejected in last 24h"
-msgstr ""
-
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:92
-msgid "View all stats"
-msgstr ""
-
-#: static/sentry/app/components/projectHeader/index.jsx:24
-msgid "Dashboard"
-msgstr "대시보드"
-
-#: static/sentry/app/components/projectHeader/index.jsx:29
-msgid "Issues"
-msgstr ""
-
-#: static/sentry/app/components/groupListHeader.jsx:15
-msgid "events"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:32
-msgid "Delete event.."
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:104
+#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:40
 msgid ""
-"This event is resolved due to the Auto Resolve configuration for this "
-"project"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:109
-msgid "Unresolve"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:128
-msgid "Resolved in next release"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:134
-msgid "Snooze notifications until this issue reoccurs in a future release."
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:133
-msgid "Resolved in next release."
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:144
-msgid "Remove Snooze"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:152
-msgid "Snooze"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:154
-msgid "for 30 minutes"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:157
-msgid "for 2 hours"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:160
-msgid "for 24 hours"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:163
-msgid "forever"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:178
-msgid "Delete"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:179
-msgid "Deleting this event is permanent. Are you sure you wish to continue?"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:188
-msgid "More"
+"You don't have any teams for this organization yet. Get started by "
+"[link:creating your first team]."
 msgstr ""
 
 #: static/sentry/app/components/events/errors.jsx:42
 msgid "Hide"
-msgstr ""
+msgstr "감추기"
 
 #: static/sentry/app/components/events/errors.jsx:42
 msgid "Show"
-msgstr ""
+msgstr "보이기"
 
 #: static/sentry/app/components/events/errors.jsx:44
 #, python-format
@@ -3137,6 +3076,10 @@ msgstr[0] ""
 
 #: static/sentry/app/components/events/extraData.jsx:27
 msgid "Additional Data"
+msgstr ""
+
+#: static/sentry/app/components/events/message.jsx:13
+msgid "Message"
 msgstr ""
 
 #: static/sentry/app/components/events/interfaces/exception.jsx:58
@@ -3163,11 +3106,8 @@ msgstr ""
 msgid "most recent call last"
 msgstr ""
 
-#: static/sentry/app/components/events/message.jsx:13
-msgid "Message"
-msgstr ""
-
-#: static/sentry/app/components/events/interfaces/request.jsx:75
+# this means "rich" rendering (fancy tables)
+#: static/sentry/app/components/events/interfaces/request.jsx:77
 msgid "Rich"
 msgstr ""
 
@@ -3194,6 +3134,68 @@ msgstr ""
 #: static/sentry/app/components/group/seenInfo.jsx:24
 msgid "Date"
 msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:33
+msgid "Delete event.."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:105
+msgid ""
+"This event is resolved due to the Auto Resolve configuration for this "
+"project"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:110
+msgid "Unresolve"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:129
+msgid "Resolved in next release"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:135
+msgid "Snooze notifications until this issue reoccurs in a future release."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:134
+msgid "Resolved in next release."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:145
+msgid "Remove Snooze"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:153
+msgid "Snooze"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:155
+msgid "for 30 minutes"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:158
+msgid "for 2 hours"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:161
+msgid "for 24 hours"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:164
+msgid "forever"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:179
+msgid "Delete"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:180
+msgid "Deleting this event is permanent. Are you sure you wish to continue?"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:189
+msgid "More"
+msgstr "더 보기"
 
 #: static/sentry/app/components/groupListHeader.jsx:10
 msgid "Event"
@@ -3245,7 +3247,7 @@ msgstr ""
 
 #: static/sentry/app/views/groupActivity/note.jsx:32
 msgid "Are you sure you wish to delete this comment?"
-msgstr ""
+msgstr "정말 댓글을 삭제하시겠습니까?"
 
 #: static/sentry/app/views/groupActivity/note.jsx:33
 msgid "Remove"
@@ -3253,59 +3255,59 @@ msgstr ""
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:38
 msgid "There was an error while trying to join the team."
-msgstr ""
+msgstr "오류가 발생해 팀에 가입할 수 없습니다."
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:66
 msgid "There was an error while trying to leave the team."
-msgstr ""
+msgstr "오류가 발생해 팀을 탈퇴할 수 없습니다."
 
 #: static/sentry/app/components/events/errorItem.jsx:25
 msgid "Collapse"
-msgstr ""
+msgstr "접기"
 
 #: static/sentry/app/components/events/errorItem.jsx:25
 msgid "Expand"
-msgstr ""
+msgstr "펼치기"
 
 #: static/sentry/app/components/clippedBox.jsx:57
 msgid "Show more"
-msgstr ""
+msgstr "더 보기"
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:69
 msgid "Query String"
-msgstr ""
+msgstr "쿼리 문자열"
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:80
 msgid "Body"
-msgstr ""
+msgstr "바디"
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:86
 msgid "Cookies"
-msgstr ""
+msgstr "쿠키"
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:91
 msgid "Headers"
-msgstr ""
+msgstr "헤더"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:49
 msgid "Original Filename"
-msgstr ""
+msgstr "원본 파일명"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:50
 msgid "Line Number"
-msgstr ""
+msgstr "줄 번호"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:51
 msgid "Column Number"
-msgstr ""
+msgstr "열 번호"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:52
 msgid "Function"
-msgstr ""
+msgstr "함수"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:53
 msgid "Source Map"
-msgstr ""
+msgstr "소스 파일"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:90
 msgid "in"

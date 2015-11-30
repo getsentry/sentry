@@ -13,6 +13,7 @@
 # Florent Viel <luxifer666@gmail.com>, 2015
 # Germain Carré <germaincarre@yahoo.fr>, 2012
 # jmsche <contact@jmsche.fr>, 2013
+# JUC <juc@e2f.com>, 2015
 # Julien Duponchelle <julien@duponchelle.info>, 2015
 # Maël Lavault <mlavault@alinto.eu>, 2014-2015
 # mounir <messelmeni.mounir@gmail.com>, 2014
@@ -25,9 +26,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-29 23:19+0000\n"
-"PO-Revision-Date: 2015-11-29 23:19+0000\n"
-"Last-Translator: mitsuhiko <armin.ronacher@active-4.com>\n"
+"POT-Creation-Date: 2015-11-30 22:20+0000\n"
+"PO-Revision-Date: 2015-11-30 15:49+0000\n"
+"Last-Translator: JUC <juc@e2f.com>\n"
 "Language-Team: French (http://www.transifex.com/getsentry/sentry/language/fr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -423,12 +424,12 @@ msgstr "Big Integer"
 #, python-format
 msgid "%(calls)d call in %(duration).2fms"
 msgid_plural "%(calls)d calls in %(duration).2fms"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%(calls)d appel en %(duration).2fms"
+msgstr[1] "%(calls)d appels en %(duration).2fms"
 
 #: debug/panels/redis.py:79
 msgid "Redis"
-msgstr ""
+msgstr "Redis"
 
 #: interfaces/http.py:186
 msgid "Request"
@@ -485,7 +486,7 @@ msgstr "message groupé"
 
 #: models/groupresolution.py:36
 msgid "Pending"
-msgstr ""
+msgstr "En attente"
 
 #: models/organization.py:70 models/tagkey.py:63
 msgid "Visible"
@@ -591,19 +592,19 @@ msgstr "Le jeton de sécurité requis n'a pas été trouvé ou était invalide."
 
 #: templates/sentry/403-csrf-failure.html:15
 msgid "If you're continually seeing this issue, try the following:"
-msgstr ""
+msgstr "Si vous rencontrez toujours ce problème, essayez ceci :"
 
 #: templates/sentry/403-csrf-failure.html:18
 msgid "Clear cookies (at least for Sentry's domain)."
-msgstr ""
+msgstr "Effacez les cookies (au moins pour le domaine de Sentry)."
 
 #: templates/sentry/403-csrf-failure.html:19
 msgid "Reload the page you're trying to submit (don't re-submit data)."
-msgstr ""
+msgstr "Rechargez la page que vous essayez d'envoyer (n'envoyez pas les données une deuxième fois)."
 
 #: templates/sentry/403-csrf-failure.html:20
 msgid "Re-enter the information, and submit the form again."
-msgstr ""
+msgstr "Saisissez à nouveau les informations, et envoyez à nouveau le formulaire."
 
 #: templates/sentry/404.html:5 templates/sentry/404.html.py:10
 #: static/sentry/app/views/routeNotFound.jsx:22
@@ -641,7 +642,7 @@ msgstr "<strong>%(org_name)s</strong> utilise Sentry pour aggréger les erreurs.
 msgid ""
 "You have been invited to join this organization, which manages "
 "<strong>%(project_count)s</strong> project(s), including:"
-msgstr ""
+msgstr "Vous avez été invité à rejoindre cette organisation, qui gère <strong>%(project_count)s</strong> projet(s), notamment :"
 
 #: templates/sentry/accept-organization-invite.html:32
 msgid ""
@@ -685,7 +686,7 @@ msgstr "Connexion"
 #: templates/sentry/auth-link-login.html:31 templates/sentry/login.html:37
 #: templates/sentry/organization-login.html:54
 msgid "Lost your password?"
-msgstr ""
+msgstr "Mot de passe perdu ?"
 
 #: templates/sentry/auth-link-identity.html:7
 msgid "Link Identity"
@@ -708,7 +709,7 @@ msgstr "Vous pouvez ajouter un utilisateur par son nom d'utilisateur si il poss�
 
 #: templates/sentry/create-organization-member.html:28
 msgid "Add Member"
-msgstr ""
+msgstr "Ajouter un membre"
 
 #: templates/sentry/create-organization.html:6
 #: static/sentry/app/components/header/organizationSelector.jsx:47
@@ -753,13 +754,13 @@ msgstr "Nouvelle équipe"
 
 #: templates/sentry/create-team.html:10
 msgid "Create a New Team"
-msgstr ""
+msgstr "Créer une nouvelle équipe"
 
 #: templates/sentry/create-team.html:13
 msgid ""
 "Teams group members' access to a specific focus, e.g. a major product or "
 "application that may have sub-projects."
-msgstr ""
+msgstr "Les équipes permettent de regrouper l'accès des membres à un domaine particulier, p. ex. pour des produits ou des applications principaux qui comportent des sous-projets."
 
 #: templates/sentry/layout.html:78 templates/sentry/bases/account.html:21
 #: web/forms/accounts.py:73 static/sentry/app/components/header/userNav.jsx:31
@@ -775,7 +776,7 @@ msgstr "Administration"
 #: templates/sentry/layout.html:82
 #: static/sentry/app/components/header/userNav.jsx:35
 msgid "Sign out"
-msgstr ""
+msgstr "Déconnexion"
 
 #: templates/sentry/layout.html:95 templates/sentry/layout.html.py:176
 #: static/sentry/app/components/footer.jsx:19
@@ -786,7 +787,7 @@ msgstr "Documentation"
 #: templates/sentry/project-release-tracking.html:117
 #: static/sentry/app/components/footer.jsx:18
 msgid "API"
-msgstr ""
+msgstr "API"
 
 #: templates/sentry/layout.html:177 static/sentry/app/components/footer.jsx:20
 msgid "Contribute"
@@ -800,7 +801,7 @@ msgstr "Inscription"
 
 #: templates/sentry/login.html:19
 msgid "Single Sign-On"
-msgstr ""
+msgstr "Identification unique"
 
 #: templates/sentry/missing_permissions.html:5
 #: templates/sentry/missing_permissions.html:8
@@ -871,7 +872,7 @@ msgstr "Journal d'audit"
 
 #: templates/sentry/organization-audit-log.html:17
 msgid "Sentry keeps track of important events within your organization."
-msgstr ""
+msgstr "Sentry garde une trace des évènements importants au sein de votre organisation."
 
 #: templates/sentry/organization-auth-settings.html:5
 #: templates/sentry/bases/organization.html:50
@@ -886,7 +887,7 @@ msgstr "Détails du membre"
 #: templates/sentry/organization-member-details.html:21
 #: templates/sentry/organization-member-settings.html:29
 msgid "Basics"
-msgstr ""
+msgstr "Base"
 
 #: templates/sentry/organization-member-details.html:28
 #: templates/sentry/organization-member-settings.html:36
@@ -903,7 +904,7 @@ msgstr "Statut"
 #: templates/sentry/organization-member-details.html:48
 #: templates/sentry/organization-member-settings.html:56
 msgid "Added"
-msgstr ""
+msgstr "Ajouté"
 
 #: templates/sentry/organization-member-details.html:60
 #: templates/sentry/organization-member-settings.html:68
@@ -948,19 +949,19 @@ msgstr "Supprimer l'organisation"
 
 #: templates/sentry/post-remove-account.html:5
 msgid "Remove Account"
-msgstr ""
+msgstr "Supprimer le compte"
 
 #: templates/sentry/post-remove-account.html:10
 msgid "Scheduled for Removal"
-msgstr ""
+msgstr "Suppression programmée"
 
 #: templates/sentry/post-remove-account.html:13
 msgid "Your account has been deactivated and scheduled for removal."
-msgstr ""
+msgstr "Votre compte a été désactivé, et sa suppression est programmée."
 
 #: templates/sentry/post-remove-account.html:14
 msgid "Thanks for using Sentry! We hope to see you again soon!"
-msgstr ""
+msgstr "Merci d'utiliser Sentry ! J'espère vous revoir bientôt !"
 
 #: templates/sentry/project-issue-tracking.html:7
 #: templates/sentry/project-issue-tracking.html:10
@@ -973,7 +974,7 @@ msgstr "Suivi des bogues"
 #: templates/sentry/project-notifications.html:66
 #: templates/sentry/project-release-tracking.html:95
 msgid "Inactive Integrations"
-msgstr ""
+msgstr "Intégrations inactives"
 
 #: templates/sentry/project-notifications.html:8
 #: templates/sentry/project-notifications.html:11
@@ -1011,33 +1012,33 @@ msgstr "Suivi des livraisons"
 
 #: templates/sentry/project-release-tracking.html:16
 msgid "Client Configuration"
-msgstr ""
+msgstr "Configuration du client"
 
 #: templates/sentry/project-release-tracking.html:36
 msgid "Token"
-msgstr ""
+msgstr "Jeton"
 
 #: templates/sentry/project-release-tracking.html:53
 msgid "Webhook"
-msgstr ""
+msgstr "Webhook"
 
 #: templates/sentry/remove-account.html:7
 #: templates/sentry/remove-account.html:49
 #: templates/sentry/bases/account.html:17
 msgid "Close Account"
-msgstr ""
+msgstr "Fermer le compte"
 
 #: templates/sentry/remove-account.html:15
 msgid "This will permanently remove all associated data for your user."
-msgstr ""
+msgstr "Cet action supprimera définitivement toutes les données associées pour votre utilisateur."
 
 #: templates/sentry/remove-account.html:17
 msgid "Closing your account is permanent and cannot be undone!"
-msgstr ""
+msgstr "La fermeture de votre compte est définitive et ne peut pas être annulée !"
 
 #: templates/sentry/remove-account.html:20
 msgid "If you continue, the following organizations will be removed:"
-msgstr ""
+msgstr "Si vous continuez, les organisations suivantes seront supprimées :"
 
 #: templates/sentry/remove-account.html:50
 #: templates/sentry/remove-organization.html:36
@@ -1177,7 +1178,7 @@ msgstr "Nous n'avons pas été en mesure de confirmer votre identité. Soit le l
 
 #: templates/sentry/account/recover/index.html:10
 msgid "We will send a confirmation email to this address:"
-msgstr ""
+msgstr "Nous enverrons un email de confirmation à cette adresse :"
 
 #: templates/sentry/account/recover/index.html:22
 msgid "Send Email"
@@ -1477,7 +1478,7 @@ msgstr "Vous regardez une version disponible publiquement des données de cet é
 
 #: templates/sentry/groups/public_details.html:43
 msgid "Full message"
-msgstr ""
+msgstr "Message entier"
 
 #: templates/sentry/partial/_form.html:14
 msgid "Test Configuration"
@@ -1514,7 +1515,7 @@ msgstr "Requête"
 #: templates/sentry/partial/interfaces/http_email.html:27
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:74
 msgid "Fragment"
-msgstr ""
+msgstr "Fragment"
 
 #: templates/sentry/partial/interfaces/user_email.html:13
 msgid "ID:"
@@ -1538,7 +1539,7 @@ msgstr "Les changements de votre configuration ont été sauvegardés avec succ�
 
 #: templates/sentry/plugins/bases/issue/create_issue.html:23
 msgid "Create Issue"
-msgstr ""
+msgstr "Créer un problème"
 
 #: templates/sentry/plugins/bases/issue/needs_auth.html:13
 #, python-format
@@ -1606,7 +1607,7 @@ msgstr "DSN (Publique)"
 msgid ""
 "Use your public DSN with browser-based clients such as <a href=\"%(link)s"
 "\">raven-js</a>."
-msgstr ""
+msgstr "Utilisez votre DSN public avec les clients basés sur des navigateurs comme <a href=\"%(link)s\">raven-js</a>."
 
 #: templates/sentry/projects/edit_key.html:53
 msgid "Public Key"
@@ -1647,7 +1648,7 @@ msgstr "Révoquer"
 #: templates/sentry/projects/manage.html:156
 #: static/sentry/app/views/projectSettings/index.jsx:80
 msgid "Project Settings"
-msgstr ""
+msgstr "Paramètres du projet"
 
 #: templates/sentry/projects/manage.html:37
 msgid "Project Details"
@@ -1707,12 +1708,12 @@ msgstr "Tags"
 #: templates/sentry/projects/manage.html:179
 #: static/sentry/app/views/projectSettings/index.jsx:87
 msgid "Setup"
-msgstr ""
+msgstr "Configuration"
 
 #: templates/sentry/projects/manage.html:182
 #: static/sentry/app/views/projectSettings/index.jsx:95
 msgid "Instructions"
-msgstr ""
+msgstr "Instructions"
 
 #: templates/sentry/projects/manage.html:189
 #: templates/sentry/projects/plugins/list.html:10
@@ -1723,7 +1724,7 @@ msgstr "Intégrations"
 #: templates/sentry/projects/manage.html:192
 #: static/sentry/app/views/projectSettings/index.jsx:100
 msgid "All Integrations"
-msgstr ""
+msgstr "Toutes les intégrations"
 
 #: templates/sentry/projects/manage_tags.html:13
 msgid ""
@@ -1771,11 +1772,11 @@ msgstr "Le système de Sentry a <strong>%(system_quota)s évènements par minute
 
 #: templates/sentry/projects/remove.html:18
 msgid "Removing this project is permanent and cannot be undone!"
-msgstr ""
+msgstr "La suppression de ce projet est définitive et ne peut pas être annulée !"
 
 #: templates/sentry/projects/remove.html:20
 msgid "This will also remove the all associated event data."
-msgstr ""
+msgstr "Cet action supprimera aussi toutes les données d'événement associées."
 
 #: templates/sentry/projects/plugins/configure.html:15
 msgid "Enable Plugin"
@@ -1826,11 +1827,11 @@ msgstr "Supprimer l'équipe"
 
 #: templates/sentry/teams/remove.html:18
 msgid "Removing this team is permanent and cannot be undone!"
-msgstr ""
+msgstr "La suppression de cette équipe est définitive et ne peut pas être annulée !"
 
 #: templates/sentry/teams/remove.html:21
 msgid "This will also remove all associated projects and events:"
-msgstr ""
+msgstr "Cet action supprimera aussi tous les projets et événements associés :"
 
 #: templates/sentry/users/list.html:15
 #, python-format
@@ -2023,15 +2024,15 @@ msgstr "Fuseau horaire"
 
 #: web/forms/accounts.py:339
 msgid "Use a 24-hour clock"
-msgstr ""
+msgstr "Utiliser une horloge sur 24 heures"
 
 #: web/forms/add_project.py:16
 msgid "i.e. API, Frontend, My Application Name"
-msgstr ""
+msgstr "p. ex. API, Frontend, Nom de mon application"
 
 #: web/forms/add_team.py:15
 msgid "E.g. Operations, Web, Desktop, ..."
-msgstr ""
+msgstr "P. ex. Opérations, Web, Postes de travail, …"
 
 #: web/forms/fields.py:83
 msgid "Invalid username"
@@ -2047,7 +2048,7 @@ msgstr "ex: exemple.com ou https://exemple.com"
 
 #: web/forms/fields.py:158
 msgid "e.g. 127.0.0.1 or 10.0.0.0/8"
-msgstr ""
+msgstr "p. ex. 127.0.0.1 ou 10.0.0.0/8"
 
 #: web/forms/projects.py:19
 msgid "Mail Subject Prefix"
@@ -2100,11 +2101,11 @@ msgstr "L'organisation n'existe pas ou n'a pas de fournisseur d'identité de con
 msgid "You need to link your account with the SSO provider to continue."
 msgstr "Vous devez lier votre compte avec le fournisseur d'identité pour continuer."
 
-#: web/frontend/create_organization.py:16
+#: web/frontend/create_organization.py:17
 msgid "Organization Name"
 msgstr "Nom de l'organisation"
 
-#: web/frontend/create_organization.py:17
+#: web/frontend/create_organization.py:18
 msgid "My Company"
 msgstr "Mon entreprise"
 
@@ -2167,13 +2168,13 @@ msgstr "Nécessite que les membres utilisent un compte correctement lié au four
 #: web/frontend/organization_auth_settings.py:36
 #: web/frontend/organization_settings.py:28
 msgid "Default Role"
-msgstr ""
+msgstr "Rôle par défaut"
 
 #: web/frontend/organization_auth_settings.py:38
 msgid ""
 "The default role new members will receive when logging in for the first "
 "time."
-msgstr ""
+msgstr "Le rôle par défaut qui sera attribué aux nouveaux membres lorsqu'ils se connecteront pour la première fois."
 
 #: web/frontend/organization_member_settings.py:30
 #, python-format
@@ -2191,7 +2192,7 @@ msgstr "Le nom de votre organisation. ex. Ma compagnie"
 #: web/frontend/organization_settings.py:19
 #: web/frontend/project_settings.py:27 web/frontend/team_settings.py:16
 msgid "Short name"
-msgstr ""
+msgstr "Nom court"
 
 #: web/frontend/organization_settings.py:20
 msgid "A unique ID used to identify this organization."
@@ -2207,17 +2208,17 @@ msgstr "Autorise les membres de l'organisation à la rejoindre ou à la quitter 
 
 #: web/frontend/organization_settings.py:30
 msgid "The default role new members will receive."
-msgstr ""
+msgstr "Le rôle par défaut qui sera attribué aux nouveaux membres."
 
 #: web/frontend/organization_settings.py:33
 msgid "Enhanced Privacy"
-msgstr ""
+msgstr "Confidentialité améliorée"
 
 #: web/frontend/organization_settings.py:34
 msgid ""
 "Enable enhanced privacy controls to limit personally identifiable "
 "information (PII) as well as source code in things like notifications."
-msgstr ""
+msgstr "Activez les contrôles de confidentialité améliorée pour limiter les informations d'identification personnelle ainsi que le code source dans des éléments comme des notifications."
 
 #: web/frontend/organization_settings.py:75
 msgid "Changes to your organization were saved."
@@ -2247,7 +2248,7 @@ msgstr "Production"
 
 #: web/frontend/project_settings.py:28
 msgid "A unique ID used to identify this project."
-msgstr ""
+msgstr "Un identifiant unique pour identifier ce projet."
 
 #: web/frontend/project_settings.py:33
 msgid "Security token"
@@ -2262,7 +2263,7 @@ msgstr "Les requêtes entrantes des domaines autorisés auront l'en-tête suppl�
 
 #: web/frontend/project_settings.py:35
 msgid "Auto resolve"
-msgstr ""
+msgstr "Résoudre automatiquement"
 
 #: web/frontend/project_settings.py:37
 msgid ""
@@ -2303,16 +2304,16 @@ msgstr "Empêcher les adresses IP d'être enregistrées pour les nouveaux évén
 
 #: web/frontend/project_settings.py:59
 msgid "Enable JavaScript source fetching"
-msgstr ""
+msgstr "Activer la recherche de la source JavaScript"
 
 #: web/frontend/project_settings.py:60
 msgid ""
 "Allow Sentry to scrape missing JavaScript source context when possible."
-msgstr ""
+msgstr "Autoriser Sentry à récupérer le contexte manquant de la source JavaScript quand c'est possible."
 
 #: web/frontend/project_settings.py:63
 msgid "Blacklisted IP Addresses"
-msgstr ""
+msgstr "Adresses IP sur liste noire"
 
 #: web/frontend/project_settings.py:195
 msgid "Changes to your project were saved."
@@ -2344,7 +2345,7 @@ msgstr "L'équipe %r à été programmée pour suppression."
 
 #: web/frontend/team_settings.py:17
 msgid "A unique ID used to identify this team."
-msgstr ""
+msgstr "Un identifiant unique pour identifier cette équipe."
 
 #: web/frontend/team_settings.py:64
 msgid "Changes to your team were saved."
@@ -2352,48 +2353,48 @@ msgstr "Les changements de votre équipe ont été sauvegardés."
 
 #: static/sentry/app/components/loadingError.jsx:12
 msgid "There was an error loading data."
-msgstr ""
+msgstr "Une erreur s'est produite lors du chargement des données."
 
 #: static/sentry/app/components/loadingError.jsx:26
 msgid "Retry"
-msgstr ""
+msgstr "Réessayer"
 
 #: static/sentry/app/components/projectHeader/projectSelector.jsx:168
 msgid "Filter projects"
-msgstr ""
+msgstr "Filtrer les projets"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:108
 msgid ""
 "There was an error saving your changes. Make sure all fields are valid and "
 "try again."
-msgstr ""
+msgstr "Une erreur s'est produite lors de l'enregistrement de vos modifications. Assurez-vous que tous les champs sont valides et réessayez."
 
 #: static/sentry/app/views/ruleEditor/index.jsx:121
 #, python-format
 msgid "Every time %s of these conditions are met:"
-msgstr ""
+msgstr "Chaque fois que %s de ces conditions sont réunies :"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:126
 msgid "all"
-msgstr ""
+msgstr "tous"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:127
 msgid "any"
-msgstr ""
+msgstr "n'importe lequel"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:128
 msgid "none"
-msgstr ""
+msgstr "aucun"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:146
 msgid ""
 "Ensure at least one condition is enabled and all required fields are filled "
 "in."
-msgstr ""
+msgstr "Vérifiez qu'au moins une condition est activée et que tous les champs obligatoires sont remplis."
 
 #: static/sentry/app/views/ruleEditor/index.jsx:143
 msgid "Take these actions:"
-msgstr ""
+msgstr "Effectuez les actions suivantes :"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:156
 msgid "Save Rule"
@@ -2401,7 +2402,7 @@ msgstr "Enregistrer la règle"
 
 #: static/sentry/app/views/adminOrganizations.jsx:100
 msgid "Sorry, no results match your filters."
-msgstr ""
+msgstr "Désolé, aucun résultat ne correspond à vos filtres."
 
 #: static/sentry/app/views/adminOrganizations.jsx:128
 msgid "Organizations"
@@ -2409,297 +2410,329 @@ msgstr "Organisations"
 
 #: static/sentry/app/views/adminOrganizations.jsx:132
 msgid "Search for an organization."
-msgstr ""
+msgstr "Rechercher une organisation."
 
 #: static/sentry/app/components/organizations/homeSidebar.jsx:27
 msgid "Organization"
-msgstr ""
+msgstr "Organisation"
 
 #: static/sentry/app/views/groupDetails.jsx:106
 msgid "The issue you were looking for was not found."
-msgstr ""
+msgstr "Le problème que vous recherchiez n'a pas été trouvé."
 
 #: static/sentry/app/views/groupUserReports.jsx:103
 msgid "No user reports have been collected for this event."
-msgstr ""
+msgstr "Aucun rapport d'utilisateur n'a été collecté pour cet événement."
 
 #: static/sentry/app/views/groupUserReports.jsx:104
 msgid "Learn how to integrate User Crash Reports"
-msgstr ""
-
-#: static/sentry/app/views/organizationDetails.jsx:106
-msgid "The organization you were looking for was not found."
-msgstr ""
+msgstr "Apprendre à intégrer les rapports d'échec des utilisateurs"
 
 #: static/sentry/app/views/groupTagValues.jsx:123
 msgid "%2$d unique historical value"
 msgid_plural "%2$d unique historical values"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Valeur historique unique de %2$d"
+msgstr[1] "Valeurs historiques uniques de %2$d"
 
 #: static/sentry/app/views/groupTagValues.jsx:131
 msgid "Data is based on events seen in the last 7 days."
-msgstr ""
+msgstr "Les données sont basées sur des événements observés dans les 7 derniers jours."
 
 #: static/sentry/app/views/groupTagValues.jsx:137
 msgid "Value"
 msgstr "Valeur"
 
-#: static/sentry/app/views/projectDashboard.jsx:121
-msgid "1 hour"
-msgstr ""
+#: static/sentry/app/views/organizationDetails.jsx:106
+msgid "The organization you were looking for was not found."
+msgstr "L'organisation que vous recherchiez n'a pas été trouvée."
 
-#: static/sentry/app/views/projectDashboard.jsx:138
-msgid "1 week"
-msgstr ""
-
-#: static/sentry/app/views/projectDashboard.jsx:150
-msgid "Trending Events"
-msgstr ""
-
-#: static/sentry/app/views/projectReleases/index.jsx:170
-msgid "New Events"
-msgstr "Nouveaux évènements"
+#: static/sentry/app/views/projectDetails.jsx:155
+msgid "The project you were looking for was not found."
+msgstr "Le projet que vous recherchiez n'a pas été trouvé."
 
 #: static/sentry/app/views/projectInstall/overview.jsx:45
 msgid "Configure your application"
-msgstr ""
+msgstr "Configurer votre application"
 
 #: static/sentry/app/views/projectInstall/overview.jsx:47
 msgid ""
 "Get started by selecting the platform or language that powers your "
 "application."
-msgstr ""
+msgstr "Commencez par sélectionner la plateforme ou la langue qui fait fonctionner votre application."
 
 #: static/sentry/app/views/projectInstall/overview.jsx:59
 msgid "Public DSN"
-msgstr ""
+msgstr "DSN public"
 
 #: static/sentry/app/views/projectInstall/overview.jsx:61
 msgid "Your public DSN should be used with JavaScript and ActionScript."
-msgstr ""
+msgstr "Votre DSN public doit être utilisé avec JavaScript et ActionScript."
 
 #: static/sentry/app/views/projectInstall/overview.jsx:65
 msgid "Already have things setup? [link:Get your DSN]."
-msgstr ""
+msgstr "Déjà mis en place ? [lien:obtenez votre DSN]."
 
 #: static/sentry/app/views/projectInstall/overview.jsx:82
 msgid "Frameworks"
-msgstr ""
+msgstr "Frameworks"
+
+#: static/sentry/app/views/projectDashboard.jsx:121
+msgid "1 hour"
+msgstr "1 heure"
+
+#: static/sentry/app/views/projectDashboard.jsx:138
+msgid "1 week"
+msgstr "1 semaine"
+
+#: static/sentry/app/views/projectDashboard.jsx:150
+msgid "Trending Events"
+msgstr "Événements de tendances"
+
+#: static/sentry/app/views/projectReleases/index.jsx:170
+msgid "New Events"
+msgstr "Nouveaux évènements"
 
 #: static/sentry/app/views/projectInstall/platform.jsx:87
 msgid "Full Documentation"
-msgstr ""
+msgstr "Documentation complète"
 
 #: static/sentry/app/views/projectInstall/platform.jsx:90
 #, python-format
 msgid "Configure %(integration)s"
-msgstr ""
+msgstr "Configurer %(integration)s"
 
 #: static/sentry/app/views/projectInstall/platform.jsx:120
 msgid "Generic"
-msgstr ""
-
-#: static/sentry/app/views/projectDetails.jsx:155
-msgid "The project you were looking for was not found."
-msgstr ""
+msgstr "Générique"
 
 #: static/sentry/app/views/releaseAllEvents.jsx:20
 msgid "View all events seen in this release in the stream"
-msgstr ""
+msgstr "Afficher tous les événements de cette version dans le flux"
 
 #: static/sentry/app/views/releaseArtifacts.jsx:75
 msgid "There are no artifacts uploaded for this release."
-msgstr ""
+msgstr "Il n'y a aucun artefact téléversé pour cette version."
 
 #: static/sentry/app/components/group/seenInfo.jsx:27
 msgid "Release"
-msgstr ""
+msgstr "Version"
 
 #: static/sentry/app/views/releaseDetails.jsx:138
 msgid "New Issues"
-msgstr ""
+msgstr "Nouveaux problèmes"
 
 #: static/sentry/app/views/releaseDetails.jsx:114
 msgid "First Event"
-msgstr ""
+msgstr "Premier événement"
 
 #: static/sentry/app/views/projectReleases/index.jsx:173
 msgid "Last Event"
-msgstr ""
+msgstr "Dernier événement"
 
 #: static/sentry/app/views/releaseDetails.jsx:139
 msgid "All Issues"
-msgstr ""
+msgstr "Tous les problèmes"
 
 #: static/sentry/app/views/releaseDetails.jsx:140
 msgid "Artifacts"
-msgstr ""
+msgstr "Artefacts"
 
 #: static/sentry/app/views/releaseNewEvents.jsx:20
 msgid "View new events seen in this release in the stream"
-msgstr ""
+msgstr "Afficher les nouveaux événements de cette version dans le flux"
 
 #: static/sentry/app/views/stream.jsx:369
 msgid "Sorry, no events match your filters."
-msgstr ""
+msgstr "Désolé, aucun événement ne correspond à vos filtres."
 
 #: static/sentry/app/components/alertMessage.jsx:27
 msgid "Close"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:41
-msgid "Accepted"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:251
-msgid "Dropped (Rate Limit)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:263
-msgid "Dropped (Blacklist)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:289
-msgid "Events per minute"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:310
-msgid "Events by Project"
-msgstr ""
+msgstr "Fermer"
 
 #: static/sentry/app/views/groupActivity/index.jsx:27
 #, python-format
 msgid "%s left a comment"
-msgstr ""
+msgstr "%s a laissé un commentaire"
 
 #: static/sentry/app/views/groupActivity/index.jsx:29
 #, python-format
 msgid "%s marked this issue as resolved"
-msgstr ""
+msgstr "%s a marqué ce problème comme résolu"
 
 #: static/sentry/app/views/groupActivity/index.jsx:32
 #, python-format
 msgid "%(author)s marked this issue as resolved in %(version)s"
-msgstr ""
+msgstr "%(author)s a marqué ce problème comme résolu dans %(version)s"
 
 #: static/sentry/app/views/groupActivity/index.jsx:37
 #, python-format
 msgid "%s marked this issue as resolved in the upcoming release"
-msgstr ""
+msgstr "%s a marqué ce problème comme résolu dans la prochaine version"
 
 #: static/sentry/app/views/groupActivity/index.jsx:40
 #, python-format
 msgid "%s marked this issue as unresolved"
-msgstr ""
+msgstr "%s a marqué ce problème comme non résolu"
 
 #: static/sentry/app/views/groupActivity/index.jsx:43
 #, python-format
 msgid "%(author)s snoozed this issue for %(duration)s"
-msgstr ""
+msgstr "%(author)s a reporté ce problème pendant %(duration)s"
 
 #: static/sentry/app/views/groupActivity/index.jsx:48
 #, python-format
 msgid "%s muted this issue"
-msgstr ""
+msgstr "%s a rendu ce problème silencieux"
 
 #: static/sentry/app/views/groupActivity/index.jsx:50
 #, python-format
 msgid "%s made this issue public"
-msgstr ""
+msgstr "%s a rendu ce problème public"
 
 #: static/sentry/app/views/groupActivity/index.jsx:52
 #, python-format
 msgid "%s made this issue private"
-msgstr ""
+msgstr "%s a rendu ce problème privé"
 
 #: static/sentry/app/views/groupActivity/index.jsx:55
 #, python-format
 msgid "%(author)s marked this issue as a regression in %(version)s"
-msgstr ""
+msgstr "%(author)s a marqué ce problème comme une régression dans %(version)s"
 
 #: static/sentry/app/views/groupActivity/index.jsx:60
 #, python-format
 msgid "%s marked this issue as a regression"
-msgstr ""
+msgstr "%s a marqué ce problème comme une régression"
 
 #: static/sentry/app/views/groupActivity/index.jsx:63
 #, python-format
 msgid "created an issue on %(provider)s titled %(title)s"
-msgstr ""
+msgstr "a créé un problème sur %(provider)s intitulé %(title)s"
 
 #: static/sentry/app/views/groupActivity/index.jsx:68
 #, python-format
 msgid "%s first saw this issue"
-msgstr ""
+msgstr "%s a vu ce problème pour la première fois"
 
 #: static/sentry/app/views/groupActivity/index.jsx:73
 #, python-format
 msgid "%s assigned this event to themselves"
-msgstr ""
+msgstr "%s s'est attribué ce problème"
 
 #: static/sentry/app/views/groupActivity/index.jsx:85
 #, python-format
 msgid "%(author)s assigned this event to %(assignee)s"
-msgstr ""
+msgstr "%(author)s a attribué cet événement à %(assignee)s"
 
 #: static/sentry/app/views/groupActivity/index.jsx:82
 #, python-format
 msgid "%s assigned this event to an unknown user"
-msgstr ""
+msgstr "%s a attribué cet événement à un utilisateur inconnu"
 
 #: static/sentry/app/views/groupActivity/index.jsx:90
 #, python-format
 msgid "%s unassigned this issue"
-msgstr ""
+msgstr "%s a retiré l'attribution de ce problème"
 
-#: static/sentry/app/views/organizationTeams/index.jsx:105
-msgid "You do not have enough permission to create new projects"
-msgstr ""
+#: static/sentry/app/views/organizationStats/projectTable.jsx:41
+msgid "Accepted"
+msgstr "Accepté"
 
-#: static/sentry/app/views/organizationTeams/index.jsx:116
-msgid "You do not have enough permission to create new teams"
-msgstr ""
+#: static/sentry/app/views/organizationStats/index.jsx:251
+msgid "Dropped (Rate Limit)"
+msgstr "Annulé (limite de taux)"
 
-#: static/sentry/app/views/organizationTeams/index.jsx:123
-msgid "Your Teams"
-msgstr ""
+#: static/sentry/app/views/organizationStats/index.jsx:263
+msgid "Dropped (Blacklist)"
+msgstr "Annulé (liste noire)"
 
-#: static/sentry/app/views/organizationTeams/index.jsx:126
-msgid "All Teams"
-msgstr ""
+#: static/sentry/app/views/organizationStats/index.jsx:289
+msgid "Events per minute"
+msgstr "Evènements par minute"
+
+#: static/sentry/app/views/organizationStats/index.jsx:310
+msgid "Events by Project"
+msgstr "Événements par projet"
 
 #: static/sentry/app/views/projectReleases/index.jsx:134
 msgid "Sorry, no releases match your filters."
-msgstr ""
+msgstr "Désolé, aucune version ne correspond à vos filtres."
 
 #: static/sentry/app/views/projectReleases/index.jsx:143
 msgid "There don't seem to be any releases yet."
-msgstr ""
+msgstr "Il semblerait qu'il n'y ait pas encore de versions."
 
 #: static/sentry/app/views/projectReleases/index.jsx:145
 msgid "Learn how to integrate Release Tracking"
-msgstr ""
+msgstr "Apprendre à intégrer le suivi des versions"
 
 #: static/sentry/app/components/projectHeader/index.jsx:34
 msgid "Releases"
-msgstr ""
+msgstr "Versions"
 
 #: static/sentry/app/views/projectReleases/index.jsx:168
 msgid "Version"
 msgstr "Version"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:51
+#: static/sentry/app/views/organizationTeams/index.jsx:105
+msgid "You do not have enough permission to create new projects"
+msgstr "Vous n'avez pas les permissions suffisantes pour créer de nouveaux projets"
+
+#: static/sentry/app/views/organizationTeams/index.jsx:116
+msgid "You do not have enough permission to create new teams"
+msgstr "Vous n'avez pas les permissions suffisantes pour créer de nouvelles équipes"
+
+#: static/sentry/app/views/organizationTeams/index.jsx:123
+msgid "Your Teams"
+msgstr "Vos équipes"
+
+#: static/sentry/app/views/organizationTeams/index.jsx:126
+msgid "All Teams"
+msgstr "Toutes les équipes"
+
+#: static/sentry/app/components/group/sidebar.jsx:19
+msgid "Last 24 Hours"
+msgstr "Dernières 24 heures"
+
+#: static/sentry/app/components/group/sidebar.jsx:23
+msgid "Last 30 Days"
+msgstr "30 derniers jours"
+
+#: static/sentry/app/components/group/chart.jsx:30
+msgid "First seen"
+msgstr "Premier vu"
+
+#: static/sentry/app/components/group/chart.jsx:37
+msgid "Last seen"
+msgstr "Dernier vu"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:28
+msgid "Oldest"
+msgstr "Les plus anciens"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:42
+msgid "Older"
+msgstr "Anciens"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:51
+msgid "Newer"
+msgstr "Récents"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:58
+msgid "Newest"
+msgstr "Les plus récents"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:52
 msgid "Saving changes.."
-msgstr ""
+msgstr "Enregistrement des modifications…"
 
 #: static/sentry/app/views/stream/searchBar.jsx:72
 msgid "Assigned"
-msgstr ""
+msgstr "Attribué"
 
 #: static/sentry/app/views/groupDetails/header.jsx:148
 msgid "Share this event"
-msgstr ""
+msgstr "Partager cet événement"
 
 #: static/sentry/app/views/groupDetails/header.jsx:160
 msgid "Details"
@@ -2707,157 +2740,125 @@ msgstr "Détails"
 
 #: static/sentry/app/views/groupDetails/header.jsx:163
 msgid "Comments"
-msgstr ""
+msgstr "Commentaires"
 
 #: static/sentry/app/views/groupDetails/header.jsx:167
 msgid "User Reports"
-msgstr ""
+msgstr "Rapports d'utilisateurs"
 
 #: static/sentry/app/views/groupDetails/header.jsx:174
 msgid "Related Events"
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:215
-msgid "Unable to change assignee. Please try again."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:239
-msgid "Unable to delete events. Please try again."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:250
-msgid "The selected events have been scheduled for deletion."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:265
-msgid "Unable to merge events. Please try again."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:280
-msgid "The selected events have been scheduled for merge."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:301
-msgid "Unable to update events. Please try again."
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:28
-msgid "Oldest"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:42
-msgid "Older"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:51
-msgid "Newer"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:58
-msgid "Newest"
-msgstr ""
-
-#: static/sentry/app/components/group/sidebar.jsx:19
-msgid "Last 24 Hours"
-msgstr ""
-
-#: static/sentry/app/components/group/sidebar.jsx:23
-msgid "Last 30 Days"
-msgstr ""
-
-#: static/sentry/app/components/group/chart.jsx:30
-msgid "First seen"
-msgstr ""
-
-#: static/sentry/app/components/group/chart.jsx:37
-msgid "Last seen"
-msgstr ""
+msgstr "Evènements relatifs"
 
 #: static/sentry/app/components/mutedBox.jsx:15
 #, python-format
 msgid "This issue has been snoozed until %s"
-msgstr ""
+msgstr "Ce problème a été reporté jusqu'au %s"
 
 #: static/sentry/app/components/mutedBox.jsx:20
 msgid "This issue has been muted"
-msgstr ""
+msgstr "Ce problème a été rendu silencieux"
 
 #: static/sentry/app/components/mutedBox.jsx:22
 msgid ""
 "You will not be notified of any changes and it will not show up by default "
 "in feeds."
-msgstr ""
+msgstr "Vous ne serez plus averti des modifications et il n'apparaîtra plus par défaut dans les flux."
 
-#: static/sentry/app/views/projectDashboard/eventList.jsx:104
-msgid "No data available."
-msgstr ""
+#: static/sentry/app/stores/groupStore.jsx:215
+msgid "Unable to change assignee. Please try again."
+msgstr "Impossible de changer l'attribution. Réessayez."
+
+#: static/sentry/app/stores/groupStore.jsx:239
+msgid "Unable to delete events. Please try again."
+msgstr "Impossible de supprimer des événements. Réessayez."
+
+#: static/sentry/app/stores/groupStore.jsx:250
+msgid "The selected events have been scheduled for deletion."
+msgstr "Les événements sélectionnés ont été programmés pour être supprimés."
+
+#: static/sentry/app/stores/groupStore.jsx:265
+msgid "Unable to merge events. Please try again."
+msgstr "Impossible de fusionner des événements. Réessayez."
+
+#: static/sentry/app/stores/groupStore.jsx:280
+msgid "The selected events have been scheduled for merge."
+msgstr "Les événements sélectionnés ont été programmés pour être fusionnés."
+
+#: static/sentry/app/stores/groupStore.jsx:301
+msgid "Unable to update events. Please try again."
+msgstr "Impossible de mettre à jour des événements. Réessayez."
 
 #: static/sentry/app/components/missingProjectMembership.jsx:52
 #, python-format
 msgid "To view this data you must first join the %s team."
-msgstr ""
+msgstr "Pour afficher ces données, vous devez d'abord rejoindre l'équipe %s."
 
 #: static/sentry/app/components/missingProjectMembership.jsx:54
 #, python-format
 msgid "To view this data you must first request access to the %s team."
-msgstr ""
+msgstr "Pour afficher ces données, vous devez d'abord demander accès à l'équipe %s."
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:87
 msgid "Request Pending"
-msgstr ""
+msgstr "Demande en attente"
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:90
 msgid "Join Team"
-msgstr ""
+msgstr "Rejoindre l'équipe"
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:93
 msgid "Request Access"
-msgstr ""
+msgstr "Demander l'accès"
+
+#: static/sentry/app/views/projectDashboard/eventList.jsx:104
+msgid "No data available."
+msgstr "Aucune donnée disponible."
 
 #: static/sentry/app/components/groupList.jsx:122
 msgid "There don't seem to be any events fitting the query."
-msgstr ""
+msgstr "Il semblerait qu'il n'y ait pas d'événements correspondant à la requête."
 
 #: static/sentry/app/views/stream/actions.jsx:87
 msgid "Removing events.."
-msgstr ""
+msgstr "Suppression des événements…"
 
 #: static/sentry/app/views/stream/actions.jsx:103
 msgid "Merging events.."
-msgstr ""
+msgstr "Fusion des événements…"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:116
+#: static/sentry/app/views/groupDetails/actions.jsx:117
 msgid "Resolve"
-msgstr ""
+msgstr "Résoudre"
 
 #: static/sentry/app/views/stream/actions.jsx:172
 #, python-format
 msgid "Are you sure you want to resolve these %d issue?"
 msgid_plural "Are you sure you want to resolve these %d issues?"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Êtes-vous certain de vouloir résoudre %d problème ?"
+msgstr[1] "Êtes-vous certain de vouloir résoudre ces %d problèmes ?"
 
 #: static/sentry/app/views/stream/actions.jsx:178
 #, python-format
 msgid "Resolve %d selected issue"
 msgid_plural "Resolve %d selected issues"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Résoudre %d problème sélectionné"
+msgstr[1] "Résoudre %d problèmes sélectionnés"
 
 #: static/sentry/app/views/stream/actions.jsx:182
 msgid "Set Status to Resolved"
 msgstr ""
 
-#: static/sentry/app/views/groupDetails/actions.jsx:170
+#: static/sentry/app/views/groupDetails/actions.jsx:171
 msgid "Bookmark"
-msgstr ""
+msgstr "Mettre en favori"
 
 #: static/sentry/app/views/stream/actions.jsx:196
 #, python-format
 msgid "Bookmark %d selected issue"
 msgid_plural "Bookmark %d selected issues"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Mettre en favori %d problème sélectionné"
+msgstr[1] "Mettre en favori %d problèmes sélectionnés"
 
 #: static/sentry/app/views/stream/actions.jsx:200
 msgid "Add to Bookmarks"
@@ -2979,20 +2980,12 @@ msgstr ""
 msgid "Search title and culprit text body"
 msgstr ""
 
-#: static/sentry/app/views/organizationStats/projectTable.jsx:43
-msgid "Dropped"
-msgstr ""
+#: static/sentry/app/components/projectHeader/index.jsx:24
+msgid "Dashboard"
+msgstr "Tableau de bord"
 
-#: static/sentry/app/views/organizationStats/projectTable.jsx:42
-msgid "(Rate Limit)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:43
-msgid "(Blacklist)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:44
-msgid "Total"
+#: static/sentry/app/components/projectHeader/index.jsx:29
+msgid "Issues"
 msgstr ""
 
 #: static/sentry/app/views/groupActivity/noteContainer.jsx:28
@@ -3031,10 +3024,36 @@ msgstr ""
 msgid "Markdown supported"
 msgstr ""
 
-#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:40
-msgid ""
-"You don't have any teams for this organization yet. Get started by "
-"[link:creating your first team]."
+#: static/sentry/app/views/organizationStats/projectTable.jsx:43
+msgid "Dropped"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:42
+msgid "(Rate Limit)"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:43
+msgid "(Blacklist)"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:44
+msgid "Total"
+msgstr ""
+
+#: static/sentry/app/components/groupListHeader.jsx:15
+msgid "events"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:86
+msgid "Events Per Minute"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:88
+msgid "Rejected in last 24h"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:92
+msgid "View all stats"
 msgstr ""
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:85
@@ -3059,90 +3078,10 @@ msgid ""
 "[link:creating your first team]."
 msgstr ""
 
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:86
-msgid "Events Per Minute"
-msgstr ""
-
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:88
-msgid "Rejected in last 24h"
-msgstr ""
-
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:92
-msgid "View all stats"
-msgstr ""
-
-#: static/sentry/app/components/projectHeader/index.jsx:24
-msgid "Dashboard"
-msgstr "Tableau de bord"
-
-#: static/sentry/app/components/projectHeader/index.jsx:29
-msgid "Issues"
-msgstr ""
-
-#: static/sentry/app/components/groupListHeader.jsx:15
-msgid "events"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:32
-msgid "Delete event.."
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:104
+#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:40
 msgid ""
-"This event is resolved due to the Auto Resolve configuration for this "
-"project"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:109
-msgid "Unresolve"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:128
-msgid "Resolved in next release"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:134
-msgid "Snooze notifications until this issue reoccurs in a future release."
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:133
-msgid "Resolved in next release."
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:144
-msgid "Remove Snooze"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:152
-msgid "Snooze"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:154
-msgid "for 30 minutes"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:157
-msgid "for 2 hours"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:160
-msgid "for 24 hours"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:163
-msgid "forever"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:178
-msgid "Delete"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:179
-msgid "Deleting this event is permanent. Are you sure you wish to continue?"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:188
-msgid "More"
+"You don't have any teams for this organization yet. Get started by "
+"[link:creating your first team]."
 msgstr ""
 
 #: static/sentry/app/components/events/errors.jsx:42
@@ -3163,6 +3102,10 @@ msgstr[1] ""
 #: static/sentry/app/components/events/extraData.jsx:27
 msgid "Additional Data"
 msgstr "Données supplémentaires"
+
+#: static/sentry/app/components/events/message.jsx:13
+msgid "Message"
+msgstr "Message"
 
 #: static/sentry/app/components/events/interfaces/exception.jsx:58
 msgid "App Only"
@@ -3188,11 +3131,8 @@ msgstr "appel le plus récent en premier"
 msgid "most recent call last"
 msgstr "appel le plus récent en dernier"
 
-#: static/sentry/app/components/events/message.jsx:13
-msgid "Message"
-msgstr ""
-
-#: static/sentry/app/components/events/interfaces/request.jsx:75
+# this means "rich" rendering (fancy tables)
+#: static/sentry/app/components/events/interfaces/request.jsx:77
 msgid "Rich"
 msgstr ""
 
@@ -3218,6 +3158,68 @@ msgstr ""
 
 #: static/sentry/app/components/group/seenInfo.jsx:24
 msgid "Date"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:33
+msgid "Delete event.."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:105
+msgid ""
+"This event is resolved due to the Auto Resolve configuration for this "
+"project"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:110
+msgid "Unresolve"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:129
+msgid "Resolved in next release"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:135
+msgid "Snooze notifications until this issue reoccurs in a future release."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:134
+msgid "Resolved in next release."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:145
+msgid "Remove Snooze"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:153
+msgid "Snooze"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:155
+msgid "for 30 minutes"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:158
+msgid "for 2 hours"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:161
+msgid "for 24 hours"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:164
+msgid "forever"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:179
+msgid "Delete"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:180
+msgid "Deleting this event is permanent. Are you sure you wish to continue?"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:189
+msgid "More"
 msgstr ""
 
 #: static/sentry/app/components/groupListHeader.jsx:10
@@ -3274,7 +3276,7 @@ msgstr ""
 
 #: static/sentry/app/views/groupActivity/note.jsx:33
 msgid "Remove"
-msgstr ""
+msgstr "Retirer"
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:38
 msgid "There was an error while trying to join the team."
@@ -3302,15 +3304,15 @@ msgstr ""
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:80
 msgid "Body"
-msgstr ""
+msgstr "Corps"
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:86
 msgid "Cookies"
-msgstr ""
+msgstr "Cookies"
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:91
 msgid "Headers"
-msgstr ""
+msgstr "En-têtes"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:49
 msgid "Original Filename"
