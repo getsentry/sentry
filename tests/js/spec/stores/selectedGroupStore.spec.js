@@ -1,5 +1,5 @@
-var GroupStore = require('app/stores/groupStore');
-var SelectedGroupStore = require('app/stores/selectedGroupStore');
+const GroupStore = require('app/stores/groupStore');
+const SelectedGroupStore = require('app/stores/selectedGroupStore');
 
 describe('SelectedGroupStore', function() {
 
@@ -132,7 +132,7 @@ describe('SelectedGroupStore', function() {
 
     it('returns selected ids', function() {
       SelectedGroupStore.records = {1: true, 2: false, 3: true};
-      var ids = SelectedGroupStore.getSelectedIds();
+      let ids = SelectedGroupStore.getSelectedIds();
 
       expect(ids.has('1')).to.be.true;
       expect(ids.has('3')).to.be.true;
@@ -141,7 +141,7 @@ describe('SelectedGroupStore', function() {
 
     it('returns empty set with no selected ids', function() {
       SelectedGroupStore.records = {1: false};
-      var ids = SelectedGroupStore.getSelectedIds();
+      let ids = SelectedGroupStore.getSelectedIds();
 
       expect(ids.has('1')).to.be.false;
       expect(ids.size).to.eql(0);
