@@ -7,14 +7,12 @@ sentry.options.manager
 """
 from __future__ import absolute_import, print_function
 
-import logging
 from collections import namedtuple
 from types import NoneType
 
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.cache import default_cache
 from sentry.db.models.query import create_or_update
 from sentry.models import Option
 from sentry.utils.hashlib import md5
@@ -49,13 +47,6 @@ class OptionsManager(object):
     dynamic configuration with maximum uptime, where defaults are always taken from
     constants in the global configuration.
     """
-    cache = default_cache
-    logger = logging.getLogger('sentry')
-    registry = None
-
-    # we generally want to always persist
-    ttl = None
-
     DEFAULT_FLAGS = 0b000
     # Value can't be changed at runtime
     FLAG_IMMUTABLE = 0b001
@@ -66,15 +57,15 @@ class OptionsManager(object):
     FLAG_STOREONLY = 0b100
 
     def __init__(self, cache=None, ttl=None, logger=None):
-        if cache is not None:
-            self.cache = default_cache
-
-        if ttl is not None:
-            self.ttl = ttl
-
-        if logger is not None:
-            self.logger = logger
-
+        if cache is None:
+            from sentry.cache import default_cache
+            cache = default_cache
+        if logger is None:
+            import logging
+            logger = logging.getLogger('sentry')
+        self.cache = cache
+        self.logger = logger
+        self.ttl = ttl
         self.registry = {}
 
     def _make_cache_key(self, key):
