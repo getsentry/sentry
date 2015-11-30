@@ -15,3 +15,4 @@ default_manager = OptionsManager()
 get = default_manager.get
 set = default_manager.set
 delete = default_manager.delete
+register = default_manager.register
