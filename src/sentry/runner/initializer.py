@@ -83,12 +83,12 @@ def bootstrap_options(settings, config):
     with open(config, 'rb') as fp:
         options = safe_load(fp)
     for k, v in options.iteritems():
+        # Stuff everything else into SENTRY_OPTIONS
+        # these will be validated later after bootstrapping
+        settings.SENTRY_OPTIONS[k] = v
+        # Escalate the few needed to actually get the app bootstrapped into settings
         if k in options_mapper:
             setattr(settings, options_mapper[k], v)
-        else:
-            # Stuff everything else into SENTRY_OPTIONS
-            # these will be validated later after bootstrapping
-            settings.SENTRY_OPTIONS[k] = v
 
 
 def initialize_app(config, skip_backend_validation=False):
@@ -132,12 +132,14 @@ def initialize_app(config, skip_backend_validation=False):
 
     initialize_receivers()
 
+    validate_options(settings)
+
     if not skip_backend_validation:
         validate_backends()
 
     from django.utils import timezone
     from sentry.app import env
-    env.data['config'] = config.get('config_path')
+    env.data['config'] = config['config_path']
     env.data['start_date'] = timezone.now()
 
 
@@ -156,6 +158,13 @@ def validate_backends():
 
     for backend in backends:
         backend.validate()
+
+
+def validate_options(settings):
+    options = settings.SENTRY_OPTIONS
+    for k, v in options.iteritems():
+        # TODO(mattrobenolt): Validate settings.SENTRY_OPTIONS.
+        pass
 
 
 def fix_south(settings):
@@ -252,5 +261,3 @@ def on_configure(config):
         settings, 'kombu.contrib.django', 'djkombu_queue')
     skip_migration_if_applied(
         settings, 'social_auth', 'social_auth_association')
-
-    # TODO(mattrobenolt): Validate settings.SENTRY_OPTIONS.
