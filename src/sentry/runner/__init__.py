@@ -21,7 +21,7 @@ import click
 @click.version_option()
 @click.pass_context
 def cli(ctx, config):
-    "<3"
+    "Sentry is cross-platform crash reporting built with love."
     ctx.obj['config'] = config
 
 
