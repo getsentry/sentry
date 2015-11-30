@@ -8,6 +8,7 @@ sentry.management.commands.repair
 from __future__ import absolute_import, print_function
 
 from django.core.management.base import BaseCommand
+from django.db import connection
 
 
 class Command(BaseCommand):
@@ -18,7 +19,7 @@ class Command(BaseCommand):
         from sentry.tasks.sync_docs import sync_docs
         sync_docs()
 
-        from sentry.models import Project, ProjectKey
+        from sentry.models import Activity, Project, ProjectKey
         print("Creating missing project keys")
         queryset = Project.objects.filter(key_set__isnull=True)
         for project in queryset:
@@ -28,3 +29,12 @@ class Command(BaseCommand):
                 )
             except ProjectKey.MultipleObjectsReturned:
                 pass
+
+        print("Correcting Group.num_comments counter")
+        cursor = connection.cursor()
+        cursor.execute("""
+            UPDATE sentry_groupedmessage SET num_comments = (
+                SELECT COUNT(*) from sentry_activity
+                WHERE type = %s and group_id = sentry_groupedmessage.id
+            )
+        """, [Activity.NOTE])
