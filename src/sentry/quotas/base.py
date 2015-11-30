@@ -76,8 +76,5 @@ class Quota(object):
     def get_organization_quota(self, organization):
         return self.translate_quota(
             settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE,
-            self.get_system_quota()
+            settings.SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE,
         )
-
-    def get_system_quota(self):
-        return settings.SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE
