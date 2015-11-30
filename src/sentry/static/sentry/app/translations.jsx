@@ -1,15 +1,15 @@
 import {_} from 'underscore';
 
 const catalogs = (function() {
-  var info = require('../../../locale/catalogs.json');
+  let info = require('../../../locale/catalogs.json');
   return info.supported_locales;
 })();
 
 const translations = (function() {
-  var ctx = require.context('../../../locale/', true, /\.po$/);
-  var rv = {};
+  let ctx = require.context('../../../locale/', true, /\.po$/);
+  let rv = {};
   ctx.keys().forEach((translation) => {
-    var langCode = translation.match(/([a-zA-Z_]+)/)[1];
+    let langCode = translation.match(/([a-zA-Z_]+)/)[1];
     if (_.contains(catalogs, langCode)) {
       rv[langCode] = ctx(translation);
     }

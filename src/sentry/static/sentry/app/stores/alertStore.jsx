@@ -13,7 +13,7 @@ const AlertStore = Reflux.createStore({
     // intentionally recreate array via concat because of Reflux
     // "bug" where React components are given same reference to tracked
     // data objects, and don't *see* that values have changed
-    var alertId = this.count++;
+    let alertId = this.count++;
 
     this.alerts = this.alerts.concat([{
       id: alertId,

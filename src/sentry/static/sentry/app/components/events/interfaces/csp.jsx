@@ -48,7 +48,7 @@ const CSPInterface = React.createClass({
     let {view, data} = this.state;
     let {group, event} = this.props;
 
-    var title = (
+    let title = (
       <div>
         <div className="btn-group">
           <a className={(view === 'report' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleView.bind(this, 'report')}>{t('Report')}</a>

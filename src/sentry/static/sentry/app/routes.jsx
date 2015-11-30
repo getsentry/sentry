@@ -31,7 +31,7 @@ import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
 
 function appendTrailingSlash(nextState, replaceState) {
-  var lastChar = nextState.location.pathname.slice(-1);
+  let lastChar = nextState.location.pathname.slice(-1);
   if (lastChar !== '/') {
     replaceState(nextState, nextState.location.pathname + '/');
   }
