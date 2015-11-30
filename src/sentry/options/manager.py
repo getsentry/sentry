@@ -113,7 +113,7 @@ class OptionsManager(object):
             # Fortunately, they all share the same prefix, 'sentry:', so
             # we special case them here and construct a faux key until we migrate.
             if key[:7] == 'sentry:':
-                self.logger.info('Using legacy key: %s', key, exc_info=True)
+                self.logger.debug('Using legacy key: %s', key, exc_info=True)
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
                 return Key(key, '', object, self.DEFAULT_FLAGS, self._make_cache_key(key))
