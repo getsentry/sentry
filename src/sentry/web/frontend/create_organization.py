@@ -7,7 +7,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import features, roles
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Organization, OrganizationMember
+    AuditLogEntry, AuditLogEntryEvent, Organization, OrganizationMember,
+    OrganizationMemberTeam
 )
 from sentry.web.frontend.base import BaseView
 
@@ -33,10 +34,20 @@ class CreateOrganizationView(BaseView):
         if form.is_valid():
             org = form.save()
 
-            OrganizationMember.objects.create(
+            om = OrganizationMember.objects.create(
                 organization=org,
                 user=request.user,
                 role=roles.get_top_dog().id,
+            )
+
+            team = org.team_set.create(
+                name=org.name,
+            )
+
+            OrganizationMemberTeam.objects.create(
+                team=team,
+                organizationmember=om,
+                is_active=True
             )
 
             AuditLogEntry.objects.create(
@@ -48,9 +59,9 @@ class CreateOrganizationView(BaseView):
                 data=org.get_audit_log_data(),
             )
 
-            url = reverse('sentry-create-team', args=[org.slug])
+            url = reverse('sentry-create-project', args=[org.slug])
 
-            return HttpResponseRedirect(url)
+            return HttpResponseRedirect('{}?team={}'.format(url, team.slug))
 
         context = {
             'form': form,
