@@ -21,7 +21,8 @@ const GroupActions = React.createClass({
     GroupState,
     History,
     TooltipMixin({
-      selector: '.tip'
+      selector: '.tip',
+      container: 'body',
     }),
   ],
 
