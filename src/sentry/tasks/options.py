@@ -7,6 +7,7 @@ sentry.tasks.options
 """
 from __future__ import absolute_import
 
+import logging
 from datetime import timedelta
 from django.utils import timezone
 
@@ -16,6 +17,7 @@ from sentry.options.manager import UnknownOption
 from sentry.tasks.base import instrumented_task
 
 ONE_HOUR = 60 * 60
+logger = logging.getLogger('sentry')
 
 
 @instrumented_task(name='sentry.tasks.options.sync_options', queue='options')
@@ -33,5 +35,5 @@ def sync_options(cutoff=ONE_HOUR):
         try:
             opt = default_manager.lookup_key(option.key)
             default_manager.update_cached_value(opt.cache_key, option.value)
-        except UnknownOption:
-            pass
+        except UnknownOption as e:
+            logger.exception(unicode(e))
