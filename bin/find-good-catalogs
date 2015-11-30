@@ -20,9 +20,12 @@ def is_translated(msg):
 
 
 @click.command()
-def cli():
-    # en is always in
-    rv = ['en']
+@click.argument('catalog_file', type=click.Path())
+def cli(catalog_file):
+    # Read the old ones back.  Once we are in, we will never go.
+    with open(catalog_file) as f:
+        rv = json.load(f)['supported_locales']
+
     base = 'src/sentry/locale'
     for locale in os.listdir(base):
         fn = os.path.join(base, locale, 'LC_MESSAGES', 'django.po')
@@ -44,9 +47,11 @@ def cli():
         ), err=True)
         if pct >= MINIMUM and locale not in rv:
             rv.append(locale)
-    click.echo(json.dumps({
-        'supported_locales': sorted(rv)
-    }, indent=2))
+    with open(catalog_file, 'w') as f:
+        json.dump({
+            'supported_locales': sorted(rv)
+        }, f, indent=2)
+        f.write('\n')
 
 
 if __name__ == '__main__':

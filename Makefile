@@ -56,7 +56,7 @@ build-js-po:
 locale: build-js-po
 	cd src/sentry && sentry makemessages -i static -l en
 	./bin/merge-catalogs en
-	./bin/find-good-catalogs > src/sentry/locale/catalogs.json
+	./bin/find-good-catalogs src/sentry/locale/catalogs.json
 	cd src/sentry && sentry compilemessages
 
 update-transifex: build-js-po
