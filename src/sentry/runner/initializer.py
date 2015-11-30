@@ -161,10 +161,8 @@ def validate_backends():
 
 
 def validate_options(settings):
-    options = settings.SENTRY_OPTIONS
-    for k, v in options.iteritems():
-        # TODO(mattrobenolt): Validate settings.SENTRY_OPTIONS.
-        pass
+    from sentry.options import default_manager
+    default_manager.validate(settings.SENTRY_OPTIONS)
 
 
 def fix_south(settings):

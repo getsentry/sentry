@@ -30,6 +30,16 @@ class UnknownOption(KeyError):
     pass
 
 
+DEFAULT_FLAGS = 0b000
+# Value can't be changed at runtime
+FLAG_IMMUTABLE = 0b001
+# Don't check/set in the datastore. Option only exists from file.
+FLAG_NOSTORE = 0b010
+# Values that should only exist in datastore, and shouldn't exist in
+# config files.
+FLAG_STOREONLY = 0b100
+
+
 class OptionsManager(object):
     """
     A backend for storing generic configuration within Sentry.
@@ -47,14 +57,6 @@ class OptionsManager(object):
     dynamic configuration with maximum uptime, where defaults are always taken from
     constants in the global configuration.
     """
-    DEFAULT_FLAGS = 0b000
-    # Value can't be changed at runtime
-    FLAG_IMMUTABLE = 0b001
-    # Don't check/set in the datastore. Option only exists from file.
-    FLAG_NOSTORE = 0b010
-    # Values that should only exist in datastore, and shouldn't exist in
-    # config files.
-    FLAG_STOREONLY = 0b100
 
     def __init__(self, cache=None, ttl=None, logger=None):
         if cache is None:
@@ -82,9 +84,9 @@ class OptionsManager(object):
         opt = self.lookup_key(key)
 
         # If an option isn't able to exist in the store, we can't set it at runtime
-        assert not (opt.flags & self.FLAG_NOSTORE), '%r cannot be changed at runtime' % key
+        assert not (opt.flags & FLAG_NOSTORE), '%r cannot be changed at runtime' % key
         # Enforce immutability on key
-        assert not (opt.flags & self.FLAG_IMMUTABLE), '%r cannot be changed at runtime' % key
+        assert not (opt.flags & FLAG_IMMUTABLE), '%r cannot be changed at runtime' % key
 
         if not isinstance(value, opt.type):
             raise TypeError('got %r, expected %r' % (_type(value), opt.type))
@@ -116,7 +118,7 @@ class OptionsManager(object):
                 self.logger.debug('Using legacy key: %s', key, exc_info=True)
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
-                return Key(key, '', object, self.DEFAULT_FLAGS, self._make_cache_key(key))
+                return Key(key, '', object, DEFAULT_FLAGS, self._make_cache_key(key))
             raise UnknownOption(key)
 
     def get(self, key):
@@ -133,14 +135,14 @@ class OptionsManager(object):
         # values change. This case is unlikely, but good to cover our bases.
         opt = self.lookup_key(key)
 
-        if not (opt.flags & self.FLAG_NOSTORE):
+        if not (opt.flags & FLAG_NOSTORE):
             result = self.fetch_from_store(opt)
             if result is not None:
                 return result
 
         # Some values we don't want to allow them to be configured through
         # config files and should only exist in the datastore
-        if opt.flags & self.FLAG_STOREONLY:
+        if opt.flags & FLAG_STOREONLY:
             return opt.default
 
         try:
@@ -187,9 +189,9 @@ class OptionsManager(object):
         opt = self.lookup_key(key)
 
         # If an option isn't able to exist in the store, we can't set it at runtime
-        assert not (opt.flags & self.FLAG_NOSTORE), '%r cannot be changed at runtime' % key
+        assert not (opt.flags & FLAG_NOSTORE), '%r cannot be changed at runtime' % key
         # Enforce immutability on key
-        assert not (opt.flags & self.FLAG_IMMUTABLE), '%r cannot be changed at runtime' % key
+        assert not (opt.flags & FLAG_IMMUTABLE), '%r cannot be changed at runtime' % key
 
         Option.objects.filter(key=key).delete()
 
@@ -203,8 +205,14 @@ class OptionsManager(object):
     def update_cached_value(self, cache_key, value):
         self.cache.set(cache_key, value, self.ttl)
 
-    def register(self, key, default='', type=basestring, flags=DEFAULT_FLAGS):
+    def register(self, key, default='', type=None, flags=DEFAULT_FLAGS):
         assert key not in self.registry, 'Option already registered: %r' % key
+        # Guess type based on the default value
+        if type is None:
+            if isinstance(default, basestring):
+                type = basestring
+            else:
+                type = _type(default)
         # We disallow None as a value for options since this is ambiguous and doesn't
         # really make sense as config options. There should be a sensible default
         # value instead that matches the type expected, rather than relying on None.
@@ -220,3 +228,13 @@ class OptionsManager(object):
         except KeyError:
             # Raise here or nah?
             raise UnknownOption(key)
+
+    def validate(self, options):
+        for k, v in options.iteritems():
+            self.validate_option(k, v)
+
+    def validate_option(self, key, value):
+        opt = self.lookup_key(key)
+        assert not (opt.flags & FLAG_STOREONLY), '%r is not allowed to be loaded from config' % key
+        if not isinstance(value, opt.type):
+            raise TypeError('%r: got %r, expected %r' % (key, _type(value), opt.type))

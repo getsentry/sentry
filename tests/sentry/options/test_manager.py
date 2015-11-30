@@ -6,7 +6,9 @@ from exam import fixture, around
 from mock import patch
 
 from sentry.models import Option
-from sentry.options.manager import OptionsManager, UnknownOption
+from sentry.options.manager import (
+    OptionsManager, UnknownOption,
+    FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY)
 from sentry.testutils import TestCase
 
 
@@ -86,14 +88,14 @@ class OptionsManagerTest(TestCase):
         assert self.manager.get('awesome') == 'lol'
 
     def test_flag_immutable(self):
-        self.manager.register('immutable', flags=OptionsManager.FLAG_IMMUTABLE)
+        self.manager.register('immutable', flags=FLAG_IMMUTABLE)
         with self.assertRaises(AssertionError):
             self.manager.set('immutable', 'thing')
         with self.assertRaises(AssertionError):
             self.manager.delete('immutable')
 
     def test_flag_nostore(self):
-        self.manager.register('nostore', flags=OptionsManager.FLAG_NOSTORE)
+        self.manager.register('nostore', flags=FLAG_NOSTORE)
         with self.assertRaises(AssertionError):
             self.manager.set('nostore', 'thing')
 
@@ -108,8 +110,22 @@ class OptionsManagerTest(TestCase):
         with self.assertRaises(AssertionError):
             self.manager.delete('nostore')
 
+    def test_validate(self):
+        with self.assertRaises(UnknownOption):
+            self.manager.validate({'unknown': ''})
+
+        self.manager.register('unknown')
+        self.manager.register('storeonly', flags=FLAG_STOREONLY)
+        self.manager.validate({'unknown': ''})
+
+        with self.assertRaises(AssertionError):
+            self.manager.validate({'storeonly': ''})
+
+        with self.assertRaises(TypeError):
+            self.manager.validate({'unknown': True})
+
     def test_flag_storeonly(self):
-        self.manager.register('storeonly', flags=OptionsManager.FLAG_STOREONLY)
+        self.manager.register('storeonly', flags=FLAG_STOREONLY)
         assert self.manager.get('storeonly') == ''
 
         with self.settings(SENTRY_OPTIONS={'storeonly': 'something-else!'}):
