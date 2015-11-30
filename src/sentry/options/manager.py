@@ -129,6 +129,8 @@ class OptionsManager(object):
         >>> from sentry import options
         >>> options.get('option')
         """
+        # TODO(mattrobenolt): Perform validation on key returned for type Justin Case
+        # values change. This case is unlikely, but good to cover our bases.
         opt = self.lookup_key(key)
 
         if not (opt.flags & self.FLAG_NOSTORE):
