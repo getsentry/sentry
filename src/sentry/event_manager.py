@@ -234,6 +234,7 @@ class EventManager(object):
         data.setdefault('checksum', None)
         data.setdefault('fingerprint', None)
         data.setdefault('platform', None)
+        data.setdefault('environment', None)
         data.setdefault('extra', {})
         data.setdefault('errors', [])
 
@@ -338,6 +339,7 @@ class EventManager(object):
         fingerprint = data.pop('fingerprint', None)
         platform = data.pop('platform', None)
         release = data.pop('release', None)
+        environment = data.pop('environment', None)
 
         if not culprit:
             culprit = generate_culprit(data)
@@ -370,6 +372,8 @@ class EventManager(object):
         if release:
             # TODO(dcramer): we should ensure we create Release objects
             tags.append(('sentry:release', release))
+        if environment:
+            tags.append(('environment', environment))
 
         for plugin in plugins.for_project(project, version=None):
             added_tags = safe_execute(plugin.get_tags, event,

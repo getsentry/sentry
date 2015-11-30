@@ -432,6 +432,15 @@ class EventManagerTest(TransactionTestCase):
         ).exists()
         assert 'sentry:user' in dict(event.tags)
 
+    def test_environment(self):
+        manager = EventManager(self.make_event(**{
+            'environment': 'beta',
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert dict(event.tags).get('environment') == 'beta'
+
 
 class GetHashesFromEventTest(TestCase):
     @patch('sentry.interfaces.stacktrace.Stacktrace.compute_hashes')
