@@ -21,7 +21,8 @@ def is_translated(msg):
 
 @click.command()
 def cli():
-    rv = []
+    # en is always in
+    rv = ['en']
     base = 'src/sentry/locale'
     for locale in os.listdir(base):
         fn = os.path.join(base, locale, 'LC_MESSAGES', 'django.po')
@@ -41,7 +42,7 @@ def cli():
             locale,
             pct,
         ), err=True)
-        if pct >= MINIMUM:
+        if pct >= MINIMUM and locale not in rv:
             rv.append(locale)
     click.echo(json.dumps({
         'supported_locales': sorted(rv)
