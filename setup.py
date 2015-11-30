@@ -64,7 +64,6 @@ IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 
 dev_requires = [
     'flake8>=2.0,<2.1',
-    'click',
     'Babel',
 ]
 
@@ -84,6 +83,7 @@ tests_require = [
 install_requires = [
     'BeautifulSoup>=3.2.1,<3.3.0',
     'celery>=3.1.8,<3.1.19',
+    'click>=5.0,<7.0',
     'cssutils>=0.9.9,<0.10.0',
     'Django>=1.6.0,<1.7',
     'django-bitfield>=1.7.0,<1.8.0',
@@ -104,7 +104,6 @@ install_requires = [
     'hiredis>=0.1.0,<0.2.0',
     'ipaddr>=2.1.11,<2.2.0',
     'kombu<3.0.27',  # 3.0.27 breaks Django 1.6.x compatibility
-    'logan>=0.7.1,<0.8.0',
     'lxml>=3.4.1',
     'mock>=0.8.0,<1.1',
     'petname>=1.7,<1.8',
@@ -414,7 +413,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'sentry = sentry.utils.runner:main',
+            'sentry = sentry.runner:main',
         ],
         'flake8.extension': [
         ],
