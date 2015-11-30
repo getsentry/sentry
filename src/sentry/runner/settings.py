@@ -44,7 +44,7 @@ redis.options:
 
 # If this file ever becomes compromised, it's important to regenerate your SECRET_KEY
 # Changing this value will result in all current sessions being invalidated
-system.secret-key: %(default_key)r
+system.secret-key: '%(secret_key)s'
 """
 
 
@@ -54,9 +54,10 @@ def generate_settings():
     run and returns a string representing the default data to put into their
     settings file.
     """
-    from base64 import b64encode
+    from django.utils.crypto import get_random_string
+    chars = 'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)'
     output = CONFIG_TEMPLATE % dict(
-        default_key=b64encode(os.urandom(42)),
+        secret_key=get_random_string(50, chars),
     )
     return output
 
