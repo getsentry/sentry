@@ -10,10 +10,44 @@ from __future__ import absolute_import
 import time
 
 from django.conf import settings
+from redis.client import Script
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.quotas.base import Quota, RateLimited, NotRateLimited
 from sentry.utils.redis import make_rb_cluster
+
+
+# Check a collection of quota counters to identify if an item should be rate
+# limited. Values provided as ``KEYS`` specify the keys of the counters to
+# check, and values provided as ``ARGV`` specify the maximum value (quota
+# limit) for the key at the same array index. (``KEYS`` and ``ARGV`` must be
+# the same length.) If all checks pass (the item is accepted), all counters are
+# incremented. If any checks fail (the item is rejected), all counters are
+# unaffected. The result is a Lua table/array (Redis multi bulk reply) that
+# specifies whether or not the item was *rejected* based on the provided limit.
+IS_RATE_LIMITED_SCRIPT = """\
+assert(#KEYS == #ARGV, "unequal number of keys and arguments provided")
+
+local results = {}
+local failed = false
+for i=1,#ARGV do
+    local rejected = (redis.call('GET', KEYS[i]) or 0) + 1 > tonumber(ARGV[i])
+    if rejected then
+        failed = true
+    end
+    results[i] = rejected
+end
+
+if not failed then
+    for i=1,#ARGV do
+        redis.call('INCR', KEYS[i])
+    end
+end
+
+return results
+"""
+
+is_rate_limited = Script(None, IS_RATE_LIMITED_SCRIPT)
 
 
 class RedisQuota(Quota):
@@ -34,36 +68,31 @@ class RedisQuota(Quota):
         except Exception as e:
             raise InvalidConfiguration(unicode(e))
 
-    def is_rate_limited(self, project):
-        proj_quota = self.get_project_quota(project)
-        if project.team:
-            team_quota = self.get_team_quota(project.team)
-        else:
-            team_quota = 0
-        system_quota = self.get_system_quota()
+    def _get_quotas(self, project):
+        return filter(
+            lambda (key, value): value > 0,  # a zero quota means "no quota"
+            (
+                (self._get_team_key(project.team), self.get_team_quota(project.team)),
+                (self._get_project_key(project), self.get_project_quota(project)),
+                (self._get_organization_key(project.organization), self.get_organization_quota(project.organization)),
+            )
+        )
 
-        if not (proj_quota or system_quota or team_quota):
+    def is_rate_limited(self, project):
+        # If there are no quotas to actually check, skip the trip to the database.
+        quotas = self._get_quotas(project)
+        if not quotas:
             return NotRateLimited
 
-        sys_result, team_result, proj_result = self._incr_project(project)
-
-        if proj_quota and proj_result > proj_quota:
+        keys, args = zip(*quotas)
+        client = self.cluster.get_local_client_for_key(self._get_organization_key(project.organization))
+        if any(is_rate_limited(keys, args, client=client)):
             return RateLimited(retry_after=self.get_time_remaining())
-
-        if team_quota and team_result > team_quota:
-            return RateLimited(retry_after=self.get_time_remaining())
-
-        if system_quota and sys_result > system_quota:
-            return RateLimited(retry_after=self.get_time_remaining())
-
-        return NotRateLimited
+        else:
+            return NotRateLimited
 
     def get_time_remaining(self):
-        return int(self.ttl - (
-            time.time() - int(time.time() / self.ttl) * self.ttl))
-
-    def _get_system_key(self):
-        return 'quota:s:%s' % (int(time.time() / self.ttl),)
+        return int(self.ttl - (time.time() - int(time.time() / self.ttl) * self.ttl))
 
     def _get_team_key(self, team):
         return 'quota:t:%s:%s' % (team.id, int(time.time() / self.ttl))
@@ -71,26 +100,5 @@ class RedisQuota(Quota):
     def _get_project_key(self, project):
         return 'quota:p:%s:%s' % (project.id, int(time.time() / self.ttl))
 
-    def _incr_project(self, project):
-        if project.team:
-            team_key = self._get_team_key(project.team)
-        else:
-            team_key = None
-            team_result = None
-
-        proj_key = self._get_project_key(project)
-        sys_key = self._get_system_key()
-        with self.cluster.map() as client:
-            proj_result = client.incr(proj_key)
-            client.expire(proj_key, self.ttl)
-            sys_result = client.incr(sys_key)
-            client.expire(sys_key, self.ttl)
-            if team_key:
-                team_result = client.incr(team_key)
-                client.expire(team_key, self.ttl)
-
-        return (
-            int(sys_result.value),
-            int(team_result and team_result.value or 0),
-            int(proj_result.value),
-        )
+    def _get_organization_key(self, organization):
+        return 'quota:o:%s:%s' % (organization.id, int(time.time() / self.ttl))
