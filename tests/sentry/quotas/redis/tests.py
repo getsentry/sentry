@@ -4,10 +4,37 @@ from __future__ import absolute_import
 
 import mock
 
+from redis.client import (
+    Script,
+    StrictRedis,
+)
 from exam import fixture, patcher
 
-from sentry.quotas.redis import RedisQuota
+from sentry.quotas.redis import (
+    IS_RATE_LIMITED_SCRIPT,
+    RedisQuota,
+)
 from sentry.testutils import TestCase
+
+
+def test_is_rate_limited_script():
+    client = StrictRedis(db=9)
+    script = Script(client, IS_RATE_LIMITED_SCRIPT)
+
+    # The item should not be rate limited by either key.
+    assert map(bool, script(('foo', 'bar'), (1, 2))) == [False, False]
+
+    # The item should be rate limited by the first key (1).
+    assert map(bool, script(('foo', 'bar'), (1, 2))) == [True, False]
+
+    # The item should still be rate limited by the first key (1), but *not*
+    # rate limited by the second key (2) even though this is the third time
+    # we've checked the quotas. This ensures items that are rejected by a lower
+    # quota don't affect unrelated items that share a parent quota.
+    assert map(bool, script(('foo', 'bar'), (1, 2))) == [True, False]
+
+    client.get('foo') == '1'
+    client.get('bar') == '1'
 
 
 class RedisQuotaTest(TestCase):
@@ -16,12 +43,6 @@ class RedisQuotaTest(TestCase):
         inst = RedisQuota(hosts={
             0: {'db': 9}
         })
-        return inst
-
-    @patcher.object(RedisQuota, 'get_system_quota')
-    def get_system_quota(self):
-        inst = mock.MagicMock()
-        inst.return_value = 0
         return inst
 
     @patcher.object(RedisQuota, 'get_team_quota')
@@ -36,10 +57,10 @@ class RedisQuotaTest(TestCase):
         inst.return_value = 0
         return inst
 
-    @patcher.object(RedisQuota, '_incr_project')
-    def _incr_project(self):
+    @patcher.object(RedisQuota, 'get_organization_quota')
+    def get_organization_quota(self):
         inst = mock.MagicMock()
-        inst.return_value = (0, 0, 0)
+        inst.return_value = 0
         return inst
 
     def test_default_host_is_local(self):
@@ -47,52 +68,35 @@ class RedisQuotaTest(TestCase):
         self.assertEquals(len(quota.cluster.hosts), 1)
         self.assertEquals(quota.cluster.hosts[0].host, 'localhost')
 
-    def test_bails_immediately_without_any_quota(self):
-        self._incr_project.return_value = (0, 0, 0)
+    def test_skips_unset_quotas(self):
+        # This assumes ``get_*_quota`` methods are mocked.
+        assert set(self.quota._get_quotas(self.project)) == set()
 
-        result = self.quota.is_rate_limited(self.project)
-
-        assert not self._incr_project.called
-        assert not result.is_limited
-
-    def test_enforces_project_quota(self):
-        self.get_project_quota.return_value = 100
-        self._incr_project.return_value = (0, 0, 101)
-
-        result = self.quota.is_rate_limited(self.project)
-
-        assert result.is_limited
-
-        self._incr_project.return_value = (0, 0, 99)
-
-        result = self.quota.is_rate_limited(self.project)
-
-        assert not result.is_limited
-
-    def test_enforces_team_quota(self):
+    def test_uses_defined_quotas(self):
         self.get_team_quota.return_value = 100
-        self._incr_project.return_value = (0, 101, 0)
+        self.get_project_quota.return_value = 200
+        self.get_organization_quota.return_value = 300
+        assert set(self.quota._get_quotas(self.project)) == set((
+            (self.quota._get_team_key(self.project.team), 100),
+            (self.quota._get_project_key(self.project), 200),
+            (self.quota._get_organization_key(self.project.team), 300),
+        ))
 
+    @mock.patch('sentry.quotas.redis.is_rate_limited')
+    def test_bails_immediately_without_any_quota(self, is_rate_limited):
+        # This assumes ``get_*_quota`` methods are mocked.
         result = self.quota.is_rate_limited(self.project)
-
-        assert result.is_limited
-
-        self._incr_project.return_value = (0, 99, 0)
-
-        result = self.quota.is_rate_limited(self.project)
-
+        assert not is_rate_limited.called
         assert not result.is_limited
 
-    def test_enforces_system_quota(self):
-        self.get_system_quota.return_value = 100
-        self._incr_project.return_value = (101, 0, 0)
+    @mock.patch('sentry.quotas.redis.is_rate_limited', return_value=(False, False))
+    def test_is_not_limited_without_rejections(self, is_rate_limited):
+        self.get_team_quota.return_value = 100
+        self.get_project_quota.return_value = 200
+        assert not self.quota.is_rate_limited(self.project).is_limited
 
-        result = self.quota.is_rate_limited(self.project)
-
-        assert result.is_limited
-
-        self._incr_project.return_value = (99, 0, 0)
-
-        result = self.quota.is_rate_limited(self.project)
-
-        assert not result.is_limited
+    @mock.patch('sentry.quotas.redis.is_rate_limited', return_value=(True, False))
+    def test_is_limited_on_rejections(self, is_rate_limited):
+        self.get_team_quota.return_value = 100
+        self.get_project_quota.return_value = 200
+        assert self.quota.is_rate_limited(self.project).is_limited
