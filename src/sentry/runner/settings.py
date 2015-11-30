@@ -16,7 +16,34 @@ DEFAULT_SETTINGS_CONF = 'config.yml'
 DEFAULT_SETTINGS_OVERRIDE = 'sentry.conf.py'
 CONFIG_TEMPLATE = """# https://docs.getsentry.com/
 
-system.debug: false
+###########
+# General #
+###########
+
+system.databases:
+  default:
+    ENGINE: 'sentry.db.postgres'
+    NAME: 'sentry'
+    USER: 'matt'
+    PASSWORD: ''
+    HOST: ''
+    PORT: ''
+
+cache.backend: 'sentry.cache.redis.RedisCache'
+# cache.options: {}
+
+redis.options:
+  hosts:
+    0:
+      host: '127.0.0.1'
+      port: 6379
+
+########
+# etc. #
+########
+
+# If this file ever becomes compromised, it's important to regenerate your SECRET_KEY
+# Changing this value will result in all current sessions being invalidated
 system.secret-key: %(default_key)r
 """
 
