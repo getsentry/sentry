@@ -55,12 +55,17 @@ def get_react_config(context):
     if features.has('auth:register', actor=user):
         enabled_features.append('auth:register')
 
+    version_info = _get_version_info()
+
     context = {
         'singleOrganization': settings.SENTRY_SINGLE_ORGANIZATION,
         'urlPrefix': settings.SENTRY_URL_PREFIX,
-        'version': _get_version_info(),
+        'version': version_info,
         'features': enabled_features,
         'mediaUrl': get_asset_url('sentry', ''),
+        # TODO(dcramer): we should confirm that no options need configured
+        # when upgrading, and if so, we simply bump the version??
+        'needsUpgrade': options.get('sentry:version-configured') != version_info['current'],
         'messages': [{
             'message': msg.message,
             'level': msg.tags,

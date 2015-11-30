@@ -1,0 +1,42 @@
+.setup-wizard {
+  .clearfix;
+  max-width: 600px;
+  margin: 30px auto;
+  border: 1px solid @trim;
+  padding: 20px 20px 0;
+  border-radius: 4px;
+
+  h1 {
+    .clearfix;
+    line-height: 36px;
+
+    > span {
+      display: block;
+      float: left;
+    }
+    > small {
+      float: right;
+      display: block;
+      font-size: 18px;
+      line-height: inherit;
+    }
+  }
+
+  .loading {
+    margin: 0 0 20px;
+  }
+
+  .loading-error {
+    .clearfix;
+    margin: 0 0 20px;
+
+    .icon:before {
+      float: left;
+      display: block;
+      font-size: 50px;
+      margin-right: 10px;
+      color: @red;
+      content: "\e615";
+    }
+  }
+}
