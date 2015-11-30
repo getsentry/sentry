@@ -11,7 +11,7 @@ from __future__ import absolute_import, print_function
 from sentry.options import register, FLAG_NOSTORE
 
 
-register('cache.backend', default={}, flags=FLAG_NOSTORE)
+register('cache.backend', flags=FLAG_NOSTORE)
 register('cache.options', default={}, flags=FLAG_NOSTORE)
 register('system.databases', default={}, flags=FLAG_NOSTORE)
 register('system.debug', default=False, flags=FLAG_NOSTORE)
