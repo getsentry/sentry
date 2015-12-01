@@ -84,7 +84,10 @@ def configure():
     except RuntimeError:
         ctx = None
     _, py, yaml = discover_configs(ctx)
-    configure(ctx, py, yaml)
+
+    # TODO(mattrobenolt): Surface this also as a CLI option?
+    skip_backend_validation = 'SENTRY_SKIP_BACKEND_VALIDATION' in os.environ
+    configure(ctx, py, yaml, skip_backend_validation)
 
 
 def get_prog():
