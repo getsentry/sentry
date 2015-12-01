@@ -1860,6 +1860,7 @@ table.integrations {
   &.alert-block {
     margin-bottom: 20px;
     border-radius: 3px;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
   }
 }
 
@@ -1870,6 +1871,20 @@ table.integrations {
 
   .icon:before {
     content: "\e615";
+  }
+
+  &.alert-block {
+    border: 1px solid #DAB9BB;
+    background: #FDF7F7;
+    color: #865254;
+
+    a {
+      color: #6D292D;
+
+      &:hover {
+        color: #481b1e;
+      }
+    }
   }
 }
 
