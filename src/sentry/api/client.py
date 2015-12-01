@@ -47,7 +47,7 @@ class ApiClient(object):
         mock_request = getattr(rf, method.lower())(full_path, data)
 
         if request:
-            mock_request.auth = request.auth
+            mock_request.auth = getattr(request, 'auth', None)
             mock_request.user = request.user
 
             if is_sudo is None:
