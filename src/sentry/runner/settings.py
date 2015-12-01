@@ -16,10 +16,6 @@ DEFAULT_SETTINGS_CONF = 'config.yml'
 DEFAULT_SETTINGS_OVERRIDE = 'sentry.conf.py'
 CONFIG_TEMPLATE = """# https://docs.getsentry.com/
 
-###########
-# General #
-###########
-
 system.databases:
   default:
     ENGINE: 'sentry.db.postgres'
@@ -28,6 +24,16 @@ system.databases:
     PASSWORD: ''
     HOST: ''
     PORT: ''
+
+###########
+# General #
+###########
+
+# The administrative email for this installation.
+# Note: This will be reported back to getsentry.com as the point of contact. See
+# the beacon documentation for more information. This **must** be a string.
+# system.admin-email: 'your.name@example.com'
+system.admin-email: ''
 
 cache.backend: 'sentry.cache.redis.RedisCache'
 # cache.options: {}
