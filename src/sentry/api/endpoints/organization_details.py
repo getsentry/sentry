@@ -66,7 +66,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
             OrganizationOption.objects.set_value(
                 organization=self.object,
                 key='sentry:project-rate-limit',
-                value=self.init_data['projectRateLimit'],
+                value=int(self.init_data['projectRateLimit']),
             )
         return rv
 

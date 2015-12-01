@@ -72,7 +72,6 @@ class RedisQuota(Quota):
         return filter(
             lambda (key, value): value > 0,  # a zero quota means "no quota"
             (
-                (self._get_team_key(project.team), self.get_team_quota(project.team)),
                 (self._get_project_key(project), self.get_project_quota(project)),
                 (self._get_organization_key(project.organization), self.get_organization_quota(project.organization)),
             )
@@ -93,9 +92,6 @@ class RedisQuota(Quota):
 
     def get_time_remaining(self):
         return int(self.ttl - (time.time() - int(time.time() / self.ttl) * self.ttl))
-
-    def _get_team_key(self, team):
-        return 'quota:t:%s:%s' % (team.id, int(time.time() / self.ttl))
 
     def _get_project_key(self, project):
         return 'quota:p:%s:%s' % (project.id, int(time.time() / self.ttl))

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from mock import patch
 
-from sentry.models import Organization, OrganizationStatus
+from sentry.models import Organization, OrganizationOption, OrganizationStatus
 from sentry.testutils import APITestCase
 
 
@@ -34,6 +34,20 @@ class OrganizationUpdateTest(APITestCase):
         org = Organization.objects.get(id=org.id)
         assert org.name == 'hello world'
         assert org.slug == 'foobar'
+
+    def test_setting_rate_limit(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': org.slug,
+        })
+        response = self.client.put(url, data={
+            'projectRateLimit': '80',
+        })
+        assert response.status_code == 200, response.content
+        result = OrganizationOption.objects.get_value(
+            org, 'sentry:project-rate-limit')
+        assert result == 80
 
 
 class OrganizationDeleteTest(APITestCase):

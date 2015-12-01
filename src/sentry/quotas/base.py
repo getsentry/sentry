@@ -40,38 +40,58 @@ class Quota(object):
         return 0
 
     def translate_quota(self, quota, parent_quota):
-        if quota.endswith('%'):
+        if str(quota).endswith('%'):
             pct = int(quota[:-1])
             quota = int(parent_quota) * pct / 100
+        if not quota:
+            return int(parent_quota or 0)
         return int(quota or 0)
 
     def get_project_quota(self, project):
-        from sentry.models import ProjectOption, Team
-
-        project_quota = ProjectOption.objects.get_value(project, 'quotas:per_minute', '')
-        if project_quota is None:
-            project_quota = settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE
-
-        team = getattr(project, '_team_cache', None)
-        if not team:
-            team = Team.objects.get_from_cache(id=project.team_id)
-
-        return self.translate_quota(
-            project_quota,
-            self.get_team_quota(team),
+        from sentry.models import (
+            ProjectOption, Organization, OrganizationOption
         )
 
-    def get_team_quota(self, team):
-        from sentry.models import Organization
+        # DEPRECATED: Will likely be removed in a future version unless Sentry
+        # team is convinced otherwise.
+        legacy_quota = ProjectOption.objects.get_value(project, 'quotas:per_minute', '')
+        if legacy_quota == '':
+            legacy_quota = settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE
 
-        org = getattr(team, '_organization_cache', None)
+        org = getattr(project, '_organization_cache', None)
         if not org:
-            org = Organization.objects.get_from_cache(id=team.organization_id)
+            org = Organization.objects.get_from_cache(id=project.organization_id)
+            project._organization_cache = org
 
-        return self.translate_quota(
-            settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE,
-            self.get_organization_quota(org)
+        max_quota_share = int(OrganizationOption.objects.get_value(
+            org, 'sentry:project-rate-limit', 100))
+
+        if not legacy_quota and max_quota_share == 100:
+            return 0
+
+        org_quota = self.get_organization_quota(org)
+
+        quota = self.translate_quota(
+            legacy_quota,
+            org_quota,
         )
+
+        # if we have set a max project quota percentage and there's actually
+        # a quota set for the org, lets calculate the maximum by using the min
+        # of the two quotas
+        if max_quota_share != 100 and org_quota:
+            if quota:
+                quota = min(quota, self.translate_quota(
+                    '{}%'.format(max_quota_share),
+                    org_quota,
+                ))
+            else:
+                quota = self.translate_quota(
+                    '{}%'.format(max_quota_share),
+                    org_quota,
+                )
+
+        return quota
 
     def get_organization_quota(self, organization):
         return self.translate_quota(
