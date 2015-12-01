@@ -13,9 +13,12 @@ from sentry.tasks.beacon import BEACON_URL, send_beacon
 
 
 class SendBeaconTest(TestCase):
+    @patch('sentry.tasks.beacon.get_all_package_versions')
     @patch('sentry.tasks.beacon.safe_urlopen')
     @patch('sentry.tasks.beacon.safe_urlread')
-    def test_simple(self, safe_urlread, safe_urlopen):
+    def test_simple(self, safe_urlread, safe_urlopen,
+                    mock_get_all_package_versions):
+        mock_get_all_package_versions.return_value = {'foo': '1.0'}
         safe_urlread.return_value = json.dumps({
             'notices': [],
             'version': {'stable': '1.0.0'},
@@ -38,16 +41,19 @@ class SendBeaconTest(TestCase):
                 'events.24h': 0,
             },
             'admin_email': 'foo@example.com',
+            'packages': mock_get_all_package_versions.return_value,
         }, timeout=5)
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
 
         assert options.get('sentry:latest_version') == '1.0.0'
 
+    @patch('sentry.tasks.beacon.get_all_package_versions')
     @patch('sentry.tasks.beacon.safe_urlopen')
     @patch('sentry.tasks.beacon.safe_urlread')
-    def test_with_broadcasts(self, safe_urlread, safe_urlopen):
+    def test_with_broadcasts(self, safe_urlread, safe_urlopen,
+                             mock_get_all_package_versions):
         broadcast_id = uuid4().hex
-
+        mock_get_all_package_versions.return_value = {}
         safe_urlread.return_value = json.dumps({
             'notices': [{
                 'id': broadcast_id,
