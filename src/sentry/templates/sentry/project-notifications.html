@@ -41,7 +41,10 @@
         <h3>{% trans "Digests" %}</h3>
       </div>
       <div class="box-content with-padding">
-        <p>Sentry will automatically digest certain notification services (such as email) to avoid flooding your inbox with individual event notifications. Use the settings below to configure the thresholds at which those digests are bounded.</p>
+        <p>
+          Sentry will automatically digest notifications sent by some services to avoid flooding your inbox with individual issue notifications.
+          To control how frequently notifications are delivered, use the sliders below.
+        </p>
 
         {{ digests_form|as_crispy_errors }}
 
