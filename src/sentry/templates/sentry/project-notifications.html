@@ -48,9 +48,13 @@
 
         {{ digests_form|as_crispy_errors }}
 
-        {% for field in digests_form %}
-            {{ field|as_crispy_field }}
-        {% endfor %}
+        <div class="row">
+          {% for field in digests_form %}
+            <div class="col-md-6">
+              {{ field|as_crispy_field }}
+            </div>
+          {% endfor %}
+        </div>
       </div>
     </div>
 
@@ -129,4 +133,3 @@
     </div>
   {% endif %}
 {% endblock %}
-
