@@ -115,25 +115,6 @@ const StreamActions = React.createClass({
     });
   },
 
-  onResolveProject(event) {
-    this.actionSelectedGroups(this.props.actionTypes.ALL, (itemIds) => {
-      let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-
-      api.bulkUpdate({
-        orgId: this.props.orgId,
-        projectId: this.props.projectId,
-        itemIds: itemIds,
-        data: {
-          status: 'resolved',
-        }
-      }, {
-        complete: () => {
-          IndicatorStore.remove(loadingIndicator);
-        }
-      });
-    });
-  },
-
   onSelectedGroupChange() {
     this.setState({
       selectAllActive: SelectedGroupStore.allSelected(),
@@ -173,13 +154,15 @@ const StreamActions = React.createClass({
                       'Are you sure you want to resolve these %d issues?',
                       count)
                }
+               confirmAllLabel={t('Resolve all matching issues')}
                confirmLabel={
-                 (count) => 
+                 (count) =>
                    tn('Resolve %d selected issue',
                       'Resolve %d selected issues',
                       count)
                }
                tooltip={t('Set Status to Resolved')}
+               canActionAll={true}
                onlyIfBulk={true}
                selectAllActive={this.state.selectAllActive}>
               <i aria-hidden="true" className="icon-checkmark"></i>
@@ -192,7 +175,7 @@ const StreamActions = React.createClass({
                neverConfirm={true}
                buttonTitle={t('Bookmark')}
                confirmLabel={
-                 (count) => 
+                 (count) =>
                    tn('Bookmark %d selected issue',
                       'Bookmark %d selected issues',
                       count)
@@ -213,20 +196,6 @@ const StreamActions = React.createClass({
               <MenuItem noAnchor={true}>
                 <ActionLink
                    actionTypes={this.props.actionTypes}
-                   className="action-resolve-project"
-                   onAction={this.onResolveProject}
-                   confirmationQuestion={t('Are you sure you want to resolve all issues within this project?')}
-                   extraDescription={t('This will resolve all unresolved issues throughout this project. This does not respect search filters.')}
-                   canActionAll={false}
-                   confirmLabel={t('Confirm')}
-                   selectAllActive={this.state.selectAllActive}>
-                  {t('Resolve all Issues in Project')}
-                </ActionLink>
-              </MenuItem>
-              <MenuItem divider={true} />
-              <MenuItem noAnchor={true}>
-                <ActionLink
-                   actionTypes={this.props.actionTypes}
                    className="action-merge"
                    disabled={!this.state.multiSelected}
                    onAction={this.onMerge}
@@ -237,7 +206,7 @@ const StreamActions = React.createClass({
                           count)
                    }
                    confirmLabel={
-                     (count) => 
+                     (count) =>
                        tn('Merge %d selected issue',
                           'Merge %d selected issues',
                           count)
@@ -253,7 +222,6 @@ const StreamActions = React.createClass({
                    className="action-remove-bookmark"
                    disabled={!this.state.anySelected}
                    onAction={this.onUpdate.bind(this, {isBookmarked: false})}
-                   neverConfirm={true}
                    confirmationQuestion={
                      (count) =>
                        tn('Are you sure you want to remove this %d issue from your bookmarks?',
@@ -261,7 +229,6 @@ const StreamActions = React.createClass({
                           count)
                    }
                    onlyIfBulk={true}
-                   canActionAll={false}
                    selectAllActive={this.state.selectAllActive}>
                  {t('Remove from Bookmarks')}
                 </ActionLink>
@@ -273,15 +240,21 @@ const StreamActions = React.createClass({
                    className="action-unresolve"
                    disabled={!this.state.anySelected}
                    onAction={this.onUpdate.bind(this, {status: 'unresolved'})}
-                   neverConfirm={true}
+                   confirmAllLabel={t('Unresolve all matching issues')}
+                   confirmationQuestion={
+                     (count) =>
+                       tn('Are you sure you want to unresolve these %d issue?',
+                          'Are you sure you want to unresolve these %d issues?',
+                          count)
+                   }
                    confirmLabel={
-                     (count) => 
+                     (count) =>
                        tn('Unresolve %d selected issue',
                           'Unresolve %d selected issues',
                           count)
                    }
-                   onlyIfBulk={false}
-                   canActionAll={false}
+                   onlyIfBulk={true}
+                   canActionAll={true}
                    selectAllActive={this.state.selectAllActive}
                    groupIds={this.props.groupIds}>
                  {t('Set status to: Unresolved')}
@@ -293,15 +266,21 @@ const StreamActions = React.createClass({
                    className="action-mute"
                    disabled={!this.state.anySelected}
                    onAction={this.onUpdate.bind(this, {status: 'muted'})}
-                   neverConfirm={true}
+                   confirmAllLabel={t('Mute all matching issues')}
+                   confirmationQuestion={
+                     (count) =>
+                       tn('Are you sure you want to mute these %d issue?',
+                          'Are you sure you want to mute these %d issues?',
+                          count)
+                   }
                    confirmLabel={
-                     (count) => 
+                     (count) =>
                        tn('Mute %d selected issue',
                           'Mute %d selected issues',
                           count)
                    }
-                   onlyIfBulk={false}
-                   canActionAll={false}
+                   onlyIfBulk={true}
+                   canActionAll={true}
                    selectAllActive={this.state.selectAllActive}>
                  {t('Set status to: Muted')}
                 </ActionLink>
@@ -320,7 +299,7 @@ const StreamActions = React.createClass({
                           count)
                    }
                    confirmLabel={
-                     (count) => 
+                     (count) =>
                        tn('Delete %d selected issue',
                           'Delete %d selected issues',
                           count)
