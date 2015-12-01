@@ -195,7 +195,7 @@ def fetch_release_file(filename, release):
             releasefile = ReleaseFile.objects.filter(
                 release=release,
                 ident=ident,
-            ).select_related('file').get()
+            ).select_related('file', 'file__blob').get()
         except ReleaseFile.DoesNotExist:
             logger.debug('Release artifact %r not found in database (release_id=%s)',
                          filename, release.id)
