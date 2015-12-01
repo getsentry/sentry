@@ -18,6 +18,12 @@
 
   <link href="{% asset_url "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
 
+  <link rel="icon" href="{% asset_url "sentry" "images/icons/apple-touch-icon.png" %}">
+  <link rel="apple-touch-icon" href="{% asset_url "sentry" "images/icons/apple-touch-icon.png" %}">
+  <link rel="apple-touch-icon" sizes="76x76" href="{% asset_url "sentry" "images/icons/apple-touch-icon-76x76.png" %}">
+  <link rel="apple-touch-icon" sizes="120x120" href="{% asset_url "sentry" "images/icons/apple-touch-icon-120x120.png" %}">
+  <link rel="apple-touch-icon" sizes="152x152" href="{% asset_url "sentry" "images/icons/apple-touch-icon-152x152.png" %}">
+
   {% block css %}
   <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
   {% endblock %}
