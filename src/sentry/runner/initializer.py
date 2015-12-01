@@ -191,10 +191,11 @@ def apply_legacy_settings(settings):
                       'See https://docs.getsentry.com/on-premise/server/queue/ for more information.', DeprecationWarning)
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
 
-    if not settings.SENTRY_ADMIN_EMAIL:
-        show_big_error('system.admin-email is not configured')
-    elif not isinstance(settings.SENTRY_ADMIN_EMAIL, basestring):
-        show_big_error('system.admin-email must be a string')
+    if not settings.SENTRY_OPTIONS.get('system.admin-email') and hasattr(settings, 'SENTRY_ADMIN_EMAIL'):
+        import warnings
+        warnings.warn('SENTRY_ADMIN_EMAIL is deprecated.'
+                      "Use SENTRY_OPTIONS instead, key 'system.admin-email'", DeprecationWarning)
+        settings.SENTRY_OPTIONS['system.admin-email'] = settings.SENTRY_ADMIN_EMAIL
 
     if settings.SENTRY_URL_PREFIX in ('', 'http://sentry.example.com') and not settings.DEBUG:
         # Maybe also point to a piece of documentation for more information?

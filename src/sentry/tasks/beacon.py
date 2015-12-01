@@ -58,7 +58,7 @@ def send_beacon():
     payload = {
         'install_id': install_id,
         'version': sentry.get_version(),
-        'admin_email': settings.SENTRY_ADMIN_EMAIL,
+        'admin_email': options.get('system.admin-email'),
         'data': {
             # TODO(dcramer): we'd also like to get an idea about the throughput
             # of the system (i.e. events in 24h)
