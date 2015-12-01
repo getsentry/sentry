@@ -42,7 +42,6 @@ class ProjectQuotasView(ProjectView):
             'page': 'quotas',
             # TODO(dcramer): has_quotas is an awful hack
             'has_quotas': type(app.quotas) != Quota,
-            'team_quota': int(app.quotas.get_team_quota(project.team)),
             'organization_quota': int(app.quotas.get_organization_quota(project.organization)),
             'project': project,
             'form': form,
