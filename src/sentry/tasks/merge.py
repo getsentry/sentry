@@ -20,12 +20,16 @@ logger = get_task_logger(__name__)
 @instrumented_task(name='sentry.tasks.merge.merge_group', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
 @retry
-def merge_group(from_object_id, to_object_id, **kwargs):
+def merge_group(from_object_id=None, to_object_id=None, **kwargs):
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models import (
         Activity, Group, GroupAssignee, GroupHash, GroupRuleStatus, GroupTagKey,
         GroupTagValue, EventMapping, Event, UserReport
     )
+
+    if not (from_object_id and to_object_id):
+        logger.error('merge_group called with missing params')
+        return
 
     try:
         group = Group.objects.get(id=from_object_id)
