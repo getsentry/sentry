@@ -71,7 +71,7 @@ class RedisQuotaTest(TestCase):
         self.get_organization_quota.return_value = 300
         assert set(self.quota._get_quotas(self.project)) == set((
             (self.quota._get_project_key(self.project), 200),
-            (self.quota._get_organization_key(self.project.team), 300),
+            (self.quota._get_organization_key(self.project.organization), 300),
         ))
 
     @mock.patch('sentry.quotas.redis.is_rate_limited')
