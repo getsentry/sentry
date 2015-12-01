@@ -70,7 +70,7 @@ const IssueList = React.createClass({
       body = <LoadingError onRetry={this.fetchData} />;
     else if (this.state.issueIds.length > 0) {
       body = (
-        <ul>
+        <ul className="issue-list">
           {this.state.issueIds.map((id) => {
             return <CompactIssue key={id} id={id} orgId={params.orgId} />;
           })}

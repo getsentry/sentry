@@ -16,7 +16,7 @@ const AssignedToMe = React.createClass({
   render() {
     return (
       <OrganizationHomeContainer>
-        <h1>Assigned to Me</h1>
+        <h3>Assigned to Me</h3>
         <IssueList endpoint={this.getEndpoint()} {...this.props} />
       </OrganizationHomeContainer>
     );

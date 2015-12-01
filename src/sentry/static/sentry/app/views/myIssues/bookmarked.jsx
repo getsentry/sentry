@@ -16,7 +16,7 @@ const Bookmarked = React.createClass({
   render() {
     return (
       <OrganizationHomeContainer>
-        <h1>Bookmarks</h1>
+        <h3>Bookmarks</h3>
         <IssueList endpoint={this.getEndpoint()} {...this.props} />
       </OrganizationHomeContainer>
     );
