@@ -212,7 +212,7 @@ def fetch_release_file(filename, release):
             result = -1
         else:
             result = (releasefile.file.headers, body, 200)
-        cache.set(cache_key, result, 300)
+        cache.set(cache_key, result, 3600)
 
     if result == -1:
         result = None
