@@ -69,10 +69,8 @@ def launch_redis():
 
 def spawn_sentry():
     report('sentry', 'Launching sentry server')
-    cl = Popen(['sentry', '--config=' + SENTRY_CONFIG, 'devserver',
-                '-v', '0', '--noreload', '--nothreading',
-                '--no-watchers', '--traceback',
-                '127.0.0.1:%s' % settings.SENTRY_APIDOCS_WEB_PORT])
+    cl = Popen(['sentry', '--config=' + SENTRY_CONFIG, 'start',
+                '-w', '1', '--bind', '127.0.0.1:%s' % settings.SENTRY_APIDOCS_WEB_PORT])
     return cl
 
 
