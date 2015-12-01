@@ -8,6 +8,8 @@ sentry.models.groupbookmark
 from __future__ import absolute_import
 
 from django.conf import settings
+from django.db import models
+from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, BaseManager, sane_repr
 
@@ -23,6 +25,7 @@ class GroupBookmark(Model):
     group = FlexibleForeignKey('sentry.Group', related_name="bookmark_set")
     # namespace related_name on User since we don't own the model
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_bookmark_set")
+    date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects = BaseManager()
 
