@@ -16,7 +16,7 @@ const Viewed = React.createClass({
   render() {
     return (
       <OrganizationHomeContainer>
-        <h1>History</h1>
+        <h3>History</h3>
         <IssueList endpoint={this.getEndpoint()} {...this.props} />
       </OrganizationHomeContainer>
     );

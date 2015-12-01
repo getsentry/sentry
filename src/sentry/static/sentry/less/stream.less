@@ -523,6 +523,79 @@
   }
 }
 
+/**
+* Issue list
+* ----------------------------------------------------------------------------
+* Initial step in renaming .group-list & .group to .issue-list & .issue. This
+* will eventually live in shared-components.less.
+* ============================================================================
+*/
+
+.issue-list {
+  .list-unstyled;
+  border: 1px solid @trim;
+  border-radius: 3px;
+  padding: 0 15px;
+  box-shadow: 0 1px 3px rgba(0,0,0, .04);
+
+  .issue {
+    padding: 12px 0 6px 20px;
+    border-bottom: 1px solid lighten(@trim, 5);
+
+    .error-level {
+      .square(13px);
+      border-radius: 50%;
+      position: absolute;
+      top: 1px;
+      left: -8px;
+    }
+
+    h3 {
+      font-size: 16px;
+      margin: 0;
+
+      a {
+        color: @gray-dark;
+        &:hover {
+          color: darken(@gray-dark, 10);
+        }
+      }
+    }
+
+    .event-extra ul {
+      .list-unstyled;
+      .clearfix;
+
+      li {
+        font-size: 13px;
+        color: @gray;
+        float: left;
+        margin-right: 10px;
+      }
+    }
+
+    a {
+      color: @gray;
+      font-weight: bold;
+
+      &:hover {
+        color: darken(@gray, 20);
+      }
+    }
+
+    .icon-comments {
+      font-size: 12px;
+      position: relative;
+      top: 1px;
+      margin-right: 3px;
+    }
+
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+}
+
 // Generate .group positions for animating
 
 /*
