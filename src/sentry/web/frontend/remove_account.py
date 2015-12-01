@@ -56,7 +56,7 @@ class RemoveAccountView(BaseView):
 
             for org_slug in orgs_to_remove:
                 client.delete('/organizations/{}/'.format(org_slug),
-                              request.user, is_sudo=True)
+                              request=request, is_sudo=True)
 
             remaining_org_ids = [
                 o.id for o in org_list
