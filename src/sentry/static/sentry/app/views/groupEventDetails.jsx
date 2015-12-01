@@ -101,7 +101,7 @@ const GroupEventDetails = React.createClass({
             }
             {group.status === 'resolved' && group.statusDetails.autoResolved &&
               <div className="alert alert-info alert-block">
-                <span>{t(`This issue was automatically marked was resolved due to
+                <span>{t(`This issue was automatically marked as resolved due to
                   the Auto Resolve configuration for this project.`)}</span>
               </div>
             }
