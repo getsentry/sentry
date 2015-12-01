@@ -37,8 +37,8 @@ class DigestSettingsForm(forms.Form):
 
     def clean(self):
         cleaned = super(DigestSettingsForm, self).clean()
-        if cleaned['minimum_delay'] > cleaned['minimum_delay']:
-            raise forms.ValidationError(_('Minimum delay must be greater or equal to maximum delay.'))
+        if cleaned['minimum_delay'] > cleaned['maximum_delay']:
+            raise forms.ValidationError(_('Maximum delivery frequency must be equal to or greater than the minimum delivery frequency.'))
         return cleaned
 
 
