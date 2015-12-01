@@ -217,8 +217,13 @@ class MailPlugin(NotificationPlugin):
             'counts': counts,
         }
 
+        # TODO: Everything below should instead use `_send_mail` for consistency.
+        subject_prefix = project.get_option('subject_prefix', settings.EMAIL_SUBJECT_PREFIX)
+        if subject_prefix:
+            subject_prefix = subject_prefix.rstrip() + ' '
+
         message = self._build_message(
-            subject=render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
+            subject=subject_prefix + render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
             template='sentry/emails/digests/body.txt',
             html_template='sentry/emails/digests/body.html',
             project=project,
