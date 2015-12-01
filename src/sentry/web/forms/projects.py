@@ -23,12 +23,14 @@ class NotificationSettingsForm(forms.Form):
 
 class DigestSettingsForm(forms.Form):
     minimum_delay = RangeField(
-        label=_('Minimum delay between digest delivery'),
+        label=_('Minimum delivery frequency'),
+        help_text=_('Notifications will be delivered at most this often.'),
         required=False,
         min_value=1, max_value=60,
     )
     maximum_delay = RangeField(
-        label=_('Maximum delay between digest delivery'),
+        label=_('Maximum delivery frequency'),
+        help_text=_('Notifications will be delivered at least this often.'),
         required=False,
         min_value=1, max_value=60,
     )
