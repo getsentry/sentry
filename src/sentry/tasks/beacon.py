@@ -21,6 +21,7 @@ from uuid import uuid4
 from sentry.app import tsdb
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.tasks.base import instrumented_task
+from sentry.debug.utils.packages import get_all_package_versions
 
 BEACON_URL = 'https://getsentry.com/remote/beacon/'
 
@@ -67,7 +68,8 @@ def send_beacon():
             'teams': Team.objects.count(),
             'organizations': Organization.objects.count(),
             'events.24h': events_24h,
-        }
+        },
+        'packages': get_all_package_versions(),
     }
 
     # TODO(dcramer): relay the response 'notices' as admin broadcasts
