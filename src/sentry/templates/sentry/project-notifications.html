@@ -41,6 +41,8 @@
         <h3>{% trans "Digests" %}</h3>
       </div>
       <div class="box-content with-padding">
+        <p>Sentry will automatically digest certain notification services (such as email) to avoid flooding your inbox with individual event notifications. Use the settings below to configure the thresholds at which those digests are bounded.</p>
+
         {{ digests_form|as_crispy_errors }}
 
         {% for field in digests_form %}
@@ -53,6 +55,35 @@
       <button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button>
     </fieldset>
   </form>
+
+  <script>
+  (function(){
+    var formatMinutes = function(val) {
+      val = parseInt(val, 10);
+      return val + ' minute' + (val != 1 ? 's' : '');
+    };
+
+    $('input[type=range]').each(function(n, el){
+      var $el = $(el),
+          min = parseInt($el.attr('min'), 10),
+          max = parseInt($el.attr('max'), 10),
+          step = parseInt($el.attr('step'), 10),
+          $value = $('<span class="value"></span>');
+
+      $el.on('slider:ready', function(event, data) {
+        console.log(data);
+        $value.appendTo(data.el);
+        $value.html(formatMinutes(data.value));
+      }).on('slider:changed', function(event, data) {
+        $value.html(formatMinutes(data.value));
+      }).simpleSlider({
+        range: [min, max],
+        step: step,
+        snap: true
+      });
+    });
+  }());
+</script>
 
   {% for plugin, content in enabled_plugins %}
     <div class="box">
