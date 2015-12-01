@@ -28,7 +28,7 @@ class RemoveTeamView(TeamView):
 
         if form.is_valid():
             client.delete('/teams/{}/{}/'.format(organization.slug, team.slug),
-                          request.user, is_sudo=True)
+                          request=request, is_sudo=True)
 
             messages.add_message(
                 request, messages.SUCCESS,
