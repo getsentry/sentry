@@ -101,7 +101,7 @@ def discover_configs(ctx=None):
     )
 
 
-def configure(ctx, py, yaml):
+def configure(ctx, py, yaml, skip_backend_validation=False):
     """
     Given the two different config files, set up the environment.
 
@@ -135,7 +135,7 @@ def configure(ctx, py, yaml):
         'config_path': py,
         'settings': settings,
         'options': yaml,
-    }, skip_backend_validation=True)  # TODO(mattrobenolt): Bring back env var
+    }, skip_backend_validation=skip_backend_validation)
     on_configure({'settings': settings})
 
     __installed = True
