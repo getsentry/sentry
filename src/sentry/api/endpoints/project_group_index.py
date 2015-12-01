@@ -2,7 +2,6 @@ from __future__ import absolute_import, division, print_function
 
 from datetime import datetime, timedelta
 from django.db import IntegrityError, transaction
-from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
@@ -68,6 +67,10 @@ STATUS_CHOICES = {
 }
 
 
+class ValidationError(Exception):
+    pass
+
+
 class GroupSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=zip(
         STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
@@ -93,6 +96,70 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             return datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%fZ').replace(
                 tzinfo=timezone.utc,
             )
+
+    def _build_query_params_from_request(self, request, project):
+        query_kwargs = {
+            'project': project,
+        }
+
+        if request.GET.get('status'):
+            try:
+                query_kwargs['status'] = STATUS_CHOICES[request.GET['status']]
+            except KeyError:
+                raise ValidationError('invalid status')
+
+        if request.user.is_authenticated() and request.GET.get('bookmarks'):
+            query_kwargs['bookmarked_by'] = request.user
+
+        if request.user.is_authenticated() and request.GET.get('assigned'):
+            query_kwargs['assigned_to'] = request.user
+
+        sort_by = request.GET.get('sort')
+        if sort_by is None:
+            sort_by = DEFAULT_SORT_OPTION
+
+        query_kwargs['sort_by'] = sort_by
+
+        tags = {}
+        for tag_key in TagKey.objects.all_keys(project):
+            if request.GET.get(tag_key):
+                tags[tag_key] = request.GET[tag_key]
+        if tags:
+            query_kwargs['tags'] = tags
+
+        # TODO: dates should include timestamps
+        date_from = request.GET.get('since')
+        date_to = request.GET.get('until')
+        date_filter = request.GET.get('date_filter')
+
+        limit = request.GET.get('limit')
+        if limit:
+            try:
+                query_kwargs['limit'] = int(limit)
+            except ValueError:
+                raise ValidationError('invalid limit')
+
+        if date_from:
+            date_from = self._parse_date(date_from)
+
+        if date_to:
+            date_to = self._parse_date(date_to)
+
+        query_kwargs['date_from'] = date_from
+        query_kwargs['date_to'] = date_to
+        if date_filter:
+            query_kwargs['date_filter'] = date_filter
+
+        # TODO: proper pagination support
+        cursor = request.GET.get('cursor')
+        if cursor:
+            query_kwargs['cursor'] = Cursor.from_string(cursor)
+
+        query = request.GET.get('query', 'is:unresolved').strip()
+        if query:
+            query_kwargs.update(parse_query(project, query, request.user))
+
+        return query_kwargs
 
     # bookmarks=0/1
     # status=<x>
@@ -126,10 +193,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                      belong to.
         :auth: required
         """
-        query_kwargs = {
-            'project': project,
-        }
-
         stats_period = request.GET.get('statsPeriod')
         if stats_period not in (None, '', '24h', '14d'):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
@@ -140,61 +203,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             # disable stats
             stats_period = None
 
-        if request.GET.get('status'):
-            try:
-                query_kwargs['status'] = STATUS_CHOICES[request.GET['status']]
-            except KeyError:
-                return Response('{"detail": "invalid status"}', status=400)
-
-        if request.user.is_authenticated() and request.GET.get('bookmarks'):
-            query_kwargs['bookmarked_by'] = request.user
-
-        if request.user.is_authenticated() and request.GET.get('assigned'):
-            query_kwargs['assigned_to'] = request.user
-
-        sort_by = request.GET.get('sort')
-        if sort_by is None:
-            sort_by = DEFAULT_SORT_OPTION
-
-        query_kwargs['sort_by'] = sort_by
-
-        tags = {}
-        for tag_key in TagKey.objects.all_keys(project):
-            if request.GET.get(tag_key):
-                tags[tag_key] = request.GET[tag_key]
-        if tags:
-            query_kwargs['tags'] = tags
-
-        # TODO: dates should include timestamps
-        date_from = request.GET.get('since')
-        date_to = request.GET.get('until')
-        date_filter = request.GET.get('date_filter')
-
-        limit = request.GET.get('limit')
-        if limit:
-            try:
-                query_kwargs['limit'] = int(limit)
-            except ValueError:
-                return Response('{"detail": "invalid limit"}', status=400)
-
-        if date_from:
-            date_from = self._parse_date(date_from)
-
-        if date_to:
-            date_to = self._parse_date(date_to)
-
-        query_kwargs['date_from'] = date_from
-        query_kwargs['date_to'] = date_to
-        if date_filter:
-            query_kwargs['date_filter'] = date_filter
-
-        # TODO: proper pagination support
-        cursor = request.GET.get('cursor')
-        if cursor:
-            query_kwargs['cursor'] = Cursor.from_string(cursor)
-
-        query = request.GET.get('query', 'is:unresolved').strip()
-        if len(query) == 32:
+        query = request.GET.get('query')
+        if query and len(query) == 32:
             # check to see if we've got an event ID
             try:
                 matching_event = EventMapping.objects.filter(
@@ -210,8 +220,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     )
                 ))
 
-        if query is not None:
-            query_kwargs.update(parse_query(project, query, request.user))
+        try:
+            query_kwargs = self._build_query_params_from_request(request, project)
+        except ValidationError as exc:
+            return Response({'detail': unicode(exc)}, status=400)
 
         cursor_result = search.query(**query_kwargs)
 
@@ -292,7 +304,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             group_list = Group.objects.filter(project=project, id__in=group_ids)
             # filter down group ids to only valid matches
             group_ids = [g.id for g in group_list]
-
             if not group_ids:
                 return Response(status=204)
         else:
@@ -306,21 +317,25 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         acting_user = request.user if request.user.is_authenticated() else None
 
-        # validate that we've passed a selector for non-status bulk operations
-        if not group_ids and result.keys() != ['status']:
-            return Response('{"detail": "You must specify a list of IDs for this operation"}', status=400)
-
-        if group_ids:
-            filters = [Q(id__in=group_ids)]
-        else:
-            filters = [Q(project=project)]
-
-        if request.GET.get('status'):
+        if not group_ids:
             try:
-                status_filter = STATUS_CHOICES[request.GET['status']]
-            except KeyError:
-                return Response('{"detail": "Invalid status"}', status=400)
-            filters.append(Q(status=status_filter))
+                query_kwargs = self._build_query_params_from_request(request, project)
+            except ValidationError as exc:
+                return Response({'detail': unicode(exc)}, status=400)
+
+            # bulk mutations are limited to 1000 items
+            # TODO(dcramer): it'd be nice to support more than this, but its
+            # a bit too complicated right now
+            query_kwargs['limit'] = 1000
+
+            cursor_result = search.query(**query_kwargs)
+
+            group_list = list(cursor_result)
+            group_ids = [g.id for g in group_list]
+
+        queryset = Group.objects.filter(
+            id__in=group_ids,
+        )
 
         if result.get('status') == 'resolvedInNextRelease':
             try:
@@ -344,13 +359,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         group=group,
                     ), False
 
-                Group.objects.filter(
-                    id=group.id,
-                ).update(
-                    status=GroupStatus.RESOLVED,
-                    resolved_at=now,
-                )
-
                 if created:
                     activity = Activity.objects.create(
                         project=group.project,
@@ -365,6 +373,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     )
                     activity.send_notification()
 
+            queryset.update(
+                status=GroupStatus.RESOLVED,
+                resolved_at=now,
+            )
+
             result.update({
                 'status': 'resolved',
                 'statusDetails': {
@@ -375,7 +388,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         elif result.get('status') == 'resolved':
             now = timezone.now()
 
-            happened = Group.objects.filter(*filters).exclude(
+            happened = queryset.exclude(
                 status=GroupStatus.RESOLVED,
             ).update(
                 status=GroupStatus.RESOLVED,
@@ -383,7 +396,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             )
 
             GroupResolution.objects.filter(
-                group__in=Group.objects.filter(*filters),
+                group__in=group_ids,
             ).delete()
 
             if group_list and happened:
@@ -403,14 +416,14 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         elif result.get('status'):
             new_status = STATUS_CHOICES[result['status']]
 
-            happened = Group.objects.filter(*filters).exclude(
+            happened = queryset.exclude(
                 status=new_status,
             ).update(
                 status=new_status,
             )
 
             GroupResolution.objects.filter(
-                group__in=Group.objects.filter(*filters),
+                group__in=group_ids,
             ).delete()
 
             if new_status == GroupStatus.MUTED:
@@ -431,7 +444,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         }
                 else:
                     GroupSnooze.objects.filter(
-                        group__in=group_list,
+                        group__in=group_ids,
                     ).delete()
                     snooze_until = None
                     result['statusDetails'] = {}
@@ -480,7 +493,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         if result.get('isBookmarked'):
             for group in group_list:
                 GroupBookmark.objects.get_or_create(
-                    project=group.project,
+                    project=project,
                     group=group,
                     user=request.user,
                 )
@@ -491,9 +504,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             ).delete()
 
         if result.get('isPublic'):
-            Group.objects.filter(
-                id__in=group_ids,
-            ).update(is_public=True)
+            queryset.update(is_public=True)
             for group in group_list:
                 if group.is_public:
                     continue
@@ -505,9 +516,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     user=acting_user,
                 )
         elif result.get('isPublic') is False:
-            Group.objects.filter(
-                id__in=group_ids,
-            ).update(is_public=False)
+            queryset.update(is_public=False)
             for group in group_list:
                 if not group.is_public:
                     continue
