@@ -591,8 +591,94 @@
     }
 
     .icon-more {
+      font-size: 24px;
       width: 12px;
       height: 24px;
+      text-align: center;
+    }
+
+    .more-menu {
+      .more-menu-toggle {
+        color: @gray-light;
+        display: inline-block;
+        height: 24px;
+        margin-top: 6px;
+
+        &:hover {
+          color: @gray;
+        }
+      }
+
+      .dropdown-menu {
+        padding: 0;
+        width: 156px;
+        left: -75px;
+        top: -64px;
+        .clearfix;
+
+        li {
+          float: left;
+          width: 25%;
+          height: 44px;
+          position: relative;
+
+          a {
+            display: block;
+            padding: 0;
+            text-align: center;
+            height: 44px;
+            line-height: 46px;
+          }
+
+          &:after {
+            display: block;
+            content: "";
+            position: absolute;
+            top: 12px;
+            bottom: 12px;
+            right: 0;
+            width: 1px;
+            background: darken(#f1f2f3, 4);
+          }
+
+          &:first-child {
+            a {
+              border-radius: 2px 0 0 2px;
+            }
+          }
+
+          &:last-child {
+            &:after {
+              display: none;
+            }
+            a {
+              border-radius: 0 2px 2px 0;
+            }
+          }
+        }
+
+        &:before {
+          top: auto;
+          bottom: -9px;
+          left: 71px;
+          border-bottom: none;
+          border-top: 9px solid rgba(52, 60, 69, 0.45);
+        }
+
+        &:after {
+          top: auto;
+          bottom: -8px;
+          left: 72px;
+          border-bottom: none;
+          border-top: 8px solid #fff;
+        }
+      }
+
+      &.open {
+        .more-menu-toggle {
+          color: @gray-dark;
+        }
+      }
     }
 
     &:last-child {
