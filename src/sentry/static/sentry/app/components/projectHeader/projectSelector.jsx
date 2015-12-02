@@ -94,7 +94,7 @@ const ProjectSelector = React.createClass({
       // property. For example - when project selector is loaded on
       // Django-powered Settings pages.
 
-      [this.context.location ? 'to' : 'href']: this.getRawLink(project)
+      ...this.getProjectUrlProps(project)
     };
 
     return <MenuItem {...menuItemProps}>{this.highlight(label, highlightText)}</MenuItem>;
@@ -108,10 +108,20 @@ const ProjectSelector = React.createClass({
     return label;
   },
 
-  getRawLink(project) {
+  /**
+   * Returns an object with the target project url. If
+   * the router is present, passed as the 'to' property.
+   * If not, passed as an absolute URL via the 'href' property.
+   */
+  getProjectUrlProps(project) {
     let org = this.props.organization;
-    let urlPrefix = ConfigStore.get('urlPrefix');
-    return urlPrefix + '/' + org.slug + '/' + project.slug + '/';
+    let path = `/${org.slug}/${project.slug}/`;
+
+    if (this.context.location) {
+      return {to: path};
+    } else {
+      return {href: ConfigStore.get('urlPrefix') + path};
+    }
   },
 
   getLinkNode(team, project) {
@@ -119,7 +129,7 @@ const ProjectSelector = React.createClass({
     let label = this.getProjectLabel(team, project);
 
     if (!this.context.location) {
-      return <a href={this.getRawLink(project)}>{label}</a>;
+      return <a {...this.getProjectUrlProps(project)}>{label}</a>;
     }
 
     let orgId = org.slug;
