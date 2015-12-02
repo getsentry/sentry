@@ -9,4 +9,4 @@ sentry.utils.runner
 from __future__ import absolute_import, print_function
 
 # Backwards compatibility
-from sentry.runner import configure  # NOQA
+from sentry.runner import configure, main  # NOQA
