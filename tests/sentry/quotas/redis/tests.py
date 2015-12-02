@@ -2,13 +2,14 @@
 
 from __future__ import absolute_import
 
-import mock
+import time
 
+import mock
+from exam import fixture, patcher
 from redis.client import (
     Script,
     StrictRedis,
 )
-from exam import fixture, patcher
 
 from sentry.quotas.redis import (
     IS_RATE_LIMITED_SCRIPT,
@@ -18,23 +19,28 @@ from sentry.testutils import TestCase
 
 
 def test_is_rate_limited_script():
+    now = int(time.time())
+
     client = StrictRedis(db=9)
     script = Script(client, IS_RATE_LIMITED_SCRIPT)
 
     # The item should not be rate limited by either key.
-    assert map(bool, script(('foo', 'bar'), (1, 2))) == [False, False]
+    assert map(bool, script(('foo', 'bar'), (1, now + 60, 2, now + 120))) == [False, False]
 
     # The item should be rate limited by the first key (1).
-    assert map(bool, script(('foo', 'bar'), (1, 2))) == [True, False]
+    assert map(bool, script(('foo', 'bar'), (1, now + 60, 2, now + 120))) == [True, False]
 
     # The item should still be rate limited by the first key (1), but *not*
     # rate limited by the second key (2) even though this is the third time
     # we've checked the quotas. This ensures items that are rejected by a lower
     # quota don't affect unrelated items that share a parent quota.
-    assert map(bool, script(('foo', 'bar'), (1, 2))) == [True, False]
+    assert map(bool, script(('foo', 'bar'), (1, now + 60, 2, now + 120))) == [True, False]
 
-    client.get('foo') == '1'
-    client.get('bar') == '1'
+    assert client.get('foo') == '1'
+    assert 59 <= client.ttl('foo') <= 60
+
+    assert client.get('bar') == '1'
+    assert 119 <= client.ttl('bar') <= 120
 
 
 class RedisQuotaTest(TestCase):
@@ -64,14 +70,15 @@ class RedisQuotaTest(TestCase):
 
     def test_skips_unset_quotas(self):
         # This assumes ``get_*_quota`` methods are mocked.
-        assert set(self.quota._get_quotas(self.project)) == set()
+        assert set(self.quota._get_quotas(self.project, time.time())) == set()
 
     def test_uses_defined_quotas(self):
+        timestamp = time.time()
         self.get_project_quota.return_value = 200
         self.get_organization_quota.return_value = 300
-        assert set(self.quota._get_quotas(self.project)) == set((
-            (self.quota._get_project_key(self.project), 200),
-            (self.quota._get_organization_key(self.project.organization), 300),
+        assert set(self.quota._get_quotas(self.project, timestamp)) == set((
+            (self.quota._get_project_key(self.project, timestamp), 200),
+            (self.quota._get_organization_key(self.project.organization, timestamp), 300),
         ))
 
     @mock.patch('sentry.quotas.redis.is_rate_limited')
