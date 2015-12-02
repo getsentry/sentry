@@ -108,7 +108,7 @@ const CompactIssue = React.createClass({
             <li><a href="#"><span className="icon-checkmark"></span></a></li>
             <li><a href="#"><span className="icon-bookmark"></span></a></li>
             <li><a href="#">zZz</a></li>
-            <li><a href="#">Hi</a></li>
+            <li><a href="#"><span className="icon-user"></span></a></li>
           </DropdownLink>
         </div>
       </li>
