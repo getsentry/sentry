@@ -18,6 +18,7 @@ The following information is reported:
 - A technical contact email (``SENTRY_ADMIN_EMAIL``)
 - General anonymous statistics on the data pattern (such as the number of
   users)
+- Names and version of the installed Python modules
 
 Note: The contact email is utilized for security announcements, and will
 never be used outside of such.
