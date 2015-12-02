@@ -13,7 +13,7 @@ from sentry.runner.decorators import configuration
 
 @click.command()
 @click.option('--verbosity', '-v', default=1, help='Verbosity level.')
-@click.option('--traceback', default=True, help='Raise on exception.')
+@click.option('--traceback', default=True, is_flag=True, help='Raise on exception.')
 @click.option('--noinput', default=False, is_flag=True, help='Do not prompt the user for input of any kind.')
 @configuration
 @click.pass_context
