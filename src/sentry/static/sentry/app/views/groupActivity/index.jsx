@@ -117,7 +117,7 @@ const GroupActivity = React.createClass({
             <TimeSince date={item.dateCreated} />
             <div className="activity-item-content">
               {this.formatActivity(
-                <span>
+                <span key={`${itemIdx}-author`}>
                   {author.avatar}
                   <span className="activity-author">{author.name}</span>
                 </span>,
@@ -135,7 +135,7 @@ const GroupActivity = React.createClass({
         <div className="col-md-9">
           <div className="activity-container">
             <ul className="activity">
-              <li className="activity-note">
+              <li className="activity-note" key="activity-note">
                 <Gravatar email={me.email} size={64} className="avatar" />
                 <div className="activity-bubble">
                   <NoteInput group={group} />

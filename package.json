@@ -12,7 +12,7 @@
     "crypto-js": "3.1.5",
     "css-loader": "0.18.0",
     "eslint": "1.9.0",
-    "eslint-plugin-react": "3.8.0",
+    "eslint-plugin-react": "3.11.2",
     "extract-text-webpack-plugin": "0.8.2",
     "file-loader": "0.8.4",
     "history": "1.13.0",

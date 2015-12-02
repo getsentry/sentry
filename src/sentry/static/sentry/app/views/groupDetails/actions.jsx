@@ -114,30 +114,34 @@ const GroupActions = React.createClass({
               </a>
             )
           :
-            [<a className={resolveClassName}
-               title={t('Resolve')}
-               onClick={this.onUpdate.bind(this, {status: 'resolved'})}>
-              Resolve
-            </a>,
-            <DropdownLink
-              caret={true}
-              className={resolveClassName}
-              topLevelClasses={resolveDropdownClasses}
-              title="">
-              <MenuItem noAnchor={true}>
-                {hasRelease ?
-                  <a onClick={this.onUpdate.bind(this, {status: 'resolvedInNextRelease'})}>
-                    <strong>{t('Resolved in next release')}</strong>
-                    <div className="help-text">{t('Snooze notifications until this issue reoccurs in a future release.')}</div>
-                  </a>
-                :
-                  <a className="disabled tip" title="You need to send release data to Sentry in order to use this feature.">
-                    <strong>{t('Resolved in next release.')}</strong>
-                    <div className="help-text">{t('Snooze notifications until this issue reoccurs in a future release.')}</div>
-                  </a>
-                }
-              </MenuItem>
-            </DropdownLink>]
+            [
+              <a key="resolve-button"
+                 className={resolveClassName}
+                 title={t('Resolve')}
+                 onClick={this.onUpdate.bind(this, {status: 'resolved'})}>
+                Resolve
+              </a>,
+              <DropdownLink
+                key="resolve-dropdown"
+                caret={true}
+                className={resolveClassName}
+                topLevelClasses={resolveDropdownClasses}
+                title="">
+                <MenuItem noAnchor={true}>
+                  {hasRelease ?
+                    <a onClick={this.onUpdate.bind(this, {status: 'resolvedInNextRelease'})}>
+                      <strong>{t('Resolved in next release')}</strong>
+                      <div className="help-text">{t('Snooze notifications until this issue reoccurs in a future release.')}</div>
+                    </a>
+                  :
+                    <a className="disabled tip" title="You need to send release data to Sentry in order to use this feature.">
+                      <strong>{t('Resolved in next release.')}</strong>
+                      <div className="help-text">{t('Snooze notifications until this issue reoccurs in a future release.')}</div>
+                    </a>
+                  }
+                </MenuItem>
+              </DropdownLink>
+            ]
           }
         </div>
         <div className="btn-group">

@@ -62,7 +62,7 @@ const RequestInterface = React.createClass({
 
     if (!this.isPartial()) {
       children.push(
-        <div className="pull-right">
+        <div key="action-buttons" className="pull-right">
           {!this.props.isShare &&
             <RequestActions organization={this.context.organization}
                             project={this.context.project}
@@ -70,7 +70,7 @@ const RequestInterface = React.createClass({
                             event={evt} />
           }
         </div>,
-        <div className="btn-group">
+        <div key="view-buttons" className="btn-group">
           <a className={(view === 'rich' ? 'active' : '') + ' btn btn-default btn-sm'}
             onClick={this.toggleView.bind(this, 'rich')}>{
               /* Translators: this means "rich" rendering (fancy tables) */
@@ -82,7 +82,7 @@ const RequestInterface = React.createClass({
     }
 
     children.push(
-      <h3>
+      <h3 key="title">
         <strong>{data.method || 'GET'} <a href={fullUrl}>{parsedUrl.pathname}</a></strong>
         <small style={{marginLeft: 20}}>{parsedUrl.hostname}</small>
       </h3>

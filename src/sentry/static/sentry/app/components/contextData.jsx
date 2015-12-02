@@ -110,7 +110,7 @@ const ContextData = React.createClass({
       } else if (typeof value === 'string' || value instanceof String) {
         let valueInfo = analyzeStringForRepr(value);
 
-        let out = [<span className={
+        let out = [<span key="value" className={
             (valueInfo.isString ? 'val-string' : 'val-repr') +
             (valueInfo.isStripped ? ' val-stripped' : '') +
             (valueInfo.isMultiLine ? ' val-string-multiline' : '')}>{
@@ -118,7 +118,7 @@ const ContextData = React.createClass({
 
         if (valueInfo.isString && isUrl(value)) {
           out.push(
-            <a href={value} className="external-icon">
+            <a key="external" href={value} className="external-icon">
               <em className="icon-open" />
             </a>
           );
