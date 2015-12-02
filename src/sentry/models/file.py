@@ -28,8 +28,6 @@ ONE_DAY = 60 * 60 * 24
 class FileBlob(Model):
     __core__ = False
 
-    storage = models.CharField(max_length=128)
-    storage_options = JSONField()
     path = models.TextField(null=True)
     size = BoundedPositiveIntegerField(null=True)
     checksum = models.CharField(max_length=40, unique=True)
@@ -70,8 +68,6 @@ class FileBlob(Model):
             blob = cls(
                 size=size,
                 checksum=checksum,
-                storage=settings.SENTRY_FILESTORE,
-                storage_options=settings.SENTRY_FILESTORE_OPTIONS,
             )
 
             blob.path = cls.generate_unique_path(blob.timestamp)
@@ -95,8 +91,8 @@ class FileBlob(Model):
         super(FileBlob, self).delete(*args, **kwargs)
 
     def get_storage(self):
-        backend = self.storage
-        options = self.storage_options
+        backend = settings.SENTRY_FILESTORE
+        options = settings.SENTRY_FILESTORE_OPTIONS
 
         storage = get_storage_class(backend)
         return storage(**options)
@@ -136,8 +132,6 @@ class File(Model):
     blob = FlexibleForeignKey('sentry.FileBlob', null=True)
 
     # <Legacy fields>
-    storage = models.CharField(max_length=128, null=True)
-    storage_options = JSONField()
     path = models.TextField(null=True)
     size = BoundedPositiveIntegerField(null=True)
     checksum = models.CharField(max_length=40, null=True)
@@ -161,8 +155,6 @@ class File(Model):
             blob, created = FileBlob.objects.get_or_create(
                 checksum=self.checksum,
                 defaults={
-                    'storage': self.storage,
-                    'storage_options': self.storage_options,
                     'path': self.path,
                     'size': self.size,
                     'timestamp': self.timestamp,
@@ -181,8 +173,6 @@ class File(Model):
                 # TODO(dcramer): kill data when fully migrated
                 # checksum=None,
                 # path=None,
-                # storage=None,
-                # storage_options={},
             )
 
     def getfile(self, *args, **kwargs):
