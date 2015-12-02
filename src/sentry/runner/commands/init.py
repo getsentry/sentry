@@ -15,7 +15,7 @@ import click
 @click.argument('directory', required=False)
 @click.pass_context
 def init(ctx, directory):
-    "Generate a new configuration file."
+    "Initialize new configuration directory."
     from sentry.runner.settings import discover_configs, generate_settings
     if directory is not None:
         ctx.obj['config'] = directory
