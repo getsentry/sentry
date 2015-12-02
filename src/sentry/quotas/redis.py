@@ -63,9 +63,6 @@ is_rate_limited = Script(None, IS_RATE_LIMITED_SCRIPT)
 
 
 class RedisQuota(Quota):
-    #: The ``interval`` specifies the size of a quota window in seconds.
-    interval = 60
-
     #: The ``grace`` period allows accomodating for clock drift in TTL
     #: calculation since the clock on the Redis instance used to store quota
     #: metrics may not be in sync with the computer running this code.
@@ -78,6 +75,7 @@ class RedisQuota(Quota):
         super(RedisQuota, self).__init__(**options)
         options.setdefault('hosts', {0: {}})
         self.cluster = make_rb_cluster(options['hosts'])
+        self.namespace = 'quota'
 
     def validate(self):
         try:
@@ -86,45 +84,39 @@ class RedisQuota(Quota):
         except Exception as e:
             raise InvalidConfiguration(unicode(e))
 
-    def _get_quotas(self, project, timestamp):
-        return filter(
-            lambda (key, value): value > 0,  # a zero quota means "no quota"
-            (
-                (self._get_project_key(project, timestamp), self.get_project_quota(project)),
-                (self._get_organization_key(project.organization, timestamp), self.get_organization_quota(project.organization)),
-            )
+    def get_quotas(self, project):
+        return (
+            ('p:{}'.format(project.id), self.get_project_quota(project), 60),
+            ('o:{}'.format(project.organization.id), self.get_organization_quota(project.organization), 60),
         )
 
     def is_rate_limited(self, project):
         timestamp = time.time()
 
+        quotas = filter(
+            lambda (key, limit, interval): limit > 0,  # a zero limit means "no limit", not "reject all"
+            self.get_quotas(project),
+        )
+
         # If there are no quotas to actually check, skip the trip to the database.
-        quotas = self._get_quotas(project, timestamp)
         if not quotas:
             return NotRateLimited
 
-        # interval start + duration + grace period
-        expiry = ((timestamp // self.interval) * self.interval) + self.interval + self.grace
+        def get_next_period_start(interval):
+            """Return the timestamp when the next rate limit period begins for an interval."""
+            return ((timestamp // interval) + 1) * interval
 
         keys = []
         args = []
-        for key, limit in quotas:
-            keys.append(keys)
+        for key, limit, interval in quotas:
+            keys.append('{}:{}:{}'.format(self.namespace, key, timestamp // interval))
+            expiry = get_next_period_start(interval) + self.grace
             args.extend((limit, expiry))
 
         client = self.cluster.get_local_client_for_key(str(project.organization.pk))
-        if any(is_rate_limited(keys, args, client=client)):
-            return RateLimited(retry_after=self.get_time_remaining())
+        rejections = is_rate_limited(keys, args, client=client)
+        if any(rejections):
+            delay = max(get_next_period_start(interval) - timestamp for (key, limit, interval), rejected in zip(quotas, rejections) if rejected)
+            return RateLimited(retry_after=delay)
         else:
             return NotRateLimited
-
-    def get_time_remaining(self):
-        # interval start + duration - current time
-        timestamp = time.time()
-        return ((timestamp // self.interval) * self.interval) + self.interval - timestamp
-
-    def _get_project_key(self, project, timestamp):
-        return 'quota:p:%s:%s' % (project.id, timestamp // self.interval)
-
-    def _get_organization_key(self, organization, timestamp):
-        return 'quota:o:%s:%s' % (organization.id, timestamp // self.interval)
