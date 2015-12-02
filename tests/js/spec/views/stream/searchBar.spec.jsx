@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import TestUtils from 'react-addons-test-utils';
-import api from 'app/api';
+import {Client} from 'app/api';
 import SearchBar from 'app/views/stream/searchBar';
 import SearchDropdown from 'app/views/stream/searchDropdown';
 import StreamTagStore from 'app/stores/streamTagStore';
@@ -18,7 +18,7 @@ describe('SearchBar', function() {
 
     this.sandbox = sinon.sandbox.create();
 
-    this.sandbox.stub(api, 'request');
+    this.sandbox.stub(Client.prototype, 'request');
 
     stubReactComponents(this.sandbox, [SearchDropdown]);
     this.ContextStubbedSearchBar = stubContext(SearchBar);

@@ -1,5 +1,4 @@
 import React from 'react';
-import api from '../api';
 import ApiMixin from '../mixins/apiMixin';
 import EventEntries from '../components/events/eventEntries';
 import GroupEventToolbar from './groupDetails/eventToolbar';
@@ -48,7 +47,7 @@ const GroupEventDetails = React.createClass({
       error: false
     });
 
-    this.apiRequest(url, {
+    this.api.request(url, {
       success: (data, _, jqXHR) => {
         this.setState({
           event: data,
@@ -56,7 +55,7 @@ const GroupEventDetails = React.createClass({
           loading: false
         });
 
-        api.bulkUpdate({
+        this.api.bulkUpdate({
           orgId: this.getOrganization().slug,
           projectId: this.getProject().slug,
           itemIds: [this.getGroup().id],

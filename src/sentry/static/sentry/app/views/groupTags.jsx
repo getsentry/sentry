@@ -33,7 +33,7 @@ const GroupTags = React.createClass({
 
     // TODO(dcramer): each tag should be a separate query as the tags endpoint
     // is not performant
-    this.apiRequest('/issues/' + this.getGroup().id + '/tags/', {
+    this.api.request('/issues/' + this.getGroup().id + '/tags/', {
       success: (data) => {
         if (!this.isMounted()) {
           return;

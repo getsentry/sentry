@@ -1,7 +1,7 @@
 import React from 'react';
 import {Link, History} from 'react-router';
 
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
@@ -9,7 +9,10 @@ import SearchBar from '../components/searchBar.jsx';
 import {t} from '../locale';
 
 const AdminOrganizations = React.createClass({
-  mixins: [History],
+  mixins: [
+    ApiMixin,
+    History
+  ],
 
   getInitialState() {
     let queryParams = this.props.location.query;
@@ -44,7 +47,7 @@ const AdminOrganizations = React.createClass({
   fetchData() {
     let queryParams = this.props.location.query;
 
-    api.request(`/organizations/`, {
+    this.api.request(`/organizations/`, {
       method: 'GET',
       data: queryParams,
       success: (data, _, jqXHR) => {

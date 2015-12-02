@@ -1,5 +1,5 @@
 import React from 'react';
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import DocumentTitle from 'react-document-title';
 import Footer from '../components/footer';
 import Header from '../components/header';
@@ -18,6 +18,10 @@ const OrganizationDetails = React.createClass({
   childContextTypes: {
     organization: PropTypes.Organization
   },
+
+  mixins: [
+    ApiMixin
+  ],
 
   getInitialState() {
     return {
@@ -53,7 +57,7 @@ const OrganizationDetails = React.createClass({
   },
 
   fetchData() {
-    api.request(this.getOrganizationDetailsEndpoint(), {
+    this.api.request(this.getOrganizationDetailsEndpoint(), {
       success: (data) => {
         this.setState({
           organization: data,

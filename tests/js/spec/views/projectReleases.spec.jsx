@@ -3,7 +3,7 @@ import TestUtils from 'react-addons-test-utils';
 
 import stubReactComponents from '../../helpers/stubReactComponent';
 
-import api from 'app/api';
+import {Client} from 'app/api';
 import ProjectReleases from 'app/views/projectReleases';
 import SearchBar from 'app/views/stream/searchBar';
 import Pagination from 'app/components/pagination';
@@ -12,7 +12,7 @@ describe('ProjectReleases', function () {
   beforeEach(function () {
     this.sandbox = sinon.sandbox.create();
 
-    this.sandbox.stub(api, 'request');
+    this.sandbox.stub(Client.prototype, 'request');
     stubReactComponents(this.sandbox, [SearchBar, Pagination]);
 
     this.props = {
@@ -31,7 +31,7 @@ describe('ProjectReleases', function () {
 
   describe('fetchData()', function () {
     it('should call releases endpoint', function () {
-      expect(api.request.args[0][0]).to.equal('/projects/123/456/releases/?limit=50&query=derp');
+      expect(Client.prototype.request.args[0][0]).to.equal('/projects/123/456/releases/?limit=50&query=derp');
     });
   });
 

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 
@@ -8,6 +8,10 @@ const ProjectInstall = React.createClass({
   propTypes: {
     setProjectNavSection: React.PropTypes.func
   },
+
+  mixins: [
+    ApiMixin
+  ],
 
   getInitialState() {
     return {
@@ -26,7 +30,7 @@ const ProjectInstall = React.createClass({
 
   fetchData() {
     let {orgId, projectId} = this.props.params;
-    api.request(`/projects/${orgId}/${projectId}/docs/`, {
+    this.api.request(`/projects/${orgId}/${projectId}/docs/`, {
       success: (data) => {
         this.setState({
           loading: false,

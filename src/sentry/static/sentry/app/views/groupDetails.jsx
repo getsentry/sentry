@@ -1,6 +1,6 @@
 import React from 'react';
 import Reflux from 'reflux';
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import DocumentTitle from 'react-document-title';
 import GroupHeader from './groupDetails/header';
 import GroupStore from '../stores/groupStore';
@@ -19,6 +19,7 @@ const GroupDetails = React.createClass({
   },
 
   mixins: [
+    ApiMixin,
     Reflux.listenTo(GroupStore, 'onGroupChange')
   ],
 
@@ -47,7 +48,7 @@ const GroupDetails = React.createClass({
   },
 
   fetchData() {
-    api.request(this.getGroupDetailsEndpoint(), {
+    this.api.request(this.getGroupDetailsEndpoint(), {
       success: (data) => {
         this.setState({
           loading: false,

@@ -1,12 +1,16 @@
 import React from 'react';
 
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import AlertActions from '../../actions/alertActions';
 import {t} from '../../locale';
 
 // TODO(dcramer): this isnt great UX
 
 const AllTeamsRow = React.createClass({
+  mixins: [
+    ApiMixin
+  ],
+
   getInitialState() {
     return {
       loading: false,
@@ -19,7 +23,7 @@ const AllTeamsRow = React.createClass({
       loading: true
     });
 
-    api.joinTeam({
+    this.api.joinTeam({
       orgId: this.props.organization.slug,
       teamId: this.props.team.slug
     }, {
@@ -47,7 +51,7 @@ const AllTeamsRow = React.createClass({
       loading: true
     });
 
-    api.leaveTeam({
+    this.api.leaveTeam({
       orgId: this.props.organization.slug,
       teamId: this.props.team.slug
     }, {

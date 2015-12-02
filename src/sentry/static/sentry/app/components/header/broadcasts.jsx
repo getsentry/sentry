@@ -1,11 +1,15 @@
 import React from 'react';
 
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../dropdownLink';
 import LoadingIndicator from '../loadingIndicator';
 import {t} from '../../locale';
 
 const Broadcasts = React.createClass({
+  mixins: [
+    ApiMixin
+  ],
+
   getInitialState() {
     return {
       broadcasts: [],
@@ -37,7 +41,7 @@ const Broadcasts = React.createClass({
     if (this.poller) {
       window.clearTimeout(this.poller);
     }
-    api.request('/broadcasts/', {
+    this.api.request('/broadcasts/', {
       method: 'GET',
       success: (data) => {
         this.setState({
@@ -77,7 +81,7 @@ const Broadcasts = React.createClass({
     if (broadcastIds.length === 0)
       return;
 
-    api.request('/broadcasts/', {
+    this.api.request('/broadcasts/', {
       method: 'PUT',
       query: {id: broadcastIds},
       data: {

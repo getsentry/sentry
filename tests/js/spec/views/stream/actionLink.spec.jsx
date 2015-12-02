@@ -1,7 +1,7 @@
 import React from 'react';
 import TestUtils from 'react-addons-test-utils';
 
-import api from 'app/api';
+import {Client} from 'app/api';
 import stubReactComponents from '../../../helpers/stubReactComponent';
 import ActionLink from 'app/views/stream/actionLink';
 import Modal from 'react-bootstrap/lib/Modal';
@@ -11,7 +11,7 @@ describe('ActionLink', function() {
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(api, 'request');
+    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
     stubReactComponents(this.sandbox, [Modal]);
   });
 

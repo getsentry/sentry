@@ -1,7 +1,7 @@
 import React from 'react';
 import {Link, History} from 'react-router';
 import jQuery from 'jquery';
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';
 import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
@@ -13,6 +13,7 @@ import {t, tn} from '../locale';
 
 const GroupTagValues = React.createClass({
   mixins: [
+    ApiMixin,
     History,
     GroupState
   ],
@@ -47,7 +48,7 @@ const GroupTagValues = React.createClass({
       error: false
     });
 
-    api.request('/issues/' + this.getGroup().id + '/tags/' + params.tagKey + '/', {
+    this.api.request('/issues/' + this.getGroup().id + '/tags/' + params.tagKey + '/', {
       success: (data) => {
         this.setState({
           tagKey: data,
@@ -62,7 +63,7 @@ const GroupTagValues = React.createClass({
       }
     });
 
-    api.request('/issues/' + this.getGroup().id + '/tags/' + params.tagKey + '/values/?' + querystring, {
+    this.api.request('/issues/' + this.getGroup().id + '/tags/' + params.tagKey + '/values/?' + querystring, {
       success: (data, _, jqXHR) => {
         this.setState({
           tagValueList: data,

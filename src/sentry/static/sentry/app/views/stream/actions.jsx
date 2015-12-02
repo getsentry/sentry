@@ -1,6 +1,6 @@
 import React from 'react';
 import Reflux from 'reflux';
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import ActionLink from './actionLink';
 import DropdownLink from '../../components/dropdownLink';
 import IndicatorStore from '../../stores/indicatorStore';
@@ -21,6 +21,7 @@ const StreamActions = React.createClass({
   },
 
   mixins: [
+    ApiMixin,
     Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
     PureRenderMixin
   ],
@@ -70,7 +71,7 @@ const StreamActions = React.createClass({
     this.actionSelectedGroups(actionType, (itemIds) => {
       let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-      api.bulkUpdate({
+      this.api.bulkUpdate({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
         itemIds: itemIds,
@@ -87,7 +88,7 @@ const StreamActions = React.createClass({
     let loadingIndicator = IndicatorStore.add(t('Removing events..'));
 
     this.actionSelectedGroups(actionType, (itemIds) => {
-      api.bulkDelete({
+      this.api.bulkDelete({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
         itemIds: itemIds
@@ -103,7 +104,7 @@ const StreamActions = React.createClass({
     let loadingIndicator = IndicatorStore.add(t('Merging events..'));
 
     this.actionSelectedGroups(actionType, (itemIds) => {
-      api.merge({
+      this.api.merge({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
         itemIds: itemIds,

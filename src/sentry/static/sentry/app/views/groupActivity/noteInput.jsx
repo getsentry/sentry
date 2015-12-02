@@ -1,6 +1,6 @@
 import marked from 'marked';
 import React from 'react';
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import GroupStore from '../../stores/groupStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import {logException} from '../../utils/logging';
@@ -15,7 +15,10 @@ function makeDefaultErrorJson() {
 }
 
 const NoteInput = React.createClass({
-  mixins: [PureRenderMixin],
+  mixins: [
+    PureRenderMixin,
+    ApiMixin
+  ],
 
   getInitialState() {
     let {item, group} = this.props;
@@ -95,7 +98,7 @@ const NoteInput = React.createClass({
 
     let loadingIndicator = IndicatorStore.add(t('Posting comment..'));
 
-    api.request('/issues/' + group.id + '/comments/', {
+    this.api.request('/issues/' + group.id + '/comments/', {
       method: 'POST',
       data: {
         text: this.state.value
@@ -129,7 +132,7 @@ const NoteInput = React.createClass({
 
     let loadingIndicator = IndicatorStore.add(t('Updating comment..'));
 
-    api.request('/issues/' + group.id + '/comments/' + item.id + '/', {
+    this.api.request('/issues/' + group.id + '/comments/' + item.id + '/', {
       method: 'PUT',
       data: {
         text: this.state.value

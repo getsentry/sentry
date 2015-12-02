@@ -2,7 +2,7 @@ import React from 'react';
 import {Link} from 'react-router';
 import LazyLoad from 'react-lazy-load';
 
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import BarChart from '../../components/barChart';
 import ConfigStore from '../../stores/configStore';
 import PropTypes from '../../proptypes';
@@ -16,9 +16,13 @@ const ExpandedTeamList = React.createClass({
     projectStats: React.PropTypes.object
   },
 
+  mixins: [
+    ApiMixin
+  ],
+
   leaveTeam(team) {
     // TODO(dcramer): handle loading indicator
-    api.leaveTeam({
+    this.api.leaveTeam({
       orgId: this.props.organization.slug,
       teamId: team.slug
     });

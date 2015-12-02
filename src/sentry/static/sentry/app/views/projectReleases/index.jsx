@@ -1,7 +1,7 @@
 import jQuery from 'jquery';
 import React from 'react';
 import {History} from 'react-router';
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import Pagination from '../../components/pagination';
@@ -15,7 +15,10 @@ const ProjectReleases = React.createClass({
     setProjectNavSection: React.PropTypes.func
   },
 
-  mixins: [History],
+  mixins: [
+    ApiMixin,
+    History
+  ],
 
   getDefaultProps() {
     return {
@@ -64,7 +67,7 @@ const ProjectReleases = React.createClass({
       error: false
     });
 
-    api.request(this.getProjectReleasesEndpoint(), {
+    this.api.request(this.getProjectReleasesEndpoint(), {
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,

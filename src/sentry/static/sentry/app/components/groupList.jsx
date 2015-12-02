@@ -1,7 +1,7 @@
 import React from 'react';
 import Reflux from 'reflux';
 import jQuery from 'jquery';
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import GroupListHeader from '../components/groupListHeader';
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
@@ -26,6 +26,7 @@ const GroupList = React.createClass({
   mixins: [
     ProjectState,
     Reflux.listenTo(GroupStore, 'onGroupChange'),
+    ApiMixin
   ],
 
   getDefaultProps() {
@@ -71,7 +72,7 @@ const GroupList = React.createClass({
       error: false
     });
 
-    api.request(this.getGroupListEndpoint(), {
+    this.api.request(this.getGroupListEndpoint(), {
       success: (data, _, jqXHR) => {
         this._streamManager.push(data);
 

@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import React from 'react';
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import FlotChart from '../../components/flotChart';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -12,6 +12,7 @@ import {t} from '../../locale';
 
 const OrganizationStats = React.createClass({
   mixins: [
+    ApiMixin,
     OrganizationState
   ],
 
@@ -70,7 +71,7 @@ const OrganizationStats = React.createClass({
     let statEndpoint = this.getOrganizationStatsEndpoint();
 
     $.each(this.state.rawOrgData, (statName) => {
-      api.request(statEndpoint, {
+      this.api.request(statEndpoint, {
         query: {
           since: this.state.querySince,
           until: this.state.queryUntil,
@@ -94,7 +95,7 @@ const OrganizationStats = React.createClass({
     });
 
     $.each(this.state.rawProjectData, (statName) => {
-      api.request(statEndpoint, {
+      this.api.request(statEndpoint, {
         query: {
           since: this.state.querySince,
           until: this.state.queryUntil,
@@ -117,7 +118,7 @@ const OrganizationStats = React.createClass({
       });
     });
 
-    api.request(this.getOrganizationProjectsEndpoint(), {
+    this.api.request(this.getOrganizationProjectsEndpoint(), {
       success: (data) => {
         let projectMap = {};
         data.forEach((project) => {
