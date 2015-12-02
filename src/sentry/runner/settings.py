@@ -249,7 +249,7 @@ def discover_configs(ctx=None):
      * Optional python config file (~/.sentry/sentry.conf.py)
      * Optional yaml config (~/.sentry/config.yml)
     """
-    if ctx:
+    if ctx and 'config' in ctx.obj:
         config = ctx.obj['config']
     else:
         try:
