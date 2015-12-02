@@ -72,9 +72,10 @@ def load_script(path):
     script = Script(None, resource_string('sentry', posixpath.join('scripts', path)))
 
     # This changes the argument order of the ``Script.__call__`` method to
-    # encourage using the script is with a specific Redis client when dealing
-    # with clusters, rather than implicitly using the first client that the
-    # script was registered with.
+    # encourage using the script with a specific Redis client, rather
+    # than implicitly using the first client that the script was registered
+    # with. (This can prevent lots of bizzare behavior when dealing with
+    # clusters of Redis servers.)
     def call_script(client, keys, args):
         """
         Executes {!r} as a Lua script on a Redis server.
