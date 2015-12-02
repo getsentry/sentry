@@ -24,6 +24,12 @@ const ProjectSelector = React.createClass({
     node.hide().show(0);
   },
 
+  componentWillUnmount() {
+    if (this.filterBlurTimeout) {
+      clearTimeout(this.filterBlurTimeout);
+    }
+  },
+
   onFilterChange(evt) {
     this.setState({
       filter: evt.target.value
@@ -42,7 +48,10 @@ const ProjectSelector = React.createClass({
     // project link; in which case, will close dropdown before
     // link click is processed. Why 200ms? Decently short time
     // period that seemed to work in all browsers.
-    setTimeout(() => this.close(), 200);
+    this.filterBlurTimeout = setTimeout(() => {
+      this.filterBlurTimeout = null;
+      this.close();
+    }, 200);
   },
 
   close() {
