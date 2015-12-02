@@ -6,13 +6,10 @@ import time
 
 import mock
 from exam import fixture, patcher
-from redis.client import (
-    Script,
-    StrictRedis,
-)
+from redis.client import StrictRedis
 
 from sentry.quotas.redis import (
-    IS_RATE_LIMITED_SCRIPT,
+    is_rate_limited,
     RedisQuota,
 )
 from sentry.testutils import TestCase
@@ -22,19 +19,18 @@ def test_is_rate_limited_script():
     now = int(time.time())
 
     client = StrictRedis(db=9)
-    script = Script(client, IS_RATE_LIMITED_SCRIPT)
 
     # The item should not be rate limited by either key.
-    assert map(bool, script(('foo', 'bar'), (1, now + 60, 2, now + 120))) == [False, False]
+    assert map(bool, is_rate_limited(client, ('foo', 'bar'), (1, now + 60, 2, now + 120))) == [False, False]
 
     # The item should be rate limited by the first key (1).
-    assert map(bool, script(('foo', 'bar'), (1, now + 60, 2, now + 120))) == [True, False]
+    assert map(bool, is_rate_limited(client, ('foo', 'bar'), (1, now + 60, 2, now + 120))) == [True, False]
 
     # The item should still be rate limited by the first key (1), but *not*
     # rate limited by the second key (2) even though this is the third time
     # we've checked the quotas. This ensures items that are rejected by a lower
     # quota don't affect unrelated items that share a parent quota.
-    assert map(bool, script(('foo', 'bar'), (1, now + 60, 2, now + 120))) == [True, False]
+    assert map(bool, is_rate_limited(client, ('foo', 'bar'), (1, now + 60, 2, now + 120))) == [True, False]
 
     assert client.get('foo') == '1'
     assert 59 <= client.ttl('foo') <= 60
