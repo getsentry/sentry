@@ -22,7 +22,7 @@ env:
     - TEST_SUITE=cli
   global:
     - SENTRY_LIGHT_BUILD=1
-    - SKIP_BACKEND_VALIDATION=1
+    - SENTRY_SKIP_BACKEND_VALIDATION=1
 install:
   - make travis-install-$TEST_SUITE
 script:

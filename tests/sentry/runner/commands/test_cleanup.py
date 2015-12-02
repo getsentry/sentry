@@ -2,19 +2,20 @@
 
 from __future__ import absolute_import
 
-from django.core.management import call_command
-
 from sentry.models import Event, Group, GroupTagValue, TagValue, TagKey
-from sentry.testutils import TestCase
+from sentry.runner.commands.cleanup import cleanup
+from sentry.testutils import CliTestCase
 
 ALL_MODELS = (Event, Group, GroupTagValue, TagValue, TagKey)
 
 
-class SentryCleanupTest(TestCase):
+class SentryCleanupTest(CliTestCase):
     fixtures = ['tests/fixtures/cleanup.json']
+    command = cleanup
 
     def test_simple(self):
-        call_command('cleanup', days=1)
+        rv = self.invoke('--days=1')
+        assert rv.exit_code == 0, rv.output
 
         for model in ALL_MODELS:
             assert model.objects.count() == 0
@@ -24,12 +25,14 @@ class SentryCleanupTest(TestCase):
         for model in ALL_MODELS:
             orig_counts[model] = model.objects.count()
 
-        call_command('cleanup', days=1, project=2)
+        rv = self.invoke('--days=1', '--project=2')
+        assert rv.exit_code == 0, rv.output
 
         for model in ALL_MODELS:
             assert model.objects.count() == orig_counts[model]
 
-        call_command('cleanup', days=1, project=1)
+        rv = self.invoke('--days=1', '--project=1')
+        assert rv.exit_code == 0, rv.output
 
         for model in ALL_MODELS:
             assert model.objects.count() == 0

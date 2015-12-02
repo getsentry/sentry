@@ -24,8 +24,8 @@ class SendBeaconTest(TestCase):
             'version': {'stable': '1.0.0'},
         })
 
-        with self.settings(SENTRY_ADMIN_EMAIL='foo@example.com'):
-            send_beacon()
+        assert options.set('system.admin-email', 'foo@example.com')
+        send_beacon()
 
         install_id = options.get('sentry:install-id')
         assert install_id and len(install_id) == 40
