@@ -106,5 +106,23 @@ def get_prog():
     return 'sentry'
 
 
+class UnknownCommand(ImportError):
+    pass
+
+
+def call_command(name, obj=None, **kwargs):
+    try:
+        command = import_string(name)
+    except (ImportError, AttributeError):
+        raise UnknownCommand(name)
+
+    with command.make_context('sentry', [], obj=obj or {}) as ctx:
+        ctx.params.update(kwargs)
+        try:
+            command.invoke(ctx)
+        except click.Abort:
+            click.echo('Aborted!', err=True)
+
+
 def main():
     cli(prog_name=get_prog(), obj={}, max_content_width=100)

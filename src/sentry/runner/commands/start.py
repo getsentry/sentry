@@ -39,8 +39,11 @@ def start(ctx, service, bind, workers, debug, upgrade, noinput):
 
     if upgrade:
         click.echo('Performing upgrade before service startup...')
-        from sentry.runner.commands.upgrade import upgrade
-        ctx.invoke(upgrade, verbosity=0, noinput=noinput)
+        from sentry.runner import call_command
+        call_command(
+            'sentry.runner.commands.upgrade.upgrade',
+            verbosity=0, noinput=noinput,
+        )
 
     click.echo('Running service: %r' % service)
 

@@ -7,5 +7,8 @@ class Command(Command):
     help = 'Performs any pending database migrations and upgrades'
 
     def handle(self, **options):
-        from sentry.runner.commands.createuser import createuser
-        createuser.main(args=['--interactive'], obj={})
+        from sentry.runner import call_command
+        call_command(
+            'sentry.runner.commands.createuser.createuser',
+            superuser=True,
+        )
