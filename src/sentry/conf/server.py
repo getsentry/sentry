@@ -616,9 +616,6 @@ SENTRY_URL_PREFIX = ''
 # Should we send the beacon to the upstream server?
 SENTRY_BEACON = True
 
-# The administrative contact for this installation
-SENTRY_ADMIN_EMAIL = ''
-
 # Allow access to Sentry without authentication.
 SENTRY_PUBLIC = False
 

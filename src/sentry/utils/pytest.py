@@ -8,6 +8,9 @@ from redis import StrictRedis
 
 
 def pytest_configure(config):
+    # HACK: Only needed for testing!
+    os.environ.setdefault('_SENTRY_SKIP_CONFIGURATION', '1')
+
     os.environ.setdefault('RECAPTCHA_TESTING', 'True')
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sentry.conf.server')
 
@@ -100,7 +103,7 @@ def pytest_configure(config):
     client = StrictRedis(db=9)
     client.flushdb()
 
-    from sentry.utils.runner import initialize_receivers, fix_south
+    from sentry.runner.initializer import initialize_receivers, fix_south
     initialize_receivers()
 
     fix_south(settings)
