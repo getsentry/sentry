@@ -27,14 +27,14 @@ const KeyValueList = React.createClass({
         {data.map(([key, value]) => {
           if (this.props.isContextData) {
             return [
-              <tr>
+              <tr key={key}>
                 <td className="key">{key}</td>
                 <td className="value"><ContextData data={value}/></td>
               </tr>
             ];
           } else {
             return [
-              <tr>
+              <tr key={key}>
                 <td className="key">{key}</td>
                 <td className="value"><pre>{'' + value || ' '}</pre></td>
               </tr>
