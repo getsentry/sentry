@@ -118,7 +118,7 @@ const GroupActivity = React.createClass({
             <div className="activity-item-content">
               {this.formatActivity(
                 <span>
-                  {author.avatar},
+                  {author.avatar}
                   <span className="activity-author">{author.name}</span>
                 </span>,
                 item,
