@@ -116,7 +116,7 @@ class RedisScriptTestCase(BaseRedisBackendTestCase):
             client.set(make_record_key(timeline, record.key), 'data')
 
         with self.assertChanges(lambda: client.zcard(timeline), before=10, after=5):
-            truncate_timeline((timeline,), (5,), client)
+            truncate_timeline((timeline,), (5, timeline), client)
 
             # Ensure the early records don't exist.
             for record in records[:5]:
