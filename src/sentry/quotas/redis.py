@@ -69,7 +69,7 @@ class RedisQuota(Quota):
         keys = []
         args = []
         for key, limit, interval in quotas:
-            keys.append('{}:{}:{}'.format(self.namespace, key, timestamp // interval))
+            keys.append('{}:{}:{}'.format(self.namespace, key, int(timestamp // interval)))
             expiry = get_next_period_start(interval) + self.grace
             args.extend((limit, expiry))
 
