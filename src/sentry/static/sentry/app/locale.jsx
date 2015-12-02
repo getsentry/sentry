@@ -138,12 +138,13 @@ export function parseComponentTemplate(string) {
 }
 
 export function renderComponentTemplate(template, components) {
+  let idx = 0;
   function renderGroup(group) {
     let children = [];
 
     (template[group] || []).forEach((item) => {
       if (typeof item === 'string') {
-        children.push(item);
+        children.push(<span key={idx++}>item</span>);
       } else {
         children.push(renderGroup(item.group));
       }
@@ -151,13 +152,13 @@ export function renderComponentTemplate(template, components) {
 
     // in case we cannot find our component, we call back to an empty
     // span so that stuff shows up at least.
-    let reference = components[group] || <span />;
+    let reference = components[group] || <span key={idx++} />;
     if (!React.isValidElement(reference)) {
-      reference = <span>{reference}</span>;
+      reference = <span key={idx++}>{reference}</span>;
     }
 
     if (children.length > 0) {
-      return React.cloneElement(reference, {}, children);
+      return React.cloneElement(reference, {key: idx++}, children);
     } else {
       return reference;
     }
