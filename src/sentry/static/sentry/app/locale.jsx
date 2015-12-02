@@ -57,7 +57,7 @@ function formatForReact(formatString, args) {
 
       // this points to a react element!
       if (React.isValidElement(arg)) {
-        rv.push(arg);
+        rv.push(React.cloneElement(arg, {key: idx}));
       // not a react element, fuck around with it so that sprintf.format
       // can format it for us.  We make sure match[2] is null so that we
       // do not go down the object path, and we set match[1] to the first
@@ -65,7 +65,9 @@ function formatForReact(formatString, args) {
       } else {
         match[2] = null;
         match[1] = 1;
-        rv.push(sprintf.format([match], [null, arg]));
+        rv.push(<span key={idx++}>
+          {sprintf.format([match], [null, arg])}
+        </span>);
       }
     }
   });
@@ -160,7 +162,7 @@ export function renderComponentTemplate(template, components) {
     if (children.length > 0) {
       return React.cloneElement(reference, {key: idx++}, children);
     } else {
-      return reference;
+      return React.cloneElement(reference, {key: idx++});
     }
   }
 
