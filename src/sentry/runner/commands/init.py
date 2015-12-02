@@ -31,11 +31,19 @@ def init(ctx, directory):
     if yaml is None:
         raise click.ClickException("DIRECTORY must not be a file.")
 
-    if os.path.isfile(yaml):
-        click.confirm("File already exists at '%s', overwrite?" % click.format_filename(yaml), abort=True)
-
     if directory and not os.path.exists(directory):
         os.makedirs(directory)
 
+    py_contents, yaml_contents = generate_settings()
+
+    if os.path.isfile(yaml):
+        click.confirm("File already exists at '%s', overwrite?" % click.format_filename(yaml), abort=True)
+
     with click.open_file(yaml, 'wb') as fp:
-        fp.write(generate_settings())
+        fp.write(yaml_contents)
+
+    if os.path.isfile(py):
+        click.confirm("File already exists at '%s', overwrite?" % click.format_filename(py), abort=True)
+
+    with click.open_file(py, 'wb') as fp:
+        fp.write(py_contents)
