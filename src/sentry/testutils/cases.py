@@ -397,3 +397,9 @@ class PluginTestCase(TestCase):
 
 class CliTestCase(TestCase):
     runner = fixture(CliRunner)
+    command = None
+    default_args = []
+
+    def invoke(self, *args):
+        args += tuple(self.default_args)
+        return self.runner.invoke(self.command, args, obj={})
