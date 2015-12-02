@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from exam import fixture, around
 from mock import patch
 
-from sentry.models import Option
+from sentry.options.store import OptionsStore
 from sentry.options.manager import (
     OptionsManager, UnknownOption,
     FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY)
@@ -13,9 +13,11 @@ from sentry.testutils import TestCase
 
 
 class OptionsManagerTest(TestCase):
+    store = fixture(OptionsStore)
+
     @fixture
     def manager(self):
-        return OptionsManager()
+        return OptionsManager(store=self.store)
 
     @around
     def register(self):
@@ -100,8 +102,8 @@ class OptionsManagerTest(TestCase):
             self.manager.set('nostore', 'thing')
 
         # Make sure that we don't touch either of the stores
-        with patch.object(self.manager.cache, 'get', side_effect=Exception()):
-            with patch.object(Option.objects, 'get_queryset', side_effect=Exception()):
+        with patch.object(self.store, 'get_cache', side_effect=Exception()):
+            with patch.object(self.store, 'get_store', side_effect=Exception()):
                 assert self.manager.get('nostore') == ''
 
                 with self.settings(SENTRY_OPTIONS={'nostore': 'foo'}):
@@ -132,40 +134,40 @@ class OptionsManagerTest(TestCase):
             assert self.manager.get('storeonly') == ''
 
     def test_db_unavailable(self):
-        with patch.object(Option.objects, 'get_queryset', side_effect=Exception()):
+        with patch.object(self.store, 'set_store', side_effect=Exception()):
             # we can't update options if the db is unavailable
             with self.assertRaises(Exception):
                 self.manager.set('foo', 'bar')
 
         self.manager.set('foo', 'bar')
 
-        with patch.object(Option.objects, 'get_queryset', side_effect=Exception()):
+        with patch.object(self.store, 'get_store', side_effect=Exception()):
             assert self.manager.get('foo') == 'bar'
 
-            with patch.object(self.manager.cache, 'get', side_effect=Exception()):
+            with patch.object(self.store, 'get_cache', side_effect=Exception()):
                 assert self.manager.get('foo') == ''
 
-                with patch.object(self.manager.cache, 'set', side_effect=Exception()):
+                with patch.object(self.store, 'set_cache', side_effect=Exception()):
                     assert self.manager.get('foo') == ''
 
     def test_db_and_cache_unavailable(self):
         self.manager.set('foo', 'bar')
 
         with self.settings(SENTRY_OPTIONS={'foo': 'baz'}):
-            with patch.object(Option.objects, 'get_queryset', side_effect=Exception()):
-                with patch.object(self.manager.cache, 'get', side_effect=Exception()):
+            with patch.object(self.store, 'get_store', side_effect=Exception()):
+                with patch.object(self.store, 'get_cache', side_effect=Exception()):
                     assert self.manager.get('foo') == 'baz'
 
-                    with patch.object(self.manager.cache, 'set', side_effect=Exception()):
+                    with patch.object(self.store, 'set_cache', side_effect=Exception()):
                         assert self.manager.get('foo') == 'baz'
 
     def test_cache_unavailable(self):
         self.manager.set('foo', 'bar')
 
-        with patch.object(self.manager.cache, 'get', side_effect=Exception()):
+        with patch.object(self.store, 'get_cache', side_effect=Exception()):
             assert self.manager.get('foo') == 'bar'
 
-            with patch.object(self.manager.cache, 'set', side_effect=Exception()):
+            with patch.object(self.store, 'set_cache', side_effect=Exception()):
                 assert self.manager.get('foo') == 'bar'
 
                 # we should still be able to write a new value
@@ -176,10 +178,10 @@ class OptionsManagerTest(TestCase):
         assert self.manager.get('foo') == 'bar'
 
         # when the cache poofs, the db will be return the most-true answer
-        with patch.object(self.manager.cache, 'get', side_effect=Exception()):
+        with patch.object(self.store, 'get_cache', side_effect=Exception()):
             assert self.manager.get('foo') == 'baz'
 
-            with patch.object(self.manager.cache, 'set', side_effect=Exception()):
+            with patch.object(self.store, 'set_cache', side_effect=Exception()):
                 assert self.manager.get('foo') == 'baz'
 
     def test_unregister(self):

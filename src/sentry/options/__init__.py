@@ -7,6 +7,7 @@ sentry.options
 """
 from __future__ import absolute_import, print_function
 
+from .store import OptionsStore
 from .manager import OptionsManager
 from .manager import DEFAULT_FLAGS, FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY  # NOQA
 
@@ -14,7 +15,8 @@ __all__ = (
     'get', 'set', 'delete', 'register',
 )
 
-default_manager = OptionsManager()
+default_store = OptionsStore()
+default_manager = OptionsManager(store=default_store)
 
 # expose public API
 get = default_manager.get

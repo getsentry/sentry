@@ -7,23 +7,13 @@ sentry.options.manager
 """
 from __future__ import absolute_import, print_function
 
-from collections import namedtuple
+import logging
 from types import NoneType
-
 from django.conf import settings
-from django.utils import timezone
 
-from sentry.db.models.query import create_or_update
-from sentry.models import Option
-from sentry.utils.hashlib import md5
-
-
-CACHE_FETCH_ERR = 'Unable to fetch option cache for %s'
-CACHE_UPDATE_ERR = 'Unable to update option cache for %s'
-
-Key = namedtuple('Key', ('name', 'default', 'type', 'flags', 'cache_key'))
 # Prevent outselves from clobbering the builtin
 _type = type
+logger = logging.getLogger('sentry')
 
 
 class UnknownOption(KeyError):
@@ -58,20 +48,9 @@ class OptionsManager(object):
     constants in the global configuration.
     """
 
-    def __init__(self, cache=None, ttl=None, logger=None):
-        if cache is None:
-            from sentry.cache import default_cache
-            cache = default_cache
-        if logger is None:
-            import logging
-            logger = logging.getLogger('sentry')
-        self.cache = cache
-        self.logger = logger
-        self.ttl = ttl
+    def __init__(self, store):
+        self.store = store
         self.registry = {}
-
-    def _make_cache_key(self, key):
-        return 'o:{0}'.format(md5(key).hexdigest())
 
     def set(self, key, value):
         """
@@ -91,21 +70,7 @@ class OptionsManager(object):
         if not isinstance(value, opt.type):
             raise TypeError('got %r, expected %r' % (_type(value), opt.type))
 
-        create_or_update(
-            model=Option,
-            key=key,
-            values={
-                'value': value,
-                'last_updated': timezone.now(),
-            }
-        )
-
-        try:
-            self.update_cached_value(opt.cache_key, value)
-            return True
-        except Exception:
-            self.logger.warn(CACHE_UPDATE_ERR, key, exc_info=True)
-            return False
+        return self.store.set(opt, value)
 
     def lookup_key(self, key):
         try:
@@ -115,10 +80,10 @@ class OptionsManager(object):
             # Fortunately, they all share the same prefix, 'sentry:', so
             # we special case them here and construct a faux key until we migrate.
             if key.startswith(('sentry:', 'getsentry:')):
-                self.logger.debug('Using legacy key: %s', key, exc_info=True)
+                logger.debug('Using legacy key: %s', key, exc_info=True)
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
-                return Key(key, '', object, DEFAULT_FLAGS, self._make_cache_key(key))
+                return self.store.make_key(key, '', object, DEFAULT_FLAGS)
             raise UnknownOption(key)
 
     def get(self, key):
@@ -136,7 +101,7 @@ class OptionsManager(object):
         opt = self.lookup_key(key)
 
         if not (opt.flags & FLAG_NOSTORE):
-            result = self.fetch_from_store(opt)
+            result = self.store.get(opt)
             if result is not None:
                 return result
 
@@ -150,31 +115,6 @@ class OptionsManager(object):
             return settings.SENTRY_OPTIONS[key]
         except KeyError:
             return opt.default
-
-    def fetch_from_store(self, opt):
-        try:
-            result = self.cache.get(opt.cache_key)
-        except Exception:
-            self.logger.warn(CACHE_FETCH_ERR, opt.name, exc_info=True)
-            result = None
-
-        if result is None:
-            try:
-                result = Option.objects.get(key=opt.name).value
-            except Option.DoesNotExist:
-                result = None
-            except Exception as e:
-                self.logger.exception(unicode(e))
-                result = None
-            else:
-                # we only attempt to populate the cache if we were previously
-                # able to successfully talk to the backend
-                try:
-                    self.update_cached_value(opt.cache_key, result)
-                except Exception:
-                    self.logger.warn(CACHE_UPDATE_ERR, opt.name, exc_info=True)
-
-        return result
 
     def delete(self, key):
         """
@@ -193,17 +133,7 @@ class OptionsManager(object):
         # Enforce immutability on key
         assert not (opt.flags & FLAG_IMMUTABLE), '%r cannot be changed at runtime' % key
 
-        Option.objects.filter(key=key).delete()
-
-        try:
-            self.cache.delete(opt.cache_key)
-            return True
-        except Exception:
-            self.logger.warn(CACHE_UPDATE_ERR, key, exc_info=True)
-            return False
-
-    def update_cached_value(self, cache_key, value):
-        self.cache.set(cache_key, value, self.ttl)
+        return self.store.delete(opt)
 
     def register(self, key, default='', type=None, flags=DEFAULT_FLAGS):
         assert key not in self.registry, 'Option already registered: %r' % key
@@ -220,7 +150,7 @@ class OptionsManager(object):
             raise TypeError('Options must not be NoneType')
         if not isinstance(default, type):
             raise TypeError('got %r, expected %r' % (_type(default), type))
-        self.registry[key] = Key(key, default, type, flags, self._make_cache_key(key))
+        self.registry[key] = self.store.make_key(key, default, type, flags)
 
     def unregister(self, key):
         try:
