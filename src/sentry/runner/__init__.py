@@ -66,7 +66,7 @@ def make_django_command(name, django_command=None, help=None):
 map(cli.add_command, (
     make_django_command('devserver', 'runserver', help='Start a light Web server for development.'),
     make_django_command('shell', help='Run a Python interactive interpreter.'),
-    make_django_command('celery'),
+    make_django_command('celery', help='Start background workers.'),
 ))
 
 
