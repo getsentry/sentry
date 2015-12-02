@@ -69,13 +69,13 @@ class RedisScriptTestCase(BaseRedisBackendTestCase):
         # The first addition should cause the timeline to be added to the ready set.
         with self.assertChanges(ready_set_size, before=0, after=1), \
                 self.assertChanges(timeline_score_in_ready_set, before=None, after=timestamp):
-            assert ensure_timeline_scheduled(keys, (timeline, timestamp, 1, 10), client) == 1
+            assert ensure_timeline_scheduled(client, keys, (timeline, timestamp, 1, 10)) == 1
 
         # Adding it again with a timestamp in the future should not change the schedule time.
         with self.assertDoesNotChange(waiting_set_size), \
                 self.assertDoesNotChange(ready_set_size), \
                 self.assertDoesNotChange(timeline_score_in_ready_set):
-            assert ensure_timeline_scheduled(keys, (timeline, timestamp + 50, 1, 10), client) is None
+            assert ensure_timeline_scheduled(client, keys, (timeline, timestamp + 50, 1, 10)) is None
 
         # Move the timeline from the ready set to the waiting set.
         client.zrem('ready', timeline)
@@ -85,12 +85,12 @@ class RedisScriptTestCase(BaseRedisBackendTestCase):
         increment = 1
         with self.assertDoesNotChange(waiting_set_size), \
                 self.assertChanges(timeline_score_in_waiting_set, before=timestamp, after=timestamp + increment):
-            assert ensure_timeline_scheduled(keys, (timeline, timestamp, increment, 10), client) is None
+            assert ensure_timeline_scheduled(client, keys, (timeline, timestamp, increment, 10)) is None
 
         # Make sure the schedule respects the maximum value.
         with self.assertDoesNotChange(waiting_set_size), \
                 self.assertChanges(timeline_score_in_waiting_set, before=timestamp + 1, after=timestamp):
-            assert ensure_timeline_scheduled(keys, (timeline, timestamp, increment, 0), client) is None
+            assert ensure_timeline_scheduled(client, keys, (timeline, timestamp, increment, 0)) is None
 
         # Test to ensure a missing last processed timestamp can be handled
         # correctly (chooses minimum of schedule value and record timestamp.)
@@ -98,11 +98,11 @@ class RedisScriptTestCase(BaseRedisBackendTestCase):
         client.delete('last-processed')
         with self.assertDoesNotChange(waiting_set_size), \
                 self.assertDoesNotChange(timeline_score_in_waiting_set):
-            assert ensure_timeline_scheduled(keys, (timeline, timestamp + 100, increment, 10), client) is None
+            assert ensure_timeline_scheduled(client, keys, (timeline, timestamp + 100, increment, 10)) is None
 
         with self.assertDoesNotChange(waiting_set_size), \
                 self.assertChanges(timeline_score_in_waiting_set, before=timestamp, after=timestamp - 100):
-            assert ensure_timeline_scheduled(keys, (timeline, timestamp - 100, increment, 10), client) is None
+            assert ensure_timeline_scheduled(client, keys, (timeline, timestamp - 100, increment, 10)) is None
 
     def test_truncate_timeline_script(self):
         client = StrictRedis(db=9)
@@ -116,7 +116,7 @@ class RedisScriptTestCase(BaseRedisBackendTestCase):
             client.set(make_record_key(timeline, record.key), 'data')
 
         with self.assertChanges(lambda: client.zcard(timeline), before=10, after=5):
-            truncate_timeline((timeline,), (5,), client)
+            truncate_timeline(client, (timeline,), (5, timeline))
 
             # Ensure the early records don't exist.
             for record in records[:5]:
