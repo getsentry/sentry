@@ -68,22 +68,17 @@ class RedisQuotaTest(TestCase):
         self.assertEquals(len(quota.cluster.hosts), 1)
         self.assertEquals(quota.cluster.hosts[0].host, 'localhost')
 
-    def test_skips_unset_quotas(self):
-        # This assumes ``get_*_quota`` methods are mocked.
-        assert set(self.quota._get_quotas(self.project, time.time())) == set()
-
     def test_uses_defined_quotas(self):
-        timestamp = time.time()
         self.get_project_quota.return_value = 200
         self.get_organization_quota.return_value = 300
-        assert set(self.quota._get_quotas(self.project, timestamp)) == set((
-            (self.quota._get_project_key(self.project, timestamp), 200),
-            (self.quota._get_organization_key(self.project.organization, timestamp), 300),
+        assert set(self.quota.get_quotas(self.project)) == set((
+            ('p:{}'.format(self.project.id), 200, 60),
+            ('o:{}'.format(self.project.organization.id), 300, 60),
         ))
 
     @mock.patch('sentry.quotas.redis.is_rate_limited')
-    def test_bails_immediately_without_any_quota(self, is_rate_limited):
-        # This assumes ``get_*_quota`` methods are mocked.
+    @mock.patch.object(RedisQuota, 'get_quotas', return_value=[])
+    def test_bails_immediately_without_any_quota(self, get_quotas, is_rate_limited):
         result = self.quota.is_rate_limited(self.project)
         assert not is_rate_limited.called
         assert not result.is_limited
