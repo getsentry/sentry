@@ -3,6 +3,7 @@ import Reflux from 'reflux';
 import {Link} from 'react-router';
 
 import TimeSince from './timeSince';
+import DropdownLink from './dropdownLink';
 
 import GroupStore from '../stores/groupStore';
 
@@ -62,6 +63,8 @@ const CompactIssue = React.createClass({
     let {id, orgId} = this.props;
     let projectId = data.project.slug;
 
+    let title = <span className="icon-more"></span>;
+
     return (
       <li className={className} onClick={this.toggleSelect}>
         <div className="col-md-10">
@@ -94,8 +97,19 @@ const CompactIssue = React.createClass({
             </ul>
           </div>
         </div>
-        <div className="col-md-2">
-          <div className="icon-more"></div>
+        <div className="col-md-2 align-right">
+          <DropdownLink
+            topLevelClasses="more-menu"
+            className="more-menu-toggle"
+            caret={false}
+            onOpen={this.onDropdownOpen}
+            onClose={this.onDropdownClose}
+            title={title}>
+            <li><a href="#"><span className="icon-checkmark"></span></a></li>
+            <li><a href="#"><span className="icon-bookmark"></span></a></li>
+            <li><a href="#">zZz</a></li>
+            <li><a href="#">Hi</a></li>
+          </DropdownLink>
         </div>
       </li>
     );
