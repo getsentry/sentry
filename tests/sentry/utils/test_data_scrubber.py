@@ -59,7 +59,7 @@ class SensitiveDataFilterTest(TestCase):
             'sentry.interfaces.Http': {
                 'data': VARS,
                 'env': VARS,
-                'headers': VARS,
+                'headers': VARS.items(),
                 'cookies': VARS,
             }
         }
@@ -69,9 +69,12 @@ class SensitiveDataFilterTest(TestCase):
 
         self.assertTrue('sentry.interfaces.Http' in data)
         http = data['sentry.interfaces.Http']
-        for n in ('data', 'env', 'headers', 'cookies'):
-            self.assertTrue(n in http)
+        for n in ('data', 'env', 'cookies'):
+            assert n in http
             self._check_vars_sanitized(http[n], proc)
+
+        assert 'headers' in http
+        self._check_vars_sanitized(dict(http['headers']), proc)
 
     def test_extra(self):
         data = {
