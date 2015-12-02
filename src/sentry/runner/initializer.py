@@ -80,8 +80,12 @@ def bootstrap_options(settings, config):
     if config is None:
         return
     from sentry.utils.yaml import safe_load
-    with open(config, 'rb') as fp:
-        options = safe_load(fp)
+    try:
+        with open(config, 'rb') as fp:
+            options = safe_load(fp)
+    except IOError:
+        # Gracefully fail if yaml file doesn't exist
+        return
     for k, v in options.iteritems():
         # Stuff everything else into SENTRY_OPTIONS
         # these will be validated later after bootstrapping
