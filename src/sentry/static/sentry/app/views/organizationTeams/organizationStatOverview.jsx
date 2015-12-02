@@ -2,7 +2,7 @@ import React from 'react';
 import {Link} from 'react-router';
 import classNames from 'classnames';
 
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import OrganizationState from '../../mixins/organizationState';
 
 import {defined} from '../../utils';
@@ -18,6 +18,7 @@ const OrganizationStatOverview = React.createClass({
   },
 
   mixins: [
+    ApiMixin,
     OrganizationState
   ],
 
@@ -38,7 +39,7 @@ const OrganizationStatOverview = React.createClass({
 
   fetchData() {
     let statsEndpoint = this.getOrganizationStatsEndpoint();
-    api.request(statsEndpoint, {
+    this.api.request(statsEndpoint, {
       query: {
         since: new Date().getTime() / 1000 - 3600 * 24,
         stat: 'rejected'
@@ -51,7 +52,7 @@ const OrganizationStatOverview = React.createClass({
         this.setState({totalRejected: totalRejected});
       }
     });
-    api.request(statsEndpoint, {
+    this.api.request(statsEndpoint, {
       query: {
         since: new Date().getTime() / 1000 - 3600 * 3,
         resolution: '1h',

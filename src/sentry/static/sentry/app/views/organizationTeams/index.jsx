@@ -2,7 +2,7 @@ import React from 'react';
 import Reflux from 'reflux';
 
 import {t} from '../../locale';
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import ConfigStore from '../../stores/configStore';
 import OrganizationHomeContainer from '../../components/organizations/homeContainer';
 import OrganizationState from '../../mixins/organizationState';
@@ -16,6 +16,7 @@ import OrganizationStatOverview from './organizationStatOverview';
 
 const OrganizationTeams = React.createClass({
   mixins: [
+    ApiMixin,
     OrganizationState,
     Reflux.listenTo(TeamStore, 'onTeamListChange'),
     TooltipMixin({
@@ -39,7 +40,7 @@ const OrganizationTeams = React.createClass({
 
   // TODO(dcramer): handle updating project stats when items change
   fetchStats() {
-    api.request(this.getOrganizationStatsEndpoint(), {
+    this.api.request(this.getOrganizationStatsEndpoint(), {
       query: {
         since: new Date().getTime() / 1000 - 3600 * 24,
         stat: 'received',

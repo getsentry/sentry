@@ -2,7 +2,7 @@ import React from 'react';
 import jQuery from 'jquery';
 import DocumentTitle from 'react-document-title';
 
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import EventEntries from '../../components/events/eventEntries';
 import Footer from '../../components/footer';
 import Header from '../../components/header';
@@ -17,6 +17,10 @@ const SharedGroupDetails = React.createClass({
   childContextTypes: {
     group: PropTypes.Group,
   },
+
+  mixins: [
+    ApiMixin
+  ],
 
   getInitialState() {
     return {
@@ -53,7 +57,7 @@ const SharedGroupDetails = React.createClass({
       error: false
     });
 
-    api.request(this.getGroupDetailsEndpoint(), {
+    this.api.request(this.getGroupDetailsEndpoint(), {
       success: (data) => {
         this.setState({
           loading: false,

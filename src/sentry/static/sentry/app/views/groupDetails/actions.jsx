@@ -1,6 +1,6 @@
 import React from 'react';
 import {History} from 'react-router';
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../../components/dropdownLink';
 import GroupState from '../../mixins/groupState';
 import IndicatorStore from '../../stores/indicatorStore';
@@ -18,6 +18,7 @@ const Snooze = {
 
 const GroupActions = React.createClass({
   mixins: [
+    ApiMixin,
     GroupState,
     History,
     TooltipMixin({
@@ -32,7 +33,7 @@ const GroupActions = React.createClass({
     let org = this.getOrganization();
     let loadingIndicator = IndicatorStore.add(t('Delete event..'));
 
-    api.bulkDelete({
+    this.api.bulkDelete({
       orgId: org.slug,
       projectId: project.slug,
       itemIds: [group.id]
@@ -51,7 +52,7 @@ const GroupActions = React.createClass({
     let org = this.getOrganization();
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    api.bulkUpdate({
+    this.api.bulkUpdate({
       orgId: org.slug,
       projectId: project.slug,
       itemIds: [group.id],

@@ -1,5 +1,5 @@
 import React from 'react';
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';
 import DocumentTitle from 'react-document-title';
 import ListLink from '../components/listLink';
@@ -24,6 +24,7 @@ const ReleaseDetails = React.createClass({
   },
 
   mixins: [
+    ApiMixin,
     ProjectState
   ],
 
@@ -59,7 +60,7 @@ const ReleaseDetails = React.createClass({
       error: false
     });
 
-    api.request(this.getReleaseDetailsEndpoint(), {
+    this.api.request(this.getReleaseDetailsEndpoint(), {
       success: (data) => {
         this.setState({
           loading: false,

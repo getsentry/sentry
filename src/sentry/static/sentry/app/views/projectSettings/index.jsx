@@ -1,6 +1,6 @@
 import React from 'react';
 
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import ConfigStore from '../../stores/configStore';
 import ListLink from '../../components/listLink';
 import LoadingError from '../../components/loadingError';
@@ -15,6 +15,10 @@ const ProjectSettings = React.createClass({
   contextTypes: {
     location: React.PropTypes.object
   },
+
+  mixins: [
+    ApiMixin
+  ],
 
   getInitialState() {
     return {
@@ -43,7 +47,7 @@ const ProjectSettings = React.createClass({
   fetchData() {
     let params = this.props.params;
 
-    api.request(`/projects/${params.orgId}/${params.projectId}/`, {
+    this.api.request(`/projects/${params.orgId}/${params.projectId}/`, {
       success: (data) => {
         this.setState({
           project: data,

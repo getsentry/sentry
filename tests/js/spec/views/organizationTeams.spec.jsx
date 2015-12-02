@@ -1,6 +1,6 @@
 import React from 'react';
 import TestUtils from 'react-addons-test-utils';
-import api from 'app/api';
+import {Client} from 'app/api';
 import OrganizationTeams from 'app/views/organizationTeams';
 import ExpandedTeamList from 'app/views/organizationTeams/expandedTeamList';
 import AllTeamsList from 'app/views/organizationTeams/allTeamsList';
@@ -14,7 +14,7 @@ describe('OrganizationTeams', function() {
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(api, 'request');
+    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
     stubReactComponent(this.sandbox, [ExpandedTeamList, AllTeamsList, OrganizationHomeContainer]);
 
     let ContextStubbedOrganizationTeams = stubContext(OrganizationTeams, {

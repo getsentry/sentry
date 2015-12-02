@@ -7,7 +7,7 @@ import classNames from 'classnames';
 import StreamTagStore from '../../stores/streamTagStore';
 import MemberListStore from '../../stores/memberListStore';
 
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import {t} from '../../locale';
 
 import PureRenderMixin from 'react-addons-pure-render-mixin';
@@ -21,8 +21,9 @@ const SearchBar = React.createClass({
   },
 
   mixins: [
+    ApiMixin,
     PureRenderMixin,
-    Reflux.listenTo(MemberListStore, 'onMemberListStoreChange')
+    Reflux.listenTo(MemberListStore, 'onMemberListStoreChange'),
   ],
 
   statics: {
@@ -185,7 +186,7 @@ const SearchBar = React.createClass({
     });
 
     let {orgId, projectId} = this.props;
-    api.request(`/projects/${orgId}/${projectId}/tags/${tag.key}/values/`, {
+    this.api.request(`/projects/${orgId}/${projectId}/tags/${tag.key}/values/`, {
       data: {
         query: query
       },
