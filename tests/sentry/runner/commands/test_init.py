@@ -8,9 +8,11 @@ from sentry.runner.commands.init import init
 
 
 class InitTest(CliTestCase):
+    command = init
+
     def test_simple(self):
         with self.runner.isolated_filesystem():
-            rv = self.runner.invoke(init, ['config'], obj={})
+            rv = self.invoke('config')
             assert rv.exit_code == 0, rv.output
             contents = os.listdir('config')
             assert set(contents) == {'sentry.conf.py', 'config.yml'}
@@ -25,3 +27,7 @@ class InitTest(CliTestCase):
             with open('config/config.yml', 'rb') as fp:
                 ctx = safe_load(fp)
             assert 'system.secret-key' in ctx
+
+    def test_no_directory(self):
+        rv = self.invoke('sentry.conf.py')
+        assert rv.exit_code != 0, rv.output
