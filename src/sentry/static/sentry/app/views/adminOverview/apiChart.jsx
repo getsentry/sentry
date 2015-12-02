@@ -1,11 +1,15 @@
 import React from 'react';
 
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import FlotChart from '../../components/flotChart';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 
 const ApiChart = React.createClass({
+  mixins: [
+    ApiMixin
+  ],
+
   getInitialState() {
     return {
       error: false,
@@ -30,7 +34,7 @@ const ApiChart = React.createClass({
     ];
 
     statNameList.forEach((statName) => {
-      api.request('/internal/stats/', {
+      this.api.request('/internal/stats/', {
         method: 'GET',
         data: {
           since: this.props.since,

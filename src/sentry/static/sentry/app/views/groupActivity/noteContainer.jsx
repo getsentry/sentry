@@ -1,5 +1,5 @@
 import React from 'react';
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import IndicatorStore from '../../stores/indicatorStore';
 import GroupStore from '../../stores/groupStore';
 
@@ -8,6 +8,10 @@ import NoteInput from './noteInput';
 import {t} from '../../locale';
 
 const NoteContainer = React.createClass({
+  mixins: [
+    ApiMixin
+  ],
+
   getInitialState() {
     return {
       editing: false
@@ -34,7 +38,7 @@ const NoteContainer = React.createClass({
         return;
     }
 
-    api.request('/issues/' + group.id + '/comments/' + item.id + '/' , {
+    this.api.request('/issues/' + group.id + '/comments/' + item.id + '/' , {
       method: 'DELETE',
       error: (error) => {
         // TODO(mattrobenolt): Show an actual error that this failed,

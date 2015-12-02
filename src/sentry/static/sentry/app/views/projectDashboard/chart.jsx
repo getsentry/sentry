@@ -1,6 +1,6 @@
 import React from 'react';
 import moment from 'moment';
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import BarChart from '../../components/barChart';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -8,7 +8,8 @@ import ProjectState from '../../mixins/projectState';
 
 const ProjectChart = React.createClass({
   mixins: [
-    ProjectState,
+    ApiMixin,
+    ProjectState
   ],
 
   getInitialState() {
@@ -44,7 +45,7 @@ const ProjectChart = React.createClass({
   },
 
   fetchData() {
-    api.request(this.getStatsEndpoint(), {
+    this.api.request(this.getStatsEndpoint(), {
       query: {
         since: this.props.dateSince
       },
@@ -63,7 +64,7 @@ const ProjectChart = React.createClass({
       }
     });
 
-    api.request(this.getProjectReleasesEndpoint(), {
+    this.api.request(this.getProjectReleasesEndpoint(), {
       success: (data, _, jqXHR) => {
         this.setState({
           releaseList: data,

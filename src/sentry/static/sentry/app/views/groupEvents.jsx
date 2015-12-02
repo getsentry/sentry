@@ -1,6 +1,6 @@
 import React from 'react';
 import {History, Link} from 'react-router';
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 
 import GroupState from '../mixins/groupState';
 
@@ -12,6 +12,7 @@ import Pagination from '../components/pagination';
 
 const GroupEvents = React.createClass({
   mixins: [
+    ApiMixin,
     GroupState,
     History
   ],
@@ -44,7 +45,7 @@ const GroupEvents = React.createClass({
       error: false
     });
 
-    api.request(`/issues/${this.getGroup().id}/events/`, {
+    this.api.request(`/issues/${this.getGroup().id}/events/`, {
       method: 'GET',
       data: queryParams,
       success: (data, _, jqXHR) => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import Reflux from 'reflux';
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import DocumentTitle from 'react-document-title';
 import MemberListStore from '../stores/memberListStore';
 import LoadingError from '../components/loadingError';
@@ -24,6 +24,7 @@ const ProjectDetails = React.createClass({
   },
 
   mixins: [
+    ApiMixin,
     Reflux.connect(MemberListStore, 'memberList'),
     Reflux.listenTo(TeamStore, 'onTeamChange'),
     OrganizationState
@@ -94,7 +95,7 @@ const ProjectDetails = React.createClass({
 
     if (activeProject && isMember) {
       // TODO(dcramer): move member list to organization level
-      api.request(this.getMemberListEndpoint(), {
+      this.api.request(this.getMemberListEndpoint(), {
         success: (data) => {
           MemberListStore.loadInitialData(data);
         }

@@ -1,12 +1,16 @@
 import React from 'react';
 
 import AlertActions from '../actions/alertActions';
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import {t} from '../locale';
 
 const ERR_JOIN = 'There was an error while trying to join the team.';
 
 const MissingProjectMembership = React.createClass({
+  mixins: [
+    ApiMixin
+  ],
+
   getInitialState() {
     return {
       loading: false,
@@ -19,7 +23,7 @@ const MissingProjectMembership = React.createClass({
       loading: true
     });
 
-    api.joinTeam({
+    this.api.joinTeam({
       orgId: this.props.organization.slug,
       teamId: this.props.team.slug
     }, {

@@ -1,7 +1,7 @@
 import React from 'react';
 import {History} from 'react-router';
 
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import FileSize from '../components/fileSize';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -13,7 +13,10 @@ const ReleaseArtifacts = React.createClass({
     release: React.PropTypes.object
   },
 
-  mixins: [History],
+  mixins: [
+    ApiMixin,
+    History
+  ],
 
   getInitialState() {
     return {
@@ -43,7 +46,7 @@ const ReleaseArtifacts = React.createClass({
       error: false
     });
 
-    api.request(endpoint, {
+    this.api.request(endpoint, {
       method: 'GET',
       data: this.props.location.query,
       success: (data, _, jqXHR) => {

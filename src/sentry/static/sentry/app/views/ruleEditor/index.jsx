@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import $ from 'jquery';
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import IndicatorStore from '../../stores/indicatorStore';
 import SelectInput from '../../components/selectInput';
 import {t} from '../../locale';
@@ -13,6 +13,10 @@ const RuleEditor = React.createClass({
     actions: React.PropTypes.instanceOf(Array).isRequired,
     conditions: React.PropTypes.instanceOf(Array).isRequired
   },
+
+  mixins: [
+    ApiMixin
+  ],
 
   getInitialState() {
     return {
@@ -65,7 +69,7 @@ const RuleEditor = React.createClass({
     }
 
     let loadingIndicator = IndicatorStore.add('Saving...');
-    api.request(endpoint, {
+    this.api.request(endpoint, {
       method: (rule.id ? 'PUT' : 'POST'),
       data: data,
       success: () => {
