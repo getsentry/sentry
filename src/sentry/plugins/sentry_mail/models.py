@@ -72,7 +72,9 @@ class MailPlugin(NotificationPlugin):
         return msg
 
     def _send_mail(self, *args, **kwargs):
-        return self._build_message(*args, **kwargs).send()
+        message = self._build_message(*args, **kwargs)
+        if message is not None:
+            return message.send()
 
     def send_test_mail(self, project=None):
         self._send_mail(
@@ -230,7 +232,7 @@ class MailPlugin(NotificationPlugin):
             context=context,
         )
 
-        if features.has('projects:digests:deliver', project):
+        if message is not None and features.has('projects:digests:deliver', project):
             message.send()
 
     def notify_about_activity(self, activity):
