@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from django.conf import settings
 from django.core.files.base import ContentFile
 
 from sentry.models import File, FileBlob
@@ -14,15 +13,12 @@ class FileBlobTest(TestCase):
         my_file1 = FileBlob.from_file(fileobj)
 
         assert my_file1.path
-        assert my_file1.storage == settings.SENTRY_FILESTORE
 
         my_file2 = FileBlob.from_file(fileobj)
         # deep check
         assert my_file1.id == my_file2.id
         assert my_file1.checksum == my_file2.checksum
         assert my_file1.path == my_file2.path
-        assert my_file1.storage == my_file2.storage
-        assert my_file1.storage_options == my_file2.storage_options
 
 
 class FileTest(TestCase):
@@ -33,7 +29,6 @@ class FileTest(TestCase):
             type='default',
             size=100,
             checksum='a' * 40,
-            storage=settings.SENTRY_FILESTORE,
         )
         file1.ensure_blob()
 
@@ -48,7 +43,6 @@ class FileTest(TestCase):
             type='default',
             size=100,
             checksum='a' * 40,
-            storage=settings.SENTRY_FILESTORE,
         )
         file2.ensure_blob()
 
