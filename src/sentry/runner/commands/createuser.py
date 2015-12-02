@@ -55,19 +55,22 @@ def createuser(email, password, superuser, no_password, no_input):
 
         if not (password or no_password):
             password = _get_password()
-            click.echo(password)
 
         if superuser is None:
             superuser = _get_superuser()
 
+    if superuser is None:
+        superuser = False
+
     if not email:
         raise click.ClickException('Invalid or missing email address.')
 
+    # TODO(mattrobenolt): Accept password over stdin?
     if not no_password and not password:
         raise click.ClickException('No password set and --no-password not passed.')
 
     from sentry import roles
-    from sentry.models import Organization, OrganizationMember, User
+    from sentry.models import User
     from django.conf import settings
 
     user = User(
@@ -87,6 +90,7 @@ def createuser(email, password, superuser, no_password, no_input):
 
     # TODO(dcramer): kill this when we improve flows
     if settings.SENTRY_SINGLE_ORGANIZATION:
+        from sentry.models import Organization, OrganizationMember
         org = Organization.get_default()
         OrganizationMember.objects.create(
             organization=org,
