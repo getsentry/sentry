@@ -52,7 +52,7 @@ and users?
         # Do something crazy
         from sentry.models import (
             Team, Project, ProjectKey, User, Organization, OrganizationMember,
-            OrganizationmemberType
+            OrganizationMemberTeam
         )
 
         organization = Organization()
