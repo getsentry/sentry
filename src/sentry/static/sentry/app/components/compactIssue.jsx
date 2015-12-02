@@ -95,7 +95,7 @@ const CompactIssue = React.createClass({
           </div>
         </div>
         <div className="col-md-2">
-
+          <div className="icon-more"></div>
         </div>
       </li>
     );
