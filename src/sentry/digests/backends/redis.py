@@ -5,10 +5,8 @@ import logging
 import random
 import time
 from contextlib import contextmanager
-from pkg_resources import resource_string
 
 from django.conf import settings
-from redis.client import Script
 from redis.exceptions import (
     ResponseError,
     WatchError,
@@ -22,6 +20,7 @@ from sentry.digests.backends.base import Backend
 from sentry.utils.cache import Lock
 from sentry.utils.redis import (
     check_cluster_versions,
+    load_script,
     make_rb_cluster as _make_rb_cluster,
 )
 from sentry.utils.versioning import Version
@@ -72,13 +71,8 @@ def make_record_key(timeline_key, record):
     return '{0}:{1}:{2}'.format(timeline_key, TIMELINE_RECORD_PATH_COMPONENT, record)
 
 
-def load_script(name):
-    path = '/'.join(__name__.split('.')[1:-1] + [name])
-    return Script(None, resource_string('sentry', path))
-
-
-ensure_timeline_scheduled = load_script('ensure_timeline_scheduled.lua')
-truncate_timeline = load_script('truncate_timeline.lua')
+ensure_timeline_scheduled = load_script('digests/ensure_timeline_scheduled.lua')
+truncate_timeline = load_script('digests/truncate_timeline.lua')
 
 
 class RedisBackend(Backend):
@@ -189,6 +183,7 @@ class RedisBackend(Backend):
             pipeline.expire(timeline_key, self.ttl)
 
             ensure_timeline_scheduled(
+                pipeline,
                 (
                     make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
                     make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
@@ -200,15 +195,14 @@ class RedisBackend(Backend):
                     increment_delay,
                     maximum_delay,
                 ),
-                pipeline,
             )
 
             should_truncate = random.random() < self.truncation_chance
             if should_truncate:
                 truncate_timeline(
+                    pipeline,
                     (timeline_key,),
                     (self.capacity, timeline_key),
-                    pipeline,
                 )
 
             results = pipeline.execute()
@@ -502,8 +496,8 @@ class RedisBackend(Backend):
         connection = self.cluster.get_local_client_for_key(timeline_key)
         with Lock(timeline_key, nowait=True, timeout=30), \
                 connection.pipeline() as pipeline:
-            truncate_timeline((timeline_key,), (0, timeline_key), pipeline)
-            truncate_timeline((make_digest_key(timeline_key),), (0, timeline_key), pipeline)
+            truncate_timeline(pipeline, (timeline_key,), (0, timeline_key))
+            truncate_timeline(pipeline, (make_digest_key(timeline_key),), (0, timeline_key))
             pipeline.delete(make_last_processed_timestamp_key(timeline_key))
             pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
             pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), key)
