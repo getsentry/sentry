@@ -12,23 +12,13 @@ def create_first_user(app, created_models, verbosity, db, **kwargs):
         return
 
     import click
-    import time
     if not click.confirm('\nWould you like to create a user account now?', default=True):
         # Not using `abort=1` because we don't want to exit out from further execution
         click.echo('\nRun `sentry createuser` to do this later.\n')
-        time.sleep(2)
         return
 
-    from sentry.runner.commands.createuser import createuser
-    try:
-        createuser.main(args=[], obj={})
-        click.echo()
-    except SystemExit as e:
-        # click normally wants to exit the process, but we want to just continue execution
-        if e.code == 0:
-            return
-        click.echo('\nRun `sentry createuser` to do this later.\n')
-        time.sleep(2)
+    from sentry.runner import call_command
+    call_command('sentry.runner.commands.createuser.createuser')
 
 
 post_syncdb.connect(

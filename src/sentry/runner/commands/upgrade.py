@@ -20,15 +20,15 @@ from sentry.runner.decorators import configuration
 def upgrade(ctx, verbosity, traceback, noinput):
     "Perform any pending database migrations and upgrades."
 
-    from django.core.management import call_command
-    call_command(
+    from django.core.management import call_command as dj_call_command
+    dj_call_command(
         'syncdb',
         interactive=not noinput,
         traceback=traceback,
         verbosity=verbosity,
     )
 
-    call_command(
+    dj_call_command(
         'migrate',
         merge=True,
         ignore_ghost_migrations=True,
@@ -37,5 +37,7 @@ def upgrade(ctx, verbosity, traceback, noinput):
         verbosity=verbosity,
     )
 
-    from sentry.runner.commands.repair import repair
-    ctx.invoke(repair)
+    from sentry.runner import call_command
+    call_command(
+        'sentry.runner.commands.repair.repair',
+    )
