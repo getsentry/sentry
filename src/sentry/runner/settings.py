@@ -294,7 +294,7 @@ def configure(ctx, py, yaml, skip_backend_validation=False):
             if ctx:
                 raise click.ClickException("Configuration file does not exist. Use '%s init' to initialize the file." % ctx.command_path)
             raise ValueError("Configuration file does not exist at '%s'" % click.format_filename(py))
-    elif not os.path.exists(yaml):
+    elif not os.path.exists(yaml) and not os.path.exists(py):
         if ctx:
             raise click.ClickException("Configuration file does not exist. Use '%s init' to initialize the file." % ctx.command_path)
         raise ValueError("Configuration file does not exist at '%s'" % click.format_filename(yaml))
