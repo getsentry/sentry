@@ -11,9 +11,10 @@ ALL_MODELS = (Event, Group, GroupTagValue, TagValue, TagKey)
 
 class SentryCleanupTest(CliTestCase):
     fixtures = ['tests/fixtures/cleanup.json']
+    command = cleanup
 
     def test_simple(self):
-        rv = self.runner.invoke(cleanup, ['--days=1'])
+        rv = self.invoke('--days=1')
         assert rv.exit_code == 0, rv.output
 
         for model in ALL_MODELS:
@@ -24,13 +25,13 @@ class SentryCleanupTest(CliTestCase):
         for model in ALL_MODELS:
             orig_counts[model] = model.objects.count()
 
-        rv = self.runner.invoke(cleanup, ['--days=1', '--project=2'])
+        rv = self.invoke('--days=1', '--project=2')
         assert rv.exit_code == 0, rv.output
 
         for model in ALL_MODELS:
             assert model.objects.count() == orig_counts[model]
 
-        rv = self.runner.invoke(cleanup, ['--days=1', '--project=1'])
+        rv = self.invoke('--days=1', '--project=1')
         assert rv.exit_code == 0, rv.output
 
         for model in ALL_MODELS:
