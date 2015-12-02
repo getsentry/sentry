@@ -34,6 +34,6 @@ def sync_options(cutoff=ONE_HOUR):
     for option in Option.objects.filter(last_updated__gte=cutoff_dt).iterator():
         try:
             opt = default_manager.lookup_key(option.key)
-            default_manager.update_cached_value(opt.cache_key, option.value)
+            default_manager.store.set_cache(opt, option.value)
         except UnknownOption as e:
             logger.exception(unicode(e))
