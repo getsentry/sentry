@@ -41,7 +41,7 @@ const EventErrors = React.createClass({
         <p>
           <a className="pull-right" onClick={this.toggle}>{isOpen ? t('Hide') : t('Show')}</a>
           {
-            tn('There was 1 error encountered while processing this event',
+            tn('There was %d error encountered while processing this event',
                'There were %d errors encountered while processing this event',
                numErrors)
           }
