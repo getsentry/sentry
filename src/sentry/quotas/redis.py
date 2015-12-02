@@ -24,7 +24,7 @@ from sentry.utils.redis import make_rb_cluster
 #
 # For example, to check a quota ``foo`` that has a limit of 10 items and
 # expires at the Unix timestamp ``100``, as well as a quota ``bar`` that has a
-# limit of 20 items and should expire at the Unix timestamp ``200``, the
+# limit of 20 items and should expire at the Unix timestamp ``100``, the
 # ``KEYS`` and ``ARGV`` values would be as follows:
 #
 #   KEYS = {"foo", "bar"}
