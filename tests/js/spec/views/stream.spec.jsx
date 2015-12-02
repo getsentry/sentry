@@ -2,7 +2,7 @@ import React from 'react';
 import TestUtils from 'react-addons-test-utils';
 import Cookies from 'js-cookie';
 import Sticky from 'react-sticky';
-import Api from 'app/api';
+import {Client} from 'app/api';
 import CursorPoller from 'app/utils/cursorPoller';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -25,7 +25,7 @@ describe('Stream', function() {
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(Api, 'request', (url, options) => {
+    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request', (url, options) => {
       options.complete && options.complete();
     });
 
@@ -87,7 +87,7 @@ describe('Stream', function() {
 
       let requestCancel = this.sandbox.stub();
       let requestOptions;
-      this.sandbox.stub(Api, 'request', function (url, options) {
+      this.sandbox.stub(Client.prototype, 'request', function (url, options) {
         requestOptions = options;
         return {
           cancel: requestCancel

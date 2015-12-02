@@ -52,4 +52,3 @@ describe('OrganizationTeams', function() {
     });
   });
 });
-

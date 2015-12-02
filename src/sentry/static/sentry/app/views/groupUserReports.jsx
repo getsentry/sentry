@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import React from 'react';
 import {History} from 'react-router';
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import Gravatar from '../components/gravatar';
 import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
@@ -12,6 +12,7 @@ import {t} from '../locale';
 
 const GroupUserReports = React.createClass({
   mixins: [
+    ApiMixin,
     GroupState,
     History
   ],
@@ -44,7 +45,7 @@ const GroupUserReports = React.createClass({
       error: false
     });
 
-    api.request('/issues/' + this.getGroup().id + '/user-reports/?' + querystring, {
+    this.api.request('/issues/' + this.getGroup().id + '/user-reports/?' + querystring, {
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,

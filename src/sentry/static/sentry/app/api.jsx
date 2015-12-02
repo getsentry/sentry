@@ -2,7 +2,7 @@ import $ from 'jquery';
 import GroupActions from './actions/groupActions';
 import TeamActions from './actions/teamActions';
 
-class Request {
+export class Request {
   constructor(xhr) {
     this.xhr = xhr;
     this.alive = true;
@@ -14,7 +14,7 @@ class Request {
   }
 }
 
-class Client {
+export class Client {
   constructor(options) {
     if (typeof options === 'undefined') {
       options = {};
@@ -48,6 +48,12 @@ class Client {
         return func.apply(req, args);
       }
     };
+  }
+
+  clear() {
+    for (let id in this.activeRequests) {
+      this.activeRequests[id].cancel();
+    }
   }
 
   request(path, options = {}) {
@@ -223,4 +229,3 @@ class Client {
   }
 }
 
-export default new Client();

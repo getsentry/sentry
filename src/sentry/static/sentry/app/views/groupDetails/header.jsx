@@ -1,7 +1,7 @@
 import React from 'react';
 // import Router from "react-router";
 import {Link, History} from 'react-router';
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import AssigneeSelector from '../../components/assigneeSelector';
 import Count from '../../components/count';
 import GroupActions from './actions';
@@ -21,6 +21,7 @@ const GroupHeader = React.createClass({
   },
 
   mixins: [
+    ApiMixin,
     ProjectState,
     History
   ],
@@ -31,7 +32,7 @@ const GroupHeader = React.createClass({
     let org = this.getOrganization();
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    api.bulkUpdate({
+    this.api.bulkUpdate({
       orgId: org.slug,
       projectId: project.slug,
       itemIds: [group.id],
@@ -56,7 +57,7 @@ const GroupHeader = React.createClass({
     let org = this.getOrganization();
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    api.bulkUpdate({
+    this.api.bulkUpdate({
       orgId: org.slug,
       projectId: project.slug,
       itemIds: [group.id],

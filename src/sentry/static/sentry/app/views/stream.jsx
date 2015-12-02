@@ -6,7 +6,7 @@ import Sticky from 'react-sticky';
 import classNames from 'classnames';
 import _ from 'underscore';
 
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
@@ -30,7 +30,8 @@ const Stream = React.createClass({
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.listenTo(StreamTagStore, 'onStreamTagChange'),
-    History
+    History,
+    ApiMixin
   ],
 
   getDefaultProps() {
@@ -121,7 +122,7 @@ const Stream = React.createClass({
     });
 
     let params = this.props.params;
-    api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
+    this.api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
       success: (tags) => {
         this.setState({tagsLoading: false});
         StreamTagActions.loadTagsSuccess(tags);
@@ -197,7 +198,7 @@ const Stream = React.createClass({
 
     this._poller.disable();
 
-    this.lastRequest = api.request(url, {
+    this.lastRequest = this.api.request(url, {
       method: 'GET',
       data: requestParams,
       success: (data, ignore, jqXHR) => {

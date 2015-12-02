@@ -1,5 +1,5 @@
 import React from 'react';
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import Alerts from '../components/alerts';
 import AlertActions from '../actions/alertActions.jsx';
 import Indicators from '../components/indicators';
@@ -8,6 +8,10 @@ import OrganizationStore from '../stores/organizationStore';
 import ConfigStore from '../stores/configStore';
 
 const App = React.createClass({
+  mixins: [
+    ApiMixin
+  ],
+
   getInitialState() {
     return {
       loading: false,
@@ -16,7 +20,7 @@ const App = React.createClass({
   },
 
   componentWillMount() {
-    api.request('/organizations/', {
+    this.api.request('/organizations/', {
       query: {
         'member': '1'
       },
@@ -34,7 +38,7 @@ const App = React.createClass({
       }
     });
 
-    api.request('/internal/health/', {
+    this.api.request('/internal/health/', {
       success: (data) => {
         if (data && data.problems) {
           data.problems.forEach(problem => {
@@ -48,7 +52,6 @@ const App = React.createClass({
     ConfigStore.get('messages').forEach((msg) => {
       AlertActions.addAlert(msg.message, msg.level);
     });
-
   },
 
   componentWillUnmount() {

@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import classNames from 'classnames';
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import Gravatar from '../components/gravatar';
 import GroupStore from '../stores/groupStore';
 import DropdownLink from './dropdownLink';
@@ -23,7 +23,8 @@ const AssigneeSelector = React.createClass({
     TooltipMixin({
       html: true,
       selector: '.tip'
-    })
+    }),
+    ApiMixin
   ],
 
   statics: {
@@ -92,12 +93,12 @@ const AssigneeSelector = React.createClass({
   },
 
   assignTo(member) {
-    api.assignTo({id: this.props.id, email: member.email});
+    this.api.assignTo({id: this.props.id, email: member.email});
     this.setState({filter: '', loading: true});
   },
 
   clearAssignTo() {
-    api.assignTo({id: this.props.id, email: ''});
+    this.api.assignTo({id: this.props.id, email: ''});
     this.setState({filter: '', loading: true});
   },
 

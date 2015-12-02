@@ -1,5 +1,5 @@
 import React from 'react';
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import {t} from '../../locale';
@@ -11,6 +11,10 @@ const EventList = React.createClass({
     title: React.PropTypes.string.isRequired,
     endpoint: React.PropTypes.string.isRequired
   },
+
+  mixins: [
+    ApiMixin
+  ],
 
   getInitialState() {
     return {
@@ -47,7 +51,7 @@ const EventList = React.createClass({
         break;
     }
 
-    api.request(this.props.endpoint, {
+    this.api.request(this.props.endpoint, {
       query: {
         limit: 5,
         minutes: minutes

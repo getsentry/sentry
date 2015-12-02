@@ -1,7 +1,7 @@
 import React from 'react';
 import TestUtils from 'react-addons-test-utils';
 
-import Api from 'app/api';
+import {Client} from 'app/api';
 import ReleaseArtifacts from 'app/views/releaseArtifacts';
 import Pagination from 'app/components/pagination';
 
@@ -12,7 +12,7 @@ describe('ReleaseArtifacts', function() {
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(Api, 'request');
+    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
     stubReactComponents(this.sandbox, [Pagination]);
 
   });
