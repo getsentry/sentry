@@ -51,8 +51,8 @@ export class Client {
   }
 
   clear() {
-    for (let request of this.activeRequests) {
-      request.cancel();
+    for (let id in this.activeRequests) {
+      this.activeRequests[id].cancel();
     }
   }
 
