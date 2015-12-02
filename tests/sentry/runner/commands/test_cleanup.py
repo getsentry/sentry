@@ -2,20 +2,15 @@
 
 from __future__ import absolute_import
 
-from click.testing import CliRunner
-from exam import fixture
-
 from sentry.models import Event, Group, GroupTagValue, TagValue, TagKey
 from sentry.runner.commands.cleanup import cleanup
-from sentry.testutils import TestCase
+from sentry.testutils import CliTestCase
 
 ALL_MODELS = (Event, Group, GroupTagValue, TagValue, TagKey)
 
 
-class SentryCleanupTest(TestCase):
+class SentryCleanupTest(CliTestCase):
     fixtures = ['tests/fixtures/cleanup.json']
-
-    runner = fixture(CliRunner)
 
     def test_simple(self):
         rv = self.runner.invoke(cleanup, ['--days=1'])
