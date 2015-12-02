@@ -31,8 +31,8 @@ def varmap(func, var, context=None, name=None):
         ret = dict((k, varmap(func, v, context, k)) for k, v in six.iteritems(var))
     elif isinstance(var, (list, tuple)):
         # treat it like a mapping
-        if all(v for v in var if isinstance(v, (list, tuple)) and len(v) == 2):
-            ret = [(k, varmap(func, v, context, k)) for k, v in var]
+        if all(isinstance(v, (list, tuple)) and len(v) == 2 for v in var):
+            ret = [[k, varmap(func, v, context, k)] for k, v in var]
         else:
             ret = [varmap(func, f, context, name) for f in var]
     else:
