@@ -54,7 +54,7 @@ class RedisQuota(Quota):
         timestamp = time.time()
 
         quotas = filter(
-            lambda (key, limit, interval): limit > 0,  # a zero limit means "no limit", not "reject all"
+            lambda (key, limit, interval): limit and limit > 0,  # a zero limit means "no limit", not "reject all"
             self.get_quotas(project),
         )
 
