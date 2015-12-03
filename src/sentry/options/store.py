@@ -217,7 +217,7 @@ class OptionsStore(object):
             logger.warn(CACHE_UPDATE_ERR, key.name, exc_info=True)
             return False
 
-    def expire_local_cache(self):
+    def clean_local_cache(self):
         """
         Iterate over our local cache items, and
         remove the keys that are beyond their grace time.
@@ -243,7 +243,7 @@ class OptionsStore(object):
         """
         self._local_cache = {}
 
-    def maybe_expire_local_cache(self, **kwargs):
+    def maybe_clean_local_cache(self, **kwargs):
         # Periodically force an expire on the local cache.
         # This cleanup is purely to keep memory low and garbage collect
         # old values. It's not required to run to keep things consistent.
@@ -253,7 +253,7 @@ class OptionsStore(object):
         if not self._local_cache:
             return
         if random() < 0.25:
-            self.expire_local_cache()
+            self.clean_local_cache()
 
     def connect_signals(self):
         from celery.signals import task_postrun
