@@ -29,6 +29,11 @@ FLAG_NOSTORE = 0b010
 # config files.
 FLAG_STOREONLY = 0b100
 
+# How long will a cache key exist in local memory before being evicted
+DEFAULT_KEY_TTL = 10
+# How long will a cache key exist in local memory while the backing store is erroring
+DEFAULT_KEY_GRACE = 60
+
 
 class OptionsManager(object):
     """
@@ -83,13 +88,12 @@ class OptionsManager(object):
                 logger.debug('Using legacy key: %s', key, exc_info=True)
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
-                return self.store.make_key(key, '', object, DEFAULT_FLAGS)
+                return self.store.make_key(key, '', object, DEFAULT_FLAGS, 0, 0)
             raise UnknownOption(key)
 
     def get(self, key):
         """
-        Get the value of an option prioritizing the cache, then the database,
-        and finally the local configuration.
+        Get the value of an option, falling back to the local configuration.
 
         If no value is present for the key, the default Option value is returned.
 
@@ -120,7 +124,7 @@ class OptionsManager(object):
         """
         Permanently remove the value of an option.
 
-        This will also clear the value within the cache, which means a following
+        This will also clear the value within the store, which means a following
         get() will result in a miss.
 
         >>> from sentry import options
@@ -135,7 +139,8 @@ class OptionsManager(object):
 
         return self.store.delete(opt)
 
-    def register(self, key, default='', type=None, flags=DEFAULT_FLAGS):
+    def register(self, key, default='', type=None, flags=DEFAULT_FLAGS,
+                 ttl=DEFAULT_KEY_TTL, grace=DEFAULT_KEY_GRACE):
         assert key not in self.registry, 'Option already registered: %r' % key
         # Guess type based on the default value
         if type is None:
@@ -150,7 +155,7 @@ class OptionsManager(object):
             raise TypeError('Options must not be NoneType')
         if not isinstance(default, type):
             raise TypeError('got %r, expected %r' % (_type(default), type))
-        self.registry[key] = self.store.make_key(key, default, type, flags)
+        self.registry[key] = self.store.make_key(key, default, type, flags, ttl, grace)
 
     def unregister(self, key):
         try:
