@@ -146,7 +146,7 @@ export function renderComponentTemplate(template, components) {
 
     (template[group] || []).forEach((item) => {
       if (typeof item === 'string') {
-        children.push(<span key={idx++}>item</span>);
+        children.push(<span key={idx++}>{item}</span>);
       } else {
         children.push(renderGroup(item.group));
       }
