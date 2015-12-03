@@ -1,8 +1,9 @@
-import api from '../api';
+import {Client} from '../api';
 import parseLinkHeader from './parseLinkHeader';
 
 class CursorPoller {
   constructor(options) {
+    this.api = new Client();
     this.options = options;
     this._timeoutId = null;
     this._active = true;
@@ -41,7 +42,7 @@ class CursorPoller {
   }
 
   poll() {
-    this._lastRequest = api.request(this._pollingEndpoint, {
+    this._lastRequest = this.api.request(this._pollingEndpoint, {
       success: (data, _, jqXHR) => {
         // cancel in progress operation if disabled
         if (!this._active) {
