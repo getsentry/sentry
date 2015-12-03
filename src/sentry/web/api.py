@@ -313,7 +313,8 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_rejected, project.organization_id),
             ])
             metrics.incr('events.dropped')
-            raise APIRateLimited(rate_limit.retry_after)
+            if rate_limit is not None:
+                raise APIRateLimited(rate_limit.retry_after)
         else:
             app.tsdb.incr_multi([
                 (app.tsdb.models.project_total_received, project.id),
