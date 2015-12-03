@@ -131,6 +131,12 @@ class OptionsStore(object):
                 # This could only exist in a race condition
                 # where another thread has already deleted this key,
                 # but we'll guard ourselves against it Justin Case.
+                # In this case, it's also possible that another thread
+                # has updated the value at this key, causing us to evict
+                # it prematurely. This isn't ideal, but not terrible
+                # since I don't want to introduce locking to prevent this.
+                # Even if it did happen, the consequence is just another
+                # network hop.
                 pass
 
         # If we're outside the grace window, even if we ask for it
