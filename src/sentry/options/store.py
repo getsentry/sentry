@@ -271,5 +271,5 @@ class OptionsStore(object):
     def connect_signals(self):
         from celery.signals import task_postrun
         from django.core.signals import request_finished
-        task_postrun.connect(self.maybe_expire_local_cache)
-        request_finished.connect(self.maybe_expire_local_cache)
+        task_postrun.connect(self.maybe_clean_local_cache)
+        request_finished.connect(self.maybe_clean_local_cache)
