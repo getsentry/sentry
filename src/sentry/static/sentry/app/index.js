@@ -46,6 +46,9 @@ export default {
     routes: require('./routes'),
     createHistory: require('history/lib/createBrowserHistory'),
     Alerts: require('./components/alerts'),
+    mixins: {
+      ApiMixin: require('./mixins/apiMixin'),
+    },
     BarChart: require('./components/barChart'),
     i18n: require('./locale'),
     ConfigStore: require('./stores/configStore'),
