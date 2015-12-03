@@ -33,7 +33,7 @@
     "react-bootstrap": "0.27.3",
     "react-document-title": "1.0.4",
     "react-dom": "0.14.0",
-    "react-lazy-load": "1.0.5",
+    "react-lazy-load": "2.0.1",
     "react-router": "1.0.0",
     "react-sticky": "3.0.0",
     "reflux": "0.3.0",
