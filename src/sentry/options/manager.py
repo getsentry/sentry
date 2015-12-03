@@ -31,7 +31,7 @@ FLAG_STOREONLY = 0b100
 
 # How long will a cache key exist in local memory before being evicted
 DEFAULT_KEY_TTL = 10
-# How long will a cache key exist in local memory while the backing store is erroring
+# How long will a cache key exist in local memory *after ttl* while the backing store is erroring
 DEFAULT_KEY_GRACE = 60
 
 
