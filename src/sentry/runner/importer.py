@@ -31,21 +31,7 @@ class Importer(object):
     def find_module(self, fullname, path=None):
         if fullname != self.name:
             return
-
-        return Loader(
-            name=self.name,
-            config_path=self.config_path,
-            default_settings=self.default_settings,
-            callback=self.callback,
-        )
-
-
-class Loader(object):
-    def __init__(self, name, config_path, default_settings=None, callback=None):
-        self.name = name
-        self.config_path = config_path
-        self.default_settings = default_settings
-        self.callback = callback
+        return self
 
     def load_module(self, fullname):
         try:
@@ -55,7 +41,7 @@ class Loader(object):
             reraise_as(ConfigurationError(unicode(e)))
 
     def _load_module(self, fullname):
-        # TODO: is this needed?
+        # Check to make sure it's not already in sys.modules in case of a reload()
         if fullname in sys.modules:
             return sys.modules[fullname]  # pragma: no cover
 
@@ -75,6 +61,9 @@ class Loader(object):
 
         # install the custom settings for this app
         load_settings(self.config_path, settings=settings_mod, silent=True)
+
+        # Add into sys.modules explicitly
+        sys.modules[fullname] = settings_mod
 
         if self.callback is not None:
             self.callback(settings_mod)
