@@ -1,13 +1,15 @@
 import jQuery from 'jquery';
 import React from 'react';
 
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import IndicatorStore from '../../stores/indicatorStore';
 import OrganizationHomeContainer from '../../components/organizations/homeContainer';
 import OrganizationState from '../../mixins/organizationState';
 import {t} from '../../locale';
 
 const RangeInput = React.createClass({
+  mixins: [ApiMixin],
+
   getDefaultProps() {
     return {
       min: 1,
@@ -90,7 +92,7 @@ const RateLimitEditor = React.createClass({
       saving: true,
       error: false,
     }, () => {
-      api.request(`/organizations/${this.props.organization.slug}/`, {
+      this.api.request(`/organizations/${this.props.organization.slug}/`, {
         method: 'PUT',
         data: {
           projectRateLimit: this.state.currentProjectLimit
