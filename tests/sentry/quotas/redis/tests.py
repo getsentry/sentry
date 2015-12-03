@@ -16,7 +16,7 @@ from sentry.testutils import TestCase
 
 
 def test_is_rate_limited_script():
-    now = time.time()
+    now = int(time.time())
 
     client = StrictRedis(db=9)
 
