@@ -243,7 +243,7 @@ class OptionsStore(object):
         """
         self._local_cache = {}
 
-    def maybe_expire_local_cache(self):
+    def maybe_expire_local_cache(self, **kwargs):
         # Periodically force an expire on the local cache.
         # This cleanup is purely to keep memory low and garbage collect
         # old values. It's not required to run to keep things consistent.
