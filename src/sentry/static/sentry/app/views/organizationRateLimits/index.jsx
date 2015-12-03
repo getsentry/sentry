@@ -8,8 +8,6 @@ import OrganizationState from '../../mixins/organizationState';
 import {t} from '../../locale';
 
 const RangeInput = React.createClass({
-  mixins: [ApiMixin],
-
   getDefaultProps() {
     return {
       min: 1,
@@ -67,6 +65,8 @@ const RangeInput = React.createClass({
 });
 
 const RateLimitEditor = React.createClass({
+  mixins: [ApiMixin],
+
   getInitialState() {
     let projectLimit = this.props.organization.quota.projectLimit;
 
