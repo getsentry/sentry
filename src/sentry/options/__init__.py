@@ -16,6 +16,8 @@ __all__ = (
 )
 
 default_store = OptionsStore()
+default_store.connect_signals()
+
 default_manager = OptionsManager(store=default_store)
 
 # expose public API

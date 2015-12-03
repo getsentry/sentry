@@ -4,8 +4,6 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from sentry.app import env
-from random import random
-from sentry.options import default_store
 
 
 class SentryEnvMiddleware(object):
@@ -16,12 +14,3 @@ class SentryEnvMiddleware(object):
 
         # bind request to env
         env.request = request
-
-        # Periodically for an expire the local OptionsStore cache.
-        # This cleanup is purely to keep memory low and garbage collect
-        # old values. It's not required to run to keep things consistent.
-        # Internally, if an option is fetched and it's expired, it gets
-        # evicted immediately. This is purely for options that haven't
-        # been fetched since they've expired.
-        if random() < 0.25:
-            default_store.expire_local_cache()
