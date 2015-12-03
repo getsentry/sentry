@@ -124,7 +124,13 @@ class OptionsStore(object):
 
         # Let's clean up values if we're beyond grace.
         if now > grace:
-            del self._local_cache[key.cache_key]
+            try:
+                del self._local_cache[key.cache_key]
+            except KeyError:
+                # This could only exist in a race condition
+                # where another thread has already deleted this key,
+                # but we'll guard ourselves against it Justin Case.
+                pass
 
         # If we're outside the grace window, even if we ask for it
         # in grace, too bad. The value is considered bad.
@@ -207,7 +213,7 @@ class OptionsStore(object):
             self.cache.delete(cache_key)
             return True
         except Exception:
-            logger.warn(CACHE_UPDATE_ERR, key, exc_info=True)
+            logger.warn(CACHE_UPDATE_ERR, key.name, exc_info=True)
             return False
 
     def expire_local_cache(self):
@@ -225,7 +231,13 @@ class OptionsStore(object):
                 to_expire.append(k)
 
         for k in to_expire:
-            del self._local_cache[k]
+            try:
+                del self._local_cache[k]
+            except KeyError:
+                # This could only exist in a race condition
+                # where another thread has already deleted this key,
+                # but we'll guard ourselves against it Justin Case.
+                pass
 
     def flush_local_cache(self):
         """
