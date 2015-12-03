@@ -7,9 +7,8 @@ sentry.quotas.redis
 """
 from __future__ import absolute_import
 
-import time
-
 from django.conf import settings
+from time import time
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.quotas.base import Quota, RateLimited, NotRateLimited
@@ -50,8 +49,11 @@ class RedisQuota(Quota):
             ('o:{}'.format(project.organization.id), self.get_organization_quota(project.organization), 60),
         )
 
+    def get_redis_key(self, key, timestamp, interval):
+        return '{}:{}:{}'.format(self.namespace, key, int(timestamp // interval))
+
     def is_rate_limited(self, project):
-        timestamp = time.time()
+        timestamp = time()
 
         quotas = filter(
             lambda (key, limit, interval): limit and limit > 0,  # a zero limit means "no limit", not "reject all"
@@ -69,7 +71,7 @@ class RedisQuota(Quota):
         keys = []
         args = []
         for key, limit, interval in quotas:
-            keys.append('{}:{}:{}'.format(self.namespace, key, int(timestamp // interval)))
+            keys.append(self.get_redis_key(key, timestamp, interval))
             expiry = get_next_period_start(interval) + self.grace
             args.extend((limit, expiry))
 
