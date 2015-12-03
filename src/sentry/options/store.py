@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function
 import logging
 from collections import namedtuple
 from time import time
+from random import random
 
 from django.utils import timezone
 from sentry.db.models.query import create_or_update
@@ -221,9 +222,6 @@ class OptionsStore(object):
         Iterate over our local cache items, and
         remove the keys that are beyond their grace time.
         """
-        if not self._local_cache:
-            return
-
         to_expire = []
         now = int(time())
         for k, (_, _, grace) in self._local_cache.iteritems():
@@ -244,3 +242,21 @@ class OptionsStore(object):
         Empty store's local in-process cache.
         """
         self._local_cache = {}
+
+    def maybe_expire_local_cache(self):
+        # Periodically force an expire on the local cache.
+        # This cleanup is purely to keep memory low and garbage collect
+        # old values. It's not required to run to keep things consistent.
+        # Internally, if an option is fetched and it's expired, it gets
+        # evicted immediately. This is purely for options that haven't
+        # been fetched since they've expired.
+        if not self._local_cache:
+            return
+        if random() < 0.25:
+            self.expire_local_cache()
+
+    def connect_signals(self):
+        from celery.signals import task_postrun
+        from django.core.signals import request_finished
+        task_postrun.connect(self.maybe_expire_local_cache)
+        request_finished.connect(self.maybe_expire_local_cache)
