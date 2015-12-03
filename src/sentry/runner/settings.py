@@ -300,17 +300,17 @@ def configure(ctx, py, yaml, skip_backend_validation=False):
         raise ValueError("Configuration file does not exist at '%s'" % click.format_filename(yaml))
 
     os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry_config'
-    install('sentry_config', py, DEFAULT_SETTINGS_MODULE)
 
-    # TODO(mattrobenolt): clean up this and use the callbacks from install
-    from django.conf import settings
-    from .initializer import initialize_app, on_configure
-    initialize_app({
-        'config_path': py,
-        'settings': settings,
-        'options': yaml,
-    }, skip_backend_validation=skip_backend_validation)
-    on_configure({'settings': settings})
+    def after_install(mod):
+        from .initializer import initialize_app, on_configure
+        initialize_app({
+            'config_path': py,
+            'settings': mod,
+            'options': yaml,
+        }, skip_backend_validation=skip_backend_validation)
+        on_configure({'settings': mod})
+
+    install('sentry_config', py, DEFAULT_SETTINGS_MODULE, after_install)
 
     __installed = True
 
