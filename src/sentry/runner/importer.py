@@ -14,7 +14,7 @@ def install(name, config_path, default_settings, callback):
     sys.meta_path.append(Importer(name, config_path, default_settings, callback))
 
 
-class ConfigurationError(Exception):
+class ConfigurationError(ValueError):
     pass
 
 
@@ -51,8 +51,8 @@ class Loader(object):
         try:
             return self._load_module(fullname)
         except Exception as e:
-            exc_info = sys.exc_info()
-            raise ConfigurationError(unicode(e), exc_info[2])
+            from sentry.utils.settings import reraise_as
+            reraise_as(ConfigurationError(unicode(e)))
 
     def _load_module(self, fullname):
         # TODO: is this needed?
