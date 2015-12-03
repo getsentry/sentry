@@ -73,7 +73,7 @@ class RedisQuota(Quota):
         for key, limit, interval in quotas:
             keys.append(self.get_redis_key(key, timestamp, interval))
             expiry = get_next_period_start(interval) + self.grace
-            args.extend((limit, expiry))
+            args.extend((limit, int(expiry)))
 
         client = self.cluster.get_local_client_for_key(str(project.organization.pk))
         rejections = is_rate_limited(client, keys, args)
