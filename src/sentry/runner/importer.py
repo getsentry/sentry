@@ -10,8 +10,8 @@ from __future__ import absolute_import, print_function
 import sys
 
 
-def install(name, config_path, default_settings):
-    sys.meta_path.append(Importer(name, config_path, default_settings))
+def install(name, config_path, default_settings, callback):
+    sys.meta_path.append(Importer(name, config_path, default_settings, callback))
 
 
 class ConfigurationError(Exception):
@@ -19,24 +19,14 @@ class ConfigurationError(Exception):
 
 
 class Importer(object):
-    def __init__(self, name, config_path, default_settings=None):
+    def __init__(self, name, config_path, default_settings=None, callback=None):
         self.name = name
         self.config_path = config_path
         self.default_settings = default_settings
+        self.callback = callback
 
     def __repr__(self):
         return "<%s for '%s' (%s)>" % (type(self), self.name, self.config_path)
-
-    def validate(self):
-        # TODO(dcramer): is there a better way to handle validation so it
-        # is lazy and actually happens in LoganLoader?
-        try:
-            execfile(self.config_path, {
-                '__file__': self.config_path
-            })
-        except Exception as e:
-            exc_info = sys.exc_info()
-            raise ConfigurationError(unicode(e), exc_info[2])
 
     def find_module(self, fullname, path=None):
         if fullname != self.name:
@@ -46,14 +36,16 @@ class Importer(object):
             name=self.name,
             config_path=self.config_path,
             default_settings=self.default_settings,
+            callback=self.callback,
         )
 
 
 class Loader(object):
-    def __init__(self, name, config_path, default_settings=None):
+    def __init__(self, name, config_path, default_settings=None, callback=None):
         self.name = name
         self.config_path = config_path
         self.default_settings = default_settings
+        self.callback = callback
 
     def load_module(self, fullname):
         try:
@@ -83,6 +75,9 @@ class Loader(object):
 
         # install the custom settings for this app
         load_settings(self.config_path, settings=settings_mod, silent=True)
+
+        if self.callback is not None:
+            self.callback(settings_mod)
 
         return settings_mod
 
