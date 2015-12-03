@@ -108,15 +108,17 @@ test-python-coverage:
 	@echo ""
 
 
-lint:
-	@echo "--> Linting all the things"
-	bin/lint
+lint: lint-python lint-js
+
+lint-python:
+	@echo "--> Linting python"
+	bin/lint --python
 	@echo ""
 
-# These are just aliases for backwards compat
-# our linter does both now
-lint-python: lint
-lint-js: lint
+lint-js:
+	@echo "--> Linting javascript"
+	bin/lint --js
+	@echo ""
 
 coverage: develop
 	make test-python-coverage
@@ -164,10 +166,10 @@ travis-install-cli: travis-install-python
 .PHONY: travis-install-sqlite travis-install-postgres travis-install-webpack travis-install-js travis-install-cli
 
 # Lint steps
-travis-lint-sqlite: lint
-travis-lint-postgres: lint
+travis-lint-sqlite: lint-python
+travis-lint-postgres: lint-python
 travis-lint-webpack: travis-noop
-travis-lint-js: lint
+travis-lint-js: lint-js
 travis-lint-cli: travis-noop
 
 .PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-webpack travis-lint-js travis-lint-cli

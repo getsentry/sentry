@@ -73,15 +73,21 @@ def js_lint(file_list=None):
     return has_errors
 
 
-def check_files(file_list=None):
+def check_files(file_list=None, js=True, py=True):
     # pep8.py uses sys.argv to find setup.cfg
     old_sysargv = sys.argv
     sys.argv = [
         os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir)
     ]
 
+    linters = []
+    if py:
+        linters.append(py_lint(file_list))
+    if js:
+        linters.append(js_lint(file_list))
+
     try:
-        if any((py_lint(file_list), js_lint(file_list))):
+        if any(linters):
             return 1
         return 0
     finally:
