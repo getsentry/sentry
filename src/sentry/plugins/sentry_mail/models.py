@@ -18,7 +18,6 @@ from django.template.loader import render_to_string
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
-from sentry import features
 from sentry.digests.utilities import get_digest_metadata
 from sentry.models import (
     Activity,
@@ -207,9 +206,7 @@ class MailPlugin(NotificationPlugin):
                 key=lambda record: record.timestamp,
             )
             notification = Notification(record.value.event, rules=record.value.rules)
-
-            if features.has('projects:digests:deliver', project):
-                return self.notify(notification)
+            return self.notify(notification)
 
         context = {
             'start': start,
@@ -232,7 +229,7 @@ class MailPlugin(NotificationPlugin):
             context=context,
         )
 
-        if message is not None and features.has('projects:digests:deliver', project):
+        if message is not None:
             message.send()
 
     def notify_about_activity(self, activity):
