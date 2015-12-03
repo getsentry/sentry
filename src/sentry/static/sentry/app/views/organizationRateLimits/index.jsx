@@ -123,7 +123,7 @@ const RateLimitEditor = React.createClass({
           When this rate is exceeded the system will begin discarding data until the
           next interval.</p>
 
-        <p>You may set a limit the maximum amount a single project may send:</p>
+        <p>You may set a limit to the maximum amount a single project may send:</p>
 
         <RangeInput
             defaultValue={savedProjectLimit}
