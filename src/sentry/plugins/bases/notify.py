@@ -11,7 +11,6 @@ import logging
 
 from django import forms
 
-from sentry import features
 from sentry.app import (
     digests,
     ratelimiter,
@@ -69,32 +68,19 @@ class NotificationPlugin(Plugin):
         if hasattr(self, 'notify_digest'):
             project = event.group.project
 
-            # If digest delivery is disabled, we still need to send a
-            # notification -- we also need to check rate limits, since
-            # ``should_notify`` skips this step if the plugin supports digests.
-            if not features.has('projects:digests:deliver', project):
-                if self.__is_rate_limited(event.group, event):
-                    logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
-                    logger.info('Notification for project %r dropped due to rate limiting', project)
-                    return
-
-                notification = Notification(event=event, rules=rules)
-                self.notify(notification)
-
-            if features.has('projects:digests:store', project):
-                get_digest_option = lambda key: ProjectOption.objects.get_value(
-                    project,
-                    '{0}:digests:{1}'.format(self.get_conf_key(), key),
-                )
-                digest_key = unsplit_key(self, event.group.project)
-                immediate_delivery = digests.add(
-                    digest_key,
-                    event_to_record(event, rules),
-                    increment_delay=get_digest_option('increment_delay'),
-                    maximum_delay=get_digest_option('maximum_delay'),
-                )
-                if immediate_delivery:
-                    deliver_digest.delay(digest_key)
+            get_digest_option = lambda key: ProjectOption.objects.get_value(
+                project,
+                '{0}:digests:{1}'.format(self.get_conf_key(), key),
+            )
+            digest_key = unsplit_key(self, event.group.project)
+            immediate_delivery = digests.add(
+                digest_key,
+                event_to_record(event, rules),
+                increment_delay=get_digest_option('increment_delay'),
+                maximum_delay=get_digest_option('maximum_delay'),
+            )
+            if immediate_delivery:
+                deliver_digest.delay(digest_key)
 
         else:
             notification = Notification(event=event, rules=rules)

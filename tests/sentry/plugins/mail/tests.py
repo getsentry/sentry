@@ -9,7 +9,6 @@ from django.utils import timezone
 from exam import fixture
 from mock import Mock
 
-from sentry import features
 from sentry.digests.notifications import (
     build_digest,
     event_to_record,
@@ -235,12 +234,7 @@ class MailPluginTest(TestCase):
 
     @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
     @mock.patch.object(MessageBuilder, 'send', autospec=True)
-    @mock.patch.object(features, 'has')
-    def test_notify_digest(self, has, send, notify):
-        has.side_effect = lambda label, *a, **k: {
-            'projects:digests:deliver': True,
-        }.get(label, False)
-
+    def test_notify_digest(self, send, notify):
         project = self.event.project
         rule = project.rule_set.all()[0]
         digest = build_digest(
@@ -256,12 +250,7 @@ class MailPluginTest(TestCase):
 
     @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
     @mock.patch.object(MessageBuilder, 'send', autospec=True)
-    @mock.patch.object(features, 'has')
-    def test_notify_digest_single_record(self, has, send, notify):
-        has.side_effect = lambda label, *a, **k: {
-            'projects:digests:deliver': True,
-        }.get(label, False)
-
+    def test_notify_digest_single_record(self, send, notify):
         project = self.event.project
         rule = project.rule_set.all()[0]
         digest = build_digest(
