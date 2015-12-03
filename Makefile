@@ -159,28 +159,23 @@ travis-noop:
 travis-install-sqlite: travis-install-python
 travis-install-postgres: travis-install-python dev-postgres
 	psql -c 'create database sentry;' -U postgres
-travis-install-webpack: travis-install-js
 travis-install-js: install-npm
 travis-install-cli: travis-install-python
 
-.PHONY: travis-install-sqlite travis-install-postgres travis-install-webpack travis-install-js travis-install-cli
+.PHONY: travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli
 
 # Lint steps
 travis-lint-sqlite: lint-python
 travis-lint-postgres: lint-python
-travis-lint-webpack: travis-noop
 travis-lint-js: lint-js
 travis-lint-cli: travis-noop
 
-.PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-webpack travis-lint-js travis-lint-cli
+.PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-js travis-lint-cli
 
 # Test steps
 travis-test-sqlite: test-python-coverage
 travis-test-postgres: test-python-coverage
-travis-test-webpack:
-	@echo "--> Compiling webpack"
-	${NPM_ROOT}/.bin/webpack
 travis-test-js: test-js
 travis-test-ci: test-ci
 
-.PHONY: travis-test-sqlite travis-test-postgres travis-test-webpack travis-test-js travis-test-cli
+.PHONY: travis-test-sqlite travis-test-postgres travis-test-js travis-test-cli
