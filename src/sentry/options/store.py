@@ -147,6 +147,13 @@ class OptionsStore(object):
         """
         Attempt to fetch value from the database. If successful,
         also set it back in the cache.
+
+        Returns None in both cases, if the key doesn't actually exist,
+        or if we errored fetching it.
+
+        NOTE: This behavior should probably be improved to differentiate
+        between a miss vs error, but not worth it now since the value
+        is limited at the moment.
         """
         try:
             value = Option.objects.get(key=key.name).value
@@ -169,9 +176,9 @@ class OptionsStore(object):
     def set(self, key, value):
         """
         Store a value in the option store. Value must get persisted to database first,
-        then attempt caches. If it fails datastore, the entire operation blows up.
+        then attempt caches. If it fails database, the entire operation blows up.
         If cache fails, we ignore silently since it'll get repaired later by sync_options.
-        A boolean is returned to indicate if the network set succeeds.
+        A boolean is returned to indicate if the network cache was set successfully.
         """
         self.set_store(key, value)
         return self.set_cache(key, value)
