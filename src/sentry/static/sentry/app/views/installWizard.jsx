@@ -2,7 +2,7 @@ import React from 'react';
 import DocumentTitle from 'react-document-title';
 
 import {t} from '../locale';
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import ConfigStore from '../stores/configStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import {EmailField, TextField} from '../components/forms';
@@ -18,7 +18,7 @@ const InstallWizardSettings = React.createClass({
 
   render() {
     let options = this.props.options;
-    let requiredOptions = ['system.url-perfix', 'system.admin-email'];
+    let requiredOptions = ['system.url-prefix', 'system.admin-email'];
     let missingOptions = new Set(requiredOptions.filter(option => options[option]));
     let formValid = false;
 
@@ -51,6 +51,10 @@ const InstallWizardSettings = React.createClass({
 });
 
 const InstallWizard = React.createClass({
+  mixins: [
+    ApiMixin
+  ],
+
   getInitialState() {
     return {
       loading: true,
@@ -68,7 +72,7 @@ const InstallWizard = React.createClass({
   },
 
   fetchData(callback) {
-    api.request('/internal/options/', {
+    this.api.request('/internal/options/', {
       method: 'GET',
       success: (data) => {
         this.setState({
