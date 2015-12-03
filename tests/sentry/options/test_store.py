@@ -93,7 +93,7 @@ class OptionsStoreTest(TestCase):
         assert store.get(key) == 'lol'
 
     @patch('sentry.options.store.time')
-    def test_expire_local_cache(self, mocked_time):
+    def test_clean_local_cache(self, mocked_time):
         store = self.store
 
         mocked_time.return_value = 0
@@ -111,21 +111,21 @@ class OptionsStoreTest(TestCase):
         assert len(store._local_cache) == 4
 
         mocked_time.return_value = 0
-        store.expire_local_cache()
+        store.clean_local_cache()
         assert len(store._local_cache) == 4
 
         mocked_time.return_value = 11
-        store.expire_local_cache()
+        store.clean_local_cache()
         assert len(store._local_cache) == 3
         assert key1.cache_key not in store._local_cache
 
         mocked_time.return_value = 21
-        store.expire_local_cache()
+        store.clean_local_cache()
         assert len(store._local_cache) == 1
         assert key1.cache_key not in store._local_cache
         assert key2.cache_key not in store._local_cache
         assert key3.cache_key not in store._local_cache
 
         mocked_time.return_value = 26
-        store.expire_local_cache()
+        store.clean_local_cache()
         assert not store._local_cache
