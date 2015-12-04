@@ -10,7 +10,7 @@ from __future__ import absolute_import, print_function
 import sys
 
 
-def install(name, config_path, default_settings, callback):
+def install(name, config_path, default_settings, callback=None):
     sys.meta_path.append(Importer(name, config_path, default_settings, callback))
 
 

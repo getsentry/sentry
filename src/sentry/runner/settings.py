@@ -301,16 +301,16 @@ def configure(ctx, py, yaml, skip_backend_validation=False):
 
     os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry_config'
 
-    def after_install(mod):
-        from .initializer import initialize_app, on_configure
-        initialize_app({
-            'config_path': py,
-            'settings': mod,
-            'options': yaml,
-        }, skip_backend_validation=skip_backend_validation)
-        on_configure({'settings': mod})
+    install('sentry_config', py, DEFAULT_SETTINGS_MODULE)
 
-    install('sentry_config', py, DEFAULT_SETTINGS_MODULE, after_install)
+    from django.conf import settings
+    from .initializer import initialize_app, on_configure
+    initialize_app({
+        'config_path': py,
+        'settings': settings,
+        'options': yaml,
+    }, skip_backend_validation=skip_backend_validation)
+    on_configure({'settings': settings})
 
     __installed = True
 
