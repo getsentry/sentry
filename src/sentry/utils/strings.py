@@ -8,6 +8,7 @@ sentry.utils.strings
 from __future__ import absolute_import
 
 import base64
+import re
 import zlib
 
 from django.utils.encoding import smart_unicode
@@ -44,3 +45,33 @@ def strip(value):
     if not value:
         return ''
     return smart_unicode(value).strip()
+
+
+def soft_hyphenate(value, length, hyphen=u'\u00ad'):
+    return hyphen.join([value[i:(i + length)] for i in xrange(0, len(value), length)])
+
+
+def soft_break(value, length):
+    """
+    Encourages soft breaking of text values above a maximum length by adding
+    zero-width spaces after common delimeters, as well as soft-hyphenating long
+    identifiers.
+    """
+    delimiters = re.compile(r'([{}]+)'.format(''.join(map(re.escape, ',.$:/+?()<>[]{}'))))
+
+    def process(match):
+        results = []
+
+        value = match.group(0)
+        chunks = delimiters.split(value)
+        for i, chunk in enumerate(chunks):
+            if i % 2 == 1:  # check if this is this a delimiter
+                results.extend([chunk, u'\u200b'])
+            else:
+                # TODO: This could be more intelligent -- this could be a
+                # little weird if it soft hyphenated a number, for instance?
+                results.append(soft_hyphenate(chunk, length))
+
+        return u''.join(results).rstrip(u'\u200b')
+
+    return re.sub(r'\S{{{},}}'.format(length), process, value)
