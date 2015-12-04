@@ -20,14 +20,14 @@ class UnknownOption(KeyError):
     pass
 
 
-DEFAULT_FLAGS = 0b000
+DEFAULT_FLAGS = 1 << 0
 # Value can't be changed at runtime
-FLAG_IMMUTABLE = 0b001
+FLAG_IMMUTABLE = 1 << 1
 # Don't check/set in the datastore. Option only exists from file.
-FLAG_NOSTORE = 0b010
+FLAG_NOSTORE = 1 << 2
 # Values that should only exist in datastore, and shouldn't exist in
 # config files.
-FLAG_STOREONLY = 0b100
+FLAG_STOREONLY = 1 << 3
 
 # How long will a cache key exist in local memory before being evicted
 DEFAULT_KEY_TTL = 10
