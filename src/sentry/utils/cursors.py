@@ -42,10 +42,11 @@ class Cursor(object):
 
 
 class CursorResult(Sequence):
-    def __init__(self, results, next, prev):
+    def __init__(self, results, next, prev, hits=None):
         self.results = results
         self.next = next
         self.prev = prev
+        self.hits = hits
 
     def __len__(self):
         return len(self.results)
@@ -80,7 +81,7 @@ class CursorResult(Sequence):
         )
 
 
-def build_cursor(results, key, limit=100, cursor=None):
+def build_cursor(results, key, limit=100, cursor=None, hits=None):
     if cursor is None:
         cursor = Cursor(0, 0, 0)
 
@@ -162,6 +163,7 @@ def build_cursor(results, key, limit=100, cursor=None):
     prev_cursor = Cursor(prev_value or 0, prev_offset, True, has_prev)
 
     return CursorResult(
+        hits=hits,
         results=results,
         next=next_cursor,
         prev=prev_cursor,
