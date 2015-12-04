@@ -6,6 +6,57 @@ import TimeSince from './timeSince';
 import DropdownLink from './dropdownLink';
 import GroupChart from './stream/groupChart';
 import GroupStore from '../stores/groupStore';
+import Modal from 'react-bootstrap/lib/Modal';
+import {t} from '../locale';
+
+const SnoozeAction = React.createClass({
+  getInitialState() {
+    return {
+      isModalOpen: false
+    };
+  },
+
+  toggleModal() {
+    if (this.props.disabled) {
+      return;
+    }
+    this.setState({
+      isModalOpen: !this.state.isModalOpen
+    });
+  },
+
+  closeModal() {
+    this.setState({isModalOpen: false});
+  },
+
+  render(){
+    return (
+      <a title={this.props.tooltip}
+         className={this.props.className}
+         disabled={this.props.disabled}
+         onClick={this.toggleModal}>
+        <span>zZz</span>
+
+        <Modal show={this.state.isModalOpen} title={t('Please confirm')} animation={false}
+               onHide={this.closeModal} bsSize="sm">
+          <div className="modal-body">
+            <p>How long should we snooze this issue?</p>
+            <ul className="nav nav-stacked nav-pills">
+              <li><a href="#">30 minutes</a></li>
+              <li><a href="#">2 hours</a></li>
+              <li><a href="#">24 hours</a></li>
+              <li><a href="#">Forever</a></li>
+            </ul>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-default"
+                    onClick={this.closeModal}>{t('Cancel')}</button>
+          </div>
+        </Modal>
+      </a>
+    );
+  }
+});
 
 const CompactIssue = React.createClass({
   propTypes: {
@@ -109,13 +160,11 @@ const CompactIssue = React.createClass({
             topLevelClasses="more-menu"
             className="more-menu-toggle"
             caret={false}
-            onOpen={this.onDropdownOpen}
-            onClose={this.onDropdownClose}
             title={title}>
-            <li><a href="#"><span className="icon-checkmark"></span></a></li>
-            <li><a href="#"><span className="icon-bookmark"></span></a></li>
-            <li><a href="#">zZz</a></li>
-            <li><a href="#"><span className="icon-user"></span></a></li>
+            <li><a href="#"><span className="icon-checkmark" /></a></li>
+            <li><a href="#"><span className="icon-bookmark" /></a></li>
+            <li><SnoozeAction /></li>
+            <li><a href="#"><span className="icon-user" /></a></li>
           </DropdownLink>
         </div>
       </li>
