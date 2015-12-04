@@ -11,6 +11,7 @@ __all__ = ('urlpatterns',)
 
 from django.conf.urls import include, patterns, url
 from django.conf import settings
+from django.http import HttpResponse
 from django.views.generic import RedirectView
 
 from sentry.web import api
@@ -340,6 +341,14 @@ urlpatterns += patterns(
 
     url(r'^robots\.txt$', api.robots_txt,
         name='sentry-api-robots-txt'),
+
+    # Force a 404 of favicon.ico.
+    # This url is commonly requested by browsers, and without
+    # blocking this, it was treated as a 200 OK for a react page view.
+    # A side effect of this is it may cause a bad redirect when logging in
+    # since this gets stored in session as the last viewed page.
+    # See: https://github.com/getsentry/sentry/issues/2195
+    url(r'favicon\.ico$', lambda r: HttpResponse(status=404)),
 
     # crossdomain.xml
     url(r'^crossdomain\.xml$', api.crossdomain_xml_index,
