@@ -53,7 +53,7 @@ def get_default_context(request, existing_context=None, team=None):
         'URL_PREFIX': options.get('system.url-prefix'),
         'SINGLE_ORGANIZATION': settings.SENTRY_SINGLE_ORGANIZATION,
         'PLUGINS': plugins,
-        'ALLOWED_HOSTS': settings.ALLOWED_HOSTS,
+        'ALLOWED_HOSTS': list(settings.ALLOWED_HOSTS),
     }
 
     if existing_context:
