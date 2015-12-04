@@ -23,7 +23,7 @@ class GroupSerializer(Serializer):
 
         GroupMeta.objects.populate_cache(item_list)
 
-        attach_foreignkey(item_list, Group.project, ['team'])
+        attach_foreignkey(item_list, Group.project)
 
         if user.is_authenticated() and item_list:
             bookmarks = set(GroupBookmark.objects.filter(
@@ -110,11 +110,8 @@ class GroupSerializer(Serializer):
         else:
             status_label = 'unresolved'
 
-        if obj.team:
-            permalink = absolute_uri(reverse('sentry-group', args=[
-                obj.organization.slug, obj.project.slug, obj.id]))
-        else:
-            permalink = None
+        permalink = absolute_uri(reverse('sentry-group', args=[
+            obj.organization.slug, obj.project.slug, obj.id]))
 
         return {
             'id': str(obj.id),
