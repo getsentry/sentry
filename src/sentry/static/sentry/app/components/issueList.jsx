@@ -14,6 +14,7 @@ const IssueList = React.createClass({
   getDefaultProps() {
     return {
       pagination: true,
+      query: {},
     };
   },
 
@@ -31,7 +32,9 @@ const IssueList = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (this.props.params.orgId !== nextProps.params.orgId) {
+    let location = this.props.location;
+    let nextLocation = nextProps.location;
+    if (location.pathname != nextLocation.pathname || location.search != nextLocation.search) {
       this.remountComponent();
     }
   },
@@ -41,8 +44,10 @@ const IssueList = React.createClass({
   },
 
   fetchData() {
+    this.api.clear();
     this.api.request(this.props.endpoint, {
       method: 'GET',
+      query: this.props.query,
       success: (data, _, jqXHR) => {
         GroupStore.add(data);
 

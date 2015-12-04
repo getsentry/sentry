@@ -78,7 +78,9 @@ const CompactIssue = React.createClass({
           </h3>
           <div className="event-extra">
             <ul>
-              <li className="project-name"><a href="">Project Name</a></li>
+              <li className="project-name">
+                <Link to={`/${orgId}/${projectId}/`}>{data.project.name}</Link>
+              </li>
               <li className="hidden">
                 <span className="icon icon-clock"></span>
                 <TimeSince date={data.lastSeen} />

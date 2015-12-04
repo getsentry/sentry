@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
+from rest_framework.response import Response
+
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import Group, OrganizationMemberTeam, Project
+from sentry.models import Group, GroupStatus, OrganizationMemberTeam, Project
 
 
 class OrganizationMemberIssuesAssignedEndpoint(OrganizationMemberEndpoint):
@@ -25,6 +27,14 @@ class OrganizationMemberIssuesAssignedEndpoint(OrganizationMemberEndpoint):
         ).extra(
             select={'sort_by': 'sentry_groupasignee.date_added'},
         ).order_by('-sort_by')
+
+        status = request.GET.get('status', 'unresolved')
+        if status == 'unresolved':
+            queryset = queryset.filter(
+                status=GroupStatus.UNRESOLVED,
+            )
+        elif status:
+            return Response({'status': 'Invalid status choice'}, status=400)
 
         return self.paginate(
             request=request,
