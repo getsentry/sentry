@@ -15,6 +15,7 @@ const ActionLink = React.createClass({
     neverConfirm: React.PropTypes.bool,
     onAction: React.PropTypes.func.isRequired,
     onlyIfBulk: React.PropTypes.bool,
+    selectAllActive: React.PropTypes.bool.isRequired // "select all" checkbox
   },
 
   mixins: [
