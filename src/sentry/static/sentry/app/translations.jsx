@@ -5,7 +5,7 @@ const catalogs = (function() {
   return info.supported_locales;
 })();
 
-const translations = (function() {
+export const translations = (function() {
   let ctx = require.context('../../../locale/', true, /\.po$/);
   let rv = {};
   ctx.keys().forEach((translation) => {
