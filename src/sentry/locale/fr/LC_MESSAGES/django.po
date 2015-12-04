@@ -27,8 +27,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-12-02 20:32+0000\n"
-"PO-Revision-Date: 2015-12-02 20:32+0000\n"
+"POT-Creation-Date: 2015-12-03 23:56+0000\n"
+"PO-Revision-Date: 2015-12-03 23:57+0000\n"
 "Last-Translator: mitsuhiko <armin.ronacher@active-4.com>\n"
 "Language-Team: French (http://www.transifex.com/getsentry/sentry/language/fr/)\n"
 "MIME-Version: 1.0\n"
@@ -1423,7 +1423,7 @@ msgstr "Valider"
 
 #: templates/sentry/bases/account.html:6
 #: templates/sentry/bases/organization.html:72
-#: static/sentry/app/components/organizations/homeSidebar.jsx:58
+#: static/sentry/app/components/organizations/homeSidebar.jsx:59
 msgid "Settings"
 msgstr "Préférences"
 
@@ -2386,7 +2386,7 @@ msgstr "Une erreur s'est produite lors du chargement des données."
 msgid "Retry"
 msgstr "Réessayer"
 
-#: static/sentry/app/components/projectHeader/projectSelector.jsx:168
+#: static/sentry/app/components/projectHeader/projectSelector.jsx:177
 msgid "Filter projects"
 msgstr "Filtrer les projets"
 
@@ -2489,6 +2489,23 @@ msgstr "Événements de tendances"
 msgid "New Events"
 msgstr "Nouveaux évènements"
 
+#: static/sentry/app/views/projectDetails.jsx:156
+msgid "The project you were looking for was not found."
+msgstr "Le projet que vous recherchiez n'a pas été trouvé."
+
+#: static/sentry/app/views/projectInstall/platform.jsx:90
+msgid "Full Documentation"
+msgstr "Documentation complète"
+
+#: static/sentry/app/views/projectInstall/platform.jsx:93
+#, python-format
+msgid "Configure %(integration)s"
+msgstr "Configurer %(integration)s"
+
+#: static/sentry/app/views/projectInstall/platform.jsx:123
+msgid "Generic"
+msgstr "Générique"
+
 #: static/sentry/app/views/projectInstall/overview.jsx:45
 msgid "Configure your application"
 msgstr "Configurer votre application"
@@ -2515,26 +2532,17 @@ msgstr "Déjà mis en place ? [lien:Obtenez votre DSN]."
 msgid "Frameworks"
 msgstr "Frameworks"
 
-#: static/sentry/app/views/projectInstall/platform.jsx:90
-msgid "Full Documentation"
-msgstr "Documentation complète"
-
-#: static/sentry/app/views/projectInstall/platform.jsx:93
-#, python-format
-msgid "Configure %(integration)s"
-msgstr "Configurer %(integration)s"
-
-#: static/sentry/app/views/projectInstall/platform.jsx:123
-msgid "Generic"
-msgstr "Générique"
-
-#: static/sentry/app/views/projectDetails.jsx:156
-msgid "The project you were looking for was not found."
-msgstr "Le projet que vous recherchiez n'a pas été trouvé."
+#: static/sentry/app/views/releaseArtifacts.jsx:78
+msgid "There are no artifacts uploaded for this release."
+msgstr "Il n'y a aucun artefact téléversé pour cette version."
 
 #: static/sentry/app/views/releaseAllEvents.jsx:20
 msgid "View all events seen in this release in the stream"
 msgstr "Afficher tous les événements de cette version dans le flux"
+
+#: static/sentry/app/views/releaseNewEvents.jsx:20
+msgid "View new events seen in this release in the stream"
+msgstr "Afficher les nouveaux événements de cette version dans le flux"
 
 #: static/sentry/app/components/group/seenInfo.jsx:27
 msgid "Release"
@@ -2559,14 +2567,6 @@ msgstr "Tous les problèmes"
 #: static/sentry/app/views/releaseDetails.jsx:141
 msgid "Artifacts"
 msgstr "Artefacts"
-
-#: static/sentry/app/views/releaseNewEvents.jsx:20
-msgid "View new events seen in this release in the stream"
-msgstr "Afficher les nouveaux événements de cette version dans le flux"
-
-#: static/sentry/app/views/releaseArtifacts.jsx:78
-msgid "There are no artifacts uploaded for this release."
-msgstr "Il n'y a aucun artefact téléversé pour cette version."
 
 #: static/sentry/app/views/stream.jsx:370
 msgid "Sorry, no events match your filters."
@@ -2660,6 +2660,10 @@ msgstr "%s a attribué cet événement à un utilisateur inconnu"
 #, python-format
 msgid "%s unassigned this issue"
 msgstr "%s a retiré l'attribution de ce problème"
+
+#: static/sentry/app/views/organizationRateLimits/index.jsx:89
+msgid "Saving.."
+msgstr ""
 
 #: static/sentry/app/views/organizationStats/projectTable.jsx:41
 msgid "Accepted"
@@ -2769,22 +2773,6 @@ msgstr "Les événements sélectionnés ont été programmés pour être fusionn
 msgid "Unable to update events. Please try again."
 msgstr "Impossible de mettre à jour des événements. Réessayez."
 
-#: static/sentry/app/components/group/sidebar.jsx:19
-msgid "Last 24 Hours"
-msgstr "Dernières 24 heures"
-
-#: static/sentry/app/components/group/sidebar.jsx:23
-msgid "Last 30 Days"
-msgstr "30 derniers jours"
-
-#: static/sentry/app/components/group/chart.jsx:30
-msgid "First seen"
-msgstr "Premier vu"
-
-#: static/sentry/app/components/group/chart.jsx:37
-msgid "Last seen"
-msgstr "Dernier vu"
-
 #: static/sentry/app/views/groupDetails/eventToolbar.jsx:28
 msgid "Oldest"
 msgstr "Les plus anciens"
@@ -2800,6 +2788,22 @@ msgstr "Récents"
 #: static/sentry/app/views/groupDetails/eventToolbar.jsx:58
 msgid "Newest"
 msgstr "Les plus récents"
+
+#: static/sentry/app/components/group/sidebar.jsx:19
+msgid "Last 24 Hours"
+msgstr "Dernières 24 heures"
+
+#: static/sentry/app/components/group/sidebar.jsx:23
+msgid "Last 30 Days"
+msgstr "30 derniers jours"
+
+#: static/sentry/app/components/group/chart.jsx:30
+msgid "First seen"
+msgstr "Premier vu"
+
+#: static/sentry/app/components/group/chart.jsx:37
+msgid "Last seen"
+msgstr "Dernier vu"
 
 #: static/sentry/app/components/mutedBox.jsx:15
 #, python-format
@@ -2854,7 +2858,7 @@ msgstr "Suppression des événements…"
 msgid "Merging events.."
 msgstr "Fusion des événements…"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:118
+#: static/sentry/app/views/groupDetails/actions.jsx:120
 msgid "Resolve"
 msgstr "Résoudre"
 
@@ -2880,7 +2884,7 @@ msgstr[1] "Résoudre %d problèmes sélectionnés"
 msgid "Set Status to Resolved"
 msgstr "Définir le statut sur résolu"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:172
+#: static/sentry/app/views/groupDetails/actions.jsx:176
 msgid "Bookmark"
 msgstr "Mettre en favori"
 
@@ -3019,6 +3023,10 @@ msgstr "Texte"
 msgid "Search title and culprit text body"
 msgstr "Rechercher le titre et le corps de texte responsable de l'erreur"
 
+#: static/sentry/app/views/groupActivity/noteContainer.jsx:38
+msgid "Removing comment.."
+msgstr "Suppression du commentaire…"
+
 #: static/sentry/app/views/groupActivity/noteInput.jsx:14
 msgid "Unknown error. Please try again."
 msgstr "Erreur inconnue. Réessayez."
@@ -3050,16 +3058,6 @@ msgstr "Écrire"
 #: static/sentry/app/views/groupActivity/noteInput.jsx:226
 msgid "Markdown supported"
 msgstr "Markdown pris en charge"
-
-#: static/sentry/app/views/groupActivity/noteContainer.jsx:32
-msgid "Removing comment.."
-msgstr "Suppression du commentaire…"
-
-#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:40
-msgid ""
-"You don't have any teams for this organization yet. Get started by "
-"[link:creating your first team]."
-msgstr "Vous n'avez aucune équipe dans cette organisation. Commencez en [lien:créant votre première équipe]."
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:89
 msgid "Leave Team"
@@ -3099,6 +3097,12 @@ msgstr "(Liste noire)"
 msgid "Total"
 msgstr "Total"
 
+#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:40
+msgid ""
+"You don't have any teams for this organization yet. Get started by "
+"[link:creating your first team]."
+msgstr "Vous n'avez aucune équipe dans cette organisation. Commencez en [lien:créant votre première équipe]."
+
 #: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:87
 msgid "Events Per Minute"
 msgstr "Événements par minute"
@@ -3137,51 +3141,51 @@ msgstr "Cet événement est résolu grâce à la configuration avec résolution 
 msgid "Unresolve"
 msgstr "Marquer comme non résolu"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:130
+#: static/sentry/app/views/groupDetails/actions.jsx:133
 msgid "Resolved in next release"
 msgstr "Résolu dans la prochaine version"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:136
+#: static/sentry/app/views/groupDetails/actions.jsx:139
 msgid "Snooze notifications until this issue reoccurs in a future release."
 msgstr "Reportez les notifications jusqu'à ce que ce problème se produise à nouveau dans une version future."
 
-#: static/sentry/app/views/groupDetails/actions.jsx:135
+#: static/sentry/app/views/groupDetails/actions.jsx:138
 msgid "Resolved in next release."
 msgstr "Résolu dans la prochaine version."
 
-#: static/sentry/app/views/groupDetails/actions.jsx:146
+#: static/sentry/app/views/groupDetails/actions.jsx:150
 msgid "Remove Snooze"
 msgstr "Supprimer le report"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:154
+#: static/sentry/app/views/groupDetails/actions.jsx:158
 msgid "Snooze"
 msgstr "Reporter"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:156
+#: static/sentry/app/views/groupDetails/actions.jsx:160
 msgid "for 30 minutes"
 msgstr "dans 30 minutes"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:159
+#: static/sentry/app/views/groupDetails/actions.jsx:163
 msgid "for 2 hours"
 msgstr "dans 2 heures"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:162
+#: static/sentry/app/views/groupDetails/actions.jsx:166
 msgid "for 24 hours"
 msgstr "dans 24 heures"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:165
+#: static/sentry/app/views/groupDetails/actions.jsx:169
 msgid "forever"
 msgstr "toujours"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:180
+#: static/sentry/app/views/groupDetails/actions.jsx:184
 msgid "Delete"
 msgstr "Supprimer"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:181
+#: static/sentry/app/views/groupDetails/actions.jsx:185
 msgid "Deleting this event is permanent. Are you sure you wish to continue?"
 msgstr "La suppression de cet événement est définitive. Etes-vous sûr de vouloir continuer ?"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:190
+#: static/sentry/app/views/groupDetails/actions.jsx:194
 msgid "More"
 msgstr "Plus"
 
@@ -3203,6 +3207,11 @@ msgstr[1] ""
 #: static/sentry/app/components/events/extraData.jsx:27
 msgid "Additional Data"
 msgstr "Données supplémentaires"
+
+# this means "rich" rendering (fancy tables)
+#: static/sentry/app/components/events/interfaces/request.jsx:77
+msgid "Rich"
+msgstr "Riche"
 
 #: static/sentry/app/components/events/message.jsx:13
 msgid "Message"
@@ -3231,11 +3240,6 @@ msgstr "appel le plus récent en premier"
 #: static/sentry/app/components/events/interfaces/stacktrace.jsx:67
 msgid "most recent call last"
 msgstr "appel le plus récent en dernier"
-
-# this means "rich" rendering (fancy tables)
-#: static/sentry/app/components/events/interfaces/request.jsx:77
-msgid "Rich"
-msgstr "Riche"
 
 #: static/sentry/app/components/events/interfaces/template.jsx:25
 msgid "Template"
@@ -3277,10 +3281,6 @@ msgstr "Confirmez"
 msgid "This action cannot be undone."
 msgstr "Cette action est définitive."
 
-#: static/sentry/app/views/stream/sortOptions.jsx:48
-msgid "Sort by"
-msgstr "Trier par"
-
 #: static/sentry/app/views/stream/searchBar.jsx:59
 msgid "Tag"
 msgstr "Tag"
@@ -3301,13 +3301,9 @@ msgstr "membre de l'équipe associé à un événement"
 msgid "or paste an event id to jump straight to it"
 msgstr "ou collez un identifiant d'événement pour y accéder directement"
 
-#: static/sentry/app/components/header/broadcasts.jsx:118
-msgid "No recent broadcasts from the Sentry team."
-msgstr "Aucune publication récente de l'équipe Sentry"
-
-#: static/sentry/app/components/header/broadcasts.jsx:128
-msgid "Read more"
-msgstr "Lire plus"
+#: static/sentry/app/views/stream/sortOptions.jsx:48
+msgid "Sort by"
+msgstr "Trier par"
 
 #: static/sentry/app/views/groupActivity/note.jsx:32
 msgid "Are you sure you wish to delete this comment?"
@@ -3325,6 +3321,18 @@ msgstr "Une erreur s'est produite lors de la tentative d'intégration à l'équi
 msgid "There was an error while trying to leave the team."
 msgstr "Une erreur s'est produite lors de la tentative de retrait de l'équipe."
 
+#: static/sentry/app/components/header/broadcasts.jsx:118
+msgid "No recent broadcasts from the Sentry team."
+msgstr "Aucune publication récente de l'équipe Sentry"
+
+#: static/sentry/app/components/header/broadcasts.jsx:128
+msgid "Read more"
+msgstr "Lire plus"
+
+#: static/sentry/app/components/clippedBox.jsx:57
+msgid "Show more"
+msgstr "Afficher plus"
+
 #: static/sentry/app/components/events/errorItem.jsx:25
 msgid "Collapse"
 msgstr "Fermer"
@@ -3332,10 +3340,6 @@ msgstr "Fermer"
 #: static/sentry/app/components/events/errorItem.jsx:25
 msgid "Expand"
 msgstr "Ouvrir"
-
-#: static/sentry/app/components/clippedBox.jsx:57
-msgid "Show more"
-msgstr "Afficher plus"
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:69
 msgid "Query String"
