@@ -29,6 +29,14 @@
     </li>
     {% endif %}
   </ul>
+  {% feature organizations:my-issues organization %}
+    <h6 class="nav-header">{% trans "My Issues" %}</h6>
+    <ul class="nav nav-stacked">
+      <li><a href="{% absolute_uri '/organizations/{}/issues/assigned/' organization.slug %}">{% trans "Assigned to Me" %}</li></a>
+      <li><a href="{% absolute_uri '/organizations/{}/issues/bookmarks/' organization.slug %}">{% trans "Bookmarks" %}</li></a>
+      <li><a href="{% absolute_uri '/organizations/{}/issues/history/' organization.slug %}">{% trans "History" %}</li></a>
+    </ul>
+  {% endfeature %}
   <h6 class="nav-header">Manage</h6>
   <ul class="nav nav-stacked">
     {% if ACCESS.org_read %}
@@ -53,25 +61,21 @@
       {% endfeature %}
     {% endif %}
     {% if ACCESS.org_write %}
-    <li class="{% block org_apikeys_nav %}{% endblock %}">
-      <a href="{% url 'sentry-organization-api-keys' organization.slug %}">
-        {% trans "API Keys" %}
-      </a>
-    </li>
-    {% endif %}
-    {% if ACCESS.org_write %}
-    <li class="{% block org_auditlog_nav %}{% endblock %}">
-      <a href="{% url 'sentry-organization-audit-log' organization.slug %}">
-        {% trans "Audit Log" %}
-      </a>
-    </li>
-    {% endif %}
-    {% if ACCESS.org_write %}
-    <li class="{% block org_settings_nav %}{% endblock %}">
-      <a href="{% url 'sentry-organization-settings' organization.slug %}">
-        {% trans "Settings" %}
-      </a>
-    </li>
+      <li class="{% block org_apikeys_nav %}{% endblock %}">
+        <a href="{% url 'sentry-organization-api-keys' organization.slug %}">
+          {% trans "API Keys" %}
+        </a>
+      </li>
+      <li class="{% block org_auditlog_nav %}{% endblock %}">
+        <a href="{% url 'sentry-organization-audit-log' organization.slug %}">
+          {% trans "Audit Log" %}
+        </a>
+      </li>
+      <li class="{% block org_settings_nav %}{% endblock %}">
+        <a href="{% url 'sentry-organization-settings' organization.slug %}">
+          {% trans "Settings" %}
+        </a>
+      </li>
     {% endif %}
   </ul>
   {% block org_sidebar_nav_extra %}

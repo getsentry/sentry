@@ -30,12 +30,16 @@ const HomeSidebar = React.createClass({
             <ListLink to={`/organizations/${orgId}/stats/`}>{t('Stats')}</ListLink>
           }
         </ul>
-        <h6 className="nav-header">{t('My Issues')}</h6>
-        <ul className="nav nav-stacked">
-          <ListLink to={`/organizations/${orgId}/issues/assigned/`}>{t('Assigned to Me')}</ListLink>
-          <ListLink to={`/organizations/${orgId}/issues/bookmarks/`}>{t('Bookmarks')}</ListLink>
-          <ListLink to={`/organizations/${orgId}/issues/history/`}>{t('History')}</ListLink>
-        </ul>
+        {features.has('my-issues') &&
+          <div>
+            <h6 className="nav-header">{t('My Issues')}</h6>
+            <ul className="nav nav-stacked">
+              <ListLink to={`/organizations/${orgId}/issues/assigned/`}>{t('Assigned to Me')}</ListLink>
+              <ListLink to={`/organizations/${orgId}/issues/bookmarks/`}>{t('Bookmarks')}</ListLink>
+              <ListLink to={`/organizations/${orgId}/issues/history/`}>{t('History')}</ListLink>
+            </ul>
+          </div>
+        }
         {access.has('org:read') &&
           <div>
             <h6 className="nav-header">{t('Manage')}</h6>
