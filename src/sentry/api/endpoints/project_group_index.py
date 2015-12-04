@@ -244,6 +244,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         response = Response(context)
         response['X-Hits'] = cursor_result.hits
+        response['X-Max-Hits'] = cursor_result.max_hits
         response['Link'] = ', '.join([
             self.build_cursor_link(request, 'previous', cursor_result.prev),
             self.build_cursor_link(request, 'next', cursor_result.next),
