@@ -207,16 +207,22 @@ def apply_legacy_settings(settings):
                       "Use SENTRY_OPTIONS instead, key 'system.url-prefix'", DeprecationWarning)
         settings.SENTRY_OPTIONS['system.url-prefix'] = settings.SENTRY_URL_PREFIX
 
+    if not hasattr(settings, 'SENTRY_URL_PREFIX'):
+        from sentry import options
+        url_prefix = options.get('system.url-prefix')
+        if not url_prefix:
+            # HACK: We need to have some value here for backwards compatibility
+            url_prefix = 'http://sentry.example.com'
+        settings.SENTRY_URL_PREFIX = url_prefix
+
     if settings.TIME_ZONE != 'UTC':
         # non-UTC timezones are not supported
         show_big_error('TIME_ZONE should be set to UTC')
 
     # Set ALLOWED_HOSTS if it's not already available
     if not settings.ALLOWED_HOSTS:
-        from urlparse import urlparse
-        urlbits = urlparse(settings.SENTRY_URL_PREFIX)
-        if urlbits.hostname:
-            settings.ALLOWED_HOSTS = (urlbits.hostname,)
+        from .hacks import AllowedHosts
+        settings.ALLOWED_HOSTS = AllowedHosts()
 
     if hasattr(settings, 'SENTRY_ALLOW_REGISTRATION'):
         import warnings
