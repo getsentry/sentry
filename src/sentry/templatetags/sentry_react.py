@@ -57,15 +57,20 @@ def get_react_config(context):
 
     version_info = _get_version_info()
 
+    if is_superuser:
+        # TODO(dcramer): we should confirm that no options need configured
+        # when upgrading, and if so, we simply bump the version??
+        needs_upgrade = options.get('sentry:version-configured') != version_info['current']
+    else:
+        needs_upgrade = False
+
     context = {
         'singleOrganization': settings.SENTRY_SINGLE_ORGANIZATION,
         'urlPrefix': options.get('system.url-prefix'),
         'version': version_info,
         'features': enabled_features,
         'mediaUrl': get_asset_url('sentry', ''),
-        # TODO(dcramer): we should confirm that no options need configured
-        # when upgrading, and if so, we simply bump the version??
-        'needsUpgrade': options.get('sentry:version-configured') != version_info['current'],
+        'needsUpgrade': needs_upgrade,
         'messages': [{
             'message': msg.message,
             'level': msg.tags,
