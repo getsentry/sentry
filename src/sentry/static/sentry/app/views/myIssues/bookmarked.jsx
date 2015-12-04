@@ -1,26 +1,24 @@
 import React from 'react';
 
-import GroupStore from '../../stores/groupStore';
-import IssueList from '../../components/issueList';
-import OrganizationHomeContainer from '../../components/organizations/homeContainer';
+import OrganizationIssueList from '../../components/organizationIssueList';
 
 const Bookmarked = React.createClass({
-  componentWillUnmount() {
-    GroupStore.reset();
-  },
-
   getEndpoint() {
     return `/organizations/${this.props.params.orgId}/members/me/issues/bookmarked/`;
   },
 
+  getTitle() {
+    return 'Bookmarks';
+  },
+
   render() {
     return (
-      <OrganizationHomeContainer>
-        <h3>Bookmarks</h3>
-        <IssueList endpoint={this.getEndpoint()} {...this.props} />
-      </OrganizationHomeContainer>
+      <OrganizationIssueList
+        title={this.getTitle()}
+        endpoint={this.getEndpoint()}
+        {...this.props} />
     );
-  }
+  },
 });
 
 export default Bookmarked;
