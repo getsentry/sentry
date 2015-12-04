@@ -38,7 +38,10 @@ from sentry.models import Organization
 from sentry.utils import json, to_unicode
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.javascript import to_json
-from sentry.utils.strings import truncatechars
+from sentry.utils.strings import (
+    soft_break,
+    truncatechars,
+)
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
 
@@ -52,6 +55,7 @@ register = template.Library()
 truncatechars = register.filter(stringfilter(truncatechars))
 truncatechars.is_safe = True
 
+register.filter(soft_break)
 register.filter(to_json)
 
 
