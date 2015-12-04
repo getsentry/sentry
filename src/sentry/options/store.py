@@ -76,7 +76,7 @@ class OptionsStore(object):
 
         # As a last ditch effort, let's hope we have a key
         # in local cache that's possibly stale
-        return self.get_local_cache(key, grace=True)
+        return self.get_local_cache(key, force_grace=True)
 
     def get_cache(self, key):
         """
@@ -98,7 +98,7 @@ class OptionsStore(object):
                 self._local_cache[cache_key] = _make_cache_value(key, value)
         return value
 
-    def get_local_cache(self, key, grace=False):
+    def get_local_cache(self, key, force_grace=False):
         """
         Attempt to fetch a key out of the local cache.
 
