@@ -10,12 +10,17 @@ from sentry.api.permissions import SuperuserPermission
 class SystemOptionsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
-    option_names = set(['system.url-prefix', 'system.admin-email'])
-
     def get(self, request):
         results = {
-            k: options.get(k)
-            for k in self.option_names
+            k.name: {
+                'value': options.get(k.name),
+                'field': {
+                    'default': k.default,
+                    'required': True,
+                    # TODO(mattrobenolt): help, placeholder, title, type
+                },
+            }
+            for k in options.filter(flag=options.FLAG_REQUIRED)
         }
 
         return Response(results)
