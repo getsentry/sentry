@@ -40,7 +40,7 @@ const SnoozeAction = React.createClass({
         <Modal show={this.state.isModalOpen} title={t('Please confirm')} animation={false}
                onHide={this.closeModal} bsSize="sm">
           <div className="modal-body">
-            <p>How long should we snooze this issue?</p>
+            <h5>How long should we snooze this issue?</h5>
             <ul className="nav nav-stacked nav-pills">
               <li><a href="#">30 minutes</a></li>
               <li><a href="#">2 hours</a></li>

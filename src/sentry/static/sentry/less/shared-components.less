@@ -2468,6 +2468,26 @@ ul.radio-inputs {
     border-top: 1px solid lighten(@trim, 8);
     margin: 5px -20px -20px;
   }
+
+  .nav-stacked {
+    margin-bottom: 0;
+
+    li {
+      a {
+        .transition(none);
+        &:hover {
+          color: #fff;
+          background: @blue;
+        }
+      }
+    }
+  }
+}
+
+// Modal Small
+
+.modal-sm {
+  width: 400px;
 }
 
 .welcome-modal {
@@ -2998,7 +3018,7 @@ ul.tag-list {
 
     &.modal-sm {
       top: 50%;
-      margin-left: -150px;
+      margin-left: -200px;
       margin-top: -155px;
     }
   }
