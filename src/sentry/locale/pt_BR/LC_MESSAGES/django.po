@@ -1881,7 +1881,7 @@ msgstr "ontem"
 
 #: templatetags/sentry_helpers.py:180
 msgid " ago"
-msgstr "atrás"
+msgstr " atrás"
 
 #: web/forms/__init__.py:46
 msgid ""
