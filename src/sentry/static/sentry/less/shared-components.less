@@ -10,7 +10,7 @@
   border-radius: 3px;
   font-weight: 600;
   padding: 8px 16px;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
 
   .transition(all .1s);
 
@@ -48,14 +48,19 @@
 
 .btn-default {
   color: @gray-dark;
-  background-color: #fff;
-  border-color: darken(@trim, 3);
+  background: #fff;
+  border-color: @gray-lighter;
 
   &:hover, &:focus, &:active {
-    color: #34343f;
-    background-color: darken(@bgColor, .5);
-    border-color: darken(@trim, 6);
+    color: @gray-darker;
+    background-color: @white-darker;
+    border-color: @gray-light;
   }
+}
+
+.open > .dropdown-toggle.btn-default, .open > .dropdown-toggle.btn-default:hover, .open > .dropdown-toggle.btn-default:active {
+  background: @white-darker;
+  box-shadow: inset 0 1px 1px rgba(0,0,0, .05);
 }
 
 .btn-primary {
@@ -187,13 +192,23 @@
   .btn {
     height: 38px;
     background: #fff;
-    border-color: darken(@trim, 5);
-    color: @gray;
+    border-color: @gray-lighter;
+    color: @gray-dark;
     font-weight: 400;
 
     &.active {
       font-weight: bold;
       text-shadow: 0 -1px 0 rgba(0,0,0, .15);
+
+      &:hover {
+        background: @blue-dark;
+        border-color: darken(@blue-dark, 20);
+      }
+    }
+
+    &:hover {
+      color: @gray-darker;
+      background: @white-dark;
     }
 
     &:active {
@@ -469,7 +484,7 @@ table.integrations {
     position: absolute;
     top: 15px;
     left: 16px;
-    background: @teal;
+    background: @blue-light;
     .square(48px);
     border-radius: 2px;
     color: #fff;
@@ -491,7 +506,7 @@ table.integrations {
   .auto-tag-operating-systems,
   .auto-tag-urls {
     .integration-icon {
-      background: @sentry-orange;
+      background: @orange;
 
       &:after {
         content: "\e603";
@@ -865,7 +880,7 @@ table.integrations {
 
     .search-input {
       border: 1px solid lighten(@trim, 4);
-      background: @bgColor;
+      background: @white-dark;
       color: @gray-light;
     }
 
@@ -989,7 +1004,7 @@ table.integrations {
     }
 
     &:hover, &.active {
-      background: @headerBgColor;
+      background: @white-dark;
       border-color: @trim;
 
       & + li {
@@ -1020,12 +1035,13 @@ table.integrations {
 
 .project-select > a {
   font-weight: 600;
+  color: @gray-darker;
 }
 
 .project-dropdown {
   .dropdown-toggle {
-    border: 1px solid darken(@trim, 6);
-    box-shadow: 0 1px 0 rgba(0, 0, 0, .03);
+    border: 1px solid @gray-lighter;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, .08);
     border-radius: 3px;
     height: 20px;
     width: 21px;
@@ -1039,8 +1055,8 @@ table.integrations {
     vertical-align: middle;
 
     &:hover {
-      background: darken(@bgColor, .5);
-      border-color: darken(@trim, 6);
+      background: @white-darker;
+      border-color: @gray-light;
     }
 
     .icon-arrow-down {
@@ -1177,7 +1193,7 @@ table.integrations {
     padding-left: 10px;
     height: 100%;
     text-align: left;
-    color: @linkColor;
+    color: @link-color;
     .legendLabel {
       padding: 0 5px;
     }
@@ -1257,7 +1273,7 @@ table.integrations {
 
     &:hover {
       > span {
-        background: @blue;
+        background: @purple;
         border-color: transparent;
       }
     }
@@ -1268,14 +1284,13 @@ table.integrations {
       bottom: 0;
       left: 1px;
       right: 1px;
-      background: lighten(@gray, 12);
+      background: @purple-light;
       min-width: 1px;
       height: 0;
       overflow: hidden;
       text-indent: -9999px;
       text-align: left;
       min-height: 1px;
-      border-radius: 1px;
     }
   }
 
@@ -1293,7 +1308,7 @@ table.integrations {
     }
 
     &.first-seen > span {
-      background: @purple;
+      background: @pink;
       left: -13px;
     }
 
@@ -1358,7 +1373,7 @@ table.integrations {
     }
 
     .tag-description {
-      background-color: @bgColor;
+      background-color: @white;
       position: absolute;
       text-align: right;
       top: -1px;
@@ -1371,7 +1386,7 @@ table.integrations {
 
     .tag-percentage {
       margin-right: 6px;
-      color: lighten(@gray, 30%);
+      color: @gray-light;
       display: inline-block;
       vertical-align: middle;
     }
@@ -1632,8 +1647,8 @@ table.integrations {
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
 
   .box-header {
-    background: @headerBgColor;
-    color: @gray-dark;
+    background: @white-dark;
+    color: @gray-darker;
     line-height: 1;
     padding: 0 20px;
     border-radius: 3px 3px 0 0;
@@ -1679,9 +1694,9 @@ table.integrations {
     }
 
     a {
-      color: @gray;
+      color: @gray-dark;
       &:hover {
-        color: darken(@gray, 20);
+        color: @gray-darker;
       }
     }
 
@@ -1696,7 +1711,7 @@ table.integrations {
       line-height: 1.2;
 
       small {
-        color: @gray;
+        color: @gray-dark;
         font-size: 14px;
       }
     }
@@ -1771,7 +1786,7 @@ table.integrations {
     }
 
     h1, h2, h3, h4, h5, h6 {
-      color: @gray-dark;
+      color: @gray-darker;
     }
   }
 
@@ -1789,6 +1804,40 @@ table.integrations {
 }
 
 /**
+ * Global Messages
+ * ============================================================================
+ */
+
+ .messages-container {
+   .alert {
+     color: #fff;
+     font-weight: bold;
+     background: @yellow-light;
+     border: 0;
+
+     .close {
+       color: rgba(255,255,255, .5);
+
+       &:hover {
+         color: rgba(255,255,255, .8);
+       }
+     }
+   }
+
+   .alert-success {
+     background: @green-light;
+   }
+
+   .alert-info {
+     background: @blue-light;
+   }
+
+   .alert-error {
+     background: @red-light;
+   }
+ }
+
+/**
 * Alerts
 * ============================================================================
 */
@@ -1801,16 +1850,16 @@ table.integrations {
 }
 
 .alert {
-  background: #FBFAF4;
-  color: #866938;
-  border: 1px solid #E2D2AD;
+  background: #FFFDF7;
+  color: rgba(0,0,0, .7);
+  border: 1px solid #E7D695;
   font-weight: 400;
   padding: 10px 20px;
   border-radius: 0;
   margin: 0;
   font-size: 15px;
   line-height: 1.4;
-  box-shadow: 0 1px 1px rgba(0,0,0, .03);
+  box-shadow: 0 1px 1px rgba(0,0,0, .05);
 
   p:last-child {
     margin: 0;
@@ -1821,6 +1870,7 @@ table.integrations {
     margin: 3px 8px 0 3px;
     display: block;
     font-size: 15px;
+    opacity: .65;
   }
 
   .icon-sentry-logo {
@@ -1828,14 +1878,13 @@ table.integrations {
   }
 
   .close {
-    opacity: .5;
     font-weight: 600;
     position: absolute;
     top: -6px;
     right: 8px;
     box-shadow: none;
-    .transition(opacity .15s);
-    color: #ddd;
+    .transition(color .15s);
+    color: rgba(0,0,0, .25);
     background: 0;
     border: 0;
     font-size: 22px;
@@ -1843,9 +1892,7 @@ table.integrations {
 
     &:hover {
       box-shadow: none;
-      font-weight: bold;
-      color: #fff;
-      opacity: 1;
+      color: rgba(0,0,0, .5);
     }
   }
   a {
@@ -1860,38 +1907,21 @@ table.integrations {
   &.alert-block {
     margin-bottom: 20px;
     border-radius: 3px;
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
   }
 }
 
 .alert-error {
-  background: @red;
-  color: #fff;
-  border: 0;
+  background: #FEF7F6;
+  border-color: #E8B8B2;
 
   .icon:before {
     content: "\e615";
   }
-
-  &.alert-block {
-    border: 1px solid #DAB9BB;
-    background: #FDF7F7;
-    color: #865254;
-
-    a {
-      color: #6D292D;
-
-      &:hover {
-        color: #481b1e;
-      }
-    }
-  }
 }
 
 .alert-info {
-  background: #F4FBFF;
-  color: #214B61;
-  border-color: #A3C7DA;
+  background: #F4FAFE;
+  border-color: #A0CDEC;
 
   .icon {
     display: none;
@@ -1899,9 +1929,8 @@ table.integrations {
 }
 
 .alert-success {
-  background: @green;
-  color: #fff;
-  border: 0;
+  background: #F7FBF8;
+  border-color: #ACCFB3;
 
   .icon:before {
     content: "\e60a";
@@ -2024,7 +2053,7 @@ table.integrations {
 }
 
 .nav-pills > li.active > a {
-  background-color: lighten(@linkColor, 10%);
+  background-color: @blue;
 }
 
 .nav-small {
@@ -2043,7 +2072,7 @@ table.integrations {
   margin-bottom: 8px;
   text-transform: uppercase;
   font-size: 12px;
-  color: lighten(@gray, 20);
+  color: @gray-light;
   letter-spacing: 0.1px;
 
   .btn-xs {
@@ -2058,18 +2087,19 @@ table.integrations {
   margin-bottom: 6px;
 
   > a {
-    font-size: 15px;
-    padding: 2px 16px;
+    font-size: 16px;
+    line-height: 1.5;
+    padding: 0;
     margin: 4px 0;
     display: block;
     border: 0;
     background: none;
-    color: @gray;
+    color: @gray-dark;
     position: relative;
 
     &:hover, &:active, &:focus {
       background: none;
-      color: @gray-dark;
+      color: @gray-darkest;
     }
   }
 
@@ -2086,8 +2116,8 @@ table.integrations {
         content: "";
         top: 2px;
         bottom: 3px;
-        left: 1px;
-        width: 3px;
+        left: -15px;
+        width: 4px;
         background: @blue;
       }
     }
@@ -2115,13 +2145,13 @@ table.integrations {
       padding: 0 0 10px;
       border: 0;
       background: none;
-      color: lighten(@gray, 10);
+      color: @gray;
       min-width: 30px;
       text-align: center;
 
       &:hover, &:active, &:focus {
         background: none;
-        color: @gray-dark;
+        color: @gray-darker;
       }
     }
 
@@ -2134,7 +2164,7 @@ table.integrations {
         border: 0;
         border-bottom: 4px solid @blue;
         background: none;
-        color: @gray-dark;
+        color: @gray-darkest;
         font-weight: 400;
       }
     }
@@ -2142,7 +2172,7 @@ table.integrations {
 
   > li.markdown {
     float: right;
-    color: lighten(@gray, 10);
+    color: @gray;
     margin-right: 0;
 
     > .icon-markdown {
@@ -2259,7 +2289,7 @@ table.integrations {
 */
 
 .badge {
-  background: lighten(@gray, 15);
+  background: @gray;
   color: #fff;
   font-size: 75%;
   font-weight: 600;
@@ -2281,10 +2311,10 @@ table.integrations {
   }
 
   &.badge-soft {
-    color: @gray-light;
+    color: @gray;
     top: 0;
     line-height: 18px;
-    border: 1px solid #ddd;
+    border: 1px solid @gray-lighter;
     background: inherit;
   }
 }
@@ -2652,7 +2682,7 @@ ul.radio-inputs {
         font-size: 13px;
         margin-top: 10px;
         padding: 0 0 0 15px;
-        border-left: 4px solid @sentry-orange;
+        border-left: 4px solid @orange;
       }
 
       .chat-avatar {
@@ -2698,7 +2728,7 @@ ul.radio-inputs {
 .well {
   border: 1px solid @trim;
   box-shadow: none;
-  background: @bgColor;
+  background: @white-dark;
   padding: 15px 20px;
   margin-bottom: 20px;
   border-radius: 3px;
@@ -2934,7 +2964,7 @@ ul.tag-list {
     }
 
     &.csharp {
-      background: @teal;
+      background: @blue-light;
     }
 
     &.go {
@@ -2951,7 +2981,7 @@ ul.tag-list {
  */
 
  .error-level {
-   background: lighten(@gray, 30);
+   background: @gray-light;
  }
 
  &.level-info .error-level {
@@ -2961,7 +2991,7 @@ ul.tag-list {
    background: @yellow;
  }
  &.level-error .error-level {
-   background: @sentry-orange;
+   background: @orange;
  }
  &.level-fatal .error-level {
    background: @red;

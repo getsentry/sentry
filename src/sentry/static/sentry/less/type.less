@@ -1,16 +1,25 @@
 /**
+ * Variables
+ * ============================================================================
+ */
+
+ @baseFontSize: 13px;
+ @font-family-base: "Lato", "Avenir Next", "Helvetica Neue", sans-serif;
+ @font-family-code: Monaco, Consolas, "Courier New", monospace;
+
+/**
  * Links
  * ============================================================================
  */
 
 a {
-  color: @linkColor;
+  color: @link-color;
   text-decoration: none;
   .transition(color linear .2s);
   cursor: pointer;
 
   &:hover {
-    color: @linkColorHover;
+    color: @link-color-hover;
     text-decoration: none;
   }
 
@@ -88,7 +97,7 @@ th, dt, strong {
 }
 
 hr {
-  border-top: 1px solid lighten(@trim, 5);
+  border-top: 1px solid @trim;
 }
 
 /**
@@ -113,8 +122,8 @@ pre, code, kbd, sample {
 
 pre, code {
   border: 0;
-  background-color: #F8F9FA;
-  color: #333;
+  background-color: @white-darker;
+  color: @gray-darker;
   border-radius: 3px;
 
   span {
@@ -135,5 +144,5 @@ pre {
 
 .page-header {
   margin: 0 0 20px;
-  border-bottom: 1px solid lighten(@trim, 8);
+  border-bottom: 1px solid @trim;
 }

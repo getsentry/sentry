@@ -14,10 +14,21 @@
 }
 
 .organization-home {
+
+  .nav-header {
+    padding: 0 0 10px;
+    margin: 0;
+
+    &.with-divider {
+      border-top: 1px solid @trim;
+      padding-top: 30px;
+    }
+  }
+
   .count {
     font-size: 36px;
-    color: lighten(@gray, 10);
-    margin: 20px 0 30px;
+    color: @gray-dark;
+    margin: 10px 0 20px;
 
     &.rejected {
       color: @red;
@@ -42,35 +53,35 @@
 
   .box-header {
     .actions {
-        a {
-          font-size: 13px;
-          margin-left: 20px;
-          font-weight: bold;
-          padding-top: 7px;
-          display: inline-block;
-          color: lighten(@gray, 15);
-
-          &:hover {
-            color: @gray;
-          }
-        }
-
-        .icon-plus {
-          top: 1px;
-          font-size: 16px;
-        }
-
-        .icon-settings {
-          top: 1px;
-        }
-      }
-
       a {
+        font-size: 13px;
+        margin-left: 20px;
+        font-weight: bold;
+        padding-top: 7px;
+        display: inline-block;
         color: @gray;
+
         &:hover {
-          color: darken(@gray, 20);
+          color: @gray-dark;
         }
       }
+
+      .icon-plus {
+        top: 1px;
+        font-size: 16px;
+      }
+
+      .icon-settings {
+        top: 1px;
+      }
+    }
+
+    a {
+      color: @gray;
+      &:hover {
+        color: @gray-dark;
+      }
+    }
   }
 
   .box-content {
@@ -82,10 +93,10 @@
       text-align: center;
 
       a {
-        color: @linkColor;
+        color: @link-color;
 
         &:hover {
-          color: @linkColorHover;
+          color: @link-color-hover;
         }
       }
     }
@@ -203,6 +214,14 @@ table.project-list {
   margin-bottom: 0;
   font-size: 16px;
 
+  h5 a {
+    color: @gray-darker;
+
+    &:hover {
+      color: @gray-darkest;
+    }
+  }
+
   tbody tr {
     td {
       border: 0;
@@ -212,10 +231,6 @@ table.project-list {
 
       &:first-child {
         width: auto;
-
-        a {
-          color: @gray-dark;
-        }
       }
 
       &.project-chart {
@@ -224,10 +239,6 @@ table.project-list {
           height: 20px;
         }
       }
-    }
-
-    &:hover td a {
-      color: @black;
     }
   }
 }
@@ -294,13 +305,8 @@ table.project-list {
 */
 
 .stats-column {
-  padding-left: 30px;
-
-
-
   .stats-link {
     display: block;
-    margin-top: -15px;
     font-size: 85%;
   }
 }
