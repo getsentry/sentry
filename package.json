@@ -65,7 +65,7 @@
     "karma-sourcemap-loader": "0.3.6",
     "karma-webpack": "1.7.0",
     "platformicons": "0.0.7",
-    "po-catalog-loader": "^1.0.0",
+    "po-catalog-loader": "^1.2.0",
     "sinon": "1.17.2",
     "sinon-chai": "2.8.0",
     "sprintf-js": "^1.0.3"
