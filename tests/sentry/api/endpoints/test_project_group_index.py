@@ -70,9 +70,6 @@ class GroupListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]['id'] == str(group2.id)
 
-        assert response['X-Hits'] == '2'
-        assert response['X-Max-Hits'] == '1000'
-
         links = self._parse_links(response['Link'])
 
         assert links['previous']['results'] == 'false'
