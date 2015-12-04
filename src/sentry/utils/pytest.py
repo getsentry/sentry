@@ -63,7 +63,7 @@ def pytest_configure(config):
     middleware[sudo] = 'sentry.testutils.middleware.SudoMiddleware'
     settings.MIDDLEWARE_CLASSES = tuple(middleware)
 
-    settings.SENTRY_URL_PREFIX = 'http://testserver'
+    settings.SENTRY_OPTIONS['system.url-prefix'] = 'http://testserver'
 
     # enable draft features
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True

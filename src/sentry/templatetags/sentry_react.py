@@ -59,7 +59,7 @@ def get_react_config(context):
 
     context = {
         'singleOrganization': settings.SENTRY_SINGLE_ORGANIZATION,
-        'urlPrefix': settings.SENTRY_URL_PREFIX,
+        'urlPrefix': options.get('system.url-prefix'),
         'version': version_info,
         'features': enabled_features,
         'mediaUrl': get_asset_url('sentry', ''),
