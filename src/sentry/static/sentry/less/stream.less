@@ -34,7 +34,7 @@
 .group-header {
   // needs fixed height so that stream doesn't "pop" up
   // when stream actions turn "sticky"
-  height: 44px;
+  min-height: 44px;
 }
 
 .stream-no-bulk-actions {
@@ -156,6 +156,25 @@
         font-weight: 600;
         color: #fff;
       }
+    }
+  }
+}
+
+.stream-select-all-notice {
+  background: @headerBgColor;
+  border: 1px solid @trim;
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  box-shadow: 0 1px 0 @trim;
+  margin: 0;
+  padding-right: 10px;
+
+  > div {
+    background-color: #ffc;
+    text-align: center;
+
+    > a {
+      margin-left: 0.5em;
     }
   }
 }
