@@ -16,7 +16,7 @@
     border-top-color: transparent;
     border-bottom-color: transparent;
     box-shadow: 0 1px 0 rgba(52, 60, 69, 0.15);
-    background: @headerBgColor; // alpha transparency too slow, so using fixed color
+    background: @white-dark;
     margin: 0 auto;
   }
 }
@@ -55,7 +55,7 @@
 }
 
 .stream-actions {
-  background: @headerBgColor;
+  background: @white-dark;
   border: 1px solid @trim;
   border-bottom: none;
   border-radius: 3px 3px 0 0;
@@ -168,7 +168,7 @@
 .group-list {
   background: #fff;
   border: 1px solid @trim;
-  border-top: 1px solid lighten(@trim, 2);
+  border-top: 1px solid @trim;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
   border-radius: 0 0 3px 3px;
   // position: relative;
@@ -178,10 +178,10 @@
   .list-unstyled;
 
   .group {
-    color: @gray;
+    color: @gray-dark;
     position: relative;
     margin: 0;
-    border-bottom: 1px solid lighten(@trim, 7);
+    border-bottom: 1px solid @trim;
     padding-right: 10px;
     background: #fff;
     .transition(all .4s ease-in-out);
@@ -224,22 +224,8 @@
       }
     }
 
-    // .event-details:after {
-    //   position: absolute;
-    //   content: "";
-    //   top: 11px;
-    //   right: auto;
-    //   bottom: -1px;
-    //   left: -1px;
-    //   height: 17px;
-    //   width: 5px;
-    //   border-radius: 0 2px 2px 0;
-    //   z-index: 100;
-    //   .transition(all .2s ease-in-out);
-    // }
-
     &.selected {
-      background: lighten(@blue, 46);
+      background: lighten(@blue, 20);
       box-shadow: inset 0 1px 0 rgba(52, 60, 69, 0.08);
 
       .event-details:after {
@@ -258,7 +244,7 @@
     &.isResolved {
       h3 {
         text-decoration: line-through;
-        color: #949ea4;
+        color: @gray;
       }
     }
 
@@ -350,7 +336,11 @@
       }
 
       a {
-        color: darken(@gray-dark, 4);
+        color: @gray-darker;
+
+        &:hover {
+          color: @gray-darkest;
+        }
       }
     }
 
@@ -361,11 +351,11 @@
     .event-message {
       font-size: 14px;
       margin-bottom: 6px;
-      color: @gray;
+      color: @gray-dark;
       word-wrap: break-word;
     }
     .event-extra {
-      color: @gray-light;
+      color: @gray;
     }
 
     .event-extra {
@@ -449,6 +439,16 @@
     line-height: 24px;
   }
 
+  .event-graph {
+    .sparkline a {
+      height: 24px;
+
+      > span {
+        background: @gray;
+      }
+    }
+  }
+
   .event-assignee {
     color: rgba(105, 109, 128, 0.4);
     text-align: center;
@@ -471,10 +471,6 @@
         color: #111;
       }
     }
-  }
-
-  .sparkline a {
-    height: 24px;
   }
 
   &.group-list-small {
@@ -514,11 +510,17 @@
   .box-header {
     font-size: 12px;
     font-weight: 600;
-    color: lighten(@gray, 10);
+    color: @gray;
+
+    h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      margin-left: -5px;
+    }
 
     .align-right {
       text-transform: uppercase;
-      padding-top: 8px;
+      padding-top: 7px;
     }
   }
 }

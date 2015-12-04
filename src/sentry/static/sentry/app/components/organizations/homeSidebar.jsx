@@ -32,7 +32,7 @@ const HomeSidebar = React.createClass({
         </ul>
         {features.has('my-issues') &&
           <div>
-            <h6 className="nav-header">{t('My Issues')}</h6>
+            <h6 className="nav-header with-divider">{t('My Issues')}</h6>
             <ul className="nav nav-stacked">
               <ListLink to={`/organizations/${orgId}/issues/assigned/`}>{t('Assigned to Me')}</ListLink>
               <ListLink to={`/organizations/${orgId}/issues/bookmarks/`}>{t('Bookmarks')}</ListLink>
@@ -42,7 +42,7 @@ const HomeSidebar = React.createClass({
         }
         {access.has('org:read') &&
           <div>
-            <h6 className="nav-header">{t('Manage')}</h6>
+            <h6 className="nav-header with-divider">{t('Manage')}</h6>
             <ul className="nav nav-stacked">
               {access.has('org:read') &&
                 <li>

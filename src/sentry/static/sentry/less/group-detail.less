@@ -6,23 +6,11 @@
 .group-detail {
   position: relative;
   margin: 0 0 20px;
+  border-bottom: 1px solid @trim;
   clear: both;
 
-  &:before {
-    position: absolute;
-    content: "";
-    display: block;
-    top: -20px;
-    left: -1000px;
-    right: -1000px;
-    bottom: -1px;
-    background: #fff;
-    border-bottom: 1px solid @trim;
-    z-index: -1;
-  }
-
   h3 {
-    color: @gray-dark;
+    color: @gray-darkest;
     font-size: 22px;
     margin: 0 0 8px;
     text-overflow: ellipsis;
@@ -36,18 +24,16 @@
   }
 
   .error-level {
-    padding: 3px 4px;
-    font-size: 11px;
-    color: #fff;
+    padding: 0;
     border-radius: 2px;
-    text-transform: capitalize;
     margin-right: 8px;
-    line-height: 1;
-    min-width: 50px;
-    text-align: center;
     display: inline-block;
     position: relative;
-    top: -1px;
+    top: 3px;
+    .square(13px);
+    text-indent: -9999em;
+    display: inline-block;
+    border-radius: 15px;
   }
 
   .event-meta {
@@ -113,25 +99,25 @@
     }
 
     .group-resolve.active {
-      background: @green;
+      background: @green-light;
       color: #fff;
-      border-color: darken(@green, 10);
+      border-color: @green-dark;
       text-shadow: 0 1px 0 rgba(0,0,0, .15);
       box-shadow: none;
     }
 
     .group-bookmark.active {
-      background: @purple;
+      background: @purple-light;
       color: #fff;
-      border-color: darken(@purple, 10);
+      border-color: @purple-dark;
       text-shadow: 0 1px 0 rgba(0,0,0, .15);
       box-shadow: none;
     }
 
     .group-remove:hover {
       color: #fff;
-      background: @red;
-      border-color: darken(@red, 14);
+      background: @red-light;
+      border-color: @red-dark;
     }
 
     .clearfix;
@@ -198,7 +184,7 @@
     .list-unstyled;
 
     li:first-child {
-      background: darken(@bgColor, 2);
+      background: @white-darker;
       color: darken(@gray, 10);
       border-radius: 2px;
       .square(28px);
@@ -230,14 +216,14 @@
   font-size: 14px;
 
   a {
-    color: lighten(@gray, 6);
+    color: @gray-dark;
     &:hover {
-      color: darken(@gray, 16);
+      color: @gray-darker;
     }
   }
 
   .icon {
-    color: lighten(@gray, 30);
+    color: @gray-lighter;
     font-size: 16px;
     margin-right: 7px;
     position: relative;
@@ -314,7 +300,7 @@
     color: @gray-dark;
 
     > span {
-      background: @bgColor;
+      background: @white;
       padding-right: 7px;
     }
 
@@ -338,14 +324,14 @@
         display: block;
         position: absolute;
         content: "";
-        border-radius: 60%;
+        border-radius: 9px;
         .square(9px);
         right: 0;
         top: 3px;
       }
 
       &.first-seen:after {
-        background-color: @purple;
+        background-color: @pink;
       }
 
       &.last-seen:after {
@@ -420,7 +406,7 @@
       padding: 15px 0 0 15px;
       overflow: auto;
 
-      .placeholder(lighten(@gray, 28));
+      .placeholder(@gray-lighter);
 
       &:focus {
         outline: 0;
@@ -593,7 +579,7 @@
     .activity-item {
       position: relative;
       font-size: 13px;
-      color: lighten(@gray, 10);
+      color: @gray-dark;
 
       &:before {
         position: absolute;
@@ -602,8 +588,9 @@
         top: 11px;
         left: 0;
         right: 0;
-        border-top: 1px solid lighten(@trim, 8);
+        border-top: 1px solid @trim;
         z-index: -1;
+        opacity: .6;
       }
 
       .avatar {
@@ -618,30 +605,30 @@
         display: inline-block;
 
         &.sentry {
-          color: @gray;
+          color: @gray-darker;
           font-size: 16px;
-          background: @bgColor;
+          background: @white;
           top: -4px;
         }
       }
 
       time {
-        color: lighten(@gray, 25);
+        color: @gray-light;
         margin-left: 5px;
         float: right;
-        background: @bgColor;
+        background: @white;
         padding-left: 8px;
       }
 
       .activity-author {
         font-weight: 600;
-        color: @gray;
+        color: @gray-darker;
       }
 
       .activity-item-content {
         display: inline;
         padding-right: 8px;
-        background: @bgColor;
+        background: @white;
       }
     }
   }
@@ -671,6 +658,10 @@
   .icon-skip-forward, .icon-skip-back {
     position: relative;
     top: 1px;
+  }
+
+  time {
+    color: @gray-dark;
   }
 
   .json-link {
@@ -721,7 +712,7 @@
     position: relative;
 
     > span {
-      background: @bgColor;
+      background: @white-dark;
       padding-right: 7px;
     }
 
@@ -842,7 +833,7 @@
 .exc-message {
   margin: 15px 0;
   word-wrap: break-word;
-  color: @gray-dark;
+  color: @gray-darker;
   padding: 0;
   background: none;
 }
@@ -1226,9 +1217,9 @@ div.commands {
 }
 
 .box.errors {
-  border-color: #DAB9BB;
-  background: #FDF7F7;
-  color: #865254;
+  border-color: #E8B8B2;
+  background: #FEF7F6;
+  color: rgba(0,0,0, .70);
   font-size: 15px;
 
   .box-content {
@@ -1236,9 +1227,9 @@ div.commands {
 
     a {
       font-weight: bold;
-      color: #6D292D;
+      color: rgba(0,0,0, .70);
       &:hover {
-        color: darken(#6D292D, 10%);
+        color: rgba(0,0,0, .90);
       }
     }
 
@@ -1366,7 +1357,7 @@ pre.val, span.val {
   }
 
   a.val-toggle-link {
-    background: @linkColor;
+    background: @link-color;
     border-radius: 2px;
     color: white;
     font-weight: bold;
@@ -1378,7 +1369,7 @@ pre.val, span.val {
     display: inline-block;
 
     &:hover {
-      background: @linkColorHover;
+      background: @link-color-hover;
     }
   }
 
