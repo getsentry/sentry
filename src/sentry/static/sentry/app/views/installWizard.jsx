@@ -1,5 +1,6 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
+import _ from 'underscore';
 
 import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
@@ -18,8 +19,8 @@ const InstallWizardSettings = React.createClass({
 
   render() {
     let options = this.props.options;
-    let requiredOptions = ['system.url-prefix', 'system.admin-email'];
-    let missingOptions = new Set(requiredOptions.filter(option => !options[option]));
+    let requiredOptions = Object.keys(_.pick(options, option => option.field.required));
+    let missingOptions = new Set(requiredOptions.filter(option => !options[option].value));
     let formValid = !missingOptions.length;
 
     return (
