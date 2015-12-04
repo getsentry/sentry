@@ -81,7 +81,7 @@ class BasePaginator(object):
     def value_from_cursor(self, cursor):
         raise NotImplementedError
 
-    def get_result(self, limit=100, cursor=None):
+    def get_result(self, limit=100, cursor=None, count_hits=False):
         # cursors are:
         #   (identifier(integer), row offset, is_prev)
         if cursor is None:
@@ -93,6 +93,13 @@ class BasePaginator(object):
             cursor_value = 0
 
         queryset = self._get_results_from_qs(cursor_value, cursor.is_prev)
+
+        if count_hits:
+            hits = queryset.model.objects.filter(
+                id__in=self.queryset[:1000],
+            ).count()
+        else:
+            hits = None
 
         # this effectively gets us the before post, and the current (after) post
         # every time
@@ -109,6 +116,7 @@ class BasePaginator(object):
         return build_cursor(
             results=results,
             limit=limit,
+            hits=hits,
             cursor=cursor,
             key=self.get_item_key,
         )

@@ -136,6 +136,5 @@ class DjangoSearchBackend(SearchBackend):
             sort_clause = '-sort_value'
 
         queryset = queryset.order_by(sort_clause)
-
         paginator = paginator_cls(queryset, sort_clause)
-        return paginator.get_result(limit, cursor)
+        return paginator.get_result(limit, cursor, count_hits=True)
