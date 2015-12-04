@@ -1,6 +1,6 @@
 import React from 'react';
 
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import CompactIssue from './compactIssue';
 import GroupStore from '../stores/groupStore';
 import LoadingError from './loadingError';
@@ -9,6 +9,8 @@ import Pagination from './pagination';
 import {t} from '../locale';
 
 const IssueList = React.createClass({
+  mixins: [ApiMixin],
+
   getDefaultProps() {
     return {
       pagination: true,
@@ -39,7 +41,7 @@ const IssueList = React.createClass({
   },
 
   fetchData() {
-    api.request(this.props.endpoint, {
+    this.api.request(this.props.endpoint, {
       method: 'GET',
       success: (data, _, jqXHR) => {
         GroupStore.add(data);
