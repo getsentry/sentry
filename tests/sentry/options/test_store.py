@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 from uuid import uuid1
-from exam import fixture
+from exam import fixture, before
 from mock import patch
 
 from sentry.models import Option
@@ -17,6 +17,10 @@ class OptionsStoreTest(TestCase):
     @fixture
     def key(self):
         return self.make_key()
+
+    @before
+    def flush_local_cache(self):
+        self.store.flush_local_cache()
 
     def make_key(self, ttl=10, grace=10):
         return self.store.make_key(uuid1().hex, '', object, 0, ttl, grace)
