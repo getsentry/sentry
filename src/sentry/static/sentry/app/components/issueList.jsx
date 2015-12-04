@@ -79,7 +79,13 @@ const IssueList = React.createClass({
       body = (
         <ul className="issue-list">
           {this.state.issueIds.map((id) => {
-            return <CompactIssue key={id} id={id} orgId={params.orgId} />;
+            return (
+              <CompactIssue
+                key={id}
+                id={id}
+                orgId={params.orgId}
+                statsPeriod={this.props.statsPeriod} />
+            );
           })}
         </ul>
       );

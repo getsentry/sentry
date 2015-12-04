@@ -4,7 +4,7 @@ import {Link} from 'react-router';
 
 import TimeSince from './timeSince';
 import DropdownLink from './dropdownLink';
-
+import GroupChart from './stream/groupChart';
 import GroupStore from '../stores/groupStore';
 
 const CompactIssue = React.createClass({
@@ -67,7 +67,7 @@ const CompactIssue = React.createClass({
 
     return (
       <li className={className} onClick={this.toggleSelect}>
-        <div className="col-md-10">
+        <div className="col-md-9">
           <span className="error-level truncate" title={data.level}></span>
           <h3 className="truncate">
             <Link to={`/${orgId}/${projectId}/issues/${data.id}/`}>
@@ -99,7 +99,12 @@ const CompactIssue = React.createClass({
             </ul>
           </div>
         </div>
-        <div className="col-md-2 align-right">
+        {this.props.statsPeriod &&
+          <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
+            <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} />
+          </div>
+        }
+        <div className="col-md-1 align-right">
           <DropdownLink
             topLevelClasses="more-menu"
             className="more-menu-toggle"

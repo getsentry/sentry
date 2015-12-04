@@ -54,7 +54,10 @@ const OrganizationIssueList = React.createClass({
           </div>
         </div>
         <h3>{this.props.title}</h3>
-        <IssueList endpoint={this.props.endpoint} query={{status: this.state.status}} {...this.props} />
+        <IssueList endpoint={this.props.endpoint} query={{
+          status: this.state.status,
+          statsPeriod: '24h',
+        }} statsPeriod="24h" {...this.props} />
       </OrganizationHomeContainer>
     );
   }
