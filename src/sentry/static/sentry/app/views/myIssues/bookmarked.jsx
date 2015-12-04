@@ -1,6 +1,7 @@
 import React from 'react';
 
 import OrganizationIssueList from '../../components/organizationIssueList';
+import {t} from '../../locale';
 
 const Bookmarked = React.createClass({
   getEndpoint() {
@@ -8,7 +9,7 @@ const Bookmarked = React.createClass({
   },
 
   getTitle() {
-    return 'Bookmarks';
+    return t('Bookmarks');
   },
 
   render() {

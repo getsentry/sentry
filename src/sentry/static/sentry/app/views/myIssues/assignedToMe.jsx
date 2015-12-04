@@ -1,6 +1,7 @@
 import React from 'react';
 
 import OrganizationIssueList from '../../components/organizationIssueList';
+import {t} from '../../locale';
 
 const AssignedToMe = React.createClass({
   getEndpoint() {
@@ -8,7 +9,7 @@ const AssignedToMe = React.createClass({
   },
 
   getTitle() {
-    return 'Assigned to Me';
+    return t('Assigned to Me');
   },
 
   render() {

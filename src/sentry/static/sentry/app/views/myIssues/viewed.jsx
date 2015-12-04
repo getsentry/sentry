@@ -1,6 +1,7 @@
 import React from 'react';
 
 import OrganizationIssueList from '../../components/organizationIssueList';
+import {t} from '../../locale';
 
 const Viewed = React.createClass({
   getEndpoint() {
@@ -8,7 +9,7 @@ const Viewed = React.createClass({
   },
 
   getTitle() {
-    return 'History';
+    return t('History');
   },
 
   render() {
