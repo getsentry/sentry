@@ -98,10 +98,8 @@ class BasePaginator(object):
             hits = queryset.model.objects.filter(
                 id__in=self.queryset[:1000],
             ).count()
-            max_hits = 1000
         else:
             hits = None
-            max_hits = None
 
         # this effectively gets us the before post, and the current (after) post
         # every time
@@ -119,7 +117,6 @@ class BasePaginator(object):
             results=results,
             limit=limit,
             hits=hits,
-            max_hits=max_hits,
             cursor=cursor,
             key=self.get_item_key,
         )
