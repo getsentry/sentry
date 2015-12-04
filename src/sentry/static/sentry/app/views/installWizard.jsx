@@ -19,7 +19,7 @@ const InstallWizardSettings = React.createClass({
   render() {
     let options = this.props.options;
     let requiredOptions = ['system.url-prefix', 'system.admin-email'];
-    let missingOptions = new Set(requiredOptions.filter(option => options[option]));
+    let missingOptions = new Set(requiredOptions.filter(option => !options[option]));
     let formValid = false;
 
     return (
