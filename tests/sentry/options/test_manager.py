@@ -22,6 +22,7 @@ class OptionsManagerTest(TestCase):
 
     @around
     def register(self):
+        self.store.flush_local_cache()
         self.manager.register('foo')
         yield
         self.manager.unregister('foo')
