@@ -77,7 +77,8 @@ const StreamActions = React.createClass({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
         itemIds: itemIds,
-        data: data
+        data: data,
+        query: this.props.query
       }, {
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
