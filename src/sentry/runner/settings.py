@@ -303,7 +303,11 @@ def configure(ctx, py, yaml, skip_backend_validation=False):
 
     install('sentry_config', py, DEFAULT_SETTINGS_MODULE)
 
+    # HACK: we need to force access of django.conf.settings to
+    # ensure we don't hit any import-driven recursive behavior
     from django.conf import settings
+    hasattr(settings, 'INSTALLED_APPS')
+
     from .initializer import initialize_app, on_configure
     initialize_app({
         'config_path': py,
