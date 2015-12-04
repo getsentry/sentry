@@ -169,6 +169,10 @@ LANGUAGES = (
     ('zh-tw', gettext_noop('Traditional Chinese')),
 )
 
+from .locale import CATALOGS
+LANGUAGES = tuple((code, name) for code, name in LANGUAGES
+                  if code in CATALOGS)
+
 SITE_ID = 1
 
 # If you set this to False, Django will make some optimizations so as not
