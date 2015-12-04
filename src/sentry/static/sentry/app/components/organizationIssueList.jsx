@@ -43,12 +43,12 @@ const OrganizationIssueList = React.createClass({
         <div className="pull-right">
           <div className="btn-group">
             <Link to={path}
-                  className={'btn btn-default' + (status === 'unresolved' ? ' active' : '')}>
+                  className={'btn btn-sm btn-default' + (status === 'unresolved' ? ' active' : '')}>
               {t('Unresolved')}
             </Link>
             <Link to={path}
                   query={{status: ''}}
-                  className={'btn btn-default' + (status === '' ? ' active' : '')}>
+                  className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}>
               {t('All Issues')}
             </Link>
           </div>
