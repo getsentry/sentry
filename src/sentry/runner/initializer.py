@@ -77,7 +77,6 @@ def bootstrap_options(settings, config):
     and convert options into Django settings that are
     required to even initialize the rest of the app.
     """
-    from sentry import options as _  # NOQA
     if config is None:
         return
     from sentry.utils.yaml import safe_load
