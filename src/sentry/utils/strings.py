@@ -57,7 +57,7 @@ def soft_break(value, length):
     zero-width spaces after common delimeters, as well as soft-hyphenating long
     identifiers.
     """
-    delimiters = re.compile(r'([{}]+)'.format(''.join(map(re.escape, ',.$:/+?()<>[]{}'))))
+    delimiters = re.compile(r'([{}]+)'.format(''.join(map(re.escape, ',.$:/+@!?()<>[]{}'))))
 
     def process(match):
         results = []
