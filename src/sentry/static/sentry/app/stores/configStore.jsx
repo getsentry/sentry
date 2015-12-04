@@ -1,5 +1,6 @@
 import moment from 'moment-timezone';
 import Reflux from 'reflux';
+import {setLocale} from '../locale';
 
 const ConfigStore = Reflux.createStore({
   init() {
@@ -28,6 +29,7 @@ const ConfigStore = Reflux.createStore({
     // TODO(dcramer): abstract this out of ConfigStore
     if (config.user) {
       moment.tz.setDefault(config.user.options.timezone);
+      setLocale(config.user.options.language || 'en');
     }
 
     this.trigger(config);

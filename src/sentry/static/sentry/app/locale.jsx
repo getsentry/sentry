@@ -1,14 +1,7 @@
 import Jed from 'jed';
 import React from 'react';
-import ConfigStore from './stores/configStore';
 import {getTranslations} from './translations';
 import {sprintf} from 'sprintf-js';
-
-export function getCurrentTranslations() {
-  let user = ConfigStore.get('user');
-  let lang = user && user.language || 'en';
-  return getTranslations(lang);
-}
 
 let LOCALE_DEBUG = false;
 
@@ -23,19 +16,22 @@ export function setLocaleDebug(value) {
               '. Reload page to apply changes!');
 }
 
-const i18n = new Jed({
-  'domain' : 'sentry',
+let i18n = null;
 
-  // This callback is called when a key is missing
-  'missing_key_callback' : function(key) {
-    // TODO(dcramer): this should log to Sentry
-  },
 
-  'locale_data': {
-    // XXX: configure language here
-    'sentry': getCurrentTranslations()
-  }
-});
+export function setLocale(locale) {
+  let translations = getTranslations(locale);
+  i18n = new Jed({
+    'domain' : 'sentry',
+    'missing_key_callback' : function(key) {
+    },
+    'locale_data': {
+      'sentry': translations
+    }
+  });
+}
+
+setLocale('en');
 
 function formatForReact(formatString, args) {
   let rv = [];
