@@ -9,6 +9,7 @@ sentry.templatetags.sentry_helpers
 #      INSTALLED_APPS
 from __future__ import absolute_import
 
+import functools
 import os.path
 import pytz
 import six
@@ -39,7 +40,8 @@ from sentry.utils import json, to_unicode
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.javascript import to_json
 from sentry.utils.strings import (
-    soft_break,
+    soft_break as _soft_break,
+    soft_hyphenate,
     truncatechars,
 )
 from templatetag_sugar.register import tag
@@ -55,7 +57,6 @@ register = template.Library()
 truncatechars = register.filter(stringfilter(truncatechars))
 truncatechars.is_safe = True
 
-register.filter(soft_break)
 register.filter(to_json)
 
 
@@ -419,3 +420,12 @@ def load_captcha():
     return {
         'api_key': settings.RECAPTCHA_PUBLIC_KEY,
     }
+
+
+@register.filter
+def soft_break(value, length):
+    return _soft_break(
+        value,
+        length,
+        functools.partial(soft_hyphenate, length=max(length // 10, 10)),
+    )

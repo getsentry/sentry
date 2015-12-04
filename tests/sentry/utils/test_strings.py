@@ -1,4 +1,8 @@
-from sentry.utils.strings import soft_break
+import functools
+from sentry.utils.strings import (
+    soft_break,
+    soft_hyphenate,
+)
 
 
 ZWSP = u'\u200b'  # zero width space
@@ -11,5 +15,6 @@ def test_soft_break():
 
 
 def test_soft_break_and_hyphenate():
-    assert soft_break('com.reallyreallyreally.long.path', 6) == \
+    hyphenate = functools.partial(soft_hyphenate, length=6)
+    assert soft_break('com.reallyreallyreally.long.path', 6, hyphenate) == \
         ZWSP.join(['com.', SHY.join(['really'] * 3) + '.', 'long.', 'path'])
