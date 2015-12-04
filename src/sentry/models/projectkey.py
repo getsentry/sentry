@@ -19,6 +19,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import options
 from sentry.db.models import (
     Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey,
     sane_repr
@@ -121,7 +122,11 @@ class ProjectKey(Model):
             key = self.public_key
             url = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
 
-        urlparts = urlparse(url or settings.SENTRY_URL_PREFIX)
+        if url:
+            urlparts = urlparse(url)
+        else:
+            urlparts = urlparse(options.get('system.url-prefix'))
+
         return '%s://%s@%s/%s' % (
             urlparts.scheme,
             key,

@@ -47,7 +47,7 @@ class MailPluginTest(TestCase):
 
         notification = Notification(event=event, rule=rule)
 
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             self.plugin.notify(notification)
 
         msg = mail.outbox[0]
@@ -76,7 +76,7 @@ class MailPluginTest(TestCase):
 
         notification = Notification(event=event)
 
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             self.plugin.notify(notification)
 
         stacktrace.get_title.assert_called_once_with()
@@ -103,7 +103,7 @@ class MailPluginTest(TestCase):
 
         notification = Notification(event=event)
 
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             self.plugin.notify(notification)
 
         stacktrace.get_title.assert_called_once_with()
@@ -129,7 +129,7 @@ class MailPluginTest(TestCase):
 
         notification = Notification(event=event)
 
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             self.plugin.notify(notification)
 
         assert _send_mail.call_count is 1
@@ -159,7 +159,7 @@ class MailPluginTest(TestCase):
 
         notification = Notification(event=event)
 
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             self.plugin.notify(notification)
 
         assert _send_mail.call_count is 1
@@ -226,7 +226,7 @@ class MailPluginTest(TestCase):
 
         notification = Notification(event=event)
 
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             self.plugin.notify(notification)
 
         msg = mail.outbox[0]

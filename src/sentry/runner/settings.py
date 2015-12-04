@@ -160,9 +160,6 @@ SENTRY_FILESTORE_OPTIONS = {
 # Web Server #
 ##############
 
-# You MUST configure the absolute URI root for Sentry:
-SENTRY_URL_PREFIX = 'http://sentry.example.com'  # No trailing slash!
-
 # If you're using a reverse SSL proxy, you should enable the X-Forwarded-Proto
 # header and uncomment the following settings
 # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -213,6 +210,15 @@ YAML_CONFIG_TEMPLATE = """\
 # the beacon documentation for more information. This **must** be a string.
 # system.admin-email: 'your.name@example.com'
 system.admin-email: ''
+
+
+##############
+# Web Server #
+##############
+
+# You MUST configure the absolute URI root for Sentry:
+system.url-prefix: 'http://sentry.example.com'  # No trailing slash!
+
 
 ########
 # etc. #

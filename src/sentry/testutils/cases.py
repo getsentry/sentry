@@ -37,7 +37,7 @@ from sentry.rules import EventState
 from sentry.utils import json
 
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, get_auth_header, TaskRunner
+from .helpers import AuthProvider, Feature, get_auth_header, TaskRunner, override_options
 
 
 class BaseTestCase(Fixtures, Exam):
@@ -205,6 +205,13 @@ class BaseTestCase(Fixtures, Exam):
                 **headers
             )
         return resp
+
+    def options(self, options):
+        """
+        A context manager that temporarily sets a global option and reverts
+        back to the original value when exiting the context.
+        """
+        return override_options(options)
 
     _postWithSignature = _postWithHeader
     _postWithNewSignature = _postWithHeader

@@ -77,6 +77,7 @@ def bootstrap_options(settings, config):
     and convert options into Django settings that are
     required to even initialize the rest of the app.
     """
+    from sentry import options as _  # NOQA
     if config is None:
         return
     from sentry.utils.yaml import safe_load
@@ -201,13 +202,11 @@ def apply_legacy_settings(settings):
                       "Use SENTRY_OPTIONS instead, key 'system.admin-email'", DeprecationWarning)
         settings.SENTRY_OPTIONS['system.admin-email'] = settings.SENTRY_ADMIN_EMAIL
 
-    if settings.SENTRY_URL_PREFIX in ('', 'http://sentry.example.com') and not settings.DEBUG:
-        # Maybe also point to a piece of documentation for more information?
-        # This directly coincides with users getting the awkward
-        # `ALLOWED_HOSTS` exception.
-        show_big_error('SENTRY_URL_PREFIX is not configured')
-        # Set `ALLOWED_HOSTS` to the catch-all so it works
-        settings.ALLOWED_HOSTS = ['*']
+    if not settings.SENTRY_OPTIONS.get('system.url-prefix') and hasattr(settings, 'SENTRY_URL_PREFIX'):
+        import warnings
+        warnings.warn('SENTRY_URL_PREFIX is deprecated.'
+                      "Use SENTRY_OPTIONS instead, key 'system.url-prefix'", DeprecationWarning)
+        settings.SENTRY_OPTIONS['system.url-prefix'] = settings.SENTRY_URL_PREFIX
 
     if settings.TIME_ZONE != 'UTC':
         # non-UTC timezones are not supported

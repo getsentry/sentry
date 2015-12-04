@@ -21,17 +21,17 @@ from sentry.utils.strings import compress
 class ProjectKeyTest(TestCase):
     def test_get_dsn(self):
         key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             self.assertEquals(key.get_dsn(), 'http://public:secret@example.com/1')
 
     def test_get_dsn_with_ssl(self):
         key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
-        with self.settings(SENTRY_URL_PREFIX='https://example.com'):
+        with self.options({'system.url-prefix': 'https://example.com'}):
             self.assertEquals(key.get_dsn(), 'https://public:secret@example.com/1')
 
     def test_get_dsn_with_port(self):
         key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
-        with self.settings(SENTRY_URL_PREFIX='http://example.com:81'):
+        with self.options({'system.url-prefix': 'http://example.com:81'}):
             self.assertEquals(key.get_dsn(), 'http://public:secret@example.com:81/1')
 
     def test_get_dsn_with_public_endpoint_setting(self):
@@ -59,7 +59,7 @@ class LostPasswordTest(TestCase):
         )
 
     def test_send_recover_mail(self):
-        with self.settings(SENTRY_URL_PREFIX='http://testserver'), self.tasks():
+        with self.options({'system.url-prefix': 'http://testserver'}), self.tasks():
             self.password_hash.send_recover_mail()
 
         assert len(mail.outbox) == 1
