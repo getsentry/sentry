@@ -598,6 +598,7 @@ SENTRY_FEATURES = {
     'auth:register': True,
     'organizations:create': True,
     'organizations:sso': True,
+    'organizations:my-issues': False,
     'projects:quotas': True,
     'projects:user-reports': True,
     'projects:plugins': True,
