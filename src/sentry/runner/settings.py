@@ -217,7 +217,7 @@ system.admin-email: ''
 ##############
 
 # You MUST configure the absolute URI root for Sentry:
-system.url-prefix: 'http://sentry.example.com'  # No trailing slash!
+system.url-prefix: ''  # No trailing slash!
 
 
 ########
