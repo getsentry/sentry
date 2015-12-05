@@ -9,7 +9,7 @@ const AssignedToMe = React.createClass({
   },
 
   getTitle() {
-    return t('Assigned to Me');
+    return t('Assigned to me');
   },
 
   render() {

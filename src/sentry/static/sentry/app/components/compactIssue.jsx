@@ -2,10 +2,92 @@ import React from 'react';
 import Reflux from 'reflux';
 import {Link} from 'react-router';
 
+import ApiMixin from '../mixins/apiMixin';
+import IndicatorStore from '../stores/indicatorStore';
 import TimeSince from './timeSince';
 import DropdownLink from './dropdownLink';
 import GroupChart from './stream/groupChart';
 import GroupStore from '../stores/groupStore';
+import Modal from 'react-bootstrap/lib/Modal';
+import {t} from '../locale';
+
+const Snooze = {
+  // all values in minutes
+  '30MINUTES': 30,
+  '2HOURS': 60 * 2,
+  '24HOURS': 60 * 24,
+};
+
+
+const SnoozeAction = React.createClass({
+  mixins: [ApiMixin],
+
+  getInitialState() {
+    return {
+      isModalOpen: false
+    };
+  },
+
+  toggleModal() {
+    if (this.props.disabled) {
+      return;
+    }
+    this.setState({
+      isModalOpen: !this.state.isModalOpen
+    });
+  },
+
+  closeModal() {
+    this.setState({isModalOpen: false});
+  },
+
+  onSnooze(duration) {
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+
+    this.api.bulkUpdate({
+      orgId: this.props.orgId,
+      projectId: this.props.projectId,
+      itemIds: [this.props.groupId],
+        data: {
+        status: 'muted',
+        snoozeDuration: duration,
+      },
+    }, {
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
+    });
+    this.closeModal();
+  },
+
+  render(){
+    return (
+      <a title={this.props.tooltip}
+         className={this.props.className}
+         disabled={this.props.disabled}
+         onClick={this.toggleModal}>
+        <span>zZz</span>
+
+        <Modal show={this.state.isModalOpen} title={t('Please confirm')} animation={false}
+               onHide={this.closeModal} bsSize="sm">
+          <div className="modal-body">
+            <h5>How long should we snooze this issue?</h5>
+            <ul className="nav nav-stacked nav-pills">
+              <li><a onClick={this.onSnooze.bind(this, Snooze['30MINUTES'])}>30 minutes</a></li>
+              <li><a onClick={this.onSnooze.bind(this, Snooze['2HOURS'])}>2 hours</a></li>
+              <li><a onClick={this.onSnooze.bind(this, Snooze['24HOURS'])}>24 hours</a></li>
+              <li><a onClick={this.onSnooze}>Forever</a></li>
+            </ul>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-default"
+                    onClick={this.closeModal}>{t('Cancel')}</button>
+          </div>
+        </Modal>
+      </a>
+    );
+  }
+});
 
 const CompactIssue = React.createClass({
   propTypes: {
@@ -109,13 +191,11 @@ const CompactIssue = React.createClass({
             topLevelClasses="more-menu"
             className="more-menu-toggle"
             caret={false}
-            onOpen={this.onDropdownOpen}
-            onClose={this.onDropdownClose}
             title={title}>
-            <li><a href="#"><span className="icon-checkmark"></span></a></li>
-            <li><a href="#"><span className="icon-bookmark"></span></a></li>
-            <li><a href="#">zZz</a></li>
-            <li><a href="#"><span className="icon-user"></span></a></li>
+            <li><a href="#"><span className="icon-checkmark" /></a></li>
+            <li><a href="#"><span className="icon-bookmark" /></a></li>
+            <li><SnoozeAction orgId={orgId} projectId={projectId} groupId={id} /></li>
+            <li><a href="#"><span className="icon-user" /></a></li>
           </DropdownLink>
         </div>
       </li>
