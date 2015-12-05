@@ -2,6 +2,8 @@ import React from 'react';
 import Reflux from 'reflux';
 import {Link} from 'react-router';
 
+import ApiMixin from '../mixins/apiMixin';
+import IndicatorStore from '../stores/indicatorStore';
 import TimeSince from './timeSince';
 import DropdownLink from './dropdownLink';
 import GroupChart from './stream/groupChart';
@@ -9,7 +11,17 @@ import GroupStore from '../stores/groupStore';
 import Modal from 'react-bootstrap/lib/Modal';
 import {t} from '../locale';
 
+const Snooze = {
+  // all values in minutes
+  '30MINUTES': 30,
+  '2HOURS': 60 * 2,
+  '24HOURS': 60 * 24,
+};
+
+
 const SnoozeAction = React.createClass({
+  mixins: [ApiMixin],
+
   getInitialState() {
     return {
       isModalOpen: false
@@ -29,6 +41,25 @@ const SnoozeAction = React.createClass({
     this.setState({isModalOpen: false});
   },
 
+  onSnooze(duration) {
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+
+    this.api.bulkUpdate({
+      orgId: this.props.orgId,
+      projectId: this.props.projectId,
+      itemIds: [this.props.groupId],
+        data: {
+        status: 'muted',
+        snoozeDuration: duration,
+      },
+    }, {
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
+    });
+    this.closeModal();
+  },
+
   render(){
     return (
       <a title={this.props.tooltip}
@@ -42,10 +73,10 @@ const SnoozeAction = React.createClass({
           <div className="modal-body">
             <h5>How long should we snooze this issue?</h5>
             <ul className="nav nav-stacked nav-pills">
-              <li><a href="#">30 minutes</a></li>
-              <li><a href="#">2 hours</a></li>
-              <li><a href="#">24 hours</a></li>
-              <li><a href="#">Forever</a></li>
+              <li><a onClick={this.onSnooze.bind(this, Snooze['30MINUTES'])}>30 minutes</a></li>
+              <li><a onClick={this.onSnooze.bind(this, Snooze['2HOURS'])}>2 hours</a></li>
+              <li><a onClick={this.onSnooze.bind(this, Snooze['24HOURS'])}>24 hours</a></li>
+              <li><a onClick={this.onSnooze}>Forever</a></li>
             </ul>
           </div>
           <div className="modal-footer">
@@ -163,7 +194,7 @@ const CompactIssue = React.createClass({
             title={title}>
             <li><a href="#"><span className="icon-checkmark" /></a></li>
             <li><a href="#"><span className="icon-bookmark" /></a></li>
-            <li><SnoozeAction /></li>
+            <li><SnoozeAction orgId={orgId} projectId={projectId} groupId={id} /></li>
             <li><a href="#"><span className="icon-user" /></a></li>
           </DropdownLink>
         </div>
