@@ -12,9 +12,13 @@ from sentry import options
 
 
 class AllowedHosts(object):
+    # HACK: This is a fake stub for settings.ALLOWED_HOSTS
+    # This is needing since ALLOWED_HOSTS is engrained
+    # in Django internals, so we want this "tuple" to respond
+    # to runtime changes based on our system.url-prefix Option
     def __iter__(self):
-        urlbits = urlparse(options.get('system.url-prefix'))
-        if urlbits.hostname:
-            yield urlbits.hostname
+        hostname = urlparse(options.get('system.url-prefix')).hostname
+        if hostname:
+            yield hostname
         else:
             yield '*'
