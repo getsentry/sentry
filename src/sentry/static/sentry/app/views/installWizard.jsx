@@ -11,15 +11,15 @@ import {EmailField, TextField} from '../components/forms';
 
 const OPTIONS_META = {
   'system.url-prefix': {
-    label: 'Root URL',
+    label: t('Root URL'),
     placeholder: 'https://sentry.example.com',
-    help: 'The root web address which is used to communicate with the Sentry backend.',
+    help: t('The root web address which is used to communicate with the Sentry backend.'),
     defaultValue: () => `${document.location.protocol}//${document.location.host}`
   },
   'system.admin-email': {
-    label: 'Admin Email',
+    label: t('Admin Email'),
     placeholder: 'admin@example.com',
-    help: 'The technical contact for this Sentry installation.',
+    help: t('The technical contact for this Sentry installation.'),
     component: EmailField,
     defaultValue: () => ConfigStore.get('user').email
   }
@@ -31,10 +31,10 @@ function makeField(option, onChange) {
   return (
     <Field
         key={option}
-        label={t(meta.label)}
+        label={meta.label}
         defaultValue={meta.defaultValue()}
         placeholder={meta.placeholder}
-        help={t(meta.help)}
+        help={meta.help}
         onChange={onChange}
     />
   );
