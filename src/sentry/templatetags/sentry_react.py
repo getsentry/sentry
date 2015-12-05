@@ -32,6 +32,30 @@ def _get_version_info():
     }
 
 
+def _needs_upgrade(version_info=None):
+    version_configured = options.get('sentry:version-configured')
+    if not version_configured:
+        # If we were never previously upgraded (being a new install)
+        # we want to force an upgrade, even if the values are set.
+        return True
+
+    if version_info is None:
+        version_info = _get_version_info()
+
+    # Already up to date, yay!
+    if version_configured == version_info['current']:
+        return False
+
+    # Check all required options to see if they've been set
+    for key in options.filter(flag=options.FLAG_REQUIRED):
+        if not options.get(key):
+            return True
+
+    # Everything looks good, but version changed, so let's bump it
+    options.set('sentry:version-configured', version_info['current'])
+    return False
+
+
 @register.simple_tag(takes_context=True)
 def get_react_config(context):
     if 'request' in context:
@@ -57,12 +81,10 @@ def get_react_config(context):
 
     version_info = _get_version_info()
 
+    needs_upgrade = False
+
     if is_superuser:
-        # TODO(dcramer): we should confirm that no options need configured
-        # when upgrading, and if so, we simply bump the version??
-        needs_upgrade = options.get('sentry:version-configured') != version_info['current']
-    else:
-        needs_upgrade = False
+        needs_upgrade = _needs_upgrade(version_info)
 
     context = {
         'singleOrganization': settings.SENTRY_SINGLE_ORGANIZATION,
