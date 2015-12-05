@@ -8,43 +8,86 @@ import ConfigStore from '../stores/configStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import {EmailField, TextField} from '../components/forms';
 
+
+const OPTIONS_META = {
+  'system.url-prefix': {
+    label: 'Root URL',
+    placeholder: 'https://sentry.example.com',
+    help: 'The root web address which is used to communicate with the Sentry backend.',
+    defaultValue: `${document.location.protocol}//${document.location.host}`
+  },
+  'system.admin-email': {
+    label: 'Admin Email',
+    placeholder: 'admin@example.com',
+    help: 'The technical contact for this Sentry installation.',
+    component: EmailField
+  }
+};
+
+function makeField(option, onChange) {
+  let meta = OPTIONS_META[option];
+  let Field = meta.component || TextField;
+  return (
+    <Field
+        key={option}
+        label={t(meta.label)}
+        defaultValue={meta.defaultValue || ''}
+        placeholder={meta.placeholder}
+        help={t(meta.help)}
+        onChange={onChange}
+    />
+  );
+}
+
+
 const InstallWizardSettings = React.createClass({
-  getDefaultRootUrl() {
-    return `${document.location.protocol}//${document.location.host}`;
+
+  getInitialState() {
+    let options = {...this.props.initialOptions};
+    let requiredOptions = Object.keys(_.pick(options, option => option.field.required));
+    let missingOptions = new Set(requiredOptions.filter(option => !options[option].value));
+    let fields = [];
+    for (let option of missingOptions) {
+      options[option].value = options[option].value || OPTIONS_META[option].defaultValue;
+      fields.push(makeField(option, this.onFieldChange.bind(this, option)));
+    }
+
+    return {
+      options: options,
+      required: requiredOptions,
+      fields: fields,
+      formValid: !requiredOptions.filter(option => !options[option].value).length,
+    };
   },
 
   onFieldChange(name, value) {
-    this.setState({[name]: value});
+    let options = {...this.state.options};
+    options[name].value = value;
+    this.setState({
+      options: options,
+      formValid: !this.state.required.filter(option => !options[option].value).length,
+    });
+  },
+
+  onClick() {
+    this.props.onSubmit(this.state.options);
   },
 
   render() {
-    let options = this.props.options;
-    let requiredOptions = Object.keys(_.pick(options, option => option.field.required));
-    let missingOptions = new Set(requiredOptions.filter(option => !options[option].value));
-    let formValid = !missingOptions.length;
+    let {fields} = this.state;
 
     return (
       <div>
         <p>Welcome to Sentry, yo! Complete setup by filling out the required
           configuration.</p>
 
-        {missingOptions.has('system.url-prefix') &&
-          <TextField label={t('Root URL')} defaultValue={this.getDefaultRootUrl()}
-              placeholder="https://sentry.example.com"
-              help={t('The root web address which is used to communication with the Sentry backend.')}
-              onChange={this.onFieldChange.bind(this, 'system.url-prefix')} />
-        }
-
-        {missingOptions.has('system.admin-email') &&
-          <EmailField label={t('Admin Email')}
-              placeholder="admin@example.com"
-              help={t('The technical contact for this Sentry installation.')}
-              onChange={this.onFieldChange.bind(this, 'system.admin-email')} />
+        {fields.length ? fields :
+          <p>Nothing needs to be done here. Enjoy.</p>
         }
 
         <div className="form-actions" style={{marginTop: 25}}>
           <button className="btn btn-primary"
-                  disabled={!formValid}>{t('Continue')}</button>
+                  disabled={!this.state.formValid} onClick={this.onClick}>{t('Continue')}</button>
         </div>
       </div>
     );
@@ -60,7 +103,7 @@ const InstallWizard = React.createClass({
     return {
       loading: true,
       error: false,
-      options: {},
+      options: {}
     };
   },
 
@@ -91,6 +134,18 @@ const InstallWizard = React.createClass({
     });
   },
 
+  onSubmit(options) {
+    let data = _.mapObject(options, option => option.value);
+    this.api.request('/internal/options/', {
+      method: 'PUT',
+      data: data,
+      success: this.props.onConfigured,
+      error: () => {
+        // Should do something here with an error
+      }
+    });
+  },
+
   render() {
     let {error, loading, options} = this.state;
     let version = ConfigStore.get('version');
@@ -113,7 +168,7 @@ const InstallWizard = React.createClass({
                   {t('We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.')}
                 </div>
               :
-                <InstallWizardSettings options={options} />
+                <InstallWizardSettings initialOptions={options} onSubmit={this.onSubmit}/>
               )}
             </div>
           </div>
