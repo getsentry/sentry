@@ -33,13 +33,13 @@ const StreamActions = React.createClass({
       anySelected: false,
       multiSelected: false, // more than one selected
       pageSelected: false, // all on current page selected (e.g. 25)
-      allSelected: false, // all in current search query selected (e.g. 1000+)
+      allInQuerySelected: false, // all in current search query selected (e.g. 1000+)
     };
   },
 
   selectAll() {
     this.setState({
-      allSelected: true
+      allInQuerySelected: true
     });
   },
 
@@ -50,7 +50,7 @@ const StreamActions = React.createClass({
   actionSelectedGroups(callback) {
     let selectedIds;
 
-    if (this.state.allSelected) {
+    if (this.state.allInQuerySelected) {
       selectedIds = undefined; // undefined means "all"
     } else {
       let itemIdSet = SelectedGroupStore.getSelectedIds();
@@ -66,7 +66,7 @@ const StreamActions = React.createClass({
 
   deselectAll() {
     SelectedGroupStore.deselectAll();
-    this.setState({allSelected: false});
+    this.setState({allInQuerySelected: false});
   },
 
   onUpdate(data, event) {
@@ -123,7 +123,8 @@ const StreamActions = React.createClass({
     this.setState({
       pageSelected: SelectedGroupStore.allSelected(),
       multiSelected: SelectedGroupStore.multiSelected(),
-      anySelected: SelectedGroupStore.anySelected()
+      anySelected: SelectedGroupStore.anySelected(),
+      allInQuerySelected: false // any change resets
     });
   },
 
@@ -153,7 +154,7 @@ const StreamActions = React.createClass({
                  onAction={this.onUpdate.bind(this, {status: 'resolved'})}
                  buttonTitle={t('Resolve')}
                  confirmationQuestion={
-                  this.state.allSelected
+                  this.state.allInQuerySelected
                     ? t('Are you sure you want to resolve all issues in the current query?')
                     : (count) =>
                         tn('Are you sure you want to resolve these %d issue?',
@@ -161,7 +162,7 @@ const StreamActions = React.createClass({
                            count)
                  }
                  confirmLabel={
-                  this.state.allSelected
+                  this.state.allInQuerySelected
                     ? t('Resolve all issues')
                     : (count) =>
                         tn('Resolve %d selected issue',
@@ -175,7 +176,7 @@ const StreamActions = React.createClass({
               </ActionLink>
               <ActionLink
                  className="btn btn-default btn-sm action-bookmark"
-                 disabled={!this.state.anySelected || this.state.allSelected}
+                 disabled={!this.state.anySelected || this.state.allInQuerySelected}
                  onAction={this.onUpdate.bind(this, {isBookmarked: true})}
                  neverConfirm={true}
                  buttonTitle={t('Bookmark')}
@@ -200,7 +201,7 @@ const StreamActions = React.createClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-merge"
-                    disabled={!this.state.multiSelected || this.state.allSelected}
+                    disabled={!this.state.multiSelected || this.state.allInQuerySelected}
                     onAction={this.onMerge}
                     confirmationQuestion={
                       (count) =>
@@ -224,7 +225,7 @@ const StreamActions = React.createClass({
                     disabled={!this.state.anySelected}
                     onAction={this.onUpdate.bind(this, {isBookmarked: false})}
                     confirmationQuestion={
-                      this.state.allSelected
+                      this.state.allInQuerySelected
                         ? t('Are you sure you want to remove all issues in the current query from your bookmarks?')
                         : (count) =>
                             tn('Are you sure you want to remove this %d issue from your bookmarks?',
@@ -232,7 +233,7 @@ const StreamActions = React.createClass({
                                count)
                     }
                     confirmLabel={
-                      this.state.allSelected
+                      this.state.allInQuerySelected
                         ? t('Remove all issues from bookmarks')
                         : (count) =>
                             tn('Remove %d selected issue from bookmarks',
@@ -251,7 +252,7 @@ const StreamActions = React.createClass({
                     disabled={!this.state.anySelected}
                     onAction={this.onUpdate.bind(this, {status: 'unresolved'})}
                     confirmationQuestion={
-                      this.state.allSelected
+                      this.state.allInQuerySelected
                         ? t('Are you sure you want to unresolve all issues in the current query?')
                         : (count) =>
                           tn('Are you sure you want to unresolve these %d issue?',
@@ -259,7 +260,7 @@ const StreamActions = React.createClass({
                              count)
                     }
                     confirmLabel={
-                      this.state.allSelected
+                      this.state.allInQuerySelected
                         ? t('Unresolve all issues')
                         : (count) =>
                             tn('Unresolve %d selected issue',
@@ -278,7 +279,7 @@ const StreamActions = React.createClass({
                     disabled={!this.state.anySelected}
                     onAction={this.onUpdate.bind(this, {status: 'muted'})}
                     confirmationQuestion={
-                      this.state.allSelected
+                      this.state.allInQuerySelected
                         ? t('Are you sure you want to mute all issues in the current query?')
                         : (count) =>
                              tn('Are you sure you want to mute these %d issue?',
@@ -286,7 +287,7 @@ const StreamActions = React.createClass({
                                 count)
                     }
                     confirmLabel={
-                      this.state.allSelected
+                      this.state.allInQuerySelected
                         ? t('Mute all issues')
                         : (count) =>
                             tn('Mute %d selected issue',
@@ -302,7 +303,7 @@ const StreamActions = React.createClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-delete"
-                    disabled={!this.state.anySelected || this.state.allSelected}
+                    disabled={!this.state.anySelected || this.state.allInQuerySelected}
                     onAction={this.onDelete}
                     confirmationQuestion={
                       (count) =>
@@ -353,7 +354,7 @@ const StreamActions = React.createClass({
         {this.state.pageSelected &&
           <div className="row stream-select-all-notice" >
             <div className="col-md-12">
-              {this.state.allSelected
+              {this.state.allInQuerySelected
                 ? <span>{t('All issues in current query selected.')}</span>
                 : <span>
                     {tn('%d issues on this page selected.',
