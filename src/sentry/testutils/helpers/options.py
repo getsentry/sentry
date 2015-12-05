@@ -15,11 +15,11 @@ def override_options(options):
     from sentry.options import default_manager
     wrapped = default_manager.store.get
 
-    def new_get(key):
+    def new_get(key, **kwargs):
         try:
             return options[key.name]
         except KeyError:
-            return wrapped(key)
+            return wrapped(key, **kwargs)
 
     with patch.object(default_manager.store, 'get', side_effect=new_get):
         yield
