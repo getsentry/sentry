@@ -56,7 +56,6 @@ const InstallWizardSettings = React.createClass({
       options: options,
       required: requiredOptions,
       fields: fields,
-      formValid: !requiredOptions.filter(option => !options[option].value).length,
     };
   },
 
@@ -64,8 +63,7 @@ const InstallWizardSettings = React.createClass({
     let options = {...this.state.options};
     options[name].value = value;
     this.setState({
-      options: options,
-      formValid: !this.state.required.filter(option => !options[option].value).length,
+      options: options
     });
   },
 
@@ -74,7 +72,8 @@ const InstallWizardSettings = React.createClass({
   },
 
   render() {
-    let {fields} = this.state;
+    let {fields, required, options} = this.state;
+    let formValid = !required.filter(option => !options[option].value).length;
 
     return (
       <div>
@@ -87,7 +86,7 @@ const InstallWizardSettings = React.createClass({
 
         <div className="form-actions" style={{marginTop: 25}}>
           <button className="btn btn-primary"
-                  disabled={!this.state.formValid} onClick={this.onClick}>{t('Continue')}</button>
+                  disabled={!formValid} onClick={this.onClick}>{t('Continue')}</button>
         </div>
       </div>
     );
