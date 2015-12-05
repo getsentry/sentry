@@ -354,12 +354,12 @@ const StreamActions = React.createClass({
           <div className="row stream-select-all-notice" >
             <div className="col-md-12">
               {this.state.allSelected
-                ? <span>{t('All %d records in current query selected.', 500)}</span>
+                ? <span>{t('All issues in current query selected.')}</span>
                 : <span>
-                    {tn('%d record on this page selected.',
-                      '%d records on this page selected.', 25)}
+                    {tn('%d issues on this page selected.',
+                        '%d issues on this page selected.', 25 /* danger: magic number */)}
                     <a onClick={this.selectAll}>
-                      {t('Select all %d records in current query.', 500)}
+                      {t('Select all issues in current query.')}
                     </a>
                   </span>
               }
