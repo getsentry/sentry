@@ -217,7 +217,9 @@ const CompactIssue = React.createClass({
                 groupId={id}
                 onSnooze={this.onSnooze} />
             </li>
-            <li><a href="#"><span className="icon-user" /></a></li>
+            {false &&
+              <li><a href="#"><span className="icon-user" /></a></li>
+            }
           </DropdownLink>
         </div>
       </li>
