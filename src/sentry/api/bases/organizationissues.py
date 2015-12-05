@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize, StreamGroupSerializer
-from sentry.api.paginator import DateTimePaginator
+from sentry.api.paginator import OffsetPaginator
 from sentry.models import Group, GroupStatus, OrganizationMemberTeam, Project
 
 from .organizationmember import OrganizationMemberEndpoint
@@ -51,7 +51,7 @@ class OrganizationIssuesEndpoint(OrganizationMemberEndpoint):
             request=request,
             queryset=queryset,
             order_by='-sort_by',
-            paginator_cls=DateTimePaginator,
+            paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user, StreamGroupSerializer(
                 stats_period=stats_period,
             )),
