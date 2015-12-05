@@ -42,7 +42,7 @@ describe('StreamActions', function() {
         this.sandbox.stub(SelectedGroupStore, 'deselectAll');
         let callback = this.sandbox.stub();
 
-        this.actions.state.allSelected = true;
+        this.actions.state.allInQuerySelected = true;
 
         this.actions.actionSelectedGroups(callback);
 
@@ -50,7 +50,7 @@ describe('StreamActions', function() {
         expect(SelectedGroupStore.deselectAll.calledOnce).to.be.ok;
 
         // all selected is reset
-        expect(this.actions.state.allSelected, false);
+        expect(this.actions.state.allInQuerySelected, false);
       });
     });
 
@@ -59,7 +59,7 @@ describe('StreamActions', function() {
         this.sandbox.stub(SelectedGroupStore, 'deselectAll');
         this.sandbox.stub(SelectedGroupStore, 'getSelectedIds').returns(new Set([1,2,3]));
 
-        this.actions.state.allSelected = false;
+        this.actions.state.allInQuerySelected = false;
         let callback = this.sandbox.stub();
         this.actions.actionSelectedGroups(callback);
 
