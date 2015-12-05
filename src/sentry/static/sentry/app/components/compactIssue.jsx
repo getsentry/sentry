@@ -20,8 +20,6 @@ const Snooze = {
 
 
 const SnoozeAction = React.createClass({
-  mixins: [ApiMixin],
-
   getInitialState() {
     return {
       isModalOpen: false
@@ -42,21 +40,7 @@ const SnoozeAction = React.createClass({
   },
 
   onSnooze(duration) {
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-
-    this.api.bulkUpdate({
-      orgId: this.props.orgId,
-      projectId: this.props.projectId,
-      itemIds: [this.props.groupId],
-        data: {
-        status: 'muted',
-        snoozeDuration: duration,
-      },
-    }, {
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      }
-    });
+    this.props.onSnooze(duration);
     this.closeModal();
   },
 
@@ -95,19 +79,20 @@ const CompactIssue = React.createClass({
   },
 
   mixins: [
+    ApiMixin,
     Reflux.listenTo(GroupStore, 'onGroupChange')
   ],
 
   getInitialState() {
     return {
-      data: GroupStore.get(this.props.id)
+      issue: GroupStore.get(this.props.id)
     };
   },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.id != this.props.id) {
       this.setState({
-        data: GroupStore.get(this.props.id)
+        issue: GroupStore.get(this.props.id)
       });
     }
   },
@@ -117,73 +102,96 @@ const CompactIssue = React.createClass({
       return;
     }
     let id = this.props.id;
-    let data = GroupStore.get(id);
+    let issue = GroupStore.get(id);
     this.setState({
-      data: data,
+      issue: issue,
+    });
+  },
+
+  onSnooze(duration) {
+    this.onUpdate({
+      status: 'muted',
+      snoozeDuration: duration,
+    });
+  },
+
+  onUpdate(data) {
+    let issue = this.state.issue;
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+
+    this.api.bulkUpdate({
+      orgId: this.props.orgId,
+      projectId: issue.project.slug,
+      itemIds: [issue.id],
+        data: data,
+    }, {
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
     });
   },
 
   render() {
-    let data = this.state.data;
+    let issue = this.state.issue;
 
     let className = 'issue row';
-    if (data.isBookmarked) {
+    if (issue.isBookmarked) {
       className += ' isBookmarked';
     }
-    if (data.hasSeen) {
+    if (issue.hasSeen) {
       className += ' hasSeen';
     }
-    if (data.status === 'resolved') {
+    if (issue.status === 'resolved') {
       className += ' isResolved';
     }
-    if (data.status === 'muted') {
+    if (issue.status === 'muted') {
       className += ' isMuted';
     }
 
-    className += ' level-' + data.level;
+    className += ' level-' + issue.level;
 
     let {id, orgId} = this.props;
-    let projectId = data.project.slug;
+    let projectId = issue.project.slug;
 
     let title = <span className="icon-more"></span>;
 
     return (
       <li className={className} onClick={this.toggleSelect}>
         <div className="col-md-9">
-          <span className="error-level truncate" title={data.level}></span>
+          <span className="error-level truncate" title={issue.level}></span>
           <h3 className="truncate">
-            <Link to={`/${orgId}/${projectId}/issues/${data.id}/`}>
+            <Link to={`/${orgId}/${projectId}/issues/${id}/`}>
               <span className="icon icon-soundoff hidden"></span>
               <span className="icon icon-bookmark hidden"></span>
-              {data.title}
+              {issue.title}
             </Link>
           </h3>
           <div className="event-extra">
             <ul>
               <li className="project-name">
-                <Link to={`/${orgId}/${projectId}/`}>{data.project.name}</Link>
+                <Link to={`/${orgId}/${projectId}/`}>{issue.project.name}</Link>
               </li>
               <li className="hidden">
                 <span className="icon icon-clock"></span>
-                <TimeSince date={data.lastSeen} />
+                <TimeSince date={issue.lastSeen} />
                 &nbsp;&mdash;&nbsp;
-                <TimeSince date={data.firstSeen} suffix="old" />
+                <TimeSince date={issue.firstSeen} suffix="old" />
               </li>
-              {data.numComments !== 0 &&
+              {issue.numComments !== 0 &&
                 <li>
                   <Link to={`/${orgId}/${projectId}/issues/${id}/activity/`} className="comments">
                     <span className="icon icon-comments"></span>
-                    <span className="tag-count">{data.numComments}</span>
+                    <span className="tag-count">{issue.numComments}</span>
                   </Link>
                 </li>
               }
-              <li className="culprit">{data.culprit}</li>
+              <li className="culprit">{issue.culprit}</li>
             </ul>
           </div>
         </div>
         {this.props.statsPeriod &&
           <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
-            <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} />
+            <GroupChart id={id} statsPeriod={this.props.statsPeriod} />
           </div>
         }
         <div className="col-md-1 align-right">
@@ -192,9 +200,23 @@ const CompactIssue = React.createClass({
             className="more-menu-toggle"
             caret={false}
             title={title}>
-            <li><a href="#"><span className="icon-checkmark" /></a></li>
-            <li><a href="#"><span className="icon-bookmark" /></a></li>
-            <li><SnoozeAction orgId={orgId} projectId={projectId} groupId={id} /></li>
+            <li>
+              <a onClick={this.onUpdate.bind(this, {status: issue.status !== 'resolved' ? 'resolved' : 'unresolved'})}>
+                <span className="icon-checkmark" />
+              </a>
+            </li>
+            <li>
+              <a onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}>
+                <span className="icon-bookmark" />
+              </a>
+            </li>
+            <li>
+              <SnoozeAction
+                orgId={orgId}
+                projectId={projectId}
+                groupId={id}
+                onSnooze={this.onSnooze} />
+            </li>
             <li><a href="#"><span className="icon-user" /></a></li>
           </DropdownLink>
         </div>
