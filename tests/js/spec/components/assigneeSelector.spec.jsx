@@ -11,10 +11,12 @@ import stubReactComponents from '../../helpers/stubReactComponent';
 
 describe('AssigneeSelector', function() {
   const USER_1 = {
+    id: 1,
     name: 'Jane Doe',
     email: 'janedoe@example.com'
   };
   const USER_2 = {
+    id: 2,
     name: 'John Smith',
     email: 'johnsmith@example.com'
   };
@@ -62,7 +64,7 @@ describe('AssigneeSelector', function() {
       });
 
       let assigneeSelector = this.assigneeSelector =
-        TestUtils.renderIntoDocument(<AssigneeSelector id={1337}/>);
+        TestUtils.renderIntoDocument(<AssigneeSelector id="1337"/>);
 
       this.sandbox.stub(assigneeSelector, 'assignTo');
     });
