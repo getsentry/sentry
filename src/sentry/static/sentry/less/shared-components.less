@@ -2435,6 +2435,13 @@ ul.radio-inputs {
   background-color: @gray-dark;
 }
 
+.modal-container {
+  position: relative;
+}
+.modal-container .modal, .modal-container .modal-backdrop {
+  position: absolute;
+}
+
 .modal {
   .close {
     background: none;
@@ -2491,6 +2498,26 @@ ul.radio-inputs {
     border-top: 1px solid lighten(@trim, 8);
     margin: 5px -20px -20px;
   }
+
+  .nav-stacked {
+    margin-bottom: 0;
+
+    li {
+      a {
+        .transition(none);
+        &:hover {
+          color: #fff;
+          background: @blue;
+        }
+      }
+    }
+  }
+}
+
+// Modal Small
+
+.modal-sm {
+  width: 400px;
 }
 
 .welcome-modal {
@@ -3018,6 +3045,12 @@ ul.tag-list {
     left: 50%;
     margin-left: -300px;
     margin-top: -91px;
+
+    &.modal-sm {
+      top: 50%;
+      margin-left: -200px;
+      margin-top: -155px;
+    }
   }
 
   .welcome-modal .modal-dialog {
