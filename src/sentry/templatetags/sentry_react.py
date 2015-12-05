@@ -32,18 +32,15 @@ def _get_version_info():
     }
 
 
-def _needs_upgrade(version_info=None):
+def _needs_upgrade():
     version_configured = options.get('sentry:version-configured')
     if not version_configured:
         # If we were never previously upgraded (being a new install)
         # we want to force an upgrade, even if the values are set.
         return True
 
-    if version_info is None:
-        version_info = _get_version_info()
-
     # Already up to date, yay!
-    if version_configured == version_info['current']:
+    if version_configured == sentry.get_version():
         return False
 
     # Check all required options to see if they've been set
@@ -52,7 +49,7 @@ def _needs_upgrade(version_info=None):
             return True
 
     # Everything looks good, but version changed, so let's bump it
-    options.set('sentry:version-configured', version_info['current'])
+    options.set('sentry:version-configured', sentry.get_version())
     return False
 
 
@@ -84,7 +81,7 @@ def get_react_config(context):
     needs_upgrade = False
 
     if is_superuser:
-        needs_upgrade = _needs_upgrade(version_info)
+        needs_upgrade = _needs_upgrade()
 
     context = {
         'singleOrganization': settings.SENTRY_SINGLE_ORGANIZATION,
