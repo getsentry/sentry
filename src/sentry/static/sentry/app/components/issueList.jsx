@@ -44,10 +44,14 @@ const IssueList = React.createClass({
   },
 
   fetchData() {
+    let location = this.props.location;
     this.api.clear();
     this.api.request(this.props.endpoint, {
       method: 'GET',
-      query: this.props.query,
+      query: {
+        cursor: location.query.cursor || '',
+        ...this.props.query,
+      },
       success: (data, _, jqXHR) => {
         GroupStore.add(data);
 
@@ -109,7 +113,7 @@ const IssueList = React.createClass({
       <div>
         {this.renderResults()}
         {this.props.pagination && this.state.pageLinks &&
-          <Pagination pageLinks={this.state.pageLinks} />
+          <Pagination pageLinks={this.state.pageLinks} {...this.props} />
         }
       </div>
     );

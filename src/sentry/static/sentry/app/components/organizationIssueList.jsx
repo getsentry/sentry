@@ -57,6 +57,7 @@ const OrganizationIssueList = React.createClass({
         <IssueList endpoint={this.props.endpoint} query={{
           status: this.state.status,
           statsPeriod: '24h',
+          per_page: this.props.pageSize || 25,
         }} statsPeriod="24h" {...this.props} />
       </OrganizationHomeContainer>
     );
