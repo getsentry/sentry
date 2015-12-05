@@ -27,7 +27,10 @@ class SystemOptionsEndpoint(Endpoint):
         return Response(results)
 
     def put(self, request):
-        for k, v in request.DATA.iteritems():
-            options.set(k, v)
+        try:
+            for k, v in request.DATA.iteritems():
+                options.set(k, v)
+        except Exception as e:
+            return Response(unicode(e), status=400)
         options.set('sentry:version-configured', sentry.get_version())
         return Response(status=200)
