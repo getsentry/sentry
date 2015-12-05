@@ -7,8 +7,7 @@ sentry.runner.hacks
 """
 from __future__ import absolute_import, print_function
 
-from urlparse import urlparse
-from sentry import options
+from sentry.http import get_server_hostname
 
 
 class AllowedHosts(object):
@@ -17,8 +16,4 @@ class AllowedHosts(object):
     # in Django internals, so we want this "tuple" to respond
     # to runtime changes based on our system.url-prefix Option
     def __iter__(self):
-        hostname = urlparse(options.get('system.url-prefix')).hostname
-        if hostname:
-            yield hostname
-        else:
-            yield '*'
+        yield get_server_hostname() or '*'
