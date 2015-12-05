@@ -14,13 +14,14 @@ const OPTIONS_META = {
     label: 'Root URL',
     placeholder: 'https://sentry.example.com',
     help: 'The root web address which is used to communicate with the Sentry backend.',
-    defaultValue: `${document.location.protocol}//${document.location.host}`
+    defaultValue: () => `${document.location.protocol}//${document.location.host}`
   },
   'system.admin-email': {
     label: 'Admin Email',
     placeholder: 'admin@example.com',
     help: 'The technical contact for this Sentry installation.',
-    component: EmailField
+    component: EmailField,
+    defaultValue: () => ConfigStore.get('user').email
   }
 };
 
@@ -31,7 +32,7 @@ function makeField(option, onChange) {
     <Field
         key={option}
         label={t(meta.label)}
-        defaultValue={meta.defaultValue || ''}
+        defaultValue={meta.defaultValue()}
         placeholder={meta.placeholder}
         help={t(meta.help)}
         onChange={onChange}
