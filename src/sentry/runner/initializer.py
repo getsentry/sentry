@@ -209,7 +209,7 @@ def apply_legacy_settings(settings):
 
     if not hasattr(settings, 'SENTRY_URL_PREFIX'):
         from sentry import options
-        url_prefix = options.get('system.url-prefix')
+        url_prefix = options.get('system.url-prefix', silent=True)
         if not url_prefix:
             # HACK: We need to have some value here for backwards compatibility
             url_prefix = 'http://sentry.example.com'
