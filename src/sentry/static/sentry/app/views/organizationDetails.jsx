@@ -59,11 +59,18 @@ const OrganizationDetails = React.createClass({
   fetchData() {
     this.api.request(this.getOrganizationDetailsEndpoint(), {
       success: (data) => {
+        // Allow injection via getsentry et all
+        let hooks = [];
+        HookStore.get('organization:header').forEach((cb) => {
+          hooks.push(cb(data));
+        });
+
         this.setState({
           organization: data,
           loading: false,
           error: false,
-          errorType: null
+          errorType: null,
+          hooks: hooks,
         });
 
         TeamStore.loadInitialData(data.teams);
@@ -116,19 +123,12 @@ const OrganizationDetails = React.createClass({
       }
     }
 
-    // Allow injection via getsentry et all
-    let org = this.state.organization;
-    let children = [];
-    HookStore.get('organization:header').forEach((cb) => {
-      children.push(cb(org));
-    });
-
     let params = this.props.params;
 
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
-          {children}
+          {this.state.hooks}
           <Header orgId={params.orgId}/>
           {this.props.children}
           <Footer />
