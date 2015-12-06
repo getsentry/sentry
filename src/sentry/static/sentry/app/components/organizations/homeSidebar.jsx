@@ -8,17 +8,24 @@ import {t} from '../../locale';
 const HomeSidebar = React.createClass({
   mixins: [OrganizationState],
 
+  getInitialState() {
+    // Allow injection via getsentry et all
+    let org = this.getOrganization();
+    let hooks = [];
+    HookStore.get('organization:sidebar').forEach((cb) => {
+      hooks.push(cb(org));
+    });
+
+    return {
+      hooks: hooks,
+    };
+  },
+
   render() {
     let access = this.getAccess();
     let features = this.getFeatures();
     let org = this.getOrganization();
     let urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
-
-    // Allow injection via getsentry et all
-    let children = [];
-    HookStore.get('organization:sidebar').forEach((cb) => {
-      children.push(cb(org));
-    });
 
     let orgId = org.slug;
     return (
@@ -70,7 +77,7 @@ const HomeSidebar = React.createClass({
             </ul>
           </div>
         }
-        {children}
+        {this.state.hooks}
       </div>
     );
   }
