@@ -24,7 +24,7 @@ def init_registry():
         registry.add(cls)
     for plugin in plugins.all(version=2):
         for cls in (safe_execute(plugin.get_rules) or ()):
-            register.add(cls)
+            registry.add(cls)
 
     return registry
 
