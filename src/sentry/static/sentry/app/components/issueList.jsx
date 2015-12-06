@@ -95,7 +95,7 @@ const IssueList = React.createClass({
       );
     }
     else
-      body = this.renderEmpty();
+      body = (this.props.renderEmpty || this.renderEmpty)();
 
     return body;
   },
