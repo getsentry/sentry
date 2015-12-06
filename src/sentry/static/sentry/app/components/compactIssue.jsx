@@ -161,8 +161,8 @@ const CompactIssue = React.createClass({
           <span className="error-level truncate" title={issue.level}></span>
           <h3 className="truncate">
             <Link to={`/${orgId}/${projectId}/issues/${id}/`}>
-              <span className="icon icon-soundoff hidden"></span>
-              <span className="icon icon-bookmark hidden"></span>
+              <span className="icon icon-soundoff" />
+              <span className="icon icon-bookmark" />
               {issue.title}
             </Link>
           </h3>
@@ -172,7 +172,7 @@ const CompactIssue = React.createClass({
                 <Link to={`/${orgId}/${projectId}/`}>{issue.project.name}</Link>
               </li>
               <li className="hidden">
-                <span className="icon icon-clock"></span>
+                <span className="icon icon-clock" />
                 <TimeSince date={issue.lastSeen} />
                 &nbsp;&mdash;&nbsp;
                 <TimeSince date={issue.firstSeen} suffix="old" />
@@ -180,7 +180,7 @@ const CompactIssue = React.createClass({
               {issue.numComments !== 0 &&
                 <li>
                   <Link to={`/${orgId}/${projectId}/issues/${id}/activity/`} className="comments">
-                    <span className="icon icon-comments"></span>
+                    <span className="icon icon-comments" />
                     <span className="tag-count">{issue.numComments}</span>
                   </Link>
                 </li>

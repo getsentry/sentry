@@ -544,11 +544,63 @@
     padding: 12px 0 6px 20px;
     border-bottom: 1px solid lighten(@trim, 5);
 
+    .icon-bookmark, .icon-soundoff {
+      padding-right: 5px;
+      font-size: 12px;
+      position: relative;
+      .transition(all .2s ease-in-out);
+      width: auto;
+    }
+
+    .icon-bookmark {
+      top: 1px;
+      display: none;
+      color: @purple;
+      overflow: hidden;
+    }
+
+    .icon-soundoff {
+      display: none;
+      top: 1px;
+      color: @red;
+      width: auto;
+      overflow: hidden;
+      padding-left: 1px;
+    }
+
+    &.isBookmarked {
+      .icon-bookmark {
+        display: inline-block;
+      }
+    }
+
+    &.isMuted {
+      .icon-soundoff {
+        display: inline-block;
+      }
+    }
+
+    &.selected {
+      background: lighten(@blue, 20);
+      box-shadow: inset 0 1px 0 rgba(52, 60, 69, 0.08);
+
+      .event-details:after {
+        background: @blue
+      }
+    }
+
+    &.isResolved {
+      h3 {
+        text-decoration: line-through;
+        color: @gray;
+      }
+    }
+
     .error-level {
       .square(13px);
       border-radius: 50%;
       position: absolute;
-      top: 1px;
+      top: 2px;
       left: -8px;
     }
 
