@@ -52,7 +52,18 @@ class OrganizationIssuesEndpoint(OrganizationMemberEndpoint):
             queryset=queryset,
             order_by='-sort_by',
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user, StreamGroupSerializer(
-                stats_period=stats_period,
-            )),
+            on_results=lambda x: self._on_results(request, x, stats_period),
         )
+
+    def _on_results(self, request, results, stats_period):
+        results = serialize(results, request.user, StreamGroupSerializer(
+            stats_period=stats_period,
+        ))
+
+        if request.GET.get('status') == 'unresolved':
+            results = [
+                r for r in results
+                if r['status'] == 'unresolved'
+            ]
+
+        return results
