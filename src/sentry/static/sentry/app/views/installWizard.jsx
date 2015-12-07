@@ -27,7 +27,7 @@ const InstallWizardSettings = React.createClass({
       if (!options[option].value) {
         options[option].value = getOption(option).defaultValue;
       }
-      fields.push(getOptionField(option, this.onFieldChange.bind(this, option), options.value));
+      fields.push(getOptionField(option, this.onFieldChange.bind(this, option), options[option].value, options[option].field));
     }
 
     return {
@@ -121,7 +121,11 @@ const InstallWizard = React.createClass({
     });
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    let data = _.mapObject(options, option => option.value);
+    // We only want to send back the values which weren't disabled
+    let data = _.mapObject(
+      _.pick(options, option => !option.field.disabled),
+      option => option.value
+    );
     this.api.request('/internal/options/', {
       method: 'PUT',
       data: data,

@@ -24,6 +24,7 @@ export default class InputField extends FormField {
                  className="form-control"
                  placeholder={this.props.placeholder}
                  onChange={this.onChange.bind(this)}
+                 disabled={this.props.disabled}
                  value={this.state.value} />
           {this.props.help &&
             <p className="help-block">{this.props.help}</p>

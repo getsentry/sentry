@@ -78,7 +78,7 @@ class OptionsManager(object):
         # Enforce immutability on key
         assert not (opt.flags & FLAG_IMMUTABLE), '%r cannot be changed at runtime' % key
         # Enforce immutability if value is already set on disk
-        assert not(opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key)), '%r cannot be changed at runtime because it is configured on disk' % key
+        assert not (opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key)), '%r cannot be changed at runtime because it is configured on disk' % key
 
         if not isinstance(value, opt.type):
             raise TypeError('got %r, expected %r' % (_type(value), opt.type))
