@@ -1141,7 +1141,17 @@ table.integrations {
 
         &.active, &:active {
           color: @gray-dark;
-          border-left: 3px solid @blue;
+
+          &:after {
+            display: block;
+            content: "";
+            position: absolute;
+            width: 4px;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            background: @blue;
+          }
         }
       }
     }
