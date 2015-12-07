@@ -10,7 +10,6 @@ class OrganizationActivityTest(APITestCase):
         org = group.organization
 
         activity = Activity.objects.create(
-            organization=org,
             group=group,
             project=group.project,
             type=Activity.NOTE,
