@@ -5,6 +5,7 @@ import _ from 'underscore';
 import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import ConfigStore from '../stores/configStore';
+import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import {getOption, getOptionField} from '../options';
 
@@ -24,7 +25,6 @@ const InstallWizardSettings = React.createClass({
     }
     for (let option of missingOptions) {
       if (!options[option].value) {
-        // TODO(dcramer): this should not be mutated
         options[option].value = getOption(option).defaultValue;
       }
       fields.push(getOptionField(option, this.onFieldChange.bind(this, option), options.value));
@@ -81,8 +81,9 @@ const InstallWizard = React.createClass({
     return {
       loading: true,
       error: false,
+      options: {},
+      submitError: false,
       submitInProgress: false,
-      currentOptions: {}
     };
   },
 
@@ -116,23 +117,34 @@ const InstallWizard = React.createClass({
   onSubmit(options) {
     this.setState({
       submitInProgress: true,
+      submitError: false,
     });
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
     let data = _.mapObject(options, option => option.value);
     this.api.request('/internal/options/', {
       method: 'PUT',
       data: data,
-      success: this.props.onConfigured,
-      error: () => {
+      success: () => {
         this.setState({
           submitInProgress: false,
         });
+        this.props.onConfigured();
       },
+      error: () => {
+        this.setState({
+          submitInProgress: false,
+          submitError: true,
+        });
+      },
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
     });
   },
 
   render() {
-    let {error, loading, options, submitInProgress} = this.state;
+    let {error, loading, options, submitError, submitInProgress} = this.state;
     let version = ConfigStore.get('version');
     return (
       <DocumentTitle title="Sentry Setup">
@@ -145,7 +157,7 @@ const InstallWizard = React.createClass({
               </h1>
               {loading ?
                 <LoadingIndicator>
-                  Please wait while we loading configuration.
+                  Please wait while we load configuration.
                 </LoadingIndicator>
               : (error ?
                 <div className="loading-error">
@@ -153,10 +165,15 @@ const InstallWizard = React.createClass({
                   {t('We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.')}
                 </div>
               :
-                <InstallWizardSettings
-                    options={options}
-                    onSubmit={this.onSubmit}
-                    formDisabled={submitInProgress} />
+                <div>
+                  {submitError &&
+                    <p>{t('We were unable to submit your changes to the Sentry server. Please take a look at the service logs.')}</p>
+                  }
+                  <InstallWizardSettings
+                      options={options}
+                      onSubmit={this.onSubmit}
+                      formDisabled={submitInProgress} />
+                </div>
               )}
             </div>
           </div>
