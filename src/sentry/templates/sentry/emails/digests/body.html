@@ -31,9 +31,9 @@
                   </td>
                   <td class="event-detail">
                       {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
-                      <a href="{% absolute_uri group_link %}">{{ group.message_short }}</a>
+                      <a href="{% absolute_uri group_link %}">{{ group.message_short|soft_break:40 }}</a>
                       <p>
-                        {{ group.title }}
+                        {{ group.title|soft_break:50 }}
                         <small>&mdash; {{ records.0.datetime|date:"N j, Y, P e" }}</small>
                       </p>
                   </td>
