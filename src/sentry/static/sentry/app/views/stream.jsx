@@ -426,6 +426,7 @@ const Stream = React.createClass({
                 <StreamActions
                   orgId={params.orgId}
                   projectId={params.projectId}
+                  query={this.state.query}
                   onSelectStatsPeriod={this.onSelectStatsPeriod}
                   onRealtimeChange={this.onRealtimeChange}
                   realtimeActive={this.state.realtimeActive}

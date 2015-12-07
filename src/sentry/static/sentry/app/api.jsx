@@ -138,7 +138,14 @@ export class Client {
 
   bulkUpdate(params, options) {
     let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
-    let query = (params.itemIds ? {id: params.itemIds} : undefined);
+
+    let query =
+      params.itemIds
+        ? {id: params.itemIds}
+        : params.query
+          ? {query: params.query}
+          : undefined;
+
     let id = this.uniqueId();
 
     GroupActions.update(id, params.itemIds, params.data);
