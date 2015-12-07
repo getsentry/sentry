@@ -45,14 +45,15 @@ def get_login_url(reset=False):
 
 
 def get_default_context(request, existing_context=None, team=None):
+    from sentry import options
     from sentry.plugins import plugins
 
     context = {
         'EVENTS_PER_PAGE': EVENTS_PER_PAGE,
-        'URL_PREFIX': settings.SENTRY_URL_PREFIX,
+        'URL_PREFIX': options.get('system.url-prefix'),
         'SINGLE_ORGANIZATION': settings.SENTRY_SINGLE_ORGANIZATION,
         'PLUGINS': plugins,
-        'ALLOWED_HOSTS': settings.ALLOWED_HOSTS,
+        'ALLOWED_HOSTS': list(settings.ALLOWED_HOSTS),
     }
 
     if existing_context:

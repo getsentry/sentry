@@ -81,3 +81,4 @@ SERVER_EMAIL = 'sentry@getsentry.com'
 SECRET_KEY = 'super secret secret key'
 
 SENTRY_OPTIONS['system.admin-email'] = 'admin@getsentry.com'
+SENTRY_OPTIONS['system.url-prefix'] = SENTRY_URL_PREFIX

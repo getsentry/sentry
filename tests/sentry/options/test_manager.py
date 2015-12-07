@@ -8,8 +8,8 @@ from mock import patch
 from sentry.models import Option
 from sentry.options.store import OptionsStore
 from sentry.options.manager import (
-    OptionsManager, UnknownOption,
-    FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY)
+    OptionsManager, UnknownOption, DEFAULT_FLAGS,
+    FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY, FLAG_REQUIRED)
 from sentry.testutils import TestCase
 
 
@@ -205,3 +205,28 @@ class OptionsManagerTest(TestCase):
     def test_unregister(self):
         with self.assertRaises(UnknownOption):
             self.manager.unregister('does-not-exist')
+
+    def test_all(self):
+        self.manager.register('bar')
+
+        keys = list(self.manager.all())
+        assert {k.name for k in keys} == {'foo', 'bar'}
+
+    def test_filter(self):
+        self.manager.register('nostore', flags=FLAG_NOSTORE)
+        self.manager.register('required', flags=FLAG_REQUIRED)
+        self.manager.register('nostorerequired', flags=FLAG_NOSTORE | FLAG_REQUIRED)
+
+        assert list(self.manager.filter()) == list(self.manager.all())
+
+        keys = list(self.manager.filter())
+        assert {k.name for k in keys} == {'foo', 'nostore', 'required', 'nostorerequired'}
+
+        keys = list(self.manager.filter(flag=DEFAULT_FLAGS))
+        assert {k.name for k in keys} == {'foo'}
+
+        keys = list(self.manager.filter(flag=FLAG_NOSTORE))
+        assert {k.name for k in keys} == {'nostore', 'nostorerequired'}
+
+        keys = list(self.manager.filter(flag=FLAG_REQUIRED))
+        assert {k.name for k in keys} == {'required', 'nostorerequired'}

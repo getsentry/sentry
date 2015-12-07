@@ -58,6 +58,7 @@ from .endpoints.release_files import ReleaseFilesEndpoint
 from .endpoints.release_file_details import ReleaseFileDetailsEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
+from .endpoints.system_options import SystemOptionsEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
@@ -266,6 +267,9 @@ urlpatterns = patterns(
     url(r'^internal/health/$',
         SystemHealthEndpoint.as_view(),
         name='sentry-api-0-system-health'),
+    url(r'^internal/options/$',
+        SystemOptionsEndpoint.as_view(),
+        name='sentry-api-0-system-options'),
     url(r'^internal/stats/$',
         InternalStatsEndpoint.as_view(),
         name='sentry-api-0-internal-stats'),

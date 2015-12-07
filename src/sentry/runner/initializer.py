@@ -201,13 +201,19 @@ def apply_legacy_settings(settings):
                       "Use SENTRY_OPTIONS instead, key 'system.admin-email'", DeprecationWarning)
         settings.SENTRY_OPTIONS['system.admin-email'] = settings.SENTRY_ADMIN_EMAIL
 
-    if settings.SENTRY_URL_PREFIX in ('', 'http://sentry.example.com') and not settings.DEBUG:
-        # Maybe also point to a piece of documentation for more information?
-        # This directly coincides with users getting the awkward
-        # `ALLOWED_HOSTS` exception.
-        show_big_error('SENTRY_URL_PREFIX is not configured')
-        # Set `ALLOWED_HOSTS` to the catch-all so it works
-        settings.ALLOWED_HOSTS = ['*']
+    if not settings.SENTRY_OPTIONS.get('system.url-prefix') and hasattr(settings, 'SENTRY_URL_PREFIX'):
+        import warnings
+        warnings.warn('SENTRY_URL_PREFIX is deprecated.'
+                      "Use SENTRY_OPTIONS instead, key 'system.url-prefix'", DeprecationWarning)
+        settings.SENTRY_OPTIONS['system.url-prefix'] = settings.SENTRY_URL_PREFIX
+
+    if not hasattr(settings, 'SENTRY_URL_PREFIX'):
+        from sentry import options
+        url_prefix = options.get('system.url-prefix', silent=True)
+        if not url_prefix:
+            # HACK: We need to have some value here for backwards compatibility
+            url_prefix = 'http://sentry.example.com'
+        settings.SENTRY_URL_PREFIX = url_prefix
 
     if settings.TIME_ZONE != 'UTC':
         # non-UTC timezones are not supported
@@ -215,10 +221,8 @@ def apply_legacy_settings(settings):
 
     # Set ALLOWED_HOSTS if it's not already available
     if not settings.ALLOWED_HOSTS:
-        from urlparse import urlparse
-        urlbits = urlparse(settings.SENTRY_URL_PREFIX)
-        if urlbits.hostname:
-            settings.ALLOWED_HOSTS = (urlbits.hostname,)
+        from .hacks import AllowedHosts
+        settings.ALLOWED_HOSTS = AllowedHosts()
 
     if hasattr(settings, 'SENTRY_ALLOW_REGISTRATION'):
         import warnings

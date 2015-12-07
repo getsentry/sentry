@@ -13,8 +13,8 @@ from time import time
 from random import random
 
 from django.utils import timezone
+from django.utils.functional import cached_property
 from sentry.db.models.query import create_or_update
-from sentry.models import Option
 from sentry.utils.hashlib import md5
 
 
@@ -59,18 +59,23 @@ class OptionsStore(object):
         self.ttl = ttl
         self.flush_local_cache()
 
+    @cached_property
+    def model(self):
+        from sentry.models.option import Option
+        return Option
+
     def make_key(self, name, default, type, flags, ttl, grace):
         return Key(name, default, type, flags, int(ttl), int(grace), _make_cache_key(name))
 
-    def get(self, key):
+    def get(self, key, silent=False):
         """
         Fetches a value from the options store.
         """
-        result = self.get_cache(key)
+        result = self.get_cache(key, silent=silent)
         if result is not None:
             return result
 
-        result = self.get_store(key)
+        result = self.get_store(key, silent=silent)
         if result is not None:
             return result
 
@@ -78,7 +83,7 @@ class OptionsStore(object):
         # in local cache that's possibly stale
         return self.get_local_cache(key, force_grace=True)
 
-    def get_cache(self, key):
+    def get_cache(self, key, silent=False):
         """
         First check agaist our local in-process cache, falling
         back to the network cache.
@@ -91,7 +96,8 @@ class OptionsStore(object):
         try:
             value = self.cache.get(cache_key)
         except Exception:
-            logger.warn(CACHE_FETCH_ERR, key.name, exc_info=True)
+            if not silent:
+                logger.warn(CACHE_FETCH_ERR, key.name, exc_info=True)
             value = None
         else:
             if key.ttl > 0:
@@ -143,7 +149,7 @@ class OptionsStore(object):
         # in grace, too bad. The value is considered bad.
         return None
 
-    def get_store(self, key):
+    def get_store(self, key, silent=False):
         """
         Attempt to fetch value from the database. If successful,
         also set it back in the cache.
@@ -156,11 +162,12 @@ class OptionsStore(object):
         is limited at the moment.
         """
         try:
-            value = Option.objects.get(key=key.name).value
-        except Option.DoesNotExist:
+            value = self.model.objects.get(key=key.name).value
+        except self.model.DoesNotExist:
             value = None
         except Exception as e:
-            logger.exception(unicode(e))
+            if not silent:
+                logger.exception(unicode(e))
             value = None
         else:
             # we only attempt to populate the cache if we were previously
@@ -170,7 +177,8 @@ class OptionsStore(object):
             try:
                 self.set_cache(key, value)
             except Exception:
-                logger.warn(CACHE_UPDATE_ERR, key.name, exc_info=True)
+                if not silent:
+                    logger.warn(CACHE_UPDATE_ERR, key.name, exc_info=True)
         return value
 
     def set(self, key, value):
@@ -185,7 +193,7 @@ class OptionsStore(object):
 
     def set_store(self, key, value):
         create_or_update(
-            model=Option,
+            model=self.model,
             key=key.name,
             values={
                 'value': value,
@@ -215,7 +223,7 @@ class OptionsStore(object):
         return self.delete_cache(key)
 
     def delete_store(self, key):
-        Option.objects.filter(key=key.name).delete()
+        self.model.objects.filter(key=key.name).delete()
 
     def delete_cache(self, key):
         cache_key = key.cache_key

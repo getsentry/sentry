@@ -8,6 +8,7 @@ sentry.options.manager
 from __future__ import absolute_import, print_function
 
 import logging
+from itertools import ifilter
 from types import NoneType
 from django.conf import settings
 
@@ -28,6 +29,8 @@ FLAG_NOSTORE = 1 << 2
 # Values that should only exist in datastore, and shouldn't exist in
 # config files.
 FLAG_STOREONLY = 1 << 3
+# Values that must be defined for setup to be considered complete
+FLAG_REQUIRED = 1 << 4
 
 # How long will a cache key exist in local memory before being evicted
 DEFAULT_KEY_TTL = 10
@@ -91,7 +94,7 @@ class OptionsManager(object):
                 return self.store.make_key(key, '', object, DEFAULT_FLAGS, 0, 0)
             raise UnknownOption(key)
 
-    def get(self, key):
+    def get(self, key, silent=False):
         """
         Get the value of an option, falling back to the local configuration.
 
@@ -105,7 +108,7 @@ class OptionsManager(object):
         opt = self.lookup_key(key)
 
         if not (opt.flags & FLAG_NOSTORE):
-            result = self.store.get(opt)
+            result = self.store.get(opt, silent=silent)
             if result is not None:
                 return result
 
@@ -173,3 +176,19 @@ class OptionsManager(object):
         assert not (opt.flags & FLAG_STOREONLY), '%r is not allowed to be loaded from config' % key
         if not isinstance(value, opt.type):
             raise TypeError('%r: got %r, expected %r' % (key, _type(value), opt.type))
+
+    def all(self):
+        """
+        Return an interator for all keys in the registry.
+        """
+        return self.registry.itervalues()
+
+    def filter(self, flag=None):
+        """
+        Return an iterator that's filtered by which flags are set on a key.
+        """
+        if flag is None:
+            return self.all()
+        if flag is DEFAULT_FLAGS:
+            return ifilter(lambda k: k.flags is DEFAULT_FLAGS, self.all())
+        return ifilter(lambda k: k.flags & flag, self.all())

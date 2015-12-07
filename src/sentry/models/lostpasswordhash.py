@@ -12,7 +12,6 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
-from urlparse import urlparse
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.http import absolute_uri
@@ -46,11 +45,12 @@ class LostPasswordHash(Model):
         return self.date_added > timezone.now() - timedelta(hours=48)
 
     def send_recover_mail(self):
+        from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
 
         context = {
             'user': self.user,
-            'domain': urlparse(settings.SENTRY_URL_PREFIX).hostname,
+            'domain': get_server_hostname(),
             'url': absolute_uri(reverse(
                 'sentry-account-recover-confirm',
                 args=[self.user.id, self.hash]

@@ -15,6 +15,7 @@ from urlparse import urlparse, urljoin
 from ipaddr import IPNetwork
 
 from django.conf import settings
+from sentry import options
 
 
 ParsedUriMatch = namedtuple('ParsedUriMatch', ['scheme', 'domain', 'path'])
@@ -22,8 +23,8 @@ ParsedUriMatch = namedtuple('ParsedUriMatch', ['scheme', 'domain', 'path'])
 
 def absolute_uri(url=None):
     if not url:
-        return settings.SENTRY_URL_PREFIX
-    return urljoin(settings.SENTRY_URL_PREFIX.rstrip('/') + '/', url.lstrip('/'))
+        return options.get('system.url-prefix')
+    return urljoin(options.get('system.url-prefix').rstrip('/') + '/', url.lstrip('/'))
 
 
 def safe_urlencode(params, doseq=0):
