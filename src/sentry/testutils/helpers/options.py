@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 __all__ = ['override_options']
 
+from django.test.utils import override_settings
 from contextlib import contextmanager
 from mock import patch
 
@@ -12,6 +13,7 @@ def override_options(options):
     A context manager for overriding specific configuration
     Options.
     """
+    from django.conf import settings
     from sentry.options import default_manager
     wrapped = default_manager.store.get
 
@@ -21,5 +23,9 @@ def override_options(options):
         except KeyError:
             return wrapped(key, **kwargs)
 
-    with patch.object(default_manager.store, 'get', side_effect=new_get):
-        yield
+    # Patch options into SENTRY_OPTIONS as well
+    new_options = settings.SENTRY_OPTIONS.copy()
+    new_options.update(options)
+    with override_settings(SENTRY_OPTIONS=new_options):
+        with patch.object(default_manager.store, 'get', side_effect=new_get):
+            yield
