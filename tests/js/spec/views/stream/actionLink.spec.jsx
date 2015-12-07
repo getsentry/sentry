@@ -30,17 +30,6 @@ describe('ActionLink', function() {
       expect(actionLink.shouldConfirm(25)).to.be.true;
     });
 
-    it('should return false when props.neverConfirm is true', function () {
-      let actionLink = TestUtils.renderIntoDocument(
-        <ActionLink neverConfirm={true} onAction={function(){}} selectAllActive={false}/>
-      );
-
-      expect(actionLink.shouldConfirm(0)).to.be.false;
-      expect(actionLink.shouldConfirm(1)).to.be.false;
-      expect(actionLink.shouldConfirm(25)).to.be.false;
-    });
-
-
     it('should return (mostly) true when props.onlyIfBulk is true and all are selected', function () {
       let actionLink = TestUtils.renderIntoDocument(
         <ActionLink onlyIfBulk={true} selectAllActive={true} onAction={function(){}}/>

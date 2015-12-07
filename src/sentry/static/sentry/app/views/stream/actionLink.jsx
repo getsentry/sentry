@@ -12,7 +12,6 @@ const ActionLink = React.createClass({
     buttonTitle: React.PropTypes.string,
     confirmLabel: React.PropTypes.any,
     disabled: React.PropTypes.bool,
-    neverConfirm: React.PropTypes.bool,
     onAction: React.PropTypes.func.isRequired,
     onlyIfBulk: React.PropTypes.bool,
     selectAllActive: React.PropTypes.bool.isRequired // "select all" checkbox
@@ -30,7 +29,6 @@ const ActionLink = React.createClass({
     return {
       buttonTitle: null, // title="..." (optional)
       onlyIfBulk: false,
-      neverConfirm: false,
       disabled: false
     };
   },
@@ -70,12 +68,8 @@ const ActionLink = React.createClass({
     // By default, should confirm ...
     let shouldConfirm = true;
 
-    // Unless `neverConfirm` is true, then return false
-    if (this.props.neverConfirm === true) {
-      shouldConfirm = false;
-
     // Unless `onlyIfBulk` is true, then return false if all items are not selected
-    } else if (this.props.onlyIfBulk === true && (!this.props.selectAllActive || numSelectedItems === 1)) {
+    if (this.props.onlyIfBulk === true && (!this.props.selectAllActive || numSelectedItems === 1)) {
       shouldConfirm = false;
     }
 
