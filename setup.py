@@ -11,7 +11,8 @@ Sentry is a Server
 ------------------
 
 The Sentry package, at its core, is just a simple server and web UI. It will
-handle authentication clients (such as `Raven <https://github.com/getsentry/raven-python>`_)
+handle authentication clients (such as `Raven
+<https://github.com/getsentry/raven-python>`_)
 and all of the logic behind storage and aggregation.
 
 That said, Sentry is not limited to Python. The primary implementation is in
@@ -34,19 +35,14 @@ import json
 import os
 import os.path
 import traceback
+import shutil
 
 from distutils import log
 from distutils.command.build import build as BuildCommand
+from distutils.core import Command
 from setuptools.command.sdist import sdist as SDistCommand
-from setuptools.command.build_ext import build_ext as BuildExtCommand
 from setuptools import setup, find_packages
-from setuptools.dist import Distribution
 from subprocess import check_output
-
-try:
-    from wheel.bdist_wheel import bdist_wheel as BDistWheelCommand
-except ImportError:
-    BDistWheelCommand = None
 
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
@@ -135,7 +131,7 @@ postgres_pypy_requires = [
 ]
 
 
-class BuildJavascriptCommand(BuildCommand):
+class BuildJavascriptCommand(Command):
     description = 'build javascript support files'
 
     user_options = [
@@ -188,15 +184,30 @@ class BuildJavascriptCommand(BuildCommand):
         # To find the default value of the inplace flag we inspect the
         # install and build_ext commands.
         install = self.distribution.get_command_obj('install')
+        sdist = self.distribution.get_command_obj('sdist')
         build_ext = self.get_finalized_command('build_ext')
 
         # If we are not decided on in-place we are inplace if either
         # build_ext is inplace or we are invoked through the install
         # command (easiest check is to see if it's finalized).
         if self.inplace is None:
-            self.inplace = (build_ext.inplace or install.finalized) and 1 or 0
+            self.inplace = (build_ext.inplace or install.finalized
+                            or sdist.finalized) and 1 or 0
 
         log.info('building JavaScript support.')
+
+        # If we're coming from sdist, clear the hell out of the dist
+        # folder first.
+        if sdist.finalized:
+            log.info('cleaning out dist folder')
+            try:
+                os.unlink('src/sentry/sentry-package.json')
+            except OSError:
+                pass
+            try:
+                shutil.rmtree('src/sentry/static/sentry/dist')
+            except (OSError, IOError):
+                pass
 
         # In place means build_lib is src.  We also log this.
         if self.inplace:
@@ -234,7 +245,7 @@ class BuildJavascriptCommand(BuildCommand):
 
         if not (version and build):
             try:
-                with open(self.work_path, 'sentry-package.json') as fp:
+                with open(self.sentry_package_json_path) as fp:
                     data = json.loads(fp.read())
             except Exception:
                 pass
@@ -248,7 +259,7 @@ class BuildJavascriptCommand(BuildCommand):
         }
 
     def _needs_static(self, version_info):
-        json_path = os.path.join(self.work_path, 'sentry-package.json')
+        json_path = self.sentry_package_json_path
         if not os.path.exists(json_path):
             return True
 
@@ -264,6 +275,7 @@ class BuildJavascriptCommand(BuildCommand):
         version_info = self._get_package_version()
         if not (self.force or self._needs_static(version_info)):
             log.info("skipped asset build (version already built)")
+            self.update_manifests()
             return
 
         log.info("building assets for Sentry v{} (build {})".format(
@@ -284,14 +296,33 @@ class BuildJavascriptCommand(BuildCommand):
             log.info("recorded manifest\n{}".format(
                 json.dumps(manifest, indent=2),
             ))
+        self.update_manifests()
 
+    def update_manifests(self):
         # if we were invoked from sdist, we need to inform sdist about
         # which files we just generated.  Otherwise they will be missing
         # in the manifest.  This adds the files for what webpack generates
         # plus our own sentry-package.json file.
         sdist = self.distribution.get_command_obj('sdist')
-        if sdist.finalized and not self.inplace:
-            self._update_sdist_manifest(sdist.filelist)
+        if not sdist.finalized:
+            return
+
+        # The path down from here only works for sdist:
+
+        # Use the underlying file list so that we skip the file-exists
+        # check which we do not want here.
+        files = sdist.filelist.files
+        root = self.sentry_static_dist_path
+
+        # We need to split off the local parts of the files relative to
+        # the current folder.  This will chop off the right path for the
+        # manifest.
+        base = os.path.abspath('.')
+        for dirname, dirnames, filenames in os.walk(root):
+            for filename in filenames:
+                filename = os.path.join(root, filename)
+                files.append(filename[len(base):].lstrip(os.path.sep))
+        files.append('src/sentry/sentry-package.json')
 
     def _build_static(self):
         work_path = self.work_path
@@ -321,22 +352,19 @@ class BuildJavascriptCommand(BuildCommand):
             'version': version_info['version'],
             'build': version_info['build'],
         }
-        with open(os.path.join(self.build_lib, 'sentry-package.json'), 'w') as fp:
+        with open(self.sentry_package_json_path, 'w') as fp:
             json.dump(manifest, fp)
         return manifest
-
-    def _update_sdist_manifest(self, files):
-        root = self.sentry_static_dist_path
-        for dirname, dirnames, filenames in os.walk(root):
-            for filename in filenames:
-                filename = os.path.join(root, filename)
-                files.append(filename[len(root):].lstrip(os.path.sep))
-        files.append('sentry-package.json')
 
     @property
     def sentry_static_dist_path(self):
         return os.path.abspath(os.path.join(
             self.build_lib, 'sentry/static/sentry/dist'))
+
+    @property
+    def sentry_package_json_path(self):
+        return os.path.abspath(os.path.join(
+            self.build_lib, 'sentry/sentry-package.json'))
 
 
 class SentrySDistCommand(SDistCommand):
@@ -347,47 +375,19 @@ class SentrySDistCommand(SDistCommand):
             [('build_js', None)]
 
 
-class SentryBuildExtCommand(BuildExtCommand):
+class SentryBuildCommand(BuildCommand):
 
     def run(self):
-        BuildExtCommand.run(self)
-
-        # If we are not a light build we want to also execute build_js as
-        # part of our build_ext pipeline.  Because setuptools subclasses
-        # this thing really oddly we cannot use sub_commands but have to
-        # manually invoke it here.
+        BuildCommand.run(self)
         if not IS_LIGHT_BUILD:
             self.run_command('build_js')
 
 
-class ExtendedDistribution(Distribution):
-
-    def has_ext_modules(self):
-        # We need to always run build_ext so that we invoke the build_js
-        # command which is attached to our own build_ext.  Otherwise
-        # distutils optimizes the invocation of build_ext and we never
-        # get the chance to run.
-        return True
-
-
 cmdclass = {
     'sdist': SentrySDistCommand,
-    'build_ext': SentryBuildExtCommand,
+    'build': SentryBuildCommand,
     'build_js': BuildJavascriptCommand,
 }
-
-
-if BDistWheelCommand is not None:
-    class SentryBDistWheelCommand(BDistWheelCommand):
-
-        def finalize_options(self):
-            BDistWheelCommand.finalize_options(self)
-            # Unfuck the default detection which we fucked outselves
-            # because we needed to override has_ext_modules to get our
-            # javascript shittery going.
-            self.root_is_pure = True
-
-    cmdclass['bdist_wheel'] = SentryBDistWheelCommand
 
 
 setup(
@@ -425,5 +425,4 @@ setup(
         'Operating System :: POSIX :: Linux',
         'Topic :: Software Development'
     ],
-    distclass=ExtendedDistribution,
 )
