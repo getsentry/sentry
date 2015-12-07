@@ -6,4 +6,4 @@ Create a new user.
 Options
 ```````
 
-- `--help`: print this help page.
+- ``--help``: print this help page.

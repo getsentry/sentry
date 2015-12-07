@@ -6,4 +6,4 @@ Initialize new configuration directory.
 Options
 ```````
 
-- `--help`: print this help page.
+- ``--help``: print this help page.

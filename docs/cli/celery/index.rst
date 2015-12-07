@@ -6,4 +6,4 @@ Start background workers.
 Options
 ```````
 
-- `--help`: print this help page.
+- ``--help``: print this help page.

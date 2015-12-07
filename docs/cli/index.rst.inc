@@ -6,9 +6,9 @@ Sentry is cross-platform crash reporting built with love.
 Options
 ```````
 
-- `--config PATH`: Path to configuration files.
-- `--version`: Show the version and exit.
-- `--help`: print this help page.
+- ``--config PATH``: Path to configuration files.
+- ``--version``: Show the version and exit.
+- ``--help``: print this help page.
 
 Subcommands
 ```````````
