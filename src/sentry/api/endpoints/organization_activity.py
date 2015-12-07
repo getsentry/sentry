@@ -9,7 +9,7 @@ from sentry.models import Activity
 class OrganizationActivityEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
         queryset = Activity.objects.filter(
-            organization=organization,
+            project__organization=organization,
         ).select_related('project', 'user')
 
         return self.paginate(
