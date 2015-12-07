@@ -23,7 +23,10 @@ def get_opts(param):
 
 def write_page(out, data):
     path = data['path']
-    filename = os.path.join(out, *path) + '/index.rst'
+    filename = os.path.join(out, *path[1:]) + '/index.rst'
+    if len(path) == 1:
+        filename += '.inc'
+
     dirname = os.path.dirname(filename)
     try:
         os.makedirs(dirname)
@@ -34,14 +37,14 @@ def write_page(out, data):
     title = '`%s`' % ' '.join(data['path'] + args)
     body = [
         title,
-        '=' * len(title),
+        '-' * len(title),
         '',
         data['help'] or '',
     ]
 
     body.append('')
     body.append('Options')
-    body.append('-------')
+    body.append('```````')
     body.append('')
     for opt in data['options']:
         prefix = '- `%s`: ' % opt['opt_string']
@@ -53,12 +56,13 @@ def write_page(out, data):
     if data['subcommands']:
         body.append('')
         body.append('Subcommands')
-        body.append('-----------')
+        body.append('```````````')
         body.append('')
         body.append('.. toctree::')
+        body.append(' :maxdepth: 1')
         body.append('')
         for subcmd in data['subcommands']:
-            body.append(' %s/index' % subcmd)
+            body.append(' %s <%s/index>' % (subcmd, subcmd))
         body.append('')
 
     with open(filename, 'w') as f:

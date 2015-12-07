@@ -22,7 +22,7 @@ running on your own infrastructure.
    inbound-mail
    internal-metrics
    performance
-   cli
+   cli/index
    health-checks
    beacon
    plugins
