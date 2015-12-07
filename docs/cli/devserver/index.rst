@@ -1,4 +1,4 @@
-`lektor devserver [MANAGEMENT_ARGS]...`
+`sentry devserver [MANAGEMENT_ARGS]...`
 ---------------------------------------
 
 Start a light Web server for development.

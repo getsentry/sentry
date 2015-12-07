@@ -1,4 +1,4 @@
-`lektor upgrade`
+`sentry upgrade`
 ----------------
 
 Perform any pending database migrations and upgrades.

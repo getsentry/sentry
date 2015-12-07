@@ -36,8 +36,12 @@ const SelectedGroupStore = Reflux.createStore({
 
   allSelected() {
     let itemIds = this.getSelectedIds();
-    let numRecords = Object.keys(this.records).length;
+    let numRecords = this.numSelected();
     return itemIds.size > 0 && itemIds.size === numRecords;
+  },
+
+  numSelected() {
+    return Object.keys(this.records).length;
   },
 
   anySelected() {

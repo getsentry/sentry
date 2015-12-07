@@ -9,7 +9,7 @@ from sentry.models import Option
 from sentry.options.store import OptionsStore
 from sentry.options.manager import (
     OptionsManager, UnknownOption, DEFAULT_FLAGS,
-    FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY, FLAG_REQUIRED)
+    FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY, FLAG_REQUIRED, FLAG_PRIORITIZE_DISK)
 from sentry.testutils import TestCase
 
 
@@ -136,6 +136,22 @@ class OptionsManagerTest(TestCase):
 
         with self.settings(SENTRY_OPTIONS={'storeonly': 'something-else!'}):
             assert self.manager.get('storeonly') == ''
+
+    def test_flag_prioritize_disk(self):
+        self.manager.register('prioritize_disk', flags=FLAG_PRIORITIZE_DISK)
+        assert self.manager.get('prioritize_disk') == ''
+
+        with self.settings(SENTRY_OPTIONS={'prioritize_disk': 'something-else!'}):
+            with self.assertRaises(AssertionError):
+                assert self.manager.set('prioritize_disk', 'foo')
+            assert self.manager.get('prioritize_disk') == 'something-else!'
+
+        self.manager.set('prioritize_disk', 'foo')
+        assert self.manager.get('prioritize_disk') == 'foo'
+
+        # Make sure the database value is overridden if defined
+        with self.settings(SENTRY_OPTIONS={'prioritize_disk': 'something-else!'}):
+            assert self.manager.get('prioritize_disk') == 'something-else!'
 
     def test_db_unavailable(self):
         with patch.object(Option.objects, 'get_queryset', side_effect=Exception()):

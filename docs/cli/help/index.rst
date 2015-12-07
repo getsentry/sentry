@@ -1,4 +1,4 @@
-`lektor help`
+`sentry help`
 -------------
 
 Show this message and exit.

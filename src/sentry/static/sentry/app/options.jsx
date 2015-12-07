@@ -20,8 +20,16 @@ const definitions = {
   }
 };
 
-export function getOptionField(option, onChange, value) {
-  let meta = definitions[option];
+const disabledReasons = {
+  diskPriority: 'This setting is defined in config.yml and may not be changed via the web UI.',
+};
+
+export function getOption(option) {
+  return definitions[option];
+}
+
+export function getOptionField(option, onChange, value, field) {
+  let meta = {...getOption(option), ...field};
   let Field = meta.component || TextField;
   return (
     <Field
@@ -31,13 +39,11 @@ export function getOptionField(option, onChange, value) {
         placeholder={meta.placeholder}
         help={meta.help}
         onChange={onChange}
-        required={true}
-        value={value} />
+        required={meta.required}
+        value={value}
+        disabled={meta.disabled}
+        disabledReason={meta.disabledReason && disabledReasons[meta.disabledReason]} />
   );
-}
-
-export function getOption(option) {
-  return definitions[option];
 }
 
 export default definitions;

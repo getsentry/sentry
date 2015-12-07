@@ -12,13 +12,21 @@ import {getOption, getOptionField} from '../options';
 const SettingsList = React.createClass({
   getInitialState() {
     let options = {...this.props.options};
-    let requiredOptions = Object.keys(_.pick(options, option => option.field.required));
+    let requiredOptions = Object.keys(_.pick(options, (option) => {
+      return option.field.required && !option.field.disabled;
+    }));
     let fields = [];
-    for (let option of Object.keys(options)) {
-      if (!options[option].value) {
-        options[option].value = getOption(option).defaultValue;
+    for (let key of Object.keys(options)) {
+      let option = options[key];
+      if (!option.value) {
+        option.value = getOption(key).defaultValue;
       }
-      fields.push(getOptionField(option, this.onFieldChange.bind(this, option), options.value));
+      fields.push(getOptionField(key, this.onFieldChange.bind(this, key), option.value, option.field));
+      // options is used for submitting to the server, and we dont submit values
+      // that are deleted
+      if (option.field.disabled) {
+        delete options[key];
+      }
     }
 
     return {
