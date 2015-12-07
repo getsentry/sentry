@@ -14,6 +14,14 @@ const InstallWizardSettings = React.createClass({
     let requiredOptions = Object.keys(_.pick(options, option => option.field.required));
     let missingOptions = new Set(requiredOptions.filter(option => !options[option].value));
     let fields = [];
+    // This is to handle the initial installation case.
+    // Even if all options are filled out, we want to prompt to confirm
+    // them. This is a bit of a hack because we're assuming that
+    // the backend only spit back all filled out options for
+    // this case.
+    if (missingOptions.size === 0) {
+      missingOptions = new Set(requiredOptions);
+    }
     for (let option of missingOptions) {
       if (!options[option].value) {
         // TODO(dcramer): this should not be mutated
