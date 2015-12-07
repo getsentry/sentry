@@ -7,6 +7,8 @@ from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SuperuserPermission
 
+from django.conf import settings
+
 
 class SystemOptionsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
@@ -18,6 +20,8 @@ class SystemOptionsEndpoint(Endpoint):
                 'field': {
                     'default': k.default,
                     'required': True,
+                    # TODO(mattrobenolt): Expose this as a property on Key.
+                    'disabled': bool(k.flags & options.FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(k.name))
                     # TODO(mattrobenolt): help, placeholder, title, type
                 },
             }
