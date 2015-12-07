@@ -47,11 +47,11 @@ def write_page(out, data):
     body.append('```````')
     body.append('')
     for opt in data['options']:
-        prefix = '- `%s`: ' % opt['opt_string']
+        prefix = '- ``%s``: ' % opt['opt_string']
         for line in click.wrap_text(
                 opt['help'] or '', 74, prefix, '  ').splitlines():
             body.append(line)
-    body.append('- `--help`: print this help page.')
+    body.append('- ``--help``: print this help page.')
 
     if data['subcommands']:
         body.append('')

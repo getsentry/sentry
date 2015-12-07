@@ -6,4 +6,4 @@ Imports data from a Sentry export.
 Options
 ```````
 
-- `--help`: print this help page.
+- ``--help``: print this help page.

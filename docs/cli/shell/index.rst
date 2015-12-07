@@ -6,4 +6,4 @@ Run a Python interactive interpreter.
 Options
 ```````
 
-- `--help`: print this help page.
+- ``--help``: print this help page.
