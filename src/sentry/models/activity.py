@@ -76,12 +76,13 @@ class Activity(Model):
     def save(self, *args, **kwargs):
         created = bool(not self.id)
 
+        if created:
+            self.organization = self.project.organization
+
         super(Activity, self).save(*args, **kwargs)
 
         if not created:
             return
-
-        self.organization = self.project.organization
 
         # HACK: support Group.num_comments
         if self.type == Activity.NOTE:
