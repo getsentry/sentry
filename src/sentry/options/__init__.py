@@ -9,7 +9,10 @@ from __future__ import absolute_import, print_function
 
 from .store import OptionsStore
 from .manager import OptionsManager
-from .manager import DEFAULT_FLAGS, FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY  # NOQA
+from .manager import (  # NOQA
+    DEFAULT_FLAGS, FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY,
+    FLAG_REQUIRED,
+)
 
 __all__ = (
     'get', 'set', 'delete', 'register',
@@ -25,5 +28,7 @@ get = default_manager.get
 set = default_manager.set
 delete = default_manager.delete
 register = default_manager.register
+all = default_manager.all
+filter = default_manager.filter
 
 from .defaults import *  # NOQA

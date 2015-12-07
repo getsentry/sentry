@@ -28,7 +28,7 @@ from sentry.utils.apidocs import Runner, MockUtils, iter_scenarios, \
 
 
 OUTPUT_PATH = os.path.join(HERE, 'cache')
-HOST = urlparse.urlparse(settings.SENTRY_URL_PREFIX).netloc
+HOST = urlparse.urlparse(settings.SENTRY_OPTIONS['system.url-prefix']).netloc
 
 
 # We don't care about you, go away

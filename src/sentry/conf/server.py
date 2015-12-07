@@ -614,9 +614,6 @@ SENTRY_IGNORE_EXCEPTIONS = (
     'OperationalError',
 )
 
-# Absolute URL to the sentry root directory. Should not include a trailing slash.
-SENTRY_URL_PREFIX = ''
-
 # Should we send the beacon to the upstream server?
 SENTRY_BEACON = True
 

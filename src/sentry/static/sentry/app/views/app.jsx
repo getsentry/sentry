@@ -2,10 +2,11 @@ import React from 'react';
 import ApiMixin from '../mixins/apiMixin';
 import Alerts from '../components/alerts';
 import AlertActions from '../actions/alertActions.jsx';
+import ConfigStore from '../stores/configStore';
 import Indicators from '../components/indicators';
+import InstallWizard from './installWizard';
 import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationStore from '../stores/organizationStore';
-import ConfigStore from '../stores/configStore';
 
 const App = React.createClass({
   mixins: [
@@ -15,7 +16,8 @@ const App = React.createClass({
   getInitialState() {
     return {
       loading: false,
-      error: false
+      error: false,
+      needsUpgrade: ConfigStore.get('needsUpgrade'),
     };
   },
 
@@ -58,7 +60,23 @@ const App = React.createClass({
     OrganizationStore.load([]);
   },
 
+  onConfigured() {
+    this.setState({needsUpgrade: false});
+  },
+
   render() {
+    let user = ConfigStore.get('user');
+    let needsUpgrade = this.state.needsUpgrade;
+
+    if (user.isSuperuser && needsUpgrade) {
+      return (
+        <div>
+          <Indicators className="indicators-container" />
+          <InstallWizard onConfigured={this.onConfigured} />
+        </div>
+      );
+    }
+
     if (this.state.loading) {
       return (
         <LoadingIndicator triangle={true}>

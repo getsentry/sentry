@@ -4,9 +4,9 @@ from __future__ import absolute_import
 
 import mock
 
-from django.conf import settings
 from exam import fixture
 
+from sentry import options
 from sentry.models import Project
 from sentry.testutils import TestCase
 from sentry.utils.http import (
@@ -16,10 +16,10 @@ from sentry.utils.http import (
 
 class AbsoluteUriTest(TestCase):
     def test_without_path(self):
-        assert absolute_uri() == settings.SENTRY_URL_PREFIX
+        assert absolute_uri() == options.get('system.url-prefix')
 
     def test_with_path(self):
-        assert absolute_uri('/foo/bar') == '%s/foo/bar' % (settings.SENTRY_URL_PREFIX,)
+        assert absolute_uri('/foo/bar') == '%s/foo/bar' % (options.get('system.url-prefix'),)
 
 
 class SameDomainTestCase(TestCase):

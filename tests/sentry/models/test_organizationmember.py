@@ -45,7 +45,7 @@ class OrganizationMemberTest(TestCase):
     def test_send_invite_email(self):
         organization = self.create_organization()
         member = OrganizationMember(id=1, organization=organization, email='foo@example.com')
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             member.send_invite_email()
 
             assert len(mail.outbox) == 1
@@ -57,7 +57,7 @@ class OrganizationMemberTest(TestCase):
     def test_send_sso_link_email(self):
         organization = self.create_organization()
         member = OrganizationMember(id=1, organization=organization, email='foo@example.com')
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             member.send_invite_email()
 
             assert len(mail.outbox) == 1

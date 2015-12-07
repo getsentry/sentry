@@ -32,6 +32,27 @@ def _get_version_info():
     }
 
 
+def _needs_upgrade():
+    version_configured = options.get('sentry:version-configured')
+    if not version_configured:
+        # If we were never previously upgraded (being a new install)
+        # we want to force an upgrade, even if the values are set.
+        return True
+
+    # Already up to date, yay!
+    if version_configured == sentry.get_version():
+        return False
+
+    # Check all required options to see if they've been set
+    for key in options.filter(flag=options.FLAG_REQUIRED):
+        if not options.get(key):
+            return True
+
+    # Everything looks good, but version changed, so let's bump it
+    options.set('sentry:version-configured', sentry.get_version())
+    return False
+
+
 @register.simple_tag(takes_context=True)
 def get_react_config(context):
     if 'request' in context:
@@ -55,12 +76,20 @@ def get_react_config(context):
     if features.has('auth:register', actor=user):
         enabled_features.append('auth:register')
 
+    version_info = _get_version_info()
+
+    needs_upgrade = False
+
+    if is_superuser:
+        needs_upgrade = _needs_upgrade()
+
     context = {
         'singleOrganization': settings.SENTRY_SINGLE_ORGANIZATION,
-        'urlPrefix': settings.SENTRY_URL_PREFIX,
-        'version': _get_version_info(),
+        'urlPrefix': options.get('system.url-prefix'),
+        'version': version_info,
         'features': enabled_features,
         'mediaUrl': get_asset_url('sentry', ''),
+        'needsUpgrade': needs_upgrade,
         'messages': [{
             'message': msg.message,
             'level': msg.tags,
