@@ -24,11 +24,12 @@ const Admin = React.createClass({
                 <div className="col-md-2">
                   <h6 className="nav-header">System</h6>
                   <ul className="nav nav-stacked">
-                    <ListLink to="/manage/">Overview</ListLink>
+                    <ListLink index={true} to="/manage/">Overview</ListLink>
                     <li><a href={`${urlPrefix}/manage/queue/`}>Queue</a></li>
                     <li><a href={`${urlPrefix}/manage/environment/`}>Environment</a></li>
                     <li><a href={`${urlPrefix}/manage/packages/`}>Packages</a></li>
                     <li><a href={`${urlPrefix}/manage/mail/`}>Mail</a></li>
+                    <ListLink to="/manage/settings/">Settings</ListLink>
                   </ul>
 
                   <h6 className="nav-header">Manage</h6>

@@ -4,6 +4,7 @@ import {Redirect, Route, IndexRoute} from 'react-router';
 import Admin from './views/admin';
 import AdminOrganizations from './views/adminOrganizations';
 import AdminOverview from './views/adminOverview';
+import AdminSettings from './views/adminSettings';
 import App from './views/app';
 import GroupActivity from './views/groupActivity';
 import GroupDetails from './views/groupDetails';
@@ -52,8 +53,9 @@ let routes = (
     </Route>
 
     <Route path="/manage/" component={Admin}>
-      <Route path="organizations/" component={AdminOrganizations} />
       <IndexRoute component={AdminOverview} />
+      <Route path="organizations/" component={AdminOrganizations} />
+      <Route path="settings/" component={AdminSettings} />
     </Route>
 
     <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
