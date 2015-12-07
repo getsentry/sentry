@@ -1,4 +1,4 @@
-`lektor init [DIRECTORY]`
+`sentry init [DIRECTORY]`
 -------------------------
 
 Initialize new configuration directory.

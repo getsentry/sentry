@@ -1,4 +1,4 @@
-`lektor django [MANAGEMENT_ARGS]...`
+`sentry django [MANAGEMENT_ARGS]...`
 ------------------------------------
 
 Execute Django subcommands.

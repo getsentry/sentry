@@ -1,4 +1,4 @@
-`lektor import SRC`
+`sentry import SRC`
 -------------------
 
 Imports data from a Sentry export.

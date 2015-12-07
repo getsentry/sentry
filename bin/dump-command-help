@@ -102,7 +102,7 @@ def dump_command(out, cmd, path):
 @click.option('--output-path', 'out', type=click.Path(),
               default='build/cli-help')
 def cli(out):
-    dump_command(out, root_command, ['lektor'])
+    dump_command(out, root_command, ['sentry'])
 
 
 if __name__ == '__main__':

@@ -10,14 +10,11 @@ const ActionLink = React.createClass({
   propTypes: {
     confirmationQuestion: React.PropTypes.any,
     buttonTitle: React.PropTypes.string,
-    canActionAll: React.PropTypes.bool.isRequired,
     confirmLabel: React.PropTypes.any,
-    confirmAllLabel: React.PropTypes.any,
     disabled: React.PropTypes.bool,
-    neverConfirm: React.PropTypes.bool,
     onAction: React.PropTypes.func.isRequired,
     onlyIfBulk: React.PropTypes.bool,
-    selectAllActive: React.PropTypes.bool.isRequired
+    selectAllActive: React.PropTypes.bool.isRequired // "select all" checkbox
   },
 
   mixins: [
@@ -30,11 +27,8 @@ const ActionLink = React.createClass({
 
   getDefaultProps() {
     return {
-      actionTypes: {},
       buttonTitle: null, // title="..." (optional)
-      canActionAll: false,
       onlyIfBulk: false,
-      neverConfirm: false,
       disabled: false
     };
   },
@@ -48,7 +42,7 @@ const ActionLink = React.createClass({
   handleClick() {
     let selectedItemIds = SelectedGroupStore.getSelectedIds();
     if (!this.state.isModalOpen && !this.shouldConfirm(selectedItemIds.size)) {
-      return void this.handleActionSelected();
+      return void this.handleAction();
     }
 
     this.handleToggle();
@@ -63,15 +57,8 @@ const ActionLink = React.createClass({
     });
   },
 
-  handleActionAll(evt) {
-    this.props.onAction(evt, this.props.actionTypes.ALL);
-    this.setState({
-      isModalOpen: false
-    });
-  },
-
-  handleActionSelected(evt) {
-    this.props.onAction(evt, this.props.actionTypes.SELECTED);
+  handleAction(evt) {
+    this.props.onAction(evt);
     this.setState({
       isModalOpen: false
     });
@@ -81,12 +68,8 @@ const ActionLink = React.createClass({
     // By default, should confirm ...
     let shouldConfirm = true;
 
-    // Unless `neverConfirm` is true, then return false
-    if (this.props.neverConfirm === true) {
-      shouldConfirm = false;
-
     // Unless `onlyIfBulk` is true, then return false if all items are not selected
-    } else if (this.props.onlyIfBulk === true && (!this.props.selectAllActive || numSelectedItems === 1)) {
+    if (this.props.onlyIfBulk === true && (!this.props.selectAllActive || numSelectedItems === 1)) {
       shouldConfirm = false;
     }
 
@@ -129,12 +112,8 @@ const ActionLink = React.createClass({
           <div className="modal-footer">
             <button type="button" className="btn btn-default"
                     onClick={this.handleToggle}>{t('Cancel')}</button>
-            {this.props.canActionAll &&
-              <button type="button" className="btn btn-danger"
-                      onClick={this.handleActionAll}>{resolveLabel(this.props.confirmAllLabel)}</button>
-            }
             <button type="button" className="btn btn-primary"
-                    onClick={this.handleActionSelected}>
+                    onClick={this.handleAction}>
               {resolveLabel(this.props.confirmLabel)}
             </button>
           </div>

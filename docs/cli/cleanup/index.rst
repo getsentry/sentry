@@ -1,4 +1,4 @@
-`lektor cleanup`
+`sentry cleanup`
 ----------------
 
 Delete a portion of trailing data based on creation date.

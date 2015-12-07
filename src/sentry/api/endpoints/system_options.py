@@ -7,22 +7,28 @@ from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SuperuserPermission
 
+from django.conf import settings
+
 
 class SystemOptionsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
     def get(self, request):
-        results = {
-            k.name: {
+        results = {}
+        for k in options.filter(flag=options.FLAG_REQUIRED):
+            # TODO(mattrobenolt): Expose this as a property on Key.
+            diskPriority = bool(k.flags & options.FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(k.name))
+            # TODO(mattrobenolt): help, placeholder, title, type
+            results[k.name] = {
                 'value': options.get(k.name),
                 'field': {
                     'default': k.default,
-                    'required': True,
-                    # TODO(mattrobenolt): help, placeholder, title, type
-                },
+                    'required': bool(k.flags & options.FLAG_REQUIRED),
+                    # We're disabled if the disk has taken priority
+                    'disabled': diskPriority,
+                    'disabledReason': 'diskPriority' if diskPriority else None,
+                }
             }
-            for k in options.filter(flag=options.FLAG_REQUIRED)
-        }
 
         return Response(results)
 

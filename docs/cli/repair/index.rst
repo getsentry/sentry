@@ -1,4 +1,4 @@
-`lektor repair`
+`sentry repair`
 ---------------
 
 Attempt to repair any invalid data.

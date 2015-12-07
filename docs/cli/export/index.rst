@@ -1,4 +1,4 @@
-`lektor export [DEST]`
+`sentry export [DEST]`
 ----------------------
 
 Exports core metadata for the Sentry installation.

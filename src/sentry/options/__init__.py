@@ -11,7 +11,7 @@ from .store import OptionsStore
 from .manager import OptionsManager
 from .manager import (  # NOQA
     DEFAULT_FLAGS, FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY,
-    FLAG_REQUIRED,
+    FLAG_REQUIRED, FLAG_PRIORITIZE_DISK,
 )
 
 __all__ = (
