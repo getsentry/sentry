@@ -16,6 +16,7 @@ import GroupUserReports from './views/groupUserReports';
 import MyIssuesAssignedToMe from './views/myIssues/assignedToMe';
 import MyIssuesBookmarked from './views/myIssues/bookmarked';
 import MyIssuesViewed from './views/myIssues/viewed';
+import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
 import OrganizationRateLimits from './views/organizationRateLimits';
 import OrganizationStats from './views/organizationStats';
@@ -48,7 +49,6 @@ function appendTrailingSlash(nextState, replaceState) {
 
 let routes = (
   <Route path="/" component={errorHandler(App)}>
-
     <Route path="/manage/" component={errorHandler(Admin)}>
       <IndexRoute component={errorHandler(AdminOverview)} />
       <Route path="organizations/" component={errorHandler(AdminOrganizations)} />
@@ -61,6 +61,7 @@ let routes = (
     <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
       <IndexRoute component={errorHandler(OrganizationTeams)} />
 
+      <Route path="/organizations/:orgId/dashboard/" component={errorHandler(OrganizationDashboard)} />
       <Route path="/organizations/:orgId/issues/assigned/" component={errorHandler(MyIssuesAssignedToMe)} />
       <Route path="/organizations/:orgId/issues/bookmarks/" component={errorHandler(MyIssuesBookmarked)} />
       <Route path="/organizations/:orgId/issues/history/" component={errorHandler(MyIssuesViewed)} />
