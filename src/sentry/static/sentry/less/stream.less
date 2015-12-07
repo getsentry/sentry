@@ -34,7 +34,7 @@
 .group-header {
   // needs fixed height so that stream doesn't "pop" up
   // when stream actions turn "sticky"
-  height: 44px;
+  min-height: 44px;
 }
 
 .stream-no-bulk-actions {
@@ -160,6 +160,24 @@
   }
 }
 
+.stream-select-all-notice {
+  background: @header-bg-color;
+  border: 1px solid #E7D796;
+  margin: 0 0 -1px;
+  position: relative;
+  z-index: 2;
+
+  > div {
+    background-color: #FFFDF7;
+    text-align: center;
+    padding: 3px 10px;
+
+   a {
+      margin-left: 0.5em;
+    }
+  }
+}
+
 /**
 * Stream / Group List
 * ============================================================================
@@ -185,6 +203,7 @@
     padding-right: 10px;
     background: #fff;
     .transition(all .4s ease-in-out);
+    z-index: 1;
 
     .icon-bookmark, .icon-soundoff {
       padding-right: 5px;

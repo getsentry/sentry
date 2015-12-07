@@ -42,20 +42,26 @@ describe('StreamActions', function() {
         this.sandbox.stub(SelectedGroupStore, 'deselectAll');
         let callback = this.sandbox.stub();
 
-        this.actions.actionSelectedGroups(this.actions.props.actionTypes.ALL, callback);
+        this.actions.state.allInQuerySelected = true;
+
+        this.actions.actionSelectedGroups(callback);
 
         expect(callback.withArgs(undefined).calledOnce).to.be.ok;
         expect(SelectedGroupStore.deselectAll.calledOnce).to.be.ok;
+
+        // all selected is reset
+        expect(this.actions.state.allInQuerySelected, false);
       });
     });
 
-    describe('for selected items', function () {
+    describe('for page-selected items', function () {
       it('should invoke the callback with an array of selected items and deselect all', function () {
         this.sandbox.stub(SelectedGroupStore, 'deselectAll');
         this.sandbox.stub(SelectedGroupStore, 'getSelectedIds').returns(new Set([1,2,3]));
 
+        this.actions.state.allInQuerySelected = false;
         let callback = this.sandbox.stub();
-        this.actions.actionSelectedGroups(this.actions.props.actionTypes.SELECTED, callback);
+        this.actions.actionSelectedGroups(callback);
 
         expect(callback.withArgs([1,2,3]).calledOnce).to.be.ok;
         expect(SelectedGroupStore.deselectAll.calledOnce).to.be.ok;
