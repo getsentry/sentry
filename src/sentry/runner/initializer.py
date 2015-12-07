@@ -86,6 +86,10 @@ def bootstrap_options(settings, config):
     except IOError:
         # Gracefully fail if yaml file doesn't exist
         return
+    # First move options from settings into options
+    for k, v in options_mapper.iteritems():
+        if hasattr(settings, v):
+            options[k] = getattr(settings, v)
     for k, v in options.iteritems():
         # Stuff everything else into SENTRY_OPTIONS
         # these will be validated later after bootstrapping
