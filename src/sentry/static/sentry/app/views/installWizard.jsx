@@ -6,51 +6,20 @@ import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import ConfigStore from '../stores/configStore';
 import LoadingIndicator from '../components/loadingIndicator';
-import {EmailField, TextField} from '../components/forms';
-
-
-const OPTIONS_META = {
-  'system.url-prefix': {
-    label: t('Root URL'),
-    placeholder: 'https://sentry.example.com',
-    help: t('The root web address which is used to communicate with the Sentry backend.'),
-    defaultValue: () => `${document.location.protocol}//${document.location.host}`
-  },
-  'system.admin-email': {
-    label: t('Admin Email'),
-    placeholder: 'admin@example.com',
-    help: t('The technical contact for this Sentry installation.'),
-    component: EmailField,
-    defaultValue: () => ConfigStore.get('user').email
-  }
-};
-
-function makeField(option, onChange) {
-  let meta = OPTIONS_META[option];
-  let Field = meta.component || TextField;
-  return (
-    <Field
-        key={option}
-        label={meta.label}
-        defaultValue={meta.defaultValue()}
-        placeholder={meta.placeholder}
-        help={meta.help}
-        onChange={onChange}
-    />
-  );
-}
-
+import {getOption, getOptionField} from '../options';
 
 const InstallWizardSettings = React.createClass({
-
   getInitialState() {
-    let options = {...this.props.initialOptions};
+    let options = {...this.props.options};
     let requiredOptions = Object.keys(_.pick(options, option => option.field.required));
     let missingOptions = new Set(requiredOptions.filter(option => !options[option].value));
     let fields = [];
     for (let option of missingOptions) {
-      options[option].value = options[option].value || OPTIONS_META[option].defaultValue;
-      fields.push(makeField(option, this.onFieldChange.bind(this, option)));
+      if (!options[option].value) {
+        // TODO(dcramer): this should not be mutated
+        options[option].value = getOption(option).defaultValue;
+      }
+      fields.push(getOptionField(option, this.onFieldChange.bind(this, option), options.value));
     }
 
     return {
@@ -75,6 +44,7 @@ const InstallWizardSettings = React.createClass({
   render() {
     let {fields, required, options} = this.state;
     let formValid = !required.filter(option => !options[option].value).length;
+    let disabled = !formValid || this.props.formDisabled;
 
     return (
       <div>
@@ -87,7 +57,7 @@ const InstallWizardSettings = React.createClass({
 
         <div className="form-actions" style={{marginTop: 25}}>
           <button className="btn btn-primary"
-                  disabled={!formValid} onClick={this.onClick}>{t('Continue')}</button>
+                  disabled={disabled} onClick={this.onClick}>{t('Continue')}</button>
         </div>
       </div>
     );
@@ -103,7 +73,8 @@ const InstallWizard = React.createClass({
     return {
       loading: true,
       error: false,
-      options: {}
+      submitInProgress: false,
+      currentOptions: {}
     };
   },
 
@@ -135,19 +106,25 @@ const InstallWizard = React.createClass({
   },
 
   onSubmit(options) {
+    this.setState({
+      submitInProgress: true,
+    });
+
     let data = _.mapObject(options, option => option.value);
     this.api.request('/internal/options/', {
       method: 'PUT',
       data: data,
       success: this.props.onConfigured,
       error: () => {
-        // Should do something here with an error
-      }
+        this.setState({
+          submitInProgress: false,
+        });
+      },
     });
   },
 
   render() {
-    let {error, loading, options} = this.state;
+    let {error, loading, options, submitInProgress} = this.state;
     let version = ConfigStore.get('version');
     return (
       <DocumentTitle title="Sentry Setup">
@@ -168,7 +145,10 @@ const InstallWizard = React.createClass({
                   {t('We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.')}
                 </div>
               :
-                <InstallWizardSettings initialOptions={options} onSubmit={this.onSubmit}/>
+                <InstallWizardSettings
+                    options={options}
+                    onSubmit={this.onSubmit}
+                    formDisabled={submitInProgress} />
               )}
             </div>
           </div>
