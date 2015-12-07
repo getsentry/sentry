@@ -31,6 +31,9 @@ FLAG_NOSTORE = 1 << 2
 FLAG_STOREONLY = 1 << 3
 # Values that must be defined for setup to be considered complete
 FLAG_REQUIRED = 1 << 4
+# If the value is defined on disk, use that and don't attempt to fetch from db.
+# This also make the value immutible to changes from web UI.
+FLAG_PRIORITIZE_DISK = 1 << 5
 
 # How long will a cache key exist in local memory before being evicted
 DEFAULT_KEY_TTL = 10
@@ -74,6 +77,8 @@ class OptionsManager(object):
         assert not (opt.flags & FLAG_NOSTORE), '%r cannot be changed at runtime' % key
         # Enforce immutability on key
         assert not (opt.flags & FLAG_IMMUTABLE), '%r cannot be changed at runtime' % key
+        # Enforce immutability if value is already set on disk
+        assert not(opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key)), '%r cannot be changed at runtime because it is configured on disk' % key
 
         if not isinstance(value, opt.type):
             raise TypeError('got %r, expected %r' % (_type(value), opt.type))
@@ -106,6 +111,18 @@ class OptionsManager(object):
         # TODO(mattrobenolt): Perform validation on key returned for type Justin Case
         # values change. This case is unlikely, but good to cover our bases.
         opt = self.lookup_key(key)
+
+        # First check if the option should exist on disk, and if it actually
+        # has a value set, let's use that one instead without even attempting
+        # to fetch from network storage.
+        if opt.flags & FLAG_PRIORITIZE_DISK:
+            try:
+                result = settings.SENTRY_OPTIONS[key]
+            except KeyError:
+                pass
+            else:
+                if result:
+                    return result
 
         if not (opt.flags & FLAG_NOSTORE):
             result = self.store.get(opt, silent=silent)
