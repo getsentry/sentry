@@ -47,15 +47,26 @@
   }
   .chart-wrapper {
     position: relative;
+    padding-top: 20px;
+
+    .sparkline a {
+      span {
+        background: @purple-light;
+        #gradient > .vertical(@purple-light, @purple);
+      }
+
+      &:hover span {
+        background: @blue;
+      }
+    }
+
     .date-legend {
       top: 0;
       left: 0;
       position: absolute;
-      color: @gray-light;
-      background: #fff;
+      color: @gray-dark;
       padding: 2px;
-      opacity: 0.8;
-      font-size: 11px;
+      font-size: 12px;
       line-height: 1;
     }
   }

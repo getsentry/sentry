@@ -343,12 +343,13 @@
   .bar-chart figure a {
     height: 50px;
 
-    > span {
+    span {
       background: @purple-light;
+      #gradient > .vertical(@purple-light, @purple);
     }
 
-    &:hover > span {
-      background: @purple-dark;
+    &:hover span {
+      background: @blue;
     }
   }
 
