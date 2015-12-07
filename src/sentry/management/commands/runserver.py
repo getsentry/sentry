@@ -74,7 +74,7 @@ class Command(RunserverCommand):
                 server = self.run_server(**options)
                 server.wait()
             finally:
-                if server is None and server.poll() is None:
+                if server and server.poll() is None:
                     server.kill()
                 for watcher in watcher_list:
                     if watcher.poll() is None:
