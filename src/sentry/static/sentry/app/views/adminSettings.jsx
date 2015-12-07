@@ -18,7 +18,7 @@ const SettingsList = React.createClass({
       if (!options[option].value) {
         options[option].value = getOption(option).defaultValue;
       }
-      fields.push(getOptionField(option, this.onFieldChange.bind(this, option), options.value, options.field));
+      fields.push(getOptionField(option, this.onFieldChange.bind(this, option), options[option].value, options[option].field));
     }
 
     return {
