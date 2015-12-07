@@ -1,4 +1,4 @@
-`lektor celery [MANAGEMENT_ARGS]...`
+`sentry celery [MANAGEMENT_ARGS]...`
 ------------------------------------
 
 Start background workers.
