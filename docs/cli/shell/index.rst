@@ -1,4 +1,4 @@
-`lektor shell [MANAGEMENT_ARGS]...`
+`sentry shell [MANAGEMENT_ARGS]...`
 -----------------------------------
 
 Run a Python interactive interpreter.

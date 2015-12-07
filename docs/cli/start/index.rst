@@ -1,4 +1,4 @@
-`lektor start [SERVICE]`
+`sentry start [SERVICE]`
 ------------------------
 
 Start running a service.

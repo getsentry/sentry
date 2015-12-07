@@ -1,4 +1,4 @@
-`lektor createuser`
+`sentry createuser`
 -------------------
 
 Create a new user.

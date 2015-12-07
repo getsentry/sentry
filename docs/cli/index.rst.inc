@@ -1,4 +1,4 @@
-`lektor`
+`sentry`
 --------
 
 Sentry is cross-platform crash reporting built with love.
