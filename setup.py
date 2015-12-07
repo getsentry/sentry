@@ -41,6 +41,7 @@ from distutils import log
 from distutils.command.build import build as BuildCommand
 from distutils.core import Command
 from setuptools.command.sdist import sdist as SDistCommand
+from setuptools.command.develop import develop as DevelopCommand
 from setuptools import setup, find_packages
 from subprocess import check_output
 
@@ -383,8 +384,17 @@ class SentryBuildCommand(BuildCommand):
             self.run_command('build_js')
 
 
+class SentryDevelopCommand(DevelopCommand):
+
+    def run(self):
+        DevelopCommand.run(self)
+        if not IS_LIGHT_BUILD:
+            self.run_command('build_js')
+
+
 cmdclass = {
     'sdist': SentrySDistCommand,
+    'develop': SentryDevelopCommand,
     'build': SentryBuildCommand,
     'build_js': BuildJavascriptCommand,
 }
