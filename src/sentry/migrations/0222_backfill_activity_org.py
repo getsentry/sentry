@@ -12,7 +12,11 @@ class Migration(DataMigration):
 
         Activity = orm['sentry.Activity']
 
-        for activity in RangeQuerySetWrapper(Activity.objects.select_related('project')):
+        queryset = Activity.objects.filter(
+            organization__isnull=True,
+        ).select_related('project')
+
+        for activity in RangeQuerySetWrapper(queryset):
             Activity.objects.filter(
                 id=activity.id,
             ).update(organization=activity.project.organization_id)
