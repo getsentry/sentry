@@ -29,14 +29,12 @@
     </li>
     {% endif %}
   </ul>
-  {% feature organizations:my-issues organization %}
-    <h6 class="nav-header">{% trans "My Issues" %}</h6>
-    <ul class="nav nav-stacked">
-      <li><a href="{% absolute_uri '/organizations/{}/issues/assigned/' organization.slug %}">{% trans "Assigned to Me" %}</li></a>
-      <li><a href="{% absolute_uri '/organizations/{}/issues/bookmarks/' organization.slug %}">{% trans "Bookmarks" %}</li></a>
-      <li><a href="{% absolute_uri '/organizations/{}/issues/history/' organization.slug %}">{% trans "History" %}</li></a>
-    </ul>
-  {% endfeature %}
+  <h6 class="nav-header">{% trans "My Issues" %}</h6>
+  <ul class="nav nav-stacked">
+    <li><a href="{% absolute_uri '/organizations/{}/issues/assigned/' organization.slug %}">{% trans "Assigned to Me" %}</li></a>
+    <li><a href="{% absolute_uri '/organizations/{}/issues/bookmarks/' organization.slug %}">{% trans "Bookmarks" %}</li></a>
+    <li><a href="{% absolute_uri '/organizations/{}/issues/history/' organization.slug %}">{% trans "History" %}</li></a>
+  </ul>
   <h6 class="nav-header">Manage</h6>
   <ul class="nav nav-stacked">
     {% if ACCESS.org_read %}
