@@ -14,11 +14,12 @@ const SettingsList = React.createClass({
     let options = {...this.props.options};
     let requiredOptions = Object.keys(_.pick(options, option => option.field.required));
     let fields = [];
-    for (let option of Object.keys(options)) {
-      if (!options[option].value) {
-        options[option].value = getOption(option).defaultValue;
+    for (let key of Object.keys(options)) {
+      let option = options[key];
+      if (!option.value) {
+        option.value = getOption(key).defaultValue;
       }
-      fields.push(getOptionField(option, this.onFieldChange.bind(this, option), options[option].value, options[option].field));
+      fields.push(getOptionField(key, this.onFieldChange.bind(this, key), option.value, option.field));
     }
 
     return {
