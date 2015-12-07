@@ -12,7 +12,6 @@ default_manager.add('organizations:sso', OrganizationFeature)
 default_manager.add('projects:quotas', ProjectFeature)
 default_manager.add('projects:user-reports', ProjectFeature)
 default_manager.add('projects:plugins', ProjectPluginFeature)
-default_manager.add('organizations:my-issues', OrganizationFeature)
 
 # expose public api
 add = default_manager.add
