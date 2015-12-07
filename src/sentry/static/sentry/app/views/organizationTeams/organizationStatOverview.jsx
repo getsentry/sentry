@@ -86,7 +86,7 @@ const OrganizationStatOverview = React.createClass({
       <div className={this.props.className}>
         <h6 className="nav-header">{t('Events Per Minute')}</h6>
         <p className="count">{this.state.epm}</p>
-        <h6 className="nav-header with-divider">{t('Rejected in last 24h')}</h6>
+        <h6 className="nav-header">{t('Rejected in last 24h')}</h6>
         <p className={classNames(rejectedClasses)}>{this.state.totalRejected}</p>
         {access.has('org:read') &&
           <Link to={`/organizations/${this.props.orgId}/stats/`} className="stats-link">
