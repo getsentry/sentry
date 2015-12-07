@@ -21,7 +21,7 @@ const definitions = {
 };
 
 const disabledReasons = {
-  diskPriority: 'Value is defined in config.yml'
+  diskPriority: 'This setting is defined in config.yml and may not be changed via the web UI.',
 };
 
 export function getOption(option) {
