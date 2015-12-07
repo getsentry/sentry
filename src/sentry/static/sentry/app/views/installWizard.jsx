@@ -23,11 +23,12 @@ const InstallWizardSettings = React.createClass({
     if (missingOptions.size === 0) {
       missingOptions = new Set(requiredOptions);
     }
-    for (let option of missingOptions) {
-      if (!options[option].value) {
-        options[option].value = getOption(option).defaultValue;
+    for (let key of missingOptions) {
+      let option = options[key];
+      if (!option.value) {
+        option.value = getOption(key).defaultValue;
       }
-      fields.push(getOptionField(option, this.onFieldChange.bind(this, option), options[option].value, options[option].field));
+      fields.push(getOptionField(key, this.onFieldChange.bind(this, key), option.value, option.field));
     }
 
     return {
