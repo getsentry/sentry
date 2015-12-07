@@ -15,6 +15,24 @@ automated migrations will likely not work and require DBA assistance.
 
 Postgres is now the only supported production database.
 
+Changes to Quotas
+~~~~~~~~~~~~~~~~~
+
+Team and System based quotas are now longer available. A new organization-relative project quota replaces them
+and can be configured via Rate Limits on the organization dashboard.
+
+Notification Digests
+~~~~~~~~~~~~~~~~~~~~
+
+Email notifications will now automatically rollup if the rate of notifications exceeds a threshold. These can be
+configured on a per project basis in Project Settings.
+
+Configuration
+~~~~~~~~~~~~~
+
+A new configuration backend is now utilized for several options. These options can now be
+configured via the web UI.
+
 General
 ~~~~~~~
 
@@ -41,7 +59,6 @@ General
 - Membership permissions have been overhauled and have been flattened into a single tiered
   role. Additionally owners will no longer be automatically added to new teams.
 - ``NotificationPlugin`` now requires ``is_configured`` to be declared.
-- Team and System based quotas are now longer available. A new organization-relative project quota replaces them.
 
 Client API
 ~~~~~~~~~~
@@ -51,6 +68,7 @@ Client API
 - The ``ip_address`` value will always be stored on the user interface when possible.
 - The user interface no longer accepts data missing one of the required identifiers.
 - The ``fingerprint`` value is now stored in ``Event.data``.
+- The ``environment`` attribute is now soft-accepted and tagged.
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -64,6 +82,16 @@ Schema Changes
 - Added ``Release.owner`` column.
 - Added ``Organization.default_role`` column.
 - Added ``OrganizationMember.role`` column.
+- Added ``Broadcast.upstream_id`` column.
+- Removed ``Broadcast.badge`` column.
+- Added ``Broadcast.title`` column.
+- Migrated blob data in ``File`` to ``FileBlob``.
+- Removed ``File.storage`` column.
+- Removed ``File.storage_options`` columns.
+- Added ``OrganizationOption`` table.
+- Added ``GroupSnooze`` table.
+- Added ``GroupResolution`` table.
+- Added ``GroupBookmark.date_added`` column.
 
 Version 7.7.1
 -------------
