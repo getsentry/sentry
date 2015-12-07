@@ -68,7 +68,7 @@ const App = React.createClass({
     let user = ConfigStore.get('user');
     let needsUpgrade = this.state.needsUpgrade;
 
-    if (user.isSuperuser && needsUpgrade) {
+    if (user && user.isSuperuser && needsUpgrade) {
       return (
         <div>
           <Indicators className="indicators-container" />
