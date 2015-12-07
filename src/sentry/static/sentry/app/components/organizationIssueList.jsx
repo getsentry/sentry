@@ -31,10 +31,6 @@ const OrganizationIssueList = React.createClass({
     };
   },
 
-  getEndpoint() {
-    return `/organizations/${this.props.params.orgId}/members/me/issues/assigned/`;
-  },
-
   render() {
     let path = this.props.location.pathname;
     let {status} = this.state;
