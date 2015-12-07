@@ -155,7 +155,7 @@ const StreamActions = React.createClass({
                  buttonTitle={t('Resolve')}
                  confirmationQuestion={
                   this.state.allInQuerySelected
-                    ? t('Are you sure you want to resolve all issues in the current query?')
+                    ? t('Are you sure you want to resolve all issues matching this search query?')
                     : (count) =>
                         tn('Are you sure you want to resolve these %d issue?',
                            'Are you sure you want to resolve these %d issues?',
@@ -226,7 +226,7 @@ const StreamActions = React.createClass({
                     onAction={this.onUpdate.bind(this, {isBookmarked: false})}
                     confirmationQuestion={
                       this.state.allInQuerySelected
-                        ? t('Are you sure you want to remove all issues in the current query from your bookmarks?')
+                        ? t('Are you sure you want to remove all issues matching this search query from your bookmarks?')
                         : (count) =>
                             tn('Are you sure you want to remove this %d issue from your bookmarks?',
                                'Are you sure you want to remove these %d issues from your bookmarks?',
@@ -253,7 +253,7 @@ const StreamActions = React.createClass({
                     onAction={this.onUpdate.bind(this, {status: 'unresolved'})}
                     confirmationQuestion={
                       this.state.allInQuerySelected
-                        ? t('Are you sure you want to unresolve all issues in the current query?')
+                        ? t('Are you sure you want to unresolve all issues matching this search query?')
                         : (count) =>
                           tn('Are you sure you want to unresolve these %d issue?',
                              'Are you sure you want to unresolve these %d issues?',
@@ -280,7 +280,7 @@ const StreamActions = React.createClass({
                     onAction={this.onUpdate.bind(this, {status: 'muted'})}
                     confirmationQuestion={
                       this.state.allInQuerySelected
-                        ? t('Are you sure you want to mute all issues in the current query?')
+                        ? t('Are you sure you want to mute all issues matching this search query?')
                         : (count) =>
                              tn('Are you sure you want to mute these %d issue?',
                                 'Are you sure you want to mute these %d issues?',
@@ -355,12 +355,12 @@ const StreamActions = React.createClass({
           <div className="row stream-select-all-notice" >
             <div className="col-md-12">
               {this.state.allInQuerySelected
-                ? <span>{t('All issues in current query selected.')}</span>
+                ? <span>{t('All issues matching this search query selected.')}</span>
                 : <span>
                     {tn('%d issues on this page selected.',
                         '%d issues on this page selected.', 25 /* danger: magic number */)}
                     <a onClick={this.selectAll}>
-                      {t('Select all issues in current query.')}
+                      {t('Select all issues matching this search query.')}
                     </a>
                   </span>
               }
