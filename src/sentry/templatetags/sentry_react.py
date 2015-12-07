@@ -45,7 +45,7 @@ def _needs_upgrade():
 
     # Check all required options to see if they've been set
     for key in options.filter(flag=options.FLAG_REQUIRED):
-        if not options.get(key):
+        if not options.get(key.name):
             return True
 
     # Everything looks good, but version changed, so let's bump it
