@@ -157,7 +157,7 @@ const StreamActions = React.createClass({
                   this.state.allInQuerySelected
                     ? t('Are you sure you want to resolve all issues matching this search query?')
                     : (count) =>
-                        tn('Are you sure you want to resolve these %d issue?',
+                        tn('Are you sure you want to resolve this %d issue?',
                            'Are you sure you want to resolve these %d issues?',
                            count)
                  }
@@ -176,15 +176,24 @@ const StreamActions = React.createClass({
               </ActionLink>
               <ActionLink
                  className="btn btn-default btn-sm action-bookmark"
-                 disabled={!this.state.anySelected || this.state.allInQuerySelected}
+                 disabled={!this.state.anySelected}
                  onAction={this.onUpdate.bind(this, {isBookmarked: true})}
-                 neverConfirm={true}
                  buttonTitle={t('Bookmark')}
+                 confirmationQuestion={
+                  this.state.allInQuerySelected
+                    ? t('Are you sure you want to bookmark all issues matching this search query?')
+                    : (count) =>
+                        tn('Are you sure you want to bookmark this %d issue?',
+                           'Are you sure you want to bookmark these %d issues?',
+                           count)
+                 }
                  confirmLabel={
-                    (count) =>
-                      tn('Bookmark %d selected issue',
-                         'Bookmark %d selected issues',
-                          count)
+                  this.state.allInQuerySelected
+                    ? t('Bookmark all issues')
+                    : (count) =>
+                        tn('Bookmark %d selected issue',
+                           'Bookmark %d selected issues',
+                            count)
                  }
                  tooltip={t('Add to Bookmarks')}
                  onlyIfBulk={true}
@@ -255,7 +264,7 @@ const StreamActions = React.createClass({
                       this.state.allInQuerySelected
                         ? t('Are you sure you want to unresolve all issues matching this search query?')
                         : (count) =>
-                          tn('Are you sure you want to unresolve these %d issue?',
+                          tn('Are you sure you want to unresolve this %d issue?',
                              'Are you sure you want to unresolve these %d issues?',
                              count)
                     }
@@ -282,7 +291,7 @@ const StreamActions = React.createClass({
                       this.state.allInQuerySelected
                         ? t('Are you sure you want to mute all issues matching this search query?')
                         : (count) =>
-                             tn('Are you sure you want to mute these %d issue?',
+                             tn('Are you sure you want to mute this %d issue?',
                                 'Are you sure you want to mute these %d issues?',
                                 count)
                     }
