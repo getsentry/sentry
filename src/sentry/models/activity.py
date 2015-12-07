@@ -53,6 +53,7 @@ class Activity(Model):
         (UNASSIGNED, 'unassigned'),
     )
 
+    organization = FlexibleForeignKey('sentry.Organization', null=True)
     project = FlexibleForeignKey('sentry.Project')
     group = FlexibleForeignKey('sentry.Group', null=True)
     event = FlexibleForeignKey('sentry.Event', null=True)
@@ -67,6 +68,7 @@ class Activity(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_activity'
+        index_together = (('organization', 'datetime'),)
 
     __repr__ = sane_repr('project_id', 'group_id', 'event_id', 'user_id',
                          'type', 'ident')
@@ -78,6 +80,8 @@ class Activity(Model):
 
         if not created:
             return
+
+        self.organization = self.project.organization
 
         # HACK: support Group.num_comments
         if self.type == Activity.NOTE:
