@@ -20,6 +20,10 @@ const definitions = {
   }
 };
 
+const disabledReasons = {
+  diskPriority: 'Value is defined in config.yml'
+};
+
 export function getOption(option) {
   return definitions[option];
 }
@@ -37,7 +41,8 @@ export function getOptionField(option, onChange, value, field) {
         onChange={onChange}
         required={meta.required}
         value={value}
-        disabled={meta.disabled} />
+        disabled={meta.disabled}
+        disabledReason={meta.disabledReason && disabledReasons[meta.disabledReason]} />
   );
 }
 
