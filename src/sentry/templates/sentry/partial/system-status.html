@@ -1,6 +1,7 @@
 {% load sentry_helpers %}
 
 {% if problems %}
+<div class="messages-container">
   {% for message in problems %}
     <div class="alert alert-error">
       <div class="container">
@@ -10,4 +11,5 @@
       </div>
     </div>
   {% endfor %}
+</div>
 {% endif %}
