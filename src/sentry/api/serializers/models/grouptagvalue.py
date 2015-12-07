@@ -26,6 +26,7 @@ class GroupTagValueSerializer(Serializer):
             Q(**parse_user_tag(i.value))
             for i in item_list
             if i.key == 'sentry:user'
+            and ':' in i.value
         ]
 
         tag_labels = {}
