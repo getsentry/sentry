@@ -9,6 +9,9 @@ class DummyBackend(Backend):
     def add(self, key, record, increment_delay=None, maximum_delay=None):
         pass
 
+    def enabled(self, project):
+        return False
+
     @contextmanager
     def digest(self, key, minimum_delay=None):
         yield []
