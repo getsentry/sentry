@@ -1,10 +1,37 @@
+/**
+* body.install-wizard
+* ============================================================================
+*/
+
+body.install-wizard {
+  #gradient > .horizontal(#9f73c3 , #6875be);
+  height: 100%;
+
+  .pattern {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: url(../images/sentry-pattern.png);
+    background-size: 400px;
+    opacity: .8;
+  }
+}
+
+
 .setup-wizard {
   .clearfix;
-  max-width: 600px;
-  margin: 30px auto;
-  border: 1px solid @trim;
-  padding: 20px 20px 0;
+  background: #fff;
+  width: 600px;
+  padding: 40px 40px 20px;
   border-radius: 4px;
+  box-shadow: 0 5px 30px rgba(0,0,0, .3);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-left: -300px;
+  margin-top: -250px;
 
   h1 {
     .clearfix;
