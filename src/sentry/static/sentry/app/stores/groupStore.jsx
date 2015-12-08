@@ -281,10 +281,19 @@ const GroupStore = Reflux.createStore({
     this.trigger(new Set(mergedIds));
   },
 
-  onUpdate(changeId, itemIds, data) {
+  /**
+   * If itemIds is undefined, returns all ids in the store
+   */
+  _itemIdsOrAll(itemIds) {
     if (typeof itemIds === 'undefined') {
       itemIds = this.items.map(item => item.id);
     }
+    return itemIds;
+  },
+
+  onUpdate(changeId, itemIds, data) {
+    itemIds = this._itemIdsOrAll(itemIds);
+
     itemIds.forEach(itemId => {
       this.addStatus(itemId, 'update');
       this.pendingChanges.push(changeId, itemId, data);
@@ -293,6 +302,8 @@ const GroupStore = Reflux.createStore({
   },
 
   onUpdateError(changeId, itemIds, error, failSilently) {
+    itemIds = this._itemIdsOrAll(itemIds);
+
     this.pendingChanges.remove(changeId);
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'update');
@@ -304,9 +315,8 @@ const GroupStore = Reflux.createStore({
   },
 
   onUpdateSuccess(changeId, itemIds, response) {
-    if (typeof itemIds === 'undefined') {
-      itemIds = this.items.map(item => item.id);
-    }
+    itemIds = this._itemIdsOrAll(itemIds);
+
     this.items.forEach((item, idx) => {
       if (itemIds.indexOf(item.id) !== -1) {
         this.items[idx] = jQuery.extend(true, {}, item, response);

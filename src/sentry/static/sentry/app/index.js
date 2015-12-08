@@ -62,6 +62,7 @@ export default {
     MenuItem: require('./components/menuItem'),
     Pagination: require('./components/pagination'),
     ProjectSelector: require('./components/projectHeader/projectSelector'),
-    RuleEditor: require('./views/ruleEditor')
+    RuleEditor: require('./views/ruleEditor'),
+    TimeSince: require('./components/timeSince')
   }
 };

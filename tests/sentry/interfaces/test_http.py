@@ -122,3 +122,10 @@ class HttpTest(TestCase):
             headers={'Foo': ['1', '2']},
         ))
         assert result.headers == [('Foo', '1, 2')]
+
+    def test_header_value_str(self):
+        result = Http.to_python(dict(
+            url='http://example.com',
+            headers={'Foo': 1}
+        ))
+        assert result.headers == [('Foo', '1')]
