@@ -283,6 +283,10 @@ class BuildJavascriptCommand(Command):
             version_info['version'] or 'UNKNOWN',
             version_info['build'] or 'UNKNOWN',
         ))
+        if not version_info['version'] or not version_info['build']:
+            log.fatal('Could not determine sentry version or build')
+            sys.exit(1)
+
         try:
             self._build_static()
         except Exception:
@@ -291,12 +295,11 @@ class BuildJavascriptCommand(Command):
                       "Hint: You might be running an invalid version of NPM.")
             sys.exit(1)
 
-        if version_info['version'] and version_info['build']:
-            log.info("writing version manifest")
-            manifest = self._write_version_file(version_info)
-            log.info("recorded manifest\n{}".format(
-                json.dumps(manifest, indent=2),
-            ))
+        log.info("writing version manifest")
+        manifest = self._write_version_file(version_info)
+        log.info("recorded manifest\n{}".format(
+            json.dumps(manifest, indent=2),
+        ))
         self.update_manifests()
 
     def update_manifests(self):
