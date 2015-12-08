@@ -2,6 +2,7 @@ import React from 'react';
 import moment from 'moment';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import ConfigStore from '../stores/configStore.jsx';
+import {t} from '../locale';
 
 const TimeSince = React.createClass({
   propTypes: {
@@ -61,6 +62,18 @@ const TimeSince = React.createClass({
     return moment(date).fromNow(true);
   },
 
+  formatTimeSince() {
+    if (!this.props.suffix) {
+      return this.state.relative;
+    } else if (this.props.suffix === 'ago') {
+      return t('%(time)s ago', {time: this.state.relative});
+    } else if (this.props.suffix === 'old') {
+      return t('%(time)s old', {time: this.state.relative});
+    } else {
+      throw new Error('Unsupported time format suffix');
+    }
+  },
+
   render() {
     let date = TimeSince.getDateObj(this.props.date);
     let user = ConfigStore.get('user');
@@ -70,7 +83,7 @@ const TimeSince = React.createClass({
     return (
       <time
         dateTime={date.toISOString()}
-        title={moment(date).format(format)}>{this.state.relative} {this.props.suffix || ''}</time>
+        title={moment(date).format(format)}>{this.formatTimeSince()}</time>
     );
   }
 });
