@@ -65,9 +65,8 @@ class NotificationPlugin(Plugin):
                 continue
             raise NotImplementedError('The default behavior for notification de-duplication does not support args')
 
-        if hasattr(self, 'notify_digest'):
-            project = event.group.project
-
+        project = event.group.project
+        if hasattr(self, 'notify_digest') and digests.enabled(project):
             get_digest_option = lambda key: ProjectOption.objects.get_value(
                 project,
                 '{0}:digests:{1}'.format(self.get_conf_key(), key),
@@ -132,17 +131,19 @@ class NotificationPlugin(Plugin):
         raise NotImplementedError
 
     def should_notify(self, group, event):
-        if not self.is_configured(project=event.project):
+        project = event.project
+        if not self.is_configured(project=project):
             return False
 
         if group.is_muted():
             return False
 
-        # If the plugin doesn't support digests, perform rate limit checks to
-        # support backwards compatibility with older plugins.
-        if not hasattr(self, 'notify_digest') and self.__is_rate_limited(group, event):
+        # If the plugin doesn't support digests or they are not enabled,
+        # perform rate limit checks to support backwards compatibility with
+        # older plugins.
+        if not (hasattr(self, 'notify_digest') and digests.enabled(project)) and self.__is_rate_limited(group, event):
             logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
-            logger.info('Notification for project %r dropped due to rate limiting', group.project)
+            logger.info('Notification for project %r dropped due to rate limiting', project)
             return False
 
         return True

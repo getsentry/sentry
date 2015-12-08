@@ -53,20 +53,24 @@ class ProjectNotificationsView(ProjectView):
             return HttpResponseRedirect(request.path)
 
         if op == 'save-settings':
-            digests_form = DigestSettingsForm(
-                data=request.POST,
-                prefix='digests',
-                initial={
-                    'minimum_delay': project.get_option(
-                        'digests:mail:minimum_delay',
-                        digests.minimum_delay / 60,
-                    ),
-                    'maximum_delay': project.get_option(
-                        'digests:mail:maximum_delay',
-                        digests.maximum_delay / 60,
-                    ),
-                },
-            )
+            if digests.enabled(project):
+                digests_form = DigestSettingsForm(
+                    data=request.POST,
+                    prefix='digests',
+                    initial={
+                        'minimum_delay': project.get_option(
+                            'digests:mail:minimum_delay',
+                            digests.minimum_delay / 60,
+                        ),
+                        'maximum_delay': project.get_option(
+                            'digests:mail:maximum_delay',
+                            digests.maximum_delay / 60,
+                        ),
+                    },
+                )
+            else:
+                digests_form = None
+
             general_form = NotificationSettingsForm(
                 data=request.POST,
                 prefix='general',
@@ -75,28 +79,33 @@ class ProjectNotificationsView(ProjectView):
                         'mail:subject_prefix', settings.EMAIL_SUBJECT_PREFIX),
                 },
             )
-            if general_form.is_valid() and digests_form.is_valid():
+            if general_form.is_valid() and (digests_form.is_valid() if digests_form is not None else True):
                 project.update_option('mail:subject_prefix', general_form.cleaned_data['subject_prefix'])
-                project.update_option('digests:mail:minimum_delay', digests_form.cleaned_data['minimum_delay'] * 60)
-                project.update_option('digests:mail:maximum_delay', digests_form.cleaned_data['maximum_delay'] * 60)
+                if digests_form is not None:
+                    project.update_option('digests:mail:minimum_delay', digests_form.cleaned_data['minimum_delay'] * 60)
+                    project.update_option('digests:mail:maximum_delay', digests_form.cleaned_data['maximum_delay'] * 60)
                 messages.add_message(
                     request, messages.SUCCESS,
                     OK_SETTINGS_SAVED)
                 return HttpResponseRedirect(request.path)
         else:
-            digests_form = DigestSettingsForm(
-                prefix='digests',
-                initial={
-                    'minimum_delay': project.get_option(
-                        'digests:mail:minimum_delay',
-                        digests.minimum_delay,
-                    ) / 60,
-                    'maximum_delay': project.get_option(
-                        'digests:mail:maximum_delay',
-                        digests.maximum_delay,
-                    ) / 60,
-                },
-            )
+            if digests.enabled(project):
+                digests_form = DigestSettingsForm(
+                    prefix='digests',
+                    initial={
+                        'minimum_delay': project.get_option(
+                            'digests:mail:minimum_delay',
+                            digests.minimum_delay,
+                        ) / 60,
+                        'maximum_delay': project.get_option(
+                            'digests:mail:maximum_delay',
+                            digests.maximum_delay,
+                        ) / 60,
+                    },
+                )
+            else:
+                digests_form = None
+
             general_form = NotificationSettingsForm(
                 prefix='general',
                 initial={
