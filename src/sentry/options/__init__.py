@@ -11,11 +11,11 @@ from .store import OptionsStore
 from .manager import OptionsManager
 from .manager import (  # NOQA
     DEFAULT_FLAGS, FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY,
-    FLAG_REQUIRED, FLAG_PRIORITIZE_DISK,
+    FLAG_REQUIRED, FLAG_PRIORITIZE_DISK, UnknownOption
 )
 
 __all__ = (
-    'get', 'set', 'delete', 'register',
+    'get', 'set', 'delete', 'register', 'UnknownOption',
 )
 
 default_store = OptionsStore()

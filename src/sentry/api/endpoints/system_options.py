@@ -33,10 +33,17 @@ class SystemOptionsEndpoint(Endpoint):
         return Response(results)
 
     def put(self, request):
-        try:
-            for k, v in request.DATA.iteritems():
+        # TODO(dcramer): this should validate options before saving them
+        for k, v in request.DATA.iteritems():
+            try:
                 options.set(k, v)
-        except Exception as e:
-            return Response(unicode(e), status=400)
+            except options.UnknownOption:
+                # TODO(dcramer): unify API errors
+                return Response({
+                    'error': 'unknown_option',
+                    'errorDetail': {
+                        'option': k,
+                    },
+                }, status=400)
         options.set('sentry:version-configured', sentry.get_version())
         return Response(status=200)
