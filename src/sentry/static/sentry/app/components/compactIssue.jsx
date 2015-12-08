@@ -4,7 +4,6 @@ import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
-import TimeSince from './timeSince';
 import DropdownLink from './dropdownLink';
 import GroupChart from './stream/groupChart';
 import GroupStore from '../stores/groupStore';
@@ -169,12 +168,6 @@ const CompactIssue = React.createClass({
           <div className="event-extra">
             <span className="project-name">
               <Link to={`/${orgId}/${projectId}/`}>{issue.project.name}</Link>
-            </span>
-            <span className="hidden">
-              <span className="icon icon-clock" />
-              <TimeSince date={issue.lastSeen} />
-              &nbsp;&mdash;&nbsp;
-              <TimeSince date={issue.firstSeen} suffix="old" />
             </span>
             {issue.numComments !== 0 &&
               <span>
