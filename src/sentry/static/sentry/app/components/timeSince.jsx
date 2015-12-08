@@ -59,16 +59,12 @@ const TimeSince = React.createClass({
 
   getRelativeDate() {
     let date = TimeSince.getDateObj(this.props.date);
-    return moment(date).fromNow(true);
-  },
-
-  formatTimeSince() {
     if (!this.props.suffix) {
-      return this.state.relative;
+      return moment(date).fromNow(true);
     } else if (this.props.suffix === 'ago') {
-      return t('%(time)s ago', {time: this.state.relative});
-    } else if (this.props.suffix === 'old') {
-      return t('%(time)s old', {time: this.state.relative});
+      return moment(date).fromNow();
+    } else if (this.props.suffix == 'old') {
+      return t('%(time)s old', {time: moment(date).fromNow(true)});
     } else {
       throw new Error('Unsupported time format suffix');
     }
@@ -83,7 +79,7 @@ const TimeSince = React.createClass({
     return (
       <time
         dateTime={date.toISOString()}
-        title={moment(date).format(format)}>{this.formatTimeSince()}</time>
+        title={moment(date).format(format)}>{this.state.realtive}</time>
     );
   }
 });
