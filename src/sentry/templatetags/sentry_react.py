@@ -39,17 +39,15 @@ def _needs_upgrade():
         # we want to force an upgrade, even if the values are set.
         return True
 
-    # Already up to date, yay!
-    if version_configured == sentry.get_version():
-        return False
-
     # Check all required options to see if they've been set
     for key in options.filter(flag=options.FLAG_REQUIRED):
         if not options.get(key.name):
             return True
 
-    # Everything looks good, but version changed, so let's bump it
-    options.set('sentry:version-configured', sentry.get_version())
+    if version_configured != sentry.get_version():
+        # Everything looks good, but version changed, so let's bump it
+        options.set('sentry:version-configured', sentry.get_version())
+
     return False
 
 
