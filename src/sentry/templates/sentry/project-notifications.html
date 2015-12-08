@@ -36,6 +36,7 @@
       </div>
     </div>
 
+    {% if digests_form %}
     <div class="box">
       <div class="box-header">
         <h3>{% trans "Digests" %}</h3>
@@ -57,6 +58,7 @@
         </div>
       </div>
     </div>
+    {% endif %}
 
     <fieldset class="form-actions">
       <button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button>
