@@ -167,26 +167,24 @@ const CompactIssue = React.createClass({
             </Link>
           </h3>
           <div className="event-extra">
-            <ul>
-              <li className="project-name">
-                <Link to={`/${orgId}/${projectId}/`}>{issue.project.name}</Link>
-              </li>
-              <li className="hidden">
-                <span className="icon icon-clock" />
-                <TimeSince date={issue.lastSeen} />
-                &nbsp;&mdash;&nbsp;
-                <TimeSince date={issue.firstSeen} suffix="old" />
-              </li>
-              {issue.numComments !== 0 &&
-                <li>
-                  <Link to={`/${orgId}/${projectId}/issues/${id}/activity/`} className="comments">
-                    <span className="icon icon-comments" />
-                    <span className="tag-count">{issue.numComments}</span>
-                  </Link>
-                </li>
-              }
-              <li className="culprit">{issue.culprit}</li>
-            </ul>
+            <span className="project-name">
+              <Link to={`/${orgId}/${projectId}/`}>{issue.project.name}</Link>
+            </span>
+            <span className="hidden">
+              <span className="icon icon-clock" />
+              <TimeSince date={issue.lastSeen} />
+              &nbsp;&mdash;&nbsp;
+              <TimeSince date={issue.firstSeen} suffix="old" />
+            </span>
+            {issue.numComments !== 0 &&
+              <span>
+                <Link to={`/${orgId}/${projectId}/issues/${id}/activity/`} className="comments">
+                  <span className="icon icon-comments" />
+                  <span className="tag-count">{issue.numComments}</span>
+                </Link>
+              </span>
+            }
+            <span className="culprit">{issue.culprit}</span>
           </div>
         </div>
         {this.props.statsPeriod &&
