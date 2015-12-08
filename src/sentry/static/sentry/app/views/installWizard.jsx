@@ -97,6 +97,11 @@ const InstallWizard = React.createClass({
 
   componentWillMount() {
     this.fetchData();
+    jQuery(document.body).addClass('install-wizard');
+  },
+
+  componentWillUnmount() {
+    jQuery(document.body).removeClass('install-wizard');
   },
 
   remountComponent() {
@@ -161,33 +166,32 @@ const InstallWizard = React.createClass({
     return (
       <DocumentTitle title="Sentry Setup">
         <div className="app">
-          <div className="container">
-            <div className="setup-wizard">
-              <h1>
-                <span>{t('Welcome to Sentry')}</span>
-                <small>{version.current}</small>
-              </h1>
-              {loading ?
-                <LoadingIndicator>
-                  Please wait while we load configuration.
-                </LoadingIndicator>
-              : (error ?
-                <div className="loading-error">
-                  <span className="icon" />
-                  {t('We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.')}
-                </div>
-              :
-                <div>
-                  {submitError &&
-                    <p>{t('We were unable to submit your changes to the Sentry server. Please take a look at the service logs.')}</p>
-                  }
-                  <InstallWizardSettings
-                      options={options}
-                      onSubmit={this.onSubmit}
-                      formDisabled={submitInProgress} />
-                </div>
-              )}
-            </div>
+          <div className="pattern" />
+          <div className="setup-wizard">
+            <h1>
+              <span>{t('Welcome to Sentry')}</span>
+              <small>{version.current}</small>
+            </h1>
+            {loading ?
+              <LoadingIndicator>
+                Please wait while we load configuration.
+              </LoadingIndicator>
+            : (error ?
+              <div className="loading-error">
+                <span className="icon" />
+                {t('We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.')}
+              </div>
+            :
+              <div>
+                {submitError &&
+                  <p>{t('We were unable to submit your changes to the Sentry server. Please take a look at the service logs.')}</p>
+                }
+                <InstallWizardSettings
+                    options={options}
+                    onSubmit={this.onSubmit}
+                    formDisabled={submitInProgress} />
+              </div>
+            )}
           </div>
         </div>
       </DocumentTitle>
