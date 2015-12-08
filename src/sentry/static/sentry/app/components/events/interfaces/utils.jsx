@@ -25,7 +25,7 @@ export function getCurlCommand(data) {
   });
 
   for (let header of headers) {
-    result += ' \\\n -H "' + header[0] + ': ' + escapeQuotes(header[1]) + '"';
+    result += ' \\\n -H "' + header[0] + ': ' + escapeQuotes(header[1] + '') + '"';
   }
 
   if (typeof data.data === 'string') {
