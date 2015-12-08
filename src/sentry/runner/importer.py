@@ -43,7 +43,12 @@ class Importer(object):
             mod = self._load_module(fullname)
         except Exception as e:
             from sentry.utils.settings import reraise_as
-            reraise_as(ConfigurationError(unicode(e)))
+            msg = unicode(e)
+            if msg:
+                msg = '%s: %s' % (type(e).__name__, msg)
+            else:
+                msg = type(e).__name__
+            reraise_as(ConfigurationError(msg))
         else:
             # Install into sys.modules explicitly
             sys.modules[fullname] = mod
