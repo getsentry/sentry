@@ -6,13 +6,14 @@
 # Cihad GÜNDOĞDU <cihadgundogdu@gmail.com>, 2014
 # Cihad GÜNDOĞDU <cihadgundogdu@gmail.com>, 2013-2014
 # Cihad GÜNDOĞDU <cihadgundogdu@gmail.com>, 2012
+# Erkin Cakar <o580travego@msn.com>, 2015
 # Mehmet Şamil Çelik <inactive+samil.celik@transifex.com>, 2013
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-12-03 23:56+0000\n"
-"PO-Revision-Date: 2015-12-03 23:57+0000\n"
+"POT-Creation-Date: 2015-12-08 20:36+0000\n"
+"PO-Revision-Date: 2015-12-08 20:36+0000\n"
 "Last-Translator: mitsuhiko <armin.ronacher@active-4.com>\n"
 "Language-Team: Turkish (http://www.transifex.com/getsentry/sentry/language/tr/)\n"
 "MIME-Version: 1.0\n"
@@ -79,17 +80,17 @@ msgstr "Skor"
 #: constants.py:186
 #, python-brace-format
 msgid "The {name} integration has been enabled."
-msgstr ""
+msgstr "{name} entegrasyonu etkinleştirildi."
 
 #: constants.py:188
 #, python-brace-format
 msgid "The {name} integration has been disabled."
-msgstr ""
+msgstr "{name} entegrasyonu devre dışı bırakıldı."
 
 #: constants.py:190
 #, python-brace-format
 msgid "Configuration for the {name} integration has been saved."
-msgstr ""
+msgstr "{name} entegrasyonu için yapılandırma kaydedildi."
 
 #: auth/helper.py:27
 msgid "You have successully linked your account to your SSO provider."
@@ -115,15 +116,15 @@ msgstr ""
 
 #: conf/server.py:98
 msgid "Arabic"
-msgstr ""
+msgstr "Arapça"
 
 #: conf/server.py:99
 msgid "Azerbaijani"
-msgstr ""
+msgstr "Azerice"
 
 #: conf/server.py:100
 msgid "Bulgarian"
-msgstr ""
+msgstr "Bulgarca"
 
 #: conf/server.py:101
 msgid "Belarusian"
@@ -139,15 +140,15 @@ msgstr ""
 
 #: conf/server.py:104
 msgid "Bosnian"
-msgstr ""
+msgstr "Boşnakça"
 
 #: conf/server.py:105
 msgid "Catalan"
-msgstr ""
+msgstr "Katalanca"
 
 #: conf/server.py:106
 msgid "Czech"
-msgstr ""
+msgstr "Çekçe"
 
 #: conf/server.py:107
 msgid "Welsh"
@@ -159,15 +160,15 @@ msgstr ""
 
 #: conf/server.py:109
 msgid "German"
-msgstr ""
+msgstr "Almanca"
 
 #: conf/server.py:110
 msgid "Greek"
-msgstr ""
+msgstr "Yunanca"
 
 #: conf/server.py:111
 msgid "English"
-msgstr ""
+msgstr "İngilizce"
 
 #: conf/server.py:112
 msgid "Esperanto"
@@ -175,11 +176,11 @@ msgstr ""
 
 #: conf/server.py:113
 msgid "Spanish"
-msgstr ""
+msgstr "İspanyolca"
 
 #: conf/server.py:114
 msgid "Estonian"
-msgstr ""
+msgstr "Estonya dili"
 
 #: conf/server.py:115
 msgid "Basque"
@@ -187,19 +188,19 @@ msgstr ""
 
 #: conf/server.py:116
 msgid "Persian"
-msgstr ""
+msgstr "Farsça"
 
 #: conf/server.py:117
 msgid "Finnish"
-msgstr ""
+msgstr "Fince"
 
 #: conf/server.py:118
 msgid "French"
-msgstr ""
+msgstr "Fransızca"
 
 #: conf/server.py:119
 msgid "Irish"
-msgstr ""
+msgstr "İrlandaca"
 
 #: conf/server.py:120
 msgid "Galician"
@@ -219,7 +220,7 @@ msgstr ""
 
 #: conf/server.py:124
 msgid "Hungarian"
-msgstr ""
+msgstr "Macarca"
 
 #: conf/server.py:125
 msgid "Interlingua"
@@ -227,7 +228,7 @@ msgstr ""
 
 #: conf/server.py:126
 msgid "Indonesian"
-msgstr ""
+msgstr "Endonezya dili"
 
 #: conf/server.py:127
 msgid "Icelandic"
@@ -235,15 +236,15 @@ msgstr ""
 
 #: conf/server.py:128
 msgid "Italian"
-msgstr ""
+msgstr "İtalyanca"
 
 #: conf/server.py:129
 msgid "Japanese"
-msgstr ""
+msgstr "Japonca"
 
 #: conf/server.py:130
 msgid "Georgian"
-msgstr ""
+msgstr "Gürcüce"
 
 #: conf/server.py:131
 msgid "Kazakh"
@@ -259,7 +260,7 @@ msgstr ""
 
 #: conf/server.py:134
 msgid "Korean"
-msgstr ""
+msgstr "Korece"
 
 #: conf/server.py:135
 msgid "Luxembourgish"
@@ -267,11 +268,11 @@ msgstr ""
 
 #: conf/server.py:136
 msgid "Lithuanian"
-msgstr ""
+msgstr "Litvanyaca"
 
 #: conf/server.py:137
 msgid "Latvian"
-msgstr ""
+msgstr "Letonyaca"
 
 #: conf/server.py:138
 msgid "Macedonian"
@@ -283,7 +284,7 @@ msgstr ""
 
 #: conf/server.py:140
 msgid "Mongolian"
-msgstr ""
+msgstr "Moğolca"
 
 #: conf/server.py:141
 msgid "Burmese"
@@ -295,11 +296,11 @@ msgstr ""
 
 #: conf/server.py:143
 msgid "Nepali"
-msgstr ""
+msgstr "Nepalce"
 
 #: conf/server.py:144
 msgid "Dutch"
-msgstr ""
+msgstr "Flemenkçe"
 
 #: conf/server.py:145
 msgid "Norwegian Nynorsk"
@@ -319,7 +320,7 @@ msgstr ""
 
 #: conf/server.py:149
 msgid "Portuguese"
-msgstr ""
+msgstr "Portekizce"
 
 #: conf/server.py:150
 msgid "Brazilian Portuguese"
@@ -327,19 +328,19 @@ msgstr ""
 
 #: conf/server.py:151
 msgid "Romanian"
-msgstr ""
+msgstr "Romence"
 
 #: conf/server.py:152
 msgid "Russian"
-msgstr ""
+msgstr "Rusça"
 
 #: conf/server.py:153
 msgid "Slovak"
-msgstr ""
+msgstr "Slovakça"
 
 #: conf/server.py:154
 msgid "Slovenian"
-msgstr ""
+msgstr "Slovakça"
 
 #: conf/server.py:155
 msgid "Albanian"
@@ -347,11 +348,11 @@ msgstr ""
 
 #: conf/server.py:156
 msgid "Serbian"
-msgstr ""
+msgstr "Sırpça"
 
 #: conf/server.py:157
 msgid "Swedish"
-msgstr ""
+msgstr "İsveççe"
 
 #: conf/server.py:158
 msgid "Swahili"
@@ -371,11 +372,11 @@ msgstr ""
 
 #: conf/server.py:162
 msgid "Turkish"
-msgstr ""
+msgstr "Türkçe"
 
 #: conf/server.py:163
 msgid "Tatar"
-msgstr ""
+msgstr "Tatarca"
 
 #: conf/server.py:164
 msgid "Udmurt"
@@ -383,23 +384,23 @@ msgstr ""
 
 #: conf/server.py:165
 msgid "Ukrainian"
-msgstr ""
+msgstr "Ukrayna dili"
 
 #: conf/server.py:166
 msgid "Urdu"
-msgstr ""
+msgstr "Urduca"
 
 #: conf/server.py:167
 msgid "Vietnamese"
-msgstr ""
+msgstr "Vietnamca"
 
 #: conf/server.py:168
 msgid "Simplified Chinese"
-msgstr ""
+msgstr "Basitleştirilmiş Çince"
 
 #: conf/server.py:169
 msgid "Traditional Chinese"
-msgstr ""
+msgstr "Geleneksel Çince"
 
 #: db/models/fields/bounded.py:54 db/models/fields/bounded.py:68
 msgid "Big Integer"
@@ -414,7 +415,7 @@ msgstr[1] ""
 
 #: debug/panels/redis.py:79
 msgid "Redis"
-msgstr ""
+msgstr "Redis"
 
 #: interfaces/http.py:186
 msgid "Request"
@@ -428,14 +429,14 @@ msgstr ""
 msgid "Stacktrace (most recent call last):"
 msgstr ""
 
-#: models/apikey.py:52 models/project.py:82 models/projectkey.py:47
+#: models/apikey.py:52 models/project.py:82 models/projectkey.py:48
 #: models/team.py:93
 msgid "Active"
-msgstr ""
+msgstr "Aktif"
 
-#: models/apikey.py:53 models/projectkey.py:48
+#: models/apikey.py:53 models/projectkey.py:49
 msgid "Inactive"
-msgstr ""
+msgstr "Pasif"
 
 #: models/event.py:48
 msgid "message"
@@ -450,6 +451,7 @@ msgid "error"
 msgstr "hata"
 
 #: models/group.py:109
+#: static/sentry/app/components/organizationIssueList.jsx:43
 msgid "Unresolved"
 msgstr "Çözümlenmemiş"
 
@@ -459,7 +461,7 @@ msgstr "Çözümlenmiş"
 
 #: models/group.py:111
 msgid "Muted"
-msgstr ""
+msgstr "Susturulmuş"
 
 #: models/group.py:131
 msgid "grouped messages"
@@ -471,7 +473,7 @@ msgstr "gruplandırılmış mesaj"
 
 #: models/groupresolution.py:36
 msgid "Pending"
-msgstr ""
+msgstr "Bekliyor"
 
 #: models/organization.py:70 models/tagkey.py:63
 msgid "Visible"
@@ -489,74 +491,74 @@ msgstr "Silme Devam Ediyor"
 
 #: models/user.py:26
 msgid "username"
-msgstr ""
-
-#: models/user.py:27
-msgid "first name"
-msgstr ""
-
-#: models/user.py:28
-msgid "last name"
-msgstr ""
+msgstr "kullanıcı adı"
 
 #: models/user.py:29
-msgid "email address"
-msgstr ""
+msgid "first name"
+msgstr "ad"
 
 #: models/user.py:31
-msgid "staff status"
-msgstr ""
+msgid "last name"
+msgstr "soyad"
 
 #: models/user.py:32
+msgid "email address"
+msgstr "eposta adresi"
+
+#: models/user.py:34
+msgid "staff status"
+msgstr "personel durumu"
+
+#: models/user.py:35
 msgid "Designates whether the user can log into this admin site."
 msgstr ""
 
-#: models/user.py:35
+#: models/user.py:38
 msgid "active"
-msgstr ""
+msgstr "aktif"
 
-#: models/user.py:36
+#: models/user.py:39
 msgid ""
 "Designates whether this user should be treated as active. Unselect this "
 "instead of deleting accounts."
 msgstr ""
 
-#: models/user.py:39
+#: models/user.py:42
 msgid "superuser status"
-msgstr ""
+msgstr "süper kullanıcı durumu"
 
-#: models/user.py:40
+#: models/user.py:43
 msgid ""
 "Designates that this user has all permissions without explicitly assigning "
 "them."
 msgstr ""
 
-#: models/user.py:43
+#: models/user.py:46
 msgid "managed"
 msgstr ""
 
-#: models/user.py:44
+#: models/user.py:47
 msgid ""
 "Designates whether this user should be treated as managed. Select this to "
 "disallow the user from modifying their account (username, password, etc)."
 msgstr ""
 
-#: models/user.py:48
+#: models/user.py:51
 msgid "date joined"
-msgstr ""
+msgstr "katıldığı tarih"
 
-#: models/user.py:58
+#: models/user.py:61
 msgid "user"
 msgstr "kullanıcı"
 
-#: models/user.py:59 static/sentry/app/components/groupListHeader.jsx:16
+#: models/user.py:62 static/sentry/app/components/groupListHeader.jsx:16
 msgid "users"
-msgstr ""
+msgstr "kullanıcılar"
 
 #: plugins/base/configuration.py:61 web/frontend/project_notifications.py:18
 #: web/frontend/project_plugins.py:24 web/frontend/project_quotas.py:35
 msgid "Your settings were saved successfully."
-msgstr ""
+msgstr "Ayarlarınız başarıyla kaydedildi."
 
 #: plugins/sentry_webhooks/plugin.py:17
 msgid "Callback URLs"
@@ -569,7 +571,7 @@ msgstr ""
 #: templates/sentry/403-csrf-failure.html:5
 #: templates/sentry/403-csrf-failure.html:10
 msgid "CSRF Verification Failed"
-msgstr ""
+msgstr "CSRF Doğrulaması Başarısız"
 
 #: templates/sentry/403-csrf-failure.html:13
 msgid "A required security token was not found or was invalid."
@@ -577,11 +579,11 @@ msgstr ""
 
 #: templates/sentry/403-csrf-failure.html:15
 msgid "If you're continually seeing this issue, try the following:"
-msgstr ""
+msgstr "Eğer sürekli bu sorunu görüyorsanız, aşağıdakileri deneyin:"
 
 #: templates/sentry/403-csrf-failure.html:18
 msgid "Clear cookies (at least for Sentry's domain)."
-msgstr ""
+msgstr "Çerezleri temizle (en azından Sentry için)."
 
 #: templates/sentry/403-csrf-failure.html:19
 msgid "Reload the page you're trying to submit (don't re-submit data)."
@@ -633,11 +635,11 @@ msgstr ""
 msgid ""
 "To continue, you must either login to your existing account, or create a new"
 " one."
-msgstr ""
+msgstr "Devam etmek için ya mevcut hesabınla giriş yapmak ya da yeni bir hesap oluşturmak zorundasın."
 
 #: templates/sentry/accept-organization-invite.html:36
 msgid "Login as an existing user"
-msgstr ""
+msgstr "Varolan kullanıcı olarak giriş yap"
 
 #: templates/sentry/accept-organization-invite.html:38
 msgid "Create a new account"
@@ -646,7 +648,7 @@ msgstr "Yeni hesap oluştur"
 #: templates/sentry/accept-organization-invite.html:45
 #, python-format
 msgid "Join the %(org_name)s organization"
-msgstr ""
+msgstr "%(org_name)s organizasyonuna katıl"
 
 #: templates/sentry/admin-queue.html:8 templates/sentry/bases/admin.html:13
 msgid "Queue"
@@ -655,7 +657,7 @@ msgstr "Sıra"
 #: templates/sentry/auth-confirm-identity.html:7
 #: templates/sentry/auth-confirm-link.html:7
 msgid "Confirm Identity"
-msgstr ""
+msgstr "Kimliği Onayla"
 
 #: templates/sentry/auth-confirm-identity.html:33
 #: templates/sentry/auth-link-login.html:7
@@ -671,7 +673,7 @@ msgstr "Giriş Yap"
 #: templates/sentry/auth-link-login.html:31 templates/sentry/login.html:37
 #: templates/sentry/organization-login.html:54
 msgid "Lost your password?"
-msgstr ""
+msgstr "Parolanı mı kaybettin?"
 
 #: templates/sentry/auth-link-identity.html:7
 msgid "Link Identity"
@@ -680,7 +682,7 @@ msgstr ""
 #: templates/sentry/create-organization-member.html:6
 #: templates/sentry/create-organization-member.html:11
 msgid "Add Member to Organization"
-msgstr ""
+msgstr "Organizasyona Üye Ekle"
 
 #: templates/sentry/create-organization-member.html:15
 msgid ""
@@ -694,16 +696,16 @@ msgstr ""
 
 #: templates/sentry/create-organization-member.html:28
 msgid "Add Member"
-msgstr ""
+msgstr "Üye Ekle"
 
 #: templates/sentry/create-organization.html:6
 #: static/sentry/app/components/header/organizationSelector.jsx:47
 msgid "New Organization"
-msgstr ""
+msgstr "Yeni Organizasyon"
 
 #: templates/sentry/create-organization.html:11
 msgid "Create a New Organization"
-msgstr ""
+msgstr "Yeni Organizasyon Oluştur"
 
 #: templates/sentry/create-organization.html:14
 msgid ""
@@ -714,7 +716,7 @@ msgstr ""
 
 #: templates/sentry/create-organization.html:25
 msgid "Create Organization"
-msgstr ""
+msgstr "Organizasyon Oluştur"
 
 #: templates/sentry/create-project.html:5
 #: templates/sentry/projects/cannot_create_teams.html:5
@@ -723,7 +725,7 @@ msgstr "Yeni Proje"
 
 #: templates/sentry/create-project.html:10
 msgid "Create a New Project"
-msgstr ""
+msgstr "Yeni Proje Oluştur"
 
 #: templates/sentry/create-project.html:13
 msgid ""
@@ -735,7 +737,7 @@ msgstr ""
 
 #: templates/sentry/create-team.html:5
 msgid "New Team"
-msgstr ""
+msgstr "Yeni Takım"
 
 #: templates/sentry/create-team.html:10
 msgid "Create a New Team"
@@ -761,20 +763,20 @@ msgstr "Yönetici"
 #: templates/sentry/layout.html:88
 #: static/sentry/app/components/header/userNav.jsx:35
 msgid "Sign out"
-msgstr ""
+msgstr "Oturumu kapat"
 
 #: templates/sentry/layout.html:101 templates/sentry/layout.html.py:182
-#: static/sentry/app/components/footer.jsx:19
+#: static/sentry/app/components/footer.jsx:26
 msgid "Docs"
-msgstr ""
+msgstr "Dokümanlar"
 
 #: templates/sentry/layout.html:181
 #: templates/sentry/project-release-tracking.html:117
-#: static/sentry/app/components/footer.jsx:18
+#: static/sentry/app/components/footer.jsx:25
 msgid "API"
 msgstr ""
 
-#: templates/sentry/layout.html:183 static/sentry/app/components/footer.jsx:20
+#: templates/sentry/layout.html:183 static/sentry/app/components/footer.jsx:27
 msgid "Contribute"
 msgstr ""
 
@@ -795,7 +797,7 @@ msgstr "Yasak"
 
 #: templates/sentry/missing_permissions.html:13
 msgid "You do not have access to this page with your current permissions."
-msgstr ""
+msgstr "Şuanki izinleriniz ile buraya giriş yetkiniz yoktur."
 
 #: templates/sentry/no-organization-access.html:5
 #: templates/sentry/no-organization-access.html:12
@@ -839,19 +841,20 @@ msgstr ""
 #: templates/sentry/projects/manage_tags.html:41
 #: templates/sentry/projects/quotas.html:38
 #: templates/sentry/teams/manage.html:32
+#: static/sentry/app/views/adminSettings.jsx:63
 msgid "Save Changes"
 msgstr "Değişiklikleri Kaydet"
 
 #: templates/sentry/organization-api-keys.html:7
 #: templates/sentry/organization-api-keys.html:19
-#: templates/sentry/bases/organization.html:58
-#: static/sentry/app/components/organizations/homeSidebar.jsx:52
+#: templates/sentry/bases/organization.html:64
+#: static/sentry/app/components/organizations/homeSidebar.jsx:66
 msgid "API Keys"
 msgstr ""
 
 #: templates/sentry/organization-audit-log.html:6
-#: templates/sentry/bases/organization.html:65
-#: static/sentry/app/components/organizations/homeSidebar.jsx:55
+#: templates/sentry/bases/organization.html:69
+#: static/sentry/app/components/organizations/homeSidebar.jsx:69
 msgid "Audit Log"
 msgstr ""
 
@@ -860,14 +863,14 @@ msgid "Sentry keeps track of important events within your organization."
 msgstr ""
 
 #: templates/sentry/organization-auth-settings.html:5
-#: templates/sentry/bases/organization.html:50
-#: static/sentry/app/components/organizations/homeSidebar.jsx:49
+#: templates/sentry/bases/organization.html:56
+#: static/sentry/app/components/organizations/homeSidebar.jsx:63
 msgid "Auth"
 msgstr ""
 
 #: templates/sentry/organization-member-details.html:7
 msgid "Member Details"
-msgstr ""
+msgstr "Üye Detayları"
 
 #: templates/sentry/organization-member-details.html:21
 #: templates/sentry/organization-member-settings.html:29
@@ -878,7 +881,7 @@ msgstr ""
 #: templates/sentry/organization-member-settings.html:36
 #: web/forms/accounts.py:146 web/forms/accounts.py:256
 msgid "Email"
-msgstr ""
+msgstr "Eposta"
 
 #: templates/sentry/organization-member-details.html:36
 #: templates/sentry/organization-member-settings.html:44
@@ -889,23 +892,23 @@ msgstr "Durum"
 #: templates/sentry/organization-member-details.html:48
 #: templates/sentry/organization-member-settings.html:56
 msgid "Added"
-msgstr ""
+msgstr "Eklendi"
 
 #: templates/sentry/organization-member-details.html:60
 #: templates/sentry/organization-member-settings.html:68
 msgid "Role"
-msgstr ""
+msgstr "Rol"
 
 #: templates/sentry/organization-member-details.html:80
 #: templates/sentry/organization-member-settings.html:88
 #: templates/sentry/admin/teams/list.html:16
-#: templates/sentry/bases/admin.html:21
+#: templates/sentry/bases/admin.html:22
 msgid "Teams"
 msgstr "Takımlar"
 
 #: templates/sentry/organization-member-settings.html:7
 msgid "Member Settings"
-msgstr ""
+msgstr "Üye Ayarları"
 
 #: templates/sentry/organization-member-settings.html:109
 msgid "Resend Invite"
@@ -913,8 +916,8 @@ msgstr ""
 
 #: templates/sentry/organization-members.html:7
 #: templates/sentry/organization-members.html:23
-#: templates/sentry/bases/organization.html:38
-#: static/sentry/app/components/organizations/homeSidebar.jsx:41
+#: templates/sentry/bases/organization.html:44
+#: static/sentry/app/components/organizations/homeSidebar.jsx:55
 msgid "Members"
 msgstr "Üyeler"
 
@@ -930,36 +933,36 @@ msgstr ""
 #: templates/sentry/organization-settings.html:52
 #: templates/sentry/remove-organization.html:35
 msgid "Remove Organization"
-msgstr ""
+msgstr "Organizasyonu Kaldır"
 
 #: templates/sentry/post-remove-account.html:5
 msgid "Remove Account"
-msgstr ""
+msgstr "Hesabı Kaldır"
 
 #: templates/sentry/post-remove-account.html:10
 msgid "Scheduled for Removal"
-msgstr ""
+msgstr "Kaldırma işlemi planlandı."
 
 #: templates/sentry/post-remove-account.html:13
 msgid "Your account has been deactivated and scheduled for removal."
-msgstr ""
+msgstr "Hesabınız devre dışı bırakıldı ve kaldırılma için planlandı."
 
 #: templates/sentry/post-remove-account.html:14
 msgid "Thanks for using Sentry! We hope to see you again soon!"
-msgstr ""
+msgstr "Sentry'i kullandığınız için teşekkürler! Sizi yakın zamanda tekrar görmeyi umuyoruz!"
 
 #: templates/sentry/project-issue-tracking.html:7
 #: templates/sentry/project-issue-tracking.html:10
 #: templates/sentry/projects/manage.html:173
 #: static/sentry/app/views/projectSettings/index.jsx:88
 msgid "Issue Tracking"
-msgstr ""
+msgstr "Sorun Takibi"
 
 #: templates/sentry/project-issue-tracking.html:36
 #: templates/sentry/project-notifications.html:117
 #: templates/sentry/project-release-tracking.html:95
 msgid "Inactive Integrations"
-msgstr ""
+msgstr "Pasif entegrasyonlar"
 
 #: templates/sentry/project-notifications.html:8
 #: templates/sentry/project-notifications.html:11
@@ -967,14 +970,14 @@ msgstr ""
 #: templates/sentry/projects/manage.html:159
 #: static/sentry/app/views/projectSettings/index.jsx:85
 msgid "Notifications"
-msgstr ""
+msgstr "Bildirimler"
 
 #: templates/sentry/project-notifications.html:18
 #: templates/sentry/projects/manage.html:167
 #: templates/sentry/projects/rules/list.html:10
 #: static/sentry/app/views/projectSettings/index.jsx:86
 msgid "Rules"
-msgstr ""
+msgstr "Kurallar"
 
 #: templates/sentry/project-notifications.html:22
 #, python-format
@@ -986,7 +989,7 @@ msgstr ""
 #: templates/sentry/project-notifications.html:28
 #: templates/sentry/account/notifications.html:31
 msgid "General"
-msgstr ""
+msgstr "Genel"
 
 #: templates/sentry/project-notifications.html:41
 msgid "Digests"
@@ -997,11 +1000,11 @@ msgstr ""
 #: templates/sentry/projects/manage.html:176
 #: static/sentry/app/views/projectSettings/index.jsx:89
 msgid "Release Tracking"
-msgstr ""
+msgstr "Sürüm Takibi"
 
 #: templates/sentry/project-release-tracking.html:16
 msgid "Client Configuration"
-msgstr ""
+msgstr "İstemci Yapılandırması"
 
 #: templates/sentry/project-release-tracking.html:36
 msgid "Token"
@@ -1015,71 +1018,71 @@ msgstr ""
 #: templates/sentry/remove-account.html:49
 #: templates/sentry/bases/account.html:17
 msgid "Close Account"
-msgstr ""
+msgstr "Hesabı Kapat"
 
 #: templates/sentry/remove-account.html:15
 msgid "This will permanently remove all associated data for your user."
-msgstr ""
+msgstr "Bu, sizin kullanıcınız ile ilişkilendirilmiş bütün veriyi kalıcı olarak kaldıracak:"
 
 #: templates/sentry/remove-account.html:17
 msgid "Closing your account is permanent and cannot be undone!"
-msgstr ""
+msgstr "Hesabınızı kapatmak kalıcıdır ve geri alınamaz!"
 
 #: templates/sentry/remove-account.html:20
 msgid "If you continue, the following organizations will be removed:"
-msgstr ""
+msgstr "Eğer devam ederseniz, aşağıdaki organizasyonlar kaldırılacaktır:"
 
 #: templates/sentry/remove-account.html:50
 #: templates/sentry/remove-organization.html:36
 #: templates/sentry/admin/users/remove.html:17
 #: templates/sentry/projects/remove.html:30
 #: templates/sentry/teams/remove.html:38
-#: static/sentry/app/components/linkWithConfirmation.jsx:52
+#: static/sentry/app/components/compactIssue.jsx:67
 msgid "Cancel"
 msgstr "İptal"
 
 #: templates/sentry/remove-organization.html:16
 msgid "Removing this organization is permanent and cannot be undone!"
-msgstr ""
+msgstr "Bu organizasyonu kaldırmak kalıcıdır ve geri alınamaz!"
 
 #: templates/sentry/remove-organization.html:19
 msgid "This will also remove the following teams and all associated projects:"
-msgstr ""
+msgstr "Bu, aşağıdaki takımları ve tüm ilişkilendirilmiş projeleri kaldıracak:"
 
 #: templates/sentry/account/appearance.html:7
 #: templates/sentry/bases/account.html:22
 msgid "Appearance"
-msgstr ""
+msgstr "Görünüm"
 
 #: templates/sentry/account/appearance.html:15
-#: static/sentry/app/views/stream/actions.jsx:340
+#: static/sentry/app/views/stream/actions.jsx:360
 msgid "Events"
 msgstr "Olayla"
 
 #: templates/sentry/account/appearance.html:22
 msgid "Localization"
-msgstr ""
+msgstr "Yerelleştirme"
 
 #: templates/sentry/account/identities.html:7
 #: templates/sentry/bases/account.html:25
 msgid "Identities"
-msgstr ""
+msgstr "Kimlikler"
 
 #: templates/sentry/account/identities.html:11
 msgid "Current Identities"
-msgstr ""
+msgstr "Güncel Kimlikler"
 
 #: templates/sentry/account/identities.html:14
 msgid "There are no identities associated with this account."
-msgstr ""
+msgstr "Bu hesap ile ilişkilendirilmiş bir kimlik bulunamadı."
 
 #: templates/sentry/account/identities.html:19
 msgid "Identity"
-msgstr ""
+msgstr "Kimlik"
 
 #: templates/sentry/account/notifications.html:7
 msgid "Notification Settings"
-msgstr ""
+msgstr "Bildirim Ayarları"
 
 #: templates/sentry/account/notifications.html:25
 msgid ""
@@ -1120,7 +1123,7 @@ msgstr "Hesap Ayarları"
 
 #: templates/sentry/account/settings.html:36
 msgid "You may also optionally change your password."
-msgstr ""
+msgstr "İsteğinize bağlı olarak parolanızı değiştirebilirsiniz."
 
 #: templates/sentry/account/sudo.html:6
 msgid "Confirm Password"
@@ -1128,13 +1131,14 @@ msgstr "Şifre Doğrula"
 
 #: templates/sentry/account/sudo.html:31
 msgid "Help us keep your account safe by confirming your password."
-msgstr ""
+msgstr "Parolanızı onaylayarak hesabınızı güvende tutmamıza yardımcı olun."
 
 #: templates/sentry/account/sudo.html:39
 msgid "Your password was not valid."
 msgstr "Şifreniz doğru değil"
 
 #: templates/sentry/account/sudo.html:52
+#: static/sentry/app/views/installWizard.jsx:78
 msgid "Continue"
 msgstr "Devam et"
 
@@ -1163,11 +1167,11 @@ msgid ""
 "We were unable to confirm your identity. Either the link you followed is "
 "invalid, or it has expired. You can always <a href=\"%(link)s\">try "
 "again</a>."
-msgstr ""
+msgstr "Kimliğinizi onaylayamıyoruz. Ya tıkladığınız bağlantı geçersiz ya da geçerlilik süresi dolmuş. Her zaman <a href=\"%(link)s\">tekrar deneyebilirsiniz.</a>"
 
 #: templates/sentry/account/recover/index.html:10
 msgid "We will send a confirmation email to this address:"
-msgstr ""
+msgstr "Bu adrese onay maili göndereceğiz: "
 
 #: templates/sentry/account/recover/index.html:22
 msgid "Send Email"
@@ -1187,9 +1191,9 @@ msgstr "Projeleri Yönet"
 #: templates/sentry/admin/teams/list.html:31
 #: templates/sentry/admin/users/edit.html:28
 #: templates/sentry/admin/users/list_projects.html:7
-#: templates/sentry/bases/admin.html:22
+#: templates/sentry/bases/admin.html:23
 #: templates/sentry/bases/organization.html:21
-#: static/sentry/app/components/organizations/homeSidebar.jsx:29
+#: static/sentry/app/components/organizations/homeSidebar.jsx:35
 msgid "Projects"
 msgstr "Projeler"
 
@@ -1208,7 +1212,7 @@ msgstr "Proje"
 
 #: templates/sentry/admin/projects/list.html:37
 msgid "Events (24h)"
-msgstr ""
+msgstr "Olaylar (24s)"
 
 #: templates/sentry/admin/projects/list.html:38
 #: templates/sentry/admin/teams/list.html:32
@@ -1247,7 +1251,7 @@ msgstr "Çalışma Süresi"
 
 #: templates/sentry/admin/status/env.html:38
 msgid "Environment not found (are you using the builtin Sentry webserver?)."
-msgstr ""
+msgstr "Ortam bulunamadı (yerleşik Sentry web sunucusu mu kullanıyorsun?)."
 
 #: templates/sentry/admin/status/env.html:41
 #: templates/sentry/projects/manage.html:153
@@ -1269,7 +1273,7 @@ msgstr "Gönderen Adresi"
 
 #: templates/sentry/admin/status/mail.html:20
 msgid "Host"
-msgstr ""
+msgstr "Sunucu"
 
 #: templates/sentry/admin/status/mail.html:25 web/forms/accounts.py:255
 msgid "Username"
@@ -1309,7 +1313,7 @@ msgstr ""
 #: templates/sentry/admin/status/mail.html:54
 #, python-format
 msgid "Send a test email to %(email)s"
-msgstr ""
+msgstr "%(email)s adreslerine deneme epostası gönder"
 
 #: templates/sentry/admin/status/packages.html:8
 #: templates/sentry/bases/admin.html:15
@@ -1340,7 +1344,7 @@ msgstr "Takım"
 
 #: templates/sentry/admin/teams/list.html:53
 msgid "There are no active teams in Sentry."
-msgstr ""
+msgstr "Sentry'de aktif takım bulunmamaktadır."
 
 #: templates/sentry/admin/users/edit.html:8
 msgid "Change User"
@@ -1365,8 +1369,8 @@ msgid "Manage Users"
 msgstr "Kullanıcıları Yönet"
 
 #: templates/sentry/admin/users/list.html:17
-#: templates/sentry/bases/admin.html:23
-#: static/sentry/app/views/stream/actions.jsx:341
+#: templates/sentry/bases/admin.html:24
+#: static/sentry/app/views/stream/actions.jsx:361
 msgid "Users"
 msgstr "Kullanıcılar"
 
@@ -1405,38 +1409,57 @@ msgstr "Yeni kullanıcı"
 msgid "Confirm"
 msgstr "Onayla"
 
-#: templates/sentry/bases/account.html:6
-#: templates/sentry/bases/organization.html:72
-#: static/sentry/app/components/organizations/homeSidebar.jsx:59
+#: templates/sentry/bases/account.html:6 templates/sentry/bases/admin.html:17
+#: templates/sentry/bases/organization.html:74
+#: static/sentry/app/components/organizations/homeSidebar.jsx:73
 msgid "Settings"
 msgstr "Ayarlar"
 
 #: templates/sentry/bases/admin.html:10
 msgid "System"
-msgstr ""
+msgstr "Sistem"
 
 #: templates/sentry/bases/admin.html:12
 #: static/sentry/app/views/sharedGroupDetails/sharedGroupHeader.jsx:35
 msgid "Overview"
 msgstr "Genel Bakış"
 
-#: templates/sentry/bases/admin.html:19
-#: static/sentry/app/components/organizations/homeSidebar.jsx:36
+#: templates/sentry/bases/admin.html:20
+#: static/sentry/app/components/organizations/homeSidebar.jsx:50
 msgid "Manage"
 msgstr "Yönet"
 
-#: templates/sentry/bases/admin.html:28
+#: templates/sentry/bases/admin.html:29
 msgid "Plugins"
 msgstr "Eklentiler"
 
 #: templates/sentry/bases/organization.html:8
 msgid "Organization Settings"
-msgstr ""
+msgstr "Organizasyon Ayarları"
 
 #: templates/sentry/bases/organization.html:27
-#: static/sentry/app/components/organizations/homeSidebar.jsx:31
+#: static/sentry/app/components/organizations/homeSidebar.jsx:37
 msgid "Stats"
 msgstr "İstatistikler"
+
+#: templates/sentry/bases/organization.html:32
+msgid "My Issues"
+msgstr ""
+
+#: templates/sentry/bases/organization.html:34
+#: static/sentry/app/components/organizations/homeSidebar.jsx:43
+msgid "Assigned to Me"
+msgstr ""
+
+#: templates/sentry/bases/organization.html:35
+#: static/sentry/app/components/organizations/homeSidebar.jsx:44
+msgid "Bookmarks"
+msgstr "Yer İşaretleri"
+
+#: templates/sentry/bases/organization.html:36
+#: static/sentry/app/components/organizations/homeSidebar.jsx:45
+msgid "History"
+msgstr ""
 
 #: templates/sentry/events/replay_request.html:6
 #: static/sentry/app/components/events/interfaces/requestActions.jsx:18
@@ -1445,7 +1468,7 @@ msgstr "Sorguyu Yeniden Çalıştır"
 
 #: templates/sentry/events/replay_request.html:24
 msgid "Please fill out all fields."
-msgstr ""
+msgstr "Lütfen tüm alanları doldurunuz."
 
 #: templates/sentry/events/replay_request.html:34
 msgid "Submit"
@@ -1453,11 +1476,11 @@ msgstr "Gönder"
 
 #: templates/sentry/groups/public_details.html:31
 msgid "Newer Event"
-msgstr ""
+msgstr "Daha Yeni Olay"
 
 #: templates/sentry/groups/public_details.html:32
 msgid "Older Event"
-msgstr ""
+msgstr "Daha Eski Olay"
 
 #: templates/sentry/groups/public_details.html:37
 msgid ""
@@ -1467,11 +1490,11 @@ msgstr ""
 
 #: templates/sentry/groups/public_details.html:43
 msgid "Full message"
-msgstr ""
+msgstr "Tam mesaj"
 
 #: templates/sentry/partial/_form.html:14
 msgid "Test Configuration"
-msgstr ""
+msgstr "Yapılandırmayı Test Et"
 
 #: templates/sentry/partial/_pager.html:5
 #: templates/sentry/users/details.html:42
@@ -1495,7 +1518,7 @@ msgstr "Adres"
 
 #: templates/sentry/partial/interfaces/http_email.html:13
 msgid "Method"
-msgstr ""
+msgstr "Metod"
 
 #: templates/sentry/partial/interfaces/http_email.html:19
 msgid "Query"
@@ -1524,11 +1547,11 @@ msgstr "E-posta:"
 
 #: templates/sentry/plugins/site_configuration.html:5
 msgid "Changes to your configuration were saved successfully."
-msgstr ""
+msgstr "Yapılandırmanızla ilgili değişiklikler başarıyla kaydedildi."
 
 #: templates/sentry/plugins/bases/issue/create_issue.html:23
 msgid "Create Issue"
-msgstr ""
+msgstr "Yeni Sorun Oluştur"
 
 #: templates/sentry/plugins/bases/issue/needs_auth.html:13
 #, python-format
@@ -1572,7 +1595,7 @@ msgstr ""
 
 #: templates/sentry/projects/edit_key.html:25
 msgid "Created"
-msgstr ""
+msgstr "Oluşturuldu"
 
 #: templates/sentry/projects/edit_key.html:38
 msgid ""
@@ -1600,11 +1623,11 @@ msgstr ""
 
 #: templates/sentry/projects/edit_key.html:53
 msgid "Public Key"
-msgstr ""
+msgstr "Açık Anahtar"
 
 #: templates/sentry/projects/edit_key.html:59
 msgid "Secret Key"
-msgstr ""
+msgstr "Gizli Anahtar"
 
 #: templates/sentry/projects/edit_key.html:65
 msgid "Project ID"
@@ -1615,29 +1638,29 @@ msgstr ""
 #: templates/sentry/projects/manage.html:185
 #: static/sentry/app/views/projectSettings/index.jsx:100
 msgid "Client Keys"
-msgstr ""
+msgstr "İstemci Anahtarları"
 
 #: templates/sentry/projects/keys.html:12
 msgid "Generate New Key"
-msgstr ""
+msgstr "Yeni Anahar Oluştur"
 
 #: templates/sentry/projects/keys.html:30
 msgid "Disable"
-msgstr ""
+msgstr "Devre dışı bırak"
 
 #: templates/sentry/projects/keys.html:35
 msgid "Enable"
-msgstr ""
+msgstr "Etkinleştir"
 
 #: templates/sentry/projects/keys.html:42
 msgid "Revoke"
-msgstr ""
+msgstr "Kaldır"
 
 #: templates/sentry/projects/manage.html:29
 #: templates/sentry/projects/manage.html:156
 #: static/sentry/app/views/projectSettings/index.jsx:84
 msgid "Project Settings"
-msgstr ""
+msgstr "Proje Ayarları"
 
 #: templates/sentry/projects/manage.html:37
 msgid "Project Details"
@@ -1645,11 +1668,11 @@ msgstr "Proje Detayları"
 
 #: templates/sentry/projects/manage.html:48
 msgid "Event Settings"
-msgstr ""
+msgstr "Olay Ayarları"
 
 #: templates/sentry/projects/manage.html:60
 msgid "Client Security"
-msgstr ""
+msgstr "İstemci Güvenliği"
 
 #: templates/sentry/projects/manage.html:64
 #, python-format
@@ -1674,16 +1697,17 @@ msgstr "Projeyi Sil"
 
 #: templates/sentry/projects/manage.html:81
 msgid "You do not have the required permission to remove this project."
-msgstr ""
+msgstr "Bu projeyi kaldırmak için gerekli izniniz yoktur."
 
 #: templates/sentry/projects/manage.html:83
 msgid ""
 "This project cannot be removed. It is used internally by the Sentry server."
-msgstr ""
+msgstr "Bu proje kaldırılamaz. Sentry sunucusu tarafından kullanılmaktadır."
 
 #: templates/sentry/projects/manage.html:163
 #: templates/sentry/projects/quotas.html:7
 #: templates/sentry/projects/quotas.html:10
+#: static/sentry/app/components/organizations/homeSidebar.jsx:71
 msgid "Rate Limits"
 msgstr ""
 
@@ -1692,28 +1716,28 @@ msgstr ""
 #: templates/sentry/projects/manage_tags.html:10
 #: static/sentry/app/components/events/eventTags.jsx:29
 msgid "Tags"
-msgstr ""
+msgstr "Etiketler"
 
 #: templates/sentry/projects/manage.html:179
 #: static/sentry/app/views/projectSettings/index.jsx:91
 msgid "Setup"
-msgstr ""
+msgstr "Kurulum"
 
 #: templates/sentry/projects/manage.html:182
 #: static/sentry/app/views/projectSettings/index.jsx:99
 msgid "Instructions"
-msgstr ""
+msgstr "Talimatlar"
 
 #: templates/sentry/projects/manage.html:189
 #: templates/sentry/projects/plugins/list.html:10
 #: static/sentry/app/views/projectSettings/index.jsx:102
 msgid "Integrations"
-msgstr ""
+msgstr "Entegrasyonlar"
 
 #: templates/sentry/projects/manage.html:192
 #: static/sentry/app/views/projectSettings/index.jsx:104
 msgid "All Integrations"
-msgstr ""
+msgstr "Tüm entegrasyonlar"
 
 #: templates/sentry/projects/manage_tags.html:13
 msgid ""
@@ -1724,7 +1748,7 @@ msgstr ""
 
 #: templates/sentry/projects/manage_tags.html:45
 msgid "We have not yet recorded any tags for this project."
-msgstr ""
+msgstr "Bu proje için henüz bir etiket kayıt etmedik."
 
 #: templates/sentry/projects/quotas.html:13
 msgid ""
@@ -1761,35 +1785,35 @@ msgstr ""
 
 #: templates/sentry/projects/remove.html:18
 msgid "Removing this project is permanent and cannot be undone!"
-msgstr ""
+msgstr "Bu projeyi kaldırmak kalıcıdır ve geri alınamaz!"
 
 #: templates/sentry/projects/remove.html:20
 msgid "This will also remove the all associated event data."
-msgstr ""
+msgstr "Bu, tüm ilişkilendirilmiş olayların verisini de silecek."
 
 #: templates/sentry/projects/plugins/configure.html:15
 msgid "Enable Plugin"
-msgstr ""
+msgstr "Eklentiyi Etkinleştir"
 
 #: templates/sentry/projects/plugins/configure.html:21
 msgid "Disable Plugin"
-msgstr ""
+msgstr "Eklentiyi Devre Dışı Bırak"
 
 #: templates/sentry/projects/plugins/configure.html:27
 msgid "Are you sure you wish to reset all configuration for this plugin?"
-msgstr ""
+msgstr "Bu eklenti için tüm yapılandırmayı başa döndürmek istediğinize emin misiniz?"
 
 #: templates/sentry/projects/plugins/configure.html:29
 msgid "Reset Configuration"
-msgstr ""
+msgstr "Yapılandırmayı Başa Döndür"
 
 #: templates/sentry/projects/plugins/configure.html:38
 msgid "Changes to your project were saved successfully."
-msgstr ""
+msgstr "Projenizle ilgili değişiklikler başarıyla kaydedildi."
 
 #: templates/sentry/projects/plugins/list.html:7
 msgid "Manage Integrations"
-msgstr ""
+msgstr "Entegrasyonları Yönet"
 
 #: templates/sentry/projects/plugins/list.html:24
 msgid "n/a"
@@ -1797,35 +1821,35 @@ msgstr ""
 
 #: templates/sentry/projects/rules/list.html:8
 msgid "New Rule"
-msgstr ""
+msgstr "Yeni Kural"
 
 #: templates/sentry/teams/base.html:5
 msgid "Team List"
-msgstr ""
+msgstr "Takım Listesi"
 
 #: templates/sentry/teams/manage.html:8 templates/sentry/teams/manage.html:11
 #: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:70
 msgid "Team Settings"
-msgstr ""
+msgstr "Takım Ayarları"
 
 #: templates/sentry/teams/manage.html:41 templates/sentry/teams/manage.html:47
 #: templates/sentry/teams/remove.html:6 templates/sentry/teams/remove.html:11
 #: templates/sentry/teams/remove.html:37
 msgid "Remove Team"
-msgstr ""
+msgstr "Takımı Kaldır"
 
 #: templates/sentry/teams/remove.html:18
 msgid "Removing this team is permanent and cannot be undone!"
-msgstr ""
+msgstr "Bu takımı kaldırmak kalıcıdır ve geri alınamaz!"
 
 #: templates/sentry/teams/remove.html:21
 msgid "This will also remove all associated projects and events:"
-msgstr ""
+msgstr "Bu, tüm ilişkilendirilmiş projeleri ve olayları kaldıracak:"
 
 #: templates/sentry/users/list.html:15
 #, python-format
 msgid "Sort by: %(label)s"
-msgstr ""
+msgstr "Sıralama: %(label)s"
 
 #: templates/sentry/users/list.html:29
 msgid ""
@@ -1840,42 +1864,42 @@ msgstr "Kullanıcı"
 
 #: templates/sentry/users/list.html:36
 msgid "Events Seen"
-msgstr ""
+msgstr "Görülen Olaylar"
 
-#: templatetags/sentry_helpers.py:114
+#: templatetags/sentry_helpers.py:119
 msgid "b"
 msgstr ""
 
-#: templatetags/sentry_helpers.py:115
+#: templatetags/sentry_helpers.py:120
 msgid "m"
 msgstr ""
 
-#: templatetags/sentry_helpers.py:116
+#: templatetags/sentry_helpers.py:121
 msgid "k"
 msgstr ""
 
-#: templatetags/sentry_helpers.py:172
+#: templatetags/sentry_helpers.py:177
 msgid "never"
 msgstr "asla"
 
-#: templatetags/sentry_helpers.py:176
+#: templatetags/sentry_helpers.py:181
 msgid "0 minutes"
 msgstr "0 dakika"
 
-#: templatetags/sentry_helpers.py:177
+#: templatetags/sentry_helpers.py:182
 msgid "just now"
 msgstr "şimdi"
 
-#: templatetags/sentry_helpers.py:178
+#: templatetags/sentry_helpers.py:183
 #: static/sentry/app/views/projectDashboard.jsx:130
 msgid "1 day"
 msgstr "1 gün"
 
-#: templatetags/sentry_helpers.py:179
+#: templatetags/sentry_helpers.py:184
 msgid "yesterday"
 msgstr "dün"
 
-#: templatetags/sentry_helpers.py:180
+#: templatetags/sentry_helpers.py:185
 msgid " ago"
 msgstr "önce"
 
@@ -1890,7 +1914,7 @@ msgstr ""
 
 #: web/forms/__init__.py:56
 msgid "Superuser"
-msgstr ""
+msgstr "Süper kullanıcı"
 
 #: web/forms/__init__.py:57
 msgid ""
@@ -1908,44 +1932,44 @@ msgstr "Kullanıcıyı ve verilerini kalıcı olarak kaldır."
 
 #: web/forms/accounts.py:74
 msgid "username or email"
-msgstr ""
+msgstr "kullanıcı adı ya da eposta"
 
 #: web/forms/accounts.py:79
 msgid "password"
-msgstr ""
+msgstr "parola"
 
 #: web/forms/accounts.py:84
 #, python-format
 msgid ""
 "Please enter a correct %(username)s and password. Note that both fields may "
 "be case-sensitive."
-msgstr ""
+msgstr "Lütfen, doğru %(username)s ve parola giriniz. Her iki alan küçük-büyük harfe duyarlı olabilir."
 
 #: web/forms/accounts.py:86
 msgid ""
 "Your Web browser doesn't appear to have cookies enabled. Cookies are "
 "required for logging in."
-msgstr ""
+msgstr "Web tarayıcınız çerezleri desteklemiyor. Çerezler, üyelik girişi için gereklidir."
 
 #: web/forms/accounts.py:88
 msgid "This account is inactive."
-msgstr ""
+msgstr "Bu hesap pasiftir."
 
 #: web/forms/accounts.py:160
 msgid "An account is already registered with that email address."
-msgstr ""
+msgstr "Hesabınız, bu eposta adresiyle önceden kayıt edilmiştir."
 
 #: web/forms/accounts.py:173
 msgid "Username or email"
-msgstr ""
+msgstr "Kullanıcı adı veya eposta"
 
 #: web/forms/accounts.py:181
 msgid "We were unable to find a matching user."
-msgstr ""
+msgstr "Eşleşen bir kullanıcı bulunamadı."
 
 #: web/forms/accounts.py:183
 msgid "Multiple accounts were found matching this email address."
-msgstr ""
+msgstr "Bu eposta adresiyle eşleşen birden fazla hesap bulundu."
 
 #: web/forms/accounts.py:192
 msgid "Designate an alternative email address to send email notifications to."
@@ -1953,27 +1977,27 @@ msgstr ""
 
 #: web/forms/accounts.py:194
 msgid "Alerts"
-msgstr ""
+msgstr "Alarmlar"
 
 #: web/forms/accounts.py:196
 msgid "Automatically subscribe to notifications for new projects"
-msgstr ""
+msgstr "Yeni proje bildirimlerini otomatik abone ol"
 
 #: web/forms/accounts.py:197
 msgid "Do not subscribe to notifications for new projects"
-msgstr ""
+msgstr "Yeni projelerin bildirimlerine abone olma"
 
 #: web/forms/accounts.py:201
 msgid "Notes"
-msgstr ""
+msgstr "Notlar"
 
 #: web/forms/accounts.py:203
 msgid "Get notified about new notes"
-msgstr ""
+msgstr "Yeni notlar hakkında bildirim al"
 
 #: web/forms/accounts.py:204
 msgid "Do not subscribe to note notifications"
-msgstr ""
+msgstr "Not bildirimlerine abone olma"
 
 #: web/forms/accounts.py:258
 msgid "New password"
@@ -1981,7 +2005,7 @@ msgstr "Yeni şifre"
 
 #: web/forms/accounts.py:297
 msgid "That username is already in use."
-msgstr ""
+msgstr "Kullanıcı adı kullanılmaktadır."
 
 #: web/forms/accounts.py:325
 msgid "Language"
@@ -1993,7 +2017,7 @@ msgstr ""
 
 #: web/forms/accounts.py:329
 msgid "Default (let Sentry decide)"
-msgstr ""
+msgstr "Varsayılan (kararı Sentry'e bırak)"
 
 #: web/forms/accounts.py:330
 msgid "Most recent call last"
@@ -2009,11 +2033,11 @@ msgstr ""
 
 #: web/forms/accounts.py:336
 msgid "Time zone"
-msgstr ""
+msgstr "Saat dilimi"
 
 #: web/forms/accounts.py:339
 msgid "Use a 24-hour clock"
-msgstr ""
+msgstr "24'lük saat dilimini kullan"
 
 #: web/forms/add_project.py:16
 msgid "i.e. API, Frontend, My Application Name"
@@ -2021,7 +2045,7 @@ msgstr ""
 
 #: web/forms/add_team.py:15
 msgid "E.g. Operations, Web, Desktop, ..."
-msgstr ""
+msgstr "Örn. Operasyonlar, Web, Masaüstü, ..."
 
 #: web/forms/fields.py:83
 msgid "Invalid username"
@@ -2029,39 +2053,39 @@ msgstr "Geçersiz kullanıcı adı"
 
 #: web/forms/fields.py:105
 msgid "Not set"
-msgstr ""
+msgstr "Ayarlı değil"
 
 #: web/forms/fields.py:129
 msgid "e.g. example.com or https://example.com"
-msgstr ""
+msgstr "örn. example.com ya da https://example.com"
 
 #: web/forms/fields.py:158
 msgid "e.g. 127.0.0.1 or 10.0.0.0/8"
-msgstr ""
+msgstr "örn. 127.0.0.1 ya da 10.0.0.0/8"
 
 #: web/forms/projects.py:20
 msgid "Mail Subject Prefix"
-msgstr ""
+msgstr "Eposta başlığı ön eki"
 
 #: web/forms/projects.py:21
 msgid "Choose a custom prefix for emails from this project."
-msgstr ""
+msgstr "Bu projeden gelen epostalar için özel bir ön ek seç."
 
 #: web/forms/projects.py:26
 msgid "Minimum delivery frequency"
-msgstr ""
+msgstr "Minimum ulaştırma sıklığı"
 
 #: web/forms/projects.py:27
 msgid "Notifications will be delivered at most this often."
-msgstr ""
+msgstr "Bildirimler en fazla bu sıklıkla ulaştırılacaktır."
 
 #: web/forms/projects.py:32
 msgid "Maximum delivery frequency"
-msgstr ""
+msgstr "Maksimum ulaştırma sıklığı"
 
 #: web/forms/projects.py:33
 msgid "Notifications will be delivered at least this often."
-msgstr ""
+msgstr "Bildirimler en azından bu sıklıkla ulaştırılacaktır."
 
 #: web/forms/projects.py:41
 msgid ""
@@ -2071,7 +2095,7 @@ msgstr ""
 
 #: web/forms/projects.py:47
 msgid "Maximum events per minute"
-msgstr ""
+msgstr "Dakika başına maksimum olay"
 
 #: web/forms/projects.py:49
 msgid ""
@@ -2082,11 +2106,11 @@ msgstr ""
 
 #: web/forms/projects.py:86
 msgid "Label"
-msgstr ""
+msgstr "Bu projenin epostaları için özel bir ön ek seç."
 
 #: web/frontend/accept_organization_invite.py:13
 msgid "The invite link you followed is not valid."
-msgstr ""
+msgstr "Tıkladığınız davet bağlantısı geçerli değildir."
 
 #: web/frontend/accept_organization_invite.py:83
 #, python-format
@@ -2096,7 +2120,7 @@ msgstr ""
 #: web/frontend/accept_organization_invite.py:106
 #, python-format
 msgid "You have been added to the %r organization."
-msgstr ""
+msgstr "%r organizasyonuna eklendiniz."
 
 #: web/frontend/auth_link_identity.py:15
 msgid ""
@@ -2114,15 +2138,15 @@ msgstr ""
 
 #: web/frontend/create_organization.py:17
 msgid "Organization Name"
-msgstr ""
+msgstr "Organizasyon İsmi"
 
 #: web/frontend/create_organization.py:18
 msgid "My Company"
-msgstr ""
+msgstr "Benim Şirketim"
 
 #: web/frontend/create_organization_member.py:37
 msgid "The organization member was added."
-msgstr ""
+msgstr "Organizasyon üyesi eklendi."
 
 #: web/frontend/create_organization_member.py:40
 msgid "The organization member already exists."
@@ -2146,12 +2170,12 @@ msgstr ""
 #: web/frontend/organization_api_key_settings.py:16
 #: web/frontend/project_settings.py:31
 msgid "Allowed Domains"
-msgstr ""
+msgstr "İzin Verilen Alan Adları"
 
 #: web/frontend/organization_api_key_settings.py:17
 #: web/frontend/project_settings.py:32 web/frontend/project_settings.py:64
 msgid "Separate multiple entries with a newline."
-msgstr ""
+msgstr "Birden fazla girdiyi yeni satır ile ayırın."
 
 #: web/frontend/organization_auth_settings.py:22
 msgid "The SSO feature is not enabled for this organization."
@@ -2179,7 +2203,7 @@ msgstr ""
 #: web/frontend/organization_auth_settings.py:36
 #: web/frontend/organization_settings.py:28
 msgid "Default Role"
-msgstr ""
+msgstr "Varsayılan Rol"
 
 #: web/frontend/organization_auth_settings.py:38
 msgid ""
@@ -2190,20 +2214,20 @@ msgstr ""
 #: web/frontend/organization_member_settings.py:30
 #, python-format
 msgid "An invitation to join %(organization)s has been sent to %(email)s"
-msgstr ""
+msgstr "%(organization)s organizasyonuna katılmak için davetiye %(email)s adreslerine gönderildi"
 
 #: web/frontend/organization_member_settings.py:83
 msgid "Your changes were saved."
-msgstr ""
+msgstr "Değişiklikleriniz kaydedildi."
 
 #: web/frontend/organization_settings.py:17
 msgid "The name of your organization. i.e. My Company"
-msgstr ""
+msgstr "Organizasyonunuzun ismi. Örn. Benim Şirketim"
 
 #: web/frontend/organization_settings.py:19
 #: web/frontend/project_settings.py:27 web/frontend/team_settings.py:16
 msgid "Short name"
-msgstr ""
+msgstr "Kısa ad"
 
 #: web/frontend/organization_settings.py:20
 msgid "A unique ID used to identify this organization."
@@ -2211,7 +2235,7 @@ msgstr ""
 
 #: web/frontend/organization_settings.py:23
 msgid "Open Membership"
-msgstr ""
+msgstr "Açık Üyelik"
 
 #: web/frontend/organization_settings.py:24
 msgid "Allow organization members to freely join or leave any team."
@@ -2223,7 +2247,7 @@ msgstr ""
 
 #: web/frontend/organization_settings.py:33
 msgid "Enhanced Privacy"
-msgstr ""
+msgstr "Gelişmiş Güvenlik"
 
 #: web/frontend/organization_settings.py:34
 msgid ""
@@ -2233,11 +2257,11 @@ msgstr ""
 
 #: web/frontend/organization_settings.py:75
 msgid "Changes to your organization were saved."
-msgstr ""
+msgstr "Organizasyonunuzla ilgili değişiklikler kaydedildi."
 
 #: web/frontend/project_quotas.py:12
 msgid "The quotas feature is not enabled for this project."
-msgstr ""
+msgstr "Bu proje için kota özelliği etkinleştirilmedi."
 
 #: web/frontend/project_release_tracking.py:20
 msgid ""
@@ -2247,11 +2271,11 @@ msgstr ""
 
 #: web/frontend/project_release_tracking.py:22
 msgid "The release tracking feature is not enabled for this project."
-msgstr ""
+msgstr "Bu proje için sürüm takip özelliği etkinleştirilmedi."
 
 #: web/frontend/project_rule_remove.py:25
 msgid "The rule was removed."
-msgstr ""
+msgstr "Kural kaldırıldı."
 
 #: web/frontend/project_settings.py:25
 msgid "Production"
@@ -2293,7 +2317,7 @@ msgstr ""
 
 #: web/frontend/project_settings.py:44
 msgid "Additional sensitive fields"
-msgstr ""
+msgstr "Ek hassas alanlar"
 
 #: web/frontend/project_settings.py:45
 msgid ""
@@ -2303,15 +2327,15 @@ msgstr ""
 
 #: web/frontend/project_settings.py:47
 msgid "e.g. email"
-msgstr ""
+msgstr "örn. eposta"
 
 #: web/frontend/project_settings.py:54
 msgid "Don't store IP Addresses"
-msgstr ""
+msgstr "IP adreslerini saklama"
 
 #: web/frontend/project_settings.py:55
 msgid "Prevent IP addresses from being stored for new events."
-msgstr ""
+msgstr "Yeni olaylar için IP adreslerinin saklanmasını önle."
 
 #: web/frontend/project_settings.py:59
 msgid "Enable JavaScript source fetching"
@@ -2324,15 +2348,15 @@ msgstr ""
 
 #: web/frontend/project_settings.py:63
 msgid "Blacklisted IP Addresses"
-msgstr ""
+msgstr "Kara Listeye Alınmış IP Adresleri"
 
 #: web/frontend/project_settings.py:195
 msgid "Changes to your project were saved."
-msgstr ""
+msgstr "Projenizle ilgili değişiklikler kaydedildi."
 
 #: web/frontend/remove_organization.py:12
 msgid "You cannot remove the default organization."
-msgstr ""
+msgstr "Varsayılan organizasyonu kaldıramazsınız."
 
 #: web/frontend/remove_organization.py:14
 #, python-format
@@ -2360,19 +2384,29 @@ msgstr ""
 
 #: web/frontend/team_settings.py:64
 msgid "Changes to your team were saved."
-msgstr ""
+msgstr "Takımınızla ilgili değişiklikler kaydedildi."
 
 #: static/sentry/app/components/loadingError.jsx:12
 msgid "There was an error loading data."
 msgstr ""
 
-#: static/sentry/app/components/loadingError.jsx:26
+#: static/sentry/app/components/loadingError.jsx:27
 msgid "Retry"
+msgstr "Tekrar dene"
+
+#: static/sentry/app/components/timeSince.jsx:69
+#, python-format
+msgid "%(time)s ago"
 msgstr ""
 
-#: static/sentry/app/components/projectHeader/projectSelector.jsx:177
-msgid "Filter projects"
+#: static/sentry/app/components/timeSince.jsx:71
+#, python-format
+msgid "%(time)s old"
 msgstr ""
+
+#: static/sentry/app/components/projectHeader/projectSelector.jsx:187
+msgid "Filter projects"
+msgstr "Projeleri filtrele"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:112
 msgid ""
@@ -2387,7 +2421,7 @@ msgstr ""
 
 #: static/sentry/app/views/ruleEditor/index.jsx:130
 msgid "all"
-msgstr ""
+msgstr "hepsi"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:131
 msgid "any"
@@ -2395,7 +2429,7 @@ msgstr ""
 
 #: static/sentry/app/views/ruleEditor/index.jsx:132
 msgid "none"
-msgstr ""
+msgstr "hiçbiri"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:150
 msgid ""
@@ -2409,41 +2443,65 @@ msgstr ""
 
 #: static/sentry/app/views/ruleEditor/index.jsx:160
 msgid "Save Rule"
+msgstr "Kuralı Kaydet"
+
+#: static/sentry/app/components/alertMessage.jsx:27
+msgid "Close"
+msgstr "Kapat"
+
+#: static/sentry/app/components/compactIssue.jsx:119
+msgid "Saving changes.."
+msgstr "Değişiklikler kaydediliyor.."
+
+#: static/sentry/app/views/adminSettings.jsx:127
+msgid "Your changes were saved, and will propagate to services shortly."
+msgstr ""
+
+#: static/sentry/app/views/installWizard.jsx:208
+msgid ""
+"We were unable to load the required configuration from the Sentry server. "
+"Please take a look at the service logs."
+msgstr ""
+
+#: static/sentry/app/views/adminSettings.jsx:160
+msgid ""
+"We were unable to submit your changes to the Sentry server. Please take a "
+"look at the service logs."
 msgstr ""
 
 #: static/sentry/app/views/adminOrganizations.jsx:103
 msgid "Sorry, no results match your filters."
-msgstr ""
+msgstr "Özür dileriz, filtrenizle eşleşen bir sonuç bulunamadı."
 
 #: static/sentry/app/views/adminOrganizations.jsx:131
 msgid "Organizations"
-msgstr ""
+msgstr "Organizasyonlar"
 
 #: static/sentry/app/views/adminOrganizations.jsx:135
 msgid "Search for an organization."
-msgstr ""
+msgstr "Organizasyon için ara"
 
-#: static/sentry/app/components/organizations/homeSidebar.jsx:27
+#: static/sentry/app/components/organizations/homeSidebar.jsx:33
 msgid "Organization"
-msgstr ""
+msgstr "Organizasyon"
 
 #: static/sentry/app/views/groupDetails.jsx:107
 msgid "The issue you were looking for was not found."
-msgstr ""
+msgstr "Aradığınız sorun bulunamadı."
 
 #: static/sentry/app/views/groupTagValues.jsx:124
 msgid "%2$d unique historical value"
 msgid_plural "%2$d unique historical values"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%2$d eşsiz tarihsel değer"
+msgstr[1] "%2$d eşsiz tarihsel değer"
 
 #: static/sentry/app/views/groupTagValues.jsx:132
 msgid "Data is based on events seen in the last 7 days."
-msgstr ""
+msgstr "Veri, son 7 günde görülen olaylara dayanıyor."
 
 #: static/sentry/app/views/groupTagValues.jsx:138
 msgid "Value"
-msgstr ""
+msgstr "Değer"
 
 #: static/sentry/app/views/groupUserReports.jsx:104
 msgid "No user reports have been collected for this event."
@@ -2453,46 +2511,21 @@ msgstr ""
 msgid "Learn how to integrate User Crash Reports"
 msgstr ""
 
-#: static/sentry/app/views/organizationDetails.jsx:110
+#: static/sentry/app/views/myIssues/assignedToMe.jsx:12
+msgid "Assigned to me"
+msgstr ""
+
+#: static/sentry/app/views/organizationDetails.jsx:117
 msgid "The organization you were looking for was not found."
 msgstr ""
-
-#: static/sentry/app/views/projectDashboard.jsx:121
-msgid "1 hour"
-msgstr ""
-
-#: static/sentry/app/views/projectDashboard.jsx:138
-msgid "1 week"
-msgstr ""
-
-#: static/sentry/app/views/projectDashboard.jsx:150
-msgid "Trending Events"
-msgstr ""
-
-#: static/sentry/app/views/projectReleases/index.jsx:173
-msgid "New Events"
-msgstr "Yeni Olay"
 
 #: static/sentry/app/views/projectDetails.jsx:156
 msgid "The project you were looking for was not found."
 msgstr ""
 
-#: static/sentry/app/views/projectInstall/platform.jsx:90
-msgid "Full Documentation"
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/platform.jsx:93
-#, python-format
-msgid "Configure %(integration)s"
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/platform.jsx:123
-msgid "Generic"
-msgstr ""
-
 #: static/sentry/app/views/projectInstall/overview.jsx:45
 msgid "Configure your application"
-msgstr ""
+msgstr "Uygulamanı yapılandır"
 
 #: static/sentry/app/views/projectInstall/overview.jsx:47
 msgid ""
@@ -2516,9 +2549,66 @@ msgstr ""
 msgid "Frameworks"
 msgstr ""
 
+#: static/sentry/app/views/projectDashboard.jsx:121
+msgid "1 hour"
+msgstr "1 saat"
+
+#: static/sentry/app/views/projectDashboard.jsx:138
+msgid "1 week"
+msgstr "1 hafta"
+
+#: static/sentry/app/views/projectDashboard.jsx:150
+msgid "Trending Events"
+msgstr "Popüler Olaylar"
+
+#: static/sentry/app/views/projectReleases/index.jsx:173
+msgid "New Events"
+msgstr "Yeni Olay"
+
+#: static/sentry/app/views/projectInstall/platform.jsx:90
+msgid "Full Documentation"
+msgstr "Tam Dokümantasyon"
+
+#: static/sentry/app/views/projectInstall/platform.jsx:93
+#, python-format
+msgid "Configure %(integration)s"
+msgstr ""
+
+#: static/sentry/app/views/projectInstall/platform.jsx:123
+msgid "Generic"
+msgstr ""
+
 #: static/sentry/app/views/releaseArtifacts.jsx:78
 msgid "There are no artifacts uploaded for this release."
 msgstr ""
+
+#: static/sentry/app/components/group/seenInfo.jsx:27
+msgid "Release"
+msgstr "Sürüm"
+
+#: static/sentry/app/views/releaseDetails.jsx:139
+msgid "New Issues"
+msgstr "Yeni Sorunlar"
+
+#: static/sentry/app/views/releaseDetails.jsx:115
+msgid "First Event"
+msgstr "İlk Olay"
+
+#: static/sentry/app/views/projectReleases/index.jsx:176
+msgid "Last Event"
+msgstr "Son Olay"
+
+#: static/sentry/app/components/organizationIssueList.jsx:48
+msgid "All Issues"
+msgstr "Tüm Sorunlar"
+
+#: static/sentry/app/views/releaseDetails.jsx:141
+msgid "Artifacts"
+msgstr ""
+
+#: static/sentry/app/views/stream.jsx:370
+msgid "Sorry, no events match your filters."
+msgstr "Özür dileriz, filtrenizle eşleşen bir olay bulunamadı."
 
 #: static/sentry/app/views/releaseAllEvents.jsx:20
 msgid "View all events seen in this release in the stream"
@@ -2528,42 +2618,10 @@ msgstr ""
 msgid "View new events seen in this release in the stream"
 msgstr ""
 
-#: static/sentry/app/components/group/seenInfo.jsx:27
-msgid "Release"
-msgstr ""
-
-#: static/sentry/app/views/releaseDetails.jsx:139
-msgid "New Issues"
-msgstr ""
-
-#: static/sentry/app/views/releaseDetails.jsx:115
-msgid "First Event"
-msgstr ""
-
-#: static/sentry/app/views/projectReleases/index.jsx:176
-msgid "Last Event"
-msgstr ""
-
-#: static/sentry/app/views/releaseDetails.jsx:140
-msgid "All Issues"
-msgstr ""
-
-#: static/sentry/app/views/releaseDetails.jsx:141
-msgid "Artifacts"
-msgstr ""
-
-#: static/sentry/app/views/stream.jsx:370
-msgid "Sorry, no events match your filters."
-msgstr ""
-
-#: static/sentry/app/components/alertMessage.jsx:27
-msgid "Close"
-msgstr ""
-
 #: static/sentry/app/views/groupActivity/index.jsx:27
 #, python-format
 msgid "%s left a comment"
-msgstr ""
+msgstr "%s, bir yorum yazdı"
 
 #: static/sentry/app/views/groupActivity/index.jsx:29
 #, python-format
@@ -2593,7 +2651,7 @@ msgstr ""
 #: static/sentry/app/views/groupActivity/index.jsx:48
 #, python-format
 msgid "%s muted this issue"
-msgstr ""
+msgstr "%s bu sorunu susturdu"
 
 #: static/sentry/app/views/groupActivity/index.jsx:50
 #, python-format
@@ -2623,7 +2681,7 @@ msgstr ""
 #: static/sentry/app/views/groupActivity/index.jsx:68
 #, python-format
 msgid "%s first saw this issue"
-msgstr ""
+msgstr "Bu sorunu ilk %s gördü"
 
 #: static/sentry/app/views/groupActivity/index.jsx:73
 #, python-format
@@ -2647,11 +2705,11 @@ msgstr ""
 
 #: static/sentry/app/views/organizationRateLimits/index.jsx:89
 msgid "Saving.."
-msgstr ""
+msgstr "Kaydediliyor.."
 
 #: static/sentry/app/views/organizationStats/projectTable.jsx:41
 msgid "Accepted"
-msgstr ""
+msgstr "Kabul edildi"
 
 #: static/sentry/app/views/organizationStats/index.jsx:252
 msgid "Dropped (Rate Limit)"
@@ -2659,7 +2717,7 @@ msgstr ""
 
 #: static/sentry/app/views/organizationStats/index.jsx:264
 msgid "Dropped (Blacklist)"
-msgstr ""
+msgstr "Düşürüldü (Kara Liste)"
 
 #: static/sentry/app/views/organizationStats/index.jsx:290
 msgid "Events per minute"
@@ -2671,23 +2729,23 @@ msgstr ""
 
 #: static/sentry/app/views/organizationTeams/index.jsx:106
 msgid "You do not have enough permission to create new projects"
-msgstr ""
+msgstr "Yeni projeler oluşturmak için yeterli izniniz yoktur"
 
 #: static/sentry/app/views/organizationTeams/index.jsx:117
 msgid "You do not have enough permission to create new teams"
-msgstr ""
+msgstr "Yeni takımlar oluşturmak için yeterli izniniz yoktur"
 
 #: static/sentry/app/views/organizationTeams/index.jsx:124
 msgid "Your Teams"
-msgstr ""
+msgstr "Senin Takımların"
 
 #: static/sentry/app/views/organizationTeams/index.jsx:127
 msgid "All Teams"
-msgstr ""
+msgstr "Tüm Takımlar"
 
 #: static/sentry/app/views/projectReleases/index.jsx:137
 msgid "Sorry, no releases match your filters."
-msgstr ""
+msgstr "Özür dileriz, filtrenizle eşleşen bir sürüm bulunamadı."
 
 #: static/sentry/app/views/projectReleases/index.jsx:146
 msgid "There don't seem to be any releases yet."
@@ -2695,27 +2753,79 @@ msgstr ""
 
 #: static/sentry/app/views/projectReleases/index.jsx:148
 msgid "Learn how to integrate Release Tracking"
-msgstr ""
+msgstr "Sürüm Takibini nasıl entegre edeceğini öğren"
 
 #: static/sentry/app/components/projectHeader/index.jsx:34
 msgid "Releases"
-msgstr ""
+msgstr "Sürümler"
 
 #: static/sentry/app/views/projectReleases/index.jsx:171
 msgid "Version"
+msgstr "Versiyon"
+
+#: static/sentry/app/options.jsx:8
+msgid "Root URL"
 msgstr ""
 
-#: static/sentry/app/views/groupDetails/actions.jsx:53
-msgid "Saving changes.."
+#: static/sentry/app/options.jsx:10
+msgid ""
+"The root web address which is used to communicate with the Sentry backend."
 msgstr ""
+
+#: static/sentry/app/options.jsx:14
+msgid "Admin Email"
+msgstr ""
+
+#: static/sentry/app/options.jsx:16
+msgid "The technical contact for this Sentry installation."
+msgstr ""
+
+#: static/sentry/app/views/installWizard.jsx:169
+#, python-format
+msgid ""
+"An invalid option (%s) was passed to the server. Please report this issue to"
+" the Sentry team."
+msgstr ""
+
+#: static/sentry/app/views/installWizard.jsx:173
+msgid "An unknown error occurred. Please take a look at the service logs."
+msgstr ""
+
+#: static/sentry/app/views/installWizard.jsx:198
+msgid "Welcome to Sentry"
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:215
+msgid "Unable to change assignee. Please try again."
+msgstr "Atanan kişi değiştirilemiyor. Lütfen tekrar deneyin."
+
+#: static/sentry/app/stores/groupStore.jsx:239
+msgid "Unable to delete events. Please try again."
+msgstr "Olaylar silinemiyor. Lütfen tekrar deneyin."
+
+#: static/sentry/app/stores/groupStore.jsx:250
+msgid "The selected events have been scheduled for deletion."
+msgstr "Seçilmiş olaylar silinmek için planlandı."
+
+#: static/sentry/app/stores/groupStore.jsx:265
+msgid "Unable to merge events. Please try again."
+msgstr "Olaylar birleştirilemiyor. Lütfen tekrar deneyin."
+
+#: static/sentry/app/stores/groupStore.jsx:280
+msgid "The selected events have been scheduled for merge."
+msgstr "Seçili olaylar birleştirme için planlandı."
+
+#: static/sentry/app/stores/groupStore.jsx:312
+msgid "Unable to update events. Please try again."
+msgstr "Olaylar güncellenemiyor. Lütfen tekrar deneyin."
 
 #: static/sentry/app/views/stream/searchBar.jsx:73
 msgid "Assigned"
-msgstr ""
+msgstr "Atandı"
 
 #: static/sentry/app/views/groupDetails/header.jsx:149
 msgid "Share this event"
-msgstr ""
+msgstr "Bu olayı paylaş"
 
 #: static/sentry/app/views/groupDetails/header.jsx:161
 msgid "Details"
@@ -2723,71 +2833,47 @@ msgstr "Detaylar"
 
 #: static/sentry/app/views/groupDetails/header.jsx:164
 msgid "Comments"
-msgstr ""
+msgstr "Yorumlar"
 
 #: static/sentry/app/views/groupDetails/header.jsx:168
 msgid "User Reports"
-msgstr ""
+msgstr "Kullanıcı Raporları"
 
 #: static/sentry/app/views/groupDetails/header.jsx:175
 msgid "Related Events"
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:215
-msgid "Unable to change assignee. Please try again."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:239
-msgid "Unable to delete events. Please try again."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:250
-msgid "The selected events have been scheduled for deletion."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:265
-msgid "Unable to merge events. Please try again."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:280
-msgid "The selected events have been scheduled for merge."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:301
-msgid "Unable to update events. Please try again."
-msgstr ""
+msgstr "İlişkili Olaylar"
 
 #: static/sentry/app/views/groupDetails/eventToolbar.jsx:28
 msgid "Oldest"
-msgstr ""
+msgstr "En eski"
 
 #: static/sentry/app/views/groupDetails/eventToolbar.jsx:42
 msgid "Older"
-msgstr ""
+msgstr "Daha eksi"
 
 #: static/sentry/app/views/groupDetails/eventToolbar.jsx:51
 msgid "Newer"
-msgstr ""
+msgstr "Daha yeni"
 
 #: static/sentry/app/views/groupDetails/eventToolbar.jsx:58
 msgid "Newest"
-msgstr ""
+msgstr "En yeni"
 
 #: static/sentry/app/components/group/sidebar.jsx:19
 msgid "Last 24 Hours"
-msgstr ""
+msgstr "Son 24 saat"
 
 #: static/sentry/app/components/group/sidebar.jsx:23
 msgid "Last 30 Days"
-msgstr ""
+msgstr "Son 30 gün"
 
 #: static/sentry/app/components/group/chart.jsx:30
 msgid "First seen"
-msgstr ""
+msgstr "İlk görülme"
 
 #: static/sentry/app/components/group/chart.jsx:37
 msgid "Last seen"
-msgstr ""
+msgstr "Son Görülme"
 
 #: static/sentry/app/components/mutedBox.jsx:15
 #, python-format
@@ -2796,7 +2882,7 @@ msgstr ""
 
 #: static/sentry/app/components/mutedBox.jsx:20
 msgid "This issue has been muted"
-msgstr ""
+msgstr "Sorun henüz susturuldu"
 
 #: static/sentry/app/components/mutedBox.jsx:22
 msgid ""
@@ -2804,204 +2890,262 @@ msgid ""
 "in feeds."
 msgstr ""
 
-#: static/sentry/app/views/projectDashboard/eventList.jsx:108
-msgid "No data available."
-msgstr ""
-
 #: static/sentry/app/components/missingProjectMembership.jsx:56
 #, python-format
 msgid "To view this data you must first join the %s team."
-msgstr ""
+msgstr "Bu veriyi görüntülemek için öncelikle %s takımına katılmak zorundasın."
 
 #: static/sentry/app/components/missingProjectMembership.jsx:58
 #, python-format
 msgid "To view this data you must first request access to the %s team."
-msgstr ""
+msgstr "Bu veriyi görüntülemek için öncelikle %s takımına talepte bulunmak zorundasın."
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:91
 msgid "Request Pending"
-msgstr ""
+msgstr "Talep Bekliyor"
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:94
 msgid "Join Team"
-msgstr ""
+msgstr "Takıma Katıl"
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:97
 msgid "Request Access"
-msgstr ""
+msgstr "Erişim Talep Et"
 
-#: static/sentry/app/components/groupList.jsx:123
-msgid "There don't seem to be any events fitting the query."
-msgstr ""
+#: static/sentry/app/views/projectDashboard/eventList.jsx:108
+msgid "No data available."
+msgstr "Kullanılabilir veri yok."
 
-#: static/sentry/app/views/stream/actions.jsx:88
+#: static/sentry/app/views/stream/actions.jsx:91
 msgid "Removing events.."
-msgstr ""
+msgstr "Olaylar kaldırılıyor.."
 
-#: static/sentry/app/views/stream/actions.jsx:104
+#: static/sentry/app/views/stream/actions.jsx:107
 msgid "Merging events.."
-msgstr ""
+msgstr "Olaylar birleştiriliyor.."
 
 #: static/sentry/app/views/groupDetails/actions.jsx:120
 msgid "Resolve"
+msgstr "Çözümle"
+
+#: static/sentry/app/views/stream/actions.jsx:158
+msgid ""
+"Are you sure you want to resolve all issues matching this search query?"
 msgstr ""
 
-#: static/sentry/app/views/stream/actions.jsx:154
+#: static/sentry/app/views/stream/actions.jsx:160
 #, python-format
-msgid "Are you sure you want to resolve these %d issue?"
+msgid "Are you sure you want to resolve this %d issue?"
 msgid_plural "Are you sure you want to resolve these %d issues?"
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:158
-msgid "Resolve all matching issues"
+#: static/sentry/app/views/stream/actions.jsx:166
+msgid "Resolve all issues"
 msgstr ""
 
-#: static/sentry/app/views/stream/actions.jsx:161
+#: static/sentry/app/views/stream/actions.jsx:168
 #, python-format
 msgid "Resolve %d selected issue"
 msgid_plural "Resolve %d selected issues"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Seçili %d sorunu çözümle"
+msgstr[1] "Seçili %d sorunu çözümle"
 
-#: static/sentry/app/views/stream/actions.jsx:165
+#: static/sentry/app/views/stream/actions.jsx:172
 msgid "Set Status to Resolved"
-msgstr ""
+msgstr "Durumu Çözümlenmiş Olarak Ayarla"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:176
 msgid "Bookmark"
 msgstr "Yer İmleri"
 
-#: static/sentry/app/views/stream/actions.jsx:180
+#: static/sentry/app/views/stream/actions.jsx:184
+msgid ""
+"Are you sure you want to bookmark all issues matching this search query?"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:186
+#, python-format
+msgid "Are you sure you want to bookmark this %d issue?"
+msgid_plural "Are you sure you want to bookmark these %d issues?"
+msgstr[0] ""
+msgstr[1] ""
+
+#: static/sentry/app/views/stream/actions.jsx:192
+msgid "Bookmark all issues"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:194
 #, python-format
 msgid "Bookmark %d selected issue"
 msgid_plural "Bookmark %d selected issues"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Seçili %d sorunu yer imlerine ekle"
+msgstr[1] "Seçili %d sorunu yer imlerine ekle"
 
-#: static/sentry/app/views/stream/actions.jsx:184
+#: static/sentry/app/views/stream/actions.jsx:198
 msgid "Add to Bookmarks"
-msgstr ""
+msgstr "Yer İmlerine Ekle"
 
-#: static/sentry/app/views/stream/actions.jsx:205
+#: static/sentry/app/views/stream/actions.jsx:217
 #, python-format
 msgid "Are you sure you want to merge %d issue?"
 msgid_plural "Are you sure you want to merge %d issues?"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d sorunu birleştirmek istediğinizden emin misiniz?"
+msgstr[1] "%d sorunu birleştirmek istediğinizden emin misiniz?"
 
-#: static/sentry/app/views/stream/actions.jsx:211
+#: static/sentry/app/views/stream/actions.jsx:223
 #, python-format
 msgid "Merge %d selected issue"
 msgid_plural "Merge %d selected issues"
-msgstr[0] ""
-msgstr[1] ""
-
-#: static/sentry/app/views/stream/actions.jsx:217
-msgid "Merge Events"
-msgstr ""
+msgstr[0] "Seçili %d sorunu birleştir"
+msgstr[1] "Seçili %d sorunu birleştir"
 
 #: static/sentry/app/views/stream/actions.jsx:228
+msgid "Merge Events"
+msgstr "Olayları Birleştir"
+
+#: static/sentry/app/views/stream/actions.jsx:238
+msgid ""
+"Are you sure you want to remove all issues matching this search query from "
+"your bookmarks?"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:240
 #, python-format
 msgid "Are you sure you want to remove this %d issue from your bookmarks?"
 msgid_plural ""
 "Are you sure you want to remove these %d issues from your bookmarks?"
+msgstr[0] "Bu %d sorunu yer imlerinden kaldırmak istediğine emin misin?"
+msgstr[1] "Bu %d sorunu yer imlerinden kaldırmak istediğine emin misin?"
+
+#: static/sentry/app/views/stream/actions.jsx:246
+msgid "Remove all issues from bookmarks"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:248
+#, python-format
+msgid "Remove %d selected issue from bookmarks"
+msgid_plural "Remove %d selected issues from bookmarks"
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:234
+#: static/sentry/app/views/stream/actions.jsx:254
 msgid "Remove from Bookmarks"
+msgstr "Yer İmlerinden Kaldır"
+
+#: static/sentry/app/views/stream/actions.jsx:265
+msgid ""
+"Are you sure you want to unresolve all issues matching this search query?"
 msgstr ""
 
-#: static/sentry/app/views/stream/actions.jsx:244
-msgid "Unresolve all matching issues"
-msgstr ""
-
-#: static/sentry/app/views/stream/actions.jsx:247
+#: static/sentry/app/views/stream/actions.jsx:267
 #, python-format
-msgid "Are you sure you want to unresolve these %d issue?"
+msgid "Are you sure you want to unresolve this %d issue?"
 msgid_plural "Are you sure you want to unresolve these %d issues?"
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:253
+#: static/sentry/app/views/stream/actions.jsx:273
+msgid "Unresolve all issues"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:275
 #, python-format
 msgid "Unresolve %d selected issue"
 msgid_plural "Unresolve %d selected issues"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Seçili %d olayı çözümleme"
+msgstr[1] "Seçili %d olayı çözümleme"
 
-#: static/sentry/app/views/stream/actions.jsx:261
+#: static/sentry/app/views/stream/actions.jsx:282
 msgid "Set status to: Unresolved"
+msgstr "Durumu ayarla: Çözümlenmemiş"
+
+#: static/sentry/app/views/stream/actions.jsx:292
+msgid "Are you sure you want to mute all issues matching this search query?"
 msgstr ""
 
-#: static/sentry/app/views/stream/actions.jsx:270
-msgid "Mute all matching issues"
-msgstr ""
-
-#: static/sentry/app/views/stream/actions.jsx:273
+#: static/sentry/app/views/stream/actions.jsx:294
 #, python-format
-msgid "Are you sure you want to mute these %d issue?"
+msgid "Are you sure you want to mute this %d issue?"
 msgid_plural "Are you sure you want to mute these %d issues?"
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:279
+#: static/sentry/app/views/stream/actions.jsx:300
+msgid "Mute all issues"
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:302
 #, python-format
 msgid "Mute %d selected issue"
 msgid_plural "Mute %d selected issues"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Seçili %d sorunu sustur"
+msgstr[1] "Seçili %d sorunu sustur"
 
-#: static/sentry/app/views/stream/actions.jsx:286
+#: static/sentry/app/views/stream/actions.jsx:308
 msgid "Set status to: Muted"
-msgstr ""
+msgstr "Durumu ayarla: Susturulmuş"
 
-#: static/sentry/app/views/stream/actions.jsx:298
+#: static/sentry/app/views/stream/actions.jsx:319
 #, python-format
 msgid "Are you sure you want to delete %d issue?"
 msgid_plural "Are you sure you want to delete %d issues?"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d sorunu silmek istediğinize emin misiniz?"
+msgstr[1] "%d sorunu silmek istediğinize emin misiniz?"
 
-#: static/sentry/app/views/stream/actions.jsx:304
+#: static/sentry/app/views/stream/actions.jsx:325
 #, python-format
 msgid "Delete %d selected issue"
 msgid_plural "Delete %d selected issues"
+msgstr[0] "Seçili %d sorunu sil"
+msgstr[1] "Seçili %d sorunu sil"
+
+#: static/sentry/app/views/stream/actions.jsx:330
+msgid "Delete Events"
+msgstr "Olayları Sil"
+
+#: static/sentry/app/views/stream/actions.jsx:350
+msgid "Graph:"
+msgstr "Grafik:"
+
+#: static/sentry/app/views/stream/actions.jsx:353
+msgid "24h"
+msgstr "24s"
+
+#: static/sentry/app/views/stream/actions.jsx:356
+msgid "14d"
+msgstr "14g"
+
+#: static/sentry/app/views/stream/actions.jsx:367
+msgid "All issues matching this search query selected."
+msgstr ""
+
+#: static/sentry/app/views/stream/actions.jsx:369
+#, python-format
+msgid "%d issues on this page selected."
+msgid_plural "%d issues on this page selected."
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:310
-msgid "Delete Events"
-msgstr ""
-
-#: static/sentry/app/views/stream/actions.jsx:330
-msgid "Graph:"
-msgstr ""
-
-#: static/sentry/app/views/stream/actions.jsx:333
-msgid "24h"
-msgstr ""
-
-#: static/sentry/app/views/stream/actions.jsx:336
-msgid "14d"
+#: static/sentry/app/views/stream/actions.jsx:372
+msgid "Select all issues matching this search query."
 msgstr ""
 
 #: static/sentry/app/views/stream/filters.jsx:55
 msgid "All Events"
 msgstr "Tüm Olaylar"
 
-#: static/sentry/app/views/stream/filters.jsx:59
-msgid "Bookmarks"
-msgstr "Yer İşaretleri"
-
 #: static/sentry/app/views/stream/filters.jsx:83
 msgid "Search for events, users, tags, and everything else."
+msgstr "Olaylar, kullanıcılar, etiketler ve geri kalan herşey için ara."
+
+#: static/sentry/app/components/groupList.jsx:123
+msgid "There don't seem to be any events fitting the query."
 msgstr ""
 
 #: static/sentry/app/views/stream/sidebar.jsx:104
 msgid "Text"
-msgstr ""
+msgstr "Yazı"
 
 #: static/sentry/app/views/stream/sidebar.jsx:108
 msgid "Search title and culprit text body"
@@ -3009,23 +3153,23 @@ msgstr ""
 
 #: static/sentry/app/views/groupActivity/noteContainer.jsx:38
 msgid "Removing comment.."
-msgstr ""
+msgstr "Yorum kaldırılıyor.."
 
 #: static/sentry/app/views/groupActivity/noteInput.jsx:14
 msgid "Unknown error. Please try again."
-msgstr ""
+msgstr "Bilinmeyen hata. Lütfen tekrar deneyin."
 
 #: static/sentry/app/views/groupActivity/noteInput.jsx:99
 msgid "Posting comment.."
-msgstr ""
+msgstr "Yorum gönderiliyor.."
 
 #: static/sentry/app/views/groupActivity/noteInput.jsx:133
 msgid "Updating comment.."
-msgstr ""
+msgstr "Yorum güncelleniyor.."
 
 #: static/sentry/app/views/groupActivity/noteInput.jsx:212
 msgid "Save Comment"
-msgstr ""
+msgstr "Yorumu Kaydet"
 
 #: static/sentry/app/views/groupActivity/noteInput.jsx:212
 msgid "Post Comment"
@@ -3033,25 +3177,55 @@ msgstr ""
 
 #: static/sentry/app/views/groupActivity/note.jsx:29
 msgid "Edit"
-msgstr ""
+msgstr "Düzenle"
 
 #: static/sentry/app/views/groupActivity/noteInput.jsx:219
 msgid "Write"
-msgstr ""
+msgstr "Yaz"
 
 #: static/sentry/app/views/groupActivity/noteInput.jsx:226
 msgid "Markdown supported"
+msgstr "Markdown destekleniyor"
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:43
+msgid "Dropped"
+msgstr "Düşürüldü"
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:42
+msgid "(Rate Limit)"
 msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:43
+msgid "(Blacklist)"
+msgstr "(Kara Liste)"
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:44
+msgid "Total"
+msgstr "Toplam"
+
+#: static/sentry/app/components/projectHeader/index.jsx:24
+msgid "Dashboard"
+msgstr "Kontrol panel"
+
+#: static/sentry/app/components/organizations/homeSidebar.jsx:41
+msgid "Issues"
+msgstr "Sorunlar"
+
+#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:40
+msgid ""
+"You don't have any teams for this organization yet. Get started by "
+"[link:creating your first team]."
+msgstr "Bu organizasyon için hiç bir takımınız yoktur. Başlangıç için [link:creating your first team]."
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:89
 msgid "Leave Team"
-msgstr ""
+msgstr "Takımdan Çık"
 
 #: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:81
 msgid ""
 "There are no projects in this team. Get started by [link:creating your first"
 " project]."
-msgstr ""
+msgstr "Bu takıma ait proje yoktur. Başlamak için [link:creating your first project]."
 
 #: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:130
 msgid ""
@@ -3065,55 +3239,25 @@ msgid ""
 "[link:creating your first team]."
 msgstr ""
 
-#: static/sentry/app/views/organizationStats/projectTable.jsx:43
-msgid "Dropped"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:42
-msgid "(Rate Limit)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:43
-msgid "(Blacklist)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:44
-msgid "Total"
-msgstr ""
-
-#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:40
-msgid ""
-"You don't have any teams for this organization yet. Get started by "
-"[link:creating your first team]."
-msgstr ""
-
 #: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:87
 msgid "Events Per Minute"
 msgstr ""
 
 #: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:89
 msgid "Rejected in last 24h"
-msgstr ""
+msgstr "Son 24 saati reddet"
 
 #: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:93
 msgid "View all stats"
-msgstr ""
-
-#: static/sentry/app/components/projectHeader/index.jsx:24
-msgid "Dashboard"
-msgstr "Kontrol panel"
-
-#: static/sentry/app/components/projectHeader/index.jsx:29
-msgid "Issues"
-msgstr ""
+msgstr "Tüm istatistikleri gözden geçir"
 
 #: static/sentry/app/components/groupListHeader.jsx:15
 msgid "events"
-msgstr ""
+msgstr "olaylar"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:34
 msgid "Delete event.."
-msgstr ""
+msgstr "Olayı sil.."
 
 #: static/sentry/app/views/groupDetails/actions.jsx:106
 msgid ""
@@ -3123,11 +3267,11 @@ msgstr ""
 
 #: static/sentry/app/views/groupDetails/actions.jsx:111
 msgid "Unresolve"
-msgstr ""
+msgstr "Çözümleme"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:133
 msgid "Resolved in next release"
-msgstr ""
+msgstr "Bir sonraki sürümde çözüldü"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:139
 msgid "Snooze notifications until this issue reoccurs in a future release."
@@ -3135,7 +3279,7 @@ msgstr ""
 
 #: static/sentry/app/views/groupDetails/actions.jsx:138
 msgid "Resolved in next release."
-msgstr ""
+msgstr "Bir sonraki sürümde çözüldü."
 
 #: static/sentry/app/views/groupDetails/actions.jsx:150
 msgid "Remove Snooze"
@@ -3147,55 +3291,50 @@ msgstr ""
 
 #: static/sentry/app/views/groupDetails/actions.jsx:160
 msgid "for 30 minutes"
-msgstr ""
+msgstr "30 dakika için"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:163
 msgid "for 2 hours"
-msgstr ""
+msgstr "2 saat için"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:166
 msgid "for 24 hours"
-msgstr ""
+msgstr "24 saat için"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:169
 msgid "forever"
-msgstr ""
+msgstr "sonsuza kadar"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:184
 msgid "Delete"
-msgstr ""
+msgstr "Sil"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:185
 msgid "Deleting this event is permanent. Are you sure you wish to continue?"
-msgstr ""
+msgstr "Bu olayı silmek kalıcıdır. Devam etmek istediğinize emin misiniz?"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:194
 msgid "More"
-msgstr ""
+msgstr "Daha"
 
 #: static/sentry/app/components/events/errors.jsx:42
 msgid "Hide"
-msgstr ""
+msgstr "Gizle"
 
 #: static/sentry/app/components/events/errors.jsx:42
 msgid "Show"
-msgstr ""
+msgstr "Göster"
 
 #: static/sentry/app/components/events/errors.jsx:44
 #, python-format
 msgid "There was %d error encountered while processing this event"
 msgid_plural "There were %d errors encountered while processing this event"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Bu olay işlenene kadar %d hata meydana geldi"
+msgstr[1] "Bu olay işlenene kadar %d hata meydana geldi"
 
 #: static/sentry/app/components/events/extraData.jsx:27
 msgid "Additional Data"
 msgstr "İlave veri"
-
-# this means "rich" rendering (fancy tables)
-#: static/sentry/app/components/events/interfaces/request.jsx:77
-msgid "Rich"
-msgstr ""
 
 #: static/sentry/app/components/events/message.jsx:13
 msgid "Message"
@@ -3203,11 +3342,11 @@ msgstr "Mesaj"
 
 #: static/sentry/app/components/events/interfaces/exception.jsx:58
 msgid "App Only"
-msgstr ""
+msgstr "Sadece Uygulama"
 
 #: static/sentry/app/components/events/interfaces/exception.jsx:60
 msgid "Full"
-msgstr ""
+msgstr "Tam"
 
 #: static/sentry/app/components/events/interfaces/csp.jsx:55
 msgid "Raw"
@@ -3225,17 +3364,22 @@ msgstr ""
 msgid "most recent call last"
 msgstr ""
 
+# this means "rich" rendering (fancy tables)
+#: static/sentry/app/components/events/interfaces/request.jsx:77
+msgid "Rich"
+msgstr "Zengin"
+
 #: static/sentry/app/components/events/interfaces/template.jsx:25
 msgid "Template"
-msgstr ""
+msgstr "Şablon"
 
 #: static/sentry/app/components/events/interfaces/csp.jsx:54
 msgid "Report"
-msgstr ""
+msgstr "Rapor"
 
 #: static/sentry/app/components/events/interfaces/csp.jsx:56
 msgid "Help"
-msgstr ""
+msgstr "Yardım"
 
 #: static/sentry/app/components/events/interfaces/csp.jsx:58
 msgid "CSP Report"
@@ -3243,91 +3387,95 @@ msgstr ""
 
 #: static/sentry/app/components/group/seenInfo.jsx:22
 msgid "When"
-msgstr ""
+msgstr "Ne Zaman"
 
 #: static/sentry/app/components/group/seenInfo.jsx:24
 msgid "Date"
+msgstr "Tarih"
+
+#: static/sentry/app/components/compactIssue.jsx:54
+msgid "Please confirm"
+msgstr "Lütfen doğrulayın"
+
+#: static/sentry/app/views/stream/actionLink.jsx:110
+msgid "This action cannot be undone."
+msgstr "Bu işlem geri alınamaz."
+
+#: static/sentry/app/components/issueList.jsx:108
+msgid "Nothing to show here, move along."
 msgstr ""
 
 #: static/sentry/app/components/groupListHeader.jsx:10
 msgid "Event"
-msgstr ""
+msgstr "Olay"
 
 #: static/sentry/app/components/groupListHeader.jsx:13
 msgid "Last 24 hours"
-msgstr ""
+msgstr "Son 24 saat"
 
-#: static/sentry/app/components/linkWithConfirmation.jsx:46
-msgid "Please confirm"
-msgstr ""
-
-#: static/sentry/app/views/stream/actionLink.jsx:127
-msgid "This action cannot be undone."
-msgstr ""
+#: static/sentry/app/views/stream/sortOptions.jsx:48
+msgid "Sort by"
+msgstr "Sıralama"
 
 #: static/sentry/app/views/stream/searchBar.jsx:59
 msgid "Tag"
-msgstr ""
+msgstr "Etiket"
 
 #: static/sentry/app/views/stream/searchBar.jsx:60
 msgid "key/value pair associated to an event"
-msgstr ""
+msgstr "Bir olay ile ilişkilendirilmiş anahtar/değer çifti"
 
 #: static/sentry/app/views/stream/searchBar.jsx:67
 msgid "State of an event"
-msgstr ""
+msgstr "Olayın durumu"
 
 #: static/sentry/app/views/stream/searchBar.jsx:74
 msgid "team member assigned to an event"
-msgstr ""
+msgstr "Olaya atanan takım üyesi"
 
 #: static/sentry/app/views/stream/searchBar.jsx:80
 msgid "or paste an event id to jump straight to it"
 msgstr ""
 
-#: static/sentry/app/views/stream/sortOptions.jsx:48
-msgid "Sort by"
-msgstr ""
-
 #: static/sentry/app/views/groupActivity/note.jsx:32
 msgid "Are you sure you wish to delete this comment?"
-msgstr ""
+msgstr "Bu yorumu silmek istediğinize emin misiniz?"
 
 #: static/sentry/app/views/groupActivity/note.jsx:33
 msgid "Remove"
 msgstr "Kaldır"
 
-#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:42
-msgid "There was an error while trying to join the team."
-msgstr ""
-
-#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:70
-msgid "There was an error while trying to leave the team."
-msgstr ""
-
 #: static/sentry/app/components/header/broadcasts.jsx:118
 msgid "No recent broadcasts from the Sentry team."
-msgstr ""
+msgstr "Sentry takımından son zamanlarda yeni bir duyuru yok."
 
 #: static/sentry/app/components/header/broadcasts.jsx:128
 msgid "Read more"
-msgstr ""
+msgstr "Daha fazla oku"
 
-#: static/sentry/app/components/clippedBox.jsx:57
-msgid "Show more"
-msgstr ""
+#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:42
+msgid "There was an error while trying to join the team."
+msgstr "Takıma katılırken bir hata oluştu."
+
+#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:70
+msgid "There was an error while trying to leave the team."
+msgstr "Takımdan ayrılmaya çalışırken bir hata oluştu."
 
 #: static/sentry/app/components/events/errorItem.jsx:25
 msgid "Collapse"
-msgstr ""
+msgstr "Daralt"
 
 #: static/sentry/app/components/events/errorItem.jsx:25
 msgid "Expand"
-msgstr ""
+msgstr "Genişlet"
+
+#: static/sentry/app/components/clippedBox.jsx:57
+msgid "Show more"
+msgstr "Daha fazla göster"
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:69
 msgid "Query String"
-msgstr ""
+msgstr "Sorgu Dizesi"
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:80
 msgid "Body"
@@ -3335,23 +3483,23 @@ msgstr "Gövde"
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:86
 msgid "Cookies"
-msgstr ""
+msgstr "Çerezler"
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:91
 msgid "Headers"
-msgstr ""
+msgstr "Başlıklar"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:49
 msgid "Original Filename"
-msgstr ""
+msgstr "Orjinal Dosya Adı"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:50
 msgid "Line Number"
-msgstr ""
+msgstr "Satır Numarası"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:51
 msgid "Column Number"
-msgstr ""
+msgstr "Kolon Numarası"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:52
 msgid "Function"
@@ -3359,20 +3507,20 @@ msgstr "Fonksiyon"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:53
 msgid "Source Map"
-msgstr ""
+msgstr "Kaynak Haritası"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:90
 msgid "in"
-msgstr ""
+msgstr "içinde"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:101
 msgid "at line"
-msgstr ""
+msgstr "satırında"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:118
 msgid "application"
-msgstr ""
+msgstr "uygulama"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:194
 msgid "Toggle context"
-msgstr ""
+msgstr "İçeriği genişlet / daral"
