@@ -38,7 +38,7 @@ class ReplayForm(forms.Form):
 
 class BaseUserForm(forms.ModelForm):
     email = forms.EmailField()
-    first_name = forms.CharField(required=True, label=_('Name'))
+    name = forms.CharField(required=True, label=_('Name'))
 
 
 class NewUserForm(BaseUserForm):
@@ -46,7 +46,7 @@ class NewUserForm(BaseUserForm):
         help_text=_("Send this user a welcome email which will contain their generated password."))
 
     class Meta:
-        fields = ('first_name', 'username', 'email')
+        fields = ('name', 'username', 'email')
         model = User
 
 
@@ -58,7 +58,7 @@ class ChangeUserForm(BaseUserForm):
                     'explicitly assigning them.'))
 
     class Meta:
-        fields = ('first_name', 'username', 'email', 'is_active', 'is_staff',
+        fields = ('name', 'username', 'email', 'is_active', 'is_staff',
                   'is_superuser')
         model = User
 

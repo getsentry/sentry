@@ -54,7 +54,7 @@ class SettingsTest(TestCase):
         params = {
             'username': 'foobar',
             'email': 'foo@example.com',
-            'first_name': 'Foo bar',
+            'name': 'Foo bar',
         }
         return dict((k, v) for k, v in params.iteritems() if k not in without)
 
@@ -78,14 +78,14 @@ class SettingsTest(TestCase):
         assert 'form' in resp.context
         assert 'email' in resp.context['form'].errors
 
-    def test_requires_first_name(self):
+    def test_requires_name(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, self.params(without=['first_name']))
+        resp = self.client.post(self.path, self.params(without=['name']))
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/account/settings.html')
         assert 'form' in resp.context
-        assert 'first_name' in resp.context['form'].errors
+        assert 'name' in resp.context['form'].errors
 
     def test_minimum_valid_params(self):
         self.login_as(self.user)
@@ -95,7 +95,7 @@ class SettingsTest(TestCase):
         resp = self.client.post(self.path, params)
         assert resp.status_code == 302
         user = User.objects.get(id=self.user.id)
-        assert user.first_name == params['first_name']
+        assert user.name == params['name']
         assert user.email == params['email']
 
     def test_can_change_password(self):

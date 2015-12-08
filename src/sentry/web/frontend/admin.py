@@ -98,7 +98,7 @@ def manage_users(request):
     elif sort == 'login':
         order_by = '-last_login'
     elif sort == 'name':
-        order_by = 'first_name'
+        order_by = 'name'
 
     user_list = user_list.order_by(order_by)
 

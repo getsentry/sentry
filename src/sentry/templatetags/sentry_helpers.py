@@ -373,7 +373,7 @@ def basename(value):
 
 @register.filter
 def user_display_name(user):
-    return user.first_name or user.username
+    return user.name or user.username
 
 
 @register.simple_tag(takes_context=True)
