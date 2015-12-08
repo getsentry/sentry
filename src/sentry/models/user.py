@@ -24,11 +24,10 @@ class UserManager(BaseManager, UserManager):
 class User(BaseModel, AbstractBaseUser):
     id = BoundedAutoField(primary_key=True)
     username = models.CharField(_('username'), max_length=128, unique=True)
-    # this field is called first_name for legacy reasons, but it is the entire
+    # this column is called first_name for legacy reasons, but it is the entire
     # display name
-    first_name = models.CharField(_('first name'), max_length=200, blank=True)
-    # last_name is not used
-    last_name = models.CharField(_('last name'), max_length=30, blank=True)
+    name = models.CharField(_('name'), max_length=200, blank=True,
+                            db_column='first_name')
     email = models.EmailField(_('email address'), blank=True)
     is_staff = models.BooleanField(
         _('staff status'), default=False,
@@ -80,10 +79,10 @@ class User(BaseModel, AbstractBaseUser):
         return self.is_superuser
 
     def get_display_name(self):
-        return self.first_name or self.email or self.username
+        return self.name or self.email or self.username
 
     def get_full_name(self):
-        return self.first_name
+        return self.name
 
     def get_short_name(self):
         return self.username

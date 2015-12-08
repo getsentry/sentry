@@ -10,7 +10,7 @@ from sentry.models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(source='first_name')
+    name = serializers.CharField()
 
     class Meta:
         model = User

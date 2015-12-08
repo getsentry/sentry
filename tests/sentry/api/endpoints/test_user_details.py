@@ -39,5 +39,5 @@ class UserUpdateTest(APITestCase):
         assert resp.data['id'] == str(user.id)
 
         user = User.objects.get(id=user.id)
-        assert user.first_name == 'hello world'
+        assert user.name == 'hello world'
         assert user.email == 'b@example.com'

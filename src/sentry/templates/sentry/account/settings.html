@@ -13,7 +13,7 @@
 
         <legend style="margin-top: 0;">Your details</legend>
 
-        {% with form.first_name as field %}
+        {% with form.name as field %}
             {{ field|as_crispy_field }}
         {% endwith %}
         {% if form.username %}

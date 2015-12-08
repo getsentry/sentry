@@ -273,7 +273,7 @@ class AuthHelper(object):
         user = User.objects.create(
             username=uuid4().hex,
             email=identity['email'],
-            first_name=identity.get('name', '')[:200],
+            name=identity.get('name', '')[:200],
             is_managed=True,
         )
 

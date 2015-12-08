@@ -121,7 +121,7 @@ def settings(request):
     form = AccountSettingsForm(request.user, request.POST or None, initial={
         'email': request.user.email,
         'username': request.user.username,
-        'first_name': request.user.first_name,
+        'name': request.user.name,
     })
     if form.is_valid():
         form.save()

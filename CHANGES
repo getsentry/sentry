@@ -111,6 +111,8 @@ Schema Changes
 - Added ``GroupSnooze`` table.
 - Added ``GroupResolution`` table.
 - Added ``GroupBookmark.date_added`` column.
+- Removed ``User.last_name`` column.
+- (App-only) Renamed ``User.first_name`` to ``User.name``.
 
 Version 7.7.1
 -------------
