@@ -93,7 +93,7 @@ def pytest_configure(config):
     }
 
     # Disable South in tests as it is sending incorrect create signals
-    settings.SOUTH_TESTS_MIGRATE = False
+    settings.SOUTH_TESTS_MIGRATE = bool(os.environ.get('USE_SOUTH'))
 
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable

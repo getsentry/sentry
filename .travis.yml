@@ -20,6 +20,7 @@ env:
     - TEST_SUITE=js
     - TEST_SUITE=cli
   global:
+    - USE_SOUTH=1
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
 install:
