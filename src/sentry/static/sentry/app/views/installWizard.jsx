@@ -93,6 +93,7 @@ const InstallWizard = React.createClass({
       error: false,
       options: {},
       submitError: false,
+      submitErrorType: null,
       submitInProgress: false,
     };
   },
@@ -150,10 +151,27 @@ const InstallWizard = React.createClass({
         });
         this.props.onConfigured();
       },
-      error: () => {
+      error: (xhr, textStatus, errorThrown) => {
+        let err = {};
+        try {
+          err = xhr.responseJSON;
+        } catch(ex) {
+          // ...
+        }
+        let errorMessage = '';
+        switch (err.error) {
+          case 'unknown_option':
+            errorMessage = t('An invalid option (%s) was passed to the server. Please report this issue to the Sentry team.',
+                             err.errorDetail.option);
+            break;
+          default:
+            errorMessage = t('An unknown error occurred. Please take a look at the service logs.');
+        }
         this.setState({
           submitInProgress: false,
           submitError: true,
+          submitErrorMessage: errorMessage,
+          submitErrorType: err.error,
         });
       },
       complete: () => {
@@ -163,7 +181,7 @@ const InstallWizard = React.createClass({
   },
 
   render() {
-    let {error, loading, options, submitError, submitInProgress} = this.state;
+    let {error, loading, options, submitError, submitErrorMessage, submitInProgress} = this.state;
     let version = ConfigStore.get('version');
     return (
       <DocumentTitle title="Sentry Setup">
@@ -186,7 +204,9 @@ const InstallWizard = React.createClass({
             :
               <div>
                 {submitError &&
-                  <p>{t('We were unable to submit your changes to the Sentry server. Please take a look at the service logs.')}</p>
+                  <div className="alert alert-block alert-error">
+                    {submitErrorMessage}
+                  </div>
                 }
                 <InstallWizardSettings
                     options={options}

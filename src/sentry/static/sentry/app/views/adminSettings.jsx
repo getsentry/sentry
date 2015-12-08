@@ -157,7 +157,7 @@ const AdminSettings = React.createClass({
         :
           <div>
             {submitError &&
-              <p>{t('We were unable to submit your changes to the Sentry server. Please take a look at the service logs.')}</p>
+              <div className="alert alert-block alert-error">{t('We were unable to submit your changes to the Sentry server. Please take a look at the service logs.')}</div>
             }
             <SettingsList
                 options={options}
