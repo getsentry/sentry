@@ -159,13 +159,19 @@ const InstallWizard = React.createClass({
           // ...
         }
         let errorMessage = '';
-        switch (err.error) {
-          case 'unknown_option':
-            errorMessage = t('An invalid option (%s) was passed to the server. Please report this issue to the Sentry team.',
-                             err.errorDetail.option);
-            break;
-          default:
-            errorMessage = t('An unknown error occurred. Please take a look at the service logs.');
+        if (err.detail) {
+          // err.detail comes back on some API responses
+          // specifically on a failed CSRF
+          errorMessage = err.detail;
+        } else {
+          switch (err.error) {
+            case 'unknown_option':
+              errorMessage = t('An invalid option (%s) was passed to the server. Please report this issue to the Sentry team.',
+                               err.errorDetail.option);
+              break;
+            default:
+              errorMessage = t('An unknown error occurred. Please take a look at the service logs.');
+          }
         }
         this.setState({
           submitInProgress: false,
