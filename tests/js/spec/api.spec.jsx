@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {Client, Request} from 'app/api';
+import GroupActions from 'app/actions/groupActions';
 
 describe('api', function () {
   beforeEach(function () {
@@ -55,6 +56,8 @@ describe('api', function () {
     });
 
     it('should use query as query if itemIds are absent', function () {
+      this.sandbox.stub(GroupActions, 'update');
+
       this.api.bulkUpdate({
         orgId: '1337',
         projectId: '1337',

@@ -8,7 +8,9 @@
 
 <div class="container" style="padding-top: 30px;">
   <h2>{{ counts|length }} new notification{{ counts|pluralize }} from <a href="{{ project.get_absolute_url }}">{{ project.name }}</a></h2>
-  <div class="dateline">{{ start|date:"N j, Y, P e" }} to {{ end|date:"N j, Y, P e" }}</div>
+  {% with start=start|date:"N j, Y, P e" end=end|date:"N j, Y, P e" %}
+    <div class="dateline">{{ start }}{% if start != end %} to {{ end }}{% endif %}</div>
+  {% endwith %}
 </div>
 
 {% for rule, groups in digest.iteritems %}
