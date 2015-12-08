@@ -147,7 +147,8 @@ def initialize_app(config, skip_backend_validation=False):
 
     from django.utils import timezone
     from sentry.app import env
-    env.data['config'] = config['config_path']
+    from sentry.runner.settings import get_sentry_conf
+    env.data['config'] = get_sentry_conf()
     env.data['start_date'] = timezone.now()
 
 

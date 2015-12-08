@@ -248,6 +248,21 @@ def generate_settings():
     return py, yaml
 
 
+def get_sentry_conf():
+    """
+    Fetch the SENTRY_CONF value, either from the click context
+    if available, or SENTRY_CONF environment variable.
+    """
+    try:
+        ctx = click.get_current_context()
+        return ctx.obj['config']
+    except (RuntimeError, KeyError):
+        try:
+            return os.environ['SENTRY_CONF']
+        except KeyError:
+            return '~/.sentry'
+
+
 def discover_configs(ctx=None):
     """
     Discover the locations of three configuration components:
