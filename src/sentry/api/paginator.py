@@ -149,11 +149,17 @@ class OffsetPaginator(BasePaginator):
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 
+        queryset = self.queryset
+        if self.desc:
+            queryset = queryset.order_by('-{}'.format(self.key))
+        else:
+            queryset = queryset.order_by(self.key)
+
         page = cursor.offset
         offset = cursor.offset * cursor.value
         stop = offset + (cursor.value or limit) + 1
 
-        results = list(self.queryset[offset:stop])
+        results = list(queryset[offset:stop])
         if cursor.value != limit:
             results = results[::-1][:limit + 1][::-1]
 
