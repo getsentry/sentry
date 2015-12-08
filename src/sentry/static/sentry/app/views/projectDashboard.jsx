@@ -78,7 +78,7 @@ const ProjectDashboard = React.createClass({
     }
   },
 
-  getTrendingEventsEndpoint(dateSince) {
+  getTrendingIssuesEndpoint(dateSince) {
     let params = this.props.params;
     let qs = jQuery.param({
       sort: 'priority',
@@ -88,7 +88,7 @@ const ProjectDashboard = React.createClass({
     return '/projects/' + params.orgId + '/' + params.projectId + '/issues/?' + qs;
   },
 
-  getNewEventsEndpoint(dateSince) {
+  getNewIssuesEndpoint(dateSince) {
     let params = this.props.params;
     let qs = jQuery.param({
       sort: 'new',
@@ -147,13 +147,13 @@ const ProjectDashboard = React.createClass({
         <div className="row">
           <div className="col-md-6">
             <EventList
-                title={t('Trending Events')}
-                endpoint={this.getTrendingEventsEndpoint(dateSince)} />
+                title={t('Trending Issues')}
+                endpoint={this.getTrendingIssuesEndpoint(dateSince)} />
           </div>
           <div className="col-md-6">
             <EventList
-                title={t('New Events')}
-                endpoint={this.getNewEventsEndpoint(dateSince)} />
+                title={t('New Issues')}
+                endpoint={this.getNewIssuesEndpoint(dateSince)} />
           </div>
         </div>
       </div>
