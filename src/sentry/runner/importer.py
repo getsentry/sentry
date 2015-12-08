@@ -7,6 +7,7 @@ sentry.runner.importer
 """
 from __future__ import absolute_import, print_function
 
+import imp
 import sys
 
 
@@ -57,7 +58,7 @@ class Importer(object):
         else:
             default_settings_mod = None
 
-        settings_mod = create_module(self.name)
+        settings_mod = imp.new_module(self.name)
 
         # Django doesn't play too nice without the config file living as a real file, so let's fake it.
         settings_mod.__file__ = self.config_path
@@ -71,14 +72,9 @@ class Importer(object):
         return settings_mod
 
 
-def create_module(name):
-    import imp
-    return imp.new_module(name)
-
-
 def load_settings(mod_or_filename, settings, silent=False):
     if isinstance(mod_or_filename, basestring):
-        conf = create_module('temp_config')
+        conf = imp.new_module('temp_config')
         conf.__file__ = mod_or_filename
         try:
             execfile(mod_or_filename, conf.__dict__)
