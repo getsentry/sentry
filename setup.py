@@ -46,6 +46,10 @@ from setuptools import setup, find_packages
 from subprocess import check_output
 
 
+# The version of sentry
+VERSION = '8.0.0.dev0'
+
+
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
 # setup.py test` (see
@@ -239,7 +243,7 @@ class BuildJavascriptCommand(Command):
         else:
             log.info("pulled version information from 'sentry' module".format(
                      sentry.__file__))
-            version = sentry.__version__
+            version = VERSION
             build = sentry.__build__
         finally:
             sys.path.pop(0)
@@ -405,7 +409,7 @@ cmdclass = {
 
 setup(
     name='sentry',
-    version='8.0.0.dev0',
+    version=VERSION,
     author='Sentry',
     author_email='hello@getsentry.com',
     url='https://getsentry.com',
