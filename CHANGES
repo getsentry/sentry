@@ -3,7 +3,9 @@ Version 8.0.0
 
 Version 8 of Sentry introduces a brand new frontend. Most of the application has been overhauled
 and rewritten on top of React and our web API. Additionally many new features have been exposed
-related to user assigned and release tracking.
+related to workflows (user assignment, snooze, resolution) and release tracking. This changelog
+does not attempt to capture the six+ months of incremental features and improvements in this
+release of Sentry.
 
 A Note on MySQL
 ~~~~~~~~~~~~~~~
@@ -30,8 +32,25 @@ configured on a per project basis in Project Settings.
 Configuration
 ~~~~~~~~~~~~~
 
+An Install Wizard has been added to aid in configuring necessary first-run options. Notably your Admin Email,
+and URL Prefix. The Installation Wizard will also help any future updates and aid when new options are introduced.
+
 A new configuration backend is now utilized for several options. These options can now be
 configured via the web UI.
+
+- A new configuration file, `config.yml` has been introduced. This new file is generated during `sentry init`
+  the first time, and expected to be pointed at a directory. `config.yml` is the home for new configuration options that will be moved from the existing python config file.
+
+- ``SENTRY_URL_PREFIX`` has been deprecated, and moved to `system.url-prefix` inside of `config.yml` or it
+  can be configured at runtime.
+
+- ``INTERNAL_IPS``, if configured, will now restrict superuser access to only users with both ``is_superuser``
+  and a matching IP.
+
+CLI
+~~~
+
+The `sentry` CLI tooling has been rewritten to be faster and less confusing.
 
 General
 ~~~~~~~
