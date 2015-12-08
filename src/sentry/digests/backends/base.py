@@ -95,6 +95,12 @@ class Backend(object):
     def validate(self):
         pass
 
+    def enabled(self, project):
+        """
+        Check if a project has digests enabled.
+        """
+        return True
+
     def add(self, key, record, increment_delay=None, maximum_delay=None):
         """
         Add a record to a timeline.
