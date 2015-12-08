@@ -34,17 +34,23 @@ class Importer(object):
         return self
 
     def load_module(self, fullname):
-        try:
-            return self._load_module(fullname)
-        except Exception as e:
-            from sentry.utils.settings import reraise_as
-            reraise_as(ConfigurationError(unicode(e)))
-
-    def _load_module(self, fullname):
         # Check to make sure it's not already in sys.modules in case of a reload()
         if fullname in sys.modules:
             return sys.modules[fullname]  # pragma: no cover
 
+        try:
+            mod = self._load_module(fullname)
+        except Exception as e:
+            from sentry.utils.settings import reraise_as
+            reraise_as(ConfigurationError(unicode(e)))
+        else:
+            # Install into sys.modules explicitly
+            sys.modules[fullname] = mod
+            if self.callback is not None:
+                self.callback(mod)
+            return mod
+
+    def _load_module(self, fullname):
         if self.default_settings:
             from django.utils.importlib import import_module
             default_settings_mod = import_module(self.default_settings)
@@ -62,26 +68,17 @@ class Importer(object):
         # install the custom settings for this app
         load_settings(self.config_path, settings=settings_mod, silent=True)
 
-        # Add into sys.modules explicitly
-        sys.modules[fullname] = settings_mod
-
-        if self.callback is not None:
-            self.callback(settings_mod)
-
         return settings_mod
 
 
-def create_module(name, install=True):
+def create_module(name):
     import imp
-    mod = imp.new_module(name)
-    if install:
-        sys.modules[name] = mod
-    return mod
+    return imp.new_module(name)
 
 
 def load_settings(mod_or_filename, settings, silent=False):
     if isinstance(mod_or_filename, basestring):
-        conf = create_module('temp_config', install=False)
+        conf = create_module('temp_config')
         conf.__file__ = mod_or_filename
         try:
             execfile(mod_or_filename, conf.__dict__)
