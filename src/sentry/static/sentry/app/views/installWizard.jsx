@@ -28,7 +28,7 @@ const InstallWizardSettings = React.createClass({
     for (let key of missingOptions) {
       let option = options[key];
       if (!option.value) {
-        option.value = getOption(key).defaultValue;
+        option.value = getOption(key).defaultValue();
       }
       fields.push(getOptionField(key, this.onFieldChange.bind(this, key), option.value, option.field));
       // options is used for submitting to the server, and we dont submit values
