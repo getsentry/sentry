@@ -623,14 +623,15 @@
       }
     }
 
-    .event-extra ul {
-      .list-unstyled;
-      .clearfix;
+    .event-extra {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: @gray;
 
-      li {
+      span {
         font-size: 13px;
         color: @gray;
-        float: left;
         margin-right: 10px;
       }
     }
