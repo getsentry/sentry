@@ -44,7 +44,8 @@ const SettingsList = React.createClass({
     });
   },
 
-  onClick() {
+  onSubmit(e) {
+    e.preventDefault();
     this.props.onSubmit(this.state.options);
   },
 
@@ -54,13 +55,14 @@ const SettingsList = React.createClass({
     let disabled = !formValid || this.props.formDisabled;
 
     return (
-      <div>
+      <form onSubmit={this.onSubmit}>
         {fields}
         <div className="form-actions" style={{marginTop: 25}}>
           <button className="btn btn-primary"
-                  disabled={disabled} onClick={this.onClick}>{t('Save Changes')}</button>
+                  disabled={disabled}
+                  type="submit">{t('Save Changes')}</button>
         </div>
-      </div>
+      </form>
     );
   }
 });

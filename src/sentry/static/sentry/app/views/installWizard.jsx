@@ -53,7 +53,8 @@ const InstallWizardSettings = React.createClass({
     });
   },
 
-  onClick() {
+  onSubmit(e) {
+    e.preventDefault();
     this.props.onSubmit(this.state.options);
   },
 
@@ -63,7 +64,7 @@ const InstallWizardSettings = React.createClass({
     let disabled = !formValid || this.props.formDisabled;
 
     return (
-      <div>
+      <form onSubmit={this.onSubmit}>
         <p>Welcome to Sentry, yo! Complete setup by filling out the required
           configuration.</p>
 
@@ -73,9 +74,10 @@ const InstallWizardSettings = React.createClass({
 
         <div className="form-actions" style={{marginTop: 25}}>
           <button className="btn btn-primary"
-                  disabled={disabled} onClick={this.onClick}>{t('Continue')}</button>
+                  disabled={disabled}
+                  type="submit">{t('Continue')}</button>
         </div>
-      </div>
+      </form>
     );
   }
 });
