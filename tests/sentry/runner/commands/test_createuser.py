@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+from sentry import roles
 from sentry.testutils import CliTestCase
 from sentry.runner.commands.createuser import createuser
 from sentry.models import User, OrganizationMember
@@ -69,6 +70,22 @@ class CreateUserTest(CliTestCase):
             member = OrganizationMember.objects.all()[0]
             assert member.user.email == 'you@somewhereawesome.com'
             assert member.organization.slug in rv.output
+            assert member.role == member.organization.default_role
+
+    def test_single_org_superuser(self):
+        with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
+            rv = self.invoke(
+                '--email=you@somewhereawesome.com',
+                '--no-password',
+                '--superuser'
+            )
+            assert rv.exit_code == 0, rv.output
+            assert 'you@somewhereawesome.com' in rv.output
+            assert OrganizationMember.objects.count() == 1
+            member = OrganizationMember.objects.all()[0]
+            assert member.user.email == 'you@somewhereawesome.com'
+            assert member.organization.slug in rv.output
+            assert member.role == roles.get_top_dog().id
 
     def test_not_single_org(self):
         with self.settings(SENTRY_SINGLE_ORGANIZATION=False):
