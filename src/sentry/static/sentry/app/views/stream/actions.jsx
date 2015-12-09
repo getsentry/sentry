@@ -374,7 +374,7 @@ const StreamActions = React.createClass({
                       {t('Select all issues matching this search query.')}
                     </a>
                   </span>
-              }git 
+              }
             </div>
           </div>
         }
