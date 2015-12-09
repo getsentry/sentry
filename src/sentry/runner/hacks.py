@@ -17,3 +17,6 @@ class AllowedHosts(object):
     # to runtime changes based on our system.url-prefix Option
     def __iter__(self):
         yield get_server_hostname() or '*'
+
+    def __repr__(self):
+        return repr(tuple(self))
