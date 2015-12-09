@@ -324,6 +324,17 @@ const Stream = React.createClass({
     });
   },
 
+  /**
+   * Returns true if all results in the current query are visible/on this page
+   */
+  allResultsVisible() {
+    if (!this.state.pageLinks)
+      return false;
+
+    let links = parseLinkHeader(this.state.pageLinks);
+    return links && !links.previous.results && !links.next.results;
+  },
+
   transitionTo() {
     let queryParams = {};
 
@@ -404,6 +415,7 @@ const Stream = React.createClass({
       classes.push('show-sidebar');
 
     let {orgId, projectId} = this.props.params;
+
     return (
       <div className={classNames(classes)}>
         <div className="stream-content">
@@ -431,7 +443,8 @@ const Stream = React.createClass({
                   onRealtimeChange={this.onRealtimeChange}
                   realtimeActive={this.state.realtimeActive}
                   statsPeriod={this.state.statsPeriod}
-                  groupIds={this.state.groupIds} />
+                  groupIds={this.state.groupIds}
+                  allResultsVisible={this.allResultsVisible()}/>
               </div>
             </Sticky>
           </div>
