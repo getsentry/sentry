@@ -41,7 +41,7 @@ uWSGI yourself by doing something along the lines of::
 	stopwaitsecs=10
 	stopasgroup=true
 	killasgroup=true
-	environment=SENTRY_CONF="/srv/www/getsentry.com/current/getsentry/settings.py"
+	environment=SENTRY_CONF="/etc/sentry"
 	directory=/srv/www/getsentry.com/current/
 	stdout_logfile syslog
 	stderr_logfile syslog
@@ -130,7 +130,7 @@ look to supervisord for managing this for us::
 	stopwaitsecs=10
 	stopasgroup=false
 	killasgroup=true
-	environment=SENTRY_CONF="/srv/www/getsentry.com/current/getsentry/settings.py"
+	environment=SENTRY_CONF="/etc/sentry"
 	directory=/srv/www/getsentry.com/current/
 
 
