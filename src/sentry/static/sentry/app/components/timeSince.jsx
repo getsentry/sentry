@@ -47,7 +47,7 @@ const TimeSince = React.createClass({
   },
 
   setRelativeDateTicker() {
-    const ONE_MINUTE_IN_MS = 3600;
+    const ONE_MINUTE_IN_MS = 60000;
 
     this.ticker = setTimeout(() => {
       this.setState({
