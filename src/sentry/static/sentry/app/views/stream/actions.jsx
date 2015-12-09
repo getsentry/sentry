@@ -11,6 +11,7 @@ import {t, tn} from '../../locale';
 
 const StreamActions = React.createClass({
   propTypes: {
+    allResultsVisible: React.PropTypes.bool,
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     groupIds: React.PropTypes.instanceOf(Array).isRequired,
@@ -361,7 +362,7 @@ const StreamActions = React.createClass({
           <div className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2">{t('Events')}</div>
           <div className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2">{t('Users')}</div>
         </div>
-        {this.state.pageSelected &&
+        {!this.props.allResultsVisible && this.state.pageSelected &&
           <div className="row stream-select-all-notice" >
             <div className="col-md-12">
               {this.state.allInQuerySelected
@@ -373,7 +374,7 @@ const StreamActions = React.createClass({
                       {t('Select all issues matching this search query.')}
                     </a>
                   </span>
-              }
+              }git 
             </div>
           </div>
         }
