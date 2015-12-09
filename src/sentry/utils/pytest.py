@@ -104,9 +104,9 @@ def pytest_configure(config):
     client.flushdb()
 
     from sentry.runner.initializer import initialize_receivers, fix_south
-    initialize_receivers()
-
     fix_south(settings)
+
+    initialize_receivers()
 
     # force celery registration
     from sentry.celery import app  # NOQA
