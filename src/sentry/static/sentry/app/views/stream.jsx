@@ -295,9 +295,14 @@ const Stream = React.createClass({
   },
 
   onSearch(query) {
-    this.setState({
-      query: query
-    }, this.transitionTo);
+    if (query === this.state.query) {
+      // if query is the same, just re-fetch data
+      this.fetchData();
+    } else {
+      this.setState({
+        query: query
+      }, this.transitionTo);
+    }
   },
 
   onSortChange(sort) {
