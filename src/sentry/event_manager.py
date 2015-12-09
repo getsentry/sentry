@@ -12,6 +12,7 @@ import math
 import six
 
 from datetime import datetime, timedelta
+from collections import OrderedDict
 from django.conf import settings
 from django.db import connection, IntegrityError, transaction
 from django.db.models import Q
@@ -64,14 +65,35 @@ def md5_from_hash(hash_bits):
     return result.hexdigest()
 
 
+def get_fingerprint_for_event(event):
+    fingerprint = event.data.get('fingerprint')
+    if fingerprint is None:
+        return ['{{ default }}']
+    if isinstance(fingerprint, basestring):
+        return [fingerprint]
+    return fingerprint
+
+
 def get_hashes_for_event(event):
+    return get_hashes_for_event_with_reason(event)[1]
+
+
+def get_hashes_for_event_with_reason(event):
     interfaces = event.get_interfaces()
     for interface in interfaces.itervalues():
         result = interface.compute_hashes(event.platform)
         if not result:
             continue
-        return result
-    return [[event.message]]
+        return (interface.get_path(), result)
+    return ('message', event.message)
+
+
+def get_grouping_behavior(event):
+    data = event.data
+    if 'checksum' in data:
+        return ('checksum', data['checksum'])
+    fingerprint = get_fingerprint_for_event(event)
+    return ('fingerprint', get_hashes_from_fingerprint_with_reason(event, fingerprint))
 
 
 def get_hashes_from_fingerprint(event, fingerprint):
@@ -92,6 +114,24 @@ def get_hashes_from_fingerprint(event, fingerprint):
                 result.append(bit)
         hashes.append(result)
     return hashes
+
+
+def get_hashes_from_fingerprint_with_reason(event, fingerprint):
+    default_values = set(['{{ default }}', '{{default}}'])
+    if any(d in fingerprint for d in default_values):
+        default_hashes = get_hashes_for_event_with_reason(event)
+        hash_count = len(default_hashes[1])
+    else:
+        hash_count = 1
+
+    hashes = OrderedDict((bit, []) for bit in fingerprint)
+    for idx in xrange(hash_count):
+        for bit in fingerprint:
+            if bit in default_values:
+                hashes[bit].append(default_hashes)
+            else:
+                hashes[bit] = bit
+    return hashes.items()
 
 
 if not settings.SENTRY_SAMPLE_DATA:
