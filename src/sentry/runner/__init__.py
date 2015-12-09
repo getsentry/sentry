@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function
 
 import os
 import click
+import sys
 from sentry.utils.imports import import_string
 
 
@@ -23,6 +24,8 @@ from sentry.utils.imports import import_string
 @click.pass_context
 def cli(ctx, config):
     "Sentry is cross-platform crash reporting built with love."
+    if sys.version_info[:3] >= (2, 7, 11):
+        raise click.ClickException('Sentry is not compatible with Python %d.%d.%d, please downgrade to 2.7.10.' % sys.version_info[:3])
     ctx.obj['config'] = config
 
 
@@ -98,7 +101,6 @@ def get_prog():
     In the case of `python -m sentry`, we want to detect this and
     make sure we return something useful rather than __main__.py
     """
-    import sys
     try:
         if os.path.basename(sys.argv[0]) in ('__main__.py', '-c'):
             return '%s -m sentry' % sys.executable
