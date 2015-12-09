@@ -44,13 +44,6 @@ function appendTrailingSlash(nextState, replaceState) {
 
 let routes = (
   <Route path="/" component={App}>
-    <Route path="/organizations/:orgId/" component={OrganizationDetails}>
-      <Route path="issues/assigned/" component={MyIssuesAssignedToMe} />
-      <Route path="issues/bookmarks/" component={MyIssuesBookmarked} />
-      <Route path="issues/history/" component={MyIssuesViewed} />
-      <Route path="stats/" component={OrganizationStats} />
-      <Route path="rate-limits/" component={OrganizationRateLimits} />
-    </Route>
 
     <Route path="/manage/" component={Admin}>
       <IndexRoute component={AdminOverview} />
@@ -63,6 +56,13 @@ let routes = (
 
     <Route path="/:orgId/" component={OrganizationDetails}>
       <IndexRoute component={OrganizationTeams} />
+
+      <Route path="/organizations/:orgId/issues/assigned/" component={MyIssuesAssignedToMe} />
+      <Route path="/organizations/:orgId/issues/bookmarks/" component={MyIssuesBookmarked} />
+      <Route path="/organizations/:orgId/issues/history/" component={MyIssuesViewed} />
+      <Route path="/organizations/:orgId/stats/" component={OrganizationStats} />
+      <Route path="/organizations/:orgId/rate-limits/" component={OrganizationRateLimits} />
+
       <Route path=":projectId/" component={ProjectDetails}>
         <IndexRoute component={Stream} />
         <Route path="dashboard/" component={ProjectDashboard} />
