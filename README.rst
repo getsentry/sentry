@@ -20,9 +20,9 @@ Resources
 ---------
 
 * `Documentation <https://docs.getsentry.com/>`_
-* `Bug Tracker <http://github.com/getsentry/sentry/issues>`_
-* `Code <http://github.com/getsentry/sentry>`_
-* `Ask on Stack Overflow <http://stackoverflow.com/questions/ask?tags=sentry>`_
+* `Bug Tracker <https://github.com/getsentry/sentry/issues>`_
+* `Code <https://github.com/getsentry/sentry>`_
+* `Ask on Stack Overflow <https://stackoverflow.com/questions/ask?tags=sentry>`_
 * `Mailing List <https://groups.google.com/group/getsentry>`_
 * `IRC <irc://irc.freenode.net/sentry>`_  (irc.freenode.net, #sentry)
 * `Transifex <https://www.transifex.com/getsentry/sentry/>`_ (Translate Sentry!)
