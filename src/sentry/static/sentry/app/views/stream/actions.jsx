@@ -138,6 +138,7 @@ const StreamActions = React.createClass({
 
   render() {
     // TODO(mitsuhiko): very unclear how to translate this
+    let numIssues = SelectedGroupStore.getSelectedIds().size;
     return (
       <div>
         <div className="stream-actions row">
@@ -366,8 +367,8 @@ const StreamActions = React.createClass({
               {this.state.allInQuerySelected
                 ? <strong>{t('All issues matching this search query selected.')}</strong>
                 : <span>
-                    {tn('%d issues on this page selected.',
-                        '%d issues on this page selected.', 25 /* danger: magic number */)}
+                    {tn('%d issue on this page selected.',
+                        '%d issues on this page selected.', numIssues)}
                     <a onClick={this.selectAll}>
                       {t('Select all issues matching this search query.')}
                     </a>
