@@ -92,9 +92,13 @@ def createuser(email, password, superuser, no_password, no_input):
     if settings.SENTRY_SINGLE_ORGANIZATION:
         from sentry.models import Organization, OrganizationMember
         org = Organization.get_default()
+        if superuser:
+            role = roles.get_top_dog().id
+        else:
+            role = org.default_role
         OrganizationMember.objects.create(
             organization=org,
             user=user,
-            role=roles.get_top_dog().id,
+            role=role,
         )
         click.echo('Added to organization: %s' % (org.slug,))
