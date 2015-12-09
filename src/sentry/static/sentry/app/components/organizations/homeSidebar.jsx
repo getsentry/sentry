@@ -6,6 +6,10 @@ import HookStore from '../../stores/hookStore';
 import {t} from '../../locale';
 
 const HomeSidebar = React.createClass({
+  contextTypes: {
+    location: React.PropTypes.object
+  },
+
   mixins: [OrganizationState],
 
   getInitialState() {
@@ -32,7 +36,10 @@ const HomeSidebar = React.createClass({
       <div>
         <h6 className="nav-header">{t('Organization')}</h6>
         <ul className="nav nav-stacked">
-          <ListLink to={`/${orgId}/`}>{t('Projects')}</ListLink>
+          <ListLink to={`/${orgId}/`} isActive={() => {
+            // return true if path matches /slug-name/
+            return /^\/[^\/]+\/$/.test(this.context.location.pathname);
+          }}>{t('Projects')}</ListLink>
           {access.has('org:read') &&
             <ListLink to={`/organizations/${orgId}/stats/`}>{t('Stats')}</ListLink>
           }
