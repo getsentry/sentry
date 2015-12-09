@@ -126,7 +126,7 @@ class OptionsStore(object):
             return value
 
         # If we're able to accept within grace window, return it
-        if grace and now < grace:
+        if force_grace and now < grace:
             return value
 
         # Let's clean up values if we're beyond grace.
