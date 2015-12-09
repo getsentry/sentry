@@ -211,8 +211,7 @@ urlpatterns += patterns(
     url(r'^manage/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin,
         name='sentry-admin-configure-plugin'),
 
-    url(r'^manage/settings/$', react_page_view,
-        name='sentry-admin-settings'),
+
     url(r'^manage/', react_page_view,
         name='sentry-admin-overview'),
 
