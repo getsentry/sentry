@@ -79,7 +79,7 @@ const TimeSince = React.createClass({
     return (
       <time
         dateTime={date.toISOString()}
-        title={moment(date).format(format)}>{this.state.realtive}</time>
+        title={moment(date).format(format)}>{this.state.relative}</time>
     );
   }
 });
