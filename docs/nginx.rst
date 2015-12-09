@@ -95,7 +95,7 @@ confused)::
 Create a uWSGI configuration which references the Sentry configuration::
 
     [uwsgi]
-    env = SENTRY_CONF=/etc/sentry.conf.py
+    env = SENTRY_CONF=/etc/sentry
     module = sentry.wsgi
 
     ; spawn the master and 4 processes with 8 threads each
@@ -171,6 +171,8 @@ One rewrite is still required before the location block [#f1]_::
 Subpath with Sentry's Default Webserver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. Note:: This method is unsupported and untested by the Sentry team.
+
 This is a bit more involved and harder to debug because not only does Nginx have to know the new location to listen for, it also must do rewriting of the urls it sends to the Sentry's built in server because it knows nothing about you trying to host the application elsewhere.
 
 These are not full configurations, but abbreviated versions to highlight the differences from the main examples.
@@ -199,9 +201,7 @@ Your Sentry settings file ($SENTRY_CONF python file)::
 
     ...
 
-    SENTRY_URL_PREFIX = 'http://yourdomain.com/sentry'
     FORCE_SCRIPT_NAME = '/sentry'
-
     ...
 
 .. rubric:: Footnotes

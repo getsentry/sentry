@@ -4,17 +4,12 @@ Configuring Sentry
 This document describes additional configuration options available to the
 Sentry server itself.
 
-.. describe:: SENTRY_URL_PREFIX
+First Install
+-------------
 
-    Absolute URL to the sentry root directory. Should not include a
-    trailing slash.
-
-    Defaults to ``""``.
-
-    ::
-
-        SENTRY_URL_PREFIX = 'http://sentry.example.com'
-
+During a new install, you will be prompted first for a walkthrough of the
+Installation Wizard. This wizard will help you get a few essential configuration
+options taken care of before beginning.
 
 Authentication
 --------------
