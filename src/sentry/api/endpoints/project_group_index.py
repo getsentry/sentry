@@ -542,6 +542,17 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     from_object_id=group.id,
                     to_object_id=primary_group.id,
                 )
+
+            Activity.objects.create(
+                project=primary_group.project,
+                group=primary_group,
+                type=Activity.MERGE,
+                user=acting_user,
+                data={
+                    'issues': [{'id': c.id} for c in children],
+                },
+            )
+
             result['merge'] = {
                 'parent': str(primary_group.id),
                 'children': [str(g.id) for g in children],
