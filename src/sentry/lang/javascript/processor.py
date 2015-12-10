@@ -502,7 +502,7 @@ class SourceProcessor(object):
 
             source = cache.get(frame.abs_path)
             if source is None:
-                logger.info('No source found for %s', frame.abs_path)
+                logger.debug('No source found for %s', frame.abs_path)
                 continue
 
             sourcemap_url, sourcemap_idx = sourcemaps.get_link(frame.abs_path)
