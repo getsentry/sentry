@@ -21,7 +21,7 @@
         <img class="avatar" width="48" height="48" src="{% gravatar_url author.email size 96 %}">
       </td>
       <td class="notch-column">
-        <img width="7" height="48" src="{% asset_url 'sentry' 'images/email/avatar-notch.png' %}">
+        <img width="7" height="48" src="{% absolute_asset_url 'sentry' 'images/email/avatar-notch.png' %}">
       </td>
       <td>
         <div class="note-body">{{ data.text|urlize|linebreaks }}</div>
