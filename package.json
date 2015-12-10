@@ -49,7 +49,7 @@
   "scripts": {
     "test": "node_modules/karma/bin/karma start tests/karma.conf.js --single-run",
     "test-watch": "node_modules/karma/bin/karma start tests/karma.conf.js",
-    "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx"
+    "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx --rulesdir src/sentry/lint/eslint"
   },
   "devDependencies": {
     "babel-core": "5.8.33",
