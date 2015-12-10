@@ -48,15 +48,6 @@ class NodeStorage(local):
         for id in id_list:
             self.delete(id)
 
-    def add(self, id, data):
-        """
-        Create a node if an entry matching ``id`` does not already exist.
-
-        >>> nodestore.add('key1', {'foo': 'bar'})
-        """
-        if not self.get(id):
-            self.set(id, data)
-
     def get(self, id):
         """
         >>> data = nodestore.get('key1')
