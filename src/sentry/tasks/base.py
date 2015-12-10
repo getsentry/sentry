@@ -11,7 +11,6 @@ import resource
 from contextlib import contextmanager
 from functools import wraps
 
-from celery.exceptions import SoftTimeLimitExceeded
 from celery.task import current
 from raven.contrib.django.models import client as Raven
 
@@ -45,14 +44,10 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
             with metrics.timer(key, instance=instance), \
                     track_memory_usage('jobs.memory_change', instance=instance):
                 try:
-                    return func(*args, **kwargs)
-                except SoftTimeLimitExceeded as error:
-                    Raven.context.merge({
-                        'fingerprint': [type(error).__name__, instance],
-                    })
-                    raise
+                    result = func(*args, **kwargs)
                 finally:
                     Raven.context.clear()
+            return result
         return app.task(name=name, **kwargs)(_wrapped)
     return wrapped
 
