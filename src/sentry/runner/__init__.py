@@ -23,9 +23,17 @@ from sentry.utils.imports import import_string
 @click.version_option()
 @click.pass_context
 def cli(ctx, config):
-    "Sentry is cross-platform crash reporting built with love."
+    """Sentry is cross-platform crash reporting built with love.
+
+    The configuration file is looked up in the `~/.sentry` config
+    directory but this can be overridden with the `SENTRY_CONF`
+    environment variable or be explicitly provided through the
+    `--config` parameter.
+    """
     if sys.version_info[:3] >= (2, 7, 11):
-        raise click.ClickException('Sentry is not compatible with Python %d.%d.%d, please downgrade to 2.7.10.' % sys.version_info[:3])
+        raise click.ClickException('Sentry is not compatible with Python '
+                                   '%d.%d.%d, please downgrade to 2.7.10.' %
+                                   sys.version_info[:3])
     ctx.obj['config'] = config
 
 
