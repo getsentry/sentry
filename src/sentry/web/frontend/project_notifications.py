@@ -8,6 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import constants
 from sentry.app import digests
+from sentry.digests import get_option_key as get_digest_option_key
 from sentry.plugins import plugins, NotificationPlugin
 from sentry.web.forms.projects import (
     DigestSettingsForm,
@@ -59,11 +60,11 @@ class ProjectNotificationsView(ProjectView):
                     prefix='digests',
                     initial={
                         'minimum_delay': project.get_option(
-                            'digests:mail:minimum_delay',
+                            get_digest_option_key('mail', 'minimum_delay'),
                             digests.minimum_delay / 60,
                         ),
                         'maximum_delay': project.get_option(
-                            'digests:mail:maximum_delay',
+                            get_digest_option_key('mail', 'maximum_delay'),
                             digests.maximum_delay / 60,
                         ),
                     },
@@ -82,8 +83,14 @@ class ProjectNotificationsView(ProjectView):
             if general_form.is_valid() and (digests_form.is_valid() if digests_form is not None else True):
                 project.update_option('mail:subject_prefix', general_form.cleaned_data['subject_prefix'])
                 if digests_form is not None:
-                    project.update_option('digests:mail:minimum_delay', digests_form.cleaned_data['minimum_delay'] * 60)
-                    project.update_option('digests:mail:maximum_delay', digests_form.cleaned_data['maximum_delay'] * 60)
+                    project.update_option(
+                        get_digest_option_key('mail', 'minimum_delay'),
+                        digests_form.cleaned_data['minimum_delay'] * 60,
+                    )
+                    project.update_option(
+                        get_digest_option_key('mail', 'maximum_delay'),
+                        digests_form.cleaned_data['maximum_delay'] * 60,
+                    )
                 messages.add_message(
                     request, messages.SUCCESS,
                     OK_SETTINGS_SAVED)
@@ -94,11 +101,11 @@ class ProjectNotificationsView(ProjectView):
                     prefix='digests',
                     initial={
                         'minimum_delay': project.get_option(
-                            'digests:mail:minimum_delay',
+                            get_digest_option_key('mail', 'minimum_delay'),
                             digests.minimum_delay,
                         ) / 60,
                         'maximum_delay': project.get_option(
-                            'digests:mail:maximum_delay',
+                            get_digest_option_key('mail', 'maximum_delay'),
                             digests.maximum_delay,
                         ) / 60,
                     },
