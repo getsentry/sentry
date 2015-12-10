@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 import time
 
+from sentry.digests import get_option_key
 from sentry.digests.notifications import (
     build_digest,
     split_key,
@@ -55,7 +56,7 @@ def deliver_digest(key, schedule_timestamp=None):
 
     minimum_delay = ProjectOption.objects.get_value(
         project,
-        '{0}:digests:{1}'.format(plugin.get_conf_key(), 'minimum_delay'),
+        get_option_key(plugin.get_conf_key(), 'minimum_delay')
     )
     with digests.digest(key, minimum_delay=minimum_delay) as records:
         digest = build_digest(project, records)

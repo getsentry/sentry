@@ -15,6 +15,7 @@ from sentry.app import (
     digests,
     ratelimiter,
 )
+from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import (
     event_to_record,
     unsplit_key,
@@ -69,7 +70,7 @@ class NotificationPlugin(Plugin):
         if hasattr(self, 'notify_digest') and digests.enabled(project):
             get_digest_option = lambda key: ProjectOption.objects.get_value(
                 project,
-                '{0}:digests:{1}'.format(self.get_conf_key(), key),
+                get_digest_option_key(self.get_conf_key(), key),
             )
             digest_key = unsplit_key(self, event.group.project)
             immediate_delivery = digests.add(
