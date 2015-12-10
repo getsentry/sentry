@@ -66,7 +66,7 @@ def js_lint(file_list=None):
     has_errors = False
     file_list = filter(lambda x: x.endswith(('.js', '.jsx')), file_list)
     if file_list:
-        status = Popen(['node_modules/.bin/eslint', '--ext', '.jsx']
+        status = Popen(['node_modules/.bin/eslint', '--ext', '.jsx', '--rulesdir', 'src/sentry/lint/eslint']
                        + list(file_list)).wait()
         has_errors = status != 0
 
