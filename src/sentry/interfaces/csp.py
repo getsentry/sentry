@@ -77,7 +77,10 @@ DIRECTIVE_TO_MESSAGES = {
 
 DEFAULT_MESSAGE = ('Blocked {directive!r} from {uri!r}', 'Blocked inline {directive!r}')
 
-DISALLOWED_SOURCES = ('chrome-extension://',)
+DISALLOWED_SOURCES = (
+    'chrome-extension://',
+    'safari-extension://',
+)
 
 
 class Csp(Interface):
