@@ -67,7 +67,7 @@ const ProjectInstallOverview = React.createClass({
           })}</small></p>
         }
 
-        <h3>Popular</h3>
+        <h3>{t('Popular')}</h3>
 
         <ul className="client-platform-list">
           {this.getIntegrationLink('javascript', 'javascript', 'JavaScript')}
@@ -87,7 +87,7 @@ const ProjectInstallOverview = React.createClass({
           })}
         </ul>
 
-        <h3>Languages</h3>
+        <h3>{t('Languages')}</h3>
         <ul className="client-platform-list">
           {languageList.map((item) => {
             let [platform, integration] = item;

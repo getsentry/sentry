@@ -105,7 +105,7 @@ const OrganizationDetails = React.createClass({
     if (this.state.loading) {
         return (
           <LoadingIndicator triangle={true}>
-            Loading data for your organization.
+            {t('Loading data for your organization.')}
           </LoadingIndicator>
         );
     } else if (this.state.error) {

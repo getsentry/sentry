@@ -104,7 +104,7 @@ const ContextData = React.createClass({
     function walk(value, depth) {
       let i = 0, children = [];
       if (value === null) {
-        return <span className="val-null">None</span>;
+        return <span className="val-null">{'None'}</span>;
       } else if (value === true || value === false) {
         return <span className="val-bool">{value ? 'True' : 'False'}</span>;
       } else if (typeof value === 'string' || value instanceof String) {

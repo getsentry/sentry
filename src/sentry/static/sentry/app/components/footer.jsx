@@ -27,7 +27,7 @@ const Footer = React.createClass({
             <a href="https://github.com/getsentry/sentry">{t('Contribute')}</a>
           </div>
           <div className="version pull-left">
-            Sentry {config.version.current}
+            {'Sentry'} {config.version.current}
           </div>
           <a href="/" className="icon-sentry-logo"></a>
           {this.state.hooks}
