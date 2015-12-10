@@ -47,7 +47,7 @@ from subprocess import check_output
 
 
 # The version of sentry
-VERSION = '8.0.0-rc1'
+VERSION = '8.0.0rc1'
 
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
