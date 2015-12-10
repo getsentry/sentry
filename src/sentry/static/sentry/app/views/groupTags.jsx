@@ -6,6 +6,7 @@ import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {percent} from '../utils';
+import {t} from '../locale';
 
 const GroupTags = React.createClass({
   mixins: [
@@ -96,7 +97,7 @@ const GroupTags = React.createClass({
             <div className="box">
               <div className="box-header">
                 <span className="pull-right">
-                  <Link className="btn btn-default btn-sm" to={`/${orgId}/${projectId}/issues/${groupId}/tags/${tag.key}/`}>More Details</Link>
+                  <Link className="btn btn-default btn-sm" to={`/${orgId}/${projectId}/issues/${groupId}/tags/${tag.key}/`}>{t('More Details')}</Link>
                 </span>
                 <h5>{tag.name} (<Count value={tag.uniqueValues} />)</h5>
               </div>

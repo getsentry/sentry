@@ -4,6 +4,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import PropTypes from '../../proptypes';
 import TooltipMixin from '../../mixins/tooltip';
 import {escape, percent} from '../../utils';
+import {t} from '../../locale';
 
 const TagDistributionMeter = React.createClass({
   propTypes: {
@@ -108,7 +109,7 @@ const TagDistributionMeter = React.createClass({
               title={'Other<br/>' + otherPctLabel + '%'}>
             <span className="tag-description">
               <span className="tag-percentage">{otherPctLabel}%</span>
-              <span className="tag-label">Other</span>
+              <span className="tag-label">{t('Other')}</span>
             </span>
           </Link>
         }
@@ -121,7 +122,7 @@ const TagDistributionMeter = React.createClass({
       return null;
 
     if (!this.state.data.totalValues)
-      return <p>No recent data.</p>;
+      return <p>{t('No recent data.')}</p>;
 
     return this.renderSegments();
   },

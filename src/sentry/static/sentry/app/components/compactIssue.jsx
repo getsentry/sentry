@@ -49,17 +49,17 @@ const SnoozeAction = React.createClass({
          className={this.props.className}
          disabled={this.props.disabled}
          onClick={this.toggleModal}>
-        <span>zZz</span>
+        <span>{t('zZz')}</span>
 
         <Modal show={this.state.isModalOpen} title={t('Please confirm')} animation={false}
                onHide={this.closeModal} bsSize="sm">
           <div className="modal-body">
-            <h5>How long should we snooze this issue?</h5>
+            <h5>{t('How long should we snooze this issue?')}</h5>
             <ul className="nav nav-stacked nav-pills">
-              <li><a onClick={this.onSnooze.bind(this, Snooze['30MINUTES'])}>30 minutes</a></li>
-              <li><a onClick={this.onSnooze.bind(this, Snooze['2HOURS'])}>2 hours</a></li>
-              <li><a onClick={this.onSnooze.bind(this, Snooze['24HOURS'])}>24 hours</a></li>
-              <li><a onClick={this.onSnooze}>Forever</a></li>
+              <li><a onClick={this.onSnooze.bind(this, Snooze['30MINUTES'])}>{t('30 minutes')}</a></li>
+              <li><a onClick={this.onSnooze.bind(this, Snooze['2HOURS'])}>{t('2 hours')}</a></li>
+              <li><a onClick={this.onSnooze.bind(this, Snooze['24HOURS'])}>{t('24 hours')}</a></li>
+              <li><a onClick={this.onSnooze}>{t('Forever')}</a></li>
             </ul>
           </div>
           <div className="modal-footer">

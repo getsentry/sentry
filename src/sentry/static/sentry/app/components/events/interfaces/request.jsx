@@ -76,7 +76,7 @@ const RequestInterface = React.createClass({
               /* Translators: this means "rich" rendering (fancy tables) */
               t('Rich')}</a>
           <a className={(view === 'curl' ? 'active' : '') + ' btn btn-default btn-sm'}
-             onClick={this.toggleView.bind(this, 'curl')}><code>curl</code></a>
+             onClick={this.toggleView.bind(this, 'curl')}><code>{'curl'}</code></a>
         </div>
       );
     }

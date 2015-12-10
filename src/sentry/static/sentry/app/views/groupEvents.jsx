@@ -174,7 +174,7 @@ const GroupEvents = React.createClass({
           <table className="table">
             <thead>
               <tr>
-                <th>{t('Event')}</th>
+                <th>{t('ID')}</th>
                 {tagList.map((tag) => {
                   return (
                     <th key={tag.key}>
