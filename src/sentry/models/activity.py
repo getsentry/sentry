@@ -35,6 +35,7 @@ class Activity(Model):
     ASSIGNED = 11
     UNASSIGNED = 12
     SET_RESOLVED_IN_RELEASE = 13
+    MERGE = 14
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -51,6 +52,7 @@ class Activity(Model):
         (RELEASE, 'release'),
         (ASSIGNED, 'assigned'),
         (UNASSIGNED, 'unassigned'),
+        (MERGE, 'merge'),
     )
 
     project = FlexibleForeignKey('sentry.Project')
