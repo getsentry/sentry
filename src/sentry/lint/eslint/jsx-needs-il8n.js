@@ -23,15 +23,21 @@ module.exports = function(context) {
     return {
 
         Literal: function(node) {
-            if (
-              !/^[\s]+$/.test(node.value) &&
-              /[A-Za-z]/.test(node.value) && // at least one letter; not symbols, numbers
-              node.parent &&
-              node.parent.type !== 'JSXExpressionContainer' &&
-              node.parent.type !== 'JSXAttribute' &&
-              node.parent.type.indexOf('JSX') !== -1
+            if (!/^[\s]+$/.test(node.value) && // ignore whitespace literals
+                /[A-Za-z]/.test(node.value) && // must have at least one letter; not symbols, numbers
+                node.parent
             ) {
-                reportLiteralNode(node);
+               // alt or title attribute
+               if (node.parent.type === 'JSXAttribute' && /title|alt/.test(node.parent.name.name)) {
+                   return void reportLiteralNode(node);
+               }
+
+               // inside component, e.g. <div>literal</div>
+               if (node.parent.type !== 'JSXAttribute' &&
+                   node.parent.type !== 'JSXExpressionContainer' &&
+                   node.parent.type.indexOf('JSX') !== -1) {
+                   return void reportLiteralNode(node);
+               }
             }
         }
 
