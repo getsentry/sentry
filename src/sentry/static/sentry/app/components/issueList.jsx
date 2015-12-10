@@ -101,11 +101,15 @@ const IssueList = React.createClass({
   },
 
   renderLoading() {
-    return <LoadingIndicator />;
+    return (
+      <div className="box">
+        <LoadingIndicator />;
+      </div>
+    );
   },
 
   renderEmpty() {
-    return <p>{t('Nothing to show here, move along.')}</p>;
+    return <div className="box empty">{t('Nothing to show here, move along.')}</div>;
   },
 
   render() {
