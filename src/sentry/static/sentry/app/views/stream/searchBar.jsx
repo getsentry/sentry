@@ -271,13 +271,19 @@ const SearchBar = React.createClass({
     } else {
       tagName = last.slice(0, index);
       query = last.slice(index + 1);
-      this.setState({searchTerm: query});
+
+      // filter existing items immediately, until API can return
+      // with actual tag value results
+      let filteredSearchItems = this.state.searchItems.filter(item => query && item.value.indexOf(query) !== -1);
+
+      this.setState({
+        searchTerm: query,
+        searchItems: filteredSearchItems
+      });
 
       let tag = StreamTagStore.getTag(tagName);
       if (!tag)
-        return void this.setState({
-          searchItems: []
-        });
+        return undefined;
 
       return void (
         tag.predefined
