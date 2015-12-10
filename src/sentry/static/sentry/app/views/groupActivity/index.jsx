@@ -10,7 +10,7 @@ import Version from '../../components/version';
 
 import NoteContainer from './noteContainer';
 import NoteInput from './noteInput';
-import {t} from '../../locale';
+import {t, tn} from '../../locale';
 
 
 const GroupActivity = React.createClass({
@@ -88,6 +88,11 @@ const GroupActivity = React.createClass({
         });
       case 'unassigned':
         return t('%s unassigned this issue', author);
+      case 'merge':
+        return tn('%2$s merged %1$d issue into this isssue',
+                  '%2$s merged %1$d issues into this isssue',
+                  data.issues.length,
+                  author);
       default:
         return ''; // should never hit (?)
     }
