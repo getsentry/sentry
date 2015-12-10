@@ -11,13 +11,37 @@ import click
 from sentry.runner.decorators import configuration
 
 
+def get_project(value):
+    from sentry.models import Project
+
+    try:
+        if value.isdigit():
+            return int(value)
+        if '/' not in value:
+            return None
+        org, proj = value.split('/', 1)
+        return Project.objects.get_from_cache(
+            organization__slug=org,
+            slug=proj,
+        ).id
+    except Project.DoesNotExist:
+        return None
+
+
 @click.command()
 @click.option('--days', default=30, type=int, show_default=True, help='Numbers of days to truncate on.')
-@click.option('--project', type=int, help='Limit truncation to only entries from project.')
+@click.option('--project', help='Limit truncation to only entries from project.')
 @click.option('--concurrency', type=int, default=1, show_default=True, help='The number of concurrent workers to run.')
 @configuration
 def cleanup(days, project, concurrency):
-    "Delete a portion of trailing data based on creation date."
+    """Delete a portion of trailing data based on creation date.
+
+    All data that is older than `--days` will be deleted.  The default for
+    this is 30 days.  In the default setting all projects will be truncated
+    but if you have a specific project you want to limit this to this can be
+    done with the `--project` flag which accepts a project ID or a string
+    with the form `org/project` where both are slugs.
+    """
 
     from datetime import timedelta
     from django.utils import timezone
@@ -47,8 +71,13 @@ def cleanup(days, project, concurrency):
         date_added__lte=timezone.now() - timedelta(hours=48)
     ).delete()
 
+    project_id = None
     if project:
         click.echo("Bulk NodeStore deletion not available for project selection", err=True)
+        project_id = get_project(project)
+        if project_id is None:
+            click.echo('Error: Project not found', err=True)
+            raise click.Abort()
     else:
         click.echo("Removing old NodeStore values")
         cutoff = timezone.now() - timedelta(days=days)
@@ -67,7 +96,7 @@ def cleanup(days, project, concurrency):
             model=model,
             dtfield=dtfield,
             days=days,
-            project_id=project,
+            project_id=project_id,
         ).execute()
 
     # EventMapping is fairly expensive and is special cased as it's likely you
@@ -77,7 +106,7 @@ def cleanup(days, project, concurrency):
         model=EventMapping,
         dtfield='date_added',
         days=min(days, 7),
-        project_id=project,
+        project_id=project_id,
     ).execute()
 
     for model, dtfield in GENERIC_DELETES:
@@ -90,5 +119,5 @@ def cleanup(days, project, concurrency):
             model=model,
             dtfield=dtfield,
             days=days,
-            project_id=project,
+            project_id=project_id,
         ).execute_generic()
