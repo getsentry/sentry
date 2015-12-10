@@ -11,12 +11,12 @@
 {% block main %}
   {% if can_add_members %}
     <a class="btn btn-primary btn-sm pull-right" href="{% url 'sentry-create-organization-member' organization.slug %}">
-      <span class="icon-plus"></span> Invite Member
+      <span class="icon-plus"></span> {% trans "Invite Member" %}
     </a>
   {% else %}
     <a class="btn btn-primary btn-sm btn-disabled tip pull-right"
-       title="You do not have enough permission to add new members">
-      <span class="icon-plus"></span> Invite Member
+       title="{% trans "You do not have enough permission to add new members" %}">
+      <span class="icon-plus"></span> {% trans "Invite Member" %}
     </a>
   {% endif %}
 
@@ -28,7 +28,7 @@
   <table class="table" style="margin-bottom: 20px" id="access_request_list">
     <thead>
       <tr>
-        <th colspan="2">Pending Access Requests</th>
+        <th colspan="2">{% trans "Pending Access Requests" %}</th>
       </tr>
     </thead>
     <tbody>
@@ -50,7 +50,7 @@
 
   {% elif ref == 'access-requests' %}
     <div class="well">
-      <p>All pending access requests have been taken care of.</p>
+      <p>{% trans "All pending access requests have been taken care of." %}</p>
     </div>
   {% endif %}
 
@@ -64,9 +64,9 @@
     </colgroup>
     <thead>
       <tr>
-        <th>Member</th>
+        <th>{% trans "Member" %}</th>
         <th>&nbsp;</th>
-        <th>Role</th>
+        <th>{% trans "Role" %}</th>
         {% if can_remove_members or member_can_leave %}
           <th class="squash">&nbsp;</th>
         {% endif %}
