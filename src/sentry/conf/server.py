@@ -245,6 +245,7 @@ INSTALLED_APPS = (
     'crispy_forms',
     'debug_toolbar',
     'gunicorn',
+    'kombu.transport.django',
     'raven.contrib.django.raven_compat',
     'rest_framework',
     'sentry',

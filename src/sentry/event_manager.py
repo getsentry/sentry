@@ -85,7 +85,7 @@ def get_hashes_for_event_with_reason(event):
         if not result:
             continue
         return (interface.get_path(), result)
-    return ('message', event.message)
+    return ('message', [event.message])
 
 
 def get_grouping_behavior(event):
@@ -429,7 +429,7 @@ class EventManager(object):
         # this propagates into Event
         data['tags'] = tags
 
-        data['fingerprint'] = fingerprint or '{{ default }}'
+        data['fingerprint'] = fingerprint or ['{{ default }}']
 
         # prioritize fingerprint over checksum as its likely the client defaulted
         # a checksum whereas the fingerprint was explicit
@@ -584,10 +584,11 @@ class EventManager(object):
             return
 
         for hash in bad_hashes:
-            merge_group.delay(
-                from_group_id=hash.group_id,
-                to_group_id=group.id,
-            )
+            if hash.group_id:
+                merge_group.delay(
+                    from_group_id=hash.group_id,
+                    to_group_id=group.id,
+                )
 
         return GroupHash.objects.filter(
             project=group.project,
