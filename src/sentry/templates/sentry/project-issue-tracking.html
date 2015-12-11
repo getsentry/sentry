@@ -9,7 +9,7 @@
 {% block main %}
   <h2>{% trans "Issue Tracking" %}</h2>
 
-  <p>Configure issue tracking for this project to enable quick issue creation links on events.</p>
+  <p>Enabling Issue Tracking will let quickly create tasks in your existing tools via a "Create Issue" action on each issue's details page.</p>
 
   {% if enabled_plugins or other_plugins %}
     {% for plugin, content in enabled_plugins %}
