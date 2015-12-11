@@ -83,9 +83,10 @@ const StreamFilters = React.createClass({
               placeholder={t('Search for events, users, tags, and everything else.')}
               query={this.props.query}
               onSearch={this.props.onSearch}
-              disabled={this.props.isSearchDisabled}
-              />
-            <a className="btn btn-default toggle-stream-sidebar" onClick={this.props.onSidebarToggle}><span className="icon-filter"></span></a>
+              disabled={this.props.isSearchDisabled} />
+            <a className="btn btn-default toggle-stream-sidebar" onClick={this.props.onSidebarToggle}>
+              <span className="icon-filter" />
+            </a>
           </div>
         </div>
       </div>
