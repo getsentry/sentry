@@ -32,6 +32,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         ))
 
         feature_list = []
+        if features.has('organizations:events', obj, actor=user):
+            feature_list.append('events')
         if features.has('organizations:sso', obj, actor=user):
             feature_list.append('sso')
 

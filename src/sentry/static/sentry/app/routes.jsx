@@ -22,6 +22,7 @@ import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
 import ProjectDashboard from './views/projectDashboard';
 import ProjectDetails from './views/projectDetails';
+import ProjectEvents from './views/projectEvents';
 import ProjectInstall from './views/projectInstall';
 import ProjectInstallOverview from './views/projectInstall/overview';
 import ProjectInstallPlatform from './views/projectInstall/platform';
@@ -66,6 +67,7 @@ let routes = (
       <Route path=":projectId/" component={ProjectDetails}>
         <IndexRoute component={Stream} />
         <Route path="dashboard/" component={ProjectDashboard} />
+        <Route path="events/" component={ProjectEvents} />
         <Route path="releases/" component={ProjectReleases} />
         <Route name="releaseDetails" path="releases/:version/" component={ReleaseDetails}>
           <IndexRoute component={ReleaseNewEvents} />
