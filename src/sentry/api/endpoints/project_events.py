@@ -38,6 +38,12 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             project=project,
         )
 
+        query = request.GET.get('query')
+        if query:
+            events = events.filter(
+                message__icontains=query,
+            )
+
         return self.paginate(
             request=request,
             queryset=events,
