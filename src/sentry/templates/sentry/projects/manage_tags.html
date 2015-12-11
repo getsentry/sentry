@@ -10,7 +10,8 @@
   <h2>{% trans "Tags" %}</h2>
 
   {% if tag_list %}
-    <p>{% blocktrans %}Each event in Sentry may be annotated with various tags (key and value pairs). For more information on how send additional tags, see your client's documentation.{% endblocktrans %}</p>
+    <p>{% blocktrans with link='https://docs.getsentry.com/hosted/learn/context/' %}Each event in Sentry may be annotated with various tags (key and value pairs). Learn how to <a href="{{ link }}">add custom tags</a>.{% endblocktrans %}</p>
+
     <form action="" method="post">
       {% csrf_token %}
       {{ form|as_crispy_errors }}

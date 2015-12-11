@@ -56,6 +56,10 @@ const GroupTags = React.createClass({
     });
   },
 
+  getTagsDocsUrl() {
+    return 'https://docs.getsentry.com/hosted/learn/context/';
+  },
+
   render() {
     if (this.state.loading) {
       return <LoadingIndicator />;
@@ -110,6 +114,13 @@ const GroupTags = React.createClass({
     return (
       <div className="row">
         {children}
+
+        <div className="col-md-12">
+          <div className="alert alert-block alert-info">
+            Tags are automatically indexed for searching and breakdown charts.
+            Learn how to <a href={this.getTagsDocsUrl()}>add custom tags to issues</a>.
+          </div>
+        </div>
       </div>
     );
   }
