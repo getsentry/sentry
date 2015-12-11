@@ -216,7 +216,9 @@ const AssigneeSelector = React.createClass({
                   <span className="icon-circle-cross"/> Clear Assignee
                 </MenuItem>
               : ''}
-              {memberNodes}
+              <li>
+                <ul>{memberNodes}</ul>
+              </li>
             </DropdownLink>
           }
         </div>
