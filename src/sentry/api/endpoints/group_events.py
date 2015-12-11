@@ -39,7 +39,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         query = request.GET.get('query')
         if query:
             events = events.filter(
-                message__iexact=query,
+                message__icontains=query,
             )
 
         return self.paginate(
