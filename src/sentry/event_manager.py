@@ -584,10 +584,11 @@ class EventManager(object):
             return
 
         for hash in bad_hashes:
-            merge_group.delay(
-                from_group_id=hash.group_id,
-                to_group_id=group.id,
-            )
+            if hash.group_id:
+                merge_group.delay(
+                    from_group_id=hash.group_id,
+                    to_group_id=group.id,
+                )
 
         return GroupHash.objects.filter(
             project=group.project,
