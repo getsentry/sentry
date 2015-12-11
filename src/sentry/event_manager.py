@@ -85,7 +85,7 @@ def get_hashes_for_event_with_reason(event):
         if not result:
             continue
         return (interface.get_path(), result)
-    return ('message', event.message)
+    return ('message', [event.message])
 
 
 def get_grouping_behavior(event):
