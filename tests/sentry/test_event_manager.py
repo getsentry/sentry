@@ -441,6 +441,13 @@ class EventManagerTest(TransactionTestCase):
 
         assert dict(event.tags).get('environment') == 'beta'
 
+    def test_default_fingerprint(self):
+        manager = EventManager(self.make_event())
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert event.data.get('fingerprint') == ['{{ default }}']
+
 
 class GetHashesFromEventTest(TestCase):
     @patch('sentry.interfaces.stacktrace.Stacktrace.compute_hashes')
