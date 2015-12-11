@@ -36,6 +36,12 @@ class GroupEventsEndpoint(GroupEndpoint):
             group=group
         )
 
+        query = request.GET.get('query')
+        if query:
+            events = events.filter(
+                message__iexact=query,
+            )
+
         return self.paginate(
             request=request,
             queryset=events,
