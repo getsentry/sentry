@@ -24,6 +24,12 @@ describe('AssigneeSelector', function() {
   beforeEach(function () {
     this.sandbox = sinon.sandbox.create();
     stubReactComponents(this.sandbox, [LoadingIndicator]);
+
+    this.sandbox.stub(MemberListStore, 'getAll').returns([USER_1, USER_2]);
+    this.sandbox.stub(GroupStore, 'get').returns({
+      id: 1337,
+      assignedTo: null
+    });
   });
 
   afterEach(function () {
@@ -55,14 +61,8 @@ describe('AssigneeSelector', function() {
     });
   });
 
-  describe('onInputKeyDown()', function () {
+  describe('onFilterKeyDown()', function () {
     beforeEach(function () {
-      this.sandbox.stub(MemberListStore, 'getAll').returns([USER_1, USER_2]);
-      this.sandbox.stub(GroupStore, 'get').returns({
-        id: 1337,
-        assignedTo: null
-      });
-
       let assigneeSelector = this.assigneeSelector =
         TestUtils.renderIntoDocument(<AssigneeSelector id="1337"/>);
 
@@ -98,6 +98,29 @@ describe('AssigneeSelector', function() {
         {key: 'h', keyCode: 72, which: 72}
       );
       expect(assigneeSelector.assignTo.notCalled).to.be.ok;
+    });
+  });
+
+  describe('onFilterKeyUp()', function () {
+    beforeEach(function () {
+      this.assigneeSelector =
+        TestUtils.renderIntoDocument(<AssigneeSelector id="1337"/>);
+    });
+
+    it('should close the dropdown when keyup is triggered with the Escape key', function () {
+      let assigneeSelector = this.assigneeSelector;
+      this.sandbox.stub(assigneeSelector.refs.dropdown, 'close');
+
+      TestUtils.Simulate.keyUp(assigneeSelector.refs.filter, {key: 'Escape'});
+
+      expect(assigneeSelector.refs.dropdown.close.calledOnce).to.be.ok;
+    });
+
+    it('should update the local filter state if any other key is pressed', function () {
+      let assigneeSelector = this.assigneeSelector;
+
+      TestUtils.Simulate.keyUp(assigneeSelector.refs.filter, {target: {value: 'foo'}});
+      expect(assigneeSelector.state.filter).to.eql('foo');
     });
   });
 });
