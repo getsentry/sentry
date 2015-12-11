@@ -121,7 +121,6 @@ const ProjectReleases = React.createClass({
     return body;
   },
 
-
   renderLoading() {
     return (
       <div className="box">
