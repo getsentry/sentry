@@ -23,11 +23,13 @@ except ImportError:
         pass
 
 from sentry import http
+from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Release, ReleaseFile
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5
 from sentry.utils.http import is_valid_origin
+from sentry.utils.strings import truncatechars
 
 from .cache import SourceCache, SourceMapCache
 from .sourcemaps import sourcemap_to_index, find_source
@@ -474,7 +476,10 @@ class SourceProcessor(object):
         # (stacktrace as dict, stacktrace class)
         # So we need to take the [1] index to get the Stacktrace class,
         # then extract the culprit string from that.
-        data['culprit'] = stacktraces[-1][1].get_culprit_string()
+        data['culprit'] = truncatechars(
+            stacktraces[-1][1].get_culprit_string(),
+            MAX_CULPRIT_LENGTH,
+        )
 
     def update_stacktraces(self, stacktraces):
         for raw, interface in stacktraces:
