@@ -35,6 +35,18 @@ class EventManagerTest(TransactionTestCase):
         result.update(kwargs)
         return result
 
+    def test_similar_message_prefix_doesnt_group(self):
+        # we had a regression which caused the default hash to just be
+        # 'event.message' instead of '[event.message]' which caused it to
+        # generate a hash per letter
+        manager = EventManager(self.make_event(message='foo bar'))
+        event1 = manager.save(1)
+
+        manager = EventManager(self.make_event(message='foo baz'))
+        event2 = manager.save(1)
+
+        assert event1.group_id != event2.group_id
+
     @patch('sentry.signals.regression_signal.send')
     def test_broken_regression_signal(self, send):
         send.side_effect = Exception()
@@ -440,6 +452,13 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
 
         assert dict(event.tags).get('environment') == 'beta'
+
+    def test_default_fingerprint(self):
+        manager = EventManager(self.make_event())
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert event.data.get('fingerprint') == ['{{ default }}']
 
 
 class GetHashesFromEventTest(TestCase):
