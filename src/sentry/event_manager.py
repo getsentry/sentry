@@ -429,7 +429,7 @@ class EventManager(object):
         # this propagates into Event
         data['tags'] = tags
 
-        data['fingerprint'] = fingerprint or '{{ default }}'
+        data['fingerprint'] = fingerprint or ['{{ default }}']
 
         # prioritize fingerprint over checksum as its likely the client defaulted
         # a checksum whereas the fingerprint was explicit
