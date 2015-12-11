@@ -6,6 +6,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 
 import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
+import ConfigStore from 'app/stores/configStore';
 
 import stubReactComponents from '../../helpers/stubReactComponent';
 
@@ -57,6 +58,29 @@ describe('AssigneeSelector', function() {
       it('should ignore capitalization', function () {
         expect(filterMembers([USER_1], 'Jane')).to.eql([USER_1]);
         expect(filterMembers([USER_1], 'jane')).to.eql([USER_1]);
+      });
+    });
+
+    const putSessionUserFirst = AssigneeSelector.putSessionUserFirst;
+
+    describe('putSessionUserFirst()', function () {
+      it('should place the session user at the top of the member list if present', function () {
+        this.sandbox.stub(ConfigStore, 'get').withArgs('user').returns({
+          id: 2,
+          name: 'John Smith',
+          email: 'johnsmith@example.com'
+        });
+        expect(putSessionUserFirst([USER_1, USER_2])).to.eql([USER_2, USER_1]);
+      });
+
+      it('should return the same member list if the session user isn\'t present', function () {
+        this.sandbox.stub(ConfigStore, 'get').withArgs('user').returns({
+          id: 555,
+          name: 'Here Comes a New Challenger',
+          email: 'guile@mail.us.af.mil'
+        });
+
+        expect(putSessionUserFirst([USER_1, USER_2])).to.eql([USER_1, USER_2]);
       });
     });
   });

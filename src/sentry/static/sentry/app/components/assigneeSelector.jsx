@@ -5,6 +5,7 @@ import classNames from 'classnames';
 import ApiMixin from '../mixins/apiMixin';
 import Gravatar from '../components/gravatar';
 import GroupStore from '../stores/groupStore';
+import ConfigStore from '../stores/configStore';
 import DropdownLink from './dropdownLink';
 import MemberListStore from '../stores/memberListStore';
 import MenuItem from './menuItem';
@@ -39,6 +40,19 @@ const AssigneeSelector = React.createClass({
 
         return fullName.indexOf(filter) !== -1;
       });
+    },
+
+    putSessionUserFirst(members) {
+      // If session user is in the filtered list of members, put them at the top
+      let sessionUser = ConfigStore.get('user');
+      let sessionUserIndex = members.findIndex(member => sessionUser && member.id === sessionUser.id);
+
+      if (sessionUserIndex === -1)
+        return members;
+
+      return [members[sessionUserIndex]]
+        .concat(members.slice(0, sessionUserIndex))
+        .concat(members.slice(sessionUserIndex + 1));
     }
   },
 
@@ -162,6 +176,8 @@ const AssigneeSelector = React.createClass({
     }
 
     let members = AssigneeSelector.filterMembers(this.state.memberList, this.state.filter);
+    members = AssigneeSelector.putSessionUserFirst(members);
+
     let memberNodes = members.map((item) => {
       return (
         <MenuItem key={item.id}
