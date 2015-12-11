@@ -103,13 +103,17 @@ const AssigneeSelector = React.createClass({
     this.setState({filter: '', loading: true});
   },
 
-  onFilterChange(evt) {
-    this.setState({
-      filter: evt.target.value
-    });
+  onFilterKeyUp(evt) {
+    if (evt.key === 'Escape') {
+      this.refs.dropdown.close();
+    } else {
+      this.setState({
+        filter: evt.target.value
+      });
+    }
   },
 
-  onInputKeyDown(evt) {
+  onFilterKeyDown(evt) {
     if (evt.key === 'Enter' && this.state.filter) {
       let members = AssigneeSelector.filterMembers(this.state.memberList, this.state.filter);
       if (members.length > 0) {
@@ -188,6 +192,7 @@ const AssigneeSelector = React.createClass({
             <LoadingIndicator mini={true} />
           :
             <DropdownLink
+              ref="dropdown"
               className="assignee-selector-toggle"
               onOpen={this.onDropdownOpen}
               onClose={this.onDropdownClose}
@@ -200,8 +205,8 @@ const AssigneeSelector = React.createClass({
               <MenuItem noAnchor={true} key="filter">
                 <input type="text" className="form-control input-sm"
                        placeholder="Filter people" ref="filter"
-                       onKeyDown={this.onInputKeyDown}
-                       onKeyUp={this.onFilterChange} />
+                       onKeyDown={this.onFilterKeyDown}
+                       onKeyUp={this.onFilterKeyUp} />
               </MenuItem>
               {assignedTo ?
                 <MenuItem key="clear"
