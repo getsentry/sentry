@@ -1519,6 +1519,14 @@ table.integrations {
     }
 
     li {
+      &.not-found span {
+        padding: 5px 8px;
+        padding-left: 10px;
+        display: block;
+        font-style: italic;
+        text-align: center;
+      }
+
       strong {
         font-weight: normal;
         background: lighten(@yellow, 15);
@@ -1974,6 +1982,7 @@ table.integrations {
   -webkit-background-clip: padding-box;
   -moz-background-clip: padding;
   background-clip: padding-box;
+  color: @gray-darker;
 
   &:after {
     width: 0;

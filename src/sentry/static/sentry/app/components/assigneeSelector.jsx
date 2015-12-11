@@ -12,6 +12,7 @@ import LoadingIndicator from '../components/loadingIndicator';
 import {userDisplayName} from '../utils/formatters';
 import {valueIsEqual} from '../utils';
 import TooltipMixin from '../mixins/tooltip';
+import {t} from '../locale';
 
 const AssigneeSelector = React.createClass({
   propTypes: {
@@ -168,6 +169,12 @@ const AssigneeSelector = React.createClass({
         </MenuItem>
       );
     });
+
+    if (memberNodes.length === 0) {
+      memberNodes = [
+        <li className="not-found" key="no-user"><span>{t('No matching users found.')}</span></li>
+      ];
+    }
 
     let tooltipTitle = null;
     if (assignedTo) {
