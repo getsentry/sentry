@@ -112,12 +112,12 @@ const RuleEditor = React.createClass({
                 <p>{t('There was an error saving your changes. Make sure all fields are valid and try again.')}</p>
               </div>
             }
-            <h6>Rule name:</h6>
+            <h6>{t('Rule name')}:</h6>
             <input ref="name"
                    type="text" className="form-control"
                    defaultValue={name}
                    required={true}
-                   placeholder="My Rule Name" />
+                   placeholder={t('My Rule Name')} />
             <hr/>
 
             <div className="node-match-selector">

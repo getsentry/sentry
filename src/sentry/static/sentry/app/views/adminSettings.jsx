@@ -143,11 +143,11 @@ const AdminSettings = React.createClass({
 
     return (
       <div>
-        <h3>Settings</h3>
+        <h3>{t('Settings')}</h3>
 
         {loading ?
           <LoadingIndicator>
-            Please wait while we load configuration.
+            {t('Please wait while we load configuration.')}
           </LoadingIndicator>
         : (error ?
           <div className="loading-error">

@@ -219,7 +219,7 @@ const NoteInput = React.createClass({
               <a onClick={this.toggleEdit}>{updating ? t('Edit') : t('Write')}</a>
             </li>
             <li className={preview ? 'active' : ''}>
-              <a onClick={this.togglePreview}>Preview</a>
+              <a onClick={this.togglePreview}>{t('Preview')}</a>
             </li>
             <li className="markdown">
               <span className="icon-markdown" /><span className="supported">
@@ -231,7 +231,7 @@ const NoteInput = React.createClass({
             <div className="note-preview"
                  dangerouslySetInnerHTML={{__html: marked(value)}} />
           :
-            <textarea placeholder="Add details or updates to this event"
+            <textarea placeholder={t('Add details or updates to this event')}
                       onChange={this.onChange}
                       onKeyDown={this.onKeyDown}
                       onFocus={this.expand} onBlur={this.maybeCollapse}
