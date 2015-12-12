@@ -220,7 +220,7 @@ const AssigneeSelector = React.createClass({
               }>
               <MenuItem noAnchor={true} key="filter">
                 <input type="text" className="form-control input-sm"
-                       placeholder="Filter people" ref="filter"
+                       placeholder={t('Filter people')} ref="filter"
                        onKeyDown={this.onFilterKeyDown}
                        onKeyUp={this.onFilterKeyUp} />
               </MenuItem>
@@ -229,7 +229,7 @@ const AssigneeSelector = React.createClass({
                           className="clear-assignee"
                           disabled={!loading}
                           onSelect={this.clearAssignTo}>
-                  <span className="icon-circle-cross"/> Clear Assignee
+                  <span className="icon-circle-cross"/> {t('Clear Assignee')}
                 </MenuItem>
               : ''}
               <li>

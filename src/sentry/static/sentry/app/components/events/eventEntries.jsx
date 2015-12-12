@@ -10,6 +10,7 @@ import EventMessage from './message';
 import EventUser from './user';
 import PropTypes from '../../proptypes';
 import utils from '../../utils';
+import {t} from '../../locale';
 
 const EventEntries = React.createClass({
   propTypes: {
@@ -71,7 +72,7 @@ const EventEntries = React.createClass({
               event={evt}
               type={entry.type}
               title={entry.type}>
-            <p>There was an error rendering this data.</p>
+            <p>{t('There was an error rendering this data.')}</p>
           </EventDataSection>
         );
       }
