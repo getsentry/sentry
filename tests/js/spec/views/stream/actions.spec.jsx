@@ -1,5 +1,5 @@
 import React from 'react';
-import TestUtils from 'react-addons-test-utils';
+import {shallow} from 'enzyme';
 
 import {Client} from 'app/api';
 import stubReactComponents from '../../../helpers/stubReactComponent';
@@ -24,7 +24,7 @@ describe('StreamActions', function() {
 
   describe('actionSelectedGroups()', function () {
     beforeEach(function() {
-      this.actions = TestUtils.renderIntoDocument(
+      this.actions = shallow(
           <StreamActions
             orgId="1337"
             projectId="1"
@@ -34,7 +34,7 @@ describe('StreamActions', function() {
             realtimeActive={false}
             statsPeriod="24h"
             />
-          );
+          ).instance();
     });
 
     describe('for all items', function () {
