@@ -8,7 +8,7 @@ const definitions = {
     label: t('Root URL'),
     placeholder: 'https://sentry.example.com',
     help: t('The root web address which is used to communicate with the Sentry backend.'),
-    defaultValue: () => `${document.location.protocol}//${document.location.host}`
+    defaultValue: () => `${document.location.protocol}//${document.location.host}`,
   },
   'system.admin-email': {
     label: t('Admin Email'),
@@ -16,8 +16,13 @@ const definitions = {
     help: t('The technical contact for this Sentry installation.'),
     // TODO(dcramer): this shoudl not be hardcoded to a component
     component: EmailField,
-    defaultValue: () => ConfigStore.get('user').email
-  }
+    defaultValue: () => ConfigStore.get('user').email,
+  },
+  'system.rate-limit': {
+    label: t('Rate Limit'),
+    placeholder: 'e.g. 500',
+    help: t('The maximum number of events the system should accept per minute. A value of 0 will disable the default rate limit.'),
+  },
 };
 
 const disabledReasons = {
@@ -35,7 +40,7 @@ export function getOptionField(option, onChange, value, field) {
     <Field
         key={option}
         label={meta.label}
-        defaultValue={meta.defaultValue()}
+        defaultValue={meta.defaultValue ? meta.defaultValue() : undefined}
         placeholder={meta.placeholder}
         help={meta.help}
         onChange={onChange}

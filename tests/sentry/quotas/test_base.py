@@ -16,48 +16,48 @@ class QuotaTest(TestCase):
         project = self.create_project(organization=org)
 
         with self.settings(SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE=0):
-            with self.settings(SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE=0):
+            with self.options({'system.rate-limit': 0}):
                 assert self.backend.get_project_quota(project) == 0
 
             ProjectOption.objects.set_value(
                 project, 'quotas:per_minute', '80%'
             )
 
-            with self.settings(SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE=100):
+            with self.options({'system.rate-limit': 100}):
                 assert self.backend.get_project_quota(project) == 80
 
-            with self.settings(SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE=0):
+            with self.options({'system.rate-limit': 0}):
                 assert self.backend.get_project_quota(project) == 0
 
             ProjectOption.objects.set_value(
                 project, 'quotas:per_minute', '50'
             )
 
-            with self.settings(SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE=100):
+            with self.options({'system.rate-limit': 100}):
                 assert self.backend.get_project_quota(project) == 50
 
-            with self.settings(SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE=0):
+            with self.options({'system.rate-limit': 0}):
                 assert self.backend.get_project_quota(project) == 50
 
             OrganizationOption.objects.set_value(
                 org, 'sentry:project-rate-limit', 80,
             )
 
-            with self.settings(SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE=100):
+            with self.options({'system.rate-limit': 100}):
                 assert self.backend.get_project_quota(project) == 50
 
-            with self.settings(SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE=50):
+            with self.options({'system.rate-limit': 50}):
                 assert self.backend.get_project_quota(project) == 40
 
-            with self.settings(SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE=0):
+            with self.options({'system.rate-limit': 0}):
                 assert self.backend.get_project_quota(project) == 50
 
             ProjectOption.objects.set_value(
                 project, 'quotas:per_minute', ''
             )
 
-            with self.settings(SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE=100):
+            with self.options({'system.rate-limit': 100}):
                 assert self.backend.get_project_quota(project) == 80
 
-            with self.settings(SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE=0):
+            with self.options({'system.rate-limit': 0}):
                 assert self.backend.get_project_quota(project) == 0

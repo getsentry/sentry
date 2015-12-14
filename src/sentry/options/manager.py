@@ -63,7 +63,7 @@ class OptionsManager(object):
         self.store = store
         self.registry = {}
 
-    def set(self, key, value):
+    def set(self, key, value, coerce=True):
         """
         Set the value for an option. If the cache is unavailable the action will
         still suceeed.
@@ -80,8 +80,16 @@ class OptionsManager(object):
         # Enforce immutability if value is already set on disk
         assert not (opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key)), '%r cannot be changed at runtime because it is configured on disk' % key
 
-        if not isinstance(value, opt.type):
-            raise TypeError('got %r, expected %r' % (_type(value), opt.type))
+        if not self._value_is_of_type(opt.type, value):
+            if not coerce:
+                raise TypeError('got %r, expected %r' % (_type(value), opt.type))
+            else:
+                # TODO(dcramer): implement more explicit coercion error
+                # with custom types
+                try:
+                    value = opt.type(value)
+                except (ValueError, TypeError):
+                    raise TypeError('Unable to coerce %r to %r' % (_type(value), opt.type))
 
         return self.store.set(opt, value)
 
@@ -164,13 +172,24 @@ class OptionsManager(object):
 
         return self.store.delete(opt)
 
-    def register(self, key, default='', type=None, flags=DEFAULT_FLAGS,
+    def _value_is_of_type(self, type, value):
+        # TODO(dcramer): replace with basic types
+        if type in (unicode, str):
+            type = basestring
+        return isinstance(value, type)
+
+    def register(self, key, default=None, type=None, flags=DEFAULT_FLAGS,
                  ttl=DEFAULT_KEY_TTL, grace=DEFAULT_KEY_GRACE):
         assert key not in self.registry, 'Option already registered: %r' % key
         # Guess type based on the default value
         if type is None:
-            if isinstance(default, basestring):
-                type = basestring
+            # the default value would be equivilent to '' if no type / default
+            # is specified and we assume unicode for safety
+            if default is None:
+                type = unicode
+                default = u''
+            elif isinstance(default, basestring):
+                type = unicode
             else:
                 type = _type(default)
         # We disallow None as a value for options since this is ambiguous and doesn't
@@ -178,8 +197,10 @@ class OptionsManager(object):
         # value instead that matches the type expected, rather than relying on None.
         if type is NoneType:
             raise TypeError('Options must not be NoneType')
-        if not isinstance(default, type):
+        if default is not None and not self._value_is_of_type(type, default):
             raise TypeError('got %r, expected %r' % (_type(default), type))
+        if default is None:
+            default = type()
         self.registry[key] = self.store.make_key(key, default, type, flags, ttl, grace)
 
     def unregister(self, key):
@@ -196,7 +217,7 @@ class OptionsManager(object):
     def validate_option(self, key, value):
         opt = self.lookup_key(key)
         assert not (opt.flags & FLAG_STOREONLY), '%r is not allowed to be loaded from config' % key
-        if not isinstance(value, opt.type):
+        if not self._value_is_of_type(opt.type, value):
             raise TypeError('%r: got %r, expected %r' % (key, _type(value), opt.type))
 
     def all(self):
