@@ -12,6 +12,7 @@ import StreamFilters from 'app/views/stream/filters';
 import StreamSidebar from 'app/views/stream/sidebar';
 import StreamActions from 'app/views/stream/actions';
 import stubReactComponents from '../../helpers/stubReactComponent';
+import stubContext from '../../helpers/stubContext';
 
 const findWithClass = TestUtils.findRenderedDOMComponentWithClass;
 const findWithType = TestUtils.findRenderedComponentWithType;
@@ -31,8 +32,14 @@ describe('Stream', function() {
 
     stubReactComponents(this.sandbox, [StreamGroup, StreamFilters, StreamSidebar, StreamActions, Sticky]);
 
+    let ContextStubbedStream = stubContext(Stream, {
+      project: {
+        slug: 'fooproject'
+      }
+    });
+
     this.Element = (
-      <Stream
+      <ContextStubbedStream
         setProjectNavSection={function () {}}
         location={{query:{}}}
         params={{orgId: '123', projectId: '456'}}/>
@@ -50,7 +57,7 @@ describe('Stream', function() {
       });
 
       it('should reset the poller endpoint and sets cursor URL', function() {
-        let stream = TestUtils.renderIntoDocument(this.Element);
+        let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
         stream.state.pageLinks = DEFAULT_LINKS_HEADER;
         stream.state.realtimeActive = true;
         stream.fetchData();
@@ -61,7 +68,7 @@ describe('Stream', function() {
       });
 
       it('should not enable the poller if realtimeActive is false', function () {
-        let stream = TestUtils.renderIntoDocument(this.Element);
+        let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
         stream.state.pageLinks = DEFAULT_LINKS_HEADER;
         stream.state.realtimeActive = false;
         stream.fetchData();
@@ -70,7 +77,7 @@ describe('Stream', function() {
       });
 
       it('should not enable the poller if the \'previous\' link has results', function () {
-        let stream = TestUtils.renderIntoDocument(this.Element);
+        let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
         stream.state.pageLinks =
           '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:1>; rel="previous"; results="true"; cursor="1443575731:0:1", ' +
           '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
@@ -95,7 +102,7 @@ describe('Stream', function() {
       });
 
       // NOTE: fetchData called once after render automatically
-      let stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
 
       // 2nd fetch should call cancel
       stream.fetchData();
@@ -115,7 +122,7 @@ describe('Stream', function() {
   describe('render()', function() {
 
     it('displays a loading indicator when component is loading', function() {
-      let stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
       stream.setState({loading: true});
       let expected = findWithType(stream, LoadingIndicator);
 
@@ -123,7 +130,7 @@ describe('Stream', function() {
     });
 
     it('displays an error when component has errored', function() {
-      let stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
       stream.setState({
         error: true,
         loading: false
@@ -133,7 +140,7 @@ describe('Stream', function() {
     });
 
     it('displays the group list', function() {
-      let stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
       stream.setState({
         error: false,
         groupIds: ['1'],
@@ -144,7 +151,8 @@ describe('Stream', function() {
     });
 
     it('displays empty with no ids', function() {
-      let stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
+
       stream.setState({
         error: false,
         groupIds: [],
@@ -165,7 +173,7 @@ describe('Stream', function() {
     it('reads the realtimeActive state from a cookie', function(done) {
       Cookies.set('realtimeActive', 'false');
 
-      let stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
       setTimeout(() => {
         expect(stream.state.realtimeActive).to.not.be.ok;
         done();
@@ -174,7 +182,7 @@ describe('Stream', function() {
 
     it('reads the true realtimeActive state from a cookie', function(done) {
       Cookies.set('realtimeActive', 'true');
-      let stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
 
       setTimeout(() => {
         expect(stream.state.realtimeActive).to.be.ok;
@@ -187,7 +195,7 @@ describe('Stream', function() {
   describe('onRealtimeChange', function() {
 
     it('sets the realtimeActive state', function() {
-      let stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
       stream.state.realtimeActive = false;
       stream.onRealtimeChange(true);
       expect(stream.state.realtimeActive).to.eql(true);
@@ -214,7 +222,7 @@ describe('Stream', function() {
         loading: true,
         error: false
       };
-      let stream = TestUtils.renderIntoDocument(this.Element);
+      let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
       let actual = stream.getInitialState();
 
       for (let property in expected) {
@@ -225,4 +233,3 @@ describe('Stream', function() {
   });
 
 });
-
