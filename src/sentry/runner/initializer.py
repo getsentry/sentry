@@ -270,6 +270,4 @@ def on_configure(config):
     settings = config['settings']
 
     skip_migration_if_applied(
-        settings, 'kombu.contrib.django', 'djkombu_queue')
-    skip_migration_if_applied(
         settings, 'social_auth', 'social_auth_association')

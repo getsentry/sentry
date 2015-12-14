@@ -1,6 +1,7 @@
 import React from 'react';
 //import GroupEventDataSection from "../eventDataSection";
 import Frame from './frame';
+import {t} from '../../../locale';
 
 const StacktraceContent = React.createClass({
   propTypes: {
@@ -36,7 +37,7 @@ const StacktraceContent = React.createClass({
       if (frameIdx === firstFrameOmitted) {
         frames.push((
           <li className="frame frames-omitted" key="omitted">
-            Frames {firstFrameOmitted} until {lastFrameOmitted} were omitted and not available.
+            {t('Frames %d until %d were omitted and not available.', firstFrameOmitted, lastFrameOmitted)}
           </li>
         ));
       }

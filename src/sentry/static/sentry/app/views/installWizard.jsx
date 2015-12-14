@@ -190,7 +190,7 @@ const InstallWizard = React.createClass({
     let {error, loading, options, submitError, submitErrorMessage, submitInProgress} = this.state;
     let version = ConfigStore.get('version');
     return (
-      <DocumentTitle title="Sentry Setup">
+      <DocumentTitle title={t('Sentry Setup')}>
         <div className="app">
           <div className="pattern" />
           <div className="setup-wizard">
@@ -200,7 +200,7 @@ const InstallWizard = React.createClass({
             </h1>
             {loading ?
               <LoadingIndicator>
-                Please wait while we load configuration.
+                {t('Please wait while we load configuration.')}
               </LoadingIndicator>
             : (error ?
               <div className="loading-error">
