@@ -212,6 +212,12 @@ def apply_legacy_settings(settings):
                       "Use SENTRY_OPTIONS instead, key 'system.url-prefix'", DeprecationWarning)
         settings.SENTRY_OPTIONS['system.url-prefix'] = settings.SENTRY_URL_PREFIX
 
+    if not settings.SENTRY_OPTIONS.get('system.rate-limit') and hasattr(settings, 'SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE'):
+        import warnings
+        warnings.warn('SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE is deprecated.'
+                      "Use SENTRY_OPTIONS instead, key 'system.rate-limit'", DeprecationWarning)
+        settings.SENTRY_OPTIONS['system.rate-limit'] = settings.SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE
+
     if not hasattr(settings, 'SENTRY_URL_PREFIX'):
         from sentry import options
         url_prefix = options.get('system.url-prefix', silent=True)

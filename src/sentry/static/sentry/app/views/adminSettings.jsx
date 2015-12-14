@@ -7,62 +7,63 @@ import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t} from '../locale';
 import {getOption, getOptionField} from '../options';
+import {Form} from '../components/forms';
 
-// TODO(dcramer): a lot of this is copied from InstallWizard
+const optionsAvailable = [
+  'system.url-prefix',
+  'system.admin-email',
+  'system.rate-limit',
+];
+
 const SettingsList = React.createClass({
   getInitialState() {
-    let options = {...this.props.options};
-    let requiredOptions = Object.keys(_.pick(options, (option) => {
-      return option.field.required && !option.field.disabled;
-    }));
+    let options = this.props.options;
+    let formData = {};
+    let required = [];
     let fields = [];
-    for (let key of Object.keys(options)) {
-      let option = options[key];
-      if (!option.value) {
-        option.value = getOption(key).defaultValue();
+    for (let key of optionsAvailable) {
+      // TODO(dcramer): we should not be mutating options
+      let option = options[key] || {field: {}};
+      if (typeof option.value === 'undefined' || option.value === '') {
+        let defn = getOption(key);
+        formData[key] = defn.defaultValue ? defn.defaultValue() : '';
+      } else {
+        formData[key] = option.value;
       }
-      fields.push(getOptionField(key, this.onFieldChange.bind(this, key), option.value, option.field));
-      // options is used for submitting to the server, and we dont submit values
-      // that are deleted
-      if (option.field.disabled) {
-        delete options[key];
+      if (option.field.required) {
+        required.push(key);
       }
+      fields.push(getOptionField(key, this.onFieldChange.bind(this, key), formData[key], option.field));
     }
 
     return {
-      options: options,
-      required: requiredOptions,
+      required: required,
+      formData: formData,
       fields: fields,
     };
   },
 
   onFieldChange(name, value) {
-    let options = {...this.state.options};
-    options[name].value = value;
+    let formData = this.state.formData;
+    formData[name] = value;
     this.setState({
-      options: options
+      formData: formData
     });
   },
 
   onSubmit(e) {
-    e.preventDefault();
-    this.props.onSubmit(this.state.options);
+    this.props.onSubmit(this.state.formData);
   },
 
   render() {
-    let {fields, required, options} = this.state;
-    let formValid = !required.filter(option => !options[option].value).length;
-    let disabled = !formValid || this.props.formDisabled;
+    let {fields, required, formData} = this.state;
+    let formValid = !required.filter(option => !formData[option]).length;
+    let submitDisabled = !formValid || this.props.formDisabled;
 
     return (
-      <form onSubmit={this.onSubmit}>
+      <Form onSubmit={this.onSubmit} submitDisabled={submitDisabled}>
         {fields}
-        <div className="form-actions" style={{marginTop: 25}}>
-          <button className="btn btn-primary"
-                  disabled={disabled}
-                  type="submit">{t('Save Changes')}</button>
-        </div>
-      </form>
+      </Form>
     );
   }
 });
@@ -109,17 +110,20 @@ const AdminSettings = React.createClass({
     });
   },
 
-  onSubmit(options) {
+  onSubmit(formData) {
     this.setState({
       submitInProgress: true,
       submitError: false,
     });
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    let data = _.mapObject(options, option => option.value);
+    // We only want to send back the values which weren't disabled
+    formData = _.pick(formData, (value, key) => {
+      return !this.state.options[key].field.disabled;
+    });
     this.api.request('/internal/options/', {
       method: 'PUT',
-      data: data,
+      data: formData,
       success: () => {
         this.setState({
           submitInProgress: false,

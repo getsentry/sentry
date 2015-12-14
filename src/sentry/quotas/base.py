@@ -11,6 +11,8 @@ from collections import namedtuple
 from functools import partial
 from django.conf import settings
 
+from sentry import options
+
 RateLimit = namedtuple('RateLimit', ('is_limited', 'retry_after'))
 NotRateLimited = RateLimit(False, None)
 RateLimited = partial(RateLimit, is_limited=True)
@@ -96,5 +98,5 @@ class Quota(object):
     def get_organization_quota(self, organization):
         return self.translate_quota(
             settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE,
-            settings.SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE,
+            options.get('system.rate-limit'),
         )

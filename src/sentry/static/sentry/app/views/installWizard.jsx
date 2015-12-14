@@ -112,7 +112,9 @@ const InstallWizard = React.createClass({
   },
 
   fetchData(callback) {
-    this.api.request('/internal/options/', {
+    // TODO(dcramer): ideally this would only be fetching options that aren't
+    // already configured
+    this.api.request('/internal/options/?query=is:required', {
       method: 'GET',
       success: (data) => {
         this.setState({

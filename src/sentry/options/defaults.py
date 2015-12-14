@@ -16,6 +16,7 @@ register('cache.options', default={}, flags=FLAG_NOSTORE)
 register('system.admin-email', flags=FLAG_REQUIRED)
 register('system.databases', default={}, flags=FLAG_NOSTORE)
 register('system.debug', default=False, flags=FLAG_NOSTORE)
+register('system.rate-limit', default=0, type=int)
 register('system.secret-key', flags=FLAG_NOSTORE)
 register('redis.options', default={}, flags=FLAG_NOSTORE)
 
