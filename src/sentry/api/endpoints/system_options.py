@@ -15,6 +15,7 @@ class SystemOptionsEndpoint(Endpoint):
 
     def get(self, request):
         results = {}
+        # TODO(dcramer): this not not be returning only required options
         for k in options.filter(flag=options.FLAG_REQUIRED):
             # TODO(mattrobenolt): Expose this as a property on Key.
             diskPriority = bool(k.flags & options.FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(k.name))
@@ -45,5 +46,7 @@ class SystemOptionsEndpoint(Endpoint):
                         'option': k,
                     },
                 }, status=400)
+        # TODO(dcramer): this has nothing to do with configuring options and
+        # should not be set here
         options.set('sentry:version-configured', sentry.get_version())
         return Response(status=200)
