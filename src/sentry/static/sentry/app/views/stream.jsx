@@ -1,6 +1,7 @@
 import React from 'react';
 import Reflux from 'reflux';
 import {History} from 'react-router';
+import {Link} from 'react-router';
 import Cookies from 'js-cookie';
 import Sticky from 'react-sticky';
 import classNames from 'classnames';
@@ -382,13 +383,16 @@ const Stream = React.createClass({
   },
 
   renderAwaitingEvents() {
+    let org = this.getOrganization();
+    let project = this.getProject();
+
     return (
       <div className="box awaiting-events">
         <div className="wrap">
           <div className="robot"></div>
           <h3>Waiting for events…</h3>
           <p>{t('Our error robot is waiting to')} <span className="strikethrough">{t('devour')}</span> {t('recieve your first event.')}</p>
-          <p><a className="btn btn-lg btn-primary">{t('Installation Instructions')}</a></p>
+          <p><Link to={`/${org.slug}/${project.slug}/settings/install`} className="btn btn-primary btn-lg">{t('Installation Instructions')}</Link></p>
         </div>
       </div>
     );
