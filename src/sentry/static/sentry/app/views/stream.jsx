@@ -7,6 +7,7 @@ import classNames from 'classnames';
 import _ from 'underscore';
 
 import ApiMixin from '../mixins/apiMixin';
+import ProjectState from '../mixins/projectState';
 
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
@@ -31,7 +32,8 @@ const Stream = React.createClass({
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.listenTo(StreamTagStore, 'onStreamTagChange'),
     History,
-    ApiMixin
+    ApiMixin,
+    ProjectState
   ],
 
   getDefaultProps() {
@@ -379,6 +381,19 @@ const Stream = React.createClass({
     return (<ul className="group-list" ref="groupList">{groupNodes}</ul>);
   },
 
+  renderAwaitingEvents() {
+    return (
+      <div className="box awaiting-events">
+        <div className="wrap">
+          <div className="robot"></div>
+          <h3>Waiting for events…</h3>
+          <p>{t('Our error robot is waiting to')} <span className="strikethrough">{t('devour')}</span> {t('recieve your first event.')}</p>
+          <p><a className="btn btn-lg btn-primary">{t('Installation Instructions')}</a></p>
+        </div>
+      </div>
+    );
+  },
+
   renderEmpty() {
     return (
       <div className="box empty-stream">
@@ -399,12 +414,16 @@ const Stream = React.createClass({
   renderStreamBody() {
     let body;
 
+    let project = this.getProject();
+
     if (this.state.loading) {
       body = this.renderLoading();
     } else if (this.state.error) {
       body = (<LoadingError onRetry={this.fetchData} />);
     } else if (this.state.groupIds.length > 0) {
       body = this.renderGroupNodes(this.state.groupIds, this.state.statsPeriod);
+    } else if (project.firstEvent) {
+      body = this.renderAwaitingEvents();
     } else {
       body = this.renderEmpty();
     }
