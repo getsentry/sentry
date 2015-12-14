@@ -1,4 +1,4 @@
-/*eslint jsx-needs-il8n:0*/
+/*eslint getsentry/jsx-needs-il8n:0*/
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 

@@ -6,13 +6,10 @@
     "url": "git://github.com/getsentry/sentry.git"
   },
   "dependencies": {
-    "babel-eslint": "4.1.5",
     "bootstrap": "3.3.5",
     "classnames": "2.2.0",
     "crypto-js": "3.1.5",
     "css-loader": "0.18.0",
-    "eslint": "1.9.0",
-    "eslint-plugin-react": "3.11.2",
     "extract-text-webpack-plugin": "0.8.2",
     "file-loader": "0.8.4",
     "history": "1.13.0",
@@ -49,14 +46,18 @@
   "scripts": {
     "test": "node_modules/karma/bin/karma start tests/karma.conf.js --single-run",
     "test-watch": "node_modules/karma/bin/karma start tests/karma.conf.js",
-    "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx --rulesdir src/sentry/lint/eslint"
+    "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx"
   },
   "devDependencies": {
     "babel-core": "5.8.33",
+    "babel-eslint": "4.1.5",
     "babel-gettext-extractor": "^1.0.2",
     "babel-loader": "5.3.3",
     "chai": "3.4.1",
     "enzyme": "^1.1.0",
+    "eslint": "1.9.0",
+    "eslint-plugin-getsentry": "1.0.0",
+    "eslint-plugin-react": "3.11.2",
     "js-cookie": "2.0.4",
     "karma": "0.13.15",
     "karma-chai": "0.1.0",
