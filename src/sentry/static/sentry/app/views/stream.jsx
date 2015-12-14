@@ -1,12 +1,14 @@
 import React from 'react';
 import Reflux from 'reflux';
 import {History} from 'react-router';
+import {Link} from 'react-router';
 import Cookies from 'js-cookie';
 import Sticky from 'react-sticky';
 import classNames from 'classnames';
 import _ from 'underscore';
 
 import ApiMixin from '../mixins/apiMixin';
+import ProjectState from '../mixins/projectState';
 
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
@@ -20,7 +22,7 @@ import StreamFilters from './stream/filters';
 import StreamSidebar from './stream/sidebar';
 import utils from '../utils';
 import parseLinkHeader from '../utils/parseLinkHeader';
-import {t} from '../locale';
+import {t, tct} from '../locale';
 
 const Stream = React.createClass({
   propTypes: {
@@ -31,7 +33,8 @@ const Stream = React.createClass({
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.listenTo(StreamTagStore, 'onStreamTagChange'),
     History,
-    ApiMixin
+    ApiMixin,
+    ProjectState
   ],
 
   getDefaultProps() {
@@ -379,6 +382,22 @@ const Stream = React.createClass({
     return (<ul className="group-list" ref="groupList">{groupNodes}</ul>);
   },
 
+  renderAwaitingEvents() {
+    let org = this.getOrganization();
+    let project = this.getProject();
+
+    return (
+      <div className="box awaiting-events">
+        <div className="wrap">
+          <div className="robot"></div>
+          <h3>{t('Waiting for events…')}</h3>
+          <p>{tct('Our error robot is waiting to [cross:devour] recieve your first event.', {cross: <span className="strikethrough"/>})}</p>
+          <p><Link to={`/${org.slug}/${project.slug}/settings/install`} className="btn btn-primary btn-lg">{t('Installation Instructions')}</Link></p>
+        </div>
+      </div>
+    );
+  },
+
   renderEmpty() {
     return (
       <div className="box empty-stream">
@@ -399,12 +418,16 @@ const Stream = React.createClass({
   renderStreamBody() {
     let body;
 
+    let project = this.getProject();
+
     if (this.state.loading) {
       body = this.renderLoading();
     } else if (this.state.error) {
       body = (<LoadingError onRetry={this.fetchData} />);
     } else if (this.state.groupIds.length > 0) {
       body = this.renderGroupNodes(this.state.groupIds, this.state.statsPeriod);
+    } else if (project.firstEvent) {
+      body = this.renderAwaitingEvents();
     } else {
       body = this.renderEmpty();
     }
