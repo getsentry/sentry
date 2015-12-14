@@ -21,16 +21,24 @@ module.exports = function(config) {
       'tests/tests.webpack.js'
     ],
 
+    // [1]
+    // Note there's a bunch of configurations in here that in order to work
+    // around a airbnb/enzyme + webpack + sinon build bug:
+    //   https://github.com/airbnb/enzyme/issues/47#issuecomment-162529926
     webpack: {
       cache: true,
       resolve: {
         alias: {
-          "app": appPrefix
+          "app": appPrefix,
+          sinon: 'sinon/pkg/sinon' // see [1] above
         },
         modulesDirectories: ["node_modules"],
         extensions: ["", ".jsx", ".js", ".json"]
       },
       module: {
+        noParse: [
+          /node_modules\/sinon\//, // see [1] above
+        ],
         loaders: [
           {
             exclude: /(vendor|node_modules)/,
@@ -59,6 +67,11 @@ module.exports = function(config) {
           "root.jQuery": "jquery"
         })
       ],
+      externals: { // see [1] above
+        'jsdom': 'window', // can't simulate jsdom in browser
+        'cheerio': 'window',
+        'react/lib/ExecutionEnvironment': true
+      }
     },
 
     webpackMiddleware: {
