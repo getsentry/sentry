@@ -568,12 +568,83 @@
      height: 260px;
      background: url(../images/sentry-robot.png);
      background-size: cover;
+
+     .eye {
+       display: block;
+       .square(12px);
+       border-radius: 12px;
+       position: absolute;
+       top: 70px;
+       left: 82px;
+
+        -webkit-animation: blink-eye .6s infinite;
+        -moz-animation:    blink-eye .6s infinite;
+        -o-animation:      blink-eye .6s infinite;
+        animation:         blink-eye .6s infinite;
+      }
    }
 
    .strikethrough {
      text-decoration: line-through;
    }
  }
+
+ @-webkit-keyframes blink-eye {
+  0% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+  50% {
+    background: #4A4D67;
+    box-shadow: none;
+  }
+  100% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+}
+@-moz-keyframes blink-eye {
+  0% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+  50% {
+    background: #4A4D67;
+    box-shadow: none;
+  }
+  100% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+}
+@-o-keyframes blink-eye {
+  0% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+  50% {
+    background: #4A4D67;
+    box-shadow: none;
+  }
+  100% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+}
+@keyframes blink-eye {
+  0% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+  50% {
+    background: #4A4D67;
+    box-shadow: none;
+  }
+  100% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+}
 
 /**
 * Issue list
