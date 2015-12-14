@@ -32,9 +32,15 @@ describe('Stream', function() {
 
     stubReactComponents(this.sandbox, [StreamGroup, StreamFilters, StreamSidebar, StreamActions, Sticky]);
 
+    this.projectContext = {
+      slug: 'foo-project',
+      firstEvent: true
+    };
+
     let ContextStubbedStream = stubContext(Stream, {
-      project: {
-        slug: 'fooproject'
+      project: this.projectContext,
+      organization: {
+        slug: 'foo-org'
       }
     });
 
