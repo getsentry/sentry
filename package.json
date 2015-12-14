@@ -56,6 +56,7 @@
     "babel-gettext-extractor": "^1.0.2",
     "babel-loader": "5.3.3",
     "chai": "3.4.1",
+    "enzyme": "^1.1.0",
     "js-cookie": "2.0.4",
     "karma": "0.13.15",
     "karma-chai": "0.1.0",
