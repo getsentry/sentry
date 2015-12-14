@@ -22,7 +22,7 @@ import StreamFilters from './stream/filters';
 import StreamSidebar from './stream/sidebar';
 import utils from '../utils';
 import parseLinkHeader from '../utils/parseLinkHeader';
-import {t} from '../locale';
+import {t, tct} from '../locale';
 
 const Stream = React.createClass({
   propTypes: {
@@ -391,7 +391,7 @@ const Stream = React.createClass({
         <div className="wrap">
           <div className="robot"></div>
           <h3>{t('Waiting for events…')}</h3>
-          <p>{t('Our error robot is waiting to')} <span className="strikethrough">{t('devour')}</span> {t('receive your first event.')}</p>
+          <p>{tct('Our error robot is waiting to [cross:devour] recieve your first event.', {cross: <span className="strikethrough"/>})}</p>
           <p><Link to={`/${org.slug}/${project.slug}/settings/install`} className="btn btn-primary btn-lg">{t('Installation Instructions')}</Link></p>
         </div>
       </div>
