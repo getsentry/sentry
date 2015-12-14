@@ -392,7 +392,7 @@ const Stream = React.createClass({
           <div className="robot"><span className="eye" /></div>
           <h3>{t('Waiting for events…')}</h3>
           <p>{tct('Our error robot is waiting to [cross:devour] receive your first event.', {cross: <span className="strikethrough"/>})}</p>
-          <p><Link to={`/${org.slug}/${project.slug}/settings/install`} className="btn btn-primary btn-lg">{t('Installation Instructions')}</Link></p>
+          <p><Link to={`/${org.slug}/${project.slug}/settings/install/`} className="btn btn-primary btn-lg">{t('Installation Instructions')}</Link></p>
         </div>
       </div>
     );
