@@ -168,6 +168,22 @@ describe('Stream', function() {
       expect(expected).to.be.ok;
     });
 
+    it('shows "awaiting events" message when no events have been sent', function() {
+      let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
+
+      this.projectContext.firstEvent = false; // Set false for this test only
+
+      stream.setState({
+        error: false,
+        groupIds: [],
+        loading: false
+      });
+      let expected = findWithClass(stream, 'awaiting-events');
+      expect(expected).to.be.ok;
+
+      this.projectContext.firstEvent = true; // Reset for other tests
+    });
+
   });
 
   describe('componentWillMount()', function() {
