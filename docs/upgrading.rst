@@ -44,3 +44,23 @@ merging your existing settings with the new defaults. To do that just
 backup your `sentry.conf.py` and generate a new one using `sentry init`.
 
 See the Changelog for additional backwards incompatible APIs.
+
+Worker Performance Issues
+-------------------------
+
+If you're running a worker configuration with a high concurrency
+level (> 4) we suggest decreasing it and running more masters.
+
+e.g. if you had something like:
+
+```
+numprocs=1
+command=celery worker -c 64
+```
+
+change it to:
+
+```
+numprocs=16
+command=celery worker -c 4
+```

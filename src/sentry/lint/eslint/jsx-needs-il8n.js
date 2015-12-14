@@ -28,7 +28,7 @@ module.exports = function(context) {
                 node.parent
             ) {
                // alt or title attribute
-               if (node.parent.type === 'JSXAttribute' && /title|alt/.test(node.parent.name.name)) {
+               if (node.parent.type === 'JSXAttribute' && /title|alt|placeholder/.test(node.parent.name.name)) {
                    return void reportLiteralNode(node);
                }
 

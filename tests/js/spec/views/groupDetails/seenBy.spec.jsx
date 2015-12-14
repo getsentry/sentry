@@ -1,9 +1,10 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-import TestUtils from 'react-addons-test-utils';
+import {mount} from 'enzyme';
+
 import GroupSeenBy from 'app/views/groupDetails/seenBy';
 import ConfigStore from 'app/stores/configStore';
 import Gravatar from 'app/components/gravatar';
+
 
 import stubContext from '../../../helpers/stubContext';
 import stubReactComponent from '../../../helpers/stubReactComponent';
@@ -29,8 +30,8 @@ describe('OrganizationTeams', function() {
         team: {}
       });
 
-      let groupSeenBy = TestUtils.renderIntoDocument(<ContextStubbedGroupSeenBy/>);
-      expect(ReactDOM.findDOMNode(groupSeenBy)).to.be.null;
+      let wrapper = mount(<ContextStubbedGroupSeenBy/>);
+      expect(wrapper.children()).to.have.length(0);
     });
 
     it('should return a list of each user that saw', function () {
@@ -46,9 +47,8 @@ describe('OrganizationTeams', function() {
         team: {}
       });
 
-      let groupSeenBy = TestUtils.renderIntoDocument(<ContextStubbedGroupSeenBy/>);
-      let li = TestUtils.scryRenderedDOMComponentsWithTag(groupSeenBy, 'li');
-      expect(li).to.have.property('length', 3); // +1 for "icon-eye"
+      let wrapper = mount(<ContextStubbedGroupSeenBy/>);
+      expect(wrapper.find('li')).to.have.length(3); // +1 for "icon-eye"
     });
   });
 });

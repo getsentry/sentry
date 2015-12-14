@@ -7,6 +7,7 @@ import Indicators from '../components/indicators';
 import InstallWizard from './installWizard';
 import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationStore from '../stores/organizationStore';
+import {t} from '../locale';
 
 const App = React.createClass({
   mixins: [
@@ -80,7 +81,7 @@ const App = React.createClass({
     if (this.state.loading) {
       return (
         <LoadingIndicator triangle={true}>
-          Getting a list of all of your organizations.
+          {t('Getting a list of all of your organizations.')}
         </LoadingIndicator>
       );
     }
