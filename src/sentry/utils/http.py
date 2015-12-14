@@ -111,6 +111,10 @@ def is_valid_origin(origin, project=None, allowed=None):
     """
     if allowed is None:
         allowed = get_origins(project)
+
+    if not allowed:
+        return False
+
     if '*' in allowed:
         return True
 
