@@ -403,6 +403,9 @@ CELERY_QUEUES = [
     Queue('digests.scheduling', routing_key='digests.scheduling'),
 ]
 
+for queue in CELERY_QUEUES:
+    queue.durable = False
+
 CELERY_ROUTES = ('sentry.queue.routers.SplitQueueRouter',)
 
 
