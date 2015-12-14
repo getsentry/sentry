@@ -17,7 +17,8 @@
     "Raven": true
   },
   "plugins": [
-    "react"
+    "react",
+    "getsentry"
   ],
   "rules": {
     /**
@@ -139,7 +140,7 @@
     /**
      * Custom
      */
-    "jsx-needs-il8n": 1,             // highlights literals in JSX components w/o translation tags
+    "getsentry/jsx-needs-il8n": 1,   // highlights literals in JSX components w/o translation tags
   }
 
 }
