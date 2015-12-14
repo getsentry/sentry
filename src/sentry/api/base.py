@@ -120,6 +120,12 @@ class Endpoint(APIView):
         if settings.SENTRY_API_RESPONSE_DELAY:
             time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0)
 
+        origin = request.META.get('HTTP_ORIGIN')
+        if origin and request.auth:
+            allowed_origins = request.auth.get_allowed_origins()
+            if not is_valid_origin(origin, allowed=allowed_origins):
+                raise Response('Invalid origin: %s' % (origin,), status=400)
+
         try:
             self.initial(request, *args, **kwargs)
 
@@ -139,32 +145,16 @@ class Endpoint(APIView):
         except Exception as exc:
             response = self.handle_exception(request, exc)
 
+        if origin:
+            self.add_cors_headers(request, response)
+
         self.response = self.finalize_response(request, response, *args, **kwargs)
+
         return self.response
 
-    def finalize_response(self, request, response, *args, **kwargs):
-        response = super(Endpoint, self).finalize_response(
-            request, response, *args, **kwargs
-        )
-
-        self.add_cors_headers(request, response)
-
-        return response
-
     def add_cors_headers(self, request, response):
-        if not request.auth:
-            return
-
-        origin = request.META.get('HTTP_ORIGIN')
-        if not origin:
-            return
-
-        allowed_origins = request.auth.get_allowed_origins()
-        if is_valid_origin(origin, allowed=allowed_origins):
-            response['Access-Control-Allow-Origin'] = origin
-            response['Access-Control-Allow-Methods'] = ', '.join(self.http_method_names)
-
-        return
+        response['Access-Control-Allow-Origin'] = request.META['HTTP_ORIGIN']
+        response['Access-Control-Allow-Methods'] = ', '.join(self.http_method_names)
 
     def paginate(self, request, on_results=None, paginator_cls=Paginator,
                  default_per_page=100, **kwargs):
