@@ -8,8 +8,7 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-        for option in orm.Option.objects.filter(key__startswith='sentry:docs'):
-            option.delete()
+        orm.Option.objects.filter(key__startswith='sentry:docs').delete()
 
     def backwards(self, orm):
         "Write your backwards methods here."
