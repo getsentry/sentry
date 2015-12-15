@@ -1,12 +1,43 @@
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 
+import os
+import json
 import logging
 
-from sentry.tasks.base import instrumented_task
+import sentry
+
 
 BASE_URL = 'https://docs.getsentry.com/hosted/_platforms/{}'
 
+# Also see INTEGRATION_DOC_FOLDER in setup.py
+DOC_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__),
+                                          'integration-docs'))
+
+
 logger = logging.getLogger('sentry')
+
+
+def dump_doc(path, data):
+    fn = os.path.join(DOC_FOLDER, path + '.json')
+    directory = os.path.dirname(fn)
+    try:
+        os.makedirs(directory)
+    except OSError:
+        pass
+    with open(fn, 'wb') as f:
+        json.dump(data, f, indent=2)
+        f.write('\n')
+
+
+def load_doc(path):
+    if '/' in path:
+        return None
+    fn = os.path.join(DOC_FOLDER, path + '.json')
+    try:
+        with open(fn, 'rb') as f:
+            return json.load(f)
+    except IOError:
+        return None
 
 
 def get_integration_id(platform_id, integration_id):
@@ -15,15 +46,12 @@ def get_integration_id(platform_id, integration_id):
     return '{}-{}'.format(platform_id, integration_id)
 
 
-@instrumented_task(name='sentry.tasks.sync_docs', queue='update',
-                   time_limit=15,
-                   soft_time_limit=10)
 def sync_docs():
-    from sentry import http, options
+    from requests import Session
 
-    session = http.build_session()
+    session = Session()
 
-    logger.info('Syncing documentation (platform index)')
+    print 'syncing documentation (platform index)'
     data = session.get(BASE_URL.format('_index.json')).json()
     platform_list = []
     for platform_id, integrations in data['platforms'].iteritems():
@@ -45,29 +73,23 @@ def sync_docs():
 
     platform_list.sort(key=lambda x: x['name'])
 
-    options.set('sentry:docs', {'platforms': platform_list})
+    dump_doc('_platforms', {'platforms': platform_list})
 
     for platform_id, platform_data in data['platforms'].iteritems():
         for integration_id, integration in platform_data.iteritems():
-            sync_integration_docs.delay(platform_id, integration_id,
-                                        integration['details'])
+            sync_integration_docs(session, platform_id, integration_id,
+                                  integration['details'])
 
 
-@instrumented_task(name='sentry.tasks.sync_integration_docs', queue='update',
-                   time_limit=15,
-                   soft_time_limit=10)
-def sync_integration_docs(platform_id, integration_id, path):
-    from sentry import http, options
-
-    logger.info('Syncing documentation for %s.%s integration',
-                platform_id, integration_id)
-
-    session = http.build_session()
+def sync_integration_docs(session, platform_id, integration_id, path):
+    print '  syncing documentation for %s.%s integration' % (
+        platform_id, integration_id)
 
     data = session.get(BASE_URL.format(path)).json()
 
     key = get_integration_id(platform_id, integration_id)
-    options.set('sentry:docs:{}'.format(key), {
+
+    dump_doc(key, {
         'id': key,
         'name': data['name'],
         'html': data['body'],

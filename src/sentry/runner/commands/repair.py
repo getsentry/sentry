@@ -7,6 +7,7 @@ sentry.runner.commands.repair
 """
 from __future__ import absolute_import, print_function
 
+import os
 import click
 from sentry.runner.decorators import configuration
 
@@ -17,8 +18,11 @@ def repair():
     "Attempt to repair any invalid data."
 
     click.echo('Forcing documentation sync')
-    from sentry.tasks.sync_docs import sync_docs
-    sync_docs()
+    from sentry.utils.integrationdocs import sync_docs, DOC_FOLDER
+    if os.access(DOC_FOLDER, os.W_OK):
+        sync_docs()
+    else:
+        click.echo(' - skipping (path cannot be written to)')
 
     from sentry.models import Activity, Project, ProjectKey
     click.echo('Creating missing project keys')
