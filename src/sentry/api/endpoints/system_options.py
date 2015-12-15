@@ -14,11 +14,19 @@ class SystemOptionsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
     def get(self, request):
+        query = request.GET.get('query')
+        if query == 'is:required':
+            option_list = options.filter(flag=options.FLAG_REQUIRED)
+        elif query:
+            raise ValueError('{} is not a supported search query'.format(query))
+        else:
+            option_list = options.all()
+
         results = {}
-        # TODO(dcramer): this not not be returning only required options
-        for k in options.filter(flag=options.FLAG_REQUIRED):
+        for k in option_list:
             # TODO(mattrobenolt): Expose this as a property on Key.
             diskPriority = bool(k.flags & options.FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(k.name))
+
             # TODO(mattrobenolt): help, placeholder, title, type
             results[k.name] = {
                 'value': options.get(k.name),
@@ -36,8 +44,13 @@ class SystemOptionsEndpoint(Endpoint):
     def put(self, request):
         # TODO(dcramer): this should validate options before saving them
         for k, v in request.DATA.iteritems():
+            if v:
+                v = v.strip()
             try:
-                options.set(k, v)
+                if not v:
+                    options.delete(k)
+                else:
+                    options.set(k, v)
             except options.UnknownOption:
                 # TODO(dcramer): unify API errors
                 return Response({

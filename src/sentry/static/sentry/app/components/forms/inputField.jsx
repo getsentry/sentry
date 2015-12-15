@@ -6,7 +6,10 @@ import FormField from './formField';
 export default class InputField extends FormField {
   constructor(props) {
     super(props);
-    this.state.value = props.value || props.defaultValue || '';
+
+    this.state.value = (
+      props.value !== '' ? props.value : (props.defaultValue || '')
+    );
   }
 
   // XXX(dcramer): this comes from TooltipMixin
