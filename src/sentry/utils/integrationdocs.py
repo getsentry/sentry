@@ -1,7 +1,10 @@
+# NOTE: This is run external to sentry as well as part of the setup
+# process.  Thus we do not want to import non stdlib things here.
 from __future__ import absolute_import
 
 import os
 import json
+import urllib
 import logging
 
 import sentry
@@ -47,12 +50,8 @@ def get_integration_id(platform_id, integration_id):
 
 
 def sync_docs():
-    from requests import Session
-
-    session = Session()
-
     print 'syncing documentation (platform index)'
-    data = session.get(BASE_URL.format('_index.json')).json()
+    data = json.load(urllib.urlopen(BASE_URL.format('_index.json')))
     platform_list = []
     for platform_id, integrations in data['platforms'].iteritems():
         platform_list.append({
@@ -77,15 +76,15 @@ def sync_docs():
 
     for platform_id, platform_data in data['platforms'].iteritems():
         for integration_id, integration in platform_data.iteritems():
-            sync_integration_docs(session, platform_id, integration_id,
+            sync_integration_docs(platform_id, integration_id,
                                   integration['details'])
 
 
-def sync_integration_docs(session, platform_id, integration_id, path):
+def sync_integration_docs(platform_id, integration_id, path):
     print '  syncing documentation for %s.%s integration' % (
         platform_id, integration_id)
 
-    data = session.get(BASE_URL.format(path)).json()
+    data = json.load(urllib.urlopen(BASE_URL.format(path)))
 
     key = get_integration_id(platform_id, integration_id)
 
