@@ -199,30 +199,10 @@ SERVER_EMAIL = 'root@localhost'
 MAILGUN_API_KEY = ''
 """
 YAML_CONFIG_TEMPLATE = """\
-# WORK IN PROGRESS
-
-###########
-# General #
-###########
-
-# The administrative email for this installation.
-# Note: This will be reported back to getsentry.com as the point of contact. See
-# the beacon documentation for more information. This **must** be a string.
-# system.admin-email: 'your.name@example.com'
-system.admin-email: ''
-
-
-##############
-# Web Server #
-##############
-
-# You MUST configure the absolute URI root for Sentry:
-system.url-prefix: ''  # No trailing slash!
-
-
-########
-# etc. #
-########
+# While a lot of configuration in Sentry can be changed via the UI, for all
+# new-style config (as of 8.0) you can also declare values here in this file
+# to enforce defaults or to ensure they cannot be changed via the UI. For more
+# information see the Sentry documentation.
 
 # If this file ever becomes compromised, it's important to regenerate your SECRET_KEY
 # Changing this value will result in all current sessions being invalidated
