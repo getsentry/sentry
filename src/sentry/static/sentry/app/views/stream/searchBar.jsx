@@ -124,7 +124,7 @@ const SearchBar = React.createClass({
 
   clearSearch() {
     this.setState(
-      {query: this.props.defaultQuery},
+      {query: ''},
       () => this.props.onSearch(this.state.query)
     );
   },
@@ -428,7 +428,7 @@ const SearchBar = React.createClass({
               disabled={this.props.disabled}
               />
             <span className="icon-search" />
-            {this.state.query !== this.props.defaultQuery &&
+            {this.state.query !== '' &&
               <div>
                 <a className="search-clear-form" onClick={this.clearSearch}>
                   <span className="icon-circle-cross" />
