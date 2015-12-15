@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import ProjectKey
+from sentry.utils.integrationdocs import load_doc
 
 
 def replace_keys(html, project_key):
@@ -21,7 +21,7 @@ def replace_keys(html, project_key):
 
 class ProjectDocsPlatformEndpoint(ProjectEndpoint):
     def get(self, request, project, platform):
-        data = options.get('sentry:docs:{}'.format(platform))
+        data = load_doc(platform)
         if not data:
             raise ResourceDoesNotExist
 

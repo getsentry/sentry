@@ -44,7 +44,9 @@ build: locale
 
 clean:
 	@echo "--> Cleaning static cache"
-	rm dist/* static/dist/*
+	rm -f dist/* static/dist/*
+	@echo "--> Cleaning integration docs cache"
+	rm -rf src/sentry/integration-docs
 	@echo "--> Cleaning pyc files"
 	find . -name "*.pyc" -delete
 	@echo ""
