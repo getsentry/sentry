@@ -3,7 +3,6 @@ import Reflux from 'reflux';
 
 import {t} from '../../locale';
 import ApiMixin from '../../mixins/apiMixin';
-import ConfigStore from '../../stores/configStore';
 import OrganizationHomeContainer from '../../components/organizations/homeContainer';
 import OrganizationState from '../../mixins/organizationState';
 import TeamStore from '../../stores/teamStore';
@@ -84,7 +83,6 @@ const OrganizationTeams = React.createClass({
     let access = this.getAccess();
     let features = this.getFeatures();
     let org = this.getOrganization();
-    let urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
 
     let activeNav = this.state.activeNav;
     let allTeams = this.state.teamList;
@@ -95,30 +93,6 @@ const OrganizationTeams = React.createClass({
         <div className="row">
           <div className="col-md-9">
             <div className="team-list">
-              <div className="pull-right">
-                {access.has('project:write') ?
-                  <a href={urlPrefix + '/projects/new/'} className="btn btn-primary btn-sm"
-                     style={{marginRight: 5}}>
-                    <span className="icon-plus" /> {t('Project')}
-                  </a>
-                :
-                  <a className="btn btn-primary btn-sm btn-disabled tip"
-                     title={t('You do not have enough permission to create new projects')}
-                     style={{marginRight: 5}}>
-                    <span className="icon-plus" /> {t('Project')}
-                  </a>
-                }
-                {access.has('team:write') ?
-                  <a href={urlPrefix + '/teams/new/'} className="btn btn-primary btn-sm">
-                    <span className="icon-plus" /> {t('Team')}
-                  </a>
-                :
-                  <a className="btn btn-primary btn-sm btn-disabled tip"
-                     title={t('You do not have enough permission to create new teams')}>
-                    <span className="icon-plus" /> {t('Team')}
-                  </a>
-                }
-              </div>
               <ul className="nav nav-tabs border-bottom">
                 <li className={activeNav === 'your-teams' && 'active'}>
                   <a onClick={this.toggleTeams.bind(this, 'your-teams')}>{t('Your Teams')}</a>
