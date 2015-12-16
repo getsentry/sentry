@@ -387,7 +387,6 @@ CELERY_IMPORTS = (
     'sentry.tasks.ping',
     'sentry.tasks.post_process',
     'sentry.tasks.process_buffer',
-    'sentry.tasks.sync_docs',
 )
 CELERY_QUEUES = [
     Queue('default', routing_key='default'),
@@ -450,14 +449,6 @@ CELERYBEAT_SCHEDULE = {
         'options': {
             'expires': 10,
             'queue': 'counters-0',
-        }
-    },
-    'sync-docs': {
-        'task': 'sentry.tasks.sync_docs',
-        'schedule': timedelta(seconds=3600),
-        'options': {
-            'expires': 3600,
-            'queue': 'update',
         }
     },
     'sync-options': {
@@ -599,10 +590,10 @@ SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 SENTRY_FEATURES = {
     'auth:register': True,
     'organizations:create': True,
-    'organizations:events': False,
     'organizations:sso': True,
+    'projects:global-events': False,
     'projects:quotas': True,
-    'projects:user-reports': True,
+    'projects:user-reports': False,
     'projects:plugins': True,
 }
 
@@ -741,9 +732,6 @@ SENTRY_RATELIMITER_OPTIONS = {}
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
-
-# The maximum number of events per minute the system should accept.
-SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE = 0
 
 # Node storage backend
 SENTRY_NODESTORE = 'sentry.nodestore.django.DjangoNodeStorage'

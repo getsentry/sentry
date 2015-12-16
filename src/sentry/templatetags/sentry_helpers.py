@@ -36,7 +36,8 @@ from sentry import options
 from sentry.api.serializers import serialize as serialize_func
 from sentry.constants import EVENTS_PER_PAGE
 from sentry.models import Organization
-from sentry.utils import json, to_unicode
+from sentry.utils import json
+from sentry.utils.strings import to_unicode
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.javascript import to_json
 from sentry.utils.strings import (

@@ -1,28 +1,29 @@
 import jQuery from 'jquery';
 import React from 'react';
-import {Link, History} from 'react-router';
-import ApiMixin from '../../mixins/apiMixin';
-import DateTime from '../../components/dateTime';
-import Gravatar from '../../components/gravatar';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import Pagination from '../../components/pagination';
-import SearchBar from '../../components/searchBar.jsx';
-import {t} from '../../locale';
+import {History} from 'react-router';
+import ApiMixin from '../mixins/apiMixin';
+import Gravatar from '../components/gravatar';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import Pagination from '../components/pagination';
+import CompactIssue from '../components/compactIssue';
+import TimeSince from '../components/timeSince';
+import utils from '../utils';
+import {t} from '../locale';
 
-const ProjectEvents = React.createClass({
+const ProjectUserReports = React.createClass({
   propTypes: {
     setProjectNavSection: React.PropTypes.func
   },
 
   mixins: [
     ApiMixin,
-    History
+    History,
   ],
 
   getDefaultProps() {
     return {
-      defaultQuery: ''
+      defaultQuery: '',
     };
   },
 
@@ -30,16 +31,16 @@ const ProjectEvents = React.createClass({
     let queryParams = this.props.location.query;
 
     return {
-      eventList: [],
+      reportList: [],
       loading: true,
       error: false,
       query: queryParams.query || this.props.defaultQuery,
-      pageLinks: ''
+      pageLinks: '',
     };
   },
 
   componentWillMount() {
-    this.props.setProjectNavSection('events');
+    this.props.setProjectNavSection('user-reports');
     this.fetchData();
   },
 
@@ -58,7 +59,7 @@ const ProjectEvents = React.createClass({
       targetQueryParams.query = query;
 
     let {orgId, projectId} = this.props.params;
-    this.history.pushState(null, `/${orgId}/${projectId}/events/`, targetQueryParams);
+    this.history.pushState(null, `/${orgId}/${projectId}/user-reports/`, targetQueryParams);
   },
 
   fetchData() {
@@ -72,7 +73,7 @@ const ProjectEvents = React.createClass({
         this.setState({
           error: false,
           loading: false,
-          eventList: data,
+          reportList: data,
           pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
@@ -85,10 +86,6 @@ const ProjectEvents = React.createClass({
     });
   },
 
-  getEventTitle(event) {
-    return event.message.split('\n')[0].substr(0, 100);
-  },
-
   getEndpoint() {
     let params = this.props.params;
     let queryParams = {
@@ -97,7 +94,7 @@ const ProjectEvents = React.createClass({
       query: this.state.query
     };
 
-    return `/projects/${params.orgId}/${params.projectId}/events/?${jQuery.param(queryParams)}`;
+    return `/projects/${params.orgId}/${params.projectId}/user-reports/?${jQuery.param(queryParams)}`;
   },
 
   renderStreamBody() {
@@ -107,7 +104,7 @@ const ProjectEvents = React.createClass({
       body = this.renderLoading();
     else if (this.state.error)
       body = <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.eventList.length > 0)
+    else if (this.state.reportList.length > 0)
       body = this.renderResults();
     else if (this.state.query && this.state.query !== this.props.defaultQuery)
       body = this.renderNoQueryResults();
@@ -129,7 +126,7 @@ const ProjectEvents = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no events match your filters.')}</p>
+        <p>{t('Sorry, no results match your search query.')}</p>
       </div>
     );
   },
@@ -138,48 +135,45 @@ const ProjectEvents = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('There don\'t seem to be any events.')}</p>
+        <p>{t('No user reports have been collected for this project.')}</p>
+        <p><a href="">{t('Learn how to integrate User Crash Reports')}</a></p>
       </div>
     );
   },
 
-
   renderResults() {
     let {orgId, projectId} = this.props.params;
+    let children = this.state.reportList.map((item, itemIdx) => {
+      let body = utils.nl2br(utils.urlize(utils.escape(item.comments)));
+      let issue = item.issue;
 
-    let children = this.state.eventList.map((event, eventIdx) => {
       return (
-        <tr key={event.id}>
-          <td style={{width: 240}}><small><DateTime date={event.dateCreated} /></small></td>
-          <td>
-            <h5>
-              <Link to={`/${orgId}/${projectId}/issues/${event.groupID}/events/${event.id}/`}>
-                {this.getEventTitle(event)}
-              </Link>
-            </h5>
-          </td>
-          <td className="event-user table-user-info" style={{textAlign: 'right'}}>
-            {event.user ?
-              <div>
-                <Gravatar email={event.user.email} size={64} className="avatar" />
-                {event.user.email}
-              </div>
-            :
-              <span>&mdash;</span>
-            }
-          </td>
-        </tr>
+        <CompactIssue
+            key={item.id}
+            id={issue.id}
+            data={issue}
+            orgId={orgId}
+            projectId={projectId}>
+          <div className="activity-container" style={{margin: '10px 0 5px'}}>
+            <ul className="activity">
+              <li className="activity-note" style={{paddingBottom: 0}}>
+                <Gravatar email={item.email} size={64} className="avatar" />
+                <div className="activity-bubble">
+                  <TimeSince date={item.dateCreated} />
+                  <div className="activity-author">{item.name} <small>{item.email}</small></div>
+                  <p dangerouslySetInnerHTML={{__html: body}} />
+                </div>
+              </li>
+            </ul>
+          </div>
+        </CompactIssue>
       );
     });
 
     return (
-      <div className="event-list">
-        <table className="table">
-          <tbody>
-            {children}
-          </tbody>
-        </table>
-      </div>
+      <ul className="issue-list">
+        {children}
+      </ul>
     );
   },
 
@@ -188,14 +182,7 @@ const ProjectEvents = React.createClass({
       <div>
         <div className="row release-list-header">
           <div className="col-sm-7">
-            <h3>{t('Events')}</h3>
-          </div>
-          <div className="col-sm-5 release-search">
-            <SearchBar defaultQuery=""
-              placeholder="Search event message"
-              query={this.state.query}
-              onSearch={this.onSearch}
-            />
+            <h3>{t('User Reports')}</h3>
           </div>
         </div>
         <div className="alert alert-block alert-info">Psst! This feature is still a work-in-progress. Thanks for being an early adopter!</div>
@@ -206,4 +193,4 @@ const ProjectEvents = React.createClass({
   }
 });
 
-export default ProjectEvents;
+export default ProjectUserReports;

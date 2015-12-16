@@ -50,12 +50,11 @@ configuration might look like this:
     }
 
 
-You can also configure system-wide maximums, and a default value for all projects:
+You can also configure the system-wide maximum per-minute rate limit:
 
 .. code-block:: python
 
-   SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
-   SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE = 500
+   system.rate-limit = 500
 
 If you have additional needs, you're freely available to extend the base
 Quota class just as the Redis implementation does.

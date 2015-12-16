@@ -112,7 +112,9 @@ const InstallWizard = React.createClass({
   },
 
   fetchData(callback) {
-    this.api.request('/internal/options/', {
+    // TODO(dcramer): ideally this would only be fetching options that aren't
+    // already configured
+    this.api.request('/internal/options/?query=is:required', {
       method: 'GET',
       success: (data) => {
         this.setState({
@@ -204,7 +206,7 @@ const InstallWizard = React.createClass({
               </LoadingIndicator>
             : (error ?
               <div className="loading-error">
-                <span className="icon" />
+                <span className="icon-exclamation" />
                 {t('We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.')}
               </div>
             :
