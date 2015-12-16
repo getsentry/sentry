@@ -28,6 +28,7 @@ import ProjectInstallOverview from './views/projectInstall/overview';
 import ProjectInstallPlatform from './views/projectInstall/platform';
 import ProjectReleases from './views/projectReleases';
 import ProjectSettings from './views/projectSettings';
+import ProjectUserReports from './views/projectUserReports';
 import ReleaseAllEvents from './views/releaseAllEvents';
 import ReleaseArtifacts from './views/releaseArtifacts';
 import ReleaseDetails from './views/releaseDetails';
@@ -76,6 +77,7 @@ let routes = (
           <Route path="all-events/" component={errorHandler(ReleaseAllEvents)} />
           <Route path="artifacts/" component={errorHandler(ReleaseArtifacts)} />
         </Route>
+        <Route path="user-reports/" component={errorHandler(ProjectUserReports)} />
         <Route path="settings/" component={errorHandler(ProjectSettings)}>
           <Route path="install/" component={errorHandler(ProjectInstall)}>
             <IndexRoute component={errorHandler(ProjectInstallOverview)}/>

@@ -73,10 +73,6 @@ const SnoozeAction = React.createClass({
 });
 
 const CompactIssue = React.createClass({
-  propTypes: {
-    id: React.PropTypes.string.isRequired,
-  },
-
   mixins: [
     ApiMixin,
     Reflux.listenTo(GroupStore, 'onGroupChange')
@@ -84,7 +80,7 @@ const CompactIssue = React.createClass({
 
   getInitialState() {
     return {
-      issue: GroupStore.get(this.props.id)
+      issue: this.props.data || GroupStore.get(this.props.id)
     };
   },
 
@@ -133,7 +129,7 @@ const CompactIssue = React.createClass({
   render() {
     let issue = this.state.issue;
 
-    let className = 'issue row';
+    let className = 'issue';
     if (issue.isBookmarked) {
       className += ' isBookmarked';
     }
@@ -156,63 +152,66 @@ const CompactIssue = React.createClass({
 
     return (
       <li className={className} onClick={this.toggleSelect}>
-        <div className="col-md-9">
-          <span className="error-level truncate" title={issue.level}></span>
-          <h3 className="truncate">
-            <Link to={`/${orgId}/${projectId}/issues/${id}/`}>
-              <span className="icon icon-soundoff" />
-              <span className="icon icon-bookmark" />
-              {issue.title}
-            </Link>
-          </h3>
-          <div className="event-extra">
-            <span className="project-name">
-              <Link to={`/${orgId}/${projectId}/`}>{issue.project.name}</Link>
-            </span>
-            {issue.numComments !== 0 &&
-              <span>
-                <Link to={`/${orgId}/${projectId}/issues/${id}/activity/`} className="comments">
-                  <span className="icon icon-comments" />
-                  <span className="tag-count">{issue.numComments}</span>
-                </Link>
+        <div className="row">
+          <div className="col-md-11">
+            <span className="error-level truncate" title={issue.level}></span>
+            <h3 className="truncate">
+              <Link to={`/${orgId}/${projectId}/issues/${id}/`}>
+                <span className="icon icon-soundoff" />
+                <span className="icon icon-bookmark" />
+                {issue.title}
+              </Link>
+            </h3>
+            <div className="event-extra">
+              <span className="project-name">
+                <Link to={`/${orgId}/${projectId}/`}>{issue.project.name}</Link>
               </span>
-            }
-            <span className="culprit">{issue.culprit}</span>
+              {issue.numComments !== 0 &&
+                <span>
+                  <Link to={`/${orgId}/${projectId}/issues/${id}/activity/`} className="comments">
+                    <span className="icon icon-comments" />
+                    <span className="tag-count">{issue.numComments}</span>
+                  </Link>
+                </span>
+              }
+              <span className="culprit">{issue.culprit}</span>
+            </div>
+          </div>
+          {this.props.statsPeriod &&
+            <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
+              <GroupChart id={id} statsPeriod={this.props.statsPeriod} />
+            </div>
+          }
+          <div className="col-md-1 align-right">
+            <DropdownLink
+              topLevelClasses="more-menu"
+              className="more-menu-toggle"
+              caret={false}
+              title={title}>
+              <li>
+                <a onClick={this.onUpdate.bind(this, {status: issue.status !== 'resolved' ? 'resolved' : 'unresolved'})}>
+                  <span className="icon-checkmark" />
+                </a>
+              </li>
+              <li>
+                <a onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}>
+                  <span className="icon-bookmark" />
+                </a>
+              </li>
+              <li>
+                <SnoozeAction
+                  orgId={orgId}
+                  projectId={projectId}
+                  groupId={id}
+                  onSnooze={this.onSnooze} />
+              </li>
+              {false &&
+                <li><a href="#"><span className="icon-user" /></a></li>
+              }
+            </DropdownLink>
           </div>
         </div>
-        {this.props.statsPeriod &&
-          <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
-            <GroupChart id={id} statsPeriod={this.props.statsPeriod} />
-          </div>
-        }
-        <div className="col-md-1 align-right">
-          <DropdownLink
-            topLevelClasses="more-menu"
-            className="more-menu-toggle"
-            caret={false}
-            title={title}>
-            <li>
-              <a onClick={this.onUpdate.bind(this, {status: issue.status !== 'resolved' ? 'resolved' : 'unresolved'})}>
-                <span className="icon-checkmark" />
-              </a>
-            </li>
-            <li>
-              <a onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}>
-                <span className="icon-bookmark" />
-              </a>
-            </li>
-            <li>
-              <SnoozeAction
-                orgId={orgId}
-                projectId={projectId}
-                groupId={id}
-                onSnooze={this.onSnooze} />
-            </li>
-            {false &&
-              <li><a href="#"><span className="icon-user" /></a></li>
-            }
-          </DropdownLink>
-        </div>
+        {this.props.children}
       </li>
     );
   }
