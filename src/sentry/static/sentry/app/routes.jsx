@@ -48,56 +48,56 @@ function appendTrailingSlash(nextState, replaceState) {
 let routes = (
   <Route path="/" component={errorHandler(App)}>
 
-    <Route path="/manage/" component={Admin}>
-      <IndexRoute component={AdminOverview} />
-      <Route path="organizations/" component={AdminOrganizations} />
-      <Route path="settings/" component={AdminSettings} />
+    <Route path="/manage/" component={errorHandler(Admin)}>
+      <IndexRoute component={errorHandler(AdminOverview)} />
+      <Route path="organizations/" component={errorHandler(AdminOrganizations)} />
+      <Route path="settings/" component={errorHandler(AdminSettings)} />
     </Route>
 
     <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
-    <Route path="/share/issue/:shareId/" component={SharedGroupDetails} />
+    <Route path="/share/issue/:shareId/" component={errorHandler(SharedGroupDetails)} />
 
-    <Route path="/:orgId/" component={OrganizationDetails}>
-      <IndexRoute component={OrganizationTeams} />
+    <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
+      <IndexRoute component={errorHandler(OrganizationTeams)} />
 
-      <Route path="/organizations/:orgId/issues/assigned/" component={MyIssuesAssignedToMe} />
-      <Route path="/organizations/:orgId/issues/bookmarks/" component={MyIssuesBookmarked} />
-      <Route path="/organizations/:orgId/issues/history/" component={MyIssuesViewed} />
-      <Route path="/organizations/:orgId/stats/" component={OrganizationStats} />
-      <Route path="/organizations/:orgId/rate-limits/" component={OrganizationRateLimits} />
+      <Route path="/organizations/:orgId/issues/assigned/" component={errorHandler(MyIssuesAssignedToMe)} />
+      <Route path="/organizations/:orgId/issues/bookmarks/" component={errorHandler(MyIssuesBookmarked)} />
+      <Route path="/organizations/:orgId/issues/history/" component={errorHandler(MyIssuesViewed)} />
+      <Route path="/organizations/:orgId/stats/" component={errorHandler(OrganizationStats)} />
+      <Route path="/organizations/:orgId/rate-limits/" component={errorHandler(OrganizationRateLimits)} />
 
-      <Route path=":projectId/" component={ProjectDetails}>
-        <IndexRoute component={errorHandler(Stream)} />
-        <Route path="dashboard/" component={ProjectDashboard} />
-        <Route path="events/" component={ProjectEvents} />
-        <Route path="releases/" component={ProjectReleases} />
-        <Route name="releaseDetails" path="releases/:version/" component={ReleaseDetails}>
-          <IndexRoute component={ReleaseNewEvents} />
-          <Route path="all-events/" component={ReleaseAllEvents} />
-          <Route path="artifacts/" component={ReleaseArtifacts} />
+      <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
+        <IndexRoute component={errorHandler(Stream))} />
+        <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
+        <Route path="events/" component={errorHandler(ProjectEvents)} />
+        <Route path="releases/" component={errorHandler(ProjectReleases)} />
+        <Route name="releaseDetails" path="releases/:version/" component={errorHandler(ReleaseDetails)}>
+          <IndexRoute component={errorHandler(ReleaseNewEvents)} />
+          <Route path="all-events/" component={errorHandler(ReleaseAllEvents)} />
+          <Route path="artifacts/" component={errorHandler(ReleaseArtifacts)} />
         </Route>
-        <Route path="settings/" component={ProjectSettings}>
-          <Route path="install/" component={ProjectInstall}>
-            <IndexRoute component={ProjectInstallOverview}/>
-            <Route path=":platform/" component={ProjectInstallPlatform}/>
+        <Route path="settings/" component={errorHandler(ProjectSettings)}>
+          <Route path="install/" component={errorHandler(ProjectInstall)}>
+            <IndexRoute component={errorHandler(ProjectInstallOverview)}/>
+            <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)}/>
           </Route>
         </Route>
         <Redirect from="group/:groupId/" to="issues/:groupId/" />
-        <Route path="issues/:groupId/" component={errorHandler(GroupDetails)}
+        <Route path="issues/:groupId/" component={errorHandler(GroupDetails))}
                ignoreScrollBehavior>
-          <IndexRoute component={GroupEventDetails} />
+          <IndexRoute component={errorHandler(GroupEventDetails)} />
 
-          <Route path="activity/" component={GroupActivity} />
-          <Route path="events/:eventId/" component={GroupEventDetails} />
-          <Route path="events/" component={GroupEvents} />
-          <Route path="tags/" component={GroupTags} />
-          <Route path="tags/:tagKey/" component={GroupTagValues} />
-          <Route path="reports/" component={GroupUserReports} />
+          <Route path="activity/" component={errorHandler(GroupActivity)} />
+          <Route path="events/:eventId/" component={errorHandler(GroupEventDetails)} />
+          <Route path="events/" component={errorHandler(GroupEvents)} />
+          <Route path="tags/" component={errorHandler(GroupTags)} />
+          <Route path="tags/:tagKey/" component={errorHandler(GroupTagValues)} />
+          <Route path="reports/" component={errorHandler(GroupUserReports)} />
         </Route>
       </Route>
     </Route>
 
-    <Route path="*" component={RouteNotFound} onEnter={appendTrailingSlash}/>
+    <Route path="*" component={errorHandler(RouteNotFound)} onEnter={appendTrailingSlash}/>
   </Route>
 );
 
