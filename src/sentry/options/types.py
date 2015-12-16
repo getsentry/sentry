@@ -107,8 +107,8 @@ class StringType(OptionType):
     "String type without any coersion, must be a string"
     name = 'string'
     default = u''
-    expected_types = basestring
-    compatible_types = basestring
+    expected_types = (basestring,)
+    compatible_types = (basestring,)
 
 
 class DictType(OptionType):
