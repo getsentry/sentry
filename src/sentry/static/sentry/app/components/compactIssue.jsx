@@ -153,7 +153,7 @@ const CompactIssue = React.createClass({
     return (
       <li className={className} onClick={this.toggleSelect}>
         <div className="row">
-          <div className="col-md-11">
+          <div className={this.props.statsPeriod ? 'col-md-9' : 'col-md-11'}>
             <span className="error-level truncate" title={issue.level}></span>
             <h3 className="truncate">
               <Link to={`/${orgId}/${projectId}/issues/${id}/`}>
