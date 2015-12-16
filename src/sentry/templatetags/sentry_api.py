@@ -45,3 +45,17 @@ def serialize_detailed_org(context, obj):
     )
 
     return mark_safe(json.dumps(context))
+
+
+@register.simple_tag
+def get_user_context(request, escape=False):
+    user = getattr(request, 'user', None)
+    result = {'ip_address': request.META['REMOTE_ADDR']}
+    if user and user.is_authenticated():
+        result.update({
+            'email': user.email,
+            'id': user.id,
+        })
+        if user.name:
+            result['name'] = user.name
+    return mark_safe(json.dumps(result))
