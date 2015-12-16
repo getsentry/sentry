@@ -12,6 +12,12 @@ const ProjectSelector = React.createClass({
     location: React.PropTypes.object
   },
 
+  getDefaultProps() {
+    return {
+      projectId: null,
+    };
+  },
+
   getInitialState() {
     return {
       filter: ''
@@ -177,7 +183,11 @@ const ProjectSelector = React.createClass({
 
     return (
       <div className="project-select" ref="container">
-        {this.getLinkNode(activeTeam, activeProject)}
+        {activeProject ?
+          this.getLinkNode(activeTeam, activeProject)
+        :
+          t('Select a project')
+        }
         <DropdownLink ref="dropdownLink" title="" topLevelClasses="project-dropdown"
             onOpen={this.onOpen} onClose={this.onClose}>
           <li className="project-filter" key="_filter">
