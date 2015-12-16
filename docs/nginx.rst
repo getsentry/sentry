@@ -129,6 +129,8 @@ Finally, re-configure supervisor to run uwsgi instead of 'sentry start'::
 Hosting Sentry at a Subpath
 ----------------------------
 
+.. Note:: This method is unsupported and untested by the Sentry team.
+
 If your web server is hosting several applications then hosting Sentry at '/' may not be feasible for you. It is possible to configure your webserver such that all traffic going to '/sentry' can be directed at Sentry and everything else can remain as is.
 
 
@@ -170,8 +172,6 @@ One rewrite is still required before the location block [#f1]_::
 
 Subpath with Sentry's Default Webserver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. Note:: This method is unsupported and untested by the Sentry team.
 
 This is a bit more involved and harder to debug because not only does Nginx have to know the new location to listen for, it also must do rewriting of the urls it sends to the Sentry's built in server because it knows nothing about you trying to host the application elsewhere.
 
