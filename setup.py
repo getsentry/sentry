@@ -108,7 +108,7 @@ install_requires = [
     'gunicorn>=19.2.1,<20.0.0',
     'hiredis>=0.1.0,<0.2.0',
     'ipaddr>=2.1.11,<2.2.0',
-    'kombu==3.0.27',
+    'kombu==3.0.30',
     'lxml>=3.4.1',
     'mock>=0.8.0,<1.1',
     'petname>=1.7,<1.8',
