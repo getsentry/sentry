@@ -24,8 +24,11 @@ class InvalidTypeError(TypeError):
 class OptionType(object):
     "Base OptionType that provides type coersion"
     name = ''
+    # Default value to be returned when initializing
     default = None
+    # Types that do not need to be coerced
     expected_types = (object,)
+    # Types that are acceptable for coersion
     compatible_types = (basestring,)
 
     def __call__(self, value=None):
@@ -48,6 +51,7 @@ class OptionType(object):
         return self.default
 
     def test(self, value):
+        "Check if the value needs to be coerced or not"
         return isinstance(value, self.expected_types)
 
     def __repr__(self):
