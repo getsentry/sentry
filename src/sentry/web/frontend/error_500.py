@@ -32,7 +32,7 @@ class Error500View(View):
         if request.user.is_authenticated():
             try:
                 result.update({
-                    'userName': request.user.get_full_name(),
+                    'userName': request.user.name,
                     'userEmail': request.user.email,
                 })
             except Exception:
