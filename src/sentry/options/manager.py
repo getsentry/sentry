@@ -11,7 +11,7 @@ import logging
 from itertools import ifilter
 from types import NoneType
 from django.conf import settings
-from .types import InvalidTypeError, type_from_value, Any
+from .types import type_from_value, Any
 
 # Prevent outselves from clobbering the builtin
 _type = type
@@ -217,9 +217,7 @@ class OptionsManager(object):
     def validate_option(self, key, value):
         opt = self.lookup_key(key)
         assert not (opt.flags & FLAG_STOREONLY), '%r is not allowed to be loaded from config' % key
-        try:
-            opt.type(value)
-        except InvalidTypeError:
+        if not opt.type.test(value):
             raise TypeError('%r: got %r, expected %r' % (key, _type(value), opt.type))
 
     def all(self):
