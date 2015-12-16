@@ -22,7 +22,7 @@ class InvalidTypeError(TypeError):
 
 
 class OptionType(object):
-    "Base OptionType that provides type coersion"
+    """Base OptionType that provides type coersion"""
     name = ''
     # Default value to be returned when initializing
     default = None
@@ -51,7 +51,7 @@ class OptionType(object):
         return self.default
 
     def test(self, value):
-        "Check if the value needs to be coerced or not"
+        """Check if the value needs to be coerced or not"""
         return isinstance(value, self.expected_types)
 
     def __repr__(self):
@@ -59,7 +59,7 @@ class OptionType(object):
 
 
 class AnyType(OptionType):
-    "A type that accepts any value and does no coersion"
+    """A type that accepts any value and does no coersion"""
     name = 'any'
 
 
@@ -77,7 +77,7 @@ class BoolType(OptionType):
 
 
 class IntType(OptionType):
-    "Coerce an integer from a string"
+    """Coerce an integer from a string"""
     name = 'integer'
     default = 0
     expected_types = (int,)
@@ -90,7 +90,7 @@ class IntType(OptionType):
 
 
 class FloatType(OptionType):
-    "Coerce a float from a string or integer"
+    """Coerce a float from a string or integer"""
     name = 'float'
     default = 0.0
     expected_types = (float,)
@@ -104,7 +104,7 @@ class FloatType(OptionType):
 
 
 class StringType(OptionType):
-    "String type without any coersion, must be a string"
+    """String type without any coersion, must be a string"""
     name = 'string'
     default = u''
     expected_types = (basestring,)
@@ -112,7 +112,7 @@ class StringType(OptionType):
 
 
 class DictType(OptionType):
-    "Coerce a dict out of a json/yaml string"
+    """Coerce a dict out of a json/yaml string"""
     name = 'dictionary'
     expected_types = (dict,)
 
@@ -128,7 +128,7 @@ class DictType(OptionType):
 
 
 class SequenceType(OptionType):
-    "Coerce a tuple out of a json/yaml string or a list"
+    """Coerce a tuple out of a json/yaml string or a list"""
     name = 'sequence'
     default = ()
     expected_types = (tuple,)
@@ -169,5 +169,5 @@ _type_mapping = {
 
 
 def type_from_value(value):
-    "Fetch OptionType based on a primitive value"
+    """Fetch OptionType based on a primitive value"""
     return _type_mapping[type(value)]
