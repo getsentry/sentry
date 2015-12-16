@@ -380,7 +380,6 @@ CELERY_IMPORTS = (
     'sentry.tasks.deletion',
     'sentry.tasks.digests',
     'sentry.tasks.email',
-    'sentry.tasks.index',
     'sentry.tasks.merge',
     'sentry.tasks.store',
     'sentry.tasks.options',
