@@ -83,7 +83,7 @@ let routes = (
           </Route>
         </Route>
         <Redirect from="group/:groupId/" to="issues/:groupId/" />
-        <Route path="issues/:groupId/" component={errorHandler(GroupDetails))}
+        <Route path="issues/:groupId/" component={errorHandler(GroupDetails)}
                ignoreScrollBehavior>
           <IndexRoute component={errorHandler(GroupEventDetails)} />
 
