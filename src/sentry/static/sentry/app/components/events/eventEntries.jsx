@@ -8,6 +8,7 @@ import EventPackageData from './packageData';
 import EventTags from './eventTags';
 import EventMessage from './message';
 import EventUser from './user';
+import EventUserReport from './userReport';
 import PropTypes from '../../proptypes';
 import utils from '../../utils';
 import {t} from '../../locale';
@@ -81,6 +82,11 @@ const EventEntries = React.createClass({
     let {orgId, projectId} = this.props;
     return (
       <div>
+        {evt.userReport &&
+          <EventUserReport
+            group={group}
+            event={evt} />
+        }
         {!utils.objectIsEmpty(evt.errors) &&
           <EventErrors
             group={group}
