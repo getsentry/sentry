@@ -387,7 +387,6 @@ CELERY_IMPORTS = (
     'sentry.tasks.ping',
     'sentry.tasks.post_process',
     'sentry.tasks.process_buffer',
-    'sentry.tasks.sync_docs',
 )
 CELERY_QUEUES = [
     Queue('default', routing_key='default'),
@@ -450,14 +449,6 @@ CELERYBEAT_SCHEDULE = {
         'options': {
             'expires': 10,
             'queue': 'counters-0',
-        }
-    },
-    'sync-docs': {
-        'task': 'sentry.tasks.sync_docs',
-        'schedule': timedelta(seconds=3600),
-        'options': {
-            'expires': 3600,
-            'queue': 'update',
         }
     },
     'sync-options': {
