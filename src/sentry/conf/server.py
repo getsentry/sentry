@@ -593,7 +593,7 @@ SENTRY_FEATURES = {
     'organizations:sso': True,
     'projects:global-events': False,
     'projects:quotas': True,
-    'projects:user-reports': True,
+    'projects:user-reports': False,
     'projects:plugins': True,
 }
 
