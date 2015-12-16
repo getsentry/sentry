@@ -149,7 +149,7 @@ const ProjectUserReports = React.createClass({
 
       return (
         <CompactIssue
-            key={issue.id}
+            key={item.id}
             id={issue.id}
             data={issue}
             orgId={orgId}
