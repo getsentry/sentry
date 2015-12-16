@@ -30,10 +30,6 @@ def cli(ctx, config):
     environment variable or be explicitly provided through the
     `--config` parameter.
     """
-    if sys.version_info[:3] >= (2, 7, 11):
-        raise click.ClickException('Sentry is not compatible with Python '
-                                   '%d.%d.%d, please downgrade to 2.7.10.' %
-                                   sys.version_info[:3])
     ctx.obj['config'] = config
 
 
