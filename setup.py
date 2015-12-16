@@ -77,7 +77,6 @@ tests_require = [
     'casscache',
     'cqlsh',
     'datadog',
-    'httpretty',
     'pytest-cov>=1.8.0,<1.9.0',
     'pytest-timeout>=1.0.0,<1.1.0',
     'pytest-xdist>=1.11.0,<1.12.0',
