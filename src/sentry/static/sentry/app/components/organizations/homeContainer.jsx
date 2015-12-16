@@ -1,6 +1,7 @@
 import React from 'react';
 import OrganizationHomeSidebar from './homeSidebar';
 import OrganizationState from '../../mixins/organizationState';
+import ProjectSelector from '../projectHeader/projectSelector';
 import TooltipMixin from '../../mixins/tooltip';
 import ConfigStore from '../../stores/configStore';
 import {t} from '../../locale';
@@ -46,7 +47,9 @@ const HomeContainer = React.createClass({
                 </a>
               }
             </div>
-            <strong>{org.name}</strong>
+            <div className="org-name">{org.name}</div>
+            <ProjectSelector
+                organization={org} />
           </div>
         </div>
         <div className="container">
