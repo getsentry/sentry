@@ -140,12 +140,16 @@ class OptionsManager(object):
         # Some values we don't want to allow them to be configured through
         # config files and should only exist in the datastore
         if opt.flags & FLAG_STOREONLY:
+            if callable(opt.default):
+                return opt.default()
             return opt.default
 
         try:
             # default to the hardcoded local configuration for this key
             return settings.SENTRY_OPTIONS[key]
         except KeyError:
+            if callable(opt.default):
+                return opt.default()
             return opt.default
 
     def delete(self, key):
