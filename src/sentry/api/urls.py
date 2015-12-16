@@ -53,6 +53,7 @@ from .endpoints.project_tags import ProjectTagsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
+from .endpoints.project_user_reports import ProjectUserReportsEndpoint
 from .endpoints.release_details import ReleaseDetailsEndpoint
 from .endpoints.release_files import ReleaseFilesEndpoint
 from .endpoints.release_file_details import ReleaseFileDetailsEndpoint
@@ -218,6 +219,9 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/users/$',
         ProjectUsersEndpoint.as_view(),
         name='sentry-api-0-project-users'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/user-reports/$',
+        ProjectUserReportsEndpoint.as_view(),
+        name='sentry-api-0-project-user-reports'),
 
     # Groups
     url(r'^(?:groups|issues)/(?P<issue_id>\d+)/$',
