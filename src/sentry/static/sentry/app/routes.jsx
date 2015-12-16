@@ -36,6 +36,8 @@ import RouteNotFound from './views/routeNotFound';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
 
+import errorHandler from './utils/errorHandler';
+
 function appendTrailingSlash(nextState, replaceState) {
   let lastChar = nextState.location.pathname.slice(-1);
   if (lastChar !== '/') {
@@ -44,7 +46,7 @@ function appendTrailingSlash(nextState, replaceState) {
 }
 
 let routes = (
-  <Route path="/" component={App}>
+  <Route path="/" component={errorHandler(App)}>
 
     <Route path="/manage/" component={Admin}>
       <IndexRoute component={AdminOverview} />
@@ -65,7 +67,7 @@ let routes = (
       <Route path="/organizations/:orgId/rate-limits/" component={OrganizationRateLimits} />
 
       <Route path=":projectId/" component={ProjectDetails}>
-        <IndexRoute component={Stream} />
+        <IndexRoute component={errorHandler(Stream)} />
         <Route path="dashboard/" component={ProjectDashboard} />
         <Route path="events/" component={ProjectEvents} />
         <Route path="releases/" component={ProjectReleases} />
@@ -81,7 +83,7 @@ let routes = (
           </Route>
         </Route>
         <Redirect from="group/:groupId/" to="issues/:groupId/" />
-        <Route path="issues/:groupId/" component={GroupDetails}
+        <Route path="issues/:groupId/" component={errorHandler(GroupDetails)}
                ignoreScrollBehavior>
           <IndexRoute component={GroupEventDetails} />
 

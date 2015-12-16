@@ -204,5 +204,5 @@ export default {
   Collection: require('./utils/collection'),
   PendingChangeQueue: require('./utils/pendingChangeQueue'),
   StreamManager: require('./utils/streamManager'),
-  CursorPoller: require('./utils/cursorPoller')
+  CursorPoller: require('./utils/cursorPoller'),
 };
