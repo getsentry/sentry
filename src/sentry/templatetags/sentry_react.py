@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 import sentry
 
 from django import template
@@ -10,6 +11,7 @@ from pkg_resources import parse_version
 
 from sentry import features, options
 from sentry.api.serializers.base import serialize
+from sentry.models import ProjectKey
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.functional import extract_lazy_object
@@ -51,6 +53,17 @@ def _needs_upgrade():
     return False
 
 
+def _get_public_dsn():
+    try:
+        projectkey = ProjectKey.objects.filter(
+            project=settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT,
+        )[0]
+    except Exception:
+        logging.exception('Unable to fetch ProjectKey for internal project')
+        return
+    return projectkey.dsn_public
+
+
 @register.simple_tag(takes_context=True)
 def get_react_config(context):
     if 'request' in context:
@@ -88,6 +101,7 @@ def get_react_config(context):
         'features': enabled_features,
         'mediaUrl': get_asset_url('sentry', ''),
         'needsUpgrade': needs_upgrade,
+        'dsn': _get_public_dsn(),
         'messages': [{
             'message': msg.message,
             'level': msg.tags,
