@@ -148,11 +148,6 @@ const ProjectEvents = React.createClass({
     let {orgId, projectId} = this.props.params;
 
     let children = this.state.eventList.map((event, eventIdx) => {
-      let tagMap = {};
-      event.tags.forEach((tag) => {
-        tagMap[tag.key] = tag.value;
-      });
-
       return (
         <tr key={eventIdx}>
           <td style={{width: 240}}><small><DateTime date={event.dateCreated} /></small></td>
