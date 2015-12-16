@@ -78,6 +78,7 @@ General
 - Membership permissions have been overhauled and have been flattened into a single tiered
   role. Additionally owners will no longer be automatically added to new teams.
 - ``NotificationPlugin`` now requires ``is_configured`` to be declared.
+- ``sentry.search`` should no longer be extended (``index`` and ``upgrade`` have been removed)
 
 Client API
 ~~~~~~~~~~

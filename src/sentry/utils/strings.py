@@ -11,7 +11,9 @@ import base64
 import re
 import zlib
 
-from django.utils.encoding import smart_unicode
+from django.utils.encoding import smart_unicode, force_unicode
+
+import six
 
 
 def truncatechars(value, arg):
@@ -73,3 +75,16 @@ def soft_break(value, length, process=lambda chunk: chunk):
         return u''.join(results).rstrip(u'\u200b')
 
     return re.sub(r'\S{{{},}}'.format(length), soft_break_delimiter, value)
+
+
+def to_unicode(value):
+    try:
+        value = six.text_type(force_unicode(value))
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        value = '(Error decoding value)'
+    except Exception:  # in some cases we get a different exception
+        try:
+            value = str(repr(type(value)))
+        except Exception:
+            value = '(Error decoding value)'
+    return value

@@ -49,6 +49,10 @@ from subprocess import check_output
 # The version of sentry
 VERSION = '8.0.0rc1'
 
+# Also see sentry.utils.integrationdocs.DOC_FOLDER
+INTEGRATION_DOC_FOLDER = os.path.join(os.path.abspath(
+    os.path.dirname(__file__)), 'src', 'sentry', 'integration-docs')
+
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
@@ -73,9 +77,9 @@ tests_require = [
     'casscache',
     'cqlsh',
     'datadog',
-    'httpretty',
-    'pytest-cov>=1.4',
-    'pytest-timeout',
+    'pytest-cov>=1.8.0,<1.9.0',
+    'pytest-timeout>=0.5.0,<0.6.0',
+    'pytest-xdist>=1.11.0,<1.12.0',
     'python-coveralls',
     'responses',
 ]
@@ -104,7 +108,7 @@ install_requires = [
     'gunicorn>=19.2.1,<20.0.0',
     'hiredis>=0.1.0,<0.2.0',
     'ipaddr>=2.1.11,<2.2.0',
-    'kombu==3.0.27',
+    'kombu==3.0.30',
     'lxml>=3.4.1',
     'mock>=0.8.0,<1.1',
     'petname>=1.7,<1.8',
@@ -214,6 +218,12 @@ class BuildJavascriptCommand(Command):
             except (OSError, IOError):
                 pass
 
+            log.info('cleaning out integration docs folder')
+            try:
+                shutil.rmtree(INTEGRATION_DOC_FOLDER)
+            except (OSError, IOError):
+                pass
+
         # In place means build_lib is src.  We also log this.
         if self.inplace:
             log.info('In-place js building enabled')
@@ -276,34 +286,46 @@ class BuildJavascriptCommand(Command):
             return True
         return False
 
+    def _needs_integration_docs(self):
+        return not os.path.isdir(INTEGRATION_DOC_FOLDER)
+
     def run(self):
+        need_integration_docs = not os.path.isdir(INTEGRATION_DOC_FOLDER)
         version_info = self._get_package_version()
+
         if not (self.force or self._needs_static(version_info)):
             log.info("skipped asset build (version already built)")
-            self.update_manifests()
-            return
+        else:
+            log.info("building assets for Sentry v{} (build {})".format(
+                version_info['version'] or 'UNKNOWN',
+                version_info['build'] or 'UNKNOWN',
+            ))
+            if not version_info['version'] or not version_info['build']:
+                log.fatal('Could not determine sentry version or build')
+                sys.exit(1)
 
-        log.info("building assets for Sentry v{} (build {})".format(
-            version_info['version'] or 'UNKNOWN',
-            version_info['build'] or 'UNKNOWN',
-        ))
-        if not version_info['version'] or not version_info['build']:
-            log.fatal('Could not determine sentry version or build')
-            sys.exit(1)
+            try:
+                self._build_static()
+            except Exception:
+                traceback.print_exc()
+                log.fatal("unable to build Sentry's static assets!\n"
+                          "Hint: You might be running an invalid version of NPM.")
+                sys.exit(1)
 
-        try:
-            self._build_static()
-        except Exception:
-            traceback.print_exc()
-            log.fatal("unable to build Sentry's static assets!\n"
-                      "Hint: You might be running an invalid version of NPM.")
-            sys.exit(1)
+            log.info("writing version manifest")
+            manifest = self._write_version_file(version_info)
+            log.info("recorded manifest\n{}".format(
+                json.dumps(manifest, indent=2),
+            ))
+            need_integration_docs = True
 
-        log.info("writing version manifest")
-        manifest = self._write_version_file(version_info)
-        log.info("recorded manifest\n{}".format(
-            json.dumps(manifest, indent=2),
-        ))
+        if not need_integration_docs:
+            log.info('skipped integration docs (already downloaded)')
+        else:
+            log.info('downloading integration docs')
+            from sentry.utils.integrationdocs import sync_docs
+            sync_docs()
+
         self.update_manifests()
 
     def update_manifests(self):
@@ -320,16 +342,17 @@ class BuildJavascriptCommand(Command):
         # Use the underlying file list so that we skip the file-exists
         # check which we do not want here.
         files = sdist.filelist.files
-        root = self.sentry_static_dist_path
+        base = os.path.abspath('.')
 
         # We need to split off the local parts of the files relative to
         # the current folder.  This will chop off the right path for the
         # manifest.
-        base = os.path.abspath('.')
-        for dirname, dirnames, filenames in os.walk(root):
-            for filename in filenames:
-                filename = os.path.join(root, filename)
-                files.append(filename[len(base):].lstrip(os.path.sep))
+        for root in self.sentry_static_dist_path, INTEGRATION_DOC_FOLDER:
+            for dirname, dirnames, filenames in os.walk(root):
+                for filename in filenames:
+                    filename = os.path.join(root, filename)
+                    files.append(filename[len(base):].lstrip(os.path.sep))
+
         files.append('src/sentry/sentry-package.json')
 
     def _build_static(self):

@@ -67,7 +67,7 @@ describe('SearchBar', function() {
 
       wrapper.clearSearch();
 
-      expect(wrapper.state.query).to.equal('is:unresolved');
+      expect(wrapper.state.query).to.equal('');
     });
 
     it('calls onSearch()', function(done) {
@@ -83,7 +83,7 @@ describe('SearchBar', function() {
       wrapper.clearSearch();
 
       setTimeout(() => {
-        expect(props.onSearch.calledWith('is:unresolved')).to.be.true;
+        expect(props.onSearch.calledWith('')).to.be.true;
         done();
       });
     });

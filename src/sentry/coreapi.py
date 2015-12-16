@@ -32,10 +32,11 @@ from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.models import EventError, Project, ProjectKey, TagKey
 from sentry.tasks.store import preprocess_event
-from sentry.utils import is_float, json
+from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.compat import StringIO
 from sentry.utils.strings import decompress
+from sentry.utils.validators import is_float
 
 LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
 

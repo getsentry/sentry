@@ -20,9 +20,6 @@ from sentry.utils.db import get_db_engine
 
 
 class DjangoSearchBackend(SearchBackend):
-    def index(self, event):
-        pass
-
     def query(self, project, query=None, status=None, tags=None,
               bookmarked_by=None, assigned_to=None, first_release=None,
               sort_by='date', date_filter='last_seen', date_from=None,

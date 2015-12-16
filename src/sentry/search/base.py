@@ -21,9 +21,6 @@ class SearchBackend(object):
         Raise ``InvalidConfiguration`` if there is a configuration error.
         """
 
-    def index(self, event):
-        raise NotImplementedError
-
     def query(self, project, query=None, status=None, tags=None,
               bookmarked_by=None, assigned_to=None, first_release=None,
               sort_by='date', date_filter='last_seen', date_from=None,
@@ -36,6 +33,3 @@ class SearchBackend(object):
         CursorResult.
         """
         raise NotImplementedError
-
-    def upgrade(self):
-        pass

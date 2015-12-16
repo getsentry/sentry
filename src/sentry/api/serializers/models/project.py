@@ -12,6 +12,8 @@ class ProjectSerializer(Serializer):
         feature_list = []
         if features.has('projects:quotas', obj, actor=user):
             feature_list.append('quotas')
+        if features.has('projects:global-events', obj, actor=user):
+            feature_list.append('global-events')
         if features.has('projects:user-reports', obj, actor=user):
             feature_list.append('user-reports')
 
