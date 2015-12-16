@@ -37,6 +37,13 @@ const ProjectHeader = React.createClass({
                     </Link>
                   </li>
                 }
+                {features.has('user-reports') &&
+                  <li className={navSection == 'user-reports' ? 'active' : ''}>
+                    <Link to={`/${org.slug}/${project.slug}/user-reports/`}>
+                      {t('User Reports')}
+                    </Link>
+                  </li>
+                }
                 <li className={navSection == 'releases' ? 'active' : ''}>
                   <Link to={`/${org.slug}/${project.slug}/releases/`}>
                     {t('Releases')}
