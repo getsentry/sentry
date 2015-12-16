@@ -11,7 +11,7 @@ const ProjectHeader = React.createClass({
     let urlPrefix = ConfigStore.get('urlPrefix');
     let project = this.props.project;
     let org = this.props.organization;
-    let features = new Set(org.features);
+    let features = new Set(project.features);
     let access = new Set(org.access);
 
     return (
@@ -30,7 +30,7 @@ const ProjectHeader = React.createClass({
                     {t('Issues')}
                   </Link>
                 </li>
-                {features.has('events') &&
+                {features.has('global-events') &&
                   <li className={navSection == 'events' ? 'active' : ''}>
                     <Link to={`/${org.slug}/${project.slug}/events/`}>
                       {t('Events')}
