@@ -65,6 +65,7 @@
     "karma-sinon": "1.0.4",
     "karma-sourcemap-loader": "0.3.6",
     "karma-webpack": "1.7.0",
+    "mocha": "2.3.4",
     "platformicons": "0.0.7",
     "po-catalog-loader": "^1.2.0",
     "sinon": "1.17.2",
