@@ -33,7 +33,6 @@ from sentry.models import (
 from sentry.plugins import plugins
 from sentry.signals import regression_signal
 from sentry.utils.logging import suppress_exceptions
-from sentry.tasks.index import index_event
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.db import get_db_engine
@@ -528,8 +527,6 @@ class EventManager(object):
             )
         else:
             self.logger.info('Raw event passed; skipping post process for event_id=%s', event_id)
-
-        index_event.delay(event)
 
         # TODO: move this to the queue
         if is_regression and not raw:

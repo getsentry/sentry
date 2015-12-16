@@ -75,9 +75,6 @@ class DjangoSearchBackendTest(TestCase):
             project=self.group2.project,
         )
 
-        self.backend.index(self.event1)
-        self.backend.index(self.event2)
-
     def test_query(self):
         results = self.backend.query(self.project1, query='foo')
         assert len(results) == 1
