@@ -67,7 +67,7 @@ let routes = (
       <Route path="/organizations/:orgId/rate-limits/" component={errorHandler(OrganizationRateLimits)} />
 
       <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
-        <IndexRoute component={errorHandler(Stream))} />
+        <IndexRoute component={errorHandler(Stream)} />
         <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
         <Route path="events/" component={errorHandler(ProjectEvents)} />
         <Route path="releases/" component={errorHandler(ProjectReleases)} />
