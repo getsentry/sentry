@@ -201,7 +201,7 @@ class OptionsManager(object):
         # If we don't have a default, but we have a type, pull the default
         # value from the type
         if default_value is None:
-            default = type()
+            default = type
 
         self.registry[key] = self.store.make_key(key, default, type, flags, ttl, grace)
 

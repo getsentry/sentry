@@ -107,6 +107,8 @@ class OptionsManagerTest(TestCase):
         assert self.manager.get('awesome') == 'lol'
         self.manager.register('callback', default=lambda: True)
         assert self.manager.get('callback') is True
+        self.manager.register('default-type', type=Int)
+        assert self.manager.get('default-type') == 0
 
     def test_flag_immutable(self):
         self.manager.register('immutable', flags=FLAG_IMMUTABLE)
