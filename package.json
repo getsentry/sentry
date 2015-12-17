@@ -26,7 +26,7 @@
     "moment-timezone": "0.4.1",
     "node-libs-browser": "0.5.3",
     "query-string": "2.4.2",
-    "raven-js": "git+https://github.com/getsentry/raven-js.git#c1ae9c9b198da1560e1d21dd080fe6119cf02b5d",
+    "raven-js": "git+https://github.com/getsentry/raven-js.git#99eb49f864c328874fc87cc891b22856761be589",
     "react": "0.14.0",
     "react-addons-pure-render-mixin": "0.14.0",
     "react-addons-test-utils": "0.14.0",
