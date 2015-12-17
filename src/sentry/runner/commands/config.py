@@ -52,6 +52,8 @@ def set(option, value):
         options.set(option, value)
     except UnknownOption:
         raise click.ClickException('unknown option: %s' % option)
+    except TypeError as e:
+        raise click.ClickException(unicode(e))
 
 
 @config.command()
