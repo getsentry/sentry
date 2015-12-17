@@ -27,7 +27,7 @@ class OptionType(object):
     # Default value to be returned when initializing
     default = None
     # Types that do not need to be coerced
-    expected_types = (object,)
+    expected_types = ()
     # Types that are acceptable for coersion
     compatible_types = (basestring,)
 
@@ -61,6 +61,8 @@ class OptionType(object):
 class AnyType(OptionType):
     """A type that accepts any value and does no coersion"""
     name = 'any'
+    expected_types = (object,)
+    compatible_types = (object,)
 
 
 class BoolType(OptionType):
