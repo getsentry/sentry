@@ -10,6 +10,7 @@ from sentry.options.store import OptionsStore
 from sentry.options.manager import (
     OptionsManager, UnknownOption, DEFAULT_FLAGS,
     FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY, FLAG_REQUIRED, FLAG_PRIORITIZE_DISK)
+from sentry.options.types import Int, String
 from sentry.testutils import TestCase
 
 
@@ -60,10 +61,24 @@ class OptionsManagerTest(TestCase):
             self.manager.register('foo')
 
         with self.assertRaises(TypeError):
-            self.manager.register('wrong-type', default=1, type=basestring)
+            self.manager.register('wrong-type', default=1, type=String)
 
         with self.assertRaises(TypeError):
             self.manager.register('none-type', default=None, type=type(None))
+
+    def test_coerce(self):
+        self.manager.register('some-int', type=Int)
+
+        self.manager.set('some-int', 0)
+        assert self.manager.get('some-int') == 0
+        self.manager.set('some-int', '0')
+        assert self.manager.get('some-int') == 0
+
+        with self.assertRaises(TypeError):
+            self.manager.set('some-int', 'foo')
+
+        with self.assertRaises(TypeError):
+            self.manager.set('some-int', '0', coerce=False)
 
     def test_legacy_key(self):
         """
@@ -77,7 +92,7 @@ class OptionsManagerTest(TestCase):
         assert self.manager.get('sentry:foo') == ''
 
     def test_types(self):
-        self.manager.register('some-int', type=int, default=0)
+        self.manager.register('some-int', type=Int, default=0)
         with self.assertRaises(TypeError):
             self.manager.set('some-int', 'foo')
         self.manager.set('some-int', 1)
@@ -90,6 +105,10 @@ class OptionsManagerTest(TestCase):
         assert self.manager.get('awesome') == 'bar'
         self.manager.delete('awesome')
         assert self.manager.get('awesome') == 'lol'
+        self.manager.register('callback', default=lambda: True)
+        assert self.manager.get('callback') is True
+        self.manager.register('default-type', type=Int)
+        assert self.manager.get('default-type') == 0
 
     def test_flag_immutable(self):
         self.manager.register('immutable', flags=FLAG_IMMUTABLE)
