@@ -31,7 +31,7 @@ class SystemOptionsEndpoint(Endpoint):
             results[k.name] = {
                 'value': options.get(k.name),
                 'field': {
-                    'default': k.default,
+                    'default': k.default(),
                     'required': bool(k.flags & options.FLAG_REQUIRED),
                     # We're disabled if the disk has taken priority
                     'disabled': diskPriority,
