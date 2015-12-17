@@ -589,6 +589,7 @@ SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 SENTRY_FEATURES = {
     'auth:register': True,
     'organizations:create': True,
+    'organizations:dashboard': False,
     'organizations:sso': True,
     'projects:global-events': False,
     'projects:quotas': True,

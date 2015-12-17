@@ -2,25 +2,19 @@ import React from 'react';
 
 import Duration from '../../components/duration';
 import Gravatar from '../../components/gravatar';
-import GroupState from '../../mixins/groupState';
 import MemberListStore from '../../stores/memberListStore';
 import TimeSince from '../../components/timeSince';
-import ConfigStore from '../../stores/configStore';
 import Version from '../../components/version';
 
-import NoteContainer from '../../components/activity/noteContainer';
-import NoteInput from '../../components/activity/noteInput';
+import NoteContainer from './noteContainer';
 import {t, tn} from '../../locale';
 
 
-const GroupActivity = React.createClass({
-  // TODO(dcramer): only re-render on group/activity change
-
-  mixins: [GroupState],
-
-  formatActivity(author, item, params) {
+const ActivityItem = React.createClass({
+  formatProjectActivity(author, item) {
     let data = item.data;
-    let {orgId, projectId} = params;
+    let orgId = this.props.orgId;
+    let project = item.project;
 
     switch(item.type) {
       case 'note':
@@ -31,7 +25,7 @@ const GroupActivity = React.createClass({
         return (data.version ?
           t('%(author)s marked this issue as resolved in %(version)s', {
             author: author,
-            version: <Version version={data.version} orgId={orgId} projectId={projectId} />
+            version: <Version version={data.version} orgId={orgId} projectId={project.slug} />
           })
         :
           t('%s marked this issue as resolved in the upcoming release', author)
@@ -54,7 +48,7 @@ const GroupActivity = React.createClass({
         return (data.version ?
           t('%(author)s marked this issue as a regression in %(version)s', {
             author: author,
-            version: <Version version={data.version} orgId={orgId} projectId={projectId} />
+            version: <Version version={data.version} orgId={orgId} projectId={project.slug} />
           })
         :
           t('%s marked this issue as a regression', author)
@@ -93,66 +87,51 @@ const GroupActivity = React.createClass({
                   '%2$s merged %1$d issues into this isssue',
                   data.issues.length,
                   author);
+      case 'release':
+        return t('%(author)s released version %(version)s of %(project)s', {
+          author: author,
+          project: project.name,
+          version: <Version version={data.version} orgId={orgId} projectId={project.slug} />
+        });
       default:
         return ''; // should never hit (?)
     }
   },
 
   render() {
-    let group = this.props.group;
-    let me = ConfigStore.get('user');
+    let item = this.props.item;
+    let issue = item.issue;
 
-    let children = group.activity.map((item, itemIdx) => {
-      let avatar = (item.user ?
-        <Gravatar email={item.user.email} size={64} className="avatar" /> :
-        <div className="avatar sentry"><span className="icon-sentry-logo"></span></div>);
+    let avatar = (item.user ?
+      <Gravatar email={item.user.email} size={64} className="avatar" /> :
+      <div className="avatar sentry"><span className="icon-sentry-logo"></span></div>);
 
-      let author = {
-        name: item.user ? item.user.name : 'Sentry',
-        avatar: avatar,
-      };
+    let author = {
+      name: item.user ? item.user.name : 'Sentry',
+      avatar: avatar,
+    };
 
-      if (item.type === 'note') {
-        return (
-          <NoteContainer group={group} item={item} key={itemIdx} author={author} />
-        );
-      } else {
-        return (
-          <li className="activity-item" key={itemIdx}>
-            <TimeSince date={item.dateCreated} />
-            <div className="activity-item-content">
-              {this.formatActivity(
-                <span key={`${itemIdx}-author`}>
-                  {author.avatar}
-                  <span className="activity-author">{author.name}</span>
-                </span>,
-                item,
-                this.props.params
-              )}
-            </div>
-          </li>
-        );
-      }
-    });
-
-    return (
-      <div className="row">
-        <div className="col-md-9">
-          <div className="activity-container">
-            <ul className="activity">
-              <li className="activity-note" key="activity-note">
-                <Gravatar email={me.email} size={64} className="avatar" />
-                <div className="activity-bubble">
-                  <NoteInput group={group} />
-                </div>
-              </li>
-              {children}
-            </ul>
+    if (item.type === 'note') {
+      return (
+        <NoteContainer group={issue} item={item} author={author} />
+      );
+    } else {
+      return (
+        <li className="activity-item">
+          <TimeSince date={item.dateCreated} />
+          <div className="activity-item-content">
+            {this.formatProjectActivity(
+              <span>
+                {author.avatar}
+                <span className="activity-author">{author.name}</span>
+              </span>,
+              item
+            )}
           </div>
-        </div>
-      </div>
-    );
-  }
+        </li>
+      );
+    }
+  },
 });
 
-export default GroupActivity;
+export default ActivityItem;
