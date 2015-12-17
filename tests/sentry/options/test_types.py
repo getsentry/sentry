@@ -42,6 +42,7 @@ class OptionsTypesTest(TestCase):
     def test_int(self):
         assert Int(1) == 1
         assert Int('1') == 1
+        assert Int('-1') == -1
         assert Int() == 0
         with self.assertRaises(InvalidTypeError):
             Int('foo')
@@ -51,6 +52,7 @@ class OptionsTypesTest(TestCase):
     def test_float(self):
         assert Float(1.0) == 1.0
         assert Float('1') == 1.0
+        assert Float('-1.1') == -1.1
         assert Float(1) == 1.0
         assert Float() == 0.0
         with self.assertRaises(InvalidTypeError):
