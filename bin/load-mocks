@@ -8,6 +8,7 @@ import itertools
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 from hashlib import md5
 from pytz import utc
 from random import randint
@@ -168,6 +169,7 @@ def main(num_events=1):
                 name=project_name,
                 defaults={
                     'organization': org,
+                    'first_event': timezone.now(),
                 }
             )
 
