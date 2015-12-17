@@ -1,15 +1,21 @@
 from __future__ import absolute_import
 
-from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize, OrganizationActivitySerializer
-from sentry.models import Activity
+from sentry.models import Activity, OrganizationMemberTeam, Project
 
 
-class OrganizationActivityEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+class OrganizationActivityEndpoint(OrganizationMemberEndpoint):
+    def get(self, request, organization, member):
         queryset = Activity.objects.filter(
-            project__organization=organization,
+            project__in=Project.objects.filter(
+                organization=organization,
+                team__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember=member,
+                    is_active=True,
+                ).values('team')
+            )
         ).select_related('project', 'user')
 
         return self.paginate(
