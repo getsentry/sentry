@@ -80,12 +80,24 @@ def bootstrap_options(settings, config):
     if config is None:
         return
     from sentry.utils.yaml import safe_load
+    from yaml.parser import ParserError
+    from yaml.scanner import ScannerError
     try:
         with open(config, 'rb') as fp:
             options = safe_load(fp)
     except IOError:
         # Gracefully fail if yaml file doesn't exist
         return
+    except (AttributeError, ParserError, ScannerError) as e:
+        from .importer import ConfigurationError
+        raise ConfigurationError('Malformed config.yml file: %s' % unicode(e))
+    # Empty options file, so fail gracefully
+    if options is None:
+        return
+    # Options needs to be a dict
+    if not isinstance(options, dict):
+        from .importer import ConfigurationError
+        raise ConfigurationError('Malformed config.yml file')
     # First move options from settings into options
     for k, v in options_mapper.iteritems():
         if hasattr(settings, v):
