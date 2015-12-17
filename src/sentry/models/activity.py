@@ -73,6 +73,14 @@ class Activity(Model):
     __repr__ = sane_repr('project_id', 'group_id', 'event_id', 'user_id',
                          'type', 'ident')
 
+    def __init__(self, *args, **kwargs):
+        super(Activity, self).__init__(*args, **kwargs)
+        from sentry.models import Release
+
+        # XXX(dcramer): fix for bad data
+        if self.type == self.RELEASE and isinstance(self.data['version'], Release):
+            self.data['version'] = self.data['version'].version
+
     def save(self, *args, **kwargs):
         created = bool(not self.id)
 
