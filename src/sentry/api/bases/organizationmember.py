@@ -9,7 +9,7 @@ from .organization import OrganizationEndpoint
 
 
 class OrganizationMemberEndpoint(OrganizationEndpoint):
-    def convert_args(self, request, organization_slug, member_id, *args, **kwargs):
+    def convert_args(self, request, organization_slug, member_id='me', *args, **kwargs):
         args, kwargs = super(OrganizationMemberEndpoint, self).convert_args(
             request, organization_slug
         )
