@@ -68,9 +68,7 @@ const InstallWizardSettings = React.createClass({
         <p>Welcome to Sentry, yo! Complete setup by filling out the required
           configuration.</p>
 
-        {fields.length ? fields :
-          <p>Nothing needs to be done here. Enjoy.</p>
-        }
+        {fields}
 
         <div className="form-actions" style={{marginTop: 25}}>
           <button className="btn btn-primary"
