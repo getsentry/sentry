@@ -16,7 +16,7 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint):
                     is_active=True,
                 ).values('team')
             )
-        ).select_related('project', 'user')
+        ).select_related('project', 'group', 'user')
 
         return self.paginate(
             request=request,
