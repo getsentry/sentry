@@ -72,9 +72,10 @@ class BoolType(OptionType):
     expected_types = (bool,)
 
     def convert(self, value):
-        if value.lower() in ('y', 'yes', 't', 'true', '1'):
+        value = value.lower()
+        if value in ('y', 'yes', 't', 'true', '1'):
             return True
-        if value.lower() in ('n', 'no', 'f', 'false', '0'):
+        if value in ('n', 'no', 'f', 'false', '0'):
             return False
 
 
