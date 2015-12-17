@@ -463,7 +463,7 @@ class EventManager(object):
                 type=Activity.RELEASE,
                 project=project,
                 ident=release,
-                data={'version': release},
+                data={'version': release.version},
                 datetime=date,
             )
 
