@@ -44,7 +44,7 @@ class SystemOptionsEndpoint(Endpoint):
     def put(self, request):
         # TODO(dcramer): this should validate options before saving them
         for k, v in request.DATA.iteritems():
-            if v:
+            if v and isinstance(v, basestring):
                 v = v.strip()
             try:
                 if not v:
@@ -57,6 +57,14 @@ class SystemOptionsEndpoint(Endpoint):
                     'error': 'unknown_option',
                     'errorDetail': {
                         'option': k,
+                    },
+                }, status=400)
+            except TypeError as e:
+                return Response({
+                    'error': 'invalid_type',
+                    'errorDetail': {
+                        'option': k,
+                        'message': unicode(e),
                     },
                 }, status=400)
         # TODO(dcramer): this has nothing to do with configuring options and

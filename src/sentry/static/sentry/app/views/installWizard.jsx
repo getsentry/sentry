@@ -171,6 +171,10 @@ const InstallWizard = React.createClass({
               errorMessage = t('An invalid option (%s) was passed to the server. Please report this issue to the Sentry team.',
                                err.errorDetail.option);
               break;
+            case 'invalid_type':
+              errorMessage = t('An invalid value for (%s) was passed to the server.',
+                               err.errorDetail.option);
+              break;
             default:
               errorMessage = t('An unknown error occurred. Please take a look at the service logs.');
           }
