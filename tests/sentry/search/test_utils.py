@@ -98,3 +98,11 @@ class ParseQueryTest(TestCase):
         )
         result = self.parse_query('user:username:foobar')
         assert result['tags']['sentry:user'] == euser.tag_value
+
+    def test_is_unassigned(self):
+        result = self.parse_query('is:unassigned')
+        assert result == {'unassigned': True, 'tags': {}, 'query': ''}
+
+    def test_is_assigned(self):
+        result = self.parse_query('is:assigned')
+        assert result == {'unassigned': False, 'tags': {}, 'query': ''}

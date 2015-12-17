@@ -25,7 +25,9 @@ const StreamTagStore = Reflux.createStore({
         values: [
           'resolved',
           'unresolved',
-          'muted'
+          'muted',
+          'assigned',
+          'unassigned'
         ],
         predefined: true
       },
