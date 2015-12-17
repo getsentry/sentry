@@ -78,10 +78,15 @@ def parse_query(project, query, user):
             if key == 'query':
                 results['query'].append(value)
             elif key == 'is':
-                try:
-                    results['status'] = STATUS_CHOICES[value]
-                except KeyError:
-                    pass
+                if value == 'unassigned':
+                    results['unassigned'] = True
+                elif value == 'assigned':
+                    results['unassigned'] = False
+                else:
+                    try:
+                        results['status'] = STATUS_CHOICES[value]
+                    except KeyError:
+                        pass
             elif key == 'assigned':
                 if value == 'me':
                     results['assigned_to'] = user

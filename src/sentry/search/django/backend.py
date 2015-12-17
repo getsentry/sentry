@@ -22,8 +22,8 @@ from sentry.utils.db import get_db_engine
 class DjangoSearchBackend(SearchBackend):
     def query(self, project, query=None, status=None, tags=None,
               bookmarked_by=None, assigned_to=None, first_release=None,
-              sort_by='date', date_filter='last_seen', date_from=None,
-              date_to=None, cursor=None, limit=100):
+              sort_by='date', date_filter='last_seen', unassigned=None,
+              date_from=None, date_to=None, cursor=None, limit=100):
         from sentry.models import Group, GroupStatus
 
         queryset = Group.objects.filter(project=project)
@@ -58,6 +58,10 @@ class DjangoSearchBackend(SearchBackend):
             queryset = queryset.filter(
                 assignee_set__project=project,
                 assignee_set__user=assigned_to,
+            )
+        elif unassigned in (True, False):
+            queryset = queryset.filter(
+                assignee_set__isnull=unassigned,
             )
 
         if first_release:

@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 
-from sentry.models import GroupBookmark, GroupStatus, GroupTagValue
+from sentry.models import GroupAssignee, GroupBookmark, GroupStatus, GroupTagValue
 from sentry.search.django.backend import DjangoSearchBackend
 from sentry.testutils import TestCase
 
@@ -70,6 +70,12 @@ class DjangoSearchBackendTest(TestCase):
             )
 
         GroupBookmark.objects.create(
+            user=self.user,
+            group=self.group2,
+            project=self.group2.project,
+        )
+
+        GroupAssignee.objects.create(
             user=self.user,
             group=self.group2,
             project=self.group2.project,
@@ -180,5 +186,19 @@ class DjangoSearchBackendTest(TestCase):
             date_to=self.group1.last_seen - timedelta(minutes=1),
             date_filter='last_seen',
         )
+        assert len(results) == 1
+        assert results[0] == self.group2
+
+    def test_unassigned(self):
+        results = self.backend.query(self.project1, unassigned=True)
+        assert len(results) == 1
+        assert results[0] == self.group1
+
+        results = self.backend.query(self.project1, unassigned=False)
+        assert len(results) == 1
+        assert results[0] == self.group2
+
+    def test_assigned_to(self):
+        results = self.backend.query(self.project1, assigned_to=self.user)
         assert len(results) == 1
         assert results[0] == self.group2
