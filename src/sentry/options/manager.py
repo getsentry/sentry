@@ -179,8 +179,6 @@ class OptionsManager(object):
         else:
             default_value = default()
 
-        print(default, default_value, default())
-
         # Guess type based on the default value
         if type is None:
             # the default value would be equivilent to '' if no type / default
