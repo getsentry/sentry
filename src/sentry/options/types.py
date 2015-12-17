@@ -51,7 +51,7 @@ class OptionType(object):
         return self.default
 
     def test(self, value):
-        """Check if the value needs to be coerced or not"""
+        """Check if the value is the correct type or not"""
         return isinstance(value, self.expected_types)
 
     def __repr__(self):
