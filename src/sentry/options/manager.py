@@ -99,7 +99,7 @@ class OptionsManager(object):
                 logger.debug('Using legacy key: %s', key, exc_info=True)
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
-                return self.store.make_key(key, '', Any, DEFAULT_FLAGS, 0, 0)
+                return self.store.make_key(key, lambda: '', Any, DEFAULT_FLAGS, 0, 0)
             raise UnknownOption(key)
 
     def get(self, key, silent=False):
@@ -140,17 +140,13 @@ class OptionsManager(object):
         # Some values we don't want to allow them to be configured through
         # config files and should only exist in the datastore
         if opt.flags & FLAG_STOREONLY:
-            if callable(opt.default):
-                return opt.default()
-            return opt.default
+            return opt.default()
 
         try:
             # default to the hardcoded local configuration for this key
             return settings.SENTRY_OPTIONS[key]
         except KeyError:
-            if callable(opt.default):
-                return opt.default()
-            return opt.default
+            return opt.default()
 
     def delete(self, key):
         """
@@ -177,17 +173,21 @@ class OptionsManager(object):
 
         # If our default is a callable, execute it to
         # see what value is returns, so we can use that to derive the type
-        if callable(default):
-            default_value = default()
-        else:
+        if not callable(default):
             default_value = default
+            default = lambda: default_value
+        else:
+            default_value = default()
+
+        print(default, default_value, default())
 
         # Guess type based on the default value
         if type is None:
             # the default value would be equivilent to '' if no type / default
             # is specified and we assume unicode for safety
-            if default is None:
-                default = default_value = u''
+            if default_value is None:
+                default_value = u''
+                default = lambda: default_value
             type = type_from_value(default_value)
 
         # We disallow None as a value for options since this is ambiguous and doesn't
