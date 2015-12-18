@@ -90,7 +90,7 @@ const ActivityItem = React.createClass({
       case 'release':
         return t('%(author)s released version %(version)s of %(project)s', {
           author: author,
-          project: project.name,
+          project: <strong>{project.name}</strong>,
           version: <Version version={data.version} orgId={orgId} projectId={project.slug} />
         });
       default:
@@ -117,8 +117,7 @@ const ActivityItem = React.createClass({
       );
     } else {
       return (
-        <li className="activity-item">
-          <TimeSince date={item.dateCreated} />
+        <li className="activity-item activity-item-compact">
           <div className="activity-item-content">
             {this.formatProjectActivity(
               <span>
@@ -127,6 +126,7 @@ const ActivityItem = React.createClass({
               </span>,
               item
             )}
+            <TimeSince date={item.dateCreated} />
           </div>
         </li>
       );
