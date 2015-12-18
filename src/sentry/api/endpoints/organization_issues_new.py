@@ -14,6 +14,7 @@ class OrganizationIssuesNewEndpoint(OrganizationIssuesEndpoint):
         return Group.objects.filter(
             status=GroupStatus.UNRESOLVED,
             active_at__gte=cutoff,
+            project__in=project_list,
         ).extra(
             select={'sort_by': 'sentry_groupedmessage.first_seen'},
         ).select_related('project').order_by('-sort_by')
