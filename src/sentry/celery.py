@@ -37,11 +37,11 @@ OriginalTask = app.Task
 
 class SentryTask(OriginalTask):
 
-    def apply_async(self, args, kwargs):
+    def apply_async(self, *args, **kwargs):
         key = 'jobs.delay'
         instance = self.name
         with metrics.timer(key, instance=instance):
-            return OriginalTask.apply_async(self, args, kwargs)
+            return OriginalTask.apply_async(self, *args, **kwargs)
 
 app.Task = SentryTask
 
