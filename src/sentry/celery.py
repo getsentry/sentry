@@ -14,6 +14,8 @@ if not settings.configured:
     from sentry.runner import configure
     configure()
 
+from sentry.utils import metrics
+
 
 class Celery(celery.Celery):
     def on_configure(self):
@@ -28,6 +30,20 @@ class Celery(celery.Celery):
 
 
 app = Celery('sentry')
+
+
+OriginalTask = app.Task
+
+
+class SentryTask(OriginalTask):
+
+    def apply_async(self, *args, **kwargs):
+        key = 'jobs.delay'
+        instance = self.name
+        with metrics.timer(key, instance=instance):
+            return OriginalTask.apply_async(self, *args, **kwargs)
+
+app.Task = SentryTask
 
 # Using a string here means the worker will not have to
 # pickle the object when using Windows.
