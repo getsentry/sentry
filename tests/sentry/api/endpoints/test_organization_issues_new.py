@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry.models import OrganizationMember, OrganizationMemberTeam
 from sentry.testutils import APITestCase
 
 
@@ -11,6 +12,14 @@ class OrganizationIssuesNewTest(APITestCase):
         project2 = self.create_project(organization=org, name='bar')
         group1 = self.create_group(checksum='a' * 32, project=project1, score=10)
         group2 = self.create_group(checksum='b' * 32, project=project2, score=5)
+        member = OrganizationMember.objects.get(
+            user=user,
+            organization=org,
+        )
+        OrganizationMemberTeam.objects.create(
+            organizationmember=member,
+            team=project1.team,
+        )
 
         self.login_as(user=user)
 
