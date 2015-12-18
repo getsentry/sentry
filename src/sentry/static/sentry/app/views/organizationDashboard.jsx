@@ -58,7 +58,7 @@ const Activity = React.createClass({
   render() {
     return (
       <div>
-        <h3>Activity</h3>
+        <h6 className="nav-header">Activity</h6>
         <ActivityFeed endpoint={this.getEndpoint()} query={{
           per_page: 20,
         }} pagination={false} {...this.props} />
@@ -90,8 +90,6 @@ const OrganizationDashboard = React.createClass({
             <NewIssues {...this.props} />
           </div>
           <div className="col-md-3">
-            <h6 className="nav-header"><a className="view-more">View stats</a>Events per minute</h6>
-            <h6 className="nav-header"><a className="view-more">View all</a>Active Projects</h6>
             <Activity {...this.props} />
           </div>
         </div>

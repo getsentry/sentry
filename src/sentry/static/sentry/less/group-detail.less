@@ -639,6 +639,39 @@
         padding-right: 8px;
         background: @white;
       }
+
+      &.activity-item-compact {
+        .avatar {
+          .square(30px);
+          position: absolute;
+          top: 0;
+          left: 0;
+
+          &.sentry {
+            background: @white-darker;
+            font-size: 16px;
+            line-height: 1.2;
+            text-align: center;
+            line-height: 32px;
+          }
+        }
+
+        .activity-item-content {
+          display: block;
+          position: relative;
+          padding-left: 38px;
+          line-height: 1.25;
+        }
+
+        time {
+          float: none;
+          padding-left: 0;
+        }
+
+        &:before {
+          display: none;
+        }
+      }
     }
   }
 
