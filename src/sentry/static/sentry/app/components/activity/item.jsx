@@ -3,6 +3,7 @@ import React from 'react';
 
 import Duration from '../../components/duration';
 import Gravatar from '../../components/gravatar';
+import {Link} from 'react-router';
 import MemberListStore from '../../stores/memberListStore';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
@@ -90,7 +91,7 @@ const ActivityItem = React.createClass({
       case 'release':
         return t('%(author)s released version %(version)s of %(project)s', {
           author: author,
-          project: <strong>{project.name}</strong>,
+          project: <Link to={`/${orgId}/${project.slug}/`}>{project.name}</Link>,
           version: <Version version={data.version} orgId={orgId} projectId={project.slug} />
         });
       default:
