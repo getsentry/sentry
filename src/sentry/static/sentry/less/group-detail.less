@@ -659,13 +659,29 @@
         .activity-item-content {
           display: block;
           position: relative;
-          padding-left: 38px;
+          padding-left: 40px;
           line-height: 1.25;
+          min-height: 30px;
         }
 
         time {
           float: none;
           padding-left: 0;
+          white-space: nowrap;
+        }
+
+        .activity-item-bubble {
+          margin-top: 4px;
+          padding: 6px 8px 4px;
+          border: 1px solid @gray-lighter;
+          border-radius: 3px;
+          box-shadow: 0 1px 1px rgba(0,0,0, .06);
+
+          p {
+            &:last-child {
+              margin-bottom: 0;
+            }
+          }
         }
 
         &:before {

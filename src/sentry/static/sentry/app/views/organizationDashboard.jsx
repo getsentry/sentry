@@ -85,11 +85,11 @@ const OrganizationDashboard = React.createClass({
       <OrganizationHomeContainer>
         <div className="alert alert-block alert-info hidden">Psst! This feature is still a work-in-progress. Thanks for being an early adopter!</div>
         <div className="row">
-          <div className="col-md-9">
+          <div className="col-md-8">
             <AssignedIssues {...this.props} />
             <NewIssues {...this.props} />
           </div>
-          <div className="col-md-3">
+          <div className="col-md-4">
             <Activity {...this.props} />
           </div>
         </div>

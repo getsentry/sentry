@@ -1,3 +1,4 @@
+import marked from 'marked';
 import React from 'react';
 
 import Duration from '../../components/duration';
@@ -6,7 +7,6 @@ import MemberListStore from '../../stores/memberListStore';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
 
-import NoteContainer from './noteContainer';
 import {t, tn} from '../../locale';
 
 
@@ -100,7 +100,6 @@ const ActivityItem = React.createClass({
 
   render() {
     let item = this.props.item;
-    let issue = item.issue;
 
     let avatar = (item.user ?
       <Gravatar email={item.user.email} size={64} className="avatar" /> :
@@ -112,8 +111,21 @@ const ActivityItem = React.createClass({
     };
 
     if (item.type === 'note') {
+      let noteBody = marked(item.data.text);
       return (
-        <NoteContainer group={issue} item={item} author={author} />
+        <li className="activity-item activity-item-compact">
+          <div className="activity-item-content">
+            {this.formatProjectActivity(
+              <span>
+                {author.avatar}
+                <span className="activity-author">{author.name}</span>
+              </span>,
+              item
+            )}
+            <TimeSince date={item.dateCreated} />
+            <div className="activity-item-bubble" dangerouslySetInnerHTML={{__html: noteBody}} />
+          </div>
+        </li>
       );
     } else {
       return (
