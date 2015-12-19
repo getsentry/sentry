@@ -60,7 +60,7 @@ const Activity = React.createClass({
       <div>
         <h6 className="nav-header">Activity</h6>
         <ActivityFeed endpoint={this.getEndpoint()} query={{
-          per_page: 20,
+          per_page: 10,
         }} pagination={false} {...this.props} />
       </div>
     );
