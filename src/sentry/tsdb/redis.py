@@ -79,7 +79,7 @@ class RedisTSDB(BaseTSDB):
         super(RedisTSDB, self).__init__(**kwargs)
 
     def validate(self):
-        logger.info('Validating Redis version...')
+        logger.debug('Validating Redis version...')
         check_cluster_versions(
             self.cluster,
             Version((2, 8, 9)),
