@@ -384,6 +384,7 @@ class ClientApiHelper(object):
                     'name': 'fingerprint',
                     'value': data['fingerprint'],
                 })
+                del data['fingerprint']
 
         if 'platform' not in data or data['platform'] not in VALID_PLATFORMS:
             data['platform'] = 'other'
