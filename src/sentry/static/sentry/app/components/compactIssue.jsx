@@ -145,6 +145,10 @@ const CompactIssue = React.createClass({
 
     className += ' level-' + issue.level;
 
+    if (this.props.statsPeriod) {
+      className += ' with-graph';
+    }
+
     let {id, orgId} = this.props;
     let projectId = issue.project.slug;
 
@@ -152,8 +156,7 @@ const CompactIssue = React.createClass({
 
     return (
       <li className={className} onClick={this.toggleSelect}>
-        <div className="row">
-          <div className={this.props.statsPeriod ? 'col-md-9' : 'col-md-11'}>
+          <div>
             <span className="error-level truncate" title={issue.level}></span>
             <h3 className="truncate">
               <Link to={`/${orgId}/${projectId}/issues/${id}/`}>
@@ -178,11 +181,11 @@ const CompactIssue = React.createClass({
             </div>
           </div>
           {this.props.statsPeriod &&
-            <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
+            <div className="event-graph">
               <GroupChart id={id} statsPeriod={this.props.statsPeriod} />
             </div>
           }
-          <div className="col-md-1 align-right">
+          <div className="more-menu-container align-right">
             <DropdownLink
               topLevelClasses="more-menu"
               className="more-menu-toggle"
@@ -210,7 +213,6 @@ const CompactIssue = React.createClass({
               }
             </DropdownLink>
           </div>
-        </div>
         {this.props.children}
       </li>
     );
