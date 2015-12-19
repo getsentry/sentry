@@ -459,14 +459,6 @@ class EventManager(object):
 
             group_kwargs['first_release'] = release
 
-            Activity.objects.create(
-                type=Activity.RELEASE,
-                project=project,
-                ident=release,
-                data={'version': release.version},
-                datetime=date,
-            )
-
         group, is_new, is_regression, is_sample = self._save_aggregate(
             event=event,
             hashes=hashes,
