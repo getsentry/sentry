@@ -54,7 +54,7 @@ class SentryHTTPServer(Service):
         options.setdefault('timeout', 30)
         options.setdefault('proc_name', 'Sentry')
         options.setdefault('workers', 3)
-        options.setdefault('access_logfile', '-')
+        options.setdefault('accesslog', '-')
         options.setdefault('errorlog', '-')
         options.setdefault('loglevel', 'info')
         options.setdefault('limit_request_line', 0)
