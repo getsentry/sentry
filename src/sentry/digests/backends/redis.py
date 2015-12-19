@@ -144,11 +144,8 @@ class RedisBackend(Backend):
         # too early.
         self.ttl = options.pop('ttl', 60 * 60)
 
-        if options:
-            logger.warning('Discarding invalid options: %r', options)
-
     def validate(self):
-        logger.info('Validating Redis version...')
+        logger.debug('Validating Redis version...')
         check_cluster_versions(
             self.cluster,
             Version((2, 8, 9)),
