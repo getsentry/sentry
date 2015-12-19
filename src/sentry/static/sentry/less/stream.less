@@ -661,8 +661,9 @@
   box-shadow: 0 1px 3px rgba(0,0,0, .04);
 
   .issue {
-    padding: 12px 15px 5px 35px;
+    padding: 12px 40px 5px 35px;
     border-bottom: 1px solid lighten(@trim, 5);
+    position: relative;
 
     h3 {
       .icon-bookmark, .icon-soundoff {
@@ -710,11 +711,11 @@
     }
 
     .error-level {
-      .square(13px);
+      .square(12px);
       border-radius: 50%;
       position: absolute;
-      top: 2px;
-      left: -8px;
+      top: 13px;
+      left: 12px;
     }
 
     h3 {
@@ -851,7 +852,21 @@
     }
 
     .event-graph {
-      padding-top: 7px;
+      width: 125px;
+      position: absolute;
+      right: 40px;
+      top: 20px;
+    }
+
+    .more-menu-container {
+      position: absolute;
+      width: 20px;
+      right: 14px;
+      top: 13px;
+    }
+
+    &.with-graph {
+      padding-right: 180px;
     }
 
     &:last-child {
