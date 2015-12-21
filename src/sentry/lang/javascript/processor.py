@@ -323,7 +323,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             response.encoding = 'utf-8'
 
         body = response.text
-        z_body = zlib.compress(body)
+        z_body = zlib.compress(force_bytes(body))
         headers = {k.lower(): v for k, v in response.headers.items()}
 
         cache.set(cache_key, (headers, z_body, response.status_code), 60)
