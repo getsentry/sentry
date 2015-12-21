@@ -9,7 +9,7 @@ import zlib
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
-from django.utils.encoding import force_bytes
+from django.utils.encoding import force_bytes, force_text
 from collections import namedtuple
 from os.path import splitext
 from requests.exceptions import RequestException
@@ -184,7 +184,7 @@ def discover_sourcemap(result):
 
 
 def fetch_release_file(filename, release):
-    cache_key = 'releasefile:1:%s:%s' % (
+    cache_key = 'releasefile:v1:%s:%s' % (
         release.id,
         md5(filename).hexdigest(),
     )
@@ -249,13 +249,18 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     else:
         result = None
 
-    cache_key = 'source:cache:v2:%s' % (
+    cache_key = 'source:cache:v3:%s' % (
         md5(url).hexdigest(),
     )
 
     if result is None:
         logger.debug('Checking cache for url %r', url)
         result = cache.get(cache_key)
+        if result is not None:
+            # We got a cache hit, but the body is compressed, so we
+            # need to decompress it before handing it off
+            body = zlib.decompress(result[1])
+            result = (result[0], force_text(body), result[2])
 
     if result is None:
         # lock down domains that are problematic
@@ -317,12 +322,12 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         if not response.encoding:
             response.encoding = 'utf-8'
 
-        result = (
-            {k.lower(): v for k, v in response.headers.items()},
-            response.text,
-            response.status_code,
-        )
-        cache.set(cache_key, result, 60)
+        body = response.text
+        z_body = zlib.compress(body)
+        headers = {k.lower(): v for k, v in response.headers.items()}
+
+        cache.set(cache_key, (headers, z_body, response.status_code), 60)
+        result = (headers, body, response.status_code)
 
     if result[2] != 200:
         logger.debug('HTTP %s when fetching %r', result[2], url,
