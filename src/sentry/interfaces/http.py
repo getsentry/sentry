@@ -42,7 +42,7 @@ def format_headers(value):
         if k.lower() == 'cookie':
             cookie_header = v
         else:
-            result.append((k.title(), str(v)))
+            result.append((k.title(), v))
     return result, cookie_header
 
 
