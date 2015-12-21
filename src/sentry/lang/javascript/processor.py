@@ -5,6 +5,7 @@ __all__ = ['SourceProcessor']
 import logging
 import re
 import base64
+import zlib
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
@@ -27,6 +28,7 @@ from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Release, ReleaseFile
 from sentry.utils.cache import cache
+from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5
 from sentry.utils.http import is_valid_origin
 from sentry.utils.strings import truncatechars
@@ -182,7 +184,7 @@ def discover_sourcemap(result):
 
 
 def fetch_release_file(filename, release):
-    cache_key = 'releasefile:%s:%s' % (
+    cache_key = 'releasefile:1:%s:%s' % (
         release.id,
         md5(filename).hexdigest(),
     )
@@ -208,16 +210,24 @@ def fetch_release_file(filename, release):
                      filename, releasefile.id, release.id)
         try:
             with releasefile.file.getfile() as fp:
-                body = fp.read()
+                z_body, body = compress_file(fp)
         except Exception as e:
             logger.exception(unicode(e))
-            result = -1
+            cache.set(cache_key, -1, 3600)
+            result = None
         else:
+            # Write the compressed version to cache, but return the deflated version
+            cache.set(cache_key, (releasefile.file.headers, z_body, 200), 3600)
             result = (releasefile.file.headers, body, 200)
-        cache.set(cache_key, result, 3600)
-
-    if result == -1:
+    elif result == -1:
+        # We cached an error, so normalize
+        # it down to None
         result = None
+    else:
+        # We got a cache hit, but the body is compressed, so we
+        # need to decompress it before handing it off
+        body = zlib.decompress(result[1])
+        result = (result[0], body, result[2])
 
     return result
 
