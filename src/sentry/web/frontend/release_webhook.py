@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from hashlib import sha256
 import hmac
 import logging
+from simplejson import JSONDecodeError
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -33,6 +34,16 @@ class ReleaseWebhookView(View):
             project.organization.slug,
             project.slug,
         )
+
+        try:
+            data = json.loads(request.body)
+        except JSONDecodeError as exc:
+            return HttpResponse(
+                status=400,
+                content=json.dumps({'error': unicode(exc)}),
+                content_type='application/json',
+            )
+
         try:
             # Ideally the API client would support some kind of god-mode here
             # as we've already confirmed credentials and simply want to execute
@@ -44,7 +55,7 @@ class ReleaseWebhookView(View):
 
             resp = client.post(
                 endpoint,
-                data=json.loads(request.body),
+                data=data,
                 auth=god,
             )
         except client.ApiError as exc:
