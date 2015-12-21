@@ -42,6 +42,8 @@ def format_headers(value):
         if k.lower() == 'cookie':
             cookie_header = v
         else:
+            if not isinstance(v, basestring):
+                v = unicode(v)
             result.append((k.title(), v))
     return result, cookie_header
 
