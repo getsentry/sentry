@@ -66,8 +66,8 @@ class BaseModel(models.Model):
 
     def __get_field_value(self, field):
         if isinstance(field, models.ForeignKey):
-            return getattr(self, field.column)
-        return getattr(self, field.name)
+            return getattr(self, field.column, None)
+        return getattr(self, field.name, None)
 
     def _update_tracked_data(self):
         "Updates a local copy of attributes values"
