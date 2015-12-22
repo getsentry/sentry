@@ -98,7 +98,7 @@ const ActivityFeed = React.createClass({
   renderLoading() {
     return (
       <div className="box">
-        <LoadingIndicator />;
+        <LoadingIndicator />
       </div>
     );
   },
