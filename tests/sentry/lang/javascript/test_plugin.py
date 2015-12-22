@@ -5,7 +5,7 @@ import os.path
 
 from mock import patch
 
-from sentry.models import Event, File, FileBlob, Release, ReleaseFile
+from sentry.models import Event, File, Release, ReleaseFile
 from sentry.testutils import TestCase
 
 BASE64_SOURCEMAP = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0='
@@ -183,8 +183,8 @@ class JavascriptIntegrationTest(TestCase):
             name='file.min.js',
             type='release.file',
             headers={'Content-Type': 'application/json'},
-            blob=FileBlob.from_file(open(get_fixture_path('file.min.js'), 'rb'))
         )
+        f1.putfile(open(get_fixture_path('file.min.js'), 'rb'))
 
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f1.name),
@@ -197,8 +197,8 @@ class JavascriptIntegrationTest(TestCase):
             name='file1.js',
             type='release.file',
             headers={'Content-Type': 'application/json'},
-            blob=FileBlob.from_file(open(get_fixture_path('file1.js'), 'rb'))
         )
+        f2.putfile(open(get_fixture_path('file1.js'), 'rb'))
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f2.name),
             release=release,
@@ -210,8 +210,8 @@ class JavascriptIntegrationTest(TestCase):
             name='file2.js',
             type='release.file',
             headers={'Content-Type': 'application/json'},
-            blob=FileBlob.from_file(open(get_fixture_path('file2.js'), 'rb'))
         )
+        f3.putfile(open(get_fixture_path('file2.js'), 'rb'))
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f3.name),
             release=release,
@@ -223,8 +223,8 @@ class JavascriptIntegrationTest(TestCase):
             name='file.sourcemap.js',
             type='release.file',
             headers={'Content-Type': 'application/json'},
-            blob=FileBlob.from_file(open(get_fixture_path('file.sourcemap.js'), 'rb'))
         )
+        f4.putfile(open(get_fixture_path('file.sourcemap.js'), 'rb'))
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f4.name),
             release=release,

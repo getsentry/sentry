@@ -319,7 +319,7 @@ class MockUtils(object):
 
     def create_release_file(self, project, release, path,
                             content_type=None, contents=None):
-        from sentry.models import File, FileBlob, ReleaseFile
+        from sentry.models import File, ReleaseFile
         if content_type is None:
             content_type = mimetypes.guess_type(path)[0] or 'text/plain'
             if content_type.startswith('text/'):
@@ -330,8 +330,8 @@ class MockUtils(object):
             headers={
                 'Content-Type': content_type
             },
-            blob=FileBlob.from_file(StringIO(contents or '')),
         )
+        f.putfile(StringIO(contents or ''))
         return ReleaseFile.objects.create(
             project=project,
             release=release,
