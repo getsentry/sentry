@@ -12,7 +12,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import File, FileBlob, Release, ReleaseFile
+from sentry.models import File, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -157,14 +157,12 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
             else:
                 headers[k] = v.strip()
 
-        blob = FileBlob.from_file(fileobj)
-
         file = File.objects.create(
             name=name,
             type='release.file',
             headers=headers,
-            blob=blob,
         )
+        file.putfile(fileobj)
 
         try:
             with transaction.atomic():
