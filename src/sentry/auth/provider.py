@@ -63,6 +63,17 @@ class Provider(object):
         """
         raise NotImplementedError
 
+    def update_identity(self, new_data, current_data):
+        """
+        When re-authenticating with a provider, the identity data may need to
+        be mutated based on the previous state. An example of this is Google,
+        which will not return a `refresh_token` unless the user explicitly
+        goes through an approval process.
+
+        Return the new state which should be used for an identity.
+        """
+        return new_data
+
     def refresh_identity(self, auth_identity):
         """
         Updates the AuthIdentity with any changes from upstream. The primary

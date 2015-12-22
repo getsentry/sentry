@@ -209,7 +209,10 @@ class AuthHelper(object):
             now = timezone.now()
             auth_identity.update(
                 user=user,
-                data=identity.get('data', {}),
+                data=self.update_identity(
+                    new_data=identity.get('data', {}),
+                    current_data=auth_identity.data,
+                ),
                 last_verified=now,
                 last_synced=now,
             )
@@ -393,7 +396,10 @@ class AuthHelper(object):
         # TODO(dcramer): this is very similar to attach
         now = timezone.now()
         auth_identity.update(
-            data=identity.get('data', {}),
+            data=self.provider.update_identity(
+                new_data=identity.get('data', {}),
+                current_data=auth_identity.data,
+            ),
             last_verified=now,
             last_synced=now,
         )

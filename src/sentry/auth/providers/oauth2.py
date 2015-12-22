@@ -176,6 +176,13 @@ class OAuth2Provider(Provider):
         # }
         raise NotImplementedError
 
+    def update_identity(self, new_data, current_data):
+        # we want to maintain things like refresh_token that might not
+        # exist on a refreshed state
+        if 'refresh_token' in current_data:
+            new_data.setdefault('refresh_token', current_data['refresh_token'])
+        return new_data
+
     def refresh_identity(self, auth_identity):
         refresh_token = auth_identity.data.get('refresh_token')
 
