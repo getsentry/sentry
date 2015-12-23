@@ -2,8 +2,8 @@ from __future__ import absolute_import, print_function
 
 import logging
 
+from django.utils.http import urlencode
 from time import time
-from urllib import urlencode
 from urlparse import parse_qsl
 from uuid import uuid4
 

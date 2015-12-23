@@ -7,9 +7,8 @@ sentry.utils.avatar
 """
 from __future__ import absolute_import
 
-import urllib
-
 from django.conf import settings
+from django.utils.http import urlencode
 
 from sentry.utils.hashlib import md5
 
@@ -24,6 +23,6 @@ def get_gravatar_url(email, size=None, default='mm'):
     if default:
         properties['d'] = default
     if properties:
-        gravatar_url += "?" + urllib.urlencode(properties)
+        gravatar_url += "?" + urlencode(properties)
 
     return gravatar_url

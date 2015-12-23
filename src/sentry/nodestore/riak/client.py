@@ -19,7 +19,8 @@ from Queue import Queue
 # utilize the ca_certs path from requests since we already depend on it
 # and they bundle a ca cert.
 from requests.certs import where as ca_certs
-from urllib import urlencode, quote_plus
+from django.utils.http import urlencode
+from urllib import quote_plus
 from urllib3 import HTTPConnectionPool, HTTPSConnectionPool
 from urllib3.connection import HTTPConnection
 from urllib3.exceptions import HTTPError

@@ -3,10 +3,10 @@ from __future__ import absolute_import
 import urlparse
 
 from django.core.urlresolvers import reverse
+from django.utils.http import urlencode
 
 from sentry.models import Event
 from sentry.replays import Replayer
-from sentry.utils.http import safe_urlencode
 from sentry.web.forms import ReplayForm
 from sentry.web.frontend.base import ProjectView
 
@@ -35,7 +35,7 @@ class ReplayEventView(ProjectView):
             headers = ''
 
         if isinstance(http.data, dict):
-            data = safe_urlencode(http.data)
+            data = urlencode(http.data)
         else:
             data = http.data
 
