@@ -18,8 +18,11 @@ def preprocess_event(data):
 
     allow_scraping = bool(project.get_option('sentry:scrape_javascript', True))
 
-    processor = SourceProcessor(allow_scraping=allow_scraping)
-    return processor.process(project, data)
+    processor = SourceProcessor(
+        project=project,
+        allow_scraping=allow_scraping,
+    )
+    return processor.process(data)
 
 
 class JavascriptPlugin(Plugin2):

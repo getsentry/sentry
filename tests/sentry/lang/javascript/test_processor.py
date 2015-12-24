@@ -203,7 +203,7 @@ class SourceProcessorTest(TestCase):
             },
         }
 
-        processor = SourceProcessor()
+        processor = SourceProcessor(project=self.project)
         result = processor.get_stacktraces(data)
         assert len(result) == 1
         assert type(result[0][1]) is Stacktrace
@@ -235,7 +235,7 @@ class SourceProcessorTest(TestCase):
             }
         }
 
-        processor = SourceProcessor()
+        processor = SourceProcessor(project=self.project)
         result = processor.get_stacktraces(data)
         assert len(result) == 1
         assert type(result[0][1]) is Stacktrace
@@ -269,6 +269,6 @@ class SourceProcessorTest(TestCase):
             }
         }
 
-        processor = SourceProcessor()
-        result = processor.process(self.project, data)
+        processor = SourceProcessor(project=self.project)
+        result = processor.process(data)
         assert result['culprit'] == 'bar in oops'
