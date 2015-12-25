@@ -306,7 +306,10 @@ class AuthHelper(object):
 
         default_teams = auth_provider.default_teams.all()
         for team in default_teams:
-            om.teams.add(team)
+            OrganizationMemberTeam.objects.create(
+                    team=team,
+                    organizationmember=om,
+            )
 
         AuditLogEntry.objects.create(
             organization=organization,
