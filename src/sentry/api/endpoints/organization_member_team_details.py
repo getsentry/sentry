@@ -172,9 +172,15 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
                 organizationmember=om,
             )
         except OrganizationMemberTeam.DoesNotExist:
-            # if the relationship doesnt exist, they're already a member
-            return Response(serialize(
-                team, request.user, TeamWithProjectsSerializer()), status=200)
+            # we need to create the row in order to handle superusers leaving a
+            # team which they were never a member for (therefor there was never
+            # a matching row)
+            omt = OrganizationMemberTeam(
+                team=team,
+                organizationmember=om,
+                # setting this to true ensures it gets saved below
+                is_active=True,
+            )
 
         if omt.is_active:
             omt.is_active = False
