@@ -28,7 +28,7 @@ class EventError(object):
         JS_NO_COLUMN: 'Cannot expand sourcemap due to no column information for {url}',
         JS_MISSING_SOURCE: 'Source code was not found for {url}',
         JS_INVALID_SOURCEMAP: 'Sourcemap was invalid or not parseable: {url}',
-        JS_TOO_MANY_REMOTE_SOURCES: 'Too many remote source requests',
+        JS_TOO_MANY_REMOTE_SOURCES: 'The maximum number of remote source requests was made',
     }
 
     @classmethod
