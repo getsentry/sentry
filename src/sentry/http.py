@@ -15,10 +15,10 @@ import warnings
 
 from sentry import options
 from django.conf import settings
-from django.core.exceptions import SuspiciousOperation
 from ipaddr import IPNetwork
 from requests.adapters import HTTPAdapter
 from requests.exceptions import SSLError
+from sentry.exceptions import RestrictedIPAddress
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
@@ -72,7 +72,7 @@ def is_valid_url(url):
 class BlacklistAdapter(HTTPAdapter):
     def send(self, request, *args, **kwargs):
         if not is_valid_url(request.url):
-            raise SuspiciousOperation('%s matches the URL blacklist' % (request.url,))
+            raise RestrictedIPAddress('%s matches the URL blacklist' % (request.url,))
         return super(BlacklistAdapter, self).send(request, *args, **kwargs)
 
 

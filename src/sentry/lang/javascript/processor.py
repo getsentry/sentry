@@ -25,6 +25,7 @@ except ImportError:
 
 from sentry import http
 from sentry.constants import MAX_CULPRIT_LENGTH
+from sentry.exceptions import RestrictedIPAddress
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Release, ReleaseFile
 from sentry.utils.cache import cache
@@ -292,7 +293,12 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             )
         except Exception as exc:
             logger.debug('Unable to fetch %r', url, exc_info=True)
-            if isinstance(exc, SuspiciousOperation):
+            if isinstance(exc, RestrictedIPAddress):
+                error = {
+                    'type': EventError.RESTRICTED_IP,
+                    'url': url,
+                }
+            elif isinstance(exc, SuspiciousOperation):
                 error = {
                     'type': EventError.SECURITY_VIOLATION,
                     'value': unicode(exc),

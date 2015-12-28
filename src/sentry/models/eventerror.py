@@ -7,6 +7,7 @@ class EventError(object):
     VALUE_TOO_LONG = 'value_too_long'
     UNKNOWN_ERROR = 'unknown_error'
     SECURITY_VIOLATION = 'security_violation'
+    RESTRICTED_IP = 'restricted_ip'
 
     JS_GENERIC_FETCH_ERROR = 'js_generic_fetch_error'
     JS_INVALID_HTTP_CODE = 'js_invalid_http_code'
@@ -20,7 +21,8 @@ class EventError(object):
         INVALID_ATTRIBUTE: 'Discarded invalid parameter \'{name}\'',
         VALUE_TOO_LONG: 'Discarded value for \'{name}\' due to exceeding maximum length',
         UNKNOWN_ERROR: 'Unknown error',
-        SECURITY_VIOLATION: 'Security violation on {url}: {value}',
+        SECURITY_VIOLATION: 'Cannot fetch resource due to security violation on {url}: {value}',
+        RESTRICTED_IP: 'Cannot fetch resource due to restricted IP address on {url}',
         JS_GENERIC_FETCH_ERROR: 'Unable to fetch resource: {url}',
         JS_INVALID_HTTP_CODE: 'HTTP returned {value} response on {url}',
         JS_NO_COLUMN: 'Cannot expand sourcemap due to no column information for {url}',
