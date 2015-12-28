@@ -131,7 +131,7 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
     def test_can_leave_as_non_member(self):
         organization = self.create_organization(name='foo', owner=self.user)
         team = self.create_team(name='foo', organization=organization)
-        user = self.create_user('dummy@example.com')
+        user = self.create_user('dummy@example.com', is_superuser=False)
         member_om = self.create_member(
             organization=organization,
             user=user,
@@ -149,8 +149,35 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
 
         assert resp.status_code == 200
 
-        assert not OrganizationMemberTeam.objects.filter(
+        assert OrganizationMemberTeam.objects.filter(
             team=team,
             organizationmember=member_om,
-            is_active=True,
+            is_active=False,
+        ).exists()
+
+    def test_can_leave_as_superuser_without_membership(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+        team = self.create_team(name='foo', organization=organization)
+        user = self.create_user('dummy@example.com', is_superuser=True)
+        member_om = self.create_member(
+            organization=organization,
+            user=user,
+            role='member',
+            teams=[],
+        )
+
+        path = reverse('sentry-api-0-organization-member-team-details', args=[
+            organization.slug, member_om.id, team.slug,
+        ])
+
+        self.login_as(user)
+
+        resp = self.client.delete(path)
+
+        assert resp.status_code == 200
+
+        assert OrganizationMemberTeam.objects.filter(
+            team=team,
+            organizationmember=member_om,
+            is_active=False,
         ).exists()
