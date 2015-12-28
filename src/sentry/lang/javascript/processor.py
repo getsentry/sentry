@@ -301,7 +301,6 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             elif isinstance(exc, SuspiciousOperation):
                 error = {
                     'type': EventError.SECURITY_VIOLATION,
-                    'value': unicode(exc),
                     'url': url,
                 }
             elif isinstance(exc, (RequestException, ZeroReturnError)):

@@ -21,7 +21,7 @@ class EventError(object):
         INVALID_ATTRIBUTE: 'Discarded invalid parameter \'{name}\'',
         VALUE_TOO_LONG: 'Discarded value for \'{name}\' due to exceeding maximum length',
         UNKNOWN_ERROR: 'Unknown error',
-        SECURITY_VIOLATION: 'Cannot fetch resource due to security violation on {url}: {value}',
+        SECURITY_VIOLATION: 'Cannot fetch resource due to security violation on {url}',
         RESTRICTED_IP: 'Cannot fetch resource due to restricted IP address on {url}',
         JS_GENERIC_FETCH_ERROR: 'Unable to fetch resource: {url}',
         JS_INVALID_HTTP_CODE: 'HTTP returned {value} response on {url}',
