@@ -5,6 +5,7 @@ import ActivityFeed from '../components/activity/feed';
 import GroupStore from '../stores/groupStore';
 import IssueList from '../components/issueList';
 import OrganizationHomeContainer from '../components//organizations/homeContainer';
+import {t} from '../locale';
 
 const AssignedIssues = React.createClass({
   getEndpoint() {
@@ -19,7 +20,7 @@ const AssignedIssues = React.createClass({
     return (
       <div>
         <div className="pull-right">
-          <Link className="btn btn-sm btn-default" to={this.getViewMoreLink()}>View more</Link>
+          <Link className="btn btn-sm btn-default" to={this.getViewMoreLink()}>{t('View more')}</Link>
         </div>
         <h3>Assigned</h3>
         <IssueList endpoint={this.getEndpoint()} query={{
