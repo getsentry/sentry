@@ -8,7 +8,7 @@ import OrganizationHomeContainer from '../components//organizations/homeContaine
 
 const AssignedIssues = React.createClass({
   getEndpoint() {
-    return `/organizations/${this.props.params.orgId}/members/me/issues/assigned/`;
+    return `/organizations/${this.props.params.orgId}/members/me/issues/assigned/?`;
   },
 
   getViewMoreLink() {
@@ -25,6 +25,7 @@ const AssignedIssues = React.createClass({
         <IssueList endpoint={this.getEndpoint()} query={{
           statsPeriod: this.props.statsPeriod,
           per_page: this.props.pageSize,
+          status: 'unresolved',
         }} pagination={false} {...this.props} />
       </div>
     );
@@ -43,6 +44,7 @@ const NewIssues = React.createClass({
         <IssueList endpoint={this.getEndpoint()} query={{
           statsPeriod: this.props.statsPeriod,
           per_page: this.props.pageSize,
+          status: 'unresolved',
         }} pagination={false} {...this.props} />
       </div>
     );
