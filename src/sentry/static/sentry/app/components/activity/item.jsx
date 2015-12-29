@@ -8,7 +8,7 @@ import MemberListStore from '../../stores/memberListStore';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
 
-import {t, tct, tn} from '../../locale';
+import {tct} from '../../locale';
 
 
 const ActivityItem = React.createClass({
@@ -81,9 +81,10 @@ const ActivityItem = React.createClass({
           link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
       case 'create_issue':
-        return t('created an issue on %(provider)s titled %(title)s', {
+        return tct('[author] linked [link:an issue] on [provider]', {
+          author: author,
           provider: data.provider,
-          title: <a href={data.location}>{data.title}</a>
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
       case 'first_seen':
         return tct('[author] saw [link:a new issue]', {
@@ -117,10 +118,11 @@ const ActivityItem = React.createClass({
           link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
       case 'merge':
-        return tn('%2$s merged %1$d issue into this isssue',
-                  '%2$s merged %1$d issues into this isssue',
-                  data.issues.length,
-                  author);
+        return tct('[author] merged [count] [link:issues]', {
+          author: author,
+          count: data.issues.length + 1,
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
       case 'release':
         return tct('[author] released version [version] to [project]', {
           author: author,
@@ -158,6 +160,24 @@ const ActivityItem = React.createClass({
             )}
             <TimeSince date={item.dateCreated} />
             <div className="activity-item-bubble" dangerouslySetInnerHTML={{__html: noteBody}} />
+          </div>
+        </li>
+      );
+    } else if (item.type === 'create_issue') {
+      return (
+        <li className="activity-item activity-item-compact">
+          <div className="activity-item-content">
+            {this.formatProjectActivity(
+              <span>
+                {author.avatar}
+                <span className="activity-author">{author.name}</span>
+              </span>,
+              item
+            )}
+            <TimeSince date={item.dateCreated} />
+            <div className="activity-item-bubble">
+              <a href={item.data.location}>{item.data.title}</a>
+            </div>
           </div>
         </li>
       );
