@@ -22,31 +22,36 @@ class FileBlobTest(TestCase):
 
 
 class FileTest(TestCase):
-    def test_blob_conversion(self):
+    def test_file_handling(self):
+        fileobj = ContentFile("foo bar")
         file1 = File.objects.create(
-            path='foo/bar',
             name='baz.js',
             type='default',
-            size=100,
-            checksum='a' * 40,
+            size=7,
         )
-        file1.ensure_blob()
+        results = file1.putfile(fileobj, 3)
+        assert len(results) == 3
+        assert results[0].offset == 0
+        assert results[1].offset == 3
+        assert results[2].offset == 6
 
-        assert file1.blob
-        assert file1.blob.path == 'foo/bar'
-        assert file1.blob.size == 100
-        assert file1.blob.checksum == 'a' * 40
+        with file1.getfile() as fp:
+            assert fp.read() == 'foo bar'
+            fp.seek(2)
+            assert fp.read() == 'o bar'
+            fp.seek(0)
+            assert fp.read() == 'foo bar'
+            fp.seek(4)
+            assert fp.read() == 'bar'
 
-        file2 = File.objects.create(
-            path='foo/bar',
+    def test_legacy_blob(self):
+        fileobj = ContentFile("foo bar")
+        blob = FileBlob.from_file(fileobj)
+        file1 = File.objects.create(
             name='baz.js',
             type='default',
-            size=100,
-            checksum='a' * 40,
+            size=7,
+            blob=blob,
         )
-        file2.ensure_blob()
-
-        assert file2.blob == file1.blob
-        assert file2.blob.path == 'foo/bar'
-        assert file2.blob.size == 100
-        assert file2.blob.checksum == 'a' * 40
+        with file1.getfile() as fp:
+            assert fp.read() == 'foo bar'
