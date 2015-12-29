@@ -528,6 +528,10 @@ class SourceProcessor(object):
             if errors:
                 all_errors.extend(errors)
 
+            # can't fetch source if there's no filename present
+            if not frame.abs_path:
+                continue
+
             source = self.get_source(frame.abs_path, release)
             if source is None:
                 logger.debug('No source found for %s', frame.abs_path)
