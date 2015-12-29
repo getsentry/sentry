@@ -85,9 +85,9 @@ const OrganizationDashboard = React.createClass({
   render() {
     return (
       <OrganizationHomeContainer>
-        <div className="alert alert-block alert-info hidden">Psst! This feature is still a work-in-progress. Thanks for being an early adopter!</div>
         <div className="row">
           <div className="col-md-8">
+            <div className="alert alert-block alert-info">Psst! This feature is still a work-in-progress. Thanks for being an early adopter!</div>
             <AssignedIssues {...this.props} />
             <NewIssues {...this.props} />
           </div>
