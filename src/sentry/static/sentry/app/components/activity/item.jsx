@@ -94,7 +94,6 @@ const ActivityItem = React.createClass({
       case 'assigned':
         let assignee;
         if (data.assignee === item.user.id) {
-          assignee = 'themselves';
           return tct('[author] assigned [link:an issue] to themselves', {
             author: author,
             link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
@@ -104,12 +103,13 @@ const ActivityItem = React.createClass({
         if (assignee && assignee.email) {
           return tct('[author] assigned [link:an issue] to [assignee]', {
             author: author,
-            assignee: assignee.email,
+            assignee: <span title={assignee.email}>assignee.name</span>,
             link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
           });
         }
-        return tct('[author] assigned [link:an issue] to an unknown user', {
+        return tct('[author] assigned [link:an issue] to an [help:unknown user]', {
           author: author,
+          help: <span title={data.assignee} />,
           link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
       case 'unassigned':
