@@ -8,7 +8,7 @@ import MemberListStore from '../../stores/memberListStore';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
 
-import {t, tn} from '../../locale';
+import {t, tct, tn} from '../../locale';
 
 
 const ActivityItem = React.createClass({
@@ -16,80 +16,113 @@ const ActivityItem = React.createClass({
     let data = item.data;
     let orgId = this.props.orgId;
     let project = item.project;
+    let issue = item.issue;
 
     switch(item.type) {
       case 'note':
-        return t('%s left a comment', author);
+        return tct('[author] commented on [link:an issue]', {
+          author: author,
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
       case 'set_resolved':
-        return t('%s marked this issue as resolved', author);
+        return tct('[author] marked [link:an issue] as resolved', {
+          author: author,
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
       case 'set_resolved_in_release':
-        return (data.version ?
-          t('%(author)s marked this issue as resolved in %(version)s', {
+        if (data.version) {
+          return tct('[author] marked [link:an issue] as resolved in [version]', {
             author: author,
-            version: <Version version={data.version} orgId={orgId} projectId={project.slug} />
-          })
-        :
-          t('%s marked this issue as resolved in the upcoming release', author)
-        );
-      case 'set_unresolved':
-        return t('%s marked this issue as unresolved', author);
-      case 'set_muted':
-        if (data.snoozeDuration) {
-          return t('%(author)s snoozed this issue for %(duration)s', {
-            author: author,
-            duration: <Duration seconds={data.snoozeDuration * 60} />
+            version: <Version version={data.version} orgId={orgId} projectId={project.slug} />,
+            link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
           });
         }
-        return t('%s muted this issue', author);
-      case 'set_public':
-        return t('%s made this issue public', author);
-      case 'set_private':
-        return t('%s made this issue private', author);
-      case 'set_regression':
-        return (data.version ?
-          t('%(author)s marked this issue as a regression in %(version)s', {
+        return tct('[author] marked [link:an issue] as resolved in the upcoming release', {
+          author: author,
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
+      case 'set_unresolved':
+        return tct('[author] marked [link:an issue] as unresolved', {
+          author: author,
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
+      case 'set_muted':
+        if (data.snoozeDuration) {
+          return tct('[author] snoozed [link:an issue] for %(duration)s', {
             author: author,
-            version: <Version version={data.version} orgId={orgId} projectId={project.slug} />
-          })
-        :
-          t('%s marked this issue as a regression', author)
-        );
+            duration: <Duration seconds={data.snoozeDuration * 60} />,
+            link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+          });
+        }
+        return tct('[author] muted [link:an issue]', {
+          author: author,
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
+      case 'set_public':
+        return tct('[author] made an [link:an issue] public', {
+          author: author,
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
+      case 'set_private':
+        return tct('[author] made an [link:an issue] private', {
+          author: author,
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
+      case 'set_regression':
+        if (data.version) {
+          return tct('[author] marked [link:an issue] as a regression in [version]', {
+            author: author,
+            version: <Version version={data.version} orgId={orgId} projectId={project.slug} />,
+            link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+          });
+        }
+        return tct('[author] marked [link:an issue] as a regression', {
+          author: author,
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
       case 'create_issue':
         return t('created an issue on %(provider)s titled %(title)s', {
           provider: data.provider,
           title: <a href={data.location}>{data.title}</a>
         });
       case 'first_seen':
-        return t('%s first saw this issue', author);
+        return tct('[author] saw [link:a new issue]', {
+          author: author,
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
       case 'assigned':
         let assignee;
         if (data.assignee === item.user.id) {
           assignee = 'themselves';
-          return t('%s assigned this event to themselves', author);
-        } else {
-          assignee = MemberListStore.getById(data.assignee);
-          if (assignee.email) {
-            return t('%(author)s assigned this event to %(assignee)s', {
-              author: author,
-              assignee: assignee.email
-            });
-          } else {
-            return t('%s assigned this event to an unknown user', author);
-          }
+          return tct('[author] assigned [link:an issue] to themselves', {
+            author: author,
+            link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+          });
         }
-        return t('%(author)s assigned this event to %(assignee)s', {
+        assignee = MemberListStore.getById(data.assignee);
+        if (assignee && assignee.email) {
+          return tct('[author] assigned [link:an issue] to [assignee]', {
+            author: author,
+            assignee: assignee.email,
+            link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+          });
+        }
+        return tct('[author] assigned [link:an issue] to an unknown user', {
           author: author,
-          assignee: assignee.email
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
       case 'unassigned':
-        return t('%s unassigned this issue', author);
+        return tct('[author] unassigned [link:an issue]', {
+          author: author,
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
       case 'merge':
         return tn('%2$s merged %1$d issue into this isssue',
                   '%2$s merged %1$d issues into this isssue',
                   data.issues.length,
                   author);
       case 'release':
-        return t('%(author)s released version %(version)s of %(project)s', {
+        return tct('[author] released version [version] to [project]', {
           author: author,
           project: <Link to={`/${orgId}/${project.slug}/`}>{project.name}</Link>,
           version: <Version version={data.version} orgId={orgId} projectId={project.slug} />
