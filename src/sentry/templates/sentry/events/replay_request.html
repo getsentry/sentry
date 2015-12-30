@@ -38,7 +38,7 @@
         {% if result %}
           <div class="active tab-pane" id="result">
             <pre><strong>{{ result.status }} {{ result.reason }}</strong>
-{% for key, value in result.headers %}{{ key }}: {{ value }}
+{% for key, value in result.headers.items %}{{ key }}: {{ value }}
 {% endfor %}
 {{ result.body }}</pre>
           </div>
