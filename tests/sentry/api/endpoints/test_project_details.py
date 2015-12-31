@@ -85,6 +85,7 @@ class ProjectUpdateTest(APITestCase):
             'sentry:origins': 'foo\nbar',
             'sentry:resolve_age': 1,
             'sentry:scrub_data': False,
+            'sentry:scrub_defaults': False,
             'sentry:sensitive_fields': ['foo', 'bar']
         }
         resp = self.client.put(url, data={
@@ -95,6 +96,7 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option('sentry:origins', []) == options['sentry:origins'].split('\n')
         assert project.get_option('sentry:resolve_age', 0) == options['sentry:resolve_age']
         assert project.get_option('sentry:scrub_data', True) == options['sentry:scrub_data']
+        assert project.get_option('sentry:scrub_defaults', True) == options['sentry:scrub_defaults']
         assert project.get_option('sentry:sensitive_fields', []) == options['sentry:sensitive_fields']
 
 

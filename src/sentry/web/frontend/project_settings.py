@@ -37,7 +37,12 @@ class EditProjectForm(forms.ModelForm):
         help_text=_('Treat an event as resolved if it hasn\'t been seen for this amount of time.'))
     scrub_data = forms.BooleanField(
         label=_('Data Scrubber'),
-        help_text=_('Apply server-side data scrubbing to prevent things like passwords and credit cards from being stored.'),
+        help_text=_('Enable server-side data scrubbing.'),
+        required=False
+    )
+    scrub_defaults = forms.BooleanField(
+        label=_('Use Default Scrubbers'),
+        help_text=_('Apply default scrubbers to prevent things like passwords and credit cards from being stored.'),
         required=False
     )
     sensitive_fields = forms.CharField(
@@ -161,6 +166,7 @@ class ProjectSettingsView(ProjectView):
                 'token': security_token,
                 'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
                 'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
+                'scrub_defaults': bool(project.get_option('sentry:scrub_defaults', True)),
                 'sensitive_fields': '\n'.join(project.get_option('sentry:sensitive_fields', None) or []),
                 'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
                 'scrape_javascript': bool(project.get_option('sentry:scrape_javascript', True)),
