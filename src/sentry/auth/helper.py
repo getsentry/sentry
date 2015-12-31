@@ -209,7 +209,7 @@ class AuthHelper(object):
             now = timezone.now()
             auth_identity.update(
                 user=user,
-                data=self.update_identity(
+                data=self.provider.update_identity(
                     new_data=identity.get('data', {}),
                     current_data=auth_identity.data,
                 ),
