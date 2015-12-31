@@ -107,7 +107,7 @@
       return;
     this._submitInProgress = true;
 
-    var xhr new XMLHttpRequest();
+    var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
       if (xhr.readyState === XHR_DONE) {
         if (xhr.status === 200) {
