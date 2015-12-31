@@ -96,7 +96,7 @@ const GroupActions = React.createClass({
     }
 
     let hasRelease = group.tags.filter(item => item.key === 'release').length;
-    let releaseTrackingUrl = '/' + this.getOrganization().slug + '/' + this.getProject().slug + '/settings/release-tracking/'
+    let releaseTrackingUrl = '/' + this.getOrganization().slug + '/' + this.getProject().slug + '/settings/release-tracking/';
 
     return (
       <div className="group-actions">
