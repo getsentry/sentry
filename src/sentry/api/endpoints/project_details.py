@@ -115,6 +115,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'sentry:origins': '\n'.join(project.get_option('sentry:origins', ['*']) or []),
             'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
             'sentry:scrub_data': bool(project.get_option('sentry:scrub_data', True)),
+            'sentry:scrub_defaults': bool(project.get_option('sentry:scrub_defaults', True)),
             'sentry:sensitive_fields': project.get_option('sentry:sensitive_fields', []),
         }
         data['activePlugins'] = active_plugins
@@ -163,6 +164,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option('sentry:resolve_age', int(options['sentry:resolve_age']))
             if 'sentry:scrub_data' in options:
                 project.update_option('sentry:scrub_data', bool(options['sentry:scrub_data']))
+            if 'sentry:scrub_defaults' in options:
+                project.update_option('sentry:scrub_defaults', bool(options['sentry:scrub_defaults']))
             if 'sentry:sensitive_fields' in options:
                 project.update_option(
                     'sentry:sensitive_fields',

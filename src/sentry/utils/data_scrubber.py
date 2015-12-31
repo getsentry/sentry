@@ -49,11 +49,14 @@ class SensitiveDataFilter(object):
     VALUES_RE = re.compile(r'\b(?:\d[ -]*?){13,16}\b')
     URL_PASSWORD_RE = re.compile(r'\b((?:[a-z0-9]+:)?//[^:]+:)([^@]+)@')
 
-    def __init__(self, fields=None):
+    def __init__(self, fields=None, include_defaults=True):
         if fields:
-            self.fields = DEFAULT_SCRUBBED_FIELDS + tuple(fields)
+            fields = tuple(fields)
         else:
-            self.fields = DEFAULT_SCRUBBED_FIELDS
+            fields = ()
+        if include_defaults:
+            fields += DEFAULT_SCRUBBED_FIELDS
+        self.fields = fields
 
     def apply(self, data):
         # TODO(dcramer): move this into each interface
