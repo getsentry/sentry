@@ -18,7 +18,7 @@ const RouteError = React.createClass({
   componentWillMount() {
     // TODO(dcramer): show something in addition to embed (that contains it?)
     // TODO(dcramer): capture better context
-    Raven.captureException(this.props.err);
+    Raven.captureException(this.props.error);
     this.setState({
       errorId: Raven.lastEventId(),
     }, () => {
