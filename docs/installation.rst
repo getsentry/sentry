@@ -17,6 +17,9 @@ Some basic prerequisites which you'll need in order to run Sentry:
   ``libyaml-dev``
 * `PostgreSQL <http://www.postgresql.org/>`_
 * `Redis <http://redis.io>`_ (2.8.9 or newer)
+
+  * If running Ubuntu < 15.04, you'll need to install from a different PPA.
+    We recommend `chris-lea/redis-server <https://launchpad.net/~chris-lea/+archive/ubuntu/redis-server>`_
 * `Nginx <http://nginx.org>`_ (``nginx-full``)
 * A dedicated domain to host Sentry on (i.e. `sentry.yourcompany.com`).
 
