@@ -85,6 +85,7 @@ def slugify_instance(inst, label, reserved=(), max_length=30, *args, **kwargs):
         (1, 2),  # (36^2) possibilities, 2 attempts
         (5, 3),  # (36^3) possibilities, 3 attempts
         (20, 5),  # (36^5) possibilities, 20 attempts
+        (1, 12),  # (36^12) possibilities, 1 final attempt
     )
     for attempts, size in sizes:
         for i in xrange(attempts):
@@ -92,4 +93,6 @@ def slugify_instance(inst, label, reserved=(), max_length=30, *args, **kwargs):
             inst.slug = base_slug[:max_length - size - 1] + '-' + end
             if not base_qs.filter(slug__iexact=inst.slug).exists():
                 return
-    raise ValueError('Unable to generate unique slug')
+
+    # If at this point, we've exhausted all possibilities, we'll just end up hitting
+    # an IntegrityError from database, which is ok, and unlikely to happen
