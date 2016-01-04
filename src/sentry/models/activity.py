@@ -80,6 +80,8 @@ class Activity(Model):
         # XXX(dcramer): fix for bad data
         if self.type == self.RELEASE and isinstance(self.data['version'], Release):
             self.data['version'] = self.data['version'].version
+        if self.type == self.ASSIGNED:
+            self.data['assignee'] = str(self.data['assignee'])
 
     def save(self, *args, **kwargs):
         created = bool(not self.id)
