@@ -137,7 +137,7 @@ def cleanup_unused_files():
     any blobs which are brand new and potentially in the process of being
     referenced.
     """
-    from sentry.models import FileBlob, FileBlobIndex
+    from sentry.models import File, FileBlob, FileBlobIndex
     from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
     cutoff = timezone.now() - timedelta(days=1)
@@ -146,5 +146,8 @@ def cleanup_unused_files():
     )
 
     for blob in RangeQuerySetWrapperWithProgressBar(queryset):
-        if not FileBlobIndex.objects.filter(blob=blob).exists():
-            blob.delete()
+        if FileBlobIndex.objects.filter(blob=blob).exists():
+            continue
+        if File.objects.filter(blob=blob).exists():
+            continue
+        blob.delete()
