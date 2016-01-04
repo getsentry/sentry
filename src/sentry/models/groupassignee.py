@@ -48,7 +48,7 @@ class GroupAssigneeManager(BaseManager):
                 type=Activity.ASSIGNED,
                 user=acting_user,
                 data={
-                    'assignee': assigned_to.id,
+                    'assignee': str(assigned_to.id),
                 }
             )
             activity.send_notification()
