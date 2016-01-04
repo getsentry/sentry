@@ -13,7 +13,7 @@ install-npm:
 	npm install
 
 install-python-tests:
-	pip install "file://`pwd`#egg=sentry[tests]"
+	pip install "file://`pwd`#egg=sentry[dev,tests]"
 
 develop-only: update-submodules install-python install-python-tests install-npm
 
