@@ -134,12 +134,12 @@ class File(Model):
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
     headers = JSONField()
     blobs = models.ManyToManyField('sentry.FileBlob', through='sentry.FileBlobIndex')
+    size = BoundedPositiveIntegerField(null=True)
 
     # <Legacy fields>
     # Remove in 8.1
     blob = FlexibleForeignKey('sentry.FileBlob', null=True, related_name='legacy_blob')
     path = models.TextField(null=True)
-    size = BoundedPositiveIntegerField(null=True)
     checksum = models.CharField(max_length=40, null=True)
     # </Legacy fields>
 
@@ -161,7 +161,7 @@ class File(Model):
             file=self,
         ).select_related('blob').order_by('offset')), 'rb')
 
-    def putfile(self, fileobj, blob_size=DEFAULT_BLOB_SIZE):
+    def putfile(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True):
         """
         Save a fileobj into a number of chunks.
 
@@ -187,8 +187,10 @@ class File(Model):
                 )
             )
             offset += blob.size
-
+        self.size = offset
         metrics.timing('filestore.file-size', offset)
+        if commit:
+            self.save()
         return results
 
 
