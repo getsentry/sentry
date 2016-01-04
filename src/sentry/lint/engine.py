@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import os
-import pep8
 import sys
 from subprocess import Popen
 
@@ -9,6 +8,7 @@ os.environ['PYFLAKES_NODOCTEST'] = '1'
 
 
 def register_checks():
+    import pep8
     from sentry.lint.absolute_import_check import AbsoluteImportCheck
     from sentry.lint.mock_check import MockCheck
 
