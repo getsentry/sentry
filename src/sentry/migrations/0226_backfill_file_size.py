@@ -7,10 +7,10 @@ from django.db import models
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+        from sentry.utils.query import RangeQuerySetWrapper
 
         queryset = orm['sentry.File'].objects.all()
-        for file in RangeQuerySetWrapperWithProgressBar(queryset):
+        for file in RangeQuerySetWrapper(queryset):
             if file.size:
                 continue
             orm['sentry.File'].objects.filter(id=file.id).update(
