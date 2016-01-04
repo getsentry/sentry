@@ -22,7 +22,7 @@ const ActivityItem = React.createClass({
       case 'note':
         return tct('[author] commented on [link:an issue]', {
           author: author,
-          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/activity/#event_${item.id}`} />
         });
       case 'set_resolved':
         return tct('[author] marked [link:an issue] as resolved', {

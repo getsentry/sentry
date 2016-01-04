@@ -118,11 +118,12 @@ const GroupActivity = React.createClass({
         );
       } else {
         return (
-          <li className="activity-item" key={itemIdx}>
+          <li className="activity-item" key={item.id}>
+            <a name={'event_' + item.id} />
             <TimeSince date={item.dateCreated} />
             <div className="activity-item-content">
               {this.formatActivity(
-                <span key={`${itemIdx}-author`}>
+                <span key="author">
                   {author.avatar}
                   <span className="activity-author">{author.name}</span>
                 </span>,
