@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import os
 import sys
 
+# This is to avoid needing to have the `sentry` package explicitly installed.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, 'src'))
 
 from sentry.lint.engine import check_files
