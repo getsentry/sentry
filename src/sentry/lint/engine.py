@@ -1,3 +1,15 @@
+"""
+Our linter engine needs to run in 3 different scenarios:
+ * Linting all files (python and js)
+ * Linting only python files (--python)
+ * Linting only js files (--js)
+
+For the js only path, we should not depend on any packages outside the
+python stdlib to prevent the need to install the world just to run eslint.
+
+This also means imports should be done lazily/inside of function calls for
+dependencies such as flake8/pep8.
+"""
 from __future__ import absolute_import
 
 import os
