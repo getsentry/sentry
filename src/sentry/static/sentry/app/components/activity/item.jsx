@@ -103,7 +103,7 @@ const ActivityItem = React.createClass({
         if (assignee && assignee.email) {
           return tct('[author] assigned [link:an issue] to [assignee]', {
             author: author,
-            assignee: <span title={assignee.email}>assignee.name</span>,
+            assignee: <span title={assignee.email}>{assignee.name}</span>,
             link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
           });
         }
