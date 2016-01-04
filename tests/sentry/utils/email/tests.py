@@ -216,3 +216,16 @@ class MessageBuilderTest(TestCase):
         )
         results = msg.get_built_messages(['foo@example.com'])
         assert len(results) == 1
+
+    def test_bcc_on_send(self):
+        msg = MessageBuilder(
+            subject='Test',
+            body='hello world',
+        )
+        msg.send(['foo@example.com'], bcc=['bar@example.com'])
+
+        assert len(mail.outbox) == 1
+
+        out = mail.outbox[0]
+        assert out.to == ['foo@example.com']
+        assert out.bcc == ['bar@example.com']

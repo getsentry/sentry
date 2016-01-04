@@ -182,7 +182,7 @@ class MessageBuilder(object):
 
         self._send_to.update(email_list)
 
-    def build(self, to, reply_to=()):
+    def build(self, to, reply_to=None, cc=None, bcc=None):
         if self.headers is None:
             headers = {}
         else:
@@ -191,7 +191,7 @@ class MessageBuilder(object):
         if ENABLE_EMAIL_REPLIES and 'X-Sentry-Reply-To' in headers:
             reply_to = headers['X-Sentry-Reply-To']
         else:
-            reply_to = set(reply_to)
+            reply_to = set(reply_to or ())
             reply_to.remove(to)
             reply_to = ', '.join(reply_to)
 
@@ -224,24 +224,26 @@ class MessageBuilder(object):
                 headers.setdefault('References', thread.msgid)
 
         msg = EmailMultiAlternatives(
-            subject,
-            self.txt_body,
-            self.from_email,
-            (to,),
-            headers=headers
+            subject=subject,
+            body=self.txt_body,
+            from_email=self.from_email,
+            to=(to,),
+            cc=cc or (),
+            bcc=bcc or (),
+            headers=headers,
         )
         if self.html_body:
             msg.attach_alternative(self.html_body, 'text/html')
 
         return msg
 
-    def get_built_messages(self, to=None):
+    def get_built_messages(self, to=None, bcc=None):
         send_to = set(to or ())
         send_to.update(self._send_to)
-        return [self.build(to=email, reply_to=send_to) for email in send_to]
+        return [self.build(to=email, reply_to=send_to, bcc=bcc) for email in send_to]
 
-    def send(self, to=None, fail_silently=False):
-        messages = self.get_built_messages(to)
+    def send(self, to=None, bcc=None, fail_silently=False):
+        messages = self.get_built_messages(to, bcc=bcc)
         self.send_all(messages, fail_silently=fail_silently)
 
     def send_all(self, messages, fail_silently=False):
@@ -249,9 +251,9 @@ class MessageBuilder(object):
         metrics.incr('email.sent', len(messages))
         return connection.send_messages(messages)
 
-    def send_async(self, to=None):
+    def send_async(self, to=None, bcc=None):
         from sentry.tasks.email import send_email
-        messages = self.get_built_messages(to)
+        messages = self.get_built_messages(to, bcc=bcc)
         for message in messages:
             safe_execute(send_email.delay, message=message)
 
