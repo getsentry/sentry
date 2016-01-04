@@ -80,7 +80,7 @@ def slugify_instance(inst, label, reserved=(), max_length=30, *args, **kwargs):
     # We want to sanely generate the shortest unique slug possible, so
     # we try different length endings until we get one that works, or bail.
 
-    # At most, we have 26 attempts here to derive a unique slug
+    # At most, we have 27 attempts here to derive a unique slug
     sizes = (
         (1, 2),  # (36^2) possibilities, 2 attempts
         (5, 3),  # (36^3) possibilities, 3 attempts
