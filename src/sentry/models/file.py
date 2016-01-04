@@ -135,12 +135,12 @@ class File(Model):
     headers = JSONField()
     blobs = models.ManyToManyField('sentry.FileBlob', through='sentry.FileBlobIndex')
     size = BoundedPositiveIntegerField(null=True)
+    checksum = models.CharField(max_length=40, null=True)
 
     # <Legacy fields>
     # Remove in 8.1
     blob = FlexibleForeignKey('sentry.FileBlob', null=True, related_name='legacy_blob')
     path = models.TextField(null=True)
-    checksum = models.CharField(max_length=40, null=True)
     # </Legacy fields>
 
     class Meta:
@@ -171,10 +171,13 @@ class File(Model):
         """
         results = []
         offset = 0
+        checksum = sha1('')
+
         while True:
             contents = fileobj.read(blob_size)
             if not contents:
                 break
+            checksum.update(contents)
 
             blob_fileobj = ContentFile(contents)
             blob = FileBlob.from_file(blob_fileobj)
@@ -188,6 +191,7 @@ class File(Model):
             )
             offset += blob.size
         self.size = offset
+        self.checksum = checksum.hexdigest()
         metrics.timing('filestore.file-size', offset)
         if commit:
             self.save()
