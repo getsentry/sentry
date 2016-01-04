@@ -90,9 +90,11 @@ class FileBlob(Model):
         return '/'.join(pieces)
 
     def delete(self, *args, **kwargs):
-        if self.path:
-            self.deletefile(commit=False)
-        super(FileBlob, self).delete(*args, **kwargs)
+        lock_key = 'fileblob:upload:{}'.format(self.checksum)
+        with Lock(lock_key, timeout=600):
+            if self.path:
+                self.deletefile(commit=False)
+            super(FileBlob, self).delete(*args, **kwargs)
 
     def get_storage(self):
         backend = settings.SENTRY_FILESTORE
