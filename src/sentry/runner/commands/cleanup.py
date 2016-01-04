@@ -8,6 +8,10 @@ sentry.runner.commands.cleanup
 from __future__ import absolute_import, print_function
 
 import click
+
+from datetime import timedelta
+from django.utils import timezone
+
 from sentry.runner.decorators import configuration
 
 
@@ -42,10 +46,6 @@ def cleanup(days, project, concurrency):
     done with the `--project` flag which accepts a project ID or a string
     with the form `org/project` where both are slugs.
     """
-
-    from datetime import timedelta
-    from django.utils import timezone
-
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
     from sentry.models import (
@@ -109,6 +109,11 @@ def cleanup(days, project, concurrency):
         project_id=project_id,
     ).execute()
 
+    # Clean up FileBLob instances which are no longer used and aren't super
+    # recent (as there could be a race between blob creation and reference)
+    click.echo("Cleaning up unused FileBlob references")
+    cleanup_unused_files()
+
     for model, dtfield in GENERIC_DELETES:
         click.echo("Removing {model} for days={days} project={project}".format(
             model=model.__name__,
@@ -121,3 +126,25 @@ def cleanup(days, project, concurrency):
             days=days,
             project_id=project_id,
         ).execute_generic()
+
+
+def cleanup_unused_files():
+    """
+    Remove FileBlob's (and thus the actual files) if they are no longer
+    referenced by any File.
+
+    We set a minimum-age on the query to ensure that we don't try to remove
+    any blobs which are brand new and potentially in the process of being
+    referenced.
+    """
+    from sentry.models import FileBlob, FileBlobIndex
+    from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+
+    cutoff = timezone.now() - timedelta(days=1)
+    queryset = FileBlob.objects.filter(
+        timestamp__lte=cutoff,
+    )
+
+    for blob in RangeQuerySetWrapperWithProgressBar(queryset):
+        if not FileBlobIndex.objects.filter(blob=blob).exists():
+            blob.delete()
