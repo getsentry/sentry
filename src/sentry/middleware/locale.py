@@ -49,6 +49,11 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         # If static bound, we don't want to run the normal process_response since this
         # adds an extra `Vary: Accept-Language`. Static files don't need this and is
         # less effective for caching.
-        if self.__is_static:
-            return response
+        try:
+            if self.__is_static:
+                return response
+        except AttributeError:
+            # catch ourselves in case __is_static never got set.
+            # It's possible that process_request never ran.
+            pass
         return super(SentryLocaleMiddleware, self).process_response(request, response)
