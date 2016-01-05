@@ -1,7 +1,7 @@
 import React from 'react';
 import {t} from '../../../locale';
 
-/*eslint jsx-needs-il8n:0*/
+/*eslint getsentry/jsx-needs-il8n:0*/
 // TODO: Not sure what we're going to do here re: translations. - Ben
 
 const help = {
