@@ -40,10 +40,10 @@ const GroupActions = React.createClass({
     }, {
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
+
+        this.history.pushState(null, `/${org.slug}/${project.slug}/`);
       }
     });
-
-    this.history.pushState(null, `/${org.slug}/${project.slug}/`);
   },
 
   onUpdate(data) {
