@@ -20,6 +20,7 @@ def static_media(request, **kwargs):
 
     module = kwargs.get('module')
     path = kwargs.get('path', '')
+    version = kwargs.get('version')
 
     if module:
         path = '%s/%s' % (module, path)
@@ -29,6 +30,11 @@ def static_media(request, **kwargs):
     # We need CORS for font files
     if path.endswith(('.eot', '.ttf', '.woff', '.js')):
         response['Access-Control-Allow-Origin'] = '*'
+
+    # If we have a version, we can cache it FOREVER
+    if version is not None:
+        response['Cache-Control'] = 'max-age=315360000'
+
     return response
 
 

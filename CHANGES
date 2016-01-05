@@ -52,6 +52,11 @@ CLI
 
 The `sentry` CLI tooling has been rewritten to be faster and less confusing.
 
+Static files
+~~~~~~~~~~~~
+
+Static files are now served with a far-futures Cache-Control header, and are versioned by default. If you were serving `/_static/` explicitly from your server config, you may need to update your rules or adjust the `STATIC_URL` setting accordingly.
+
 General
 ~~~~~~~
 
