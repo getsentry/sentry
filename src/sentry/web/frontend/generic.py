@@ -28,7 +28,7 @@ def static_media(request, **kwargs):
     response = serve(request, path, insecure=True)
 
     # We need CORS for font files
-    if path.endswith(('.eot', '.ttf', '.woff', '.js')):
+    if path.endswith(('.js' '.ttf', '.ttc', '.otf', '.eot', '.woff', '.woff2')):
         response['Access-Control-Allow-Origin'] = '*'
 
     # If we have a version, we can cache it FOREVER
