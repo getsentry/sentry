@@ -212,7 +212,7 @@ const StreamActions = React.createClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-merge"
-                    disabled={!this.state.multiSelected || this.state.allInQuerySelected}
+                    disabled={!this.state.anySelected}
                     onAction={this.onMerge}
                     confirmationQuestion={
                       (count) =>
