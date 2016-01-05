@@ -12,6 +12,35 @@ import {tct} from '../../locale';
 
 
 const ActivityItem = React.createClass({
+
+  getDefaultProps() {
+    return {
+      defaultClipped: false,
+      clipHeight: 68
+    };
+  },
+
+  getInitialState() {
+    return {
+      clipped: this.props.defaultClipped
+    };
+  },
+
+  componentDidMount() {
+    if (this.refs.activityBubble) {
+      let bubbleHeight = this.refs.activityBubble.offsetHeight;
+
+      if (bubbleHeight > this.props.clipHeight ) {
+        /*eslint react/no-did-mount-set-state:0*/
+        // okay if this causes re-render; cannot determine until
+        // rendered first anyways
+        this.setState({
+          clipped: true
+        });
+      }
+    }
+  },
+
   formatProjectActivity(author, item) {
     let data = item.data;
     let orgId = this.props.orgId;
@@ -144,6 +173,11 @@ const ActivityItem = React.createClass({
   render() {
     let item = this.props.item;
 
+    let bubbleClassName = 'activity-item-bubble';
+    if (this.state.clipped) {
+      bubbleClassName += ' clipped';
+    }
+
     let avatar = (item.user ?
       <Gravatar email={item.user.email} size={64} className="avatar" /> :
       <div className="avatar sentry"><span className="icon-sentry-logo"></span></div>);
@@ -166,7 +200,7 @@ const ActivityItem = React.createClass({
               item
             )}
             <TimeSince date={item.dateCreated} />
-            <div className="activity-item-bubble" dangerouslySetInnerHTML={{__html: noteBody}} />
+            <div className={bubbleClassName} ref="activityBubble" dangerouslySetInnerHTML={{__html: noteBody}} />
           </div>
         </li>
       );
