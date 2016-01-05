@@ -262,7 +262,7 @@ INSTALLED_APPS = (
 )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
-STATIC_URL = '/_static/'
+STATIC_URL = '/_static/{version}/'
 
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
