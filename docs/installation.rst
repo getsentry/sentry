@@ -11,7 +11,7 @@ Some basic prerequisites which you'll need in order to run Sentry:
 
 * A UNIX-based operating system. We test on Ubuntu and this documentation
   assumes an ubuntu based system.
-* Python 2.7 (less than 2.7.11)
+* Python 2.7
 * ``python-setuptools``, ``python-pip``, ``python-dev``, ``libxslt1-dev``,
   ``libxml2-dev``, ``libz-dev``, ``libffi-dev``, ``libssl-dev``, ``libpq-dev``,
   ``libyaml-dev``
@@ -95,7 +95,7 @@ Install Sentry
 Once you've got the environment setup, you can install Sentry and all its
 dependencies with the same command you used to grab virtualenv::
 
-  pip install -U sentry==8.0.0rc1
+  pip install -U sentry==8.0.0rc2
 
 Don't be worried by the amount of dependencies Sentry has. We have a
 philosophy of using the right tools for the job, and not reinventing them

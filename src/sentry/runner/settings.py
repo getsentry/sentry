@@ -164,6 +164,7 @@ SENTRY_FILESTORE_OPTIONS = {
 # header and uncomment the following settings
 # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # SESSION_COOKIE_SECURE = True
+# CSRF_COOKIE_SECURE = True
 
 # If you're not hosting at the root of your web server, and not using uWSGI,
 # you need to uncomment and set it to the path where Sentry is hosted.
