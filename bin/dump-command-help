@@ -49,7 +49,7 @@ def write_page(out, data):
     for opt in data['options']:
         prefix = '- ``%s``: ' % opt['opt_string']
         for line in click.wrap_text(
-                opt['help'] or '', 74, prefix, '  ').splitlines():
+                opt['help'], 74, prefix, '  ').splitlines() or ['']:
             body.append(line)
     body.append('- ``--help``: print this help page.')
 
@@ -81,9 +81,15 @@ def dump_command(out, cmd, path):
 
     for param in cmd.params:
         if isinstance(param, click.Option):
+            help_text = param.help or ''
+            if param.show_default:
+                help_text += '  [default: %s]' % (
+                         ', '.join('%s' % d for d in param.default)
+                         if isinstance(param.default, (list, tuple))
+                         else (param.default,))
             data['options'].append({
                 'opt_string': get_opts(param),
-                'help': param.help,
+                'help': help_text,
             })
         else:
             data['arguments'].append({
