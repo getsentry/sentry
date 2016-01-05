@@ -127,8 +127,8 @@ urlpatterns += patterns(
     url(r'^api/(?P<project_id>\d+)/csp-report/$', api.CspReportView.as_view(),
         name='sentry-api-csp-report'),
 
-    # The static version is either a 10 digit timestamp, or a 32 char md5 hash
-    url(r'^_static/(?:(?P<version>\d{10}|[a-f0-9]{32})/)?(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
+    # The static version is either a 10 digit timestamp, a sha1, or md5 hash
+    url(r'^_static/(?:(?P<version>\d{10}|[a-f0-9]{32,40})/)?(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
         name='sentry-media'),
 
     # API

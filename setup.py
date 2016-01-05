@@ -355,6 +355,7 @@ class BuildJavascriptCommand(Command):
                     files.append(filename[len(base):].lstrip(os.path.sep))
 
         files.append('src/sentry/sentry-package.json')
+        files.append('src/sentry/static/version')
 
     def _build_static(self):
         work_path = self.work_path
@@ -386,6 +387,8 @@ class BuildJavascriptCommand(Command):
         }
         with open(self.sentry_package_json_path, 'w') as fp:
             json.dump(manifest, fp)
+        with open(self.sentry_static_version_path, 'w') as fp:
+            fp.write(version_info['build'])
         return manifest
 
     @property
@@ -397,6 +400,11 @@ class BuildJavascriptCommand(Command):
     def sentry_package_json_path(self):
         return os.path.abspath(os.path.join(
             self.build_lib, 'sentry/sentry-package.json'))
+
+    @property
+    def sentry_static_version_path(self):
+        return os.path.abspath(os.path.join(
+            self.build_lib, 'sentry/static/version'))
 
 
 class SentrySDistCommand(SDistCommand):
