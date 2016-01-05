@@ -36,9 +36,7 @@ const HomeSidebar = React.createClass({
       <div>
         <h6 className="nav-header">{t('Organization')}</h6>
         <ul className="nav nav-stacked">
-          {features.has('dashboard') &&
-            <ListLink to={`/organizations/${orgId}/dashboard/`}>{t('Dashboard')}</ListLink>
-          }
+          <ListLink to={`/organizations/${orgId}/dashboard/`}>{t('Dashboard')}</ListLink>
           <ListLink to={`/${orgId}/`} isActive={() => {
             // return true if path matches /slug-name/
             return /^\/[^\/]+\/$/.test(this.context.location.pathname);

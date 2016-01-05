@@ -34,8 +34,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         feature_list = []
         if features.has('organizations:sso', obj, actor=user):
             feature_list.append('sso')
-        if features.has('organizations:dashboard', obj, actor=user):
-            feature_list.append('dashboard')
 
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')

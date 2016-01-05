@@ -8,7 +8,6 @@ from .manager import *  # NOQA
 default_manager = FeatureManager()
 default_manager.add('auth:register')
 default_manager.add('organizations:create')
-default_manager.add('organizations:dashboard', OrganizationFeature)
 default_manager.add('organizations:sso', OrganizationFeature)
 default_manager.add('projects:global-events', ProjectFeature)
 default_manager.add('projects:quotas', ProjectFeature)
