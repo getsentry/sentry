@@ -49,6 +49,8 @@ clean:
 	rm -rf src/sentry/integration-docs
 	@echo "--> Cleaning pyc files"
 	find . -name "*.pyc" -delete
+	@echo "--> Cleaning python build artifacts"
+	rm -rf build/ dist/ sentry-package.json
 	@echo ""
 
 build-js-po:
