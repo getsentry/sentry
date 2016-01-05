@@ -73,6 +73,7 @@
           {% trans "Audit Log" %}
         </a>
       </li>
+      <li><a href="{% absolute_uri '/organizations/{}/rate-limits/' organization.slug %}">{% trans "Rate Limits" %}</li></a>
       <li class="{% block org_settings_nav %}{% endblock %}">
         <a href="{% url 'sentry-organization-settings' organization.slug %}">
           {% trans "Settings" %}
