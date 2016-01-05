@@ -675,13 +675,40 @@
         .activity-item-bubble {
           margin-top: 4px;
           padding: 6px 8px 4px;
-          border: 1px solid @gray-lighter;
+          border: 1px solid @trim;
           border-radius: 3px;
-          box-shadow: 0 1px 1px rgba(0,0,0, .06);
+          box-shadow: 0 1px 1px rgba(0,0,0, .04);
+          position: relative;
+          overflow: hidden;
+
+          a {
+            max-width: 100%;
+            display: inline-block;
+            overflow-x: hidden;
+            text-overflow: ellipsis;
+          }
 
           p {
             &:last-child {
               margin-bottom: 0;
+            }
+          }
+
+          &.clipped {
+            max-height: 68px;
+
+            &:after {
+              position: absolute;
+              content: "";
+              display: block;
+              bottom: 0;
+              right: 0;
+              left: 0;
+              height: 36px;
+              #gradient > .vertical(rgba(255, 255, 255, .15), rgba(255,255,255, 1));
+              border-bottom: 6px solid #fff;
+              border-radius: 0 0 3px 3px;
+              pointer-events: none;
             }
           }
         }
