@@ -15,8 +15,8 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import (
-    Model, NodeField, BoundedIntegerField, BoundedPositiveIntegerField,
-    BaseManager, FlexibleForeignKey, sane_repr
+    BaseManager, BoundedIntegerField, FlexibleForeignKey, Model, NodeField,
+    sane_repr
 )
 from sentry.interfaces.base import get_interface
 from sentry.utils.cache import memoize
@@ -34,7 +34,6 @@ class Event(Model):
     event_id = models.CharField(max_length=32, null=True, db_column="message_id")
     project = FlexibleForeignKey('sentry.Project', null=True)
     message = models.TextField()
-    num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
     time_spent = BoundedIntegerField(null=True)
