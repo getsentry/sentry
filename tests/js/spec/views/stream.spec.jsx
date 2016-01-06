@@ -41,7 +41,8 @@ describe('Stream', function() {
       project: this.projectContext,
       organization: {
         slug: 'foo-org'
-      }
+      },
+      team: {}
     });
 
     this.Element = (
