@@ -24,7 +24,7 @@ SERVICES = {
 @click.argument('service', default='http', type=click.Choice(sorted(SERVICES.keys())))
 @configuration
 @click.pass_context
-def start(ctx, service, bind, workers, debug, upgrade, noinput):
+def start(ctx, service, bind, workers, upgrade, noinput):
     "Start running a service."
     if bind:
         if ':' in bind:
@@ -54,7 +54,6 @@ def start(ctx, service, bind, workers, debug, upgrade, noinput):
 
     from sentry.utils.imports import import_string
     import_string(SERVICES[service])(
-        debug=debug,
         host=host,
         port=port,
         workers=workers,
