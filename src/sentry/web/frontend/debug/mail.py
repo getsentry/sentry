@@ -164,7 +164,7 @@ def new_note(request):
         data=load_data('python'),
     )
     note = Activity(
-        group=event.group, event=event, project=event.project,
+        group=event.group, project=event.project,
         type=Activity.NOTE, user=request.user,
         data={'text': 'This is an example note!'},
     )

@@ -90,7 +90,7 @@ class NewNoteForm(forms.Form):
 
     def save(self, group, user, event=None):
         activity = Activity.objects.create(
-            group=group, event=event, project=group.project,
+            group=group, project=group.project,
             type=Activity.NOTE, user=user,
             data=self.cleaned_data
         )
