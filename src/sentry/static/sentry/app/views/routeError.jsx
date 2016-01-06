@@ -48,7 +48,7 @@ const RouteError = React.createClass({
           <span className="icon-exclamation" style={{fontSize: 20, marginRight: 10}} />
           <span>Oops! Something went wrong</span>
         </div>
-        <p>It looks like you've hit an issue in our client appliation. Don't worry
+        <p>It looks like you've hit an issue in our client application. Don't worry
           though! We use Sentry to monitor Sentry and it's likely we're already
           looking into this!</p>
         <p>If you're daring, you may want to try the following:</p>
