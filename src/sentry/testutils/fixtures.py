@@ -83,7 +83,7 @@ class Fixtures(object):
     @fixture
     def activity(self):
         return Activity.objects.create(
-            group=self.group, event=self.event, project=self.project,
+            group=self.group, project=self.project,
             type=Activity.NOTE, user=self.user,
             data={}
         )
