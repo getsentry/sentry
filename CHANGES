@@ -120,6 +120,7 @@ Schema Changes
 - Removed ``User.last_name`` column.
 - (App-only) Renamed ``User.first_name`` to ``User.name``.
 - Removed ``Activity.event`` column.
+- Removed ``Event.num_comments`` column.
 
 Version 7.7.1
 -------------
