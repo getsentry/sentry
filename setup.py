@@ -183,7 +183,7 @@ class BuildJavascriptCommand(Command):
         #   setup.py build_ext              value of in-place for build_ext
         #   setup.py build_ext --inplace    1
         #   pip install --editable .        1
-        #   setup.py install                1
+        #   setup.py install                0
         #   setup.py sdist                  0
         #   setup.py bdist_wheel            0
         #
@@ -191,9 +191,14 @@ class BuildJavascriptCommand(Command):
         # subcommands: bdist_ext (which is in our case always executed
         # due to a custom distribution) or sdist.
         #
+        # Note: at one point install was an in-place build but it's not
+        # quite sure why.  In case a version of install breaks again:
+        # installations via pip from git URLs definitely require the
+        # in-place flag to be disabled.  So we might need to detect
+        # that separately.
+        #
         # To find the default value of the inplace flag we inspect the
-        # install and build_ext commands.
-        # install = self.distribution.get_command_obj('install')
+        # sdist and build_ext commands.
         sdist = self.distribution.get_command_obj('sdist')
         build_ext = self.get_finalized_command('build_ext')
 
@@ -201,8 +206,7 @@ class BuildJavascriptCommand(Command):
         # build_ext is inplace or we are invoked through the install
         # command (easiest check is to see if it's finalized).
         if self.inplace is None:
-            self.inplace = (build_ext.inplace  # or install.finalized
-                            or sdist.finalized) and 1 or 0
+            self.inplace = (build_ext.inplace or sdist.finalized) and 1 or 0
 
         log.info('building JavaScript support.')
 
