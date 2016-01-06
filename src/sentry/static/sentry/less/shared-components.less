@@ -664,7 +664,7 @@ table.integrations {
   }
 }
 
-.loading.global {
+.toast {
   .loading.mini();
   padding: 20px 30px;
   font-size: 15px;
@@ -672,12 +672,40 @@ table.integrations {
   border-radius: 3px;
 
   position: fixed;
-  bottom: 0;
+  bottom: 20px;
   right: 20px;
-  background: rgba(52, 60, 69, .8);
   color: #fff;
+  opacity: 1;
 
-  .transition(.2s bottom ease-in-out);
+  .toast-message {
+    display: inline-block;
+    padding-left: 15px;
+  }
+
+  &.loading {
+    background: rgba(52, 60, 69, .8);
+    &.toast-leave {
+      display: none; /* hides immediately*/
+    }
+  }
+
+  &.success {
+    background: @green;
+    .icon:before {
+      content: "\e60a"; // checkmark
+    }
+  }
+  &.error {
+    background: @red;
+    .icon:before {
+      content: "\e615"; // exclamation
+    }
+  }
+  &.success.toast-leave,
+  &.error.toast-leave {
+    opacity: 0;
+    .transition(opacity .2s linear);
+  }
 
   .loading-indicator {
     border-color: rgba(255,255, 255, .4);
@@ -688,27 +716,6 @@ table.integrations {
 
   .loading-message {
     padding-left: 24px;
-  }
-
-  .loading-mask {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(52, 60, 69, .4);
-    z-index: -1;
-    opacity: 0;
-    visibility: hidden;
-    .transition(opacity .1s linear);
-  }
-
-  &.active {
-    bottom: 20px;
-    .loading-mask {
-      visibility: visible;
-      opacity: 1;
-    }
   }
 }
 
