@@ -193,7 +193,7 @@ class BuildJavascriptCommand(Command):
         #
         # To find the default value of the inplace flag we inspect the
         # install and build_ext commands.
-        install = self.distribution.get_command_obj('install')
+        # install = self.distribution.get_command_obj('install')
         sdist = self.distribution.get_command_obj('sdist')
         build_ext = self.get_finalized_command('build_ext')
 
@@ -201,7 +201,7 @@ class BuildJavascriptCommand(Command):
         # build_ext is inplace or we are invoked through the install
         # command (easiest check is to see if it's finalized).
         if self.inplace is None:
-            self.inplace = (build_ext.inplace or install.finalized
+            self.inplace = (build_ext.inplace  # or install.finalized
                             or sdist.finalized) and 1 or 0
 
         log.info('building JavaScript support.')
