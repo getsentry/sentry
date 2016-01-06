@@ -49,14 +49,16 @@ const ActivityItem = React.createClass({
 
     switch(item.type) {
       case 'note':
-        return tct('[author] commented on [link:an issue]', {
+        return tct('[author] commented on [link:an issue] in [project]', {
           author: author,
-          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/activity/#event_${item.id}`} />
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/activity/#event_${item.id}`} />,
+          project: <Link to={`/${orgId}/${project.slug}/`}>{project.name}</Link>
         });
       case 'set_resolved':
-        return tct('[author] marked [link:an issue] as resolved', {
+        return tct('[author] marked [link:an issue] as resolved in [project]', {
           author: author,
-          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />,
+          project: <Link to={`/${orgId}/${project.slug}/`}>{project.name}</Link>
         });
       case 'set_resolved_in_release':
         if (data.version) {
@@ -71,9 +73,10 @@ const ActivityItem = React.createClass({
           link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
       case 'set_unresolved':
-        return tct('[author] marked [link:an issue] as unresolved', {
+        return tct('[author] marked [link:an issue] as unresolved in [project]', {
           author: author,
-          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />,
+          project: <Link to={`/${orgId}/${project.slug}/`}>{project.name}</Link>
         });
       case 'set_muted':
         if (data.snoozeDuration) {
@@ -105,9 +108,10 @@ const ActivityItem = React.createClass({
             link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
           });
         }
-        return tct('[author] marked [link:an issue] as a regression', {
+        return tct('[author] marked [link:an issue] as a regression in [project]', {
           author: author,
-          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />,
+          project: <Link to={`/${orgId}/${project.slug}/`}>{project.name}</Link>
         });
       case 'create_issue':
         return tct('[author] linked [link:an issue] on [provider]', {
