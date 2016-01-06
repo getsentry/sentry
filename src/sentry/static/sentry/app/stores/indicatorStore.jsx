@@ -1,19 +1,29 @@
-import React from 'react';
 import Reflux from 'reflux';
-import LoadingIndicator from '../components/loadingIndicator';
 
 const IndicatorStore = Reflux.createStore({
   init() {
     this.items = [];
+    this.lastId = 0;
   },
 
-  add(node) {
-    if (!React.isValidElement(node)) {
-      node = <LoadingIndicator global={true}>{node}</LoadingIndicator>;
+  add(message, type, options) {
+    options = options || {};
+
+    let indicator = {
+      id: this.lastId++,
+      message: message,
+      type: type,
+      options: options
+    };
+
+    if (options.duration) {
+      setTimeout(() => {
+        this.remove(indicator);
+      }, options.duration);
     }
-    this.items.push(node);
+    this.items = [indicator]; // replace
     this.trigger(this.items);
-    return node;
+    return indicator;
   },
 
   remove(indicator) {
