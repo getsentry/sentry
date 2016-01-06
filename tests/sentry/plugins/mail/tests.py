@@ -271,7 +271,6 @@ class MailPluginTest(TestCase):
             group=self.group,
             type=Activity.NOTE,
             user=user_foo,
-            event=self.create_event('a' * 32, group=self.group),
             data={
                 'text': 'sup guise',
             },
@@ -300,7 +299,6 @@ class MailPluginTest(TestCase):
             project=self.project,
             type=Activity.RELEASE,
             user=user_foo,
-            event=self.create_event('a' * 32, group=self.group),
             data={
                 'version': release.version,
             },

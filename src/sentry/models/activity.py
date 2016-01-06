@@ -57,7 +57,6 @@ class Activity(Model):
 
     project = FlexibleForeignKey('sentry.Project')
     group = FlexibleForeignKey('sentry.Group', null=True)
-    event = FlexibleForeignKey('sentry.Event', null=True)
     # index on (type, ident)
     type = BoundedPositiveIntegerField(choices=TYPE)
     ident = models.CharField(max_length=64, null=True)
@@ -95,18 +94,12 @@ class Activity(Model):
         if self.type == Activity.NOTE:
             self.group.update(num_comments=F('num_comments') + 1)
 
-            if self.event:
-                self.event.update(num_comments=F('num_comments') + 1)
-
     def delete(self, *args, **kwargs):
         super(Activity, self).delete(*args, **kwargs)
 
         # HACK: support Group.num_comments
         if self.type == Activity.NOTE:
             self.group.update(num_comments=F('num_comments') - 1)
-
-            if self.event:
-                self.event.update(num_comments=F('num_comments') - 1)
 
     def send_notification(self):
         activity.send_activity_notifications.delay(self.id)
