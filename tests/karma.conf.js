@@ -65,7 +65,8 @@ module.exports = function(config) {
           jQuery: 'jquery',
           "window.jQuery": "jquery",
           "root.jQuery": "jquery"
-        })
+        }),
+        new webpack.IgnorePlugin(/react\/lib\/ReactContext/)
       ],
       externals: { // see [1] above
         'jsdom': 'window', // can't simulate jsdom in browser
