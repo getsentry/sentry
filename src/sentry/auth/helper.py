@@ -5,7 +5,6 @@ import logging
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.contrib import messages
-from django.contrib.auth import login
 from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.utils import timezone
@@ -17,7 +16,7 @@ from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
     OrganizationMember, OrganizationMemberTeam, User
 )
-from sentry.utils.auth import find_users, get_login_redirect
+from sentry.utils import auth
 from sentry.utils.cache import Lock
 from sentry.utils.http import absolute_uri
 from sentry.web.forms.accounts import AuthenticationForm
@@ -350,7 +349,7 @@ class AuthHelper(object):
         op = request.POST.get('op')
         if not request.user.is_authenticated():
             try:
-                existing_user = find_users(identity['email'])[0]
+                existing_user = auth.find_users(identity['email'])[0]
             except IndexError:
                 existing_user = None
             login_form = self._get_login_form(existing_user)
@@ -363,9 +362,10 @@ class AuthHelper(object):
             # confirm authentication, login
             op = None
             if login_form.is_valid():
-                login(request, login_form.get_user())
+                auth.login(request, login_form.get_user())
                 request.session.pop('needs_captcha', None)
             else:
+                auth.log_auth_failure(request, request.POST.get('username'))
                 request.session['needs_captcha'] = 1
         else:
             op = None
@@ -386,11 +386,11 @@ class AuthHelper(object):
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-        login(self.request, user)
+        auth.login(self.request, user)
 
         self.clear_session()
 
-        return HttpResponseRedirect(get_login_redirect(self.request))
+        return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
     def _handle_existing_identity(self, auth_identity, identity):
         # TODO(dcramer): this is very similar to attach
@@ -422,11 +422,11 @@ class AuthHelper(object):
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-        login(self.request, user)
+        auth.login(self.request, user)
 
         self.clear_session()
 
-        return HttpResponseRedirect(get_login_redirect(self.request))
+        return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
     @transaction.atomic
     def _finish_login_pipeline(self, identity):
