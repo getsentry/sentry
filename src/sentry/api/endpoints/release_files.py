@@ -15,6 +15,8 @@ from sentry.api.serializers import serialize
 from sentry.models import File, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 
+ERR_FILE_EXISTS = 'A file matching this name already exists for the given release'
+
 
 @scenario('UploadReleaseFile')
 def upload_file_scenario(runner):
@@ -174,6 +176,6 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
                 )
         except IntegrityError:
             file.delete()
-            return Response(status=409)
+            return Response({'detail': ERR_FILE_EXISTS}, status=409)
 
         return Response(serialize(releasefile, request.user), status=201)
