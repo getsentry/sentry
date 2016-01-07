@@ -29,3 +29,6 @@ class DummyProvider(Provider):
 
     def refresh_identity(self, auth_identity):
         pass
+
+    def build_config(self, state):
+        return {}

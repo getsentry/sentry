@@ -55,6 +55,46 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert resp.status_code == 200
         assert resp.content == self.provider.TEMPLATE
 
+    def test_basic_flow(self):
+        user = self.create_user('bar@example.com')
+        organization = self.create_organization(name='foo', owner=user)
+
+        base_path = reverse('sentry-organization-auth-settings', args=[organization.slug])
+
+        self.login_as(user)
+
+        with self.feature('organizations:sso'):
+            resp = self.client.post(base_path, {'provider': 'dummy'})
+
+            assert resp.status_code == 200
+            assert self.provider.TEMPLATE in resp.content
+
+            path = reverse('sentry-auth-sso')
+
+            resp = self.client.post(path, {'email': user.email})
+
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver{}'.format(base_path)
+
+        auth_provider = AuthProvider.objects.get(
+            organization=organization,
+            provider='dummy',
+        )
+
+        auth_identity = AuthIdentity.objects.get(
+            auth_provider=auth_provider,
+        )
+
+        assert user == auth_identity.user
+
+        member = OrganizationMember.objects.get(
+            organization=organization,
+            user=user,
+        )
+
+        assert getattr(member.flags, 'sso:linked')
+        assert not getattr(member.flags, 'sso:invalid')
+
     def test_disable_provider(self):
         organization = self.create_organization(name='foo', owner=self.user)
 
