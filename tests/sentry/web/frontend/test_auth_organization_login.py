@@ -66,9 +66,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert getattr(member.flags, 'sso:linked')
         assert not getattr(member.flags, 'sso:invalid')
 
-    def test_flow_as_existing_user(self):
+    def test_flow_as_existing_user_with_new_account(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        AuthProvider.objects.create(
+        auth_provider = AuthProvider.objects.create(
             organization=organization,
             provider='dummy',
         )
@@ -80,8 +80,34 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         resp = self.client.post(path)
 
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content
+
+        path = reverse('sentry-auth-sso')
+
+        resp = self.client.post(path, {'email': 'foo@example.com'})
+
+        self.assertTemplateUsed(resp, 'sentry/auth-confirm-link.html')
+        assert resp.status_code == 200
+
+        resp = self.client.post(path, {'op': 'confirm'})
+
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver/auth/link/foo/'
+        assert resp['Location'] == 'http://testserver/'
+
+        auth_identity = AuthIdentity.objects.get(
+            auth_provider=auth_provider,
+        )
+
+        assert user == auth_identity.user
+
+        member = OrganizationMember.objects.get(
+            organization=organization,
+            user=user,
+        )
+
+        assert getattr(member.flags, 'sso:linked')
+        assert not getattr(member.flags, 'sso:invalid')
 
     def test_flow_as_existing_identity(self):
         organization = self.create_organization(name='foo', owner=self.user)

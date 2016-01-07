@@ -164,7 +164,7 @@ class OrganizationMember(Model):
         context = {
             'email': self.email,
             'organization_name': self.organization.name,
-            'url': absolute_uri(reverse('sentry-auth-link-identity', kwargs={
+            'url': absolute_uri(reverse('sentry-auth-organization', kwargs={
                 'organization_slug': self.organization.slug,
             })),
         }

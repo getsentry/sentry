@@ -296,7 +296,7 @@ class OrganizationView(BaseView):
                 request, messages.ERROR,
                 ERR_MISSING_SSO_LINK,
             )
-            redirect_uri = reverse('sentry-auth-link-identity',
+            redirect_uri = reverse('sentry-auth-organization',
                                    args=[organization.slug])
         else:
             redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
