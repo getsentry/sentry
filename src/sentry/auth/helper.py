@@ -18,6 +18,7 @@ from sentry.models import (
     OrganizationMember, OrganizationMemberTeam, User
 )
 from sentry.utils.auth import find_users, get_login_redirect
+from sentry.utils.cache import Lock
 from sentry.utils.http import absolute_uri
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
@@ -443,14 +444,19 @@ class AuthHelper(object):
         their account.
         """
         auth_provider = self.auth_provider
-        try:
-            auth_identity = AuthIdentity.objects.get(
-                auth_provider=auth_provider,
-                ident=identity['id'],
-            )
-        except AuthIdentity.DoesNotExist:
-            return self._handle_unknown_identity(identity)
-        return self._handle_existing_identity(auth_identity, identity)
+        lock_key = 'sso:auth:{}:{}'.format(
+            auth_provider.id,
+            md5(unicode(identity['id'])).hexdigest(),
+        )
+        with Lock(lock_key, timeout=5):
+            try:
+                auth_identity = AuthIdentity.objects.get(
+                    auth_provider=auth_provider,
+                    ident=identity['id'],
+                )
+            except AuthIdentity.DoesNotExist:
+                return self._handle_unknown_identity(identity)
+            return self._handle_existing_identity(auth_identity, identity)
 
     @transaction.atomic
     def _finish_setup_pipeline(self, identity):
