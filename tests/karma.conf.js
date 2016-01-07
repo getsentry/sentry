@@ -1,9 +1,11 @@
+/*eslint-env node*/
+/*eslint no-var:0*/
 // Karma configuration
 // Generated on Sat Jul 26 2014 13:49:45 GMT+0200 (CEST)
 var path = require('path');
-var webpack = require("webpack");
+var webpack = require('webpack');
 
-var appPrefix = path.join(__dirname, "../src/sentry/static/sentry/app");
+var appPrefix = path.join(__dirname, '../src/sentry/static/sentry/app');
 
 module.exports = function(config) {
   config.set({
@@ -29,11 +31,11 @@ module.exports = function(config) {
       cache: true,
       resolve: {
         alias: {
-          "app": appPrefix,
+          'app': appPrefix,
           sinon: 'sinon/pkg/sinon' // see [1] above
         },
-        modulesDirectories: ["node_modules"],
-        extensions: ["", ".jsx", ".js", ".json"]
+        modulesDirectories: ['node_modules'],
+        extensions: ['', '.jsx', '.js', '.json']
       },
       module: {
         noParse: [
@@ -43,7 +45,7 @@ module.exports = function(config) {
           {
             exclude: /(vendor|node_modules)/,
             test: /\.jsx?$/,
-            loader: "babel-loader"
+            loader: 'babel-loader'
           },
           {
             test: /\.po$/,
@@ -54,7 +56,7 @@ module.exports = function(config) {
           },
           {
             test: /\.json$/,
-            loader: "json-loader"
+            loader: 'json-loader'
           }
         ]
       },
@@ -63,8 +65,8 @@ module.exports = function(config) {
         new webpack.ProvidePlugin({
           $: 'jquery',
           jQuery: 'jquery',
-          "window.jQuery": "jquery",
-          "root.jQuery": "jquery"
+          'window.jQuery': 'jquery',
+          'root.jQuery': 'jquery'
         }),
         new webpack.IgnorePlugin(/react\/lib\/ReactContext/)
       ],
