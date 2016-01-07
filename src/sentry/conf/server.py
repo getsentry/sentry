@@ -362,7 +362,11 @@ from kombu import Exchange, Queue
 BROKER_URL = "django://"
 BROKER_TRANSPORT_OPTIONS = {}
 
-CELERY_ALWAYS_EAGER = True
+# Ensure workers run async by default
+# in Development you might want them to run in-process
+# though it would cause timeouts/recursions in some cases
+CELERY_ALWAYS_EAGER = False
+
 CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 CELERY_IGNORE_RESULT = True
 CELERY_SEND_EVENTS = False
