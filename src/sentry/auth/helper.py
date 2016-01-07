@@ -57,8 +57,6 @@ class AuthHelper(object):
     FLOW_LOGIN = 1
     # configuring the provider
     FLOW_SETUP_PROVIDER = 2
-    # linking an identity to an existing account
-    FLOW_LINK_IDENTITY = 3
 
     @classmethod
     def get_for_request(cls, request):
@@ -103,7 +101,7 @@ class AuthHelper(object):
             raise NotImplementedError
 
         self.provider = provider
-        if flow in (self.FLOW_LOGIN, self.FLOW_LINK_IDENTITY):
+        if flow == self.FLOW_LOGIN:
             self.pipeline = provider.get_auth_pipeline()
         elif flow == self.FLOW_SETUP_PROVIDER:
             self.pipeline = provider.get_setup_pipeline()
@@ -120,6 +118,8 @@ class AuthHelper(object):
     def pipeline_is_valid(self):
         session = self.request.session.get('auth', {})
         if not session:
+            return False
+        if session.get('flow') not in (self.FLOW_LOGIN, self.FLOW_SETUP_PROVIDER):
             return False
         return session.get('sig') == self.signature
 
@@ -176,9 +176,6 @@ class AuthHelper(object):
             response = self._finish_login_pipeline(identity)
         elif session['flow'] == self.FLOW_SETUP_PROVIDER:
             response = self._finish_setup_pipeline(identity)
-        elif session['flow'] == self.FLOW_LINK_IDENTITY:
-            # create identity and authenticate the user
-            response = self._finish_link_pipeline(identity)
 
         return response
 
@@ -350,7 +347,6 @@ class AuthHelper(object):
         """
         request = self.request
         op = request.POST.get('op')
-
         if not request.user.is_authenticated():
             try:
                 existing_user = find_users(identity['email'])[0]
@@ -516,40 +512,6 @@ class AuthHelper(object):
         ])
         return HttpResponseRedirect(next_uri)
 
-    @transaction.atomic
-    def _finish_link_pipeline(self, identity):
-        """
-        The link flow shows the user a confirmation of the link that is about
-        to be created, and upon confirmation associates the identity.
-        """
-        request = self.request
-        if not request.user.is_authenticated():
-            return self.error(ERR_NOT_AUTHED)
-
-        if request.user.id != request.session['auth']['uid']:
-            return self.error(ERR_UID_MISMATCH)
-
-        if request.POST.get('op') == 'confirm':
-            self._handle_attach_identity(identity)
-        elif request.POST.get('op') == 'newuser':
-            auth_identity = self._handle_new_user(identity)
-
-            user = auth_identity.user
-            user.backend = settings.AUTHENTICATION_BACKENDS[0]
-
-            login(self.request, user)
-        else:
-            return self.respond('sentry/auth-confirm-link.html', {
-                'identity': identity,
-            })
-
-        self.clear_session()
-
-        next_uri = reverse('sentry-organization-home', args=[
-            self.organization.slug,
-        ])
-        return HttpResponseRedirect(next_uri)
-
     def respond(self, template, context=None, status=200):
         default_context = {
             'organization': self.organization,
@@ -568,9 +530,6 @@ class AuthHelper(object):
 
         elif session['flow'] == self.FLOW_SETUP_PROVIDER:
             redirect_uri = reverse('sentry-organization-auth-settings', args=[self.organization.slug])
-
-        elif session['flow'] == self.FLOW_LINK_IDENTITY:
-            redirect_uri = reverse('sentry-auth-organization', args=[self.organization.slug])
 
         messages.add_message(
             self.request, messages.ERROR,

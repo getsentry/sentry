@@ -19,7 +19,6 @@ from sentry.web.frontend import accounts, admin, generic
 
 from sentry.web.frontend.admin_queue import AdminQueueView
 from sentry.web.frontend.accept_organization_invite import AcceptOrganizationInviteView
-from sentry.web.frontend.auth_link_identity import AuthLinkIdentityView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
@@ -141,7 +140,7 @@ urlpatterns += patterns(
         name='sentry-error-page-embed'),
 
     # Auth
-    url(r'^auth/link/(?P<organization_slug>[^/]+)/$', AuthLinkIdentityView.as_view(),
+    url(r'^auth/link/(?P<organization_slug>[^/]+)/$', AuthOrganizationLoginView.as_view(),
         name='sentry-auth-link-identity'),
     url(r'^auth/login/$', AuthLoginView.as_view(),
         name='sentry-login'),
