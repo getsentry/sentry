@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
-from django.contrib.auth import login, logout
+from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.response import Response
 
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
+from sentry.utils import auth
 
 
 class AuthIndexEndpoint(Endpoint):
@@ -54,7 +55,7 @@ class AuthIndexEndpoint(Endpoint):
             return Response(status=400)
 
         # Must use the real request object that Django knows about
-        login(request._request, request.user)
+        auth.login(request._request, request.user)
 
         return self.get(request)
 

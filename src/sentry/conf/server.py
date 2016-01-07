@@ -520,6 +520,9 @@ LOGGING = {
         'sentry': {
             'level': 'ERROR',
         },
+        'sentry.auth': {
+            'handlers': ['audit'],
+        },
         'sentry.api': {
             'handlers': ['console:api', 'sentry'],
             'propagate': False,
