@@ -5,7 +5,6 @@ import Sticky from 'react-sticky';
 import {Client} from 'app/api';
 import CursorPoller from 'app/utils/cursorPoller';
 import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import Stream from 'app/views/stream';
 import StreamGroup from 'app/components/stream/group';
 import StreamFilters from 'app/views/stream/filters';
@@ -131,7 +130,7 @@ describe('Stream', function() {
     it('displays a loading indicator when component is loading', function() {
       let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
       stream.setState({loading: true});
-      let expected = findWithType(stream, LoadingIndicator);
+      let expected = findWithClass(stream, 'loading');
 
       expect(expected).to.be.ok;
     });
