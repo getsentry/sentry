@@ -95,7 +95,7 @@ Install Sentry
 Once you've got the environment setup, you can install Sentry and all its
 dependencies with the same command you used to grab virtualenv::
 
-  pip install -U sentry==8.0.0rc2
+  pip install -U sentry
 
 Don't be worried by the amount of dependencies Sentry has. We have a
 philosophy of using the right tools for the job, and not reinventing them
