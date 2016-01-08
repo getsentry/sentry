@@ -75,6 +75,7 @@ const ProjectSettings = React.createClass({
     let {orgId, projectId} = this.props.params;
     let settingsUrlRoot = `${urlPrefix}/${orgId}/${projectId}/settings`;
     let project = this.state.project;
+    let features = new Set(project.features);
 
     return (
       <div className="row">
@@ -87,6 +88,9 @@ const ProjectSettings = React.createClass({
             <li><a href={`${settingsUrlRoot}/tags/`}>{t('Tags')}</a></li>
             <li><a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a></li>
             <li><a href={`${settingsUrlRoot}/release-tracking/`}>{t('Release Tracking')}</a></li>
+            {features.has('user-reports') &&
+              <ListLink to={`/${orgId}/${projectId}/settings/user-reports/`}>{t('User Reports')}</ListLink>
+            }
           </ul>
           <h6 className="nav-header">{t('Setup')}</h6>
           <ul className="nav nav-stacked">

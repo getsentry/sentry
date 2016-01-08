@@ -30,6 +30,7 @@ import ProjectInstallPlatform from './views/projectInstall/platform';
 import ProjectReleases from './views/projectReleases';
 import ProjectSettings from './views/projectSettings';
 import ProjectUserReports from './views/projectUserReports';
+import ProjectUserReportSettings from './views/projectUserReportSettings';
 import ReleaseAllEvents from './views/releaseAllEvents';
 import ReleaseArtifacts from './views/releaseArtifacts';
 import ReleaseDetails from './views/releaseDetails';
@@ -84,6 +85,7 @@ let routes = (
             <IndexRoute component={errorHandler(ProjectInstallOverview)}/>
             <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)}/>
           </Route>
+          <Route path="user-reports/" component={errorHandler(ProjectUserReportSettings)} />
         </Route>
         <Redirect from="group/:groupId/" to="issues/:groupId/" />
         <Route path="issues/:groupId/" component={errorHandler(GroupDetails)}

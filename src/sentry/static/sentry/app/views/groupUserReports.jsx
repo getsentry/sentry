@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import React from 'react';
-import {History} from 'react-router';
+import {Link, History} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import Gravatar from '../components/gravatar';
 import GroupState from '../mixins/groupState';
@@ -63,6 +63,12 @@ const GroupUserReports = React.createClass({
     });
   },
 
+  getUserReportsUrl() {
+    let params = this.props.params;
+
+    return `/${params.orgId}/${params.projectId}/settings/user-reports/`;
+  },
+
   render() {
     if (this.state.loading) {
       return <LoadingIndicator />;
@@ -102,7 +108,7 @@ const GroupUserReports = React.createClass({
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
         <p>{t('No user reports have been collected for this event.')}</p>
-        <p><a href="">{t('Learn how to integrate User Crash Reports')}</a></p>
+        <p><Link to={this.getUserReportsUrl()}>{t('Learn how to integrate User Crash Reports')}</Link></p>
       </div>
     );
   }

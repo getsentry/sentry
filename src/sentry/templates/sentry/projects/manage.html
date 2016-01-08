@@ -176,6 +176,11 @@
     <li{% if page == 'release-tracking' %} class="active"{% endif %}>
         <a href="{% url 'sentry-project-release-tracking' project.organization.slug project.slug %}">{% trans "Release Tracking" %}</a>
     </li>
+    {% feature projects:user-reports project %}
+    <li{% if page == 'quotas' %} class="active"{% endif %}>
+        <a href="{% absolute_uri '/{}/{}/settings/user-reports/' project.organization.slug project.slug %}">{% trans "User Reports" %}</a>
+    </li>
+    {% endfeature %}
   </ul>
   <h6 class="nav-header">{% trans "Setup" %}</h6>
   <ul class="nav nav-stacked">
