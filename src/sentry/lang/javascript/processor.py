@@ -349,7 +349,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     # data which we can't process.
     if not isinstance(result[1], unicode):
         try:
-            result[1] = result[1].decode('utf8')
+            result = (result[0], result[1].decode('utf8'), result[2])
         except UnicodeDecodeError:
             error = {
                 'type': EventError.JS_INVALID_SOURCE_ENCODING,
