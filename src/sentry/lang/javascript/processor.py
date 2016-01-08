@@ -344,6 +344,20 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         }
         raise CannotFetchSource(error)
 
+    # Make sure the file we're getting back is unicode, if it's not,
+    # it's either some encoding that we don't understand, or it's binary
+    # data which we can't process.
+    if not isinstance(result[1], unicode):
+        try:
+            result = (result[0], result[1].decode('utf8'), result[2])
+        except UnicodeDecodeError:
+            error = {
+                'type': EventError.JS_INVALID_SOURCE_ENCODING,
+                'value': 'utf8',
+                'url': url,
+            }
+            raise CannotFetchSource(error)
+
     return UrlResult(url, result[0], result[1])
 
 
