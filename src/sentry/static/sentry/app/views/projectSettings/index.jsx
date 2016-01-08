@@ -84,6 +84,9 @@ const ProjectSettings = React.createClass({
           <ul className="nav nav-stacked">
             <li><a href={`${settingsUrlRoot}/`}>{t('Project Settings')}</a></li>
             <li><a href={`${settingsUrlRoot}/notifications/`}>{t('Notifications')}</a></li>
+            {features.has('quotas') &&
+              <li><a href={`${settingsUrlRoot}/quotas/`}>{t('Rate Limits')}</a></li>
+            }
             <li><a href={`${settingsUrlRoot}/rules/`}>{t('Rules')}</a></li>
             <li><a href={`${settingsUrlRoot}/tags/`}>{t('Tags')}</a></li>
             <li><a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a></li>
