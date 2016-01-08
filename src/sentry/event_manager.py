@@ -545,7 +545,7 @@ class EventManager(object):
 
         cache_key = 'euser:{}:{}'.format(
             project.id,
-            md5(euser.tag_value).hexdigest(),
+            md5(euser.tag_value.encode('utf-8')).hexdigest(),
         )
         cached = default_cache.get(cache_key)
         if cached is None:
