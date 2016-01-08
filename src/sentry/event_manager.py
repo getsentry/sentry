@@ -35,6 +35,7 @@ from sentry.signals import regression_signal
 from sentry.utils.logging import suppress_exceptions
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
+from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
 from sentry.utils.safe import safe_execute, trim, trim_dict
 from sentry.utils.strings import truncatechars
@@ -542,11 +543,18 @@ class EventManager(object):
         if not euser.tag_value:
             return
 
-        try:
-            with transaction.atomic():
-                euser.save()
-        except IntegrityError:
-            pass
+        cache_key = 'euser:{}:{}'.format(
+            project.id,
+            md5(euser.tag_value).hexdigest(),
+        )
+        cached = default_cache.get(cache_key)
+        if cached is None:
+            try:
+                with transaction.atomic():
+                    euser.save()
+            except IntegrityError:
+                pass
+            default_cache.set(cache_key, '', 3600)
 
         return euser
 
