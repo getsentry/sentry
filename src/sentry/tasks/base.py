@@ -8,11 +8,12 @@ sentry.tasks.base
 from __future__ import absolute_import
 
 import resource
-from contextlib import contextmanager
-from functools import wraps
 
 from celery.task import current
+from contextlib import contextmanager
+from functools import wraps
 from raven.contrib.django.models import client as Raven
+from uuid import uuid4
 
 from sentry.celery import app
 from sentry.utils import metrics
@@ -31,16 +32,41 @@ def track_memory_usage(metric, **kwargs):
         metrics.timing(metric, get_rss_usage() - before, **kwargs)
 
 
+class InstrumentedTask(app.Task):
+    # Add support for transaction ID
+    def apply_async(self, args=None, kwargs=None, task_id=None, producer=None,
+                    link=None, link_error=None, **options):
+        if kwargs is None:
+            kwargs = {}
+        elif '__transaction_id' not in kwargs:
+            kwargs['__transaction_id'] = uuid4().hex
+
+        return super(InstrumentedTask, self).apply_async(
+            args=args,
+            kwargs=kwargs,
+            task_id=task_id,
+            producer=producer,
+            link=link,
+            link_error=link_error,
+            **options
+        )
+
+
 def instrumented_task(name, stat_suffix=None, **kwargs):
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
+            transaction_id = kwargs.pop('__transaction_id', None)
+
             key = 'jobs.duration'
             if stat_suffix:
                 instance = '{}.{}'.format(name, stat_suffix(*args, **kwargs))
             else:
                 instance = name
-            Raven.tags_context({'task_name': name})
+            Raven.tags_context({
+                'task_name': name,
+                'transaction_id': transaction_id,
+            })
             with metrics.timer(key, instance=instance), \
                     track_memory_usage('jobs.memory_change', instance=instance):
                 try:
@@ -48,7 +74,7 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
                 finally:
                     Raven.context.clear()
             return result
-        return app.task(name=name, **kwargs)(_wrapped)
+        return app.task(name=name, base=InstrumentedTask, **kwargs)(_wrapped)
     return wrapped
 
 
