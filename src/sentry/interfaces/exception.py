@@ -158,7 +158,7 @@ class Exception(Interface):
         if not data['values']:
             raise InterfaceValidationError("No 'values' present")
 
-        trim_exceptions(data)
+        slim_frame_data(data)
 
         has_system_frames = cls.data_has_system_frames(data)
 
@@ -279,18 +279,33 @@ class Exception(Interface):
         return ''
 
 
-def trim_exceptions(data, max_values=settings.SENTRY_MAX_EXCEPTIONS):
-    # TODO: this doesnt account for cases where the client has already omitted
-    # exceptions
-    values = data['values']
-    exc_len = len(values)
+def slim_frame_data(data,
+                    frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
+    """
+    Removes various excess metadata from middle frames which go beyond
+    ``frame_allowance``.
+    """
+    # TODO(dcramer): it probably makes sense to prioritize a certain exception
+    # rather than keeping the top and bottom frames from the entire stack
+    frames_len = 0
+    for exception in data['values']:
+        if not exception.get('stacktrace'):
+            continue
+        frames_len += len(exception['stacktrace']['frames'])
 
-    if exc_len <= max_values:
+    if frames_len <= frame_allowance:
         return
 
-    half_max = max_values / 2
+    half_max = frame_allowance / 2
 
-    data['exc_omitted'] = (half_max, exc_len - half_max)
-
-    for n in xrange(half_max, exc_len - half_max):
-        del values[half_max]
+    pos = 0
+    for exception in data['values']:
+        if not exception.get('stacktrace'):
+            continue
+        for frame in exception['stacktrace']['frames']:
+            pos += 1
+            if pos > half_max and pos <= frames_len - half_max:
+                # remove heavy components
+                frame.pop('vars', None)
+                frame.pop('pre_context', None)
+                frame.pop('post_context', None)
