@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from exam import fixture
 
 from sentry.interfaces.exception import (
-    SingleException, Exception, trim_exceptions
+    SingleException, Exception, slim_frame_data
 )
 from sentry.testutils import TestCase
 
@@ -224,22 +224,44 @@ class SingleExceptionTest(TestCase):
 
 class TrimExceptionsTest(TestCase):
     def test_under_max(self):
-        value = {'values': [{'value': 'foo'}]}
-        trim_exceptions(value)
-        assert len(value['values']) == 1
-        assert value.get('exc_omitted') is None
+        value = {'values': [
+            {'value': 'foo',
+             'stacktrace': {'frames': [{'filename': 'foo'}]},
+            }
+        ]}
+        slim_frame_data(value)
+        assert len(value['values'][0]['stacktrace']['frames']) == 1
 
     def test_over_max(self):
         values = []
-        for n in xrange(5):
-            values.append({'value': 'frame %d' % n})
-        value = {'values': values}
-        trim_exceptions(value, max_values=4)
+        data = {'values': values}
+        for x in xrange(5):
+            exc = {'value': 'exc %d' % x, 'stacktrace': {'frames': []}}
+            values.append(exc)
+            for y in xrange(5):
+                exc['stacktrace']['frames'].append({
+                    'filename': 'frame %d' % y,
+                    'vars': {},
+                    'pre_context': [],
+                    'post_context': [],
+                })
 
-        assert len(value['values']) == 4
+        # slim to 10 frames to make tests easier
+        slim_frame_data(data, 10)
 
-        for value, num in zip(values[:2], xrange(2)):
-            assert value['value'] == 'frame %d' % num
-
-        for value, num in zip(values[2:], xrange(3, 5)):
-            assert value['value'] == 'frame %d' % num
+        assert len(values) == 5
+        for e_num, value in enumerate(values):
+            assert value['value'] == 'exc %d' % e_num
+            assert len(value['stacktrace']['frames']) == 5
+            for f_num, frame in enumerate(value['stacktrace']['frames']):
+                assert frame['filename'] == 'frame %d' % f_num
+                if e_num in (0, 4):
+                    assert frame['filename'] == 'frame %d' % f_num
+                    assert frame['vars'] is not None
+                    assert frame['pre_context'] is not None
+                    assert frame['post_context'] is not None
+                else:
+                    assert frame['filename'] == 'frame %d' % f_num
+                    assert 'vars' not in frame
+                    assert 'pre_context' not in frame
+                    assert 'post_context' not in frame
