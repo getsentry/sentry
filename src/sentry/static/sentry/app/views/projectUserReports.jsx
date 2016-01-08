@@ -1,6 +1,6 @@
 import jQuery from 'jquery';
 import React from 'react';
-import {History} from 'react-router';
+import {History, Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import Gravatar from '../components/gravatar';
 import LoadingError from '../components/loadingError';
@@ -97,6 +97,12 @@ const ProjectUserReports = React.createClass({
     return `/projects/${params.orgId}/${params.projectId}/user-reports/?${jQuery.param(queryParams)}`;
   },
 
+  getUserReportsUrl() {
+    let params = this.props.params;
+
+    return `/${params.orgId}/${params.projectId}/settings/user-reports/`;
+  },
+
   renderStreamBody() {
     let body;
 
@@ -136,7 +142,7 @@ const ProjectUserReports = React.createClass({
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
         <p>{t('No user reports have been collected for this project.')}</p>
-        <p><a href="">{t('Learn how to integrate User Crash Reports')}</a></p>
+        <p><Link to={this.getUserReportsUrl()}>{t('Learn how to integrate User Crash Reports')}</Link></p>
       </div>
     );
   },
