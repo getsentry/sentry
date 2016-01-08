@@ -444,6 +444,19 @@ class EventManagerTest(TransactionTestCase):
         ).exists()
         assert 'sentry:user' in dict(event.tags)
 
+    def test_event_user_unicode_identifier(self):
+        manager = EventManager(self.make_event(**{
+            'sentry.interfaces.User': {
+                'username': u'foô'
+            }
+        }))
+        manager.normalize()
+        manager.save(self.project.id)
+        euser = EventUser.objects.get(
+            project=self.project,
+        )
+        assert euser.username == u'foô'
+
     def test_environment(self):
         manager = EventManager(self.make_event(**{
             'environment': 'beta',
