@@ -57,6 +57,7 @@ class ProjectAdmin(admin.ModelAdmin):
     search_fields = ('name', 'organization__slug', 'organization__name', 'team__slug',
                      'team__name', 'slug')
     raw_id_fields = ('team', 'organization')
+    readonly_fields = ('first_event', 'date_added')
 
 admin.site.register(Project, ProjectAdmin)
 
