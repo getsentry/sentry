@@ -38,9 +38,6 @@ Sentry also needs a cron process which is called "celery beat":
 
   SENTRY_CONF=/etc/sentry sentry celery beat
 
-Make sure to only run one of them at the time or you will see unnecessary
-extra tasks being pushed onto the queues.
-
 We again recommend running this as a service. Below is an example
 configuration with supervisor::
 
@@ -51,6 +48,11 @@ configuration with supervisor::
     autorestart=true
     redirect_stderr=true
     killasgroup=true
+
+It's recommended to only run one of them at the time or you will see
+unnecessary extra tasks being pushed onto the queues but the system will
+still behave as intended if multiple beat processes are run.  This can be
+used to achieve high availability.
 
 
 Configuring the Broker
