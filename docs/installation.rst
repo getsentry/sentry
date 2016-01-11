@@ -310,12 +310,24 @@ in addition to the web service workers:
 
 ::
 
-  SENTRY_CONF=/etc/sentry sentry celery worker -B
+  SENTRY_CONF=/etc/sentry sentry celery worker
 
 See :doc:`queue` for more details on configuring workers.
 
 .. note:: `Celery <http://celeryproject.org/>`_ is an open source task
           framework for Python.
+
+Starting the Cron Process
+-------------------------
+
+Sentry also needs a cron process which is called "celery beat":
+
+::
+
+  SENTRY_CONF=/etc/sentry sentry celery beat
+
+Make sure to only run one of them at the time or you will see unnecessary
+extra tasks being pushed onto the queues.
 
 Setup a Reverse Proxy
 ---------------------
@@ -396,7 +408,17 @@ go.
   [program:sentry-worker]
   directory=/www/sentry/
   environment=SENTRY_CONF="/etc/sentry"
-  command=/www/sentry/bin/sentry celery worker -B
+  command=/www/sentry/bin/sentry celery worker
+  autostart=true
+  autorestart=true
+  redirect_stderr=true
+  stdout_logfile=syslog
+  stderr_logfile=syslog
+
+  [program:sentry-cron]
+  directory=/www/sentry/
+  environment=SENTRY_CONF="/etc/sentry"
+  command=/www/sentry/bin/sentry celery beat
   autostart=true
   autorestart=true
   redirect_stderr=true
