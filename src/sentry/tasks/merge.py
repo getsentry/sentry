@@ -77,16 +77,13 @@ def merge_objects(models, group, new_group, limit=1000,
             logger.info('Merging %r objects where %r into %r', model, group,
                         new_group)
         for obj in model.objects.filter(group=group)[:limit]:
-            obj.group = new_group
-
-            sid = transaction.savepoint()
-            try:
-                obj.save()
-            except IntegrityError:
-                transaction.savepoint_rollback(sid)
-                obj.delete()
-            else:
-                transaction.savepoint_commit(sid)
+            with transaction.atomic():
+                try:
+                    model.objects.filter(
+                        id=obj.id
+                    ).update(group=new_group)
+                except IntegrityError:
+                    obj.delete()
             has_more = True
 
         if has_more:
