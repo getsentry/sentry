@@ -786,7 +786,7 @@ SENTRY_MAX_VARIABLE_SIZE = 512
 
 # Prevent variables within extra context from exceeding this size in
 # characters
-SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
+SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096 * 4  # 16kb
 
 # For changing the amount of data seen in Http Response Body part.
 SENTRY_MAX_HTTP_BODY_SIZE = 4096 * 4  # 16kb
