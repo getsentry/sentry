@@ -173,7 +173,8 @@ class MailPlugin(NotificationPlugin):
             })
 
         headers = {
-            'X-Sentry-Logger': group.logger,
+            # Headers can't be multiline
+            'X-Sentry-Logger': group.logger.splitlines()[0],
             'X-Sentry-Logger-Level': group.get_level_display(),
             'X-Sentry-Team': project.team.name,
             'X-Sentry-Project': project.name,
