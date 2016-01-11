@@ -231,6 +231,13 @@ class StacktraceTest(TestCase):
             'foo.html.erb', '_foo_html_erb__<anon>_<anon>',
         ])
 
+    def test_get_hash_ignores_filename_if_blob(self):
+        interface = Frame.to_python({
+            'filename': 'blob:http://example.com/7f7aaadf-a006-4217-9ed5-5fbf8585c6c0',
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [])
+
     def test_get_hash_ignores_filename_if_http(self):
         interface = Frame.to_python({
             'context_line': 'hello world',
