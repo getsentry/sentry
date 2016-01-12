@@ -47,7 +47,7 @@ describe('Stream', function() {
     this.Element = (
       <ContextStubbedStream
         setProjectNavSection={function () {}}
-        location={{query:{}}}
+        location={{query:{query: 'is:unresolved'}, search: 'query=is:unresolved'}}
         params={{orgId: '123', projectId: '456'}}/>
     );
   });
@@ -135,11 +135,20 @@ describe('Stream', function() {
       expect(expected).to.be.ok;
     });
 
+    it('displays a loading indicator when data is loading', function() {
+      let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
+      stream.setState({dataLoading: true});
+      let expected = findWithClass(stream, 'loading');
+
+      expect(expected).to.be.ok;
+    });
+
     it('displays an error when component has errored', function() {
       let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
       stream.setState({
         error: true,
-        loading: false
+        loading: false,
+        dataLoading: false,
       });
       let expected = findWithType(stream, LoadingError);
       expect(expected).to.be.ok;
@@ -150,7 +159,8 @@ describe('Stream', function() {
       stream.setState({
         error: false,
         groupIds: ['1'],
-        loading: false
+        loading: false,
+        dataLoading: false,
       });
       let expected = findWithClass(stream, 'group-list');
       expect(expected).to.be.ok;
@@ -162,7 +172,8 @@ describe('Stream', function() {
       stream.setState({
         error: false,
         groupIds: [],
-        loading: false
+        loading: false,
+        dataLoading: false,
       });
       let expected = findWithClass(stream, 'empty-stream');
       expect(expected).to.be.ok;
@@ -176,7 +187,8 @@ describe('Stream', function() {
       stream.setState({
         error: false,
         groupIds: [],
-        loading: false
+        loading: false,
+        dataLoading: false,
       });
       let expected = findWithClass(stream, 'awaiting-events');
       expect(expected).to.be.ok;
@@ -241,7 +253,8 @@ describe('Stream', function() {
         statsPeriod: '24h',
         realtimeActive: false,
         pageLinks: '',
-        loading: true,
+        loading: false,
+        dataLoading: true,
         error: false
       };
       let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;

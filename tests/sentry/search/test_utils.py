@@ -57,6 +57,18 @@ class ParseQueryTest(TestCase):
         result = self.parse_query('assigned:fake@example.com')
         assert result['assigned_to'].id == 0
 
+    def test_bookmarks_me(self):
+        result = self.parse_query('bookmarks:me')
+        assert result == {'bookmarked_by': self.user, 'tags': {}, 'query': ''}
+
+    def test_bookmarks_email(self):
+        result = self.parse_query('bookmarks:%s' % (self.user.email,))
+        assert result == {'bookmarked_by': self.user, 'tags': {}, 'query': ''}
+
+    def test_bookmarks_unknown_user(self):
+        result = self.parse_query('bookmarks:fake@example.com')
+        assert result['bookmarked_by'].id == 0
+
     def test_first_release(self):
         result = self.parse_query('first-release:bar')
         assert result == {'first_release': 'bar', 'tags': {}, 'query': ''}
