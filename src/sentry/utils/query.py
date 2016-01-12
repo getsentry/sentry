@@ -255,7 +255,7 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
                 pre_save.send(created=True, **signal_kwargs)
 
             try:
-                with transaction.atomic():
+                with transaction.atomic(using=using):
                     model.objects.using(using).filter(pk=obj.pk).update(**update_kwargs)
             except IntegrityError:
                 # duplicate key exists, destroy the relations
