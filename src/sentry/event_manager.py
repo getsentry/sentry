@@ -14,7 +14,7 @@ import six
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from django.conf import settings
-from django.db import connection, IntegrityError, transaction
+from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -473,7 +473,7 @@ class EventManager(object):
         event.data.bind_ref(event)
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(EventMapping)):
                 EventMapping.objects.create(
                     project=project, group=group, event_id=event_id)
         except IntegrityError:
@@ -487,7 +487,7 @@ class EventManager(object):
         # save the event unless its been sampled
         if not is_sample:
             try:
-                with transaction.atomic():
+                with transaction.atomic(using=router.db_for_write(Event)):
                     event.save()
             except IntegrityError:
                 self.logger.info('Duplicate Event found for event_id=%s', event_id)
