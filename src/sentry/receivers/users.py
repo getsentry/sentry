@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+from django.db import router
 from django.db.models.signals import post_syncdb
 
 from sentry.models import User
@@ -7,6 +8,8 @@ from sentry.models import User
 
 def create_first_user(app, created_models, verbosity, db, **kwargs):
     if User not in created_models:
+        return
+    if not router.allow_syncdb(db, User):
         return
     if not kwargs.get('interactive', True):
         return
