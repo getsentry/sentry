@@ -2,16 +2,20 @@
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
-from django.db import models
+from django.db import models, transaction
+from django.db.utils import OperationalError
 
 
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        db.delete_foreign_key('sentry_message', 'group_id')
-        db.delete_foreign_key('sentry_message', 'project_id')
-        db.delete_foreign_key('sentry_eventmapping', 'group_id')
-        db.delete_foreign_key('sentry_eventmapping', 'project_id')
+        try:
+            db.delete_foreign_key('sentry_message', 'group_id')
+            db.delete_foreign_key('sentry_message', 'project_id')
+            db.delete_foreign_key('sentry_eventmapping', 'group_id')
+            db.delete_foreign_key('sentry_eventmapping', 'project_id')
+        except OperationalError:
+            pass
 
     def backwards(self, orm):
         pass
