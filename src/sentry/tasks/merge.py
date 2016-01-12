@@ -77,15 +77,15 @@ def merge_objects(models, group, new_group, limit=1000,
             logger.info('Merging %r objects where %r into %r', model, group,
                         new_group)
         for obj in model.objects.filter(group=group)[:limit]:
-            with transaction.atomic(using=router.db_for_write(model)):
-                try:
+            try:
+                with transaction.atomic(using=router.db_for_write(model)):
                     model.objects.filter(
                         id=obj.id
                     ).update(group=new_group)
-                except IntegrityError:
-                    delete = True
-                else:
-                    delete = False
+            except IntegrityError:
+                delete = True
+            else:
+                delete = False
             if delete:
                 obj.delete()
             has_more = True
