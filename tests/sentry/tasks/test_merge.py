@@ -1,0 +1,32 @@
+from __future__ import absolute_import
+
+from sentry.tasks.merge import merge_group
+from sentry.models import Event, Group
+from sentry.testutils import TestCase
+
+
+class MergeGroupTest(TestCase):
+    def test_merge_with_event_integrity(self):
+        project1 = self.create_project()
+        group1 = self.create_group(project1)
+        event1 = self.create_event('a' * 32, group=group1, data={'foo': 'bar'})
+        project2 = self.create_project()
+        group2 = self.create_group(project2)
+        event2 = self.create_event('b' * 32, group=group2, data={'foo': 'baz'})
+
+        with self.tasks():
+            merge_group(group1.id, group2.id)
+
+        assert not Group.objects.filter(id=group1.id).exists()
+
+        # this previously would error with NodeIntegrityError due to the
+        # reference check being bound to a group
+        event1 = Event.objects.get(id=event1.id)
+        assert event1.group_id == group2.id
+        Event.objects.bind_nodes([event1], 'data')
+        assert event1.data == {'foo': 'bar'}
+
+        event2 = Event.objects.get(id=event2.id)
+        assert event2.group_id == group2.id
+        Event.objects.bind_nodes([event2], 'data')
+        assert event2.data == {'foo': 'baz'}

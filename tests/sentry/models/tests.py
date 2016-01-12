@@ -127,15 +127,16 @@ class EventNodeStoreTest(TestCase):
         assert event.data.id == node_id
 
     def test_screams_bloody_murder_when_ref_fails(self):
-        group1 = self.create_group()
+        project1 = self.create_project()
+        project2 = self.create_project()
+        group1 = self.create_group(project1)
         invalid_event = self.create_event(group=group1)
-        group2 = self.create_group()
+        group2 = self.create_group(project2)
         event = self.create_event(group=group2)
         event.data.bind_ref(invalid_event)
         event.save()
 
-        assert event.data.get_ref(event) == event.group.id
-        assert event.data.get_ref(invalid_event) == invalid_event.group.id
+        assert event.data.get_ref(event) != event.data.get_ref(invalid_event)
 
         with pytest.raises(NodeIntegrityFailure):
             Event.objects.bind_nodes([event], 'data')
@@ -147,8 +148,8 @@ class EventNodeStoreTest(TestCase):
 
         Event.objects.bind_nodes([event], 'data')
 
-        assert event.data.ref == event.group.id
+        assert event.data.ref == event.project.id
 
     def test_basic_ref_binding(self):
         event = self.create_event()
-        assert event.data.get_ref(event) == event.group.id
+        assert event.data.get_ref(event) == event.project.id
