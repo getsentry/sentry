@@ -1,6 +1,6 @@
 import React from 'react';
 
-import FilterSelectLink from './filterSelectLink';
+import SavedSearchSelector from './savedSearchSelector';
 import SearchBar from './searchBar';
 import SortOptions from './sortOptions';
 import {t} from '../../locale';
@@ -21,72 +21,49 @@ const StreamFilters = React.createClass({
       sort: '',
       filter: '',
       query: null,
-      onFilterChange: function() {},
       onSortChange: function() {},
       onSearch: function() {},
       onSidebarToggle: function () {}
     };
   },
 
-  getActiveButton() {
-    let queryParams = this.context.location.query;
-    let activeButton;
-    if (queryParams.bookmarks) {
-      activeButton = 'bookmarks';
-    } else if (queryParams.assigned) {
-      activeButton = 'assigned';
-    } else {
-      activeButton = 'all';
-    }
-    return activeButton;
-  },
-
-  onFilterChange(filter) {
-    this.props.onFilterChange(filter);
-  },
-
   render() {
-    let activeButton = this.getActiveButton();
+    let {orgId, projectId, searchId} = this.props;
+
     return (
-      <div className="filter-nav stream-header">
+      <div className="stream-header">
         <div className="row">
-          <div className="col-sm-4 primary-filters">
-            <div className="btn-group btn-group-justified">
-              <FilterSelectLink label={t('All Events')}
-                isActive={activeButton === 'all'}
-                onSelect={this.onFilterChange.bind(this, {})}
-                extraClass="btn btn-all-events" />
-              <FilterSelectLink label={t('Bookmarks')}
-                isActive={activeButton === 'bookmarks'}
-                onSelect={this.onFilterChange.bind(this, {bookmarks: '1'})}
-                extraClass="btn btn-middle btn-bookmarks" />
-              <FilterSelectLink label={t('Assigned')}
-                isActive={activeButton === 'assigned'}
-                onSelect={this.onFilterChange.bind(this, {assigned: '1'})}
-                extraClass="btn btn-assigned" />
-            </div>
-          </div>
-          <div className="col-sm-3">
-            <ul className="stream-sort">
-              <SortOptions
-                sort={this.props.sort}
-                onSelect={this.props.onSortChange} />
-            </ul>
-          </div>
           <div className="col-sm-5">
-            <SearchBar
-              orgId={this.props.orgId}
-              projectId={this.props.projectId}
-              ref="searchBar"
-              tags={this.props.tags}
-              defaultQuery={this.props.defaultQuery}
-              placeholder={t('Search for events, users, tags, and everything else.')}
+            <SavedSearchSelector
+              orgId={orgId}
+              projectId={projectId}
+              searchId={searchId}
               query={this.props.query}
-              onSearch={this.props.onSearch}
-              disabled={this.props.isSearchDisabled} />
-            <a className="btn btn-default toggle-stream-sidebar" onClick={this.props.onSidebarToggle}>
-              <span className="icon-filter" />
-            </a>
+              onSavedSearchCreate={this.props.onSavedSearchCreate}
+              savedSearchList={this.props.savedSearchList} />
+          </div>
+          <div className="col-sm-7">
+            <div className="search-container">
+              <div className="stream-sort">
+                <SortOptions
+                  sort={this.props.sort}
+                  onSelect={this.props.onSortChange} />
+              </div>
+
+              <SearchBar
+                orgId={orgId}
+                projectId={projectId}
+                ref="searchBar"
+                tags={this.props.tags}
+                defaultQuery={this.props.defaultQuery}
+                placeholder={t('Search for events, users, tags, and everything else.')}
+                query={this.props.query}
+                onSearch={this.props.onSearch}
+                disabled={this.props.isSearchDisabled} />
+              <a className="btn btn-default toggle-stream-sidebar" onClick={this.props.onSidebarToggle}>
+                <span className="icon-filter" />
+              </a>
+            </div>
           </div>
         </div>
       </div>

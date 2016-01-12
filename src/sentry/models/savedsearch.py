@@ -16,6 +16,7 @@ class SavedSearch(Model):
     name = models.CharField(max_length=128)
     query = models.TextField()
     date_added = models.DateTimeField(default=timezone.now)
+    is_default = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'sentry'

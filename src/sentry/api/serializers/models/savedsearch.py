@@ -11,5 +11,6 @@ class SavedSearchSerializer(Serializer):
             'id': str(obj.id),
             'name': obj.name,
             'query': obj.query,
+            'isDefault': obj.is_default,
             'dateCreated': obj.date_added,
         }
