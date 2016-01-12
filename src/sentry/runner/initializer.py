@@ -187,13 +187,13 @@ def validate_options(settings):
 
 
 def fix_south(settings):
-    # South needs an adapter defined conditionally
-    if settings.DATABASES['default']['ENGINE'] != 'sentry.db.postgres':
-        return
+    settings.SOUTH_DATABASE_ADAPTERS = {}
 
-    settings.SOUTH_DATABASE_ADAPTERS = {
-        'default': 'south.db.postgresql_psycopg2'
-    }
+    # South needs an adapter defined conditionally
+    for key, value in settings.DATABASES.iteritems():
+        if value['ENGINE'] != 'sentry.db.postgres':
+            continue
+        settings.SOUTH_DATABASE_ADAPTERS[key] = 'south.db.postgresql_psycopg2'
 
 
 def show_big_error(message):
