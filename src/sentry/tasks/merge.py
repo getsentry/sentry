@@ -83,7 +83,11 @@ def merge_objects(models, group, new_group, limit=1000,
                         id=obj.id
                     ).update(group=new_group)
                 except IntegrityError:
-                    obj.delete()
+                    delete = True
+                else:
+                    delete = False
+            if delete:
+                obj.delete()
             has_more = True
 
         if has_more:
