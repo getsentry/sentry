@@ -89,8 +89,8 @@ const GroupActivity = React.createClass({
       case 'unassigned':
         return t('%s unassigned this issue', author);
       case 'merge':
-        return tn('%2$s merged %1$d issue into this isssue',
-                  '%2$s merged %1$d issues into this isssue',
+        return tn('%2$s merged %1$d issue into this issue',
+                  '%2$s merged %1$d issues into this issue',
                   data.issues.length,
                   author);
       default:
