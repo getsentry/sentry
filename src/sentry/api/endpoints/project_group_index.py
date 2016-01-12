@@ -207,15 +207,16 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         if query and len(query) == 32:
             # check to see if we've got an event ID
             try:
-                matching_event = EventMapping.objects.filter(
+                mapping = EventMapping.objects.get(
                     project=project,
                     event_id=query,
-                ).select_related('group')[0]
-            except IndexError:
+                )
+            except EventMapping.DoesNotExist:
                 pass
             else:
+                matching_group = Group.objects.get(id=mapping.group_id)
                 return Response(serialize(
-                    [matching_event.group], request.user, StreamGroupSerializer(
+                    [matching_group], request.user, StreamGroupSerializer(
                         stats_period=stats_period
                     )
                 ))
