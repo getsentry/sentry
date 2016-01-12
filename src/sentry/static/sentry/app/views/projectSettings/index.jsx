@@ -92,6 +92,7 @@ const ProjectSettings = React.createClass({
             <li><a href={`${settingsUrlRoot}/tags/`}>{t('Tags')}</a></li>
             <li><a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a></li>
             <li><a href={`${settingsUrlRoot}/release-tracking/`}>{t('Release Tracking')}</a></li>
+            <ListLink to={`/${orgId}/${projectId}/settings/saved-searches/`}>{t('Saved Searches')}</ListLink>
             {features.has('user-reports') &&
               <ListLink to={`/${orgId}/${projectId}/settings/user-reports/`}>{t('User Reports')}</ListLink>
             }

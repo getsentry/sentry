@@ -28,6 +28,7 @@ import ProjectInstall from './views/projectInstall';
 import ProjectInstallOverview from './views/projectInstall/overview';
 import ProjectInstallPlatform from './views/projectInstall/platform';
 import ProjectReleases from './views/projectReleases';
+import ProjectSavedSearches from './views/projectSavedSearches';
 import ProjectSettings from './views/projectSettings';
 import ProjectUserReports from './views/projectUserReports';
 import ProjectUserReportSettings from './views/projectUserReportSettings';
@@ -71,6 +72,7 @@ let routes = (
 
       <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
         <IndexRoute component={errorHandler(Stream)} />
+        <Route path="searches/:searchId/" component={errorHandler(Stream)} />
         <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
         <Route path="events/" component={errorHandler(ProjectEvents)} />
         <Route path="releases/" component={errorHandler(ProjectReleases)} />
@@ -85,6 +87,7 @@ let routes = (
             <IndexRoute component={errorHandler(ProjectInstallOverview)}/>
             <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)}/>
           </Route>
+          <Route path="saved-searches/" component={errorHandler(ProjectSavedSearches)} />
           <Route path="user-reports/" component={errorHandler(ProjectUserReportSettings)} />
         </Route>
         <Redirect from="group/:groupId/" to="issues/:groupId/" />
