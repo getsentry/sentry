@@ -42,6 +42,10 @@ class NodeData(collections.MutableMapping):
         self.field = field
         self.id = id
         self.ref = None
+        # ref version is used to discredit a previous ref
+        # (this does not mean the Event is mutable, it just removes ref checking
+        #  in the case of something changing on the data model)
+        self.ref_version = None
         self._node_data = data
 
     def __getitem__(self, key):
@@ -91,7 +95,8 @@ class NodeData(collections.MutableMapping):
 
     def bind_data(self, data, ref=None):
         self.ref = data.pop('_ref', ref)
-        if ref is not None and self.ref != ref:
+        self.ref_version = data.pop('_ref_version', None)
+        if self.ref_version == self.field.ref_version and ref is not None and self.ref != ref:
             raise NodeIntegrityFailure('Node reference for %s is invalid: %s != %s' % (
                 self.id, ref, self.ref,
             ))
@@ -101,6 +106,7 @@ class NodeData(collections.MutableMapping):
         ref = self.get_ref(instance)
         if ref:
             self.data['_ref'] = ref
+            self.data['_ref_version'] = self.field.ref_version
 
 
 class NodeField(GzippedDictField):
@@ -112,6 +118,7 @@ class NodeField(GzippedDictField):
 
     def __init__(self, *args, **kwargs):
         self.ref_func = kwargs.pop('ref_func', None)
+        self.ref_version = kwargs.pop('ref_version', None)
         super(NodeField, self).__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name):
