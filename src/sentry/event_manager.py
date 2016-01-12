@@ -477,7 +477,8 @@ class EventManager(object):
                 EventMapping.objects.create(
                     project=project, group=group, event_id=event_id)
         except IntegrityError:
-            self.logger.info('Duplicate EventMapping found for event_id=%s', event_id)
+            self.logger.info('Duplicate EventMapping found for event_id=%s', event_id,
+                             exc_info=True)
             return event
 
         UserReport.objects.filter(
@@ -490,7 +491,8 @@ class EventManager(object):
                 with transaction.atomic(using=router.db_for_write(Event)):
                     event.save()
             except IntegrityError:
-                self.logger.info('Duplicate Event found for event_id=%s', event_id)
+                self.logger.info('Duplicate Event found for event_id=%s', event_id,
+                                 exc_info=True)
                 return event
 
         if event_user:
