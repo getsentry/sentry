@@ -9,7 +9,7 @@ sentry.tasks.merge
 from __future__ import absolute_import
 
 from celery.utils.log import get_task_logger
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import F
 
 from sentry.tasks.base import instrumented_task, retry
@@ -77,7 +77,7 @@ def merge_objects(models, group, new_group, limit=1000,
             logger.info('Merging %r objects where %r into %r', model, group,
                         new_group)
         for obj in model.objects.filter(group=group)[:limit]:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(model)):
                 try:
                     model.objects.filter(
                         id=obj.id

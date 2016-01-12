@@ -9,7 +9,7 @@ sentry.tasks.post_process
 from __future__ import absolute_import, print_function
 
 from celery.utils.log import get_task_logger
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from raven.contrib.django.models import client as Raven
 
 from sentry.plugins import plugins
@@ -125,7 +125,7 @@ def record_affected_user(event, **kwargs):
         return
 
     try:
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(EventUser)):
             euser.save()
     except IntegrityError:
         pass
