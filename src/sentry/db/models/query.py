@@ -85,7 +85,7 @@ def create_or_update(model, using=None, **kwargs):
             create_kwargs[k] = v
 
     try:
-        with transaction.atomic():
+        with transaction.atomic(using=using):
             return objects.create(**create_kwargs), True
     except IntegrityError:
         affected = objects.filter(**kwargs).update(**values)
