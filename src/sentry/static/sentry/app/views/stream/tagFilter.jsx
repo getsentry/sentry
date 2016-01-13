@@ -34,7 +34,7 @@ const StreamTagFilter = React.createClass({
   },
 
   componentDidMount() {
-    let select = ReactDOM.findDOMNode(this.refs.select);
+    let select = this.refs.select;
 
     let selectOpts = {
       placeholder: '--',
@@ -68,6 +68,7 @@ const StreamTagFilter = React.createClass({
 
     $(select)
       .select2(selectOpts)
+      .select2('val', this.state.value)
       .on('change', this.onSelectValue);
   },
 
@@ -111,7 +112,7 @@ const StreamTagFilter = React.createClass({
 
         {this.props.tag.predefined ?
 
-          <select ref="select" value={this.props.value} onChange={function(){}}>
+          <select ref="select" onChange={function(){}}>
             <option key="empty"></option>
             {this.props.tag.values.map((val) => {
               return (
