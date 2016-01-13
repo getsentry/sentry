@@ -14,7 +14,7 @@ class UserField(serializers.WritableField):
         if not data:
             return None
 
-        if data.isdigit():
+        if isinstance(data, int) or data.isdigit():
             try:
                 return User.objects.get(id=data)
             except User.DoesNotExist:
