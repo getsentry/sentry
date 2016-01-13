@@ -16,7 +16,10 @@ from sentry.digests import (
     Record,
     ScheduleEntry,
 )
-from sentry.digests.backends.base import Backend
+from sentry.digests.backends.base import (
+    Backend,
+    InvalidState,
+)
 from sentry.utils.cache import Lock
 from sentry.utils.redis import (
     check_cluster_versions,
@@ -398,8 +401,12 @@ class RedisBackend(Backend):
         connection = self.cluster.get_local_client_for_key(timeline_key)
 
         with Lock(timeline_key, nowait=True, timeout=30):
+            # Check to ensure the timeline is in the correct state ("ready")
+            # before sending. This acts as a throttling mechanism to prevent
+            # sending a digest before it's next scheduled delivery time in a
+            # race condition scenario.
             if connection.zscore(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key) is None:
-                raise Exception('Cannot digest timeline, timeline is not in the ready state.')
+                raise InvalidState('Timeline is not in the ready state.')
 
             with connection.pipeline() as pipeline:
                 pipeline.watch(digest_key)  # This shouldn't be necessary, but better safe than sorry?

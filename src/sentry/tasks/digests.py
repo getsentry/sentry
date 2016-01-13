@@ -4,6 +4,7 @@ import logging
 import time
 
 from sentry.digests import get_option_key
+from sentry.digests.backends.base import InvalidState
 from sentry.digests.notifications import (
     build_digest,
     split_key,
@@ -58,8 +59,13 @@ def deliver_digest(key, schedule_timestamp=None):
         project,
         get_option_key(plugin.get_conf_key(), 'minimum_delay')
     )
-    with digests.digest(key, minimum_delay=minimum_delay) as records:
-        digest = build_digest(project, records)
+
+    try:
+        with digests.digest(key, minimum_delay=minimum_delay) as records:
+            digest = build_digest(project, records)
+    except InvalidState as error:
+        logger.info('Skipped digest delivery: %s', error, exc_info=True)
+        return
 
     if digest:
         plugin.notify_digest(project, digest)
