@@ -276,7 +276,10 @@ class PermissionTestCase(TestCase):
     def setUp(self):
         super(PermissionTestCase, self).setUp()
         self.owner = self.create_user(is_superuser=False)
-        self.organization = self.create_organization(owner=self.owner)
+        self.organization = self.create_organization(
+            owner=self.owner,
+            flags=0,  # disable default allow_joinleave access
+        )
         self.team = self.create_team(organization=self.organization)
 
     def assert_can_access(self, user, path, method='GET'):

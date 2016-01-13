@@ -91,9 +91,9 @@ const ProjectDetails = React.createClass({
       return;
     }
     let [activeTeam, activeProject] = this.identifyProject();
-    let isMember = activeTeam && activeTeam.isMember;
+    let hasAccess = activeTeam && activeTeam.hasAccess;
 
-    if (activeProject && isMember) {
+    if (activeProject && hasAccess) {
       // TODO(dcramer): move member list to organization level
       this.api.request(this.getMemberListEndpoint(), {
         success: (data) => {
@@ -108,7 +108,7 @@ const ProjectDetails = React.createClass({
         error: false,
         errorType: null
       });
-    } else if (isMember === false) {
+    } else if (activeTeam && activeTeam.isMember) {
       this.setState({
         project: activeProject,
         team: activeTeam,
