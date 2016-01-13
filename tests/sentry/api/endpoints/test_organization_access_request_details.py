@@ -112,10 +112,14 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
 
         assert resp.status_code == 204
 
-    def test_teamless_admin_cannot_approve(self):
+    def test_teamless_admin_cannot_approve_with_closed_membership(self):
         self.login_as(user=self.user)
 
-        organization = self.create_organization(name='foo', owner=self.user)
+        organization = self.create_organization(
+            name='foo',
+            owner=self.user,
+            flags=0,  # kill allow_joinleave
+        )
         user = self.create_user('bar@example.com')
         member = self.create_member(
             organization=organization,
