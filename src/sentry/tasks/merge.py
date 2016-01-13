@@ -13,6 +13,7 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import F
 
 from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.deletion import delete_group
 
 logger = get_task_logger(__name__)
 
@@ -66,6 +67,72 @@ def merge_group(from_object_id=None, to_object_id=None, **kwargs):
     )
 
     group.delete()
+
+
+@instrumented_task(name='sentry.tasks.merge.rehash_group_events', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=None)
+@retry
+def rehash_group_events(group_id, **kwargs):
+    from sentry.models import Group, GroupHash
+
+    group = Group.objects.get(id=group_id)
+
+    # Clear out existing hashes to preempt new events being added
+    # This can cause the new groups to be created before we get to them, but
+    # its a tradeoff we're willing to take
+    GroupHash.objects.filter(group=group).delete()
+
+    has_more = _rehash_group_events(group)
+
+    if has_more:
+        rehash_group_events.delay(
+            group_id=group.id
+        )
+        return
+
+    delete_group.delay(group.id)
+
+
+def _rehash_group_events(group, limit=100):
+    from sentry.event_manager import (
+        EventManager, get_hashes_from_fingerprint, generate_culprit,
+        md5_from_hash
+    )
+    from sentry.models import Event
+
+    event_list = list(Event.objects.filter(group=group)[:limit])
+    Event.objects.bind_nodes(event_list, 'data')
+
+    for event in event_list:
+        fingerprint = event.data.get('fingerprint', ['{{ default }}'])
+        if fingerprint and not isinstance(fingerprint, (list, tuple)):
+            fingerprint = [fingerprint]
+        elif not fingerprint:
+            fingerprint = ['{{ default }}']
+
+        manager = EventManager({})
+
+        group_kwargs = {
+            'message': event.message,
+            'platform': event.platform,
+            'culprit': generate_culprit(event.data),
+            'logger': event.get_tag('logger') or group.logger,
+            'level': group.level,
+            'last_seen': event.datetime,
+            'first_seen': event.datetime,
+        }
+
+        # XXX(dcramer): doesnt support checksums as they're not stored
+        hashes = map(md5_from_hash, get_hashes_from_fingerprint(event, fingerprint))
+        for hash in hashes:
+            new_group, _, _, _ = manager._save_aggregate(
+                event=event,
+                hashes=hashes,
+                release=None,
+                **group_kwargs
+            )
+            event.update(group=new_group)
+    return bool(event_list)
 
 
 def merge_objects(models, group, new_group, limit=1000,
