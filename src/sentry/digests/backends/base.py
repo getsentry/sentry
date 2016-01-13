@@ -17,6 +17,13 @@ DEFAULT_CODEC = {
 }
 
 
+class InvalidState(Exception):
+    """
+    An error that is raised when an action cannot be performed on a
+    timeline in it's current state.
+    """
+
+
 class Backend(object):
     """
     A digest backend coordinates the addition of records to timelines, as well
