@@ -1,3 +1,11 @@
+Version 8.0.1
+-------------
+
+- Ignore ``blob:`` urls in hashing algorithms.
+- Bump ``extra`` data size to 16k (previously 4k)
+- Fixed some odd behavior where superusers appeared as members of a team when they weren't.
+- By default, new superusers created through ``sentry createuser`` will be added as a member to a team, if there is only one team available.
+
 Version 8.0.0
 -------------
 
