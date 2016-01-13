@@ -90,15 +90,27 @@ def createuser(email, password, superuser, no_password, no_input):
 
     # TODO(dcramer): kill this when we improve flows
     if settings.SENTRY_SINGLE_ORGANIZATION:
-        from sentry.models import Organization, OrganizationMember
+        from sentry.models import (
+            Organization, OrganizationMember, OrganizationMemberTeam, Team
+        )
+
         org = Organization.get_default()
         if superuser:
             role = roles.get_top_dog().id
         else:
             role = org.default_role
-        OrganizationMember.objects.create(
+        member = OrganizationMember.objects.create(
             organization=org,
             user=user,
             role=role,
         )
+
+        # if we've only got a single team let's go ahead and give
+        # access to that team as its likely the desired outcome
+        teams = list(Team.objects.filter(organization=org)[0:2])
+        if len(teams) == 1:
+            OrganizationMemberTeam.objects.create(
+                team=teams[0],
+                organizationmember=member,
+            )
         click.echo('Added to organization: %s' % (org.slug,))
