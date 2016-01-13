@@ -47,7 +47,7 @@ from subprocess import check_output
 
 
 # The version of sentry
-VERSION = '8.0.0'
+VERSION = '8.1.0.dev0'
 
 # Also see sentry.utils.integrationdocs.DOC_FOLDER
 INTEGRATION_DOC_FOLDER = os.path.join(os.path.abspath(
