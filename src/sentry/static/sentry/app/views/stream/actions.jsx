@@ -215,16 +215,20 @@ const StreamActions = React.createClass({
                     disabled={!this.state.anySelected}
                     onAction={this.onMerge}
                     confirmationQuestion={
-                      (count) =>
-                        tn('Are you sure you want to merge %d issue?',
-                           'Are you sure you want to merge %d issues?',
-                           count)
+                      this.state.allInQuerySelected
+                        ? t('Are you sure you want to merge all issues matching this search query?')
+                        : (count) =>
+                            tn('Are you sure you want to merge %d issue?',
+                               'Are you sure you want to merge %d issues?',
+                               count)
                     }
                     confirmLabel={
-                      (count) =>
-                        tn('Merge %d selected issue',
-                           'Merge %d selected issues',
-                           count)
+                      this.state.allInQuerySelected
+                        ? t('Merge all issues')
+                        : (count) =>
+                            tn('Merge %d selected issue',
+                               'Merge %d selected issues',
+                               count)
                     }
                     selectAllActive={this.state.pageSelected}>
                     {t('Merge Events')}
