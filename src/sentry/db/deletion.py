@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
-from django.db import connections
+from django.db import connections, router
 from django.utils import timezone
 
 from sentry.utils import db
@@ -13,9 +13,10 @@ class BulkDeleteQuery(object):
         self.project_id = int(project_id) if project_id else None
         self.dtfield = dtfield
         self.days = int(days) if days is not None else None
+        self.using = router.db_for_write(model)
 
     def execute_postgres(self, chunk_size=10000):
-        quote_name = connections['default'].ops.quote_name
+        quote_name = connections[self.using].ops.quote_name
 
         where = []
         if self.dtfield and self.days is not None:
@@ -49,7 +50,7 @@ class BulkDeleteQuery(object):
 
     def _continuous_query(self, query):
         results = True
-        cursor = connections['default'].cursor()
+        cursor = connections[self.using].cursor()
         while results:
             cursor.execute(query)
             results = cursor.rowcount > 0
