@@ -14,7 +14,7 @@ import click
 DEFAULT_SETTINGS_MODULE = 'sentry.conf.server'
 DEFAULT_SETTINGS_CONF = 'config.yml'
 DEFAULT_SETTINGS_OVERRIDE = 'sentry.conf.py'
-PY_CONFIG_TEMPLATE = """
+PY_CONFIG_TEMPLATE = u"""
 # This file is just Python, with a touch of Django which means
 # you can inherit and tweak settings to your hearts content.
 from sentry.conf.server import *
@@ -198,7 +198,7 @@ SERVER_EMAIL = 'root@localhost'
 # route to forward to /api/hooks/mailgun/inbound/
 MAILGUN_API_KEY = ''
 """
-YAML_CONFIG_TEMPLATE = """\
+YAML_CONFIG_TEMPLATE = u"""\
 # While a lot of configuration in Sentry can be changed via the UI, for all
 # new-style config (as of 8.0) you can also declare values here in this file
 # to enforce defaults or to ensure they cannot be changed via the UI. For more
@@ -212,7 +212,7 @@ system.secret-key: '%(secret_key)s'
 
 def generate_secret_key():
     from django.utils.crypto import get_random_string
-    chars = 'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)'
+    chars = u'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)'
     return get_random_string(50, chars)
 
 
