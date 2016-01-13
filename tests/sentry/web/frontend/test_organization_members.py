@@ -58,7 +58,11 @@ class OrganizationMembersTest(TestCase):
         ]
 
     def test_shows_access_requests_for_team_admin(self):
-        organization = self.create_organization(name='foo', owner=self.user)
+        organization = self.create_organization(
+            name='foo',
+            owner=self.user,
+            flags=0,  # kill default allow_joinleave
+        )
         team_1 = self.create_team(name='foo', organization=organization)
         team_2 = self.create_team(name='bar', organization=organization)
 

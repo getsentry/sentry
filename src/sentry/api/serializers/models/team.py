@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import itertools
 
 from collections import defaultdict
-from django.conf import settings
 
 from sentry.app import env
 from sentry.api.serializers import Serializer, register, serialize
@@ -17,19 +16,7 @@ from sentry.models import (
 class TeamSerializer(Serializer):
     def get_attrs(self, item_list, user):
         request = env.request
-        if (request.is_superuser() and request.user == user) or settings.SENTRY_PUBLIC:
-            inactive_memberships = frozenset(
-                OrganizationMemberTeam.objects.filter(
-                    team__in=item_list,
-                    organizationmember__user=user,
-                    is_active=False,
-                ).values_list('team', flat=True)
-            )
-            memberships = frozenset([
-                t.id for t in item_list
-                if t.id not in inactive_memberships
-            ])
-        elif user.is_authenticated():
+        if user.is_authenticated():
             memberships = frozenset(
                 OrganizationMemberTeam.objects.filter(
                     organizationmember__user=user,
@@ -50,11 +37,22 @@ class TeamSerializer(Serializer):
         else:
             access_requests = frozenset()
 
+        is_superuser = request.is_superuser() and request.user == user
         result = {}
         for team in item_list:
+            is_member = team.id in memberships
+            if is_member:
+                has_access = True
+            elif is_superuser:
+                has_access = True
+            elif team.organization.flags.allow_joinleave:
+                has_access = True
+            else:
+                has_access = False
             result[team] = {
                 'pending_request': team.id in access_requests,
-                'is_member': team.id in memberships,
+                'is_member': is_member,
+                'has_access': has_access,
             }
         return result
 
@@ -65,6 +63,7 @@ class TeamSerializer(Serializer):
             'name': obj.name,
             'dateCreated': obj.date_added,
             'isMember': attrs['is_member'],
+            'hasAccess': attrs['has_access'],
             'isPending': attrs['pending_request'],
         }
 
