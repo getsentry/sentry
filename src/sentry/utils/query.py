@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 import progressbar
 
-from django.db import connections, IntegrityError, transaction
+from django.db import connections, IntegrityError, router, transaction
 from django.db.models import ForeignKey
 from django.db.models.deletion import Collector
 from django.db.models.signals import pre_delete, pre_save, post_save, post_delete
@@ -265,9 +265,8 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
                 post_save.send(created=True, **signal_kwargs)
 
 
-def bulk_delete_objects(model, limit=10000, logger=None, using='default',
-                        **filters):
-    connection = connections[using]
+def bulk_delete_objects(model, limit=10000, logger=None, **filters):
+    connection = connections[router.db_for_write(model)]
     quote_name = connection.ops.quote_name
 
     query = []
