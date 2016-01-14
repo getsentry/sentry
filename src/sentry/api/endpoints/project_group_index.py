@@ -208,7 +208,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             # check to see if we've got an event ID
             try:
                 mapping = EventMapping.objects.get(
-                    project=project,
+                    project_id=project.id,
                     event_id=query,
                 )
             except EventMapping.DoesNotExist:
