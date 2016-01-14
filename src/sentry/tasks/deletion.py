@@ -20,7 +20,7 @@ logger = get_task_logger(__name__)
 
 @instrumented_task(name='sentry.tasks.deletion.delete_organization', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
-@retry
+@retry(exclude=(DeleteAborted,))
 def delete_organization(object_id, continuous=True, **kwargs):
     from sentry.models import (
         Organization, OrganizationMember, OrganizationStatus, Team, TeamStatus
@@ -58,7 +58,7 @@ def delete_organization(object_id, continuous=True, **kwargs):
 
 @instrumented_task(name='sentry.tasks.deletion.delete_team', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
-@retry
+@retry(exclude=(DeleteAborted,))
 def delete_team(object_id, continuous=True, **kwargs):
     from sentry.models import Team, TeamStatus, Project, ProjectStatus
 
@@ -88,7 +88,7 @@ def delete_team(object_id, continuous=True, **kwargs):
 
 @instrumented_task(name='sentry.tasks.deletion.delete_project', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
-@retry
+@retry(exclude=(DeleteAborted,))
 def delete_project(object_id, continuous=True, **kwargs):
     from sentry.models import (
         Project, ProjectKey, ProjectStatus, TagKey, TagValue, GroupTagKey,
@@ -138,7 +138,7 @@ def delete_project(object_id, continuous=True, **kwargs):
 
 @instrumented_task(name='sentry.tasks.deletion.delete_group', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
-@retry
+@retry(exclude=(DeleteAborted,))
 def delete_group(object_id, continuous=True, **kwargs):
     from sentry.models import (
         EventMapping, Group, GroupHash, GroupRuleStatus, GroupStatus,
@@ -174,7 +174,7 @@ def delete_group(object_id, continuous=True, **kwargs):
 
 @instrumented_task(name='sentry.tasks.deletion.delete_tag_key', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
-@retry
+@retry(exclude=(DeleteAborted,))
 def delete_tag_key(object_id, continuous=True, **kwargs):
     from sentry.models import (
         GroupTagKey, GroupTagValue, TagKey, TagKeyStatus, TagValue
