@@ -393,7 +393,7 @@ class EventManager(object):
         }
 
         event = Event(
-            project=project,
+            project_id=project.id,
             event_id=event_id,
             data=data,
             time_spent=time_spent,
@@ -468,7 +468,6 @@ class EventManager(object):
         )
 
         event.group = group
-        event.group_id = group.id
         # store a reference to the group id to guarantee validation of isolation
         event.data.bind_ref(event)
 

@@ -106,7 +106,7 @@ def _rehash_group_events(group, limit=100):
     )
     from sentry.models import Event
 
-    event_list = list(Event.objects.filter(group=group)[:limit])
+    event_list = list(Event.objects.filter(group_id=group.id)[:limit])
     Event.objects.bind_nodes(event_list, 'data')
 
     for event in event_list:
@@ -137,7 +137,7 @@ def _rehash_group_events(group, limit=100):
                 release=None,
                 **group_kwargs
             )
-            event.update(group=new_group)
+            event.update(group_id=new_group.id)
     return bool(event_list)
 
 
@@ -149,12 +149,16 @@ def merge_objects(models, group, new_group, limit=1000,
         if logger is not None:
             logger.info('Merging %r objects where %r into %r', model, group,
                         new_group)
-        for obj in model.objects.filter(group=group)[:limit]:
+        if 'group' in model._meta.get_all_field_names():
+            queryset = model.objects.filter(group=group)
+        else:
+            queryset = model.objects.filter(group_id=group.id)
+        for obj in queryset[:limit]:
             try:
                 with transaction.atomic(using=router.db_for_write(model)):
                     model.objects.filter(
                         id=obj.id
-                    ).update(group=new_group)
+                    ).update(group_id=new_group.id)
             except IntegrityError:
                 delete = True
             else:

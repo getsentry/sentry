@@ -159,6 +159,11 @@ class Group(Model):
             self.organization.slug, self.project.slug, self.id]))
 
     @property
+    def event_set(self):
+        from sentry.models import Event
+        return Event.objects.filter(group_id=self.id)
+
+    @property
     def avg_time_spent(self):
         if not self.time_spent_count:
             return
@@ -217,7 +222,7 @@ class Group(Model):
         if not hasattr(self, '_latest_event'):
             latest_events = sorted(
                 Event.objects.filter(
-                    group=self,
+                    group_id=self.id,
                 ).order_by('-datetime')[0:5],
                 key=EVENT_ORDERING_KEY,
                 reverse=True,
@@ -234,7 +239,7 @@ class Group(Model):
         if not hasattr(self, '_oldest_event'):
             oldest_events = sorted(
                 Event.objects.filter(
-                    group=self,
+                    group_id=self.id,
                 ).order_by('datetime')[0:5],
                 key=EVENT_ORDERING_KEY,
             )

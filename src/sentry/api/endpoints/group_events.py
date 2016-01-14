@@ -33,7 +33,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         """
 
         events = Event.objects.filter(
-            group=group
+            group_id=group.id,
         )
 
         query = request.GET.get('query')
