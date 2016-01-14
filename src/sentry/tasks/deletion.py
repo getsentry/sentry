@@ -28,7 +28,7 @@ def delete_organization(object_id, continuous=True, **kwargs):
 
     try:
         o = Organization.objects.get(id=object_id)
-    except Team.DoesNotExist:
+    except Organization.DoesNotExist:
         return
 
     if o.status == OrganizationStatus.VISIBLE:
