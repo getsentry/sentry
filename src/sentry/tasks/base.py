@@ -59,12 +59,25 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
     return wrapped
 
 
-def retry(func):
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as exc:
-            Raven.captureException()
-            current.retry(exc=exc)
-    return wrapped
+def retry(func=None, on=(Exception, ), exclude=()):
+    """
+    >>> @retry(on=(Exception,), exclude=(AnotherException,))
+    >>> def my_task():
+    >>>     ...
+    """
+
+    if func:
+        return retry()(func)
+
+    def inner(func):
+        @wraps(func)
+        def wrapped(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except exclude:
+                raise
+            except on as exc:
+                Raven.captureException()
+                current.retry(exc=exc)
+        return wrapped
+    return inner
