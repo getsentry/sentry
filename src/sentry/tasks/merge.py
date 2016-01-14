@@ -9,7 +9,7 @@ sentry.tasks.merge
 from __future__ import absolute_import
 
 from celery.utils.log import get_task_logger
-from django.db import IntegrityError, router, transaction
+from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
 from sentry.tasks.base import instrumented_task, retry
@@ -58,15 +58,21 @@ def merge_group(from_object_id=None, to_object_id=None, **kwargs):
         )
         return
 
+    group.delete()
+
     new_group.update(
         # TODO(dcramer): ideally these would be SQL clauses
         first_seen=min(group.first_seen, new_group.first_seen),
         last_seen=max(group.last_seen, new_group.last_seen),
-        times_seen=F('times_seen') + group.times_seen,
-        num_comments=F('num_comments') + group.num_comments,
     )
-
-    group.delete()
+    try:
+        # it's possible to hit an out of range value for counters
+        new_group.update(
+            times_seen=F('times_seen') + group.times_seen,
+            num_comments=F('num_comments') + group.num_comments,
+        )
+    except DataError:
+        pass
 
 
 @instrumented_task(name='sentry.tasks.merge.rehash_group_events', queue='cleanup',
