@@ -16,7 +16,6 @@ class EventError(object):
     JS_INVALID_SOURCEMAP = 'js_invalid_source'
     JS_TOO_MANY_REMOTE_SOURCES = 'js_too_many_sources'
     JS_INVALID_SOURCE_ENCODING = 'js_invalid_source_encoding'
-    JS_INVALID_SOURCEMAP_LOCATION = 'js_invalid_sourcemap_location'
 
     _messages = {
         INVALID_DATA: 'Discarded invalid value for parameter \'{name}\'',
@@ -31,8 +30,7 @@ class EventError(object):
         JS_MISSING_SOURCE: 'Source code was not found for {url}',
         JS_INVALID_SOURCEMAP: 'Sourcemap was invalid or not parseable: {url}',
         JS_TOO_MANY_REMOTE_SOURCES: 'The maximum number of remote source requests was made',
-        JS_INVALID_SOURCE_ENCODING: 'Source file was not \'{value}\' encoding: {url}',
-        JS_INVALID_SOURCEMAP_LOCATION: 'Invalid location in sourcemap: ({column}, {row})',
+        JS_INVALID_SOURCE_ENCODING: 'Source file was not \'{value}\' encoding: {url}'
     }
 
     @classmethod
