@@ -66,7 +66,9 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(1)
 
         assert EventMapping.objects.filter(
-            group=event.group, event_id=event_id).exists()
+            group_id=event.group_id,
+            event_id=event_id,
+        ).exists()
 
     def test_tags_as_list(self):
         manager = EventManager(self.make_event(tags=[('foo', 'bar')]))

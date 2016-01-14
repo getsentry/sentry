@@ -41,7 +41,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         try:
             event = Event.objects.get(
                 event_id=event_id,
-                project=project,
+                project_id=project.id,
             )
         except Event.DoesNotExist:
             return Response({'detail': 'Event not found'}, status=404)
@@ -50,7 +50,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
 
         # HACK(dcramer): work around lack of unique sorting on datetime
         base_qs = Event.objects.filter(
-            group=event.group_id,
+            group_id=event.group_id,
         ).exclude(id=event.id)
         try:
             next_event = sorted(

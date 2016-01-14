@@ -64,7 +64,10 @@ class BulkDeleteQuery(object):
                 **{'{}__lte'.format(self.dtfield): cutoff}
             )
         if self.project_id:
-            qs = qs.filter(project=self.project_id)
+            if 'project' in self.model._meta.get_all_field_names():
+                qs = qs.filter(project=self.project_id)
+            else:
+                qs = qs.filter(project_id=self.project_id)
 
         # XXX: we step through because the deletion collector will pull all
         # relations into memory

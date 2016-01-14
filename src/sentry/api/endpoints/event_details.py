@@ -48,7 +48,7 @@ class EventDetailsEndpoint(Endpoint):
 
         # HACK(dcramer): work around lack of unique sorting on datetime
         base_qs = Event.objects.filter(
-            group=event.group_id,
+            group_id=event.group_id,
         ).exclude(id=event.id)
 
         # First, we collect 5 leading/trailing events
