@@ -65,5 +65,6 @@ def retry(func):
         try:
             return func(*args, **kwargs)
         except Exception as exc:
+            Raven.captureException()
             current.retry(exc=exc)
     return wrapped
