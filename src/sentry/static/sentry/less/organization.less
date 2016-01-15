@@ -327,6 +327,70 @@ table.project-list {
 }
 
 /**
+ * Onboarding
+ * ============================================================================
+ */
+
+ .onboarding-wrapper {
+   .box;
+   padding: 20px 20px 0;
+
+   .close {
+     float: right;
+     color: @gray-lightest;
+
+     &:hover {
+       color: @gray-lighter;
+     }
+   }
+
+   h3 {
+     font-size: 22px;
+     border-bottom: 3px solid @white-darker;
+     padding-bottom: 15px;
+   }
+
+   h4 {
+     font-size: 17px;
+     margin: 0;
+   }
+
+   p {
+     color: @gray;
+   }
+
+   ul {
+     li {
+       position: relative;
+       padding-left: 60px;
+
+       &.checked {
+         .ob-checkbox {
+           border-color: @green;
+         }
+       }
+     }
+   }
+
+  .ob-checkbox {
+    .square(46px);
+      border: 3px solid @white-darkest;
+      border-radius: 46px;
+      position: absolute;
+      top: -5px;
+      left: 0;
+
+    .icon-checkmark {
+      color: @green;
+      font-size: 26px;
+      left: 8px;
+      position: relative;
+      top: 7px;
+    }
+  }
+}
+
+/**
 * Medium to small screens
 * ============================================================================
 */
