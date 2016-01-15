@@ -76,6 +76,7 @@ const ProjectSettings = React.createClass({
     let settingsUrlRoot = `${urlPrefix}/${orgId}/${projectId}/settings`;
     let project = this.state.project;
     let features = new Set(project.features);
+    let rootInstallPath = `/${orgId}/${projectId}/settings/install/`;
 
     return (
       <div className="row">
@@ -97,8 +98,7 @@ const ProjectSettings = React.createClass({
           </ul>
           <h6 className="nav-header">{t('Setup')}</h6>
           <ul className="nav nav-stacked">
-            <ListLink to="install/" isActive={function (to) {
-              let rootInstallPath = `/${orgId}/${projectId}/settings/install/`;
+            <ListLink to={rootInstallPath} isActive={function (to) {
               let pathname = this.context.location.pathname;
 
               // Because react-router 1.0 removes router.isActive(route)
