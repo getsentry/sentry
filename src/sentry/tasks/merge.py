@@ -104,7 +104,7 @@ def _rehash_group_events(group, limit=100):
         EventManager, get_hashes_from_fingerprint, generate_culprit,
         md5_from_hash
     )
-    from sentry.models import Event
+    from sentry.models import Event, Group
 
     event_list = list(Event.objects.filter(group_id=group.id)[:limit])
     Event.objects.bind_nodes(event_list, 'data')
@@ -138,6 +138,8 @@ def _rehash_group_events(group, limit=100):
                 **group_kwargs
             )
             event.update(group_id=new_group.id)
+            if event.data.get('tags'):
+                Group.objects.add_tags(new_group, event.data['tags'])
     return bool(event_list)
 
 
