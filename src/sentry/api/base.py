@@ -124,7 +124,9 @@ class Endpoint(APIView):
         if origin and request.auth:
             allowed_origins = request.auth.get_allowed_origins()
             if not is_valid_origin(origin, allowed=allowed_origins):
-                raise Response('Invalid origin: %s' % (origin,), status=400)
+                response = Response('Invalid origin: %s' % (origin,), status=400)
+                self.response = self.finalize_response(request, response, *args, **kwargs)
+                return self.response
 
         try:
             self.initial(request, *args, **kwargs)
