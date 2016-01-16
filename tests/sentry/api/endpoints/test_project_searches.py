@@ -13,6 +13,8 @@ class ProjectSearchListTest(APITestCase):
         team = self.create_team()
         project1 = self.create_project(team=team, name='foo')
         project2 = self.create_project(team=team, name='bar')
+        SavedSearch.objects.filter(project=project1).delete()
+        SavedSearch.objects.filter(project=project2).delete()
 
         search1 = SavedSearch.objects.create(
             project=project1,
