@@ -12,6 +12,7 @@ from sentry.models import SavedSearch
 class SavedSearchSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=128, required=True)
     query = serializers.CharField(required=True)
+    isDefault = serializers.BooleanField(required=False)
 
 
 class ProjectSearchDetailsEndpoint(ProjectEndpoint):
@@ -42,7 +43,8 @@ class ProjectSearchDetailsEndpoint(ProjectEndpoint):
 
             {method} {path}
             {{
-                "version": "abcdef",
+                "name: "Unresolved",
+                "query": "is:unresolved",
                 "dateSavedSearchd": "2015-05-11T02:23:10Z"
             }}
 
@@ -65,11 +67,18 @@ class ProjectSearchDetailsEndpoint(ProjectEndpoint):
         kwargs = {}
         if result.get('name'):
             kwargs['name'] = result['name']
-        if result.get('text'):
-            kwargs['text'] = result['text']
+        if result.get('query'):
+            kwargs['query'] = result['query']
+        if result.get('isDefault'):
+            kwargs['is_default'] = result['isDefault']
 
         if kwargs:
             search.update(**kwargs)
+
+        if result.get('isDefault'):
+            SavedSearch.objects.filter(
+                project=project,
+            ).exclude(id=search_id).update(is_default=False)
 
         return Response(serialize(search, request.user))
 
