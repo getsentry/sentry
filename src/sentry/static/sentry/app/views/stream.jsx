@@ -39,7 +39,6 @@ const Stream = React.createClass({
 
   getDefaultProps() {
     return {
-      defaultQuery: '',
       defaultSort: 'date',
       defaultStatsPeriod: '24h',
       maxItems: 25
@@ -69,7 +68,7 @@ const Stream = React.createClass({
       tagsLoading: true,
       isSidebarVisible: false,
       isStickyHeader: false,
-      ...searchId ? {} : this.getQueryStringState()
+      ...this.getQueryStringState()
     };
   },
 
@@ -100,7 +99,7 @@ const Stream = React.createClass({
       if ((this.state.searchId || nextProps.params.searchId) && !nextProps.location.query.query) {
         this.setState(this.getSavedSearchState(nextProps), this.fetchData);
       } else {
-        this.setState(this.getQueryStringState(nextProps), this.fetchData);
+        this.setState(this.getQueryState(nextProps), this.fetchData);
       }
     }
   },
@@ -228,7 +227,7 @@ const Stream = React.createClass({
     return Object.assign(newState, {searchId: null});
   },
 
-  getQueryStringState(props) {
+  getQueryState(props) {
     props = props || this.props;
     let currentQuery = props.location.query || {};
 
@@ -236,6 +235,16 @@ const Stream = React.createClass({
       currentQuery.hasOwnProperty('query') ?
       currentQuery.query :
       this.props.defaultQuery;
+
+    return Object.assign(this.getQueryStringState, {
+      query: query,
+      searchId: null,
+    });
+  },
+
+  getQueryStringState(props) {
+    props = props || this.props;
+    let currentQuery = props.location.query || {};
 
     let sort =
       currentQuery.hasOwnProperty('sort') ?
@@ -252,10 +261,8 @@ const Stream = React.createClass({
     }
 
     return {
-      query: query,
       sort: sort,
       statsPeriod: statsPeriod,
-      searchId: null,
     };
   },
 
