@@ -97,6 +97,16 @@ def parse_query(project, query, user):
                         # XXX(dcramer): hacky way to avoid showing any results when
                         # an invalid user is entered
                         results['assigned_to'] = User(id=0)
+            elif key == 'bookmarks':
+                if value == 'me':
+                    results['bookmarked_by'] = user
+                else:
+                    try:
+                        results['bookmarked_by'] = find_users(value)[0]
+                    except IndexError:
+                        # XXX(dcramer): hacky way to avoid showing any results when
+                        # an invalid user is entered
+                        results['bookmarked_by'] = User(id=0)
             elif key == 'first-release':
                 results['first_release'] = value
             elif key == 'release':
