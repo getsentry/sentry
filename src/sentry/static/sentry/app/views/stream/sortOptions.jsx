@@ -13,6 +13,12 @@ const SortOptions = React.createClass({
     };
   },
 
+  componentWillReceiveProps(nextProps) {
+    this.setState({
+      sortKey: nextProps.sort || 'date',
+    });
+  },
+
   getMenuItem(key) {
     return (
       <MenuItem onSelect={this.onSelect} eventKey={key} isActive={this.state.sortKey === key}>
@@ -45,7 +51,7 @@ const SortOptions = React.createClass({
   render() {
     let dropdownTitle = (
       <span>
-        <span>{t('Sort by')}:</span>
+        <strong>{t('Sort by')}:</strong>
         &nbsp; {this.getSortLabel(this.state.sortKey)}
       </span>
     );
