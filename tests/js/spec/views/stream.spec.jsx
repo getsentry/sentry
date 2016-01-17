@@ -244,7 +244,7 @@ describe('Stream', function() {
 
   describe('getInitialState', function() {
 
-    it('sets the right defaults', function() {
+    it('has correct defaults with query', function() {
       let expected = {
         groupIds: [],
         selectAllActive: false,
@@ -255,9 +255,88 @@ describe('Stream', function() {
         pageLinks: '',
         loading: false,
         dataLoading: true,
-        error: false
+        error: false,
+        searchId: null,
+        query: 'is:unresolved',
+        sort: 'date',
       };
       let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
+      let actual = stream.getInitialState();
+
+      for (let property in expected) {
+        expect(actual[property]).to.eql(expected[property]);
+      }
+    });
+
+    it('handles waiting on default without query', function() {
+      let ContextStubbedStream = stubContext(Stream, {
+        project: this.projectContext,
+        organization: {
+          slug: 'foo-org'
+        },
+        team: {}
+      });
+
+      let Element = (
+        <ContextStubbedStream
+          setProjectNavSection={function () {}}
+          location={{query:{sort: 'freq'}, search: 'sort=freq'}}
+          params={{orgId: '123', projectId: '456'}}/>
+      );
+      let expected = {
+        groupIds: [],
+        selectAllActive: false,
+        multiSelected: false,
+        anySelected: false,
+        statsPeriod: '24h',
+        realtimeActive: false,
+        pageLinks: '',
+        loading: true,
+        dataLoading: true,
+        error: false,
+        query: null,
+        sort: 'freq',
+        searchId: null,
+      };
+      let stream = TestUtils.renderIntoDocument(Element).refs.wrapped;
+      let actual = stream.getInitialState();
+
+      for (let property in expected) {
+        expect(actual[property]).to.eql(expected[property]);
+      }
+    });
+
+    it('handles searchId in routing params', function() {
+      let ContextStubbedStream = stubContext(Stream, {
+        project: this.projectContext,
+        organization: {
+          slug: 'foo-org'
+        },
+        team: {}
+      });
+
+      let Element = (
+        <ContextStubbedStream
+          setProjectNavSection={function () {}}
+          location={{query:{sort: 'freq'}, search: 'sort=freq'}}
+          params={{orgId: '123', projectId: '456', searchId: '789'}}/>
+      );
+      let expected = {
+        groupIds: [],
+        selectAllActive: false,
+        multiSelected: false,
+        anySelected: false,
+        statsPeriod: '24h',
+        realtimeActive: false,
+        pageLinks: '',
+        loading: true,
+        dataLoading: true,
+        error: false,
+        query: null,
+        sort: 'freq',
+        searchId: '789',
+      };
+      let stream = TestUtils.renderIntoDocument(Element).refs.wrapped;
       let actual = stream.getInitialState();
 
       for (let property in expected) {

@@ -52,7 +52,7 @@ const Stream = React.createClass({
       groupIds: [],
       searchId: searchId,
       // if we have no query then we can go ahead and fetch data
-      loading: searchId || !this.hasQuery(),
+      loading: (searchId || !this.hasQuery() ? true : false),
       savedSearchLoading: true,
       savedSearchList: [],
       selectAllActive: false,
@@ -63,7 +63,7 @@ const Stream = React.createClass({
       pageLinks: '',
       dataLoading: true,
       error: false,
-      query: '',
+      query: null,
       sort: this.props.defaultSort,
       tags: StreamTagStore.getAllTags(),
       tagsLoading: true,
@@ -137,10 +137,16 @@ const Stream = React.createClass({
         let needsData = this.state.loading;
         let searchId = this.state.searchId;
         if (searchId) {
-          let savedSearch = data.filter((search) => {
+          let match = data.filter((search) => {
             return search.id === searchId;
-          })[0];
-          newState.query = savedSearch.query;
+          });
+          if (match.length) {
+            newState.query = match.query;
+          } else {
+            // TOOD(dcramer): at this point we should likely transition as its
+            // equiv to a 404
+            newState.searchId = null;
+          }
         } else if (!this.hasQuery()) {
           let defaultResults = data.filter((search) => {
             return search.isDefault;
@@ -206,7 +212,7 @@ const Stream = React.createClass({
     let searchId = (
       hasQuery ?
       null :
-      props.params.searchId || state.searchId);
+      props.params.searchId || state.searchId || null);
 
     let sort =
       currentQuery.hasOwnProperty('sort') ?
@@ -225,7 +231,7 @@ const Stream = React.createClass({
     let newState = {
       sort: sort,
       statsPeriod: statsPeriod,
-      query: currentQuery.query,
+      query: hasQuery ? currentQuery.query : null,
       searchId: searchId,
     };
 
@@ -239,8 +245,6 @@ const Stream = React.createClass({
       })[0];
       if (savedSearch) {
         newState.query = savedSearch.query;
-      } else {
-        newState.searchId = null;
       }
     } else if (!hasQuery) {
       let defaultResult = this.state.savedSearchList.filter((search) => {
