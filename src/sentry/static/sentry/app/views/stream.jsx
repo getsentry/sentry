@@ -39,6 +39,7 @@ const Stream = React.createClass({
 
   getDefaultProps() {
     return {
+      defaultQuery: null,
       defaultSort: 'date',
       defaultStatsPeriod: '24h',
       maxItems: 25
@@ -51,7 +52,7 @@ const Stream = React.createClass({
       groupIds: [],
       searchId: searchId,
       // if we have no query then we can go ahead and fetch data
-      loading: searchId || !this.props.location.query.query,
+      loading: searchId || !this.hasQuery(),
       savedSearchLoading: true,
       savedSearchList: [],
       selectAllActive: false,
@@ -68,7 +69,7 @@ const Stream = React.createClass({
       tagsLoading: true,
       isSidebarVisible: false,
       isStickyHeader: false,
-      ...this.getQueryStringState()
+      ...this.getQueryState()
     };
   },
 
@@ -96,11 +97,7 @@ const Stream = React.createClass({
 
     if (nextProps.params.searchId !== this.state.searchId
           || nextProps.location.search !== this.props.location.search) {
-      if ((this.state.searchId || nextProps.params.searchId) && !nextProps.location.query.query) {
-        this.setState(this.getSavedSearchState(nextProps), this.fetchData);
-      } else {
-        this.setState(this.getQueryState(nextProps), this.fetchData);
-      }
+      this.setState(this.getQueryState(nextProps), this.fetchData);
     }
   },
 
@@ -144,7 +141,7 @@ const Stream = React.createClass({
             return search.id === searchId;
           })[0];
           newState.query = savedSearch.query;
-        } else if (!this.props.location.query.query) {
+        } else if (!this.hasQuery()) {
           let defaultResults = data.filter((search) => {
             return search.isDefault;
           });
@@ -198,53 +195,18 @@ const Stream = React.createClass({
     this.history.pushState(null, `/${orgId}/${projectId}/searches/${data.id}/`);
   },
 
-  getSavedSearchState(props) {
-    props = props || this.props;
-    let newState = this.getQueryStringState(props);
-
-    if (props.params.searchId) {
-      let searchId = props.params.searchId;
-      let savedSearch = this.state.savedSearchList.filter((search) => {
-        return search.id === searchId;
-      })[0];
-      // TODO(dcramer): handle 404 condition
-      if (savedSearch) {
-        return Object.assign(newState, {
-          query: savedSearch.query,
-          searchId: searchId,
-        });
-      }
-    }
-    let defaultResult = this.state.savedSearchList.filter((search) => {
-      return search.isDefault;
-    });
-    if (defaultResult.length) {
-      return Object.assign(newState, {
-        searchId: defaultResult[0].id,
-        query: defaultResult[0].query,
-      });
-    }
-    return Object.assign(newState, {searchId: null});
-  },
-
   getQueryState(props) {
     props = props || this.props;
     let currentQuery = props.location.query || {};
+    // state may not yet be defined at this point
+    let state = this.state || {};
 
-    let query =
-      currentQuery.hasOwnProperty('query') ?
-      currentQuery.query :
-      this.props.defaultQuery;
+    let hasQuery = currentQuery.hasOwnProperty('query');
 
-    return Object.assign(this.getQueryStringState, {
-      query: query,
-      searchId: null,
-    });
-  },
-
-  getQueryStringState(props) {
-    props = props || this.props;
-    let currentQuery = props.location.query || {};
+    let searchId = (
+      hasQuery ?
+      null :
+      props.params.searchId || state.searchId);
 
     let sort =
       currentQuery.hasOwnProperty('sort') ?
@@ -260,10 +222,42 @@ const Stream = React.createClass({
       statsPeriod = this.props.defaultStatsPeriod;
     }
 
-    return {
+    let newState = {
       sort: sort,
       statsPeriod: statsPeriod,
+      query: currentQuery.query,
+      searchId: searchId,
     };
+
+    // state is not yet defined
+    if (this.state === null)
+      return newState;
+
+    if (searchId) {
+      let savedSearch = this.state.savedSearchList.filter((search) => {
+        return search.id === searchId;
+      })[0];
+      if (savedSearch) {
+        newState.query = savedSearch.query;
+      } else {
+        newState.searchId = null;
+      }
+    } else if (!hasQuery) {
+      let defaultResult = this.state.savedSearchList.filter((search) => {
+        return search.isDefault;
+      });
+      if (defaultResult.length) {
+        newState.searchId = defaultResult[0].id;
+        newState.query = defaultResult[0].query;
+      }
+    }
+    return newState;
+  },
+
+  hasQuery(props) {
+    props = props || this.props;
+    let currentQuery = props.location.query || {};
+    return currentQuery.hasOwnProperty('query');
   },
 
   fetchData() {
