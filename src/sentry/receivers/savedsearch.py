@@ -34,6 +34,12 @@ def create_default_saved_searches(instance, created=True, **kwargs):
         query='is:unresolved bookmarks:me',
     )
 
+    SavedSearch.objects.create(
+        project=instance,
+        name='New Today',
+        query='is:unresolved age:-24h',
+    )
+
 
 post_save.connect(
     create_default_saved_searches,
