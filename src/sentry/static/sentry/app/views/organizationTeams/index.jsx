@@ -111,6 +111,7 @@ const OrganizationTeams = React.createClass({
               :
                 <AllTeamsList
                   organization={org} teamList={allTeams}
+                  access={access}
                   openMembership={features.has('open-membership') || access.has('org:write')} />
               }
             </div>
