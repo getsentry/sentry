@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+from django.utils import timezone
+
 from sentry.models import EventUser, GroupStatus
 from sentry.testutils import TestCase
 from sentry.search.utils import parse_query
@@ -118,3 +121,25 @@ class ParseQueryTest(TestCase):
     def test_is_assigned(self):
         result = self.parse_query('is:assigned')
         assert result == {'unassigned': False, 'tags': {}, 'query': ''}
+
+    def test_age_from(self):
+        result = self.parse_query('age:-24h')
+        assert result['date_filter'] == 'first_seen'
+        assert result['date_from'] > timezone.now() - timedelta(hours=25)
+        assert result['date_from'] < timezone.now() - timedelta(hours=23)
+        assert not result.get('date_to')
+
+    def test_age_to(self):
+        result = self.parse_query('age:+24h')
+        assert result['date_filter'] == 'first_seen'
+        assert result['date_to'] > timezone.now() - timedelta(hours=25)
+        assert result['date_to'] < timezone.now() - timedelta(hours=23)
+        assert not result.get('date_from')
+
+    def test_age_range(self):
+        result = self.parse_query('age:-24h age:+12h')
+        assert result['date_filter'] == 'first_seen'
+        assert result['date_from'] > timezone.now() - timedelta(hours=25)
+        assert result['date_from'] < timezone.now() - timedelta(hours=23)
+        assert result['date_to'] > timezone.now() - timedelta(hours=13)
+        assert result['date_to'] < timezone.now() - timedelta(hours=11)
