@@ -33,63 +33,61 @@ const ExpandedTeamList = React.createClass({
     return ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
   },
 
+  renderProjectList(team) {
+    return (
+      <tbody>
+        {sortArray(team.projects, function(o) {
+          return o.name;
+        }).map(this.renderProject)}
+      </tbody>
+    );
+  },
+
+  renderNoProjects(team) {
+    return (
+      <tbody>
+        <tr>
+          <td>
+            <p className="project-list-empty">
+              {tct('There are no projects in this team. Get started by [link:creating your first project].', {
+                link: <a href={this.urlPrefix() + '/projects/new/?team=' + team.slug} />
+              })}
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    );
+  },
+
   renderTeamNode(team, urlPrefix) {
     // TODO: make this cleaner
-    if (team.projects.length) {
-      return (
-        <div className="box" key={team.slug}>
-          <div className="box-header">
-            <div className="pull-right actions hidden-xs">
-              <a className="leave-team" onClick={this.leaveTeam.bind(this, team)}>
-                {t('Leave Team')}
-              </a>
-              <a className="team-settings" href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
+    let access = this.props.access;
+    return (
+      <div className="box" key={team.slug}>
+        <div className="box-header">
+          <div className="pull-right actions hidden-xs">
+            <a className="leave-team" onClick={this.leaveTeam.bind(this, team)}>
+              {t('Leave Team')}
+            </a>
+            {access.has('team:write') &&
+              <a className="team-settings" href={`${urlPrefix}/teams/${team.slug}/settings/`}>
                 {t('Team Settings')}
               </a>
-            </div>
-            <h3>{team.name}</h3>
+            }
           </div>
-          <div className="box-content">
-            <table className="table project-list">
-              <tbody>{sortArray(team.projects, function(o) {
-                return o.name;
-              }).map(this.renderProject)}</tbody>
-            </table>
-          </div>
+          <h3>{team.name}</h3>
         </div>
-      );
-    } else {
-      return (
-        <div className="box" key={team.slug}>
-          <div className="box-header">
-            <div className="pull-right actions hidden-xs">
-              <a className="leave-team" onClick={this.leaveTeam.bind(this, team)}>
-                {t('Leave Team')}
-              </a>
-              <a className="team-settings" href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
-                {t('Team Settings')}
-              </a>
-            </div>
-            <h3>{team.name}</h3>
-          </div>
-          <div className="box-content">
-            <table className="table project-list">
-              <tbody>
-                <tr>
-                  <td>
-                    <p className="project-list-empty">
-                      {tct('There are no projects in this team. Get started by [link:creating your first project].', {
-                        link: <a href={this.urlPrefix() + '/projects/new/?team=' + team.slug} />
-                      })}
-                    </p>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div className="box-content">
+          <table className="table project-list">
+            {team.projects.length ?
+              this.renderProjectList(team)
+            :
+              this.renderNoProjects(team)
+            }
+          </table>
         </div>
-      );
-    }
+      </div>
+    );
   },
 
   renderProject(project) {
