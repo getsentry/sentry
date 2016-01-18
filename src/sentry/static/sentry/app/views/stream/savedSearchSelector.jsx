@@ -7,7 +7,7 @@ import DropdownLink from '../../components/dropdownLink';
 import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
 import {t} from '../../locale';
-import {TextField} from '../../components/forms';
+import {CheckboxField, TextField} from '../../components/forms';
 
 const SaveSearchState = {
   READY: 'Ready',
@@ -51,6 +51,10 @@ const SaveSearchButton = React.createClass({
 
   onDefaultChange(e) {
     this.onFieldChange('isDefault', e.target.checked);
+  },
+
+  onUserDefaultChange(e) {
+    this.onFieldChange('isUserDefault', e.target.checked);
   },
 
   onSubmit(e) {
@@ -110,12 +114,14 @@ const SaveSearchButton = React.createClass({
                 value={this.state.formData.query}
                 required={true}
                 onChange={this.onFieldChange.bind(this, 'query')} />
-              <label>
-                <input
-                  type="checkbox"
-                  onChange={this.onDefaultChange} />
-                <span> {t('Make this the default view for my team.')}</span>
-              </label>
+              <CheckboxField
+                key="isUserDefault"
+                label={t('Make this the default view for myself.')}
+                onChange={this.onFieldChange.bind(this, 'isUserDefault')} />
+              <CheckboxField
+                key="isDefault"
+                label={t('Make this the default view for my team.')}
+                onChange={this.onFieldChange.bind(this, 'isDefault')} />
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-default"
@@ -144,7 +150,7 @@ const SavedSearchSelector = React.createClass({
   },
 
   render() {
-    let {orgId, projectId} = this.props;
+    let {access, orgId, projectId} = this.props;
     let children = this.props.savedSearchList.map((search) => {
       // TODO(dcramer): we want these to link directly to the saved
       // search ID, and pass that into the backend (probably)
@@ -162,24 +168,28 @@ const SavedSearchSelector = React.createClass({
           {children.length ?
             children
           :
-            <li className="empty">There don't seem to be any saved searches yet.</li>
+            <li className="empty">{t('There don\'t seem to be any saved searches yet.')}</li>
           }
-          <MenuItem divider={true} />
-          <li>
-          <div className="row">
-          <div className="col-md-7">
-            <SaveSearchButton
-                className="btn btn-sm btn-default"
-                onSave={this.props.onSavedSearchCreate}
-                {...this.props}>{t('Save Current Search')}</SaveSearchButton>
-          </div>
-          <div className="col-md-5">
-            <Link
-              to={`/${orgId}/${projectId}/settings/saved-searches/`}
-              className="btn btn-sm btn-default">{t('Manage')}</Link>
-          </div>
-          </div>
-          </li>
+          {access.has('project:write') &&
+            <MenuItem divider={true} />
+          }
+          {access.has('project:write') &&
+            <li>
+              <div className="row">
+                <div className="col-md-7">
+                  <SaveSearchButton
+                      className="btn btn-sm btn-default"
+                      onSave={this.props.onSavedSearchCreate}
+                      {...this.props}>{t('Save Current Search')}</SaveSearchButton>
+                </div>
+                <div className="col-md-5">
+                  <Link
+                    to={`/${orgId}/${projectId}/settings/saved-searches/`}
+                    className="btn btn-sm btn-default">{t('Manage')}</Link>
+                </div>
+              </div>
+            </li>
+          }
         </DropdownLink>
       </div>
     );
