@@ -281,6 +281,11 @@ const Stream = React.createClass({
       statsPeriod: this.state.statsPeriod
     };
 
+    let currentQuery = this.props.location.query || {};
+    if (currentQuery.hasOwnProperty('cursor')) {
+      requestParams.cursor = currentQuery.cursor;
+    }
+
     if (this.lastRequest) {
       this.lastRequest.cancel();
     }
