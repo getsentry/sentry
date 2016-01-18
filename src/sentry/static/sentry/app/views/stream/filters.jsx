@@ -55,9 +55,9 @@ const StreamFilters = React.createClass({
                 projectId={projectId}
                 ref="searchBar"
                 tags={this.props.tags}
-                defaultQuery={this.props.defaultQuery}
+                defaultQuery={this.props.defaultQuery || ''}
                 placeholder={t('Search for events, users, tags, and everything else.')}
-                query={this.props.query}
+                query={this.props.query || ''}
                 onSearch={this.props.onSearch}
                 disabled={this.props.isSearchDisabled} />
               <a className="btn btn-default toggle-stream-sidebar" onClick={this.props.onSidebarToggle}>
