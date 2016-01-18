@@ -14,15 +14,16 @@ const AllTeamsList = React.createClass({
   },
 
   render() {
-    let {organization, openMembership} = this.props;
-    let urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + organization.slug;
-
+    let {access, organization, openMembership} = this.props;
+    let urlPrefix = `${ConfigStore.get('urlPrefix')}/organizations/${organization.slug}`;
     let teamNodes = this.props.teamList.map((team, teamIdx) => {
       return (
         <AllTeamsRow
+          access={access}
           team={team}
           organization={organization}
           openMembership={openMembership}
+          urlPrefix={urlPrefix}
           key={team.slug} />
       );
     });
@@ -36,10 +37,10 @@ const AllTeamsList = React.createClass({
         </table>
       );
     }
-    
+
     return tct('You don\'t have any teams for this organization yet. Get started by [link:creating your first team].', {
       root: <p />,
-      link: <a href={urlPrefix + '/teams/new/'} />
+      link: <a href={`${urlPrefix}/teams/new/`} />
     });
   }
 });

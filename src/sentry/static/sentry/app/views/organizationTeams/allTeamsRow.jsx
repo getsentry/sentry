@@ -75,7 +75,7 @@ const AllTeamsRow = React.createClass({
   },
 
   render() {
-    let {team, openMembership} = this.props;
+    let {access, team, openMembership, urlPrefix} = this.props;
     return (
      <tr>
         <td>
@@ -96,6 +96,12 @@ const AllTeamsRow = React.createClass({
             <a className="btn btn-default btn-sm"
                onClick={this.joinTeam}>{t('Request Access')}</a>
           )))}
+          {access.has('team:write') &&
+            <a className="btn btn-default btn-sm" href={`${urlPrefix}/teams/${team.slug}/settings/`}
+               style={{marginLeft: 5}}>
+              {t('Team Settings')}
+            </a>
+          }
         </td>
       </tr>
     );
