@@ -8,11 +8,10 @@ import classNames from 'classnames';
 import _ from 'underscore';
 
 import ApiMixin from '../mixins/apiMixin';
-import ProjectState from '../mixins/projectState';
-
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import ProjectState from '../mixins/projectState';
 import Pagination from '../components/pagination';
 import StreamGroup from '../components/stream/group';
 import StreamActions from './stream/actions';
@@ -149,8 +148,13 @@ const Stream = React.createClass({
           }
         } else if (!this.hasQuery()) {
           let defaultResults = data.filter((search) => {
-            return search.isDefault;
+            return search.isUserDefault;
           });
+          if (!defaultResults.length) {
+            defaultResults = data.filter((search) => {
+              return search.isDefault;
+            });
+          }
           if (defaultResults.length) {
             newState.searchId = defaultResults[0].id;
             newState.query = defaultResults[0].query;
@@ -535,11 +539,13 @@ const Stream = React.createClass({
 
     let {orgId, projectId} = this.props.params;
     let searchId = this.state.searchId;
+    let access = this.getAccess();
 
     return (
       <div className={classNames(classes)}>
         <div className="stream-content">
           <StreamFilters
+            access={access}
             orgId={orgId}
             projectId={projectId}
             query={this.state.query}

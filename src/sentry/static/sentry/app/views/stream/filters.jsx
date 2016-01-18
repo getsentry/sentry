@@ -28,13 +28,14 @@ const StreamFilters = React.createClass({
   },
 
   render() {
-    let {orgId, projectId, searchId} = this.props;
+    let {access, orgId, projectId, searchId} = this.props;
 
     return (
       <div className="stream-header">
         <div className="row">
           <div className="col-sm-5">
             <SavedSearchSelector
+              access={access}
               orgId={orgId}
               projectId={projectId}
               searchId={searchId}
