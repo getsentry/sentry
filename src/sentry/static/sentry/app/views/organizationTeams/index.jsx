@@ -106,6 +106,7 @@ const OrganizationTeams = React.createClass({
                     organization={org} teamList={activeTeams}
                     projectStats={this.state.projectStats}
                     hasTeams={allTeams.length !== 0}
+                    access={access}
                     showAllTeams={this.toggleTeams.bind(this, 'all-teams')} />
               :
                 <AllTeamsList
