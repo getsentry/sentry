@@ -30,21 +30,20 @@ if sys.version_info[:2] < (2, 7):
     print 'Error: Sentry requires Python 2.7'
     sys.exit(1)
 
-import datetime
-import json
 import os
-import os.path
-import traceback
+import json
 import shutil
-
+import os.path
+import datetime
+import traceback
 from distutils import log
-from distutils.command.build import build as BuildCommand
+from subprocess import check_output
 from distutils.core import Command
+from distutils.command.build import build as BuildCommand
+
+from setuptools import setup, find_packages
 from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.develop import develop as DevelopCommand
-from setuptools import setup, find_packages
-from subprocess import check_output
-
 
 # The version of sentry
 VERSION = '8.1.0.dev0'
@@ -68,8 +67,9 @@ ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__)))
 IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 
 dev_requires = [
-    'flake8>=2.0,<2.1',
     'Babel',
+    'flake8>=2.0,<2.1',
+    'isort>=4.2.2,<4.3.0',
 ]
 
 tests_require = [
