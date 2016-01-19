@@ -15,13 +15,16 @@ class Migration(DataMigration):
             status=0,
         )
         for project in RangeQuerySetWrapper(queryset):
-            SavedSearch.objects.get_or_create(
+            has_match = SavedSearch.objects.filter(
                 project=project,
                 name='New Today',
-                defaults={
-                    'query': 'is:unresolved age:-24h',
-                },
-            )
+            ).exists()
+            if not has_match:
+                SavedSearch.objects.create(
+                    project=project,
+                    name='New Today',
+                    query='is:unresolved age:-24h',
+                )
 
     def backwards(self, orm):
         pass
