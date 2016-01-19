@@ -30,6 +30,8 @@ class SavedSearchUserDefault(Model):
     """
     Indicates the default saved search for a given user
     """
+    __core__ = True
+
     savedsearch = FlexibleForeignKey('sentry.SavedSearch')
     project = FlexibleForeignKey('sentry.Project')
     user = FlexibleForeignKey('sentry.User')
