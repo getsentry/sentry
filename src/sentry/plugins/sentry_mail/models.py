@@ -52,6 +52,7 @@ class MailPlugin(NotificationPlugin):
                    project=None, group=None, headers=None, context=None):
         send_to = self.get_send_to(project)
         if not send_to:
+            logger.debug('Skipping message rendering, no users to send to.')
             return
 
         subject_prefix = self.get_option('subject_prefix', project) or self.subject_prefix
