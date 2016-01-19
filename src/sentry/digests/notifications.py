@@ -92,13 +92,63 @@ def attach_state(project, groups, rules, event_counts, user_counts):
     }
 
 
+def dictmap(f, d):
+    r = {}
+    for k, v in d.items():
+        r[k] = f(v)
+    return r
+
+
+class Pipeline(object):
+    def __init__(self):
+        self.operations = []
+
+    def __call__(self, sequence):
+        return reduce(lambda x, operation: operation(x), self.operations, sequence)
+
+    def apply(self, function):
+        def operation(sequence):
+            result = function(sequence)
+            logger.debug('%r applied to %s items.', function, len(sequence))
+            return result
+        self.operations.append(operation)
+        return self
+
+    def filter(self, function):
+        def operation(sequence):
+            result = filter(function, sequence)
+            logger.debug('%r filtered %s items to %s.', function, len(sequence), len(result))
+            return result
+        self.operations.append(operation)
+        return self
+
+    def map(self, function):
+        def operation(sequence):
+            result = map(function, sequence)
+            logger.debug('%r applied to %s items.', function, len(sequence))
+            return result
+        self.operations.append(operation)
+        return self
+
+    def reduce(self, function, initializer):
+        def operation(sequence):
+            result = reduce(function, sequence, initializer(sequence))
+            logger.debug('%r reduced %s items to %s.', function, len(sequence), len(result))
+            return result
+        self.operations.append(operation)
+        return self
+
+
 def rewrite_record(record, project, groups, rules):
     event = record.value.event
-    group = groups.get(event.group_id)
-    if group is None:
-        return
 
-    event.group = group
+    # Reattach the group to the event.
+    group = groups.get(event.group_id)
+    if group is not None:
+        event.group = group
+    else:
+        logger.debug('%r could not be associated with a group.', record)
+        return
 
     return Record(
         record.key,
@@ -110,36 +160,38 @@ def rewrite_record(record, project, groups, rules):
     )
 
 
-def group_records(records):
-    results = defaultdict(lambda: defaultdict(list))
-    for record in records:
-        group = record.value.event.group
-        for rule in record.value.rules:
-            results[rule][group].append(record)
+def group_records(groups, record):
+    group = record.value.event.group
+    rules = record.value.rules
+    if not rules:
+        logger.debug('%r has no associated rules, and will not be added to any groups.', record)
 
-    return results
+    for rule in rules:
+        groups[rule][group].append(record)
+
+    return groups
 
 
-def sort_groups(grouped):
-    def sort_by_events(groups):
-        return OrderedDict(
+def sort_group_contents(rules):
+    for key, groups in rules.iteritems():
+        rules[key] = OrderedDict(
             sorted(
                 groups.items(),
                 key=lambda (group, records): (group.event_count, group.user_count),
                 reverse=True,
-            ),
+            )
         )
+    return rules
 
-    def sort_by_groups(rules):
-        return OrderedDict(
-            sorted(
-                rules.items(),
-                key=lambda (rule, groups): len(groups),
-                reverse=True,
-            ),
-        )
 
-    return sort_by_groups({rule: sort_by_events(groups) for rule, groups in grouped.iteritems()})
+def sort_rule_groups(rules):
+    return OrderedDict(
+        sorted(
+            rules.items(),
+            key=lambda (rule, groups): len(groups),
+            reverse=True,
+        ),
+    )
 
 
 def build_digest(project, records, state=None):
@@ -153,6 +205,16 @@ def build_digest(project, records, state=None):
         state = fetch_state(project, records)
 
     state = attach_state(**state)
-    records = filter(None, map(functools.partial(rewrite_record, **state), records))
-    records = filter(lambda record: record.value.event.group.get_status() is GroupStatus.UNRESOLVED, records)
-    return sort_groups(group_records(records))
+
+    def check_group_state(record):
+        return record.value.event.group.get_status() is GroupStatus.UNRESOLVED
+
+    pipeline = Pipeline(). \
+        map(functools.partial(rewrite_record, **state)). \
+        filter(bool). \
+        filter(check_group_state). \
+        reduce(group_records, lambda sequence: defaultdict(lambda: defaultdict(list))). \
+        apply(sort_group_contents). \
+        apply(sort_rule_groups)
+
+    return pipeline(records)
