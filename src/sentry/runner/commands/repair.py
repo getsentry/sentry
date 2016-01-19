@@ -21,8 +21,10 @@ def repair():
     from sentry.utils.integrationdocs import sync_docs, DOC_FOLDER
     if os.access(DOC_FOLDER, os.W_OK):
         sync_docs()
+    elif os.path.isdir(DOC_FOLDER):
+        click.echo(' - skipping, path cannot be written to: %r' % DOC_FOLDER)
     else:
-        click.echo(' - skipping (path cannot be written to)')
+        click.echo(' - skipping, path does not exist: %r' % DOC_FOLDER)
 
     from sentry.models import Activity, Project, ProjectKey
     click.echo('Creating missing project keys')
