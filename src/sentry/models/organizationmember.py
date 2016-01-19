@@ -92,9 +92,29 @@ class OrganizationMember(Model):
 
     @transaction.atomic
     def save(self, *args, **kwargs):
+        from sentry.models import OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
         assert self.user_id or self.email, \
             'Must set user or email'
         super(OrganizationMember, self).save(*args, **kwargs)
+
+        oot = OrganizationOnboardingTask.objects.filter(
+            organzation=self.organzation,
+            user=user,
+            task=OnboardingTask.INVITE_MEMBER,
+            status=OnboardingTaskStatus.COMPLETE
+            ).exists()
+
+        if not oot:
+            OrganizationOnboardingTask.create_or_update(
+                organization=self.organization,
+                user=self.user,
+                task=OnboardingTask.INVITE_MEMBER,
+                values={
+                    'status': OnboardingTaskStatus.PENDING if self.is_pending else OnboardingTaskStatus.COMPLETE,
+                    'date_completed': timezone.now()
+                }
+            )
+
         if not self.counter:
             self._set_counter()
 
