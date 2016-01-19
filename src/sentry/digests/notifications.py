@@ -92,13 +92,6 @@ def attach_state(project, groups, rules, event_counts, user_counts):
     }
 
 
-def dictmap(f, d):
-    r = {}
-    for k, v in d.items():
-        r[k] = f(v)
-    return r
-
-
 class Pipeline(object):
     def __init__(self):
         self.operations = []
