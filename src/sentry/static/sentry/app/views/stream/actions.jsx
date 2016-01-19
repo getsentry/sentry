@@ -140,6 +140,18 @@ const StreamActions = React.createClass({
   render() {
     // TODO(mitsuhiko): very unclear how to translate this
     let numIssues = SelectedGroupStore.getSelectedIds().size;
+    let extraDescription = null;
+    if (this.state.allInQuerySelected) {
+      extraDescription = (this.props.query ? (
+        <div>
+          <p>{t('This will apply to the current search query:')}</p>
+          <pre>{this.props.query}</pre>
+        </div>
+      ) : (
+        <p className="error"><strong>{t('This will apply to ALL issues in this project!')}</strong></p>
+      ));
+    }
+
     return (
       <div>
         <div className="stream-actions row">
@@ -155,6 +167,7 @@ const StreamActions = React.createClass({
                  disabled={!this.state.anySelected}
                  onAction={this.onUpdate.bind(this, {status: 'resolved'})}
                  buttonTitle={t('Resolve')}
+                 extraDescription={extraDescription}
                  confirmationQuestion={
                   this.state.allInQuerySelected
                     ? t('Are you sure you want to resolve all issues matching this search query?')
@@ -181,6 +194,7 @@ const StreamActions = React.createClass({
                  disabled={!this.state.anySelected}
                  onAction={this.onUpdate.bind(this, {isBookmarked: true})}
                  buttonTitle={t('Bookmark')}
+                 extraDescription={extraDescription}
                  confirmationQuestion={
                   this.state.allInQuerySelected
                     ? t('Are you sure you want to bookmark all issues matching this search query?')
@@ -214,6 +228,7 @@ const StreamActions = React.createClass({
                     className="action-merge"
                     disabled={!this.state.anySelected}
                     onAction={this.onMerge}
+                    extraDescription={extraDescription}
                     confirmationQuestion={
                       this.state.allInQuerySelected
                         ? t('Are you sure you want to merge all issues matching this search query?')
@@ -239,6 +254,7 @@ const StreamActions = React.createClass({
                     className="action-remove-bookmark"
                     disabled={!this.state.anySelected}
                     onAction={this.onUpdate.bind(this, {isBookmarked: false})}
+                    extraDescription={extraDescription}
                     confirmationQuestion={
                       this.state.allInQuerySelected
                         ? t('Are you sure you want to remove all issues matching this search query from your bookmarks?')
@@ -266,6 +282,7 @@ const StreamActions = React.createClass({
                     className="action-unresolve"
                     disabled={!this.state.anySelected}
                     onAction={this.onUpdate.bind(this, {status: 'unresolved'})}
+                    extraDescription={extraDescription}
                     confirmationQuestion={
                       this.state.allInQuerySelected
                         ? t('Are you sure you want to unresolve all issues matching this search query?')
@@ -293,6 +310,7 @@ const StreamActions = React.createClass({
                     className="action-mute"
                     disabled={!this.state.anySelected}
                     onAction={this.onUpdate.bind(this, {status: 'muted'})}
+                    extraDescription={extraDescription}
                     confirmationQuestion={
                       this.state.allInQuerySelected
                         ? t('Are you sure you want to mute all issues matching this search query?')
@@ -320,6 +338,7 @@ const StreamActions = React.createClass({
                     className="action-delete"
                     disabled={!this.state.anySelected || this.state.allInQuerySelected}
                     onAction={this.onDelete}
+                    extraDescription={extraDescription}
                     confirmationQuestion={
                       (count) =>
                         tn('Are you sure you want to delete %d issue?',
