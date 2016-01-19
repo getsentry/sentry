@@ -4,11 +4,13 @@ from mock import patch
 
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
-    GroupMeta, GroupTagKey, GroupTagValue, Organization, OrganizationStatus,
-    Project, ProjectStatus, TagKey, TagValue, Team, TeamStatus
+    Group, GroupAssignee, GroupMeta, GroupStatus, GroupTagKey, GroupTagValue,
+    Organization, OrganizationStatus, Project, ProjectStatus, TagKey, TagValue,
+    Team, TeamStatus
 )
 from sentry.tasks.deletion import (
-    delete_organization, delete_project, delete_tag_key, delete_team
+    delete_group, delete_organization, delete_project, delete_tag_key,
+    delete_team
 )
 from sentry.testutils import TestCase
 
@@ -78,6 +80,7 @@ class DeleteProjectTest(TestCase):
             status=ProjectStatus.PENDING_DELETION,
         )
         group = self.create_group(project=project)
+        GroupAssignee.objects.create(group=group, project=project, user=self.user)
         GroupMeta.objects.create(group=group, key='foo', value='bar')
 
         with self.tasks():
@@ -148,3 +151,19 @@ class DeleteTagKeyTest(TestCase):
         assert TagKey.objects.filter(id=tk2.id).exists()
         assert GroupTagKey.objects.filter(id=gtk2.id).exists()
         assert GroupTagValue.objects.filter(id=gtv2.id).exists()
+
+
+class DeleteGroupTest(TestCase):
+    def test_simple(self):
+        project = self.create_project()
+        group = self.create_group(
+            project=project,
+            status=GroupStatus.PENDING_DELETION,
+        )
+        GroupAssignee.objects.create(group=group, project=project, user=self.user)
+        GroupMeta.objects.create(group=group, key='foo', value='bar')
+
+        with self.tasks():
+            delete_group(object_id=group.id)
+
+        assert not Group.objects.filter(id=group.id).exists()
