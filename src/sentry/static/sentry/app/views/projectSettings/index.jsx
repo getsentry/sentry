@@ -111,7 +111,7 @@ const ProjectSettings = React.createClass({
           <ul className="nav nav-stacked">
             <li><a href={`${settingsUrlRoot}/plugins/`}>{t('All Integrations')}</a></li>
             {project.activePlugins.map((plugin) => {
-              return <li><a href={`${settingsUrlRoot}/plugins/${plugin.id}/`}>{plugin.name}</a></li>;
+              return <li key={plugin.id}><a href={`${settingsUrlRoot}/plugins/${plugin.id}/`}>{plugin.name}</a></li>;
             })}
           </ul>
         </div>
