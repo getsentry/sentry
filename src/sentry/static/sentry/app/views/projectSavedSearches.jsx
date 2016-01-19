@@ -42,18 +42,16 @@ const SavedSearchRow = React.createClass({
     });
   },
 
-  handleDefault() {
+  handleUpdate(params, cb) {
     if (this.state.loading) return;
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     let {orgId, projectId, data} = this.props;
     this.api.request(`/projects/${orgId}/${projectId}/searches/${data.id}/`, {
       method: 'PUT',
-      data: {
-        isDefault: true,
-      },
+      data: params,
       success: (d, _, jqXHR) => {
-        this.props.onDefault();
         IndicatorStore.remove(loadingIndicator);
+        cb();
       },
       error: () => {
         this.setState({
@@ -65,6 +63,18 @@ const SavedSearchRow = React.createClass({
     });
   },
 
+  handleDefault() {
+    this.handleUpdate({
+      isDefault: true,
+    }, this.props.onDefault);
+  },
+
+  handleUserDefault() {
+    this.handleUpdate({
+      isUserDefault: true,
+    }, this.props.onUserDefault);
+  },
+
   render() {
     let data = this.props.data;
     return (
@@ -73,18 +83,15 @@ const SavedSearchRow = React.createClass({
           <h5 style={{marginBottom: 5}}>{data.name}</h5>
           <code>{data.query}</code>
         </td>
+        <td style={{textAlign: 'center'}}>
+          <input type="radio" name="userDefault" checked={data.isUserDefault}
+                 onChange={this.handleUserDefault}/>
+        </td>
+        <td style={{textAlign: 'center'}}>
+          <input type="radio" name="default" checked={data.isDefault}
+                 onChange={this.handleDefault} />
+        </td>
         <td style={{textAlign: 'right'}}>
-          {data.isDefault ?
-            <a className="btn btn-sm btn-default" disabled={true}
-               style={{marginRight: 5}}>
-              <span className="icon icon-toggle" /> &nbsp;{t('Default')}
-            </a>
-          :
-            <a className="btn btn-sm btn-default" onClick={this.handleDefault}
-               disabled={this.state.loading} style={{marginRight: 5}}>
-              <span className="icon icon-toggle" /> &nbsp;{t('Make Default')}
-            </a>
-          }
           <a className="btn btn-sm btn-default" onClick={this.handleRemove}
              disabled={this.state.loading}>
             <span className="icon icon-trash" /> &nbsp;{t('Remove')}
@@ -153,6 +160,16 @@ const ProjectSavedSearches = React.createClass({
     });
   },
 
+  handleUserDefaultSearch(data) {
+    let savedSearchList = this.state.savedSearchList;
+    savedSearchList.forEach((search) => {
+      search.isUserDefault = data.id === search.id;
+    });
+    this.setState({
+      savedSearchList: savedSearchList,
+    });
+  },
+
   renderBody() {
     let body;
 
@@ -189,13 +206,23 @@ const ProjectSavedSearches = React.createClass({
     let {orgId, projectId} = this.props.params;
     return (
       <table className="table">
+        <thead>
+          <tr>
+            <th>Search</th>
+            <th style={{textAlign: 'center', width: 140}}>My Default</th>
+            <th style={{textAlign: 'center', width: 140}}>Team Default</th>
+            <th style={{width: 120}}/>
+          </tr>
+        </thead>
         <tbody>
           {this.state.savedSearchList.map((search) => {
             return (
               <SavedSearchRow
+                key={search.id}
                 orgId={orgId}
                 projectId={projectId}
                 data={search}
+                onUserDefault={this.handleUserDefaultSearch.bind(this, search)}
                 onDefault={this.handleDefaultSearch.bind(this, search)}
                 onRemove={this.handleRemovedSearch.bind(this, search)} />
             );

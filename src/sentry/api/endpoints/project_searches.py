@@ -6,13 +6,14 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import SavedSearch
+from sentry.models import SavedSearch, SavedSearchUserDefault
 
 
 class SavedSearchSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=128, required=True)
     query = serializers.CharField(required=True)
     isDefault = serializers.BooleanField(required=False)
+    isUserDefault = serializers.BooleanField(required=False)
 
 
 class ProjectSearchesEndpoint(ProjectEndpoint):
@@ -70,5 +71,13 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
                     ).update(
                         is_default=False,
                     )
+
+                if result.get('isUserDefault'):
+                    SavedSearchUserDefault.objects.create_or_update(
+                        savedsearch=search,
+                        user=request.user,
+                        project=project,
+                    )
+
             return Response(serialize(search, request.user), status=201)
         return Response(serializer.errors, status=400)
