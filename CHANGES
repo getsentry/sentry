@@ -1,3 +1,13 @@
+Version 8.0.2
+-------------
+
+- Fix ``IntegrityError`` after merging groups.
+- Be less noisy about ``Cannot digest timeline, timeline is not in the ready state.``
+- Fix incorrect ``Install`` links.
+- Fixed being able to select a Chinese locale.
+- Multiple bulk deletion improvements and bug fixes.
+- Clarify ``Forcing documentation sync`` error messaging.
+
 Version 8.0.1
 -------------
 
