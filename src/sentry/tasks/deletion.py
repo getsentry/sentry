@@ -93,7 +93,7 @@ def delete_project(object_id, continuous=True, **kwargs):
     from sentry.models import (
         Project, ProjectKey, ProjectStatus, TagKey, TagValue, GroupTagKey,
         GroupTagValue, Activity, EventMapping, Group, GroupEmailThread,
-        GroupRuleStatus, GroupHash, GroupSeen, UserReport
+        GroupRuleStatus, GroupHash, GroupMeta, GroupSeen, UserReport
     )
 
     try:
@@ -120,6 +120,15 @@ def delete_project(object_id, continuous=True, **kwargs):
             if continuous:
                 delete_project.delay(object_id=object_id, countdown=15)
             return
+
+    # TODO(dcramer): GroupMeta has no project relation so we cant easily bulk
+    # delete today
+    has_more = delete_objects([GroupMeta], relation={'group__project': p},
+                              logger=logger)
+    if has_more:
+        if continuous:
+            delete_project.delay(object_id=object_id, countdown=15)
+        return
 
     has_more = delete_events(relation={'project_id': p.id}, logger=logger)
     if has_more:
