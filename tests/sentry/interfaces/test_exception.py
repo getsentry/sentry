@@ -221,6 +221,19 @@ class SingleExceptionTest(TestCase):
         ))
         assert result.value == '{"unauthorized":true}'
 
+    def test_handles_type_in_value(self):
+        result = SingleException.to_python(dict(
+            value='ValueError: unauthorized',
+        ))
+        assert result.type == 'ValueError'
+        assert result.value == 'unauthorized'
+
+        result = SingleException.to_python(dict(
+            value='ValueError:unauthorized',
+        ))
+        assert result.type == 'ValueError'
+        assert result.value == 'unauthorized'
+
 
 class TrimExceptionsTest(TestCase):
     def test_under_max(self):
