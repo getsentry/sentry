@@ -140,7 +140,7 @@ const Stream = React.createClass({
             return search.id === searchId;
           });
           if (match.length) {
-            newState.query = match.query;
+            newState.query = match[0].query;
           } else {
             // TOOD(dcramer): at this point we should likely transition as its
             // equiv to a 404
@@ -244,11 +244,11 @@ const Stream = React.createClass({
       return newState;
 
     if (searchId) {
-      let savedSearch = this.state.savedSearchList.filter((search) => {
+      let searchResult = this.state.savedSearchList.filter((search) => {
         return search.id === searchId;
-      })[0];
-      if (savedSearch) {
-        newState.query = savedSearch.query;
+      });
+      if (searchResult.length) {
+        newState.query = searchResult[0].query;
       }
     } else if (!hasQuery) {
       let defaultResult = this.state.savedSearchList.filter((search) => {
