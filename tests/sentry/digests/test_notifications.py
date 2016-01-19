@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
-from collections import OrderedDict
+from collections import (
+    OrderedDict,
+    defaultdict,
+)
 
 from exam import fixture
 
@@ -10,7 +13,8 @@ from sentry.digests.notifications import (
     event_to_record,
     rewrite_record,
     group_records,
-    sort_groups,
+    sort_group_contents,
+    sort_rule_groups,
 )
 from sentry.testutils import TestCase
 
@@ -78,7 +82,7 @@ class GroupRecordsTestCase(TestCase):
     def test_success(self):
         events = [self.create_event(group=self.group) for _ in xrange(3)]
         records = [Record(event.id, Notification(event, [self.rule]), event.datetime) for event in events]
-        assert group_records(records) == {
+        assert reduce(group_records, records, defaultdict(lambda: defaultdict(list))) == {
             self.rule: {
                 self.group: records,
             },
@@ -109,7 +113,7 @@ class SortRecordsTestCase(TestCase):
             },
         }
 
-        assert sort_groups(grouped) == OrderedDict((
+        assert sort_rule_groups(sort_group_contents(grouped)) == OrderedDict((
             (rules[1], OrderedDict((
                 (groups[1], []),
                 (groups[2], []),
