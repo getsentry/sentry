@@ -7,6 +7,7 @@ sentry.utils.email
 """
 from __future__ import absolute_import
 
+import logging
 import os
 import time
 import toronado
@@ -24,6 +25,9 @@ from sentry.models import GroupEmailThread, Group
 from sentry.web.helpers import render_to_string
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
+
+
+logger = logging.getLogger(__name__)
 
 SMTP_HOSTNAME = getattr(settings, 'SENTRY_SMTP_HOSTNAME', 'localhost')
 ENABLE_EMAIL_REPLIES = getattr(settings, 'SENTRY_ENABLE_EMAIL_REPLIES', False)
@@ -240,7 +244,10 @@ class MessageBuilder(object):
     def get_built_messages(self, to=None, bcc=None):
         send_to = set(to or ())
         send_to.update(self._send_to)
-        return [self.build(to=email, reply_to=send_to, bcc=bcc) for email in send_to]
+        results = [self.build(to=email, reply_to=send_to, bcc=bcc) for email in send_to]
+        if not results:
+            logger.debug('Did not build any messages, no users to send to.')
+        return results
 
     def send(self, to=None, bcc=None, fail_silently=False):
         messages = self.get_built_messages(to, bcc=bcc)
