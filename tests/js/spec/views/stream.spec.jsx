@@ -26,6 +26,9 @@ describe('Stream', function() {
     this.sandbox = sinon.sandbox.create();
 
     this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request', (url, options) => {
+      if (url === 'http://127.0.0.1/api/0/projects/sentry/ludic-science/searches/' && options.method === 'GET') {
+        options.success && options.success([{'id': '789', 'query': 'is:unresolved', 'name': 'test'}]);
+      }
       options.complete && options.complete();
     });
 
@@ -244,7 +247,7 @@ describe('Stream', function() {
 
   describe('getInitialState', function() {
 
-    it('has correct defaults with query', function() {
+    describe('with query', function() {
       let expected = {
         groupIds: [],
         selectAllActive: false,
@@ -260,15 +263,15 @@ describe('Stream', function() {
         query: 'is:unresolved',
         sort: 'date',
       };
-      let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
-      let actual = stream.getInitialState();
-
       for (let property in expected) {
+        let stream = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
+        let actual = stream.getInitialState();
+
         expect(actual[property]).to.eql(expected[property]);
       }
     });
 
-    it('handles waiting on default without query', function() {
+    describe('with no searchId or query', function() {
       let ContextStubbedStream = stubContext(Stream, {
         project: this.projectContext,
         organization: {
@@ -291,22 +294,22 @@ describe('Stream', function() {
         statsPeriod: '24h',
         realtimeActive: false,
         pageLinks: '',
-        loading: true,
+        loading: false,
         dataLoading: true,
         error: false,
-        query: null,
+        query: '',
         sort: 'freq',
         searchId: null,
       };
-      let stream = TestUtils.renderIntoDocument(Element).refs.wrapped;
-      let actual = stream.getInitialState();
-
       for (let property in expected) {
+        let stream = TestUtils.renderIntoDocument(Element).refs.wrapped;
+        let actual = stream.getInitialState();
+
         expect(actual[property]).to.eql(expected[property]);
       }
     });
 
-    it('handles searchId in routing params', function() {
+    describe('with valid searchId in routing params', function() {
       let ContextStubbedStream = stubContext(Stream, {
         project: this.projectContext,
         organization: {
@@ -329,16 +332,57 @@ describe('Stream', function() {
         statsPeriod: '24h',
         realtimeActive: false,
         pageLinks: '',
-        loading: true,
+        loading: false,
         dataLoading: true,
         error: false,
-        query: null,
+        query: 'is:unresolved',
         sort: 'freq',
         searchId: '789',
       };
+
+      for (let property in expected) {
+        let stream = TestUtils.renderIntoDocument(Element).refs.wrapped;
+        stream.state.savedSearchList = [
+          {id: '789', query: 'is:unresolved', name: 'test'}
+        ];
+        let actual = stream.getInitialState();
+        expect(actual[property]).to.eql(expected[property]);
+      }
+    });
+
+    describe('with invalid searchId in routing params', function() {
+      let ContextStubbedStream = stubContext(Stream, {
+        project: this.projectContext,
+        organization: {
+          slug: 'foo-org'
+        },
+        team: {}
+      });
+
+      let Element = (
+        <ContextStubbedStream
+          setProjectNavSection={function () {}}
+          location={{query:{sort: 'freq'}, search: 'sort=freq'}}
+          params={{orgId: '123', projectId: '456', searchId: '799'}}/>
+      );
+      let expected = {
+        groupIds: [],
+        selectAllActive: false,
+        multiSelected: false,
+        anySelected: false,
+        statsPeriod: '24h',
+        realtimeActive: false,
+        pageLinks: '',
+        loading: false,
+        dataLoading: true,
+        error: false,
+        query: '',
+        sort: 'freq',
+        searchId: null,
+      };
+
       let stream = TestUtils.renderIntoDocument(Element).refs.wrapped;
       let actual = stream.getInitialState();
-
       for (let property in expected) {
         expect(actual[property]).to.eql(expected[property]);
       }
