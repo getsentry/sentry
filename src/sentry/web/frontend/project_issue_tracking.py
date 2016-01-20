@@ -2,9 +2,11 @@ from __future__ import absolute_import
 
 from django.contrib import messages
 from django.http import HttpResponseRedirect, HttpResponse
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from sentry import constants
+from sentry.models import OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
 from sentry.plugins import plugins, IssueTrackingPlugin
 from sentry.web.frontend.base import ProjectView
 
@@ -21,6 +23,17 @@ class ProjectIssueTrackingView(ProjectView):
     def _handle_enable_plugin(self, request, project):
         plugin = plugins.get(request.POST['plugin'])
         plugin.enable(project)
+
+        OrganizationOnboardingTask.objects.get_or_create(
+            organization=organization,
+            user=request.user,
+            task=OnboardingTask.ISSUE_TRACKER,
+            defaults={
+                'status': OnboardingTaskStatus.PENDING,
+                'date_completed': timezone.now()
+            }
+        )
+
         messages.add_message(
             request, messages.SUCCESS,
             constants.OK_PLUGIN_ENABLED.format(name=plugin.get_title()),
