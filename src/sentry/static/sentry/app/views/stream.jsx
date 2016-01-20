@@ -63,7 +63,7 @@ const Stream = React.createClass({
       pageLinks: '',
       dataLoading: true,
       error: false,
-      query: null,
+      query: '',
       sort: this.props.defaultSort,
       tags: StreamTagStore.getAllTags(),
       tagsLoading: true,
