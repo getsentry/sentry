@@ -19,6 +19,8 @@ from sentry.models.activity import Activity
 class GroupAssigneeManager(BaseManager):
 
     def assign(self, group, assigned_to, acting_user=None):
+        from sentry.models import OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
+
         now = timezone.now()
         assignee, created = GroupAssignee.objects.get_or_create(
             group=group,
@@ -53,6 +55,16 @@ class GroupAssigneeManager(BaseManager):
                 }
             )
             activity.send_notification()
+
+            OrganizationOnboardingTask.get_or_create(
+                organization=self.organization,
+                user=self.user,
+                task=OnboardingTask.INVITE_MEMBER,
+                status=OnboardingTaskStatus.COMPLETE,
+                values={
+                    'date_completed': timezone.now()
+                }
+            )
 
     def deassign(self, group, acting_user=None):
         affected = GroupAssignee.objects.filter(

@@ -8,22 +8,38 @@ sentry.models.organizationonboardingtask
 from django.conf import settings
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    sane_repr
+)
 
 class OnboardingTask(object):
     FIRST_EVENT = 1
     INVITE_MEMBER = 2
     ISSUE_TRACKER = 3
     NOTIFICATION_SERVICE = 4
-    SECOND_PLATFORM = 5
-    USER_CONTEXT = 6
-    SOURCEMAPS = 7
-    RELEASE_TRACKING = 8
+    SECOND_PLATFORM = 5  # dependent on FIRST_EVENT
+    USER_CONTEXT = 6  # dependent on FIRST_EVENT
+    SOURCEMAPS = 7  # dependent on RELEASE_TRACKING
+    RELEASE_TRACKING = 8  # dependent on FIRST_EVENT
     USER_REPORTS = 9
-    SENTRY_UPDATES = 10
-    ISSUE_ASSIGNMENT = 11
+    ISSUE_ASSIGNMENT = 10  # dependent on INVITE_MEMBER
+    RELEASE_RESOLVED = 11  # dependent on RELEASE_TRACKING
+    SAVED_SEARCHES = 12
+    RULES = 13
+
 
 class OnboardingTaskStatus(object):
+    """
+    Pending is applicable for:
+    first event: user confirms that sdk has been installed
+    second platform: user confirms that sdk has been installed
+    user context: user has added user context to sdk
+    invite member: until the member has successfully joined org
+    issue tracker: tracker added, issue not yet created
+    """
     COMPLETE = 1
     PENDING = 2
     SKIPPED = 3
@@ -44,7 +60,9 @@ class OrganizationOnboardingTask(Model):
         (OnboardingTask.SOURCEMAPS, 'Upload sourcemaps'),  # Upload sourcemaps for compiled js code
         (OnboardingTask.RELEASE_TRACKING, 'Release tracking'),  # Add release data to Sentry events
         (OnboardingTask.USER_REPORTS, 'User reports'),  # Send user reports
-        (OnboardingTask.SENTRY_UPDATES, 'Sentry updates'),  # Monthly Sentry updates (new features, releases)
+        (OnboardingTask.RELEASE_RESOLVED, 'Resolved in next release'),
+        (OnboardingTask.SAVED_SEARCHES, 'Saved searches'),
+        (OnboardingTask.RULES, 'Rules'),
     )
     INTIAL_TASKS = ['FE', 'IM', 'UC', 'RT']
 
@@ -56,8 +74,8 @@ class OrganizationOnboardingTask(Model):
 
     organization = FlexibleForeignKey('sentry.Organization')
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=False)  # user that completed
-    task = models.BoundedPositiveIntegerField(choices=TASK_CHOICES)
-    status = models.BoundedPositiveIntegerField(choices=STATUS_CHOICES)
+    task = BoundedPositiveIntegerField(choices=TASK_CHOICES)
+    status = BoundedPositiveIntegerField(choices=STATUS_CHOICES)
     date_completed = models.DateTimeField()
 
     class Meta:
