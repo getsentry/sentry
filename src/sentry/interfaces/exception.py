@@ -52,13 +52,19 @@ class SingleException(Interface):
         else:
             stacktrace = None
 
+        type = data.get('type')
         value = data.get('value')
+        if not type and ':' in value.split(' ', 1)[0]:
+            type, value = value.split(':', 1)
+            # in case of TypeError: foo (no space)
+            value = value.strip()
+
         if value is not None and not isinstance(value, basestring):
             value = json.dumps(value)
         value = trim(value, 4096)
 
         kwargs = {
-            'type': trim(data.get('type'), 128),
+            'type': trim(type, 128),
             'value': value,
             'module': trim(data.get('module'), 128),
             'stacktrace': stacktrace,
