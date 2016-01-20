@@ -20,6 +20,7 @@ import StreamTagStore from '../stores/streamTagStore';
 import StreamFilters from './stream/filters';
 import StreamSidebar from './stream/sidebar';
 import utils from '../utils';
+import {logAjaxError} from '../utils/logging';
 import parseLinkHeader from '../utils/parseLinkHeader';
 import {t, tct} from '../locale';
 
@@ -96,6 +97,7 @@ const Stream = React.createClass({
 
     if (nextProps.params.searchId !== this.state.searchId
           || nextProps.location.search !== this.props.location.search) {
+      // TODO(dcramer): handle 404 from popState on searchId
       this.setState(this.getQueryState(nextProps), this.fetchData);
     }
   },
@@ -142,9 +144,11 @@ const Stream = React.createClass({
           if (match.length) {
             newState.query = match[0].query;
           } else {
-            // TOOD(dcramer): at this point we should likely transition as its
-            // equiv to a 404
-            newState.searchId = null;
+            return void this.setState({
+              savedSearchLoading: false,
+              savedSearchList: data,
+              searchId: null,
+            }, this.transitionTo);
           }
         } else if (!this.hasQuery()) {
           let defaultResults = data.filter((search) => {
@@ -162,12 +166,15 @@ const Stream = React.createClass({
         }
         this.setState(newState, needsData ? this.fetchData : null);
       },
-      error: () => {
-        // TODO(dcramer): errors here matter especially when a searchId was
-        // specified
+      error: (error) => {
+        // XXX(dcramer): fail gracefully by still loading the stream
+        logAjaxError(error);
         this.setState({
-          savedSearchLoading: false,
           loading: false,
+          searchId: null,
+          savedSearchList: [],
+          savedSearchLoading: false,
+          query: '',
         });
       }
     });
@@ -235,7 +242,7 @@ const Stream = React.createClass({
     let newState = {
       sort: sort,
       statsPeriod: statsPeriod,
-      query: hasQuery ? currentQuery.query : null,
+      query: hasQuery ? currentQuery.query : '',
       searchId: searchId,
     };
 
@@ -249,6 +256,8 @@ const Stream = React.createClass({
       });
       if (searchResult.length) {
         newState.query = searchResult[0].query;
+      } else {
+        newState.searchId = null;
       }
     } else if (!hasQuery) {
       let defaultResult = this.state.savedSearchList.filter((search) => {
@@ -257,8 +266,11 @@ const Stream = React.createClass({
       if (defaultResult.length) {
         newState.searchId = defaultResult[0].id;
         newState.query = defaultResult[0].query;
+      } else {
+        newState.searchId = null;
       }
     }
+    newState.loading = false;
     return newState;
   },
 
