@@ -247,7 +247,7 @@ describe('Stream', function() {
 
   describe('getInitialState', function() {
 
-    describe('with query', function() {
+    it('handles query', function() {
       let expected = {
         groupIds: [],
         selectAllActive: false,
@@ -271,7 +271,7 @@ describe('Stream', function() {
       }
     });
 
-    describe('with no searchId or query', function() {
+    it('handles no searchId or query', function() {
       let ContextStubbedStream = stubContext(Stream, {
         project: this.projectContext,
         organization: {
@@ -309,7 +309,7 @@ describe('Stream', function() {
       }
     });
 
-    describe('with valid searchId in routing params', function() {
+    it('handles valid searchId in routing params', function() {
       let ContextStubbedStream = stubContext(Stream, {
         project: this.projectContext,
         organization: {
@@ -350,7 +350,7 @@ describe('Stream', function() {
       }
     });
 
-    describe('with invalid searchId in routing params', function() {
+    it('handles invalid searchId in routing params', function() {
       let ContextStubbedStream = stubContext(Stream, {
         project: this.projectContext,
         organization: {
