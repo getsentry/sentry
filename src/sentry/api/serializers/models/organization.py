@@ -4,7 +4,13 @@ from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth import access
 from sentry.models import (
-    Organization, OrganizationAccessRequest, OrganizationOption, Team,
+    OnboardingTask,
+    OnboardingTaskStatus,
+    Organization,
+    OrganizationAccessRequest,
+    OrganizationOnboardingTask,
+    OrganizationOption,
+    Team,
     TeamStatus
 )
 
@@ -19,6 +25,14 @@ class OrganizationSerializer(Serializer):
             'dateCreated': obj.date_added,
         }
 
+class OnboardingTasksSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        return {
+            'task': dict(OrganizationOnboardingTask.TASK_CHOICES).get(obj.task),
+            'status': dict(OrganizationOnboardingTask.STATUS_CHOICES).get(obj.status),
+            'user': obj.user.name,
+            'date_completed': obj.date_completed,
+        }
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
     def serialize(self, obj, attrs, user):
@@ -29,6 +43,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         team_list = list(Team.objects.filter(
             organization=obj,
             status=TeamStatus.VISIBLE,
+        ))
+
+        onboarding_tasks = list(OrganizationOnboardingTask.objects.filter(
+            organization=obj,
         ))
 
         feature_list = []
@@ -60,4 +78,5 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         context['pendingAccessRequests'] = OrganizationAccessRequest.objects.filter(
             team__organization=obj,
         ).count()
+        context['onboardingTasks'] = serialize(onboarding_tasks, user, OnboardingTasksSerializer())
         return context
