@@ -238,15 +238,15 @@ def main(num_events=1):
                     message='This is a an example PHP event with an extremely long and annoying title\nIt also happens to contain some newlines in it,\nthus making it even more annoying.',
                 )
 
-            try:
-                with transaction.atomic():
+            with transaction.atomic():
+                try:
                     GroupMeta.objects.create(
                         group=event1.group,
                         key='github:tid',
                         value='134',
                     )
-            except IntegrityError:
-                pass
+                except IntegrityError:
+                    pass
 
             UserReport.objects.create(
                 project=project,

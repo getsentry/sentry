@@ -20,14 +20,14 @@ class AddOrganizationMemberForm(forms.ModelForm):
         om = super(AddOrganizationMemberForm, self).save(commit=False)
         om.organization = organization
 
-        try:
-            with transaction.atomic():
+        with transaction.atomic():
+            try:
                 om.save()
-        except IntegrityError:
-            return OrganizationMember.objects.get(
-                user=om.user,
-                organization=organization,
-            ), False
+            except IntegrityError:
+                return OrganizationMember.objects.get(
+                    user=om.user,
+                    organization=organization,
+                ), False
 
         AuditLogEntry.objects.create(
             organization=organization,
