@@ -20,11 +20,17 @@ _pool_lock = Lock()
 
 
 def _shared_pool(**opts):
-    key = '%s:%s/%s' % (
-        opts['host'],
-        opts['port'],
-        opts['db'],
-    )
+    if 'host' in opts:
+        key = '%s:%s/%s' % (
+            opts['host'],
+            opts['port'],
+            opts['db'],
+        )
+    else:
+        key = '%s/%s' % (
+            opts['path'],
+            opts['db']
+        )
     pool = _pool_cache.get(key)
     if pool is not None:
         return pool
