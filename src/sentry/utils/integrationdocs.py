@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import os
 import json
-import urllib
+import urllib2
 import logging
 
 import sentry
@@ -51,7 +51,7 @@ def get_integration_id(platform_id, integration_id):
 
 def sync_docs():
     print 'syncing documentation (platform index)'
-    data = json.load(urllib.urlopen(BASE_URL.format('_index.json')))
+    data = json.load(urllib2.urlopen(BASE_URL.format('_index.json')))
     platform_list = []
     for platform_id, integrations in data['platforms'].iteritems():
         platform_list.append({
@@ -84,7 +84,7 @@ def sync_integration_docs(platform_id, integration_id, path):
     print '  syncing documentation for %s.%s integration' % (
         platform_id, integration_id)
 
-    data = json.load(urllib.urlopen(BASE_URL.format(path)))
+    data = json.load(urllib2.urlopen(BASE_URL.format(path)))
 
     key = get_integration_id(platform_id, integration_id)
 
