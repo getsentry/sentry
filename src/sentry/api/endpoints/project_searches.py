@@ -50,18 +50,18 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
         if serializer.is_valid():
             result = serializer.object
 
-            with transaction.atomic():
-                try:
+            try:
+                with transaction.atomic():
                     search = SavedSearch.objects.create(
                         project=project,
                         name=result['name'],
                         query=result['query'],
                         is_default=result.get('isDefault', False),
                     )
-                except IntegrityError:
-                    return Response({
-                        'detail': 'Search with same name already exists.'
-                    }, status=400)
+            except IntegrityError:
+                return Response({
+                    'detail': 'Search with same name already exists.'
+                }, status=400)
 
                 if search.is_default:
                     SavedSearch.objects.filter(
