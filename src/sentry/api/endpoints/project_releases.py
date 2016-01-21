@@ -117,8 +117,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         if serializer.is_valid():
             result = serializer.object
 
-            try:
-                with transaction.atomic():
+            with transaction.atomic():
+                try:
                     release = Release.objects.create(
                         project=project,
                         version=result['version'],
@@ -128,18 +128,18 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                         date_started=result.get('dateStarted'),
                         date_released=result.get('dateReleased') or timezone.now(),
                     )
-            except IntegrityError:
-                return Response({
-                    'detail': 'Release with version already exists'
-                }, status=400)
-            else:
-                Activity.objects.create(
-                    type=Activity.RELEASE,
-                    project=project,
-                    ident=result['version'],
-                    data={'version': result['version']},
-                    datetime=release.date_released,
-                )
+                except IntegrityError:
+                    return Response({
+                        'detail': 'Release with version already exists'
+                    }, status=400)
+                else:
+                    Activity.objects.create(
+                        type=Activity.RELEASE,
+                        project=project,
+                        ident=result['version'],
+                        data={'version': result['version']},
+                        datetime=release.date_released,
+                    )
 
             return Response(serialize(release, request.user), status=201)
         return Response(serializer.errors, status=400)

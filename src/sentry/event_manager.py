@@ -550,11 +550,11 @@ class EventManager(object):
         )
         cached = default_cache.get(cache_key)
         if cached is None:
-            with transaction.atomic(using=router.db_for_write(EventUser)):
-                try:
+            try:
+                with transaction.atomic(using=router.db_for_write(EventUser)):
                     euser.save()
-                except IntegrityError:
-                    pass
+            except IntegrityError:
+                pass
             default_cache.set(cache_key, '', 3600)
 
         return euser
