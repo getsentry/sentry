@@ -78,6 +78,12 @@ class TagKey(Model):
     def is_valid_key(self, key):
         return TAG_KEY_RE.match(key)
 
+    @classmethod
+    def get_standardized_key(cls, key):
+        if key.startswith('sentry:'):
+            return key.split('sentry:', 1)[-1]
+        return key
+
     def get_label(self):
         return self.label \
             or TAG_LABELS.get(self.key) \

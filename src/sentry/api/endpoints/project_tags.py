@@ -15,14 +15,9 @@ class ProjectTagsEndpoint(ProjectEndpoint):
 
         data = []
         for tag_key in tag_keys:
-            if tag_key.key.startswith('sentry:'):
-                key = tag_key.key.split('sentry:', 1)[-1]
-            else:
-                key = tag_key.key
-
             data.append({
                 'id': str(tag_key.id),
-                'key': key,
+                'key': TagKey.get_standardized_key(tag_key.key),
                 'name': tag_key.get_label(),
                 'uniqueValues': tag_key.values_seen,
             })

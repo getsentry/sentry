@@ -17,26 +17,20 @@ class GroupTagKeySerializer(Serializer):
 
         result = {}
         for item in item_list:
+            key = TagKey.get_standardized_key(item.key)
             try:
                 label = tag_labels[item.key]
             except KeyError:
-                if item.key.startswith('sentry:'):
-                    label = item.key.split('sentry:', 1)[-1]
-                else:
-                    label = item.key
+                label = key
             result[item] = {
                 'name': label,
+                'key': key,
             }
         return result
 
     def serialize(self, obj, attrs, user):
-        if obj.key.startswith('sentry:'):
-            key = obj.key.split('sentry:', 1)[-1]
-        else:
-            key = obj.key
-
         return {
             'name': attrs['name'],
-            'key': key,
+            'key': attrs['key'],
             'uniqueValues': obj.values_seen,
         }
