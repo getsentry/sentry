@@ -68,13 +68,13 @@ msgstr "Priorité"
 #: templates/sentry/users/list.html:35
 #: static/sentry/app/views/stream/sortOptions.jsx:47
 msgid "Last Seen"
-msgstr "Dernier vu"
+msgstr "Vu pour la dernière fois"
 
 #: constants.py:39 constants.py:48
 #: templates/sentry/plugins/bases/tag/index.html:23
 #: static/sentry/app/views/stream/sortOptions.jsx:40
 msgid "First Seen"
-msgstr "Premier vu"
+msgstr "Vu pour la première fois"
 
 #: constants.py:40 static/sentry/app/views/stream/sortOptions.jsx:44
 msgid "Frequency"
