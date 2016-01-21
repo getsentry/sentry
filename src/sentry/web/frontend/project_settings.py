@@ -179,8 +179,16 @@ class ProjectSettingsView(ProjectView):
 
         if form.is_valid():
             project = form.save()
-            for opt in ('origins', 'resolve_age', 'scrub_data', 'sensitive_fields',
-                        'scrape_javascript', 'scrub_ip_address', 'token', 'blacklisted_ips'):
+            for opt in (
+                    'origins',
+                    'token',
+                    'resolve_age',
+                    'scrub_data',
+                    'scrub_defaults',
+                    'sensitive_fields',
+                    'scrub_ip_addresses',
+                    'scrape_javascript',
+                    'blacklisted_ips'):
                 value = form.cleaned_data.get(opt)
                 if value is None:
                     project.delete_option('sentry:%s' % (opt,))
