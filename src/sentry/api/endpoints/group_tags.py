@@ -24,16 +24,12 @@ class GroupTagsEndpoint(GroupEndpoint):
         for tag_key in tag_keys:
             total_values = GroupTagValue.get_value_count(group.id, tag_key.key)
             top_values = GroupTagValue.get_top_values(group.id, tag_key.key, limit=10)
-            if tag_key.key.startswith('sentry:'):
-                key = tag_key.key.split('sentry:', 1)[-1]
-            else:
-                key = tag_key.key
 
             all_top_values.extend(top_values)
 
             data.append({
                 'id': str(tag_key.id),
-                'key': key,
+                'key': TagKey.get_standardized_key(tag_key.key),
                 'name': tag_key.get_label(),
                 'uniqueValues': tag_key.values_seen,
                 'totalValues': total_values,

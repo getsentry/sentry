@@ -5,7 +5,7 @@ import operator
 from django.db.models import Q
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import EventUser, TagValue
+from sentry.models import EventUser, TagKey, TagValue
 
 
 def parse_user_tag(value):
@@ -48,13 +48,8 @@ class TagValueSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user):
-        if obj.key.startswith('sentry:'):
-            key = obj.key.split('sentry:', 1)[-1]
-        else:
-            key = obj.key
-
         return {
-            'key': key,
+            'key': TagKey.get_standardized_key(obj.key),
             'name': attrs['name'],
             'value': obj.value,
             'count': obj.times_seen,
