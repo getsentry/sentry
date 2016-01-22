@@ -2,8 +2,6 @@ import React from 'react';
 import {Link} from 'react-router';
 
 import ActivityFeed from '../components/activity/feed';
-import ApiMixin from '../mixins/apiMixin';
-import OrganizationState from '../mixins/organizationState';
 import GroupStore from '../stores/groupStore';
 import IssueList from '../components/issueList';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
