@@ -97,4 +97,4 @@ class GroupTest(TestCase):
             group=group,
             until=timezone.now() - timedelta(minutes=1),
         )
-        assert group.get_status() is GroupStatus.UNRESOLVED
+        assert group.get_status() == GroupStatus.UNRESOLVED
