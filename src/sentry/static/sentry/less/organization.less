@@ -352,11 +352,12 @@ table.project-list {
 
    h4 {
      font-size: 17px;
-     margin: 0;
+     margin: 0 0 3px;
    }
 
    p {
      color: @gray;
+     line-height: 1.25;
    }
 
    ul {
@@ -397,13 +398,48 @@ table.project-list {
   margin-right: 20px;
   margin-top: 16px;
   border-radius: 2px;
+  position: relative;
 
   .slider {
-    background: lighten(@green-light, 5);
+    background: #6AFFAB;
     height: 10px;
     width: 20%;
     padding-right: 0;
     border-radius: inherit;
+  }
+
+  .dropdown-menu {
+    display: block;
+    width: 375px;
+    padding: 0;
+    left: -110px;
+    top: 22px;
+
+    &:before {
+      left: 50%;
+      margin-left: -8px;
+    }
+
+    &:after {
+      left: 50%;
+      margin-left: -7px;
+    }
+
+    .onboarding-wrapper {
+      border: 0;
+      margin: 0;
+      box-shadow: none;
+      zoom: .9;
+
+      a {
+        color: @link-color;
+
+        &:hover {
+          color: @link-color-hover;
+          background: transparent;
+        }
+      }
+    }
   }
 }
 
