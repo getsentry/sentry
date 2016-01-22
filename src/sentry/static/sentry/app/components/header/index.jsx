@@ -1,4 +1,6 @@
 import React from 'react';
+
+import ApiMixin from '../../mixins/apiMixin';
 import ConfigStore from '../../stores/configStore';
 import OrganizationState from '../../mixins/organizationState';
 import {Link} from 'react-router';
@@ -7,9 +9,10 @@ import Broadcasts from './broadcasts';
 import StatusPage from './statuspage';
 import UserNav from './userNav';
 import OrganizationSelector from './organizationSelector';
+import Todos from '../todos';
 
 const Header = React.createClass({
-  mixins: [OrganizationState],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState: function() {
     return {showTodos: false};
@@ -45,61 +48,12 @@ const Header = React.createClass({
           <StatusPage className="pull-right" />
           <div className="onboarding-progress-bar" onClick={this.toggleTodos}>
             <div className="slider"></div>
-             { this.state.showTodos ? <Todos /> : null }
+              <div className="dropdown-menu">
+                { this.state.showTodos ? <Todos /> : null }
+              </div>
           </div>
         </div>
       </header>
-    );
-  }
-});
-
-const Todos = React.createClass({
-  render: function() {
-    return (
-      <div className="dropdown-menu">
-        <div className="onboarding-wrapper">
-          <h3>Remaining Todos</h3>
-          <ul className="list-unstyled">
-            <li className="checked">
-              <div className="ob-checkbox">
-                <span className="icon-checkmark"/>
-              </div>
-              <h4>Send your first event</h4>
-              <p>
-                View our <a href="#">installation instructions</a>
-              </p>
-            </li>
-            <li>
-              <div className="ob-checkbox"></div>
-              <h4>Invite team members</h4>
-              <p>
-                Learn about <a href="#">how access works</a> on Sentry
-              </p>
-            </li>
-            <li>
-              <div className="ob-checkbox"></div>
-              <h4>Teach Sentry about your project</h4>
-              <p>
-                Track users, releases, and other rich context  &middot; <a href="#">Learn More</a>
-              </p>
-            </li>
-            <li>
-              <div className="ob-checkbox"></div>
-              <h4>Add an issue tracker</h4>
-              <p>
-                Link Sentry Issues in Jira, GitHub, Trello, and others &middot; <a href="#">Learn More</a>
-              </p>
-            </li>
-            <li>
-              <div className="ob-checkbox"></div>
-              <h4>Setup notification services</h4>
-              <p>
-                Be notified of Issues via Slack, HipChat, and More &middot; <a href="#">Learn More</a>
-              </p>
-            </li>
-          </ul>
-        </div>
-      </div>
     );
   }
 });
