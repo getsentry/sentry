@@ -1,7 +1,7 @@
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
-// import ConfigStore from '../stores/configStore';
+import ConfigStore from '../stores/configStore';
 import OrganizationState from '../mixins/organizationState';
 
 const Todos = React.createClass({
