@@ -200,7 +200,7 @@ def build_digest(project, records, state=None):
     state = attach_state(**state)
 
     def check_group_state(record):
-        return record.value.event.group.get_status() is GroupStatus.UNRESOLVED
+        return record.value.event.group.get_status() == GroupStatus.UNRESOLVED
 
     pipeline = Pipeline(). \
         map(functools.partial(rewrite_record, **state)). \
