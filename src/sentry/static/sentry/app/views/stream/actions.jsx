@@ -95,7 +95,8 @@ const StreamActions = React.createClass({
       this.api.bulkDelete({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
-        itemIds: itemIds
+        itemIds: itemIds,
+        query: this.props.query
       }, {
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
@@ -112,6 +113,7 @@ const StreamActions = React.createClass({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
         itemIds: itemIds,
+        query: this.props.query
       }, {
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
