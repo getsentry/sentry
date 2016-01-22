@@ -1,19 +1,20 @@
 import React from 'react';
 
-// import ApiMixin from '../mixins/apiMixin';
+import ApiMixin from '../mixins/apiMixin';
 import ConfigStore from '../stores/configStore';
+import OrganizationState from '../mixins/organizationState';
 
 const Todos = React.createClass({
-  // mixins: [ApiMixin, OrganizationState],
+  mixins: [ApiMixin, OrganizationState],
 
-  // skip() {
-  //   let org = this.getOrganization();
-  //   this.api.request('/organizations/' + org.slug + '/onboarding-tasks/', {
-  //     method: 'POST',
-  //     data: {'a': 1}
-  //   });
-  //   this.getOnboardingTasks();
-  // },
+  skip: function() {
+    let org = this.getOrganization();
+    this.api.request('/organizations/' + org.slug + '/onboarding-tasks/', {
+      method: 'POST',
+      data: {'a': 1}
+    });
+    this.getOnboardingTasks();
+  },
 
   render: function() {
     return (

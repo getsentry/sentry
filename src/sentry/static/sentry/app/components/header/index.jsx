@@ -48,9 +48,7 @@ const Header = React.createClass({
           <StatusPage className="pull-right" />
           <div className="onboarding-progress-bar" onClick={this.toggleTodos}>
             <div className="slider"></div>
-              <div className="dropdown-menu">
-                { this.state.showTodos ? <Todos /> : null }
-              </div>
+                { this.state.showTodos ? <div className="dropdown-menu"><Todos /></div> : null }
           </div>
         </div>
       </header>
