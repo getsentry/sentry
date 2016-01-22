@@ -1,7 +1,7 @@
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
-import ConfigStore from '../stores/configStore';
+// import ConfigStore from '../stores/configStore';
 import OrganizationState from '../mixins/organizationState';
 
 const Todos = React.createClass({
@@ -48,15 +48,17 @@ const Todos = React.createClass({
               <div className="ob-checkbox"></div>
               <h4>Add an issue tracker</h4>
               <p>
-                Link Sentry Issues in Jira, GitHub, Trello, and others &middot; <a href="#">Learn More</a> &middot; <span>Skip</span>
+                Link Sentry Issues in Jira, GitHub, Trello, and others &middot; <a href="#">Learn More</a>
               </p>
+              <a href="#" className="skip-btn btn btn-default">Skip</a>
             </li>
             <li>
               <div className="ob-checkbox"></div>
               <h4>Setup notification services</h4>
               <p>
-                Be notified of Issues via Slack, HipChat, and More &middot; <a href="#">Learn More</a> &middot; <span>Skip</span>
+                Be notified of Issues via Slack, HipChat, and More &middot; <a href="#">Learn More</a>
               </p>
+              <a href="#" className="skip-btn btn btn-default">Skip</a>
             </li>
           </ul>
         </div>
