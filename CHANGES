@@ -1,3 +1,10 @@
+Version 8.0.3
+-------------
+
+- [CRITICAL] Fixed an issue where performing a bulk merge would merge more than intended.
+- Fixed saving the "Use Default Scrubbers" project setting
+- Fix syncing documentation when behind an http proxy
+
 Version 8.0.2
 -------------
 
