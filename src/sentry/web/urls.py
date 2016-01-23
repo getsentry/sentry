@@ -38,6 +38,7 @@ from sentry.web.frontend.organization_settings import OrganizationSettingsView
 from sentry.web.frontend.create_organization import CreateOrganizationView
 from sentry.web.frontend.create_organization_member import CreateOrganizationMemberView
 from sentry.web.frontend.create_project import CreateProjectView
+from sentry.web.frontend.choose_project import OrganizationProjectChooser
 from sentry.web.frontend.create_project_key import CreateProjectKeyView
 from sentry.web.frontend.create_team import CreateTeamView
 from sentry.web.frontend.disable_project_key import DisableProjectKeyView
@@ -256,6 +257,8 @@ urlpatterns += patterns(
         name='sentry-create-team'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/projects/new/$', CreateProjectView.as_view(),
         name='sentry-create-project'),
+    url(r'^organizations/(?P<organization_slug>[\w_-]+)/projects/choose/$', OrganizationProjectChooser.as_view(),
+        name='sentry-organization-project-picker'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/remove/$', RemoveOrganizationView.as_view(),
         name='sentry-remove-organization'),
     url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', AcceptOrganizationInviteView.as_view(),
