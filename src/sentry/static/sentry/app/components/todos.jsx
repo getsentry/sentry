@@ -45,8 +45,12 @@ const TodoItem = React.createClass({
 
   getInitialState: function() {
     return {
-      showTodos: false
+      showConfirmation: false
     };
+  },
+
+  toggleConfirmation() {
+    this.setState({showConfirmation: !this.state.showConfirmation});
   },
 
   render: function() {
@@ -57,17 +61,36 @@ const TodoItem = React.createClass({
       classNames += ' checked';
     }
 
+    if (this.state.showConfirmation) {
+      classNames += ' blur';
+    }
+
     return (
       <li className={classNames}>
-        <div className="ob-checkbox">
-          { this.props.completed ? <span className="icon-checkmark" /> : null }
+        <div className="todo-content">
+          <div className="ob-checkbox">
+            { this.props.completed ? <span className="icon-checkmark" /> : null }
+          </div>
+          <h4>Setup notification services</h4>
+          <p>
+            Be notified of Issues via Slack, HipChat, and More &middot; <a href="#">Learn More</a>
+          </p>
+
+          { this.props.skippable && !this.state.showConfirmation ? <a className="skip-btn btn btn-default" onClick={this.toggleConfirmation}>Skip</a> : null }
         </div>
-        <h4>Setup notification services</h4>
-        <p>
-          Be notified of Issues via Slack, HipChat, and More &middot; <a href="#">Learn More</a>
-        </p>
-        { this.props.skippable ? <a className="skip-btn btn btn-default">Skip</a> : null }
+        { this.state.showConfirmation ? <Confirmation /> : null }
       </li>
+    );
+  }
+});
+
+const Confirmation = React.createClass({
+  render: function() {
+    return (
+      <div className="ob-confirmation">
+        <h3>Need help?</h3>
+        <p><a href="mailto:eric@getsentry.com?subject=:P">Ask us!</a> &middot; <a onClick={this.toggleConfirmation}>No Thanks</a></p>
+      </div>
     );
   }
 });
