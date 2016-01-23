@@ -105,7 +105,6 @@ install_requires = [
     'email-reply-parser>=0.2.0,<0.3.0',
     'enum34>=0.9.18,<0.10.0',
     'exam>=0.5.1',
-    'gunicorn>=19.2.1,<20.0.0',
     'hiredis>=0.1.0,<0.2.0',
     'ipaddr>=2.1.11,<2.2.0',
     'kombu==3.0.30',
@@ -130,6 +129,7 @@ install_requires = [
     'toronado>=0.0.4,<0.1.0',
     'ua-parser>=0.6.1,<0.7.0',
     'urllib3>=1.11,<1.12',
+    'uwsgi>2.0.0,<2.1.0',
     'rb>=1.3.0,<2.0.0',
 ]
 
