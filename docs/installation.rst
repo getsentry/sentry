@@ -289,7 +289,7 @@ future versions of Sentry.
 Starting the Web Service
 ------------------------
 
-Sentry provides a built-in webserver (powered by gunicorn and eventlet) to
+Sentry provides a built-in webserver (powered by uWSGI) to
 get you off the ground quickly, also you can setup Sentry as WSGI
 application, in that case skip to section `Running Sentry as WSGI
 application`.
