@@ -131,7 +131,10 @@ var config = {
     library: 'exports',
     sourceMapFilename: '[name].js.map',
   },
-  devtool: 'source-map'
+  devtool: 'source-map',
+  watchOptions: {
+    poll: !!process.env.WEBPACK_WATCH_POLL
+  }
 };
 
 module.exports = config;

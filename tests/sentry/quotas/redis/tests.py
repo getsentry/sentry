@@ -60,9 +60,10 @@ class RedisQuotaTest(TestCase):
         return inst
 
     def test_default_host_is_local(self):
-        quota = RedisQuota()
-        self.assertEquals(len(quota.cluster.hosts), 1)
-        self.assertEquals(quota.cluster.hosts[0].host, 'localhost')
+        with self.settings(SENTRY_REDIS_OPTIONS={}):
+            quota = RedisQuota()
+            self.assertEquals(len(quota.cluster.hosts), 1)
+            self.assertEquals(quota.cluster.hosts[0].host, 'localhost')
 
     def test_uses_defined_quotas(self):
         self.get_project_quota.return_value = 200

@@ -1,0 +1,34 @@
+db:
+  image: postgres:9.4
+  environment:
+    POSTGRES_USER: sentry
+
+redis:
+  image: redis:2.8
+
+web:
+  build: .
+  dockerfile: Dockerfile.dev
+  command: sh -c "while true; do sleep 1; done"
+  ports:
+    - '80:8000'
+  volumes:
+    - .:/app
+  links:
+    - db
+    - redis
+  environment:
+    SENTRY_CONF: /app/src/sentry/conf/docker.py
+    DJANGO_SETTINGS_MODULE: sentry.conf.docker
+    SENTRY_LIGHT_BUILD: 1
+    SENTRY_BIND_ADDRESS: 0.0.0.0:8000
+    SENTRY_NO_WATCHERS: 1
+    PYTHONPATH: /app/src/
+    PYTHONUNBUFFERED: 1
+    PGHOST: db
+    PGUSER: sentry
+    PGDATABASE: sentry
+    TERM: xterm
+    EDITOR: vim
+    DB: postgres
+    WEBPACK_WATCH_POLL: 1

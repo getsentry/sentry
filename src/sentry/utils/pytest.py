@@ -24,9 +24,9 @@ def pytest_configure(config):
                 'USER': 'root',
             })
         elif test_db == 'postgres':
+            # NOTE: Docker only supports Postgres
             settings.DATABASES['default'].update({
                 'ENGINE': 'sentry.db.postgres',
-                'USER': 'postgres',
                 'NAME': 'sentry',
             })
         elif test_db == 'sqlite':
@@ -69,7 +69,11 @@ def pytest_configure(config):
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
 
     # disable error reporting by default
-    settings.SENTRY_REDIS_OPTIONS = {'hosts': {0: {'db': 9}}}
+    settings.SENTRY_REDIS_OPTIONS = {'hosts': {0: {
+        'host': getattr(settings, 'REDIS_ADDR', '127.0.0.1'),
+        'port': getattr(settings, 'REDIS_PORT', 6379),
+        'db': 9,
+    }}}
 
     settings.SENTRY_ALLOW_ORIGIN = '*'
 
@@ -99,8 +103,11 @@ def pytest_configure(config):
     patcher = mock.patch('socket.getfqdn', return_value='localhost')
     patcher.start()
 
-    client = StrictRedis(db=9)
-    client.flushdb()
+    StrictRedis(
+        host=getattr(settings, 'REDIS_ADDR', '127.0.0.1'),
+        port=getattr(settings, 'REDIS_PORT', 6379),
+        db=9,
+    ).flushdb()
 
     from sentry.runner.initializer import initialize_receivers, fix_south
     fix_south(settings)
@@ -115,8 +122,11 @@ def pytest_runtest_teardown(item):
     from sentry.app import tsdb
     tsdb.flush()
 
-    client = StrictRedis(db=9)
-    client.flushdb()
+    StrictRedis(
+        host=getattr(settings, 'REDIS_ADDR', '127.0.0.1'),
+        port=getattr(settings, 'REDIS_PORT', 6379),
+        db=9,
+    ).flushdb()
 
     from celery.task.control import discard_all
     discard_all()

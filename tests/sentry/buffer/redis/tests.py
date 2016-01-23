@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 import mock
 
+from django.conf import settings
 from sentry.buffer.redis import RedisBuffer
 from sentry.models import Group, Project
 from sentry.testutils import TestCase
@@ -11,14 +12,14 @@ from sentry.testutils import TestCase
 
 class RedisBufferTest(TestCase):
     def setUp(self):
-        self.buf = RedisBuffer(hosts={
-            0: {'db': 9}
-        })
+        options = settings.SENTRY_REDIS_OPTIONS
+        self.buf = RedisBuffer(hosts=options['hosts'])
 
     def test_default_host_is_local(self):
-        buf = RedisBuffer()
-        self.assertEquals(len(buf.cluster.hosts), 1)
-        self.assertEquals(buf.cluster.hosts[0].host, 'localhost')
+        with self.settings(SENTRY_REDIS_OPTIONS={}):
+            buf = RedisBuffer()
+            self.assertEquals(len(buf.cluster.hosts), 1)
+            self.assertEquals(buf.cluster.hosts[0].host, 'localhost')
 
     def test_coerce_val_handles_foreignkeys(self):
         assert self.buf._coerce_val(Project(id=1)) == '1'
