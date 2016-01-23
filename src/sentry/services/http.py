@@ -48,7 +48,7 @@ class SentryHTTPServer(Service):
         options.setdefault('auto-procname', True)
         options.setdefault('procname-prefix-spaced', '[Sentry]')
         options.setdefault('workers', 3)
-        options.setdefault('threads', 1)
+        options.setdefault('threads', 4)
         options.setdefault('http-timeout', 30)
         options.setdefault('vacuum', True)
         options.setdefault('thunder-lock', True)
@@ -79,8 +79,7 @@ class SentryHTTPServer(Service):
 
         # Old options from gunicorn
         if 'bind' in options:
-            options['http-socket'] = options['bind']
-            del options['bind']
+            options['http-socket'] = options.pop('bind')
         if 'accesslog' in options:
             if options['accesslog'] != '-':
                 options['logto'] = options['accesslog']
@@ -90,11 +89,9 @@ class SentryHTTPServer(Service):
                 options['logto2'] = options['errorlog']
             del options['errorlog']
         if 'timeout' in options:
-            options['http-timeout'] = options['timeout']
-            del options['timeout']
+            options['http-timeout'] = options.pop('timeout')
         if 'proc_name' in options:
-            options['procname-prefix-spaced'] = options['proc_name']
-            del options['proc_name']
+            options['procname-prefix-spaced'] = options.pop('proc_name')
         if 'secure_scheme_headers' in options:
             del options['secure_scheme_headers']
         if 'loglevel' in options:
