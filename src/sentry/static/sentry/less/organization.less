@@ -371,6 +371,10 @@ table.project-list {
          }
        }
 
+       &.blur .todo-content {
+         -webkit-filter: ~"blur(3px)";
+       }
+
        &:hover {
          .skip-btn {
            opacity: .85;
@@ -410,6 +414,29 @@ table.project-list {
     .transition(opacity .1s);
     opacity: 0;
     visibility: hidden;
+
+    &:active {
+      position: absolute;
+    }
+  }
+
+  .ob-confirmation {
+    position: absolute;
+    z-index: 1000;
+    background: rgba(255,255,255, .75);
+    left: -20px;
+    right: -20px;
+    bottom: -10px;
+    top: -20px;
+    padding: 15px;
+    text-align: center;
+    font-size: 18px;
+
+    h3 {
+      margin-bottom: 3px;
+      border: 0;
+      padding: 0;
+    }
   }
 }
 
