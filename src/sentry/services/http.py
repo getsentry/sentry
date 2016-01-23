@@ -65,8 +65,15 @@ class SentryHTTPServer(Service):
         options.setdefault('disable-write-exception', True)
         options.setdefault('virtualenv', sys.prefix)
         options.setdefault('log-format', '%(addr) - %(user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"')
-        options.setdefault('uid', os.getuid())
-        options.setdefault('gid', os.getgid())
+
+        # We only need to set uid/gid when stepping down from root, but if
+        # we are trying to run as root, then ignore it entirely.
+        uid = os.getuid()
+        if uid > 0:
+            options.setdefault('uid', uid)
+        gid = os.getgid()
+        if gid > 0:
+            options.setdefault('gid', gid)
 
         # Required arguments that should not be overridden
         options['master'] = True
