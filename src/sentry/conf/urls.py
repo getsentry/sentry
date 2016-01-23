@@ -16,10 +16,8 @@ try:
 except ImportError:
     # django < 1.5 compat
     from django.conf.urls.defaults import include, patterns, url  # NOQA
-from django.http import HttpResponse
 
-from sentry import django_admin, status_checks
-from sentry.utils import json
+from sentry import django_admin
 from sentry.web.urls import urlpatterns as web_urlpatterns
 from sentry.web.frontend.csrf_failure import CsrfFailureView
 from sentry.web.frontend.error_404 import Error404View
@@ -29,23 +27,8 @@ handler404 = Error404View.as_view()
 handler500 = Error500View.as_view()
 
 
-def handler_healthcheck(request):
-    problems, checks = status_checks.check_all()
-
-    if request.GET.get('full'):
-        return HttpResponse(json.dumps({
-            'problems': map(unicode, problems),
-            'healthy': checks,
-        }), content_type='application/json', status=(500 if problems else 200))
-    elif problems:
-        return handler500(request)
-    else:
-        return HttpResponse('ok')
-
-
 urlpatterns = patterns(
     '',
-    url(r'^_health/$', handler_healthcheck, name='healthcheck'),
     url(r'^admin/', include(django_admin.site.urls)),
     url(r'^500/', handler500, name='error-500'),
     url(r'^404/', handler404, name='error-404'),

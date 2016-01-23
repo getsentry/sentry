@@ -17,11 +17,11 @@ Generally this is most useful if you're using it as a health check in something
 like HAProxy.
 
 That said, we also expose additional checks via the same endpoint by passing
-``full=1``:
+``?full``:
 
 .. code-block:: bash
 
-    $ curl -i http://sentry.example.com/_health/?full=1
+    $ curl -i http://sentry.example.com/_health/?full
     HTTP/1.0 500 INTERNAL SERVER ERROR
     Content-Type: application/json
 

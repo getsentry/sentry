@@ -201,6 +201,7 @@ MIDDLEWARE_CLASSES = (
     'sentry.middleware.debug.NoIfModifiedSinceMiddleware',
     'sentry.middleware.stats.RequestTimingMiddleware',
     'sentry.middleware.stats.ResponseCodeMiddleware',
+    'sentry.middleware.health.HealthCheck',  # Must exist before CommonMiddleware
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
