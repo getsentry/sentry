@@ -80,52 +80,6 @@ Below is a sample production ready configuration for Nginx with Sentry::
     }
 
 
-Proxying uWSGI
---------------
-
-While Sentry provides a default webserver, you'll likely want to move to
-something a bit more powerful. We suggest using `uWSGI
-<http://projects.unbit.it/uwsgi/>`_ to run Sentry.
-
-Install uWSGI into your virtualenv (refer to quickstart if you're
-confused)::
-
-    pip install uwsgi
-
-Create a uWSGI configuration which references the Sentry configuration::
-
-    [uwsgi]
-    env = SENTRY_CONF=/etc/sentry
-    module = sentry.wsgi
-
-    ; spawn the master and 4 processes with 8 threads each
-    http = 127.0.0.1:9000
-    master = true
-    processes = 4
-    threads = 8
-
-    ; allow longer headers for raven.js if applicable
-    ; default: 4096
-    buffer-size = 32768
-
-    ; allow large file uploads
-    limit-post = 5242880
-
-    ; various other explicit defaults
-    post-buffering = 65536
-    thunder-lock = true
-    disable-logging = true
-    enable-threads = true
-    single-interpreter = true
-    lazy-apps = true
-    log-x-forwarded-for = true
-
-
-Finally, re-configure supervisor to run uwsgi instead of 'sentry start'::
-
-  /www/sentry/bin/uwsgi --ini /www/sentry/uwsgi.ini
-
-
 Hosting Sentry at a Subpath
 ----------------------------
 
@@ -134,18 +88,13 @@ Hosting Sentry at a Subpath
 If your web server is hosting several applications then hosting Sentry at '/' may not be feasible for you. It is possible to configure your webserver such that all traffic going to '/sentry' can be directed at Sentry and everything else can remain as is.
 
 
-Subpath with uWSGI
-^^^^^^^^^^^^^^^^^^
+Add the following to your ``SENTRY_WEB_OPTIONS``::
 
-Hosting apps at a subpath is officially supported by uWSGI with a configuration option. (Source: `uWSGI - Hosting multiple apps <http://uwsgi-docs.readthedocs.org/en/latest/Nginx.html#hosting-multiple-apps-in-the-same-process-aka-managing-script-name-and-path-info>`_)
-
-**uWSGI Configuration**
-
-If you are using a uWSGI configuration file, add these lines::
-
-    ; Host Sentry at /sentry
-    mount = /sentry=path/to/sentry/wsgi.py
-    manage-script-name = true
+    SENTRY_WEB_OPTIONS = {
+      # Host Sentry at /sentry
+      'mount': '/sentry=path/to/sentry/wsgi.py'
+      'manage-script-name': True
+    }
 
 If you call uWSGI directly, possibly from Supervisor, see :ref:`performance-web-server`.
 

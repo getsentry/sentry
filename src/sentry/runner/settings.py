@@ -165,7 +165,7 @@ SENTRY_FILESTORE_OPTIONS = {
 # SESSION_COOKIE_SECURE = True
 # CSRF_COOKIE_SECURE = True
 
-# If you're not hosting at the root of your web server, and not using uWSGI,
+# If you're not hosting at the root of your web server,
 # you need to uncomment and set it to the path where Sentry is hosted.
 # FORCE_SCRIPT_NAME = '/sentry'
 
