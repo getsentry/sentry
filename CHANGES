@@ -1,3 +1,8 @@
+Version 8.0.4
+-------------
+
+- Fixed an issue where notification digests weren't sending on some systems.
+
 Version 8.0.3
 -------------
 
