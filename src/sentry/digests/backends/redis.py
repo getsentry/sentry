@@ -474,7 +474,7 @@ class RedisBackend(Backend):
                     # events to the timeline while we are trying to delete it.
                     pipeline.watch(timeline_key)
                     pipeline.multi()
-                    if connection.zcard(timeline_key) is 0:
+                    if connection.zcard(timeline_key) == 0:
                         cleanup_records(pipeline)
                         pipeline.delete(make_last_processed_timestamp_key(timeline_key))
                         pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
