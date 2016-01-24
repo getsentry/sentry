@@ -127,25 +127,53 @@ def remove_module_outliers(module):
     return _java_enhancer_re.sub(r'\1<auto>', module)
 
 
-def slim_frame_data(stacktrace,
-                    frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
+def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
     """
     Removes various excess metadata from middle frames which go beyond
     ``frame_allowance``.
     """
-    frames = stacktrace['frames']
-    frames_len = len(frames)
+    frames_len = 0
+    app_frames = []
+    system_frames = []
+    for frame in frames:
+        frames_len += 1
+        if frame.in_app:
+            app_frames.append(frame)
+        else:
+            system_frames.append(frame)
 
     if frames_len <= frame_allowance:
         return
 
-    half_max = frame_allowance / 2
+    remaining = frames_len - frame_allowance
+    app_count = len(app_frames)
+    system_allowance = max(frame_allowance - app_count, 0)
+    if system_allowance:
+        half_max = system_allowance / 2
+        # prioritize trimming system frames
+        for frame in system_frames[half_max:-half_max]:
+            frame.vars = None
+            frame.pre_context = None
+            frame.post_context = None
+            remaining -= 1
 
-    for n in xrange(half_max, frames_len - half_max):
-        # remove heavy components
-        frames[n].pop('vars', None)
-        frames[n].pop('pre_context', None)
-        frames[n].pop('post_context', None)
+    else:
+        for frame in system_frames:
+            frame.vars = None
+            frame.pre_context = None
+            frame.post_context = None
+            remaining -= 1
+
+    if not remaining:
+        return
+
+    app_allowance = app_count - remaining
+    half_max = app_allowance / 2
+
+    for frame in app_frames[half_max:-half_max]:
+        frame.vars = None
+        frame.pre_context = None
+        frame.post_context = None
 
 
 def validate_bool(value, required=True):
@@ -505,11 +533,9 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, has_system_frames=None):
+    def to_python(cls, data, has_system_frames=None, slim_frames=True):
         if not data.get('frames'):
             raise InterfaceValidationError("No 'frames' present")
-
-        slim_frame_data(data)
 
         if has_system_frames is None:
             has_system_frames = cls.data_has_system_frames(data)
@@ -539,7 +565,10 @@ class Stacktrace(Interface):
 
         kwargs['has_system_frames'] = has_system_frames
 
-        return cls(**kwargs)
+        instance = cls(**kwargs)
+        if slim_frames:
+            slim_frame_data(instance)
+        return instance
 
     @classmethod
     def data_has_system_frames(cls, data):

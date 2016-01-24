@@ -13,7 +13,7 @@ __all__ = ('Exception',)
 from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
-from sentry.interfaces.stacktrace import Stacktrace
+from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
 from sentry.utils import json
 from sentry.utils.safe import trim
 
@@ -40,7 +40,7 @@ class SingleException(Interface):
     display_score = 1200
 
     @classmethod
-    def to_python(cls, data, has_system_frames=None):
+    def to_python(cls, data, has_system_frames=None, slim_frames=True):
         if not (data.get('type') or data.get('value')):
             raise InterfaceValidationError("No 'type' or 'value' present")
 
@@ -48,6 +48,7 @@ class SingleException(Interface):
             stacktrace = Stacktrace.to_python(
                 data['stacktrace'],
                 has_system_frames=has_system_frames,
+                slim_frames=slim_frames,
             )
         else:
             stacktrace = None
@@ -164,8 +165,6 @@ class Exception(Interface):
         if not data['values']:
             raise InterfaceValidationError("No 'values' present")
 
-        slim_frame_data(data)
-
         has_system_frames = cls.data_has_system_frames(data)
 
         kwargs = {
@@ -173,6 +172,7 @@ class Exception(Interface):
                 SingleException.to_python(
                     v,
                     has_system_frames=has_system_frames,
+                    slim_frames=False,
                 )
                 for v in data['values']
             ],
@@ -185,7 +185,10 @@ class Exception(Interface):
         else:
             kwargs['exc_omitted'] = None
 
-        return cls(**kwargs)
+        instance = cls(**kwargs)
+        # we want to wait to slim things til we've reconciled in_app
+        slim_exception_data(instance)
+        return instance
 
     @classmethod
     def data_has_system_frames(cls, data):
@@ -285,33 +288,17 @@ class Exception(Interface):
         return ''
 
 
-def slim_frame_data(data,
-                    frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
+def slim_exception_data(instance, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
     """
     Removes various excess metadata from middle frames which go beyond
     ``frame_allowance``.
     """
     # TODO(dcramer): it probably makes sense to prioritize a certain exception
-    # rather than keeping the top and bottom frames from the entire stack
-    frames_len = 0
-    for exception in data['values']:
-        if not exception.get('stacktrace'):
+    # rather than distributing allowance among all exceptions
+    frames = []
+    for exception in instance.values:
+        if not exception.stacktrace:
             continue
-        frames_len += len(exception['stacktrace']['frames'])
+        frames.extend(exception.stacktrace.frames)
 
-    if frames_len <= frame_allowance:
-        return
-
-    half_max = frame_allowance / 2
-
-    pos = 0
-    for exception in data['values']:
-        if not exception.get('stacktrace'):
-            continue
-        for frame in exception['stacktrace']['frames']:
-            pos += 1
-            if pos > half_max and pos <= frames_len - half_max:
-                # remove heavy components
-                frame.pop('vars', None)
-                frame.pop('pre_context', None)
-                frame.pop('post_context', None)
+    slim_frame_data(frames, frame_allowance)

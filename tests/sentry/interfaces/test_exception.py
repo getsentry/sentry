@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from exam import fixture
 
 from sentry.interfaces.exception import (
-    SingleException, Exception, slim_frame_data
+    SingleException, Exception, slim_exception_data
 )
 from sentry.testutils import TestCase
 
@@ -235,46 +235,47 @@ class SingleExceptionTest(TestCase):
         assert result.value == 'unauthorized'
 
 
-class TrimExceptionsTest(TestCase):
+class SlimExceptionDataTest(TestCase):
     def test_under_max(self):
-        value = {'values': [
+        interface = Exception.to_python({'values': [
             {'value': 'foo',
              'stacktrace': {'frames': [{'filename': 'foo'}]},
             }
-        ]}
-        slim_frame_data(value)
-        assert len(value['values'][0]['stacktrace']['frames']) == 1
+        ]})
+        slim_exception_data(interface)
+        assert len(interface.values[0].stacktrace.frames) == 1
 
     def test_over_max(self):
         values = []
-        data = {'values': values}
         for x in xrange(5):
             exc = {'value': 'exc %d' % x, 'stacktrace': {'frames': []}}
             values.append(exc)
             for y in xrange(5):
                 exc['stacktrace']['frames'].append({
-                    'filename': 'frame %d' % y,
-                    'vars': {},
-                    'pre_context': [],
-                    'post_context': [],
+                    'filename': 'exc %d frame %d' % (x, y),
+                    'vars': {'foo': 'bar'},
+                    'context_line': 'b',
+                    'pre_context': ['a'],
+                    'post_context': ['c'],
                 })
 
-        # slim to 10 frames to make tests easier
-        slim_frame_data(data, 10)
+        interface = Exception.to_python({'values': values})
 
-        assert len(values) == 5
-        for e_num, value in enumerate(values):
-            assert value['value'] == 'exc %d' % e_num
-            assert len(value['stacktrace']['frames']) == 5
-            for f_num, frame in enumerate(value['stacktrace']['frames']):
-                assert frame['filename'] == 'frame %d' % f_num
+        # slim to 10 frames to make tests easier
+        slim_exception_data(interface, 10)
+
+        assert len(interface.values) == 5
+        for e_num, value in enumerate(interface.values):
+            assert value.value == 'exc %d' % e_num
+            assert len(value.stacktrace.frames) == 5
+            for f_num, frame in enumerate(value.stacktrace.frames):
+                assert frame.filename == 'exc %d frame %d' % (e_num, f_num)
+                print(frame.filename)
                 if e_num in (0, 4):
-                    assert frame['filename'] == 'frame %d' % f_num
-                    assert frame['vars'] is not None
-                    assert frame['pre_context'] is not None
-                    assert frame['post_context'] is not None
+                    assert frame.vars is not None
+                    assert frame.pre_context is not None
+                    assert frame.post_context is not None
                 else:
-                    assert frame['filename'] == 'frame %d' % f_num
-                    assert 'vars' not in frame
-                    assert 'pre_context' not in frame
-                    assert 'post_context' not in frame
+                    assert frame.vars is None
+                    assert frame.pre_context is None
+                    assert frame.post_context is None
