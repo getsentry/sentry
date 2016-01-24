@@ -16,6 +16,13 @@ The following endpoint is exposed to aid in automated reporting:
 Generally this is most useful if you're using it as a health check in something
 like HAProxy.
 
+In HAProxy, you could add this to your config:
+
+::
+
+    option httpchk /_health/
+
+
 That said, we also expose additional checks via the same endpoint by passing
 ``?full``:
 
