@@ -263,6 +263,26 @@ class MailPluginTest(TestCase):
         assert send.call_count is 1
         assert notify.call_count is 1
 
+    def test_assignment(self):
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=Activity.ASSIGNED,
+            user=self.create_user('foo@example.com'),
+            data={
+                'assignee': str(self.user.id),
+            },
+        )
+
+        self.plugin.notify_about_activity(activity)
+
+        assert len(mail.outbox) == 1
+
+        msg = mail.outbox[0]
+
+        assert msg.subject == 'Re: [Sentry] [foo Bar] ERROR: Foo bar'
+        assert msg.to == [self.user.email]
+
     def test_note(self):
         user_foo = self.create_user('foo@example.com')
 
