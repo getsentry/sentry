@@ -57,24 +57,31 @@ const SearchBar = React.createClass({
       defaultSearchItems: [
         {
           title: t('Tag'),
-          desc: t('key/value pair associated to an event'),
+          desc: t('key/value pair associated to an issue'),
           example: 'browser:"Chrome 34"',
           className: 'icon-tag',
           value: 'browser:'
         },
         {
           title: t('Status'),
-          desc: t('State of an event'),
+          desc: t('State of an issue'),
           example: 'is:resolved, unresolved, muted, assigned, unassigned',
           className: 'icon-toggle',
           value: 'is:'
         },
         {
           title: t('Assigned'),
-          desc: t('team member assigned to an event'),
+          desc: t('team member assigned to an issue'),
           example: 'assigned:[me|user@example.com]',
           className: 'icon-user',
           value: 'assigned:'
+        },
+        {
+          title: t('Bookmarked By'),
+          desc: t('team member who bookmarked an issue'),
+          example: 'bookmarks:[me|user@example.com]',
+          className: 'icon-user',
+          value: 'bookmarks:'
         },
         {
           desc: t('or paste an event id to jump straight to it'),
@@ -310,6 +317,7 @@ const SearchBar = React.createClass({
           out.className = 'icon-toggle';
           break;
         case 'assigned':
+        case 'bookmarks':
           out.className = 'icon-user';
           break;
         default:
