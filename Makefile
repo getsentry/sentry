@@ -128,9 +128,6 @@ coverage: develop
 	make test-python-coverage
 	coverage html
 
-run-uwsgi:
-	uwsgi --http 127.0.0.1:8000 --need-app --disable-logging --wsgi-file src/sentry/wsgi.py --processes 1 --threads 5
-
 publish:
 	python setup.py sdist bdist_wheel upload
 
@@ -139,7 +136,7 @@ extract-api-docs:
 	cd api-docs; python generator.py
 
 
-.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python test-python-coverage lint lint-python lint-js coverage run-uwsgi publish
+.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python test-python-coverage lint lint-python lint-js coverage publish
 
 
 ############################
