@@ -23,7 +23,7 @@ class SearchBackend(object):
 
     def query(self, project, query=None, status=None, tags=None,
               bookmarked_by=None, assigned_to=None, first_release=None,
-              sort_by='date', age_date_from=None, age_date_to=None,
+              sort_by='date', age_from=None, age_to=None,
               unassigned=None, date_from=None, date_to=None, cursor=None,
               limit=100):
         """

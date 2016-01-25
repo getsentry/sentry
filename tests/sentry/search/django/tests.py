@@ -31,6 +31,16 @@ class DjangoSearchBackendTest(TestCase):
         self.event1 = self.create_event(
             event_id='a' * 32,
             group=self.group1,
+            datetime=datetime(2013, 7, 13, 3, 8, 24, 880386),
+            tags={
+                'server': 'example.com',
+                'env': 'production',
+            }
+        )
+        self.event3 = self.create_event(
+            event_id='c' * 32,
+            group=self.group1,
+            datetime=datetime(2013, 8, 13, 3, 8, 24, 880386),
             tags={
                 'server': 'example.com',
                 'env': 'production',
@@ -49,6 +59,7 @@ class DjangoSearchBackendTest(TestCase):
         self.event2 = self.create_event(
             event_id='b' * 32,
             group=self.group2,
+            datetime=datetime(2013, 7, 14, 3, 8, 24, 880386),
             tags={
                 'server': 'example.com',
                 'env': 'staging',
@@ -166,6 +177,31 @@ class DjangoSearchBackendTest(TestCase):
         )
         assert len(results) == 1
         assert results[0] == self.group1
+
+    def test_date_filter(self):
+        results = self.backend.query(
+            self.project1,
+            date_from=self.event2.datetime,
+        )
+        assert len(results) == 2
+        assert results[0] == self.group1
+        assert results[1] == self.group2
+
+        results = self.backend.query(
+            self.project1,
+            date_to=self.event1.datetime + timedelta(minutes=1),
+        )
+        assert len(results) == 1
+        assert results[0] == self.group1
+
+        results = self.backend.query(
+            self.project1,
+            date_from=self.event1.datetime,
+            date_to=self.event2.datetime + timedelta(minutes=1),
+        )
+        assert len(results) == 2
+        assert results[0] == self.group1
+        assert results[1] == self.group2
 
     def test_unassigned(self):
         results = self.backend.query(self.project1, unassigned=True)
