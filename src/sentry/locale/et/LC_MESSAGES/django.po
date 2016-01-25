@@ -3,13 +3,13 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# Rivo Zängov <eraser@eraser.ee>, 2012-2013
+# Rivo Zängov <eraser@eraser.ee>, 2012-2013,2016
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-01-18 09:37+0000\n"
-"PO-Revision-Date: 2016-01-18 09:38+0000\n"
+"POT-Creation-Date: 2016-01-25 07:26+0000\n"
+"PO-Revision-Date: 2016-01-25 07:27+0000\n"
 "Last-Translator: David Cramer <dcramer@gmail.com>\n"
 "Language-Team: Estonian (http://www.transifex.com/getsentry/sentry/language/et/)\n"
 "MIME-Version: 1.0\n"
@@ -21,24 +21,24 @@ msgstr ""
 
 #: admin.py:171
 msgid "Personal info"
-msgstr ""
+msgstr "Isiklik info"
 
 #: admin.py:172
 msgid "Permissions"
-msgstr ""
+msgstr "Õigused"
 
 #: admin.py:173
 msgid "Important dates"
-msgstr ""
+msgstr "Olulised kuupäevad"
 
 #: admin.py:261
 msgid "Password changed successfully."
-msgstr ""
+msgstr "Parool on muudetud"
 
 #: admin.py:271
 #, python-format
 msgid "Change password: %s"
-msgstr ""
+msgstr "Muuda parooli: %s"
 
 #: constants.py:37 static/sentry/app/views/stream/sortOptions.jsx:42
 msgid "Priority"
@@ -108,11 +108,11 @@ msgstr ""
 
 #: conf/server.py:97
 msgid "Afrikaans"
-msgstr ""
+msgstr "Afrikaani"
 
 #: conf/server.py:98
 msgid "Arabic"
-msgstr ""
+msgstr "Araabia"
 
 #: conf/server.py:99
 msgid "Azerbaijani"
@@ -120,15 +120,15 @@ msgstr ""
 
 #: conf/server.py:100
 msgid "Bulgarian"
-msgstr ""
+msgstr "Bulgaaria"
 
 #: conf/server.py:101
 msgid "Belarusian"
-msgstr ""
+msgstr "Valgevene"
 
 #: conf/server.py:102
 msgid "Bengali"
-msgstr ""
+msgstr "Bengali"
 
 #: conf/server.py:103
 msgid "Breton"
@@ -136,15 +136,15 @@ msgstr ""
 
 #: conf/server.py:104
 msgid "Bosnian"
-msgstr ""
+msgstr "Bosnia"
 
 #: conf/server.py:105
 msgid "Catalan"
-msgstr ""
+msgstr "Katalaani"
 
 #: conf/server.py:106
 msgid "Czech"
-msgstr ""
+msgstr "Tšehhi"
 
 #: conf/server.py:107
 msgid "Welsh"
@@ -152,51 +152,51 @@ msgstr ""
 
 #: conf/server.py:108
 msgid "Danish"
-msgstr ""
+msgstr "Taani"
 
 #: conf/server.py:109
 msgid "German"
-msgstr ""
+msgstr "Saksa"
 
 #: conf/server.py:110
 msgid "Greek"
-msgstr ""
+msgstr "Kreeka"
 
 #: conf/server.py:111
 msgid "English"
-msgstr ""
+msgstr "Inglise"
 
 #: conf/server.py:112
 msgid "Esperanto"
-msgstr ""
+msgstr "Esperanto"
 
 #: conf/server.py:113
 msgid "Spanish"
-msgstr ""
+msgstr "Hispaania"
 
 #: conf/server.py:114
 msgid "Estonian"
-msgstr ""
+msgstr "Eesti"
 
 #: conf/server.py:115
 msgid "Basque"
-msgstr ""
+msgstr "Baski"
 
 #: conf/server.py:116
 msgid "Persian"
-msgstr ""
+msgstr "Pärsia"
 
 #: conf/server.py:117
 msgid "Finnish"
-msgstr ""
+msgstr "Soome"
 
 #: conf/server.py:118
 msgid "French"
-msgstr ""
+msgstr "Prantsuse"
 
 #: conf/server.py:119
 msgid "Irish"
-msgstr ""
+msgstr "Iiri"
 
 #: conf/server.py:120
 msgid "Galician"
@@ -204,19 +204,19 @@ msgstr ""
 
 #: conf/server.py:121
 msgid "Hebrew"
-msgstr ""
+msgstr "Heebrea"
 
 #: conf/server.py:122
 msgid "Hindi"
-msgstr ""
+msgstr "Hindi"
 
 #: conf/server.py:123
 msgid "Croatian"
-msgstr ""
+msgstr "Horvaatia"
 
 #: conf/server.py:124
 msgid "Hungarian"
-msgstr ""
+msgstr "Ungari"
 
 #: conf/server.py:125
 msgid "Interlingua"
@@ -224,27 +224,27 @@ msgstr ""
 
 #: conf/server.py:126
 msgid "Indonesian"
-msgstr ""
+msgstr "Indeoneesia"
 
 #: conf/server.py:127
 msgid "Icelandic"
-msgstr ""
+msgstr "Islandi"
 
 #: conf/server.py:128
 msgid "Italian"
-msgstr ""
+msgstr "Itaalia"
 
 #: conf/server.py:129
 msgid "Japanese"
-msgstr ""
+msgstr "Jaapani"
 
 #: conf/server.py:130
 msgid "Georgian"
-msgstr ""
+msgstr "Gruusia"
 
 #: conf/server.py:131
 msgid "Kazakh"
-msgstr ""
+msgstr "Kasahhi"
 
 #: conf/server.py:132
 msgid "Khmer"
@@ -256,23 +256,23 @@ msgstr ""
 
 #: conf/server.py:134
 msgid "Korean"
-msgstr ""
+msgstr "Korea"
 
 #: conf/server.py:135
 msgid "Luxembourgish"
-msgstr ""
+msgstr "Luksemburgi"
 
 #: conf/server.py:136
 msgid "Lithuanian"
-msgstr ""
+msgstr "Leedu"
 
 #: conf/server.py:137
 msgid "Latvian"
-msgstr ""
+msgstr "Läti"
 
 #: conf/server.py:138
 msgid "Macedonian"
-msgstr ""
+msgstr "Makedoonia"
 
 #: conf/server.py:139
 msgid "Malayalam"
@@ -280,7 +280,7 @@ msgstr ""
 
 #: conf/server.py:140
 msgid "Mongolian"
-msgstr ""
+msgstr "Mongoolia"
 
 #: conf/server.py:141
 msgid "Burmese"
@@ -292,11 +292,11 @@ msgstr ""
 
 #: conf/server.py:143
 msgid "Nepali"
-msgstr ""
+msgstr "Nepaali"
 
 #: conf/server.py:144
 msgid "Dutch"
-msgstr ""
+msgstr "Hollandi"
 
 #: conf/server.py:145
 msgid "Norwegian Nynorsk"
@@ -304,7 +304,7 @@ msgstr ""
 
 #: conf/server.py:146
 msgid "Ossetic"
-msgstr ""
+msgstr "Osseedi"
 
 #: conf/server.py:147
 msgid "Punjabi"
@@ -312,11 +312,11 @@ msgstr ""
 
 #: conf/server.py:148
 msgid "Polish"
-msgstr ""
+msgstr "Poola"
 
 #: conf/server.py:149
 msgid "Portuguese"
-msgstr ""
+msgstr "Portugali"
 
 #: conf/server.py:150
 msgid "Brazilian Portuguese"
@@ -328,31 +328,31 @@ msgstr ""
 
 #: conf/server.py:152
 msgid "Russian"
-msgstr ""
+msgstr "Vene"
 
 #: conf/server.py:153
 msgid "Slovak"
-msgstr ""
+msgstr "Slovaki"
 
 #: conf/server.py:154
 msgid "Slovenian"
-msgstr ""
+msgstr "Sloveenia"
 
 #: conf/server.py:155
 msgid "Albanian"
-msgstr ""
+msgstr "Albaania"
 
 #: conf/server.py:156
 msgid "Serbian"
-msgstr ""
+msgstr "Serbia"
 
 #: conf/server.py:157
 msgid "Swedish"
-msgstr ""
+msgstr "Rootsi"
 
 #: conf/server.py:158
 msgid "Swahili"
-msgstr ""
+msgstr "Suahiili"
 
 #: conf/server.py:159
 msgid "Tamil"
@@ -364,15 +364,15 @@ msgstr ""
 
 #: conf/server.py:161
 msgid "Thai"
-msgstr ""
+msgstr "tai"
 
 #: conf/server.py:162
 msgid "Turkish"
-msgstr ""
+msgstr "Türgi"
 
 #: conf/server.py:163
 msgid "Tatar"
-msgstr ""
+msgstr "Tatari"
 
 #: conf/server.py:164
 msgid "Udmurt"
@@ -380,23 +380,23 @@ msgstr ""
 
 #: conf/server.py:165
 msgid "Ukrainian"
-msgstr ""
+msgstr "Ukraina"
 
 #: conf/server.py:166
 msgid "Urdu"
-msgstr ""
+msgstr "Urdu"
 
 #: conf/server.py:167
 msgid "Vietnamese"
-msgstr ""
+msgstr "Vietnami"
 
 #: conf/server.py:168
 msgid "Simplified Chinese"
-msgstr ""
+msgstr "Lihtsustatud hiina"
 
 #: conf/server.py:169
 msgid "Traditional Chinese"
-msgstr ""
+msgstr "Traditsionaalne hiina"
 
 #: db/models/fields/bounded.py:54 db/models/fields/bounded.py:68
 msgid "Big Integer"
@@ -411,7 +411,7 @@ msgstr[1] ""
 
 #: debug/panels/redis.py:79
 msgid "Redis"
-msgstr ""
+msgstr "Redis"
 
 #: interfaces/http.py:188
 msgid "Request"
@@ -428,11 +428,11 @@ msgstr ""
 #: models/apikey.py:52 models/project.py:82 models/projectkey.py:48
 #: models/team.py:93
 msgid "Active"
-msgstr ""
+msgstr "Aktiivne"
 
 #: models/apikey.py:53 models/projectkey.py:49
 msgid "Inactive"
-msgstr ""
+msgstr "Mitteaktiivne"
 
 #: models/event.py:52
 msgid "message"
@@ -469,33 +469,33 @@ msgstr "grupeeritud sõnum"
 
 #: models/groupresolution.py:36
 msgid "Pending"
-msgstr ""
+msgstr "Ootel"
 
 #: models/organization.py:70 models/tagkey.py:63
 msgid "Visible"
-msgstr ""
+msgstr "Nähtav"
 
 #: models/organization.py:71 models/project.py:83 models/tagkey.py:64
 #: models/team.py:94
 msgid "Pending Deletion"
-msgstr ""
+msgstr "Ootab kustutamist"
 
 #: models/organization.py:72 models/project.py:84 models/tagkey.py:65
 #: models/team.py:95
 msgid "Deletion in Progress"
-msgstr ""
+msgstr "Kustutamine on käimas"
 
 #: models/user.py:26
 msgid "username"
-msgstr ""
+msgstr "kasutajanimi"
 
 #: models/user.py:29
 msgid "name"
-msgstr ""
+msgstr "nimi"
 
 #: models/user.py:31
 msgid "email address"
-msgstr ""
+msgstr "e-posti aadress"
 
 #: models/user.py:33
 msgid "staff status"
@@ -507,7 +507,7 @@ msgstr ""
 
 #: models/user.py:37
 msgid "active"
-msgstr ""
+msgstr "aktiivne"
 
 #: models/user.py:38
 msgid ""
@@ -517,7 +517,7 @@ msgstr ""
 
 #: models/user.py:41
 msgid "superuser status"
-msgstr ""
+msgstr "superkasutaja olek"
 
 #: models/user.py:42
 msgid ""
@@ -527,7 +527,7 @@ msgstr ""
 
 #: models/user.py:45
 msgid "managed"
-msgstr ""
+msgstr "hallatav"
 
 #: models/user.py:46
 msgid ""
@@ -537,7 +537,7 @@ msgstr ""
 
 #: models/user.py:50
 msgid "date joined"
-msgstr ""
+msgstr "liitumise kuupäev"
 
 #: models/user.py:60
 msgid "user"
@@ -545,7 +545,7 @@ msgstr "kasutaja"
 
 #: models/user.py:61 static/sentry/app/components/groupListHeader.jsx:16
 msgid "users"
-msgstr ""
+msgstr "kasutajad"
 
 #: plugins/base/configuration.py:61 web/frontend/project_notifications.py:19
 #: web/frontend/project_plugins.py:24 web/frontend/project_quotas.py:35
@@ -595,7 +595,7 @@ msgstr ""
 
 #: templates/sentry/404.html:15
 msgid "You may wish to try the following:"
-msgstr ""
+msgstr "Sa võid proovida järgnevat:"
 
 #: templates/sentry/404.html:21
 msgid "Return to the dashboard"
@@ -608,7 +608,7 @@ msgstr "Sisemise serveri viga"
 #: templates/sentry/accept-organization-invite.html:5
 #: templates/sentry/accept-organization-invite.html:15
 msgid "Organization Invite"
-msgstr ""
+msgstr "Organisatsiooni kutse"
 
 #: templates/sentry/accept-organization-invite.html:19
 #, python-format
@@ -630,7 +630,7 @@ msgstr ""
 
 #: templates/sentry/accept-organization-invite.html:36
 msgid "Login as an existing user"
-msgstr ""
+msgstr "Logi sisse kui olemasolev kasutaja"
 
 #: templates/sentry/accept-organization-invite.html:38
 msgid "Create a new account"
@@ -639,7 +639,7 @@ msgstr "Loo uus konto"
 #: templates/sentry/accept-organization-invite.html:45
 #, python-format
 msgid "Join the %(org_name)s organization"
-msgstr ""
+msgstr "Liitu organisatsiooniga %(org_name)s"
 
 #: templates/sentry/admin-queue.html:8 templates/sentry/bases/admin.html:13
 msgid "Queue"
@@ -648,7 +648,7 @@ msgstr "Järjekord"
 #: templates/sentry/auth-confirm-identity.html:7
 #: templates/sentry/auth-confirm-link.html:7
 msgid "Confirm Identity"
-msgstr ""
+msgstr "Kinnita identiteeti"
 
 #: templates/sentry/auth-confirm-identity.html:33
 #: templates/sentry/auth-link-login.html:7
@@ -664,11 +664,11 @@ msgstr "Logi sisse"
 #: templates/sentry/auth-link-login.html:31 templates/sentry/login.html:37
 #: templates/sentry/organization-login.html:54
 msgid "Lost your password?"
-msgstr ""
+msgstr "Kaotasid oma parooli?"
 
 #: templates/sentry/auth-link-identity.html:7
 msgid "Link Identity"
-msgstr ""
+msgstr "Seosta identiteet"
 
 #: templates/sentry/create-organization-member.html:6
 #: templates/sentry/create-organization-member.html:11
@@ -687,16 +687,16 @@ msgstr ""
 
 #: templates/sentry/create-organization-member.html:28
 msgid "Add Member"
-msgstr ""
+msgstr "Lisa liige"
 
 #: templates/sentry/create-organization.html:6
 #: static/sentry/app/components/header/organizationSelector.jsx:47
 msgid "New Organization"
-msgstr ""
+msgstr "Uus organisatsioon"
 
 #: templates/sentry/create-organization.html:11
 msgid "Create a New Organization"
-msgstr ""
+msgstr "Loo uus organisatsioon"
 
 #: templates/sentry/create-organization.html:14
 msgid ""
@@ -707,7 +707,7 @@ msgstr ""
 
 #: templates/sentry/create-organization.html:25
 msgid "Create Organization"
-msgstr ""
+msgstr "Loo organisatsioon"
 
 #: templates/sentry/create-project.html:5
 #: templates/sentry/projects/cannot_create_teams.html:5
@@ -756,22 +756,22 @@ msgstr "Admin"
 #: templates/sentry/layout.html:88
 #: static/sentry/app/components/header/userNav.jsx:35
 msgid "Sign out"
-msgstr ""
+msgstr "Logi välja"
 
 #: templates/sentry/layout.html:101 templates/sentry/layout.html.py:182
 #: static/sentry/app/components/footer.jsx:26
 msgid "Docs"
-msgstr ""
+msgstr "Dokumentatsioon"
 
 #: templates/sentry/layout.html:181
 #: templates/sentry/project-release-tracking.html:117
 #: static/sentry/app/components/footer.jsx:25
 msgid "API"
-msgstr ""
+msgstr "API"
 
 #: templates/sentry/layout.html:183 static/sentry/app/components/footer.jsx:27
 msgid "Contribute"
-msgstr ""
+msgstr "Toeta"
 
 #: templates/sentry/login.html:15 templates/sentry/login.html.py:54
 #: templates/sentry/organization-login.html:35
@@ -795,7 +795,7 @@ msgstr ""
 #: templates/sentry/no-organization-access.html:5
 #: templates/sentry/no-organization-access.html:12
 msgid "No Organization Access"
-msgstr ""
+msgstr "Pole ligipääsu organisatsioonile"
 
 #: templates/sentry/no-organization-access.html:14
 msgid ""
@@ -806,7 +806,7 @@ msgstr ""
 #: templates/sentry/organization-api-key-settings.html:7
 #: templates/sentry/organization-api-key-settings.html:12
 msgid "API Key Settings"
-msgstr ""
+msgstr "API võtme seaded"
 
 #: templates/sentry/organization-api-key-settings.html:19
 #: templates/sentry/organization-member-settings.html:22
@@ -818,7 +818,7 @@ msgstr "Palun paranda allolevad vead."
 
 #: templates/sentry/organization-api-key-settings.html:33
 msgid "Key"
-msgstr ""
+msgstr "Võti"
 
 #: templates/sentry/organization-api-key-settings.html:50
 #: templates/sentry/organization-member-settings.html:111
@@ -863,12 +863,12 @@ msgstr ""
 
 #: templates/sentry/organization-member-details.html:7
 msgid "Member Details"
-msgstr ""
+msgstr "Liikme andmed"
 
 #: templates/sentry/organization-member-details.html:21
 #: templates/sentry/organization-member-settings.html:29
 msgid "Basics"
-msgstr ""
+msgstr "Peamine"
 
 #: templates/sentry/organization-member-details.html:28
 #: templates/sentry/organization-member-settings.html:36
@@ -885,13 +885,13 @@ msgstr "Staatus"
 #: templates/sentry/organization-member-details.html:48
 #: templates/sentry/organization-member-settings.html:56
 msgid "Added"
-msgstr ""
+msgstr "Lisatud"
 
 #: templates/sentry/organization-member-details.html:60
 #: templates/sentry/organization-member-settings.html:68
 #: templates/sentry/organization-members.html:67
 msgid "Role"
-msgstr ""
+msgstr "Roll"
 
 #: templates/sentry/organization-member-details.html:80
 #: templates/sentry/organization-member-settings.html:88
@@ -902,11 +902,11 @@ msgstr "Meeskonnad"
 
 #: templates/sentry/organization-member-settings.html:7
 msgid "Member Settings"
-msgstr ""
+msgstr "Liikme seaded"
 
 #: templates/sentry/organization-member-settings.html:109
 msgid "Resend Invite"
-msgstr ""
+msgstr "Saada kutse uuesti"
 
 #: templates/sentry/organization-members.html:7
 #: templates/sentry/organization-members.html:23
@@ -918,7 +918,7 @@ msgstr "Liikmed"
 #: templates/sentry/organization-members.html:14
 #: templates/sentry/organization-members.html:19
 msgid "Invite Member"
-msgstr ""
+msgstr "Kutsu liiget"
 
 #: templates/sentry/organization-members.html:18
 msgid "You do not have enough permission to add new members"
@@ -934,17 +934,17 @@ msgstr ""
 
 #: templates/sentry/organization-members.html:65
 msgid "Member"
-msgstr ""
+msgstr "Liige"
 
 #: templates/sentry/organization-settings.html:46
 #: templates/sentry/organization-settings.html:52
 #: templates/sentry/remove-organization.html:35
 msgid "Remove Organization"
-msgstr ""
+msgstr "Eemalda organisatsioon"
 
 #: templates/sentry/post-remove-account.html:5
 msgid "Remove Account"
-msgstr ""
+msgstr "Eemalda konto"
 
 #: templates/sentry/post-remove-account.html:10
 msgid "Scheduled for Removal"
@@ -984,7 +984,7 @@ msgstr "Teavitused"
 #: templates/sentry/projects/rules/list.html:10
 #: static/sentry/app/views/projectSettings/index.jsx:91
 msgid "Rules"
-msgstr ""
+msgstr "Reeglid"
 
 #: templates/sentry/project-notifications.html:22
 #, python-format
@@ -996,7 +996,7 @@ msgstr ""
 #: templates/sentry/project-notifications.html:28
 #: templates/sentry/account/notifications.html:31
 msgid "General"
-msgstr ""
+msgstr "Üldine"
 
 #: templates/sentry/project-notifications.html:42
 msgid "Digests"
@@ -1007,7 +1007,7 @@ msgstr ""
 #: templates/sentry/projects/manage.html:177
 #: static/sentry/app/views/projectSettings/index.jsx:94
 msgid "Release Tracking"
-msgstr ""
+msgstr "Väljalaske jälgimine"
 
 #: templates/sentry/project-release-tracking.html:16
 msgid "Client Configuration"
@@ -1025,7 +1025,7 @@ msgstr ""
 #: templates/sentry/remove-account.html:49
 #: templates/sentry/bases/account.html:17
 msgid "Close Account"
-msgstr ""
+msgstr "Sulge konto"
 
 #: templates/sentry/remove-account.html:15
 msgid "This will permanently remove all associated data for your user."
@@ -1068,7 +1068,7 @@ msgstr "Sündmused"
 
 #: templates/sentry/account/appearance.html:22
 msgid "Localization"
-msgstr ""
+msgstr "Lokaliseerimine"
 
 #: templates/sentry/account/identities.html:7
 #: templates/sentry/bases/account.html:25
@@ -1122,7 +1122,7 @@ msgstr "Projekti nimi"
 
 #: templates/sentry/account/notifications.html:59
 msgid "Email Address"
-msgstr ""
+msgstr "E-posti aadressid"
 
 #: templates/sentry/account/settings.html:7
 msgid "Account Settings"
@@ -1134,7 +1134,7 @@ msgstr ""
 
 #: templates/sentry/account/sudo.html:6
 msgid "Confirm Password"
-msgstr ""
+msgstr "Kinnita parooli"
 
 #: templates/sentry/account/sudo.html:31
 msgid "Help us keep your account safe by confirming your password."
@@ -1142,12 +1142,12 @@ msgstr ""
 
 #: templates/sentry/account/sudo.html:39
 msgid "Your password was not valid."
-msgstr ""
+msgstr "Sinu parool pole korrektne."
 
 #: templates/sentry/account/sudo.html:52
 #: static/sentry/app/views/installWizard.jsx:76
 msgid "Continue"
-msgstr ""
+msgstr "Jätka"
 
 #: templates/sentry/account/recover/confirm.html:6
 #: templates/sentry/account/recover/confirm.html:9
@@ -1219,7 +1219,7 @@ msgstr "Projekt"
 
 #: templates/sentry/admin/projects/list.html:37
 msgid "Events (24h)"
-msgstr ""
+msgstr "Sündmused (24h)"
 
 #: templates/sentry/admin/projects/list.html:38
 #: templates/sentry/admin/teams/list.html:32
@@ -1228,7 +1228,7 @@ msgstr "Lisamise kuupäev"
 
 #: templates/sentry/admin/projects/list.html:64
 msgid "There are no active projects in Sentry."
-msgstr ""
+msgstr "Sentry's pole ühtegi aktiivset projekti."
 
 #: templates/sentry/admin/status/env.html:9
 msgid "Server Status"
@@ -1276,7 +1276,7 @@ msgstr "SMTP seaded"
 
 #: templates/sentry/admin/status/mail.html:15
 msgid "From Address"
-msgstr ""
+msgstr "Aadressilt"
 
 #: templates/sentry/admin/status/mail.html:20
 msgid "Host"
@@ -1320,7 +1320,7 @@ msgstr ""
 #: templates/sentry/admin/status/mail.html:54
 #, python-format
 msgid "Send a test email to %(email)s"
-msgstr ""
+msgstr "Saada testikiri aadressile %(email)s"
 
 #: templates/sentry/admin/status/packages.html:8
 #: templates/sentry/bases/admin.html:15
@@ -1342,15 +1342,15 @@ msgstr "Moodulid"
 
 #: templates/sentry/admin/teams/list.html:7
 msgid "Manage Teams"
-msgstr ""
+msgstr "Halda meeskondasid"
 
 #: templates/sentry/admin/teams/list.html:30
 msgid "Team"
-msgstr ""
+msgstr "Meeskond"
 
 #: templates/sentry/admin/teams/list.html:53
 msgid "There are no active teams in Sentry."
-msgstr ""
+msgstr "Sentrys pole ühtegi aktiivset meeskonda."
 
 #: templates/sentry/admin/users/edit.html:8
 msgid "Change User"
@@ -1376,14 +1376,14 @@ msgstr "Halda kasutajaid"
 
 #: templates/sentry/admin/users/list.html:17
 #: templates/sentry/bases/admin.html:25
-#: static/sentry/app/views/stream/actions.jsx:367
+#: static/sentry/app/views/stream/actions.jsx:388
 msgid "Users"
 msgstr "Kasutajad"
 
 #: templates/sentry/admin/users/list.html:30 web/forms/__init__.py:41
 #: web/forms/accounts.py:257 web/forms/add_project.py:14
 #: web/forms/add_team.py:13
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:103
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:107
 msgid "Name"
 msgstr "Nimi"
 
@@ -1397,7 +1397,7 @@ msgstr "Viimane sisselogimine"
 
 #: templates/sentry/admin/users/list.html:66
 msgid "There are no users matching your query in Sentry."
-msgstr ""
+msgstr "Sentrys pole ühtegi sinu päringule vastavat kasutajat."
 
 #: templates/sentry/admin/users/list.html:70
 msgid "Create a new user"
@@ -1405,7 +1405,7 @@ msgstr "Loo uus kasutaja"
 
 #: templates/sentry/admin/users/list_projects.html:45
 msgid "There are no active projects for this user."
-msgstr ""
+msgstr "Sellel kasutajal pole ühtegi aktiivset projekti."
 
 #: templates/sentry/admin/users/new.html:6
 msgid "New User"
@@ -1424,22 +1424,22 @@ msgstr "Seaded"
 
 #: templates/sentry/bases/admin.html:10
 msgid "System"
-msgstr ""
+msgstr "Süsteem"
 
 #: templates/sentry/bases/admin.html:12
-#: static/sentry/app/views/sharedGroupDetails/sharedGroupHeader.jsx:35
+#: static/sentry/app/views/projectDashboard.jsx:142
 msgid "Overview"
 msgstr "Ülevaade"
 
 #: templates/sentry/bases/admin.html:20
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:179
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:188
 msgid "Manage"
 msgstr "Halda"
 
 #: templates/sentry/bases/admin.html:22
 #: static/sentry/app/views/adminOrganizations.jsx:131
 msgid "Organizations"
-msgstr ""
+msgstr "Organisatsioonid"
 
 #: templates/sentry/bases/admin.html:30
 msgid "Plugins"
@@ -1447,7 +1447,7 @@ msgstr "Pluginad"
 
 #: templates/sentry/bases/organization.html:8
 msgid "Organization Settings"
-msgstr ""
+msgstr "Organisatsiooni seaded"
 
 #: templates/sentry/bases/organization.html:20
 #: static/sentry/app/components/organizations/homeSidebar.jsx:39
@@ -1462,12 +1462,12 @@ msgstr "Statistika"
 #: templates/sentry/bases/organization.html:36
 #: static/sentry/app/components/organizations/homeSidebar.jsx:49
 msgid "Issues"
-msgstr ""
+msgstr "Probleemid"
 
 #: templates/sentry/bases/organization.html:38
 #: static/sentry/app/components/organizations/homeSidebar.jsx:51
 msgid "Assigned to Me"
-msgstr ""
+msgstr "Mulle määratud"
 
 #: templates/sentry/bases/organization.html:39
 #: static/sentry/app/components/organizations/homeSidebar.jsx:52
@@ -1477,7 +1477,7 @@ msgstr "Järjehoidjad"
 #: templates/sentry/bases/organization.html:40
 #: static/sentry/app/components/organizations/homeSidebar.jsx:53
 msgid "History"
-msgstr ""
+msgstr "Ajalugu"
 
 #: templates/sentry/bases/organization.html:76
 #: templates/sentry/projects/manage.html:164
@@ -1516,11 +1516,11 @@ msgstr ""
 
 #: templates/sentry/groups/public_details.html:43
 msgid "Full message"
-msgstr ""
+msgstr "Täielik sõnum"
 
 #: templates/sentry/partial/_form.html:14
 msgid "Test Configuration"
-msgstr ""
+msgstr "Testi seadeid"
 
 #: templates/sentry/partial/_pager.html:5
 #: templates/sentry/users/details.html:42
@@ -1544,17 +1544,17 @@ msgstr "URL"
 
 #: templates/sentry/partial/interfaces/http_email.html:13
 msgid "Method"
-msgstr ""
+msgstr "Meetod"
 
 #: templates/sentry/partial/interfaces/http_email.html:19
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:109
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:113
 msgid "Query"
 msgstr "Päring"
 
 #: templates/sentry/partial/interfaces/http_email.html:27
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:74
 msgid "Fragment"
-msgstr ""
+msgstr "Fragment"
 
 #: templates/sentry/partial/interfaces/user_email.html:13
 msgid "ID:"
@@ -1562,7 +1562,7 @@ msgstr "ID:"
 
 #: templates/sentry/partial/interfaces/user_email.html:19
 msgid "IP Address:"
-msgstr ""
+msgstr "IP aadress"
 
 #: templates/sentry/partial/interfaces/user_email.html:25
 msgid "Username:"
@@ -1578,7 +1578,7 @@ msgstr ""
 
 #: templates/sentry/plugins/bases/issue/create_issue.html:23
 msgid "Create Issue"
-msgstr ""
+msgstr "Loo probleem"
 
 #: templates/sentry/plugins/bases/issue/needs_auth.html:13
 #, python-format
@@ -1618,11 +1618,11 @@ msgstr ""
 #: templates/sentry/projects/edit_key.html:7
 #: templates/sentry/projects/edit_key.html:11
 msgid "Edit API Key"
-msgstr ""
+msgstr "Muuda API võtit"
 
 #: templates/sentry/projects/edit_key.html:25
 msgid "Created"
-msgstr ""
+msgstr "Loodud"
 
 #: templates/sentry/projects/edit_key.html:38
 msgid ""
@@ -1636,12 +1636,12 @@ msgstr ""
 #: templates/sentry/projects/keys.html:53
 #: static/sentry/app/views/projectInstall/overview.jsx:54
 msgid "DSN"
-msgstr ""
+msgstr "DSN"
 
 #: templates/sentry/projects/edit_key.html:46
 #: templates/sentry/projects/keys.html:58
 msgid "DSN (Public)"
-msgstr ""
+msgstr "DSN (Avalik)"
 
 #: templates/sentry/projects/edit_key.html:50
 #: templates/sentry/projects/keys.html:60
@@ -1653,21 +1653,21 @@ msgstr ""
 
 #: templates/sentry/projects/edit_key.html:53
 msgid "Public Key"
-msgstr ""
+msgstr "Avalik võti"
 
 #: templates/sentry/projects/edit_key.html:59
 msgid "Secret Key"
-msgstr ""
+msgstr "alajane võti"
 
 #: templates/sentry/projects/edit_key.html:65
 msgid "Project ID"
-msgstr ""
+msgstr "Projekti ID"
 
 #: templates/sentry/projects/keys.html:6
 #: templates/sentry/projects/keys.html:15
 #: static/sentry/app/views/projectSettings/index.jsx:108
 msgid "Client Keys"
-msgstr ""
+msgstr "Kliendi võti"
 
 #: templates/sentry/projects/keys.html:12
 msgid "Generate New Key"
@@ -1680,21 +1680,21 @@ msgstr "Üksikasjad"
 
 #: templates/sentry/projects/keys.html:30
 msgid "Disable"
-msgstr ""
+msgstr "Lülita välja"
 
 #: templates/sentry/projects/keys.html:35
 msgid "Enable"
-msgstr ""
+msgstr "Lülita sisse"
 
 #: templates/sentry/projects/keys.html:42
 msgid "Revoke"
-msgstr ""
+msgstr "Lükka tagasi"
 
 #: templates/sentry/projects/manage.html:29
 #: templates/sentry/projects/manage.html:157
 #: static/sentry/app/views/projectSettings/index.jsx:86
 msgid "Project Settings"
-msgstr ""
+msgstr "Projekti seaded"
 
 #: templates/sentry/projects/manage.html:37
 msgid "Project Details"
@@ -1702,7 +1702,7 @@ msgstr "Projekti üksikasjad"
 
 #: templates/sentry/projects/manage.html:48
 msgid "Event Settings"
-msgstr ""
+msgstr "Ürituse seaded"
 
 #: templates/sentry/projects/manage.html:61
 msgid "Client Security"
@@ -1731,7 +1731,7 @@ msgstr "Eemalda projekt"
 
 #: templates/sentry/projects/manage.html:82
 msgid "You do not have the required permission to remove this project."
-msgstr ""
+msgstr "Sul pole selle projekti eemaldamiseks vajalikke õiguseid."
 
 #: templates/sentry/projects/manage.html:84
 msgid ""
@@ -1748,37 +1748,37 @@ msgstr "Sildid"
 #: templates/sentry/projects/manage.html:180
 #: static/sentry/app/views/projectSettings/index.jsx:95
 msgid "Saved Searches"
-msgstr ""
+msgstr "Salvestatud otsingud"
 
 #: templates/sentry/projects/manage.html:184
 #: static/sentry/app/components/projectHeader/index.jsx:43
 msgid "User Reports"
-msgstr ""
+msgstr "Kasutaja aruanded"
 
 #: templates/sentry/projects/manage.html:188
 #: static/sentry/app/views/projectSettings/index.jsx:100
 msgid "Setup"
-msgstr ""
+msgstr "Seaded"
 
 #: templates/sentry/projects/manage.html:191
 #: static/sentry/app/views/projectSettings/index.jsx:107
 msgid "Instructions"
-msgstr ""
+msgstr "Juhendid"
 
 #: templates/sentry/projects/manage.html:194
 msgid "Client Keys (DSN)"
-msgstr ""
+msgstr "Kliendi võtmed (DSN)"
 
 #: templates/sentry/projects/manage.html:198
 #: templates/sentry/projects/plugins/list.html:10
 #: static/sentry/app/views/projectSettings/index.jsx:110
 msgid "Integrations"
-msgstr ""
+msgstr "Integreerimised"
 
 #: templates/sentry/projects/manage.html:201
 #: static/sentry/app/views/projectSettings/index.jsx:112
 msgid "All Integrations"
-msgstr ""
+msgstr "Kõik integreerimised"
 
 #: templates/sentry/projects/manage_tags.html:13
 #, python-format
@@ -1826,11 +1826,11 @@ msgstr ""
 
 #: templates/sentry/projects/remove.html:18
 msgid "Removing this project is permanent and cannot be undone!"
-msgstr ""
+msgstr "Selle projekti jäädav on püsiv ja seda ei saa tühistada!"
 
 #: templates/sentry/projects/remove.html:20
 msgid "This will also remove the all associated event data."
-msgstr ""
+msgstr "See eemaldab kõik üritusega seotud andmed."
 
 #: templates/sentry/projects/plugins/configure.html:15
 msgid "Enable Plugin"
@@ -1850,11 +1850,11 @@ msgstr "Taasta plugina algseaded"
 
 #: templates/sentry/projects/plugins/configure.html:38
 msgid "Changes to your project were saved successfully."
-msgstr ""
+msgstr "Muudatused sinu projektis salvestati."
 
 #: templates/sentry/projects/plugins/list.html:7
 msgid "Manage Integrations"
-msgstr ""
+msgstr "Halda integreerimisi"
 
 #: templates/sentry/projects/plugins/list.html:24
 msgid "n/a"
@@ -1862,16 +1862,16 @@ msgstr "pole lubatud"
 
 #: templates/sentry/projects/rules/list.html:8
 msgid "New Rule"
-msgstr ""
+msgstr "Uus reegel"
 
 #: templates/sentry/teams/base.html:5
 msgid "Team List"
 msgstr "Meeskonna nimekiri"
 
 #: templates/sentry/teams/manage.html:8 templates/sentry/teams/manage.html:11
-#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:70
+#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:102
 msgid "Team Settings"
-msgstr ""
+msgstr "Meeskonna seaded"
 
 #: templates/sentry/teams/manage.html:41 templates/sentry/teams/manage.html:47
 #: templates/sentry/teams/remove.html:6 templates/sentry/teams/remove.html:11
@@ -1881,7 +1881,7 @@ msgstr "Eemalda meeskond"
 
 #: templates/sentry/teams/remove.html:18
 msgid "Removing this team is permanent and cannot be undone!"
-msgstr ""
+msgstr "Selle meeskonna eemaldamine on jäädav ja seda ei saa tühistada."
 
 #: templates/sentry/teams/remove.html:21
 msgid "This will also remove all associated projects and events:"
@@ -1905,7 +1905,7 @@ msgstr "Kasutaja"
 
 #: templates/sentry/users/list.html:36
 msgid "Events Seen"
-msgstr ""
+msgstr "Nähtud sündmusi"
 
 #: templatetags/sentry_helpers.py:120
 msgid "b"
@@ -1955,7 +1955,7 @@ msgstr ""
 
 #: web/forms/__init__.py:56
 msgid "Superuser"
-msgstr ""
+msgstr "Superkasutaja"
 
 #: web/forms/__init__.py:57
 msgid ""
@@ -1973,11 +1973,11 @@ msgstr "Eemalda kasutaja ja nende andmed jäädavalt."
 
 #: web/forms/accounts.py:74
 msgid "username or email"
-msgstr ""
+msgstr "kasutajanimi või e-post"
 
 #: web/forms/accounts.py:79
 msgid "password"
-msgstr ""
+msgstr "parool"
 
 #: web/forms/accounts.py:84
 #, python-format
@@ -1994,7 +1994,7 @@ msgstr ""
 
 #: web/forms/accounts.py:88
 msgid "This account is inactive."
-msgstr ""
+msgstr "See konto pole aktiivne."
 
 #: web/forms/accounts.py:160
 msgid "An account is already registered with that email address."
@@ -2002,7 +2002,7 @@ msgstr ""
 
 #: web/forms/accounts.py:173
 msgid "Username or email"
-msgstr ""
+msgstr "Kasutajanimi või e-post"
 
 #: web/forms/accounts.py:181
 msgid "We were unable to find a matching user."
@@ -2010,7 +2010,7 @@ msgstr "Sobivat kasutajat ei leitud."
 
 #: web/forms/accounts.py:183
 msgid "Multiple accounts were found matching this email address."
-msgstr ""
+msgstr "Selle e-posti aadressiga leiti mitu kontot."
 
 #: web/forms/accounts.py:192
 msgid "Designate an alternative email address to send email notifications to."
@@ -2018,7 +2018,7 @@ msgstr ""
 
 #: web/forms/accounts.py:194
 msgid "Alerts"
-msgstr ""
+msgstr "Hoiatused"
 
 #: web/forms/accounts.py:196
 msgid "Automatically subscribe to notifications for new projects"
@@ -2030,7 +2030,7 @@ msgstr ""
 
 #: web/forms/accounts.py:201
 msgid "Notes"
-msgstr ""
+msgstr "Märkmed"
 
 #: web/forms/accounts.py:203
 msgid "Get notified about new notes"
@@ -2046,7 +2046,7 @@ msgstr "Uus parool"
 
 #: web/forms/accounts.py:297
 msgid "That username is already in use."
-msgstr ""
+msgstr "See kasutajanimi on juba kasutusel"
 
 #: web/forms/accounts.py:325
 msgid "Language"
@@ -2074,11 +2074,11 @@ msgstr ""
 
 #: web/forms/accounts.py:336
 msgid "Time zone"
-msgstr ""
+msgstr "Ajavöönd"
 
 #: web/forms/accounts.py:339
 msgid "Use a 24-hour clock"
-msgstr ""
+msgstr "Kasuta 24-tunnist kella"
 
 #: web/forms/add_project.py:16
 msgid "i.e. API, Frontend, My Application Name"
@@ -2094,7 +2094,7 @@ msgstr "Vigane kasutajanimi"
 
 #: web/forms/fields.py:105
 msgid "Not set"
-msgstr ""
+msgstr "Pole määratud"
 
 #: web/forms/fields.py:129
 msgid "e.g. example.com or https://example.com"
@@ -2102,7 +2102,7 @@ msgstr "nt. example.com või https://example.com"
 
 #: web/forms/fields.py:158
 msgid "e.g. 127.0.0.1 or 10.0.0.0/8"
-msgstr ""
+msgstr "nt. 127.0.0.1 või 10.0.0.0/8"
 
 #: web/forms/projects.py:20
 msgid "Mail Subject Prefix"
@@ -2147,7 +2147,7 @@ msgstr ""
 
 #: web/forms/projects.py:86
 msgid "Label"
-msgstr ""
+msgstr "Silt"
 
 #: web/frontend/accept_organization_invite.py:13
 msgid "The invite link you followed is not valid."
@@ -2174,19 +2174,19 @@ msgstr ""
 
 #: web/frontend/create_organization.py:17
 msgid "Organization Name"
-msgstr ""
+msgstr "Organisatsiooni nimi"
 
 #: web/frontend/create_organization.py:18
 msgid "My Company"
-msgstr ""
+msgstr "Minu ettevõte"
 
 #: web/frontend/create_organization_member.py:37
 msgid "The organization member was added."
-msgstr ""
+msgstr "Organisatsiooni liige lisati."
 
 #: web/frontend/create_organization_member.py:40
 msgid "The organization member already exists."
-msgstr ""
+msgstr "Organisatsiooni liige on juba olemas."
 
 #: web/frontend/disable_project_key.py:35
 #, python-format
@@ -2201,7 +2201,7 @@ msgstr ""
 #: web/frontend/enable_project_key.py:35
 #, python-format
 msgid "The API key (%s) was enabled."
-msgstr ""
+msgstr "API võtme (%s) kasutamine on lubatud."
 
 #: web/frontend/organization_api_key_settings.py:16
 #: web/frontend/project_settings.py:31
@@ -2211,7 +2211,7 @@ msgstr "Lubatud domeenid"
 #: web/frontend/organization_api_key_settings.py:17
 #: web/frontend/project_settings.py:32 web/frontend/project_settings.py:69
 msgid "Separate multiple entries with a newline."
-msgstr ""
+msgstr "Eralda erinevad sissekanded reavahetusega"
 
 #: web/frontend/organization_auth_settings.py:22
 msgid "The SSO feature is not enabled for this organization."
@@ -2239,7 +2239,7 @@ msgstr ""
 #: web/frontend/organization_auth_settings.py:36
 #: web/frontend/organization_settings.py:28
 msgid "Default Role"
-msgstr ""
+msgstr "Vaikimisi roll"
 
 #: web/frontend/organization_auth_settings.py:38
 msgid ""
@@ -2254,7 +2254,7 @@ msgstr ""
 
 #: web/frontend/organization_member_settings.py:83
 msgid "Your changes were saved."
-msgstr ""
+msgstr "Sinu muudatused salvestati."
 
 #: web/frontend/organization_settings.py:17
 msgid "The name of your organization. i.e. My Company"
@@ -2263,7 +2263,7 @@ msgstr ""
 #: web/frontend/organization_settings.py:19
 #: web/frontend/project_settings.py:27 web/frontend/team_settings.py:16
 msgid "Short name"
-msgstr ""
+msgstr "Lühinimi"
 
 #: web/frontend/organization_settings.py:20
 msgid "A unique ID used to identify this organization."
@@ -2283,7 +2283,7 @@ msgstr ""
 
 #: web/frontend/organization_settings.py:33
 msgid "Enhanced Privacy"
-msgstr ""
+msgstr "Täiustatud privaatsus"
 
 #: web/frontend/organization_settings.py:34
 msgid ""
@@ -2311,7 +2311,7 @@ msgstr ""
 
 #: web/frontend/project_rule_remove.py:25
 msgid "The rule was removed."
-msgstr ""
+msgstr "Reegel eemaldati."
 
 #: web/frontend/project_settings.py:25
 msgid "Production"
@@ -2334,7 +2334,7 @@ msgstr ""
 
 #: web/frontend/project_settings.py:35
 msgid "Auto resolve"
-msgstr ""
+msgstr "Automaatne lahendamine"
 
 #: web/frontend/project_settings.py:37
 msgid ""
@@ -2371,7 +2371,7 @@ msgstr ""
 
 #: web/frontend/project_settings.py:52
 msgid "e.g. email"
-msgstr ""
+msgstr "nt. e-post"
 
 #: web/frontend/project_settings.py:59
 msgid "Don't store IP Addresses"
@@ -2392,15 +2392,15 @@ msgstr ""
 
 #: web/frontend/project_settings.py:68
 msgid "Blacklisted IP Addresses"
-msgstr ""
+msgstr "IP-aadressid mustas nimekirjas"
 
-#: web/frontend/project_settings.py:201
+#: web/frontend/project_settings.py:209
 msgid "Changes to your project were saved."
-msgstr ""
+msgstr "Sin umuudatused projektis salvestati."
 
 #: web/frontend/remove_organization.py:12
 msgid "You cannot remove the default organization."
-msgstr ""
+msgstr "Sa ei saa eemaldada vaikimisi organisatsiooni."
 
 #: web/frontend/remove_organization.py:14
 #, python-format
@@ -2436,12 +2436,20 @@ msgstr ""
 
 #: static/sentry/app/components/loadingError.jsx:27
 msgid "Retry"
-msgstr ""
+msgstr "Proovi uuesti"
 
 #: static/sentry/app/components/timeSince.jsx:67
 #, python-format
 msgid "%(time)s old"
-msgstr ""
+msgstr "%(time)s vana"
+
+#: static/sentry/app/components/projectHeader/projectSelector.jsx:189
+msgid "Select a project"
+msgstr "Vali projekt"
+
+#: static/sentry/app/components/projectHeader/projectSelector.jsx:197
+msgid "Filter projects"
+msgstr "Filtreeri projekte"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:112
 msgid ""
@@ -2451,11 +2459,11 @@ msgstr ""
 
 #: static/sentry/app/views/ruleEditor/index.jsx:115
 msgid "Rule name"
-msgstr ""
+msgstr "Reegli nimi"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:120
 msgid "My Rule Name"
-msgstr ""
+msgstr "Minu reegli nimi"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:125
 #, python-format
@@ -2464,15 +2472,15 @@ msgstr ""
 
 #: static/sentry/app/views/ruleEditor/index.jsx:130
 msgid "all"
-msgstr ""
+msgstr "kõik"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:131
 msgid "any"
-msgstr ""
+msgstr "ni"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:132
 msgid "none"
-msgstr ""
+msgstr "mitte ükski"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:150
 msgid ""
@@ -2482,23 +2490,19 @@ msgstr ""
 
 #: static/sentry/app/views/ruleEditor/index.jsx:147
 msgid "Take these actions:"
-msgstr ""
+msgstr "Tee need toimingud"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:160
 msgid "Save Rule"
-msgstr ""
-
-#: static/sentry/app/components/projectHeader/projectSelector.jsx:189
-msgid "Select a project"
-msgstr ""
-
-#: static/sentry/app/components/projectHeader/projectSelector.jsx:197
-msgid "Filter projects"
-msgstr ""
+msgstr "Salvesta reeglid"
 
 #: static/sentry/app/components/alertMessage.jsx:27
 msgid "Close"
-msgstr ""
+msgstr "Sulge"
+
+#: static/sentry/app/views/app.jsx:84
+msgid "Getting a list of all of your organizations."
+msgstr "Kõikide sinu organisatsioonide nimekirja hankimine."
 
 #: static/sentry/app/views/adminOrganizations.jsx:103
 msgid "Sorry, no results match your filters."
@@ -2506,23 +2510,19 @@ msgstr ""
 
 #: static/sentry/app/views/adminOrganizations.jsx:135
 msgid "Search for an organization."
-msgstr ""
+msgstr "Otsi organisatsiooni."
 
 #: static/sentry/app/components/organizations/homeSidebar.jsx:37
 msgid "Organization"
-msgstr ""
+msgstr "Organisatsioon"
 
 #: static/sentry/app/views/groupDetails.jsx:107
 msgid "The issue you were looking for was not found."
-msgstr ""
+msgstr "Probleemi, mida sa otsid pole olemas."
 
-#: static/sentry/app/views/app.jsx:84
-msgid "Getting a list of all of your organizations."
-msgstr ""
-
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:65
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:69
 msgid "Saving changes.."
-msgstr ""
+msgstr "Muudatuste salvestamine.."
 
 #: static/sentry/app/views/adminSettings.jsx:131
 msgid "Your changes were saved, and will propagate to services shortly."
@@ -2530,7 +2530,7 @@ msgstr ""
 
 #: static/sentry/app/views/installWizard.jsx:207
 msgid "Please wait while we load configuration."
-msgstr ""
+msgstr "Palun oota, kuni seaded laaditakse."
 
 #: static/sentry/app/views/installWizard.jsx:212
 msgid ""
@@ -2546,7 +2546,7 @@ msgstr ""
 
 #: static/sentry/app/views/groupTags.jsx:100
 msgid "More Details"
-msgstr ""
+msgstr "Lisainfo"
 
 #: static/sentry/app/views/groupUserReports.jsx:110
 msgid "No user reports have been collected for this event."
@@ -2554,10 +2554,6 @@ msgstr ""
 
 #: static/sentry/app/views/projectUserReports.jsx:145
 msgid "Learn how to integrate User Crash Reports"
-msgstr ""
-
-#: static/sentry/app/views/myIssues/assignedToMe.jsx:12
-msgid "Assigned to me"
 msgstr ""
 
 #: static/sentry/app/views/groupTagValues.jsx:124
@@ -2572,66 +2568,7 @@ msgstr ""
 
 #: static/sentry/app/views/groupTagValues.jsx:138
 msgid "Value"
-msgstr ""
-
-#: static/sentry/app/views/organizationDetails.jsx:108
-msgid "Loading data for your organization."
-msgstr ""
-
-#: static/sentry/app/views/organizationDetails.jsx:117
-msgid "The organization you were looking for was not found."
-msgstr ""
-
-#: static/sentry/app/views/organizationDashboard.jsx:23
-msgid "View more"
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/platform.jsx:90
-msgid "Full Documentation"
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/platform.jsx:93
-#, python-format
-msgid "Configure %(integration)s"
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/platform.jsx:123
-msgid "Generic"
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/overview.jsx:45
-msgid "Configure your application"
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/overview.jsx:47
-msgid ""
-"Get started by selecting the platform or language that powers your "
-"application."
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/overview.jsx:59
-msgid "Public DSN"
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/overview.jsx:61
-msgid "Your public DSN should be used with JavaScript and ActionScript."
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/overview.jsx:65
-msgid "Already have things setup? [link:Get your DSN]."
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/overview.jsx:70
-msgid "Popular"
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/overview.jsx:82
-msgid "Frameworks"
-msgstr "Raamistikud"
-
-#: static/sentry/app/views/projectInstall/overview.jsx:90
-msgid "Languages"
-msgstr ""
+msgstr "Väärtus"
 
 #: static/sentry/app/views/groupEvents.jsx:102
 msgid "Sorry, no events match your search query."
@@ -2643,11 +2580,90 @@ msgstr ""
 
 #: static/sentry/app/views/groupEvents.jsx:177
 msgid "ID"
+msgstr "ID"
+
+#: static/sentry/app/views/myIssues/assignedToMe.jsx:12
+msgid "Assigned to me"
+msgstr "Määratud mulle"
+
+#: static/sentry/app/views/organizationDashboard.jsx:23
+msgid "View more"
+msgstr "Vaata lisa"
+
+#: static/sentry/app/views/projectInstall/overview.jsx:45
+msgid "Configure your application"
+msgstr "Seadista oma rakendus"
+
+#: static/sentry/app/views/projectInstall/overview.jsx:47
+msgid ""
+"Get started by selecting the platform or language that powers your "
+"application."
 msgstr ""
 
-#: static/sentry/app/views/releaseAllEvents.jsx:20
-msgid "View all events seen in this release in the stream"
+#: static/sentry/app/views/projectInstall/overview.jsx:59
+msgid "Public DSN"
+msgstr "Avalik DSN"
+
+#: static/sentry/app/views/projectInstall/overview.jsx:61
+msgid "Your public DSN should be used with JavaScript and ActionScript."
 msgstr ""
+
+#: static/sentry/app/views/projectInstall/overview.jsx:65
+msgid "Already have things setup? [link:Get your DSN]."
+msgstr ""
+
+#: static/sentry/app/views/projectInstall/overview.jsx:70
+msgid "Popular"
+msgstr "Populaarne"
+
+#: static/sentry/app/views/projectInstall/overview.jsx:82
+msgid "Frameworks"
+msgstr "Raamistikud"
+
+#: static/sentry/app/views/projectInstall/overview.jsx:90
+msgid "Languages"
+msgstr "Keeled"
+
+#: static/sentry/app/views/organizationDetails.jsx:108
+msgid "Loading data for your organization."
+msgstr "Sinu organisatsiooni andmete laadimine."
+
+#: static/sentry/app/views/organizationDetails.jsx:117
+msgid "The organization you were looking for was not found."
+msgstr "Organisatsiooni, mida sa otsid ei leitud."
+
+#: static/sentry/app/views/projectInstall/platform.jsx:90
+msgid "Full Documentation"
+msgstr "Täielik dokumentatsioon"
+
+#: static/sentry/app/views/projectInstall/platform.jsx:93
+#, python-format
+msgid "Configure %(integration)s"
+msgstr "Seadista %(integration)s"
+
+#: static/sentry/app/views/projectInstall/platform.jsx:123
+msgid "Generic"
+msgstr "Üldine"
+
+#: static/sentry/app/views/projectDetails.jsx:156
+msgid "The project you were looking for was not found."
+msgstr ""
+
+#: static/sentry/app/views/projectDashboard.jsx:121
+msgid "1 hour"
+msgstr "1 tund"
+
+#: static/sentry/app/views/projectDashboard.jsx:138
+msgid "1 week"
+msgstr "1 nädal"
+
+#: static/sentry/app/views/projectDashboard.jsx:150
+msgid "Trending Issues"
+msgstr "Tõusvad probleemid"
+
+#: static/sentry/app/views/releaseDetails.jsx:139
+msgid "New Issues"
+msgstr "Uued probleemid"
 
 #: static/sentry/app/views/projectUserReports.jsx:135
 msgid "Sorry, no results match your search query."
@@ -2661,236 +2677,69 @@ msgstr ""
 msgid "There are no artifacts uploaded for this release."
 msgstr ""
 
-#: static/sentry/app/views/projectDashboard.jsx:121
-msgid "1 hour"
-msgstr ""
-
-#: static/sentry/app/views/projectDashboard.jsx:138
-msgid "1 week"
-msgstr ""
-
-#: static/sentry/app/views/projectDashboard.jsx:150
-msgid "Trending Issues"
-msgstr ""
-
-#: static/sentry/app/views/releaseDetails.jsx:139
-msgid "New Issues"
-msgstr ""
-
-#: static/sentry/app/views/releaseNewEvents.jsx:20
-msgid "View new events seen in this release in the stream"
-msgstr ""
-
-#: static/sentry/app/views/projectDetails.jsx:156
-msgid "The project you were looking for was not found."
-msgstr ""
-
-#: static/sentry/app/views/projectSavedSearches.jsx:80
-msgid "Default"
-msgstr ""
-
-#: static/sentry/app/views/projectSavedSearches.jsx:85
-msgid "Make Default"
+#: static/sentry/app/views/releaseAllEvents.jsx:20
+msgid "View all events seen in this release in the stream"
 msgstr ""
 
 #: static/sentry/app/components/activity/note.jsx:33
 msgid "Remove"
 msgstr "Eemalda"
 
-#: static/sentry/app/views/projectSavedSearches.jsx:183
+#: static/sentry/app/views/projectSavedSearches.jsx:200
 msgid "There are no saved searches for this project."
+msgstr ""
+
+#: static/sentry/app/views/stream.jsx:495
+msgid "Waiting for events…"
+msgstr "Sündmuste ootamine.."
+
+#: static/sentry/app/views/stream.jsx:496
+msgid "Our error robot is waiting to [cross:devour] receive your first event."
+msgstr ""
+
+#: static/sentry/app/views/stream.jsx:497
+msgid "Installation Instructions"
+msgstr "Paigaldamise juhendid"
+
+#: static/sentry/app/views/projectEvents/index.jsx:132
+msgid "Sorry, no events match your filters."
+msgstr "Vabandust, filtrile ei vasta ükski sinu üritustest."
+
+#: static/sentry/app/views/releaseNewEvents.jsx:20
+msgid "View new events seen in this release in the stream"
 msgstr ""
 
 #: static/sentry/app/components/group/seenInfo.jsx:27
 msgid "Release"
-msgstr ""
+msgstr "Väljalase"
 
 #: static/sentry/app/views/releaseDetails.jsx:115
 msgid "First Event"
-msgstr ""
+msgstr "Esimene sündmus"
 
 #: static/sentry/app/views/projectReleases/index.jsx:175
 msgid "Last Event"
-msgstr ""
+msgstr "Viimane sündmus"
 
 #: static/sentry/app/components/organizationIssueList.jsx:48
 msgid "All Issues"
-msgstr ""
+msgstr "Kõik probleemid"
 
 #: static/sentry/app/views/releaseDetails.jsx:141
 msgid "Artifacts"
 msgstr ""
 
-#: static/sentry/app/views/stream.jsx:474
-msgid "Waiting for events…"
-msgstr ""
-
-#: static/sentry/app/views/stream.jsx:475
-msgid "Our error robot is waiting to [cross:devour] receive your first event."
-msgstr ""
-
-#: static/sentry/app/views/stream.jsx:476
-msgid "Installation Instructions"
-msgstr ""
-
-#: static/sentry/app/views/projectEvents/index.jsx:132
-msgid "Sorry, no events match your filters."
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:27
-#, python-format
-msgid "%s left a comment"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:29
-#, python-format
-msgid "%s marked this issue as resolved"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:32
-#, python-format
-msgid "%(author)s marked this issue as resolved in %(version)s"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:37
-#, python-format
-msgid "%s marked this issue as resolved in the upcoming release"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:40
-#, python-format
-msgid "%s marked this issue as unresolved"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:43
-#, python-format
-msgid "%(author)s snoozed this issue for %(duration)s"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:48
-#, python-format
-msgid "%s muted this issue"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:50
-#, python-format
-msgid "%s made this issue public"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:52
-#, python-format
-msgid "%s made this issue private"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:55
-#, python-format
-msgid "%(author)s marked this issue as a regression in %(version)s"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:60
-#, python-format
-msgid "%s marked this issue as a regression"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:63
-#, python-format
-msgid "created an issue on %(provider)s titled %(title)s"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:68
-#, python-format
-msgid "%s first saw this issue"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:73
-#, python-format
-msgid "%s assigned this event to themselves"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:85
-#, python-format
-msgid "%(author)s assigned this event to %(assignee)s"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:82
-#, python-format
-msgid "%s assigned this event to an unknown user"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:90
-#, python-format
-msgid "%s unassigned this issue"
-msgstr ""
-
-#: static/sentry/app/views/groupActivity/index.jsx:92
-msgid "%2$s merged %1$d issue into this issue"
-msgid_plural "%2$s merged %1$d issues into this issue"
-msgstr[0] ""
-msgstr[1] ""
-
 #: static/sentry/app/views/organizationTeams/index.jsx:98
 msgid "Your Teams"
-msgstr ""
+msgstr "Sinu meeskonnad"
 
 #: static/sentry/app/views/organizationTeams/index.jsx:101
 msgid "All Teams"
-msgstr ""
-
-#: static/sentry/app/views/projectReleases/index.jsx:136
-msgid "Sorry, no releases match your filters."
-msgstr ""
-
-#: static/sentry/app/views/projectReleases/index.jsx:145
-msgid "There don't seem to be any releases yet."
-msgstr ""
-
-#: static/sentry/app/views/projectReleases/index.jsx:147
-msgid "Learn how to integrate Release Tracking"
-msgstr ""
-
-#: static/sentry/app/components/projectHeader/index.jsx:49
-msgid "Releases"
-msgstr ""
-
-#: static/sentry/app/views/projectReleases/index.jsx:162
-msgid "Search for a release."
-msgstr ""
-
-#: static/sentry/app/views/projectReleases/index.jsx:170
-msgid "Version"
-msgstr "Versioon"
-
-#: static/sentry/app/views/projectReleases/index.jsx:172
-msgid "New Events"
-msgstr "Uued sündmused"
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:41
-msgid "Accepted"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:252
-msgid "Dropped (Rate Limit)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:264
-msgid "Dropped (Blacklist)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:290
-msgid "Events per minute"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:311
-msgid "Events by Project"
-msgstr ""
-
-#: static/sentry/app/views/projectEvents/index.jsx:141
-msgid "There don't seem to be any events."
-msgstr ""
+msgstr "Kõik meeskonnad"
 
 #: static/sentry/app/views/organizationRateLimits/index.jsx:89
 msgid "Saving.."
-msgstr ""
+msgstr "Salvestamine.."
 
 #: static/sentry/app/views/organizationRateLimits/index.jsx:124
 msgid ""
@@ -2910,134 +2759,154 @@ msgstr ""
 
 #: static/sentry/app/views/organizationRateLimits/index.jsx:145
 msgid "Apply Changes"
-msgstr ""
+msgstr "Rakenda muudatused"
 
 #: static/sentry/app/views/organizationRateLimits/index.jsx:173
 msgid "There are no rate limits configured for your organization."
 msgstr ""
 
-#: static/sentry/app/options.jsx:8
-msgid "Root URL"
-msgstr ""
-
-#: static/sentry/app/options.jsx:10
-msgid ""
-"The root web address which is used to communicate with the Sentry backend."
-msgstr ""
-
-#: static/sentry/app/options.jsx:14
-msgid "Admin Email"
-msgstr ""
-
-#: static/sentry/app/options.jsx:16
-msgid "The technical contact for this Sentry installation."
-msgstr ""
-
-#: static/sentry/app/options.jsx:22
-msgid "Rate Limit"
-msgstr ""
-
-#: static/sentry/app/options.jsx:24
-msgid ""
-"The maximum number of events the system should accept per minute. A value of"
-" 0 will disable the default rate limit."
-msgstr ""
-
-#: static/sentry/app/components/events/eventEntries.jsx:76
-msgid "There was an error rendering this data."
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:28
-msgid "Oldest"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:42
-msgid "Older"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:51
-msgid "Newer"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:58
-msgid "Newest"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:78
+#: static/sentry/app/views/groupActivity/index.jsx:27
 #, python-format
-msgid "Event %s"
-msgstr ""
+msgid "%s left a comment"
+msgstr "%s jättis kommentaari"
 
-#: static/sentry/app/components/group/sidebar.jsx:19
-msgid "Last 24 Hours"
-msgstr ""
-
-#: static/sentry/app/components/group/sidebar.jsx:23
-msgid "Last 30 Days"
-msgstr ""
-
-#: static/sentry/app/components/group/chart.jsx:30
-msgid "First seen"
-msgstr ""
-
-#: static/sentry/app/components/group/chart.jsx:37
-msgid "Last seen"
-msgstr ""
-
-#: static/sentry/app/components/mutedBox.jsx:15
+#: static/sentry/app/views/groupActivity/index.jsx:29
 #, python-format
-msgid "This issue has been snoozed until %s"
+msgid "%s marked this issue as resolved"
+msgstr "%s märkis selle probleemi lahendatuks"
+
+#: static/sentry/app/views/groupActivity/index.jsx:32
+#, python-format
+msgid "%(author)s marked this issue as resolved in %(version)s"
+msgstr "%(author)s märkis selle probleemi lahendatuks versioonis %(version)s"
+
+#: static/sentry/app/views/groupActivity/index.jsx:37
+#, python-format
+msgid "%s marked this issue as resolved in the upcoming release"
 msgstr ""
 
-#: static/sentry/app/components/mutedBox.jsx:20
-msgid "This issue has been muted"
+#: static/sentry/app/views/groupActivity/index.jsx:40
+#, python-format
+msgid "%s marked this issue as unresolved"
+msgstr "%s märkis selle probleemi mittelahendatuks"
+
+#: static/sentry/app/views/groupActivity/index.jsx:43
+#, python-format
+msgid "%(author)s snoozed this issue for %(duration)s"
 msgstr ""
 
-#: static/sentry/app/components/mutedBox.jsx:22
-msgid ""
-"You will not be notified of any changes and it will not show up by default "
-"in feeds."
+#: static/sentry/app/views/groupActivity/index.jsx:48
+#, python-format
+msgid "%s muted this issue"
 msgstr ""
 
-#: static/sentry/app/views/stream/searchBar.jsx:73
-msgid "Assigned"
+#: static/sentry/app/views/groupActivity/index.jsx:50
+#, python-format
+msgid "%s made this issue public"
+msgstr "%s tegi selle probleemi avalikuks"
+
+#: static/sentry/app/views/groupActivity/index.jsx:52
+#, python-format
+msgid "%s made this issue private"
+msgstr "%s tegi selle probleemi privaatseks"
+
+#: static/sentry/app/views/groupActivity/index.jsx:55
+#, python-format
+msgid "%(author)s marked this issue as a regression in %(version)s"
 msgstr ""
 
-#: static/sentry/app/views/groupDetails/header.jsx:149
-msgid "Share this event"
+#: static/sentry/app/views/groupActivity/index.jsx:60
+#, python-format
+msgid "%s marked this issue as a regression"
 msgstr ""
 
-#: static/sentry/app/views/groupDetails/header.jsx:164
-msgid "Comments"
+#: static/sentry/app/views/groupActivity/index.jsx:63
+#, python-format
+msgid "created an issue on %(provider)s titled %(title)s"
+msgstr "lisas provleemi  %(provider)s pealkirjaga %(title)s"
+
+#: static/sentry/app/views/groupActivity/index.jsx:68
+#, python-format
+msgid "%s first saw this issue"
+msgstr "%s nägai seda probleemi esimest korda"
+
+#: static/sentry/app/views/groupActivity/index.jsx:73
+#, python-format
+msgid "%s assigned this event to themselves"
+msgstr "%s määras selle ürituse endale"
+
+#: static/sentry/app/views/groupActivity/index.jsx:85
+#, python-format
+msgid "%(author)s assigned this event to %(assignee)s"
+msgstr "%(author)s määras selle ürituse kellele %(assignee)s"
+
+#: static/sentry/app/views/groupActivity/index.jsx:82
+#, python-format
+msgid "%s assigned this event to an unknown user"
+msgstr "%s määras selle sündmuse tundmatule kasutajale"
+
+#: static/sentry/app/views/groupActivity/index.jsx:90
+#, python-format
+msgid "%s unassigned this issue"
 msgstr ""
 
-#: static/sentry/app/views/groupDetails/header.jsx:175
-msgid "Related Events"
+#: static/sentry/app/views/groupActivity/index.jsx:92
+msgid "%2$s merged %1$d issue into this issue"
+msgid_plural "%2$s merged %1$d issues into this issue"
+msgstr[0] ""
+msgstr[1] ""
+
+#: static/sentry/app/views/projectEvents/index.jsx:141
+msgid "There don't seem to be any events."
+msgstr "Ühtegi sündmust ei näi olevat."
+
+#: static/sentry/app/views/projectReleases/index.jsx:136
+msgid "Sorry, no releases match your filters."
 msgstr ""
 
-#: static/sentry/app/stores/groupStore.jsx:221
-msgid "Unable to change assignee. Please try again."
+#: static/sentry/app/views/projectReleases/index.jsx:145
+msgid "There don't seem to be any releases yet."
 msgstr ""
 
-#: static/sentry/app/stores/groupStore.jsx:245
-msgid "Unable to delete events. Please try again."
+#: static/sentry/app/views/projectReleases/index.jsx:147
+msgid "Learn how to integrate Release Tracking"
 msgstr ""
 
-#: static/sentry/app/stores/groupStore.jsx:256
-msgid "The selected events have been scheduled for deletion."
+#: static/sentry/app/components/projectHeader/index.jsx:49
+msgid "Releases"
+msgstr "Väljalasked"
+
+#: static/sentry/app/views/projectReleases/index.jsx:162
+msgid "Search for a release."
+msgstr "Otsi väljalaset"
+
+#: static/sentry/app/views/projectReleases/index.jsx:170
+msgid "Version"
+msgstr "Versioon"
+
+#: static/sentry/app/views/projectReleases/index.jsx:172
+msgid "New Events"
+msgstr "Uued sündmused"
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:41
+msgid "Accepted"
+msgstr "Aktsepteeritud"
+
+#: static/sentry/app/views/organizationStats/index.jsx:252
+msgid "Dropped (Rate Limit)"
 msgstr ""
 
-#: static/sentry/app/stores/groupStore.jsx:271
-msgid "Unable to merge events. Please try again."
+#: static/sentry/app/views/organizationStats/index.jsx:264
+msgid "Dropped (Blacklist)"
 msgstr ""
 
-#: static/sentry/app/stores/groupStore.jsx:286
-msgid "The selected events have been scheduled for merge."
-msgstr ""
+#: static/sentry/app/views/organizationStats/index.jsx:290
+msgid "Events per minute"
+msgstr "Sündmusi minuti kohta"
 
-#: static/sentry/app/stores/groupStore.jsx:318
-msgid "Unable to update events. Please try again."
-msgstr ""
+#: static/sentry/app/views/organizationStats/index.jsx:311
+msgid "Events by Project"
+msgstr "Sündmused projektide järgi"
 
 #: static/sentry/app/views/installWizard.jsx:169
 #, python-format
@@ -3057,15 +2926,114 @@ msgstr ""
 
 #: static/sentry/app/views/installWizard.jsx:197
 msgid "Sentry Setup"
-msgstr ""
+msgstr "Sentry seadistamine"
 
 #: static/sentry/app/views/installWizard.jsx:202
 msgid "Welcome to Sentry"
+msgstr "Teretulemast Sentryt kasutama"
+
+#: static/sentry/app/components/group/sidebar.jsx:19
+msgid "Last 24 Hours"
+msgstr "Viimased 24 tundi"
+
+#: static/sentry/app/components/group/sidebar.jsx:23
+msgid "Last 30 Days"
+msgstr "Viimased 30 päeva"
+
+#: static/sentry/app/components/group/chart.jsx:30
+msgid "First seen"
+msgstr "Esimesena nähtud"
+
+#: static/sentry/app/components/group/chart.jsx:37
+msgid "Last seen"
+msgstr "Viimasena nähtud"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:28
+msgid "Oldest"
+msgstr "Vanimad"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:42
+msgid "Older"
+msgstr "Vanem"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:51
+msgid "Newer"
+msgstr "Uuem"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:58
+msgid "Newest"
+msgstr "Uusim"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:78
+#, python-format
+msgid "Event %s"
+msgstr "Sündmus %s"
+
+#: static/sentry/app/components/events/eventEntries.jsx:76
+msgid "There was an error rendering this data."
 msgstr ""
+
+#: static/sentry/app/components/mutedBox.jsx:15
+#, python-format
+msgid "This issue has been snoozed until %s"
+msgstr ""
+
+#: static/sentry/app/components/mutedBox.jsx:20
+msgid "This issue has been muted"
+msgstr ""
+
+#: static/sentry/app/components/mutedBox.jsx:22
+msgid ""
+"You will not be notified of any changes and it will not show up by default "
+"in feeds."
+msgstr ""
+
+#: static/sentry/app/options.jsx:8
+msgid "Root URL"
+msgstr ""
+
+#: static/sentry/app/options.jsx:10
+msgid ""
+"The root web address which is used to communicate with the Sentry backend."
+msgstr ""
+
+#: static/sentry/app/options.jsx:14
+msgid "Admin Email"
+msgstr "Admini e-post"
+
+#: static/sentry/app/options.jsx:16
+msgid "The technical contact for this Sentry installation."
+msgstr ""
+
+#: static/sentry/app/options.jsx:22
+msgid "Rate Limit"
+msgstr ""
+
+#: static/sentry/app/options.jsx:24
+msgid ""
+"The maximum number of events the system should accept per minute. A value of"
+" 0 will disable the default rate limit."
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:73
+msgid "Assigned"
+msgstr "Määratud"
+
+#: static/sentry/app/views/groupDetails/header.jsx:149
+msgid "Share this event"
+msgstr "Jaga seda sündmust"
+
+#: static/sentry/app/views/groupDetails/header.jsx:164
+msgid "Comments"
+msgstr "Kommentaarid"
+
+#: static/sentry/app/views/groupDetails/header.jsx:175
+msgid "Related Events"
+msgstr "Seotud sündmused"
 
 #: static/sentry/app/components/issueList.jsx:112
 msgid "Nothing to show here, move along."
-msgstr ""
+msgstr "Siin pole midagi vaadata, liigu edasi."
 
 #: static/sentry/app/components/organizations/homeContainer.jsx:34
 msgid "You do not have enough permission to create new projects"
@@ -3075,13 +3043,29 @@ msgstr ""
 msgid "You do not have enough permission to create new teams"
 msgstr ""
 
-#: static/sentry/app/components/groupList.jsx:123
-msgid "There don't seem to be any events fitting the query."
+#: static/sentry/app/stores/groupStore.jsx:221
+msgid "Unable to change assignee. Please try again."
 msgstr ""
 
-#: static/sentry/app/views/projectDashboard/eventList.jsx:108
-msgid "No data available."
+#: static/sentry/app/stores/groupStore.jsx:245
+msgid "Unable to delete events. Please try again."
+msgstr "Sündmuse kustutamine ebaõnnestus. Palun proovi uuesti."
+
+#: static/sentry/app/stores/groupStore.jsx:256
+msgid "The selected events have been scheduled for deletion."
 msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:271
+msgid "Unable to merge events. Please try again."
+msgstr "Sündmuste kustutamine ebaõnnestus. Palun proovi uuesti."
+
+#: static/sentry/app/stores/groupStore.jsx:286
+msgid "The selected events have been scheduled for merge."
+msgstr "Valitud sündmused on kavandatud liitmiseks."
+
+#: static/sentry/app/stores/groupStore.jsx:318
+msgid "Unable to update events. Please try again."
+msgstr "Sündmuse uuendamine ebaõnnestus. Palun proovi uuesti."
 
 #: static/sentry/app/components/missingProjectMembership.jsx:56
 #, python-format
@@ -3099,155 +3083,131 @@ msgstr ""
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:94
 msgid "Join Team"
-msgstr ""
+msgstr "Liitu meeskonnaga"
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:97
 msgid "Request Access"
 msgstr ""
 
-#: static/sentry/app/views/stream/sidebar.jsx:104
-msgid "Text"
-msgstr ""
+#: static/sentry/app/views/projectDashboard/eventList.jsx:108
+msgid "No data available."
+msgstr "Andmeid pole saadaval."
 
-#: static/sentry/app/views/stream/sidebar.jsx:108
-msgid "Search title and culprit text body"
-msgstr ""
-
-#: static/sentry/app/views/stream/filters.jsx:59
-msgid "Search for events, users, tags, and everything else."
-msgstr ""
-
-#: static/sentry/app/components/compactIssue.jsx:52
-msgid "zZz"
-msgstr ""
-
-#: static/sentry/app/components/linkWithConfirmation.jsx:46
-msgid "Please confirm"
-msgstr ""
-
-#: static/sentry/app/components/compactIssue.jsx:57
-msgid "How long should we snooze this issue?"
-msgstr ""
-
-#: static/sentry/app/components/compactIssue.jsx:59
-msgid "30 minutes"
-msgstr ""
-
-#: static/sentry/app/components/compactIssue.jsx:60
-msgid "2 hours"
-msgstr ""
-
-#: static/sentry/app/components/compactIssue.jsx:61
-msgid "24 hours"
-msgstr ""
-
-#: static/sentry/app/components/compactIssue.jsx:62
-msgid "Forever"
+#: static/sentry/app/components/groupList.jsx:123
+msgid "There don't seem to be any events fitting the query."
 msgstr ""
 
 #: static/sentry/app/views/stream/actions.jsx:92
 msgid "Removing events.."
+msgstr "Sündmuste eemaldamine.."
+
+#: static/sentry/app/views/stream/actions.jsx:109
+msgid "Merging events.."
+msgstr "Sündmuste liitmine.."
+
+#: static/sentry/app/views/stream/actions.jsx:149
+msgid "This will apply to the current search query:"
 msgstr ""
 
-#: static/sentry/app/views/stream/actions.jsx:108
-msgid "Merging events.."
+#: static/sentry/app/views/stream/actions.jsx:153
+msgid "This will apply to ALL issues in this project!"
 msgstr ""
 
 #: static/sentry/app/views/groupDetails/actions.jsx:123
 msgid "Resolve"
-msgstr ""
+msgstr "Lahenda"
 
-#: static/sentry/app/views/stream/actions.jsx:160
+#: static/sentry/app/views/stream/actions.jsx:175
 msgid ""
 "Are you sure you want to resolve all issues matching this search query?"
 msgstr ""
 
-#: static/sentry/app/views/stream/actions.jsx:162
+#: static/sentry/app/views/stream/actions.jsx:177
 #, python-format
 msgid "Are you sure you want to resolve this %d issue?"
 msgid_plural "Are you sure you want to resolve these %d issues?"
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:168
+#: static/sentry/app/views/stream/actions.jsx:183
 msgid "Resolve all issues"
-msgstr ""
+msgstr "Lahenda kõik probleemid"
 
-#: static/sentry/app/views/stream/actions.jsx:170
+#: static/sentry/app/views/stream/actions.jsx:185
 #, python-format
 msgid "Resolve %d selected issue"
 msgid_plural "Resolve %d selected issues"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Lahenda %d valitud probleem"
+msgstr[1] "Lahenda %d valitud probleemi"
 
-#: static/sentry/app/views/stream/actions.jsx:174
+#: static/sentry/app/views/stream/actions.jsx:189
 msgid "Set Status to Resolved"
-msgstr ""
+msgstr "Määra olek lahendatuks"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:177
 msgid "Bookmark"
 msgstr "Järjehoidja"
 
-#: static/sentry/app/views/stream/actions.jsx:186
+#: static/sentry/app/views/stream/actions.jsx:202
 msgid ""
 "Are you sure you want to bookmark all issues matching this search query?"
 msgstr ""
 
-#: static/sentry/app/views/stream/actions.jsx:188
+#: static/sentry/app/views/stream/actions.jsx:204
 #, python-format
 msgid "Are you sure you want to bookmark this %d issue?"
 msgid_plural "Are you sure you want to bookmark these %d issues?"
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:194
+#: static/sentry/app/views/stream/actions.jsx:210
 msgid "Bookmark all issues"
-msgstr ""
+msgstr "Lisa kõik probleemid järjehoidjatesse"
 
-#: static/sentry/app/views/stream/actions.jsx:196
+#: static/sentry/app/views/stream/actions.jsx:212
 #, python-format
 msgid "Bookmark %d selected issue"
 msgid_plural "Bookmark %d selected issues"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Lisa %d valitud probleem järjehoidjasse"
+msgstr[1] "Lisa %d valitud probleemi järjehoidjasse"
 
-#: static/sentry/app/views/stream/actions.jsx:200
+#: static/sentry/app/views/stream/actions.jsx:216
 msgid "Add to Bookmarks"
-msgstr ""
+msgstr "Lisa järjehoidjatesse"
 
-#: static/sentry/app/views/stream/actions.jsx:219
+#: static/sentry/app/views/stream/actions.jsx:236
 msgid "Are you sure you want to merge all issues matching this search query?"
 msgstr ""
 
-#: static/sentry/app/views/stream/actions.jsx:221
+#: static/sentry/app/views/stream/actions.jsx:238
 #, python-format
 msgid "Are you sure you want to merge %d issue?"
 msgid_plural "Are you sure you want to merge %d issues?"
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:227
+#: static/sentry/app/views/stream/actions.jsx:244
 msgid "Merge all issues"
-msgstr ""
+msgstr "Liida kõik probleemid"
 
-#: static/sentry/app/views/stream/actions.jsx:229
+#: static/sentry/app/views/stream/actions.jsx:246
 #, python-format
 msgid "Merge %d selected issue"
 msgid_plural "Merge %d selected issues"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Liida %d valitud probleem"
+msgstr[1] "Liida %d valitud probleemi"
 
-#: static/sentry/app/views/stream/actions.jsx:234
+#: static/sentry/app/views/stream/actions.jsx:251
 msgid "Merge Events"
-msgstr ""
+msgstr "Liida sündmused"
 
-#: static/sentry/app/views/stream/actions.jsx:244
+#: static/sentry/app/views/stream/actions.jsx:262
 msgid ""
 "Are you sure you want to remove all issues matching this search query from "
 "your bookmarks?"
 msgstr ""
 
-#: static/sentry/app/views/stream/actions.jsx:246
+#: static/sentry/app/views/stream/actions.jsx:264
 #, python-format
 msgid "Are you sure you want to remove this %d issue from your bookmarks?"
 msgid_plural ""
@@ -3255,139 +3215,241 @@ msgid_plural ""
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:252
+#: static/sentry/app/views/stream/actions.jsx:270
 msgid "Remove all issues from bookmarks"
-msgstr ""
+msgstr "Eemalda kõik probleemid järjehoidjatest"
 
-#: static/sentry/app/views/stream/actions.jsx:254
+#: static/sentry/app/views/stream/actions.jsx:272
 #, python-format
 msgid "Remove %d selected issue from bookmarks"
 msgid_plural "Remove %d selected issues from bookmarks"
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:260
+#: static/sentry/app/views/stream/actions.jsx:278
 msgid "Remove from Bookmarks"
-msgstr ""
+msgstr "Eemalda järjehoidjatest"
 
-#: static/sentry/app/views/stream/actions.jsx:271
+#: static/sentry/app/views/stream/actions.jsx:290
 msgid ""
 "Are you sure you want to unresolve all issues matching this search query?"
 msgstr ""
 
-#: static/sentry/app/views/stream/actions.jsx:273
+#: static/sentry/app/views/stream/actions.jsx:292
 #, python-format
 msgid "Are you sure you want to unresolve this %d issue?"
 msgid_plural "Are you sure you want to unresolve these %d issues?"
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:279
+#: static/sentry/app/views/stream/actions.jsx:298
 msgid "Unresolve all issues"
-msgstr ""
+msgstr "Lahenda kõik probleemid"
 
-#: static/sentry/app/views/stream/actions.jsx:281
+#: static/sentry/app/views/stream/actions.jsx:300
 #, python-format
 msgid "Unresolve %d selected issue"
 msgid_plural "Unresolve %d selected issues"
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:288
+#: static/sentry/app/views/stream/actions.jsx:307
 msgid "Set status to: Unresolved"
-msgstr ""
+msgstr "Määra staatuseks: Lahendamata"
 
-#: static/sentry/app/views/stream/actions.jsx:298
+#: static/sentry/app/views/stream/actions.jsx:318
 msgid "Are you sure you want to mute all issues matching this search query?"
 msgstr ""
 
-#: static/sentry/app/views/stream/actions.jsx:300
+#: static/sentry/app/views/stream/actions.jsx:320
 #, python-format
 msgid "Are you sure you want to mute this %d issue?"
 msgid_plural "Are you sure you want to mute these %d issues?"
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:306
+#: static/sentry/app/views/stream/actions.jsx:326
 msgid "Mute all issues"
 msgstr ""
 
-#: static/sentry/app/views/stream/actions.jsx:308
+#: static/sentry/app/views/stream/actions.jsx:328
 #, python-format
 msgid "Mute %d selected issue"
 msgid_plural "Mute %d selected issues"
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:314
+#: static/sentry/app/views/stream/actions.jsx:334
 msgid "Set status to: Muted"
 msgstr ""
 
-#: static/sentry/app/views/stream/actions.jsx:325
+#: static/sentry/app/views/stream/actions.jsx:346
 #, python-format
 msgid "Are you sure you want to delete %d issue?"
 msgid_plural "Are you sure you want to delete %d issues?"
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:331
+#: static/sentry/app/views/stream/actions.jsx:352
 #, python-format
 msgid "Delete %d selected issue"
 msgid_plural "Delete %d selected issues"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Kustuta %d probleem"
+msgstr[1] "Kustuta %d valitud probleemi"
 
-#: static/sentry/app/views/stream/actions.jsx:336
+#: static/sentry/app/views/stream/actions.jsx:357
 msgid "Delete Events"
-msgstr ""
+msgstr "Kustuta üritused"
 
-#: static/sentry/app/views/stream/actions.jsx:356
+#: static/sentry/app/views/stream/actions.jsx:377
 msgid "Graph:"
-msgstr ""
+msgstr "Graafik:"
 
-#: static/sentry/app/views/stream/actions.jsx:359
+#: static/sentry/app/views/stream/actions.jsx:380
 msgid "24h"
-msgstr ""
+msgstr "24h"
 
-#: static/sentry/app/views/stream/actions.jsx:362
+#: static/sentry/app/views/stream/actions.jsx:383
 msgid "14d"
-msgstr ""
+msgstr "14p"
 
-#: static/sentry/app/views/stream/actions.jsx:373
+#: static/sentry/app/views/stream/actions.jsx:394
 msgid "All issues matching this search query selected."
 msgstr ""
 
-#: static/sentry/app/views/stream/actions.jsx:375
+#: static/sentry/app/views/stream/actions.jsx:396
 #, python-format
 msgid "%d issue on this page selected."
 msgid_plural "%d issues on this page selected."
 msgstr[0] ""
 msgstr[1] ""
 
-#: static/sentry/app/views/stream/actions.jsx:378
+#: static/sentry/app/views/stream/actions.jsx:399
 msgid "Select all issues matching this search query."
 msgstr ""
 
-#: static/sentry/app/components/activity/noteContainer.jsx:38
-msgid "Removing comment.."
+#: static/sentry/app/components/compactIssue.jsx:52
+msgid "zZz"
+msgstr "zZz"
+
+#: static/sentry/app/components/linkWithConfirmation.jsx:46
+msgid "Please confirm"
+msgstr "Palun kinnita"
+
+#: static/sentry/app/components/compactIssue.jsx:57
+msgid "How long should we snooze this issue?"
 msgstr ""
 
-#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:40
+#: static/sentry/app/components/compactIssue.jsx:59
+msgid "30 minutes"
+msgstr "30 minutit"
+
+#: static/sentry/app/components/compactIssue.jsx:60
+msgid "2 hours"
+msgstr "2 tundi"
+
+#: static/sentry/app/components/compactIssue.jsx:61
+msgid "24 hours"
+msgstr "24 tundi"
+
+#: static/sentry/app/components/compactIssue.jsx:62
+msgid "Forever"
+msgstr "Igaveseks"
+
+#: static/sentry/app/views/stream/sidebar.jsx:104
+msgid "Text"
+msgstr "Tekst"
+
+#: static/sentry/app/views/stream/sidebar.jsx:108
+msgid "Search title and culprit text body"
+msgstr ""
+
+#: static/sentry/app/views/stream/filters.jsx:60
+msgid "Search for events, users, tags, and everything else."
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:87
+msgid "Events Per Minute"
+msgstr "Üritusi minutis"
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:89
+msgid "Rejected in last 24h"
+msgstr "Viimase 24h jooksul tagasi lükatud"
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:93
+msgid "View all stats"
+msgstr "Vaata kogu statistikat"
+
+#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:41
 msgid ""
 "You don't have any teams for this organization yet. Get started by "
 "[link:creating your first team]."
 msgstr ""
 
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:87
-msgid "Events Per Minute"
+#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:52
+msgid ""
+"There are no projects in this team. Get started by [link:creating your first"
+" project]."
 msgstr ""
 
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:89
-msgid "Rejected in last 24h"
+#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:89
+msgid "Leave Team"
+msgstr "Lahku meeskonnast"
+
+#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:128
+msgid ""
+"You are not a member of any teams. [joinLink:Join an existing team] or "
+"[createLink:create a new one]."
 msgstr ""
 
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:93
-msgid "View all stats"
+#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:138
+msgid ""
+"You dont have any teams for this organization yet. Get started by "
+"[link:creating your first team]."
+msgstr ""
+
+#: static/sentry/app/components/activity/noteContainer.jsx:38
+msgid "Removing comment.."
+msgstr "Kommentaari eemaldamine.."
+
+#: static/sentry/app/components/activity/noteInput.jsx:14
+msgid "Unknown error. Please try again."
+msgstr "Tundmatu tõrge. Palun proovi uuesti."
+
+#: static/sentry/app/components/activity/noteInput.jsx:99
+msgid "Posting comment.."
+msgstr "Kommentaari postitamine.."
+
+#: static/sentry/app/components/activity/noteInput.jsx:133
+msgid "Updating comment.."
+msgstr "Kommentaari uuendamine.."
+
+#: static/sentry/app/components/activity/noteInput.jsx:212
+msgid "Save Comment"
+msgstr "Salvesta kommentaar"
+
+#: static/sentry/app/components/activity/noteInput.jsx:212
+msgid "Post Comment"
+msgstr "Postita kommentaar"
+
+#: static/sentry/app/components/activity/note.jsx:29
+msgid "Edit"
+msgstr "Muuda"
+
+#: static/sentry/app/components/activity/noteInput.jsx:219
+msgid "Write"
+msgstr "Kirjuta"
+
+#: static/sentry/app/components/activity/noteInput.jsx:222
+msgid "Preview"
+msgstr "Eelvaade"
+
+#: static/sentry/app/components/activity/noteInput.jsx:226
+msgid "Markdown supported"
+msgstr ""
+
+#: static/sentry/app/components/activity/noteInput.jsx:234
+msgid "Add details or updates to this event"
 msgstr ""
 
 #: static/sentry/app/views/organizationStats/projectTable.jsx:43
@@ -3400,85 +3462,27 @@ msgstr ""
 
 #: static/sentry/app/views/organizationStats/projectTable.jsx:43
 msgid "(Blacklist)"
-msgstr ""
+msgstr "(must nimekiri)"
 
 #: static/sentry/app/views/organizationStats/projectTable.jsx:44
 msgid "Total"
-msgstr ""
+msgstr "Kokku"
 
-#: static/sentry/app/components/activity/noteInput.jsx:14
-msgid "Unknown error. Please try again."
-msgstr ""
+#: static/sentry/app/components/group/seenInfo.jsx:22
+msgid "When"
+msgstr "Millal"
 
-#: static/sentry/app/components/activity/noteInput.jsx:99
-msgid "Posting comment.."
-msgstr ""
-
-#: static/sentry/app/components/activity/noteInput.jsx:133
-msgid "Updating comment.."
-msgstr ""
-
-#: static/sentry/app/components/activity/noteInput.jsx:212
-msgid "Save Comment"
-msgstr ""
-
-#: static/sentry/app/components/activity/noteInput.jsx:212
-msgid "Post Comment"
-msgstr ""
-
-#: static/sentry/app/components/activity/note.jsx:29
-msgid "Edit"
-msgstr "Muuda"
-
-#: static/sentry/app/components/activity/noteInput.jsx:219
-msgid "Write"
-msgstr ""
-
-#: static/sentry/app/components/activity/noteInput.jsx:222
-msgid "Preview"
-msgstr ""
-
-#: static/sentry/app/components/activity/noteInput.jsx:226
-msgid "Markdown supported"
-msgstr ""
-
-#: static/sentry/app/components/activity/noteInput.jsx:234
-msgid "Add details or updates to this event"
-msgstr ""
-
-#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:89
-msgid "Leave Team"
-msgstr ""
-
-#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:81
-msgid ""
-"There are no projects in this team. Get started by [link:creating your first"
-" project]."
-msgstr ""
-
-#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:130
-msgid ""
-"You are not a member of any teams. [joinLink:Join an existing team] or "
-"[createLink:create a new one]."
-msgstr ""
-
-#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:140
-msgid ""
-"You dont have any teams for this organization yet. Get started by "
-"[link:creating your first team]."
-msgstr ""
-
-#: static/sentry/app/components/groupListHeader.jsx:15
-msgid "events"
-msgstr ""
+#: static/sentry/app/components/group/seenInfo.jsx:24
+msgid "Date"
+msgstr "Kuupäev"
 
 #: static/sentry/app/components/events/errors.jsx:42
 msgid "Hide"
-msgstr ""
+msgstr "Peida"
 
 #: static/sentry/app/components/events/errors.jsx:42
 msgid "Show"
-msgstr ""
+msgstr "Näita"
 
 #: static/sentry/app/components/events/errors.jsx:44
 #, python-format
@@ -3486,6 +3490,14 @@ msgid "There was %d error encountered while processing this event"
 msgid_plural "There were %d errors encountered while processing this event"
 msgstr[0] ""
 msgstr[1] ""
+
+#: static/sentry/app/components/group/tagDistributionMeter.jsx:112
+msgid "Other"
+msgstr "Muud"
+
+#: static/sentry/app/components/group/tagDistributionMeter.jsx:125
+msgid "No recent data."
+msgstr ""
 
 #: static/sentry/app/components/events/extraData.jsx:27
 msgid "Additional Data"
@@ -3497,13 +3509,13 @@ msgstr "Sõnum"
 
 #: static/sentry/app/components/events/interfaces/stacktrace.jsx:59
 msgid "App Only"
-msgstr ""
+msgstr "Ainult rakendus"
 
 #: static/sentry/app/components/events/interfaces/stacktrace.jsx:61
 msgid "Full"
-msgstr ""
+msgstr "Täielik"
 
-#: static/sentry/app/components/events/interfaces/csp.jsx:55
+#: static/sentry/app/components/events/interfaces/stacktrace.jsx:62
 msgid "Raw"
 msgstr ""
 
@@ -3519,6 +3531,10 @@ msgstr ""
 msgid "most recent call last"
 msgstr ""
 
+#: static/sentry/app/components/events/interfaces/template.jsx:25
+msgid "Template"
+msgstr "Kujundus"
+
 # this means "rich" rendering (fancy tables)
 #: static/sentry/app/components/events/interfaces/request.jsx:77
 msgid "Rich"
@@ -3530,14 +3546,10 @@ msgstr ""
 
 #: static/sentry/app/components/events/interfaces/csp.jsx:56
 msgid "Help"
-msgstr ""
+msgstr "Abiinfo"
 
 #: static/sentry/app/components/events/interfaces/csp.jsx:58
 msgid "CSP Report"
-msgstr ""
-
-#: static/sentry/app/components/events/interfaces/template.jsx:25
-msgid "Template"
 msgstr ""
 
 #: static/sentry/app/components/assigneeSelector.jsx:195
@@ -3546,31 +3558,15 @@ msgstr ""
 
 #: static/sentry/app/components/assigneeSelector.jsx:223
 msgid "Filter people"
-msgstr ""
+msgstr "Filtreeri inimesi"
 
 #: static/sentry/app/components/assigneeSelector.jsx:232
 msgid "Clear Assignee"
 msgstr ""
 
-#: static/sentry/app/components/group/tagDistributionMeter.jsx:112
-msgid "Other"
-msgstr ""
-
-#: static/sentry/app/components/group/tagDistributionMeter.jsx:125
-msgid "No recent data."
-msgstr ""
-
-#: static/sentry/app/components/group/seenInfo.jsx:22
-msgid "When"
-msgstr ""
-
-#: static/sentry/app/components/group/seenInfo.jsx:24
-msgid "Date"
-msgstr ""
-
 #: static/sentry/app/views/groupDetails/actions.jsx:34
 msgid "Delete event.."
-msgstr ""
+msgstr "Kustuta sündmus.."
 
 #: static/sentry/app/views/groupDetails/actions.jsx:107
 msgid ""
@@ -3624,7 +3620,7 @@ msgstr ""
 
 #: static/sentry/app/views/groupDetails/actions.jsx:185
 msgid "Delete"
-msgstr ""
+msgstr "Kustuta"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:186
 msgid "Deleting this event is permanent. Are you sure you wish to continue?"
@@ -3632,14 +3628,50 @@ msgstr ""
 
 #: static/sentry/app/views/groupDetails/actions.jsx:195
 msgid "More"
-msgstr ""
+msgstr "Veel"
 
 #: static/sentry/app/components/groupListHeader.jsx:10
 msgid "Event"
-msgstr ""
+msgstr "Sündmus"
 
 #: static/sentry/app/components/groupListHeader.jsx:13
 msgid "Last 24 hours"
+msgstr "Viimased 24 tundi"
+
+#: static/sentry/app/components/groupListHeader.jsx:15
+msgid "events"
+msgstr ""
+
+#: static/sentry/app/views/stream/actionLink.jsx:110
+msgid "This action cannot be undone."
+msgstr "Seda tegevust ei saa tühistada."
+
+#: static/sentry/app/views/stream/searchBar.jsx:59
+msgid "Tag"
+msgstr "Silt"
+
+#: static/sentry/app/views/stream/searchBar.jsx:60
+msgid "key/value pair associated to an issue"
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:67
+msgid "State of an issue"
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:74
+msgid "team member assigned to an issue"
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:80
+msgid "Bookmarked By"
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:81
+msgid "team member who bookmarked an issue"
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:87
+msgid "or paste an event id to jump straight to it"
 msgstr ""
 
 #: static/sentry/app/components/activity/item.jsx:52
@@ -3721,64 +3753,36 @@ msgstr ""
 
 #: static/sentry/app/views/stream/sortOptions.jsx:54
 msgid "Sort by"
-msgstr ""
+msgstr "Sorteeri"
 
-#: static/sentry/app/views/stream/actionLink.jsx:110
-msgid "This action cannot be undone."
-msgstr ""
-
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:174
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:183
 msgid "Save Current Search"
-msgstr ""
+msgstr "Salvesta praegune otsing"
 
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:100
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:104
 msgid ""
 "Saving this search will give you and your team quick access to it in the "
 "future."
 msgstr ""
 
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:117
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:119
+msgid "Make this the default view for myself."
+msgstr ""
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:123
 msgid "Make this the default view for my team."
 msgstr ""
 
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:125
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:131
 msgid "Save"
-msgstr ""
+msgstr "Salvesta"
 
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:143
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:149
 msgid "Custom Search"
-msgstr ""
+msgstr "Kohandatud otsing"
 
-#: static/sentry/app/views/stream/searchBar.jsx:59
-msgid "Tag"
-msgstr ""
-
-#: static/sentry/app/views/stream/searchBar.jsx:60
-msgid "key/value pair associated to an event"
-msgstr ""
-
-#: static/sentry/app/views/stream/searchBar.jsx:67
-msgid "State of an event"
-msgstr ""
-
-#: static/sentry/app/views/stream/searchBar.jsx:74
-msgid "team member assigned to an event"
-msgstr ""
-
-#: static/sentry/app/views/stream/searchBar.jsx:80
-msgid "or paste an event id to jump straight to it"
-msgstr ""
-
-#: static/sentry/app/components/header/broadcasts.jsx:118
-msgid "No recent broadcasts from the Sentry team."
-msgstr ""
-
-#: static/sentry/app/components/header/broadcasts.jsx:128
-msgid "Read more"
-msgstr ""
-
-#: static/sentry/app/components/activity/note.jsx:32
-msgid "Are you sure you wish to delete this comment?"
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:171
+msgid "There don't seem to be any saved searches yet."
 msgstr ""
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:42
@@ -3789,17 +3793,29 @@ msgstr ""
 msgid "There was an error while trying to leave the team."
 msgstr ""
 
+#: static/sentry/app/components/header/broadcasts.jsx:118
+msgid "No recent broadcasts from the Sentry team."
+msgstr ""
+
+#: static/sentry/app/components/header/broadcasts.jsx:128
+msgid "Read more"
+msgstr "Loe lisa"
+
+#: static/sentry/app/components/activity/note.jsx:32
+msgid "Are you sure you wish to delete this comment?"
+msgstr "Oled sa kindel, et soovid seda kommentaari kustutada?"
+
+#: static/sentry/app/components/clippedBox.jsx:57
+msgid "Show more"
+msgstr "Näita rohkem"
+
 #: static/sentry/app/components/events/errorItem.jsx:25
 msgid "Collapse"
-msgstr ""
+msgstr "Sulge"
 
 #: static/sentry/app/components/events/errorItem.jsx:25
 msgid "Expand"
 msgstr "Laienda"
-
-#: static/sentry/app/components/clippedBox.jsx:57
-msgid "Show more"
-msgstr ""
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:69
 msgid "Query String"
@@ -3824,19 +3840,19 @@ msgstr ""
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:49
 msgid "Original Filename"
-msgstr ""
+msgstr "Originaali failinimi"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:50
 msgid "Line Number"
-msgstr ""
+msgstr "Reanumber"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:51
 msgid "Column Number"
-msgstr ""
+msgstr "Veeru number"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:52
 msgid "Function"
-msgstr ""
+msgstr "Funktsioon"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:53
 msgid "Source Map"
@@ -3848,12 +3864,12 @@ msgstr ""
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:101
 msgid "at line"
-msgstr ""
+msgstr "real"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:118
 msgid "application"
-msgstr ""
+msgstr "rakendus"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:194
 msgid "Toggle context"
-msgstr ""
+msgstr "Konteksti näitamine"
