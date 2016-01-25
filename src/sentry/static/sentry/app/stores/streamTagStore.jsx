@@ -36,6 +36,12 @@ const StreamTagStore = Reflux.createStore({
         name: 'Assigned To',
         values: getMemberListStoreUsernames(),
         predefined: true
+      },
+      bookmarks: {
+        key: 'bookmarks',
+        name: 'Bookmarked By',
+        values: getMemberListStoreUsernames(),
+        predefined: true
       }
     };
     this.trigger(this.tags);
