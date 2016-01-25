@@ -6,6 +6,7 @@ import LoadingError from '../loadingError';
 import LoadingIndicator from '../loadingIndicator';
 import Pagination from '../pagination';
 import {t} from '../../locale';
+import {logException} from '../../utils/logging';
 
 const ActivityFeed = React.createClass({
   mixins: [ApiMixin],
@@ -81,9 +82,16 @@ const ActivityFeed = React.createClass({
         <div className="activity-container">
           <ul className="activity">
             {this.state.itemList.map((item) => {
-              return (
-                <ActivityItem key={item.id} orgId={orgId} item={item} />
-              );
+              try {
+                return (
+                  <ActivityItem key={item.id} orgId={orgId} item={item} />
+                );
+              } catch (ex) {
+                logException(ex, {
+                  itemId: item.id
+                });
+                return null;
+              }
             })}
           </ul>
         </div>
