@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
@@ -87,16 +87,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
     permission_classes = (ProjectEventPermission,)
 
-    def _parse_date(self, value):
-        try:
-            return datetime.utcfromtimestamp(float(value)).replace(
-                tzinfo=timezone.utc,
-            )
-        except ValueError:
-            return datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%fZ').replace(
-                tzinfo=timezone.utc,
-            )
-
     def _build_query_params_from_request(self, request, project):
         query_kwargs = {
             'project': project,
@@ -127,28 +117,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         if tags:
             query_kwargs['tags'] = tags
 
-        # TODO: dates should include timestamps
-        date_from = request.GET.get('since')
-        date_to = request.GET.get('until')
-        date_filter = request.GET.get('date_filter')
-
         limit = request.GET.get('limit')
         if limit:
             try:
                 query_kwargs['limit'] = int(limit)
             except ValueError:
                 raise ValidationError('invalid limit')
-
-        if date_from:
-            date_from = self._parse_date(date_from)
-
-        if date_to:
-            date_to = self._parse_date(date_to)
-
-        query_kwargs['date_from'] = date_from
-        query_kwargs['date_to'] = date_to
-        if date_filter:
-            query_kwargs['date_filter'] = date_filter
 
         # TODO: proper pagination support
         cursor = request.GET.get('cursor')

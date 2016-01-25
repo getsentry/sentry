@@ -144,50 +144,28 @@ class DjangoSearchBackendTest(TestCase):
         results = self.backend.query(self.project1, cursor=results.next, limit=1, sort_by='date')
         assert len(results) == 0
 
-    def test_first_seen_date_filter(self):
+    def test_age_filter(self):
         results = self.backend.query(
-            self.project1, date_from=self.group2.first_seen,
-            date_filter='first_seen')
+            self.project1,
+            age_date_from=self.group2.first_seen,
+        )
         assert len(results) == 1
         assert results[0] == self.group2
 
         results = self.backend.query(
-            self.project1, date_to=self.group1.first_seen + timedelta(minutes=1),
-            date_filter='first_seen')
-        assert len(results) == 1
-        assert results[0] == self.group1
-
-        results = self.backend.query(
             self.project1,
-            date_from=self.group1.first_seen,
-            date_to=self.group1.first_seen + timedelta(minutes=1),
-            date_filter='first_seen',
+            age_date_to=self.group1.first_seen + timedelta(minutes=1),
         )
         assert len(results) == 1
         assert results[0] == self.group1
 
-    def test_last_seen_date_filter(self):
-        results = self.backend.query(
-            self.project1, date_from=self.group1.last_seen,
-            date_filter='last_seen')
-        assert len(results) == 1
-        assert results[0] == self.group1
-
         results = self.backend.query(
             self.project1,
-            date_to=self.group1.last_seen - timedelta(minutes=1),
-            date_filter='last_seen')
-        assert len(results) == 1
-        assert results[0] == self.group2
-
-        results = self.backend.query(
-            self.project1,
-            date_from=self.group2.last_seen,
-            date_to=self.group1.last_seen - timedelta(minutes=1),
-            date_filter='last_seen',
+            age_date_from=self.group1.first_seen,
+            age_date_to=self.group1.first_seen + timedelta(minutes=1),
         )
         assert len(results) == 1
-        assert results[0] == self.group2
+        assert results[0] == self.group1
 
     def test_unassigned(self):
         results = self.backend.query(self.project1, unassigned=True)

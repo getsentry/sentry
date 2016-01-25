@@ -124,22 +124,19 @@ class ParseQueryTest(TestCase):
 
     def test_age_from(self):
         result = self.parse_query('age:-24h')
-        assert result['date_filter'] == 'first_seen'
-        assert result['date_from'] > timezone.now() - timedelta(hours=25)
-        assert result['date_from'] < timezone.now() - timedelta(hours=23)
-        assert not result.get('date_to')
+        assert result['age_date_from'] > timezone.now() - timedelta(hours=25)
+        assert result['age_date_from'] < timezone.now() - timedelta(hours=23)
+        assert not result.get('age_date_to')
 
     def test_age_to(self):
         result = self.parse_query('age:+24h')
-        assert result['date_filter'] == 'first_seen'
-        assert result['date_to'] > timezone.now() - timedelta(hours=25)
-        assert result['date_to'] < timezone.now() - timedelta(hours=23)
-        assert not result.get('date_from')
+        assert result['age_date_to'] > timezone.now() - timedelta(hours=25)
+        assert result['age_date_to'] < timezone.now() - timedelta(hours=23)
+        assert not result.get('age_date_from')
 
     def test_age_range(self):
         result = self.parse_query('age:-24h age:+12h')
-        assert result['date_filter'] == 'first_seen'
-        assert result['date_from'] > timezone.now() - timedelta(hours=25)
-        assert result['date_from'] < timezone.now() - timedelta(hours=23)
-        assert result['date_to'] > timezone.now() - timedelta(hours=13)
-        assert result['date_to'] < timezone.now() - timedelta(hours=11)
+        assert result['age_date_from'] > timezone.now() - timedelta(hours=25)
+        assert result['age_date_from'] < timezone.now() - timedelta(hours=23)
+        assert result['age_date_to'] > timezone.now() - timedelta(hours=13)
+        assert result['age_date_to'] < timezone.now() - timedelta(hours=11)
