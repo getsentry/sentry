@@ -119,7 +119,7 @@ class SentryHTTPServer(Service):
     def run(self):
         # Move all of the options into UWSGI_ env vars
         for k, v in convert_options_to_env(self.options):
-            os.environ[k] = v
+            os.environ.setdefault(k, v)
 
         # This has already been validated inside __init__
         os.environ['SENTRY_SKIP_BACKEND_VALIDATION'] = '1'
