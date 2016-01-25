@@ -23,8 +23,9 @@ class SearchBackend(object):
 
     def query(self, project, query=None, status=None, tags=None,
               bookmarked_by=None, assigned_to=None, first_release=None,
-              sort_by='date', date_filter='last_seen', unassigned=None,
-              date_from=None, date_to=None, cursor=None, limit=100):
+              sort_by='date', age_date_from=None, age_date_to=None,
+              unassigned=None, date_from=None, date_to=None, cursor=None,
+              limit=100):
         """
         The return value should be a CursorResult.
 

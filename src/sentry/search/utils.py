@@ -149,10 +149,9 @@ def parse_query(project, query, user):
                 flag, offset = parse_simple_range(value)
                 date_value = timezone.now() - offset
                 if flag == '+':
-                    results['date_to'] = date_value
+                    results['age_date_to'] = date_value
                 elif flag == '-':
-                    results['date_from'] = date_value
-                results['date_filter'] = 'first_seen'
+                    results['age_date_from'] = date_value
             elif key.startswith('user.'):
                 results['tags']['sentry:user'] = get_user_tag(
                     project, key.split('.', 1)[1], value)

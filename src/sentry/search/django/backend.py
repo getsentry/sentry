@@ -22,8 +22,9 @@ from sentry.utils.db import get_db_engine
 class DjangoSearchBackend(SearchBackend):
     def query(self, project, query=None, status=None, tags=None,
               bookmarked_by=None, assigned_to=None, first_release=None,
-              sort_by='date', date_filter='last_seen', unassigned=None,
-              date_from=None, date_to=None, cursor=None, limit=100):
+              sort_by='date', age_date_from=None, age_date_to=None,
+              unassigned=None, date_from=None, date_to=None, cursor=None,
+              limit=100):
         from sentry.models import Group, GroupStatus
 
         queryset = Group.objects.filter(project=project)
@@ -77,26 +78,15 @@ class DjangoSearchBackend(SearchBackend):
                     grouptag__value=v,
                 ))
 
-        if date_filter == 'first_seen':
-            if date_from and date_to:
-                queryset = queryset.filter(
-                    first_seen__gte=date_from,
-                    first_seen__lte=date_to,
-                )
-            elif date_from:
-                queryset = queryset.filter(first_seen__gte=date_from)
-            elif date_to:
-                queryset = queryset.filter(first_seen__lte=date_to)
-        elif date_filter == 'last_seen':
-            if date_from and date_to:
-                queryset = queryset.filter(
-                    first_seen__gte=date_from,
-                    last_seen__lte=date_to,
-                )
-            elif date_from:
-                queryset = queryset.filter(last_seen__gte=date_from)
-            elif date_to:
-                queryset = queryset.filter(last_seen__lte=date_to)
+        if age_date_from and age_date_to:
+            queryset = queryset.filter(
+                first_seen__gte=age_date_from,
+                first_seen__lte=age_date_to,
+            )
+        elif age_date_from:
+            queryset = queryset.filter(first_seen__gte=age_date_from)
+        elif age_date_to:
+            queryset = queryset.filter(first_seen__lte=age_date_to)
 
         engine = get_db_engine('default')
         if engine.startswith('sqlite'):
