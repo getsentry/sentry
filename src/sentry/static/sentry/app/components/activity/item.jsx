@@ -126,7 +126,7 @@ const ActivityItem = React.createClass({
         });
       case 'assigned':
         let assignee;
-        if (data.assignee === item.user.id) {
+        if (item.user && data.assignee === item.user.id) {
           return tct('[author] assigned [link:an issue] to themselves', {
             author: author,
             link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
