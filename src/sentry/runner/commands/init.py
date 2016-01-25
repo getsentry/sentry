@@ -39,11 +39,11 @@ def init(ctx, directory):
     if os.path.isfile(yaml):
         click.confirm("File already exists at '%s', overwrite?" % click.format_filename(yaml), abort=True)
 
-    with click.open_file(yaml, 'wb') as fp:
+    with click.open_file(yaml, 'w') as fp:
         fp.write(yaml_contents)
 
     if os.path.isfile(py):
         click.confirm("File already exists at '%s', overwrite?" % click.format_filename(py), abort=True)
 
-    with click.open_file(py, 'wb') as fp:
+    with click.open_file(py, 'w') as fp:
         fp.write(py_contents)
