@@ -244,7 +244,7 @@ class MailPlugin(NotificationPlugin):
 
         if activity.type == Activity.ASSIGNED:
             # Only notify the assignee, and only if they are in the candidate set.
-            recipient_ids = candidate_ids & set((activity.data['assignee'],))
+            recipient_ids = candidate_ids & set(map(int, (activity.data['assignee'],)))
         elif activity.type == Activity.NOTE:
             recipient_ids = candidate_ids - set(
                 UserOption.objects.filter(
