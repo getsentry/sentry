@@ -158,22 +158,22 @@ class DjangoSearchBackendTest(TestCase):
     def test_age_filter(self):
         results = self.backend.query(
             self.project1,
-            age_date_from=self.group2.first_seen,
+            age_from=self.group2.first_seen,
         )
         assert len(results) == 1
         assert results[0] == self.group2
 
         results = self.backend.query(
             self.project1,
-            age_date_to=self.group1.first_seen + timedelta(minutes=1),
+            age_to=self.group1.first_seen + timedelta(minutes=1),
         )
         assert len(results) == 1
         assert results[0] == self.group1
 
         results = self.backend.query(
             self.project1,
-            age_date_from=self.group1.first_seen,
-            age_date_to=self.group1.first_seen + timedelta(minutes=1),
+            age_from=self.group1.first_seen,
+            age_to=self.group1.first_seen + timedelta(minutes=1),
         )
         assert len(results) == 1
         assert results[0] == self.group1
