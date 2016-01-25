@@ -246,7 +246,6 @@ INSTALLED_APPS = (
     'captcha',
     'crispy_forms',
     'debug_toolbar',
-    'gunicorn',
     'raven.contrib.django.raven_compat',
     'rest_framework',
     'sentry',
