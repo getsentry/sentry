@@ -12,19 +12,22 @@ import sys
 from sentry.services.base import Service
 
 
-def add_option_to_env(k, v):
-    key = 'UWSGI_' + k.upper().replace('-', '_')
-    if isinstance(v, basestring):
-        value = v
-    elif v is True:
-        value = 'true'
-    elif v is False:
-        value = 'false'
-    elif isinstance(v, (int, long)):
-        value = str(v)
-    else:
-        raise TypeError('Unknown option type: %r (%s)' % (k, type(v)))
-    os.environ[key] = value
+def convert_options_to_env(options):
+    for k, v in options.iteritems():
+        if v is None:
+            continue
+        key = 'UWSGI_' + k.upper().replace('-', '_')
+        if isinstance(v, basestring):
+            value = v
+        elif v is True:
+            value = 'true'
+        elif v is False:
+            value = 'false'
+        elif isinstance(v, (int, long)):
+            value = str(v)
+        else:
+            raise TypeError('Unknown option type: %r (%s)' % (k, type(v)))
+        yield key, value
 
 
 class SentryHTTPServer(Service):
@@ -87,7 +90,7 @@ class SentryHTTPServer(Service):
 
         # Old options from gunicorn
         if 'bind' in options:
-            options['http-socket'] = options.pop('bind')
+            options['%s-socket' % options['protocol']] = options.pop('bind')
         if 'accesslog' in options:
             if options['accesslog'] != '-':
                 options['logto'] = options['accesslog']
@@ -114,9 +117,9 @@ class SentryHTTPServer(Service):
         validate_settings(django_settings)
 
     def run(self):
-        for k, v in self.options.iteritems():
-            if v is not None:
-                add_option_to_env(k, v)
+        # Move all of the options into UWSGI_ env vars
+        for k, v in convert_options_to_env(self.options):
+            os.environ[k] = v
 
         # This has already been validated inside __init__
         os.environ['SENTRY_SKIP_BACKEND_VALIDATION'] = '1'
