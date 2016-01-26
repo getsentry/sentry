@@ -65,9 +65,21 @@ def format_cookies(value):
         value = value.items()
 
     return [
-        (k.encode('utf8').strip(), v)
+        map(fix_broken_encoding, (k.strip(), v))
         for k, v in value
     ]
+
+
+def fix_broken_encoding(value):
+    """
+    Strips broken characters that can't be represented at all
+    in utf8. This prevents our parsers from breaking elsewhere.
+    """
+    if isinstance(value, unicode):
+        value = value.encode('utf8', errors='replace')
+    if isinstance(value, str):
+        value = value.decode('utf8', errors='replace')
+    return value
 
 
 class Http(Interface):
@@ -160,7 +172,7 @@ class Http(Interface):
         kwargs['cookies'] = trim_pairs(format_cookies(cookies))
         kwargs['env'] = trim_dict(data.get('env') or {})
         kwargs['headers'] = trim_pairs(headers)
-        kwargs['data'] = body
+        kwargs['data'] = fix_broken_encoding(body)
         kwargs['url'] = urlunsplit((scheme, netloc, path, '', ''))
         kwargs['fragment'] = trim(fragment, 1024)
 
