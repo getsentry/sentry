@@ -18,7 +18,7 @@ from sentry.tasks.deletion import delete_group
 logger = get_task_logger(__name__)
 
 
-@instrumented_task(name='sentry.tasks.merge.merge_group', queue='cleanup',
+@instrumented_task(name='sentry.tasks.merge.merge_group', queue='merge',
                    default_retry_delay=60 * 5, max_retries=None)
 @retry
 def merge_group(from_object_id=None, to_object_id=None, **kwargs):
@@ -75,7 +75,7 @@ def merge_group(from_object_id=None, to_object_id=None, **kwargs):
         pass
 
 
-@instrumented_task(name='sentry.tasks.merge.rehash_group_events', queue='cleanup',
+@instrumented_task(name='sentry.tasks.merge.rehash_group_events', queue='merge',
                    default_retry_delay=60 * 5, max_retries=None)
 @retry
 def rehash_group_events(group_id, **kwargs):
