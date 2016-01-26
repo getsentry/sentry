@@ -258,6 +258,8 @@ const GroupStore = Reflux.createStore({
   },
 
   onMerge(changeId, itemIds) {
+    itemIds = this._itemIdsOrAll(itemIds);
+
     itemIds.forEach(itemId => {
       this.addStatus(itemId, 'merge');
     });
@@ -265,6 +267,8 @@ const GroupStore = Reflux.createStore({
   },
 
   onMergeError(changeId, itemIds, response) {
+    itemIds = this._itemIdsOrAll(itemIds);
+
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'merge');
     });
@@ -273,6 +277,8 @@ const GroupStore = Reflux.createStore({
   },
 
   onMergeSuccess(changeId, mergedIds, response) {
+    mergedIds = this._itemIdsOrAll(mergedIds); // everything on page
+
     mergedIds.forEach(itemId => {
       this.clearStatus(itemId, 'merge');
     });
