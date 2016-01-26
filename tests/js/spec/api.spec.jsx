@@ -1,12 +1,35 @@
 import $ from 'jquery';
-import {Client, Request} from 'app/api';
-import GroupActions from 'app/actions/groupActions';
+import {Client, Request, paramsToQueryArgs} from 'app/api';
 
 describe('api', function () {
   beforeEach(function () {
     this.sandbox = sinon.sandbox.create();
 
     this.api = new Client();
+  });
+
+
+  describe('paramsToQueryArgs()', function () {
+    it('should convert itemIds properties to id array', function () {
+      expect(paramsToQueryArgs({
+        itemIds: [1, 2, 3],
+        query: 'is:unresolved' // itemIds takes precedence
+      })).to.eql({id: [1, 2, 3]});
+    });
+
+    it('should extract query property if no itemIds', function () {
+      expect(paramsToQueryArgs({
+        query: 'is:unresolved',
+        foo: 'bar'
+      })).to.eql({query: 'is:unresolved'});
+    });
+
+    it('should convert params w/o itemIds or query to undefined', function () {
+      expect(paramsToQueryArgs({
+        foo: 'bar',
+        bar: 'baz' // paramsToQueryArgs ignores these
+      })).to.be.undefined;
+    });
   });
 
   describe('Client', function () {
@@ -56,9 +79,43 @@ describe('api', function () {
     });
 
     it('should use query as query if itemIds are absent', function () {
-      this.sandbox.stub(GroupActions, 'update');
-
       this.api.bulkUpdate({
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: null,
+        data: {status: 'unresolved'},
+        query: 'is:resolved'
+      });
+
+      expect(this.api._wrapRequest.calledOnce).to.be.ok;
+      let requestArgs = this.api._wrapRequest.getCall(0).args[1];
+      expect(requestArgs.query).to.eql({query: 'is:resolved'});
+    });
+  });
+
+  describe('merge()', function () {
+    // TODO: this is totally copypasta from the test above. We need to refactor
+    //       these API methods/tests.
+    beforeEach(function () {
+      this.sandbox.stub(this.api, '_wrapRequest');
+    });
+
+    it('should use itemIds as query if provided', function () {
+      this.api.merge({
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: [1,2,3],
+        data: {status: 'unresolved'},
+        query: 'is:resolved'
+      });
+
+      expect(this.api._wrapRequest.calledOnce).to.be.ok;
+      let requestArgs = this.api._wrapRequest.getCall(0).args[1];
+      expect(requestArgs.query).to.eql({id: [1, 2, 3]});
+    });
+
+    it('should use query as query if itemIds are absent', function () {
+      this.api.merge({
         orgId: '1337',
         projectId: '1337',
         itemIds: null,

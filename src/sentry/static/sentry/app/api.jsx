@@ -14,6 +14,18 @@ export class Request {
   }
 }
 
+/**
+ * Converts input parameters to API-compatible query arguments
+ * @param params
+ */
+export function paramsToQueryArgs(params) {
+  return params.itemIds
+      ? {id: params.itemIds}    // items matching array of itemids
+      : params.query
+        ? {query: params.query} // items matching search query
+        : undefined;            // all items
+}
+
 export class Client {
   constructor(options) {
     if (typeof options === 'undefined') {
@@ -119,7 +131,7 @@ export class Client {
 
   bulkDelete(params, options) {
     let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
-    let query = (params.itemIds ? {id: params.itemIds} : undefined);
+    let query = paramsToQueryArgs(params);
     let id = this.uniqueId();
 
     GroupActions.delete(id, params.itemIds);
@@ -138,14 +150,7 @@ export class Client {
 
   bulkUpdate(params, options) {
     let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
-
-    let query =
-      params.itemIds
-        ? {id: params.itemIds}
-        : params.query
-          ? {query: params.query}
-          : undefined;
-
+    let query = paramsToQueryArgs(params);
     let id = this.uniqueId();
 
     GroupActions.update(id, params.itemIds, params.data);
@@ -165,7 +170,7 @@ export class Client {
 
   merge(params, options) {
     let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
-    let query = (params.itemIds ? {id: params.itemIds} : undefined);
+    let query = paramsToQueryArgs(params);
     let id = this.uniqueId();
 
     GroupActions.merge(id, params.itemIds);
