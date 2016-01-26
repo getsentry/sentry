@@ -22,6 +22,12 @@ from sentry.utils.safe import trim, trim_dict, trim_pairs
 from sentry.web.helpers import render_to_string
 
 
+def to_bytes(value):
+    if isinstance(value, unicode):
+        return value.encode('utf-8')
+    return str(value)
+
+
 def format_headers(value):
     if not value:
         return ()
@@ -120,7 +126,8 @@ class Http(Interface):
         if query_string:
             # if querystring was a dict, convert it to a string
             if isinstance(query_string, dict):
-                query_string = urlencode(query_string.items())
+                query_string = urlencode([(to_bytes(k), to_bytes(v))
+                                          for k, v in query_string.items()])
             else:
                 query_string = query_string
                 if query_string[0] == '?':
