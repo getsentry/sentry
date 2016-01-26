@@ -125,12 +125,19 @@ class NotificationSettingsTest(TestCase):
         self.assertRequiresAuthentication(self.path)
 
     def test_renders_with_required_context(self):
-        self.login_as(self.user)
-
+        user = self.create_user('foo@example.com')
+        organization = self.create_organization()
+        team = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, team=team)
+        team2 = self.create_team(organization=organization)
+        self.create_project(organization=organization, team=team2)
+        self.create_member(organization=organization, user=user, teams=[project.team])
+        self.login_as(user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/account/notifications.html')
         assert 'form' in resp.context
+        assert len(resp.context['project_forms']) == 1
 
     def test_valid_params(self):
         self.login_as(self.user)
