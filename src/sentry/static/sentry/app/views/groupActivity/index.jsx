@@ -68,7 +68,7 @@ const GroupActivity = React.createClass({
         return t('%s first saw this issue', author);
       case 'assigned':
         let assignee;
-        if (data.assignee === item.user.id) {
+        if (item.user && data.assignee === item.user.id) {
           assignee = 'themselves';
           return t('%s assigned this event to themselves', author);
         } else {
