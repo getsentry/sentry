@@ -176,6 +176,7 @@ def notification_settings(request):
     settings_form = NotificationSettingsForm(request.user, request.POST or None)
 
     project_list = list(Project.objects.filter(
+        team__organizationmemberteam__organizationmember__user=request.user,
         team__organizationmemberteam__is_active=True,
     ).distinct())
 
