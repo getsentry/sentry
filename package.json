@@ -61,7 +61,7 @@
     "eslint-plugin-react": "3.11.2",
     "gettext-parser": "1.1.1",
     "js-cookie": "2.0.4",
-    "karma": "0.13.15",
+    "karma": "0.13.19",
     "karma-chai": "0.1.0",
     "karma-mocha": "0.1.10",
     "karma-phantomjs-launcher": "0.1.4",
