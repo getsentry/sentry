@@ -138,23 +138,43 @@ class SensitiveDataFilterTest(TestCase):
 
     def test_sanitize_credit_card(self):
         proc = SensitiveDataFilter()
-        result = proc.sanitize('foo', '4242424242424242')
-        self.assertEquals(result, FILTER_MASK)
+        result = proc.sanitize('foo', '4571234567890111')
+        assert result == FILTER_MASK
 
     def test_sanitize_credit_card_amex(self):
         # AMEX numbers are 15 digits, not 16
         proc = SensitiveDataFilter()
-        result = proc.sanitize('foo', '424242424242424')
-        self.assertEquals(result, FILTER_MASK)
+        result = proc.sanitize('foo', '378282246310005')
+        assert result == FILTER_MASK
+
+    def test_sanitize_credit_card_discover(self):
+        proc = SensitiveDataFilter()
+        result = proc.sanitize('foo', '6011111111111117')
+        assert result == FILTER_MASK
+
+    def test_sanitize_credit_card_visa(self):
+        proc = SensitiveDataFilter()
+        result = proc.sanitize('foo', '4111111111111111')
+        assert result == FILTER_MASK
+
+    def test_sanitize_credit_card_mastercard(self):
+        proc = SensitiveDataFilter()
+        result = proc.sanitize('foo', '5555555555554444')
+        assert result == FILTER_MASK
 
     def test_sanitize_credit_card_within_value(self):
         proc = SensitiveDataFilter()
-        result = proc.sanitize('foo', "'4242424242424242'")
-        self.assertEquals(result, FILTER_MASK)
+        result = proc.sanitize('foo', "'4571234567890111'")
+        assert result == FILTER_MASK
 
         proc = SensitiveDataFilter()
-        result = proc.sanitize('foo', "foo 4242424242424242")
-        self.assertEquals(result, FILTER_MASK)
+        result = proc.sanitize('foo', "foo 4571234567890111")
+        assert result == FILTER_MASK
+
+    def test_does_not_sanitize_timestamp_looks_like_card(self):
+        proc = SensitiveDataFilter()
+        result = proc.sanitize('foo', '1453843029218310')
+        assert result == '1453843029218310'
 
     def test_sanitize_url(self):
         proc = SensitiveDataFilter()
