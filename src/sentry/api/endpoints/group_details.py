@@ -352,6 +352,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
             ]
         ).update(status=GroupStatus.PENDING_DELETION)
         if updated:
-            delete_group.delay(object_id=group.id)
+            delete_group.delay(object_id=group.id, countdown=3600)
 
         return Response(status=202)
