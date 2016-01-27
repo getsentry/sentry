@@ -39,6 +39,8 @@ def parse_simple_range(value):
 
     if interval == 'h':
         return flag, timedelta(hours=count)
+    elif interval == 'w':
+        return flag, timedelta(days=count * 7)
     elif interval == 'd':
         return flag, timedelta(days=count)
     elif interval == 'm':
