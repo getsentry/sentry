@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {Client, Request, paramsToQueryArgs} from 'app/api';
+import GroupActions from 'app/actions/groupActions';
 
 describe('api', function () {
   beforeEach(function () {
@@ -8,6 +9,9 @@ describe('api', function () {
     this.api = new Client();
   });
 
+  afterEach(function () {
+    this.sandbox.restore();
+  });
 
   describe('paramsToQueryArgs()', function () {
     it('should convert itemIds properties to id array', function () {
@@ -62,6 +66,7 @@ describe('api', function () {
   describe('bulkUpdate()', function () {
     beforeEach(function () {
       this.sandbox.stub(this.api, '_wrapRequest');
+      this.sandbox.stub(GroupActions, 'update'); // stub GroupActions.update call from api.update
     });
 
     it('should use itemIds as query if provided', function () {
@@ -98,6 +103,7 @@ describe('api', function () {
     //       these API methods/tests.
     beforeEach(function () {
       this.sandbox.stub(this.api, '_wrapRequest');
+      this.sandbox.stub(GroupActions, 'merge'); // stub GroupActions.merge call from api.merge
     });
 
     it('should use itemIds as query if provided', function () {
