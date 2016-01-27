@@ -30,6 +30,7 @@ from .endpoints.organization_member_issues_assigned import OrganizationMemberIss
 from .endpoints.organization_member_issues_bookmarked import OrganizationMemberIssuesBookmarkedEndpoint
 from .endpoints.organization_member_issues_viewed import OrganizationMemberIssuesViewedEndpoint
 from .endpoints.organization_member_team_details import OrganizationMemberTeamDetailsEndpoint
+from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
@@ -139,6 +140,9 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/teams/$',
         OrganizationTeamsEndpoint.as_view(),
         name='sentry-api-0-organization-teams'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/onboarding-tasks/$',
+        OrganizationOnboardingTaskEndpoint.as_view(),
+        name='sentry-api-0-organization-onboardingtasks'),
 
     # Teams
     url(r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/$',

@@ -371,6 +371,18 @@ table.project-list {
          }
        }
 
+       &.skipped {
+        .ob-checkbox {
+          border-color: grey;
+        }
+       }
+
+       &.pending {
+        .ob-checkbox {
+          border-color: yellow;
+        }
+       }
+
        &.blur .todo-content {
          -webkit-filter: ~"blur(3px)";
        }
@@ -408,7 +420,7 @@ table.project-list {
   .skip-btn {
 
     position: absolute;
-    z-index: 1000;
+    z-index: 100;
     right: 5px;
     top: 2px;
     .transition(opacity .1s);
@@ -422,7 +434,7 @@ table.project-list {
 
   .ob-confirmation {
     position: absolute;
-    z-index: 1000;
+    z-index: 100;
     background: rgba(255,255,255, .75);
     left: -20px;
     right: -20px;

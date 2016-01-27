@@ -105,7 +105,7 @@ class OrganizationMember(Model):
             ).exists()
 
         if not oot:
-            OrganizationOnboardingTask.create_or_update(
+            OrganizationOnboardingTask.objects.create_or_update(
                 organization=self.organization,
                 user=self.user,
                 task=OnboardingTask.INVITE_MEMBER,

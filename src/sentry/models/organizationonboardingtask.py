@@ -20,14 +20,14 @@ class OnboardingTask(object):
     INVITE_MEMBER = 2
     ISSUE_TRACKER = 3
     NOTIFICATION_SERVICE = 4
-    SECOND_PLATFORM = 5  # dependent on FIRST_EVENT
+    SECOND_PLATFORM = 5  # dependent on FIRST_EVENT.
     USER_CONTEXT = 6  # dependent on FIRST_EVENT
-    SOURCEMAPS = 7  # dependent on RELEASE_TRACKING
+    SOURCEMAPS = 7  # dependent on RELEASE_TRACKING and one of the platforms being javascript
     RELEASE_TRACKING = 8  # dependent on FIRST_EVENT
-    USER_REPORTS = 9
+    USER_REPORTS = 9  # Only for web frameworks
     ISSUE_ASSIGNMENT = 10  # dependent on INVITE_MEMBER
     RELEASE_RESOLVED = 11  # dependent on RELEASE_TRACKING
-    SAVED_SEARCHES = 12
+    SAVED_SEARCHES = 12  # dependent on FIRST_EVENT
     RULES = 13
 
 
@@ -64,7 +64,6 @@ class OrganizationOnboardingTask(Model):
         (OnboardingTask.SAVED_SEARCHES, 'Saved searches'),
         (OnboardingTask.RULES, 'Rules'),
     )
-    INTIAL_TASKS = ['FE', 'IM', 'UC', 'RT']
 
     STATUS_CHOICES = (
         (OnboardingTaskStatus.COMPLETE, 'Complete'),
