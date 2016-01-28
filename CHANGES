@@ -1,3 +1,9 @@
+Version 8.0.5
+-------------
+
+- [CRITICAL] Fixed another issue where performing a bulk merge could merge more than intended. We're pretty confident we got this all squared away now. :(
+- Fixed a bug where Issue assignment emails weren't being delivered.
+
 Version 8.0.4
 -------------
 
