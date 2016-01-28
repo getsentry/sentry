@@ -64,6 +64,16 @@ def _get_public_dsn():
     return projectkey.dsn_public
 
 
+def _get_statuspage():
+    id = settings.STATUS_PAGE_ID
+    if id is None:
+        return None
+    return {
+        'id': id,
+        'api_host': settings.STATUS_PAGE_API_HOST
+    }
+
+
 @register.simple_tag(takes_context=True)
 def get_react_config(context):
     if 'request' in context:
@@ -102,6 +112,7 @@ def get_react_config(context):
         'mediaUrl': get_asset_url('sentry', ''),
         'needsUpgrade': needs_upgrade,
         'dsn': _get_public_dsn(),
+        'statuspage': _get_statuspage(),
         'messages': [{
             'message': msg.message,
             'level': msg.tags,
