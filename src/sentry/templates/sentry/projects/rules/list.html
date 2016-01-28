@@ -19,7 +19,7 @@
                             <form style="display:inline" method="POST" action="{% url 'sentry-remove-project-rule' project.organization.slug project.slug rule.id %}">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-sm btn-default"
-                                        onclick="confirm('Are you sure you want to remove this rule?')"><span class="icon-trash" style="margin-right: 3px;"></span></button>
+                                        onclick="return confirm('Are you sure you want to remove this rule?')"><span class="icon-trash" style="margin-right: 3px;"></span></button>
                             </form>
                         </div>
                         <h3><a href="{% url 'sentry-edit-project-rule' project.organization.slug project.slug rule.id %}">{{ rule.label }}</a></h3>
