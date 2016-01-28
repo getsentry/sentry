@@ -265,6 +265,7 @@ class ClientApiHelper(object):
     def safely_load_json_string(self, json_string):
         try:
             obj = json.loads(json_string)
+            assert isinstance(obj, dict)
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
