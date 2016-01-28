@@ -922,6 +922,10 @@ SENTRY_WATCHERS = (
      "--config={}".format(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))],
 )
 
+# statuspage.io support
+STATUS_PAGE_ID = None
+STATUS_PAGE_API_HOST = 'statuspage.io'
+
 
 def get_raven_config():
     return {
