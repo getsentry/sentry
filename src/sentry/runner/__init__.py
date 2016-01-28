@@ -37,7 +37,9 @@ def cli(ctx, config):
     environment variable or be explicitly provided through the
     `--config` parameter.
     """
-    ctx.obj['config'] = config
+    # Elevate --config option to SENTRY_CONF env var, and just assume this
+    # always will exist down the line
+    os.environ.setdefault('SENTRY_CONF', config)
 
 
 # TODO(mattrobenolt): Autodiscover commands?
@@ -99,7 +101,7 @@ def configure():
         ctx = click.get_current_context()
     except RuntimeError:
         ctx = None
-    _, py, yaml = discover_configs(ctx)
+    _, py, yaml = discover_configs()
 
     # TODO(mattrobenolt): Surface this also as a CLI option?
     skip_backend_validation = 'SENTRY_SKIP_BACKEND_VALIDATION' in os.environ

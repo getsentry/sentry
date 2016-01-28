@@ -242,20 +242,17 @@ def get_sentry_conf():
             return '~/.sentry'
 
 
-def discover_configs(ctx=None):
+def discover_configs():
     """
     Discover the locations of three configuration components:
      * Config directory (~/.sentry)
      * Optional python config file (~/.sentry/sentry.conf.py)
      * Optional yaml config (~/.sentry/config.yml)
     """
-    if ctx and 'config' in ctx.obj:
-        config = ctx.obj['config']
-    else:
-        try:
-            config = os.environ['SENTRY_CONF']
-        except KeyError:
-            config = '~/.sentry'
+    try:
+        config = os.environ['SENTRY_CONF']
+    except KeyError:
+        config = '~/.sentry'
 
     config = os.path.expanduser(config)
 
