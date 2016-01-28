@@ -31,8 +31,8 @@
   <title>{% block title %}Sentry{% endblock %}</title>
 
   {% block scripts %}
-  <script src="{% asset_url "sentry" "dist/vendor.js" %}" crossorigin="anonymous"></script>
-  <script src="{% asset_url "sentry" "dist/app.js" %}" crossorigin="anonymous"></script>
+  <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
+  <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
 
   <script>
     for (var n in window.exports) {
