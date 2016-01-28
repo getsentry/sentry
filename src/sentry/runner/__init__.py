@@ -10,7 +10,14 @@ from __future__ import absolute_import, print_function
 import os
 import click
 import sys
+import sentry
 from sentry.utils.imports import import_string
+
+# Parse out a pretty version for use with --version
+if sentry.__build__ is None:
+    version_string = sentry.VERSION
+else:
+    version_string = '%s (%s)' % (sentry.VERSION, sentry.__build__[:12])
 
 
 @click.group()
@@ -20,7 +27,7 @@ from sentry.utils.imports import import_string
     envvar='SENTRY_CONF',
     help='Path to configuration files.',
     metavar='PATH')
-@click.version_option()
+@click.version_option(version=version_string)
 @click.pass_context
 def cli(ctx, config):
     """Sentry is cross-platform crash reporting built with love.
