@@ -537,6 +537,9 @@ class Stacktrace(Interface):
         if not data.get('frames'):
             raise InterfaceValidationError("No 'frames' present")
 
+        if not isinstance(data['frames'], list):
+            raise InterfaceValidationError("Invalid value for 'frames'")
+
         if has_system_frames is None:
             has_system_frames = cls.data_has_system_frames(data)
 

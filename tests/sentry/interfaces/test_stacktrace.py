@@ -56,6 +56,16 @@ class StacktraceTest(TestCase):
             'filename': 'foo.py',
         }]))
 
+    def test_requires_frames(self):
+        with self.assertRaises(InterfaceValidationError):
+            Stacktrace.to_python({})
+
+        with self.assertRaises(InterfaceValidationError):
+            Stacktrace.to_python(dict(frames=[]))
+
+        with self.assertRaises(InterfaceValidationError):
+            Stacktrace.to_python(dict(frames=1))
+
     def test_allows_abs_path_without_filename(self):
         interface = Stacktrace.to_python(dict(frames=[{
             'lineno': 1,
