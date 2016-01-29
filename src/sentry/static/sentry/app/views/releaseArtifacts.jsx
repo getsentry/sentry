@@ -82,18 +82,22 @@ const ReleaseArtifacts = React.createClass({
     // TODO(dcramer): files should allow you to download and delete them
     return (
       <div>
-        <table className="table">
-          <tbody>
-          {this.state.fileList.map((file) => {
-            return (
-              <tr key={file.id}>
-                <td><strong>{file.name}</strong></td>
-                <td style={{width: 120}}><FileSize bytes={file.size} /></td>
-              </tr>
-            );
-          })}
-          </tbody>
-        </table>
+        <div className="release-group-header">
+          <div className="row">
+            <div className="col-sm-11 col-xs-6">{'Name'}</div>
+            <div className="col-sm-1 col-xs-3 align-right">{'Size'}</div>
+          </div>
+        </div>
+        <div className="release-list">
+        {this.state.fileList.map((file) => {
+          return (
+            <div className="release release-artifact row" key={file.id}>
+              <div className="col-sm-11 col-xs-6" style={{wordWrap: 'break-word'}}><strong>{file.name || '(empty)'}</strong></div>
+              <div className="col-sm-1 col-xs-3 align-right"><FileSize bytes={file.size} /></div>
+            </div>
+          );
+        })}
+        </div>
         <Pagination pageLinks={this.state.pageLinks}/>
       </div>
     );
