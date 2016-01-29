@@ -162,9 +162,7 @@ class ConnectionManager(object):
         options = {
             'timeout': self.timeout,
             'strict': True,
-            # We don't need urllib3's retries, since we'll retry
-            # on a different host ourselves
-            'retries': False,
+            'retries': 2,
             # Max of 5 connections open per host
             # this is arbitrary. The # of connections can burst
             # above 5 if needed becuase we're also setting
