@@ -181,7 +181,7 @@ const AssigneeSelector = React.createClass({
     let memberNodes = members.map((item) => {
       return (
         <MenuItem key={item.id}
-                  disabled={!loading}
+                  disabled={loading}
                   onSelect={this.assignTo.bind(this, item)} >
           <Gravatar email={item.email} className="avatar"
                     size={48} />
