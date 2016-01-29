@@ -192,11 +192,11 @@ export class Client {
     let path = '/issues/' + params.id + '/';
     let id = this.uniqueId();
 
-    GroupActions.assignTo(id, params.id, {email: params.email});
+    GroupActions.assignTo(id, params.id, {email: params.member && params.member.email || ''});
 
     return this._wrapRequest(path, {
       method: 'PUT',
-      data: {assignedTo: params.email},
+      data: {assignedTo: params.member && params.member.id || 0},
       success: (response) => {
         GroupActions.assignToSuccess(id, params.id, response);
       },

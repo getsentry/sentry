@@ -108,12 +108,12 @@ const AssigneeSelector = React.createClass({
   },
 
   assignTo(member) {
-    this.api.assignTo({id: this.props.id, email: member.email});
+    this.api.assignTo({id: this.props.id, member: member});
     this.setState({filter: '', loading: true});
   },
 
   clearAssignTo() {
-    this.api.assignTo({id: this.props.id, email: ''});
+    this.api.assignTo({id: this.props.id});
     this.setState({filter: '', loading: true});
   },
 
