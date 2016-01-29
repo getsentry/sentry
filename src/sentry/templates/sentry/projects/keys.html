@@ -19,8 +19,8 @@
     a look at our <a href="https://docs.getsentry.com">documentation</a>.</p>
 
     <div class="client-key-list">
-      {% for key in key_list %}
-        <div class="client-key-item">
+      {% for key in key_list|dictsortreversed:"is_active" %}
+        <div class="client-key-item{% if not key.is_active %} disabled{% endif %}">
           <div class="pull-right">
             <a class="btn btn-default btn-sm" href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{% trans "Details" %}</a>
             {% if ACCESS.project_write %}
@@ -32,7 +32,7 @@
               {% else %}
               <form method="POST" action="{% url 'sentry-enable-project-key' project.organization.slug project.slug key.id %}" style="display:inline">
                 {% csrf_token %}
-                <input type="submit" class="btn btn-primary btn-sm" value="{% trans "Enable" %}">
+                <input type="submit" class="btn btn-default btn-sm" value="{% trans "Enable" %}">
               </form>
               {% endif %}
             {% endif %}
@@ -44,9 +44,9 @@
             {% endif %}
           </div>
           {% if key.label %}
-            <h5><a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.label }}</a></h5>
+            <h5><a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.label }}</a>{% if not key.is_active %} <small><i class="icon-ban"></i> Disabled</small>{% endif %}</h5>
           {% else %}
-            <h5><a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.public_key }}</a></h5>
+            <h5><a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.public_key }}</a>{% if not key.is_active %} <small><i class="icon-ban"></i> Disabled</small>{% endif %}</h5>
           {% endif %}
 
           <div class="form-group">
