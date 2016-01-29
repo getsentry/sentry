@@ -120,7 +120,7 @@ install_requires = [
     'PyYAML>=3.11,<4.0',
     'raven>=5.3.0',
     'redis>=2.10.3,<2.11.0',
-    'requests%s>=2.7.0,<2.8.0' % (not IS_LIGHT_BUILD and '[security]' or ''),
+    'requests%s>=2.9.1,<2.10.0' % (not IS_LIGHT_BUILD and '[security]' or ''),
     'simplejson>=3.2.0,<3.9.0',
     'six>=1.6.0,<2.0.0',
     'setproctitle>=1.1.7,<1.2.0',
@@ -128,7 +128,7 @@ install_requires = [
     'South==1.0.1',
     'toronado>=0.0.4,<0.1.0',
     'ua-parser>=0.6.1,<0.7.0',
-    'urllib3>=1.11,<1.12',
+    'urllib3>=1.14,<1.15',
     'uwsgi>2.0.0,<2.1.0',
     'rb>=1.3.0,<2.0.0',
 ]
