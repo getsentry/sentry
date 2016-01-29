@@ -196,7 +196,10 @@ export class Client {
 
     return this._wrapRequest(path, {
       method: 'PUT',
-      data: {assignedTo: params.member && params.member.id || 0},
+      // Sending an empty value to assignedTo is the same as "clear",
+      // so if no member exists, that implies that we want to clear the
+      // current assignee.
+      data: {assignedTo: params.member && params.member.id || ''},
       success: (response) => {
         GroupActions.assignToSuccess(id, params.id, response);
       },
