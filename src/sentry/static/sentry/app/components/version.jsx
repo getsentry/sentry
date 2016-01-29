@@ -15,10 +15,8 @@ const Version = React.createClass({
   },
 
   render() {
-    let version = this.props.version;
+    let {orgId, projectId, version} = this.props;
     let shortVersion = version.length === 40 ? version.substr(0, 12) : version;
-
-    let {orgId, projectId} = this.props;
 
     if (this.props.anchor) {
       return (
