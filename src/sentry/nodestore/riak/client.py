@@ -206,26 +206,32 @@ class ConnectionManager(object):
         available hosts, we revive all dead connections and forcefully
         attempt to reconnect.
         """
-        # If we're trying to initiate a new connection, and
-        # all connections are already dead, then we should flail
-        # and attempt to connect to one of them
-        if len(self.connections) == 0:
-            self.force_revive()
 
         # We don't need strict host checking since our client is enforcing
         # the correct behavior anyways
         kwargs.setdefault('assert_same_host', False)
 
+        # Keep track of the last exception, so we can raise it if needed
+        last_error = None
+
         try:
             for _ in xrange(self.max_retries):
+                # If we're trying to initiate a new connection, and
+                # all connections are already dead, then we should flail
+                # and attempt to connect to one of them
+                if len(self.connections) == 0:
+                    self.force_revive()
+
                 conn = self.strategy.next(self.connections)
                 try:
                     return conn.urlopen(method, path, **kwargs)
-                except HTTPError:
+                except HTTPError as last_error:
                     self.mark_dead(conn)
 
-                    if len(self.connections) == 0:
-                        raise
+            # We've exhausted the retries, and we still have
+            # all errors, so re-raise the last known error
+            if last_error is not None:
+                raise last_error
         finally:
             self.cleanup_dead()
 
