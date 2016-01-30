@@ -10,7 +10,7 @@ from sentry.options.store import OptionsStore
 from sentry.options.manager import (
     OptionsManager, UnknownOption, DEFAULT_FLAGS,
     FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_STOREONLY, FLAG_REQUIRED, FLAG_PRIORITIZE_DISK)
-from sentry.options.types import Int, String
+from sentry.utils.types import Int, String
 from sentry.testutils import TestCase
 
 

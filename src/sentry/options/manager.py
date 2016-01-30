@@ -11,7 +11,7 @@ import logging
 from itertools import ifilter
 from types import NoneType
 from django.conf import settings
-from .types import type_from_value, Any
+from sentry.utils.types import type_from_value, Any
 
 # Prevent outselves from clobbering the builtin
 _type = type
