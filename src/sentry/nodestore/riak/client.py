@@ -222,7 +222,7 @@ class ConnectionManager(object):
         last_error = None
 
         try:
-            for _ in xrange(self.max_retries):
+            for _ in xrange(self.max_retries + 1):
                 # If we're trying to initiate a new connection, and
                 # all connections are already dead, then we should flail
                 # and attempt to connect to one of them
