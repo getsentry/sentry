@@ -1,8 +1,8 @@
 """
-sentry.options.types
-~~~~~~~~~~~~~~~~~~~~
+sentry.utils.types
+~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2015 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2016 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import, print_function
@@ -21,8 +21,8 @@ class InvalidTypeError(TypeError):
     pass
 
 
-class OptionType(object):
-    """Base OptionType that provides type coersion"""
+class Type(object):
+    """Base Type that provides type coersion"""
     name = ''
     # Default value to be returned when initializing
     default = None
@@ -58,14 +58,14 @@ class OptionType(object):
         return self.name
 
 
-class AnyType(OptionType):
+class AnyType(Type):
     """A type that accepts any value and does no coersion"""
     name = 'any'
     expected_types = (object,)
     compatible_types = (object,)
 
 
-class BoolType(OptionType):
+class BoolType(Type):
     "Coerce a boolean from a string"
     name = 'boolean'
     default = False
@@ -79,7 +79,7 @@ class BoolType(OptionType):
             return False
 
 
-class IntType(OptionType):
+class IntType(Type):
     """Coerce an integer from a string"""
     name = 'integer'
     default = 0
@@ -92,7 +92,7 @@ class IntType(OptionType):
             return
 
 
-class FloatType(OptionType):
+class FloatType(Type):
     """Coerce a float from a string or integer"""
     name = 'float'
     default = 0.0
@@ -106,7 +106,7 @@ class FloatType(OptionType):
             return
 
 
-class StringType(OptionType):
+class StringType(Type):
     """String type without any coersion, must be a string"""
     name = 'string'
     default = u''
@@ -114,7 +114,7 @@ class StringType(OptionType):
     compatible_types = (basestring,)
 
 
-class DictType(OptionType):
+class DictType(Type):
     """Coerce a dict out of a json/yaml string"""
     name = 'dictionary'
     expected_types = (dict,)
@@ -130,7 +130,7 @@ class DictType(OptionType):
             return
 
 
-class SequenceType(OptionType):
+class SequenceType(Type):
     """Coerce a tuple out of a json/yaml string or a list"""
     name = 'sequence'
     default = ()
@@ -158,7 +158,7 @@ Dict = DictType()
 Sequence = SequenceType()
 
 
-# Mapping for basic types into what their OptionType is
+# Mapping for basic types into what their Type is
 _type_mapping = {
     bool: Bool,
     int: Int,
@@ -172,5 +172,5 @@ _type_mapping = {
 
 
 def type_from_value(value):
-    """Fetch OptionType based on a primitive value"""
+    """Fetch Type based on a primitive value"""
     return _type_mapping[type(value)]

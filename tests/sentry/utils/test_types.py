@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from sentry.options.types import (
+from sentry.utils.types import (
     InvalidTypeError,
     Any, Bool, Int, Float, String, Dict, Sequence,
 )

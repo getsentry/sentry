@@ -9,7 +9,7 @@ from __future__ import absolute_import, print_function
 
 
 from sentry.options import register, FLAG_NOSTORE, FLAG_REQUIRED, FLAG_PRIORITIZE_DISK
-from sentry.options.types import Dict
+from sentry.utils.types import Dict
 
 
 register('cache.backend', flags=FLAG_NOSTORE)
