@@ -140,14 +140,19 @@ class ConnectionManager(object):
     A thread-safe multi-host http connection manager.
     """
     def __init__(self, hosts=DEFAULT_NODES, strategy=RoundRobinStrategy, randomize=True,
-                 timeout=3, cooldown=5, max_retries=3, tcp_keepalive=True):
+                 timeout=3, cooldown=5, max_retries=None, tcp_keepalive=True):
         assert hosts
         self.strategy = strategy()
         self.dead_connections = []
         self.timeout = timeout
         self.cooldown = cooldown
-        self.max_retries = max_retries
         self.tcp_keepalive = tcp_keepalive
+
+        # Default max_retries to number of hosts
+        if max_retries is None:
+            self.max_retries = len(hosts)
+        else:
+            self.max_retries = max_retries
 
         self.connections = map(self.create_pool, hosts)
         # Shuffle up the order to prevent stampeding the same hosts
