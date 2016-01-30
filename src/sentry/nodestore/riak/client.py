@@ -8,6 +8,8 @@ sentry.nodestore.riak.client
 
 from __future__ import absolute_import
 
+import six
+import sys
 import socket
 from random import shuffle
 from time import time
@@ -225,13 +227,14 @@ class ConnectionManager(object):
                 conn = self.strategy.next(self.connections)
                 try:
                     return conn.urlopen(method, path, **kwargs)
-                except HTTPError as last_error:
+                except HTTPError:
                     self.mark_dead(conn)
+                    last_error = sys.exc_info()
 
             # We've exhausted the retries, and we still have
             # all errors, so re-raise the last known error
             if last_error is not None:
-                raise last_error
+                six.reraise(*last_error)
         finally:
             self.cleanup_dead()
 
