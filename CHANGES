@@ -1,3 +1,12 @@
+Version 8.0.6
+-------------
+
+- Fixed assignee dropdown not being clickable from touch devices.
+- Don't ignore ``SENTRY_WEB_OPTIONS['workers']`` value if set.
+- Fix Global Throughput dashboard in admin.
+- Fix display for Release names when they include special characters.
+- Added new ``sentry config generate-secret-key`` to help with regenerating a new SECRET_KEY value if needed.
+
 Version 8.0.5
 -------------
 
