@@ -120,6 +120,7 @@ const GroupActions = React.createClass({
                  className={resolveClassName}
                  title={t('Resolve')}
                  onClick={this.onUpdate.bind(this, {status: 'resolved'})}>
+                <span className="icon-checkmark" style={{marginRight: 5}} />
                 {t('Resolve')}
               </a>,
               <DropdownLink
