@@ -11,9 +11,9 @@ from __future__ import absolute_import
 from celery.utils.log import get_task_logger
 
 from sentry.exceptions import DeleteAborted
-from sentry.utils.query import bulk_delete_objects
 from sentry.signals import pending_delete
 from sentry.tasks.base import instrumented_task, retry
+from sentry.utils.query import bulk_delete_objects
 
 logger = get_task_logger(__name__)
 
@@ -91,11 +91,11 @@ def delete_team(object_id, continuous=True, **kwargs):
 @retry(exclude=(DeleteAborted,))
 def delete_project(object_id, continuous=True, **kwargs):
     from sentry.models import (
-        Activity, EventMapping, Group, GroupEmailThread,
-        GroupAssignee, GroupBookmark, GroupRuleStatus, GroupHash, GroupMeta,
-        GroupSeen, GroupTagKey, GroupTagValue, Project, ProjectKey,
-        ProjectStatus, SavedSearchUserDefault, SavedSearch, TagKey, TagValue,
-        UserReport
+        Activity, EventMapping, Group, GroupAssignee, GroupBookmark,
+        GroupEmailThread, GroupHash, GroupMeta, GroupResolution,
+        GroupRuleStatus, GroupSeen, GroupTagKey, GroupTagValue, Project,
+        ProjectKey, ProjectStatus, SavedSearchUserDefault, SavedSearch, TagKey,
+        TagValue, UserReport
     )
 
     try:
@@ -113,9 +113,9 @@ def delete_project(object_id, continuous=True, **kwargs):
     # XXX: remove keys first to prevent additional data from flowing in
     model_list = (
         Activity, EventMapping, GroupAssignee, GroupBookmark, GroupEmailThread,
-        GroupRuleStatus, GroupHash, GroupSeen, UserReport, GroupTagKey,
+        GroupHash, GroupSeen, GroupRuleStatus, GroupTagKey,
         GroupTagValue, ProjectKey, TagKey, TagValue, SavedSearchUserDefault,
-        SavedSearch
+        SavedSearch, UserReport
     )
     for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, logger=logger)
@@ -124,9 +124,10 @@ def delete_project(object_id, continuous=True, **kwargs):
                 delete_project.delay(object_id=object_id, countdown=15)
             return
 
-    # TODO(dcramer): GroupMeta has no project relation so we cant easily bulk
+    # TODO(dcramer): no project relation so we cant easily bulk
     # delete today
-    has_more = delete_objects([GroupMeta], relation={'group__project': p},
+    has_more = delete_objects([GroupMeta, GroupResolution],
+                              relation={'group__project': p},
                               logger=logger)
     if has_more:
         if continuous:
@@ -155,8 +156,8 @@ def delete_project(object_id, continuous=True, **kwargs):
 def delete_group(object_id, continuous=True, **kwargs):
     from sentry.models import (
         EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupMeta,
-        GroupRuleStatus, GroupStatus, GroupTagKey, GroupTagValue,
-        GroupEmailThread, UserReport
+        GroupResolution, GroupRuleStatus, GroupStatus, GroupTagKey,
+        GroupTagValue, GroupEmailThread, UserReport
     )
 
     try:
@@ -168,8 +169,9 @@ def delete_group(object_id, continuous=True, **kwargs):
         group.update(status=GroupStatus.DELETION_IN_PROGRESS)
 
     bulk_model_list = (
-        GroupAssignee, GroupBookmark, GroupHash, GroupMeta, GroupRuleStatus,
-        GroupTagValue, GroupTagKey, EventMapping, GroupEmailThread, UserReport
+        GroupAssignee, GroupBookmark, GroupHash, GroupMeta, GroupResolution,
+        GroupRuleStatus, GroupTagValue, GroupTagKey, EventMapping,
+        GroupEmailThread, UserReport
     )
     for model in bulk_model_list:
         has_more = bulk_delete_objects(model, group_id=object_id, logger=logger)

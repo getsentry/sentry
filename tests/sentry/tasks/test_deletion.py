@@ -4,9 +4,9 @@ from mock import patch
 
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
-    Group, GroupAssignee, GroupMeta, GroupStatus, GroupTagKey, GroupTagValue,
-    Organization, OrganizationStatus, Project, ProjectStatus, TagKey, TagValue,
-    Team, TeamStatus
+    Group, GroupAssignee, GroupMeta, GroupResolution, GroupStatus, GroupTagKey,
+    GroupTagValue, Organization, OrganizationStatus, Project, ProjectStatus,
+    Release, TagKey, TagValue, Team, TeamStatus
 )
 from sentry.tasks.deletion import (
     delete_group, delete_organization, delete_project, delete_tag_key,
@@ -82,6 +82,8 @@ class DeleteProjectTest(TestCase):
         group = self.create_group(project=project)
         GroupAssignee.objects.create(group=group, project=project, user=self.user)
         GroupMeta.objects.create(group=group, key='foo', value='bar')
+        release = Release.objects.create(version='a' * 32, project=project)
+        GroupResolution.objects.create(group=group, release=release)
 
         with self.tasks():
             delete_project(object_id=project.id)
