@@ -157,7 +157,10 @@ const GroupActions = React.createClass({
             <DropdownLink
               caret={false}
               className={snoozeClassName}
-              title={t('Snooze')}>
+              title={<span>
+                {t('Snooze')}
+                <span className="icon-arrow-down" style={{marginLeft: 3, marginRight: -3}} />
+              </span>}>
               <MenuItem noAnchor={true}>
                 <a onClick={this.onSnooze.bind(this, Snooze['30MINUTES'])}>{t('for 30 minutes')}</a>
               </MenuItem>
