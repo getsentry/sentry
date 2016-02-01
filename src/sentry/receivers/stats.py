@@ -33,6 +33,7 @@ def record_task_signal(signal, name, **options):
         if not isinstance(sender, basestring):
             sender = _get_task_name(sender)
         metrics.incr('jobs.{0}'.format(name), instance=sender, **options)
+        metrics.incr('jobs.all.{0}'.format(name))
 
     signal.connect(
         handler,
