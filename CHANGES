@@ -1,3 +1,15 @@
+Version 8.1.0
+-------------
+
+- Default web server is now uWSGI (https://uwsgi-docs.readthedocs.org/en/latest/) to replace gunicorn.
+- New "Saved Searches". See: http://blog.getsentry.com/2016/01/19/introducing-saved-searches.html
+
+Schema Changes
+~~~~~~~~~~~~~~
+- Remove FK constraints from ``Event.group_id``, ``Event.project_id``, ``EventMapping.group_id``, and ``EventMapping.project_id``.
+- Added ``SavedSearch.is_default`` column.
+- Added new ``SavedSearchUserDefault`` model.
+
 Version 8.0.6
 -------------
 
