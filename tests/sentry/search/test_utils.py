@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django.utils import timezone
 
 from sentry.models import EventUser, GroupStatus
@@ -141,6 +141,29 @@ class ParseQueryTest(TestCase):
         assert result['age_from'] < timezone.now() - timedelta(hours=23)
         assert result['age_to'] > timezone.now() - timedelta(hours=13)
         assert result['age_to'] < timezone.now() - timedelta(hours=11)
+
+    def test_date_range(self):
+        result = self.parse_query('event.timestamp:>2016-01-01 event.timestamp:<2016-01-02')
+        assert result['date_from'] == datetime(2016, 01, 01, 0, 0, 0, 0, timezone.utc)
+        assert result['date_from_inclusive']
+        assert result['date_to'] == datetime(2016, 01, 02, 0, 0, 0, 0, timezone.utc)
+        assert not result['date_to_inclusive']
+
+    def test_date_approx_day(self):
+        date_value = datetime(2016, 01, 01, 0, 0, 0, 0, timezone.utc)
+        result = self.parse_query('event.timestamp:2016-01-01')
+        assert result['date_from'] == date_value
+        assert result['date_from_inclusive']
+        assert result['date_to'] == date_value + timedelta(days=1)
+        assert not result['date_to_inclusive']
+
+    def test_date_approx_precise(self):
+        date_value = datetime(2016, 01, 01, 0, 0, 0, 0, timezone.utc)
+        result = self.parse_query('event.timestamp:2016-01-01T00:00:00')
+        assert result['date_from'] == date_value - timedelta(minutes=5)
+        assert result['date_from_inclusive']
+        assert result['date_to'] == date_value + timedelta(minutes=6)
+        assert not result['date_to_inclusive']
 
     def test_has_tag(self):
         result = self.parse_query('has:foo')
