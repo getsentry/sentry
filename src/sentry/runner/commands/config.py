@@ -70,3 +70,10 @@ def delete(option, no_input):
         options.delete(option)
     except UnknownOption:
         raise click.ClickException('unknown option: %s' % option)
+
+
+@config.command(name='generate-secret-key')
+def generate_secret_key():
+    "Generate a new cryptographically secure secret key value."
+    from sentry.runner.settings import generate_secret_key
+    click.echo(generate_secret_key())

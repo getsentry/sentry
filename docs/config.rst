@@ -64,13 +64,9 @@ General
 
         system.secret-key: 'a-really-long-secret-value'
 
-    To generate a new value, you can use Python:
+    To generate a new value, we've provided a helper:
 
-    .. code-block:: python
-
-        # $ sentry shell
-        from sentry.runner.settings import generate_secret_key
-        print(generate_secret_key())
+        $ sentry config generate-secret-key
 
 
 Authentication
