@@ -74,3 +74,113 @@ class ReleaseFileCreateTest(APITestCase):
             'Content-Type': 'application/javascript',
             'X-SourceMap': 'http://example.com',
         }
+
+    def test_no_file(self):
+        project = self.create_project(name='foo')
+
+        release = Release.objects.create(
+            project=project,
+            version='1',
+        )
+
+        url = reverse('sentry-api-0-release-files', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+            'version': release.version,
+        })
+
+        self.login_as(user=self.user)
+
+        response = self.client.post(url, {
+            'header': 'X-SourceMap: http://example.com',
+        }, format='multipart')
+
+        assert response.status_code == 400, response.content
+
+    def test_missing_name(self):
+        project = self.create_project(name='foo')
+
+        release = Release.objects.create(
+            project=project,
+            version='1',
+        )
+
+        url = reverse('sentry-api-0-release-files', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+            'version': release.version,
+        })
+
+        self.login_as(user=self.user)
+
+        response = self.client.post(url, {
+            'header': 'X-SourceMap: http://example.com',
+            'file': SimpleUploadedFile('', 'function() { }',
+                                       content_type='application/javascript'),
+        }, format='multipart')
+
+        assert response.status_code == 400, response.content
+
+    def test_bad_headers(self):
+        project = self.create_project(name='foo')
+
+        release = Release.objects.create(
+            project=project,
+            version='1',
+        )
+
+        url = reverse('sentry-api-0-release-files', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+            'version': release.version,
+        })
+
+        self.login_as(user=self.user)
+
+        response = self.client.post(url, {
+            'name': 'http://example.com/application.js',
+            'header': 'lol',
+            'file': SimpleUploadedFile('application.js', 'function() { }',
+                                       content_type='application/javascript'),
+        }, format='multipart')
+
+        assert response.status_code == 400, response.content
+
+    def test_duplicate_file(self):
+        project = self.create_project(name='foo')
+
+        release = Release.objects.create(
+            project=project,
+            version='1',
+        )
+
+        url = reverse('sentry-api-0-release-files', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+            'version': release.version,
+        })
+
+        self.login_as(user=self.user)
+
+        data = {
+            'name': 'http://example.com/application.js',
+            'header': 'X-SourceMap: http://example.com',
+            'file': SimpleUploadedFile('application.js', 'function() { }',
+                                       content_type='application/javascript'),
+        }
+
+        response = self.client.post(url, data, format='multipart')
+
+        assert response.status_code == 201, response.content
+
+        releasefile = ReleaseFile.objects.get(release=release)
+        assert releasefile.name == 'http://example.com/application.js'
+        assert releasefile.file.headers == {
+            'Content-Type': 'application/javascript',
+            'X-SourceMap': 'http://example.com',
+        }
+
+        # Now upload it again!
+        response = self.client.post(url, data, format='multipart')
+
+        assert response.status_code == 409, response.content
