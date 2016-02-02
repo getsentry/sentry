@@ -51,7 +51,7 @@
   },
   "devDependencies": {
     "babel-core": "5.8.33",
-    "babel-eslint": "4.1.5",
+    "babel-eslint": "5.0.0-beta9",
     "babel-gettext-extractor": "^1.0.2",
     "babel-loader": "5.3.3",
     "chai": "3.4.1",
