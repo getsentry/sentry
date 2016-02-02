@@ -4,7 +4,7 @@ import ApiMixin from '../mixins/apiMixin';
 import ConfigStore from '../stores/configStore';
 import OrganizationState from '../mixins/organizationState';
 
-const TASKS = [
+const TODOS = [
   {
     'task': 0,
     'title': 'Make a great decision',
@@ -39,6 +39,22 @@ const TASKS = [
     'location': 'settings/release-tracking/',
   },
   {
+    'task': 6,
+    'title': 'Add user context to errors',
+    'description': 'Know what users are being affected by errors and crashes',
+    'skippable': false,
+    'feature_location': 'absolute',
+    'location': 'https://docs.getsentry.com/hosted/learn/context/#capturing-the-user',
+  },
+  {
+    'task': 5,
+    'title': 'Add a second platform',
+    'description': 'Add Sentry to a second platform',
+    'skippable': false,
+    'feature_location': 'organization',
+    'location': 'projects/new/',
+  },
+  {
     'task': 3,
     'title': 'Set up issue tracking',
     'description': 'Integrate Sentry into your team\'s issue tracker',
@@ -53,22 +69,6 @@ const TASKS = [
     'skippable': true,
     'feature_location': 'project',
     'location': 'settings/notifications/',
-  },
-  {
-    'task': 5,
-    'title': 'Add a second platform',
-    'description': 'Add Sentry to a second platform',
-    'skippable': false,
-    'feature_location': 'organization',
-    'location': 'projects/new/',
-  },
-  {
-    'task': 6,
-    'title': 'Add user context to errors',
-    'description': 'Know what users are being affected by errors and crashes',
-    'skippable': false,
-    'feature_location': 'absolute',
-    'location': 'https://docs.getsentry.com/hosted/learn/context/#capturing-the-user',
   },
   // {
   //   'task': 7,
@@ -181,18 +181,19 @@ const Confirmation = React.createClass({
 const Todos = React.createClass({
   mixins: [ApiMixin, OrganizationState],
 
-  getInitialState: function() {
-    return {tasks: []};
+  getInitialState() {
+    return {
+      tasks: [],
+      seeAll: false,  // Show all tasks, included those completed
+    };
   },
 
   componentWillMount() {
     let org = this.getOrganization();
     let tasks = [];
-    for (var task of TASKS) {
-      task.status = '';
-      if (task.task == '0') {
-        task.status = 'Complete';
-      }
+
+    for (var task of TODOS) {
+      task['status'] = '';
       for (var server_task of org.onboardingTasks) {
         if (server_task['task'] == task['task']) {
           task['status'] = server_task['status'];
@@ -204,7 +205,7 @@ const Todos = React.createClass({
     this.setState({tasks: tasks});
   },
 
-  skipTask: function(skipped_task) {
+  skipTask(skipped_task) {
     let org = this.getOrganization();
     this.api.request('/organizations/' + org.slug + '/onboarding-tasks/', {
       method: 'POST',
@@ -225,17 +226,38 @@ const Todos = React.createClass({
     this.getOnboardingTasks();
   },
 
-  render: function() {
-    let todo_list = this.state.tasks.map(function(task) {
-      return (<TodoItem key={task['task']} task={task} onSkip={this.skipTask} />);
+  click(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  },
+
+  toggleSeeAll(e) {
+    this.setState({ seeAll: !this.state.seeAll });
+  },
+
+  render() {
+    var next_tasks = [];
+    if (this.state.seeAll) {
+      next_tasks = this.state.tasks;
+    } else {
+      next_tasks = this.state.tasks.filter( (task) => {
+        if (task['status'] != 'Complete') {
+          return task
+        }
+      }).slice(0,3);
+    }
+
+    let todo_list = next_tasks.map( (task) => {
+      return (<TodoItem key={task['task']} task={task} onSkip={this.skipTask} />)
     }, this);
 
     return (
-        <div className="onboarding-wrapper">
+        <div onClick={this.click} className="onboarding-wrapper">
           <h3>Getting Started with Sentry</h3>
           <ul className="list-unstyled">
             {todo_list}
           </ul>
+          <a onClick={this.toggleSeeAll}>{this.state.seeAll ? 'Hide' : 'See All'}</a>
         </div>
     );
   }
