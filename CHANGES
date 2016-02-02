@@ -1,3 +1,8 @@
+Version 8.1.1
+-------------
+
+- Fix broken static files compiled from 8.1.0. :(
+
 Version 8.1.0
 -------------
 
