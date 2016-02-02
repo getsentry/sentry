@@ -4,7 +4,7 @@ import ApiMixin from '../mixins/apiMixin';
 import ConfigStore from '../stores/configStore';
 import OrganizationState from '../mixins/organizationState';
 
-const TASKS = [
+export const TASKS = [
   {
     'task': 0,
     'title': 'Make a great decision',
@@ -242,9 +242,12 @@ const Todos = React.createClass({
     } else {
       next_tasks = this.state.tasks.filter( (task) => {
         if (task['status'] != 'Complete') {
-          return task
+          return task;
         }
       }).slice(0,3);
+    }
+    if (location.hash == '#welcome') {
+      next_tasks.splice(0, 0, this.state.tasks[0]);
     }
 
     let todo_list = next_tasks.map( (task) => {

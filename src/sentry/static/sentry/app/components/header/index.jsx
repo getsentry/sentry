@@ -9,7 +9,7 @@ import Broadcasts from './broadcasts';
 import StatusPage from './statuspage';
 import UserNav from './userNav';
 import OrganizationSelector from './organizationSelector';
-import Todos from '../todos';
+import {Todos, TASKS} from '../todos';
 
 const Header = React.createClass({
   mixins: [ApiMixin, OrganizationState],
@@ -37,6 +37,11 @@ const Header = React.createClass({
     }
 
     // NOTE: this.props.orgId not guaranteed to be specified
+    let percentage = Math.round((1 + this.getOrganization().onboardingTasks.length) / 8 * 100).toString();
+    let style = {
+      width: percentage + '%',
+    };
+
     return (
       <header>
         <div className="container">
@@ -51,8 +56,8 @@ const Header = React.createClass({
 
           <StatusPage className="pull-right" />
           <div className="onboarding-progress-bar" onClick={this.toggleTodos}>
-            <div className="slider"></div>
-                { this.state.showTodos ? <div className="dropdown-menu"><Todos /></div> : null }
+            <div className="slider" style={style} ></div>
+            { this.state.showTodos ? <div className="dropdown-menu"><Todos /></div> : null }
           </div>
         </div>
       </header>
