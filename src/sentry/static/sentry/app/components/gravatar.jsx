@@ -23,7 +23,7 @@ const Gravatar = React.createClass({
 
     let query = {
       s: this.props.size || undefined,
-      d: this.props.default || undefined
+      d: this.props.default || 'mm'
     };
 
     url += '?' + $.param(query);
@@ -44,4 +44,3 @@ const Gravatar = React.createClass({
 });
 
 export default Gravatar;
-
