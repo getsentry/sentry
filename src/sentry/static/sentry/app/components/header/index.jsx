@@ -15,7 +15,11 @@ const Header = React.createClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState: function() {
-    return {showTodos: false};
+    if (location.hash == '#welcome') {
+      return {showTodos: true};
+    } else {
+      return {showTodos: false};
+    }
   },
 
   toggleTodos() {
