@@ -4,7 +4,7 @@ import ApiMixin from '../mixins/apiMixin';
 import ConfigStore from '../stores/configStore';
 import OrganizationState from '../mixins/organizationState';
 
-const TODOS = [
+const TASKS = [
   {
     'task': 0,
     'title': 'Make a great decision',
