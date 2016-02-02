@@ -46,7 +46,7 @@ from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.develop import develop as DevelopCommand
 
 # The version of sentry
-VERSION = '8.1.0'
+VERSION = '8.1.1'
 
 # Also see sentry.utils.integrationdocs.DOC_FOLDER
 INTEGRATION_DOC_FOLDER = os.path.join(os.path.abspath(
