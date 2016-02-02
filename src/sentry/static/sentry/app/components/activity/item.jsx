@@ -80,7 +80,7 @@ const ActivityItem = React.createClass({
         });
       case 'set_muted':
         if (data.snoozeDuration) {
-          return tct('[author] snoozed [link:an issue] for %(duration)s', {
+          return tct('[author] snoozed [link:an issue] for [duration]', {
             author: author,
             duration: <Duration seconds={data.snoozeDuration * 60} />,
             link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
