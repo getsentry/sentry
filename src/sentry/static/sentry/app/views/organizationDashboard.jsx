@@ -5,7 +5,6 @@ import ActivityFeed from '../components/activity/feed';
 import GroupStore from '../stores/groupStore';
 import IssueList from '../components/issueList';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
-import Todos from '../components/todos';
 import {t} from '../locale';
 
 const AssignedIssues = React.createClass({
@@ -90,7 +89,6 @@ const OrganizationDashboard = React.createClass({
         <div className="early-adopter-banner"><strong>Psst!</strong> This feature is still a work-in-progress. Thanks for being an early adopter! YO! YO!</div>
         <div className="row">
           <div className="col-md-8">
-            <Todos {...this.props} />
             <AssignedIssues {...this.props} />
             <NewIssues {...this.props} />
           </div>

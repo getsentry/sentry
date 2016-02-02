@@ -14,7 +14,6 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
 	permission_classes = [OrganizationPermission, ]
 
 	def post(self, request, organization):
-		print request.DATA
 		if request.DATA['status'] == 'Skipped':
 			print OrganizationOnboardingTask.objects.create_or_update(
 				organization=organization,
@@ -27,4 +26,4 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
 			)
 			return Response(status=204)
 
-		return "fuck"
+		return Response(status=404)

@@ -2,11 +2,16 @@ from __future__ import absolute_import
 
 from django import forms
 from django.db import transaction, IntegrityError
+from django.utils import timezone
 
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMember
+    AuditLogEntry,
+    AuditLogEntryEvent,
+    OnboardingTask,
+    OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+    OrganizationMember,
 )
-
 
 class InviteOrganizationMemberForm(forms.ModelForm):
     # override this to ensure the field is required
@@ -34,6 +39,17 @@ class InviteOrganizationMemberForm(forms.ModelForm):
         sid = transaction.savepoint(using='default')
         try:
             om.save()
+
+            result, created = OrganizationOnboardingTask.objects.get_or_create(
+                organization=organization,
+                user=actor,
+                task=OnboardingTask.INVITE_MEMBER,
+                defaults={
+                    'status': OnboardingTaskStatus.PENDING,
+                    'date_completed': timezone.now()
+                }
+            )
+
         except IntegrityError:
             transaction.savepoint_rollback(sid, using='default')
             return OrganizationMember.objects.get(

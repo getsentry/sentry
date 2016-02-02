@@ -97,23 +97,19 @@ class OrganizationMember(Model):
             'Must set user or email'
         super(OrganizationMember, self).save(*args, **kwargs)
 
-        oot = OrganizationOnboardingTask.objects.filter(
-            organzation=self.organzation,
-            user=user,
-            task=OnboardingTask.INVITE_MEMBER,
-            status=OnboardingTaskStatus.COMPLETE
-            ).exists()
-
-        if not oot:
-            OrganizationOnboardingTask.objects.create_or_update(
-                organization=self.organization,
-                user=self.user,
-                task=OnboardingTask.INVITE_MEMBER,
-                values={
-                    'status': OnboardingTaskStatus.PENDING if self.is_pending else OnboardingTaskStatus.COMPLETE,
-                    'date_completed': timezone.now()
-                }
-            )
+        if self.user:
+            try:
+                oot = OrganizationOnboardingTask.objects.get(
+                    organization=self.organization,
+                    task=OnboardingTask.INVITE_MEMBER,
+                )
+                if oot.status == OnboardingTaskStatus.PENDING:
+                    oot.status = OnboardingTaskStatus.COMPLETE
+                    oot.date_completed = timezone.now()
+                    oot.data = { 'invited_member': self.user_id }
+                    oot.save()
+            except OrganizationOnboardingTask.DoesNotExist as e:
+                pass
 
         if not self.counter:
             self._set_counter()

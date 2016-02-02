@@ -7,6 +7,7 @@ sentry.models.organizationonboardingtask
 """
 from django.conf import settings
 from django.db import models
+from jsonfield import JSONField
 
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -48,6 +49,12 @@ class OnboardingTaskStatus(object):
 class OrganizationOnboardingTask(Model):
     """
     Onboarding tasks walk new Sentry orgs through basic features of Sentry.
+    data field options (not all tasks have data fields):
+        FIRST_EVENT: { 'platform':  'flask', }
+        INVITE_MEMBER: { 'invited_member': user.id, 'teams': [team.id] }
+        ISSUE_TRACKER | NOTIFICATION_SERVICE: { 'plugin': 'plugin_name' }
+        ISSUE_ASSIGNMENT: { 'assigned_member': user.id }
+        SECOND_PLATFORM: { 'platform': 'javascript' }
     """
     TASK_CHOICES = (
         (OnboardingTask.FIRST_EVENT, 'First event'),  # Send an organization's first event to Sentry
@@ -72,10 +79,12 @@ class OrganizationOnboardingTask(Model):
     )
 
     organization = FlexibleForeignKey('sentry.Organization')
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=False)  # user that completed
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL)  # user that completed
+    project = FlexibleForeignKey('sentry.Project', null=True)  # if task is associated with a project
     task = BoundedPositiveIntegerField(choices=TASK_CHOICES)
     status = BoundedPositiveIntegerField(choices=STATUS_CHOICES)
     date_completed = models.DateTimeField()
+    data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
 
     class Meta:
         app_label = 'sentry'
