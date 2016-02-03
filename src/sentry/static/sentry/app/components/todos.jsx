@@ -20,7 +20,8 @@ export const TASKS = [
     'description': 'Install Sentry\'s client to get started error logging',
     'skippable': false,
     'feature_location': 'project',
-    'location': 'settings/install/'
+    'location': 'settings/install/',
+    'status': 'Pending'
   },
   {
     'task': 2,
@@ -114,13 +115,26 @@ const TodoItem = React.createClass({
     let org = this.getOrganization();
 
     let classNames = '';
+    let description = '';
+    let doneDescription = "By being here, you've done it. Welcome to Sentry!";
 
     if (this.props.task['status'] == 'Complete') {
       classNames += ' checked';
+
+      if (this.props.task.task == 0) {
+        description = doneDescription;
+      } else {
+        description = '[username] completed this 3 days ago';
+      }
+
     } else if (this.props.task['status'] == 'Pending') {
       classNames += ' pending';
+      description = '[username] kicked this off just now';
     } else if (this.props.task['status'] == 'Skipped') {
       classNames += ' skipped';
+      description = '[username] skipped this a day ago';
+    } else {
+      description = this.props.task.description;
     }
 
     if (this.state.showConfirmation) {
@@ -141,10 +155,11 @@ const TodoItem = React.createClass({
         <div className="todo-content">
           <div className="ob-checkbox">
             { this.props.task['status'] == 'Complete' ? <span className="icon-checkmark" /> : null }
+            { this.props.task['status'] == 'Skipped' ? <span className="icon-x" /> : null }
           </div>
           <h4>{ this.props.task['title'] }</h4>
           <p>
-            { this.props.task['description'] }
+            { description }
           </p>
           { this.props.task['skippable'] && this.props.task['status'] != 'Skipped' && this.props.task['status'] != 'Complete' && !this.state.showConfirmation ? <a className="skip-btn btn btn-default" onClick={this.toggleConfirmation}>Skip</a> : null }
         </div>
