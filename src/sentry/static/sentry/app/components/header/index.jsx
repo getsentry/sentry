@@ -9,7 +9,7 @@ import Broadcasts from './broadcasts';
 import StatusPage from './statuspage';
 import UserNav from './userNav';
 import OrganizationSelector from './organizationSelector';
-import {Todos, TASKS} from '../todos';
+import Todos from '../todos';
 
 const Header = React.createClass({
   mixins: [ApiMixin, OrganizationState],
@@ -37,7 +37,7 @@ const Header = React.createClass({
     }
 
     // NOTE: this.props.orgId not guaranteed to be specified
-    let percentage = Math.round((1 + this.getOrganization().onboardingTasks.length) / 8 * 100).toString();
+    let percentage = Math.round((1 + this.getOrganization().onboardingTasks.length) / Todos.TASKS.length * 100).toString();
     let style = {
       width: percentage + '%',
     };

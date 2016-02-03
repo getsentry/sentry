@@ -4,91 +4,6 @@ import ApiMixin from '../mixins/apiMixin';
 import ConfigStore from '../stores/configStore';
 import OrganizationState from '../mixins/organizationState';
 
-export const TASKS = [
-  {
-    'task': 0,
-    'title': 'Make a great decision',
-    'description': 'By being here, you\'ve done it. Welcome to Sentry!',
-    'skippable': false,
-    'feature_location': 'project',
-    'location': 'settings/install/',
-    'status': 'Complete',
-  },
-  {
-    'task': 1,
-    'title': 'Send your first event',
-    'description': 'Install Sentry\'s client to get started error logging',
-    'skippable': false,
-    'feature_location': 'project',
-    'location': 'settings/install/',
-    'status': 'Pending'
-  },
-  {
-    'task': 2,
-    'title': 'Invite team member',
-    'description': 'Bring your team aboard',
-    'skippable': false,
-    'feature_location': 'organization',
-    'location': 'members/new/',
-  },
-  {
-    'task': 8,
-    'title': 'Set up release tracking',
-    'description': 'See what releases are generating errors.',
-    'skippable': false,
-    'feature_location': 'project',
-    'location': 'settings/release-tracking/',
-  },
-  {
-    'task': 6,
-    'title': 'Add user context to errors',
-    'description': 'Know what users are being affected by errors and crashes',
-    'skippable': false,
-    'feature_location': 'absolute',
-    'location': 'https://docs.getsentry.com/hosted/learn/context/#capturing-the-user',
-  },
-  {
-    'task': 5,
-    'title': 'Add a second platform',
-    'description': 'Add Sentry to a second platform',
-    'skippable': false,
-    'feature_location': 'organization',
-    'location': 'projects/new/',
-  },
-  {
-    'task': 3,
-    'title': 'Set up issue tracking',
-    'description': 'Integrate Sentry into your team\'s issue tracker',
-    'skippable': true,
-    'feature_location': 'project',
-    'location': 'settings/issue-tracking/',
-  },
-  {
-    'task': 4,
-    'title': 'Set up a notification service',
-    'description': 'Receive Sentry alerts in Slack or HipChat',
-    'skippable': true,
-    'feature_location': 'project',
-    'location': 'settings/notifications/',
-  },
-  // {
-  //   'task': 7,
-  //   'title': 'Deminify javascript with sourcemaps',
-  //   'description': 'Upload sourcemaps',
-  //   'skippable': false,
-  //   'feature_location': 'absolute',
-  //   'location': 'https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/'
-  // },
-  // {
-  //   'task': 9,
-  //   'title': 'User crash reports',
-  //   'description': 'Collect user feedback when your application crashes',
-  //   'skippable': false,
-  //   'feature_location': 'project',
-  //   'location': 'settings/user-reports/'
-  // },
-];
-
 const TodoItem = React.createClass({
   mixins: [OrganizationState],
 
@@ -161,7 +76,8 @@ const TodoItem = React.createClass({
           <p>
             { description }
           </p>
-          { this.props.task['skippable'] && this.props.task['status'] != 'Skipped' && this.props.task['status'] != 'Complete' && !this.state.showConfirmation ? <a className="skip-btn btn btn-default" onClick={this.toggleConfirmation}>Skip</a> : null }
+          { this.props.task['skippable'] && this.props.task['status'] != 'Skipped' && this.props.task['status'] != 'Complete' && !this.state.showConfirmation ?
+            <a className="skip-btn btn btn-default" onClick={this.toggleConfirmation}>Skip</a> : null }
         </div>
         { this.state.showConfirmation ? <Confirmation task={this.props.task['task']} onSkip={this.skip} dismiss={this.toggleConfirmation} /> : null }
       </li>
@@ -202,13 +118,102 @@ const Todos = React.createClass({
       seeAll: false,  // Show all tasks, included those completed
     };
   },
+  statics: {
+    TASKS: [
+      {
+        'task': 0,
+        'title': 'Make a great decision',
+        'description': 'By being here, you\'ve done it. Welcome to Sentry!',
+        'skippable': false,
+        'feature_location': 'project',
+        'location': 'settings/install/',
+        'status': 'Complete',
+      },
+      {
+        'task': 1,
+        'title': 'Send your first event',
+        'description': 'Install Sentry\'s client to get started error logging',
+        'skippable': false,
+        'feature_location': 'project',
+        'location': 'settings/install/',
+        'status': 'Pending'
+      },
+      {
+        'task': 2,
+        'title': 'Invite team member',
+        'description': 'Bring your team aboard',
+        'skippable': false,
+        'feature_location': 'organization',
+        'location': 'members/new/',
+      },
+      {
+        'task': 8,
+        'title': 'Set up release tracking',
+        'description': 'See what releases are generating errors.',
+        'skippable': false,
+        'feature_location': 'project',
+        'location': 'settings/release-tracking/',
+      },
+      {
+        'task': 6,
+        'title': 'Add user context to errors',
+        'description': 'Know what users are being affected by errors and crashes',
+        'skippable': false,
+        'feature_location': 'absolute',
+        'location': 'https://docs.getsentry.com/hosted/learn/context/#capturing-the-user',
+      },
+      {
+        'task': 5,
+        'title': 'Add a second platform',
+        'description': 'Add Sentry to a second platform',
+        'skippable': false,
+        'feature_location': 'organization',
+        'location': 'projects/new/',
+      },
+      {
+        'task': 3,
+        'title': 'Set up issue tracking',
+        'description': 'Integrate Sentry into your team\'s issue tracker',
+        'skippable': true,
+        'feature_location': 'project',
+        'location': 'settings/issue-tracking/',
+      },
+      {
+        'task': 4,
+        'title': 'Set up a notification service',
+        'description': 'Receive Sentry alerts in Slack or HipChat',
+        'skippable': true,
+        'feature_location': 'project',
+        'location': 'settings/notifications/',
+      },
+      // {
+      //   'task': 7,
+      //   'title': 'Deminify javascript with sourcemaps',
+      //   'description': 'Upload sourcemaps',
+      //   'skippable': false,
+      //   'feature_location': 'absolute',
+      //   'location': 'https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/'
+      // },
+      // {
+      //   'task': 9,
+      //   'title': 'User crash reports',
+      //   'description': 'Collect user feedback when your application crashes',
+      //   'skippable': false,
+      //   'feature_location': 'project',
+      //   'location': 'settings/user-reports/'
+      // },
+    ]
+  },
 
   componentWillMount() {
     let org = this.getOrganization();
     let tasks = [];
 
-    for (var task of TODOS) {
-      task['status'] = '';
+    for (var task of Todos.TASKS) {
+      task.status = '';
+      if (task.task == '0') {
+        task.status = 'Complete';
+      }
       for (var server_task of org.onboardingTasks) {
         if (server_task['task'] == task['task']) {
           task['status'] = server_task['status'];
