@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from django.db.models import Q
 
 from sentry.api.paginator import DateTimePaginator, Paginator
-from sentry.search.base import SearchBackend
+from sentry.search.base import ANY, SearchBackend
 from sentry.search.django.constants import (
     SORT_CLAUSES, SQLITE_SORT_CLAUSES, MYSQL_SORT_CLAUSES, MSSQL_SORT_CLAUSES,
     MSSQL_ENGINES, ORACLE_SORT_CLAUSES
@@ -73,10 +73,13 @@ class DjangoSearchBackend(SearchBackend):
 
         if tags:
             for k, v in tags.iteritems():
-                queryset = queryset.filter(**dict(
-                    grouptag__key=k,
-                    grouptag__value=v,
-                ))
+                if v == ANY:
+                    queryset = queryset.filter(grouptag__key=k)
+                else:
+                    queryset = queryset.filter(
+                        grouptag__key=k,
+                        grouptag__value=v,
+                    )
 
         if age_from and age_to:
             queryset = queryset.filter(
