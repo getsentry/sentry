@@ -379,9 +379,18 @@ table.project-list {
        }
 
        &.pending {
-        .ob-checkbox {
-          border-color: yellow;
-        }
+         position: relative;
+         .pending-bar {
+           position: absolute;
+           top: -12px;
+           right: -15px;
+           left:  -15px;
+           bottom: -10px;
+           background-size: 30px 30px;
+           background-image: linear-gradient(135deg, rgba(0, 0, 0, .03) 25%, transparent 25%,transparent 50%, rgba(0, 0, 0, .03) 50%, rgba(0, 0, 0, .03) 75%,transparent 75%, transparent);
+           animation: animate-stripes 3s linear infinite;
+           box-shadow: inset 0 2px 0 rgba(0,0,0, .05), inset 0 -2px 0 rgba(0,0,0, .05);
+          }
        }
 
        &.blur .todo-content {
@@ -403,6 +412,7 @@ table.project-list {
 
   .ob-checkbox {
     .square(46px);
+      background: #fff;
       border: 3px solid @white-darkest;
       border-radius: 46px;
       position: absolute;
@@ -417,12 +427,18 @@ table.project-list {
       top: 7px;
     }
 
-    .icon-x {
+    .icon-x, .icon-ellipsis {
       color: @gray-lightest;
       font-size: 26px;
       left: 8px;
       position: relative;
       top: 8px;
+    }
+
+    .icon-ellipsis {
+      color: @gray-light;
+      top: 7px;
+      left: 7px;
     }
   }
 
@@ -445,8 +461,8 @@ table.project-list {
     position: absolute;
     z-index: 100;
     background: rgba(255,255,255, .75);
-    left: -20px;
-    right: -20px;
+    left: -15px;
+    right: -15px;
     bottom: -10px;
     top: -20px;
     padding: 15px;
@@ -459,6 +475,10 @@ table.project-list {
       padding: 0;
     }
   }
+}
+
+@keyframes animate-stripes {
+  0% {background-position: 0 0;} 100% {background-position: 60px 0;}
 }
 
 .onboarding-progress-bar {
@@ -499,7 +519,7 @@ table.project-list {
       border: 0;
       margin: 0;
       box-shadow: none;
-      zoom: .9;
+      padding: 20px 15px 0;
 
       a:not(.btn) {
         color: @link-color;
