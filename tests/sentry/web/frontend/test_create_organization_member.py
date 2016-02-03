@@ -56,7 +56,7 @@ class CreateOrganizationMemberTest(TestCase):
 
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == ['foo@example.com']
-        assert mail.outbox[0].subject == 'Invite to join organization: Default'
+        assert mail.outbox[0].subject == 'Join Default in using Sentry'
 
     def test_existing_user_for_invite(self):
         organization = self.create_organization()
