@@ -1,13 +1,8 @@
 import React from 'react';
-import TestUtils from 'react-addons-test-utils';
+import {shallow} from 'enzyme';
+
 import {Client} from 'app/api';
 import OrganizationTeams from 'app/views/organizationTeams';
-import ExpandedTeamList from 'app/views/organizationTeams/expandedTeamList';
-import AllTeamsList from 'app/views/organizationTeams/allTeamsList';
-import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
-
-import stubReactComponent from '../../helpers/stubReactComponent';
-import stubContext from '../../helpers/stubContext';
 
 describe('OrganizationTeams', function() {
 
@@ -15,13 +10,6 @@ describe('OrganizationTeams', function() {
     this.sandbox = sinon.sandbox.create();
 
     this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
-    stubReactComponent(this.sandbox, [ExpandedTeamList, AllTeamsList, OrganizationHomeContainer]);
-
-    let ContextStubbedOrganizationTeams = stubContext(OrganizationTeams, {
-      organization: {id: '1337'}
-    });
-
-    this.Element = <ContextStubbedOrganizationTeams params={{orgId:'123'}}/>;
   });
 
   afterEach(function() {
@@ -30,7 +18,9 @@ describe('OrganizationTeams', function() {
 
   describe('fetchStats()', function() {
     it('should make a request to the organizations endpoint', function () {
-      let organizationTeams = TestUtils.renderIntoDocument(this.Element).refs.wrapped;
+      let organizationTeams = shallow(<OrganizationTeams params={{orgId:'123'}}/>, {
+        organization: {id: '1337'}
+      }).instance();
 
       // NOTE: creation of OrganizationTeams causes a bunch of API requests to fire ...
       //       reset the request stub so that we can get an accurate count
