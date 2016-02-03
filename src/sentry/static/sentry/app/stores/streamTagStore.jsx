@@ -31,6 +31,12 @@ const StreamTagStore = Reflux.createStore({
         ],
         predefined: true
       },
+      has: {
+        key: 'has',
+        name: 'Has Tag',
+        values: [],
+        predefined: true,
+      },
       assigned: {
         key: 'assigned',
         name: 'Assigned To',
@@ -78,7 +84,7 @@ const StreamTagStore = Reflux.createStore({
 
       return obj;
     }, {}));
-
+    this.tags.has.values = data.map(tag => tag.key);
     this.trigger(this.tags);
   },
 
