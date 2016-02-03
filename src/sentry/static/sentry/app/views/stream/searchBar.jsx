@@ -58,7 +58,7 @@ const SearchBar = React.createClass({
         {
           title: t('Tag'),
           desc: t('key/value pair associated to an issue'),
-          example: 'browser:"Chrome 34"',
+          example: 'browser:"Chrome 34", has:browser',
           className: 'icon-tag',
           value: 'browser:'
         },
