@@ -1,35 +1,28 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import TestUtils from 'react-addons-test-utils';
+import {shallow, mount} from 'enzyme';
+
 import {Client} from 'app/api';
 import SearchBar from 'app/views/stream/searchBar';
-import SearchDropdown from 'app/views/stream/searchDropdown';
 import StreamTagStore from 'app/stores/streamTagStore';
-import stubReactComponents from '../../../helpers/stubReactComponent';
-
-import stubContext from '../../../helpers/stubContext';
-
-let findWithClass = TestUtils.findRenderedDOMComponentWithClass;
 
 describe('SearchBar', function() {
 
-  beforeEach(function() {
+  beforeEach(function () {
     StreamTagStore.reset();
 
     this.sandbox = sinon.sandbox.create();
 
     this.sandbox.stub(Client.prototype, 'request');
-
-    stubReactComponents(this.sandbox, [SearchDropdown]);
-    this.ContextStubbedSearchBar = stubContext(SearchBar);
   });
 
-  afterEach(function() {
+  afterEach(function () {
     this.sandbox.restore();
   });
 
   describe('getQueryTerms()', function () {
-    it ('should extract query terms from a query string', function () {
+    it('should extract query terms from a query string', function () {
       let query = 'tagname: ';
       expect(SearchBar.getQueryTerms(query, query.length)).to.eql(['tagname:']);
 
@@ -54,23 +47,23 @@ describe('SearchBar', function() {
     });
   });
 
-  describe('clearSearch()', function() {
+  describe('clearSearch()', function () {
 
-    it('clears the query', function() {
+    it('clears the query', function () {
       let props = {
         orgId: '123',
         projectId: '456',
         query: 'is:unresolved ruby',
         defaultQuery: 'is:unresolved'
       };
-      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
+      let searchBar = shallow(<SearchBar {...props} />).instance();
 
-      wrapper.clearSearch();
+      searchBar.clearSearch();
 
-      expect(wrapper.state.query).to.equal('');
+      expect(searchBar.state.query).to.equal('');
     });
 
-    it('calls onSearch()', function(done) {
+    it('calls onSearch()', function (done) {
       let props = {
         orgId: '123',
         projectId: '456',
@@ -78,9 +71,9 @@ describe('SearchBar', function() {
         defaultQuery: 'is:unresolved',
         onSearch: this.sandbox.spy()
       };
-      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
+      let searchBar = shallow(<SearchBar {...props} />).instance();
 
-      wrapper.clearSearch();
+      searchBar.clearSearch();
 
       setTimeout(() => {
         expect(props.onSearch.calledWith('')).to.be.true;
@@ -90,30 +83,30 @@ describe('SearchBar', function() {
 
   });
 
-  describe('onQueryFocus()', function() {
+  describe('onQueryFocus()', function () {
 
-    it('displays the drop down', function() {
-      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar orgId="123" projectId="456"/>).refs.wrapped;
-      expect(wrapper.state.dropdownVisible).to.be.false;
+    it('displays the drop down', function () {
+      let searchBar = shallow(<SearchBar orgId="123" projectId="456"/>).instance();
+      expect(searchBar.state.dropdownVisible).to.be.false;
 
-      wrapper.onQueryFocus();
+      searchBar.onQueryFocus();
 
-      expect(wrapper.state.dropdownVisible).to.be.true;
+      expect(searchBar.state.dropdownVisible).to.be.true;
     });
 
   });
 
-  describe('onQueryBlur()', function() {
+  describe('onQueryBlur()', function () {
 
-    it('hides the drop down', function() {
-      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar orgId="123" projectId="456"/>).refs.wrapped;
-      wrapper.state.dropdownVisible = true;
+    it('hides the drop down', function () {
+      let searchBar = shallow(<SearchBar orgId="123" projectId="456"/>).instance();
+      searchBar.state.dropdownVisible = true;
 
       let clock = this.sandbox.useFakeTimers();
-      wrapper.onQueryBlur();
+      searchBar.onQueryBlur();
       clock.tick(201); // doesn't close until 200ms
 
-      expect(wrapper.state.dropdownVisible).to.be.false;
+      expect(searchBar.state.dropdownVisible).to.be.false;
     });
 
   });
@@ -122,10 +115,10 @@ describe('SearchBar', function() {
     describe('escape', function () {
       it('blurs the input', function () {
         // needs to be rendered into document.body or cannot query document.activeElement
-        let wrapper = ReactDOM.render(<this.ContextStubbedSearchBar orgId="123" projectId="456"/>, document.body).refs.wrapped;
-        wrapper.state.dropdownVisible = true;
+        let searchBar = ReactDOM.render(<SearchBar orgId="123" projectId="456"/>, document.body);
+        searchBar.state.dropdownVisible = true;
 
-        let input = ReactDOM.findDOMNode(wrapper.refs.searchInput);
+        let input = ReactDOM.findDOMNode(searchBar.refs.searchInput);
 
         input.focus();
 
@@ -138,46 +131,47 @@ describe('SearchBar', function() {
     });
   });
 
-  describe('render()', function() {
+  describe('render()', function () {
 
-    it('invokes onSearch() when submitting the form', function() {
+    it('invokes onSearch() when submitting the form', function () {
       let stubbedOnSearch = this.sandbox.spy();
-      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar onSearch={stubbedOnSearch} orgId="123" projectId="456"/>).refs.wrapped;
+      let wrapper = mount(<SearchBar onSearch={stubbedOnSearch} orgId="123" projectId="456"/>);
 
-      TestUtils.Simulate.submit(wrapper.refs.searchForm, {preventDefault() {}});
+      wrapper.find('form').simulate('submit', {
+        preventDefault() {
+        }
+      });
 
       expect(stubbedOnSearch.called).to.be.true;
     });
 
-    it('invokes onSearch() when search is cleared', function(done) {
+    it('invokes onSearch() when search is cleared', function (done) {
       let props = {
         orgId: '123',
         projectId: '456',
         query: 'is:unresolved',
         onSearch: this.sandbox.spy()
       };
-      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
+      let wrapper = mount(<SearchBar {...props} />);
 
-      let cancelButton = findWithClass(wrapper, 'search-clear-form');
-      TestUtils.Simulate.click(cancelButton);
+      wrapper.find('.search-clear-form').simulate('click');
 
       setTimeout(function () {
         expect(props.onSearch.calledWith('')).to.be.true;
         done();
       });
     });
+  });
 
-    it('handles an empty query', function () {
-      let props = {
-        orgId: '123',
-        projectId: '456',
-        query: '',
-        defaultQuery: 'is:unresolved'
-      };
-      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
-      expect(wrapper.state.query).to.eql('');
-    });
-
+  it('handles an empty query', function () {
+    let props = {
+      orgId: '123',
+      projectId: '456',
+      query: '',
+      defaultQuery: 'is:unresolved'
+    };
+    let wrapper = mount(<SearchBar {...props} />);
+    expect(wrapper.state('query')).to.eql('');
   });
 
   describe('updateAutoCompleteItems()', function() {
@@ -187,11 +181,11 @@ describe('SearchBar', function() {
         projectId: '456',
         query: '',
       };
-      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
-      wrapper.updateAutoCompleteItems();
-      expect(wrapper.state.searchTerm).to.eql('');
-      expect(wrapper.state.searchItems).to.eql(wrapper.props.defaultSearchItems);
-      expect(wrapper.state.activeSearchItem).to.eql(0);
+      let searchBar = mount(<SearchBar {...props} />).instance();
+      searchBar.updateAutoCompleteItems();
+      expect(searchBar.state.searchTerm).to.eql('');
+      expect(searchBar.state.searchItems).to.eql(searchBar.props.defaultSearchItems);
+      expect(searchBar.state.activeSearchItem).to.eql(0);
     });
 
     it('sets state when incomplete tag', function() {
@@ -200,11 +194,11 @@ describe('SearchBar', function() {
         projectId: '456',
         query: 'fu',
       };
-      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
-      wrapper.updateAutoCompleteItems();
-      expect(wrapper.state.searchTerm).to.eql('fu');
-      expect(wrapper.state.searchItems).to.eql([]);
-      expect(wrapper.state.activeSearchItem).to.eql(0);
+      let searchBar = mount(<SearchBar {...props} />).instance();
+      searchBar.updateAutoCompleteItems();
+      expect(searchBar.state.searchTerm).to.eql('fu');
+      expect(searchBar.state.searchItems).to.eql([]);
+      expect(searchBar.state.activeSearchItem).to.eql(0);
     });
 
     it('sets state with complete tag', function() {
@@ -213,11 +207,11 @@ describe('SearchBar', function() {
         projectId: '456',
         query: 'url:"fu"',
       };
-      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
-      wrapper.updateAutoCompleteItems();
-      expect(wrapper.state.searchTerm).to.eql('"fu"');
-      expect(wrapper.state.searchItems).to.eql([]);
-      expect(wrapper.state.activeSearchItem).to.eql(0);
+      let searchBar = mount(<SearchBar {...props} />).instance();
+      searchBar.updateAutoCompleteItems();
+      expect(searchBar.state.searchTerm).to.eql('"fu"');
+      expect(searchBar.state.searchItems).to.eql([]);
+      expect(searchBar.state.activeSearchItem).to.eql(0);
     });
 
     it('sets state when incomplete tag as second input', function() {
@@ -226,13 +220,13 @@ describe('SearchBar', function() {
         projectId: '456',
         query: 'is:unresolved fu',
       };
-      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
-      wrapper.updateAutoCompleteItems();
-      expect(wrapper.state.searchTerm).to.eql('unresolved');
-      expect(wrapper.state.searchItems.length).to.eql(1);
-      expect(wrapper.state.searchItems[0].desc).to.eql('unresolved');
-      expect(wrapper.state.searchItems[0].value).to.eql('unresolved');
-      expect(wrapper.state.activeSearchItem).to.eql(0);
+      let searchBar = mount(<SearchBar {...props} />).instance();
+      searchBar.updateAutoCompleteItems();
+      expect(searchBar.state.searchTerm).to.eql('unresolved');
+      expect(searchBar.state.searchItems.length).to.eql(1);
+      expect(searchBar.state.searchItems[0].desc).to.eql('unresolved');
+      expect(searchBar.state.searchItems[0].value).to.eql('unresolved');
+      expect(searchBar.state.activeSearchItem).to.eql(0);
     });
 
     it('sets state when value has colon', function() {
@@ -241,11 +235,11 @@ describe('SearchBar', function() {
         projectId: '456',
         query: 'url:"http://example.com"',
       };
-      let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar {...props} />).refs.wrapped;
-      wrapper.updateAutoCompleteItems();
-      expect(wrapper.state.searchTerm).to.eql('"http://example.com"');
-      expect(wrapper.state.searchItems).to.eql([]);
-      expect(wrapper.state.activeSearchItem).to.eql(0);
+      let searchBar = mount(<SearchBar {...props} />).instance();
+      searchBar.updateAutoCompleteItems();
+      expect(searchBar.state.searchTerm).to.eql('"http://example.com"');
+      expect(searchBar.state.searchItems).to.eql([]);
+      expect(searchBar.state.activeSearchItem).to.eql(0);
     });
   });
 
