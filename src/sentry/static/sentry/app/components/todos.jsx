@@ -67,10 +67,12 @@ const TodoItem = React.createClass({
 
     return (
       <li className={classNames}>
+        { this.props.task['status'] == 'Pending' ? <span className="pending-bar" /> : null }
         <div className="todo-content">
           <div className="ob-checkbox">
             { this.props.task['status'] == 'Complete' ? <span className="icon-checkmark" /> : null }
             { this.props.task['status'] == 'Skipped' ? <span className="icon-x" /> : null }
+            { this.props.task['status'] == 'Pending' ? <span className="icon-ellipsis" /> : null }
           </div>
           <h4>{ this.props.task['title'] }</h4>
           <p>
