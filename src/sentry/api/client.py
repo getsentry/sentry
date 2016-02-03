@@ -44,7 +44,7 @@ class ApiClient(object):
             data = json.loads(json.dumps(data))
 
         rf = APIRequestFactory()
-        mock_request = getattr(rf, method.lower())(full_path, data)
+        mock_request = getattr(rf, method.lower())(full_path, data or {})
 
         if request:
             mock_request.auth = getattr(request, 'auth', None)
