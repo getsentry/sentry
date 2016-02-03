@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry.models import EventUser, GroupStatus
 from sentry.testutils import TestCase
+from sentry.search.base import ANY
 from sentry.search.utils import parse_query
 
 
@@ -140,3 +141,15 @@ class ParseQueryTest(TestCase):
         assert result['age_from'] < timezone.now() - timedelta(hours=23)
         assert result['age_to'] > timezone.now() - timedelta(hours=13)
         assert result['age_to'] < timezone.now() - timedelta(hours=11)
+
+    def test_has_tag(self):
+        result = self.parse_query('has:foo')
+        assert result['tags']['foo'] == ANY
+
+    def test_has_user(self):
+        result = self.parse_query('has:user')
+        assert result['tags']['sentry:user'] == ANY
+
+    def test_has_release(self):
+        result = self.parse_query('has:release')
+        assert result['tags']['sentry:release'] == ANY
