@@ -333,7 +333,7 @@ table.project-list {
 
  .onboarding-wrapper {
    .box;
-   padding: 20px 20px 0;
+   padding: 15px 20px 0;
 
    .close {
      float: right;
@@ -345,9 +345,11 @@ table.project-list {
    }
 
    h3 {
-     font-size: 22px;
-     border-bottom: 3px solid @white-darker;
-     padding-bottom: 15px;
+     font-size: 20px;
+     border-bottom: 2px solid rgba(0,0,0, .05);
+     margin: 0 -15px 15px;
+     padding: 0 15px 15px;
+     text-align: center;
    }
 
    h4 {
@@ -380,6 +382,9 @@ table.project-list {
 
        &.pending {
          position: relative;
+         margin-top: 4px;
+         margin-bottom: 4px;
+
          .pending-bar {
            position: absolute;
            top: -12px;
@@ -430,7 +435,7 @@ table.project-list {
     .icon-x, .icon-ellipsis {
       color: @gray-lightest;
       font-size: 26px;
-      left: 8px;
+      left: 7px;
       position: relative;
       top: 8px;
     }
@@ -443,7 +448,6 @@ table.project-list {
   }
 
   .skip-btn {
-
     position: absolute;
     z-index: 100;
     right: 5px;
@@ -474,6 +478,17 @@ table.project-list {
       border: 0;
       padding: 0;
     }
+  }
+
+  .btn-see-all {
+    display: block;
+    text-align: center;
+    border: 0;
+    border-top: 1px solid @gray-lightest;
+    margin: -5px -15px 0;
+    border-radius: 0;
+    background: @white-dark;
+    padding: 10px;
   }
 }
 

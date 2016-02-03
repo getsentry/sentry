@@ -278,11 +278,11 @@ const Todos = React.createClass({
 
     return (
         <div onClick={this.click} className="onboarding-wrapper">
-          <h3>Getting Started with Sentry</h3>
+          <h3>Getting started with Sentry</h3>
           <ul className="list-unstyled">
             {todo_list}
           </ul>
-          <a onClick={this.toggleSeeAll}>{this.state.seeAll ? 'Hide' : 'See All'}</a>
+          <a className="btn btn-default btn-see-all" onClick={this.toggleSeeAll}>{this.state.seeAll ? 'Show less' : 'Show more'}</a>
         </div>
     );
   }
