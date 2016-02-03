@@ -92,9 +92,7 @@ const StreamTagStore = Reflux.createStore({
     let assignedTag = this.tags.assigned;
     assignedTag.values = getMemberListStoreUsernames();
     assignedTag.values.unshift('me');
-    let bookmarkedTag = this.tags.bookmarks;
-    bookmarkedTag.values = getMemberListStoreUsernames();
-    bookmarkedTag.values.unshift('me');
+    this.tags.bookmarks.values = assignedTag.values;
     this.trigger(this.tags);
   }
 });
