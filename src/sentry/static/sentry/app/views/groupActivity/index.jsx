@@ -1,22 +1,29 @@
 import React from 'react';
 
+import ApiMixin from '../../mixins/apiMixin';
+import GroupState from '../../mixins/groupState';
+
 import Duration from '../../components/duration';
 import Gravatar from '../../components/gravatar';
-import GroupState from '../../mixins/groupState';
-import MemberListStore from '../../stores/memberListStore';
 import TimeSince from '../../components/timeSince';
-import ConfigStore from '../../stores/configStore';
 import Version from '../../components/version';
-
 import NoteContainer from '../../components/activity/noteContainer';
 import NoteInput from '../../components/activity/noteInput';
-import {t, tn} from '../../locale';
 
+import ConfigStore from '../../stores/configStore';
+import GroupStore from '../../stores/groupStore';
+import IndicatorStore from '../../stores/indicatorStore';
+import MemberListStore from '../../stores/memberListStore';
+
+import {t, tn} from '../../locale';
 
 const GroupActivity = React.createClass({
   // TODO(dcramer): only re-render on group/activity change
 
-  mixins: [GroupState],
+  mixins: [
+    GroupState,
+    ApiMixin
+  ],
 
   formatActivity(author, item, params) {
     let data = item.data;
@@ -98,6 +105,31 @@ const GroupActivity = React.createClass({
     }
   },
 
+  onNoteDelete(item) {
+    let {group} = this.props;
+
+    // Optimistically remove from UI
+    let index = GroupStore.removeActivity(group.id, item.id);
+    if (index === -1) {
+      // I dunno, the id wasn't found in the GroupStore
+      return;
+    }
+
+    let loadingIndicator = IndicatorStore.add(t('Removing comment..'));
+
+    this.api.request('/issues/' + group.id + '/comments/' + item.id + '/' , {
+      method: 'DELETE',
+      error: (error) => {
+        // TODO(mattrobenolt): Show an actual error that this failed,
+        // but just bring it back in place for now
+        GroupStore.addActivity(group.id, item, index);
+      },
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
+    });
+  },
+
   render() {
     let group = this.props.group;
     let me = ConfigStore.get('user');
@@ -114,7 +146,7 @@ const GroupActivity = React.createClass({
 
       if (item.type === 'note') {
         return (
-          <NoteContainer group={group} item={item} key={itemIdx} author={author} />
+          <NoteContainer group={group} item={item} key={itemIdx} author={author} onDelete={this.onNoteDelete} />
         );
       } else {
         return (
