@@ -32,22 +32,21 @@ const TodoItem = React.createClass({
     let classNames = '';
     let description = '';
     let doneDescription = "By being here, you've done it. Welcome to Sentry!";
-
     if (this.props.task['status'] == 'Complete') {
       classNames += ' checked';
 
       if (this.props.task.task == 0) {
         description = doneDescription;
       } else {
-        description = '[username] completed this 3 days ago';
+        description = this.props.task.user + ' completed this ' + moment(this.props.task.date_completed).fromNow();
       }
 
     } else if (this.props.task['status'] == 'Pending') {
       classNames += ' pending';
-      description = '[username] kicked this off just now';
+      description = this.props.task.user + ' kicked this off ' + moment(this.props.task.date_completed).fromNow();
     } else if (this.props.task['status'] == 'Skipped') {
       classNames += ' skipped';
-      description = '[username] skipped this a day ago';
+      description = this.props.task.user + ' skipped this ' + moment(this.props.task.date_completed).fromNow();
     } else {
       description = this.props.task.description;
     }
@@ -74,7 +73,7 @@ const TodoItem = React.createClass({
             { this.props.task['status'] == 'Skipped' ? <span className="icon-x" /> : null }
             { this.props.task['status'] == 'Pending' ? <span className="icon-ellipsis" /> : null }
           </div>
-          <h4>{ this.props.task['title'] }</h4>
+          <a href={learn_more_url} target="_blank"><h4>{ this.props.task['title'] }</h4></a>
           <p>
             { description }
           </p>
@@ -111,7 +110,7 @@ const Confirmation = React.createClass({
   }
 });
 
-const Todos = React.createClass({
+const TodoList = React.createClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
@@ -127,6 +126,7 @@ const Todos = React.createClass({
         'title': 'Make a great decision',
         'description': 'By being here, you\'ve done it. Welcome to Sentry!',
         'skippable': false,
+        'prereq': [],
         'feature_location': 'project',
         'location': 'settings/install/',
         'status': 'Complete',
@@ -136,15 +136,16 @@ const Todos = React.createClass({
         'title': 'Send your first event',
         'description': 'Install Sentry\'s client to get started error logging',
         'skippable': false,
+        'prereq': [],
         'feature_location': 'project',
         'location': 'settings/install/',
-        'status': 'Pending'
       },
       {
         'task': 2,
         'title': 'Invite team member',
         'description': 'Bring your team aboard',
         'skippable': false,
+        'prereq': [],
         'feature_location': 'organization',
         'location': 'members/new/',
       },
@@ -153,6 +154,7 @@ const Todos = React.createClass({
         'title': 'Set up release tracking',
         'description': 'See what releases are generating errors.',
         'skippable': false,
+        'prereq': [1],
         'feature_location': 'project',
         'location': 'settings/release-tracking/',
       },
@@ -161,6 +163,7 @@ const Todos = React.createClass({
         'title': 'Add user context to errors',
         'description': 'Know what users are being affected by errors and crashes',
         'skippable': false,
+        'prereq': [1],
         'feature_location': 'absolute',
         'location': 'https://docs.getsentry.com/hosted/learn/context/#capturing-the-user',
       },
@@ -169,14 +172,16 @@ const Todos = React.createClass({
         'title': 'Add a second platform',
         'description': 'Add Sentry to a second platform',
         'skippable': false,
+        'prereq': [1],
         'feature_location': 'organization',
         'location': 'projects/new/',
       },
       {
         'task': 3,
         'title': 'Set up issue tracking',
-        'description': 'Integrate Sentry into your team\'s issue tracker',
+        'description': 'Link to Sentry issues within your team\'s issue tracker',
         'skippable': true,
+        'prereq': [1],
         'feature_location': 'project',
         'location': 'settings/issue-tracking/',
       },
@@ -185,17 +190,19 @@ const Todos = React.createClass({
         'title': 'Set up a notification service',
         'description': 'Receive Sentry alerts in Slack or HipChat',
         'skippable': true,
+        'prereq': [],
         'feature_location': 'project',
         'location': 'settings/notifications/',
       },
-      // {
-      //   'task': 7,
-      //   'title': 'Deminify javascript with sourcemaps',
-      //   'description': 'Upload sourcemaps',
-      //   'skippable': false,
-      //   'feature_location': 'absolute',
-      //   'location': 'https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/'
-      // },
+      {
+        'task': 7,
+        'title': 'Deminify javascript with sourcemaps',
+        'description': 'Upload sourcemaps',
+        'skippable': false,
+        'prereq': [1, 8],
+        'feature_location': 'absolute',
+        'location': 'https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/'
+      },
       // {
       //   'task': 9,
       //   'title': 'User crash reports',
@@ -211,14 +218,14 @@ const Todos = React.createClass({
     let org = this.getOrganization();
     let tasks = [];
 
-    for (var task of Todos.TASKS) {
+    for (var task of TodoList.TASKS) {
       task.status = '';
       if (task.task == '0') {
         task.status = 'Complete';
       }
       for (var server_task of org.onboardingTasks) {
         if (server_task['task'] == task['task']) {
-          task['status'] = server_task['status'];
+          task = $.extend(task, server_task);
           break;
         }
       }
@@ -249,7 +256,7 @@ const Todos = React.createClass({
   },
 
   click(e) {
-    e.preventDefault();
+    // e.preventDefault();
     e.stopPropagation();
   },
 
@@ -267,9 +274,10 @@ const Todos = React.createClass({
           return task;
         }
       }).slice(0,3);
-    }
-    if (location.hash == '#welcome') {
-      next_tasks.splice(0, 0, this.state.tasks[0]);
+
+      if (location.hash == '#welcome') {
+        next_tasks.splice(0, 0, this.state.tasks[0]);
+      }
     }
 
     let todo_list = next_tasks.map( (task) => {
@@ -288,4 +296,4 @@ const Todos = React.createClass({
   }
 });
 
-export default Todos;
+export default TodoList;

@@ -32,6 +32,7 @@ class OnboardingTasksSerializer(Serializer):
             'status': dict(OrganizationOnboardingTask.STATUS_CHOICES).get(obj.status),
             'user': obj.user.name,
             'date_completed': obj.date_completed,
+            'data': obj.data,
         }
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
