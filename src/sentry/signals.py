@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
-from django.dispatch import Signal
 from functools import wraps
+
+from django.dispatch import Signal
 
 
 class BetterSignal(Signal):
@@ -27,3 +28,4 @@ buffer_incr_complete = BetterSignal(providing_args=["model", "columns", "extra",
 event_received = BetterSignal(providing_args=["ip"])
 pending_delete = BetterSignal(providing_args=["instance"])
 event_processed = BetterSignal(providing_args=['project', 'group', 'event'])
+first_event = BetterSignal(providing_args=["instance"])

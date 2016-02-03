@@ -7,6 +7,7 @@ sentry.models.organizationonboardingtask
 """
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.db.models import (
@@ -15,6 +16,7 @@ from sentry.db.models import (
     Model,
     sane_repr
 )
+
 
 class OnboardingTask(object):
     FIRST_EVENT = 1
@@ -83,7 +85,7 @@ class OrganizationOnboardingTask(Model):
     project = FlexibleForeignKey('sentry.Project', null=True)  # if task is associated with a project
     task = BoundedPositiveIntegerField(choices=TASK_CHOICES)
     status = BoundedPositiveIntegerField(choices=STATUS_CHOICES)
-    date_completed = models.DateTimeField()
+    date_completed = models.DateTimeField(default=timezone.now)
     data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
 
     class Meta:
