@@ -15,7 +15,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
 
 	def post(self, request, organization):
 		if request.DATA['status'] == 'Skipped':
-			print OrganizationOnboardingTask.objects.create_or_update(
+			OrganizationOnboardingTask.objects.create_or_update(
 				organization=organization,
 				user=request.user,
 				task=request.DATA['task'],
