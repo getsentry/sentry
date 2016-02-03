@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry.constants import STATUS_CHOICES
 from sentry.models import EventUser, User
+from sentry.search.base import ANY
 from sentry.utils.auth import find_users
 
 
@@ -147,6 +148,12 @@ def parse_query(project, query, user):
                     comp = 'id'
                 results['tags']['sentry:user'] = get_user_tag(
                     project, comp, value)
+            elif key == 'has':
+                if value == 'user':
+                    value = 'sentry:user'
+                elif value == 'release':
+                    value = 'sentry:release'
+                results['tags'][value] = ANY
             elif key == 'age':
                 flag, offset = parse_simple_range(value)
                 date_value = timezone.now() - offset
