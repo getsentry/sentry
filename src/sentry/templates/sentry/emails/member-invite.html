@@ -1,0 +1,17 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block main %}
+    <h3>Welcome to Sentry</h3>
+    <p>Your teammates over at <strong>{{ organization.name }}</strong> have already been using Sentry without you, but the good news is that you've been invited to join them.</p>
+
+    <p><a href="{{ url }}" class="btn">Join your team</a></p>
+
+    <p>If you'd like to learn more about Sentry before diving in head-first, check out our website, <a href="https://getsentry.com/">getsentry.com</a></p>
+{% endblock %}
+
+{% block footer %}
+<a href="{% absolute_uri %}">Home</a>
+{% endblock %}

@@ -32,6 +32,7 @@ from sentry.models import (
     Event,
     Group,
     Organization,
+    OrganizationMember,
     Project,
     Rule,
     Team,
@@ -368,6 +369,33 @@ def request_access(request):
             'url': absolute_uri(reverse('sentry-organization-members', kwargs={
                 'organization_slug': org.slug,
             }) + '?ref=access-requests'),
+        },
+    ).render()
+
+
+@login_required
+def invitation(request):
+    org = Organization(
+        id=1,
+        slug='example',
+        name='Example',
+    )
+    om = OrganizationMember(
+        id=1,
+        email='foo@example.com',
+        organization=org,
+    )
+
+    return MailPreview(
+        html_template='sentry/emails/member-invite.html',
+        text_template='sentry/emails/member-invite.txt',
+        context={
+            'email': 'foo@example.com',
+            'organization': org,
+            'url': absolute_uri(reverse('sentry-accept-invite', kwargs={
+                'member_id': om.id,
+                'token': om.token,
+            })),
         },
     ).render()
 
