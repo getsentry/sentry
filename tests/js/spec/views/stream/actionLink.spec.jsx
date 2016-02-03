@@ -2,9 +2,7 @@ import React from 'react';
 import {shallow} from 'enzyme';
 
 import {Client} from 'app/api';
-import stubReactComponents from '../../../helpers/stubReactComponent';
 import ActionLink from 'app/views/stream/actionLink';
-import Modal from 'react-bootstrap/lib/Modal';
 
 describe('ActionLink', function() {
 
@@ -12,7 +10,6 @@ describe('ActionLink', function() {
     this.sandbox = sinon.sandbox.create();
 
     this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
-    stubReactComponents(this.sandbox, [Modal]);
   });
 
   afterEach(function() {

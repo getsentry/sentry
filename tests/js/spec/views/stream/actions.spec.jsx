@@ -2,11 +2,7 @@ import React from 'react';
 import {shallow} from 'enzyme';
 
 import {Client} from 'app/api';
-import stubReactComponents from '../../../helpers/stubReactComponent';
 import StreamActions from 'app/views/stream/actions';
-import ActionLink from 'app/views/stream/actionLink';
-import DropdownLink from 'app/components/dropdownLink';
-import MenuItem from 'app/components/menuItem';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
 describe('StreamActions', function() {
@@ -15,7 +11,6 @@ describe('StreamActions', function() {
     this.sandbox = sinon.sandbox.create();
 
     this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
-    stubReactComponents(this.sandbox, [ActionLink, DropdownLink, MenuItem]);
   });
 
   afterEach(function() {

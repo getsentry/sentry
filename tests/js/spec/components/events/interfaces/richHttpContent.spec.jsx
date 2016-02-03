@@ -1,11 +1,7 @@
 import React from 'react';
-import TestUtils from 'react-addons-test-utils';
-import stubReactComponents from '../../../../helpers/stubReactComponent';
+import {shallow} from 'enzyme';
 
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
-import ClippedBox from 'app/components/clippedBox';
-import ContextData from 'app/components/contextData';
 
 describe('RichHttpContent', function () {
   beforeEach(function () {
@@ -16,9 +12,8 @@ describe('RichHttpContent', function () {
       cookies: [],
       env: {}
     };
-    this.elem = TestUtils.renderIntoDocument(<RichHttpContent data={this.data} />);
+    this.elem = shallow(<RichHttpContent data={this.data} />).instance();
     this.sandbox = sinon.sandbox.create();
-    stubReactComponents(this.sandbox, [ClippedBox, KeyValueList, ContextData]);
   });
 
   afterEach(function () {
@@ -73,7 +68,7 @@ describe('RichHttpContent', function () {
       });
 
       // NOTE: ContextData is stubbed in tests; instead returns <div className="ContextData"/>
-      expect(out.props.className).to.eql('KeyValueList');
+      expect(out.type.displayName).to.eql('KeyValueList');
       expect(out.props.data).to.eql([
         ['bar', 'baz'],
         ['foo', 'bar']
@@ -101,7 +96,7 @@ describe('RichHttpContent', function () {
       });
 
       // NOTE: ContextData is stubbed in tests; instead returns <div className="ContextData"/>
-      expect(out.props.className).to.eql('ContextData');
+      expect(out.type.displayName).to.eql('ContextData');
       expect(out.props.data).to.eql({
         foo: 'bar'
       });
@@ -116,7 +111,7 @@ describe('RichHttpContent', function () {
       });
 
       // NOTE: ContextData is stubbed in tests; instead returns <div className="ContextData"/>
-      expect(out.props.className).to.eql('ContextData');
+      expect(out.type.displayName).to.eql('ContextData');
       expect(out.props.data).to.eql({
         foo: 'bar'
       });
@@ -144,7 +139,7 @@ describe('RichHttpContent', function () {
         cookies: [],
         env: {}
       };
-      expect(() => TestUtils.renderIntoDocument(<RichHttpContent data={data} />)).to.not.throw(URIError);
+      expect(() => shallow(<RichHttpContent data={data} />)).to.not.throw(URIError);
     });
   });
 });
