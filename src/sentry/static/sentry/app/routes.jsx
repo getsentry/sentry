@@ -32,6 +32,7 @@ import ProjectInstallOverview from './views/projectInstall/overview';
 import ProjectInstallPlatform from './views/projectInstall/platform';
 import ProjectReleases from './views/projectReleases';
 import ProjectSavedSearches from './views/projectSavedSearches';
+import ProjectDebugInfo from './views/projectDebugInfo';
 import ProjectSettings from './views/projectSettings';
 import ProjectUserReports from './views/projectUserReports';
 import ProjectUserReportSettings from './views/projectUserReportSettings';
@@ -100,6 +101,7 @@ let routes = (
             <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)}/>
           </Route>
           <Route path="saved-searches/" component={errorHandler(ProjectSavedSearches)} />
+          <Route path="debug-info/" component={errorHandler(ProjectDebugInfo)} />
           <Route path="user-reports/" component={errorHandler(ProjectUserReportSettings)} />
         </Route>
         <Redirect from="group/:groupId/" to="issues/:groupId/" />

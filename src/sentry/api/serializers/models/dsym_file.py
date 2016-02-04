@@ -12,6 +12,7 @@ class DSymFileSerializer(Serializer):
             'uuid': obj.uuid,
             'cpuName': obj.cpu_name,
             'objectName': obj.object_name,
+            'symbolType': obj.dsym_type,
             'headers': obj.file.headers,
             'size': obj.file.size,
             'sha1': obj.file.checksum,

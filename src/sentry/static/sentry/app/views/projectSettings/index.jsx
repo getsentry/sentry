@@ -96,6 +96,7 @@ const ProjectSettings = React.createClass({
             {features.has('user-reports') &&
               <ListLink to={`/${orgId}/${projectId}/settings/user-reports/`}>{t('User Reports')}</ListLink>
             }
+            <ListLink to={`/${orgId}/${projectId}/settings/debug-info/`}>{t('Debug Info')}</ListLink>
           </ul>
           <h6 className="nav-header">{t('Setup')}</h6>
           <ul className="nav nav-stacked">

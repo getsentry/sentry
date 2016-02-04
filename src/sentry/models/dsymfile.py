@@ -20,6 +20,11 @@ from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 
 
+KNOWN_DSYM_TYPES = {
+    'application/x-mach-binary': 'macho'
+}
+
+
 class DSymFile(Model):
     """
     A single dsym file that is associated with a project.
@@ -39,12 +44,17 @@ class DSymFile(Model):
         app_label = 'sentry'
         db_table = 'sentry_dsymfile'
 
+    @property
+    def dsym_type(self):
+        ct = self.file.headers.get('Content-Type').lower()
+        return KNOWN_DSYM_TYPES.get(ct, 'unknown')
+
     @classmethod
-    def create_from_uuid(cls, project, cpu_name, uuid, fileobj,
-                         object_name):
-        """This creates a dsym file from the given uuid and open file object
-        to a dsym file.  This will not verify the uuid.  Use
-        `create_files_from_zip` for doing everything.
+    def create_macho_dsym_from_uuid(cls, project, cpu_name, uuid, fileobj,
+                                    object_name):
+        """This creates a mach dsym file from the given uuid and open file
+        object to a dsym file.  This will not verify the uuid.  Use
+        `create_files_from_macho_zip` for doing everything.
         """
         file = File.objects.create(
             name=uuid,
@@ -71,7 +81,7 @@ class DSymFile(Model):
             )
 
     @classmethod
-    def create_files_from_zip(cls, project, fileobj):
+    def create_files_from_macho_zip(cls, project, fileobj):
         """Creates all missing dsym files from the given zip file.  This
         returns a list of all `DSymFiles` created.
         """
@@ -100,7 +110,7 @@ class DSymFile(Model):
             rv = []
             for cpu, uuid, filename in to_create:
                 with open(filename, 'rb') as f:
-                    rv.append((DSymFile.create_from_uuid(
+                    rv.append((DSymFile.create_macho_dsym_from_uuid(
                         project, cpu, uuid, f, os.path.basename(filename))))
             return rv
         finally:

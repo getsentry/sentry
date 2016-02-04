@@ -179,6 +179,9 @@
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/saved-searches/' project.organization.slug project.slug %}">{% trans "Saved Searches" %}</a>
     </li>
+    <li>
+        <a href="{% absolute_uri '/{}/{}/settings/debug-info/' project.organization.slug project.slug %}">{% trans "Debug Info" %}</a>
+    </li>
     {% feature projects:user-reports project %}
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/user-reports/' project.organization.slug project.slug %}">{% trans "User Reports" %}</a>
