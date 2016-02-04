@@ -51,7 +51,7 @@ class DSymFilesEndpoint(ProjectEndpoint):
         return self.paginate(
             request=request,
             queryset=file_list,
-            order_by='uuid',
+            order_by='-file__timestamp',
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
@@ -82,6 +82,6 @@ class DSymFilesEndpoint(ProjectEndpoint):
 
         fileobj = request.FILES['file']
 
-        files = DSymFile.create_files_from_zip(project, fileobj)
+        files = DSymFile.create_files_from_macho_zip(project, fileobj)
 
         return Response(serialize(files, request.user), status=201)
