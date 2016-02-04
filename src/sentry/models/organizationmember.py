@@ -147,8 +147,9 @@ class OrganizationMember(Model):
         }
 
         msg = MessageBuilder(
-            subject='Invite to join organization: %s' % (self.organization.name,),
-            template='sentry/emails/member_invite.txt',
+            subject='Join %s in using Sentry' % self.organization.name,
+            template='sentry/emails/member-invite.txt',
+            html_template='sentry/emails/member-invite.html',
             context=context,
         )
 

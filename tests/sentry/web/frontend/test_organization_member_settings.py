@@ -153,7 +153,7 @@ class OrganizationMemberSettingsTest(TestCase):
 
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == ['bar@example.com']
-        assert mail.outbox[0].subject == 'Invite to join organization: foo'
+        assert mail.outbox[0].subject == 'Join foo in using Sentry'
 
     def test_cannot_edit_yourself(self):
         organization = self.create_organization(name='foo', owner=self.user)
