@@ -110,6 +110,8 @@ if settings.DEBUG:
             sentry.web.frontend.debug.mail.request_access),
         url(r'^debug/mail/access-approved/$',
             sentry.web.frontend.debug.mail.access_approved),
+        url(r'^debug/mail/invitation/$',
+            sentry.web.frontend.debug.mail.invitation),
         url(r'^debug/embed/error-page/$',
             DebugErrorPageEmbedView.as_view()),
         url(r'^debug/trigger-error/$',
