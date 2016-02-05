@@ -124,4 +124,14 @@ class SentryHTTPServer(Service):
         # This has already been validated inside __init__
         os.environ['SENTRY_SKIP_BACKEND_VALIDATION'] = '1'
 
+        # Look up the bin directory where `sentry` exists, which should be
+        # sys.argv[0], then inject that to the front of our PATH so we can reliably
+        # find the `uwsgi` that's installed when inside virtualenv.
+        # This is so the virtualenv doesn't need to be sourced in, which effectively
+        # does exactly this.
+        virtualenv_path = os.path.dirname(os.path.abspath(sys.argv[0]))
+        current_path = os.environ.get('PATH', '')
+        if virtualenv_path not in current_path:
+            os.environ['PATH'] = '%s:%s' % (virtualenv_path, current_path)
+
         os.execvp('uwsgi', ('uwsgi',))
