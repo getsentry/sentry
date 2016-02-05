@@ -241,12 +241,6 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     """
     if release:
         result = fetch_release_file(url, release)
-    elif not allow_scraping or not url.startswith(('http:', 'https:')):
-        error = {
-            'type': EventError.JS_MISSING_SOURCE,
-            'url': url,
-        }
-        raise CannotFetchSource(error)
     else:
         result = None
 
@@ -255,6 +249,13 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     )
 
     if result is None:
+        if not allow_scraping or not url.startswith(('http:', 'https:')):
+            error = {
+                'type': EventError.JS_MISSING_SOURCE,
+                'url': url,
+            }
+            raise CannotFetchSource(error)
+
         logger.debug('Checking cache for url %r', url)
         result = cache.get(cache_key)
         if result is not None:
