@@ -399,7 +399,7 @@ go.
 
   [program:sentry-web]
   directory=/www/sentry/
-  environment=SENTRY_CONF="/etc/sentry"
+  environment=PATH="/www/sentry/bin:%(ENV_PATH)s",SENTRY_CONF="/etc/sentry"
   command=/www/sentry/bin/sentry start
   autostart=true
   autorestart=true
@@ -409,7 +409,7 @@ go.
 
   [program:sentry-worker]
   directory=/www/sentry/
-  environment=SENTRY_CONF="/etc/sentry"
+  environment=PATH="/www/sentry/bin:%(ENV_PATH)s",SENTRY_CONF="/etc/sentry"
   command=/www/sentry/bin/sentry celery worker
   autostart=true
   autorestart=true
@@ -419,7 +419,7 @@ go.
 
   [program:sentry-cron]
   directory=/www/sentry/
-  environment=SENTRY_CONF="/etc/sentry"
+  environment=PATH="/www/sentry/bin:%(ENV_PATH)s",SENTRY_CONF="/etc/sentry"
   command=/www/sentry/bin/sentry celery beat
   autostart=true
   autorestart=true
