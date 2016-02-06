@@ -74,9 +74,13 @@ class DjangoSearchBackend(SearchBackend):
         if tags:
             for k, v in tags.iteritems():
                 if v == ANY:
-                    queryset = queryset.filter(grouptag__key=k)
+                    queryset = queryset.filter(
+                        grouptag__project=project,
+                        grouptag__key=k,
+                    )
                 else:
                     queryset = queryset.filter(
+                        grouptag__project=project,
                         grouptag__key=k,
                         grouptag__value=v,
                     )
