@@ -1,3 +1,10 @@
+Version 8.1.2
+-------------
+
+- [CRITICAL] Fix issue running ``sentry start`` with supervisord.
+- Fix compatibility with older versions of djangorestframework.
+- Updated member invitation emails.
+
 Version 8.1.1
 -------------
 
