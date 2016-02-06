@@ -70,12 +70,14 @@ class DjangoSearchBackendTest(TestCase):
 
         for key, value in self.event1.data['tags']:
             GroupTagValue.objects.create(
+                project=self.group1.project,
                 group=self.group1,
                 key=key,
                 value=value,
             )
         for key, value in self.event2.data['tags']:
             GroupTagValue.objects.create(
+                project=self.group2.project,
                 group=self.group2,
                 key=key,
                 value=value,
