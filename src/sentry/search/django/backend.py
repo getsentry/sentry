@@ -84,6 +84,7 @@ class DjangoSearchBackend(SearchBackend):
                         grouptag__key=k,
                         grouptag__value=v,
                     )
+            queryset = queryset.distinct()
 
         if age_from and age_to:
             queryset = queryset.filter(
