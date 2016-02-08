@@ -7,6 +7,16 @@ from django.utils.translation import ugettext as _
 from sentry.utils.imports import import_string
 
 
+def iter_interfaces():
+    rv = {}
+
+    for name, import_path in settings.SENTRY_INTERFACES.iteritems():
+        rv.setdefault(import_path, []).append(name)
+
+    for import_path, keys in rv.iteritems():
+        yield get_interface(import_path), keys
+
+
 def get_interface(name):
     try:
         import_path = settings.SENTRY_INTERFACES[name]
@@ -34,6 +44,7 @@ class Interface(object):
     _data = None
     score = 0
     display_score = None
+    ephemeral = False
 
     __slots__ = ['_data']
 
