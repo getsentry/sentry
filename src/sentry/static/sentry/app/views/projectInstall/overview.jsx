@@ -97,7 +97,7 @@ const ProjectInstallOverview = React.createClass({
 
         <p>
           {tct(`
-             [em:Don\'t see your platform listed here?] For a complete list of
+             For a complete list of
              client integrations, please visit see [docLink:our in-depth documentation].
           `, {
             em: <em />,
