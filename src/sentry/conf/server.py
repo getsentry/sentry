@@ -254,6 +254,7 @@ INSTALLED_APPS = (
     'sentry.nodestore',
     'sentry.search',
     'sentry.lang.javascript',
+    'sentry.lang.native',
     'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail',
     'sentry.plugins.sentry_urls',

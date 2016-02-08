@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from sentry.conf import settings
+from django.conf import settings
 from sentry.models import DSymFile
 
 
@@ -10,8 +10,20 @@ class DSymCache(object):
     def __init__(self):
         pass
 
-    def get_dsym(self, project, image_uuid):
-        base = os.path.join(settings.DSYM_CACHE_PATH, str(project.id))
+    def get_project_path(self, project):
+        return os.path.join(settings.DSYM_CACHE_PATH, str(project.id))
+
+    def fetch_dsyms(self, project, uuids):
+        base = self.get_project_path(project)
+        loaded = []
+        for image_uuid in uuids:
+            dsym = self.fetch_dsym(project, image_uuid)
+            if dsym is not None:
+                loaded.append(dsym)
+        return base, loaded
+
+    def fetch_dsym(self, project, image_uuid):
+        base = self.get_project_path(project)
         dsym = os.path.join(base, image_uuid.lower())
         if os.path.isfile(dsym):
             return dsym
@@ -35,3 +47,6 @@ class DSymCache(object):
             os.rename(dsym + '_tmp', dsym)
 
         return dsym
+
+
+dsymcache = DSymCache()
