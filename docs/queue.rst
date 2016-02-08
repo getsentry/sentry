@@ -71,6 +71,13 @@ limitation to using Redis is that all pending work must fit in memory.
 
     BROKER_URL = "redis://localhost:6379/0"
 
+If your Redis connection requires a password for authentication, you need to use
+the following format:
+
+.. code-block:: python
+
+    BROKER_URL = "redis://:password@localhost:6379/0"
+
 
 RabbitMQ
 ````````
