@@ -29,7 +29,7 @@ def find_common_prefix(members):
 def safe_extract_zip(f, path, strip_toplevel=True):
     """Safely extract a given zip file to a path.  The zipfile can either
     be an open file or a filename.  If the zip is unsafe an exception is
-    raised.  Optionally the toplevel fodler is stripped off.  If there are
+    raised.  Optionally the toplevel folder is stripped off.  If there are
     hidden files on toplevel then, these are silently ignored.
     """
     close = False
