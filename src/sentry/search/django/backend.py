@@ -8,6 +8,7 @@ sentry.search.django.backend
 
 from __future__ import absolute_import
 
+from django.db import router
 from django.db.models import Q
 
 from sentry.api.paginator import DateTimePaginator, Paginator
@@ -117,12 +118,21 @@ class DjangoSearchBackend(SearchBackend):
                     params['datetime__lte'] = date_to
                 else:
                     params['datetime__lt'] = date_to
+
             event_queryset = Event.objects.filter(**params)
             # limit to the first 1000 results
             group_ids = event_queryset.distinct().values_list(
                 'group_id',
                 flat=True
             )[:1000]
+
+            # if Event is not on the primary database remove Django's
+            # implicit subquery by coercing to a list
+            base = router.db_for_read(Group)
+            using = router.db_for_read(Event)
+            if base != using:
+                group_ids = list(group_ids)
+
             queryset = queryset.filter(
                 id__in=group_ids,
             )
