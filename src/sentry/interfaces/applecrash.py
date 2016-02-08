@@ -27,8 +27,10 @@ class AppleCrashReport(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if not data.get('message'):
-            raise InterfaceValidationError("No 'message' present")
+        if not data.get('crash'):
+            raise InterfaceValidationError("No 'crash' present")
+        if not data.get('binary_images'):
+            raise InterfaceValidationError("No 'binary_images' present")
 
         kwargs = {
             'crash': data['crash'],
