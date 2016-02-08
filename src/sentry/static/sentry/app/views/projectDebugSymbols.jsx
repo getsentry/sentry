@@ -4,9 +4,10 @@ import ApiMixin from '../mixins/apiMixin';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import DateTime from '../components/dateTime';
+import FileSize from '../components/fileSize';
 import {t} from '../locale';
 
-const ProjectDebugInfo = React.createClass({
+const ProjectDebugSymbols = React.createClass({
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -80,9 +81,9 @@ const ProjectDebugInfo = React.createClass({
           <tr>
             <th>{t('UUID')}</th>
             <th>{t('Object Name')}</th>
-            <th>{t('Architecture')}</th>
-            <th>{t('Symbol Type')}</th>
+            <th>{t('Type')}</th>
             <th>{t('Upload Date')}</th>
+            <th>{t('Size')}</th>
           </tr>
         </thead>
         <tbody>
@@ -91,9 +92,9 @@ const ProjectDebugInfo = React.createClass({
               <tr key={idx}>
                 <td>{item.uuid}</td>
                 <td>{item.objectName}</td>
-                <td>{item.cpuName}</td>
-                <td>{item.symbolType}</td>
+                <td>{item.cpuName} ({item.symbolType})</td>
                 <td><DateTime date={item.dateCreated}/></td>
+                <td><FileSize bytes={item.size}/></td>
               </tr>
             );
           })}
@@ -105,18 +106,17 @@ const ProjectDebugInfo = React.createClass({
   render() {
     return (
       <div>
-        <h1>{t('Debug Info')}</h1>
+        <h1>{t('Debug Symbols')}</h1>
         <p>{t(`
           Here you can find uploaded debug information (for instance debug
           symbol files).  This is used to convert addresses from crash dumps
           into function names and locations.  For JavaScript debug support
           look at releases instead.
         `)}</p>
-        <h2>{t('Debug Symbols')}</h2>
         {this.renderDebugTable()}
       </div>
     );
   }
 });
 
-export default ProjectDebugInfo;
+export default ProjectDebugSymbols;
