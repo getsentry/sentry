@@ -36,7 +36,9 @@
                 {% for team in team_list.paginator.objects %}
                     <tr>
                         <td>
-                            <a href="{% url 'sentry-manage-team' team.organization.slug team.slug %}"><strong>{{ team.slug }}</strong></a>
+                            <a href="{% absolute_uri '/organizations/{}/teams/{}/settings/' team.organization.slug team.slug %}">
+                                <strong>{{ team.slug }}</strong>
+                            </a>
                         </td>
                         <td style="text-align:right; vertical-align:middle;">
                             {{ team.num_projects }}

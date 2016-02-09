@@ -66,7 +66,6 @@ from sentry.web.frontend.remove_organization import RemoveOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.replay_event import ReplayEventView
-from sentry.web.frontend.team_settings import TeamSettingsView
 
 
 def init_all_applications():
@@ -251,8 +250,6 @@ urlpatterns += patterns(
         name='sentry-organization-stats'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/settings/$', OrganizationSettingsView.as_view(),
         name='sentry-organization-settings'),
-    url(r'^organizations/(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/settings/$', TeamSettingsView.as_view(),
-        name='sentry-manage-team'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/remove/$', RemoveTeamView.as_view(),
         name='sentry-remove-team'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/teams/new/$', CreateTeamView.as_view(),

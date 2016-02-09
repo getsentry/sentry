@@ -41,10 +41,14 @@ export default class InputField extends FormField {
   }
 
   render() {
+    let className = 'control-group';
+    if (this.props.error) {
+      className += ' has-error';
+    }
     return (
-      <div className="control-group">
+      <div className={className}>
         <div className="controls">
-          <label>{this.props.label}</label>
+          <label className="control-label">{this.props.label}</label>
           {this.props.disabled && this.props.disabledReason &&
             <span className="disabled-indicator tip" title={this.props.disabledReason}>
               <span className="icon-question" />
@@ -58,6 +62,9 @@ export default class InputField extends FormField {
                  value={this.state.value} />
           {this.props.help &&
             <p className="help-block">{this.props.help}</p>
+          }
+          {this.props.error &&
+            <p className="error">{this.props.error}</p>
           }
         </div>
       </div>

@@ -74,7 +74,6 @@ class TeamDetailsEndpoint(TeamEndpoint):
         return Response(context)
 
     @attach_scenarios([update_team_scenario])
-    @sudo_required
     def put(self, request, team):
         """
         Update a Team
