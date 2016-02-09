@@ -39,6 +39,7 @@ import ReleaseNewEvents from './views/releaseNewEvents';
 import RouteNotFound from './views/routeNotFound';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
+import TeamSettings from './views/teamSettings';
 
 import errorHandler from './utils/errorHandler';
 
@@ -67,8 +68,9 @@ let routes = (
       <Route path="/organizations/:orgId/issues/assigned/" component={errorHandler(MyIssuesAssignedToMe)} />
       <Route path="/organizations/:orgId/issues/bookmarks/" component={errorHandler(MyIssuesBookmarked)} />
       <Route path="/organizations/:orgId/issues/history/" component={errorHandler(MyIssuesViewed)} />
-      <Route path="/organizations/:orgId/stats/" component={errorHandler(OrganizationStats)} />
       <Route path="/organizations/:orgId/rate-limits/" component={errorHandler(OrganizationRateLimits)} />
+      <Route path="/organizations/:orgId/stats/" component={errorHandler(OrganizationStats)} />
+      <Route path="/organizations/:orgId/teams/:teamId/settings/" component={errorHandler(TeamSettings)} />
 
       <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
         <IndexRoute component={errorHandler(Stream)} />

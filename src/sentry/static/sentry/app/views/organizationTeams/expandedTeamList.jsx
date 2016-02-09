@@ -62,6 +62,7 @@ const ExpandedTeamList = React.createClass({
   renderTeamNode(team, urlPrefix) {
     // TODO: make this cleaner
     let access = this.props.access;
+    let orgId = this.props.organization.slug;
     return (
       <div className="box" key={team.slug}>
         <div className="box-header">
@@ -70,9 +71,9 @@ const ExpandedTeamList = React.createClass({
               {t('Leave Team')}
             </a>
             {access.has('team:write') &&
-              <a className="team-settings" href={`${urlPrefix}/teams/${team.slug}/settings/`}>
+              <Link className="team-settings" to={`/organizations/${orgId}/teams/${team.slug}/settings/`}>
                 {t('Team Settings')}
-              </a>
+              </Link>
             }
           </div>
           <h3>{team.name}</h3>
@@ -143,9 +144,8 @@ const ExpandedTeamList = React.createClass({
   },
 
   renderTeamNodes() {
-    let urlPrefix = this.urlPrefix();
     return this.props.teamList.map((team) => {
-      return this.renderTeamNode(team, urlPrefix);
+      return this.renderTeamNode(team);
     });
   },
 
