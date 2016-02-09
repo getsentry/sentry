@@ -136,10 +136,6 @@ install_requires = [
 postgres_requires = [
 ]
 
-postgres_pypy_requires = [
-    'psycopg2cffi',
-]
-
 
 class BuildJavascriptCommand(Command):
     description = 'build javascript support files'
@@ -459,7 +455,6 @@ setup(
         'tests': tests_require,
         'dev': dev_requires,
         'postgres': install_requires + postgres_requires,
-        'postgres_pypy': install_requires + postgres_pypy_requires,
     },
     cmdclass=cmdclass,
     license='BSD',
