@@ -97,18 +97,18 @@
           <td class="align-right squash">
             <a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}"
                class="btn btn-default btn-sm">
-              &nbsp;Details
+              {% trans "Details" %}
             </a>
             {% if member.user != request.user %}
               {% if can_remove_members %}
                 <a href="javascript:void(0)" class="btn btn-danger btn-sm remove-member"
                     data-member-id="{{ member.id }}">
-                  <span class="icon icon-trash"></span> &nbsp;Remove
+                  <span class="icon icon-trash"></span> &nbsp;{% trans "Remove" %}
                 </a>
               {% else %}
                 <a href="javascript:void(0)" class="btn btn-sm btn-disabled tip"
                    title="You do not have access to remove this member.">
-                  <span class="icon icon-trash"></span> &nbsp;Remove
+                  <span class="icon icon-trash"></span> &nbsp;{% trans "Remove" %}
                 </a>
               {% endif %}
             {% elif member.user == request.user %}
