@@ -95,17 +95,35 @@
           <td>{{ member.get_role_display }}</td>
           {% if can_remove_members or member_can_leave %}
           <td class="align-right squash">
-            {% if member.user != request.user and can_remove_members %}
-              <a href="javascript:void(0)" class="btn btn-default btn-sm remove-member"
-                  data-member-id="{{ member.id }}">
-                <span class="icon icon-trash"></span> &nbsp;Remove
-              </a>
-            {% elif member.user == request.user and member_can_leave %}
-              <a href="javascript:void(0)" class="btn btn-default btn-sm remove-member"
-                  data-member-id="{{ member.id }}"
-                  data-message="Are you sure you wish to leave this organization?">
-                <span class="icon icon-trash"></span> &nbsp;Leave
-              </a>
+            <a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}"
+               class="btn btn-default btn-sm">
+              <span class="icon icon-trash"></span> &nbsp;Details
+            </a>
+            {% if member.user != request.user %}
+              {% if can_remove_members %}
+                <a href="javascript:void(0)" class="btn btn-danger btn-sm remove-member"
+                    data-member-id="{{ member.id }}">
+                  <span class="icon icon-trash"></span> &nbsp;Remove
+                </a>
+              {% else %}
+                <a href="javascript:void(0)" class="btn btn-sm btn-disabled tip"
+                   title="You do not have access to remove this member.">
+                  <span class="icon icon-trash"></span> &nbsp;Remove
+                </a>
+              {% endif %}
+            {% elif member.user == request.user %}
+              {% if member_can_leave %}
+                <a href="javascript:void(0)" class="btn btn-danger btn-sm remove-member"
+                    data-member-id="{{ member.id }}"
+                    data-message="Are you sure you wish to leave this organization?">
+                  <span class="icon icon-trash"></span> &nbsp;Leave
+                </a>
+              {% else %}
+                <a href="javascript:void(0)" class="btn btn-sm btn-disabled tip"
+                   title="You cannot leave this organization as you are the only owner.">
+                  <span class="icon icon-trash"></span> &nbsp;Leave
+                </a>
+              {% endif %}
             {% endif %}
           </td>
           {% endif %}
