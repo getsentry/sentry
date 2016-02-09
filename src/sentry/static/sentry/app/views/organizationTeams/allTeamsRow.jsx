@@ -1,4 +1,5 @@
 import React from 'react';
+import {Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 import AlertActions from '../../actions/alertActions';
@@ -75,7 +76,8 @@ const AllTeamsRow = React.createClass({
   },
 
   render() {
-    let {access, team, openMembership, urlPrefix} = this.props;
+    let {access, team, openMembership} = this.props;
+    let orgId = this.props.organization.slug;
     return (
      <tr>
         <td>
@@ -97,10 +99,10 @@ const AllTeamsRow = React.createClass({
                onClick={this.joinTeam}>{t('Request Access')}</a>
           )))}
           {access.has('team:write') &&
-            <a className="btn btn-default btn-sm" href={`${urlPrefix}/teams/${team.slug}/settings/`}
+            <Link className="btn btn-default btn-sm" to={`/organizations/${orgId}/teams/${team.slug}/settings/`}
                style={{marginLeft: 5}}>
               {t('Team Settings')}
-            </a>
+            </Link>
           }
         </td>
       </tr>
