@@ -130,7 +130,7 @@ install_requires = [
     'ua-parser>=0.6.1,<0.7.0',
     'urllib3>=1.14,<1.15',
     'uwsgi>2.0.0,<2.1.0',
-    'rb>=1.3.0,<2.0.0',
+    'rb>=1.4.0,<2.0.0',
 ]
 
 postgres_requires = [
