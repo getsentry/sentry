@@ -267,6 +267,7 @@ class Frame(Interface):
             'filename': trim(filename, 256),
             'module': trim(module, 256),
             'function': trim(function, 256),
+            'package': trim(data.get('package'), 256),
             'in_app': in_app,
             'context_line': context_line,
             # TODO(dcramer): trim pre/post_context
@@ -347,6 +348,7 @@ class Frame(Interface):
             'filename': self.filename,
             'absPath': self.abs_path,
             'module': self.module,
+            'package': self.package,
             'function': self.function,
             'context': get_context(
                 lineno=self.lineno,
@@ -488,6 +490,10 @@ class Stacktrace(Interface):
       notes below on implicity ``in_app`` behavior.
     ``vars``
       A mapping of variables which were available within this frame (usually context-locals).
+    ``package``
+      Name of the package or object file that the frame is contained in.  This
+      for instance can be the name of a DLL, .NET Assembly, jar file, object
+      file etc.
 
     >>> {
     >>>     "frames": [{
