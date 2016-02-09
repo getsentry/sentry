@@ -10,6 +10,7 @@ class OrganizationMemberSerializer(Serializer):
         d = {
             'id': str(obj.id),
             'email': obj.get_email(),
+            'name': obj.user.get_display_name() if obj.user else obj.get_email(),
             'role': obj.role,
             'roleName': obj.get_role_display(),
             'pending': obj.is_pending,
