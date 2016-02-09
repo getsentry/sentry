@@ -329,9 +329,12 @@ class RedisTSDB(BaseTSDB):
                 for member, score in items.items():
                     arguments.extend((score, member))
 
-                commands[key] = [(CountMinScript, keys, arguments)] + [
-                    ('EXPIREAT', key, exp) for key, exp in expirations.items()
-                ]
+                # Since we're essentially merging dictionaries, we need to
+                # append this to any value that already exists at the key.
+                cmds = commands.setdefault(key, [])
+                cmds.append((CountMinScript, keys, arguments))
+                for k, t in expirations.items():
+                    cmds.append(('EXPIREAT', k, t))
 
         self.cluster.execute_commands(commands)
 
