@@ -97,7 +97,7 @@
           <td class="align-right squash">
             <a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}"
                class="btn btn-default btn-sm">
-              <span class="icon icon-trash"></span> &nbsp;Details
+              &nbsp;Details
             </a>
             {% if member.user != request.user %}
               {% if can_remove_members %}
