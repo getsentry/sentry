@@ -66,7 +66,8 @@ def preprocess_apple_crash_event(data):
     bt = None
     for thread in crash['threads']:
         if thread['crashed']:
-            bt = sym.symbolize_backtrace(thread['backtrace']['contents'])
+            with sym.driver:
+                bt = sym.symbolize_backtrace(thread['backtrace']['contents'])
 
     if bt is not None:
         inject_apple_backtrace(data, bt, crash.get('diagnosis'),
