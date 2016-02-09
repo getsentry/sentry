@@ -292,6 +292,14 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_received, project.organization_id),
                 (app.tsdb.models.organization_total_blacklisted, project.organization_id),
             ])
+            app.tsdb.record_frequency_multi([
+                (app.tsdb.models.frequent_organization_received_by_system, {
+                    0: {project.organization_id: 1},
+                }),
+                (app.tsdb.models.frequent_organization_blacklisted_by_system, {
+                    0: {project.organization_id: 1},
+                }),
+            ])
             metrics.incr('events.blacklisted')
             raise APIForbidden('Blacklisted IP address: %s' % (remote_addr,))
 
@@ -312,6 +320,14 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_received, project.organization_id),
                 (app.tsdb.models.organization_total_rejected, project.organization_id),
             ])
+            app.tsdb.record_frequency_multi([
+                (app.tsdb.models.frequent_organization_received_by_system, {
+                    0: {project.organization_id: 1},
+                }),
+                (app.tsdb.models.frequent_organization_rejected_by_system, {
+                    0: {project.organization_id: 1},
+                }),
+            ])
             metrics.incr('events.dropped')
             if rate_limit is not None:
                 raise APIRateLimited(rate_limit.retry_after)
@@ -319,6 +335,11 @@ class StoreView(APIView):
             app.tsdb.incr_multi([
                 (app.tsdb.models.project_total_received, project.id),
                 (app.tsdb.models.organization_total_received, project.organization_id),
+            ])
+            app.tsdb.record_frequency_multi([
+                (app.tsdb.models.frequent_organization_received_by_system, {
+                    0: {project.organization_id: 1},
+                }),
             ])
 
         content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')

@@ -662,6 +662,19 @@ class EventManager(object):
             (tsdb.models.project, project.id),
         ], timestamp=event.datetime)
 
+        tsdb.record_frequency_multi([
+            (tsdb.models.frequent_projects_by_organization, {
+                project.organization_id: {
+                    project.id: 1,
+                },
+            }),
+            (tsdb.models.frequent_issues_by_project, {
+                project.id: {
+                    group.id: 1,
+                },
+            }),
+        ], timestamp=event.datetime)
+
         return group, is_new, is_regression, is_sample
 
     def _handle_regression(self, group, event, release):
