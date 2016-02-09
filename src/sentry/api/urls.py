@@ -64,6 +64,7 @@ from .endpoints.system_options import SystemOptionsEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
+from .endpoints.team_members import TeamMembersEndpoint
 from .endpoints.team_project_index import TeamProjectIndexEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
@@ -141,6 +142,9 @@ urlpatterns = patterns(
     url(r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/(?:groups|issues)/trending/$',
         TeamGroupsTrendingEndpoint.as_view(),
         name='sentry-api-0-team-groups-trending'),
+    url(r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/members/$',
+        TeamMembersEndpoint.as_view(),
+        name='sentry-api-0-team-members'),
     url(r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/projects/$',
         TeamProjectIndexEndpoint.as_view(),
         name='sentry-api-0-team-project-index'),
