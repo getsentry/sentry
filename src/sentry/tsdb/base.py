@@ -13,7 +13,6 @@ from enum import Enum
 
 from sentry.utils.dates import to_timestamp
 
-
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
@@ -50,9 +49,21 @@ class TSDBModel(Enum):
 
     # distinct count of users that have been affected by an event in a group
     users_affected_by_group = 300
-
     # distinct count of users that have been affected by an event in a project
     users_affected_by_project = 301
+
+    # number of events sent to server for an organization (key is always 0)
+    frequent_organization_received_by_system = 400
+    # number of events rejected by server for an organization (key is always 0)
+    frequent_organization_rejected_by_system = 401
+    # number of events blacklisted by server for an organization (key is always 0)
+    frequent_organization_blacklisted_by_system = 402
+    # number of events seen for a project, by organization
+    frequent_projects_by_organization = 403
+    # number of issues seen for a project, by project
+    frequent_issues_by_project = 404
+    # number of issues seen for a tag value, by issue:tag
+    frequent_values_by_issue_tag = 405
 
 
 class BaseTSDB(object):
@@ -219,5 +230,54 @@ class BaseTSDB(object):
     def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
         """
         Count distinct items during a time range.
+        """
+        raise NotImplementedError
+
+    def record_frequency_multi(self, requests, timestamp=None):
+        """
+        Record items in a frequency table.
+
+        Metrics to increment should be passed as sequence pairs, using this
+        structure: ``(model, {key: {item: score, ...}, ...})``
+        """
+        raise NotImplementedError
+
+    def get_most_frequent(self, model, keys, start, end=None, rollup=None, limit=None):
+        """
+        Retrieve the most frequently seen items in a frequency table.
+
+        Results are returned as a mapping, where the key is the key requested
+        and the value is a list of ``(member, score)`` tuples, ordered by the
+        highest (most frequent) to lowest (least frequent) score. The maximum
+        number of items returned is ``index capacity * rollup intervals`` if no
+        ``limit`` is provided.
+        """
+        raise NotImplementedError
+
+    def get_frequency_series(self, model, items, start, end=None, rollup=None):
+        """
+        Retrieve the frequency of known items in a table over time.
+
+        The items requested should be passed as a mapping, where the key is the
+        metric key, and the value is a sequence of members to retrieve scores
+        for.
+
+        Results are returned as a mapping, where the key is the key requested
+        and the value is a list of ``(timestamp, {item: score, ...})`` pairs
+        over the series.
+        """
+        raise NotImplementedError
+
+    def get_frequency_totals(self, model, items, start, end=None, rollup=None):
+        """
+        Retrieve the total frequency of known items in a table over time.
+
+        The items requested should be passed as a mapping, where the key is the
+        metric key, and the value is a sequence of members to retrieve scores
+        for.
+
+        Results are returned as a mapping, where the key is the key requested
+        and the value is a mapping of ``{item: score, ...}`` containing the
+        total score of items over the interval.
         """
         raise NotImplementedError
