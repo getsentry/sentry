@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+from sentry.app import tsdb
 from sentry.models import Group, GroupTagValue, Team, User
 from sentry.testutils import TestCase
 
@@ -36,6 +37,23 @@ class SentryManagerTest(TestCase):
         res = results[0]
         self.assertEquals(res.value, 'boz')
         self.assertEquals(res.times_seen, 1)
+
+        assert tsdb.get_most_frequent(
+            tsdb.models.frequent_values_by_issue_tag,
+            (
+                '{}:foo'.format(group.id),
+                '{}:biz'.format(group.id),
+            ),
+            group.last_seen,
+        ) == {
+            '{}:foo'.format(group.id): [
+                ('bar', 1.0),
+                ('baz', 1.0),
+            ],
+            '{}:biz'.format(group.id): [
+                ('boz', 1.0),
+            ],
+        }
 
 
 class TeamManagerTest(TestCase):
