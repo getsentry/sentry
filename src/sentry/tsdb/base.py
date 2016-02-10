@@ -55,12 +55,13 @@ class TSDBModel(Enum):
     # frequent_organization_received_by_system = 400
     # frequent_organization_rejected_by_system = 401
     # frequent_organization_blacklisted_by_system = 402
-    # frequent_values_by_issue_tag = 405
 
-    # number of events seen for a project, by organization
+    # number of events seen for an organization, counted by project
     frequent_projects_by_organization = 403
-    # number of issues seen for a project, by project
+    # number of events seen for a project, counted by issue
     frequent_issues_by_project = 404
+    # number of events seen for an (issue, tag key) pair, counted by value
+    frequent_values_by_issue_tag = 405
 
 
 class BaseTSDB(object):
