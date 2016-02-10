@@ -7,9 +7,8 @@ sentry.tsdb.inmemory
 """
 from __future__ import absolute_import
 
-from collections import Counter, defaultdict
+from collections import defaultdict
 from datetime import timedelta
-
 from django.utils import timezone
 
 from sentry.tsdb.base import BaseTSDB
@@ -100,72 +99,4 @@ class InMemoryTSDB(BaseTSDB):
         self.data = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
 
         # self.sets[model][key][rollup] = set of elements
-        self.sets = defaultdict(
-            lambda: defaultdict(
-                lambda: defaultdict(
-                    set,
-                ),
-            ),
-        )
-
-        # self.frequencies[model][key][rollup] = Counter()
-        self.frequencies = defaultdict(
-            lambda: defaultdict(
-                lambda: defaultdict(
-                    Counter,
-                )
-            ),
-        )
-
-    def record_frequency_multi(self, requests, timestamp=None):
-        if timestamp is None:
-            timestamp = timezone.now()
-
-        for model, request in requests:
-            for key, items in request.items():
-                items = {k: float(v) for k, v in items.items()}
-                source = self.frequencies[model][key]
-                for rollup, _ in self.rollups:
-                    source[self.normalize_to_rollup(timestamp, rollup)].update(items)
-
-    def get_most_frequent(self, model, keys, start, end=None, rollup=None, limit=None):
-        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
-
-        results = {}
-        for key in keys:
-            result = results[key] = Counter()
-            source = self.frequencies[model][key]
-            for timestamp in series:
-                result.update(source[self.normalize_ts_to_rollup(timestamp, rollup)])
-
-        for key, counter in results.items():
-            results[key] = counter.most_common(limit)
-
-        return results
-
-    def get_frequency_series(self, model, items, start, end=None, rollup=None):
-        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
-
-        results = {}
-        for key, members in items.items():
-            result = results[key] = []
-            source = self.frequencies[model][key]
-            for timestamp in series:
-                scores = source[self.normalize_ts_to_rollup(timestamp, rollup)]
-                result.append((
-                    timestamp,
-                    {k: scores.get(k, 0.0) for k in members},
-                ))
-
-        return results
-
-    def get_frequency_totals(self, model, items, start, end=None, rollup=None):
-        results = {}
-
-        for key, series in self.get_frequency_series(model, items, start, end, rollup).iteritems():
-            result = results[key] = {}
-            for timestamp, scores in series:
-                for member, score in scores.items():
-                    result[member] = result.get(member, 0.0) + score
-
-        return results
+        self.sets = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))

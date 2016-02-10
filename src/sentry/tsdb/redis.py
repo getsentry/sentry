@@ -8,44 +8,35 @@ sentry.tsdb.redis
 from __future__ import absolute_import
 
 import logging
-import operator
-from binascii import crc32
-from collections import defaultdict, namedtuple
-from datetime import timedelta
-from hashlib import md5
-
 import six
+
+from binascii import crc32
+from collections import defaultdict
+from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
-from pkg_resources import resource_string
-from redis.client import Script
+from hashlib import md5
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.utils.dates import to_timestamp
-from sentry.utils.redis import check_cluster_versions, make_rb_cluster
+from sentry.utils.redis import (
+    check_cluster_versions,
+    make_rb_cluster,
+)
 from sentry.utils.versioning import Version
 
+
 logger = logging.getLogger(__name__)
-
-
-SketchParameters = namedtuple('SketchParameters', 'depth width capacity')
-
-
-CountMinScript = Script(
-    None,
-    resource_string('sentry', 'scripts/tsdb/cmsketch.lua'),
-)
 
 
 class RedisTSDB(BaseTSDB):
     """
     A time series storage backend for Redis.
 
-    The time series API supports three data types:
+    The time series API supports two data types:
 
         * simple counters
         * distinct counters (number of unique elements seen)
-        * frequency tables (a set of items ranked by most frequently observed)
 
     The backend also supports virtual nodes (``vnodes``) which controls shard
     distribution. This value should be set to the anticipated maximum number of
@@ -74,25 +65,7 @@ class RedisTSDB(BaseTSDB):
             ...
         }
 
-    Frequency tables are modeled using two data structures:
-
-        * top-N index: a sorted set containing the most frequently observed items,
-        * estimation matrix: a hash table containing counters, used in a Count-Min sketch
-
-    Member scores are 100% accurate until the index is filled (and no memory is
-    used for the estimation matrix until this point), after which the data
-    structure switches to a probabilistic implementation and accuracy begins to
-    degrade for less frequently observed items, but remains accurate for more
-    frequently observed items.
-
-    Frequency tables are especially useful when paired with a (non-distinct)
-    counter of the total number of observations so that scores of items of the
-    frequency table can be displayed as percentages of the whole data set.
-    (Additional documentation and the bulk of the logic for implementing the
-    frequency table API can be found in the ``cmsketch.lua`` script.)
     """
-    DEFAULT_SKETCH_PARAMETERS = SketchParameters(3, 128, 50)
-
     def __init__(self, hosts=None, prefix='ts:', vnodes=64, **kwargs):
         # inherit default options from REDIS_OPTIONS
         defaults = settings.SENTRY_REDIS_OPTIONS
@@ -113,22 +86,7 @@ class RedisTSDB(BaseTSDB):
             label='TSDB',
         )
 
-    def make_key(self, model, rollup, timestamp, key):
-        """
-        Make a key that is used for distinct counter and frequency table
-        values.
-        """
-        return '{prefix}{model}:{epoch}:{key}'.format(
-            prefix=self.prefix,
-            model=model.value,
-            epoch=self.normalize_ts_to_rollup(timestamp, rollup),
-            key=self.get_model_key(key),
-        )
-
-    def make_counter_key(self, model, epoch, model_key):
-        """
-        Make a key that is used for counter values.
-        """
+    def make_key(self, model, epoch, model_key):
         if isinstance(model_key, six.integer_types):
             vnode = model_key % self.vnodes
         else:
@@ -156,7 +114,7 @@ class RedisTSDB(BaseTSDB):
 
         >>> incr_multi([(TimeSeriesModel.project, 1), (TimeSeriesModel.group, 5)])
         """
-        make_key = self.make_counter_key
+        make_key = self.make_key
         normalize_to_rollup = self.normalize_to_rollup
         if timestamp is None:
             timestamp = timezone.now()
@@ -186,7 +144,7 @@ class RedisTSDB(BaseTSDB):
         """
         normalize_to_epoch = self.normalize_to_epoch
         normalize_to_rollup = self.normalize_to_rollup
-        make_key = self.make_counter_key
+        make_key = self.make_key
 
         if rollup is None:
             rollup = self.get_optimal_rollup(start, end)
@@ -214,6 +172,14 @@ class RedisTSDB(BaseTSDB):
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
+    def make_distinct_counter_key(self, model, rollup, timestamp, key):
+        return '{prefix}{model}:{epoch}:{key}'.format(
+            prefix=self.prefix,
+            model=model.value,
+            epoch=self.normalize_ts_to_rollup(timestamp, rollup),
+            key=self.get_model_key(key),
+        )
+
     def record(self, model, key, values, timestamp=None):
         self.record_multi(((model, key, values),), timestamp)
 
@@ -230,7 +196,7 @@ class RedisTSDB(BaseTSDB):
             for model, key, values in items:
                 c = client.target_key(key)
                 for rollup, max_values in self.rollups:
-                    k = self.make_key(
+                    k = self.make_distinct_counter_key(
                         model,
                         rollup,
                         ts,
@@ -261,7 +227,7 @@ class RedisTSDB(BaseTSDB):
                     r.append((
                         timestamp,
                         c.pfcount(
-                            self.make_key(
+                            self.make_distinct_counter_key(
                                 model,
                                 rollup,
                                 timestamp,
@@ -289,111 +255,8 @@ class RedisTSDB(BaseTSDB):
                 # directly here instead.
                 ks = []
                 for timestamp in series:
-                    ks.append(self.make_key(model, rollup, timestamp, key))
+                    ks.append(self.make_distinct_counter_key(model, rollup, timestamp, key))
 
                 responses[key] = client.target_key(key).execute_command('PFCOUNT', *ks)
 
         return {key: value.value for key, value in responses.iteritems()}
-
-    def make_frequency_table_keys(self, model, rollup, timestamp, key):
-        prefix = self.make_key(model, rollup, timestamp, key)
-        return map(
-            operator.methodcaller('format', prefix),
-            ('{}:c', '{}:i', '{}:e'),
-        )
-
-    def record_frequency_multi(self, requests, timestamp=None):
-        if timestamp is None:
-            timestamp = timezone.now()
-
-        ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
-
-        commands = {}
-
-        for model, request in requests:
-            for key, items in request.iteritems():
-                keys = []
-                expirations = {}
-
-                # Figure out all of the keys we need to be incrementing, as
-                # well as their expiration policies.
-                for rollup, max_values in self.rollups:
-                    chunk = self.make_frequency_table_keys(model, rollup, ts, key)
-                    keys.extend(chunk)
-
-                    expiry = self.calculate_expiry(rollup, max_values, timestamp)
-                    for k in chunk:
-                        expirations[k] = expiry
-
-                arguments = ['INCR'] + list(self.DEFAULT_SKETCH_PARAMETERS)
-                for member, score in items.items():
-                    arguments.extend((score, member))
-
-                # Since we're essentially merging dictionaries, we need to
-                # append this to any value that already exists at the key.
-                cmds = commands.setdefault(key, [])
-                cmds.append((CountMinScript, keys, arguments))
-                for k, t in expirations.items():
-                    cmds.append(('EXPIREAT', k, t))
-
-        self.cluster.execute_commands(commands)
-
-    def get_most_frequent(self, model, keys, start, end=None, rollup=None, limit=None):
-        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
-
-        commands = {}
-
-        arguments = ['RANKED']
-        if limit is not None:
-            arguments.append(int(limit))
-
-        for key in keys:
-            ks = []
-            for timestamp in series:
-                ks.extend(self.make_frequency_table_keys(model, rollup, timestamp, key))
-            commands[key] = [(CountMinScript, ks, arguments)]
-
-        results = {}
-
-        for key, responses in self.cluster.execute_commands(commands).items():
-            results[key] = [(member, float(score)) for member, score in responses[0].value]
-
-        return results
-
-    def get_frequency_series(self, model, items, start, end=None, rollup=None):
-        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
-
-        # Freeze ordering of the members (we'll need these later.)
-        for key, members in items.items():
-            items[key] = tuple(members)
-
-        commands = {}
-
-        for key, members in items.items():
-            ks = []
-            for timestamp in series:
-                ks.extend(self.make_frequency_table_keys(model, rollup, timestamp, key))
-
-            commands[key] = [(CountMinScript, ks, ('ESTIMATE',) + members)]
-
-        results = {}
-
-        for key, responses in self.cluster.execute_commands(commands).items():
-            members = items[key]
-
-            chunk = results[key] = []
-            for timestamp, scores in zip(series, responses[0].value):
-                chunk.append((timestamp, dict(zip(members, map(float, scores)))))
-
-        return results
-
-    def get_frequency_totals(self, model, items, start, end=None, rollup=None):
-        responses = {}
-
-        for key, series in self.get_frequency_series(model, items, start, end, rollup).iteritems():
-            response = responses[key] = {}
-            for timestamp, results in series:
-                for member, value in results.items():
-                    response[member] = response.get(member, 0.0) + value
-
-        return responses
