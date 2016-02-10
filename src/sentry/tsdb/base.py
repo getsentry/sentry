@@ -52,18 +52,15 @@ class TSDBModel(Enum):
     # distinct count of users that have been affected by an event in a project
     users_affected_by_project = 301
 
-    # number of events sent to server for an organization (key is always 0)
-    frequent_organization_received_by_system = 400
-    # number of events rejected by server for an organization (key is always 0)
-    frequent_organization_rejected_by_system = 401
-    # number of events blacklisted by server for an organization (key is always 0)
-    frequent_organization_blacklisted_by_system = 402
+    # frequent_organization_received_by_system = 400
+    # frequent_organization_rejected_by_system = 401
+    # frequent_organization_blacklisted_by_system = 402
+    # frequent_values_by_issue_tag = 405
+
     # number of events seen for a project, by organization
     frequent_projects_by_organization = 403
     # number of issues seen for a project, by project
     frequent_issues_by_project = 404
-    # number of issues seen for a tag value, by issue:tag
-    frequent_values_by_issue_tag = 405
 
 
 class BaseTSDB(object):
