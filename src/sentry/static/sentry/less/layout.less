@@ -167,8 +167,34 @@ header {
   font-size: 16px;
   .clearfix;
 
-  .container {
+  .org-name {
+    float: left;
+    font-weight: bold;
+    color: @gray-darker;
 
+    a {
+      color: @gray-darker;
+
+      &:hover {
+        color: @gray-darkest;
+      }
+    }
+  }
+  .project-select {
+    float: left;
+    padding-left: 22px;
+    position: relative;
+
+    &:before {
+      content: "";
+      display: block;
+      position: absolute;
+      width: 1px;
+      height: 19px;
+      top: -1px;
+      left: 10px;
+      background: @trim;
+    }
   }
 
   .logo-logged-in {

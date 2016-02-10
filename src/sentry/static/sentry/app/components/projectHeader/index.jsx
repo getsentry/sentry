@@ -58,6 +58,11 @@ const ProjectHeader = React.createClass({
                 }
               </ul>
             </div>
+            <div className="org-name">
+              <Link to={`/${org.slug}/`}>
+                {org.name}
+              </Link>
+            </div>
             <ProjectSelector
                 organization={org}
                 projectId={project.slug}/>
