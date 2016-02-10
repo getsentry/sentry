@@ -123,8 +123,8 @@ const TodoList = React.createClass({
     TASKS: [
       {
         'task': 0,
-        'title': 'Make a great decision',
-        'description': 'By being here, you\'ve done it. Welcome to Sentry!',
+        'title': 'Create a project',
+        'description': 'You\'ve done it. Welcome to Sentry!',
         'skippable': false,
         'prereq': [],
         'feature_location': 'project',
@@ -285,6 +285,7 @@ const TodoList = React.createClass({
     }, this);
 
     return (
+      <div>
         <div onClick={this.click} className="onboarding-wrapper">
           <h3>Getting started with Sentry</h3>
           <ul className="list-unstyled">
@@ -292,6 +293,7 @@ const TodoList = React.createClass({
           </ul>
           <a className="btn btn-default btn-see-all" onClick={this.toggleSeeAll}>{this.state.seeAll ? 'Show less' : 'Show more'}</a>
         </div>
+      </div>
     );
   }
 });
