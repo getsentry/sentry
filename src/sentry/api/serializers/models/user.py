@@ -16,6 +16,7 @@ class UserSerializer(Serializer):
             'username': obj.username,
             'email': obj.email,
             'avatarUrl': get_gravatar_url(obj.email, size=32),
+            'isActive': obj.is_active,
         }
         if obj == user:
             options = {
