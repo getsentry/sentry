@@ -89,7 +89,9 @@
                 <strong>Missing SSO Link</strong>
               {% endif %}
               <br>
+              {% if can_add_members %}
               <a href="javascript:void(0)" class="resend-invite btn btn-sm btn-primary" data-member-id="{{ member.id }}" style="padding: 0 4px; margin-top: 2px">Resend invite</a>
+              {% endif %}
             {% endif %}
           </td>
           <td>{{ member.get_role_display }}</td>
