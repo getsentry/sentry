@@ -1,5 +1,5 @@
 import React from 'react';
-import {Link} from 'react-router';
+import {History,Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 import LanguageNav from './languageNav';
@@ -80,6 +80,8 @@ const ProjectInstallPlatform = React.createClass({
 
   render() {
     let {integration, platform} = this.state;
+    let queryParams = this.props.location.query;
+    let {orgId, projectId} = this.props.params;
 
     return (
       <div className="install row">
@@ -112,6 +114,17 @@ const ProjectInstallPlatform = React.createClass({
                 <div dangerouslySetInnerHTML={{__html: this.state.html}}/>
               )}
 
+              {queryParams.welcome ?
+                <p>
+                  <Link
+                    to={`/${orgId}/${projectId}/`}
+                    className="btn btn-primary btn-lg">
+                      Got it! Take me to the Issue Stream.
+                  </Link>
+                </p>
+              :
+                null
+              }
             </div>
           </div>
         </div>
