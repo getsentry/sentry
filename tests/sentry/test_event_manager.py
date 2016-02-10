@@ -398,6 +398,31 @@ class EventManagerTest(TransactionTestCase):
         data = manager.normalize()
         assert data['logger'] == DEFAULT_LOGGER_NAME
 
+    def test_record_frequencies(self):
+        project = self.project
+        manager = EventManager(self.make_event())
+        event = manager.save(project)
+
+        assert tsdb.get_most_frequent(
+            tsdb.models.frequent_issues_by_project,
+            (event.project.id,),
+            event.datetime,
+        ) == {
+            event.project.id: [
+                (event.group_id, 1.0),
+            ],
+        }
+
+        assert tsdb.get_most_frequent(
+            tsdb.models.frequent_projects_by_organization,
+            (event.project.organization_id,),
+            event.datetime,
+        ) == {
+            event.project.organization_id: [
+                (event.project_id, 1.0),
+            ],
+        }
+
     def test_event_user(self):
         manager = EventManager(self.make_event(**{
             'sentry.interfaces.User': {
