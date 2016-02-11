@@ -31,6 +31,9 @@ class SharedGroupDetailsEndpoint(Endpoint):
         except Group.DoesNotExist:
             raise ResourceDoesNotExist
 
+        if group.organization.flags.disable_shared_issues:
+            raise ResourceDoesNotExist
+
         event = group.get_latest_event()
 
         context = serialize(group, request.user, SharedGroupSerializer())

@@ -37,6 +37,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')
+        if not getattr(obj.flags, 'disable_shared_issues'):
+            feature_list.append('shared-issues')
 
         context = super(DetailedOrganizationSerializer, self).serialize(
             obj, attrs, user)

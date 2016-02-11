@@ -34,6 +34,11 @@ class OrganizationSettingsForm(forms.ModelForm):
         help_text=_('Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.'),
         required=False,
     )
+    allow_shared_issues = forms.BooleanField(
+        label=_('Allow Shared Issues'),
+        help_text=_('Enable sharing of limited details on issues to anonymous users.'),
+        required=False,
+    )
 
     class Meta:
         fields = ('name', 'slug', 'default_role')
@@ -51,6 +56,7 @@ class OrganizationSettingsView(OrganizationView):
                 'default_role': organization.default_role,
                 'allow_joinleave': bool(organization.flags.allow_joinleave),
                 'enhanced_privacy': bool(organization.flags.enhanced_privacy),
+                'allow_shared_issues': bool(not organization.flags.disable_shared_issues),
             }
         )
 
@@ -60,6 +66,7 @@ class OrganizationSettingsView(OrganizationView):
             instance = form.save(commit=False)
             instance.flags.allow_joinleave = form.cleaned_data['allow_joinleave']
             instance.flags.enhanced_privacy = form.cleaned_data['enhanced_privacy']
+            instance.flags.disable_shared_issues = not form.cleaned_data['allow_shared_issues']
             instance.save()
 
             AuditLogEntry.objects.create(

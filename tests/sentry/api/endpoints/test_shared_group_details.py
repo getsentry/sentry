@@ -16,3 +16,16 @@ class SharedGroupDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data['id'] == str(group.id)
         assert response.data['latestEvent']['id'] == str(event.id)
+
+    def test_feature_disabled(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        org = group.organization
+        org.flags.disable_shared_issues = True
+        org.save()
+
+        url = '/api/0/shared/issues/{}/'.format(group.get_share_id())
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 404
