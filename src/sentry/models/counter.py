@@ -44,9 +44,9 @@ class Counter(Model):
         cur = connection.cursor()
         try:
             if db.is_postgres():
-                cur.execute('''
+                return cur.execute('''
                     select sentry_increment_project_counter(%s, %s, %s)
-                ''', [project.id, name, delta])
+                ''', [project.id, name, delta]).fetchone()[0]
             elif db.is_sqlite():
                 value = cur.execute('''
                     insert or ignore into sentry_projectcounter
