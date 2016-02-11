@@ -4,4 +4,5 @@ recursive-include src/sentry/locale *
 recursive-include src/sentry/data *
 recursive-include src/sentry/static/sentry *
 recursive-include src/sentry/scripts *.lua
+recursive-include src/sentry/integration-docs *.json
 global-exclude *~
