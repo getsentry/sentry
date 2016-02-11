@@ -25,29 +25,31 @@ class Migration(SchemaMigration):
             db.execute('''
                 create function sentry_increment_project_counter(
                     project bigint, counter text, delta int) returns int as $$
+                declare
+                  new_val int;
                 begin
                   loop
                     update sentry_projectcounter set value = value + delta
                      where project_id = project
-                       and ident = counter returning counter into new_val;
+                       and ident = counter returning value into new_val;
                     if found then
                       return new_val;
                     end if;
                     begin
                       insert into sentry_projectcounter(project_id, ident, value)
                            values (project, counter, delta)
-                        returning counter into new_val;
+                        returning value into new_val;
                       return new_val;
                     exception when unique_violation then
                     end;
-                  end loop
+                  end loop;
                 end
                 $$ language plpgsql;
             ''')
 
     def backwards(self, orm):
         if 'postgres' in settings.DATABASES['default']['ENGINE']:
-            db.execute('drop function sentry_increment_project_counter')
+            db.execute('drop function sentry_increment_project_counter(bigint, text, int);')
 
         # Removing unique constraint on 'Counter', fields ['project', 'ident']
         db.delete_unique('sentry_projectcounter', ['project_id', 'ident'])
