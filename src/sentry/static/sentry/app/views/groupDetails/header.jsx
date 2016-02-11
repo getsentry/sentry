@@ -73,6 +73,7 @@ const GroupHeader = React.createClass({
 
   render() {
     let group = this.props.group,
+        orgFeatures = new Set(this.getOrganization().features),
         userCount = group.userCount,
         features = this.getProjectFeatures();
 
@@ -143,13 +144,15 @@ const GroupHeader = React.createClass({
         </div>
         <GroupSeenBy />
         <GroupActions />
-        <div className="pull-right">
-          <div className="group-privacy">
-            <a onClick={this.onShare}>
-              <span className="icon" /> {t('Share this event')}
-            </a>
+        {orgFeatures.has('shared-issues') &&
+          <div className="pull-right">
+            <div className="group-privacy">
+              <a onClick={this.onShare}>
+                <span className="icon" /> {t('Share this event')}
+              </a>
+            </div>
           </div>
-        </div>
+        }
         <ul className="nav nav-tabs">
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/`} isActive={function (to) {
             let rootGroupPath = `/${orgId}/${projectId}/issues/${groupId}/`;
