@@ -105,7 +105,7 @@ const ProjectSettings = React.createClass({
               // Because react-router 1.0 removes router.isActive(route)
               return pathname === rootInstallPath || /install\/[\w\-]+\/$/.test(pathname);
             }.bind(this)}>{t('Instructions')}</ListLink>
-            <li><a href={`${settingsUrlRoot}/keys/`}>{t('Client Keys')}</a></li>
+            <li><a href={`${settingsUrlRoot}/keys/`}>{t('Client Keys')} (DSN)</a></li>
           </ul>
           <h6 className="nav-header">{t('Integrations')}</h6>
           <ul className="nav nav-stacked">
