@@ -1,4 +1,5 @@
 import React from 'react';
+import $ from 'jquery';
 
 import ApiMixin from '../../mixins/apiMixin';
 import ConfigStore from '../../stores/configStore';
@@ -57,7 +58,7 @@ const Header = React.createClass({
           <StatusPage className="pull-right" />
           <div className="onboarding-progress-bar" onClick={this.toggleTodos}>
             <div className="slider" style={style} ></div>
-            { this.state.showTodos ? <div className="dropdown-menu"><TodoList /></div> : null }
+            { this.state.showTodos ? <div className="dropdown-menu"><TodoList onClose={() => {this.setState({showTodos:false})}} /></div> : null }
           </div>
         </div>
       </header>
