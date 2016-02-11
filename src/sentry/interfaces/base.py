@@ -15,7 +15,7 @@ def iter_interfaces():
 
     for import_path, keys in rv.iteritems():
         iface = import_string(import_path)
-        yield iface(import_path), keys
+        yield iface, keys
 
 
 def get_interface(name):
