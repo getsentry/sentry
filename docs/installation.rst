@@ -178,10 +178,8 @@ Starting with 8.0.0, ``init`` now creates two files, ``sentry.conf.py`` and
 ``config.yml``. To avoid confusion, ``config.yml`` will slowly be replacing
 ``sentry.conf.py``, but right now, the uses of ``config.yml`` are limited.
 
-The configuration for the server is based on ``sentry.conf.server``, which
-contains a basic Django project configuration, as well as the default
-Sentry configuration values. It defaults to SQLite, however **SQLite is
-not a fully supported database and should not be used in production**.
+The configuration inherits all of the server defaults, but you may need to
+change certain things, such as the database connection:
 
 ::
 
