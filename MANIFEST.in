@@ -1,4 +1,4 @@
-include setup.py src/sentry/sentry-package.json src/sentry/static/version package.json webpack.config.js README.rst MANIFEST.in LICENSE AUTHORS
+include setup.py src/sentry/sentry-package.json src/sentry/static/version README.rst MANIFEST.in LICENSE AUTHORS
 recursive-include src/sentry/templates *
 recursive-include src/sentry/locale *
 recursive-include src/sentry/data *
