@@ -436,7 +436,8 @@ class EventManager(object):
         data['fingerprint'] = fingerprint or ['{{ default }}']
 
         # Get rid of ephemeral interface data
-        for interface, _ in iter_interfaces():
+        for interface_class, _ in iter_interfaces():
+            interface = interface_class()
             if interface.ephemeral:
                 data.pop(interface.get_path(), None)
 
