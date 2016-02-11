@@ -104,7 +104,7 @@ const Confirmation = React.createClass({
     return (
       <div className="ob-confirmation" onClick={this.dismiss}>
         <h3>Need help?</h3>
-        <p><a href="mailto:eric@getsentry.com?subject=:P">Ask us!</a> &middot; <a onClick={this.skip}>Skip</a></p>
+        <p><a href="mailto:support@getsentry.com?subject=Help with onboarding">Ask us!</a> &middot; <a onClick={this.skip}>Skip</a></p>
       </div>
     );
   }
@@ -113,12 +113,17 @@ const Confirmation = React.createClass({
 const TodoList = React.createClass({
   mixins: [ApiMixin, OrganizationState],
 
+  propTypes: {
+    onClose: React.PropTypes.func
+  },
+
   getInitialState() {
     return {
       tasks: [],
       seeAll: false,  // Show all tasks, included those completed
     };
   },
+
   statics: {
     TASKS: [
       {
@@ -147,26 +152,26 @@ const TodoList = React.createClass({
         'skippable': false,
         'prereq': [],
         'feature_location': 'organization',
-        'location': 'members/new/',
+        'location': 'members/',
       },
-      {
-        'task': 8,
-        'title': 'Set up release tracking',
-        'description': 'See what releases are generating errors.',
-        'skippable': false,
-        'prereq': [1],
-        'feature_location': 'project',
-        'location': 'settings/release-tracking/',
-      },
-      {
-        'task': 6,
-        'title': 'Add user context to errors',
-        'description': 'Know what users are being affected by errors and crashes',
-        'skippable': false,
-        'prereq': [1],
-        'feature_location': 'absolute',
-        'location': 'https://docs.getsentry.com/hosted/learn/context/#capturing-the-user',
-      },
+      // {
+      //   'task': 8,
+      //   'title': 'Set up release tracking',
+      //   'description': 'See what releases are generating errors.',
+      //   'skippable': false,
+      //   'prereq': [1],
+      //   'feature_location': 'project',
+      //   'location': 'settings/release-tracking/',
+      // },
+      // {
+      //   'task': 6,
+      //   'title': 'Add user context to errors',
+      //   'description': 'Know what users are being affected by errors and crashes',
+      //   'skippable': false,
+      //   'prereq': [1],
+      //   'feature_location': 'absolute',
+      //   'location': 'https://docs.getsentry.com/hosted/learn/context/#capturing-the-user',
+      // },
       {
         'task': 5,
         'title': 'Add a second platform',
@@ -194,15 +199,15 @@ const TodoList = React.createClass({
         'feature_location': 'project',
         'location': 'settings/notifications/',
       },
-      {
-        'task': 7,
-        'title': 'Deminify javascript with sourcemaps',
-        'description': 'Upload sourcemaps',
-        'skippable': false,
-        'prereq': [1, 8],
-        'feature_location': 'absolute',
-        'location': 'https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/'
-      },
+      // {
+      //   'task': 7,
+      //   'title': 'Deminify javascript with sourcemaps',
+      //   'description': 'Upload sourcemaps',
+      //   'skippable': true,
+      //   'prereq': [1, 8],
+      //   'feature_location': 'absolute',
+      //   'location': 'https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/'
+      // },
       // {
       //   'task': 9,
       //   'title': 'User crash reports',
@@ -232,6 +237,20 @@ const TodoList = React.createClass({
       tasks.push(task);
     }
     this.setState({tasks: tasks});
+  },
+
+  componentDidMount() {
+    // If a click is detected *outside* the TodoList, trigger
+    // the onClose handler
+    this.clickHandler = $('body').on('click', (e) => {
+      if (!$(e.target).closest('.onboarding-wrapper').length) {
+        this.props.onClose();
+      }
+    });
+  },
+
+  componentWillUnmount() {
+    $('body').off('click', this.clickHandler);
   },
 
   skipTask(skipped_task) {
