@@ -48,6 +48,12 @@ def is_valid_url(url):
     if not parsed.hostname:
         return False
 
+    # If we have no disallowed ips, we can skip any further validation
+    # and there's no point in doing a DNS lookup to validate against
+    # an empty list.
+    if not DISALLOWED_IPS:
+        return True
+
     server_hostname = get_server_hostname()
 
     if parsed.hostname == server_hostname:
