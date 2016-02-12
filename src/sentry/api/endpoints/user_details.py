@@ -5,7 +5,6 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
-from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import User
 
@@ -68,10 +67,8 @@ class UserDetailsEndpoint(UserEndpoint):
         data = serialize(user, request.user)
         return Response(data)
 
-    @sudo_required
     def put(self, request, user):
         if request.is_superuser():
-            print('here')
             serializer_cls = AdminUserSerializer
         else:
             serializer_cls = UserSerializer
