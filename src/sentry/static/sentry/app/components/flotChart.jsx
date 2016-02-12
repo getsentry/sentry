@@ -26,7 +26,7 @@ let numberWithCommas = function(x) {
 let buildTooltipHandler = function(series) {
   return function(_l, xval, _y, flotItem) {
     let yval;
-    let content = '<h6>' + moment(parseInt(xval, 10)).format('llll') + '</h6>';
+    let content = '<h6>' + moment(parseInt(xval, 10)).format('MMMM D YYYY HH:mm z') + '</h6>';
     for (let i = 0; i < series.length; i++) {
       // we're assuming series are identical
       yval = numberWithCommas(series[i].data[flotItem.dataIndex][1] || 0);
