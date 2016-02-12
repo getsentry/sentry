@@ -21,17 +21,17 @@ from sentry.utils.strings import compress
 class ProjectKeyTest(TestCase):
     def test_get_dsn(self):
         key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             self.assertEquals(key.get_dsn(), 'http://public:secret@example.com/1')
 
     def test_get_dsn_with_ssl(self):
         key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
-        with self.settings(SENTRY_URL_PREFIX='https://example.com'):
+        with self.options({'system.url-prefix': 'https://example.com'}):
             self.assertEquals(key.get_dsn(), 'https://public:secret@example.com/1')
 
     def test_get_dsn_with_port(self):
         key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
-        with self.settings(SENTRY_URL_PREFIX='http://example.com:81'):
+        with self.options({'system.url-prefix': 'http://example.com:81'}):
             self.assertEquals(key.get_dsn(), 'http://public:secret@example.com:81/1')
 
     def test_get_dsn_with_public_endpoint_setting(self):
@@ -59,7 +59,7 @@ class LostPasswordTest(TestCase):
         )
 
     def test_send_recover_mail(self):
-        with self.settings(SENTRY_URL_PREFIX='http://testserver'), self.tasks():
+        with self.options({'system.url-prefix': 'http://testserver'}), self.tasks():
             self.password_hash.send_recover_mail()
 
         assert len(mail.outbox) == 1
@@ -127,15 +127,16 @@ class EventNodeStoreTest(TestCase):
         assert event.data.id == node_id
 
     def test_screams_bloody_murder_when_ref_fails(self):
-        group1 = self.create_group()
+        project1 = self.create_project()
+        project2 = self.create_project()
+        group1 = self.create_group(project1)
         invalid_event = self.create_event(group=group1)
-        group2 = self.create_group()
+        group2 = self.create_group(project2)
         event = self.create_event(group=group2)
         event.data.bind_ref(invalid_event)
         event.save()
 
-        assert event.data.get_ref(event) == event.group.id
-        assert event.data.get_ref(invalid_event) == invalid_event.group.id
+        assert event.data.get_ref(event) != event.data.get_ref(invalid_event)
 
         with pytest.raises(NodeIntegrityFailure):
             Event.objects.bind_nodes([event], 'data')
@@ -147,8 +148,8 @@ class EventNodeStoreTest(TestCase):
 
         Event.objects.bind_nodes([event], 'data')
 
-        assert event.data.ref == event.group.id
+        assert event.data.ref == event.project.id
 
     def test_basic_ref_binding(self):
         event = self.create_event()
-        assert event.data.get_ref(event) == event.group.id
+        assert event.data.get_ref(event) == event.project.id

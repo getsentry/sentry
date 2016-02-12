@@ -67,12 +67,14 @@ class Command(RunserverCommand):
         self.verbosity = int(options['verbosity'])
 
         if options['use_watcher']:
-            watcher_list = self.run_watchers(**options)
-            server = self.run_server(**options)
+            watcher_list = []
+            server = None
             try:
+                watcher_list = self.run_watchers(**options)
+                server = self.run_server(**options)
                 server.wait()
             finally:
-                if server.poll() is None:
+                if server and server.poll() is None:
                     server.kill()
                 for watcher in watcher_list:
                     if watcher.poll() is None:

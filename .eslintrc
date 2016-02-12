@@ -17,7 +17,8 @@
     "Raven": true
   },
   "plugins": [
-    "react"
+    "react",
+    "getsentry"
   ],
   "rules": {
     /**
@@ -28,7 +29,7 @@
     /**
      * ES6
      */
-    "no-var": 0,                     // http://eslint.org/docs/rules/no-var
+    "no-var": 2,                     // http://eslint.org/docs/rules/no-var
     "prefer-const": 0,               // http://eslint.org/docs/rules/prefer-const
 
     /**
@@ -110,6 +111,9 @@
     "no-with": 2,                    // http://eslint.org/docs/rules/no-with
     "quotes": [2, "single"],         // http://eslint.org/docs/rules/quotes.html
     "radix": 2,                      // http://eslint.org/docs/rules/radix
+    "computed-property-spacing": [2, "never"], // http://eslint.org/docs/rules/space-in-brackets.html
+    "array-bracket-spacing": [2, "never"], // http://eslint.org/docs/rules/space-in-brackets.html
+    "object-curly-spacing": [2, "never"], // http://eslint.org/docs/rules/space-in-brackets.html
     "space-infix-ops": 2,            // http://eslint.org/docs/rules/space-infix-ops.html
     "vars-on-top": 0,                // http://eslint.org/docs/rules/vars-on-top
     "wrap-iife": [2, "any"],         // http://eslint.org/docs/rules/wrap-iife
@@ -120,6 +124,7 @@
      */
     "react/display-name": 0,         // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/display-name.md
     "react/no-multi-comp": [1, {"ignoreStateless": true}], // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-multi-comp.md
+    "react/jsx-key": 2,              // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-key.md
     "react/jsx-no-undef": 2,         // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-no-undef.md
     "react/jsx-no-duplicate-props": 2, // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-no-duplicate-props.md
     "react/jsx-uses-react": 2,       // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-uses-react.md
@@ -131,5 +136,11 @@
     "react/self-closing-comp": 2,    // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/self-closing-comp.md
     "react/sort-comp": 2,            // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/sort-comp.md
     "react/wrap-multilines": 2,      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/wrap-multilines.md
+
+    /**
+     * Custom
+     */
+    "getsentry/jsx-needs-il8n": 1,   // highlights literals in JSX components w/o translation tags
   }
+
 }

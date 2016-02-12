@@ -2,7 +2,7 @@ import $ from 'jquery';
 import GroupActions from './actions/groupActions';
 import TeamActions from './actions/teamActions';
 
-class Request {
+export class Request {
   constructor(xhr) {
     this.xhr = xhr;
     this.alive = true;
@@ -14,7 +14,19 @@ class Request {
   }
 }
 
-class Client {
+/**
+ * Converts input parameters to API-compatible query arguments
+ * @param params
+ */
+export function paramsToQueryArgs(params) {
+  return params.itemIds
+      ? {id: params.itemIds}    // items matching array of itemids
+      : params.query
+        ? {query: params.query} // items matching search query
+        : undefined;            // all items
+}
+
+export class Client {
   constructor(options) {
     if (typeof options === 'undefined') {
       options = {};
@@ -48,6 +60,12 @@ class Client {
         return func.apply(req, args);
       }
     };
+  }
+
+  clear() {
+    for (let id in this.activeRequests) {
+      this.activeRequests[id].cancel();
+    }
   }
 
   request(path, options = {}) {
@@ -112,8 +130,8 @@ class Client {
   }
 
   bulkDelete(params, options) {
-    let path = '/projects/' + params.orgId + '/' + params.projectId + '/groups/';
-    let query = (params.itemIds ? {id: params.itemIds} : undefined);
+    let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
+    let query = paramsToQueryArgs(params);
     let id = this.uniqueId();
 
     GroupActions.delete(id, params.itemIds);
@@ -131,8 +149,8 @@ class Client {
   }
 
   bulkUpdate(params, options) {
-    let path = '/projects/' + params.orgId + '/' + params.projectId + '/groups/';
-    let query = (params.itemIds ? {id: params.itemIds} : undefined);
+    let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
+    let query = paramsToQueryArgs(params);
     let id = this.uniqueId();
 
     GroupActions.update(id, params.itemIds, params.data);
@@ -151,8 +169,8 @@ class Client {
   }
 
   merge(params, options) {
-    let path = '/projects/' + params.orgId + '/' + params.projectId + '/groups/';
-    let query = (params.itemIds ? {id: params.itemIds} : undefined);
+    let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
+    let query = paramsToQueryArgs(params);
     let id = this.uniqueId();
 
     GroupActions.merge(id, params.itemIds);
@@ -171,14 +189,17 @@ class Client {
   }
 
   assignTo(params, options) {
-    let path = '/groups/' + params.id + '/';
+    let path = '/issues/' + params.id + '/';
     let id = this.uniqueId();
 
-    GroupActions.assignTo(id, params.id, {email: params.email});
+    GroupActions.assignTo(id, params.id, {email: params.member && params.member.email || ''});
 
     return this._wrapRequest(path, {
       method: 'PUT',
-      data: {assignedTo: params.email},
+      // Sending an empty value to assignedTo is the same as "clear",
+      // so if no member exists, that implies that we want to clear the
+      // current assignee.
+      data: {assignedTo: params.member && params.member.id || ''},
       success: (response) => {
         GroupActions.assignToSuccess(id, params.id, response);
       },
@@ -223,4 +244,3 @@ class Client {
   }
 }
 
-export default new Client();

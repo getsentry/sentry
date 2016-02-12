@@ -6,6 +6,7 @@ import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {percent} from '../utils';
+import {t} from '../locale';
 
 const GroupTags = React.createClass({
   mixins: [
@@ -33,7 +34,7 @@ const GroupTags = React.createClass({
 
     // TODO(dcramer): each tag should be a separate query as the tags endpoint
     // is not performant
-    this.apiRequest('/groups/' + this.getGroup().id + '/tags/', {
+    this.api.request('/issues/' + this.getGroup().id + '/tags/', {
       success: (data) => {
         if (!this.isMounted()) {
           return;
@@ -54,6 +55,10 @@ const GroupTags = React.createClass({
         });
       }
     });
+  },
+
+  getTagsDocsUrl() {
+    return 'https://docs.getsentry.com/hosted/learn/context/';
   },
 
   render() {
@@ -92,7 +97,7 @@ const GroupTags = React.createClass({
             <div className="box">
               <div className="box-header">
                 <span className="pull-right">
-                  <Link className="btn btn-default btn-sm" to={`/${orgId}/${projectId}/group/${groupId}/tags/${tag.key}/`}>More Details</Link>
+                  <Link className="btn btn-default btn-sm" to={`/${orgId}/${projectId}/issues/${groupId}/tags/${tag.key}/`}>{t('More Details')}</Link>
                 </span>
                 <h5>{tag.name} (<Count value={tag.uniqueValues} />)</h5>
               </div>
@@ -110,6 +115,13 @@ const GroupTags = React.createClass({
     return (
       <div className="row">
         {children}
+
+        <div className="col-md-12">
+          <div className="alert alert-block alert-info">
+            Tags are automatically indexed for searching and breakdown charts.
+            Learn how to <a href={this.getTagsDocsUrl()}>add custom tags to issues</a>.
+          </div>
+        </div>
       </div>
     );
   }

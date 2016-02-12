@@ -7,14 +7,14 @@ from rest_framework.response import Response
 
 from sentry.app import tsdb
 from sentry.api.base import DocSection
-from sentry.api.bases.group import GroupEndpoint
+from sentry.api.bases import GroupEndpoint
 from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
 from sentry.db.models.query import create_or_update
 from sentry.constants import STATUS_CHOICES
 from sentry.models import (
-    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus,
-    GroupTagKey, GroupTagValue, Release, UserReport
+    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupSnooze,
+    GroupStatus, GroupTagKey, GroupTagValue, Release, UserReport
 )
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
@@ -26,7 +26,7 @@ def retrieve_aggregate_scenario(runner):
     group = Group.objects.filter(project=runner.default_project).first()
     runner.request(
         method='GET',
-        path='/groups/%s/' % group.id,
+        path='/issues/%s/' % group.id,
     )
 
 
@@ -35,7 +35,7 @@ def update_aggregate_scenario(runner):
     group = Group.objects.filter(project=runner.default_project).first()
     runner.request(
         method='PUT',
-        path='/groups/%s/' % group.id,
+        path='/issues/%s/' % group.id,
         data={'status': 'unresolved'}
     )
 
@@ -46,7 +46,7 @@ def delete_aggregate_scenario(runner):
         group = Group.objects.filter(project=project).first()
         runner.request(
             method='DELETE',
-            path='/groups/%s/' % group.id,
+            path='/issues/%s/' % group.id,
         )
 
 
@@ -57,6 +57,7 @@ class GroupSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
     hasSeen = serializers.BooleanField()
     assignedTo = UserField()
+    snoozeDuration = serializers.IntegerField()
 
 
 class GroupDetailsEndpoint(GroupEndpoint):
@@ -70,7 +71,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         ).order_by('-datetime').select_related('user')
         # we select excess so we can filter dupes
         for item in activity_qs[:num * 2]:
-            sig = (item.event_id, item.type, item.ident, item.user_id)
+            sig = (item.type, item.ident, item.user_id)
             # TODO: we could just generate a signature (hash(text)) for notes
             # so there's no special casing
             if item.type == Activity.NOTE:
@@ -125,15 +126,14 @@ class GroupDetailsEndpoint(GroupEndpoint):
     @attach_scenarios([retrieve_aggregate_scenario])
     def get(self, request, group):
         """
-        Retrieve an Aggregate
-        `````````````````````
+        Retrieve an Issue
+        `````````````````
 
-        Return details on an individual aggregate.  Aggregates are also
-        sometimes referred to as groups.  This returns the basic stats for
-        the group (the bar graph), some overall numbers (number of comments,
-        user reports) as well as the summarized event data.
+        Return details on an individual issue. This returns the basic stats for
+        the issue (title, last seen, first seen), some overall numbers (number
+        of comments, user reports) as well as the summarized event data.
 
-        :pparam string group_id: the ID of the group to retrieve.
+        :pparam string issue_id: the ID of the issue to retrieve.
         :auth: required
         """
         # TODO(dcramer): handle unauthenticated/public response
@@ -215,18 +215,18 @@ class GroupDetailsEndpoint(GroupEndpoint):
     @attach_scenarios([update_aggregate_scenario])
     def put(self, request, group):
         """
-        Update an Aggregate
-        ```````````````````
+        Update an Issue
+        ```````````````
 
-        Updates an individual aggregate's attributes.  Only the attributes
+        Updates an individual issues's attributes.  Only the attributes
         submitted are modified.
 
-        :pparam string group_id: the ID of the group to retrieve.
+        :pparam string issue_id: the ID of the group to retrieve.
         :param string status: the new status for the groups.  Valid values
                               are ``"resolved"``, ``"unresolved"`` and
                               ``"muted"``.
-        :param int assignedTo: the user ID of the user that should be
-                               assigned to this group.
+        :param string assignedTo: the username of the user that should be
+                               assigned to this issue.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the
@@ -271,8 +271,27 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     user=acting_user,
                 )
         elif result.get('status'):
-            group.status = STATUS_CHOICES[result['status']]
-            group.save()
+            new_status = STATUS_CHOICES[result['status']]
+
+            if new_status == GroupStatus.MUTED:
+                if result.get('snoozeDuration'):
+                    snooze_until = timezone.now() + timedelta(
+                        minutes=int(result['snoozeDuration']),
+                    )
+                    GroupSnooze.objects.create_or_update(
+                        group=group,
+                        values={
+                            'until': snooze_until,
+                        }
+                    )
+                    result['snoozeUntil'] = snooze_until
+                else:
+                    GroupSnooze.objects.filter(
+                        group=group,
+                    ).delete()
+                    result['snoozeUntil'] = None
+
+            group.update(status=new_status)
 
         if result.get('hasSeen') and group.project.member_set.filter(user=request.user).exists():
             instance, created = create_or_update(
@@ -314,12 +333,12 @@ class GroupDetailsEndpoint(GroupEndpoint):
     @attach_scenarios([delete_aggregate_scenario])
     def delete(self, request, group):
         """
-        Remove an Aggregate
-        ```````````````````
+        Remove an Issue
+        ```````````````
 
-        Removes an individual aggregate.
+        Removes an individual issue.
 
-        :pparam string group_id: the ID of the group to delete.
+        :pparam string issue_id: the ID of the issue to delete.
         :auth: required
         """
         from sentry.tasks.deletion import delete_group
@@ -333,6 +352,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
             ]
         ).update(status=GroupStatus.PENDING_DELETION)
         if updated:
-            delete_group.delay(object_id=group.id)
+            delete_group.delay(object_id=group.id, countdown=3600)
 
         return Response(status=202)

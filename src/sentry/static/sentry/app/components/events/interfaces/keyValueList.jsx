@@ -17,6 +17,8 @@ const KeyValueList = React.createClass({
   },
 
   render() {
+    // TODO(dcramer): use non-string keys as reserved words ("unauthorized")
+    // break rendering
     let data = _.sortBy(this.props.data, (key, value) => key);
     const props = (this.props.onClick) ? {onClick: this.props.onClick} : {};
     return (

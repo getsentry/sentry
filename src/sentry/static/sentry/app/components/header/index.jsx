@@ -4,6 +4,7 @@ import OrganizationState from '../../mixins/organizationState';
 import {Link} from 'react-router';
 
 import Broadcasts from './broadcasts';
+import StatusPage from './statuspage';
 import UserNav from './userNav';
 import OrganizationSelector from './organizationSelector';
 
@@ -32,6 +33,7 @@ const Header = React.createClass({
             <a href="/" className="logo">{logo}</a>
           }
           <OrganizationSelector organization={this.getOrganization()} className="pull-right" />
+          <StatusPage className="pull-right" />
         </div>
       </header>
     );

@@ -12,11 +12,12 @@ from subprocess import Popen, PIPE
 from contextlib import contextmanager
 
 HERE = os.path.abspath(os.path.dirname(__file__))
-SENTRY_CONFIG = os.path.join(HERE, 'sentry.conf.py')
+SENTRY_CONFIG = os.environ['SENTRY_CONF'] = os.path.join(HERE, 'sentry.conf.py')
+os.environ['SENTRY_SKIP_BACKEND_VALIDATION'] = '1'
 
 # No sentry or django imports before that point
-from sentry.utils import runner
-runner.configure(config_path=SENTRY_CONFIG, skip_backend_validation=True)
+from sentry.runner import configure
+configure()
 from django.conf import settings
 
 # Fair game from here
@@ -27,7 +28,7 @@ from sentry.utils.apidocs import Runner, MockUtils, iter_scenarios, \
 
 
 OUTPUT_PATH = os.path.join(HERE, 'cache')
-HOST = urlparse.urlparse(settings.SENTRY_URL_PREFIX).netloc
+HOST = urlparse.urlparse(settings.SENTRY_OPTIONS['system.url-prefix']).netloc
 
 
 # We don't care about you, go away
@@ -68,10 +69,8 @@ def launch_redis():
 
 def spawn_sentry():
     report('sentry', 'Launching sentry server')
-    cl = Popen(['sentry', '--config=' + SENTRY_CONFIG, 'runserver',
-                '-v', '0', '--noreload', '--nothreading',
-                '--no-watchers', '--traceback',
-                '127.0.0.1:%s' % settings.SENTRY_APIDOCS_WEB_PORT])
+    cl = Popen(['sentry', '--config=' + SENTRY_CONFIG, 'start',
+                '-w', '1', '--bind', '127.0.0.1:%s' % settings.SENTRY_APIDOCS_WEB_PORT])
     return cl
 
 

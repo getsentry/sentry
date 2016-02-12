@@ -15,8 +15,8 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import (
-    Model, NodeField, BoundedIntegerField, BoundedPositiveIntegerField,
-    BaseManager, FlexibleForeignKey, sane_repr
+    BaseManager, BoundedBigIntegerField, BoundedIntegerField,
+    Model, NodeField, sane_repr
 )
 from sentry.interfaces.base import get_interface
 from sentry.utils.cache import memoize
@@ -30,15 +30,19 @@ class Event(Model):
     """
     __core__ = False
 
-    group = FlexibleForeignKey('sentry.Group', blank=True, null=True, related_name="event_set")
+    group_id = BoundedBigIntegerField(blank=True, null=True)
     event_id = models.CharField(max_length=32, null=True, db_column="message_id")
-    project = FlexibleForeignKey('sentry.Project', null=True)
+    project_id = BoundedBigIntegerField(blank=True, null=True)
     message = models.TextField()
-    num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
     time_spent = BoundedIntegerField(null=True)
-    data = NodeField(blank=True, null=True, ref_func=lambda x: x.group_id or x.group.id)
+    data = NodeField(
+        blank=True,
+        null=True,
+        ref_func=lambda x: x.project_id or x.project.id,
+        ref_version=2,
+    )
 
     objects = BaseManager()
 
@@ -47,10 +51,36 @@ class Event(Model):
         db_table = 'sentry_message'
         verbose_name = _('message')
         verbose_name_plural = _('messages')
-        unique_together = (('project', 'event_id'),)
-        index_together = (('group', 'datetime'),)
+        unique_together = (('project_id', 'event_id'),)
+        index_together = (('group_id', 'datetime'),)
 
     __repr__ = sane_repr('project_id', 'group_id')
+
+    # Implement a ForeignKey-like accessor for backwards compat
+    def _set_group(self, group):
+        self.group_id = group.id
+        self._group_cache = group
+
+    def _get_group(self):
+        from sentry.models import Group
+        if not hasattr(self, '_group_cache'):
+            self._group_cache = Group.objects.get(id=self.group_id)
+        return self._group_cache
+
+    group = property(_get_group, _set_group)
+
+    # Implement a ForeignKey-like accessor for backwards compat
+    def _set_project(self, project):
+        self.project_id = project.id
+        self._project_cache = project
+
+    def _get_project(self):
+        from sentry.models import Project
+        if not hasattr(self, '_project_cache'):
+            self._project_cache = Project.objects.get(id=self.project_id)
+        return self._project_cache
+
+    project = property(_get_project, _set_project)
 
     def error(self):
         message = strip(self.message)

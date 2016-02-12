@@ -5,10 +5,17 @@ import jQuery from 'jquery';
 import ConfigStore from '../../stores/configStore';
 import DropdownLink from '../dropdownLink';
 import MenuItem from '../menuItem';
+import {t} from '../../locale';
 
 const ProjectSelector = React.createClass({
   contextTypes: {
     location: React.PropTypes.object
+  },
+
+  getDefaultProps() {
+    return {
+      projectId: null,
+    };
   },
 
   getInitialState() {
@@ -21,6 +28,12 @@ const ProjectSelector = React.createClass({
     // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
     let node = jQuery(ReactDOM.findDOMNode(this.refs.container));
     node.hide().show(0);
+  },
+
+  componentWillUnmount() {
+    if (this.filterBlurTimeout) {
+      clearTimeout(this.filterBlurTimeout);
+    }
   },
 
   onFilterChange(evt) {
@@ -41,11 +54,14 @@ const ProjectSelector = React.createClass({
     // project link; in which case, will close dropdown before
     // link click is processed. Why 200ms? Decently short time
     // period that seemed to work in all browsers.
-    setTimeout(() => this.close(), 200);
+    this.filterBlurTimeout = setTimeout(() => {
+      this.filterBlurTimeout = null;
+      this.close();
+    }, 200);
   },
 
   close() {
-    this.setState({ filter: '' });
+    this.setState({filter: ''});
     // dropdownLink might not exist because we try to close within
     // onFilterBlur above after a timeout. My hunch is that sometimes
     // this DOM element is removed within the 200ms, so we error out.
@@ -84,7 +100,7 @@ const ProjectSelector = React.createClass({
       // property. For example - when project selector is loaded on
       // Django-powered Settings pages.
 
-      [this.context.location ? 'to' : 'href']: this.getRawLink(project)
+      ...this.getProjectUrlProps(project)
     };
 
     return <MenuItem {...menuItemProps}>{this.highlight(label, highlightText)}</MenuItem>;
@@ -98,10 +114,20 @@ const ProjectSelector = React.createClass({
     return label;
   },
 
-  getRawLink(project) {
+  /**
+   * Returns an object with the target project url. If
+   * the router is present, passed as the 'to' property.
+   * If not, passed as an absolute URL via the 'href' property.
+   */
+  getProjectUrlProps(project) {
     let org = this.props.organization;
-    let urlPrefix = ConfigStore.get('urlPrefix');
-    return urlPrefix + '/' + org.slug + '/' + project.slug + '/';
+    let path = `/${org.slug}/${project.slug}/`;
+
+    if (this.context.location) {
+      return {to: path};
+    } else {
+      return {href: ConfigStore.get('urlPrefix') + path};
+    }
   },
 
   getLinkNode(team, project) {
@@ -109,7 +135,7 @@ const ProjectSelector = React.createClass({
     let label = this.getProjectLabel(team, project);
 
     if (!this.context.location) {
-      return <a href={this.getRawLink(project)}>{label}</a>;
+      return <a {...this.getProjectUrlProps(project)}>{label}</a>;
     }
 
     let orgId = org.slug;
@@ -157,14 +183,18 @@ const ProjectSelector = React.createClass({
 
     return (
       <div className="project-select" ref="container">
-        {this.getLinkNode(activeTeam, activeProject)}
+        {activeProject ?
+          this.getLinkNode(activeTeam, activeProject)
+        :
+          t('Select a project')
+        }
         <DropdownLink ref="dropdownLink" title="" topLevelClasses="project-dropdown"
             onOpen={this.onOpen} onClose={this.onClose}>
           <li className="project-filter" key="_filter">
             <input
               value={this.state.filter}
               type="text"
-              placeholder="Filter projects"
+              placeholder={t('Filter projects')}
               onChange={this.onFilterChange}
               onKeyUp={this.onKeyUp}
               onBlur={this.onFilterBlur}

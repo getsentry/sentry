@@ -94,7 +94,7 @@ class RangeField(IntegerField):
         attrs = super(RangeField, self).widget_attrs(widget)
         attrs.setdefault('min', self.min_value)
         attrs.setdefault('max', self.max_value)
-        attrs.setdefault('step', self.step_value)
+        attrs.setdefault('step', self.step_value or 1)
         return attrs
 
 

@@ -29,10 +29,10 @@ class Error500View(View):
             'dsn': projectkey.dsn_public,
             'eventId': request.sentry['id'],
         }
-        if request.user.is_authenticated():
+        if hasattr(request, 'user') and request.user.is_authenticated():
             try:
                 result.update({
-                    'userName': request.user.get_full_name(),
+                    'userName': request.user.name,
                     'userEmail': request.user.email,
                 })
             except Exception:

@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
-from django.contrib.auth import login, logout
+from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.response import Response
 
-from sentry.api import client
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
+from sentry.api.serializers import serialize
+from sentry.utils import auth
 
 
 class AuthIndexEndpoint(Endpoint):
@@ -25,6 +26,14 @@ class AuthIndexEndpoint(Endpoint):
     # XXX: it's not quite clear if this should be documented or not at
     # this time.
     # doc_section = DocSection.ACCOUNTS
+
+    def get(self, request):
+        if not request.user.is_authenticated():
+            return Response(status=400)
+
+        data = serialize(request.user, request.user)
+        data['isSuperuser'] = request.is_superuser()
+        return Response(data)
 
     def post(self, request):
         """
@@ -46,9 +55,9 @@ class AuthIndexEndpoint(Endpoint):
             return Response(status=400)
 
         # Must use the real request object that Django knows about
-        login(request._request, request.user)
+        auth.login(request._request, request.user)
 
-        return client.get('/users/me/', request.user, request.auth)
+        return self.get(request)
 
     def delete(self, request, *args, **kwargs):
         """

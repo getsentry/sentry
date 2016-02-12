@@ -1,9 +1,80 @@
+Version 8.1.2
+-------------
+
+- [CRITICAL] Fix issue running ``sentry start`` with supervisord.
+- Fix compatibility with older versions of djangorestframework.
+- Updated member invitation emails.
+
+Version 8.1.1
+-------------
+
+- Fix broken static files compiled from 8.1.0. :(
+
+Version 8.1.0
+-------------
+
+- Default web server is now uWSGI (https://uwsgi-docs.readthedocs.org/en/latest/) to replace gunicorn.
+- New "Saved Searches". See: http://blog.getsentry.com/2016/01/19/introducing-saved-searches.html
+
+Schema Changes
+~~~~~~~~~~~~~~
+- Remove FK constraints from ``Event.group_id``, ``Event.project_id``, ``EventMapping.group_id``, and ``EventMapping.project_id``.
+- Added ``SavedSearch.is_default`` column.
+- Added new ``SavedSearchUserDefault`` model.
+
+Version 8.0.6
+-------------
+
+- Fixed assignee dropdown not being clickable from touch devices.
+- Don't ignore ``SENTRY_WEB_OPTIONS['workers']`` value if set.
+- Fix Global Throughput dashboard in admin.
+- Fix display for Release names when they include special characters.
+- Added new ``sentry config generate-secret-key`` to help with regenerating a new SECRET_KEY value if needed.
+
+Version 8.0.5
+-------------
+
+- [CRITICAL] Fixed another issue where performing a bulk merge could merge more than intended. We're pretty confident we got this all squared away now. :(
+- Fixed a bug where Issue assignment emails weren't being delivered.
+
+Version 8.0.4
+-------------
+
+- Fixed an issue where notification digests weren't sending on some systems.
+
+Version 8.0.3
+-------------
+
+- [CRITICAL] Fixed an issue where performing a bulk merge would merge more than intended.
+- Fixed saving the "Use Default Scrubbers" project setting
+- Fix syncing documentation when behind an http proxy
+
+Version 8.0.2
+-------------
+
+- Fix ``IntegrityError`` after merging groups.
+- Be less noisy about ``Cannot digest timeline, timeline is not in the ready state.``
+- Fix incorrect ``Install`` links.
+- Fixed being able to select a Chinese locale.
+- Multiple bulk deletion improvements and bug fixes.
+- Clarify ``Forcing documentation sync`` error messaging.
+
+Version 8.0.1
+-------------
+
+- Ignore ``blob:`` urls in hashing algorithms.
+- Bump ``extra`` data size to 16k (previously 4k)
+- Fixed some odd behavior where superusers appeared as members of a team when they weren't.
+- By default, new superusers created through ``sentry createuser`` will be added as a member to a team, if there is only one team available.
+
 Version 8.0.0
 -------------
 
 Version 8 of Sentry introduces a brand new frontend. Most of the application has been overhauled
 and rewritten on top of React and our web API. Additionally many new features have been exposed
-related to user assigned and release tracking.
+related to workflows (user assignment, snooze, resolution) and release tracking. This changelog
+does not attempt to capture the six+ months of incremental features and improvements in this
+release of Sentry.
 
 A Note on MySQL
 ~~~~~~~~~~~~~~~
@@ -14,6 +85,54 @@ support MySQL. It is possible to bring the schema up to date on a MySQL machine,
 automated migrations will likely not work and require DBA assistance.
 
 Postgres is now the only supported production database.
+
+A Note on Workers
+~~~~~~~~~~~~~~~~~
+
+In the past it was supported to run Sentry's queue workers with the `-B` option to also spawn
+a celery beat process within the worker.  This is no longer supported as it causes problems in
+some queue setups (in particular if redis is being used).  Instead you should now spawn two
+independent processes.  This is outlined in the installation documentation.
+
+Changes to Quotas
+~~~~~~~~~~~~~~~~~
+
+Team and System based quotas are now longer available. A new organization-relative project quota replaces them
+and can be configured via Rate Limits on the organization dashboard.
+
+Notification Digests
+~~~~~~~~~~~~~~~~~~~~
+
+Email notifications will now automatically rollup if the rate of notifications exceeds a threshold. These can be
+configured on a per project basis in Project Settings.
+
+Configuration
+~~~~~~~~~~~~~
+
+An Install Wizard has been added to aid in configuring necessary first-run options. Notably your Admin Email,
+and URL Prefix. The Installation Wizard will also help any future updates and aid when new options are introduced.
+
+A new configuration backend is now utilized for several options. These options can now be
+configured via the web UI.
+
+- A new configuration file, `config.yml` has been introduced. This new file is generated during `sentry init`
+  the first time, and expected to be pointed at a directory. `config.yml` is the home for new configuration options that will be moved from the existing python config file.
+
+- ``SENTRY_URL_PREFIX`` has been deprecated, and moved to `system.url-prefix` inside of `config.yml` or it
+  can be configured at runtime.
+
+- ``INTERNAL_IPS``, if configured, will now restrict superuser access to only users with both ``is_superuser``
+  and a matching IP.
+
+CLI
+~~~
+
+The `sentry` CLI tooling has been rewritten to be faster and less confusing.
+
+Static files
+~~~~~~~~~~~~
+
+Static files are now served with a far-futures Cache-Control header, and are versioned by default. If you were serving `/_static/` explicitly from your server config, you may need to update your rules or adjust the `STATIC_URL` setting accordingly.
 
 General
 ~~~~~~~
@@ -41,6 +160,7 @@ General
 - Membership permissions have been overhauled and have been flattened into a single tiered
   role. Additionally owners will no longer be automatically added to new teams.
 - ``NotificationPlugin`` now requires ``is_configured`` to be declared.
+- ``sentry.search`` should no longer be extended (``index`` and ``upgrade`` have been removed)
 
 Client API
 ~~~~~~~~~~
@@ -50,6 +170,7 @@ Client API
 - The ``ip_address`` value will always be stored on the user interface when possible.
 - The user interface no longer accepts data missing one of the required identifiers.
 - The ``fingerprint`` value is now stored in ``Event.data``.
+- The ``environment`` attribute is now soft-accepted and tagged.
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -63,6 +184,20 @@ Schema Changes
 - Added ``Release.owner`` column.
 - Added ``Organization.default_role`` column.
 - Added ``OrganizationMember.role`` column.
+- Added ``Broadcast.upstream_id`` column.
+- Removed ``Broadcast.badge`` column.
+- Added ``Broadcast.title`` column.
+- Migrated blob data in ``File`` to ``FileBlob``.
+- Removed ``File.storage`` column.
+- Removed ``File.storage_options`` columns.
+- Added ``OrganizationOption`` table.
+- Added ``GroupSnooze`` table.
+- Added ``GroupResolution`` table.
+- Added ``GroupBookmark.date_added`` column.
+- Removed ``User.last_name`` column.
+- (App-only) Renamed ``User.first_name`` to ``User.name``.
+- Removed ``Activity.event`` column.
+- Removed ``Event.num_comments`` column.
 
 Version 7.7.1
 -------------

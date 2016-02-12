@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import TestUtils from 'react-addons-test-utils';
-import api from 'app/api';
+import {Client} from 'app/api';
 import SearchBar from 'app/views/stream/searchBar';
 import SearchDropdown from 'app/views/stream/searchDropdown';
 import StreamTagStore from 'app/stores/streamTagStore';
@@ -18,7 +18,7 @@ describe('SearchBar', function() {
 
     this.sandbox = sinon.sandbox.create();
 
-    this.sandbox.stub(api, 'request');
+    this.sandbox.stub(Client.prototype, 'request');
 
     stubReactComponents(this.sandbox, [SearchDropdown]);
     this.ContextStubbedSearchBar = stubContext(SearchBar);
@@ -67,7 +67,7 @@ describe('SearchBar', function() {
 
       wrapper.clearSearch();
 
-      expect(wrapper.state.query).to.equal('is:unresolved');
+      expect(wrapper.state.query).to.equal('');
     });
 
     it('calls onSearch()', function(done) {
@@ -83,7 +83,7 @@ describe('SearchBar', function() {
       wrapper.clearSearch();
 
       setTimeout(() => {
-        expect(props.onSearch.calledWith('is:unresolved')).to.be.true;
+        expect(props.onSearch.calledWith('')).to.be.true;
         done();
       });
     });
@@ -144,7 +144,7 @@ describe('SearchBar', function() {
       let stubbedOnSearch = this.sandbox.spy();
       let wrapper = TestUtils.renderIntoDocument(<this.ContextStubbedSearchBar onSearch={stubbedOnSearch} orgId="123" projectId="456"/>).refs.wrapped;
 
-      TestUtils.Simulate.submit(wrapper.refs.searchForm, { preventDefault() {} });
+      TestUtils.Simulate.submit(wrapper.refs.searchForm, {preventDefault() {}});
 
       expect(stubbedOnSearch.called).to.be.true;
     });

@@ -2,11 +2,12 @@ import React from 'react';
 import {Link} from 'react-router';
 import LazyLoad from 'react-lazy-load';
 
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import BarChart from '../../components/barChart';
 import ConfigStore from '../../stores/configStore';
 import PropTypes from '../../proptypes';
 import {sortArray} from '../../utils';
+import {t, tct} from '../../locale';
 
 const ExpandedTeamList = React.createClass({
   propTypes: {
@@ -15,9 +16,13 @@ const ExpandedTeamList = React.createClass({
     projectStats: React.PropTypes.object
   },
 
+  mixins: [
+    ApiMixin
+  ],
+
   leaveTeam(team) {
     // TODO(dcramer): handle loading indicator
-    api.leaveTeam({
+    this.api.leaveTeam({
       orgId: this.props.organization.slug,
       teamId: team.slug
     });
@@ -28,62 +33,61 @@ const ExpandedTeamList = React.createClass({
     return ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
   },
 
+  renderProjectList(team) {
+    return (
+      <tbody>
+        {sortArray(team.projects, function(o) {
+          return o.name;
+        }).map(this.renderProject)}
+      </tbody>
+    );
+  },
+
+  renderNoProjects(team) {
+    return (
+      <tbody>
+        <tr>
+          <td>
+            <p className="project-list-empty">
+              {tct('There are no projects in this team. Get started by [link:creating your first project].', {
+                link: <a href={this.urlPrefix() + '/projects/new/?team=' + team.slug} />
+              })}
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    );
+  },
+
   renderTeamNode(team, urlPrefix) {
     // TODO: make this cleaner
-    if (team.projects.length) {
-      return (
-        <div className="box" key={team.slug}>
-          <div className="box-header">
-            <div className="pull-right actions hidden-xs">
-              <a className="leave-team" onClick={this.leaveTeam.bind(this, team)}>
-                Leave Team
+    let access = this.props.access;
+    return (
+      <div className="box" key={team.slug}>
+        <div className="box-header">
+          <div className="pull-right actions hidden-xs">
+            <a className="leave-team" onClick={this.leaveTeam.bind(this, team)}>
+              {t('Leave Team')}
+            </a>
+            {access.has('team:write') &&
+              <a className="team-settings" href={`${urlPrefix}/teams/${team.slug}/settings/`}>
+                {t('Team Settings')}
               </a>
-              <a className="team-settings" href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
-                Team Settings
-              </a>
-            </div>
-            <h3>{team.name}</h3>
+            }
           </div>
-          <div className="box-content">
-            <table className="table project-list">
-              <tbody>{sortArray(team.projects, function(o) {
-                return o.name;
-              }).map(this.renderProject)}</tbody>
-            </table>
-          </div>
+          <h3>{team.name}</h3>
         </div>
-      );
-    } else {
-      return (
-        <div className="box" key={team.slug}>
-          <div className="box-header">
-            <div className="pull-right actions hidden-xs">
-              <a className="leave-team" onClick={this.leaveTeam.bind(this, team)}>
-                Leave Team
-              </a>
-              <a className="team-settings" href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
-                Team Settings
-              </a>
-            </div>
-            <h3>{team.name}</h3>
-          </div>
-          <div className="box-content">
-            <table className="table project-list">
-              <tbody>
-                <tr>
-                  <td>
-                    <p className="project-list-empty">
-                      {'There are no projects in this team. Get started by '}
-                      <a href={this.urlPrefix() + '/projects/new/?team=' + team.slug}>creating your first project</a>.
-                    </p>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div className="box-content">
+          <table className="table project-list">
+            {team.projects.length ?
+              this.renderProjectList(team)
+            :
+              this.renderNoProjects(team)
+            }
+          </table>
         </div>
-      );
-    }
+      </div>
+    );
   },
 
   renderProject(project) {
@@ -121,19 +125,19 @@ const ExpandedTeamList = React.createClass({
     if (this.props.hasTeams) {
       return (
         <p>
-          {'You are not a member of any teams. '}
-          <a onClick={this.showAllTeams}>Join an existing team</a>
-          {' or '}
-          <a href={this.urlPrefix() + '/teams/new/'}>create a new one</a>
-          {'.'}
+          {tct('You are not a member of any teams. [joinLink:Join an existing team] or [createLink:create a new one].', {
+            joinLink: <a onClick={this.showAllTeams} />,
+            createLink: <a href={this.urlPrefix() + '/teams/new/'} />
+          })}
         </p>
       );
 
     }
     return (
       <p>
-        {'You dont have any teams for this organization yet. Get started by '}
-        <a href={this.urlPrefix() + '/teams/new/'}>creating your first team</a>.
+        {tct('You dont have any teams for this organization yet. Get started by [link:creating your first team].', {
+          link: <a href={this.urlPrefix() + '/teams/new/'} />
+        })}
       </p>
     );
   },

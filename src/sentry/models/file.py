@@ -9,6 +9,7 @@ sentry.models.file
 from __future__ import absolute_import
 
 from django.conf import settings
+from django.core.files.base import ContentFile, File as FileObj
 from django.core.files.storage import get_storage_class
 from django.db import models
 from django.utils import timezone
@@ -24,12 +25,12 @@ from sentry.utils.cache import Lock
 
 ONE_DAY = 60 * 60 * 24
 
+DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
+
 
 class FileBlob(Model):
     __core__ = False
 
-    storage = models.CharField(max_length=128)
-    storage_options = JSONField()
     path = models.TextField(null=True)
     size = BoundedPositiveIntegerField(null=True)
     checksum = models.CharField(max_length=40, unique=True)
@@ -42,13 +43,14 @@ class FileBlob(Model):
     @classmethod
     def from_file(cls, fileobj):
         """
-        Retrieve a FileBlob instance for the given file.
+        Retrieve a list of FileBlobIndex instances for the given file.
 
         If not already present, this will cause it to be stored.
 
-        >>> blob = FileBlob.from_file(fileobj)
+        >>> blobs = FileBlob.from_file(fileobj)
         """
         size = 0
+
         checksum = sha1('')
         for chunk in fileobj:
             size += len(chunk)
@@ -70,8 +72,6 @@ class FileBlob(Model):
             blob = cls(
                 size=size,
                 checksum=checksum,
-                storage=settings.SENTRY_FILESTORE,
-                storage_options=settings.SENTRY_FILESTORE_OPTIONS,
             )
 
             blob.path = cls.generate_unique_path(blob.timestamp)
@@ -80,7 +80,7 @@ class FileBlob(Model):
             storage.save(blob.path, fileobj)
             blob.save()
 
-        metrics.timing('filestore.blob-size', blob.size)
+        metrics.timing('filestore.blob-size', size)
         return blob
 
     @classmethod
@@ -90,13 +90,15 @@ class FileBlob(Model):
         return '/'.join(pieces)
 
     def delete(self, *args, **kwargs):
-        if self.path:
-            self.deletefile(commit=False)
-        super(FileBlob, self).delete(*args, **kwargs)
+        lock_key = 'fileblob:upload:{}'.format(self.checksum)
+        with Lock(lock_key, timeout=600):
+            if self.path:
+                self.deletefile(commit=False)
+            super(FileBlob, self).delete(*args, **kwargs)
 
     def get_storage(self):
-        backend = self.storage
-        options = self.storage_options
+        backend = settings.SENTRY_FILESTORE
+        options = settings.SENTRY_FILESTORE_OPTIONS
 
         storage = get_storage_class(backend)
         return storage(**options)
@@ -133,14 +135,14 @@ class File(Model):
     type = models.CharField(max_length=64)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
     headers = JSONField()
-    blob = FlexibleForeignKey('sentry.FileBlob', null=True)
-
-    # <Legacy fields>
-    storage = models.CharField(max_length=128, null=True)
-    storage_options = JSONField()
-    path = models.TextField(null=True)
+    blobs = models.ManyToManyField('sentry.FileBlob', through='sentry.FileBlobIndex')
     size = BoundedPositiveIntegerField(null=True)
     checksum = models.CharField(max_length=40, null=True)
+
+    # <Legacy fields>
+    # Remove in 8.1
+    blob = FlexibleForeignKey('sentry.FileBlob', null=True, related_name='legacy_blob')
+    path = models.TextField(null=True)
     # </Legacy fields>
 
     class Meta:
@@ -149,42 +151,125 @@ class File(Model):
 
     def delete(self, *args, **kwargs):
         super(File, self).delete(*args, **kwargs)
+        # TODO(dcramer): let's move blob cleanup to the 'cleanup' script as its
+        # more complex now with M2M relations
         if self.blob and not File.objects.filter(blob=self.blob).exists():
             self.blob.delete()
 
-    def ensure_blob(self):
-        if self.blob:
-            return
-
-        lock_key = 'fileblob:convert:{}'.format(self.checksum)
-        with Lock(lock_key, timeout=60):
-            blob, created = FileBlob.objects.get_or_create(
-                checksum=self.checksum,
-                defaults={
-                    'storage': self.storage,
-                    'storage_options': self.storage_options,
-                    'path': self.path,
-                    'size': self.size,
-                    'timestamp': self.timestamp,
-                },
-            )
-
-            # if this blob already existed, lets kill the duplicate
-            # TODO(dcramer): kill data when fully migrated
-            # if self.path != blob.path:
-            #     get_storage_class(self.storage)(
-            #         **self.storage_options
-            #     ).delete(self.path)
-
-            self.update(
-                blob=blob,
-                # TODO(dcramer): kill data when fully migrated
-                # checksum=None,
-                # path=None,
-                # storage=None,
-                # storage_options={},
-            )
-
     def getfile(self, *args, **kwargs):
-        self.ensure_blob()
-        return self.blob.getfile(*args, **kwargs)
+        if self.blob:
+            return self.blob.getfile()
+        return FileObj(ChunkedFileBlobIndexWrapper(FileBlobIndex.objects.filter(
+            file=self,
+        ).select_related('blob').order_by('offset')), 'rb')
+
+    def putfile(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True):
+        """
+        Save a fileobj into a number of chunks.
+
+        Returns a list of `FileBlobIndex` items.
+
+        >>> indexes = file.putfile(fileobj)
+        """
+        results = []
+        offset = 0
+        checksum = sha1('')
+
+        while True:
+            contents = fileobj.read(blob_size)
+            if not contents:
+                break
+            checksum.update(contents)
+
+            blob_fileobj = ContentFile(contents)
+            blob = FileBlob.from_file(blob_fileobj)
+
+            results.append(
+                FileBlobIndex.objects.create(
+                    file=self,
+                    blob=blob,
+                    offset=offset,
+                )
+            )
+            offset += blob.size
+        self.size = offset
+        self.checksum = checksum.hexdigest()
+        metrics.timing('filestore.file-size', offset)
+        if commit:
+            self.save()
+        return results
+
+
+class FileBlobIndex(Model):
+    file = FlexibleForeignKey('sentry.File')
+    blob = FlexibleForeignKey('sentry.FileBlob')
+    offset = BoundedPositiveIntegerField()
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_fileblobindex'
+        unique_together = (('file', 'blob', 'offset'),)
+
+
+class ChunkedFileBlobIndexWrapper(object):
+    def __init__(self, indexes):
+        # eager load from database incase its a queryset
+        self._indexes = list(indexes)
+        self._curfile = None
+        self._curidx = None
+        self.open()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, tb):
+        self.close()
+
+    def _nextidx(self):
+        try:
+            self._curidx = self._idxiter.next()
+            self._curfile = self._curidx.blob.getfile()
+        except StopIteration:
+            self._curidx = None
+            self._curfile = None
+
+    @property
+    def size(self):
+        return sum(i.blob.size for i in self._indexes)
+
+    def open(self):
+        self.closed = False
+        self.seek(0)
+
+    def close(self):
+        if self._curfile:
+            self._curfile.close()
+        self._curfile = None
+        self._curidx = None
+        self.closed = True
+
+    def seek(self, pos):
+        if self.closed:
+            raise IOError('Cannot seek on a closed file')
+        for n, idx in enumerate(self._indexes[::-1]):
+            if idx.offset <= pos:
+                if idx != self._curidx:
+                    self._idxiter = iter(self._indexes[-(n + 1):])
+                    self._nextidx()
+                break
+        else:
+            raise Exception('Cannot seek to pos')
+        self._curfile.seek(pos - self._curidx.offset)
+
+    def read(self, bytes=4096):
+        if self.closed:
+            raise IOError('Cannot read on a closed file')
+        result = ''
+        while bytes and self._curfile is not None:
+            blob_result = self._curfile.read(bytes)
+            if not blob_result:
+                self._nextidx()
+                continue
+            bytes -= len(blob_result)
+            result += blob_result
+        return result

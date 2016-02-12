@@ -16,7 +16,7 @@ class ReplayEventView(ProjectView):
 
     def handle(self, request, organization, project, team, group_id, event_id):
         try:
-            event = Event.objects.get(group=group_id, id=event_id)
+            event = Event.objects.get(group_id=group_id, id=event_id)
         except Event.DoesNotExist:
             return self.redirect(reverse('sentry'))
 

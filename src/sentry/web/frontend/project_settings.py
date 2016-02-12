@@ -23,6 +23,10 @@ BLANK_CHOICE = [("", "")]
 class EditProjectForm(forms.ModelForm):
     name = forms.CharField(label=_('Project Name'), max_length=200,
         widget=forms.TextInput(attrs={'placeholder': _('Production')}))
+    slug = forms.SlugField(
+        label=_('Short name'),
+        help_text=_('A unique ID used to identify this project.'),
+    )
     team = CustomTypedChoiceField(choices=(), coerce=int, required=False)
     origins = OriginsField(label=_('Allowed Domains'), required=False,
         help_text=_('Separate multiple entries with a newline.'))
@@ -33,7 +37,12 @@ class EditProjectForm(forms.ModelForm):
         help_text=_('Treat an event as resolved if it hasn\'t been seen for this amount of time.'))
     scrub_data = forms.BooleanField(
         label=_('Data Scrubber'),
-        help_text=_('Apply server-side data scrubbing to prevent things like passwords and credit cards from being stored.'),
+        help_text=_('Enable server-side data scrubbing.'),
+        required=False
+    )
+    scrub_defaults = forms.BooleanField(
+        label=_('Use Default Scrubbers'),
+        help_text=_('Apply default scrubbers to prevent things like passwords and credit cards from being stored.'),
         required=False
     )
     sensitive_fields = forms.CharField(
@@ -157,6 +166,7 @@ class ProjectSettingsView(ProjectView):
                 'token': security_token,
                 'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
                 'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
+                'scrub_defaults': bool(project.get_option('sentry:scrub_defaults', True)),
                 'sensitive_fields': '\n'.join(project.get_option('sentry:sensitive_fields', None) or []),
                 'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
                 'scrape_javascript': bool(project.get_option('sentry:scrape_javascript', True)),
@@ -169,8 +179,16 @@ class ProjectSettingsView(ProjectView):
 
         if form.is_valid():
             project = form.save()
-            for opt in ('origins', 'resolve_age', 'scrub_data', 'sensitive_fields',
-                        'scrape_javascript', 'scrub_ip_address', 'token', 'blacklisted_ips'):
+            for opt in (
+                    'origins',
+                    'token',
+                    'resolve_age',
+                    'scrub_data',
+                    'scrub_defaults',
+                    'sensitive_fields',
+                    'scrub_ip_addresses',
+                    'scrape_javascript',
+                    'blacklisted_ips'):
                 value = form.cleaned_data.get(opt)
                 if value is None:
                     project.delete_option('sentry:%s' % (opt,))

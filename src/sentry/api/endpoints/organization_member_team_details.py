@@ -10,7 +10,6 @@ from sentry.api.bases.organization import (
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
-from sentry.auth.utils import is_active_superuser
 from sentry.models import (
     AuditLogEntryEvent, OrganizationAccessRequest,
     OrganizationMember, OrganizationMemberTeam, Team
@@ -45,7 +44,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
     def _can_access(self, request, member):
         # TODO(dcramer): ideally org owners/admins could perform these actions
-        if is_active_superuser(request.user):
+        if request.is_superuser():
             return True
 
         if not request.user.is_authenticated():
@@ -173,9 +172,15 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
                 organizationmember=om,
             )
         except OrganizationMemberTeam.DoesNotExist:
-            # if the relationship doesnt exist, they're already a member
-            return Response(serialize(
-                team, request.user, TeamWithProjectsSerializer()), status=200)
+            # we need to create the row in order to handle superusers leaving a
+            # team which they were never a member for (therefor there was never
+            # a matching row)
+            omt = OrganizationMemberTeam(
+                team=team,
+                organizationmember=om,
+                # setting this to true ensures it gets saved below
+                is_active=True,
+            )
 
         if omt.is_active:
             omt.is_active = False

@@ -9,14 +9,19 @@ from django.utils import timezone
 from exam import fixture
 from mock import Mock
 
-from sentry import features
 from sentry.digests.notifications import (
     build_digest,
     event_to_record,
 )
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
-    Event, Group, OrganizationMember, OrganizationMemberTeam, Rule
+    Activity,
+    Event,
+    Group,
+    OrganizationMember,
+    OrganizationMemberTeam,
+    Release,
+    Rule,
 )
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.models import MailPlugin
@@ -42,7 +47,7 @@ class MailPluginTest(TestCase):
 
         notification = Notification(event=event, rule=rule)
 
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             self.plugin.notify(notification)
 
         msg = mail.outbox[0]
@@ -71,7 +76,7 @@ class MailPluginTest(TestCase):
 
         notification = Notification(event=event)
 
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             self.plugin.notify(notification)
 
         stacktrace.get_title.assert_called_once_with()
@@ -98,7 +103,7 @@ class MailPluginTest(TestCase):
 
         notification = Notification(event=event)
 
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             self.plugin.notify(notification)
 
         stacktrace.get_title.assert_called_once_with()
@@ -124,7 +129,7 @@ class MailPluginTest(TestCase):
 
         notification = Notification(event=event)
 
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             self.plugin.notify(notification)
 
         assert _send_mail.call_count is 1
@@ -154,7 +159,7 @@ class MailPluginTest(TestCase):
 
         notification = Notification(event=event)
 
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             self.plugin.notify(notification)
 
         assert _send_mail.call_count is 1
@@ -221,7 +226,7 @@ class MailPluginTest(TestCase):
 
         notification = Notification(event=event)
 
-        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.options({'system.url-prefix': 'http://example.com'}):
             self.plugin.notify(notification)
 
         msg = mail.outbox[0]
@@ -229,12 +234,7 @@ class MailPluginTest(TestCase):
 
     @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
     @mock.patch.object(MessageBuilder, 'send', autospec=True)
-    @mock.patch.object(features, 'has')
-    def test_notify_digest(self, has, send, notify):
-        has.side_effect = lambda label, *a, **k: {
-            'projects:digests:deliver': True,
-        }.get(label, False)
-
+    def test_notify_digest(self, send, notify):
         project = self.event.project
         rule = project.rule_set.all()[0]
         digest = build_digest(
@@ -250,12 +250,7 @@ class MailPluginTest(TestCase):
 
     @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
     @mock.patch.object(MessageBuilder, 'send', autospec=True)
-    @mock.patch.object(features, 'has')
-    def test_notify_digest_single_record(self, has, send, notify):
-        has.side_effect = lambda label, *a, **k: {
-            'projects:digests:deliver': True,
-        }.get(label, False)
-
+    def test_notify_digest_single_record(self, send, notify):
         project = self.event.project
         rule = project.rule_set.all()[0]
         digest = build_digest(
@@ -267,3 +262,75 @@ class MailPluginTest(TestCase):
         self.plugin.notify_digest(project, digest)
         assert send.call_count is 1
         assert notify.call_count is 1
+
+    def test_assignment(self):
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=Activity.ASSIGNED,
+            user=self.create_user('foo@example.com'),
+            data={
+                'assignee': str(self.user.id),
+            },
+        )
+
+        self.plugin.notify_about_activity(activity)
+
+        assert len(mail.outbox) == 1
+
+        msg = mail.outbox[0]
+
+        assert msg.subject == 'Re: [Sentry] [foo Bar] ERROR: Foo bar'
+        assert msg.to == [self.user.email]
+
+    def test_note(self):
+        user_foo = self.create_user('foo@example.com')
+
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=Activity.NOTE,
+            user=user_foo,
+            data={
+                'text': 'sup guise',
+            },
+        )
+
+        self.project.team.organization.member_set.create(user=user_foo)
+
+        self.plugin.notify_about_activity(activity)
+
+        assert len(mail.outbox) == 1
+
+        msg = mail.outbox[0]
+
+        assert msg.subject == 'Re: [Sentry] [foo Bar] ERROR: Foo bar'
+        assert msg.to == [self.user.email]
+
+    def test_release(self):
+        user_foo = self.create_user('foo@example.com')
+
+        release = Release.objects.create(
+            project=self.project,
+            version='a' * 40,
+        )
+
+        activity = Activity.objects.create(
+            project=self.project,
+            type=Activity.RELEASE,
+            user=user_foo,
+            data={
+                'version': release.version,
+            },
+        )
+
+        self.project.team.organization.member_set.create(user=user_foo)
+
+        self.plugin.notify_about_activity(activity)
+
+        assert len(mail.outbox) == 1
+
+        msg = mail.outbox[0]
+
+        assert msg.subject == '[Sentry] Release %s' % (release.version,)
+        assert msg.to == [self.user.email]

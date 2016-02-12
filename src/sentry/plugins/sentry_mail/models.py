@@ -8,7 +8,7 @@ sentry.plugins.sentry_mail.models
 from __future__ import absolute_import
 
 import itertools
-from collections import Counter
+import logging
 
 import sentry
 
@@ -18,7 +18,12 @@ from django.template.loader import render_to_string
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
-from sentry import features
+from sentry.digests.utilities import get_digest_metadata
+from sentry.models import (
+    Activity,
+    Release,
+    UserOption,
+)
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
@@ -27,6 +32,9 @@ from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.http import absolute_uri
 
 NOTSET = object()
+
+
+logger = logging.getLogger(__name__)
 
 
 class MailPlugin(NotificationPlugin):
@@ -44,6 +52,7 @@ class MailPlugin(NotificationPlugin):
                    project=None, group=None, headers=None, context=None):
         send_to = self.get_send_to(project)
         if not send_to:
+            logger.debug('Skipping message rendering, no users to send to.')
             return
 
         subject_prefix = self.get_option('subject_prefix', project) or self.subject_prefix
@@ -63,7 +72,9 @@ class MailPlugin(NotificationPlugin):
         return msg
 
     def _send_mail(self, *args, **kwargs):
-        return self._build_message(*args, **kwargs).send()
+        message = self._build_message(*args, **kwargs)
+        if message is not None:
+            return message.send()
 
     def send_test_mail(self, project=None):
         self._send_mail(
@@ -101,22 +112,14 @@ class MailPlugin(NotificationPlugin):
         The results of this call can be fairly expensive to calculate, so the send_to list gets cached
         for 60 seconds.
         """
-        if project:
-            project_id = project.pk
-        else:
-            project_id = ''
-
         if not (project and project.team):
+            logger.debug('Tried to send notification to invalid project: %r', project)
             return []
 
-        conf_key = self.get_conf_key()
-        cache_key = '%s:send_to:%s' % (conf_key, project_id)
-
+        cache_key = '%s:send_to:%s' % (self.get_conf_key(), project.pk)
         send_to_list = cache.get(cache_key)
         if send_to_list is None:
-            send_to_list = self.get_sendable_users(project)
-
-            send_to_list = filter(bool, send_to_list)
+            send_to_list = filter(bool, self.get_sendable_users(project))
             cache.set(cache_key, send_to_list, 60)  # 1 minute cache
 
         return send_to_list
@@ -125,16 +128,7 @@ class MailPlugin(NotificationPlugin):
         event = notification.event
         group = event.group
         project = group.project
-
-        interface_list = []
-        for interface in event.interfaces.itervalues():
-            body = interface.to_email_html(event)
-            if not body:
-                continue
-            text_body = interface.to_string(event)
-            interface_list.append(
-                (interface.get_title(), mark_safe(body), text_body)
-            )
+        org = group.organization
 
         subject = group.get_email_subject()
 
@@ -146,19 +140,38 @@ class MailPlugin(NotificationPlugin):
         rules = []
         for rule in notification.rules:
             rule_link = reverse('sentry-edit-project-rule', args=[
-                group.organization.slug, project.slug, rule.id
+                org.slug, project.slug, rule.id
             ])
             rules.append((rule.label, rule_link))
+
+        enhanced_privacy = org.flags.enhanced_privacy
 
         context = {
             'project_label': project.get_full_name(),
             'group': group,
             'event': event,
-            'tags': event.get_tags(),
             'link': link,
-            'interfaces': interface_list,
             'rules': rules,
+            'enhanced_privacy': enhanced_privacy,
         }
+
+        # if the organization has enabled enhanced privacy controls we dont send
+        # data which may show PII or source code
+        if not enhanced_privacy:
+            interface_list = []
+            for interface in event.interfaces.itervalues():
+                body = interface.to_email_html(event)
+                if not body:
+                    continue
+                text_body = interface.to_string(event)
+                interface_list.append(
+                    (interface.get_title(), mark_safe(body), text_body)
+                )
+
+            context.update({
+                'tags': event.get_tags(),
+                'interfaces': interface_list,
+            })
 
         headers = {
             'X-Sentry-Logger': group.logger,
@@ -179,9 +192,7 @@ class MailPlugin(NotificationPlugin):
         )
 
     def notify_digest(self, project, digest):
-        counts = Counter()
-        for rule, groups in digest.iteritems():
-            counts.update(groups.keys())
+        start, end, counts = get_digest_metadata(digest)
 
         # If there is only one group in this digest (regardless of how many
         # rules it appears in), we should just render this using the single
@@ -196,26 +207,129 @@ class MailPlugin(NotificationPlugin):
                 key=lambda record: record.timestamp,
             )
             notification = Notification(record.value.event, rules=record.value.rules)
-
-            if features.has('projects:digests:deliver', project):
-                return self.notify(notification)
+            return self.notify(notification)
 
         context = {
+            'start': start,
+            'end': end,
             'project': project,
             'digest': digest,
             'counts': counts,
         }
 
+        # TODO: Everything below should instead use `_send_mail` for consistency.
+        subject_prefix = project.get_option('subject_prefix', settings.EMAIL_SUBJECT_PREFIX)
+        if subject_prefix:
+            subject_prefix = subject_prefix.rstrip() + ' '
+
         message = self._build_message(
-            subject=render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
+            subject=subject_prefix + render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
             template='sentry/emails/digests/body.txt',
             html_template='sentry/emails/digests/body.html',
             project=project,
             context=context,
         )
 
-        if features.has('projects:digests:deliver', project):
+        if message is not None:
             message.send()
+
+    def notify_about_activity(self, activity):
+        if activity.type not in (Activity.NOTE, Activity.ASSIGNED, Activity.RELEASE):
+            return
+
+        candidate_ids = set(self.get_send_to(activity.project))
+
+        # Never send a notification to the user that performed the action.
+        candidate_ids.discard(activity.user_id)
+
+        if activity.type == Activity.ASSIGNED:
+            # Only notify the assignee, and only if they are in the candidate set.
+            recipient_ids = candidate_ids & set(map(int, (activity.data['assignee'],)))
+        elif activity.type == Activity.NOTE:
+            recipient_ids = candidate_ids - set(
+                UserOption.objects.filter(
+                    user__in=candidate_ids,
+                    key='subscribe_notes',
+                    value=u'0',
+                ).values_list('user', flat=True)
+            )
+        else:
+            recipient_ids = candidate_ids
+
+        if not recipient_ids:
+            return
+
+        project = activity.project
+        org = project.organization
+        group = activity.group
+
+        headers = {}
+
+        context = {
+            'data': activity.data,
+            'author': activity.user,
+            'project': project,
+            'project_link': absolute_uri(reverse('sentry-stream', kwargs={
+                'organization_slug': org.slug,
+                'project_id': project.slug,
+            })),
+        }
+
+        if group:
+            group_link = absolute_uri('/{}/{}/issues/{}/'.format(
+                org.slug, project.slug, group.id
+            ))
+            activity_link = '{}activity/'.format(group_link)
+
+            headers.update({
+                'X-Sentry-Reply-To': group_id_to_email(group.id),
+            })
+
+            context.update({
+                'group': group,
+                'link': group_link,
+                'activity_link': activity_link,
+            })
+
+        # TODO(dcramer): abstract each activity email into its own helper class
+        if activity.type == Activity.RELEASE:
+            context.update({
+                'release': Release.objects.get(
+                    version=activity.data['version'],
+                    project=project,
+                ),
+                'release_link': absolute_uri('/{}/{}/releases/{}/'.format(
+                    org.slug,
+                    project.slug,
+                    activity.data['version'],
+                )),
+            })
+
+        template_name = activity.get_type_display()
+
+        # TODO: Everything below should instead use `_send_mail` for consistency.
+        subject_prefix = project.get_option('subject_prefix', settings.EMAIL_SUBJECT_PREFIX)
+        if subject_prefix:
+            subject_prefix = subject_prefix.rstrip() + ' '
+
+        if group:
+            subject = '%s%s' % (subject_prefix, group.get_email_subject())
+        elif activity.type == Activity.RELEASE:
+            subject = '%sRelease %s' % (subject_prefix, activity.data['version'])
+        else:
+            raise NotImplementedError
+
+        msg = MessageBuilder(
+            subject=subject,
+            context=context,
+            template='sentry/emails/activity/{}.txt'.format(template_name),
+            html_template='sentry/emails/activity/{}.html'.format(template_name),
+            headers=headers,
+            reference=activity,
+            reply_reference=group,
+        )
+        msg.add_users(recipient_ids, project=project)
+        msg.send()
 
 
 # Legacy compatibility

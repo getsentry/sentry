@@ -50,6 +50,7 @@ def load_data(platform, default=None):
         'emptyList': [],
         'emptyMap': {},
         'length': 10837790,
+        'unauthorized': False,
         'url': 'http://example.org/foo/bar/',
     }
     data['modules'] = {

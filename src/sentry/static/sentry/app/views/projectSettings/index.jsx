@@ -1,10 +1,11 @@
 import React from 'react';
 
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import ConfigStore from '../../stores/configStore';
 import ListLink from '../../components/listLink';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
+import {t} from '../../locale';
 
 const ProjectSettings = React.createClass({
   propTypes: {
@@ -14,6 +15,10 @@ const ProjectSettings = React.createClass({
   contextTypes: {
     location: React.PropTypes.object
   },
+
+  mixins: [
+    ApiMixin
+  ],
 
   getInitialState() {
     return {
@@ -42,7 +47,7 @@ const ProjectSettings = React.createClass({
   fetchData() {
     let params = this.props.params;
 
-    api.request(`/projects/${params.orgId}/${params.projectId}/`, {
+    this.api.request(`/projects/${params.orgId}/${params.projectId}/`, {
       success: (data) => {
         this.setState({
           project: data,
@@ -70,35 +75,43 @@ const ProjectSettings = React.createClass({
     let {orgId, projectId} = this.props.params;
     let settingsUrlRoot = `${urlPrefix}/${orgId}/${projectId}/settings`;
     let project = this.state.project;
+    let features = new Set(project.features);
+    let rootInstallPath = `/${orgId}/${projectId}/settings/install/`;
 
     return (
       <div className="row">
         <div className="col-md-2">
-          <h6 className="nav-header">Configuration</h6>
+          <h6 className="nav-header">{t('Configuration')}</h6>
           <ul className="nav nav-stacked">
-            <li><a href={`${settingsUrlRoot}/`}>Project Settings</a></li>
-            <li><a href={`${settingsUrlRoot}/notifications/`}>Notifications</a></li>
-            <li><a href={`${settingsUrlRoot}/rules/`}>Rules</a></li>
-            <li><a href={`${settingsUrlRoot}/tags/`}>Tags</a></li>
-            <li><a href={`${settingsUrlRoot}/issue-tracking/`}>Issue Tracking</a></li>
-            <li><a href={`${settingsUrlRoot}/release-tracking/`}>Release Tracking</a></li>
+            <li><a href={`${settingsUrlRoot}/`}>{t('Project Settings')}</a></li>
+            <li><a href={`${settingsUrlRoot}/notifications/`}>{t('Notifications')}</a></li>
+            {features.has('quotas') &&
+              <li><a href={`${settingsUrlRoot}/quotas/`}>{t('Rate Limits')}</a></li>
+            }
+            <li><a href={`${settingsUrlRoot}/rules/`}>{t('Rules')}</a></li>
+            <li><a href={`${settingsUrlRoot}/tags/`}>{t('Tags')}</a></li>
+            <li><a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a></li>
+            <li><a href={`${settingsUrlRoot}/release-tracking/`}>{t('Release Tracking')}</a></li>
+            <ListLink to={`/${orgId}/${projectId}/settings/saved-searches/`}>{t('Saved Searches')}</ListLink>
+            {features.has('user-reports') &&
+              <ListLink to={`/${orgId}/${projectId}/settings/user-reports/`}>{t('User Reports')}</ListLink>
+            }
           </ul>
-          <h6 className="nav-header">Setup</h6>
+          <h6 className="nav-header">{t('Setup')}</h6>
           <ul className="nav nav-stacked">
-            <ListLink to="install/" isActive={function (to) {
-              let rootInstallPath = `/${orgId}/${projectId}/settings/install/`;
+            <ListLink to={rootInstallPath} isActive={function (to) {
               let pathname = this.context.location.pathname;
 
               // Because react-router 1.0 removes router.isActive(route)
               return pathname === rootInstallPath || /install\/[\w\-]+\/$/.test(pathname);
-            }.bind(this)}>Instructions</ListLink>
-            <li><a href={`${settingsUrlRoot}/keys/`}>Client Keys</a></li>
+            }.bind(this)}>{t('Instructions')}</ListLink>
+            <li><a href={`${settingsUrlRoot}/keys/`}>{t('Client Keys')}</a></li>
           </ul>
-          <h6 className="nav-header">Integrations</h6>
+          <h6 className="nav-header">{t('Integrations')}</h6>
           <ul className="nav nav-stacked">
-            <li><a href={`${settingsUrlRoot}/plugins/`}>All Integrations</a></li>
+            <li><a href={`${settingsUrlRoot}/plugins/`}>{t('All Integrations')}</a></li>
             {project.activePlugins.map((plugin) => {
-              return <li><a href={`${settingsUrlRoot}/plugins/${plugin.id}/`}>{plugin.name}</a></li>;
+              return <li key={plugin.id}><a href={`${settingsUrlRoot}/plugins/${plugin.id}/`}>{plugin.name}</a></li>;
             })}
           </ul>
         </div>

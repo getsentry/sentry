@@ -17,6 +17,7 @@ const StreamTagStore = Reflux.createStore({
   },
 
   reset() {
+    // TODO(mitsuhiko): what do we do with translations here?
     this.tags = {
       is: {
         key: 'is',
@@ -24,13 +25,21 @@ const StreamTagStore = Reflux.createStore({
         values: [
           'resolved',
           'unresolved',
-          'muted'
+          'muted',
+          'assigned',
+          'unassigned'
         ],
         predefined: true
       },
       assigned: {
         key: 'assigned',
         name: 'Assigned To',
+        values: getMemberListStoreUsernames(),
+        predefined: true
+      },
+      bookmarks: {
+        key: 'bookmarks',
+        name: 'Bookmarked By',
         values: getMemberListStoreUsernames(),
         predefined: true
       }
@@ -76,6 +85,10 @@ const StreamTagStore = Reflux.createStore({
   onMemberListStoreChange(members) {
     let assignedTag = this.tags.assigned;
     assignedTag.values = getMemberListStoreUsernames();
+    assignedTag.values.unshift('me');
+    let bookmarkedTag = this.tags.bookmarks;
+    bookmarkedTag.values = getMemberListStoreUsernames();
+    bookmarkedTag.values.unshift('me');
     this.trigger(this.tags);
   }
 });

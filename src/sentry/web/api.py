@@ -112,12 +112,12 @@ class APIView(BaseView):
             if isinstance(e, APIRateLimited) and e.retry_after is not None:
                 response['Retry-After'] = str(e.retry_after)
 
-        except Exception:
-            if settings.DEBUG or True:
+        except Exception as e:
+            if settings.DEBUG:
                 content = traceback.format_exc()
             else:
                 content = ''
-            traceback.print_exc()
+            logger.exception(e)
             response = HttpResponse(content,
                                     content_type='text/plain',
                                     status=500)
@@ -313,7 +313,8 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_rejected, project.organization_id),
             ])
             metrics.incr('events.dropped')
-            raise APIRateLimited(rate_limit.retry_after)
+            if rate_limit is not None:
+                raise APIRateLimited(rate_limit.retry_after)
         else:
             app.tsdb.incr_multi([
                 (app.tsdb.models.project_total_received, project.id),
@@ -355,7 +356,10 @@ class StoreView(APIView):
 
         if project.get_option('sentry:scrub_data', True):
             # We filter data immediately before it ever gets into the queue
-            inst = SensitiveDataFilter(project.get_option('sentry:sensitive_fields', None))
+            inst = SensitiveDataFilter(
+                fields=project.get_option('sentry:sensitive_fields', None),
+                include_defaults=project.get_option('sentry:scrub_defaults', True),
+            )
             inst.apply(data)
 
         if scrub_ip_address:
@@ -472,9 +476,6 @@ def crossdomain_xml(request, project_id):
         return HttpResponse(status=404)
 
     origin_list = get_origins(project)
-    if origin_list == ['*']:
-        origin_list = [origin_list]
-
     response = render_to_response('sentry/crossdomain.xml', {
         'origin_list': origin_list
     })

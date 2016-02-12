@@ -1,6 +1,15 @@
 {% spaceless %}
 {% autoescape off %}
-A new event has been recorded in Sentry:
+{% if enhanced_privacy %}
+Details about this issue are not shown in this notification since enhanced
+privacy controls are enabled. For more details about this issue, view this
+issue on Sentry.
+Details
+-------
+
+{{ link }}
+{% else %}
+A new issue has been recorded in Sentry:
 
     {{ event.message }}
 
@@ -8,7 +17,6 @@ Details
 -------
 
 {{ link }}
-
 Tags
 ----
 {% for tag_key, tag_value in tags %}
@@ -21,6 +29,6 @@ Tags
 {{ text }}
 
 {% endfor %}
-{% endif %}
+{% endif %}{% endif %}
 {% endautoescape %}
 {% endspaceless %}

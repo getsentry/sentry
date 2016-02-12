@@ -5,6 +5,12 @@ import {Link} from 'react-router';
 import EventList from './projectDashboard/eventList';
 import ProjectState from '../mixins/projectState';
 import ProjectChart from './projectDashboard/chart';
+import {t} from '../locale';
+
+const PERIOD_HOUR = '1h';
+const PERIOD_DAY = '1d';
+const PERIOD_WEEK = '1w';
+const PERIODS = new Set([PERIOD_HOUR, PERIOD_DAY, PERIOD_WEEK]);
 
 
 const ProjectDashboard = React.createClass({
@@ -14,7 +20,7 @@ const ProjectDashboard = React.createClass({
 
   getDefaultProps() {
     return {
-      defaultStatsPeriod: '24h'
+      defaultStatsPeriod: PERIOD_DAY
     };
   },
 
@@ -38,7 +44,7 @@ const ProjectDashboard = React.createClass({
     let currentQuery = props.location.query;
     let statsPeriod = currentQuery.statsPeriod;
 
-    if (statsPeriod !== '1w' && statsPeriod !== '24h' && statsPeriod != '1h') {
+    if (!PERIODS.has(statsPeriod)) {
       statsPeriod = props.defaultStatsPeriod;
     }
 
@@ -50,11 +56,11 @@ const ProjectDashboard = React.createClass({
   getStatsPeriodBeginTimestamp(statsPeriod) {
     let now = new Date().getTime() / 1000;
     switch (statsPeriod) {
-      case '1w':
+      case PERIOD_WEEK:
         return now - 3600 * 24 * 7;
-      case '1h':
+      case PERIOD_HOUR:
         return now - 3600;
-      case '24h':
+      case PERIOD_DAY:
       default:
         return now - 3600 * 24;
     }
@@ -62,34 +68,34 @@ const ProjectDashboard = React.createClass({
 
   getStatsPeriodResolution(statsPeriod) {
     switch (statsPeriod) {
-      case '1w':
+      case PERIOD_WEEK:
         return '1h';
-      case '1h':
+      case PERIOD_HOUR:
         return '10s';
-      case '24h':
+      case PERIOD_DAY:
       default:
         return '1h';
     }
   },
 
-  getTrendingEventsEndpoint(dateSince) {
+  getTrendingIssuesEndpoint(dateSince) {
     let params = this.props.params;
     let qs = jQuery.param({
       sort: 'priority',
       query: 'is:unresolved',
       since: dateSince
     });
-    return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + qs;
+    return '/projects/' + params.orgId + '/' + params.projectId + '/issues/?' + qs;
   },
 
-  getNewEventsEndpoint(dateSince) {
+  getNewIssuesEndpoint(dateSince) {
     let params = this.props.params;
     let qs = jQuery.param({
       sort: 'new',
       query: 'is:unresolved',
       since: dateSince
     });
-    return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + qs;
+    return '/projects/' + params.orgId + '/' + params.projectId + '/issues/?' + qs;
   },
 
   render() {
@@ -107,21 +113,33 @@ const ProjectDashboard = React.createClass({
             <div className="btn-group">
               <Link
                 to={url}
-                query={{...routeQuery, statsPeriod: '1h'}}
-                active={statsPeriod === '1h'}
-                className={'btn btn-sm btn-default' + (statsPeriod === '1h' ? ' active' : '')}>1h</Link>
+                query={{...routeQuery, statsPeriod: PERIOD_HOUR}}
+                active={statsPeriod === PERIOD_HOUR}
+                className={
+                  'btn btn-sm btn-default' + (
+                    statsPeriod === PERIOD_HOUR ? ' active' : '')}>
+                {t('1 hour')}
+              </Link>
               <Link
                 to={url}
-                query={{...routeQuery, statsPeriod: '24h'}}
-                active={statsPeriod === '24h'}
-                className={'btn btn-sm btn-default' + (statsPeriod === '24h' ? ' active' : '')}>24h</Link>
+                query={{...routeQuery, statsPeriod: PERIOD_DAY}}
+                active={statsPeriod === PERIOD_DAY}
+                className={
+                  'btn btn-sm btn-default' + (
+                    statsPeriod === PERIOD_DAY ? ' active' : '')}>
+                {t('1 day')}
+              </Link>
               <Link
                 to={url}
-                query={{...routeQuery, statsPeriod: '1w'}}
-                className={'btn btn-sm btn-default' + (statsPeriod === '1w' ? ' active' : '')}>1w</Link>
+                query={{...routeQuery, statsPeriod: PERIOD_WEEK}}
+                className={
+                  'btn btn-sm btn-default' + (
+                    statsPeriod === PERIOD_WEEK ? ' active' : '')}>
+                    {t('1 week')}
+              </Link>
             </div>
           </div>
-          <h3>Overview</h3>
+          <h3>{t('Overview')}</h3>
         </div>
         <ProjectChart
             dateSince={dateSince}
@@ -129,13 +147,13 @@ const ProjectDashboard = React.createClass({
         <div className="row">
           <div className="col-md-6">
             <EventList
-                title="Trending Events"
-                endpoint={this.getTrendingEventsEndpoint(dateSince)} />
+                title={t('Trending Issues')}
+                endpoint={this.getTrendingIssuesEndpoint(dateSince)} />
           </div>
           <div className="col-md-6">
             <EventList
-                title="New Events"
-                endpoint={this.getNewEventsEndpoint(dateSince)} />
+                title={t('New Issues')}
+                endpoint={this.getNewIssuesEndpoint(dateSince)} />
           </div>
         </div>
       </div>
@@ -144,4 +162,3 @@ const ProjectDashboard = React.createClass({
 });
 
 export default ProjectDashboard;
-

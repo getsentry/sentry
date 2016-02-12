@@ -1,16 +1,18 @@
 import $ from 'jquery';
 import React from 'react';
-import {History} from 'react-router';
-import api from '../api';
+import {Link, History} from 'react-router';
+import ApiMixin from '../mixins/apiMixin';
 import Gravatar from '../components/gravatar';
 import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import TimeSince from '../components/timeSince';
 import utils from '../utils';
+import {t} from '../locale';
 
 const GroupUserReports = React.createClass({
   mixins: [
+    ApiMixin,
     GroupState,
     History
   ],
@@ -43,7 +45,7 @@ const GroupUserReports = React.createClass({
       error: false
     });
 
-    api.request('/groups/' + this.getGroup().id + '/user-reports/?' + querystring, {
+    this.api.request('/issues/' + this.getGroup().id + '/user-reports/?' + querystring, {
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,
@@ -59,6 +61,12 @@ const GroupUserReports = React.createClass({
         });
       }
     });
+  },
+
+  getUserReportsUrl() {
+    let params = this.props.params;
+
+    return `/${params.orgId}/${params.projectId}/settings/user-reports/`;
   },
 
   render() {
@@ -99,8 +107,8 @@ const GroupUserReports = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>No user reports have been collected for this event.</p>
-        <p><a href="">Learn how to integrate User Crash Reports</a></p>
+        <p>{t('No user reports have been collected for this event.')}</p>
+        <p><Link to={this.getUserReportsUrl()}>{t('Learn how to integrate User Crash Reports')}</Link></p>
       </div>
     );
   }

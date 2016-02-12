@@ -3,7 +3,7 @@ import ReactDOMServer from 'react-dom/server';
 
 import TestUtils from 'react-addons-test-utils';
 
-import api from 'app/api';
+import {Client} from 'app/api';
 import TagDistributionMeter from 'app/components/group/tagDistributionMeter';
 
 describe('TagDistributionMeter', function() {
@@ -11,7 +11,7 @@ describe('TagDistributionMeter', function() {
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(api, 'request');
+    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
 
     this.element = TestUtils.renderIntoDocument(
       <TagDistributionMeter tag="browser" group={{id:'1337'}} orgId="123" projectId="456"/>
@@ -31,7 +31,7 @@ describe('TagDistributionMeter', function() {
       this.element.fetchData();
 
       expect(this.stubbedApiRequest.callCount).to.equal(1);
-      expect(this.stubbedApiRequest.getCall(0).args[0]).to.equal('/groups/1337/tags/browser/');
+      expect(this.stubbedApiRequest.getCall(0).args[0]).to.equal('/issues/1337/tags/browser/');
     });
   });
 

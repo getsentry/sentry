@@ -8,8 +8,8 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.models import (
-    Group, GroupAssignee, GroupBookmark, GroupMeta, GroupSeen, GroupStatus,
-    GroupTagKey
+    Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,
+    GroupResolutionStatus, GroupSeen, GroupSnooze, GroupStatus, GroupTagKey
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -23,7 +23,7 @@ class GroupSerializer(Serializer):
 
         GroupMeta.objects.populate_cache(item_list)
 
-        attach_foreignkey(item_list, Group.project, ['team'])
+        attach_foreignkey(item_list, Group.project)
 
         if user.is_authenticated() and item_list:
             bookmarks = set(GroupBookmark.objects.filter(
@@ -52,6 +52,19 @@ class GroupSerializer(Serializer):
             ).values_list('group', 'values_seen')
         )
 
+        snoozes = dict(
+            GroupSnooze.objects.filter(
+                group__in=item_list,
+            ).values_list('group', 'until')
+        )
+
+        pending_resolutions = dict(
+            GroupResolution.objects.filter(
+                group__in=item_list,
+                status=GroupResolutionStatus.PENDING,
+            ).values_list('group', 'release')
+        )
+
         result = {}
         for item in item_list:
             active_date = item.active_at or item.last_seen
@@ -68,13 +81,26 @@ class GroupSerializer(Serializer):
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'annotations': annotations,
                 'user_count': user_counts.get(item.id, 0),
+                'snooze': snoozes.get(item.id),
+                'pending_resolution': pending_resolutions.get(item.id),
             }
         return result
 
     def serialize(self, obj, attrs, user):
-        status = obj.get_status()
+        status = obj.status
+        status_details = {}
+        if attrs['snooze']:
+            if attrs['snooze'] < timezone.now() and status == GroupStatus.MUTED:
+                status = GroupStatus.UNRESOLVED
+            else:
+                status_details['snoozeUntil'] = attrs['snooze']
+        elif status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
+            status = GroupStatus.RESOLVED
+            status_details['autoResolved'] = True
         if status == GroupStatus.RESOLVED:
             status_label = 'resolved'
+            if attrs['pending_resolution']:
+                status_details['inNextRelease'] = True
         elif status == GroupStatus.MUTED:
             status_label = 'muted'
         elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
@@ -84,13 +110,10 @@ class GroupSerializer(Serializer):
         else:
             status_label = 'unresolved'
 
-        if obj.team:
-            permalink = absolute_uri(reverse('sentry-group', args=[
-                obj.organization.slug, obj.project.slug, obj.id]))
-        else:
-            permalink = None
+        permalink = absolute_uri(reverse('sentry-group', args=[
+            obj.organization.slug, obj.project.slug, obj.id]))
 
-        d = {
+        return {
             'id': str(obj.id),
             'shareId': obj.get_share_id(),
             'count': str(obj.times_seen),
@@ -104,6 +127,7 @@ class GroupSerializer(Serializer):
             'logger': obj.logger or None,
             'level': LOG_LEVELS.get(obj.level, 'unknown'),
             'status': status_label,
+            'statusDetails': status_details,
             'isPublic': obj.is_public,
             'project': {
                 'name': obj.project.name,
@@ -115,7 +139,6 @@ class GroupSerializer(Serializer):
             'hasSeen': attrs['has_seen'],
             'annotations': attrs['annotations'],
         }
-        return d
 
 
 class StreamGroupSerializer(GroupSerializer):

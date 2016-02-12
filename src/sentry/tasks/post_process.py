@@ -9,10 +9,11 @@ sentry.tasks.post_process
 from __future__ import absolute_import, print_function
 
 from celery.utils.log import get_task_logger
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from raven.contrib.django.models import client as Raven
 
 from sentry.plugins import plugins
+from sentry.signals import event_processed
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -70,6 +71,13 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
             is_sample=is_sample,
         )
 
+    event_processed.send_robust(
+        sender=post_process_group,
+        project=project,
+        group=event.group,
+        event=event,
+    )
+
 
 def record_additional_tags(event):
     from sentry.models import Group
@@ -117,7 +125,7 @@ def record_affected_user(event, **kwargs):
         return
 
     try:
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(EventUser)):
             euser.save()
     except IntegrityError:
         pass

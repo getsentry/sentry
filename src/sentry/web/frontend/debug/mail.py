@@ -5,7 +5,6 @@ import logging
 import time
 import traceback
 import uuid
-from collections import Counter
 from datetime import (
     datetime,
     timedelta,
@@ -27,11 +26,13 @@ from sentry.digests.notifications import (
     Notification,
     build_digest,
 )
+from sentry.digests.utilities import get_digest_metadata
 from sentry.models import (
     Activity,
     Event,
     Group,
     Organization,
+    OrganizationMember,
     Project,
     Rule,
     Team,
@@ -164,7 +165,7 @@ def new_note(request):
         data=load_data('python'),
     )
     note = Activity(
-        group=event.group, event=event, project=event.project,
+        group=event.group, project=event.project,
         type=Activity.NOTE, user=request.user,
         data={'text': 'This is an example note!'},
     )
@@ -287,7 +288,9 @@ def digest(request):
         group_id = next(group_sequence)
 
         culprit = '{module} in {function}'.format(
-            module='.'.join(random.sample(WORDS, random.randint(1, 4))),
+            module='.'.join(
+                ''.join(random.sample(WORDS, random.randint(1, int(random.paretovariate(2.2))))) for word in xrange(1, 4)
+            ),
             function=random.choice(WORDS)
         )
         group = state['groups'][group_id] = Group(
@@ -326,11 +329,7 @@ def digest(request):
             state['user_counts'][group_id] = random.randint(10, 1e4)
 
     digest = build_digest(project, records, state)
-
-    # TODO(tkaemming): This duplication from ``MailPlugin.notify_digest`` is a code smell
-    counts = Counter()
-    for rule, groups in digest.iteritems():
-        counts.update(groups.keys())
+    start, end, counts = get_digest_metadata(digest)
 
     return MailPreview(
         html_template='sentry/emails/digests/body.html',
@@ -339,6 +338,8 @@ def digest(request):
             'project': project,
             'counts': counts,
             'digest': digest,
+            'start': start,
+            'end': end,
         },
     ).render()
 
@@ -368,6 +369,33 @@ def request_access(request):
             'url': absolute_uri(reverse('sentry-organization-members', kwargs={
                 'organization_slug': org.slug,
             }) + '?ref=access-requests'),
+        },
+    ).render()
+
+
+@login_required
+def invitation(request):
+    org = Organization(
+        id=1,
+        slug='example',
+        name='Example',
+    )
+    om = OrganizationMember(
+        id=1,
+        email='foo@example.com',
+        organization=org,
+    )
+
+    return MailPreview(
+        html_template='sentry/emails/member-invite.html',
+        text_template='sentry/emails/member-invite.txt',
+        context={
+            'email': 'foo@example.com',
+            'organization': org,
+            'url': absolute_uri(reverse('sentry-accept-invite', kwargs={
+                'member_id': om.id,
+                'token': om.token,
+            })),
         },
     ).render()
 

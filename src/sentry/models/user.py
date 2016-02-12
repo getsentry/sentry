@@ -24,8 +24,10 @@ class UserManager(BaseManager, UserManager):
 class User(BaseModel, AbstractBaseUser):
     id = BoundedAutoField(primary_key=True)
     username = models.CharField(_('username'), max_length=128, unique=True)
-    first_name = models.CharField(_('first name'), max_length=30, blank=True)
-    last_name = models.CharField(_('last name'), max_length=30, blank=True)
+    # this column is called first_name for legacy reasons, but it is the entire
+    # display name
+    name = models.CharField(_('name'), max_length=200, blank=True,
+                            db_column='first_name')
     email = models.EmailField(_('email address'), blank=True)
     is_staff = models.BooleanField(
         _('staff status'), default=False,
@@ -70,19 +72,17 @@ class User(BaseModel, AbstractBaseUser):
 
     def has_perm(self, perm_name):
         warnings.warn('User.has_perm is deprecated', DeprecationWarning)
-        from sentry.auth.utils import is_active_superuser
-        return is_active_superuser(self)
+        return self.is_superuser
 
     def has_module_perms(self, app_label):
-        # the admin requires this method
-        from sentry.auth.utils import is_active_superuser
-        return is_active_superuser(self)
+        warnings.warn('User.has_module_perms is deprecated', DeprecationWarning)
+        return self.is_superuser
 
     def get_display_name(self):
-        return self.first_name or self.email or self.username
+        return self.name or self.email or self.username
 
     def get_full_name(self):
-        return self.first_name
+        return self.name
 
     def get_short_name(self):
         return self.username
@@ -125,7 +125,3 @@ class User(BaseModel, AbstractBaseUser):
         AuthIdentity.objects.filter(
             user=from_user,
         ).update(user=to_user)
-
-    def is_active_superuser(self):
-        # TODO(dcramer): add VPN support via INTERNAL_IPS + ipaddr ranges
-        return self.is_superuser

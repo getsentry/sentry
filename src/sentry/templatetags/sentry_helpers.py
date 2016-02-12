@@ -9,6 +9,7 @@ sentry.templatetags.sentry_helpers
 #      INSTALLED_APPS
 from __future__ import absolute_import
 
+import functools
 import os.path
 import pytz
 import six
@@ -35,11 +36,15 @@ from sentry import options
 from sentry.api.serializers import serialize as serialize_func
 from sentry.constants import EVENTS_PER_PAGE
 from sentry.models import Organization
-from sentry.utils import json, to_unicode
+from sentry.utils import json
+from sentry.utils.strings import to_unicode
 from sentry.utils.avatar import get_gravatar_url
-from sentry.utils.http import absolute_uri
 from sentry.utils.javascript import to_json
-from sentry.utils.strings import truncatechars
+from sentry.utils.strings import (
+    soft_break as _soft_break,
+    soft_hyphenate,
+    truncatechars,
+)
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
 
@@ -55,7 +60,11 @@ truncatechars.is_safe = True
 
 register.filter(to_json)
 
-register.simple_tag(absolute_uri)
+
+@register.simple_tag
+def absolute_uri(path='', *args):
+    from sentry.utils.http import absolute_uri
+    return absolute_uri(path.format(*args))
 
 
 @register.filter
@@ -365,7 +374,7 @@ def basename(value):
 
 @register.filter
 def user_display_name(user):
-    return user.first_name or user.username
+    return user.name or user.username
 
 
 @register.simple_tag(takes_context=True)
@@ -412,3 +421,12 @@ def load_captcha():
     return {
         'api_key': settings.RECAPTCHA_PUBLIC_KEY,
     }
+
+
+@register.filter
+def soft_break(value, length):
+    return _soft_break(
+        value,
+        length,
+        functools.partial(soft_hyphenate, length=max(length // 10, 10)),
+    )

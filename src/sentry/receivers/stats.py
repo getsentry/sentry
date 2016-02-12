@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from celery.signals import (
     task_failure,
     task_prerun,
-    task_revoked,
     task_sent,
     task_success,
 )
@@ -34,6 +33,7 @@ def record_task_signal(signal, name, **options):
         if not isinstance(sender, basestring):
             sender = _get_task_name(sender)
         metrics.incr('jobs.{0}'.format(name), instance=sender, **options)
+        metrics.incr('jobs.all.{0}'.format(name))
 
     signal.connect(
         handler,
@@ -41,20 +41,20 @@ def record_task_signal(signal, name, **options):
         dispatch_uid='sentry.stats.tasks.{0}'.format(name),
     )
 
-
+# TODO: https://github.com/getsentry/sentry/issues/2495
 # https://celery.readthedocs.org/en/latest/userguide/signals.html#task-revoked
-def task_revoked_handler(sender, expired=False, **kwargs):
-    if expired:
-        metrics.incr('jobs.expired', instance=sender)
-    else:
-        metrics.incr('jobs.revoked', instance=sender)
-
-
-task_revoked.connect(
-    task_revoked_handler,
-    weak=False,
-    dispatch_uid='sentry.stats.tasks.revoked',
-)
+# def task_revoked_handler(sender, expired=False, **kwargs):
+#     if expired:
+#         metrics.incr('jobs.expired', instance=sender)
+#     else:
+#         metrics.incr('jobs.revoked', instance=sender)
+#
+#
+# task_revoked.connect(
+#     task_revoked_handler,
+#     weak=False,
+#     dispatch_uid='sentry.stats.tasks.revoked',
+# )
 
 
 record_task_signal(task_sent, 'dispatched')

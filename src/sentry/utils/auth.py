@@ -7,11 +7,16 @@ sentry.utils.auth
 """
 from __future__ import absolute_import
 
+import logging
+
 from django.conf import settings
+from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
 from django.core.urlresolvers import reverse
 
 from sentry.models import User
+
+logger = logging.getLogger('sentry.auth')
 
 
 def parse_auth_header(header):
@@ -56,6 +61,33 @@ def find_users(username, with_valid_password=True):
             # email isn't guaranteed unique
             return list(qs.filter(email__iexact=username))
     return []
+
+
+def login(request, user):
+    log_auth_success(request, user.username)
+    _login(request, user)
+
+
+def log_auth_success(request, username):
+    logger.info(
+        'User authenticated successfully [ip:%s username:%r]',
+        request.META['REMOTE_ADDR'],
+        username,
+        extra={
+            'request': request,
+        }
+    )
+
+
+def log_auth_failure(request, username=None):
+    logger.info(
+        'User failed authentication [ip:%s username:%r]',
+        request.META['REMOTE_ADDR'],
+        username or '',
+        extra={
+            'request': request,
+        }
+    )
 
 
 class EmailAuthBackend(ModelBackend):

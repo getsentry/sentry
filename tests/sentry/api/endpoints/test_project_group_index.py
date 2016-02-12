@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
-from django.core.urlresolvers import reverse
 from django.utils import timezone
+from exam import fixture
 from mock import patch
 
 from sentry.models import (
-    EventMapping, Group, GroupBookmark, GroupSeen, GroupStatus
+    Activity, EventMapping, Group, GroupBookmark, GroupResolution, GroupSeen,
+    GroupSnooze, GroupStatus, Release
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import parse_link_header
@@ -21,6 +22,13 @@ class GroupListTest(APITestCase):
             attrs['href'] = url
         return links
 
+    @fixture
+    def path(self):
+        return '/api/0/projects/{}/{}/issues/'.format(
+            self.project.organization.slug,
+            self.project.slug,
+        )
+
     def test_sort_by_date_with_tag(self):
         # XXX(dcramer): this tests a case where an ambiguous column name existed
         now = timezone.now()
@@ -29,11 +37,11 @@ class GroupListTest(APITestCase):
             last_seen=now - timedelta(seconds=1),
         )
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-group-index', kwargs={
-            'organization_slug': self.project.organization.slug,
-            'project_slug': self.project.slug,
-        })
-        response = self.client.get(url + '?sort_by=date&query=is:unresolved', format='json')
+
+        response = self.client.get(
+            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            format='json',
+        )
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == str(group1.id)
@@ -54,11 +62,10 @@ class GroupListTest(APITestCase):
         # )
 
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-group-index', kwargs={
-            'organization_slug': self.project.organization.slug,
-            'project_slug': self.project.slug,
-        })
-        response = self.client.get(url + '?sort_by=date&limit=1', format='json')
+        response = self.client.get(
+            '{}?sort_by=date&limit=1'.format(self.path),
+            format='json',
+        )
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == str(group2.id)
@@ -126,20 +133,21 @@ class GroupListTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-group-index', kwargs={
-            'organization_slug': self.project.organization.slug,
-            'project_slug': self.project.slug,
-        })
-        response = self.client.get(url + '?statsPeriod=24h', format='json')
+
+        response = self.client.get('{}?statsPeriod=24h'.format(self.path),
+                                   format='json')
         assert response.status_code == 200
 
-        response = self.client.get(url + '?statsPeriod=14d', format='json')
+        response = self.client.get('{}?statsPeriod=14d'.format(self.path),
+                                   format='json')
         assert response.status_code == 200
 
-        response = self.client.get(url + '?statsPeriod=', format='json')
+        response = self.client.get('{}?statsPeriod='.format(self.path),
+                                   format='json')
         assert response.status_code == 200
 
-        response = self.client.get(url + '?statsPeriod=48h', format='json')
+        response = self.client.get('{}?statsPeriod=48h'.format(self.path),
+                                   format='json')
         assert response.status_code == 400
 
     def test_auto_resolved(self):
@@ -156,11 +164,7 @@ class GroupListTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-group-index', kwargs={
-            'organization_slug': self.project.organization.slug,
-            'project_slug': self.project.slug,
-        })
-        response = self.client.get(url, format='json')
+        response = self.client.get(self.path, format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == str(group2.id)
@@ -177,11 +181,8 @@ class GroupListTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-group-index', kwargs={
-            'organization_slug': self.project.organization.slug,
-            'project_slug': self.project.slug,
-        })
-        response = self.client.get(url + '?query=' + ('c' * 32), format='json')
+        response = self.client.get('{}?query={}'.format(self.path, 'c' * 32),
+                                   format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == str(group.id)
@@ -193,16 +194,20 @@ class GroupListTest(APITestCase):
         self.create_group(checksum='b' * 32)
 
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-group-index', kwargs={
-            'organization_slug': self.project.organization.slug,
-            'project_slug': self.project.slug,
-        })
-        response = self.client.get(url + '?query=' + ('c' * 32), format='json')
+        response = self.client.get('{}?query={}'.format(self.path, 'c' * 32),
+                                   format='json')
         assert response.status_code == 200
         assert len(response.data) == 0
 
 
 class GroupUpdateTest(APITestCase):
+    @fixture
+    def path(self):
+        return '/api/0/projects/{}/{}/issues/'.format(
+            self.project.organization.slug,
+            self.project.slug,
+        )
+
     def test_global_resolve(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
@@ -212,16 +217,17 @@ class GroupUpdateTest(APITestCase):
             checksum='b' * 32, status=GroupStatus.UNRESOLVED)
 
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-group-index', kwargs={
-            'organization_slug': self.project.organization.slug,
-            'project_slug': self.project.slug,
-        })
-        response = self.client.put(url + '?status=unresolved', data={
-            'status': 'resolved',
-        }, format='json')
+        response = self.client.put(
+            '{}?status=unresolved'.format(self.path),
+            data={
+                'status': 'resolved',
+            },
+            format='json',
+        )
         assert response.status_code == 200, response.data
         assert response.data == {
             'status': 'resolved',
+            'statusDetails': {},
         }
 
         # the previously resolved entry should not be included
@@ -252,10 +258,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
-            url=reverse('sentry-api-0-project-group-index', kwargs={
-                'organization_slug': self.project.organization.slug,
-                'project_slug': self.project.slug,
-            }),
+            url=self.path,
             group1=group1,
             group2=group2,
             group4=group4,
@@ -266,6 +269,7 @@ class GroupUpdateTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {
             'status': 'resolved',
+            'statusDetails': {},
         }
 
         new_group1 = Group.objects.get(id=group1.id)
@@ -283,16 +287,52 @@ class GroupUpdateTest(APITestCase):
         assert new_group4.resolved_at is None
         assert new_group4.status == GroupStatus.UNRESOLVED
 
+    def test_set_resolved_in_next_release(self):
+        release = Release.objects.create(project=self.project, version='a')
+
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'status': 'resolvedInNextRelease',
+        }, format='json')
+        assert response.status_code == 200
+        assert response.data == {
+            'status': 'resolved',
+            'statusDetails': {
+                'inNextRelease': True,
+            },
+        }
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        assert GroupResolution.objects.filter(
+            group=group,
+            release=release,
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+        )
+        assert activity.data['version'] == ''
+
     def test_set_unresolved(self):
         group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
 
         self.login_as(user=self.user)
 
         url = '{url}?id={group.id}'.format(
-            url=reverse('sentry-api-0-project-group-index', kwargs={
-                'organization_slug': self.project.organization.slug,
-                'project_slug': self.project.slug,
-            }),
+            url=self.path,
             group=group,
         )
         response = self.client.put(url, data={
@@ -301,10 +341,68 @@ class GroupUpdateTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {
             'status': 'unresolved',
+            'statusDetails': {},
         }
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
+
+    def test_set_unresolved_on_snooze(self):
+        group = self.create_group(checksum='a' * 32, status=GroupStatus.MUTED)
+
+        GroupSnooze.objects.create(
+            group=group,
+            until=timezone.now() - timedelta(days=1),
+        )
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'status': 'unresolved',
+        }, format='json')
+        assert response.status_code == 200
+        assert response.data == {
+            'status': 'unresolved',
+            'statusDetails': {},
+        }
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
+    def test_snooze_duration(self):
+        group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'status': 'muted',
+            'snoozeDuration': 30,
+        }, format='json')
+
+        assert response.status_code == 200
+
+        snooze = GroupSnooze.objects.get(group=group)
+
+        assert snooze.until > timezone.now() + timedelta(minutes=29)
+        assert snooze.until < timezone.now() + timedelta(minutes=31)
+
+        assert response.data == {
+            'status': 'muted',
+            'statusDetails': {
+                'snoozeUntil': snooze.until,
+            },
+        }
+
+        group = Group.objects.get(id=group.id)
+        assert group.get_status() == GroupStatus.MUTED
 
     def test_set_bookmarked(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
@@ -316,10 +414,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
-            url=reverse('sentry-api-0-project-group-index', kwargs={
-                'organization_slug': self.project.organization.slug,
-                'project_slug': self.project.slug,
-            }),
+            url=self.path,
             group1=group1,
             group2=group2,
             group4=group4,
@@ -350,10 +445,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}'.format(
-            url=reverse('sentry-api-0-project-group-index', kwargs={
-                'organization_slug': self.project.organization.slug,
-                'project_slug': self.project.slug,
-            }),
+            url=self.path,
             group1=group1,
             group2=group2,
         )
@@ -377,10 +469,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}'.format(
-            url=reverse('sentry-api-0-project-group-index', kwargs={
-                'organization_slug': self.project.organization.slug,
-                'project_slug': self.project.slug,
-            }),
+            url=self.path,
             group1=group1,
             group2=group2,
         )
@@ -408,10 +497,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
-            url=reverse('sentry-api-0-project-group-index', kwargs={
-                'organization_slug': self.project.organization.slug,
-                'project_slug': self.project.slug,
-            }),
+            url=self.path,
             group1=group1,
             group2=group2,
             group4=group4,
@@ -445,10 +531,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&id={group3.id}'.format(
-            url=reverse('sentry-api-0-project-group-index', kwargs={
-                'organization_slug': self.project.organization.slug,
-                'project_slug': self.project.slug,
-            }),
+            url=self.path,
             group1=group1,
             group2=group2,
             group3=group3,
@@ -469,13 +552,16 @@ class GroupUpdateTest(APITestCase):
 
 
 class GroupDeleteTest(APITestCase):
+    @fixture
+    def path(self):
+        return '/api/0/projects/{}/{}/issues/'.format(
+            self.project.organization.slug,
+            self.project.slug,
+        )
+
     def test_global_is_forbidden(self):
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-group-index', kwargs={
-            'organization_slug': self.project.organization.slug,
-            'project_slug': self.project.slug,
-        })
-        response = self.client.delete(url, data={
+        response = self.client.delete(self.path, data={
             'status': 'resolved',
         }, format='json')
         assert response.status_code == 400
@@ -490,10 +576,7 @@ class GroupDeleteTest(APITestCase):
 
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
-            url=reverse('sentry-api-0-project-group-index', kwargs={
-                'organization_slug': self.project.organization.slug,
-                'project_slug': self.project.slug,
-            }),
+            url=self.path,
             group1=group1,
             group2=group2,
             group4=group4,

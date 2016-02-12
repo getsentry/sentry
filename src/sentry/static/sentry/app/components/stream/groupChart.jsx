@@ -1,5 +1,7 @@
+import LazyLoad from 'react-lazy-load';
 import React from 'react';
 import Reflux from 'reflux';
+
 import BarChart from '../barChart';
 import GroupStore from '../../stores/groupStore';
 import {valueIsEqual} from '../../utils';
@@ -54,7 +56,7 @@ const GroupChart = React.createClass({
   },
 
   render() {
-    if (!this.state.stats)
+    if (!this.state.stats || !this.state.stats.length)
       return null;
 
     let chartData = this.state.stats.map((point) => {
@@ -62,7 +64,9 @@ const GroupChart = React.createClass({
     });
 
     return (
-      <BarChart points={chartData} className="sparkline" />
+      <LazyLoad>
+        <BarChart points={chartData} className="sparkline" />
+      </LazyLoad>
     );
   }
 });

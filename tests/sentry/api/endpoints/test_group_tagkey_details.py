@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
-
 from sentry.models import GroupTagKey, GroupTagValue, TagKey, TagValue
 from sentry.testutils import APITestCase
 
@@ -41,10 +39,7 @@ class GroupTagDetailsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = reverse('sentry-api-0-group-tagkey-details', kwargs={
-            'group_id': group.id,
-            'key': tagkey.key,
-        })
+        url = '/api/0/issues/{}/tags/{}/'.format(group.id, tagkey.key)
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert response.data['key'] == str(tagkey.key)

@@ -2,24 +2,9 @@ import React from 'react';
 import DocumentTitle from 'react-document-title';
 import Footer from '../components/footer';
 import Header from '../components/header';
+import {t} from '../locale';
 
 const RouteNotFound = React.createClass({
-  statics: {
-    // Try and append a trailing slash to the route when we "404".
-    //
-    // Reference:
-    //   https://github.com/rackt/react-router/blob/0.13.x/examples/auth-flow/app.js#L46-L50
-    //
-    // NOTE: This behavior changes in react-router 1.0:
-    //   https://github.com/rackt/react-router/blob/v1.0.0-rc1/UPGRADE_GUIDE.md#willtransitionto-and-willtransitionfrom
-    willTransitionTo(transition) {
-      let path = transition.path;
-      if (path.charAt(path.length - 1) !== '/') {
-        transition.redirect(path + '/');
-      }
-    }
-  },
-
   getTitle() {
     return 'Page Not Found';
   },
@@ -33,10 +18,21 @@ const RouteNotFound = React.createClass({
           <div className="container">
             <div className="content">
               <section className="body">
-                <div className="page-header">
-                  <h2>Page Not Found</h2>
+                <div className="alert alert-block alert-error">
+                  <div style={{fontSize: 24, marginBottom: 10}}>
+                    <span className="icon-exclamation" style={{fontSize: 20, marginRight: 10}} />
+                    <span>{t('Page Not Found')}</span>
+                  </div>
+
+                  <p>The page you are looking for was not found.</p>
+                  <p>You may wish to try the following:</p>
+                  <ul>
+                      <li>If you entered the address manually, double check the path. Did you forget a trailing slash?</li>
+                      <li>If you followed a link here, try hitting back and reloading the page. It's possible the resource was moved out from under you.</li>
+                      <li>If all else fails, <a href="http://github.com/getsentry/sentry/issues">create an issue</a> with more details.</li>
+                  </ul>
+                  <p>Not sure what to do? <a href="/">Return to the dashboard</a></p>
                 </div>
-                <p className="alert-message notice">The page you are looking for was not found.</p>
               </section>
             </div>
           </div>

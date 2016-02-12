@@ -2,8 +2,10 @@
 
 from __future__ import absolute_import
 
-import mock
+import functools
 
+import mock
+from django.template.loader import render_to_string
 from exam import fixture
 
 from sentry.interfaces.base import InterfaceValidationError
@@ -53,6 +55,16 @@ class StacktraceTest(TestCase):
             'lineno': 1,
             'filename': 'foo.py',
         }]))
+
+    def test_requires_frames(self):
+        with self.assertRaises(InterfaceValidationError):
+            Stacktrace.to_python({})
+
+        with self.assertRaises(InterfaceValidationError):
+            Stacktrace.to_python(dict(frames=[]))
+
+        with self.assertRaises(InterfaceValidationError):
+            Stacktrace.to_python(dict(frames=1))
 
     def test_allows_abs_path_without_filename(self):
         interface = Stacktrace.to_python(dict(frames=[{
@@ -189,6 +201,35 @@ class StacktraceTest(TestCase):
             '<function>',
         ])
 
+    def test_get_hash_ignores_ENHANCED_spring_classes(self):
+        interface = Frame.to_python({
+            'module': 'invalid.gruml.talkytalkyhub.common.config.'
+            'JipJipConfig$$EnhancerBySpringCGLIB$$1ebdddb0',
+            'function': 'jipJipManagementApplication'
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
+            '$$EnhancerBySpringCGLIB$$<auto>',
+            'jipJipManagementApplication',
+        ])
+
+    def test_get_hash_ignores_extra_ENHANCED_spring_classes(self):
+        interface = Frame.to_python({
+            'module': 'invalid.gruml.talkytalkyhub.common.config.'
+            'JipJipConfig$$EnhancerBySpringCGLIB$$1ebdddb0'
+            '$$EnhancerBySpringCGLIB$$8219cd38'
+            '$$FastClassBySpringCGLIB$$6c0b35d1',
+            'function': 'jipJipManagementApplication'
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
+            '$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>'
+            '$$FastClassBySpringCGLIB$$<auto>',
+            'jipJipManagementApplication',
+        ])
+
     def test_get_hash_sanitizes_erb_templates(self):
         # This is Ruby specific
         interface = Frame.to_python({
@@ -199,6 +240,13 @@ class StacktraceTest(TestCase):
         self.assertEquals(result, [
             'foo.html.erb', '_foo_html_erb__<anon>_<anon>',
         ])
+
+    def test_get_hash_ignores_filename_if_blob(self):
+        interface = Frame.to_python({
+            'filename': 'blob:http://example.com/7f7aaadf-a006-4217-9ed5-5fbf8585c6c0',
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [])
 
     def test_get_hash_ignores_filename_if_http(self):
         interface = Frame.to_python({
@@ -392,38 +440,80 @@ class StacktraceTest(TestCase):
 
 class SlimFrameDataTest(TestCase):
     def test_under_max(self):
-        value = {'frames': [{'filename': 'foo'}]}
-        slim_frame_data(value)
-        assert len(value['frames']) == 1
-        assert value.get('frames_omitted') is None
+        interface = Stacktrace.to_python({'frames': [{'filename': 'foo'}]})
+        slim_frame_data(interface, 4)
+        assert len(interface.frames) == 1
+        assert not interface.frames_omitted
 
     def test_over_max(self):
         values = []
         for n in xrange(5):
             values.append({
                 'filename': 'frame %d' % n,
-                'vars': {},
-                'pre_context': [],
-                'post_context': [],
+                'vars': {'foo': 'bar'},
+                'context_line': 'b',
+                'pre_context': ['a'],
+                'post_context': ['c'],
             })
-        value = {'frames': values}
-        slim_frame_data(value, 4)
+        interface = Stacktrace.to_python({'frames': values})
+        slim_frame_data(interface, 4)
 
-        assert len(value['frames']) == 5
+        assert len(interface.frames) == 5
 
-        for value, num in zip(values[:2], xrange(2)):
-            assert value['filename'] == 'frame %d' % num
-            assert value['vars'] is not None
-            assert value['pre_context'] is not None
-            assert value['post_context'] is not None
+        for value, num in zip(interface.frames[:2], xrange(2)):
+            assert value.filename == 'frame %d' % num
+            assert value.vars is not None
+            assert value.pre_context is not None
+            assert value.post_context is not None
 
-        assert values[2]['filename'] == 'frame 2'
-        assert 'vars' not in values[2]
-        assert 'pre_context' not in values[2]
-        assert 'post_context' not in values[2]
+        for value, num in zip(interface.frames[3:], xrange(3, 5)):
+            assert value.filename == 'frame %d' % num
+            assert value.vars is not None
+            assert value.pre_context is not None
+            assert value.post_context is not None
 
-        for value, num in zip(values[3:], xrange(3, 5)):
-            assert value['filename'] == 'frame %d' % num
-            assert value['vars'] is not None
-            assert value['pre_context'] is not None
-            assert value['post_context'] is not None
+        value = interface.frames[2]
+        assert value.filename == 'frame 2'
+        assert not value.vars
+        assert not value.pre_context
+        assert not value.post_context
+
+
+def test_java_frame_rendering():
+    render = functools.partial(render_to_string, 'sentry/partial/frames/java.txt')
+
+    # This is the ideal case.
+    assert render({
+        'module': 'com.getsentry.example.Example',
+        'function': 'test',
+        'filename': 'Example.java',
+        'lineno': 1,
+    }).strip() == 'at com.getsentry.example.Example.test(Example.java:1)'
+
+    # Legacy support for frames without filename.
+    assert render({
+        'module': 'com.getsentry.example.Example',
+        'function': 'test',
+        'lineno': 1,
+    }).strip() == 'at com.getsentry.example.Example.test'
+
+    # (This shouldn't happen, but...)
+    assert render({
+        'module': 'com.getsentry.example.Example',
+        'function': 'test',
+        'filename': 'foo/bar/Example.java',
+        'lineno': 1,
+    }).strip() == 'at com.getsentry.example.Example.test(Example.java:1)'
+
+    # Native methods don't have line numbers.
+    assert render({
+        'function': 'test',
+        'filename': 'Example.java',
+        'lineno': -2,
+    }).strip() == 'at test(Example.java)'
+
+    assert render({
+        'function': 'test',
+        'filename': 'Example.java',
+        'lineno': 1,
+    }).strip() == 'at test(Example.java:1)'

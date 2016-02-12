@@ -8,21 +8,19 @@
 
 {% block wrapperclass %} {{ block.super }} show-rightbar settings white-bg{% endblock %}
 
-{% block controller %}ManageProjectCtrl{% endblock %}
-
 {% block header_action %}
   <ul class="nav nav-tabs">
     <li>
-      <a href="{% url 'sentry-dashboard' project.organization.slug project.slug %}">Dashboard</a>
+      <a href="{% absolute_uri '/{}/{}/dashboard/' project.organization.slug project.slug %}">Dashboard</a>
     </li>
     <li>
-      <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">Issues</a>
+      <a href="{% absolute_uri '/{}/{}/' project.organization.slug project.slug %}">Issues</a>
     </li>
     <li>
-      <a href="{% url 'sentry-releases' project.organization.slug project.slug %}">Releases</a>
+      <a href="{% absolute_uri '/{}/{}/releases/' project.organization.slug project.slug %}">Releases</a>
     </li>
     <li class="active">
-      <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}">Settings</a>
+      <a href="{% absolute_uri '/{}/{}/settings/' project.organization.slug project.slug %}">Settings</a>
     </li>
   </ul>
 {% endblock %}
@@ -52,6 +50,7 @@
       <div class="box-content with-padding">
         {{ form.resolve_age|as_crispy_field }}
         {{ form.scrub_data|as_crispy_field }}
+        {{ form.scrub_defaults|as_crispy_field }}
         {{ form.sensitive_fields|as_crispy_field }}
         {{ form.scrub_ip_address|as_crispy_field }}
       </div>
@@ -177,14 +176,22 @@
     <li{% if page == 'release-tracking' %} class="active"{% endif %}>
         <a href="{% url 'sentry-project-release-tracking' project.organization.slug project.slug %}">{% trans "Release Tracking" %}</a>
     </li>
+    <li{% if page == 'quotas' %} class="active"{% endif %}>
+        <a href="{% absolute_uri '/{}/{}/settings/saved-searches/' project.organization.slug project.slug %}">{% trans "Saved Searches" %}</a>
+    </li>
+    {% feature projects:user-reports project %}
+    <li{% if page == 'quotas' %} class="active"{% endif %}>
+        <a href="{% absolute_uri '/{}/{}/settings/user-reports/' project.organization.slug project.slug %}">{% trans "User Reports" %}</a>
+    </li>
+    {% endfeature %}
   </ul>
   <h6 class="nav-header">{% trans "Setup" %}</h6>
   <ul class="nav nav-stacked">
     <li>
-        <a href="{% url 'sentry-project-setup' project.organization.slug project.slug %}">{% trans "Instructions" %}</a>
+        <a href="{% absolute_uri '/{}/{}/settings/install/' project.organization.slug project.slug %}">{% trans "Instructions" %}</a>
     </li>
     <li{% if page == 'keys' %} class="active"{% endif %}>
-        <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "Client Keys" %}</a>
+        <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "Client Keys (DSN)" %}</a>
     </li>
   </ul>
   {% with project|get_plugins as plugins %}

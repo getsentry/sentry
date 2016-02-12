@@ -4,16 +4,69 @@ Configuring Sentry
 This document describes additional configuration options available to the
 Sentry server itself.
 
-.. describe:: SENTRY_URL_PREFIX
+First Install
+-------------
 
-    Absolute URL to the sentry root directory. Should not include a
-    trailing slash.
+During a new install, you will be prompted first for a walkthrough of the
+Installation Wizard. This wizard will help you get a few essential configuration
+options taken care of before beginning. Once done, you will be left with two files:
 
-    Defaults to ``""``.
+.. describe:: config.yml
+
+    The YAML configuration was introduced in Sentry 8 and will allow you to configure
+    various core attributes. Over time this will be expanded.
+
+.. describe:: sentry.conf.py
+
+    The Python file will be loaded once all other configuration is referenced, and allows
+    you to configure various server settings as well as more complex tuning.
+
+Many settings available in ``config.yml`` will also be able to be configured in the Sentry
+UI. Declaring them in the file will generally override the dynamically configured value
+and prevent it from being changed in the UI. These same settings can also be configured via
+the ``sentry config`` CLI helper.
+
+General
+-------
+
+.. describe:: system.admin-email
+
+    Declared in ``config.yml``.
+
+    The technical contact address for this installation. This will be reported to
+    upstream to the Sentry team (as part of the Beacon), and will be the point of
+    contact for critical updates and security notifications.
 
     ::
 
-        SENTRY_URL_PREFIX = 'http://sentry.example.com'
+        system.admin-email: 'admin@example.com'
+
+.. describe:: system.url-prefix
+
+    Declared in ``config.yml``.
+
+    The URL prefix in which Sentry is accessible. This will be used both for
+    referencing URLs in the UI, as well as in outbound notifications.
+
+    ::
+
+        system.url-prefix: 'https://sentry.example.com'
+
+.. describe:: system.secret-key
+
+    Declared in ``config.yml``.
+
+    A secret key used for session signing. If this becomes compromised it's
+    important to regenerate it as otherwise its much easier to hijack user
+    sessions.
+
+    ::
+
+        system.secret-key: 'a-really-long-secret-value'
+
+    To generate a new value, we've provided a helper:
+
+        $ sentry config generate-secret-key
 
 
 Authentication
@@ -21,8 +74,9 @@ Authentication
 
 The following keys control the authentication support.
 
-
 .. describe:: SENTRY_FEATURES['auth:register']
+
+    Declared in ``sentry.conf.py``.
 
     Should Sentry allow users to create new accounts?
 
@@ -33,6 +87,8 @@ The following keys control the authentication support.
         SENTRY_FEATURES['auth:register'] = True
 
 .. describe:: SENTRY_PUBLIC
+
+    Declared in ``sentry.conf.py``.
 
     Should Sentry make all data publicly accessible? This should **only**
     be used if you're installing Sentry behind your company's firewall.
@@ -46,6 +102,8 @@ The following keys control the authentication support.
         SENTRY_PUBLIC = True
 
 .. describe:: SENTRY_ALLOW_ORIGIN
+
+    Declared in ``sentry.conf.py``.
 
     If provided, Sentry will set the Access-Control-Allow-Origin header to
     this value on /api/store/ responses. In addition, the
@@ -70,6 +128,8 @@ The following settings are available for the built-in webserver:
 
 .. describe:: SENTRY_WEB_HOST
 
+    Declared in ``sentry.conf.py``.
+
     The hostname which the webserver should bind to.
 
     Defaults to ``localhost``.
@@ -79,6 +139,8 @@ The following settings are available for the built-in webserver:
         SENTRY_WEB_HOST = '0.0.0.0'  # bind to all addresses
 
 .. describe:: SENTRY_WEB_PORT
+
+    Declared in ``sentry.conf.py``.
 
     The port which the webserver should listen on.
 
@@ -91,7 +153,9 @@ The following settings are available for the built-in webserver:
 
 .. describe:: SENTRY_WEB_OPTIONS
 
-    A dictionary of additional configuration options to pass to gunicorn.
+    Declared in ``sentry.conf.py``.
+
+    A dictionary of additional configuration options to pass to uwsgi.
 
     Defaults to ``{}``.
 
@@ -99,13 +163,8 @@ The following settings are available for the built-in webserver:
 
         SENTRY_WEB_OPTIONS = {
             'workers': 10,
-            'worker_class': 'gevent',
+            'buffer-size': 32768,
         }
-
-    Note: The logging options of gunicorn is overridden by the default logging
-    configuration of Sentry. In order to reuse loggers from gunicorn, put
-    ``LOGGING['disable_existing_loggers'] = False`` into your configuration
-    file.
 
 .. _config-smtp-server:
 
@@ -115,6 +174,8 @@ SMTP Server
 The following settings are available for the built-in SMTP mail server:
 
 .. describe:: SENTRY_SMTP_HOST
+
+    Declared in ``sentry.conf.py``.
 
     The hostname which the smtp server should bind to.
 
@@ -126,6 +187,8 @@ The following settings are available for the built-in SMTP mail server:
 
 .. describe:: SENTRY_SMTP_PORT
 
+    Declared in ``sentry.conf.py``.
+
     The port which the smtp server should listen on.
 
     Defaults to ``1025``.
@@ -135,6 +198,8 @@ The following settings are available for the built-in SMTP mail server:
         SENTRY_SMTP_PORT = 1025
 
 .. describe:: SENTRY_SMTP_HOSTNAME
+
+    Declared in ``sentry.conf.py``.
 
     The hostname which matches the server's MX record.
 
@@ -149,7 +214,7 @@ Data Sampling
 
 .. describe:: SENTRY_SAMPLE_DATA
 
-    .. versionadded:: 1.10.0
+    Declared in ``sentry.conf.py``.
 
     Controls sampling of data.
 
@@ -173,6 +238,8 @@ Beacon
 ------
 
 .. describe:: SENTRY_BEACON
+
+    Declared in ``sentry.conf.py``.
 
     Controls the :doc:`beacon`.
 

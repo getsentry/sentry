@@ -288,6 +288,36 @@ class ValidateDataTest(BaseAPITest):
         })
         assert data.get('release') == '42'
 
+    def test_valid_platform(self):
+        data = self.helper.validate_data(self.project, {
+            'platform': 'python',
+        })
+        assert data.get('platform') == 'python'
+
+    def test_no_platform(self):
+        data = self.helper.validate_data(self.project, {})
+        assert data.get('platform') == 'other'
+
+    def test_invalid_platform(self):
+        data = self.helper.validate_data(self.project, {
+            'platform': 'foobar',
+        })
+        assert data.get('platform') == 'other'
+
+
+class SafelyLoadJSONStringTest(BaseAPITest):
+    def test_valid_payload(self):
+        data = self.helper.safely_load_json_string('{"foo": "bar"}')
+        assert data == {'foo': 'bar'}
+
+    def test_invalid_json(self):
+        with self.assertRaises(APIError):
+            self.helper.safely_load_json_string('{')
+
+    def test_unexpected_type(self):
+        with self.assertRaises(APIError):
+            self.helper.safely_load_json_string('1')
+
 
 class GetInterfaceTest(TestCase):
     def test_does_not_let_through_disallowed_name(self):

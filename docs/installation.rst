@@ -13,9 +13,13 @@ Some basic prerequisites which you'll need in order to run Sentry:
   assumes an ubuntu based system.
 * Python 2.7
 * ``python-setuptools``, ``python-pip``, ``python-dev``, ``libxslt1-dev``,
-  ``libxml2-dev``, ``libz-dev``, ``libffi-dev``, ``libssl-dev``, ``libpq-dev``
+  ``libxml2-dev``, ``libz-dev``, ``libffi-dev``, ``libssl-dev``, ``libpq-dev``,
+  ``libyaml-dev``
 * `PostgreSQL <http://www.postgresql.org/>`_
 * `Redis <http://redis.io>`_ (2.8.9 or newer)
+
+  * If running Ubuntu < 15.04, you'll need to install from a different PPA.
+    We recommend `chris-lea/redis-server <https://launchpad.net/~chris-lea/+archive/ubuntu/redis-server>`_
 * `Nginx <http://nginx.org>`_ (``nginx-full``)
 * A dedicated domain to host Sentry on (i.e. `sentry.yourcompany.com`).
 
@@ -103,7 +107,30 @@ via ``sentry``, and get something like the following:
 .. code-block:: bash
 
   $ sentry
-  usage: [SENTRY_CONF=/path/to/settings.py] sentry [command] [options]
+  Usage: sentry [OPTIONS] COMMAND [ARGS]...
+
+    Sentry is cross-platform crash reporting built with love.
+
+  Options:
+    --config PATH  Path to configuration files.
+    --version      Show the version and exit.
+    --help         Show this message and exit.
+
+  Commands:
+    celery      Start background workers.
+    cleanup     Delete a portion of trailing data based on...
+    config      Manage runtime config options.
+    createuser  Create a new user.
+    devserver   Start a light Web server for development.
+    django      Execute Django subcommands.
+    export      Exports core metadata for the Sentry...
+    help        Show this message and exit.
+    import      Imports data from a Sentry export.
+    init        Initialize new configuration directory.
+    repair      Attempt to repair any invalid data.
+    shell       Run a Python interactive interpreter.
+    start       Start running a service.
+    upgrade     Perform any pending database migrations and...
 
 
 Installing from Source
@@ -140,12 +167,16 @@ Initializing the Configuration
 Now you'll need to create the default configuration. To do this, you'll
 use the ``init`` command You can specify an alternative configuration path
 as the argument to init, otherwise it will use the default of
-``~/.sentry/sentry.conf.py``.
+``~/.sentry``.
 
 ::
 
     # the path is optional
-    sentry init /www/sentry/sentry.conf.py
+    sentry init /etc/sentry
+
+Starting with 8.0.0, ``init`` now creates two files, ``sentry.conf.py`` and
+``config.yml``. To avoid confusion, ``config.yml`` will slowly be replacing
+``sentry.conf.py``, but right now, the uses of ``config.yml`` are limited.
 
 The configuration for the server is based on ``sentry.conf.server``, which
 contains a basic Django project configuration, as well as the default
@@ -168,9 +199,6 @@ not a fully supported database and should not be used in production**.
             'PORT': '',
         }
     }
-
-    # No trailing slash!
-    SENTRY_URL_PREFIX = 'http://sentry.example.com'
 
 
 Configure Redis
@@ -242,14 +270,14 @@ Once done, you can create the initial schema using the ``upgrade`` command:
 
 .. code-block:: python
 
-    $ SENTRY_CONF=/www/sentry/sentry.conf.py sentry upgrade
+    $ SENTRY_CONF=/etc/sentry sentry upgrade
 
 Next up you'll need to create the first user, which will act as a superuser:
 
 .. code-block:: bash
 
     # create a new user
-    $ SENTRY_CONF=/www/sentry/sentry.conf.py sentry createuser
+    $ SENTRY_CONF=/etc/sentry sentry createuser
 
 All schema changes and database upgrades are handled via the ``upgrade``
 command, and this is the first thing you'll want to run when upgrading to
@@ -261,7 +289,7 @@ future versions of Sentry.
 Starting the Web Service
 ------------------------
 
-Sentry provides a built-in webserver (powered by gunicorn and eventlet) to
+Sentry provides a built-in webserver (powered by uWSGI) to
 get you off the ground quickly, also you can setup Sentry as WSGI
 application, in that case skip to section `Running Sentry as WSGI
 application`.
@@ -270,7 +298,7 @@ To start the built-in webserver run ``sentry start``:
 
 ::
 
-  SENTRY_CONF=/www/sentry/sentry.conf.py sentry start
+  SENTRY_CONF=/etc/sentry sentry start
 
 You should now be able to test the web service by visiting `http://localhost:9000/`.
 
@@ -282,12 +310,26 @@ in addition to the web service workers:
 
 ::
 
-  SENTRY_CONF=/www/sentry/sentry.conf.py sentry celery worker -B
+  SENTRY_CONF=/etc/sentry sentry celery worker
 
 See :doc:`queue` for more details on configuring workers.
 
 .. note:: `Celery <http://celeryproject.org/>`_ is an open source task
           framework for Python.
+
+Starting the Cron Process
+-------------------------
+
+Sentry also needs a cron process which is called "celery beat":
+
+::
+
+  SENTRY_CONF=/etc/sentry sentry celery beat
+
+It's recommended to only run one of them at the time or you will see
+unnecessary extra tasks being pushed onto the queues but the system will
+still behave as intended if multiple beat processes are run.  This can be
+used to achieve high availability.
 
 Setup a Reverse Proxy
 ---------------------
@@ -357,7 +399,7 @@ go.
 
   [program:sentry-web]
   directory=/www/sentry/
-  environment=SENTRY_CONF="/www/sentry/sentry.conf.py"
+  environment=SENTRY_CONF="/etc/sentry"
   command=/www/sentry/bin/sentry start
   autostart=true
   autorestart=true
@@ -367,8 +409,18 @@ go.
 
   [program:sentry-worker]
   directory=/www/sentry/
-  environment=SENTRY_CONF="/www/sentry/sentry.conf.py"
-  command=/www/sentry/bin/sentry celery worker -B
+  environment=SENTRY_CONF="/etc/sentry"
+  command=/www/sentry/bin/sentry celery worker
+  autostart=true
+  autorestart=true
+  redirect_stderr=true
+  stdout_logfile=syslog
+  stderr_logfile=syslog
+
+  [program:sentry-cron]
+  directory=/www/sentry/
+  environment=SENTRY_CONF="/etc/sentry"
+  command=/www/sentry/bin/sentry celery beat
   autostart=true
   autorestart=true
   redirect_stderr=true

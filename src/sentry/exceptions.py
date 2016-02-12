@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.core.exceptions import SuspiciousOperation
+
 
 class InvalidData(Exception):
     pass
@@ -30,4 +32,8 @@ class InvalidConfiguration(Exception):
 
 
 class DeleteAborted(Exception):
+    pass
+
+
+class RestrictedIPAddress(SuspiciousOperation):
     pass

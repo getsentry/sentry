@@ -15,9 +15,10 @@ The following information is reported:
 
 - A unique installation ID
 - The version of Sentry
-- A technical contact email (``SENTRY_ADMIN_EMAIL``)
+- A technical contact email (``system.admin-email``)
 - General anonymous statistics on the data pattern (such as the number of
   users)
+- Names and version of the installed Python modules
 
 Note: The contact email is utilized for security announcements, and will
 never be used outside of such.

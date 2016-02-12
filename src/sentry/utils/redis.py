@@ -1,9 +1,12 @@
 from __future__ import absolute_import
 
+import posixpath
+from pkg_resources import resource_string
 from threading import Lock
 
 import rb
 from redis.connection import ConnectionPool
+from redis.client import Script
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils.versioning import (
@@ -17,11 +20,17 @@ _pool_lock = Lock()
 
 
 def _shared_pool(**opts):
-    key = '%s:%s/%s' % (
-        opts['host'],
-        opts['port'],
-        opts['db'],
-    )
+    if 'host' in opts:
+        key = '%s:%s/%s' % (
+            opts['host'],
+            opts['port'],
+            opts['db'],
+        )
+    else:
+        key = '%s/%s' % (
+            opts['path'],
+            opts['db']
+        )
     pool = _pool_cache.get(key)
     if pool is not None:
         return pool
@@ -63,3 +72,24 @@ def check_cluster_versions(cluster, required, recommended=Version((3, 0, 4)), la
         required,
         recommended,
     )
+
+
+def load_script(path):
+    script = Script(None, resource_string('sentry', posixpath.join('scripts', path)))
+
+    # This changes the argument order of the ``Script.__call__`` method to
+    # encourage using the script with a specific Redis client, rather
+    # than implicitly using the first client that the script was registered
+    # with. (This can prevent lots of bizzare behavior when dealing with
+    # clusters of Redis servers.)
+    def call_script(client, keys, args):
+        """
+        Executes {!r} as a Lua script on a Redis server.
+
+        Takes the client to execute the script on as the first argument,
+        followed by the values that will be provided as ``KEYS`` and ``ARGV``
+        to the script as two sequence arguments.
+        """.format(path)
+        return script(keys, args, client)
+
+    return call_script

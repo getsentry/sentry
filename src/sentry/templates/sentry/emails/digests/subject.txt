@@ -1,1 +1,1 @@
-[{{ project.name }}] {{ counts|length }} notification{{ counts|pluralize }}
+[{{ project.get_full_name }}] {{ counts|length }} notification{{ counts|pluralize }} since {{ start|date:"N j, Y, P e" }}

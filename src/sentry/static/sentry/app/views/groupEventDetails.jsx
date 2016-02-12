@@ -1,5 +1,4 @@
 import React from 'react';
-import api from '../api';
 import ApiMixin from '../mixins/apiMixin';
 import EventEntries from '../components/events/eventEntries';
 import GroupEventToolbar from './groupDetails/eventToolbar';
@@ -8,6 +7,7 @@ import GroupState from '../mixins/groupState';
 import MutedBox from '../components/mutedBox';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import {t} from '../locale';
 
 
 const GroupEventDetails = React.createClass({
@@ -39,7 +39,7 @@ const GroupEventDetails = React.createClass({
     let eventId = this.props.params.eventId || 'latest';
 
     let url = (eventId === 'latest' || eventId === 'oldest' ?
-      '/groups/' + this.getGroup().id + '/events/' + eventId + '/' :
+      '/issues/' + this.getGroup().id + '/events/' + eventId + '/' :
       '/events/' + eventId + '/');
 
     this.setState({
@@ -47,7 +47,7 @@ const GroupEventDetails = React.createClass({
       error: false
     });
 
-    this.apiRequest(url, {
+    this.api.request(url, {
       success: (data, _, jqXHR) => {
         this.setState({
           event: data,
@@ -55,7 +55,7 @@ const GroupEventDetails = React.createClass({
           loading: false
         });
 
-        api.bulkUpdate({
+        this.api.bulkUpdate({
           orgId: this.getOrganization().slug,
           projectId: this.getProject().slug,
           itemIds: [this.getGroup().id],
@@ -88,7 +88,22 @@ const GroupEventDetails = React.createClass({
                   orgId={params.orgId}
                   projectId={params.projectId} />
             }
-            <MutedBox status={group.status} />
+            {group.status === 'muted' &&
+              <MutedBox statusDetails={group.statusDetails} />
+            }
+            {group.status === 'resolved' && group.statusDetails.inNextRelease &&
+              <div className="alert alert-info alert-block">
+                <span>{t(`This issue has been marked as being resolved in the next
+                  release. Until then, you will not get notified about new
+                  occurrences.`)}</span>
+              </div>
+            }
+            {group.status === 'resolved' && group.statusDetails.autoResolved &&
+              <div className="alert alert-info alert-block">
+                <span>{t(`This issue was automatically marked as resolved due to
+                  the Auto Resolve configuration for this project.`)}</span>
+              </div>
+            }
             {this.state.loading ?
               <LoadingIndicator />
             : (this.state.error ?

@@ -17,6 +17,13 @@ DEFAULT_CODEC = {
 }
 
 
+class InvalidState(Exception):
+    """
+    An error that is raised when an action cannot be performed on a
+    timeline in it's current state.
+    """
+
+
 class Backend(object):
     """
     A digest backend coordinates the addition of records to timelines, as well
@@ -50,14 +57,14 @@ class Backend(object):
     be transitioned to "waiting" instead.)
     """
     def __init__(self, **options):
-        # The ``interval`` option defines the minimum amount of time (in
-        # seconds) to wait between scheduling digests for delivery after the
-        # initial scheduling.
-        self.interval = options.pop('interval', 60 * 10)
+        # The ``minimum_delay`` option defines the default minimum amount of
+        # time (in seconds) to wait between scheduling digests for delivery
+        # after the initial scheduling.
+        self.minimum_delay = options.pop('minimum_delay', 60 * 5)
 
-        # The ``maximum_delay`` option defines the maximum amount of time (in
-        # seconds) to wait between scheduling digests for delivery.
-        self.maximum_delay = options.pop('maximum_delay', 60 * 60)
+        # The ``maximum_delay`` option defines the default maximum amount of
+        # time (in seconds) to wait between scheduling digests for delivery.
+        self.maximum_delay = options.pop('maximum_delay', 60 * 30)
 
         # The ``increment_delay`` option defines how long each observation of
         # an event should delay scheduling (up until the ``maximum_delay``
@@ -95,7 +102,13 @@ class Backend(object):
     def validate(self):
         pass
 
-    def add(self, key, record):
+    def enabled(self, project):
+        """
+        Check if a project has digests enabled.
+        """
+        return True
+
+    def add(self, key, record, increment_delay=None, maximum_delay=None):
         """
         Add a record to a timeline.
 
@@ -110,7 +123,7 @@ class Backend(object):
         """
         raise NotImplementedError
 
-    def digest(self, key):
+    def digest(self, key, minimum_delay=None):
         """
         Extract records from a timeline for processing.
 
@@ -193,5 +206,11 @@ class Backend(object):
         frequency of maintenance tasks should be decreased, or the deadline
         should be pushed further towards the past (execution grace period
         increased) or both.
+        """
+        raise NotImplementedError
+
+    def delete(self, key):
+        """
+        Delete a timeline and all of it's contents from the database.
         """
         raise NotImplementedError

@@ -60,6 +60,13 @@ class HttpTest(TestCase):
         ))
         assert result.query_string == 'foo=bar'
 
+    def test_query_string_as_dict_unicode(self):
+        result = Http.to_python(dict(
+            url='http://example.com',
+            query_string={'foo': u'\N{SNOWMAN}'},
+        ))
+        assert result.query_string == 'foo=%E2%98%83'
+
     def test_data_as_dict(self):
         result = Http.to_python(dict(
             url='http://example.com',
@@ -122,3 +129,10 @@ class HttpTest(TestCase):
             headers={'Foo': ['1', '2']},
         ))
         assert result.headers == [('Foo', '1, 2')]
+
+    def test_header_value_str(self):
+        result = Http.to_python(dict(
+            url='http://example.com',
+            headers={'Foo': 1}
+        ))
+        assert result.headers == [('Foo', '1')]

@@ -9,7 +9,10 @@
 {% block main %}
   <h2>{% trans "Issue Tracking" %}</h2>
 
-  <p>Configure issue tracking for this project to enable quick issue creation links on events.</p>
+  <p>Enabling Issue Tracking will let you quickly create tasks within your existing tools.
+    You'll find the new action under <span class="btn btn-default btn-sm">More <span class="icon icon-arrow-down"></span></span>
+    on an issue's details page. Once you create an issue, you'll find a helpful annotation
+    and link to the task in your project management tool. </p>
 
   {% if enabled_plugins or other_plugins %}
     {% for plugin, content in enabled_plugins %}
@@ -53,7 +56,7 @@
     {% endif %}
   {% else %}
     <div class="alert alert-info alert-block">
-      <p>There are no issue tracker integrations available.</p>
+      <p>There are no issue tracker integrations available. Ask your Sentry team about integrating with your favorite project management tools.</p>
     </div>
   {% endif %}
 {% endblock %}

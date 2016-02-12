@@ -159,6 +159,11 @@ class Group(Model):
             self.organization.slug, self.project.slug, self.id]))
 
     @property
+    def event_set(self):
+        from sentry.models import Event
+        return Event.objects.filter(group_id=self.id)
+
+    @property
     def avg_time_spent(self):
         if not self.time_spent_count:
             return
@@ -177,6 +182,22 @@ class Group(Model):
         return self.get_status() == GroupStatus.RESOLVED
 
     def get_status(self):
+        # XXX(dcramer): GroupSerializer reimplements this logic
+        from sentry.models import GroupSnooze
+
+        if self.status == GroupStatus.MUTED:
+            try:
+                snooze = GroupSnooze.objects.get(group=self)
+            except GroupSnooze.DoesNotExist:
+                pass
+            else:
+                # XXX(dcramer): if the snooze row exists then we need
+                # to confirm its still valid
+                if snooze.until > timezone.now():
+                    return GroupStatus.MUTED
+                else:
+                    return GroupStatus.UNRESOLVED
+
         if self.status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
             return GroupStatus.RESOLVED
         return self.status
@@ -201,7 +222,7 @@ class Group(Model):
         if not hasattr(self, '_latest_event'):
             latest_events = sorted(
                 Event.objects.filter(
-                    group=self,
+                    group_id=self.id,
                 ).order_by('-datetime')[0:5],
                 key=EVENT_ORDERING_KEY,
                 reverse=True,
@@ -218,7 +239,7 @@ class Group(Model):
         if not hasattr(self, '_oldest_event'):
             oldest_events = sorted(
                 Event.objects.filter(
-                    group=self,
+                    group_id=self.id,
                 ).order_by('datetime')[0:5],
                 key=EVENT_ORDERING_KEY,
             )

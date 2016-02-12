@@ -6,7 +6,7 @@ from sentry.testutils import TestCase
 from sentry.plugins.sentry_useragents.models import (
     BrowserPlugin, DevicePlugin, OsPlugin
 )
-from sentry.utils.ua_parser import Parse
+from ua_parser.user_agent_parser import Parse
 
 
 class UserAgentPlugins(TestCase):

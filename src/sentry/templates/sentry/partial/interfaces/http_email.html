@@ -6,7 +6,7 @@
     <tbody>
         <tr>
             <th>{% trans "URL" %}</th>
-            <td><a href="{{ url }}">{{ short_url }}</a></td>
+            <td><a href="{{ url }}">{{ short_url|truncatechars:75 }}</a></td>
         </tr>
         {% if method %}
         <tr>

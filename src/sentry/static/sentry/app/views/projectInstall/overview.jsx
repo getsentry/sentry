@@ -2,6 +2,7 @@ import React from 'react';
 import {Link} from 'react-router';
 
 import AutoSelectText from '../../components/autoSelectText';
+import {t, tct} from '../../locale';
 
 const ProjectInstallOverview = React.createClass({
   getInitialState() {
@@ -41,30 +42,32 @@ const ProjectInstallOverview = React.createClass({
 
     return (
       <div>
-        <h1>Configure your application</h1>
+        <h1>{t('Configure your application')}</h1>
 
-        <p>Get started by selecting the platform or language that powers your application.</p>
+        <p>{t('Get started by selecting the platform or language that powers your application.')}</p>
 
         {this.state.showDsn ?
           <div>
-            <h3>DSN</h3>
+            <h3>{t('DSN')}</h3>
 
             <div className="control-group">
-              <label>DSN</label>
+              <label>{t('DSN')}</label>
               <AutoSelectText className="form-control disabled">{data.dsn}</AutoSelectText>
             </div>
 
             <div className="control-group">
-              <label>Public DSN</label>
+              <label>{t('Public DSN')}</label>
               <AutoSelectText className="form-control disabled">{data.dsnPublic}</AutoSelectText>
-              <div className="help-block">Your public DSN should be used with JavaScript and ActionScript.</div>
+              <div className="help-block">{t('Your public DSN should be used with JavaScript and ActionScript.')}</div>
             </div>
           </div>
         :
-          <p><small>Already have things setup? <a onClick={this.toggleDsn}>Get your DSN</a>.</small></p>
+          <p><small>{tct('Already have things setup? [link:Get your DSN].', {
+            link: <a onClick={this.toggleDsn} />
+          })}</small></p>
         }
 
-        <h3>Popular</h3>
+        <h3>{t('Popular')}</h3>
 
         <ul className="client-platform-list">
           {this.getIntegrationLink('javascript', 'javascript', 'JavaScript')}
@@ -76,7 +79,7 @@ const ProjectInstallOverview = React.createClass({
           {this.getIntegrationLink('java', 'java-log4j', 'Log4j')}
         </ul>
 
-        <h3>Frameworks</h3>
+        <h3>{t('Frameworks')}</h3>
         <ul className="client-platform-list">
           {frameworkList.map((item) => {
             let [platform, integration] = item;
@@ -84,7 +87,7 @@ const ProjectInstallOverview = React.createClass({
           })}
         </ul>
 
-        <h3>Languages</h3>
+        <h3>{t('Languages')}</h3>
         <ul className="client-platform-list">
           {languageList.map((item) => {
             let [platform, integration] = item;
@@ -93,8 +96,13 @@ const ProjectInstallOverview = React.createClass({
         </ul>
 
         <p>
-          <em>Don't see your platform listed here?</em> For a complete list of client integrations,
-          please visit see <a href="https://docs.getsentry.com">our in-depth documentation</a>.
+          {tct(`
+             [em:Don\'t see your platform listed here?] For a complete list of
+             client integrations, please visit see [docLink:our in-depth documentation].
+          `, {
+            em: <em />,
+            docLink: <a href="https://docs.getsentry.com" />
+          })}
         </p>
       </div>
     );

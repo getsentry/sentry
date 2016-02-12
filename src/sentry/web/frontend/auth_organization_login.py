@@ -1,7 +1,7 @@
 from __future__ import absolute_import, print_function
 
+
 from django.conf import settings
-from django.contrib.auth import login
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.views.decorators.cache import never_cache
@@ -9,7 +9,7 @@ from django.views.decorators.cache import never_cache
 from sentry import features
 from sentry.auth.helper import AuthHelper
 from sentry.models import AuthProvider, Organization
-from sentry.utils.auth import get_login_redirect
+from sentry.utils import auth
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
 
@@ -56,23 +56,24 @@ class AuthOrganizationLoginView(BaseView):
             # HACK: grab whatever the first backend is and assume it works
             user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-            login(request, user)
+            auth.login(request, user)
 
             # can_register should only allow a single registration
             request.session.pop('can_register', None)
 
             request.session.pop('needs_captcha', None)
 
-            return self.redirect(get_login_redirect(request))
+            return self.redirect(auth.get_login_redirect(request))
 
         elif login_form.is_valid():
-            login(request, login_form.get_user())
+            auth.login(request, login_form.get_user())
 
             request.session.pop('needs_captcha', None)
 
-            return self.redirect(get_login_redirect(request))
+            return self.redirect(auth.get_login_redirect(request))
 
         elif request.POST and not request.session.get('needs_captcha'):
+            auth.log_auth_failure(request, request.POST.get('username'))
             request.session['needs_captcha'] = 1
             login_form = self.get_login_form(request)
             login_form.errors.pop('captcha', None)
@@ -92,12 +93,6 @@ class AuthOrganizationLoginView(BaseView):
         return self.respond('sentry/organization-login.html', context)
 
     def handle_sso(self, request, organization, auth_provider):
-        # if they're authenticated we want them to go through the standard
-        # link flow
-        if request.user.is_authenticated():
-            return self.redirect(reverse('sentry-auth-link-identity',
-                                         args=[organization.slug]))
-
         if request.method == 'POST':
             helper = AuthHelper(
                 request=request,

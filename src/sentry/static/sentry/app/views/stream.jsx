@@ -1,16 +1,17 @@
 import React from 'react';
 import Reflux from 'reflux';
 import {History} from 'react-router';
+import {Link} from 'react-router';
 import Cookies from 'js-cookie';
 import Sticky from 'react-sticky';
 import classNames from 'classnames';
 import _ from 'underscore';
 
-import api from '../api';
-
+import ApiMixin from '../mixins/apiMixin';
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import ProjectState from '../mixins/projectState';
 import Pagination from '../components/pagination';
 import StreamGroup from '../components/stream/group';
 import StreamActions from './stream/actions';
@@ -19,7 +20,9 @@ import StreamTagStore from '../stores/streamTagStore';
 import StreamFilters from './stream/filters';
 import StreamSidebar from './stream/sidebar';
 import utils from '../utils';
+import {logAjaxError} from '../utils/logging';
 import parseLinkHeader from '../utils/parseLinkHeader';
+import {t, tct} from '../locale';
 
 const Stream = React.createClass({
   propTypes: {
@@ -29,14 +32,14 @@ const Stream = React.createClass({
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.listenTo(StreamTagStore, 'onStreamTagChange'),
-    History
+    History,
+    ApiMixin,
+    ProjectState
   ],
 
   getDefaultProps() {
     return {
-      // intentional trailing whitespace / better UX for when uesrs focus on search input
-      defaultQuery: 'is:unresolved ',
-
+      defaultQuery: null,
       defaultSort: 'date',
       defaultStatsPeriod: '24h',
       maxItems: 25
@@ -44,24 +47,29 @@ const Stream = React.createClass({
   },
 
   getInitialState() {
+    let searchId = this.props.params.searchId || null;
     return {
       groupIds: [],
+      searchId: searchId,
+      // if we have no query then we can go ahead and fetch data
+      loading: (searchId || !this.hasQuery() ? true : false),
+      savedSearchLoading: true,
+      savedSearchList: [],
       selectAllActive: false,
       multiSelected: false,
       anySelected: false,
       statsPeriod: this.props.defaultStatsPeriod,
-      realtimeActive: false,
+      realtimeActive: Cookies.get('realtimeActive') === 'true',
       pageLinks: '',
-      loading: true,
+      dataLoading: true,
       error: false,
-      query: this.props.defaultQuery,
+      query: '',
       sort: this.props.defaultSort,
-      filter: {},
       tags: StreamTagStore.getAllTags(),
       tagsLoading: true,
       isSidebarVisible: false,
       isStickyHeader: false,
-      ...this.getQueryStringState()
+      ...this.getQueryState()
     };
   },
 
@@ -70,29 +78,27 @@ const Stream = React.createClass({
 
     this._streamManager = new utils.StreamManager(GroupStore);
     this._poller = new utils.CursorPoller({
-      success: this.onRealtimePoll,
-      endpoint: this.getGroupListEndpoint()
+      success: this.onRealtimePoll
     });
 
-    let realtime = Cookies.get('realtimeActive');
-    if (realtime) {
-      let realtimeActive = realtime === 'true';
-      this.setState({
-        realtimeActive: realtimeActive
-      });
-      if (realtimeActive) {
-        this._poller.enable();
-      }
-    }
-
+    this.fetchSavedSearches();
     this.fetchTags();
-    this.fetchData();
+    if (!this.state.loading) {
+      this.fetchData();
+    }
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.location.search !== this.props.location.search) {
-      this.setState(this.getQueryStringState(nextProps), this.fetchData);
-      this._poller.disable();
+    // you cannot apply both a query and a saved search (our routes do not
+    // support it), so the searchId takes priority
+    if (this.state.loading) {
+      return;
+    }
+
+    if (nextProps.params.searchId !== this.state.searchId
+          || nextProps.location.search !== this.props.location.search) {
+      // TODO(dcramer): handle 404 from popState on searchId
+      this.setState(this.getQueryState(nextProps), this.fetchData);
     }
   },
 
@@ -102,8 +108,9 @@ const Stream = React.createClass({
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.realtimeActive !== this.state.realtimeActive) {
+      // User toggled realtime button
       if (this.state.realtimeActive) {
-        this._poller.enable();
+        this.resumePolling();
       } else {
         this._poller.disable();
       }
@@ -115,6 +122,64 @@ const Stream = React.createClass({
     GroupStore.reset();
   },
 
+  fetchSavedSearches() {
+    this.setState({
+      savedSearchLoading: true,
+    });
+
+    let {orgId, projectId} = this.props.params;
+    this.api.request(`/projects/${orgId}/${projectId}/searches/`, {
+      success: (data) => {
+        let newState = {
+          savedSearchLoading: false,
+          savedSearchList: data,
+          loading: false,
+        };
+        let needsData = this.state.loading;
+        let searchId = this.state.searchId;
+        if (searchId) {
+          let match = data.filter((search) => {
+            return search.id === searchId;
+          });
+          if (match.length) {
+            newState.query = match[0].query;
+          } else {
+            return void this.setState({
+              savedSearchLoading: false,
+              savedSearchList: data,
+              searchId: null,
+            }, this.transitionTo);
+          }
+        } else if (!this.hasQuery()) {
+          let defaultResults = data.filter((search) => {
+            return search.isUserDefault;
+          });
+          if (!defaultResults.length) {
+            defaultResults = data.filter((search) => {
+              return search.isDefault;
+            });
+          }
+          if (defaultResults.length) {
+            newState.searchId = defaultResults[0].id;
+            newState.query = defaultResults[0].query;
+          }
+        }
+        this.setState(newState, needsData ? this.fetchData : null);
+      },
+      error: (error) => {
+        // XXX(dcramer): fail gracefully by still loading the stream
+        logAjaxError(error);
+        this.setState({
+          loading: false,
+          searchId: null,
+          savedSearchList: [],
+          savedSearchLoading: false,
+          query: '',
+        });
+      }
+    });
+  },
+
   fetchTags() {
     StreamTagStore.reset();
     StreamTagActions.loadTags();
@@ -124,7 +189,7 @@ const Stream = React.createClass({
     });
 
     let params = this.props.params;
-    api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
+    this.api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
       success: (tags) => {
         this.setState({tagsLoading: false});
         StreamTagActions.loadTagsSuccess(tags);
@@ -136,21 +201,29 @@ const Stream = React.createClass({
     });
   },
 
-  getQueryStringState(props) {
+  onSavedSearchCreate(data) {
+    let {orgId, projectId} = this.props.params;
+    let savedSearchList = this.state.savedSearchList;
+    savedSearchList.push(data);
+    // TODO(dcramer): sort
+    this.setState({
+      savedSearchList: savedSearchList,
+    });
+    this.history.pushState(null, `/${orgId}/${projectId}/searches/${data.id}/`);
+  },
+
+  getQueryState(props) {
     props = props || this.props;
-    let currentQuery = props.location.query;
+    let currentQuery = props.location.query || {};
+    // state may not yet be defined at this point
+    let state = this.state || {};
 
-    let filter = {};
-    if (currentQuery.bookmarks) {
-      filter = { bookmarks: '1' };
-    } else if (currentQuery.assigned) {
-      filter = { assigned: '1' };
-    }
+    let hasQuery = currentQuery.hasOwnProperty('query');
 
-    let query =
-      currentQuery.hasOwnProperty('query') ?
-      currentQuery.query :
-      this.props.defaultQuery;
+    let searchId = (
+      hasQuery ?
+      null :
+      props.params.searchId || state.searchId || null);
 
     let sort =
       currentQuery.hasOwnProperty('sort') ?
@@ -166,39 +239,76 @@ const Stream = React.createClass({
       statsPeriod = this.props.defaultStatsPeriod;
     }
 
-    return {
-      filter: filter,
-      query: query,
+    let newState = {
       sort: sort,
-      statsPeriod: statsPeriod
+      statsPeriod: statsPeriod,
+      query: hasQuery ? currentQuery.query : '',
+      searchId: searchId,
     };
+
+    // state is not yet defined
+    if (this.state === null)
+      return newState;
+
+    if (searchId) {
+      let searchResult = this.state.savedSearchList.filter((search) => {
+        return search.id === searchId;
+      });
+      if (searchResult.length) {
+        newState.query = searchResult[0].query;
+      } else {
+        newState.searchId = null;
+      }
+    } else if (!hasQuery) {
+      let defaultResult = this.state.savedSearchList.filter((search) => {
+        return search.isDefault;
+      });
+      if (defaultResult.length) {
+        newState.searchId = defaultResult[0].id;
+        newState.query = defaultResult[0].query;
+      } else {
+        newState.searchId = null;
+      }
+    }
+    newState.loading = false;
+    return newState;
+  },
+
+  hasQuery(props) {
+    props = props || this.props;
+    let currentQuery = props.location.query || {};
+    return currentQuery.hasOwnProperty('query');
   },
 
   fetchData() {
     GroupStore.loadInitialData([]);
 
     this.setState({
-      loading: true,
+      dataLoading: true,
       error: false
     });
 
     let url = this.getGroupListEndpoint();
 
     let requestParams = {
-      ...this.props.location.query,
+      query: this.state.query,
       limit: this.props.maxItems,
+      sort: this.state.sort,
       statsPeriod: this.state.statsPeriod
     };
 
-    if (!requestParams.hasOwnProperty('query')) {
-      requestParams.query = this.props.defaultQuery;
+    let currentQuery = this.props.location.query || {};
+    if (currentQuery.hasOwnProperty('cursor')) {
+      requestParams.cursor = currentQuery.cursor;
     }
 
     if (this.lastRequest) {
       this.lastRequest.cancel();
     }
 
-    this.lastRequest = api.request(url, {
+    this._poller.disable();
+
+    this.lastRequest = this.api.request(url, {
       method: 'GET',
       data: requestParams,
       success: (data, ignore, jqXHR) => {
@@ -208,38 +318,47 @@ const Stream = React.createClass({
           let params = this.props.params;
           let groupId = data[0].id;
 
-          return void this.history.pushState(null, `/${params.orgId}/${params.projectId}/group/${groupId}/`);
+          return void this.history.pushState(null, `/${params.orgId}/${params.projectId}/issues/${groupId}/`);
         }
 
         this._streamManager.push(data);
 
         this.setState({
           error: false,
-          loading: false,
+          dataLoading: false,
           pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          dataLoading: false
         });
       },
       complete: (jqXHR) => {
         this.lastRequest = null;
 
-        let links = parseLinkHeader(jqXHR.getResponseHeader('Link'));
-        if (links && links.previous) {
-          this._poller.setEndpoint(links.previous.href);
-        }
+        this.resumePolling();
       }
     });
+  },
+
+  resumePolling() {
+    if (!this.state.pageLinks)
+      return;
+
+    // Only resume polling if we're on the first page of results
+    let links = parseLinkHeader(this.state.pageLinks);
+    if (links && !links.previous.results && this.state.realtimeActive) {
+      this._poller.setEndpoint(links.previous.href);
+      this._poller.enable();
+    }
   },
 
   getGroupListEndpoint() {
     let params = this.props.params;
 
-    return '/projects/' + params.orgId + '/' + params.projectId + '/groups/';
+    return '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
   },
 
   onRealtimeChange(realtime) {
@@ -286,20 +405,20 @@ const Stream = React.createClass({
   },
 
   onSearch(query) {
-    this.setState({
-      query: query
-    }, this.transitionTo);
+    if (query === this.state.query) {
+      // if query is the same, just re-fetch data
+      this.fetchData();
+    } else {
+      this.setState({
+        query: query,
+        searchId: null,
+      }, this.transitionTo);
+    }
   },
 
   onSortChange(sort) {
     this.setState({
       sort: sort
-    }, this.transitionTo);
-  },
-
-  onFilterChange(filter) {
-    this.setState({
-      filter: filter
     }, this.transitionTo);
   },
 
@@ -315,14 +434,21 @@ const Stream = React.createClass({
     });
   },
 
+  /**
+   * Returns true if all results in the current query are visible/on this page
+   */
+  allResultsVisible() {
+    if (!this.state.pageLinks)
+      return false;
+
+    let links = parseLinkHeader(this.state.pageLinks);
+    return links && !links.previous.results && !links.next.results;
+  },
+
   transitionTo() {
     let queryParams = {};
 
-    for (let prop in this.state.filter) {
-      queryParams[prop] = this.state.filter[prop];
-    }
-
-    if (this.state.query !== this.props.defaultQuery) {
+    if (!this.state.searchId && this.state.query !== this.props.defaultQuery) {
       queryParams.query = this.state.query;
     }
 
@@ -335,7 +461,11 @@ const Stream = React.createClass({
     }
 
     let params = this.props.params;
-    this.history.pushState(null, `/${params.orgId}/${params.projectId}/`, queryParams);
+    let path = (this.state.searchId ?
+      `/${params.orgId}/${params.projectId}/searches/${this.state.searchId}/` :
+      `/${params.orgId}/${params.projectId}/`);
+
+    this.history.pushState(null, path, queryParams);
   },
 
   renderGroupNodes(ids, statsPeriod) {
@@ -354,11 +484,27 @@ const Stream = React.createClass({
     return (<ul className="group-list" ref="groupList">{groupNodes}</ul>);
   },
 
+  renderAwaitingEvents() {
+    let org = this.getOrganization();
+    let project = this.getProject();
+
+    return (
+      <div className="box awaiting-events">
+        <div className="wrap">
+          <div className="robot"><span className="eye" /></div>
+          <h3>{t('Waiting for events…')}</h3>
+          <p>{tct('Our error robot is waiting to [cross:devour] receive your first event.', {cross: <span className="strikethrough"/>})}</p>
+          <p><Link to={`/${org.slug}/${project.slug}/settings/install/`} className="btn btn-primary btn-lg">{t('Installation Instructions')}</Link></p>
+        </div>
+      </div>
+    );
+  },
+
   renderEmpty() {
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation"></span>
-        <p>Sorry, no events match your filters.</p>
+        <p>{t('Sorry, no events match your filters.')}</p>
       </div>
     );
   },
@@ -374,10 +520,14 @@ const Stream = React.createClass({
   renderStreamBody() {
     let body;
 
-    if (this.state.loading) {
+    let project = this.getProject();
+
+    if (this.state.dataLoading) {
       body = this.renderLoading();
     } else if (this.state.error) {
       body = (<LoadingError onRetry={this.fetchData} />);
+    } else if (!project.firstEvent) {
+      body = this.renderAwaitingEvents();
     } else if (this.state.groupIds.length > 0) {
       body = this.renderGroupNodes(this.state.groupIds, this.state.statsPeriod);
     } else {
@@ -388,6 +538,11 @@ const Stream = React.createClass({
   },
 
   render() {
+    // global loading
+    if (this.state.loading) {
+      return this.renderLoading();
+    }
+
     let params = this.props.params;
 
     let classes = ['stream-row'];
@@ -395,21 +550,27 @@ const Stream = React.createClass({
       classes.push('show-sidebar');
 
     let {orgId, projectId} = this.props.params;
+    let searchId = this.state.searchId;
+    let access = this.getAccess();
+
     return (
       <div className={classNames(classes)}>
         <div className="stream-content">
           <StreamFilters
+            access={access}
             orgId={orgId}
             projectId={projectId}
             query={this.state.query}
             sort={this.state.sort}
             tags={this.state.tags}
+            searchId={searchId}
             defaultQuery={this.props.defaultQuery}
             onSortChange={this.onSortChange}
-            onFilterChange={this.onFilterChange}
             onSearch={this.onSearch}
+            onSavedSearchCreate={this.onSavedSearchCreate}
             onSidebarToggle={this.onSidebarToggle}
             isSearchDisabled={this.state.isSidebarVisible}
+            savedSearchList={this.state.savedSearchList}
           />
           <div className="group-header">
             <Sticky onStickyStateChange={this.onStickyStateChange}>
@@ -417,11 +578,13 @@ const Stream = React.createClass({
                 <StreamActions
                   orgId={params.orgId}
                   projectId={params.projectId}
+                  query={this.state.query}
                   onSelectStatsPeriod={this.onSelectStatsPeriod}
                   onRealtimeChange={this.onRealtimeChange}
                   realtimeActive={this.state.realtimeActive}
                   statsPeriod={this.state.statsPeriod}
-                  groupIds={this.state.groupIds} />
+                  groupIds={this.state.groupIds}
+                  allResultsVisible={this.allResultsVisible()}/>
               </div>
             </Sticky>
           </div>

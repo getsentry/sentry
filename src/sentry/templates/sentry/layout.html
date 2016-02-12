@@ -16,7 +16,13 @@
   <meta name="robots" content="NONE,NOARCHIVE">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <link href="{% asset_url "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
+  <link href="{% absolute_asset_url "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
+
+  <link rel="icon" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon.png" %}">
+  <link rel="apple-touch-icon" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon.png" %}">
+  <link rel="apple-touch-icon" sizes="76x76" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-76x76.png" %}">
+  <link rel="apple-touch-icon" sizes="120x120" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-120x120.png" %}">
+  <link rel="apple-touch-icon" sizes="152x152" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-152x152.png" %}">
 
   {% block css %}
   <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
@@ -25,8 +31,8 @@
   <title>{% block title %}Sentry{% endblock %}</title>
 
   {% block scripts %}
-  <script src="{% asset_url "sentry" "dist/vendor.js" %}" crossorigin="anonymous"></script>
-  <script src="{% asset_url "sentry" "dist/app.js" %}" crossorigin="anonymous"></script>
+  <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
+  <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
 
   <script>
     for (var n in window.exports) {
@@ -53,7 +59,7 @@
 <body class="{% block wrapperclass %}{% endblock %}">
   {% block body %}
   <div class="app">
-    {% if request.user.is_superuser %}
+    {% if request.is_superuser %}
         {% show_system_status %}
     {% endif %}
 
@@ -168,7 +174,7 @@
       <div class="container">
         {% block footer %}
         <div class="pull-right">
-          {% if request.user.is_staff %}
+          {% if request.is_superuser %}
           <a href="{% url 'sentry-admin-status' %}">{% trans "Admin" %}</a>
           {% endif %}
           {% block support_link %}{% endblock %}

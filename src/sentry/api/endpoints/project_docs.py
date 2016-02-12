@@ -2,14 +2,16 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models import ProjectKey
+from sentry.utils.integrationdocs import load_doc
 
 
 class ProjectDocsEndpoint(ProjectEndpoint):
     def get(self, request, project):
-        data = options.get('sentry:docs')
+        data = load_doc('_platforms')
+        if data is None:
+            raise RuntimeError('Docs not built')
         project_key = ProjectKey.get_default(project)
 
         context = {

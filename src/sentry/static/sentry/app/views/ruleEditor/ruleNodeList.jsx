@@ -47,7 +47,7 @@ const RuleNodeList = React.createClass({
       <div className={this.props.className}>
         <table className="node-list table" style={{marginBottom: '10px'}}>
           <col />
-          <col style={{ textAlign: 'right'}} />
+          <col style={{textAlign: 'right'}} />
           <tbody>
             {this.state.items.map((item, idx) => {
               return (

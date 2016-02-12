@@ -17,7 +17,7 @@
         <div class="container">
           {% block header %}
           <h1>
-            <a href="{% absolute_uri %}"><img src="{% asset_url 'sentry' 'images/email/sentry_logo_full.png' %}" width="125px" height="29px" alt="Sentry"></a>
+            <a href="{% absolute_uri %}"><img src="{% absolute_asset_url 'sentry' 'images/email/sentry_logo_full.png' %}" width="125px" height="29px" alt="Sentry"></a>
           </h1>
           {% endblock %}
         </div>

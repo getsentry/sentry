@@ -17,12 +17,12 @@ env:
   matrix:
     - TEST_SUITE=sqlite DB=sqlite
     - TEST_SUITE=postgres DB=postgres
-    - TEST_SUITE=webpack
     - TEST_SUITE=js
     - TEST_SUITE=cli
   global:
+    - USE_SOUTH=1
     - SENTRY_LIGHT_BUILD=1
-    - SKIP_BACKEND_VALIDATION=1
+    - SENTRY_SKIP_BACKEND_VALIDATION=1
 install:
   - make travis-install-$TEST_SUITE
 script:

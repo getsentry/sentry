@@ -8,14 +8,14 @@ This document covers some frequently asked questions that come up.
 My sentry is running at **example.com:9000** but whenever I visit it I get
 redirected to **example.com**.
 
-    You likely have not correctly configured **SENTRY_URL_PREFIX**. See
+    You likely have not correctly configured **system.url-prefix**. See
     :doc:`config` for more information.
 
 .. class:: qa
 
 AJAX requests do not seem to work properly.
 
-    It's likely you have not correctly configured **SENTRY_URL_PREFIX**, so
+    It's likely you have not correctly configured **system.url-prefix**, so
     you're hitting CORS issues. See :doc:`config` for more information.
 
 .. class:: qa
@@ -52,7 +52,7 @@ and users?
         # Do something crazy
         from sentry.models import (
             Team, Project, ProjectKey, User, Organization, OrganizationMember,
-            OrganizationmemberType
+            OrganizationMemberTeam
         )
 
         organization = Organization()

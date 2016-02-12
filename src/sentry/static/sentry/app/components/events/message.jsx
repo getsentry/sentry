@@ -1,6 +1,7 @@
 import React from 'react';
 import EventDataSection from './eventDataSection';
 import utils from '../../utils';
+import {t} from '../../locale';
 
 const Message = React.createClass({
   render() {
@@ -9,7 +10,7 @@ const Message = React.createClass({
           group={this.props.group}
           event={this.props.event}
           type="message"
-          title="Message">
+          title={t('Message')}>
         <pre className="plain" dangerouslySetInnerHTML={{
           __html: utils.nl2br(utils.urlize(utils.escape(this.props.event.message)))
         }} />

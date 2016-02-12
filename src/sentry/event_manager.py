@@ -12,8 +12,10 @@ import math
 import six
 
 from datetime import datetime, timedelta
+from collections import OrderedDict
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import connection, IntegrityError, router, transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from hashlib import md5
@@ -25,15 +27,15 @@ from sentry.constants import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Event, EventMapping, EventUser, Group, GroupHash, GroupStatus,
-    Project, Release, TagKey, UserReport
+    Activity, Event, EventMapping, EventUser, Group, GroupHash, GroupResolution,
+    GroupStatus, Project, Release, TagKey, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import regression_signal
 from sentry.utils.logging import suppress_exceptions
-from sentry.tasks.index import index_event
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
+from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
 from sentry.utils.safe import safe_execute, trim, trim_dict
 from sentry.utils.strings import truncatechars
@@ -63,14 +65,35 @@ def md5_from_hash(hash_bits):
     return result.hexdigest()
 
 
+def get_fingerprint_for_event(event):
+    fingerprint = event.data.get('fingerprint')
+    if fingerprint is None:
+        return ['{{ default }}']
+    if isinstance(fingerprint, basestring):
+        return [fingerprint]
+    return fingerprint
+
+
 def get_hashes_for_event(event):
+    return get_hashes_for_event_with_reason(event)[1]
+
+
+def get_hashes_for_event_with_reason(event):
     interfaces = event.get_interfaces()
     for interface in interfaces.itervalues():
         result = interface.compute_hashes(event.platform)
         if not result:
             continue
-        return result
-    return [[event.message]]
+        return (interface.get_path(), result)
+    return ('message', [event.message])
+
+
+def get_grouping_behavior(event):
+    data = event.data
+    if 'checksum' in data:
+        return ('checksum', data['checksum'])
+    fingerprint = get_fingerprint_for_event(event)
+    return ('fingerprint', get_hashes_from_fingerprint_with_reason(event, fingerprint))
 
 
 def get_hashes_from_fingerprint(event, fingerprint):
@@ -91,6 +114,24 @@ def get_hashes_from_fingerprint(event, fingerprint):
                 result.append(bit)
         hashes.append(result)
     return hashes
+
+
+def get_hashes_from_fingerprint_with_reason(event, fingerprint):
+    default_values = set(['{{ default }}', '{{default}}'])
+    if any(d in fingerprint for d in default_values):
+        default_hashes = get_hashes_for_event_with_reason(event)
+        hash_count = len(default_hashes[1])
+    else:
+        hash_count = 1
+
+    hashes = OrderedDict((bit, []) for bit in fingerprint)
+    for idx in xrange(hash_count):
+        for bit in fingerprint:
+            if bit in default_values:
+                hashes[bit].append(default_hashes)
+            else:
+                hashes[bit] = bit
+    return hashes.items()
 
 
 if not settings.SENTRY_SAMPLE_DATA:
@@ -233,6 +274,7 @@ class EventManager(object):
         data.setdefault('checksum', None)
         data.setdefault('fingerprint', None)
         data.setdefault('platform', None)
+        data.setdefault('environment', None)
         data.setdefault('extra', {})
         data.setdefault('errors', [])
 
@@ -337,6 +379,7 @@ class EventManager(object):
         fingerprint = data.pop('fingerprint', None)
         platform = data.pop('platform', None)
         release = data.pop('release', None)
+        environment = data.pop('environment', None)
 
         if not culprit:
             culprit = generate_culprit(data)
@@ -350,7 +393,7 @@ class EventManager(object):
         }
 
         event = Event(
-            project=project,
+            project_id=project.id,
             event_id=event_id,
             data=data,
             time_spent=time_spent,
@@ -369,6 +412,8 @@ class EventManager(object):
         if release:
             # TODO(dcramer): we should ensure we create Release objects
             tags.append(('sentry:release', release))
+        if environment:
+            tags.append(('environment', environment))
 
         for plugin in plugins.for_project(project, version=None):
             added_tags = safe_execute(plugin.get_tags, event,
@@ -384,7 +429,7 @@ class EventManager(object):
         # this propagates into Event
         data['tags'] = tags
 
-        data['fingerprint'] = fingerprint or '{{ default }}'
+        data['fingerprint'] = fingerprint or ['{{ default }}']
 
         # prioritize fingerprint over checksum as its likely the client defaulted
         # a checksum whereas the fingerprint was explicit
@@ -415,31 +460,24 @@ class EventManager(object):
 
             group_kwargs['first_release'] = release
 
-            Activity.objects.create(
-                type=Activity.RELEASE,
-                project=project,
-                ident=release,
-                data={'version': release},
-                datetime=date,
-            )
-
         group, is_new, is_regression, is_sample = self._save_aggregate(
             event=event,
             hashes=hashes,
+            release=release,
             **group_kwargs
         )
 
         event.group = group
-        event.group_id = group.id
         # store a reference to the group id to guarantee validation of isolation
         event.data.bind_ref(event)
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(EventMapping)):
                 EventMapping.objects.create(
                     project=project, group=group, event_id=event_id)
         except IntegrityError:
-            self.logger.info('Duplicate EventMapping found for event_id=%s', event_id)
+            self.logger.info('Duplicate EventMapping found for event_id=%s', event_id,
+                             exc_info=True)
             return event
 
         UserReport.objects.filter(
@@ -449,10 +487,11 @@ class EventManager(object):
         # save the event unless its been sampled
         if not is_sample:
             try:
-                with transaction.atomic():
+                with transaction.atomic(using=router.db_for_write(Event)):
                     event.save()
             except IntegrityError:
-                self.logger.info('Duplicate Event found for event_id=%s', event_id)
+                self.logger.info('Duplicate Event found for event_id=%s', event_id,
+                                 exc_info=True)
                 return event
 
         if event_user:
@@ -483,8 +522,6 @@ class EventManager(object):
         else:
             self.logger.info('Raw event passed; skipping post process for event_id=%s', event_id)
 
-        index_event.delay(event)
-
         # TODO: move this to the queue
         if is_regression and not raw:
             regression_signal.send_robust(sender=Group, instance=group)
@@ -507,11 +544,18 @@ class EventManager(object):
         if not euser.tag_value:
             return
 
-        try:
-            with transaction.atomic():
-                euser.save()
-        except IntegrityError:
-            pass
+        cache_key = 'euser:{}:{}'.format(
+            project.id,
+            md5(euser.tag_value.encode('utf-8')).hexdigest(),
+        )
+        cached = default_cache.get(cache_key)
+        if cached is None:
+            try:
+                with transaction.atomic(using=router.db_for_write(EventUser)):
+                    euser.save()
+            except IntegrityError:
+                pass
+            default_cache.set(cache_key, '', 3600)
 
         return euser
 
@@ -538,10 +582,11 @@ class EventManager(object):
             return
 
         for hash in bad_hashes:
-            merge_group.delay(
-                from_group_id=hash.group_id,
-                to_group_id=group.id,
-            )
+            if hash.group_id:
+                merge_group.delay(
+                    from_group_id=hash.group_id,
+                    to_group_id=group.id,
+                )
 
         return GroupHash.objects.filter(
             project=group.project,
@@ -550,7 +595,7 @@ class EventManager(object):
             group=group,
         )
 
-    def _save_aggregate(self, event, hashes, **kwargs):
+    def _save_aggregate(self, event, hashes, release, **kwargs):
         project = event.project
 
         # attempt to find a matching hash
@@ -597,7 +642,12 @@ class EventManager(object):
         can_sample = should_sample(event.datetime, group.last_seen, group.times_seen)
 
         if not is_new:
-            is_regression = self._process_existing_aggregate(group, event, kwargs)
+            is_regression = self._process_existing_aggregate(
+                group=group,
+                event=event,
+                data=kwargs,
+                release=release,
+            )
         else:
             is_regression = False
 
@@ -614,7 +664,94 @@ class EventManager(object):
 
         return group, is_new, is_regression, is_sample
 
-    def _process_existing_aggregate(self, group, event, data):
+    def _handle_regression(self, group, event, release):
+        if not group.is_resolved():
+            return
+
+        elif release:
+            # we only mark it as a regression if the event's release is newer than
+            # the release which we originally marked this as resolved
+            has_resolution = GroupResolution.objects.filter(
+                Q(release__date_added__gt=release.date_added) | Q(release=release),
+                group=group,
+            ).exists()
+            if has_resolution:
+                return
+
+        else:
+            has_resolution = False
+
+        if not plugin_is_regression(group, event):
+            return
+
+        # we now think its a regression, rely on the database to validate that
+        # no one beat us to this
+        date = max(event.datetime, group.last_seen)
+        is_regression = bool(Group.objects.filter(
+            id=group.id,
+            # ensure we cant update things if the status has been set to
+            # muted
+            status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
+        ).exclude(
+            # add to the regression window to account for races here
+            active_at__gte=date - timedelta(seconds=5),
+        ).update(
+            active_at=date,
+            # explicitly set last_seen here as ``is_resolved()`` looks
+            # at the value
+            last_seen=date,
+            status=GroupStatus.UNRESOLVED
+        ))
+
+        group.active_at = date
+        group.status = GroupStatus.UNRESOLVED
+
+        if is_regression and release:
+            # resolutions are only valid if the state of the group is still
+            # resolved -- if it were to change the resolution should get removed
+            try:
+                resolution = GroupResolution.objects.get(
+                    group=group,
+                )
+            except GroupResolution.DoesNotExist:
+                affected = False
+            else:
+                cursor = connection.cursor()
+                # delete() API does not return affected rows
+                cursor.execute("DELETE FROM sentry_groupresolution WHERE id = %s", [resolution.id])
+                affected = cursor.rowcount > 0
+
+            if affected:
+                # if we had to remove the GroupResolution (i.e. we beat the
+                # the queue to handling this) then we need to also record
+                # the corresponding event
+                try:
+                    activity = Activity.objects.filter(
+                        group=group,
+                        type=Activity.SET_RESOLVED_IN_RELEASE,
+                        ident=resolution.id,
+                    ).order_by('-datetime')[0]
+                except IndexError:
+                    # XXX: handle missing data, as its not overly important
+                    pass
+                else:
+                    activity.update(data={
+                        'version': release.version,
+                    })
+
+        if is_regression:
+            Activity.objects.create(
+                project=group.project,
+                group=group,
+                type=Activity.SET_REGRESSION,
+                data={
+                    'version': release.version if release else '',
+                }
+            )
+
+        return is_regression
+
+    def _process_existing_aggregate(self, group, event, data, release):
         date = max(event.datetime, group.last_seen)
         extra = {
             'last_seen': date,
@@ -627,25 +764,7 @@ class EventManager(object):
         if group.culprit != data['culprit']:
             extra['culprit'] = data['culprit']
 
-        is_regression = False
-        if group.is_resolved() and plugin_is_regression(group, event):
-            is_regression = bool(Group.objects.filter(
-                id=group.id,
-                # ensure we cant update things if the status has been set to
-                # muted
-                status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
-            ).exclude(
-                # add to the regression window to account for races here
-                active_at__gte=date - timedelta(seconds=5),
-            ).update(
-                active_at=date,
-                # explicitly set last_seen here as ``is_resolved()`` looks
-                # at the value
-                last_seen=date,
-                status=GroupStatus.UNRESOLVED
-            ))
-            group.active_at = date
-            group.status = GroupStatus.UNRESOLVED
+        is_regression = self._handle_regression(group, event, release)
 
         group.last_seen = extra['last_seen']
 

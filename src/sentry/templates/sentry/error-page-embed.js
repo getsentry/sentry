@@ -14,6 +14,9 @@
   var GENERIC_ERROR = '<p class="message-error">An unknown error occurred while submitting your report. Please try again.</p>';
   var FORM_ERROR = '<p class="message-error">Some fields were invalid. Please correct the errors and try again.</p>';
 
+  // XMLHttpRequest.DONE does not exist in all browsers
+  var XHR_DONE = 4;
+
   var template = {{ template }};
   var endpoint = {{ endpoint }};
   var encode = window.encodeURIComponent;
@@ -41,25 +44,26 @@
   };
 
   SentryErrorEmbed.prototype.build = function() {
+    var self = this;
     this.element = document.createElement('div');
     this.element.className = 'sentry-error-embed-wrapper';
     this.element.innerHTML = template;
-    this.element.onclick = function(e){
-      if (e.target !== this.element) return;
-      close();
-    }.bind(this);
+    self.element.onclick = function(e){
+      if (e.target !== self.element) return;
+      self.close();
+    };
 
     this._form = this.element.getElementsByTagName('form')[0];
     this._form.onsumbit = function(e) {
       e.preventDefault();
-      this.submit(this.serialize());
-    }.bind(this);
+      self.submit(self.serialize());
+    };
 
     this._submitBtn = this.element.getElementsByTagName('button')[0]
     this._submitBtn.onclick = function(e) {
       e.preventDefault();
-      this.submit(this.serialize());
-    }.bind(this);
+      self.submit(self.serialize());
+    };
 
     var divTags = this._form.getElementsByTagName('div');
     for (var i = 0; i < divTags.length; i++) {
@@ -76,8 +80,8 @@
       if (linkTags[i].className === 'close') {
         linkTags[i].onclick = function(e) {
           e.preventDefault();
-          this.close();
-        }.bind(this);
+          self.close();
+        };
       }
     }
 
@@ -98,30 +102,23 @@
   };
 
   SentryErrorEmbed.prototype.submit = function(body) {
+    var self = this;
     if (this._submitInProgress)
       return;
     this._submitInProgress = true;
 
-    var xhr;
-    if (window.XMLHttpRequest) {
-      // code for IE7+, Firefox, Chrome, Opera, Safari
-      xhr = new XMLHttpRequest();
-    } else {
-      // code for IE6, IE5
-      xhr = new ActiveXObject("Microsoft.XMLHTTP");
-    }
-
+    var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
-      if (xhr.readyState === XMLHttpRequest.DONE) {
+      if (xhr.readyState === XHR_DONE) {
         if (xhr.status === 200) {
-          this._errorWrapper.innerHTML = '';
-          this._formContent.innerHTML = '<p class="message-success">Your report has been sent. Thank you!</p>';
-          this._submitBtn.parentNode.removeChild(this._submitBtn);
+          self._errorWrapper.innerHTML = '';
+          self._formContent.innerHTML = '<p class="message-success">Your feedback has been sent. Thank you!</p>';
+          self._submitBtn.parentNode.removeChild(self._submitBtn);
         } else if (xhr.status == 400) {
           var data = JSON.parse(xhr.responseText);
           var node;
-          for (var key in this._formMap) {
-            node = this._formMap[key]
+          for (var key in self._formMap) {
+            node = self._formMap[key]
             if (data.errors[key]) {
               if (!/form-errors/.test(node.className)) {
                 node.className += " form-errors";
@@ -130,13 +127,13 @@
               node.className = node.className.replace(/form-errors/, "");
             }
           }
-          this._errorWrapper.innerHTML = FORM_ERROR;
+          self._errorWrapper.innerHTML = FORM_ERROR;
         } else {
-          this._errorWrapper.innerHTML = GENERIC_ERROR;
+          self._errorWrapper.innerHTML = GENERIC_ERROR;
         }
-        this._submitInProgress = false;
+        self._submitInProgress = false;
       }
-    }.bind(this);
+    };
     xhr.open("POST", endpoint, true);
     xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
     xhr.send(body);
@@ -146,7 +143,7 @@
     parent.appendChild(this.element);
   };
 
-  var options = window.sentryConfig;
+  var options = window.sentryConfig || {};
   var embed = new SentryErrorEmbed(options);
   if (options.attachOnLoad !== false) {
     onReady(function(){

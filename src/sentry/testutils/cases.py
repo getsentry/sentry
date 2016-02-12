@@ -10,13 +10,14 @@ from __future__ import absolute_import
 
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'AuthProviderTestCase',
-    'RuleTestCase', 'PermissionTestCase', 'PluginTestCase'
+    'RuleTestCase', 'PermissionTestCase', 'PluginTestCase', 'CliTestCase',
 )
 
 import base64
 import os.path
 import urllib
 
+from click.testing import CliRunner
 from django.conf import settings
 from django.contrib.auth import login
 from django.core.cache import cache
@@ -24,7 +25,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
 from django.utils.importlib import import_module
-from exam import before, Exam
+from exam import before, fixture, Exam
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry import auth
@@ -36,11 +37,11 @@ from sentry.rules import EventState
 from sentry.utils import json
 
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, get_auth_header, TaskRunner
+from .helpers import AuthProvider, Feature, get_auth_header, TaskRunner, override_options
 
 
 class BaseTestCase(Fixtures, Exam):
-    urls = 'tests.sentry.web.urls'
+    urls = 'sentry.web.urls'
 
     def assertRequiresAuthentication(self, path, method='GET'):
         resp = getattr(self.client, method.lower())(path)
@@ -205,6 +206,13 @@ class BaseTestCase(Fixtures, Exam):
             )
         return resp
 
+    def options(self, options):
+        """
+        A context manager that temporarily sets a global option and reverts
+        back to the original value when exiting the context.
+        """
+        return override_options(options)
+
     _postWithSignature = _postWithHeader
     _postWithNewSignature = _postWithHeader
 
@@ -268,7 +276,10 @@ class PermissionTestCase(TestCase):
     def setUp(self):
         super(PermissionTestCase, self).setUp()
         self.owner = self.create_user(is_superuser=False)
-        self.organization = self.create_organization(owner=self.owner)
+        self.organization = self.create_organization(
+            owner=self.owner,
+            flags=0,  # disable default allow_joinleave access
+        )
         self.team = self.create_team(organization=self.organization)
 
     def assert_can_access(self, user, path, method='GET'):
@@ -392,3 +403,13 @@ class PluginTestCase(TestCase):
         super(PluginTestCase, self).setUp()
         plugins.register(self.plugin)
         self.addCleanup(plugins.unregister, self.plugin)
+
+
+class CliTestCase(TestCase):
+    runner = fixture(CliRunner)
+    command = None
+    default_args = []
+
+    def invoke(self, *args):
+        args += tuple(self.default_args)
+        return self.runner.invoke(self.command, args, obj={})

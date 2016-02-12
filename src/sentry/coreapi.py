@@ -26,16 +26,17 @@ from sentry.app import env
 from sentry.cache import default_cache
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_TAG_VALUE_LENGTH,
-    MAX_TAG_KEY_LENGTH
+    MAX_TAG_KEY_LENGTH, VALID_PLATFORMS
 )
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.models import EventError, Project, ProjectKey, TagKey
 from sentry.tasks.store import preprocess_event
-from sentry.utils import is_float, json
+from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.compat import StringIO
 from sentry.utils.strings import decompress
+from sentry.utils.validators import is_float
 
 LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
 
@@ -264,6 +265,7 @@ class ClientApiHelper(object):
     def safely_load_json_string(self, json_string):
         try:
             obj = json.loads(json_string)
+            assert isinstance(obj, dict)
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
@@ -383,6 +385,10 @@ class ClientApiHelper(object):
                     'name': 'fingerprint',
                     'value': data['fingerprint'],
                 })
+                del data['fingerprint']
+
+        if 'platform' not in data or data['platform'] not in VALID_PLATFORMS:
+            data['platform'] = 'other'
 
         if data.get('modules') and type(data['modules']) != dict:
             self.log.info(

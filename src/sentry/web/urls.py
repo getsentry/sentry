@@ -11,6 +11,7 @@ __all__ = ('urlpatterns',)
 
 from django.conf.urls import include, patterns, url
 from django.conf import settings
+from django.http import HttpResponse
 from django.views.generic import RedirectView
 
 from sentry.web import api
@@ -18,7 +19,6 @@ from sentry.web.frontend import accounts, admin, generic
 
 from sentry.web.frontend.admin_queue import AdminQueueView
 from sentry.web.frontend.accept_organization_invite import AcceptOrganizationInviteView
-from sentry.web.frontend.auth_link_identity import AuthLinkIdentityView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
@@ -110,6 +110,8 @@ if settings.DEBUG:
             sentry.web.frontend.debug.mail.request_access),
         url(r'^debug/mail/access-approved/$',
             sentry.web.frontend.debug.mail.access_approved),
+        url(r'^debug/mail/invitation/$',
+            sentry.web.frontend.debug.mail.invitation),
         url(r'^debug/embed/error-page/$',
             DebugErrorPageEmbedView.as_view()),
         url(r'^debug/trigger-error/$',
@@ -126,7 +128,8 @@ urlpatterns += patterns(
     url(r'^api/(?P<project_id>\d+)/csp-report/$', api.CspReportView.as_view(),
         name='sentry-api-csp-report'),
 
-    url(r'^_static/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
+    # The static version is either a 10 digit timestamp, a sha1, or md5 hash
+    url(r'^_static/(?:(?P<version>\d{10}|[a-f0-9]{32,40})/)?(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
         name='sentry-media'),
 
     # API
@@ -139,7 +142,7 @@ urlpatterns += patterns(
         name='sentry-error-page-embed'),
 
     # Auth
-    url(r'^auth/link/(?P<organization_slug>[^/]+)/$', AuthLinkIdentityView.as_view(),
+    url(r'^auth/link/(?P<organization_slug>[^/]+)/$', AuthOrganizationLoginView.as_view(),
         name='sentry-auth-link-identity'),
     url(r'^auth/login/$', AuthLoginView.as_view(),
         name='sentry-login'),
@@ -209,6 +212,7 @@ urlpatterns += patterns(
     # Admin - Plugins
     url(r'^manage/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin,
         name='sentry-admin-configure-plugin'),
+
 
     url(r'^manage/', react_page_view,
         name='sentry-admin-overview'),
@@ -341,6 +345,14 @@ urlpatterns += patterns(
     url(r'^robots\.txt$', api.robots_txt,
         name='sentry-api-robots-txt'),
 
+    # Force a 404 of favicon.ico.
+    # This url is commonly requested by browsers, and without
+    # blocking this, it was treated as a 200 OK for a react page view.
+    # A side effect of this is it may cause a bad redirect when logging in
+    # since this gets stored in session as the last viewed page.
+    # See: https://github.com/getsentry/sentry/issues/2195
+    url(r'favicon\.ico$', lambda r: HttpResponse(status=404)),
+
     # crossdomain.xml
     url(r'^crossdomain\.xml$', api.crossdomain_xml_index,
         name='sentry-api-crossdomain-xml-index'),
@@ -351,43 +363,21 @@ urlpatterns += patterns(
     url(r'^plugins/', include('sentry.plugins.base.urls')),
 
     # Generic API
-    url(r'^share/group/(?P<share_id>[\w_-]+)/$', GenericReactPageView.as_view(auth_required=False),
+    url(r'^share/(?:group|issue)/(?P<share_id>[\w_-]+)/$', GenericReactPageView.as_view(auth_required=False),
         name='sentry-group-shared'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', react_page_view,
+    # Keep named URL for for things using reverse
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/issues/(?P<group_id>\d+)/$', react_page_view,
         name='sentry-group'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/activity/$', react_page_view,
-        name='sentry-group-activity'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/$', react_page_view,
-        name='sentry-group-events'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)/$', react_page_view,
-        name='sentry-group-event'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)/replay/$', ReplayEventView.as_view(),
-        name='sentry-replay'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/json/$', GroupEventJsonView.as_view(),
-        name='sentry-group-event-json'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/', GroupPluginActionView.as_view(),
-        name='sentry-group-plugin-action'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/tags/$', react_page_view,
-        name='sentry-group-tags'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/tags/(?P<tag_name>[^/]+)/$', react_page_view,
-        name='sentry-group-tag-details'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/releases/$', react_page_view,
-        name='sentry-releases'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/releases/(?P<version>[^\/]+)/$', react_page_view,
-        name='sentry-release-details'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/releases/(?P<version>[^\/]+)/all-events/$', react_page_view,
-        name='sentry-release-details-all-events'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/releases/(?P<version>[^\/]+)/artifacts/$', react_page_view,
-        name='sentry-release-details-artifacts'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/dashboard/$', react_page_view,
-        name='sentry-dashboard'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/events/$', react_page_view,
-        name='sentry-events'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/install/$', react_page_view,
-        name='sentry-project-setup'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', react_page_view,
         name='sentry-stream'),
+
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/(?:group|issues)/(?P<group_id>\d+)/events/(?P<event_id>\d+)/replay/$', ReplayEventView.as_view(),
+        name='sentry-replay'),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/(?:group|issues)/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/json/$', GroupEventJsonView.as_view(),
+        name='sentry-group-event-json'),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/', GroupPluginActionView.as_view(),
+        name='sentry-group-plugin-action'),
 
     # Legacy
     url(r'', react_page_view),

@@ -30,8 +30,6 @@ SENTRY_SINGLE_ORGANIZATION = False
 DEBUG = True
 CONF_ROOT = os.path.dirname(__file__)
 
-SENTRY_ADMIN_EMAIL = 'admin@getsentry.com'
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -81,3 +79,6 @@ EMAIL_USE_TLS = False
 SERVER_EMAIL = 'sentry@getsentry.com'
 
 SECRET_KEY = 'super secret secret key'
+
+SENTRY_OPTIONS['system.admin-email'] = 'admin@getsentry.com'
+SENTRY_OPTIONS['system.url-prefix'] = SENTRY_URL_PREFIX

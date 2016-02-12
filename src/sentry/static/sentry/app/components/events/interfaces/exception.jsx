@@ -4,6 +4,7 @@ import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 import ExceptionContent from './exceptionContent';
 import RawExceptionContent from './rawExceptionContent';
+import {t} from '../../../locale';
 
 const ExceptionInterface = React.createClass({
   propTypes: {
@@ -54,18 +55,20 @@ const ExceptionInterface = React.createClass({
       <div>
         <div className="btn-group">
           {data.hasSystemFrames &&
-            <a className={(stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'app')}>App Only</a>
+            <a className={(stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'app')}>{t('App Only')}</a>
           }
-          <a className={(stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'full')}>Full</a>
-          <a className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'raw')}>Raw</a>
+          <a className={(stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'full')}>{t('Full')}</a>
+          <a className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'raw')}>{t('Raw')}</a>
         </div>
         <h3>
-          {'Exception '}
-          {newestFirst ?
-            <small>(most recent call first)</small>
-          :
-            <small>(most recent call last)</small>
-          }
+          {t('Exception')}
+          <small style={{marginLeft: 5}}>
+            {newestFirst ?
+              t('most recent call first')
+            :
+              t('most recent call last')
+            }
+          </small>
         </h3>
       </div>
     );

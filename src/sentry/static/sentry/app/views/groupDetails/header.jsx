@@ -1,7 +1,7 @@
 import React from 'react';
 // import Router from "react-router";
 import {Link, History} from 'react-router';
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import AssigneeSelector from '../../components/assigneeSelector';
 import Count from '../../components/count';
 import GroupActions from './actions';
@@ -9,6 +9,7 @@ import GroupSeenBy from './seenBy';
 import IndicatorStore from '../../stores/indicatorStore';
 import ListLink from '../../components/listLink';
 import ProjectState from '../../mixins/projectState';
+import {t} from '../../locale';
 
 const GroupHeader = React.createClass({
   propTypes: {
@@ -20,6 +21,7 @@ const GroupHeader = React.createClass({
   },
 
   mixins: [
+    ApiMixin,
     ProjectState,
     History
   ],
@@ -28,9 +30,9 @@ const GroupHeader = React.createClass({
     let group = this.props.group;
     let project = this.getProject();
     let org = this.getOrganization();
-    let loadingIndicator = IndicatorStore.add('Saving changes..');
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    api.bulkUpdate({
+    this.api.bulkUpdate({
       orgId: org.slug,
       projectId: project.slug,
       itemIds: [group.id],
@@ -46,16 +48,16 @@ const GroupHeader = React.createClass({
 
   onShare() {
     let {shareId} = this.props.group;
-    return this.history.pushState(null, `/share/group/${shareId}/`);
+    return this.history.pushState(null, `/share/issue/${shareId}/`);
   },
 
   onTogglePublic() {
     let group = this.props.group;
     let project = this.getProject();
     let org = this.getOrganization();
-    let loadingIndicator = IndicatorStore.add('Saving changes..');
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    api.bulkUpdate({
+    this.api.bulkUpdate({
       orgId: org.slug,
       projectId: project.slug,
       itemIds: [group.id],
@@ -117,16 +119,24 @@ const GroupHeader = React.createClass({
           <div className="col-sm-4 stats">
             <div className="row">
               <div className="col-xs-4 assigned-to">
-                <h6 className="nav-header">Assigned</h6>
+                <h6 className="nav-header">{t('Assigned')}</h6>
                 <AssigneeSelector id={group.id} />
               </div>
               <div className="col-xs-4 count align-right">
-                <h6 className="nav-header">Events</h6>
-                <Count className="count" value={group.count} />
+                <h6 className="nav-header">{t('Events')}</h6>
+                <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
+                  <Count className="count" value={group.count} />
+                </Link>
               </div>
               <div className="col-xs-4 count align-right">
-                <h6 className="nav-header">Users</h6>
-                <Count className="count" value={userCount} />
+                <h6 className="nav-header">{t('Users')}</h6>
+                {userCount !== 0 ?
+                  <Link to={`/${orgId}/${projectId}/issues/${groupId}/tags/user/`}>
+                    <Count className="count" value={userCount} />
+                  </Link>
+                :
+                  0
+                }
               </div>
             </div>
           </div>
@@ -134,45 +144,35 @@ const GroupHeader = React.createClass({
         <GroupSeenBy />
         <GroupActions />
         <div className="pull-right">
-          <div className={(group.status === 'muted' ? 'on ' : '') + 'group-notifications'}>
-            <a onClick={this.onToggleMute}>
-              <span className="icon" />
-              {group.status !== 'muted' ?
-                'Mute notifications'
-              :
-                'Un-mute notifications'
-              }
-            </a>
-          </div>
           <div className="group-privacy">
             <a onClick={this.onShare}>
-              <span className="icon" /> Share this event
+              <span className="icon" /> {t('Share this event')}
             </a>
           </div>
         </div>
         <ul className="nav nav-tabs">
-          <ListLink to={`/${orgId}/${projectId}/group/${groupId}/`} isActive={function (to) {
-            let rootGroupPath = `/${orgId}/${projectId}/group/${groupId}/`;
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/`} isActive={function (to) {
+            let rootGroupPath = `/${orgId}/${projectId}/issues/${groupId}/`;
             let pathname = this.context.location.pathname;
 
             // Because react-router 1.0 removes router.isActive(route)
             return pathname === rootGroupPath || /events\/\w+\/$/.test(pathname);
           }.bind(this)}>
-            Details
+            {t('Details')}
           </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/group/${groupId}/activity/`}>
-            Comments <span className="badge animated">{group.numComments}</span>
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}>
+            {t('Comments')} <span className="badge animated">{group.numComments}</span>
           </ListLink>
           {features.has('user-reports') &&
-            <ListLink to={`/${orgId}/${projectId}/group/${groupId}/reports/`}>
-              User Reports <span className="badge animated">{group.userReportCount}</span>
+            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/reports/`}>
+              {t('User Reports')} <span className="badge animated">{group.userReportCount}</span>
             </ListLink>
           }
-          <ListLink to={`/${orgId}/${projectId}/group/${groupId}/tags/`}>
-            Tags
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/tags/`}>
+            {t('Tags')}
           </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/group/${groupId}/events/`}>
-            Similar Events
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
+            {t('Related Events')}
           </ListLink>
         </ul>
       </div>

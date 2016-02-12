@@ -44,8 +44,8 @@
                             {% endif %}
                             <br/>
                             <small>
-                                {% if user.first_name %}
-                                    {{ user.first_name }} ({{ user.email }})
+                                {% if user.name %}
+                                    {{ user.name }} ({{ user.email }})
                                 {% else %}
                                     {{ user.email }}
                                 {% endif %}

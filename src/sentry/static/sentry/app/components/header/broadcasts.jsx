@@ -1,10 +1,15 @@
 import React from 'react';
 
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../dropdownLink';
 import LoadingIndicator from '../loadingIndicator';
+import {t} from '../../locale';
 
-var Broadcasts = React.createClass({
+const Broadcasts = React.createClass({
+  mixins: [
+    ApiMixin
+  ],
+
   getInitialState() {
     return {
       broadcasts: [],
@@ -36,7 +41,7 @@ var Broadcasts = React.createClass({
     if (this.poller) {
       window.clearTimeout(this.poller);
     }
-    api.request('/broadcasts/', {
+    this.api.request('/broadcasts/', {
       method: 'GET',
       success: (data) => {
         this.setState({
@@ -76,7 +81,7 @@ var Broadcasts = React.createClass({
     if (broadcastIds.length === 0)
       return;
 
-    api.request('/broadcasts/', {
+    this.api.request('/broadcasts/', {
       method: 'PUT',
       query: {id: broadcastIds},
       data: {
@@ -110,7 +115,7 @@ var Broadcasts = React.createClass({
         {loading ?
           <li><LoadingIndicator /></li>
         : (broadcasts.length === 0 ?
-          <li className="empty">No recent broadcasts from the Sentry team.</li>
+          <li className="empty">{t('No recent broadcasts from the Sentry team.')}</li>
         :
           broadcasts.map((item) => {
             return (
@@ -120,7 +125,7 @@ var Broadcasts = React.createClass({
                 }
                 {item.message}
                 {item.link &&
-                  <a href={item.link} className="read-more">Read more</a>
+                  <a href={item.link} className="read-more">{t('Read more')}</a>
                 }
               </li>
             );

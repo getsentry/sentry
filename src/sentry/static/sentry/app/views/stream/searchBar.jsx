@@ -7,7 +7,8 @@ import classNames from 'classnames';
 import StreamTagStore from '../../stores/streamTagStore';
 import MemberListStore from '../../stores/memberListStore';
 
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
+import {t} from '../../locale';
 
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
@@ -20,8 +21,9 @@ const SearchBar = React.createClass({
   },
 
   mixins: [
+    ApiMixin,
     PureRenderMixin,
-    Reflux.listenTo(MemberListStore, 'onMemberListStoreChange')
+    Reflux.listenTo(MemberListStore, 'onMemberListStoreChange'),
   ],
 
   statics: {
@@ -54,28 +56,35 @@ const SearchBar = React.createClass({
 
       defaultSearchItems: [
         {
-          title: 'Tag',
-          desc: 'key/value pair associated to an event',
+          title: t('Tag'),
+          desc: t('key/value pair associated to an issue'),
           example: 'browser:"Chrome 34"',
           className: 'icon-tag',
           value: 'browser:'
         },
         {
-          title: 'Status',
-          desc: 'State of an event',
-          example: 'is:resolved, unresolved, muted',
+          title: t('Status'),
+          desc: t('State of an issue'),
+          example: 'is:resolved, unresolved, muted, assigned, unassigned',
           className: 'icon-toggle',
           value: 'is:'
         },
         {
-          title: 'Assigned',
-          desc: 'team member assigned to an event',
+          title: t('Assigned'),
+          desc: t('team member assigned to an issue'),
           example: 'assigned:[me|user@example.com]',
           className: 'icon-user',
           value: 'assigned:'
         },
         {
-          desc: 'or paste an event id to jump straight to it',
+          title: t('Bookmarked By'),
+          desc: t('team member who bookmarked an issue'),
+          example: 'bookmarks:[me|user@example.com]',
+          className: 'icon-user',
+          value: 'bookmarks:'
+        },
+        {
+          desc: t('or paste an event id to jump straight to it'),
           className: 'icon-hash',
           value: ''
         }
@@ -122,7 +131,7 @@ const SearchBar = React.createClass({
 
   clearSearch() {
     this.setState(
-      { query: this.props.defaultQuery },
+      {query: ''},
       () => this.props.onSearch(this.state.query)
     );
   },
@@ -138,13 +147,13 @@ const SearchBar = React.createClass({
     // clicking a menu option
     this.blurTimeout = setTimeout(() => {
       this.blurTimeout = null;
-      this.setState({ dropdownVisible: false });
+      this.setState({dropdownVisible: false});
     }, this.DROPDOWN_BLUR_DURATION);
   },
 
   onQueryChange(evt) {
     this.setState(
-      { query: evt.target.value },
+      {query: evt.target.value},
       () => this.updateAutoCompleteItems()
     );
   },
@@ -184,13 +193,13 @@ const SearchBar = React.createClass({
     });
 
     let {orgId, projectId} = this.props;
-    api.request(`/projects/${orgId}/${projectId}/tags/${tag.key}/values/`, {
+    this.api.request(`/projects/${orgId}/${projectId}/tags/${tag.key}/values/`, {
       data: {
         query: query
       },
       method: 'GET',
       success: (values) => {
-        this.setState({ loading: false });
+        this.setState({loading: false});
         callback(values.map((v) => {
           // Wrap in quotes if there is a space
           return v.value.indexOf(' ') > -1 ? `"${v.value}"` : v.value;
@@ -217,7 +226,7 @@ const SearchBar = React.createClass({
       // If the cursor lands at the end of the input value, and the preceding character
       // is not whitespace, then add a space and move the cursor beyond that space.
       this.setState(
-        { query: this.state.query + ' ' },
+        {query: this.state.query + ' '},
         () => {
           ReactDOM.findDOMNode(this.refs.searchInput).setSelectionRange(cursor + 1, cursor + 1);
           this.updateAutoCompleteItems();
@@ -269,13 +278,19 @@ const SearchBar = React.createClass({
     } else {
       tagName = last.slice(0, index);
       query = last.slice(index + 1);
-      this.setState({searchTerm: query});
+
+      // filter existing items immediately, until API can return
+      // with actual tag value results
+      let filteredSearchItems = this.state.searchItems.filter(item => query && item.value.indexOf(query) !== -1);
+
+      this.setState({
+        searchTerm: query,
+        searchItems: filteredSearchItems
+      });
 
       let tag = StreamTagStore.getTag(tagName);
       if (!tag)
-        return void this.setState({
-          searchItems: []
-        });
+        return undefined;
 
       return void (
         tag.predefined
@@ -302,6 +317,7 @@ const SearchBar = React.createClass({
           out.className = 'icon-toggle';
           break;
         case 'assigned':
+        case 'bookmarks':
           out.className = 'icon-user';
           break;
         default:
@@ -338,9 +354,9 @@ const SearchBar = React.createClass({
         : Math.max(state.activeSearchItem - 1, 0);
 
       searchItems[state.activeSearchItem].active = true;
-      this.setState({ searchItems: searchItems.slice(0) });
+      this.setState({searchItems: searchItems.slice(0)});
 
-    } else if ((evt.key === 'Tab' || evt.key === 'Enter') && !this.isDefaultDropdown()) {
+    } else if (evt.key === 'Tab' && !this.isDefaultDropdown()) {
       evt.preventDefault();
 
       this.onAutoComplete(searchItems[state.activeSearchItem].value);
@@ -420,7 +436,7 @@ const SearchBar = React.createClass({
               disabled={this.props.disabled}
               />
             <span className="icon-search" />
-            {this.state.query !== this.props.defaultQuery &&
+            {this.state.query !== '' &&
               <div>
                 <a className="search-clear-form" onClick={this.clearSearch}>
                   <span className="icon-circle-cross" />

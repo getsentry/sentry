@@ -22,6 +22,12 @@ from sentry.utils.safe import trim, trim_dict, trim_pairs
 from sentry.web.helpers import render_to_string
 
 
+def to_bytes(value):
+    if isinstance(value, unicode):
+        return value.encode('utf-8')
+    return str(value)
+
+
 def format_headers(value):
     if not value:
         return ()
@@ -42,6 +48,8 @@ def format_headers(value):
         if k.lower() == 'cookie':
             cookie_header = v
         else:
+            if not isinstance(v, basestring):
+                v = unicode(v)
             result.append((k.title(), v))
     return result, cookie_header
 
@@ -57,9 +65,21 @@ def format_cookies(value):
         value = value.items()
 
     return [
-        (k.encode('utf8').strip(), v)
+        map(fix_broken_encoding, (k.strip(), v))
         for k, v in value
     ]
+
+
+def fix_broken_encoding(value):
+    """
+    Strips broken characters that can't be represented at all
+    in utf8. This prevents our parsers from breaking elsewhere.
+    """
+    if isinstance(value, unicode):
+        value = value.encode('utf8', errors='replace')
+    if isinstance(value, str):
+        value = value.decode('utf8', errors='replace')
+    return value
 
 
 class Http(Interface):
@@ -118,7 +138,8 @@ class Http(Interface):
         if query_string:
             # if querystring was a dict, convert it to a string
             if isinstance(query_string, dict):
-                query_string = urlencode(query_string.items())
+                query_string = urlencode([(to_bytes(k), to_bytes(v))
+                                          for k, v in query_string.items()])
             else:
                 query_string = query_string
                 if query_string[0] == '?':
@@ -151,7 +172,7 @@ class Http(Interface):
         kwargs['cookies'] = trim_pairs(format_cookies(cookies))
         kwargs['env'] = trim_dict(data.get('env') or {})
         kwargs['headers'] = trim_pairs(headers)
-        kwargs['data'] = body
+        kwargs['data'] = fix_broken_encoding(body)
         kwargs['url'] = urlunsplit((scheme, netloc, path, '', ''))
         kwargs['fragment'] = trim(fragment, 1024)
 

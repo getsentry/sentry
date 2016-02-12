@@ -4,6 +4,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import PropTypes from '../../proptypes';
 import TooltipMixin from '../../mixins/tooltip';
 import {escape, percent} from '../../utils';
+import {t} from '../../locale';
 
 const TagDistributionMeter = React.createClass({
   propTypes: {
@@ -36,14 +37,14 @@ const TagDistributionMeter = React.createClass({
   },
 
   fetchData() {
-    let url = '/groups/' + this.props.group.id + '/tags/' + encodeURIComponent(this.props.tag) + '/';
+    let url = '/issues/' + this.props.group.id + '/tags/' + encodeURIComponent(this.props.tag) + '/';
 
     this.setState({
       loading: true,
       error: false
     });
 
-    this.apiRequest(url, {
+    this.api.request(url, {
       success: (data, _, jqXHR) => {
         this.setState({
           data: data,
@@ -91,7 +92,7 @@ const TagDistributionMeter = React.createClass({
             <Link
                 key={value.value}
                 className="segment" style={{width: pct + '%'}}
-                to={`/${orgId}/${projectId}/group/${this.props.group.id}/tags/${this.props.tag}/`}
+                to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props.tag}/`}
                 title={'<div class="truncate">' + escape(value.name) + '</div>' + pctLabel + '%'}>
               <span className="tag-description">
                 <span className="tag-percentage">{pctLabel}%</span>
@@ -104,11 +105,11 @@ const TagDistributionMeter = React.createClass({
           <Link
               key="other"
               className="segment" style={{width: otherPct + '%'}}
-              to={`/${orgId}/${projectId}/group/${this.props.group.id}/tags/${this.props.tag}/`}
+              to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props.tag}/`}
               title={'Other<br/>' + otherPctLabel + '%'}>
             <span className="tag-description">
               <span className="tag-percentage">{otherPctLabel}%</span>
-              <span className="tag-label">Other</span>
+              <span className="tag-label">{t('Other')}</span>
             </span>
           </Link>
         }
@@ -121,7 +122,7 @@ const TagDistributionMeter = React.createClass({
       return null;
 
     if (!this.state.data.totalValues)
-      return <p>No recent data.</p>;
+      return <p>{t('No recent data.')}</p>;
 
     return this.renderSegments();
   },

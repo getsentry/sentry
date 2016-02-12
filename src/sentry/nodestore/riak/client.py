@@ -8,6 +8,8 @@ sentry.nodestore.riak.client
 
 from __future__ import absolute_import
 
+import six
+import sys
 import socket
 from random import shuffle
 from time import time
@@ -138,14 +140,19 @@ class ConnectionManager(object):
     A thread-safe multi-host http connection manager.
     """
     def __init__(self, hosts=DEFAULT_NODES, strategy=RoundRobinStrategy, randomize=True,
-                 timeout=3, cooldown=5, max_retries=3, tcp_keepalive=True):
+                 timeout=3, cooldown=5, max_retries=None, tcp_keepalive=True):
         assert hosts
         self.strategy = strategy()
         self.dead_connections = []
         self.timeout = timeout
         self.cooldown = cooldown
-        self.max_retries = max_retries
         self.tcp_keepalive = tcp_keepalive
+
+        # Default max_retries to number of hosts
+        if max_retries is None:
+            self.max_retries = len(hosts)
+        else:
+            self.max_retries = max_retries
 
         self.connections = map(self.create_pool, hosts)
         # Shuffle up the order to prevent stampeding the same hosts
@@ -162,9 +169,7 @@ class ConnectionManager(object):
         options = {
             'timeout': self.timeout,
             'strict': True,
-            # We don't need urllib3's retries, since we'll retry
-            # on a different host ourselves
-            'retries': False,
+            'retries': 2,
             # Max of 5 connections open per host
             # this is arbitrary. The # of connections can burst
             # above 5 if needed becuase we're also setting
@@ -208,26 +213,33 @@ class ConnectionManager(object):
         available hosts, we revive all dead connections and forcefully
         attempt to reconnect.
         """
-        # If we're trying to initiate a new connection, and
-        # all connections are already dead, then we should flail
-        # and attempt to connect to one of them
-        if len(self.connections) == 0:
-            self.force_revive()
 
         # We don't need strict host checking since our client is enforcing
         # the correct behavior anyways
         kwargs.setdefault('assert_same_host', False)
 
+        # Keep track of the last exception, so we can raise it if needed
+        last_error = None
+
         try:
-            for _ in xrange(self.max_retries):
+            for _ in xrange(self.max_retries + 1):
+                # If we're trying to initiate a new connection, and
+                # all connections are already dead, then we should flail
+                # and attempt to connect to one of them
+                if len(self.connections) == 0:
+                    self.force_revive()
+
                 conn = self.strategy.next(self.connections)
                 try:
                     return conn.urlopen(method, path, **kwargs)
                 except HTTPError:
                     self.mark_dead(conn)
+                    last_error = sys.exc_info()
 
-                    if len(self.connections) == 0:
-                        raise
+            # We've exhausted the retries, and we still have
+            # all errors, so re-raise the last known error
+            if last_error is not None:
+                six.reraise(*last_error)
         finally:
             self.cleanup_dead()
 

@@ -15,16 +15,14 @@ const Version = React.createClass({
   },
 
   render() {
-    // NOTE: version is encoded because it can contain slashes "/",
-    //       which can interfere with URL construction
-    let version = encodeURIComponent(this.props.version);
+    let {orgId, projectId, version} = this.props;
     let shortVersion = version.length === 40 ? version.substr(0, 12) : version;
-
-    let {orgId, projectId} = this.props;
 
     if (this.props.anchor) {
       return (
-        <Link to={`/${orgId}/${projectId}/releases/${version}/`}>
+        // NOTE: version is encoded because it can contain slashes "/",
+        //       which can interfere with URL construction
+        <Link to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`}>
           <span title={version}>{shortVersion}</span>
         </Link>
       );

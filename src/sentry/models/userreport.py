@@ -27,6 +27,6 @@ class UserReport(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_userreport'
-        index_together = (('project', 'event_id'),)
+        index_together = (('project', 'event_id'), ('project', 'date_added'))
 
     __repr__ = sane_repr('event_id', 'name', 'email')

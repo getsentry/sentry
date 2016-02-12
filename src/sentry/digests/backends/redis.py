@@ -7,7 +7,6 @@ import time
 from contextlib import contextmanager
 
 from django.conf import settings
-from redis.client import Script
 from redis.exceptions import (
     ResponseError,
     WatchError,
@@ -17,10 +16,14 @@ from sentry.digests import (
     Record,
     ScheduleEntry,
 )
-from sentry.digests.backends.base import Backend
+from sentry.digests.backends.base import (
+    Backend,
+    InvalidState,
+)
 from sentry.utils.cache import Lock
 from sentry.utils.redis import (
     check_cluster_versions,
+    load_script,
     make_rb_cluster as _make_rb_cluster,
 )
 from sentry.utils.versioning import Version
@@ -71,84 +74,8 @@ def make_record_key(timeline_key, record):
     return '{0}:{1}:{2}'.format(timeline_key, TIMELINE_RECORD_PATH_COMPONENT, record)
 
 
-# Ensures a timeline is scheduled to be digested, adjusting the schedule time
-# if necessary.
-# KEYS: {WAITING, READY, LAST_PROCESSED_TIMESTAMP}
-# ARGV: {
-#   TIMELINE,   -- timeline key
-#   TIMESTAMP,  --
-#   INCREMENT,  -- amount of time (in seconds) that an event addition delays scheduling
-#   MAXIMUM     -- maximum amount of time (in seconds) between a timeline being
-#               -- digested, and the same timeline being scheduled for the next
-#               -- digestion
-# }
-ENSURE_TIMELINE_SCHEDULED_SCRIPT = """\
-local WAITING = KEYS[1] or error("incorrect number of keys provided")
-local READY = KEYS[2] or error("incorrect number of keys provided")
-local LAST_PROCESSED_TIMESTAMP = KEYS[3] or error("incorrect number of keys provided")
-
-local TIMELINE = ARGV[1] or error("incorrect number of arguments provided")
-local TIMESTAMP = ARGV[2] or error("incorrect number of arguments provided")
-local INCREMENT = ARGV[3] or error("incorrect number of arguments provided")
-local MAXIMUM = ARGV[4] or error("incorrect number of arguments provided")
-
--- If the timeline is already in the "ready" set, this is a noop.
-if tonumber(redis.call('ZSCORE', READY, TIMELINE)) ~= nil then
-    return false
-end
-
--- Otherwise, check to see if the timeline is in the "waiting" set.
-local score = tonumber(redis.call('ZSCORE', WAITING, TIMELINE))
-if score ~= nil then
-    -- If the timeline is already in the "waiting" set, increase the delay by
-    -- min(current schedule + increment value, maximum delay after last processing time).
-    local last = tonumber(redis.call('GET', LAST_PROCESSED_TIMESTAMP))
-    local update = nil;
-    if last == nil then
-        -- If the last processed timestamp is missing for some reason (possibly
-        -- evicted), be conservative and allow the timeline to be scheduled
-        -- with either the current schedule time or provided timestamp,
-        -- whichever is smaller.
-        update = math.min(score, TIMESTAMP)
-    else
-        update = math.min(
-            score + tonumber(INCREMENT),
-            last + tonumber(MAXIMUM)
-        )
-    end
-
-    if update ~= score then
-        redis.call('ZADD', WAITING, update, TIMELINE)
-    end
-    return false
-end
-
--- If the timeline isn't already in either set, add it to the "ready" set with
--- the provided timestamp. This allows for immediate scheduling, bypassing the
--- imposed delay of the "waiting" state.
-redis.call('ZADD', READY, TIMESTAMP, TIMELINE)
-return true
-"""
-
-
-# Trims a timeline to a maximum number of records.
-# Returns the number of keys that were deleted.
-# KEYS: {TIMELINE}
-# ARGV: {LIMIT}
-TRUNCATE_TIMELINE_SCRIPT = """\
-local keys = redis.call('ZREVRANGE', KEYS[1], ARGV[1], -1)
-for i, record in pairs(keys) do
-    redis.call('DEL', KEYS[1] .. ':{TIMELINE_RECORD_PATH_COMPONENT}:' .. record)
-    redis.call('ZREM', KEYS[1], record)
-end
-return table.getn(keys)
-""".format(TIMELINE_RECORD_PATH_COMPONENT=TIMELINE_RECORD_PATH_COMPONENT)
-
-
-# XXX: Passing `None` as the first argument is a dirty hack to allow us to use
-# this more easily with the cluster
-ensure_timeline_scheduled = Script(None, ENSURE_TIMELINE_SCHEDULED_SCRIPT)
-truncate_timeline = Script(None, TRUNCATE_TIMELINE_SCRIPT)
+ensure_timeline_scheduled = load_script('digests/ensure_timeline_scheduled.lua')
+truncate_timeline = load_script('digests/truncate_timeline.lua')
 
 
 class RedisBackend(Backend):
@@ -220,18 +147,21 @@ class RedisBackend(Backend):
         # too early.
         self.ttl = options.pop('ttl', 60 * 60)
 
-        if options:
-            logger.warning('Discarding invalid options: %r', options)
-
     def validate(self):
-        logger.info('Validating Redis version...')
+        logger.debug('Validating Redis version...')
         check_cluster_versions(
             self.cluster,
             Version((2, 8, 9)),
             label='Digests',
         )
 
-    def add(self, key, record):
+    def add(self, key, record, increment_delay=None, maximum_delay=None):
+        if increment_delay is None:
+            increment_delay = self.increment_delay
+
+        if maximum_delay is None:
+            maximum_delay = self.maximum_delay
+
         timeline_key = make_timeline_key(self.namespace, key)
         record_key = make_record_key(timeline_key, record.key)
 
@@ -253,6 +183,7 @@ class RedisBackend(Backend):
             pipeline.expire(timeline_key, self.ttl)
 
             ensure_timeline_scheduled(
+                pipeline,
                 (
                     make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
                     make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
@@ -261,15 +192,18 @@ class RedisBackend(Backend):
                 (
                     key,
                     record.timestamp,
-                    self.increment_delay,
-                    self.maximum_delay,
+                    increment_delay,
+                    maximum_delay,
                 ),
-                pipeline,
             )
 
             should_truncate = random.random() < self.truncation_chance
             if should_truncate:
-                truncate_timeline((timeline_key,), (self.capacity,), pipeline)
+                truncate_timeline(
+                    pipeline,
+                    (timeline_key,),
+                    (self.capacity, timeline_key),
+                )
 
             results = pipeline.execute()
             if should_truncate:
@@ -457,15 +391,22 @@ class RedisBackend(Backend):
                 raise RuntimeError('loop exceeded maximum iterations (%s)' % (maximum_iterations,))
 
     @contextmanager
-    def digest(self, key):
+    def digest(self, key, minimum_delay=None):
+        if minimum_delay is None:
+            minimum_delay = self.minimum_delay
+
         timeline_key = make_timeline_key(self.namespace, key)
         digest_key = make_digest_key(timeline_key)
 
         connection = self.cluster.get_local_client_for_key(timeline_key)
 
         with Lock(timeline_key, nowait=True, timeout=30):
+            # Check to ensure the timeline is in the correct state ("ready")
+            # before sending. This acts as a throttling mechanism to prevent
+            # sending a digest before it's next scheduled delivery time in a
+            # race condition scenario.
             if connection.zscore(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key) is None:
-                raise Exception('Cannot digest timeline, timeline is not in the ready state.')
+                raise InvalidState('Timeline is not in the ready state.')
 
             with connection.pipeline() as pipeline:
                 pipeline.watch(digest_key)  # This shouldn't be necessary, but better safe than sorry?
@@ -523,7 +464,7 @@ class RedisBackend(Backend):
 
                     cleanup_records(pipeline)
                     pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
-                    pipeline.zadd(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), time.time() + self.interval, key)
+                    pipeline.zadd(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), time.time() + minimum_delay, key)
                     pipeline.setex(make_last_processed_timestamp_key(timeline_key), self.ttl, int(time.time()))
                     pipeline.execute()
 
@@ -533,7 +474,7 @@ class RedisBackend(Backend):
                     # events to the timeline while we are trying to delete it.
                     pipeline.watch(timeline_key)
                     pipeline.multi()
-                    if connection.zcard(timeline_key) is 0:
+                    if connection.zcard(timeline_key) == 0:
                         cleanup_records(pipeline)
                         pipeline.delete(make_last_processed_timestamp_key(timeline_key))
                         pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
@@ -552,3 +493,16 @@ class RedisBackend(Backend):
                 except WatchError:
                     logger.debug('Could not remove timeline from schedule, rescheduling instead')
                     reschedule()
+
+    def delete(self, key):
+        timeline_key = make_timeline_key(self.namespace, key)
+
+        connection = self.cluster.get_local_client_for_key(timeline_key)
+        with Lock(timeline_key, nowait=True, timeout=30), \
+                connection.pipeline() as pipeline:
+            truncate_timeline(pipeline, (timeline_key,), (0, timeline_key))
+            truncate_timeline(pipeline, (make_digest_key(timeline_key),), (0, timeline_key))
+            pipeline.delete(make_last_processed_timestamp_key(timeline_key))
+            pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
+            pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), key)
+            pipeline.execute()

@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from datetime import datetime
-from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
 
@@ -22,9 +21,7 @@ class GroupEventsLatestTest(APITestCase):
             datetime=datetime(2013, 8, 13, 3, 8, 26),
         )
 
-        url = reverse('sentry-api-0-group-events-latest', kwargs={
-            'group_id': group.id,
-        })
+        url = '/api/0/issues/{}/events/latest/'.format(group.id)
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200

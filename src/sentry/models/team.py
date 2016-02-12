@@ -14,6 +14,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.app import env
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
@@ -27,7 +28,6 @@ class TeamManager(BaseManager):
         """
         Returns a list of all teams a user has some level of access to.
         """
-        from sentry.auth.utils import is_active_superuser
         from sentry.models import (
             OrganizationMemberTeam, Project, ProjectStatus
         )
@@ -40,7 +40,7 @@ class TeamManager(BaseManager):
             status=TeamStatus.VISIBLE
         )
 
-        if is_active_superuser(user) or settings.SENTRY_PUBLIC:
+        if env.request and env.request.is_superuser() or settings.SENTRY_PUBLIC:
             team_list = list(base_team_qs)
 
         else:

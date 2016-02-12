@@ -23,7 +23,6 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.app import env
-from sentry.auth.utils import is_active_superuser
 from sentry.models import Team, Project, User
 from sentry.plugins import plugins
 from sentry.utils.http import absolute_uri
@@ -99,7 +98,7 @@ def manage_users(request):
     elif sort == 'login':
         order_by = '-last_login'
     elif sort == 'name':
-        order_by = 'first_name'
+        order_by = 'name'
 
     user_list = user_list.order_by(order_by)
 
@@ -114,7 +113,7 @@ def manage_users(request):
 @transaction.atomic
 @csrf_protect
 def create_new_user(request):
-    if not is_active_superuser(request.user):
+    if not request.is_superuser():
         return HttpResponseRedirect(reverse('sentry'))
 
     form = NewUserForm(request.POST or None, initial={
@@ -161,7 +160,7 @@ def create_new_user(request):
 @requires_admin
 @csrf_protect
 def edit_user(request, user_id):
-    if not is_active_superuser(request.user):
+    if not request.is_superuser():
         return HttpResponseRedirect(reverse('sentry'))
 
     try:

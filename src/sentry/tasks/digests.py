@@ -1,12 +1,22 @@
 from __future__ import absolute_import
 
+import logging
 import time
 
+from sentry.digests import get_option_key
+from sentry.digests.backends.base import InvalidState
 from sentry.digests.notifications import (
     build_digest,
     split_key,
 )
+from sentry.models import (
+    Project,
+    ProjectOption,
+)
 from sentry.tasks.base import instrumented_task
+
+
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -38,9 +48,24 @@ def schedule_digests():
 def deliver_digest(key, schedule_timestamp=None):
     from sentry.app import digests
 
-    plugin, project = split_key(key)
-    with digests.digest(key) as records:
-        digest = build_digest(project, records)
+    try:
+        plugin, project = split_key(key)
+    except Project.DoesNotExist as error:
+        logger.info('Cannot deliver digest %r due to error: %s', key, error)
+        digests.delete(key)
+        return
+
+    minimum_delay = ProjectOption.objects.get_value(
+        project,
+        get_option_key(plugin.get_conf_key(), 'minimum_delay')
+    )
+
+    try:
+        with digests.digest(key, minimum_delay=minimum_delay) as records:
+            digest = build_digest(project, records)
+    except InvalidState as error:
+        logger.info('Skipped digest delivery: %s', error, exc_info=True)
+        return
 
     if digest:
         plugin.notify_digest(project, digest)

@@ -33,7 +33,7 @@ MAINTENANCE = False
 
 ADMINS = ()
 
-INTERNAL_IPS = ('127.0.0.1',)
+INTERNAL_IPS = ()
 
 MANAGERS = ADMINS
 
@@ -169,6 +169,10 @@ LANGUAGES = (
     ('zh-tw', gettext_noop('Traditional Chinese')),
 )
 
+from .locale import CATALOGS
+LANGUAGES = tuple((code, name) for code, name in LANGUAGES
+                  if code in CATALOGS)
+
 SITE_ID = 1
 
 # If you set this to False, Django will make some optimizations so as not
@@ -197,11 +201,13 @@ MIDDLEWARE_CLASSES = (
     'sentry.middleware.debug.NoIfModifiedSinceMiddleware',
     'sentry.middleware.stats.RequestTimingMiddleware',
     'sentry.middleware.stats.ResponseCodeMiddleware',
+    'sentry.middleware.health.HealthCheck',  # Must exist before CommonMiddleware
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'sentry.middleware.auth.AuthenticationMiddleware',
     'sentry.middleware.sudo.SudoMiddleware',
+    'sentry.middleware.superuser.SuperuserMiddleware',
     'sentry.middleware.locale.SentryLocaleMiddleware',
     'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -221,6 +227,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.auth.context_processors.auth',
     'django.contrib.messages.context_processors.messages',
     'django.core.context_processors.csrf',
+    'django.core.context_processors.request',
     'social_auth.context_processors.social_auth_by_name_backends',
     'social_auth.context_processors.social_auth_backends',
     'social_auth.context_processors.social_auth_by_type_backends',
@@ -239,8 +246,6 @@ INSTALLED_APPS = (
     'captcha',
     'crispy_forms',
     'debug_toolbar',
-    'gunicorn',
-    'kombu.transport.django',
     'raven.contrib.django.raven_compat',
     'rest_framework',
     'sentry',
@@ -258,7 +263,7 @@ INSTALLED_APPS = (
 )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
-STATIC_URL = '/_static/'
+STATIC_URL = '/_static/{version}/'
 
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
@@ -357,7 +362,11 @@ from kombu import Exchange, Queue
 BROKER_URL = "django://"
 BROKER_TRANSPORT_OPTIONS = {}
 
-CELERY_ALWAYS_EAGER = True
+# Ensure workers run async by default
+# in Development you might want them to run in-process
+# though it would cause timeouts/recursions in some cases
+CELERY_ALWAYS_EAGER = False
+
 CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 CELERY_IGNORE_RESULT = True
 CELERY_SEND_EVENTS = False
@@ -371,24 +380,24 @@ CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
 CELERY_IMPORTS = (
     'sentry.tasks.beacon',
+    'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.check_auth',
     'sentry.tasks.deletion',
     'sentry.tasks.digests',
     'sentry.tasks.email',
-    'sentry.tasks.index',
     'sentry.tasks.merge',
     'sentry.tasks.store',
     'sentry.tasks.options',
     'sentry.tasks.ping',
     'sentry.tasks.post_process',
     'sentry.tasks.process_buffer',
-    'sentry.tasks.sync_docs',
 )
 CELERY_QUEUES = [
     Queue('default', routing_key='default'),
     Queue('alerts', routing_key='alerts'),
     Queue('auth', routing_key='auth'),
     Queue('cleanup', routing_key='cleanup'),
+    Queue('merge', routing_key='merge'),
     Queue('search', routing_key='search'),
     Queue('events', routing_key='events'),
     Queue('update', routing_key='update'),
@@ -397,6 +406,9 @@ CELERY_QUEUES = [
     Queue('digests.delivery', routing_key='digests.delivery'),
     Queue('digests.scheduling', routing_key='digests.scheduling'),
 ]
+
+for queue in CELERY_QUEUES:
+    queue.durable = False
 
 CELERY_ROUTES = ('sentry.queue.routers.SplitQueueRouter',)
 
@@ -444,14 +456,6 @@ CELERYBEAT_SCHEDULE = {
             'queue': 'counters-0',
         }
     },
-    'sync-docs': {
-        'task': 'sentry.tasks.sync_docs',
-        'schedule': timedelta(seconds=3600),
-        'options': {
-            'expires': 3600,
-            'queue': 'update',
-        }
-    },
     'sync-options': {
         'task': 'sentry.tasks.options.sync_options',
         'schedule': timedelta(seconds=10),
@@ -466,7 +470,14 @@ CELERYBEAT_SCHEDULE = {
         'options': {
             'expires': 30,
         },
-    }
+    },
+    'clear-expired-snoozes': {
+        'task': 'sentry.tasks.clear_expired_snoozes',
+        'schedule': timedelta(minutes=5),
+        'options': {
+            'expires': 300,
+        },
+    },
 }
 
 LOGGING = {
@@ -513,6 +524,9 @@ LOGGING = {
     'loggers': {
         'sentry': {
             'level': 'ERROR',
+        },
+        'sentry.auth': {
+            'handlers': ['audit'],
         },
         'sentry.api': {
             'handlers': ['console:api', 'sentry'],
@@ -585,8 +599,9 @@ SENTRY_FEATURES = {
     'auth:register': True,
     'organizations:create': True,
     'organizations:sso': True,
+    'projects:global-events': False,
     'projects:quotas': True,
-    'projects:user-reports': True,
+    'projects:user-reports': False,
     'projects:plugins': True,
 }
 
@@ -601,14 +616,8 @@ SENTRY_IGNORE_EXCEPTIONS = (
     'OperationalError',
 )
 
-# Absolute URL to the sentry root directory. Should not include a trailing slash.
-SENTRY_URL_PREFIX = ''
-
 # Should we send the beacon to the upstream server?
 SENTRY_BEACON = True
-
-# The administrative contact for this installation
-SENTRY_ADMIN_EMAIL = ''
 
 # Allow access to Sentry without authentication.
 SENTRY_PUBLIC = False
@@ -732,9 +741,6 @@ SENTRY_RATELIMITER_OPTIONS = {}
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
 
-# The maximum number of events per minute the system should accept.
-SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE = 0
-
 # Node storage backend
 SENTRY_NODESTORE = 'sentry.nodestore.django.DjangoNodeStorage'
 SENTRY_NODESTORE_OPTIONS = {}
@@ -781,7 +787,7 @@ SENTRY_MAX_VARIABLE_SIZE = 512
 
 # Prevent variables within extra context from exceeding this size in
 # characters
-SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
+SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096 * 4  # 16kb
 
 # For changing the amount of data seen in Http Response Body part.
 SENTRY_MAX_HTTP_BODY_SIZE = 4096 * 4  # 16kb
@@ -822,7 +828,7 @@ SENTRY_DISALLOWED_IPS = (
 
 # Fields which managed users cannot change via Sentry UI. Username and password
 # cannot be changed by managed users. Optionally include 'email' and
-# 'first_name' in SENTRY_MANAGED_USER_FIELDS.
+# 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ('email',)
 
 SENTRY_SCOPES = set([
@@ -915,6 +921,10 @@ SENTRY_WATCHERS = (
     [os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '-d', '--watch',
      "--config={}".format(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))],
 )
+
+# statuspage.io support
+STATUS_PAGE_ID = None
+STATUS_PAGE_API_HOST = 'statuspage.io'
 
 
 def get_raven_config():

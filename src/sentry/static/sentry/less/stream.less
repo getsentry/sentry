@@ -16,7 +16,7 @@
     border-top-color: transparent;
     border-bottom-color: transparent;
     box-shadow: 0 1px 0 rgba(52, 60, 69, 0.15);
-    background: @headerBgColor; // alpha transparency too slow, so using fixed color
+    background: @white-dark;
     margin: 0 auto;
   }
 }
@@ -34,7 +34,7 @@
 .group-header {
   // needs fixed height so that stream doesn't "pop" up
   // when stream actions turn "sticky"
-  height: 44px;
+  min-height: 44px;
 }
 
 .stream-no-bulk-actions {
@@ -55,7 +55,7 @@
 }
 
 .stream-actions {
-  background: @headerBgColor;
+  background: @white-dark;
   border: 1px solid @trim;
   border-bottom: none;
   border-radius: 3px 3px 0 0;
@@ -160,6 +160,25 @@
   }
 }
 
+.stream-select-all-notice {
+  background: @header-bg-color;
+  border: 1px solid #E7D796;
+  margin: 0 0 -1px;
+  position: relative;
+  z-index: 2;
+
+  > div {
+    background-color: #FFFDF7;
+    text-align: center;
+    padding: 3px 10px;
+
+   a {
+      margin-left: 0.5em;
+    }
+  }
+}
+
+
 /**
 * Stream / Group List
 * ============================================================================
@@ -168,7 +187,7 @@
 .group-list {
   background: #fff;
   border: 1px solid @trim;
-  border-top: 1px solid lighten(@trim, 2);
+  border-top: 1px solid @trim;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
   border-radius: 0 0 3px 3px;
   // position: relative;
@@ -178,10 +197,10 @@
   .list-unstyled;
 
   .group {
-    color: @gray;
+    color: @gray-dark;
     position: relative;
     margin: 0;
-    border-bottom: 1px solid lighten(@trim, 7);
+    border-bottom: 1px solid @trim;
     padding-right: 10px;
     background: #fff;
     .transition(all .4s ease-in-out);
@@ -224,22 +243,8 @@
       }
     }
 
-    // .event-details:after {
-    //   position: absolute;
-    //   content: "";
-    //   top: 11px;
-    //   right: auto;
-    //   bottom: -1px;
-    //   left: -1px;
-    //   height: 17px;
-    //   width: 5px;
-    //   border-radius: 0 2px 2px 0;
-    //   z-index: 100;
-    //   .transition(all .2s ease-in-out);
-    // }
-
     &.selected {
-      background: lighten(@blue, 46);
+      background: lighten(@blue, 20);
       box-shadow: inset 0 1px 0 rgba(52, 60, 69, 0.08);
 
       .event-details:after {
@@ -258,7 +263,7 @@
     &.isResolved {
       h3 {
         text-decoration: line-through;
-        color: #949ea4;
+        color: @gray;
       }
     }
 
@@ -350,7 +355,11 @@
       }
 
       a {
-        color: darken(@gray-dark, 4);
+        color: @gray-darker;
+
+        &:hover {
+          color: @gray-darkest;
+        }
       }
     }
 
@@ -361,11 +370,11 @@
     .event-message {
       font-size: 14px;
       margin-bottom: 6px;
-      color: @gray;
+      color: @gray-dark;
       word-wrap: break-word;
     }
     .event-extra {
-      color: @gray-light;
+      color: @gray;
     }
 
     .event-extra {
@@ -449,6 +458,12 @@
     line-height: 24px;
   }
 
+  .event-graph {
+    .sparkline a {
+      height: 24px;
+    }
+  }
+
   .event-assignee {
     color: rgba(105, 109, 128, 0.4);
     text-align: center;
@@ -471,10 +486,6 @@
         color: #111;
       }
     }
-  }
-
-  .sparkline a {
-    height: 24px;
   }
 
   &.group-list-small {
@@ -514,11 +525,353 @@
   .box-header {
     font-size: 12px;
     font-weight: 600;
-    color: lighten(@gray, 10);
+    color: @gray;
+
+    h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      margin-left: -5px;
+    }
 
     .align-right {
       text-transform: uppercase;
-      padding-top: 8px;
+      padding-top: 7px;
+    }
+  }
+}
+
+/**
+ * Awaiting Events - Stream First Run Experience
+ * ============================================================================
+ */
+
+ .awaiting-events {
+   border-radius: 0;
+   padding: 60px 40px 60px;
+   #gradient > .vertical(#F8F9FA, #ffffff);
+   box-shadow: inset 0 1px 3px rgba(0,0,0, .08);
+   border-radius: 0 0 3px 3px;
+
+   .wrap {
+     position: relative;
+     max-width: 740px;
+     margin: 0 auto;
+     padding: 60px 0 50px 260px;
+     font-size: 18px;
+     min-height: 260px;
+   }
+
+   .robot {
+     position: absolute;
+     left: 0;
+     top: 0;
+     width: 220px;
+     height: 260px;
+     background: url(../images/sentry-robot.png);
+     background-size: cover;
+
+     .eye {
+       display: block;
+       .square(12px);
+       border-radius: 12px;
+       position: absolute;
+       top: 70px;
+       left: 82px;
+
+        -webkit-animation: blink-eye .6s infinite;
+        -moz-animation:    blink-eye .6s infinite;
+        -o-animation:      blink-eye .6s infinite;
+        animation:         blink-eye .6s infinite;
+      }
+   }
+
+   .strikethrough {
+     text-decoration: line-through;
+   }
+ }
+
+ @-webkit-keyframes blink-eye {
+  0% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+  50% {
+    background: #4A4D67;
+    box-shadow: none;
+  }
+  100% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+}
+@-moz-keyframes blink-eye {
+  0% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+  50% {
+    background: #4A4D67;
+    box-shadow: none;
+  }
+  100% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+}
+@-o-keyframes blink-eye {
+  0% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+  50% {
+    background: #4A4D67;
+    box-shadow: none;
+  }
+  100% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+}
+@keyframes blink-eye {
+  0% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+  50% {
+    background: #4A4D67;
+    box-shadow: none;
+  }
+  100% {
+    background: @red;
+    box-shadow: 0 0 10px @red;
+  }
+}
+
+/**
+* Issue list
+* ----------------------------------------------------------------------------
+* Initial step in renaming .group-list & .group to .issue-list & .issue. This
+* will eventually live in shared-components.less.
+* ============================================================================
+*/
+
+.issue-list {
+  .list-unstyled;
+  border: 1px solid @trim;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0,0,0, .04);
+
+  .issue {
+    padding: 12px 40px 5px 35px;
+    border-bottom: 1px solid lighten(@trim, 5);
+    position: relative;
+
+    h3 {
+      .icon-bookmark, .icon-soundoff {
+        padding-right: 5px;
+        font-size: 12px;
+        position: relative;
+        .transition(all .2s ease-in-out);
+        width: auto;
+      }
+
+      .icon-bookmark {
+        top: 1px;
+        display: none;
+        color: @purple;
+        overflow: hidden;
+      }
+
+      .icon-soundoff {
+        display: none;
+        top: 1px;
+        color: @red;
+        width: auto;
+        overflow: hidden;
+        padding-left: 1px;
+      }
+    }
+
+    &.isBookmarked {
+      h3 .icon-bookmark {
+        display: inline-block;
+      }
+    }
+
+    &.isMuted {
+      h3 .icon-soundoff {
+        display: inline-block;
+      }
+    }
+
+    &.isResolved {
+      h3 {
+        text-decoration: line-through;
+        color: @gray;
+      }
+    }
+
+    .error-level {
+      .square(12px);
+      border-radius: 50%;
+      position: absolute;
+      top: 13px;
+      left: 12px;
+    }
+
+    h3 {
+      font-size: 16px;
+      margin: 0;
+
+      a {
+        color: @gray-darker;
+        &:hover {
+          color: @gray-darkest;
+        }
+      }
+    }
+
+    .event-extra {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: @gray;
+
+      > span {
+        font-size: 13px;
+        color: @gray;
+        margin-right: 10px;
+      }
+    }
+
+    a {
+      color: @gray;
+      font-weight: bold;
+
+      &:hover {
+        color: darken(@gray, 20);
+      }
+    }
+
+    .icon-comments {
+      font-size: 12px;
+      position: relative;
+      top: 1px;
+      margin-right: 3px;
+    }
+
+    .icon-more {
+      font-size: 24px;
+      width: 12px;
+      height: 24px;
+      text-align: center;
+    }
+
+    .more-menu {
+      .more-menu-toggle {
+        color: @gray-light;
+        display: inline-block;
+        height: 24px;
+        margin-top: 6px;
+
+        &:hover {
+          color: @gray;
+        }
+      }
+
+      .dropdown-menu {
+        padding: 0;
+        min-width: 0;
+        width: 132px;
+        left: -110px;
+        top: -64px;
+        .clearfix;
+
+        li {
+          display: inline-block;
+          width: 44px;
+          height: 44px;
+          position: relative;
+
+          a {
+            display: block;
+            padding: 0;
+            text-align: center;
+            height: 44px;
+            line-height: 46px;
+          }
+
+          &:after {
+            display: block;
+            content: "";
+            position: absolute;
+            top: 12px;
+            bottom: 12px;
+            right: 0;
+            width: 1px;
+            background: darken(#f1f2f3, 4);
+          }
+
+          &:first-child {
+            a {
+              border-radius: 2px 0 0 2px;
+            }
+          }
+
+          &:last-child {
+            &:after {
+              display: none;
+            }
+            a {
+              border-radius: 0 2px 2px 0;
+            }
+          }
+        }
+
+        &:before {
+          top: auto;
+          bottom: -9px;
+          left: 107px;
+          border-bottom: none;
+          border-top: 9px solid rgba(52, 60, 69, 0.45);
+        }
+
+        &:after {
+          top: auto;
+          bottom: -8px;
+          left: 108px;
+          border-bottom: none;
+          border-top: 8px solid #fff;
+        }
+      }
+
+      &.open {
+        .more-menu-toggle {
+          color: @gray-dark;
+        }
+      }
+    }
+
+    .event-graph {
+      width: 125px;
+      position: absolute;
+      right: 40px;
+      top: 20px;
+    }
+
+    .more-menu-container {
+      position: absolute;
+      width: 20px;
+      right: 14px;
+      top: 13px;
+    }
+
+    &.with-graph {
+      padding-right: 180px;
+    }
+
+    &:last-child {
+      border-bottom: 0;
     }
   }
 }
@@ -544,69 +897,117 @@
 }
 
 /**
-* Stream Filters
+* Stream Saved Searches
 * ============================================================================
 */
 
-.primary-filters {
-  padding-right: 0;
+
+.saved-search-selector {
+  .dropdown-toggle {
+    display: inline-block;
+    font-size: 24px;
+    line-height: 36px;
+    margin-right: 10px;
+    color: @gray-darker;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+
+    &:hover {
+      color: @gray-darkest;
+    }
+
+    .icon-arrow-down {
+      display: inline-block;
+      margin-left: 5px;
+      top: 0;
+      vertical-align: middle;
+    }
+  }
+
+  li.empty {
+    padding: 8px 10px 5px;
+    font-style: italic;
+  }
+
+  .dropdown-menu {
+    max-width: 350px;
+    min-width: 250px;
+
+    .row {
+      margin: 8px 5px 5px;
+      .col-md-5, .col-md-7 {
+        padding: 0 5px;
+      }
+    }
+
+    li {
+      a {
+        padding: 3px 10px;
+      }
+      strong, code {
+        display: block;
+        max-width: 100%;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      code {
+        font-size: 93%;
+        color: @gray;
+        padding: 0;
+        background: inherit;
+      }
+      &.active code {
+        color: @white;
+      }
+      .btn {
+        display: block;
+      }
+    }
+  }
 }
 
-.filter-nav {
-  margin-top: -2px;
-  margin-bottom: 18px;
+.stream-sort {
+  width: 165px;
+  position: absolute;
+  display: block;
+  left: 0;
+  top: 0;
+  margin-right: 5px;
 
-  .stream-sort {
-    .list-unstyled;
-    margin-left: 10px;
-    margin-bottom: 0;
+  .dropdown-toggle {
     font-size: 14px;
+    box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.03);
+    border: 1px solid @gray-lighter;
+    padding: 6px 12px;
+    border-radius: 3px;
+    color: @gray-dark;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 100%;
+    display: block;
+    text-align: center;
 
-   .dropdown-toggle {
-      line-height: 38px;
-      color: @gray;
-    }
-
-    .dropdown.open .dropdown-toggle {
-      color: @gray-dark;
-    }
-  }
-
-  .nav-tabs {
-    margin: 0;
-    font-size: 15px;
-
-    > li {
-      > a {
-        padding-bottom: 24px;
-        margin: 0;
-
-        .icon-arrow-down {
-          margin-left: 2px;
-          position: relative;
-          top: 2px;
-          color: lighten(@gray, 25);
-        }
-      }
-
-      &.highlight {
-        a {
-          color: @gray-dark;
-          font-size: 95%;
-        }
-      }
-
-      &.divider {
-        height: 22px;
-        border-left: 1px solid lighten(@trim, 4);
-        margin-right: 20px;
-        margin-left: 1px;
-      }
+    color: inherit;
+    .icon-arrow-down {
+      margin-left: 5px;
+      min-width: 16px;
     }
   }
 
-  .text-tabs {
-    margin-bottom: 25px;
+  .dropdown-menu {
+    top: 0;
+    left: 3px;
+
+    &:before { display: none; }
+    &:after { display: none; }
+  }
+
+  .dropdown.open .dropdown-toggle {
+    color: inherit;
   }
 }
 
@@ -615,19 +1016,37 @@
 * ============================================================================
 */
 
+.stream-header {
+  margin-top: -2px;
+  margin-bottom: 15px;
+}
+
 .stream-row {
   .clearfix();
 
+  .search-container {
+    padding-right: 55px;
+    padding-left: 170px;
+    position: relative;
+  }
+
   .search {
-    float: left;
-    width: 82%;
+    width: 100%;
   }
 
   .toggle-stream-sidebar {
-    float: left;
-    width: 16%;
-    margin-left: 2%;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 50px;
+    margin-left: 5px;
     height: 38px;
+    text-align: center;
+    padding: 8px;
+
+    &:focus, &:active {
+      box-shadow: 0;
+    }
 
     .icon-filter {
       font-size: 19px;
@@ -745,11 +1164,6 @@
     margin-bottom: -1px;
   }
 
-  .primary-filters {
-    padding-right: 15px;
-    margin-bottom: -1px;
-  }
-
   .stream-actions {
     .stream-actions-count, .stream-actions-users {
       font-size: 13px;
@@ -767,6 +1181,18 @@
     width: 100% !important;
   }
 
+  .search-clear-form {
+    top: 10px !important;
+  }
+
+  .stream-sort {
+    line-height: 25px;
+  }
+
+  .search-container {
+    padding-right: 0 !important;
+  }
+
   .toggle-stream-sidebar {
     display: none;
   }
@@ -776,5 +1202,29 @@
   }
   .stream-sidebar {
     display: none;
+  }
+
+  .awaiting-events {
+    padding: 40px 20px 20px;
+
+    .wrap {
+      padding: 0;
+      text-align: center;
+    }
+    .robot {
+      position: relative;
+      top: 0;
+      left: 0;
+      margin: 0 auto;
+    }
+  }
+}
+
+
+@media(max-width:400px) {
+  .stream-sort { display: none; }
+
+  .search-container {
+    padding-left: 0 !important;
   }
 }

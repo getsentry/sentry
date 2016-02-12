@@ -92,6 +92,7 @@ class AuditLogEntry(Model):
 
         (AuditLogEntryEvent.ORG_ADD, 'org.create'),
         (AuditLogEntryEvent.ORG_EDIT, 'org.edit'),
+        (AuditLogEntryEvent.ORG_REMOVE, 'org.remove'),
 
         (AuditLogEntryEvent.TAGKEY_REMOVE, 'tagkey.remove'),
 

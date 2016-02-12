@@ -1,7 +1,7 @@
 import React from 'react';
 import TestUtils from 'react-addons-test-utils';
 
-import Api from 'app/api';
+import {Client} from 'app/api';
 import ReleaseArtifacts from 'app/views/releaseArtifacts';
 import Pagination from 'app/components/pagination';
 
@@ -12,7 +12,7 @@ describe('ReleaseArtifacts', function() {
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(Api, 'request');
+    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
     stubReactComponents(this.sandbox, [Pagination]);
 
   });
@@ -29,7 +29,7 @@ describe('ReleaseArtifacts', function() {
           params={{orgId: '123', projectId: '456', version: 'abcdef'}}/>
       );
 
-      var apiArgs = this.stubbedApiRequest.lastCall.args;
+      let apiArgs = this.stubbedApiRequest.lastCall.args;
       expect(apiArgs[0]).to.eql('/projects/123/456/releases/abcdef/files/');
       expect(apiArgs[1].data).to.have.property('cursor', '0:0:100');
     });

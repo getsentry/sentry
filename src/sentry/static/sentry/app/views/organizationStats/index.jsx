@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import React from 'react';
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import FlotChart from '../../components/flotChart';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -8,9 +8,11 @@ import OrganizationHomeContainer from '../../components/organizations/homeContai
 import OrganizationState from '../../mixins/organizationState';
 
 import ProjectTable from './projectTable';
+import {t} from '../../locale';
 
 const OrganizationStats = React.createClass({
   mixins: [
+    ApiMixin,
     OrganizationState
   ],
 
@@ -69,7 +71,7 @@ const OrganizationStats = React.createClass({
     let statEndpoint = this.getOrganizationStatsEndpoint();
 
     $.each(this.state.rawOrgData, (statName) => {
-      api.request(statEndpoint, {
+      this.api.request(statEndpoint, {
         query: {
           since: this.state.querySince,
           until: this.state.queryUntil,
@@ -93,7 +95,7 @@ const OrganizationStats = React.createClass({
     });
 
     $.each(this.state.rawProjectData, (statName) => {
-      api.request(statEndpoint, {
+      this.api.request(statEndpoint, {
         query: {
           since: this.state.querySince,
           until: this.state.queryUntil,
@@ -116,7 +118,7 @@ const OrganizationStats = React.createClass({
       });
     });
 
-    api.request(this.getOrganizationProjectsEndpoint(), {
+    this.api.request(this.getOrganizationProjectsEndpoint(), {
       success: (data) => {
         let projectMap = {};
         data.forEach((project) => {
@@ -233,7 +235,7 @@ const OrganizationStats = React.createClass({
     return [
       {
         data: stats.accepted,
-        label: 'Accepted',
+        label: t('Accepted'),
         color: 'rgba(86, 175, 232, 1)',
         shadowSize: 0,
         stack: true,
@@ -247,7 +249,7 @@ const OrganizationStats = React.createClass({
         data: stats.rejected,
         color: 'rgba(226, 76, 83, 1)',
         shadowSize: 0,
-        label: 'Dropped (Rate Limit)',
+        label: t('Dropped (Rate Limit)'),
         stack: true,
         lines: {
           lineWidth: 2,
@@ -259,7 +261,7 @@ const OrganizationStats = React.createClass({
         data: stats.blacklisted,
         color: 'rgba(247, 131, 0, 1)',
         shadowSize: 0,
-        label: 'Dropped (Blacklist)',
+        label: t('Dropped (Blacklist)'),
         stack: true,
         lines: {
           lineWidth: 2,
@@ -273,19 +275,19 @@ const OrganizationStats = React.createClass({
   render() {
     return (
       <OrganizationHomeContainer>
-        <h3>Stats</h3>
+        <h3>{t('Stats')}</h3>
         <div className="row">
           <div className="col-md-9">
-            <p>The chart below reflects events the system has received
+            <p>{t(`The chart below reflects events the system has received
             across your entire organization. Events are broken down into
             three categories: Accepted, Rate Limited, and Blacklisted. Rate
             Limited events are entries that the system threw away due to quotas
             being hit, and Blacklisted events are events that were blocked
-            due to your Blacklisted IPs setting.</p>
+            due to your Blacklisted IPs setting.`)}</p>
           </div>
           {!this.state.statsLoading &&
             <div className="col-md-3 stats-column">
-              <h6 className="nav-header">Events per minute</h6>
+              <h6 className="nav-header">{t('Events per minute')}</h6>
               <p className="count">{this.state.orgTotal.avgRate}</p>
             </div>
           }
@@ -306,7 +308,7 @@ const OrganizationStats = React.createClass({
 
         <div className="box">
           <div className="box-header">
-            <h3>Events by Project</h3>
+            <h3>{t('Events by Project')}</h3>
           </div>
           <div className="box-content">
             {this.state.statsLoading || this.state.projectsLoading ?

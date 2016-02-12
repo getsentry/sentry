@@ -153,6 +153,7 @@ CLIENT_RESERVED_ATTRS = (
     'tags',
     'platform',
     'release',
+    'environment',
 )
 
 DEFAULT_SCRUBBED_FIELDS = (
@@ -165,6 +166,23 @@ DEFAULT_SCRUBBED_FIELDS = (
     'access_token',
 )
 
+VALID_PLATFORMS = set([
+    'as3',
+    'c',
+    'cfml',
+    'csharp',
+    'go',
+    'java',
+    'javascript',
+    'node',
+    'objc',
+    'other',
+    'perl',
+    'php',
+    'python',
+    'ruby',
+])
+
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
 
 OK_PLUGIN_DISABLED = _("The {name} integration has been disabled.")
@@ -173,3 +191,5 @@ OK_PLUGIN_SAVED = _('Configuration for the {name} integration has been saved.')
 
 # Key to use when ordering a list of events manually
 EVENT_ORDERING_KEY = attrgetter('datetime', 'id')
+
+FILTER_MASK = '[Filtered]'

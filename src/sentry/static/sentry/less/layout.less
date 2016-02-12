@@ -1,13 +1,16 @@
+html {
+  height: 100%;
+}
+
 body {
   margin: 0;
   font-family: @font-family-base;
   font-size: 16px;
   line-height: 24px;
-  color: @gray-dark;
+  color: @gray-darker;
   -webkit-font-smoothing: antialiased;
   .transition(.1s padding ease-in-out);
   overflow-x: hidden;
-  background: @bgColor;
   // padding-left: @sidebar-width;
 }
 
@@ -61,7 +64,7 @@ body.auth {
 */
 
 header {
-  background-color: #515C6F;
+  background-color: @header-bg-color;
   color: #fff;
   .clearfix();
   font-size: 15px;
@@ -240,8 +243,8 @@ header {
 footer {
   line-height: 30px;
   text-align: center;
-  color: lighten(@gray, 15);
-  border-top: 1px solid lighten(@trim, 8);
+  color: @gray;
+  border-top: 1px solid @trim;
   margin-top: 20px;
   padding: 28px 0;
 
@@ -252,14 +255,14 @@ footer {
   }
 
   a {
-    color: lighten(@gray, 15);
+    color: @gray;
     &:hover {
-      color: @gray;
+      color: @gray-dark;
     }
   }
 
   .icon-sentry-logo {
-    color: lighten(@gray, 15);
+    color: @gray;
     font-size: 28px;
     width: 32px;
     margin: 0 auto;
@@ -300,7 +303,7 @@ footer {
 
 @media print {
     body {
-        color: @black;
+        color: @gray-darkest;
     }
     header {
         display: none;

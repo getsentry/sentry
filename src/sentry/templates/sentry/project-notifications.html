@@ -36,10 +36,63 @@
       </div>
     </div>
 
+    {% if digests_form %}
+    <div class="box">
+      <div class="box-header">
+        <h3>{% trans "Digests" %}</h3>
+      </div>
+      <div class="box-content with-padding">
+        <p>
+          Sentry will automatically digest notifications sent by some services to avoid flooding your inbox with individual issue notifications.
+          To control how frequently notifications are delivered, use the sliders below.
+        </p>
+
+        {{ digests_form|as_crispy_errors }}
+
+        <div class="row">
+          {% for field in digests_form %}
+            <div class="col-md-6">
+              {{ field|as_crispy_field }}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <fieldset class="form-actions">
       <button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button>
     </fieldset>
   </form>
+
+  <script>
+  (function(){
+    var formatMinutes = function(val) {
+      val = parseInt(val, 10);
+      return val + ' minute' + (val != 1 ? 's' : '');
+    };
+
+    $('input[type=range]').each(function(n, el){
+      var $el = $(el),
+          min = parseInt($el.attr('min'), 10),
+          max = parseInt($el.attr('max'), 10),
+          step = parseInt($el.attr('step'), 10),
+          $value = $('<span class="value"></span>');
+
+      $el.on('slider:ready', function(event, data) {
+        console.log(data);
+        $value.appendTo(data.el);
+        $value.html(formatMinutes(data.value));
+      }).on('slider:changed', function(event, data) {
+        $value.html(formatMinutes(data.value));
+      }).simpleSlider({
+        range: [min, max],
+        step: step,
+        snap: true
+      });
+    });
+  }());
+</script>
 
   {% for plugin, content in enabled_plugins %}
     <div class="box">
@@ -82,4 +135,3 @@
     </div>
   {% endif %}
 {% endblock %}
-

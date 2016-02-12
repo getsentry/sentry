@@ -15,7 +15,7 @@ def get_oldest_group_sample_scenario(runner):
     group = Group.objects.filter(project=project).last()
     runner.request(
         method='GET',
-        path='/groups/%s/events/oldest/' % group.id,
+        path='/issues/%s/events/oldest/' % group.id,
     )
 
 
@@ -37,6 +37,6 @@ class GroupEventsOldestEndpoint(GroupEndpoint):
             return Response({'detail': 'No events found for group'}, status=404)
 
         try:
-            return client.get('/events/{}/'.format(event.id), request.user, request.auth)
+            return client.get('/events/{}/'.format(event.id), request=request)
         except client.ApiError as e:
             return Response(e.body, status=e.status_code)

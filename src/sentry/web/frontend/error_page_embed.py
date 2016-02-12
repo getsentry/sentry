@@ -7,7 +7,7 @@ from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 
-from sentry.models import Group, ProjectKey, UserReport
+from sentry.models import EventMapping, Group, ProjectKey, UserReport
 from sentry.web.helpers import render_to_response
 from sentry.utils import json
 from sentry.utils.http import is_valid_origin
@@ -90,13 +90,15 @@ class ErrorPageEmbedView(View):
             report.project = key.project
             report.event_id = event_id
             try:
-                report.group = Group.objects.get(
-                    eventmapping__event_id=report.event_id,
-                    eventmapping__project=key.project,
+                mapping = EventMapping.objects.get(
+                    event_id=report.event_id,
+                    project_id=key.project_id,
                 )
-            except Group.DoesNotExist:
+            except EventMapping.DoesNotExist:
                 # XXX(dcramer): the system should fill this in later
                 pass
+            else:
+                report.group = Group.objects.get(id=mapping.group_id)
             report.save()
             return HttpResponse(status=200)
         elif request.method == 'POST':

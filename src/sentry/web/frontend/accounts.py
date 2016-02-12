@@ -20,7 +20,7 @@ from django.utils import timezone
 from sudo.decorators import sudo_required
 
 from sentry.models import (
-    LostPasswordHash, Organization, Project, Team, UserOption
+    LostPasswordHash, Project, UserOption
 )
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required
@@ -121,7 +121,7 @@ def settings(request):
     form = AccountSettingsForm(request.user, request.POST or None, initial={
         'email': request.user.email,
         'username': request.user.username,
-        'first_name': request.user.first_name,
+        'name': request.user.name,
     })
     if form.is_valid():
         form.save()
@@ -175,24 +175,10 @@ def appearance_settings(request):
 def notification_settings(request):
     settings_form = NotificationSettingsForm(request.user, request.POST or None)
 
-    # TODO(dcramer): this is an extremely bad pattern and we need a more optimal
-    # solution for rendering this (that ideally plays well with the org data)
-    project_list = []
-    organization_list = Organization.objects.get_for_user(
-        user=request.user,
-    )
-    for organization in organization_list:
-        team_list = Team.objects.get_for_user(
-            user=request.user,
-            organization=organization,
-        )
-        for team in team_list:
-            project_list.extend(
-                Project.objects.get_for_user(
-                    user=request.user,
-                    team=team,
-                )
-            )
+    project_list = list(Project.objects.filter(
+        team__organizationmemberteam__organizationmember__user=request.user,
+        team__organizationmemberteam__is_active=True,
+    ).distinct())
 
     project_forms = [
         (project, ProjectEmailOptionsForm(

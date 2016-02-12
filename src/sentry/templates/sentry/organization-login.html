@@ -23,8 +23,6 @@
         <p><button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
           <span class="provider-logo {{ provider_name | lower}}"></span> Login with {{ provider_name }}
         </button></p>
-
-        <p><small>Have an existing account? <a href="{% url 'sentry-auth-link-identity' organization.slug %}">Login with your password</a> to link your identity.</small></p>
       </div>
     </form>
   {% else %}

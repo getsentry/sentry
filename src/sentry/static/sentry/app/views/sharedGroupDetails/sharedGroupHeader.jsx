@@ -1,38 +1,19 @@
 import React from 'react';
 
-import Count from '../../components/count';
-
 const SharedGroupHeader = React.createClass({
   render() {
-    let group = this.props.group, userCount = group.userCount;
+    let group = this.props.group;
 
     return (
-      <div className="group-detail">
-        <div className="row">
-          <div className="col-sm-9 details">
-            <h3>
-              {group.title}
-            </h3>
-            <div className="event-message">
-              <span className="message">{group.culprit}</span>
-            </div>
-          </div>
-          <div className="col-sm-3 stats">
-            <div className="row">
-              <div className="col-xs-6 count align-right">
-                <h6 className="nav-header">events</h6>
-                <Count value={group.count} />
-              </div>
-              <div className="col-xs-6 count align-right">
-                <h6 className="nav-header">users</h6>
-                <Count value={userCount} />
-              </div>
-            </div>
+      <div className="group-detail" style={{paddingBottom: 20}}>
+        <div className="details">
+          <h3>
+            {group.title}
+          </h3>
+          <div className="event-message">
+            <span className="message">{group.culprit}</span>
           </div>
         </div>
-        <ul className="nav nav-tabs">
-          <li className="active"><a>Overview</a></li>
-        </ul>
       </div>
     );
   }

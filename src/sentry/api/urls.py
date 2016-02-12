@@ -21,9 +21,14 @@ from .endpoints.index import IndexEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
 from .endpoints.legacy_project_redirect import LegacyProjectRedirectEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
+from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
+from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_member_index import OrganizationMemberIndexEndpoint
+from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
+from .endpoints.organization_member_issues_bookmarked import OrganizationMemberIssuesBookmarkedEndpoint
+from .endpoints.organization_member_issues_viewed import OrganizationMemberIssuesViewedEndpoint
 from .endpoints.organization_member_team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
@@ -49,11 +54,13 @@ from .endpoints.project_tags import ProjectTagsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
+from .endpoints.project_user_reports import ProjectUserReportsEndpoint
 from .endpoints.release_details import ReleaseDetailsEndpoint
 from .endpoints.release_files import ReleaseFilesEndpoint
 from .endpoints.release_file_details import ReleaseFileDetailsEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
+from .endpoints.system_options import SystemOptionsEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
@@ -90,12 +97,27 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/access-requests/(?P<request_id>\d+)/$',
         OrganizationAccessRequestDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-access-request-details'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/activity/$',
+        OrganizationActivityEndpoint.as_view(),
+        name='sentry-api-0-organization-activity'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/issues/new/$',
+        OrganizationIssuesNewEndpoint.as_view(),
+        name='sentry-api-0-organization-issues-new'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/members/$',
         OrganizationMemberIndexEndpoint.as_view(),
         name='sentry-api-0-organization-member-index'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/$',
         OrganizationMemberDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-member-details'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/assigned/$',
+        OrganizationMemberIssuesAssignedEndpoint.as_view(),
+        name='sentry-api-0-organization-member-issues-assigned'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/bookmarked/$',
+        OrganizationMemberIssuesBookmarkedEndpoint.as_view(),
+        name='sentry-api-0-organization-member-issues-bookmarked'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/viewed/$',
+        OrganizationMemberIssuesViewedEndpoint.as_view(),
+        name='sentry-api-0-organization-member-issues-viewed'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$',
         OrganizationMemberTeamDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-member-team-details'),
@@ -113,10 +135,10 @@ urlpatterns = patterns(
     url(r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/$',
         TeamDetailsEndpoint.as_view(),
         name='sentry-api-0-team-details'),
-    url(r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/groups/new/$',
+    url(r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/(?:groups|issues)/new/$',
         TeamGroupsNewEndpoint.as_view(),
         name='sentry-api-0-team-groups-new'),
-    url(r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/groups/trending/$',
+    url(r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/(?:groups|issues)/trending/$',
         TeamGroupsTrendingEndpoint.as_view(),
         name='sentry-api-0-team-groups-trending'),
     url(r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/projects/$',
@@ -147,10 +169,10 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/$',
         ProjectEventDetailsEndpoint.as_view(),
         name='sentry-api-0-project-event-details'),
-    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/groups/$',
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:groups|issues)/$',
         ProjectGroupIndexEndpoint.as_view(),
         name='sentry-api-0-project-group-index'),
-    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/groups/stats/$',
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:groups|issues)/stats/$',
         ProjectGroupStatsEndpoint.as_view(),
         name='sentry-api-0-project-group-stats'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/keys/$',
@@ -201,43 +223,46 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/users/$',
         ProjectUsersEndpoint.as_view(),
         name='sentry-api-0-project-users'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/user-reports/$',
+        ProjectUserReportsEndpoint.as_view(),
+        name='sentry-api-0-project-user-reports'),
 
     # Groups
-    url(r'^groups/(?P<group_id>\d+)/$',
+    url(r'^(?:groups|issues)/(?P<issue_id>\d+)/$',
         GroupDetailsEndpoint.as_view(),
         name='sentry-api-0-group-details'),
-    url(r'^groups/(?P<group_id>\d+)/events/$',
+    url(r'^(?:groups|issues)/(?P<issue_id>\d+)/events/$',
         GroupEventsEndpoint.as_view(),
         name='sentry-api-0-group-events'),
-    url(r'^groups/(?P<group_id>\d+)/events/latest/$',
+    url(r'^(?:groups|issues)/(?P<issue_id>\d+)/events/latest/$',
         GroupEventsLatestEndpoint.as_view(),
         name='sentry-api-0-group-events-latest'),
-    url(r'^groups/(?P<group_id>\d+)/events/oldest/$',
+    url(r'^(?:groups|issues)/(?P<issue_id>\d+)/events/oldest/$',
         GroupEventsOldestEndpoint.as_view(),
         name='sentry-api-0-group-events-oldest'),
-    url(r'^groups/(?P<group_id>\d+)/notes/$',
+    url(r'^(?:groups|issues)/(?P<issue_id>\d+)/(?:notes|comments)/$',
         GroupNotesEndpoint.as_view(),
         name='sentry-api-0-group-notes'),
-    url(r'^groups/(?P<group_id>\d+)/notes/(?P<note_id>[^\/]+)/$',
+    url(r'^(?:groups|issues)/(?P<issue_id>\d+)/(?:notes|comments)/(?P<note_id>[^\/]+)/$',
         GroupNotesDetailsEndpoint.as_view(),
         name='sentry-api-0-group-notes-details'),
-    url(r'^groups/(?P<group_id>\d+)/stats/$',
+    url(r'^(?:groups|issues)/(?P<issue_id>\d+)/stats/$',
         GroupStatsEndpoint.as_view(),
         name='sentry-api-0-group-stats'),
-    url(r'^groups/(?P<group_id>\d+)/tags/$',
+    url(r'^(?:groups|issues)/(?P<issue_id>\d+)/tags/$',
         GroupTagsEndpoint.as_view(),
         name='sentry-api-0-group-tags'),
-    url(r'^groups/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/$',
+    url(r'^(?:groups|issues)/(?P<issue_id>\d+)/tags/(?P<key>[^/]+)/$',
         GroupTagKeyDetailsEndpoint.as_view(),
         name='sentry-api-0-group-tagkey-details'),
-    url(r'^groups/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/values/$',
+    url(r'^(?:groups|issues)/(?P<issue_id>\d+)/tags/(?P<key>[^/]+)/values/$',
         GroupTagKeyValuesEndpoint.as_view(),
         name='sentry-api-0-group-tagkey-values'),
-    url(r'^groups/(?P<group_id>\d+)/user-reports/$',
+    url(r'^(?:groups|issues)/(?P<issue_id>\d+)/user-reports/$',
         GroupUserReportsEndpoint.as_view(),
         name='sentry-api-0-group-user-reports'),
 
-    url(r'^shared/groups/(?P<share_id>[^\/]+)/$',
+    url(r'^shared/(?:groups|issues)/(?P<share_id>[^\/]+)/$',
         SharedGroupDetailsEndpoint.as_view(),
         name='sentry-api-0-shared-group-details'),
 
@@ -250,6 +275,9 @@ urlpatterns = patterns(
     url(r'^internal/health/$',
         SystemHealthEndpoint.as_view(),
         name='sentry-api-0-system-health'),
+    url(r'^internal/options/$',
+        SystemOptionsEndpoint.as_view(),
+        name='sentry-api-0-system-options'),
     url(r'^internal/stats/$',
         InternalStatsEndpoint.as_view(),
         name='sentry-api-0-internal-stats'),

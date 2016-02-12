@@ -5,7 +5,7 @@
 
 {% block preheader %}
   {% if group.times_seen == 1 %}
-      New Event on {{ project_label }}.
+      New Issue on {{ project_label }}.
   {% else %}
       Regression on {{ project_label }}.
   {% endif %}
@@ -20,37 +20,42 @@
     <h2 style="margin-bottom: 15px">
         {% url 'sentry-stream' group.project.organization.slug group.project.slug as project_link %}
         {% if group.times_seen == 1 %}
-            New Event on <a href="{% absolute_uri project_link %}">{{ project_label }}</a>
+            New Issue on <a href="{% absolute_uri project_link %}">{{ project_label }}</a>
         {% else %}
             Regression on <a href="{% absolute_uri project_link %}">{{ project_label }}</a>
         {% endif %}
     </h2>
 
-    <div class="event">
-      <pre class="message">{{ event.message }}</pre>
-      <div class="event-id">ID: {{ event.event_id }}</div>
-      <div class="event-date">{{ event.datetime }} UTC</div>
-    </div>
+    {% if enhanced_privacy %}
+      <div class="notice">Details about this issue are not shown in this notification since enhanced privacy
+        controls are enabled. For more details about this issue, <a href="{{ link }}">view this issue on Sentry</a>.</div>
+    {% else %}
+      <div class="event">
+        <pre class="message">{{ event.message }}</pre>
+        <div class="event-id">ID: {{ event.event_id }}</div>
+        <div class="event-date">{{ event.datetime }} UTC</div>
+      </div>
 
-    {% for label, html, _ in interfaces %}
-    <div class="interface">
-        <h3 class="title">{{ label }}</h3>
-        {{ html }}
-    </div>
-    {% endfor %}
-
-    {% if tags %}
-      <h3>Tags</h3>
-
-      <ul class="tag-list">
-      {% for tag_key, tag_value in tags %}
-        <li>
-            <strong>{{ tag_key }}</strong>
-            <em>=</em>
-            <span><a href="{% absolute_uri project_link %}?{{ tag_key }}={{ tag_value }}">{{ tag_value }}</a> {% if tag_value|is_url %}<a href="{{ tag_value|truncatechars:50 }}" class="icon-share"></a>{% endif %}</span>
-        </li>
+      {% for label, html, _ in interfaces %}
+      <div class="interface">
+          <h3 class="title">{{ label }}</h3>
+          {{ html }}
+      </div>
       {% endfor %}
-      </ul>
+
+      {% if tags %}
+        <h3>Tags</h3>
+
+        <ul class="tag-list">
+        {% for tag_key, tag_value in tags %}
+          <li>
+              <strong>{{ tag_key }}</strong>
+              <em>=</em>
+              <span><a href="{% absolute_uri project_link %}?{{ tag_key }}={{ tag_value }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}</span>
+          </li>
+        {% endfor %}
+        </ul>
+      {% endif %}
     {% endif %}
 
     {% if rules %}
@@ -65,7 +70,7 @@
 
     {# support for gmail actions #}
     <div itemscope itemtype="http://schema.org/EmailMessage">
-      <meta itemprop="description" content="View Event Details in Sentry"/>
+      <meta itemprop="description" content="View Issue Details in Sentry"/>
       <div itemprop="action" itemscope itemtype="http://schema.org/ViewAction">
         <link itemprop="url" href="{{ link }}"/>
         <meta itemprop="name" content="View in Sentry"/>

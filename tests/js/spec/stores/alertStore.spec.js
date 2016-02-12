@@ -27,9 +27,9 @@ describe('AlertStore', function () {
   describe('onCloseAlert()', function () {
     it('should remove alert with given id', function () {
       AlertStore.alerts = [
-        { id: 1, message: 'foo', type: 'error '},
-        { id: 2, message: 'bar', type: 'error '},
-        { id: 3, message: 'baz', type: 'error '},
+        {id: 1, message: 'foo', type: 'error '},
+        {id: 2, message: 'bar', type: 'error '},
+        {id: 3, message: 'baz', type: 'error '},
       ];
 
       AlertStore.onCloseAlert(2);

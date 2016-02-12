@@ -10,7 +10,7 @@ class UserPermission(ScopedPermission):
     def has_object_permission(self, request, view, user):
         if request.auth:
             return False
-        if request.user.is_superuser:
+        if request.is_superuser():
             return True
         return request.user == user
 

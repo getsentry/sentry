@@ -16,22 +16,43 @@ which is the worker manager process of the Celery library.
 
 .. code-block:: bash
 
-    $ sentry celery worker -B
-
-.. note:: You will need to run both celery workers and celerybeat. In our
-          example, the -B flag runs a beat instance (in addition to the worker),
-          but in production you may want to run them separately.
+    $ sentry celery worker
 
 We again recommend running this as a service. Below is an example
 configuration with supervisor::
 
     [program:sentry-worker]
     directory=/www/sentry/
-    command=/www/sentry/bin/sentry celery worker -B -l WARNING
+    command=/www/sentry/bin/sentry celery worker -l WARNING
     autostart=true
     autorestart=true
     redirect_stderr=true
     killasgroup=true
+
+Starting the Cron Process
+-------------------------
+
+Sentry also needs a cron process which is called "celery beat":
+
+::
+
+  SENTRY_CONF=/etc/sentry sentry celery beat
+
+We again recommend running this as a service. Below is an example
+configuration with supervisor::
+
+    [program:sentry-cron]
+    directory=/www/sentry/
+    command=/www/sentry/bin/sentry celery beat
+    autostart=true
+    autorestart=true
+    redirect_stderr=true
+    killasgroup=true
+
+It's recommended to only run one of them at the time or you will see
+unnecessary extra tasks being pushed onto the queues but the system will
+still behave as intended if multiple beat processes are run.  This can be
+used to achieve high availability.
 
 
 Configuring the Broker

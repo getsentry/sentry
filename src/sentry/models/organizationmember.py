@@ -147,8 +147,9 @@ class OrganizationMember(Model):
         }
 
         msg = MessageBuilder(
-            subject='Invite to join organization: %s' % (self.organization.name,),
-            template='sentry/emails/member_invite.txt',
+            subject='Join %s in using Sentry' % self.organization.name,
+            template='sentry/emails/member-invite.txt',
+            html_template='sentry/emails/member-invite.html',
             context=context,
         )
 
@@ -164,7 +165,7 @@ class OrganizationMember(Model):
         context = {
             'email': self.email,
             'organization_name': self.organization.name,
-            'url': absolute_uri(reverse('sentry-auth-link-identity', kwargs={
+            'url': absolute_uri(reverse('sentry-auth-organization', kwargs={
                 'organization_slug': self.organization.slug,
             })),
         }

@@ -5,10 +5,11 @@ __all__ = ['SourceProcessor']
 import logging
 import re
 import base64
+import zlib
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
-from django.utils.encoding import force_bytes
+from django.utils.encoding import force_bytes, force_text
 from collections import namedtuple
 from os.path import splitext
 from requests.exceptions import RequestException
@@ -23,11 +24,15 @@ except ImportError:
         pass
 
 from sentry import http
+from sentry.constants import MAX_CULPRIT_LENGTH
+from sentry.exceptions import RestrictedIPAddress
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Release, ReleaseFile
 from sentry.utils.cache import cache
+from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5
 from sentry.utils.http import is_valid_origin
+from sentry.utils.strings import truncatechars
 
 from .cache import SourceCache, SourceMapCache
 from .sourcemaps import sourcemap_to_index, find_source
@@ -180,7 +185,7 @@ def discover_sourcemap(result):
 
 
 def fetch_release_file(filename, release):
-    cache_key = 'releasefile:%s:%s' % (
+    cache_key = 'releasefile:v1:%s:%s' % (
         release.id,
         md5(filename).hexdigest(),
     )
@@ -195,7 +200,7 @@ def fetch_release_file(filename, release):
             releasefile = ReleaseFile.objects.filter(
                 release=release,
                 ident=ident,
-            ).select_related('file').get()
+            ).select_related('file', 'file__blob').get()
         except ReleaseFile.DoesNotExist:
             logger.debug('Release artifact %r not found in database (release_id=%s)',
                          filename, release.id)
@@ -206,16 +211,24 @@ def fetch_release_file(filename, release):
                      filename, releasefile.id, release.id)
         try:
             with releasefile.file.getfile() as fp:
-                body = fp.read()
+                z_body, body = compress_file(fp)
         except Exception as e:
             logger.exception(unicode(e))
-            result = -1
+            cache.set(cache_key, -1, 3600)
+            result = None
         else:
+            # Write the compressed version to cache, but return the deflated version
+            cache.set(cache_key, (releasefile.file.headers, z_body, 200), 3600)
             result = (releasefile.file.headers, body, 200)
-        cache.set(cache_key, result, 300)
-
-    if result == -1:
+    elif result == -1:
+        # We cached an error, so normalize
+        # it down to None
         result = None
+    else:
+        # We got a cache hit, but the body is compressed, so we
+        # need to decompress it before handing it off
+        body = zlib.decompress(result[1])
+        result = (result[0], body, result[2])
 
     return result
 
@@ -228,22 +241,28 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     """
     if release:
         result = fetch_release_file(url, release)
-    elif not allow_scraping or not url.startswith(('http:', 'https:')):
-        error = {
-            'type': EventError.JS_MISSING_SOURCE,
-            'url': url,
-        }
-        raise CannotFetchSource(error)
     else:
         result = None
 
-    cache_key = 'source:cache:v2:%s' % (
+    cache_key = 'source:cache:v3:%s' % (
         md5(url).hexdigest(),
     )
 
     if result is None:
+        if not allow_scraping or not url.startswith(('http:', 'https:')):
+            error = {
+                'type': EventError.JS_MISSING_SOURCE,
+                'url': url,
+            }
+            raise CannotFetchSource(error)
+
         logger.debug('Checking cache for url %r', url)
         result = cache.get(cache_key)
+        if result is not None:
+            # We got a cache hit, but the body is compressed, so we
+            # need to decompress it before handing it off
+            body = zlib.decompress(result[1])
+            result = (result[0], force_text(body), result[2])
 
     if result is None:
         # lock down domains that are problematic
@@ -275,10 +294,14 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             )
         except Exception as exc:
             logger.debug('Unable to fetch %r', url, exc_info=True)
-            if isinstance(exc, SuspiciousOperation):
+            if isinstance(exc, RestrictedIPAddress):
+                error = {
+                    'type': EventError.RESTRICTED_IP,
+                    'url': url,
+                }
+            elif isinstance(exc, SuspiciousOperation):
                 error = {
                     'type': EventError.SECURITY_VIOLATION,
-                    'value': unicode(exc),
                     'url': url,
                 }
             elif isinstance(exc, (RequestException, ZeroReturnError)):
@@ -305,12 +328,12 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         if not response.encoding:
             response.encoding = 'utf-8'
 
-        result = (
-            {k.lower(): v for k, v in response.headers.items()},
-            response.text,
-            response.status_code,
-        )
-        cache.set(cache_key, result, 60)
+        body = response.text
+        z_body = zlib.compress(force_bytes(body))
+        headers = {k.lower(): v for k, v in response.headers.items()}
+
+        cache.set(cache_key, (headers, z_body, response.status_code), 60)
+        result = (headers, body, response.status_code)
 
     if result[2] != 200:
         logger.debug('HTTP %s when fetching %r', result[2], url,
@@ -321,6 +344,20 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             'url': url,
         }
         raise CannotFetchSource(error)
+
+    # Make sure the file we're getting back is unicode, if it's not,
+    # it's either some encoding that we don't understand, or it's binary
+    # data which we can't process.
+    if not isinstance(result[1], unicode):
+        try:
+            result = (result[0], result[1].decode('utf8'), result[2])
+        except UnicodeDecodeError:
+            error = {
+                'type': EventError.JS_INVALID_SOURCE_ENCODING,
+                'value': 'utf8',
+                'url': url,
+            }
+            raise CannotFetchSource(error)
 
     return UrlResult(url, result[0], result[1])
 
@@ -396,11 +433,14 @@ class SourceProcessor(object):
 
     Mutates the input ``data`` with expanded context if available.
     """
-    def __init__(self, max_fetches=MAX_RESOURCE_FETCHES, allow_scraping=True):
+    def __init__(self, project, max_fetches=MAX_RESOURCE_FETCHES,
+                 allow_scraping=True):
         self.allow_scraping = allow_scraping
         self.max_fetches = max_fetches
+        self.fetch_count = 0
         self.cache = SourceCache()
         self.sourcemaps = SourceMapCache()
+        self.project = project
 
     def get_stacktraces(self, data):
         try:
@@ -430,16 +470,16 @@ class SourceProcessor(object):
             ])
         return frames
 
-    def get_release(self, project, data):
+    def get_release(self, data):
         if not data.get('release'):
             return
 
         return Release.get(
-            project=project,
+            project=self.project,
             version=data['release'],
         )
 
-    def process(self, project, data):
+    def process(self, data):
         stacktraces = self.get_stacktraces(data)
         if not stacktraces:
             logger.debug('No stacktrace for event %r', data['event_id'])
@@ -454,11 +494,11 @@ class SourceProcessor(object):
         data.setdefault('errors', [])
         errors = data['errors']
 
-        release = self.get_release(project, data)
+        release = self.get_release(data)
         # all of these methods assume mutation on the original
         # objects rather than re-creation
-        self.populate_source_cache(project, frames, release)
-        errors.extend(self.expand_frames(frames) or [])
+        self.populate_source_cache(frames, release)
+        errors.extend(self.expand_frames(frames, release) or [])
         self.ensure_module_names(frames)
         self.fix_culprit(data, stacktraces)
         self.update_stacktraces(stacktraces)
@@ -474,7 +514,10 @@ class SourceProcessor(object):
         # (stacktrace as dict, stacktrace class)
         # So we need to take the [1] index to get the Stacktrace class,
         # then extract the culprit string from that.
-        data['culprit'] = stacktraces[-1][1].get_culprit_string()
+        data['culprit'] = truncatechars(
+            stacktraces[-1][1].get_culprit_string(),
+            MAX_CULPRIT_LENGTH,
+        )
 
     def update_stacktraces(self, stacktraces):
         for raw, interface in stacktraces:
@@ -487,7 +530,7 @@ class SourceProcessor(object):
             if not frame.module and frame.abs_path.startswith(('http:', 'https:', 'webpack:')):
                 frame.module = generate_module(frame.abs_path)
 
-    def expand_frames(self, frames):
+    def expand_frames(self, frames, release):
         last_state = None
         state = None
 
@@ -500,13 +543,22 @@ class SourceProcessor(object):
             if errors:
                 all_errors.extend(errors)
 
-            source = cache.get(frame.abs_path)
+            # can't fetch source if there's no filename present
+            if not frame.abs_path:
+                continue
+
+            source = self.get_source(frame.abs_path, release)
             if source is None:
-                logger.info('No source found for %s', frame.abs_path)
+                logger.debug('No source found for %s', frame.abs_path)
                 continue
 
             sourcemap_url, sourcemap_idx = sourcemaps.get_link(frame.abs_path)
-            if sourcemap_idx and frame.colno is not None:
+            if sourcemap_idx and frame.colno is None:
+                all_errors.append({
+                    'type': EventError.JS_NO_COLUMN,
+                    'url': force_bytes(frame.abs_path, errors='replace'),
+                })
+            elif sourcemap_idx:
                 last_state = state
                 state = find_source(sourcemap_idx, frame.lineno, frame.colno)
 
@@ -518,7 +570,7 @@ class SourceProcessor(object):
                 abs_path = urljoin(sourcemap_url, state.src)
 
                 logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
-                source = cache.get(abs_path)
+                source = self.get_source(abs_path, release)
                 if not source:
                     frame.data = {
                         'sourcemap': sourcemap_label,
@@ -592,14 +644,70 @@ class SourceProcessor(object):
                 source=source, lineno=frame.lineno, colno=frame.colno or 0)
         return all_errors
 
-    def populate_source_cache(self, project, frames, release):
-        pending_file_list = set()
-        done_file_list = set()
-        sourcemap_capable = set()
+    def get_source(self, filename, release):
+        if filename not in self.cache:
+            self.cache_source(filename, release)
+        return self.cache.get(filename)
 
-        cache = self.cache
+    def cache_source(self, filename, release):
         sourcemaps = self.sourcemaps
+        cache = self.cache
 
+        self.fetch_count += 1
+
+        if self.fetch_count > self.max_fetches:
+            cache.add_error(filename, {
+                'type': EventError.JS_TOO_MANY_REMOTE_SOURCES,
+            })
+            return
+
+        # TODO: respect cache-control/max-age headers to some extent
+        logger.debug('Fetching remote source %r', filename)
+        try:
+            result = fetch_file(filename, project=self.project, release=release,
+                                allow_scraping=self.allow_scraping)
+        except BadSource as exc:
+            cache.add_error(filename, exc.data)
+            return
+
+        cache.add(filename, result.body.split('\n'))
+        cache.alias(result.url, filename)
+
+        sourcemap_url = discover_sourcemap(result)
+        if not sourcemap_url:
+            return
+
+        logger.debug('Found sourcemap %r for minified script %r', sourcemap_url[:256], result.url)
+        sourcemaps.link(filename, sourcemap_url)
+        if sourcemap_url in sourcemaps:
+            return
+
+        # pull down sourcemap
+        try:
+            sourcemap_idx = fetch_sourcemap(
+                sourcemap_url,
+                project=self.project,
+                release=release,
+                allow_scraping=self.allow_scraping,
+            )
+        except BadSource as exc:
+            cache.add_error(filename, exc.data)
+            return
+
+        sourcemaps.add(sourcemap_url, sourcemap_idx)
+
+        # cache any inlined sources
+        for source in sourcemap_idx.sources:
+            next_filename = urljoin(sourcemap_url, source)
+            if source in sourcemap_idx.content:
+                cache.add(next_filename, sourcemap_idx.content[source])
+
+    def populate_source_cache(self, frames, release):
+        """
+        Fetch all sources that we know are required (being referenced directly
+        in frames).
+        """
+        pending_file_list = set()
         for f in frames:
             # We can't even attempt to fetch source if abs_path is None
             if f.abs_path is None:
@@ -611,72 +719,9 @@ class SourceProcessor(object):
             if f.abs_path == '<anonymous>':
                 continue
             pending_file_list.add(f.abs_path)
-            if f.colno is not None:
-                sourcemap_capable.add(f.abs_path)
 
-        idx = 0
-        while pending_file_list:
-            filename = pending_file_list.pop()
-            done_file_list.add(filename)
-
-            if idx > self.max_fetches:
-                cache.add_error(filename, {
-                    'type': EventError.JS_TOO_MANY_REMOTE_SOURCES,
-                })
-                continue
-
-            idx += 1
-
-            # TODO: respect cache-control/max-age headers to some extent
-            logger.debug('Fetching remote source %r', filename)
-            try:
-                result = fetch_file(filename, project=project, release=release,
-                                    allow_scraping=self.allow_scraping)
-            except BadSource as exc:
-                cache.add_error(filename, exc.data)
-                continue
-
-            cache.add(filename, result.body.split('\n'))
-            cache.alias(result.url, filename)
-
-            sourcemap_url = discover_sourcemap(result)
-            if not sourcemap_url:
-                continue
-
-            # If we didn't have a colno, a sourcemap wont do us any good
-            if filename not in sourcemap_capable:
-                cache.add_error(filename, {
-                    'type': EventError.JS_NO_COLUMN,
-                    'url': filename,
-                })
-                continue
-
-            logger.debug('Found sourcemap %r for minified script %r', sourcemap_url[:256], result.url)
-
-            sourcemaps.link(filename, sourcemap_url)
-            if sourcemap_url in sourcemaps:
-                continue
-
-            # pull down sourcemap
-            try:
-                sourcemap_idx = fetch_sourcemap(
-                    sourcemap_url,
-                    project=project,
-                    release=release,
-                    allow_scraping=self.allow_scraping,
-                )
-            except BadSource as exc:
-                cache.add_error(filename, exc.data)
-                continue
-
-            sourcemaps.add(sourcemap_url, sourcemap_idx)
-
-            # queue up additional source files for download
-            for source in sourcemap_idx.sources:
-                next_filename = urljoin(sourcemap_url, source)
-                if next_filename not in done_file_list:
-                    if source in sourcemap_idx.content:
-                        cache.add(next_filename, sourcemap_idx.content[source])
-                        done_file_list.add(next_filename)
-                    else:
-                        pending_file_list.add(next_filename)
+        for idx, filename in enumerate(pending_file_list):
+            self.cache_source(
+                filename=filename,
+                release=release,
+            )

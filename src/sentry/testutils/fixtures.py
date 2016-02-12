@@ -83,7 +83,7 @@ class Fixtures(object):
     @fixture
     def activity(self):
         return Activity.objects.create(
-            group=self.group, event=self.event, project=self.project,
+            group=self.group, project=self.project,
             type=Activity.NOTE, user=self.user,
             data={}
         )
@@ -155,12 +155,12 @@ class Fixtures(object):
         return user
 
     def create_event(self, event_id=None, **kwargs):
+        if event_id is None:
+            event_id = uuid4().hex
         if 'group' not in kwargs:
             kwargs['group'] = self.group
         kwargs.setdefault('project', kwargs['group'].project)
         kwargs.setdefault('message', kwargs['group'].message)
-        if event_id is None:
-            event_id = uuid4().hex
         kwargs.setdefault('data', LEGACY_DATA.copy())
         if kwargs.get('tags'):
             tags = kwargs.pop('tags')
@@ -168,10 +168,14 @@ class Fixtures(object):
                 tags = tags.items()
             kwargs['data']['tags'] = tags
 
-        return Event.objects.create(
+        event = Event(
             event_id=event_id,
             **kwargs
         )
+        # emulate EventManager refs
+        event.data.bind_ref(event)
+        event.save()
+        return event
 
     def create_group(self, project=None, checksum=None, **kwargs):
         if checksum:

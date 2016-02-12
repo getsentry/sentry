@@ -11,16 +11,16 @@ from __future__ import absolute_import
 from celery.utils.log import get_task_logger
 
 from sentry.exceptions import DeleteAborted
-from sentry.utils.query import bulk_delete_objects
 from sentry.signals import pending_delete
 from sentry.tasks.base import instrumented_task, retry
+from sentry.utils.query import bulk_delete_objects
 
 logger = get_task_logger(__name__)
 
 
 @instrumented_task(name='sentry.tasks.deletion.delete_organization', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
-@retry
+@retry(exclude=(DeleteAborted,))
 def delete_organization(object_id, continuous=True, **kwargs):
     from sentry.models import (
         Organization, OrganizationMember, OrganizationStatus, Team, TeamStatus
@@ -28,7 +28,7 @@ def delete_organization(object_id, continuous=True, **kwargs):
 
     try:
         o = Organization.objects.get(id=object_id)
-    except Team.DoesNotExist:
+    except Organization.DoesNotExist:
         return
 
     if o.status == OrganizationStatus.VISIBLE:
@@ -58,7 +58,7 @@ def delete_organization(object_id, continuous=True, **kwargs):
 
 @instrumented_task(name='sentry.tasks.deletion.delete_team', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
-@retry
+@retry(exclude=(DeleteAborted,))
 def delete_team(object_id, continuous=True, **kwargs):
     from sentry.models import Team, TeamStatus, Project, ProjectStatus
 
@@ -88,12 +88,14 @@ def delete_team(object_id, continuous=True, **kwargs):
 
 @instrumented_task(name='sentry.tasks.deletion.delete_project', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
-@retry
+@retry(exclude=(DeleteAborted,))
 def delete_project(object_id, continuous=True, **kwargs):
     from sentry.models import (
-        Project, ProjectKey, ProjectStatus, TagKey, TagValue, GroupTagKey,
-        GroupTagValue, Activity, EventMapping, Group, GroupRuleStatus,
-        GroupHash, GroupSeen,
+        Activity, EventMapping, Group, GroupAssignee, GroupBookmark,
+        GroupEmailThread, GroupHash, GroupMeta, GroupResolution,
+        GroupRuleStatus, GroupSeen, GroupTagKey, GroupTagValue, Project,
+        ProjectKey, ProjectStatus, SavedSearchUserDefault, SavedSearch, TagKey,
+        TagValue, UserReport
     )
 
     try:
@@ -110,8 +112,10 @@ def delete_project(object_id, continuous=True, **kwargs):
 
     # XXX: remove keys first to prevent additional data from flowing in
     model_list = (
-        ProjectKey, TagKey, TagValue, GroupTagKey, GroupTagValue, EventMapping,
-        Activity, GroupRuleStatus, GroupHash, GroupSeen,
+        Activity, EventMapping, GroupAssignee, GroupBookmark, GroupEmailThread,
+        GroupHash, GroupSeen, GroupRuleStatus, GroupTagKey,
+        GroupTagValue, ProjectKey, TagKey, TagValue, SavedSearchUserDefault,
+        SavedSearch, UserReport
     )
     for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, logger=logger)
@@ -119,6 +123,16 @@ def delete_project(object_id, continuous=True, **kwargs):
             if continuous:
                 delete_project.delay(object_id=object_id, countdown=15)
             return
+
+    # TODO(dcramer): no project relation so we cant easily bulk
+    # delete today
+    has_more = delete_objects([GroupMeta, GroupResolution],
+                              relation={'group__project': p},
+                              logger=logger)
+    if has_more:
+        if continuous:
+            delete_project.delay(object_id=object_id, countdown=15)
+        return
 
     has_more = delete_events(relation={'project_id': p.id}, logger=logger)
     if has_more:
@@ -138,11 +152,12 @@ def delete_project(object_id, continuous=True, **kwargs):
 
 @instrumented_task(name='sentry.tasks.deletion.delete_group', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
-@retry
+@retry(exclude=(DeleteAborted,))
 def delete_group(object_id, continuous=True, **kwargs):
     from sentry.models import (
-        EventMapping, Group, GroupHash, GroupRuleStatus, GroupStatus,
-        GroupTagKey, GroupTagValue, GroupEmailThread,
+        EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupMeta,
+        GroupResolution, GroupRuleStatus, GroupStatus, GroupTagKey,
+        GroupTagValue, GroupEmailThread, UserReport
     )
 
     try:
@@ -154,8 +169,9 @@ def delete_group(object_id, continuous=True, **kwargs):
         group.update(status=GroupStatus.DELETION_IN_PROGRESS)
 
     bulk_model_list = (
-        GroupHash, GroupRuleStatus, GroupTagValue, GroupTagKey,
-        EventMapping, GroupEmailThread,
+        GroupAssignee, GroupBookmark, GroupHash, GroupMeta, GroupResolution,
+        GroupRuleStatus, GroupTagValue, GroupTagKey, EventMapping,
+        GroupEmailThread, UserReport
     )
     for model in bulk_model_list:
         has_more = bulk_delete_objects(model, group_id=object_id, logger=logger)
@@ -174,7 +190,7 @@ def delete_group(object_id, continuous=True, **kwargs):
 
 @instrumented_task(name='sentry.tasks.deletion.delete_tag_key', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
-@retry
+@retry(exclude=(DeleteAborted,))
 def delete_tag_key(object_id, continuous=True, **kwargs):
     from sentry.models import (
         GroupTagKey, GroupTagValue, TagKey, TagKeyStatus, TagValue

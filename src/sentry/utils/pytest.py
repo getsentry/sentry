@@ -8,6 +8,9 @@ from redis import StrictRedis
 
 
 def pytest_configure(config):
+    # HACK: Only needed for testing!
+    os.environ.setdefault('_SENTRY_SKIP_CONFIGURATION', '1')
+
     os.environ.setdefault('RECAPTCHA_TESTING', 'True')
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sentry.conf.server')
 
@@ -60,7 +63,7 @@ def pytest_configure(config):
     middleware[sudo] = 'sentry.testutils.middleware.SudoMiddleware'
     settings.MIDDLEWARE_CLASSES = tuple(middleware)
 
-    settings.SENTRY_URL_PREFIX = 'http://example.com'
+    settings.SENTRY_OPTIONS['system.url-prefix'] = 'http://testserver'
 
     # enable draft features
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
@@ -89,8 +92,7 @@ def pytest_configure(config):
         }
     }
 
-    # Disable South in tests as it is sending incorrect create signals
-    settings.SOUTH_TESTS_MIGRATE = False
+    settings.SOUTH_TESTS_MIGRATE = bool(os.environ.get('USE_SOUTH'))
 
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
@@ -100,10 +102,10 @@ def pytest_configure(config):
     client = StrictRedis(db=9)
     client.flushdb()
 
-    from sentry.utils.runner import initialize_receivers, fix_south
-    initialize_receivers()
-
+    from sentry.runner.initializer import initialize_receivers, fix_south
     fix_south(settings)
+
+    initialize_receivers()
 
     # force celery registration
     from sentry.celery import app  # NOQA

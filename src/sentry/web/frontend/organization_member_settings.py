@@ -6,7 +6,6 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, ugettext
 
 from sentry import roles
-from sentry.auth.utils import is_active_superuser
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.forms.edit_organization_member import EditOrganizationMemberForm
@@ -66,7 +65,7 @@ class OrganizationMemberSettingsView(OrganizationView):
 
         can_admin = request.access.has_scope('member:delete')
 
-        if can_admin and not is_active_superuser(request.user):
+        if can_admin and not request.is_superuser():
             acting_member = OrganizationMember.objects.get(
                 user=request.user,
                 organization=organization,

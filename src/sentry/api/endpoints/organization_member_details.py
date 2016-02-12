@@ -10,7 +10,6 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint, OrganizationPermission
 )
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.auth.utils import is_active_superuser
 from sentry.models import (
     AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember
 )
@@ -108,7 +107,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if request.user.is_authenticated() and not is_active_superuser(request.user):
+        if request.user.is_authenticated() and not request.is_superuser():
             try:
                 acting_member = OrganizationMember.objects.get(
                     organization=organization,

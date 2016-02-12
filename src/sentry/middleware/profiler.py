@@ -12,6 +12,7 @@ import StringIO
 from django.conf import settings
 from django.http import HttpResponse
 
+
 words_re = re.compile(r'\s+')
 
 group_prefix_re = [
@@ -38,7 +39,7 @@ class ProfileMiddleware(object):
             return False
         if settings.DEBUG:
             return True
-        if hasattr(request, 'user') and request.user.is_superuser:
+        if request.is_superuser():
             return True
         return False
 

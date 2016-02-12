@@ -1,7 +1,7 @@
 import React from 'react';
-import TestUtils from 'react-addons-test-utils';
+import {shallow} from 'enzyme';
 
-import api from 'app/api';
+import {Client} from 'app/api';
 import stubReactComponents from '../../../helpers/stubReactComponent';
 import StreamActions from 'app/views/stream/actions';
 import ActionLink from 'app/views/stream/actionLink';
@@ -14,7 +14,7 @@ describe('StreamActions', function() {
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(api, 'request');
+    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
     stubReactComponents(this.sandbox, [ActionLink, DropdownLink, MenuItem]);
   });
 
@@ -24,7 +24,7 @@ describe('StreamActions', function() {
 
   describe('actionSelectedGroups()', function () {
     beforeEach(function() {
-      this.actions = TestUtils.renderIntoDocument(
+      this.actions = shallow(
           <StreamActions
             orgId="1337"
             projectId="1"
@@ -34,7 +34,7 @@ describe('StreamActions', function() {
             realtimeActive={false}
             statsPeriod="24h"
             />
-          );
+          ).instance();
     });
 
     describe('for all items', function () {
@@ -42,20 +42,26 @@ describe('StreamActions', function() {
         this.sandbox.stub(SelectedGroupStore, 'deselectAll');
         let callback = this.sandbox.stub();
 
-        this.actions.actionSelectedGroups(this.actions.props.actionTypes.ALL, callback);
+        this.actions.state.allInQuerySelected = true;
+
+        this.actions.actionSelectedGroups(callback);
 
         expect(callback.withArgs(undefined).calledOnce).to.be.ok;
         expect(SelectedGroupStore.deselectAll.calledOnce).to.be.ok;
+
+        // all selected is reset
+        expect(this.actions.state.allInQuerySelected, false);
       });
     });
 
-    describe('for selected items', function () {
+    describe('for page-selected items', function () {
       it('should invoke the callback with an array of selected items and deselect all', function () {
         this.sandbox.stub(SelectedGroupStore, 'deselectAll');
         this.sandbox.stub(SelectedGroupStore, 'getSelectedIds').returns(new Set([1,2,3]));
 
+        this.actions.state.allInQuerySelected = false;
         let callback = this.sandbox.stub();
-        this.actions.actionSelectedGroups(this.actions.props.actionTypes.SELECTED, callback);
+        this.actions.actionSelectedGroups(callback);
 
         expect(callback.withArgs([1,2,3]).calledOnce).to.be.ok;
         expect(SelectedGroupStore.deselectAll.calledOnce).to.be.ok;

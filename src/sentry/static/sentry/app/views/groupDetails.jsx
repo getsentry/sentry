@@ -1,12 +1,13 @@
 import React from 'react';
 import Reflux from 'reflux';
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import DocumentTitle from 'react-document-title';
 import GroupHeader from './groupDetails/header';
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import PropTypes from '../proptypes';
+import {t} from '../locale';
 
 let ERROR_TYPES = {
   GROUP_NOT_FOUND: 'GROUP_NOT_FOUND'
@@ -18,6 +19,7 @@ const GroupDetails = React.createClass({
   },
 
   mixins: [
+    ApiMixin,
     Reflux.listenTo(GroupStore, 'onGroupChange')
   ],
 
@@ -46,7 +48,7 @@ const GroupDetails = React.createClass({
   },
 
   fetchData() {
-    api.request(this.getGroupDetailsEndpoint(), {
+    this.api.request(this.getGroupDetailsEndpoint(), {
       success: (data) => {
         this.setState({
           loading: false,
@@ -84,7 +86,7 @@ const GroupDetails = React.createClass({
   getGroupDetailsEndpoint() {
     let id = this.props.params.groupId;
 
-    return '/groups/' + id + '/';
+    return '/issues/' + id + '/';
   },
 
   getTitle() {
@@ -101,7 +103,9 @@ const GroupDetails = React.createClass({
       switch (this.state.errorType) {
         case ERROR_TYPES.GROUP_NOT_FOUND:
           return (
-            <div className="alert alert-block">The issue you were looking for was not found.</div>
+            <div className="alert alert-block">
+              {t('The issue you were looking for was not found.')}
+            </div>
           );
         default:
           return <LoadingError onRetry={this.remountComponent} />;

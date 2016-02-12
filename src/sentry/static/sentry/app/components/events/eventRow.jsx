@@ -29,7 +29,7 @@ const EventRow = React.createClass({
 
   render() {
     let event = this.state.event;
-    let eventLink = `/${this.props.orgSlug}/${this.props.projectSlug}/groups/${event.groupID}/events/${event.id}/`;
+    let eventLink = `/${this.props.orgSlug}/${this.props.projectSlug}/issues/${event.groupID}/events/${event.id}/`;
 
     let tagList = [];
     for (let key in event.tags) {

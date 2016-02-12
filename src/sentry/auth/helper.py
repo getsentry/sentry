@@ -5,7 +5,6 @@ import logging
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.contrib import messages
-from django.contrib.auth import login
 from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.utils import timezone
@@ -17,8 +16,10 @@ from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
     OrganizationMember, OrganizationMemberTeam, User
 )
-from sentry.utils.auth import get_login_redirect
+from sentry.utils import auth
+from sentry.utils.cache import Lock
 from sentry.utils.http import absolute_uri
+from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
 
 from . import manager
@@ -56,8 +57,6 @@ class AuthHelper(object):
     FLOW_LOGIN = 1
     # configuring the provider
     FLOW_SETUP_PROVIDER = 2
-    # linking an identity to an existing account
-    FLOW_LINK_IDENTITY = 3
 
     @classmethod
     def get_for_request(cls, request):
@@ -102,7 +101,7 @@ class AuthHelper(object):
             raise NotImplementedError
 
         self.provider = provider
-        if flow in (self.FLOW_LOGIN, self.FLOW_LINK_IDENTITY):
+        if flow == self.FLOW_LOGIN:
             self.pipeline = provider.get_auth_pipeline()
         elif flow == self.FLOW_SETUP_PROVIDER:
             self.pipeline = provider.get_setup_pipeline()
@@ -119,6 +118,8 @@ class AuthHelper(object):
     def pipeline_is_valid(self):
         session = self.request.session.get('auth', {})
         if not session:
+            return False
+        if session.get('flow') not in (self.FLOW_LOGIN, self.FLOW_SETUP_PROVIDER):
             return False
         return session.get('sig') == self.signature
 
@@ -175,9 +176,6 @@ class AuthHelper(object):
             response = self._finish_login_pipeline(identity)
         elif session['flow'] == self.FLOW_SETUP_PROVIDER:
             response = self._finish_setup_pipeline(identity)
-        elif session['flow'] == self.FLOW_LINK_IDENTITY:
-            # create identity and authenticate the user
-            response = self._finish_link_pipeline(identity)
 
         return response
 
@@ -208,7 +206,10 @@ class AuthHelper(object):
             now = timezone.now()
             auth_identity.update(
                 user=user,
-                data=identity.get('data', {}),
+                data=self.provider.update_identity(
+                    new_data=identity.get('data', {}),
+                    current_data=auth_identity.data,
+                ),
                 last_verified=now,
                 last_synced=now,
             )
@@ -272,7 +273,7 @@ class AuthHelper(object):
         user = User.objects.create(
             username=uuid4().hex,
             email=identity['email'],
-            first_name=identity.get('name', ''),
+            name=identity.get('name', '')[:200],
             is_managed=True,
         )
 
@@ -302,7 +303,10 @@ class AuthHelper(object):
 
         default_teams = auth_provider.default_teams.all()
         for team in default_teams:
-            om.teams.add(team)
+            OrganizationMemberTeam.objects.create(
+                team=team,
+                organizationmember=om,
+            )
 
         AuditLogEntry.objects.create(
             organization=organization,
@@ -315,6 +319,114 @@ class AuthHelper(object):
         )
 
         return om
+
+    def _get_login_form(self, existing_user=None):
+        request = self.request
+        return AuthenticationForm(
+            request,
+            request.POST if request.POST.get('op') == 'login' else None,
+            initial={
+                'username': existing_user.username if existing_user else None,
+            },
+            captcha=bool(request.session.get('needs_captcha')),
+        )
+
+    def _handle_unknown_identity(self, identity):
+        """
+        Flow is activated upon a user logging in to where an AuthIdentity is
+        not present.
+
+        The flow will attempt to answer the following:
+
+        - Is there an existing user with the same email address? Should they be
+          merged?
+
+        - Is there an existing user (via authentication) that shoudl be merged?
+
+        - Should I create a new user based on this identity?
+        """
+        request = self.request
+        op = request.POST.get('op')
+        if not request.user.is_authenticated():
+            try:
+                existing_user = auth.find_users(identity['email'])[0]
+            except IndexError:
+                existing_user = None
+            login_form = self._get_login_form(existing_user)
+
+        if op == 'confirm' and request.user.is_authenticated():
+            auth_identity = self._handle_attach_identity(identity)
+        elif op == 'newuser':
+            auth_identity = self._handle_new_user(identity)
+        elif op == 'login' and not request.user.is_authenticated():
+            # confirm authentication, login
+            op = None
+            if login_form.is_valid():
+                auth.login(request, login_form.get_user())
+                request.session.pop('needs_captcha', None)
+            else:
+                auth.log_auth_failure(request, request.POST.get('username'))
+                request.session['needs_captcha'] = 1
+        else:
+            op = None
+
+        if not op:
+            if request.user.is_authenticated():
+                return self.respond('sentry/auth-confirm-link.html', {
+                    'identity': identity,
+                    'existing_user': request.user,
+                })
+
+            return self.respond('sentry/auth-confirm-identity.html', {
+                'existing_user': existing_user,
+                'identity': identity,
+                'login_form': login_form,
+            })
+
+        user = auth_identity.user
+        user.backend = settings.AUTHENTICATION_BACKENDS[0]
+
+        auth.login(self.request, user)
+
+        self.clear_session()
+
+        return HttpResponseRedirect(auth.get_login_redirect(self.request))
+
+    def _handle_existing_identity(self, auth_identity, identity):
+        # TODO(dcramer): this is very similar to attach
+        now = timezone.now()
+        auth_identity.update(
+            data=self.provider.update_identity(
+                new_data=identity.get('data', {}),
+                current_data=auth_identity.data,
+            ),
+            last_verified=now,
+            last_synced=now,
+        )
+
+        try:
+            member = OrganizationMember.objects.get(
+                user=auth_identity.user,
+                organization=self.organization,
+            )
+        except OrganizationMember.DoesNotExist:
+            # this is likely the case when someone was removed from the org
+            # but still has access to rejoin
+            member = self._handle_new_membership(auth_identity)
+        else:
+            if getattr(member.flags, 'sso:invalid') or not getattr(member.flags, 'sso:linked'):
+                setattr(member.flags, 'sso:invalid', False)
+                setattr(member.flags, 'sso:linked', True)
+                member.save()
+
+        user = auth_identity.user
+        user.backend = settings.AUTHENTICATION_BACKENDS[0]
+
+        auth.login(self.request, user)
+
+        self.clear_session()
+
+        return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
     @transaction.atomic
     def _finish_login_pipeline(self, identity):
@@ -332,61 +444,19 @@ class AuthHelper(object):
         their account.
         """
         auth_provider = self.auth_provider
-        request = self.request
-
-        # TODO(dcramer): check for an existing user with the given email address
-        # and if one exists, ask them to verify the account for merge
-
-        try:
-            auth_identity = AuthIdentity.objects.get(
-                auth_provider=auth_provider,
-                ident=identity['id'],
-            )
-        except AuthIdentity.DoesNotExist:
-            if request.POST.get('op') == 'confirm' and request.user.is_authenticated():
-                auth_identity = self._handle_attach_identity(identity)
-            elif request.POST.get('op') == 'newuser':
-                auth_identity = self._handle_new_user(identity)
-            else:
-                if request.user.is_authenticated():
-                    return self.respond('sentry/auth-confirm-link.html', {
-                        'identity': identity,
-                    })
-                return self.respond('sentry/auth-confirm-identity.html', {
-                    'identity': identity,
-                })
-        else:
-            # TODO(dcramer): this is very similar to attach
-            now = timezone.now()
-            auth_identity.update(
-                data=identity.get('data', {}),
-                last_verified=now,
-                last_synced=now,
-            )
-
+        lock_key = 'sso:auth:{}:{}'.format(
+            auth_provider.id,
+            md5(unicode(identity['id'])).hexdigest(),
+        )
+        with Lock(lock_key, timeout=5):
             try:
-                member = OrganizationMember.objects.get(
-                    user=auth_identity.user,
-                    organization=self.organization,
+                auth_identity = AuthIdentity.objects.get(
+                    auth_provider=auth_provider,
+                    ident=identity['id'],
                 )
-            except OrganizationMember.DoesNotExist:
-                # this is likely the case when someone was removed from the org
-                # but still has access to rejoin
-                member = self._handle_new_membership(auth_identity)
-            else:
-                if getattr(member.flags, 'sso:invalid') or not getattr(member.flags, 'sso:linked'):
-                    setattr(member.flags, 'sso:invalid', False)
-                    setattr(member.flags, 'sso:linked', True)
-                    member.save()
-
-        user = auth_identity.user
-        user.backend = settings.AUTHENTICATION_BACKENDS[0]
-
-        login(self.request, user)
-
-        self.clear_session()
-
-        return HttpResponseRedirect(get_login_redirect(self.request))
+            except AuthIdentity.DoesNotExist:
+                return self._handle_unknown_identity(identity)
+            return self._handle_existing_identity(auth_identity, identity)
 
     @transaction.atomic
     def _finish_setup_pipeline(self, identity):
@@ -448,40 +518,6 @@ class AuthHelper(object):
         ])
         return HttpResponseRedirect(next_uri)
 
-    @transaction.atomic
-    def _finish_link_pipeline(self, identity):
-        """
-        The link flow shows the user a confirmation of the link that is about
-        to be created, and upon confirmation associates the identity.
-        """
-        request = self.request
-        if not request.user.is_authenticated():
-            return self.error(ERR_NOT_AUTHED)
-
-        if request.user.id != request.session['auth']['uid']:
-            return self.error(ERR_UID_MISMATCH)
-
-        if request.POST.get('op') == 'confirm':
-            self._handle_attach_identity(identity)
-        elif request.POST.get('op') == 'newuser':
-            auth_identity = self._handle_new_user(identity)
-
-            user = auth_identity.user
-            user.backend = settings.AUTHENTICATION_BACKENDS[0]
-
-            login(self.request, user)
-        else:
-            return self.respond('sentry/auth-confirm-link.html', {
-                'identity': identity,
-            })
-
-        self.clear_session()
-
-        next_uri = reverse('sentry-organization-home', args=[
-            self.organization.slug,
-        ])
-        return HttpResponseRedirect(next_uri)
-
     def respond(self, template, context=None, status=200):
         default_context = {
             'organization': self.organization,
@@ -500,9 +536,6 @@ class AuthHelper(object):
 
         elif session['flow'] == self.FLOW_SETUP_PROVIDER:
             redirect_uri = reverse('sentry-organization-auth-settings', args=[self.organization.slug])
-
-        elif session['flow'] == self.FLOW_LINK_IDENTITY:
-            redirect_uri = reverse('sentry-auth-organization', args=[self.organization.slug])
 
         messages.add_message(
             self.request, messages.ERROR,

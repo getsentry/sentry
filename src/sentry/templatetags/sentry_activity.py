@@ -66,7 +66,7 @@ def render_activity(item):
 
     if item.user:
         user = item.user
-        name = user.first_name or user.email
+        name = user.name or user.email
         output += '<span class="avatar"><img src="%s"></span> ' % (get_gravatar_url(user.email, size=20),)
         output += '<strong>%s</strong> %s' % (escape(name), action_str)
     else:

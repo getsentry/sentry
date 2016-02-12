@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from sentry.utils.runner import configure
+from sentry.runner import configure
 configure()
 
 import itertools
@@ -8,6 +8,7 @@ import itertools
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 from hashlib import md5
 from pytz import utc
 from random import randint
@@ -168,6 +169,7 @@ def main(num_events=1):
                 name=project_name,
                 defaults={
                     'organization': org,
+                    'first_event': timezone.now(),
                 }
             )
 
@@ -229,7 +231,7 @@ def main(num_events=1):
                     release=release.version,
                 )
 
-                event5 = create_sample_event(
+                create_sample_event(
                     project=project,
                     platform='php',
                     release=release.version,

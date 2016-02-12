@@ -92,7 +92,21 @@ class FetchFileTest(TestCase):
         result = fetch_file('/example.js', release=release)
         assert result.url == '/example.js'
         assert result.body == 'foo'
+        assert isinstance(result.body, unicode)
         assert result.headers == {'content-type': 'application/json'}
+
+    @patch('sentry.lang.javascript.processor.fetch_release_file')
+    def test_non_unicode_release_file(self, mock_fetch_release_file):
+        mock_fetch_release_file.return_value = (
+            {'content-type': 'application/octet-stream'},
+            '\xffff',  # This is some random binary data
+            200
+        )
+
+        release = Release.objects.create(project=self.project, version='1')
+
+        with pytest.raises(BadSource):
+            fetch_file('/example.js', release=release)
 
 
 class DiscoverSourcemapTest(TestCase):
@@ -203,7 +217,7 @@ class SourceProcessorTest(TestCase):
             },
         }
 
-        processor = SourceProcessor()
+        processor = SourceProcessor(project=self.project)
         result = processor.get_stacktraces(data)
         assert len(result) == 1
         assert type(result[0][1]) is Stacktrace
@@ -235,7 +249,7 @@ class SourceProcessorTest(TestCase):
             }
         }
 
-        processor = SourceProcessor()
+        processor = SourceProcessor(project=self.project)
         result = processor.get_stacktraces(data)
         assert len(result) == 1
         assert type(result[0][1]) is Stacktrace
@@ -269,6 +283,6 @@ class SourceProcessorTest(TestCase):
             }
         }
 
-        processor = SourceProcessor()
-        result = processor.process(self.project, data)
+        processor = SourceProcessor(project=self.project)
+        result = processor.process(data)
         assert result['culprit'] == 'bar in oops'

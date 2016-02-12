@@ -1,9 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import $ from 'jquery';
-import api from '../../api';
+import ApiMixin from '../../mixins/apiMixin';
 import IndicatorStore from '../../stores/indicatorStore';
 import SelectInput from '../../components/selectInput';
+import {t} from '../../locale';
 
 import RuleNodeList from './ruleNodeList';
 
@@ -12,6 +13,10 @@ const RuleEditor = React.createClass({
     actions: React.PropTypes.instanceOf(Array).isRequired,
     conditions: React.PropTypes.instanceOf(Array).isRequired
   },
+
+  mixins: [
+    ApiMixin
+  ],
 
   getInitialState() {
     return {
@@ -64,7 +69,7 @@ const RuleEditor = React.createClass({
     }
 
     let loadingIndicator = IndicatorStore.add('Saving...');
-    api.request(endpoint, {
+    this.api.request(endpoint, {
       method: (rule.id ? 'PUT' : 'POST'),
       data: data,
       success: () => {
@@ -104,34 +109,34 @@ const RuleEditor = React.createClass({
           <div className="box-content with-padding">
             {error &&
               <div className="alert alert-block alert-error">
-                <p>There was an error saving your changes. Make sure all fields are valid and try again.</p>
+                <p>{t('There was an error saving your changes. Make sure all fields are valid and try again.')}</p>
               </div>
             }
-            <h6>Rule name:</h6>
+            <h6>{t('Rule name')}:</h6>
             <input ref="name"
                    type="text" className="form-control"
                    defaultValue={name}
                    required={true}
-                   placeholder="My Rule Name" />
+                   placeholder={t('My Rule Name')} />
             <hr/>
 
             <div className="node-match-selector">
               <h6>
-                Every time
-                <SelectInput ref="actionMatch"
-                      className={(this.hasError('actionMatch') ? ' error' : '')}
-                      value={actionMatch}
-                      required={true}>
-                  <option value="all">all</option>
-                  <option value="any">any</option>
-                  <option value="none">none</option>
-                </SelectInput>
-                of these conditions are met:
+                {t('Every time %s of these conditions are met:',
+                  <SelectInput ref="actionMatch"
+                        className={(this.hasError('actionMatch') ? ' error' : '')}
+                        value={actionMatch}
+                        required={true}>
+                    <option value="all">{t('all')}</option>
+                    <option value="any">{t('any')}</option>
+                    <option value="none">{t('none')}</option>
+                  </SelectInput>
+                )}
               </h6>
             </div>
 
             {this.hasError('conditions') &&
-              <p className="error">Ensure at least one condition is enabled and all required fields are filled in.</p>
+              <p className="error">{t('Ensure at least one condition is enabled and all required fields are filled in.')}</p>
             }
 
             <RuleNodeList nodes={this.props.conditions}
@@ -139,10 +144,10 @@ const RuleEditor = React.createClass({
               className="rule-condition-list"
               onChange={this.onConditionsChange} />
 
-            <h6>Take these actions:</h6>
+            <h6>{t('Take these actions:')}</h6>
 
             {this.hasError('actions') &&
-              <p className="error">Ensure at least one condition is enabled and all required fields are filled in.</p>
+              <p className="error">{t('Ensure at least one condition is enabled and all required fields are filled in.')}</p>
             }
 
             <RuleNodeList nodes={this.props.actions}
@@ -152,7 +157,7 @@ const RuleEditor = React.createClass({
 
             <div className="actions">
               <button className="btn btn-primary btn-lg"
-                      disabled={loading}>Save Rule</button>
+                      disabled={loading}>{t('Save Rule')}</button>
             </div>
           </div>
         </div>

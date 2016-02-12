@@ -33,6 +33,12 @@ _filename_version_re = re.compile(r"""(?:
     [a-f0-9]{40}       # sha1
 )/""", re.X | re.I)
 
+# Java Spring specific anonymous classes.
+# see: http://mydailyjava.blogspot.co.at/2013/11/cglib-missing-manual.html
+_java_enhancer_re = re.compile(r'''
+(\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+(_[0-9]+)?
+''', re.X)
+
 
 def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None):
     if lineno is None:
@@ -116,25 +122,58 @@ def remove_filename_outliers(filename):
     return _filename_version_re.sub('<version>/', filename)
 
 
-def slim_frame_data(stacktrace,
-                    frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
+def remove_module_outliers(module):
+    """Remove things that augment the module but really should not."""
+    return _java_enhancer_re.sub(r'\1<auto>', module)
+
+
+def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
     """
     Removes various excess metadata from middle frames which go beyond
     ``frame_allowance``.
     """
-    frames = stacktrace['frames']
-    frames_len = len(frames)
+    frames_len = 0
+    app_frames = []
+    system_frames = []
+    for frame in frames:
+        frames_len += 1
+        if frame.in_app:
+            app_frames.append(frame)
+        else:
+            system_frames.append(frame)
 
     if frames_len <= frame_allowance:
         return
 
-    half_max = frame_allowance / 2
+    remaining = frames_len - frame_allowance
+    app_count = len(app_frames)
+    system_allowance = max(frame_allowance - app_count, 0)
+    if system_allowance:
+        half_max = system_allowance / 2
+        # prioritize trimming system frames
+        for frame in system_frames[half_max:-half_max]:
+            frame.vars = None
+            frame.pre_context = None
+            frame.post_context = None
+            remaining -= 1
 
-    for n in xrange(half_max, frames_len - half_max):
-        # remove heavy components
-        frames[n].pop('vars', None)
-        frames[n].pop('pre_context', None)
-        frames[n].pop('post_context', None)
+    else:
+        for frame in system_frames:
+            frame.vars = None
+            frame.pre_context = None
+            frame.post_context = None
+            remaining -= 1
+
+    if not remaining:
+        return
+
+    app_allowance = app_count - remaining
+    half_max = app_allowance / 2
+
+    for frame in app_frames[half_max:-half_max]:
+        frame.vars = None
+        frame.pre_context = None
+        frame.post_context = None
 
 
 def validate_bool(value, required=True):
@@ -268,7 +307,7 @@ class Frame(Interface):
             if self.is_unhashable_module():
                 output.append('<module>')
             else:
-                output.append(self.module)
+                output.append(remove_module_outliers(self.module))
         elif self.filename and not self.is_url() and not self.is_caused_by():
             output.append(remove_filename_outliers(self.filename))
 
@@ -340,6 +379,11 @@ class Frame(Interface):
     def is_url(self):
         if not self.abs_path:
             return False
+        # URLs can be generated such that they are:
+        #   blob:http://example.com/7f7aaadf-a006-4217-9ed5-5fbf8585c6c0
+        # https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL
+        if self.abs_path.startswith('blob:'):
+            return True
         return is_url(self.abs_path)
 
     def is_caused_by(self):
@@ -489,11 +533,12 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, has_system_frames=None):
+    def to_python(cls, data, has_system_frames=None, slim_frames=True):
         if not data.get('frames'):
             raise InterfaceValidationError("No 'frames' present")
 
-        slim_frame_data(data)
+        if not isinstance(data['frames'], list):
+            raise InterfaceValidationError("Invalid value for 'frames'")
 
         if has_system_frames is None:
             has_system_frames = cls.data_has_system_frames(data)
@@ -523,7 +568,10 @@ class Stacktrace(Interface):
 
         kwargs['has_system_frames'] = has_system_frames
 
-        return cls(**kwargs)
+        instance = cls(**kwargs)
+        if slim_frames:
+            slim_frame_data(instance)
+        return instance
 
     @classmethod
     def data_has_system_frames(cls, data):

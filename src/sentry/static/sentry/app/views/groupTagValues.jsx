@@ -1,7 +1,7 @@
 import React from 'react';
 import {Link, History} from 'react-router';
 import jQuery from 'jquery';
-import api from '../api';
+import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';
 import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
@@ -9,9 +9,11 @@ import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import TimeSince from '../components/timeSince';
 import {isUrl, percent} from '../utils';
+import {t, tn} from '../locale';
 
 const GroupTagValues = React.createClass({
   mixins: [
+    ApiMixin,
     History,
     GroupState
   ],
@@ -46,7 +48,7 @@ const GroupTagValues = React.createClass({
       error: false
     });
 
-    api.request('/groups/' + this.getGroup().id + '/tags/' + params.tagKey + '/', {
+    this.api.request('/issues/' + this.getGroup().id + '/tags/' + params.tagKey + '/', {
       success: (data) => {
         this.setState({
           tagKey: data,
@@ -61,7 +63,7 @@ const GroupTagValues = React.createClass({
       }
     });
 
-    api.request('/groups/' + this.getGroup().id + '/tags/' + params.tagKey + '/values/?' + querystring, {
+    this.api.request('/issues/' + this.getGroup().id + '/tags/' + params.tagKey + '/values/?' + querystring, {
       success: (data, _, jqXHR) => {
         this.setState({
           tagValueList: data,
@@ -119,17 +121,22 @@ const GroupTagValues = React.createClass({
       <div>
         <h3>
           {tagKey.name + ' '}
-          <small><Count value={tagKey.uniqueValues} /> unique historical values</small>
+          <small>{tn(
+            '%2$d unique historical value',
+            '%2$d unique historical values',
+            tagKey.uniqueValues,
+            <Count value={tagKey.uniqueValues} />
+          )}</small>
         </h3>
         <div className="alert alert-info alert-block">
-          Data is based on events seen in the last 7 days.
+          {t('Data is based on events seen in the last 7 days.')}
         </div>
         <table className="table table-striped">
           <thead>
             <tr>
               <th style={{width: 30}}>%</th>
-              <th>Value</th>
-              <th style={{width: 200}}>Last Seen</th>
+              <th>{t('Value')}</th>
+              <th style={{width: 200}}>{t('Last Seen')}</th>
             </tr>
           </thead>
           <tbody>

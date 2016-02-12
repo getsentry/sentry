@@ -8,8 +8,10 @@ import EventPackageData from './packageData';
 import EventTags from './eventTags';
 import EventMessage from './message';
 import EventUser from './user';
+import EventUserReport from './userReport';
 import PropTypes from '../../proptypes';
 import utils from '../../utils';
+import {t} from '../../locale';
 
 const EventEntries = React.createClass({
   propTypes: {
@@ -71,7 +73,7 @@ const EventEntries = React.createClass({
               event={evt}
               type={entry.type}
               title={entry.type}>
-            <p>There was an error rendering this data.</p>
+            <p>{t('There was an error rendering this data.')}</p>
           </EventDataSection>
         );
       }
@@ -80,6 +82,11 @@ const EventEntries = React.createClass({
     let {orgId, projectId} = this.props;
     return (
       <div>
+        {evt.userReport &&
+          <EventUserReport
+            group={group}
+            event={evt} />
+        }
         {!utils.objectIsEmpty(evt.errors) &&
           <EventErrors
             group={group}

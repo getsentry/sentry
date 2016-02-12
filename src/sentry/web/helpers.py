@@ -45,14 +45,15 @@ def get_login_url(reset=False):
 
 
 def get_default_context(request, existing_context=None, team=None):
+    from sentry import options
     from sentry.plugins import plugins
 
     context = {
         'EVENTS_PER_PAGE': EVENTS_PER_PAGE,
-        'URL_PREFIX': settings.SENTRY_URL_PREFIX,
+        'URL_PREFIX': options.get('system.url-prefix'),
         'SINGLE_ORGANIZATION': settings.SENTRY_SINGLE_ORGANIZATION,
         'PLUGINS': plugins,
-        'ALLOWED_HOSTS': settings.ALLOWED_HOSTS,
+        'ALLOWED_HOSTS': list(settings.ALLOWED_HOSTS),
     }
 
     if existing_context:
@@ -97,10 +98,16 @@ def get_default_context(request, existing_context=None, team=None):
         context['selectedProject'] = serialize(project, user)
 
     if not existing_context or 'ACCESS' not in existing_context:
-        context['ACCESS'] = access.from_user(
-            user=user,
-            organization=organization,
-        ).to_django_context()
+        if request:
+            context['ACCESS'] = access.from_request(
+                request=request,
+                organization=organization,
+            ).to_django_context()
+        else:
+            context['ACCESS'] = access.from_user(
+                user=user,
+                organization=organization,
+            ).to_django_context()
 
     return context
 

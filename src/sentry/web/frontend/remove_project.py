@@ -28,7 +28,7 @@ class RemoveProjectView(ProjectView):
 
         if form.is_valid():
             client.delete('/projects/{}/{}/'.format(organization.slug, project.slug),
-                          request.user, is_sudo=True)
+                          request=request, is_sudo=True)
 
             messages.add_message(
                 request, messages.SUCCESS,

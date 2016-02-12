@@ -3,6 +3,7 @@ import ConfigStore from '../../stores/configStore';
 import DropdownLink from '../dropdownLink';
 import Gravatar from '../gravatar';
 import MenuItem from '../menuItem';
+import {t} from '../../locale';
 
 const UserNav = React.createClass({
   shouldComponentUpdate(nextProps, nextState) {
@@ -27,11 +28,11 @@ const UserNav = React.createClass({
           topLevelClasses={this.props.className}
           menuClasses="dropdown-menu-right"
           title={title}>
-        <MenuItem href={urlPrefix + '/account/settings/'}>Account</MenuItem>
+        <MenuItem href={urlPrefix + '/account/settings/'}>{t('Account')}</MenuItem>
         {user.isSuperuser &&
-          <MenuItem to="/manage/">Admin</MenuItem>
+          <MenuItem to="/manage/">{t('Admin')}</MenuItem>
         }
-        <MenuItem href={urlPrefix + '/auth/logout/'}>Sign out</MenuItem>
+        <MenuItem href={urlPrefix + '/auth/logout/'}>{t('Sign out')}</MenuItem>
       </DropdownLink>
     );
   }

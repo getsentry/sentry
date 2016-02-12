@@ -238,5 +238,8 @@ man_pages = [
 
 if os.environ.get('SENTRY_FEDERATED_DOCS') != '1':
     sys.path.insert(0, os.path.abspath('_sentryext'))
-    import sentryext
-    sentryext.activate()
+    try:
+        import sentryext
+        sentryext.activate()
+    except ImportError:
+        print 'ERROR: could not import sentryext.  You need to check out the _sentryext submodule.'
