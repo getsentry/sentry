@@ -24,7 +24,7 @@ from sentry.utils.cache import Lock
 from sentry.utils.redis import (
     check_cluster_versions,
     load_script,
-    make_rb_cluster as _make_rb_cluster,
+    make_rb_cluster,
 )
 from sentry.utils.versioning import Version
 
@@ -39,12 +39,6 @@ TIMELINE_DIGEST_PATH_COMPONENT = 'd'
 TIMELINE_LAST_PROCESSED_TIMESTAMP_PATH_COMPONENT = 'l'
 TIMELINE_PATH_COMPONENT = 't'
 TIMELINE_RECORD_PATH_COMPONENT = 'r'
-
-
-def make_rb_cluster(hosts, **kwargs):
-    if kwargs:
-        logger.warning('Discarding unused Redis cluster options: %r', kwargs.keys())
-    return _make_rb_cluster(hosts)
 
 
 def ilen(iterator):
@@ -130,11 +124,14 @@ class RedisBackend(Backend):
     def __init__(self, **options):
         super(RedisBackend, self).__init__(**options)
 
-        hosts = options.pop('hosts', None)
-        if hosts is None:
-            self.cluster = make_rb_cluster(**settings.SENTRY_REDIS_OPTIONS)
-        else:
-            self.cluster = make_rb_cluster(hosts)
+        # XXX: If **any** options are set, the Redis options must explicitly
+        # provided. Options also need to be declared carefully, since any keys
+        # that collide with the Redis cluster options will be used in both
+        # contexts!
+        if not options:
+            options = dict(settings.SENTRY_REDIS_OPTIONS)
+
+        self.cluster = make_rb_cluster(options=options)
 
         self.namespace = options.pop('namespace', 'd')
 
