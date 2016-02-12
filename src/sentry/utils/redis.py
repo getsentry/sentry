@@ -45,7 +45,7 @@ def _shared_pool(**opts):
 
 def make_rb_cluster(hosts=None, options=None):
     """Returns a rb cluster that internally shares the pools more
-    intelligetly.
+    intelligently.
     """
     options = dict(options or ())
     if hosts is not None:
