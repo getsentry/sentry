@@ -43,11 +43,20 @@ def _shared_pool(**opts):
         return pool
 
 
-def make_rb_cluster(hosts):
+def make_rb_cluster(hosts=None, options=None):
     """Returns a rb cluster that internally shares the pools more
     intelligetly.
     """
-    return rb.Cluster(hosts, pool_cls=_shared_pool)
+    options = dict(options or ())
+    if hosts is not None:
+        options['hosts'] = hosts
+    kwargs = {}
+    for key in 'hosts', 'host_defaults', 'pool_options', 'router_options':
+        val = options.get(key)
+        if val is not None:
+            kwargs[key] = val
+    kwargs['pool_cls'] = _shared_pool
+    return rb.Cluster(**kwargs)
 
 
 def check_cluster_versions(cluster, required, recommended=Version((3, 0, 4)), label=None):

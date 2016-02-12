@@ -95,12 +95,12 @@ class RedisTSDB(BaseTSDB):
 
     def __init__(self, hosts=None, prefix='ts:', vnodes=64, **kwargs):
         # inherit default options from REDIS_OPTIONS
-        defaults = settings.SENTRY_REDIS_OPTIONS
+        defaults = dict(settings.SENTRY_REDIS_OPTIONS)
 
         if hosts is None:
             hosts = defaults.get('hosts', {0: {}})
 
-        self.cluster = make_rb_cluster(hosts)
+        self.cluster = make_rb_cluster(options=defaults)
         self.prefix = prefix
         self.vnodes = vnodes
         super(RedisTSDB, self).__init__(**kwargs)
