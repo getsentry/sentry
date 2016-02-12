@@ -131,6 +131,7 @@ var config = {
     library: 'exports',
     sourceMapFilename: '[name].js.map',
   },
+  bail: true,
   devtool: 'source-map'
 };
 
