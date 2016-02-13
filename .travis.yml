@@ -19,6 +19,7 @@ env:
     - TEST_SUITE=postgres DB=postgres
     - TEST_SUITE=js
     - TEST_SUITE=cli
+    - TEST_SUITE=dist
   global:
     - USE_SOUTH=1
     - SENTRY_LIGHT_BUILD=1
