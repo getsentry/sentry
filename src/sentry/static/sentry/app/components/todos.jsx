@@ -73,7 +73,7 @@ const TodoItem = React.createClass({
             { this.props.task['status'] == 'Skipped' ? <span className="icon-x" /> : null }
             { this.props.task['status'] == 'Pending' ? <span className="icon-ellipsis" /> : null }
           </div>
-          <a href={learn_more_url} target="_blank"><h4>{ this.props.task['title'] }</h4></a>
+          <a href={learn_more_url}><h4>{ this.props.task['title'] }</h4></a>
           <p>
             { description }
           </p>
@@ -127,26 +127,25 @@ const TodoList = React.createClass({
   statics: {
     TASKS: [
       {
-        'task': 0,
-        'title': 'Create a project',
-        'description': 'You\'ve done it. Welcome to Sentry!',
-        'skippable': false,
-        'prereq': [],
-        'feature_location': 'project',
-        'location': 'settings/install/',
-        'status': 'Complete',
-      },
-      {
         'task': 1,
-        'title': 'Send your first event',
-        'description': 'Install Sentry\'s client to get started error logging',
+        'title': 'Create a project',
+        'description': 'Create your first Sentry project',
         'skippable': false,
         'prereq': [],
-        'feature_location': 'project',
-        'location': 'settings/install/',
+        'feature_location': 'organization',
+        'location': 'projects/new/',
       },
       {
         'task': 2,
+        'title': 'Send your first event',
+        'description': 'Install Sentry\'s client and send an event',
+        'skippable': false,
+        'prereq': [1],
+        'feature_location': 'project',
+        'location': 'settings/install/',
+      },
+      {
+        'task': 3,
         'title': 'Invite team member',
         'description': 'Bring your team aboard',
         'skippable': false,
@@ -154,68 +153,69 @@ const TodoList = React.createClass({
         'feature_location': 'organization',
         'location': 'members/',
       },
-      // {
-      //   'task': 8,
-      //   'title': 'Set up release tracking',
-      //   'description': 'See what releases are generating errors.',
-      //   'skippable': false,
-      //   'prereq': [1],
-      //   'feature_location': 'project',
-      //   'location': 'settings/release-tracking/',
-      // },
-      // {
-      //   'task': 6,
-      //   'title': 'Add user context to errors',
-      //   'description': 'Know what users are being affected by errors and crashes',
-      //   'skippable': false,
-      //   'prereq': [1],
-      //   'feature_location': 'absolute',
-      //   'location': 'https://docs.getsentry.com/hosted/learn/context/#capturing-the-user',
-      // },
       {
-        'task': 5,
+        'task': 4,
         'title': 'Add a second platform',
         'description': 'Add Sentry to a second platform',
         'skippable': false,
-        'prereq': [1],
+        'prereq': [1, 2],
         'feature_location': 'organization',
         'location': 'projects/new/',
       },
       {
-        'task': 3,
+        'task': 5,
+        'title': 'Add user context',
+        'description': 'Know who is being affected by crashes',
+        'skippable': false,
+        'prereq': [1, 2],
+        'feature_location': 'absolute',
+        'location': 'https://docs.getsentry.com/hosted/learn/context/#capturing-the-user',
+      },
+      {
+        'task': 6,
+        'title': 'Set up release tracking',
+        'description': 'See what releases are generating errors.',
+        'skippable': false,
+        'prereq': [1, 2],
+        'feature_location': 'project',
+        'location': 'settings/release-tracking/',
+      },
+      {
+        'task': 7,
+        'title': 'Upload sourcemaps',
+        'description': 'Deminify javascript stacktraces',
+        'skippable': false,
+        'prereq': [1, 2, 8], // Is one of the platforms javascript?
+        'feature_location': 'absolute',
+        'location': 'https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/'
+      },
+      // {
+      //   'task': 8,
+      //   'title': 'User crash reports',
+      //   'description': 'Collect user feedback when your application crashes',
+      //   'skippable': false,
+      //   'prereq': [1, 2, 5]
+      //   'feature_location': 'project',
+      //   'location': 'settings/user-reports/'
+      // },
+      {
+        'task': 9,
         'title': 'Set up issue tracking',
-        'description': 'Link to Sentry issues within your team\'s issue tracker',
+        'description': 'Link to Sentry issues within your issue tracker',
         'skippable': true,
-        'prereq': [1],
+        'prereq': [1, 2],
         'feature_location': 'project',
         'location': 'settings/issue-tracking/',
       },
       {
-        'task': 4,
+        'task': 10,
         'title': 'Set up a notification service',
         'description': 'Receive Sentry alerts in Slack or HipChat',
         'skippable': true,
-        'prereq': [],
+        'prereq': [1, 2],
         'feature_location': 'project',
         'location': 'settings/notifications/',
       },
-      // {
-      //   'task': 7,
-      //   'title': 'Deminify javascript with sourcemaps',
-      //   'description': 'Upload sourcemaps',
-      //   'skippable': true,
-      //   'prereq': [1, 8],
-      //   'feature_location': 'absolute',
-      //   'location': 'https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/'
-      // },
-      // {
-      //   'task': 9,
-      //   'title': 'User crash reports',
-      //   'description': 'Collect user feedback when your application crashes',
-      //   'skippable': false,
-      //   'feature_location': 'project',
-      //   'location': 'settings/user-reports/'
-      // },
     ]
   },
 
@@ -225,9 +225,7 @@ const TodoList = React.createClass({
 
     for (var task of TodoList.TASKS) {
       task.status = '';
-      if (task.task == '0') {
-        task.status = 'Complete';
-      }
+
       for (var server_task of org.onboardingTasks) {
         if (server_task['task'] == task['task']) {
           task = $.extend(task, server_task);
@@ -243,7 +241,7 @@ const TodoList = React.createClass({
     // If a click is detected *outside* the TodoList, trigger
     // the onClose handler
     this.clickHandler = $('body').on('click', (e) => {
-      if (!$(e.target).closest('.onboarding-wrapper').length) {
+      if (!$(e.target).closest('.onboarding-progress-bar').length) {
         this.props.onClose();
       }
     });
@@ -293,10 +291,6 @@ const TodoList = React.createClass({
           return task;
         }
       }).slice(0,3);
-
-      if (location.hash == '#welcome') {
-        next_tasks.splice(0, 0, this.state.tasks[0]);
-      }
     }
 
     let todo_list = next_tasks.map( (task) => {

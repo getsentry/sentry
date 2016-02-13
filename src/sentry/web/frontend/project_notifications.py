@@ -34,16 +34,6 @@ class ProjectNotificationsView(ProjectView):
         plugin = plugins.get(request.POST['plugin'])
         plugin.enable(project)
 
-        OrganizationOnboardingTask.objects.get_or_create(
-            organization=project.organization,
-            user=request.user,
-            task=OnboardingTask.NOTIFICATION_SERVICE,
-            status=OnboardingTaskStatus.COMPLETE,
-            defaults={
-                'date_completed': timezone.now()
-            }
-        )
-
         messages.add_message(
             request, messages.SUCCESS,
             constants.OK_PLUGIN_ENABLED.format(name=plugin.get_title()),

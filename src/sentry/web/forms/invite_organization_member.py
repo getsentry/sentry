@@ -7,11 +7,9 @@ from django.utils import timezone
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
-    OnboardingTask,
-    OnboardingTaskStatus,
-    OrganizationOnboardingTask,
     OrganizationMember,
 )
+from sentry.signals import member_invited
 
 class InviteOrganizationMemberForm(forms.ModelForm):
     # override this to ensure the field is required
@@ -40,16 +38,6 @@ class InviteOrganizationMemberForm(forms.ModelForm):
         try:
             om.save()
 
-            result, created = OrganizationOnboardingTask.objects.get_or_create(
-                organization=organization,
-                user=actor,
-                task=OnboardingTask.INVITE_MEMBER,
-                defaults={
-                    'status': OnboardingTaskStatus.PENDING,
-                    'date_completed': timezone.now()
-                }
-            )
-
         except IntegrityError:
             transaction.savepoint_rollback(sid, using='default')
             return OrganizationMember.objects.get(
@@ -66,7 +54,7 @@ class InviteOrganizationMemberForm(forms.ModelForm):
             event=AuditLogEntryEvent.MEMBER_INVITE,
             data=om.get_audit_log_data(),
         )
-
+        member_invited.send(member=om, user=actor, sender=InviteOrganizationMemberForm)
         om.send_invite_email()
 
         return om, True

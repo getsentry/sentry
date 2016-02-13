@@ -30,7 +30,7 @@ class OnboardingTasksSerializer(Serializer):
         return {
             'task': obj.task,
             'status': dict(OrganizationOnboardingTask.STATUS_CHOICES).get(obj.status),
-            'user': obj.user.name,
+            'user': obj.user.name if obj.user else None,
             'date_completed': obj.date_completed,
             'data': obj.data,
         }

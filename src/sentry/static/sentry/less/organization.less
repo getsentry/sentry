@@ -504,6 +504,7 @@ table.project-list {
   margin-top: 16px;
   border-radius: 2px;
   position: relative;
+  cursor: pointer;
 
   .slider {
     background: #6AFFAB;
@@ -513,12 +514,17 @@ table.project-list {
     border-radius: inherit;
   }
 
+  .slider:hover {
+    background: #00FF6F;
+  }
+
   .dropdown-menu {
     display: block;
     width: 375px;
     padding: 0;
     left: -110px;
     top: 22px;
+    cursor: auto;
 
     &:before {
       left: 50%;
@@ -546,6 +552,10 @@ table.project-list {
       }
     }
   }
+}
+
+.onboarding-progress-bar:hover {
+  box-shadow: 0px 0px 1px 1px rgba(255,255,255, .2);
 }
 
 /**
