@@ -1,5 +1,6 @@
 /*eslint-env node*/
 var path = require('path'),
+    fs = require('fs'),
     webpack = require('webpack'),
     ExtractTextPlugin = require('extract-text-webpack-plugin');
 
@@ -33,45 +34,52 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
   };
 }
 
+var entry = {
+  // js
+  'app': 'app',
+  'translations': [
+    'app/translations'
+  ],
+  'vendor': [
+    'babel-core/polyfill',
+    'bootstrap/js/dropdown',
+    'bootstrap/js/tab',
+    'bootstrap/js/tooltip',
+    'bootstrap/js/alert',
+    'crypto-js/md5',
+    'jed',
+    'jquery',
+    'marked',
+    'moment',
+    'moment-timezone',
+    'raven-js',
+    'react-document-title',
+    'react-router',
+    'react-bootstrap',
+    'reflux',
+    'select2',
+    'flot/jquery.flot',
+    'flot/jquery.flot.stack',
+    'flot/jquery.flot.time',
+    'flot-tooltip/jquery.flot.tooltip',
+    'vendor/simple-slider/simple-slider'
+  ],
+
+  // css
+  // NOTE: this will also create an empty 'sentry.js' file
+  // TODO: figure out how to not generate this
+  'sentry': 'less/sentry.less'
+};
+
+// dynamically iterate over locale files and add to `entry` config
+fs.readdirSync('node_modules/moment/locale').forEach(function(file) {
+  var module = 'moment/locale/' + file.replace(/\.js$/, '');
+  entry[module] = [module];
+});
+
 var config = {
+  entry: entry,
   context: path.join(__dirname, staticPrefix),
-  entry: {
-    // js
-    'app': 'app',
-    'translations': [
-      'app/translations'
-    ],
-    'vendor': [
-      'babel-core/polyfill',
-      'bootstrap/js/dropdown',
-      'bootstrap/js/tab',
-      'bootstrap/js/tooltip',
-      'bootstrap/js/alert',
-      'crypto-js/md5',
-      'jed',
-      'jquery',
-      'marked',
-      'moment',
-      'moment-timezone',
-      'raven-js',
-      'react-document-title',
-      'react-router',
-      'react-bootstrap',
-      'reflux',
-      'select2',
-      'flot/jquery.flot',
-      'flot/jquery.flot.stack',
-      'flot/jquery.flot.time',
-      'flot-tooltip/jquery.flot.tooltip',
-      'vendor/simple-slider/simple-slider'
-    ],
-
-    // css
-    // NOTE: this will also create an empty 'sentry.js' file
-    // TODO: figure out how to not generate this
-    'sentry': 'less/sentry.less'
-
-  },
   module: {
     loaders: [
       {
@@ -114,7 +122,8 @@ var config = {
       'root.jQuery': 'jquery',
       Raven: 'raven-js'
     }),
-    new ExtractTextPlugin('[name].css')
+    new ExtractTextPlugin('[name].css'),
+    new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/) // ignore moment.js locale files
   ],
   resolve: {
     alias: {
