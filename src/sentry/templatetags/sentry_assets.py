@@ -35,3 +35,18 @@ def crossorigin():
         # They share the same domain prefix, so we don't need CORS
         return ''
     return ' crossorigin="anonymous"'
+
+
+@register.simple_tag(takes_context=True)
+def locale_js_include(context):
+    """
+    If the user has a non-English locale set, returns a <script> tag pointing
+    to the relevant locale JavaScript file
+    """
+    request = context['request']
+    lang_code = request.LANGUAGE_CODE
+    if lang_code == 'en' or lang_code not in settings.SUPPORTED_LANGUAGES:
+        return ''
+
+    href = get_asset_url("sentry", "dist/moment/locale/" + lang_code + ".js")
+    return "<script src=\"{0}\"{1}></script>".format(href, crossorigin())
