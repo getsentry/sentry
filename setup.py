@@ -349,9 +349,9 @@ class BuildJavascriptCommand(Command):
         # the current folder.  This will chop off the right path for the
         # manifest.
         for root in self.sentry_static_dist_path, INTEGRATION_DOC_FOLDER:
-            for dirname, dirnames, filenames in os.walk(root):
+            for dirname, _, filenames in os.walk(root):
                 for filename in filenames:
-                    filename = os.path.join(root, filename)
+                    filename = os.path.join(dirname, filename)
                     files.append(filename[len(base):].lstrip(os.path.sep))
 
         files.append('src/sentry/sentry-package.json')
