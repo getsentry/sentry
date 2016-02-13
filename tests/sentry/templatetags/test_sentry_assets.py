@@ -6,7 +6,7 @@ from mock import Mock
 from sentry.testutils import TestCase
 
 
-class FeaturesTest(TestCase):
+class AssetsTest(TestCase):
     TEMPLATE = Template("""
         {% load sentry_assets %}
         {% locale_js_include %}
