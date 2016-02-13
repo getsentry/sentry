@@ -162,21 +162,26 @@ travis-install-postgres: travis-install-python dev-postgres
 	psql -c 'create database sentry;' -U postgres
 travis-install-js: install-npm
 travis-install-cli: travis-install-python
+travis-install-dist: travis-noop
 
-.PHONY: travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli
+.PHONY: travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
 
 # Lint steps
 travis-lint-sqlite: lint-python
 travis-lint-postgres: lint-python
 travis-lint-js: lint-js
 travis-lint-cli: travis-noop
+travis-lint-dist: travis-noop
 
-.PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-js travis-lint-cli
+.PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-js travis-lint-cli travis-lint-dist
 
 # Test steps
 travis-test-sqlite: test-python-coverage
 travis-test-postgres: test-python-coverage
 travis-test-js: test-js
 travis-test-ci: test-ci
+travis-test-dist:
+	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py sdist bdist_wheel
+	@ls -lh dist/
 
-.PHONY: travis-test-sqlite travis-test-postgres travis-test-js travis-test-cli
+.PHONY: travis-test-sqlite travis-test-postgres travis-test-js travis-test-cli travis-test-dist
