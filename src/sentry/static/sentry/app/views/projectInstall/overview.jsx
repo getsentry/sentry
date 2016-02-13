@@ -13,10 +13,11 @@ const ProjectInstallOverview = React.createClass({
 
   getIntegrationLink(root, platform, display) {
     let {orgId, projectId} = this.props.params;
+    let onboarding = this.props.location.query.onboarding ? 'onboarding=1' : '';
     return (
       <li className={`${root} ${platform}`} key={platform}>
         <span className={`platformicon platformicon-${platform}`}/>
-        <Link to={`/${orgId}/${projectId}/settings/install/${platform}/`}>
+        <Link to={`/${orgId}/${projectId}/settings/install/${platform}/?${onboarding}`}>
           {display}
         </Link>
       </li>

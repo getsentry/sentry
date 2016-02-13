@@ -80,7 +80,7 @@ const ProjectInstallPlatform = React.createClass({
 
   render() {
     let {integration, platform} = this.state;
-    let hash = this.props.location.hash;
+    let queryParams = this.props.location.query;
     let {orgId, projectId} = this.props.params;
 
     return (
@@ -114,7 +114,7 @@ const ProjectInstallPlatform = React.createClass({
                 <div dangerouslySetInnerHTML={{__html: this.state.html}}/>
               )}
 
-              {hash == '#welcome' ?
+              {queryParams.onboarding ?
                 <p>
                   <Link
                     to={`/${orgId}/${projectId}/?onboarding=1#welcome`}
