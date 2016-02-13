@@ -56,16 +56,6 @@ class GroupAssigneeManager(BaseManager):
             )
             activity.send_notification()
 
-            OrganizationOnboardingTask.get_or_create(
-                organization=self.organization,
-                user=self.user,
-                task=OnboardingTask.INVITE_MEMBER,
-                status=OnboardingTaskStatus.COMPLETE,
-                values={
-                    'date_completed': timezone.now()
-                }
-            )
-
     def deassign(self, group, acting_user=None):
         affected = GroupAssignee.objects.filter(
             group=group,

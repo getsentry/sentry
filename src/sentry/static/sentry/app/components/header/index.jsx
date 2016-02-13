@@ -23,7 +23,7 @@ const Header = React.createClass({
     }
   },
 
-  toggleTodos() {
+  toggleTodos(e) {
     this.setState({showTodos: !this.state.showTodos});
   },
 
@@ -38,7 +38,9 @@ const Header = React.createClass({
     }
 
     // NOTE: this.props.orgId not guaranteed to be specified
-    let percentage = Math.round((1 + this.getOrganization().onboardingTasks.length) / TodoList.TASKS.length * 100).toString();
+    let percentage = Math.round((this.getOrganization().onboardingTasks.filter(
+      (t) => { if (t['status'] == 'Complete') { return t; } }
+      ).length) / TodoList.TASKS.length * 100).toString();
     let style = {
       width: percentage + '%',
     };

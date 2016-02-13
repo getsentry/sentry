@@ -28,4 +28,15 @@ buffer_incr_complete = BetterSignal(providing_args=["model", "columns", "extra",
 event_received = BetterSignal(providing_args=["ip"])
 pending_delete = BetterSignal(providing_args=["instance"])
 event_processed = BetterSignal(providing_args=['project', 'group', 'event'])
-first_event = BetterSignal(providing_args=["instance"])
+
+# Organization Onboarding Signals
+project_created = BetterSignal(providing_args=["project", "user"])
+first_event_pending = BetterSignal(providing_args=["instance", "user"])
+first_event_received = BetterSignal(providing_args=["instance", "group"])
+member_invited = BetterSignal(providing_args=["member", "user"])
+member_joined = BetterSignal(providing_args=["member"])
+user_context_received = BetterSignal(providing_args=["instance"])
+release_received = BetterSignal(providing_args=["instance"])
+sourcemap_received = BetterSignal(providing_args=["instance"])
+issue_tracker_used = BetterSignal(providing_args=["plugin", "project", "user"])
+plugin_enabled = BetterSignal(providing_args=["plugin", "project", "user"])

@@ -19,19 +19,16 @@ from sentry.db.models import (
 
 
 class OnboardingTask(object):
-    FIRST_EVENT = 1
-    INVITE_MEMBER = 2
-    ISSUE_TRACKER = 3
-    NOTIFICATION_SERVICE = 4
-    SECOND_PLATFORM = 5  # dependent on FIRST_EVENT.
-    USER_CONTEXT = 6  # dependent on FIRST_EVENT
+    FIRST_PROJECT = 1
+    FIRST_EVENT = 2
+    INVITE_MEMBER = 3
+    SECOND_PLATFORM = 4  # dependent on FIRST_EVENT.
+    USER_CONTEXT = 5  # dependent on FIRST_EVENT
+    RELEASE_TRACKING = 6  # dependent on FIRST_EVENT
     SOURCEMAPS = 7  # dependent on RELEASE_TRACKING and one of the platforms being javascript
-    RELEASE_TRACKING = 8  # dependent on FIRST_EVENT
-    USER_REPORTS = 9  # Only for web frameworks
-    ISSUE_ASSIGNMENT = 10  # dependent on INVITE_MEMBER
-    RELEASE_RESOLVED = 11  # dependent on RELEASE_TRACKING
-    SAVED_SEARCHES = 12  # dependent on FIRST_EVENT
-    RULES = 13
+    USER_REPORTS = 8  # Only for web frameworks
+    ISSUE_TRACKER = 9
+    NOTIFICATION_SERVICE = 10
 
 
 class OnboardingTaskStatus(object):
@@ -63,15 +60,11 @@ class OrganizationOnboardingTask(Model):
         (OnboardingTask.INVITE_MEMBER, 'Invite member'),  # Add a second member to your Sentry org.
         (OnboardingTask.ISSUE_TRACKER, 'Issue tracker'),  # Hook up an external issue tracker.
         (OnboardingTask.NOTIFICATION_SERVICE, 'Notification services'),  # Setup a notification services
-        (OnboardingTask.ISSUE_ASSIGNMENT, 'Issue assignment'),  # Assign issues to team members
         (OnboardingTask.SECOND_PLATFORM, 'Second platform'),  # Send an event from a second platform
         (OnboardingTask.USER_CONTEXT, 'User context'),  # Add user context to errors
         (OnboardingTask.SOURCEMAPS, 'Upload sourcemaps'),  # Upload sourcemaps for compiled js code
         (OnboardingTask.RELEASE_TRACKING, 'Release tracking'),  # Add release data to Sentry events
         (OnboardingTask.USER_REPORTS, 'User reports'),  # Send user reports
-        (OnboardingTask.RELEASE_RESOLVED, 'Resolved in next release'),
-        (OnboardingTask.SAVED_SEARCHES, 'Saved searches'),
-        (OnboardingTask.RULES, 'Rules'),
     )
 
     STATUS_CHOICES = (
@@ -81,7 +74,7 @@ class OrganizationOnboardingTask(Model):
     )
 
     organization = FlexibleForeignKey('sentry.Organization')
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL)  # user that completed
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)  # user that completed
     project = FlexibleForeignKey('sentry.Project', null=True)  # if task is associated with a project
     task = BoundedPositiveIntegerField(choices=TASK_CHOICES)
     status = BoundedPositiveIntegerField(choices=STATUS_CHOICES)

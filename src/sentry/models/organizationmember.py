@@ -12,7 +12,7 @@ import logging
 from bitfield import BitField
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.db.models import F
 from django.utils import timezone
 from hashlib import md5
@@ -96,20 +96,6 @@ class OrganizationMember(Model):
         assert self.user_id or self.email, \
             'Must set user or email'
         super(OrganizationMember, self).save(*args, **kwargs)
-
-        if self.user:
-            try:
-                oot = OrganizationOnboardingTask.objects.get(
-                    organization=self.organization,
-                    task=OnboardingTask.INVITE_MEMBER,
-                )
-                if oot.status == OnboardingTaskStatus.PENDING:
-                    oot.status = OnboardingTaskStatus.COMPLETE
-                    oot.date_completed = timezone.now()
-                    oot.data = { 'invited_member': self.user_id }
-                    oot.save()
-            except OrganizationOnboardingTask.DoesNotExist as e:
-                pass
 
         if not self.counter:
             self._set_counter()

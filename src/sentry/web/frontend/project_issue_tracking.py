@@ -6,8 +6,8 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from sentry import constants
-from sentry.models import OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
 from sentry.plugins import plugins, IssueTrackingPlugin
+from sentry.signals import plugin_enabled
 from sentry.web.frontend.base import ProjectView
 
 
@@ -24,15 +24,7 @@ class ProjectIssueTrackingView(ProjectView):
         plugin = plugins.get(request.POST['plugin'])
         plugin.enable(project)
 
-        OrganizationOnboardingTask.objects.get_or_create(
-            organization=organization,
-            user=request.user,
-            task=OnboardingTask.ISSUE_TRACKER,
-            defaults={
-                'status': OnboardingTaskStatus.PENDING,
-                'date_completed': timezone.now()
-            }
-        )
+        plugin_enabled.send(plugin=plugin, project=project, user=request.user, sender=self)
 
         messages.add_message(
             request, messages.SUCCESS,
