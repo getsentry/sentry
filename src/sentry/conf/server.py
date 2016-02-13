@@ -173,6 +173,8 @@ from .locale import CATALOGS
 LANGUAGES = tuple((code, name) for code, name in LANGUAGES
                   if code in CATALOGS)
 
+SUPPORTED_LANGUAGES = frozenset(CATALOGS)
+
 SITE_ID = 1
 
 # If you set this to False, Django will make some optimizations so as not
