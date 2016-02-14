@@ -44,7 +44,15 @@ def locale_js_include(context):
     to the relevant locale JavaScript file
     """
     request = context['request']
-    lang_code = request.LANGUAGE_CODE
+
+    try:
+        lang_code = request.LANGUAGE_CODE
+    except AttributeError:
+        # it's possible that request at this point, LANGUAGE_CODE hasn't be bound
+        # to the Request object yet. This specifically happens when rendering our own
+        # 500 error page, resulting in yet another error trying to render our error.
+        return ''
+
     if lang_code == 'en' or lang_code not in settings.SUPPORTED_LANGUAGES:
         return ''
 
