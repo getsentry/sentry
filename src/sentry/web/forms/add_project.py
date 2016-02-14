@@ -38,7 +38,7 @@ class AddProjectForm(forms.ModelForm):
             data=project.get_audit_log_data(),
         )
 
-        project_created.send(instance=project, user=actor, sender=self)
+        project_created.send(project=project, user=actor, sender=self)
 
         create_sample_event(project, platform='javascript')
 
