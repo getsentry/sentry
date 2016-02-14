@@ -113,7 +113,8 @@ class Group(Model):
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
-    first_release = FlexibleForeignKey('sentry.Release', null=True)
+    first_release = FlexibleForeignKey('sentry.Release', null=True,
+                                       on_delete=models.PROTECT)
     resolved_at = models.DateTimeField(null=True, db_index=True)
     # active_at should be the same as first_seen by default
     active_at = models.DateTimeField(null=True, db_index=True)

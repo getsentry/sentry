@@ -7,8 +7,10 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Release, ReleaseFile
+from sentry.models import Group, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
+
+ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
 
 
 @scenario('RetrieveRelease')
@@ -163,6 +165,12 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+
+        # we don't want to remove the first_release metadata on the Group, and
+        # while people might want to kill a release (maybe to remove files),
+        # removing the release is prevented
+        if Group.objects.filter(first_release=release).exists():
+            return Response({"detail": ERR_RELEASE_REFERENCED}, status=400)
 
         # TODO(dcramer): this needs to happen in the queue as it could be a long
         # and expensive operation

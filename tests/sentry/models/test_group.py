@@ -1,9 +1,12 @@
 from __future__ import absolute_import
 
+import pytest
+
 from datetime import timedelta, datetime
+from django.db.models import ProtectedError
 from django.utils import timezone
 
-from sentry.models import GroupSnooze, GroupStatus
+from sentry.models import Group, GroupSnooze, GroupStatus, Release
 from sentry.testutils import TestCase
 
 
@@ -98,3 +101,20 @@ class GroupTest(TestCase):
             until=timezone.now() - timedelta(minutes=1),
         )
         assert group.get_status() == GroupStatus.UNRESOLVED
+
+    def test_deleting_release_does_not_delete_group(self):
+        project = self.create_project()
+        release = Release.objects.create(
+            version='a',
+            project=project,
+        )
+        group = self.create_group(
+            project=project,
+            first_release=release,
+        )
+
+        with pytest.raises(ProtectedError):
+            release.delete()
+
+        group = Group.objects.get(id=group.id)
+        assert group.first_release == release
