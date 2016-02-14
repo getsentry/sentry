@@ -135,6 +135,9 @@
         <div class="pull-right">
           {% block header_action %}{% endblock %}
         </div>
+        <div class="org-name">
+            <a href="{% url 'sentry-organization-home' organization.slug %}">{{ organization.name }}</a>
+        </div>
         <div id="blk_projectselect"></div>
         <script>
         $(function(){
