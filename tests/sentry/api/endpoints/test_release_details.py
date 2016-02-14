@@ -81,3 +81,24 @@ class ReleaseDeleteTest(APITestCase):
         assert response.status_code == 204, response.content
 
         assert not Release.objects.filter(id=release.id).exists()
+
+    def test_existing_group(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project(name='foo')
+        release = Release.objects.create(
+            project=project,
+            version='1',
+        )
+        self.create_group(first_release=release)
+
+        url = reverse('sentry-api-0-release-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+            'version': release.version,
+        })
+        response = self.client.delete(url)
+
+        assert response.status_code == 400, response.content
+
+        assert Release.objects.filter(id=release.id).exists()
