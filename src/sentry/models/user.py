@@ -95,23 +95,23 @@ class User(BaseModel, AbstractBaseUser):
         )
 
         for obj in OrganizationMember.objects.filter(user=from_user):
-            with transaction.atomic():
-                try:
+            try:
+                with transaction.atomic():
                     obj.update(user=to_user)
-                except IntegrityError:
-                    pass
+            except IntegrityError:
+                pass
         for obj in GroupBookmark.objects.filter(user=from_user):
-            with transaction.atomic():
-                try:
+            try:
+                with transaction.atomic():
                     obj.update(user=to_user)
-                except IntegrityError:
-                    pass
+            except IntegrityError:
+                pass
         for obj in UserOption.objects.filter(user=from_user):
-            with transaction.atomic():
-                try:
+            try:
+                with transaction.atomic():
                     obj.update(user=to_user)
-                except IntegrityError:
-                    pass
+            except IntegrityError:
+                pass
 
         Activity.objects.filter(
             user=from_user,
