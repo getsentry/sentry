@@ -406,7 +406,7 @@ class Runner(object):
                 project=project,
             ).delete()
             Event.objects.filter(
-                project=project,
+                project_id=project.id,
             ).delete()
             project.delete()
 
@@ -423,7 +423,7 @@ class Runner(object):
                 project__organization=org,
             ).delete()
             Event.objects.filter(
-                project__organization=org,
+                project_id__in=org.project_set.values('id'),
             ).delete()
             org.delete()
 
