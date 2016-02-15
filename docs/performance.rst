@@ -120,7 +120,7 @@ might take with improving the webserver: spawn more processes. We again
 look to supervisord for managing this for us::
 
 	[program:celeryd]
-	command=/srv/www/getsentry.com/env/bin/sentry celery worker -c 6 -B -l WARNING -n worker-%(process_num)02d
+	command=/srv/www/getsentry.com/env/bin/sentry celery worker -c 4 -B -l WARNING -n worker-%(process_num)02d
 	process_name=%(program_name)s_%(process_num)02d
 	numprocs=16
 	numprocs_start=0
@@ -133,6 +133,24 @@ look to supervisord for managing this for us::
 	environment=SENTRY_CONF="/etc/sentry"
 	directory=/srv/www/getsentry.com/current/
 
+
+If you're running a worker configuration with a high concurrency
+level (> 4) we suggest decreasing it and running more masters as
+this will alleviate lock contention and improve overall throughput.
+
+e.g. if you had something like:
+
+```
+numprocs=1
+command=celery worker -c 64
+```
+
+change it to:
+
+```
+numprocs=16
+command=celery worker -c 4
+```
 
 
 Monitoring Memory
