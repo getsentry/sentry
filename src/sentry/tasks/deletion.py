@@ -94,8 +94,8 @@ def delete_project(object_id, continuous=True, **kwargs):
         Activity, EventMapping, Group, GroupAssignee, GroupBookmark,
         GroupEmailThread, GroupHash, GroupMeta, GroupResolution,
         GroupRuleStatus, GroupSeen, GroupTagKey, GroupTagValue, Project,
-        ProjectKey, ProjectStatus, SavedSearchUserDefault, SavedSearch, TagKey,
-        TagValue, UserReport
+        ProjectKey, ProjectStatus, Release, ReleaseFile, SavedSearchUserDefault,
+        SavedSearch, TagKey, TagValue, UserReport
     )
 
     try:
@@ -140,13 +140,16 @@ def delete_project(object_id, continuous=True, **kwargs):
             delete_project.delay(object_id=object_id, countdown=15)
         return
 
-    model_list = (Group,)
+    # Release needs to handle deletes after Group is cleaned up as the foreign
+    # key is protected
+    model_list = (Group, ReleaseFile, Release)
     for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, logger=logger)
         if has_more:
             if continuous:
                 delete_project.delay(object_id=object_id, countdown=15)
             return
+
     p.delete()
 
 
