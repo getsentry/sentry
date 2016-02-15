@@ -499,12 +499,16 @@ class AuthHelper(object):
             data=self.auth_provider.get_audit_log_data(),
         )
 
-        member_list = OrganizationMember.objects.filter(
-            organization=self.organization,
-            flags=~getattr(OrganizationMember.flags, 'sso:linked'),
-        )
-        for member in member_list:
-            member.send_sso_link_email()
+        # JLF HACK - This is non-essential and causes request to timeout when
+        # enabling SSO for a large org.
+        # See: https://github.com/getsentry/sentry/issues/2685
+
+        # member_list = OrganizationMember.objects.filter(
+        #     organization=self.organization,
+        #     flags=~getattr(OrganizationMember.flags, 'sso:linked'),
+        # )
+        # for member in member_list:
+        #     member.send_sso_link_email()
 
         messages.add_message(
             self.request, messages.SUCCESS,
