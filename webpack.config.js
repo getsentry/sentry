@@ -38,9 +38,6 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
 var entry = {
   // js
   'app': 'app',
-  'translations': [
-    'app/translations'
-  ],
   'vendor': [
     'babel-core/polyfill',
     'bootstrap/js/dropdown',
@@ -131,7 +128,16 @@ var config = {
       Raven: 'raven-js'
     }),
     new ExtractTextPlugin('[name].css'),
-    new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/) // ignore moment.js locale files
+    new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), // ignore moment.js locale files
+
+    // restrict translation files pulled into dist/app.js to only those specified
+    // in locale/catalogs.json
+    new webpack.ContextReplacementPlugin(
+      /\.\.\/\.\.\/\.\.\/locale\/$/,
+      path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
+      true,
+      new RegExp('(' + localeCatalog.supported_locales.join('|') + ')\/.*\\.po$')
+    )
   ],
   resolve: {
     alias: {
