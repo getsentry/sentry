@@ -16,8 +16,11 @@ and restarting the all related services.
 .. note:: In some cases you may want to stop services before doing the upgrade
           process between larger version ranges or you'll see intermittent errors.
 
-Upgrading from PyPi
--------------------
+Upgrading Sentry
+----------------
+
+Upgrading the Package
+~~~~~~~~~~~~~~~~~~~~~
 
 The easiest way is to upgrade the Sentry package using ``pip``::
 
@@ -26,8 +29,12 @@ The easiest way is to upgrade the Sentry package using ``pip``::
 You may prefer to install a fixed version rather than just assuming latest,
 as it will allow you to better understand what is changing.
 
+If you're installing from source, you may have additional requirements that
+are unfulfilled, so take the nessesary precautions of testing your environment
+before committing to the upgrade.
+
 Generating New Configuration
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We recommend generating a new configuration and pulling in your old values.
 While this isn't strictly required, a lot of mishaps can be avoided by
@@ -37,7 +44,7 @@ when doing a large version range upgrade, or upgrading to a new major release::
     sentry init /tmp/new-sentry-conf
 
 Running Migrations
-------------------
+~~~~~~~~~~~~~~~~~~
 
 Just as during the initial setup, migrations are applied with the upgrade
 command::
@@ -45,7 +52,7 @@ command::
     sentry upgrade
 
 Restarting Services
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 You'll need to ensure that *all* services running Sentry code are restarted
 after an upgrade. This is important as Python loads modules in memory and
