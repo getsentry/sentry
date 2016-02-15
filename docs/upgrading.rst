@@ -4,30 +4,71 @@ Upgrading
 **Always upgrade the Sentry server before upgrading your clients** unless
 the client states otherwise.
 
-Upgrading Sentry simply requires you to run migrations and restart your
-web services. We recommend you run the migrations from a separate install
-so that they can be completed before updating the code which runs the
-webserver.
+If you're upgrading to a new major release, its always recommended to start
+by generating a new configuration file (using the new version of Sentry).
+This will ensure that any new settings which may have been added are clearly
+visible and get configured correctly.
 
-Generally, you'll start by installing the upgraded Sentry package::
+Beyond that, upgrades are simple as bumping the version of Sentry (which
+will cause any change dependencies to upgrade), running data migrations,
+and restarting the all related services.
+
+.. note:: In some cases you may want to stop services before doing the upgrade
+          process between larger version ranges or you'll see intermittent errors.
+
+Upgrading from PyPi
+-------------------
+
+The easiest way is to upgrade the Sentry package using ``pip``::
 
     pip install --upgrade sentry
 
-Continue by running all required migrations, with the upgrade command::
+You may prefer to install a fixed version rather than just assuming latest,
+as it will allow you to better understand what is changing.
+
+Generating New Configuration
+----------------------------
+
+We recommend generating a new configuration and pulling in your old values.
+While this isn't strictly required, a lot of mishaps can be avoided by
+ensuring everything is configured correctly. This is especially important
+when doing a large version range upgrade, or upgrading to a new major release::
+
+    sentry init /tmp/new-sentry-conf
+
+Running Migrations
+------------------
+
+Just as during the initial setup, migrations are applied with the upgrade
+command::
 
     sentry upgrade
 
-Finally, restart any Sentry services you had running.
+Restarting Services
+-------------------
+
+You'll need to ensure that *all* services running Sentry code are restarted
+after an upgrade. This is important as Python loads modules in memory and
+code changes will not be reflected until a restart.
+
+These services include:
+
+- webserver -- ``sentry start``
+- celery workers -- ``sentry celery worker``
+- celery beat (cron) -- ``sentry celery beat``
+
+Version Notes
+-------------
 
 Upgrading to 8.x
-----------------
+~~~~~~~~~~~~~~~~
 
 As of 8.0 **MySQL is no longer supported**. While things may still function
 we will no longer be providing support upstream, and schema migrations will
 likely need applied by hand.
 
 Upgrading to 7.x
-----------------
+~~~~~~~~~~~~~~~~
 
 An extremely large amount of changes happened between the 6.x and 7.x
 series. Many of them are backwards incompatible so you should review the
@@ -44,23 +85,3 @@ merging your existing settings with the new defaults. To do that just
 backup your `sentry.conf.py` and generate a new one using `sentry init`.
 
 See the Changelog for additional backwards incompatible APIs.
-
-Worker Performance Issues
--------------------------
-
-If you're running a worker configuration with a high concurrency
-level (> 4) we suggest decreasing it and running more masters.
-
-e.g. if you had something like:
-
-```
-numprocs=1
-command=celery worker -c 64
-```
-
-change it to:
-
-```
-numprocs=16
-command=celery worker -c 4
-```
