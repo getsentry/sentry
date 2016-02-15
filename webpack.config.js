@@ -82,7 +82,7 @@ localeCatalog.supported_locales.forEach(function (locale) {
   var normalizedLocale = locale.toLowerCase().replace('_', '-');
   entry['locale/' + normalizedLocale] = [
     'moment/locale/' + normalizedLocale,
-    'sentry-locale/' + normalizedLocale + '/LC_MESSAGES/django.po' // relative to static/sentry
+    'sentry-locale/' + locale + '/LC_MESSAGES/django.po' // relative to static/sentry
   ];
   localeEntries.push('locale/' + normalizedLocale);
 });
