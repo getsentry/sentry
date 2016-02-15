@@ -388,6 +388,8 @@ class Runner(object):
 
     @contextmanager
     def isolated_project(self, project_name):
+        from sentry.models import Group, Event
+
         project = self.utils.create_project(project_name,
                                             team=self.default_team,
                                             org=self.org)
@@ -399,14 +401,30 @@ class Runner(object):
         try:
             yield project
         finally:
+            # Enforce safe cascades into Group/Event
+            Group.objects.filter(
+                project=project,
+            ).delete()
+            Event.objects.filter(
+                project=project,
+            ).delete()
             project.delete()
 
     @contextmanager
     def isolated_org(self, org_name):
+        from sentry.models import Group, Event
+
         org = self.utils.create_org(org_name, owner=self.me)
         try:
             yield org
         finally:
+            # Enforce safe cascades into Group/Event
+            Group.objects.filter(
+                project__organization=org,
+            ).delete()
+            Event.objects.filter(
+                project__organization=org,
+            ).delete()
             org.delete()
 
     def request(self, method, path, headers=None, data=None, api_key=None,
