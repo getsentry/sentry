@@ -56,7 +56,7 @@ var entry = {
     'raven-js',
     'react-document-title',
     'react-router',
-    'react-bootstrap',
+    'react-bootstrap/lib/Modal',
     'reflux',
     'select2',
     'flot/jquery.flot',
