@@ -72,15 +72,21 @@ var entry = {
 // dynamically iterate over locale files and add to `entry` config
 var localeCatalogPath = path.join('src', 'sentry', 'locale', 'catalogs.json');
 var localeCatalog = JSON.parse(fs.readFileSync(localeCatalogPath, 'utf8'));
+var localeEntries = [];
 
 localeCatalog.supported_locales.forEach(function (locale) {
   if (locale === 'en')
     return;
 
   // Django locale names are "zh_CN", moment's are "zh-cn"
-  var module = 'moment/locale/' + locale.toLowerCase().replace('_', '-');
-  entry[module] = [module];
+  var normalizedLocale = locale.toLowerCase().replace('_', '-');
+  entry['locale/' + normalizedLocale] = [
+    'moment/locale/' + normalizedLocale,
+    'sentry-locale/' + normalizedLocale + '/LC_MESSAGES/django.po' // relative to static/sentry
+  ];
+  localeEntries.push('locale/' + normalizedLocale);
 });
+
 
 var config = {
   entry: entry,
@@ -118,7 +124,9 @@ var config = {
     ]
   },
   plugins: [
-    new webpack.optimize.CommonsChunkPlugin('vendor', 'vendor.js'),
+    new webpack.optimize.CommonsChunkPlugin({
+      names: localeEntries.concat(['vendor']) // 'vendor' must be last entry
+    }),
     new webpack.optimize.DedupePlugin(),
     new webpack.ProvidePlugin({
       $: 'jquery',
@@ -133,7 +141,7 @@ var config = {
     // restrict translation files pulled into dist/app.js to only those specified
     // in locale/catalogs.json
     new webpack.ContextReplacementPlugin(
-      /\.\.\/\.\.\/\.\.\/locale\/$/,
+      /locale$/,
       path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
       true,
       new RegExp('(' + localeCatalog.supported_locales.join('|') + ')\/.*\\.po$')
@@ -142,7 +150,8 @@ var config = {
   resolve: {
     alias: {
       'flot': path.join(__dirname, staticPrefix, 'vendor', 'jquery-flot'),
-      'flot-tooltip': path.join(__dirname, staticPrefix, 'vendor', 'jquery-flot-tooltip')
+      'flot-tooltip': path.join(__dirname, staticPrefix, 'vendor', 'jquery-flot-tooltip'),
+      'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale')
     },
     modulesDirectories: [path.join(__dirname, staticPrefix), 'node_modules'],
     extensions: ['', '.jsx', '.js', '.json']
