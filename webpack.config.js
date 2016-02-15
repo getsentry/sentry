@@ -1,4 +1,5 @@
 /*eslint-env node*/
+/*eslint no-var:0*/
 var path = require('path'),
     fs = require('fs'),
     webpack = require('webpack'),
@@ -72,8 +73,15 @@ var entry = {
 };
 
 // dynamically iterate over locale files and add to `entry` config
-fs.readdirSync('node_modules/moment/locale').forEach(function(file) {
-  var module = 'moment/locale/' + file.replace(/\.js$/, '');
+var localeCatalogPath = path.join('src', 'sentry', 'locale', 'catalogs.json');
+var localeCatalog = JSON.parse(fs.readFileSync(localeCatalogPath, 'utf8'));
+
+localeCatalog.supported_locales.forEach(function (locale) {
+  if (locale === 'en')
+    return;
+
+  // Django locale names are "zh_CN", moment's are "zh-cn"
+  var module = 'moment/locale/' + locale.toLowerCase().replace('_', '-');
   entry[module] = [module];
 });
 
