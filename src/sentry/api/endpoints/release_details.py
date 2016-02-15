@@ -38,17 +38,18 @@ def update_release_scenario(runner):
         }
     )
 
-
-@scenario('DeleteRelease')
-def delete_release_scenario(runner):
-    release = runner.utils.create_release(runner.default_project,
-                                          runner.me, version='4000')
-    runner.request(
-        method='DELETE',
-        path='/projects/%s/%s/releases/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            release.version)
-    )
+# TODO(dcramer): this can't work with the current fixtures
+# as an existing Group references the Release
+# @scenario('DeleteRelease')
+# def delete_release_scenario(runner):
+#     release = runner.utils.create_release(runner.default_project,
+#                                           runner.me, version='4000')
+#     runner.request(
+#         method='DELETE',
+#         path='/projects/%s/%s/releases/%s/' % (
+#             runner.org.slug, runner.default_project.slug,
+#             release.version)
+#     )
 
 
 class ReleaseSerializer(serializers.Serializer):
@@ -143,7 +144,7 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
 
         return Response(serialize(release, request.user))
 
-    @attach_scenarios([delete_release_scenario])
+    # @attach_scenarios([delete_release_scenario])
     def delete(self, request, project, version):
         """
         Delete a Release
