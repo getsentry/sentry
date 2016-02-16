@@ -15,6 +15,7 @@ from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthProvider, OrganizationMember
 )
 from sentry.plugins import Response
+from sentry.tasks.auth import email_missing_links
 from sentry.utils import db
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import OrganizationView
@@ -70,14 +71,6 @@ class OrganizationAuthSettingsView(OrganizationView):
 
         auth_provider.delete()
 
-    def _reinvite_members(self, request, organization):
-        member_list = OrganizationMember.objects.filter(
-            organization=organization,
-            flags=~getattr(OrganizationMember.flags, 'sso:linked'),
-        )
-        for member in member_list:
-            member.send_sso_link_email()
-
     def handle_existing_provider(self, request, organization, auth_provider):
         provider = auth_provider.get_provider()
 
@@ -95,7 +88,7 @@ class OrganizationAuthSettingsView(OrganizationView):
                                    args=[organization.slug])
                 return self.redirect(next_uri)
             elif op == 'reinvite':
-                self._reinvite_members(request, organization)
+                email_missing_links.delay(organization_id=organization.id)
 
                 messages.add_message(
                     request, messages.SUCCESS,
