@@ -56,5 +56,5 @@ def locale_js_include(context):
     if lang_code == 'en' or lang_code not in settings.SUPPORTED_LANGUAGES:
         return ''
 
-    href = get_asset_url("sentry", "dist/moment/locale/" + lang_code + ".js")
+    href = get_asset_url("sentry", "dist/locale/" + lang_code + ".js")
     return "<script src=\"{0}\"{1}></script>".format(href, crossorigin())
