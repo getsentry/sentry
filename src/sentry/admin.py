@@ -142,8 +142,12 @@ class TeamAdmin(admin.ModelAdmin):
     inlines = (TeamProjectInline,)
 
     def save_model(self, request, obj, form, change):
+        prev_org = obj.organization_id
         super(TeamAdmin, self).save_model(request, obj, form, change)
         if not change:
+            return
+        new_org = obj.organization_id
+        if new_org != prev_org:
             return
 
         Project.objects.filter(
@@ -152,8 +156,22 @@ class TeamAdmin(admin.ModelAdmin):
             organization=obj.organization,
         )
 
-        # TODO(dcramer): maintain memberships where possible
-        # remove invalid team links
+        old_memberships = OrganizationMember.objects.filter(
+            teams=obj,
+        ).exclude(organization=obj.organization)
+        for member in old_memberships:
+            try:
+                new_member = OrganizationMember.objects.get(
+                    user=member.user,
+                    organization=obj.organization,
+                )
+            except OrganizationMember.DoesNotExist:
+                continue
+            OrganizationMemberTeam.objects.create(
+                team=obj,
+                organizationmember=new_member,
+            )
+
         OrganizationMemberTeam.objects.filter(
             team=obj,
         ).exclude(
