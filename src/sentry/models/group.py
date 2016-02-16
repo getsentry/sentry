@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 import math
+import re
 import six
 import time
 import warnings
@@ -32,6 +33,9 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars, strip
 
 
+_short_id_re = re.compile(r'^(.*?)([\s_-]*)(\d+)$')
+
+
 # TODO(dcramer): pull in enum library
 class GroupStatus(object):
     UNRESOLVED = 0
@@ -44,6 +48,28 @@ class GroupStatus(object):
 
 class GroupManager(BaseManager):
     use_for_related_fields = True
+
+    def by_short_id(self, org, short_id):
+        match = _short_id_re.match(short_id)
+        if match is None:
+            return
+        from sentry.models import Project
+        prefix, id = match.groups()
+        prefix = prefix.upper()
+        try:
+            project = Project.objects.get(
+                organization=org,
+                short_name=prefix
+            )
+        except Project.DoesNotExist:
+            return
+        try:
+            return Group.objects.get(
+                project=project,
+                short_id=int(id),
+            )
+        except Group.DoesNotExist:
+            return
 
     def from_kwargs(self, project, **kwargs):
         from sentry.event_manager import EventManager
@@ -123,6 +149,7 @@ class Group(Model):
     score = BoundedIntegerField(default=0)
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
+    short_id = BoundedPositiveIntegerField(null=True)
 
     objects = GroupManager()
 
@@ -136,6 +163,9 @@ class Group(Model):
         )
         index_together = (
             ('project', 'first_release'),
+        )
+        unique_together = (
+            ('project', 'short_id'),
         )
 
     __repr__ = sane_repr('project_id')
