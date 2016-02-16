@@ -33,7 +33,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars, strip
 
 
-_short_id_re = re.compile(r'^(.*?)([\s_-]*)(\d+)$')
+_short_id_re = re.compile(r'^(.*?)(?:[\s_-]*)(\d+)$')
 
 
 # TODO(dcramer): pull in enum library
@@ -49,7 +49,7 @@ class GroupStatus(object):
 class GroupManager(BaseManager):
     use_for_related_fields = True
 
-    def by_short_id(self, org, short_id):
+    def by_qualified_short_id(self, org, short_id):
         match = _short_id_re.match(short_id)
         if match is None:
             return
@@ -188,6 +188,15 @@ class Group(Model):
     def get_absolute_url(self):
         return absolute_uri(reverse('sentry-group', args=[
             self.organization.slug, self.project.slug, self.id]))
+
+    @property
+    def qualified_short_id(self):
+        if self.project.short_name is not None and \
+           self.short_id is not None:
+            return '%s-%s' % (
+                self.project.short_name,
+                self.short_id,
+            )
 
     @property
     def event_set(self):
