@@ -34,7 +34,7 @@ class ReactPageView(OrganizationView, ReactMixin):
 
 class ReactProjectPageView(ProjectView, ReactMixin):
     def handle(self, request, organization, team, project, **kwargs):
-        if request.GET.get('installed'):
+        if request.GET.get('onboarding'):
             first_event_pending.send(instance=project, user=request.user, sender=self)
         return self.handle_react(request)
 

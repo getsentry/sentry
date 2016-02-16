@@ -23,6 +23,15 @@ const Header = React.createClass({
     }
   },
 
+  componentDidMount() {
+    $(window).on('hashchange', () => {
+      console.log('hash changed')
+      if (location.hash == '#welcome') {
+        this.setState({showTodos: true});
+      }
+    })
+  },
+
   toggleTodos(e) {
     this.setState({showTodos: !this.state.showTodos});
   },
