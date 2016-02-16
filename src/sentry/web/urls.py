@@ -364,6 +364,8 @@ urlpatterns += patterns(
         name='sentry-group-shared'),
 
     # Keep named URL for for things using reverse
+    url(r'^(?P<organization_slug>[\w_-]+)/issues/(?P<short_id>[\w_-]+)/$', react_page_view,
+        name='sentry-short-id'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/issues/(?P<group_id>\d+)/$', react_page_view,
         name='sentry-group'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', react_page_view,

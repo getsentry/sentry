@@ -74,6 +74,7 @@ class Project(Model):
     """
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
+    short_name = models.CharField(max_length=40, null=True)
     organization = FlexibleForeignKey('sentry.Organization')
     team = FlexibleForeignKey('sentry.Team')
     public = models.BooleanField(default=False)
@@ -95,12 +96,17 @@ class Project(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_project'
-        unique_together = (('team', 'slug'), ('organization', 'slug'))
+        unique_together = (('team', 'slug'), ('organization', 'slug'),
+                           ('organization', 'short_name'))
 
     __repr__ = sane_repr('team_id', 'slug')
 
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)
+
+    def next_short_id(self):
+        from sentry.models import Counter
+        return Counter.increment(self, 'short-ids')
 
     def save(self, *args, **kwargs):
         if not self.slug:
