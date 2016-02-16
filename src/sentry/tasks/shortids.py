@@ -49,7 +49,7 @@ def fill_missing_project_ids(project_id=None, **kwargs):
     q = Group.objects.filter(
         project=project,
         short_id=None,
-    )
+    ).order_by('first_seen')
 
     for group in q.iterator():
         with catchable_atomic():

@@ -17,6 +17,16 @@
     white-space: nowrap;
     overflow: hidden;
     line-height: 1.1;
+
+    .short-id {
+      margin-right: 6px;
+      color: @blue;
+      font-weight: bold;
+      &:after {
+        content: ":";
+        color: @gray-dark;
+      }
+    }
   }
 
   .event-message, .event-meta {
