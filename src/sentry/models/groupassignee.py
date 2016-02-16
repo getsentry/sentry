@@ -19,8 +19,6 @@ from sentry.models.activity import Activity
 class GroupAssigneeManager(BaseManager):
 
     def assign(self, group, assigned_to, acting_user=None):
-        from sentry.models import OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
-
         now = timezone.now()
         assignee, created = GroupAssignee.objects.get_or_create(
             group=group,

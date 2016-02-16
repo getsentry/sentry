@@ -14,11 +14,11 @@ class OrganizationProjectChooser(OrganizationView):
     required_scope = 'team:read'
 
     def handle(self, request, organization):
-    	teams = Team.objects.get_for_user(
-			organization=organization,
-			user=request.user,
-			with_projects=True,
-			)
+        teams = Team.objects.get_for_user(
+            organization=organization,
+            user=request.user,
+            with_projects=True,
+            )
 
         # next_url should have a trailing slash only: settings/install/
         next_url = request.GET.get('next')
@@ -28,9 +28,9 @@ class OrganizationProjectChooser(OrganizationView):
             next_url += '/'
 
         context = {
-        	'organization': organization,
-        	'teams': teams,
-        	'next': next_url,
+            'organization': organization,
+            'teams': teams,
+            'next': next_url,
         }
         if len(teams) == 1 and len(teams[0][1]) == 1:
             return redirect('/' + organization.slug + '/' + teams[0][1][0].slug + '/' + next_url)
