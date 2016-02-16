@@ -381,6 +381,7 @@ CELERY_DEFAULT_EXCHANGE_TYPE = "direct"
 CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
 CELERY_IMPORTS = (
+    'sentry.tasks.auth',
     'sentry.tasks.beacon',
     'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.check_auth',
