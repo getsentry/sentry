@@ -111,7 +111,7 @@ class ProjectUpdateTest(APITestCase):
         })
         assert resp.status_code == 200, resp.content
         assert ProjectBookmark.objects.filter(
-            project=project,
+            project_id=project.id,
             user=self.user,
         ).exists()
 
@@ -120,7 +120,7 @@ class ProjectUpdateTest(APITestCase):
         })
         assert resp.status_code == 200, resp.content
         assert not ProjectBookmark.objects.filter(
-            project=project,
+            project_id=project.id,
             user=self.user,
         ).exists()
 
