@@ -16,10 +16,8 @@ from sentry.signals import (
     member_joined,
     plugin_enabled,
     issue_tracker_used,
-    user_context_received,
-    release_received,
-    sourcemap_received,
 )
+from sentry.utils.javascript import has_sourcemap
 
 @project_created.connect(weak=False)
 def record_new_project(project, user, **kwargs):
@@ -174,7 +172,7 @@ def record_user_context_received(project, group, event, **kwargs):
 
 @event_processed.connect(weak=False)
 def record_sourcemaps_received(project, group, event, **kwargs):
-    if event.data.get("sourcemap"):
+    if has_sourcemap(event):
         try:
             with transaction.atomic():
                 OrganizationOnboardingTask.objects.create(
