@@ -17,7 +17,7 @@ class AssetsTest(TestCase):
             'request': Mock(LANGUAGE_CODE='fr'),  # French, in locale/catalogs.json
         }))
 
-        assert '<script src="/_static/{version}/sentry/dist/moment/locale/fr.js"></script>' in result
+        assert '<script src="/_static/{version}/sentry/dist/locale/fr.js"></script>' in result
 
     def test_unsupported_foreign_lang(self):
         result = self.TEMPLATE.render(Context({
