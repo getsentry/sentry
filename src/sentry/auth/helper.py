@@ -16,6 +16,7 @@ from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
     OrganizationMember, OrganizationMemberTeam, User
 )
+from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth
 from sentry.utils.cache import Lock
 from sentry.utils.http import absolute_uri
@@ -499,12 +500,9 @@ class AuthHelper(object):
             data=self.auth_provider.get_audit_log_data(),
         )
 
-        member_list = OrganizationMember.objects.filter(
-            organization=self.organization,
-            flags=~getattr(OrganizationMember.flags, 'sso:linked'),
+        email_missing_links.delay(
+            organization_id=self.organization.id,
         )
-        for member in member_list:
-            member.send_sso_link_email()
 
         messages.add_message(
             self.request, messages.SUCCESS,
