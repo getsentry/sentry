@@ -3,6 +3,11 @@ Version 8.2.0
 
 - SENTRY_DISALLOWED_IPS is no longer configured by default. If you're exposing Sentry outside of your company you may wish to configure this.
 
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``ProjectBookmark`` model.
+
 Version 8.1.2
 -------------
 

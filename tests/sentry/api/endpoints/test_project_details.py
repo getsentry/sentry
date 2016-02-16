@@ -4,7 +4,7 @@ import mock
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Project, ProjectStatus
+from sentry.models import Project, ProjectBookmark, ProjectStatus
 from sentry.testutils import APITestCase
 
 
@@ -98,6 +98,31 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option('sentry:scrub_data', True) == options['sentry:scrub_data']
         assert project.get_option('sentry:scrub_defaults', True) == options['sentry:scrub_defaults']
         assert project.get_option('sentry:sensitive_fields', []) == options['sentry:sensitive_fields']
+
+    def test_bookmarks(self):
+        project = self.project  # force creation
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-project-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+        resp = self.client.put(url, data={
+            'isBookmarked': 'true',
+        })
+        assert resp.status_code == 200, resp.content
+        assert ProjectBookmark.objects.filter(
+            project=project,
+            user=self.user,
+        ).exists()
+
+        resp = self.client.put(url, data={
+            'isBookmarked': 'false',
+        })
+        assert resp.status_code == 200, resp.content
+        assert not ProjectBookmark.objects.filter(
+            project=project,
+            user=self.user,
+        ).exists()
 
 
 class ProjectDeleteTest(APITestCase):

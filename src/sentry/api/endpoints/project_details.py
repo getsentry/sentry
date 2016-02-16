@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 
 from datetime import timedelta
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -12,7 +13,8 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import (
-    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectStatus
+    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark,
+    ProjectStatus
 )
 from sentry.plugins import plugins
 from sentry.tasks.deletion import delete_project
@@ -64,10 +66,10 @@ def clean_newline_inputs(value):
     return result
 
 
-class ProjectSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Project
-        fields = ('name', 'slug')
+class ProjectSerializer(serializers.Serializer):
+    isBookmarked = serializers.BooleanField()
+    name = serializers.CharField(max_length=200)
+    slug = serializers.SlugField(max_length=200)
 
 
 class ProjectDetailsEndpoint(ProjectEndpoint):
@@ -145,49 +147,78 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to delete.
         :param string name: the new name for the project.
         :param string slug: the new slug for the project.
+        :param boolean isBookmarked: in case this API call is invoked with a
+                                     user context this allows changing of
+                                     the bookmark flag.
         :param object options: optional options to override in the
                                project settings.
         :auth: required
         """
-        serializer = ProjectSerializer(project, data=request.DATA, partial=True)
+        serializer = ProjectSerializer(data=request.DATA, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-        if serializer.is_valid():
-            project = serializer.save()
+        result = serializer.object
 
-            options = request.DATA.get('options', {})
-            if 'sentry:origins' in options:
-                project.update_option(
-                    'sentry:origins',
-                    clean_newline_inputs(options['sentry:origins'])
-                )
-            if 'sentry:resolve_age' in options:
-                project.update_option('sentry:resolve_age', int(options['sentry:resolve_age']))
-            if 'sentry:scrub_data' in options:
-                project.update_option('sentry:scrub_data', bool(options['sentry:scrub_data']))
-            if 'sentry:scrub_defaults' in options:
-                project.update_option('sentry:scrub_defaults', bool(options['sentry:scrub_defaults']))
-            if 'sentry:sensitive_fields' in options:
-                project.update_option(
-                    'sentry:sensitive_fields',
-                    [s.strip().lower() for s in options['sentry:sensitive_fields']]
-                )
+        changed = False
+        if result.get('slug'):
+            project.slug = result['slug']
+            changed = True
 
-            self.create_audit_entry(
-                request=request,
-                organization=project.organization,
-                target_object=project.id,
-                event=AuditLogEntryEvent.PROJECT_EDIT,
-                data=project.get_audit_log_data(),
+        if result.get('name'):
+            project.name = result['name']
+            changed = True
+
+        if changed:
+            project.save()
+
+        if result.get('isBookmarked'):
+            try:
+                with transaction.atomic():
+                    ProjectBookmark.objects.create(
+                        project=project,
+                        user=request.user,
+                    )
+            except IntegrityError:
+                pass
+        elif result.get('isBookmarked') is False:
+            ProjectBookmark.objects.filter(
+                project=project,
+                user=request.user,
+            ).delete()
+
+        options = request.DATA.get('options', {})
+        if 'sentry:origins' in options:
+            project.update_option(
+                'sentry:origins',
+                clean_newline_inputs(options['sentry:origins'])
+            )
+        if 'sentry:resolve_age' in options:
+            project.update_option('sentry:resolve_age', int(options['sentry:resolve_age']))
+        if 'sentry:scrub_data' in options:
+            project.update_option('sentry:scrub_data', bool(options['sentry:scrub_data']))
+        if 'sentry:scrub_defaults' in options:
+            project.update_option('sentry:scrub_defaults', bool(options['sentry:scrub_defaults']))
+        if 'sentry:sensitive_fields' in options:
+            project.update_option(
+                'sentry:sensitive_fields',
+                [s.strip().lower() for s in options['sentry:sensitive_fields']]
             )
 
-            data = serialize(project, request.user)
-            data['options'] = {
-                'sentry:origins': '\n'.join(project.get_option('sentry:origins', '*') or []),
-                'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
-            }
-            return Response(data)
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+            data=project.get_audit_log_data(),
+        )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        data = serialize(project, request.user)
+        data['options'] = {
+            'sentry:origins': '\n'.join(project.get_option('sentry:origins', '*') or []),
+            'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
+        }
+        return Response(data)
 
     @attach_scenarios([delete_project_scenario])
     @sudo_required
