@@ -81,6 +81,10 @@ const StreamGroupHeader = React.createClass({
             }
             <span className="icon icon-soundoff"></span>
             <span className="icon icon-bookmark"></span>
+            {data.shortId
+              ? <span className="short-id">{data.shortId}</span>
+              : null}
+            {data.title}
             {this.getTitle()}
           </Link>
         </h3>

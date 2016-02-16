@@ -31,9 +31,10 @@ from sentry.db.models import (
 )
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars, strip
+from sentry.utils.numbers import base36_encode, base36_decode
 
 
-_short_id_re = re.compile(r'^(.*?)(?:[\s_-]*)(\d+)$')
+_short_id_re = re.compile(r'^(.*?)(?:[\s_-])([A-Za-z0-9]+)$')
 
 
 # TODO(dcramer): pull in enum library
@@ -66,7 +67,7 @@ class GroupManager(BaseManager):
         try:
             return Group.objects.get(
                 project=project,
-                short_id=int(id),
+                short_id=base36_decode(id),
             )
         except Group.DoesNotExist:
             return
@@ -195,7 +196,7 @@ class Group(Model):
            self.short_id is not None:
             return '%s-%s' % (
                 self.project.short_name,
-                self.short_id,
+                base36_encode(self.short_id),
             )
 
     @property
