@@ -10,7 +10,7 @@ class ProjectSerializer(Serializer):
         if user.is_authenticated() and item_list:
             bookmarks = set(ProjectBookmark.objects.filter(
                 user=user,
-                project__in=item_list,
+                project_id__in=[i.id for i in item_list],
             ).values_list('project_id', flat=True))
         else:
             bookmarks = set()

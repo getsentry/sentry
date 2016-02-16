@@ -176,14 +176,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             try:
                 with transaction.atomic():
                     ProjectBookmark.objects.create(
-                        project=project,
+                        project_id=project.id,
                         user=request.user,
                     )
             except IntegrityError:
                 pass
         elif result.get('isBookmarked') is False:
             ProjectBookmark.objects.filter(
-                project=project,
+                project_id=project.id,
                 user=request.user,
             ).delete()
 

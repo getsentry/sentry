@@ -11,7 +11,9 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, BaseManager, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField, FlexibleForeignKey, Model, BaseManager, sane_repr
+)
 
 
 class ProjectBookmark(Model):
@@ -21,7 +23,7 @@ class ProjectBookmark(Model):
     """
     __core__ = True
 
-    project = FlexibleForeignKey('sentry.Project')
+    project_id = BoundedBigIntegerField(blank=True, null=True)
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
@@ -30,6 +32,6 @@ class ProjectBookmark(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_projectbookmark'
-        unique_together = (('project', 'user',))
+        unique_together = (('project_id', 'user',))
 
     __repr__ = sane_repr('project_id', 'user_id')

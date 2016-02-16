@@ -11,21 +11,22 @@ class Migration(SchemaMigration):
         # Adding model 'ProjectBookmark'
         db.create_table('sentry_projectbookmark', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('project_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(null=True, blank=True)),
             ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True)),
         ))
         db.send_create_signal('sentry', ['ProjectBookmark'])
 
-        # Adding unique constraint on 'ProjectBookmark', fields ['project', 'user']
+        # Adding unique constraint on 'ProjectBookmark', fields ['project_id', 'user']
         db.create_unique('sentry_projectbookmark', ['project_id', 'user_id'])
 
     def backwards(self, orm):
-        # Removing unique constraint on 'ProjectBookmark', fields ['project', 'user']
+        # Removing unique constraint on 'ProjectBookmark', fields ['project_id', 'user']
         db.delete_unique('sentry_projectbookmark', ['project_id', 'user_id'])
 
         # Deleting model 'ProjectBookmark'
         db.delete_table('sentry_projectbookmark')
+
 
     models = {
         'sentry.activity': {
@@ -361,10 +362,10 @@ class Migration(SchemaMigration):
             'team': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Team']"})
         },
         'sentry.projectbookmark': {
-            'Meta': {'unique_together': "(('project', 'user'),)", 'object_name': 'ProjectBookmark'},
+            'Meta': {'unique_together': "(('project_id', 'user'),)", 'object_name': 'ProjectBookmark'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'null': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
-            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
+            'project_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {'null': 'True', 'blank': 'True'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']"})
         },
         'sentry.projectkey': {
