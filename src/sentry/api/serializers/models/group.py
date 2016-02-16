@@ -122,6 +122,7 @@ class GroupSerializer(Serializer):
         return {
             'id': str(obj.id),
             'shareId': obj.get_share_id(),
+            'shortId': obj.qualified_short_id,
             'count': str(obj.times_seen),
             'userCount': attrs['user_count'],
             'title': obj.message_short,
