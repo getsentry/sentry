@@ -16,7 +16,7 @@ $(function(){
 });
 </script>
 {% if messages %}
-  <div id="messages">
+  <div id="messages" class="messages-container">
     {% for message in messages %}
     	{% with message.tags|split:" " as message_tags %}
           <div class="alert{% if message.tags %}{% for tag in message_tags %} alert-{{ tag }}{% endfor %}{% endif %}">
