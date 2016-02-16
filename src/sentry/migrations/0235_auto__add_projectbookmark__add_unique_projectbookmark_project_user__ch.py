@@ -20,20 +20,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'ProjectBookmark', fields ['project', 'user']
         db.create_unique('sentry_projectbookmark', ['project_id', 'user_id'])
 
-
-        # Changing field 'Group.first_release'
-        db.alter_column('sentry_groupedmessage', 'first_release_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Release'], null=True, on_delete=models.PROTECT))
-
     def backwards(self, orm):
         # Removing unique constraint on 'ProjectBookmark', fields ['project', 'user']
         db.delete_unique('sentry_projectbookmark', ['project_id', 'user_id'])
 
         # Deleting model 'ProjectBookmark'
         db.delete_table('sentry_projectbookmark')
-
-
-        # Changing field 'Group.first_release'
-        db.alter_column('sentry_groupedmessage', 'first_release_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Release'], null=True))
 
     models = {
         'sentry.activity': {
