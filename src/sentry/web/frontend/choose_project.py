@@ -1,13 +1,9 @@
 from __future__ import absolute_import
 
-from django import forms
-from django.contrib import messages
-from django.core.urlresolvers import reverse
 from django.shortcuts import redirect
 
-from sentry.models import Project, Team
+from sentry.models import Team
 from sentry.web.frontend.base import OrganizationView
-from sentry.utils.http import absolute_uri
 
 
 class OrganizationProjectChooser(OrganizationView):
@@ -18,7 +14,7 @@ class OrganizationProjectChooser(OrganizationView):
             organization=organization,
             user=request.user,
             with_projects=True,
-            )
+        )
 
         # next_url should have a trailing slash only: settings/install/
         next_url = request.GET.get('next')

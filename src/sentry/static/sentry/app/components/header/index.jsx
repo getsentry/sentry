@@ -25,11 +25,10 @@ const Header = React.createClass({
 
   componentDidMount() {
     $(window).on('hashchange', () => {
-      console.log('hash changed')
       if (location.hash == '#welcome') {
         this.setState({showTodos: true});
       }
-    })
+    });
   },
 
   toggleTodos(e) {
@@ -48,7 +47,7 @@ const Header = React.createClass({
 
     // NOTE: this.props.orgId not guaranteed to be specified
     let percentage = Math.round((this.getOrganization().onboardingTasks.filter(
-      (t) => { if (t['status'] == 'Complete') { return t; } }
+      (t) => { if (t.status == 'Complete') { return t; } }
       ).length) / TodoList.TASKS.length * 100).toString();
     let style = {
       width: percentage + '%',
@@ -69,7 +68,7 @@ const Header = React.createClass({
           <StatusPage className="pull-right" />
           <div className="onboarding-progress-bar" onClick={this.toggleTodos}>
             <div className="slider" style={style} ></div>
-            { this.state.showTodos ? <div className="dropdown-menu"><TodoList onClose={() => {this.setState({showTodos:false})}} /></div> : null }
+            { this.state.showTodos ? <div className="dropdown-menu"><TodoList onClose={() => {this.setState({showTodos:false});}} /></div> : null }
           </div>
         </div>
       </header>

@@ -4,8 +4,6 @@ from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth import access
 from sentry.models import (
-    OnboardingTask,
-    OnboardingTaskStatus,
     Organization,
     OrganizationAccessRequest,
     OrganizationOnboardingTask,
@@ -25,6 +23,7 @@ class OrganizationSerializer(Serializer):
             'dateCreated': obj.date_added,
         }
 
+
 class OnboardingTasksSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
@@ -34,6 +33,7 @@ class OnboardingTasksSerializer(Serializer):
             'date_completed': obj.date_completed,
             'data': obj.data,
         }
+
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
     def serialize(self, obj, attrs, user):

@@ -19,6 +19,7 @@ from sentry.signals import (
 )
 from sentry.utils.javascript import has_sourcemap
 
+
 @project_created.connect(weak=False)
 def record_new_project(project, user, **kwargs):
     try:
@@ -45,6 +46,7 @@ def record_new_project(project, user, **kwargs):
         except IntegrityError:
             pass
 
+
 @first_event_pending.connect(weak=False)
 def record_raven_installed(project, user, **kwargs):
     oot, created = OrganizationOnboardingTask.objects.get_or_create(
@@ -57,6 +59,7 @@ def record_raven_installed(project, user, **kwargs):
             'date_completed': timezone.now()
         }
     )
+
 
 @first_event_received.connect(weak=False)
 def record_first_event(project, group, **kwargs):
@@ -76,7 +79,7 @@ def record_first_event(project, group, **kwargs):
             'status': OnboardingTaskStatus.COMPLETE,
             'project': project,
             'date_completed': project.first_event,
-            'data': { 'platform': group.platform },
+            'data': {'platform': group.platform},
         }
     )
 
@@ -97,9 +100,10 @@ def record_first_event(project, group, **kwargs):
                     'status': OnboardingTaskStatus.COMPLETE,
                     'project': project,
                     'date_completed': project.first_event,
-                    'data': { 'platform': group.platform },
+                    'data': {'platform': group.platform},
                 }
             )
+
 
 @member_invited.connect(weak=False)
 def record_member_invited(member, user, **kwargs):
@@ -111,10 +115,11 @@ def record_member_invited(member, user, **kwargs):
                 user=user,
                 status=OnboardingTaskStatus.PENDING,
                 date_completed=timezone.now(),
-                data={ 'invited_member_id': member.id }
+                data={'invited_member_id': member.id}
             )
     except IntegrityError:
         pass
+
 
 @member_joined.connect(weak=False)
 def record_member_joined(member, **kwargs):
@@ -132,6 +137,7 @@ def record_member_joined(member, **kwargs):
     except IntegrityError:
         pass
 
+
 @event_processed.connect(weak=False)
 def record_release_received(project, group, event, **kwargs):
     if event.get_tag('sentry:release'):
@@ -146,6 +152,7 @@ def record_release_received(project, group, event, **kwargs):
                 )
         except IntegrityError:
             pass
+
 
 @event_processed.connect(weak=False)
 def record_user_context_received(project, group, event, **kwargs):
@@ -162,6 +169,7 @@ def record_user_context_received(project, group, event, **kwargs):
         except IntegrityError:
             pass
 
+
 @event_processed.connect(weak=False)
 def record_sourcemaps_received(project, group, event, **kwargs):
     if has_sourcemap(event):
@@ -177,12 +185,13 @@ def record_sourcemaps_received(project, group, event, **kwargs):
         except IntegrityError:
             pass
 
+
 @plugin_enabled.connect(weak=False)
 def record_plugin_enabled(plugin, project, user, **kwargs):
     if isinstance(plugin, IssueTrackingPlugin):
         task = OnboardingTask.ISSUE_TRACKER
         status = OnboardingTaskStatus.PENDING
-    elif isinstance(plugin,  NotificationPlugin):
+    elif isinstance(plugin, NotificationPlugin):
         task = OnboardingTask.NOTIFICATION_SERVICE
         status = OnboardingTaskStatus.COMPLETE
 
@@ -195,10 +204,11 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
                 user=user,
                 project=project,
                 date_completed=timezone.now(),
-                data={ 'plugin': plugin.slug }
+                data={'plugin': plugin.slug}
             )
     except IntegrityError:
         pass
+
 
 @issue_tracker_used.connect(weak=False)
 def record_issue_tracker_used(plugin, project, user, **kwargs):
@@ -211,6 +221,6 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
             'user': user,
             'project': project,
             'date_completed': timezone.now(),
-            'data': { 'plugin': plugin.slug }
+            'data': {'plugin': plugin.slug}
         }
     )

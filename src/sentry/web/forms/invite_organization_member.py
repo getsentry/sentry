@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from django import forms
 from django.db import transaction, IntegrityError
-from django.utils import timezone
 
 from sentry.models import (
     AuditLogEntry,
@@ -10,6 +9,7 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.signals import member_invited
+
 
 class InviteOrganizationMemberForm(forms.ModelForm):
     # override this to ensure the field is required

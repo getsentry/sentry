@@ -36,6 +36,7 @@ class ReactPageView(OrganizationView, ReactMixin):
             first_event_pending.send(project=project, user=request.user, sender=self)
         return self.handle_react(request)
 
+
 class GenericReactPageView(BaseView, ReactMixin):
     def handle(self, request, **kwargs):
         return self.handle_react(request)
