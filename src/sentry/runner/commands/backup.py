@@ -127,6 +127,6 @@ def export(dest):
             for obj in queryset.iterator():
                 yield obj
 
-    click.echo('>> Beggining export', err=True)
+    click.echo('>> Beginning export', err=True)
     serializers.serialize("json", yield_objects(), indent=2, stream=dest,
                           use_natural_keys=True)
