@@ -36,6 +36,7 @@ class ProjectSerializer(Serializer):
             'name': obj.name,
             'isPublic': obj.public,
             'isBookmarked': attrs['is_bookmarked'],
+            'shortName': obj.short_name,
             'dateCreated': obj.date_added,
             'firstEvent': obj.first_event,
             'features': feature_list,

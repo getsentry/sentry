@@ -9,8 +9,10 @@ import {Link} from 'react-router';
 import Broadcasts from './broadcasts';
 import StatusPage from './statuspage';
 import UserNav from './userNav';
+import requiredAdminActions from '../requiredAdminActions';
 import OrganizationSelector from './organizationSelector';
 import TodoList from '../todos';
+import {t} from '../../locale';
 
 const OnboardingStatus = React.createClass({
   propTypes: {
@@ -89,6 +91,27 @@ const Header = React.createClass({
       logo = <span className="icon-sentry-logo-full"/>;
     }
 
+    let actionMessage = null;
+
+    if (org) {
+      let requiredActions = org.requiredAdminActions;
+      if (requiredActions.length > 0) {
+        if (this.getAccess().has('org:write')) {
+          let slugId = requiredActions[0].toLowerCase().replace(/_/g, '-');
+          let url = `/organizations/${org.slug}/actions/${slugId}/`;
+          actionMessage = (
+            <a href={url}>{t('Required Action:')}{' '}{
+              requiredAdminActions[requiredActions[0]].getActionLinkTitle()}</a>
+          );
+        } else {
+          actionMessage = (
+            <span>{t('There are pending actions for an administrator of this organization!')}</span>
+          );
+        }
+      }
+    }
+
+    // NOTE: this.props.orgId not guaranteed to be specified
     return (
       <header>
         <div className="container">
@@ -108,6 +131,9 @@ const Header = React.createClass({
                               onToggleTodos={this.toggleTodos}
                               onHideTodos={this.setState.bind(this, {showTodos: false})} />
           }
+          {actionMessage ?
+            <span className="admin-action-message">{actionMessage}</span>
+            : null}
         </div>
       </header>
     );
