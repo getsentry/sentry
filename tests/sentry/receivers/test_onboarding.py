@@ -5,7 +5,7 @@ from django.utils import timezone
 from sentry.models import (
     OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
 )
-from sentry.signals import first_event
+from sentry.signals import first_event_received
 from sentry.testutils import TestCase
 
 
@@ -13,7 +13,7 @@ class RecordFirstEventTest(TestCase):
     def test_no_existing_task(self):
         project = self.create_project(first_event=timezone.now())
 
-        first_event.send(instance=project, sender=type(project))
+        first_event_received.send(instance=project, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization,
@@ -31,7 +31,7 @@ class RecordFirstEventTest(TestCase):
             status=OnboardingTaskStatus.PENDING,
         )
 
-        first_event.send(instance=project, sender=type(project))
+        first_event_received.send(instance=project, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(id=task.id)
         assert task.status == OnboardingTaskStatus.COMPLETE
@@ -46,7 +46,7 @@ class RecordFirstEventTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         )
 
-        first_event.send(instance=project, sender=type(project))
+        first_event_received.send(instance=project, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(id=task.id)
         assert task.status == OnboardingTaskStatus.COMPLETE
