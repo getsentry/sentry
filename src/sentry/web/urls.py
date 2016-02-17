@@ -60,7 +60,7 @@ from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
 from sentry.web.frontend.project_rule_remove import ProjectRuleRemoveView
 from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.project_tags import ProjectTagsView
-from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView, ReactProjectPageView
+from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.remove_account import RemoveAccountView
 from sentry.web.frontend.remove_organization import RemoveOrganizationView
@@ -369,7 +369,7 @@ urlpatterns += patterns(
     # Keep named URL for for things using reverse
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/issues/(?P<group_id>\d+)/$', react_page_view,
         name='sentry-group'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/$', ReactProjectPageView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', react_page_view,
         name='sentry-stream'),
 
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/(?:group|issues)/(?P<group_id>\d+)/events/(?P<event_id>\d+)/replay/$', ReplayEventView.as_view(),
