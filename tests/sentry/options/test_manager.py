@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from exam import fixture, around
 from mock import patch
 
+from sentry.cache.redis import RedisCache
 from sentry.models import Option
 from sentry.options.store import OptionsStore
 from sentry.options.manager import (
@@ -15,7 +16,9 @@ from sentry.testutils import TestCase
 
 
 class OptionsManagerTest(TestCase):
-    store = fixture(OptionsStore)
+    @fixture
+    def store(self):
+        return OptionsStore(cache=RedisCache())
 
     @fixture
     def manager(self):
