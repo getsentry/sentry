@@ -1,15 +1,16 @@
+import moment from 'moment';
 import React from 'react';
+import {t, tct} from '../locale';
 
 import ApiMixin from '../mixins/apiMixin';
-import ConfigStore from '../stores/configStore';
 import OrganizationState from '../mixins/organizationState';
 
 const TodoItem = React.createClass({
-  mixins: [OrganizationState],
-
   propTypes: {
     task: React.PropTypes.object,
   },
+
+  mixins: [OrganizationState],
 
   getInitialState: function() {
     return {
@@ -31,8 +32,8 @@ const TodoItem = React.createClass({
 
     let classNames = '';
     let description = '';
-    let doneDescription = "By being here, you've done it. Welcome to Sentry!";
-    if (this.props.task['status'] == 'Complete') {
+    let doneDescription = 'By being here, you\'ve done it. Welcome to Sentry!';
+    if (this.props.task.status == 'Complete') {
       classNames += ' checked';
 
       if (this.props.task.task == 0) {
@@ -41,12 +42,12 @@ const TodoItem = React.createClass({
         description = this.props.task.user + ' completed this ' + moment(this.props.task.date_completed).fromNow();
       }
 
-    } else if (this.props.task['status'] == 'Pending') {
+    } else if (this.props.task.status == 'Pending') {
       classNames += ' pending';
-      description = this.props.task.user + ' kicked this off ' + moment(this.props.task.date_completed).fromNow();
-    } else if (this.props.task['status'] == 'Skipped') {
+      description = this.props.task.user + t(' kicked this off ') + moment(this.props.task.date_completed).fromNow();
+    } else if (this.props.task.status == 'Skipped') {
       classNames += ' skipped';
-      description = this.props.task.user + ' skipped this ' + moment(this.props.task.date_completed).fromNow();
+      description = this.props.task.user + t(' skipped this ') + moment(this.props.task.date_completed).fromNow();
     } else {
       description = this.props.task.description;
     }
@@ -55,32 +56,32 @@ const TodoItem = React.createClass({
       classNames += ' blur';
     }
 
-    var learn_more_url= '';
-    if (this.props.task['feature_location'] === 'project') {
-      learn_more_url = '/organizations/' + org.slug + '/projects/choose/?next=' + this.props.task['location'];
-    } else if (this.props.task['feature_location'] === 'organization') {
-      learn_more_url = '/organizations/' + org.slug + '/' + this.props.task['location'];
-    } else if (this.props.task['feature_location'] === 'absolute') {
-      learn_more_url = this.props.task['location'];
+    let learn_more_url = '';
+    if (this.props.task.feature_location === 'project') {
+      learn_more_url = '/organizations/' + org.slug + '/projects/choose/?next=' + this.props.task.location;
+    } else if (this.props.task.feature_location === 'organization') {
+      learn_more_url = '/organizations/' + org.slug + '/' + this.props.task.location;
+    } else if (this.props.task.feature_location === 'absolute') {
+      learn_more_url = this.props.task.location;
     }
 
     return (
       <li className={classNames}>
-        { this.props.task['status'] == 'Pending' ? <span className="pending-bar" /> : null }
+        { this.props.task.status == 'Pending' ? <span className="pending-bar" /> : null }
         <div className="todo-content">
           <div className="ob-checkbox">
-            { this.props.task['status'] == 'Complete' ? <span className="icon-checkmark" /> : null }
-            { this.props.task['status'] == 'Skipped' ? <span className="icon-x" /> : null }
-            { this.props.task['status'] == 'Pending' ? <span className="icon-ellipsis" /> : null }
+            { this.props.task.status == 'Complete' ? <span className="icon-checkmark" /> : null }
+            { this.props.task.status == 'Skipped' ? <span className="icon-x" /> : null }
+            { this.props.task.status == 'Pending' ? <span className="icon-ellipsis" /> : null }
           </div>
-          <a href={learn_more_url}><h4>{ this.props.task['title'] }</h4></a>
+          <a href={learn_more_url}><h4>{ this.props.task.title }</h4></a>
           <p>
             { description }
           </p>
-          { this.props.task['skippable'] && this.props.task['status'] != 'Skipped' && this.props.task['status'] != 'Complete' && !this.state.showConfirmation ?
-            <a className="skip-btn btn btn-default" onClick={this.toggleConfirmation}>Skip</a> : null }
+          { this.props.task.skippable && this.props.task.status != 'Skipped' && this.props.task.status != 'Complete' && !this.state.showConfirmation ?
+            <a className="skip-btn btn btn-default" onClick={this.toggleConfirmation}>{t('Skip')}</a> : null }
         </div>
-        { this.state.showConfirmation ? <Confirmation task={this.props.task['task']} onSkip={this.skip} dismiss={this.toggleConfirmation} /> : null }
+        { this.state.showConfirmation ? <Confirmation task={this.props.task.task} onSkip={this.skip} dismiss={this.toggleConfirmation} /> : null }
       </li>
     );
   }
@@ -103,33 +104,26 @@ const Confirmation = React.createClass({
   render: function() {
     return (
       <div className="ob-confirmation" onClick={this.dismiss}>
-        <h3>Need help?</h3>
-        <p><a href="mailto:support@getsentry.com?subject=Help with onboarding">Ask us!</a> &middot; <a onClick={this.skip}>Skip</a></p>
+        <h3>{t('Need help?')}</h3>
+        <p><a href="mailto:support@getsentry.com?subject=Help with onboarding">{t('Ask us!')}</a> &middot; <a onClick={this.skip}>{t('Skip')}</a></p>
       </div>
     );
   }
 });
 
 const TodoList = React.createClass({
-  mixins: [ApiMixin, OrganizationState],
-
   propTypes: {
     onClose: React.PropTypes.func
   },
 
-  getInitialState() {
-    return {
-      tasks: [],
-      seeAll: false,  // Show all tasks, included those completed
-    };
-  },
+  mixins: [ApiMixin, OrganizationState],
 
   statics: {
     TASKS: [
       {
         'task': 1,
-        'title': 'Create a project',
-        'description': 'Create your first Sentry project',
+        'title': t('Create a project'),
+        'description': t('Create your first Sentry project'),
         'skippable': false,
         'prereq': [],
         'feature_location': 'organization',
@@ -137,8 +131,8 @@ const TodoList = React.createClass({
       },
       {
         'task': 2,
-        'title': 'Send your first event',
-        'description': 'Install Sentry\'s client and send an event',
+        'title': t('Send your first event'),
+        'description': t('Install Sentry\'s client and send an event'),
         'skippable': false,
         'prereq': [1],
         'feature_location': 'project',
@@ -146,8 +140,8 @@ const TodoList = React.createClass({
       },
       {
         'task': 3,
-        'title': 'Invite team member',
-        'description': 'Bring your team aboard',
+        'title': t('Invite team member'),
+        'description': t('Bring your team aboard'),
         'skippable': false,
         'prereq': [],
         'feature_location': 'organization',
@@ -155,8 +149,8 @@ const TodoList = React.createClass({
       },
       {
         'task': 4,
-        'title': 'Add a second platform',
-        'description': 'Add Sentry to a second platform',
+        'title': t('Add a second platform'),
+        'description': t('Add Sentry to a second platform'),
         'skippable': false,
         'prereq': [1, 2],
         'feature_location': 'organization',
@@ -164,8 +158,8 @@ const TodoList = React.createClass({
       },
       {
         'task': 5,
-        'title': 'Add user context',
-        'description': 'Know who is being affected by crashes',
+        'title': t('Add user context'),
+        'description': t('Know who is being affected by crashes'),
         'skippable': false,
         'prereq': [1, 2],
         'feature_location': 'absolute',
@@ -173,8 +167,8 @@ const TodoList = React.createClass({
       },
       {
         'task': 6,
-        'title': 'Set up release tracking',
-        'description': 'See what releases are generating errors.',
+        'title': t('Set up release tracking'),
+        'description': t('See what releases are generating errors.'),
         'skippable': false,
         'prereq': [1, 2],
         'feature_location': 'project',
@@ -182,8 +176,8 @@ const TodoList = React.createClass({
       },
       {
         'task': 7,
-        'title': 'Upload sourcemaps',
-        'description': 'Deminify javascript stacktraces',
+        'title': t('Upload sourcemaps'),
+        'description': t('Deminify javascript stacktraces'),
         'skippable': false,
         'prereq': [1, 2, 8], // Is one of the platforms javascript?
         'feature_location': 'absolute',
@@ -200,8 +194,8 @@ const TodoList = React.createClass({
       // },
       {
         'task': 9,
-        'title': 'Set up issue tracking',
-        'description': 'Link to Sentry issues within your issue tracker',
+        'title': t('Set up issue tracking'),
+        'description': t('Link to Sentry issues within your issue tracker'),
         'skippable': true,
         'prereq': [1, 2],
         'feature_location': 'project',
@@ -209,8 +203,8 @@ const TodoList = React.createClass({
       },
       {
         'task': 10,
-        'title': 'Set up a notification service',
-        'description': 'Receive Sentry alerts in Slack or HipChat',
+        'title': t('Set up a notification service'),
+        'description': t('Receive Sentry alerts in Slack or HipChat'),
         'skippable': true,
         'prereq': [1, 2],
         'feature_location': 'project',
@@ -219,15 +213,22 @@ const TodoList = React.createClass({
     ]
   },
 
+  getInitialState() {
+    return {
+      tasks: [],
+      seeAll: false,  // Show all tasks, included those completed
+    };
+  },
+
   componentWillMount() {
     let org = this.getOrganization();
     let tasks = [];
 
-    for (var task of TodoList.TASKS) {
+    for (let task of TodoList.TASKS) {
       task.status = '';
 
-      for (var server_task of org.onboardingTasks) {
-        if (server_task['task'] == task['task']) {
+      for (let server_task of org.onboardingTasks) {
+        if (server_task.task == task.task) {
           task = $.extend(task, server_task);
           break;
         }
@@ -258,15 +259,12 @@ const TodoList = React.createClass({
       data: {'task': skipped_task, 'status': 'Skipped'},
       success: () => {
         let new_state = this.state.tasks.map( (task) => {
-          if (task['task'] == skipped_task) {
-            task['status'] = 'Skipped';
+          if (task.task == skipped_task) {
+            task.status = 'Skipped';
           }
           return task;
         });
         this.setState({tasks: new_state});
-      },
-      error: () => {
-        console.log('Unable to skip this task');
       }
     });
     this.getOnboardingTasks();
@@ -278,33 +276,33 @@ const TodoList = React.createClass({
   },
 
   toggleSeeAll(e) {
-    this.setState({ seeAll: !this.state.seeAll });
+    this.setState({seeAll: !this.state.seeAll});
   },
 
   render() {
-    var next_tasks = [];
+    let next_tasks = [];
     if (this.state.seeAll) {
       next_tasks = this.state.tasks;
     } else {
       next_tasks = this.state.tasks.filter( (task) => {
-        if (task['status'] != 'Complete') {
+        if (task.status != 'Complete') {
           return task;
         }
       }).slice(0,3);
     }
 
     let todo_list = next_tasks.map( (task) => {
-      return (<TodoItem key={task['task']} task={task} onSkip={this.skipTask} />)
+      return (<TodoItem key={task.task} task={task} onSkip={this.skipTask} />);
     }, this);
 
     return (
       <div>
         <div onClick={this.click} className="onboarding-wrapper">
-          <h3>Getting started with Sentry</h3>
+          <h3>{t('Getting started with Sentry')}</h3>
           <ul className="list-unstyled">
             {todo_list}
           </ul>
-          <a className="btn btn-default btn-see-all" onClick={this.toggleSeeAll}>{this.state.seeAll ? 'Show less' : 'Show more'}</a>
+          <a className="btn btn-default btn-see-all" onClick={this.toggleSeeAll}>{this.state.seeAll ? t('Show less') : t('Show more')}</a>
         </div>
       </div>
     );

@@ -12,7 +12,7 @@ import logging
 from bitfield import BitField
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.db import IntegrityError, models, transaction
+from django.db import models, transaction
 from django.db.models import F
 from django.utils import timezone
 from hashlib import md5
@@ -92,7 +92,6 @@ class OrganizationMember(Model):
 
     @transaction.atomic
     def save(self, *args, **kwargs):
-        from sentry.models import OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
         assert self.user_id or self.email, \
             'Must set user or email'
         super(OrganizationMember, self).save(*args, **kwargs)

@@ -43,7 +43,6 @@ class CreateOrganizationMemberView(OrganizationView):
                 messages.add_message(request, messages.INFO,
                     _('The organization member already exists.'))
 
-
             redirect = reverse('sentry-organization-member-settings',
                                args=[organization.slug, om.id])
 

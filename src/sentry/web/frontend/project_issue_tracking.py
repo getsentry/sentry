@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from django.contrib import messages
 from django.http import HttpResponseRedirect, HttpResponse
-from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from sentry import constants

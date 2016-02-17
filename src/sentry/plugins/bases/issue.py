@@ -9,8 +9,6 @@ from __future__ import absolute_import
 
 from django import forms
 from django.conf import settings
-from django.db import IntegrityError, transaction
-from django.utils import timezone
 from django.utils.html import format_html
 from social_auth.models import UserSocialAuth
 
@@ -19,7 +17,7 @@ from sentry.models import (
     GroupMeta,
 )
 from sentry.plugins import Plugin
-from sentry.signals import plugin_enabled
+from sentry.signals import issue_tracker_used
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
