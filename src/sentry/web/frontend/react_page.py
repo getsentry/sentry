@@ -4,8 +4,9 @@ from django.middleware.csrf import get_token as get_csrf_token
 from django.http import HttpResponse
 from django.template import loader, Context
 
+from sentry.models import Project
 from sentry.signals import first_event_pending
-from sentry.web.frontend.base import BaseView, ProjectView, OrganizationView
+from sentry.web.frontend.base import BaseView, OrganizationView
 
 
 class ReactMixin(object):
@@ -30,11 +31,8 @@ class ReactMixin(object):
 # generic
 class ReactPageView(OrganizationView, ReactMixin):
     def handle(self, request, **kwargs):
-        return self.handle_react(request)
-
-class ReactProjectPageView(ProjectView, ReactMixin):
-    def handle(self, request, organization, team, project, **kwargs):
-        if request.GET.get('onboarding'):
+        if 'project_id' in kwargs and request.GET.get('onboarding'):
+            project = Project.objects.filter(slug=kwargs['project_id']).first()
             first_event_pending.send(instance=project, user=request.user, sender=self)
         return self.handle_react(request)
 
