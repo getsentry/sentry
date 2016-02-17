@@ -33,7 +33,7 @@ class ReactPageView(OrganizationView, ReactMixin):
     def handle(self, request, **kwargs):
         if 'project_id' in kwargs and request.GET.get('onboarding'):
             project = Project.objects.filter(slug=kwargs['project_id']).first()
-            first_event_pending.send(instance=project, user=request.user, sender=self)
+            first_event_pending.send(project=project, user=request.user, sender=self)
         return self.handle_react(request)
 
 class GenericReactPageView(BaseView, ReactMixin):
