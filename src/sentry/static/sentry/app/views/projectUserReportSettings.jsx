@@ -17,10 +17,11 @@ const ProjectUserReportSettings = React.createClass({
       '<script src="https://cdn.ravenjs.com/2.1.0/raven.min.js"></script>\n\n' +
       '{% if request.sentry.id %}\n' +
       '  <script>\n' +
-      '  Raven.showErrorDialog(\'{{ request.sentry.id }}\', {\n' +
+      '  Raven.showReportDialog({\n' +
+      '    eventId: \'{{ request.sentry.id }}\',' +
       '    // use the public DSN (dont include your secret!)\n' +
       '    dsn: \'https://public@sentry.example.com/1\'\n' +
-      '  })\n' +
+      '  });\n' +
       '  </script>\n' +
       '{% endif %}\n'
     );
