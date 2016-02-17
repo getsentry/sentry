@@ -38,47 +38,52 @@ class Counter(Model):
     @classmethod
     def increment(cls, project, name, delta=1):
         """Increments a counter.  This can never decrement."""
-        if delta <= 0:
-            raise ValueError('There is only one way, and that\'s up.')
+        return increment_project_counter(project, name, delta)
 
-        cur = connection.cursor()
-        try:
-            if db.is_postgres():
+
+def increment_project_counter(project, name, delta=1):
+    """This method primarily exists so that south code can use it."""
+    if delta <= 0:
+        raise ValueError('There is only one way, and that\'s up.')
+
+    cur = connection.cursor()
+    try:
+        if db.is_postgres():
+            cur.execute('''
+                select sentry_increment_project_counter(%s, %s, %s)
+            ''', [project.id, name, delta])
+            return cur.fetchone()[0]
+        elif db.is_sqlite():
+            value = cur.execute('''
+                insert or ignore into sentry_projectcounter
+                  (project_id, ident, value) values (%s, %s, 0);
+            ''', [project.id, name])
+            value = cur.execute('''
+                select value from sentry_projectcounter
+                 where project_id = %s and ident = %s
+            ''', [project.id, name]).fetchone()[0]
+            while 1:
                 cur.execute('''
-                    select sentry_increment_project_counter(%s, %s, %s)
-                ''', [project.id, name, delta])
-                return cur.fetchone()[0]
-            elif db.is_sqlite():
-                value = cur.execute('''
-                    insert or ignore into sentry_projectcounter
-                      (project_id, ident, value) values (%s, %s, 0);
-                ''', [project.id, name])
-                value = cur.execute('''
-                    select value from sentry_projectcounter
-                     where project_id = %s and ident = %s
-                ''', [project.id, name]).fetchone()[0]
-                while 1:
-                    cur.execute('''
-                        update sentry_projectcounter
-                           set value = value + %s
-                         where project_id = %s and ident = %s;
-                    ''', [delta, project.id, name])
-                    changes = cur.execute('''
-                        select changes();
-                    ''').fetchone()[0]
-                    if changes != 0:
-                        return value + delta
-            elif db.is_mysql():
-                cur.execute('''
-                    insert into sentry_projectcounter
-                                (project_id, ident, value)
-                         values (%s, %s, @new_val := %s)
-               on duplicate key
-                         update value = @new_val := value + %s;
-                         select @new_val;
-                ''', [project.id, name, delta, delta])
-                return cur.fetchone()[0]
-            else:
-                raise AssertionError("Not implemented database engine path")
-        finally:
-            cur.close()
+                    update sentry_projectcounter
+                       set value = value + %s
+                     where project_id = %s and ident = %s;
+                ''', [delta, project.id, name])
+                changes = cur.execute('''
+                    select changes();
+                ''').fetchone()[0]
+                if changes != 0:
+                    return value + delta
+        elif db.is_mysql():
+            cur.execute('''
+                insert into sentry_projectcounter
+                            (project_id, ident, value)
+                     values (%s, %s, @new_val := %s)
+           on duplicate key
+                     update value = @new_val := value + %s;
+                     select @new_val;
+            ''', [project.id, name, delta, delta])
+            return cur.fetchone()[0]
+        else:
+            raise AssertionError("Not implemented database engine path")
+    finally:
+        cur.close()
