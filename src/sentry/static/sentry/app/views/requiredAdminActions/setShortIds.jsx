@@ -4,45 +4,6 @@ import OrganizationState from '../../mixins/organizationState';
 import {t} from '../../locale';
 
 
-function generateShortName(name) {
-  let bits = name.split(/[\s_-]+/g);
-  if (bits.length > 1) {
-    return (bits[0][0] + bits[1][0]).toUpperCase();
-  }
-  return bits[0].substr(0, 2).toUpperCase();
-}
-
-function prefillShortNames(projects) {
-  let used = new Set();
-  projects.forEach((project) => {
-    if (project.shortName) {
-      used.add(project.shortName);
-    } else {
-      let shortName = generateShortName(project.projectName);
-      if (used.has(shortName)) {
-        let altShortName = project.teamName[0] + shortName;
-        if (!used.has(altShortName)) {
-          project.shortName = altShortName;
-          used.add(altShortName);
-        } else {
-          for (let i = 2; i < 10; i++) {
-            altShortName = shortName + i;
-            if (!used.has(altShortName)) {
-              used.add(altShortName);
-              project.shortName = altShortName;
-              break;
-            }
-          }
-        }
-      } else {
-        project.shortName = shortName;
-        used.add(shortName);
-      }
-    }
-  });
-}
-
-
 const SetShortIdsAction = React.createClass({
   mixins: [OrganizationState],
 
@@ -60,8 +21,6 @@ const SetShortIdsAction = React.createClass({
         });
       }
     }
-
-    prefillShortNames(projects);
 
     return projects;
   },
