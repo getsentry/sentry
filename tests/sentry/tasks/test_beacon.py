@@ -24,7 +24,7 @@ class SendBeaconTest(TestCase):
             'version': {'stable': '1.0.0'},
         })
 
-        assert options.set('system.admin-email', 'foo@example.com')
+        assert options.set('system.admin-email', 'foo@example.com') is not False
         send_beacon()
 
         install_id = options.get('sentry:install-id')
