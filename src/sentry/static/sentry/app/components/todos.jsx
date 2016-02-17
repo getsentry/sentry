@@ -1,6 +1,6 @@
 import moment from 'moment';
 import React from 'react';
-import {t, tct} from '../locale';
+import {t} from '../locale';
 
 import ApiMixin from '../mixins/apiMixin';
 import OrganizationState from '../mixins/organizationState';
