@@ -1,0 +1,84 @@
+.admin-action-overlay {
+  #gradient > .horizontal(#9f73c3 , #6875be);
+  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 99999;
+
+  .pattern {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: url(../images/sentry-pattern.png);
+    background-size: 400px;
+    opacity: .8;
+  }
+}
+
+.admin-action-overlay .container {
+  height: 100%;
+}
+
+.admin-action-overlay .dialog {
+  .clearfix;
+  background: #fff;
+  width: 600px;
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: 0 5px 30px rgba(0, 0, 0, .3);
+  position: absolute;
+  left: 50%;
+  margin-left: -300px;
+  margin-top: 50px;
+
+  .discard-bar {
+    float: right;
+    a {
+      font-weight: bold;
+    }
+  }
+
+  h1 {
+    .clearfix;
+    line-height: 32px;
+    font-size: 28px;
+
+    > span {
+      display: block;
+      float: left;
+    }
+    > small {
+      float: right;
+      display: block;
+      font-size: 18px;
+      line-height: inherit;
+    }
+  }
+}
+
+.admin-action-overlay {
+  div.actions {
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  .short-id-form-group {
+    label { text-align: left; }
+    input {
+      text-align: center;
+      font-weight: bold;
+      font-size: 18px;
+      padding: 3px 10px 4px;
+      background: @purple;
+      color: white;
+      text-shadow: 0 0 2px darken(@purple, 30);
+      box-shadow: inset 0 0 4px darken(@purple, 20);
+      border: 1px solid darken(@purple, 40);
+    }
+  }
+}
