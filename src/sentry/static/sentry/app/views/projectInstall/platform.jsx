@@ -1,5 +1,5 @@
 import React from 'react';
-import {History,Link} from 'react-router';
+import {Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 import LanguageNav from './languageNav';
