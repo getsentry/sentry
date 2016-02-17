@@ -498,7 +498,7 @@ class EventManager(object):
             tsdb.record_multi((
                 (tsdb.models.users_affected_by_group, group.id, (event_user.tag_value,)),
                 (tsdb.models.users_affected_by_project, project.id, (event_user.tag_value,)),
-            ), timestamp=event.datetime)
+            ))
 
         if is_new and release:
             buffer.incr(Release, {'new_groups': 1}, {
@@ -660,7 +660,7 @@ class EventManager(object):
         tsdb.incr_multi([
             (tsdb.models.group, group.id),
             (tsdb.models.project, project.id),
-        ], timestamp=event.datetime)
+        ])
 
         tsdb.record_frequency_multi([
             (tsdb.models.frequent_projects_by_organization, {
@@ -673,7 +673,7 @@ class EventManager(object):
                     group.id: 1,
                 },
             }),
-        ], timestamp=event.datetime)
+        ])
 
         return group, is_new, is_regression, is_sample
 

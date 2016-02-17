@@ -432,11 +432,13 @@ class EventManagerTest(TransactionTestCase):
         manager.normalize()
         event = manager.save(self.project.id)
 
+        timestamp = timezone.now()
+
         assert tsdb.get_distinct_counts_totals(
             tsdb.models.users_affected_by_group,
             (event.group.id,),
-            event.datetime,
-            event.datetime,
+            timestamp,
+            timestamp,
         ) == {
             event.group.id: 1,
         }
@@ -444,8 +446,8 @@ class EventManagerTest(TransactionTestCase):
         assert tsdb.get_distinct_counts_totals(
             tsdb.models.users_affected_by_project,
             (event.project.id,),
-            event.datetime,
-            event.datetime,
+            timestamp,
+            timestamp,
         ) == {
             event.project.id: 1,
         }
