@@ -35,55 +35,47 @@ def record_new_project(project, user, **kwargs):
         try:
             with transaction.atomic():
                 OrganizationOnboardingTask.objects.create(
-                    organization=instance.organization,
+                    organization=project.organization,
                     task=OnboardingTask.SECOND_PLATFORM,
                     user=user,
                     status=OnboardingTaskStatus.PENDING,
-                    project=instance,
+                    project=project,
                     date_completed=timezone.now(),
                 )
         except IntegrityError:
             pass
 
 @first_event_pending.connect(weak=False)
-def record_raven_installed(instance, user, **kwargs):
-    """
-    Args:
-        instance (sentry.models.Project)
-        user (sentry.models.user)
-    """
+def record_raven_installed(project, user, **kwargs):
     oot, created = OrganizationOnboardingTask.objects.get_or_create(
-        organization=instance.organization,
+        organization=project.organization,
         task=OnboardingTask.FIRST_EVENT,
         status=OnboardingTaskStatus.PENDING,
         defaults={
             'user': user,
-            'project': instance,
+            'project': project,
             'date_completed': timezone.now()
         }
     )
 
 @first_event_received.connect(weak=False)
-def record_first_event(instance, group, **kwargs):
+def record_first_event(project, group, **kwargs):
     """
     Requires up to 2 database calls, but should only run with the first event in
     any project, so performance should not be a huge bottleneck.
-
-    Args:
-        instance (sentry.models.Project)
-        group (sentry.models.Group)
     """
+
     # If complete, pass (creation fails due to organization, task unique constraint)
     # If pending, update.
     # If does not exist, create.
     rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-        organization=instance.organization,
+        organization=project.organization,
         task=OnboardingTask.FIRST_EVENT,
         status=OnboardingTaskStatus.PENDING,
         values={
             'status': OnboardingTaskStatus.COMPLETE,
-            'project': instance,
-            'date_completed': instance.first_event,
+            'project': project,
+            'date_completed': project.first_event,
             'data': { 'platform': group.platform },
         }
     )
@@ -91,20 +83,20 @@ def record_first_event(instance, group, **kwargs):
     # If first_event task is complete
     if not rows_affected and not created:
         oot = OrganizationOnboardingTask.objects.filter(
-            organization=instance.organization,
+            organization=project.organization,
             task=OnboardingTask.FIRST_EVENT
         ).first()
 
         # Only counts if it's a new project and platform
-        if oot.project != instance and oot.data['platform'] != group.platform:
+        if oot.project != project and oot.data['platform'] != group.platform:
             OrganizationOnboardingTask.objects.create_or_update(
-                organization=instance.organization,
+                organization=project.organization,
                 task=OnboardingTask.SECOND_PLATFORM,
                 status=OnboardingTaskStatus.PENDING,
                 values={
                     'status': OnboardingTaskStatus.COMPLETE,
-                    'project': instance,
-                    'date_completed': instance.first_event,
+                    'project': project,
+                    'date_completed': project.first_event,
                     'data': { 'platform': group.platform },
                 }
             )

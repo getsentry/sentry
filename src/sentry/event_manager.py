@@ -511,7 +511,7 @@ class EventManager(object):
         if not raw:
             if not project.first_event:
                 project.update(first_event=date)
-                first_event_received.send(instance=project, group=group, sender=Project)
+                first_event_received.send(project=project, group=group, sender=Project)
 
             post_process_group.delay(
                 group=group,
