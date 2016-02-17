@@ -17,6 +17,18 @@ def config():
 
 
 @config.command()
+@click.argument('pattern', default='*', required=False)
+@configuration
+def list(pattern):
+    "List configuration options."
+    from fnmatch import fnmatch
+    from sentry.options import default_manager as manager
+    for key in manager.all():
+        if fnmatch(key.name, pattern):
+            click.echo('%s %s' % (key.name, key.type.name.upper()))
+
+
+@config.command()
 @click.option('--silent', default=False, is_flag=True, help='Suppress extraneous output.')
 @click.argument('option')
 @configuration
@@ -36,6 +48,7 @@ def get(option, silent):
     # TODO(mattrobenolt): Add help to option keys
     # if key.help:
     #     click.echo(key.help + '\n')
+    click.echo('        type: %s' % key.type.name.upper())
     click.echo(' from config: %s' % settings.SENTRY_OPTIONS.get(key.name, '<not set>'))
     click.echo('     current: %s' % value)
 
