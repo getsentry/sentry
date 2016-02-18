@@ -30,9 +30,9 @@ class ReactMixin(object):
 # TODO(dcramer): once we implement basic auth hooks in React we can make this
 # generic
 class ReactPageView(OrganizationView, ReactMixin):
-    def handle(self, request, **kwargs):
+    def handle(self, request, organization, **kwargs):
         if 'project_id' in kwargs and request.GET.get('onboarding'):
-            project = Project.objects.filter(slug=kwargs['project_id']).first()
+            project = Project.objects.filter(organization=organization, slug=kwargs['project_id']).first()
             first_event_pending.send(project=project, user=request.user, sender=self)
         return self.handle_react(request)
 

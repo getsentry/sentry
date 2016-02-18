@@ -136,7 +136,7 @@ const TodoList = React.createClass({
         'skippable': false,
         'prereq': [1],
         'feature_location': 'project',
-        'location': 'settings/install/',
+        'location': 'install',
       },
       {
         'task': 3,
@@ -172,7 +172,7 @@ const TodoList = React.createClass({
         'skippable': false,
         'prereq': [1, 2],
         'feature_location': 'project',
-        'location': 'settings/release-tracking/',
+        'location': 'release-tracking',
       },
       {
         'task': 7,
@@ -199,7 +199,7 @@ const TodoList = React.createClass({
         'skippable': true,
         'prereq': [1, 2],
         'feature_location': 'project',
-        'location': 'settings/issue-tracking/',
+        'location': 'issue-tracking',
       },
       {
         'task': 10,
@@ -208,7 +208,7 @@ const TodoList = React.createClass({
         'skippable': true,
         'prereq': [1, 2],
         'feature_location': 'project',
-        'location': 'settings/notifications/',
+        'location': 'notification',
       },
     ]
   },
