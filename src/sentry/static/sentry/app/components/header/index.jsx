@@ -24,11 +24,17 @@ const Header = React.createClass({
   },
 
   componentDidMount() {
-    $(window).on('hashchange', () => {
-      if (location.hash == '#welcome') {
-        this.setState({showTodos: true});
-      }
-    });
+    $(window).on('hashchange', this.hashChangeHandler);
+  },
+
+  componentDidUnmount() {
+    $(window).off('hashchange', this.hashChangeHandler);
+  },
+
+  hashChangeHandler() {
+    if (location.hash == '#welcome') {
+      this.setState({showTodos: true});
+    }
   },
 
   toggleTodos(e) {
@@ -66,10 +72,14 @@ const Header = React.createClass({
           <OrganizationSelector organization={this.getOrganization()} className="pull-right" />
 
           <StatusPage className="pull-right" />
-          <div className="onboarding-progress-bar" onClick={this.toggleTodos}>
-            <div className="slider" style={style} ></div>
-            { this.state.showTodos ? <div className="dropdown-menu"><TodoList onClose={() => {this.setState({showTodos:false});}} /></div> : null }
-          </div>
+          { percentage < 100 ?
+            <div className="onboarding-progress-bar" onClick={this.toggleTodos}>
+              <div className="slider" style={style} ></div>
+              { this.state.showTodos ? <div className="dropdown-menu"><TodoList onClose={() => {this.setState({showTodos:false});}} /></div> : null }
+            </div>
+            :
+            null
+          }
         </div>
       </header>
     );
