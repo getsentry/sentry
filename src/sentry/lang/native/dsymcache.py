@@ -23,6 +23,7 @@ class DSymCache(object):
         return base, loaded
 
     def fetch_dsym(self, project, image_uuid):
+        image_uuid = image_uuid.lower()
         base = self.get_project_path(project)
         dsym = os.path.join(base, image_uuid.lower())
         if os.path.isfile(dsym):

@@ -27,7 +27,7 @@ def exception_from_apple_error_or_diagnosis(error, diagnosis=None):
 
 def inject_apple_backtrace(data, frames, diagnosis=None, error=None):
     converted_frames = []
-    for frame in converted_frames:
+    for frame in frames:
         fn = frame.get('filename')
         converted_frames.append({
             'abs_path': fn,
