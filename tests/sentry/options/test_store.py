@@ -3,16 +3,21 @@
 from __future__ import absolute_import
 
 from uuid import uuid1
-from exam import fixture, before
+
+import pytest
+from exam import before, fixture
 from mock import patch
 
+from sentry.cache.redis import RedisCache
 from sentry.models import Option
 from sentry.options.store import OptionsStore
 from sentry.testutils import TestCase
 
 
 class OptionsStoreTest(TestCase):
-    store = fixture(OptionsStore)
+    @fixture
+    def store(self):
+        return OptionsStore(cache=RedisCache())
 
     @fixture
     def key(self):
@@ -27,11 +32,23 @@ class OptionsStoreTest(TestCase):
 
     def test_simple(self):
         store, key = self.store, self.key
+
         assert store.get(key) is None
         assert store.set(key, 'bar')
         assert store.get(key) == 'bar'
         assert store.delete(key)
+
+    def test_simple_without_cache(self):
+        store = OptionsStore(cache=None)
+        key = self.key
+
         assert store.get(key) is None
+
+        with pytest.raises(AssertionError):
+            store.set(key, 'bar')
+
+        with pytest.raises(AssertionError):
+            store.delete(key)
 
     def test_db_and_cache_unavailable(self):
         store, key = self.store, self.key
