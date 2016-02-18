@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from django.shortcuts import redirect
 from rest_framework.response import Response
 
-from sentry.models import Project, Team
+from sentry.models import Team
 from sentry.web.frontend.base import OrganizationView
 
 
