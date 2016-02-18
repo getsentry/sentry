@@ -38,7 +38,7 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
         :pparam string organization_slug: the slug of the organization.
         :pparam string project_slug: the slug of the project.
         :qparam string stat: the name of the stat to query (``"received"``,
-                             ``"rejected"``, ``"blacklisted"``)
+                             ``"rejected"``, ``"blacklisted"``, ``generated``)
         :qparam timestamp since: a timestamp to set the start of the query
                                  in seconds since UNIX epoch.
         :qparam timestamp until: a timestamp to set the end of the query
@@ -57,6 +57,8 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
             stat_model = tsdb.models.project_total_rejected
         elif stat == 'blacklisted':
             stat_model = tsdb.models.project_total_blacklisted
+        elif stat == 'generated':
+            stat_model = tsdb.models.project
         else:
             raise ValueError('Invalid stat: %s' % stat)
 
