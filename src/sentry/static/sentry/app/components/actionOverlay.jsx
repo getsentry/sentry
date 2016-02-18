@@ -2,25 +2,25 @@ import React from 'react';
 import {History} from 'react-router';
 import OrganizationState from '../mixins/organizationState';
 import {t} from '../locale';
+import requiredAdminActions from '../components/requiredAdminActions';
+import LoadingIndicator from '../components/loadingIndicator';
 
 const ActionOverlay = React.createClass({
   propTypes: {
-    actionId: React.PropTypes.string.isRequired
+    actionId: React.PropTypes.string.isRequired,
+    isLoading: React.PropTypes.bool
   },
   mixins: [OrganizationState, History],
 
   componentWillMount() {
-    // in case we mount but we are not an org admin or our action is not
-    // in the list of currently required actions, we bail out in a really
-    // stupid way but works.
-    let org = this.getOrganization();
-    let access = this.getAccess();
-    let requiredActions = new Set(org.requiredAdminActions);
-
-    if (!access.has('org:write') ||
-        !requiredActions.has(this.props.actionId)) {
+    let action = this.getAction();
+    if (!action.requiresAction(this.getOrganization())) {
       this.dismiss();
     }
+  },
+
+  getAction() {
+    return requiredAdminActions[this.props.actionId];
   },
 
   dismiss() {
@@ -34,19 +34,30 @@ const ActionOverlay = React.createClass({
   },
 
   render() {
-    let {children, ...other} = this.props;
+    let {children, isLoading, ...other} = this.props;
     let orgUrl = `/organizations/${this.getOrganization().slug}/`;
+    let className = 'admin-action-overlay';
+    if (isLoading) {
+      className += ' loading-data';
+    }
+
     return (
-      <div className="admin-action-overlay" {...other}>
+      <div className={className} {...other}>
         <div className="pattern"/>
         <div className="container">
           <div className="dialog">
-            <div className="discard-bar">
-              <a href={orgUrl} onClick={this.onDoThisLater}>{
-                t('Do this later …')}</a>
-            </div>
-            <div className="content">
-              {children}
+            <div className="dialog-contents">
+              <div className="discard-bar">
+                <a href={orgUrl} onClick={this.onDoThisLater}>{
+                  t('Do this later …')}</a>
+              </div>
+              <div className="content">
+                {children}
+              </div>
+              {isLoading ?
+                <div className="loading-overlay">
+                  <LoadingIndicator/>
+                </div> : null}
             </div>
           </div>
         </div>

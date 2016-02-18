@@ -36,6 +36,10 @@
   margin-left: -300px;
   margin-top: 50px;
 
+  .dialog-contents {
+    position: relative;
+  }
+
   .discard-bar {
     float: right;
     a {
@@ -67,8 +71,36 @@
     padding: 20px 0;
   }
 
+  .loading-overlay {
+    display: block;
+    position: absolute;
+    top: -20px;
+    left: -20px;
+    right: -20px;
+    bottom: -20px;
+    background: fade(@purple-dark, 50%);
+    border-radius: 4px;
+    padding-top: 50%;
+    .loading {
+      margin: 0 auto 0 auto;
+      transform: translateY(-50%);
+    }
+  }
+
   .short-id-form-group {
     margin-bottom: 5px;
+
+    &.disabled label {
+      color: @gray;
+    }
+
+    &.reviewed input {
+      background: @green-light;
+      color: @green-dark;
+      text-shadow: none;
+      border-color: @green-dark;
+      box-shadow: inset 0 0 4px @green;
+    }
 
     label { text-align: left; }
     input {
@@ -81,6 +113,14 @@
       text-shadow: 0 0 2px darken(@purple, 30);
       box-shadow: inset 0 0 4px darken(@purple, 20);
       border: 1px solid darken(@purple, 40);
+
+      &:disabled {
+        background: @gray-lighter;
+        color: @gray-darkest;
+        text-shadow: none;
+        border-color: @gray-darker;
+        box-shadow: inset 0 0 4px @gray;
+      }
     }
   }
 }
