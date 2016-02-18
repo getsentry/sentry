@@ -247,9 +247,10 @@ class EventManager(object):
         if data.get('platform'):
             data['platform'] = trim(data['platform'], 64)
 
+        current_timestamp = timezone.now()
         timestamp = data.get('timestamp')
         if not timestamp:
-            timestamp = timezone.now()
+            timestamp = current_timestamp
 
         if isinstance(timestamp, datetime):
             # We must convert date to local time so Django doesn't mess it up
@@ -262,6 +263,7 @@ class EventManager(object):
             timestamp = float(timestamp.strftime('%s'))
 
         data['timestamp'] = timestamp
+        data['received'] = current_timestamp
 
         if not data.get('event_id'):
             data['event_id'] = uuid4().hex

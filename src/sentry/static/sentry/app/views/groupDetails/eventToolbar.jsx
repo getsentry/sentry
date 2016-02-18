@@ -1,8 +1,12 @@
 import {Link} from 'react-router';
+import moment from 'moment';
 import React from 'react';
+
+import ConfigStore from '../../stores/configStore';
 import PropTypes from '../../proptypes';
 import DateTime from '../../components/dateTime';
 import FileSize from '../../components/fileSize';
+import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
 
 let GroupEventToolbar  = React.createClass({
@@ -11,6 +15,35 @@ let GroupEventToolbar  = React.createClass({
     projectId: React.PropTypes.string.isRequired,
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
+  },
+
+  mixins: [
+    TooltipMixin({
+      html: true,
+      selector: '.tip'
+    }),
+  ],
+
+  getDateTooltip() {
+    let evt = this.props.event;
+    let user = ConfigStore.get('user');
+    let options = user ? user.options : {};
+    let format = (
+      options.clock24Hours ? 'HH:mm:ss z' : 'LTS z'
+    );
+    let dateCreated = moment(evt.dateCreated);
+    let dateReceived = moment(evt.dateReceived);
+
+    return (
+      '<dl class="flat" style="text-align:left;margin:0;min-width:200px">' +
+        '<dt>Generated</dt>' +
+        '<dd>' + dateCreated.format('ll') + '<br />' +
+          dateCreated.format(format) + '</dd>' +
+        '<dt>Received</dt>' +
+        '<dd>' + dateReceived.format('ll') + '<br />' +
+          dateReceived.format(format) + '</dd>' +
+      '</dl>'
+    );
   },
 
   render() {
@@ -77,7 +110,8 @@ let GroupEventToolbar  = React.createClass({
         </div>
         <h4>{t('Event %s', evt.eventID)}</h4>
         <span>
-          <DateTime date={evt.dateCreated} />
+          <DateTime date={evt.dateCreated} className="tip" data-title={this.getDateTooltip()}
+                    style={{borderBottom: '1px dotted #ddd'}} />
           <a href={jsonUrl} target="_blank" className="json-link">{'JSON'} &#40;<FileSize bytes={evt.size} />&#41;</a>
         </span>
       </div>
