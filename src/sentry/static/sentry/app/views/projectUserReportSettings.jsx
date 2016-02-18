@@ -11,6 +11,24 @@ const ProjectUserReportSettings = React.createClass({
     this.props.setProjectNavSection('settings');
   },
 
+  componentDidMount() {
+    window.sentryEmbedCallback = function (embed) {
+      // Mock the embed's submit xhr to always be successful
+      // NOTE: this will not have errors if the form is empty
+      embed.submit = function (body) {
+        this._submitInProgress = true;
+        setTimeout(function () {
+          this._submitInProgress = false;
+          this.onSuccess();
+        }.bind(this), 500);
+      };
+    };
+  },
+
+  componentWillUnmount() {
+    window.sentryEmbedCallback = null;
+  },
+
   getInstructions() {
     return (
       '<!-- Sentry JS SDK 2.1.+ required -->\n' +
@@ -18,13 +36,20 @@ const ProjectUserReportSettings = React.createClass({
       '{% if request.sentry.id %}\n' +
       '  <script>\n' +
       '  Raven.showReportDialog({\n' +
-      '    eventId: \'{{ request.sentry.id }}\',' +
+      '    eventId: \'{{ request.sentry.id }}\',\n\n' +
       '    // use the public DSN (dont include your secret!)\n' +
       '    dsn: \'https://public@sentry.example.com/1\'\n' +
       '  });\n' +
       '  </script>\n' +
       '{% endif %}\n'
     );
+  },
+
+  handleClick() {
+    Raven.showReportDialog({
+      // should never make it to the Sentry API, but just in case, use throwaway id
+      eventId: 'ignoreme'
+    });
   },
 
   render() {
@@ -42,6 +67,8 @@ const ProjectUserReportSettings = React.createClass({
         <p>The following example uses our Django integration. Check the documentation for the SDK you're using for more details.</p>
 
         <pre>{this.getInstructions()}</pre>
+
+        <p><a className="btn btn-primary" onClick={this.handleClick}>See the report dialog in action</a></p>
       </div>
     );
   }
