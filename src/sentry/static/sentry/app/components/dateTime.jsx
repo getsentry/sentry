@@ -30,7 +30,7 @@ const DateTime = React.createClass({
     }
 
     return (
-      <time>{moment(date).format(format)}</time>
+      <time {...this.props}>{moment(date).format(format)}</time>
     );
   }
 });
