@@ -477,6 +477,15 @@ class ClientApiHelper(object):
                 # support tags with spaces by converting them
                 k = k.replace(' ', '-')
 
+                if TagKey.is_reserved_key(k):
+                    self.log.info('Discarding reserved tag key: %s', k)
+                    data['errors'].append({
+                        'type': EventError.INVALID_DATA,
+                        'name': 'tags',
+                        'value': pair,
+                    })
+                    continue
+
                 if not TagKey.is_valid_key(k):
                     self.log.info('Discarded invalid tag key: %s', k)
                     data['errors'].append({
