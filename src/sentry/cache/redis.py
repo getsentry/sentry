@@ -27,7 +27,7 @@ class RedisCache(BaseCache):
         options.setdefault('hosts', {
             0: {},
         })
-        self.cluster = make_rb_cluster(options['hosts'])
+        self.cluster = make_rb_cluster(options=options)
         self.client = self.cluster.get_routing_client()
 
         super(RedisCache, self).__init__(version=version, prefix=prefix)

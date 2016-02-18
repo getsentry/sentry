@@ -30,10 +30,10 @@ class RedisQuota(Quota):
     def __init__(self, **options):
         if not options:
             # inherit default options from REDIS_OPTIONS
-            options = settings.SENTRY_REDIS_OPTIONS
+            options = dict(settings.SENTRY_REDIS_OPTIONS)
         super(RedisQuota, self).__init__(**options)
         options.setdefault('hosts', {0: {}})
-        self.cluster = make_rb_cluster(options['hosts'])
+        self.cluster = make_rb_cluster(options=options)
         self.namespace = 'quota'
 
     def validate(self):
