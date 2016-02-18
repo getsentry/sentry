@@ -129,14 +129,14 @@ const GroupEvents = React.createClass({
 
     let {orgId, projectId, groupId} = this.props.params;
 
-    let children = this.state.eventList.map((event, eventIdx) => {
+    let children = this.state.eventList.map((event) => {
       let tagMap = {};
       event.tags.forEach((tag) => {
         tagMap[tag.key] = tag.value;
       });
 
       return (
-        <tr key={eventIdx}>
+        <tr key={event.id}>
           <td>
             <h5>
               <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/${event.id}/`}>
