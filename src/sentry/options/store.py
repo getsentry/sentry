@@ -188,6 +188,8 @@ class OptionsStore(object):
         If cache fails, we ignore silently since it'll get repaired later by sync_options.
         A boolean is returned to indicate if the network cache was set successfully.
         """
+        assert self.cache is not None, 'cache must be configured before mutating options'
+
         self.set_store(key, value)
         return self.set_cache(key, value)
 
@@ -207,9 +209,6 @@ class OptionsStore(object):
         if key.ttl > 0:
             self._local_cache[cache_key] = _make_cache_value(key, value)
 
-        if self.cache is None:
-            return
-
         try:
             self.cache.set(cache_key, value, self.ttl)
             return True
@@ -224,6 +223,8 @@ class OptionsStore(object):
         If database succeeds, caches are then allowed to fail silently.
         A boolean is returned to indicate if the network deletion succeeds.
         """
+        assert self.cache is not None, 'cache must be configured before mutating options'
+
         self.delete_store(key)
         return self.delete_cache(key)
 
@@ -236,9 +237,6 @@ class OptionsStore(object):
             del self._local_cache[cache_key]
         except KeyError:
             pass
-
-        if self.cache is None:
-            return
 
         try:
             self.cache.delete(cache_key)

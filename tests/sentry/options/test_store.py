@@ -3,7 +3,9 @@
 from __future__ import absolute_import
 
 from uuid import uuid1
-from exam import fixture, before
+
+import pytest
+from exam import before, fixture
 from mock import patch
 
 from sentry.cache.redis import RedisCache
@@ -41,9 +43,12 @@ class OptionsStoreTest(TestCase):
         key = self.key
 
         assert store.get(key) is None
-        assert store.set(key, 'bar') is None
-        assert store.get(key) == 'bar'
-        assert store.delete(key) is None
+
+        with pytest.raises(AssertionError):
+            store.set(key, 'bar')
+
+        with pytest.raises(AssertionError):
+            store.delete(key)
 
     def test_db_and_cache_unavailable(self):
         store, key = self.store, self.key
