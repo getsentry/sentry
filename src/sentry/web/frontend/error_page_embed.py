@@ -111,8 +111,8 @@ class ErrorPageEmbedView(View):
         })
 
         context = {
-            'endpoint': mark_safe(json.dumps(request.get_full_path())),
-            'template': mark_safe(json.dumps(template)),
+            'endpoint': mark_safe('*/' + json.dumps(request.get_full_path()) + ';/*'),
+            'template': mark_safe('*/' + json.dumps(template) + ';/*'),
         }
 
         return render_to_response('sentry/error-page-embed.js', context, request,
