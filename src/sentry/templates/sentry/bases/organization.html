@@ -62,12 +62,14 @@
       </li>
       {% endfeature %}
     {% endif %}
-    {% if ACCESS.org_write %}
+    {% if ACCESS.org_delete %}
       <li class="{% block org_apikeys_nav %}{% endblock %}">
         <a href="{% url 'sentry-organization-api-keys' organization.slug %}">
           {% trans "API Keys" %}
         </a>
       </li>
+    {% endif %}
+    {% if ACCESS.org_write %}
       <li class="{% block org_auditlog_nav %}{% endblock %}">
         <a href="{% url 'sentry-organization-audit-log' organization.slug %}">
           {% trans "Audit Log" %}
