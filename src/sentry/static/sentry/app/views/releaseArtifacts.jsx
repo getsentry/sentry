@@ -5,7 +5,10 @@ import ApiMixin from '../mixins/apiMixin';
 import FileSize from '../components/fileSize';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import IndicatorStore from '../stores/indicatorStore';
 import Pagination from '../components/pagination';
+import LinkWithConfirmation from '../components/linkWithConfirmation';
+
 import {t} from '../locale';
 
 const ReleaseArtifacts = React.createClass({
@@ -27,7 +30,7 @@ const ReleaseArtifacts = React.createClass({
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   },
 
@@ -37,16 +40,18 @@ const ReleaseArtifacts = React.createClass({
     }
   },
 
-  fetchData() {
+  getFilesEndpoint() {
     let params = this.props.params;
-    let endpoint = '/projects/' + params.orgId + '/' + params.projectId + '/releases/' + params.version + '/files/';
+    return `/projects/${params.orgId}/${params.projectId}/releases/${params.version}/files/`;
+  },
 
+  fetchData() {
     this.setState({
       loading: true,
       error: false
     });
 
-    this.api.request(endpoint, {
+    this.api.request(this.getFilesEndpoint(), {
       method: 'GET',
       data: this.props.location.query,
       success: (data, _, jqXHR) => {
@@ -66,6 +71,35 @@ const ReleaseArtifacts = React.createClass({
     });
   },
 
+  handleRemove(id) {
+    let loadingIndicator = IndicatorStore.add(t('Removing artifact..'));
+
+    this.api.request(this.getFilesEndpoint() + `${id}/`, {
+      method: 'DELETE',
+      success: () => {
+        let fileList = this.state.fileList.filter((file) => {
+          return file.id !== id;
+        });
+
+        this.setState({
+          fileList: fileList
+        });
+
+        IndicatorStore.add(t('Artifact removed.'), 'success', {
+          duration: 4000
+        });
+      },
+      error: () => {
+        IndicatorStore.add(t('Unable to remove artifact. Please try again.'), 'error', {
+          duration: 4000
+        });
+      },
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
+    });
+  },
+
   render() {
     if (this.state.loading)
       return <LoadingIndicator />;
@@ -79,21 +113,32 @@ const ReleaseArtifacts = React.createClass({
         </div>
       );
 
-    // TODO(dcramer): files should allow you to download and delete them
+    // TODO(dcramer): files should allow you to download them
     return (
       <div>
         <div className="release-group-header">
           <div className="row">
-            <div className="col-sm-11 col-xs-6">{'Name'}</div>
-            <div className="col-sm-1 col-xs-3 align-right">{'Size'}</div>
+            <div className="col-sm-9 col-xs-8">{'Name'}</div>
+            <div className="col-sm-2 col-xs-2 align-right">{'Size'}</div>
+            <div className="col-sm-1 col-xs-2 align-right"></div>
           </div>
         </div>
         <div className="release-list">
         {this.state.fileList.map((file) => {
           return (
             <div className="release release-artifact row" key={file.id}>
-              <div className="col-sm-11 col-xs-6" style={{wordWrap: 'break-word'}}><strong>{file.name || '(empty)'}</strong></div>
-              <div className="col-sm-1 col-xs-3 align-right"><FileSize bytes={file.size} /></div>
+              <div className="col-sm-9 col-xs-8" style={{wordWrap: 'break-word'}}><strong>{file.name || '(empty)'}</strong></div>
+              <div className="col-sm-2 col-xs-2 align-right"><FileSize bytes={file.size} /></div>
+              <div className="col-sm-1 col-xs-2 align-right">
+                <LinkWithConfirmation
+                  className="btn btn-sm btn-default"
+                  title={t('Delete artifact')}
+                  message={t('Are you sure you want to remove this artifact?')}
+                  onConfirm={this.handleRemove.bind(this, file.id)}>
+
+                  <span className="icon icon-trash" />
+                </LinkWithConfirmation>
+              </div>
             </div>
           );
         })}
