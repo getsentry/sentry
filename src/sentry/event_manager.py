@@ -21,6 +21,7 @@ from django.utils.encoding import force_bytes
 from hashlib import md5
 from uuid import uuid4
 
+from sentry import eventtypes
 from sentry.app import buffer, tsdb
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
@@ -150,7 +151,7 @@ else:
         return True
 
 
-def generate_culprit(data):
+def generate_culprit(data, platform=None):
     culprit = ''
 
     try:
@@ -170,7 +171,9 @@ def generate_culprit(data):
             culprit = data['sentry.interfaces.Http'].get('url', '')
     else:
         from sentry.interfaces.stacktrace import Stacktrace
-        culprit = Stacktrace.to_python(stacktraces[-1]).get_culprit_string()
+        culprit = Stacktrace.to_python(stacktraces[-1]).get_culprit_string(
+            platform=platform,
+        )
 
     return truncatechars(culprit, MAX_CULPRIT_LENGTH)
 
@@ -324,6 +327,10 @@ class EventManager(object):
             except Exception:
                 pass
 
+        # the SDKs currently do not describe event types, and we must infer
+        # them from available attributes
+        data['type'] = eventtypes.infer(data).key
+
         data['version'] = self.version
 
         # TODO(dcramer): find a better place for this logic
@@ -383,7 +390,7 @@ class EventManager(object):
         time_spent = data.pop('time_spent', None)
 
         if not culprit:
-            culprit = generate_culprit(data)
+            culprit = generate_culprit(data, platform=platform)
 
         date = datetime.fromtimestamp(data.pop('timestamp'))
         date = date.replace(tzinfo=timezone.utc)
@@ -447,6 +454,10 @@ class EventManager(object):
         else:
             hashes = map(md5_from_hash, get_hashes_for_event(event))
 
+        # TODO(dcramer): temp workaround for complexity
+        data['message'] = message
+        event_type = eventtypes.get(data.get('type', 'default'))(data)
+
         group_kwargs = kwargs.copy()
         group_kwargs.update({
             'culprit': culprit,
@@ -455,9 +466,16 @@ class EventManager(object):
             'last_seen': date,
             'first_seen': date,
             'data': {
-                'last_received': event.data.get('received') or float(event.datetime.strftime('%s'))
+                'last_received': event.data.get('received') or float(event.datetime.strftime('%s')),
+                'type': event_type.key,
+                # we cache the events metadata on the group to ensure its
+                # accessible in the stream
+                'metadata': event_type.get_metadata(),
             },
         })
+
+        # TODO(dcramer): temp workaround for complexity
+        del data['message']
 
         if release:
             release = Release.get_or_create(

@@ -424,10 +424,12 @@ class Frame(Interface):
             'context_line': self.context_line,
         }).strip('\n')
 
-    def get_culprit_string(self):
+    def get_culprit_string(self, platform=None):
         fileloc = self.module or self.filename
         if not fileloc:
             return ''
+        elif platform == 'javascript':
+            return '{}({})'.format(self.function or '?', fileloc)
         return '%s in %s' % (
             fileloc,
             self.function or '?',
@@ -709,11 +711,11 @@ class Stacktrace(Interface):
 
         return '\n'.join(result)
 
-    def get_culprit_string(self):
+    def get_culprit_string(self, platform=None):
         default = None
         for frame in reversed(self.frames):
             if frame.in_app:
-                return frame.get_culprit_string()
+                return frame.get_culprit_string(platform=platform)
             elif default is None:
-                default = frame.get_culprit_string()
+                default = frame.get_culprit_string(platform=platform)
         return default

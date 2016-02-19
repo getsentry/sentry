@@ -238,6 +238,11 @@ def main(num_events=1):
                     message='This is a an example PHP event with an extremely long and annoying title\nIt also happens to contain some newlines in it,\nthus making it even more annoying.',
                 )
 
+            create_sample_event(
+                project=project,
+                platform='csp',
+            )
+
             with transaction.atomic():
                 try:
                     GroupMeta.objects.create(

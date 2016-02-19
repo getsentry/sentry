@@ -512,6 +512,54 @@ class EventManagerTest(TransactionTestCase):
 
         assert event.data.get('fingerprint') == ['{{ default }}']
 
+    def test_default_event_type(self):
+        manager = EventManager(self.make_event(message='foo bar'))
+        data = manager.normalize()
+        assert data['type'] == 'default'
+        event = manager.save(self.project.id)
+        group = event.group
+        assert group.data.get('type') == 'default'
+        assert group.data.get('metadata') == {
+            'title': 'foo bar',
+        }
+
+    def test_error_event_type(self):
+        manager = EventManager(self.make_event(**{
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'type': 'Foo',
+                    'value': 'bar',
+                }],
+            },
+        }))
+        data = manager.normalize()
+        assert data['type'] == 'error'
+        event = manager.save(self.project.id)
+        group = event.group
+        assert group.data.get('type') == 'error'
+        assert group.data.get('metadata') == {
+            'type': 'Foo',
+            'value': 'bar',
+        }
+
+    def test_csp_event_type(self):
+        manager = EventManager(self.make_event(**{
+            'sentry.interfaces.Csp': {
+                'effective_directive': 'script-src',
+                'blocked_uri': 'http://example.com',
+            },
+        }))
+        data = manager.normalize()
+        assert data['type'] == 'csp'
+        event = manager.save(self.project.id)
+        group = event.group
+        assert group.data.get('type') == 'csp'
+        assert group.data.get('metadata') == {
+            'directive': 'script-src',
+            'uri': 'example.com',
+            'message': "Blocked 'script' from 'example.com'",
+        }
+
 
 class GetHashesFromEventTest(TestCase):
     @patch('sentry.interfaces.stacktrace.Stacktrace.compute_hashes')
