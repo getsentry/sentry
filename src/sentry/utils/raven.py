@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import copy
 import inspect
 import logging
 import raven
@@ -45,15 +46,9 @@ class SentryInternalClient(DjangoClient):
         if self.remote.is_active():
             from sentry import options
             # Append some extra tags that are useful for remote reporting
-            extra_tags = {
-                'install-id': options.get('sentry:install-id'),
-            }
-            kwargs['tags'].update(extra_tags)
-            super(SentryInternalClient, self).send(**kwargs)
-            # Now pop off all of the extra_tags keys since we don't need to
-            # record them locally.
-            for k in extra_tags.iterkeys():
-                del kwargs['tags'][k]
+            super_kwargs = copy.deepcopy(kwargs)
+            super_kwargs['tags']['install-id'] = options.get('sentry:install-id')
+            super(SentryInternalClient, self).send(**super_kwargs)
 
         if not can_record_current_event():
             metrics.incr('internal.uncaptured.events')
