@@ -34,16 +34,32 @@ class SentryInternalClient(DjangoClient):
             return False
         return settings.SENTRY_PROJECT is not None
 
-    def capture(self, *args, **kwargs):
+    def send(self, **kwargs):
+        # TODO(dcramer): this should respect rate limits/etc and use the normal
+        # pipeline
+
+        # Report the issue to an upstream Sentry if active
+        # NOTE: we don't want to check self.is_enabled() like normal, since
+        # is_enabled behavior is overridden in this class. We explicitly
+        # want to check if the remote is active.
+        if self.remote.is_active():
+            from sentry import options
+            # Append some extra tags that are useful for remote reporting
+            extra_tags = {
+                'install-id': options.get('sentry:install-id'),
+            }
+            kwargs['tags'].update(extra_tags)
+            super(SentryInternalClient, self).send(**kwargs)
+            # Now pop off all of the extra_tags keys since we don't need to
+            # record them locally.
+            for k in extra_tags.iterkeys():
+                del kwargs['tags'][k]
+
         if not can_record_current_event():
             metrics.incr('internal.uncaptured.events')
             self.error_logger.error('Not capturing event due to unsafe stacktrace:\n%r', kwargs)
             return
-        return super(SentryInternalClient, self).capture(*args, **kwargs)
 
-    def send(self, **kwargs):
-        # TODO(dcramer): this should respect rate limits/etc and use the normal
-        # pipeline
         from sentry.app import tsdb
         from sentry.coreapi import ClientApiHelper
         from sentry.event_manager import EventManager
