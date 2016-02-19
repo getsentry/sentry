@@ -5,8 +5,10 @@ from django.utils.crypto import constant_time_compare
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
+from sentry import options
 from sentry.app import raven
 from sentry.models import ApiKey, ProjectKey
+from sentry.models.apikey import SYSTEM_KEY
 
 
 class QuietBasicAuthentication(BasicAuthentication):
@@ -16,6 +18,14 @@ class QuietBasicAuthentication(BasicAuthentication):
 
 class ApiKeyAuthentication(QuietBasicAuthentication):
     def authenticate_credentials(self, userid, password):
+        if userid == 'admin':
+            ref_pw = options.get('system.admin-auth-password')
+            if not ref_pw:
+                raise AuthenticationFailed('System admin authentication disabled')
+            if not constant_time_compare(ref_pw, password):
+                raise AuthenticationFailed('Invalid system admin password')
+            return (None, SYSTEM_KEY)
+
         if password:
             return
 
