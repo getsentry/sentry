@@ -31,7 +31,7 @@ class DSymFile(Model):
     """
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project')
+    project = FlexibleForeignKey('sentry.Project', null=True)
     file = FlexibleForeignKey('sentry.File')
     uuid = models.CharField(max_length=36)
     object_name = models.TextField()
@@ -58,7 +58,7 @@ class DSymFile(Model):
         """
         file = File.objects.create(
             name=uuid,
-            type='project.dsym',
+            type='%s.dsym' % (project and 'project' or 'global'),
             headers={
                 'Content-Type': 'application/x-mach-binary'
             },
