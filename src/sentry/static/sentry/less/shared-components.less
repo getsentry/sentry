@@ -3111,22 +3111,26 @@ ul.tag-list {
  * ============================================================================
  */
 
- .error-level {
-   background: @gray-light;
- }
+.event-type {
+  background: @gray-light;
+}
 
- &.level-info .error-level {
-   background: @blue;
- }
- &.level-warning .error-level {
-   background: @yellow;
- }
- &.level-error .error-level {
-   background: @orange;
- }
- &.level-fatal .error-level {
-   background: @red;
- }
+.type-error .event-type,
+.level-error .error-level {
+  background: @orange;
+}
+// &.level-info .error-level {
+//   background: @blue;
+// }
+// &.level-warning .error-level {
+//   background: @yellow;
+// }
+// &.level-error .error-level {
+//   background: @orange;
+// }
+// &.level-fatal .error-level {
+//   background: @red;
+// }
 
 /**
 * Responsive small screens

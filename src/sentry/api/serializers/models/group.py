@@ -114,6 +114,11 @@ class GroupSerializer(Serializer):
         permalink = absolute_uri(reverse('sentry-group', args=[
             obj.organization.slug, obj.project.slug, obj.id]))
 
+        event_type = obj.data.get('type', 'default')
+        metadata = obj.data.get('metadata') or {
+            'title': obj.message.splitlines()[0][:100],
+        }
+
         return {
             'id': str(obj.id),
             'shareId': obj.get_share_id(),
@@ -133,6 +138,8 @@ class GroupSerializer(Serializer):
                 'name': obj.project.name,
                 'slug': obj.project.slug,
             },
+            'type': event_type,
+            'metadata': metadata,
             'numComments': obj.num_comments,
             'assignedTo': attrs['assigned_to'],
             'isBookmarked': attrs['is_bookmarked'],
