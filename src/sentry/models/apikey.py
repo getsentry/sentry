@@ -100,6 +100,7 @@ class ApiKey(Model):
 
 class SystemKey(object):
     is_active = True
+    organization = None
 
     def get_allowed_origins(self):
         return []
