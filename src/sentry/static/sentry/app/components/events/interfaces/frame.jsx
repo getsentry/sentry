@@ -138,7 +138,7 @@ const Frame = React.createClass({
       let startLineNo = hasContextSource ? data.context[0][0] : '';
       context = (
         <ol start={startLineNo} className={outerClassName}
-            onClick={this.toggleContext}>
+            onClick={expandable ? this.toggleContext : null}>
           {defined(data.errors) &&
           <li className={expandable ? 'expandable error' : 'error'}
               key="errors">{data.errors.join(', ')}</li>
@@ -172,7 +172,7 @@ const Frame = React.createClass({
         </ol>
       );
     }
-    return context;
+    return [context, expandable];
   },
 
   render() {
@@ -184,12 +184,12 @@ const Frame = React.createClass({
       'frame-errors': data.errors,
     });
 
-    let context = this.renderContext();
+    let [context, expandable] = this.renderContext();
 
     return (
       <li className={className}>
         <p>{this.renderTitle()}
-          {context ?
+          {expandable ?
             <a
               title={t('Toggle context')}
               onClick={this.toggleContext}
