@@ -26,7 +26,9 @@ RUN groupadd -r memcached --gid=997 && useradd -r -g memcached --uid=997 memcach
     && groupadd -r postgres --gid=999 && useradd -r -g postgres --uid=999 postgres
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        clang \
         curl \
+        g++ \
         gcc \
         git \
         libffi-dev \
@@ -34,6 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libxml2-dev \
         libxslt-dev \
         libyaml-dev \
+        llvm-3.5 \
 
         # Extra dev tooling
         postgresql-client \
