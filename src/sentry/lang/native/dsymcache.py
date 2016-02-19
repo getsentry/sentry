@@ -2,6 +2,7 @@ import os
 import shutil
 
 from django.conf import settings
+from django.db.models import Q
 from sentry.models import DSymFile
 
 
@@ -31,8 +32,8 @@ class DSymCache(object):
 
         try:
             dsf = DSymFile.objects.filter(
-                project=project,
-                uuid=image_uuid,
+                Q(uuid=image_uuid),
+                Q(project=project) | Q(project=None),
             ).select_related('file', 'file__blob').get()
         except DSymFile.DoesNotExist:
             return None

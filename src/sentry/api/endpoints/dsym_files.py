@@ -5,7 +5,9 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
+from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.permissions import SystemPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import DSymFile
@@ -84,4 +86,15 @@ class DSymFilesEndpoint(ProjectEndpoint):
 
         files = DSymFile.create_files_from_macho_zip(project, fileobj)
 
+        return Response(serialize(files, request.user), status=201)
+
+
+class GlobalDSymFilesEndpoint(Endpoint):
+    permission_classes = (SystemPermission,)
+
+    def post(self, request):
+        if 'file' not in request.FILES:
+            return Response({'detail': 'Missing uploaded file'}, status=400)
+        fileobj = request.FILES['file']
+        files = DSymFile.create_files_from_macho_zip(None, fileobj)
         return Response(serialize(files, request.user), status=201)
