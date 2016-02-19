@@ -5,6 +5,7 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import ScopedPermission
 from sentry.models import Organization, OrganizationStatus
+from sentry.models.apikey import SYSTEM_KEY
 
 
 class OrganizationPermission(ScopedPermission):
@@ -19,6 +20,8 @@ class OrganizationPermission(ScopedPermission):
         if request.auth:
             if self.is_project_key(request):
                 return False
+            if request.auth is SYSTEM_KEY:
+                return True
             return request.auth.organization_id == organization.id
 
         request.access = access.from_request(request, organization)

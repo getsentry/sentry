@@ -59,7 +59,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 queryset = queryset.filter(
                     id=request.auth.project.organization_id
                 )
-            else:
+            elif request.auth.organization is not None:
                 queryset = queryset.filter(
                     id=request.auth.organization.id
                 )
