@@ -50,22 +50,6 @@ SENTRY_USE_BIG_INTS = True
 SENTRY_SINGLE_ORGANIZATION = True
 
 #########
-# Redis #
-#########
-
-# Generic Redis configuration used as defaults for various things including:
-# Buffers, Quotas, TSDB
-
-SENTRY_REDIS_OPTIONS = {
-    'hosts': {
-        0: {
-            'host': '127.0.0.1',
-            'port': 6379,
-        }
-    }
-}
-
-#########
 # Cache #
 #########
 

@@ -6,7 +6,6 @@ import mock
 import time
 
 from exam import fixture
-from redis.client import StrictRedis
 
 from sentry.digests import (
     Record,
@@ -23,6 +22,7 @@ from sentry.digests.backends.redis import (
     make_timeline_key,
     truncate_timeline,
 )
+from sentry.utils.redis import clusters
 from sentry.testutils import TestCase
 
 
@@ -34,17 +34,6 @@ def get_set_size(cluster, key):
 
 
 class BaseRedisBackendTestCase(TestCase):
-    DEFAULT_BACKEND_OPTIONS = {
-        'hosts': {
-            0: {'db': 9},
-        },
-    }
-
-    def get_backend(self, options={}):
-        kwargs = self.DEFAULT_BACKEND_OPTIONS.copy()
-        kwargs.update(options)
-        return RedisBackend(**kwargs)
-
     @fixture
     def records(self):
         for i in itertools.count():
@@ -53,7 +42,8 @@ class BaseRedisBackendTestCase(TestCase):
 
 class RedisScriptTestCase(BaseRedisBackendTestCase):
     def test_ensure_timeline_scheduled_script(self):
-        client = StrictRedis(db=9)
+        cluster = clusters.get('default')
+        client = cluster.get_local_client(cluster.hosts.keys()[0])
 
         timeline = 'timeline'
         timestamp = 100.0
@@ -105,7 +95,8 @@ class RedisScriptTestCase(BaseRedisBackendTestCase):
             assert ensure_timeline_scheduled(client, keys, (timeline, timestamp - 100, increment, 10)) is None
 
     def test_truncate_timeline_script(self):
-        client = StrictRedis(db=9)
+        cluster = clusters.get('default')
+        client = cluster.get_local_client(cluster.hosts.keys()[0])
 
         timeline = 'timeline'
 
@@ -132,7 +123,7 @@ class RedisScriptTestCase(BaseRedisBackendTestCase):
 class RedisBackendTestCase(BaseRedisBackendTestCase):
     def test_add_record(self):
         timeline = 'timeline'
-        backend = self.get_backend()
+        backend = RedisBackend()
 
         timeline_key = make_timeline_key(backend.namespace, timeline)
         connection = backend.cluster.get_local_client_for_key(timeline_key)
@@ -156,10 +147,7 @@ class RedisBackendTestCase(BaseRedisBackendTestCase):
     def test_truncation(self):
         timeline = 'timeline'
         capacity = 5
-        backend = self.get_backend({
-            'capacity': capacity,
-            'truncation_chance': 0.5,
-        })
+        backend = RedisBackend(capacity=capacity, truncation_chance=0.5)
 
         timeline_key = make_timeline_key(backend.namespace, timeline)
         connection = backend.cluster.get_local_client_for_key(timeline_key)
@@ -178,7 +166,7 @@ class RedisBackendTestCase(BaseRedisBackendTestCase):
                 backend.add(timeline, next(self.records))
 
     def test_scheduling(self):
-        backend = self.get_backend()
+        backend = RedisBackend()
 
         waiting_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_WAITING)
         ready_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_READY)
@@ -208,7 +196,7 @@ class RedisBackendTestCase(BaseRedisBackendTestCase):
 
     def test_delete(self):
         timeline = 'timeline'
-        backend = self.get_backend()
+        backend = RedisBackend()
 
         timeline_key = make_timeline_key(backend.namespace, timeline)
         digest_key = make_digest_key(timeline_key)
@@ -245,7 +233,7 @@ class ExpectedError(Exception):
 
 class DigestTestCase(BaseRedisBackendTestCase):
     def test_digesting(self):
-        backend = self.get_backend()
+        backend = RedisBackend()
 
         # XXX: This assumes the that adding records and scheduling are working
         # correctly to set up the state needed for this test!
@@ -296,7 +284,7 @@ class DigestTestCase(BaseRedisBackendTestCase):
         assert client.get(make_last_processed_timestamp_key(timeline_key)) is None
 
     def test_digesting_failure_recovery(self):
-        backend = self.get_backend()
+        backend = RedisBackend()
 
         # XXX: This assumes the that adding records and scheduling are working
         # correctly to set up the state needed for this test!
