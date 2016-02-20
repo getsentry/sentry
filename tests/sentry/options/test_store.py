@@ -17,7 +17,9 @@ from sentry.testutils import TestCase
 class OptionsStoreTest(TestCase):
     @fixture
     def store(self):
-        return OptionsStore(cache=RedisCache())
+        return OptionsStore(
+            cache=RedisCache()
+        )
 
     @fixture
     def key(self):

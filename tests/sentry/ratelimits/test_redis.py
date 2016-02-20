@@ -8,9 +8,7 @@ from sentry.testutils import TestCase
 
 class RedisRateLimiterTest(TestCase):
     def setUp(self):
-        self.backend = RedisRateLimiter(hosts={
-            0: {'db': 9}
-        })
+        self.backend = RedisRateLimiter()
 
     def test_integration(self):
         assert not self.backend.is_limited(self.project, 'foo', 1)

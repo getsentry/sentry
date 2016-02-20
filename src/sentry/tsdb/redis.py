@@ -15,14 +15,13 @@ from datetime import timedelta
 from hashlib import md5
 
 import six
-from django.conf import settings
 from django.utils import timezone
 from pkg_resources import resource_string
 from redis.client import Script
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.utils.dates import to_timestamp
-from sentry.utils.redis import check_cluster_versions, make_rb_cluster
+from sentry.utils.redis import check_cluster_versions, get_cluster_from_options
 from sentry.utils.versioning import Version
 
 logger = logging.getLogger(__name__)
@@ -93,17 +92,11 @@ class RedisTSDB(BaseTSDB):
     """
     DEFAULT_SKETCH_PARAMETERS = SketchParameters(3, 128, 50)
 
-    def __init__(self, hosts=None, prefix='ts:', vnodes=64, **kwargs):
-        # inherit default options from REDIS_OPTIONS
-        defaults = settings.SENTRY_REDIS_OPTIONS
-
-        if hosts is None:
-            hosts = defaults.get('hosts', {0: {}})
-
-        self.cluster = make_rb_cluster(hosts)
+    def __init__(self, prefix='ts:', vnodes=64, **options):
+        self.cluster, options = get_cluster_from_options(self, options)
         self.prefix = prefix
         self.vnodes = vnodes
-        super(RedisTSDB, self).__init__(**kwargs)
+        super(RedisTSDB, self).__init__(**options)
 
     def validate(self):
         logger.debug('Validating Redis version...')

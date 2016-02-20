@@ -15,18 +15,16 @@ from sentry.utils.dates import to_timestamp
 
 class RedisTSDBTest(TestCase):
     def setUp(self):
-        self.db = RedisTSDB(hosts={
-            0: {'db': 9}
-        }, rollups=(
-            # time in seconds, samples to keep
-            (10, 30),  # 5 minutes at 10 seconds
-            (ONE_MINUTE, 120),  # 2 hours at 1 minute
-            (ONE_HOUR, 24),  # 1 days at 1 hour
-            (ONE_DAY, 30),  # 30 days at 1 day
-        ), vnodes=64)
-
-        with self.db.cluster.all() as client:
-            client.flushdb()
+        self.db = RedisTSDB(
+            rollups=(
+                # time in seconds, samples to keep
+                (10, 30),  # 5 minutes at 10 seconds
+                (ONE_MINUTE, 120),  # 2 hours at 1 minute
+                (ONE_HOUR, 24),  # 1 days at 1 hour
+                (ONE_DAY, 30),  # 30 days at 1 day
+            ),
+            vnodes=64
+        )
 
     def test_make_counter_key(self):
         result = self.db.make_counter_key(TSDBModel.project, 1368889980, 1)

@@ -6,19 +6,20 @@ import time
 
 import mock
 from exam import fixture, patcher
-from redis.client import StrictRedis
 
 from sentry.quotas.redis import (
     is_rate_limited,
     RedisQuota,
 )
 from sentry.testutils import TestCase
+from sentry.utils.redis import clusters
 
 
 def test_is_rate_limited_script():
     now = int(time.time())
 
-    client = StrictRedis(db=9)
+    cluster = clusters.get('default')
+    client = cluster.get_local_client(cluster.hosts.keys()[0])
 
     # The item should not be rate limited by either key.
     assert map(bool, is_rate_limited(client, ('foo', 'bar'), (1, now + 60, 2, now + 120))) == [False, False]
@@ -40,12 +41,7 @@ def test_is_rate_limited_script():
 
 
 class RedisQuotaTest(TestCase):
-    @fixture
-    def quota(self):
-        inst = RedisQuota(hosts={
-            0: {'db': 9}
-        })
-        return inst
+    quota = fixture(RedisQuota)
 
     @patcher.object(RedisQuota, 'get_project_quota')
     def get_project_quota(self):
@@ -58,11 +54,6 @@ class RedisQuotaTest(TestCase):
         inst = mock.MagicMock()
         inst.return_value = 0
         return inst
-
-    def test_default_host_is_local(self):
-        quota = RedisQuota()
-        self.assertEquals(len(quota.cluster.hosts), 1)
-        self.assertEquals(quota.cluster.hosts[0].host, 'localhost')
 
     def test_uses_defined_quotas(self):
         self.get_project_quota.return_value = 200
