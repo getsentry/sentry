@@ -123,19 +123,16 @@ def record_member_invited(member, user, **kwargs):
 
 @member_joined.connect(weak=False)
 def record_member_joined(member, **kwargs):
-    try:
-        OrganizationOnboardingTask.objects.filter(
-            organization=member.organization,
-            task=OnboardingTask.INVITE_MEMBER
-        ).exclude(
-            status=OnboardingTaskStatus.COMPLETE
-        ).update(
-            status=OnboardingTaskStatus.COMPLETE,
-            date_completed=timezone.now(),
-            data={'invited_member_id': member.id}
-        )
-    except IntegrityError:
-        pass
+    OrganizationOnboardingTask.objects.create_or_update(
+        organization=member.organization,
+        task=OnboardingTask.INVITE_MEMBER,
+        status=OnboardingTaskStatus.PENDING,
+        values={
+            'status': OnboardingTaskStatus.COMPLETE,
+            'date_completed': timezone.now(),
+            'data': {'invited_member_id': member.id}
+        }
+    )
 
 
 @event_processed.connect(weak=False)
