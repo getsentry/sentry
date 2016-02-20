@@ -211,22 +211,25 @@ you can configure the nodes in very different ones to enable more
 aggressive/optimized LRU.
 
 That said, if you're running a small install you can probably get away
-with just setting up the defaults::
+with just setting up the defaults in ``config.yml``::
 
-    SENTRY_REDIS_OPTIONS = {
-        'hosts': {
-            0: {
-                'host': '127.0.0.1',
-                'port': 6379,
-                'timeout': 3,
-                #'password': 'redis auth password'
-            }
-        }
-    }
+    redis.clusters:
+      default:
+        hosts:
+          0:
+            host: 127.0.0.1
+            port: 6379
+            # password: "my-secret-password"
 
 All built-in Redis implementations (other than the queue) will use these
 default settings, but each individual service also will allow you to
-override it's cluster settings.
+override it's cluster settings by passing the name of the cluster to use as the
+``cluster`` option.
+
+Cluster options are passed directly to rb (a Redis routing library) as keyword
+arguments to the ``Cluster`` constructor. A more thorough discussion of the
+availabile configuration parameters can be found at the `rb GitHub repository
+<https://github.com/getsentry/rb>`_.
 
 See the individual documentation for :doc:`the queue <queue/>`,
 :doc:`update buffers <buffer>`, :doc:`quotas <throttling>`, and

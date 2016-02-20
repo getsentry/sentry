@@ -8,6 +8,7 @@ sentry.runner.initializer
 from __future__ import absolute_import, print_function
 
 import os
+
 import click
 
 
@@ -67,7 +68,6 @@ options_mapper = {
     'system.databases': 'DATABASES',
     'system.debug': 'DEBUG',
     'system.secret-key': 'SECRET_KEY',
-    'redis.options': 'SENTRY_REDIS_OPTIONS',
 }
 
 
@@ -119,6 +119,8 @@ def initialize_app(config, skip_backend_validation=False):
     fix_south(settings)
 
     apply_legacy_settings(settings)
+
+    bind_cache_to_option_store()
 
     install_plugin_apps(settings)
 
@@ -196,6 +198,20 @@ def fix_south(settings):
         settings.SOUTH_DATABASE_ADAPTERS[key] = 'south.db.postgresql_psycopg2'
 
 
+def bind_cache_to_option_store():
+    # The default ``OptionsStore`` instance is initialized without the cache
+    # backend attached. The store itself utilizes the cache during normal
+    # operation, but can't use the cache before the options (which typically
+    # includes the cache configuration) have been bootstrapped from the legacy
+    # settings and/or configuration values. Those options should have been
+    # loaded at this point, so we can plug in the cache backend before
+    # continuing to initialize the remainder of the application.
+    from sentry.cache import default_cache
+    from sentry.options import default_store
+
+    default_store.cache = default_cache
+
+
 def show_big_error(message):
     click.echo('', err=True)
     click.secho('!! %s !!' % ('!' * min(len(message), 80),), err=True, fg='red')
@@ -229,6 +245,24 @@ def apply_legacy_settings(settings):
         warnings.warn('SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE is deprecated.'
                       "Use SENTRY_OPTIONS instead, key 'system.rate-limit'", DeprecationWarning)
         settings.SENTRY_OPTIONS['system.rate-limit'] = settings.SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE
+
+    if hasattr(settings, 'SENTRY_REDIS_OPTIONS'):
+        if 'redis.clusters' in settings.SENTRY_OPTIONS:
+            raise Exception("Cannot specify both SENTRY_OPTIONS['redis.clusters'] option and SENTRY_REDIS_OPTIONS setting.")
+        else:
+            import warnings
+            warnings.warn("SENTRY_REDIS_OPTIONS is deprecated. Use SENTRY_OPTIONS instead, key 'redis.clusters'", DeprecationWarning)
+            settings.SENTRY_OPTIONS['redis.clusters'] = {
+                'default': settings.SENTRY_REDIS_OPTIONS,
+            }
+    else:
+        # Provide backwards compatibility to plugins expecting there to be a
+        # ``SENTRY_REDIS_OPTIONS`` setting by using the ``default`` cluster.
+        # This should be removed when ``SENTRY_REDIS_OPTIONS`` is officially
+        # deprecated. (This also assumes ``FLAG_NOSTORE`` on the configuration
+        # option.)
+        from sentry import options
+        settings.SENTRY_REDIS_OPTIONS = options.get('redis.clusters')['default']
 
     if not hasattr(settings, 'SENTRY_URL_PREFIX'):
         from sentry import options

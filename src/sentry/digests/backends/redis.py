@@ -6,28 +6,15 @@ import random
 import time
 from contextlib import contextmanager
 
-from django.conf import settings
-from redis.exceptions import (
-    ResponseError,
-    WatchError,
-)
+from redis.exceptions import ResponseError, WatchError
 
-from sentry.digests import (
-    Record,
-    ScheduleEntry,
-)
-from sentry.digests.backends.base import (
-    Backend,
-    InvalidState,
-)
+from sentry.digests import Record, ScheduleEntry
+from sentry.digests.backends.base import Backend, InvalidState
 from sentry.utils.cache import Lock
 from sentry.utils.redis import (
-    check_cluster_versions,
-    load_script,
-    make_rb_cluster as _make_rb_cluster,
+    check_cluster_versions, get_cluster_from_options, load_script
 )
 from sentry.utils.versioning import Version
-
 
 logger = logging.getLogger('sentry.digests')
 
@@ -39,12 +26,6 @@ TIMELINE_DIGEST_PATH_COMPONENT = 'd'
 TIMELINE_LAST_PROCESSED_TIMESTAMP_PATH_COMPONENT = 'l'
 TIMELINE_PATH_COMPONENT = 't'
 TIMELINE_RECORD_PATH_COMPONENT = 'r'
-
-
-def make_rb_cluster(hosts, **kwargs):
-    if kwargs:
-        logger.warning('Discarding unused Redis cluster options: %r', kwargs.keys())
-    return _make_rb_cluster(hosts)
 
 
 def ilen(iterator):
@@ -128,13 +109,7 @@ class RedisBackend(Backend):
 
     """
     def __init__(self, **options):
-        super(RedisBackend, self).__init__(**options)
-
-        hosts = options.pop('hosts', None)
-        if hosts is None:
-            self.cluster = make_rb_cluster(**settings.SENTRY_REDIS_OPTIONS)
-        else:
-            self.cluster = make_rb_cluster(hosts)
+        self.cluster, options = get_cluster_from_options(self, options)
 
         self.namespace = options.pop('namespace', 'd')
 
@@ -146,6 +121,8 @@ class RedisBackend(Backend):
         # larger than the maximum scheduling delay to ensure data is not evicted
         # too early.
         self.ttl = options.pop('ttl', 60 * 60)
+
+        super(RedisBackend, self).__init__(**options)
 
     def validate(self):
         logger.debug('Validating Redis version...')

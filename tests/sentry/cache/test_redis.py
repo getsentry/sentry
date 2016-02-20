@@ -8,9 +8,7 @@ from sentry.testutils import TestCase
 
 class RedisCacheTest(TestCase):
     def setUp(self):
-        self.backend = RedisCache(hosts={
-            0: {'db': 9}
-        })
+        self.backend = RedisCache()
 
     def test_integration(self):
         self.backend.set('foo', {'foo': 'bar'}, 50)

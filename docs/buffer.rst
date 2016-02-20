@@ -20,8 +20,6 @@ To specify a backend, simply modify the ``SENTRY_BUFFER`` and
 .. code-block:: python
 
     SENTRY_BUFFER = 'sentry.buffer.base.Buffer'
-    SENTRY_BUFFER_OPTIONS = {}
-
 
 Redis
 `````
@@ -29,36 +27,17 @@ Redis
 Configuring the Redis backend **requires the queue** or you won't see any
 gains (in fact you'll just negatively impact your performance).
 
-Configuration is fairly straight forward:
+Configuration is straight forward:
 
 .. code-block:: python
 
     SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
-    SENTRY_BUFFER_OPTIONS = {
-        'hosts': {
-            0: {
-                'host': 'localhost',
-                'port': 6379
-            }
-        }
-    }
 
-You also have the ability to specify multiple nodes and have keys automatically
-distributed. It's unlikely that you'll need this functionality, but if you do, a simple
-configuration might look like this:
+By default, this will use the ``default`` named Redis cluster. To use a
+different cluster, provide the ``cluster`` option, as such:
 
 .. code-block:: python
 
     SENTRY_BUFFER_OPTIONS = {
-        'hosts': {
-            0: {
-                'host': '192.168.1.1'
-            },
-            1: {
-                'host': '192.168.1.2'
-            }
-        },
+        'cluster': 'buffer',
     }
-
-With the default configuration this will distribute keys using a simple
-partition router (relatively even distribution).
