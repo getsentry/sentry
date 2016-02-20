@@ -11,14 +11,7 @@ from sentry.testutils import TestCase
 
 class RedisBufferTest(TestCase):
     def setUp(self):
-        self.buf = RedisBuffer(hosts={
-            0: {'db': 9}
-        })
-
-    def test_default_host_is_local(self):
-        buf = RedisBuffer()
-        self.assertEquals(len(buf.cluster.hosts), 1)
-        self.assertEquals(buf.cluster.hosts[0].host, 'localhost')
+        self.buf = RedisBuffer()
 
     def test_coerce_val_handles_foreignkeys(self):
         assert self.buf._coerce_val(Project(id=1)) == '1'

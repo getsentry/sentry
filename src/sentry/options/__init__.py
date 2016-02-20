@@ -7,8 +7,6 @@ sentry.options
 """
 from __future__ import absolute_import, print_function
 
-from sentry.cache import default_cache
-
 from .store import OptionsStore
 from .manager import OptionsManager
 from .manager import (  # NOQA
@@ -20,7 +18,8 @@ __all__ = (
     'get', 'set', 'delete', 'register', 'UnknownOption',
 )
 
-default_store = OptionsStore(cache=default_cache)
+# See notes in ``runner.initializer`` regarding lazy cache configuration.
+default_store = OptionsStore(cache=None)
 default_store.connect_signals()
 
 default_manager = OptionsManager(store=default_store)
