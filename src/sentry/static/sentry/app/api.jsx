@@ -74,7 +74,9 @@ export class Client {
     let data = options.data;
     let id = this.uniqueId();
 
-    if (typeof data !== 'undefined' && method !== 'GET') {
+    let contentType = 'contentType' in options ? options.contentType : 'application/json';
+
+    if (typeof data !== 'undefined' && method !== 'GET' && contentType === 'application/json') {
       data = JSON.stringify(data);
     }
 
@@ -96,7 +98,8 @@ export class Client {
       url: fullUrl,
       method: method,
       data: data,
-      contentType: 'application/json',
+      contentType: contentType,
+      processData: options.processData,
       headers: {
         'Accept': 'application/json; charset=utf-8'
       },
