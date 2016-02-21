@@ -20,13 +20,31 @@ const UploadArtifactButton = React.createClass({
 
   getInitialState() {
     return {
-      modalVisible: false
+      modalVisible: false,
+      file: null,
+      name: '',
+      isSaveEnabled: false
     };
   },
 
   handleButton() {
     this.setState({
       modalVisible: true
+    });
+  },
+
+  handleNameChange(name) {
+    this.setState({
+      name: name,
+      isSaveEnabled: name && this.state.file
+    });
+  },
+
+  handleFileChange(e) {
+    let file = e.target.files[0];
+    this.setState({
+      file: file,
+      isSaveEnabled: file && this.state.name
     });
   },
 
@@ -65,6 +83,10 @@ const UploadArtifactButton = React.createClass({
   },
 
   render() {
+    let saveButtonProps = {};
+    if (!this.state.isSaveEnabled)
+      saveButtonProps.disabled = 'disabled';
+
     return (
       <a className="btn btn-sm btn-default" onClick={this.handleButton}>
         <span className="icon icon-plus"/> &nbsp;<span style={{textTransform:'none'}}>{t('Upload')}</span>
@@ -80,14 +102,23 @@ const UploadArtifactButton = React.createClass({
                 name="name"
                 label={t('Name')}
                 placeholder="http://example.org/static/js/app.js.map"
-                required={true}/>
-              <input ref="file" type="file" name="file" onChange={this.handleFile}/>
+                required={true}
+                onChange={this.handleNameChange}
+              />
+
+              <div className="control-group">
+                <div className="controls">
+                  <input ref="file" type="file" name="file" onChange={this.handleFileChange}/>
+                </div>
+              </div>
+
+              <p><em>Artifacts have a max filesize of <strong>20 MB</strong>.</em></p>
             </div>
 
             <div className="modal-footer">
               <button type="button" className="btn btn-default"
                       onClick={this.setState.bind(this, {modalVisible: false})}>{t('Cancel')}</button>
-              <button type="submit" className="btn btn-primary">{t('Save')}</button>
+              <button type="submit" className="btn btn-primary" {...saveButtonProps}>{t('Save')}</button>
             </div>
           </form>
         </Modal>
