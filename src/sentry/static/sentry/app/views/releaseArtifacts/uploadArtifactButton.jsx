@@ -90,7 +90,8 @@ const UploadArtifactButton = React.createClass({
     return (
       <a className="btn btn-sm btn-default" onClick={this.handleButton}>
         <span className="icon icon-plus"/> &nbsp;<span style={{textTransform:'none'}}>{t('Upload')}</span>
-        <Modal show={this.state.modalVisible} title={t('Please confirm')} animation={false} onHide={function(){}}>
+        <Modal show={this.state.modalVisible} title={t('Please confirm')} animation={false}
+               onHide={this.setState.bind(this, {modalVisible:false})}>
           <form ref="form" onSubmit={this.handleSubmit} encType="multipart/form-data">
             <div className="modal-header">
               <h4>{t('Upload Artifact')}</h4>
