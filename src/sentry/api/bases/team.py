@@ -4,7 +4,7 @@ from sentry.auth import access
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import ScopedPermission
-from sentry.models import Team
+from sentry.models import Team, TeamStatus
 
 
 class TeamPermission(ScopedPermission):
@@ -37,6 +37,9 @@ class TeamEndpoint(Endpoint):
                 slug=team_slug,
             )
         except Team.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        if team.status != TeamStatus.VISIBLE:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, team)

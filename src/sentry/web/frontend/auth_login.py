@@ -9,7 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
 from sentry import features
-from sentry.models import AuthProvider, Organization
+from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
 from sentry.utils import auth
@@ -23,7 +23,8 @@ class AuthLoginView(BaseView):
     def get_auth_provider(self, organization_slug):
         try:
             organization = Organization.objects.get(
-                slug=organization_slug
+                slug=organization_slug,
+                status=OrganizationStatus.VISIBLE,
             )
         except Organization.DoesNotExist:
             return None
