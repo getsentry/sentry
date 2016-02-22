@@ -30,6 +30,7 @@ class OrganizationDetailsTest(APITestCase):
         assert len(response.data['onboardingTasks']) == 1
         assert response.data['onboardingTasks'][0]['task'] == 1
 
+
 class OrganizationUpdateTest(APITestCase):
     def test_simple(self):
         org = self.create_organization(owner=self.user)
