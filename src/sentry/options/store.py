@@ -204,6 +204,9 @@ class OptionsStore(object):
         )
 
     def set_cache(self, key, value):
+        if self.cache is None:
+            return None
+
         cache_key = key.cache_key
 
         if key.ttl > 0:
