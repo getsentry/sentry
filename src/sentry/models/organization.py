@@ -9,7 +9,7 @@ from __future__ import absolute_import, print_function
 
 from bitfield import BitField
 from django.conf import settings
-from django.db import models
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -194,7 +194,30 @@ class Organization(Model):
                             'is_active': True,
                         },
                     )
-        for model in (Team, Project, ApiKey, AuditLogEntry):
+
+        for team in Team.objects.filter(organization=from_org):
+            try:
+                with transaction.atomic():
+                    team.update(organization=to_org)
+            except IntegrityError:
+                slugify_instance(team, team.name, organization=to_org)
+                team.update(
+                    organization=to_org,
+                    slug=team.slug,
+                )
+
+        for project in Project.objects.filter(organization=from_org):
+            try:
+                with transaction.atomic():
+                    project.update(organization=to_org)
+            except IntegrityError:
+                slugify_instance(project, project.name, organization=to_org)
+                project.update(
+                    organization=to_org,
+                    slug=project.slug,
+                )
+
+        for model in (ApiKey, AuditLogEntry):
             model.objects.filter(
                 organization=from_org,
             ).update(organization=to_org)
