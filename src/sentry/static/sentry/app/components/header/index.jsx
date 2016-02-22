@@ -43,6 +43,7 @@ const Header = React.createClass({
 
   render() {
     let user = ConfigStore.get('user');
+    let org = this.getOrganization();
     let logo;
 
     if (user) {
@@ -53,7 +54,7 @@ const Header = React.createClass({
 
     // NOTE: this.props.orgId not guaranteed to be specified
     let percentage = Math.round(
-      (this.getOrganization().onboardingTasks.filter(
+      (org.onboardingTasks.filter(
         t => t.status === 'Complete'
       ).length) / TodoList.TASKS.length * 100
     ).toString();
@@ -71,10 +72,10 @@ const Header = React.createClass({
             :
             <a href="/" className="logo">{logo}</a>
           }
-          <OrganizationSelector organization={this.getOrganization()} className="pull-right" />
+          <OrganizationSelector organization={org} className="pull-right" />
 
           <StatusPage className="pull-right" />
-          { percentage < 100 ?
+          { percentage < 100 && org.features.indexOf('onboarding') >= 0 ?
             <div className="onboarding-progress-bar" onClick={this.toggleTodos}>
               <div className="slider" style={style} ></div>
               { this.state.showTodos ? <div className="dropdown-menu"><TodoList onClose={this.setState.bind(this, {showTodos:false})} /></div> : null }
