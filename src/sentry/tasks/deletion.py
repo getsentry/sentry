@@ -174,7 +174,8 @@ def delete_group(object_id, continuous=True, **kwargs):
         group.update(status=GroupStatus.DELETION_IN_PROGRESS)
 
     bulk_model_list = (
-        GroupAssignee, GroupBookmark, GroupHash, GroupMeta, GroupResolution,
+        # prioritize GroupHash
+        GroupHash, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,
         GroupRuleStatus, GroupTagValue, GroupTagKey, EventMapping,
         GroupEmailThread, UserReport
     )

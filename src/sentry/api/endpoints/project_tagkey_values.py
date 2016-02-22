@@ -25,7 +25,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
         :pparam string key: the tag key to look up.
         :auth: required
         """
-        if key in ('release', 'user', 'filename', 'function'):
+        if TagKey.is_reserved_key(key):
             lookup_key = 'sentry:{0}'.format(key)
         else:
             lookup_key = key

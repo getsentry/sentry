@@ -260,6 +260,17 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['name'] == 'tags'
         assert data['errors'][0]['value'] == ('biz', 'baz', 'boz')
 
+    def test_reserved_tags(self):
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo',
+            'tags': [('foo', 'bar'), ('release', 'abc123')],
+        })
+        assert data['tags'] == [('foo', 'bar')]
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'tags'
+        assert data['errors'][0]['value'] == ('release', 'abc123')
+
     def test_extra_as_string(self):
         data = self.helper.validate_data(self.project, {
             'message': 'foo',

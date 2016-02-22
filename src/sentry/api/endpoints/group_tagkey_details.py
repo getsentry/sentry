@@ -37,7 +37,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         :auth: required
         """
         # XXX(dcramer): kill sentry prefix for internal reserved tags
-        if key in ('release', 'user', 'filename', 'function'):
+        if TagKey.is_reserved_key(key):
             lookup_key = 'sentry:{0}'.format(key)
         else:
             lookup_key = key

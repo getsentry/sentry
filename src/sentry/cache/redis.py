@@ -8,10 +8,8 @@ sentry.cache.redis
 
 from __future__ import absolute_import
 
-from django.conf import settings
-
 from sentry.utils import json
-from sentry.utils.redis import make_rb_cluster
+from sentry.utils.redis import get_cluster_from_options
 
 from .base import BaseCache
 
@@ -19,18 +17,11 @@ from .base import BaseCache
 class RedisCache(BaseCache):
     key_expire = 60 * 60  # 1 hour
 
-    def __init__(self, version=None, prefix=None, **options):
-        if not options:
-            # inherit default options from REDIS_OPTIONS
-            options = settings.SENTRY_REDIS_OPTIONS
-
-        options.setdefault('hosts', {
-            0: {},
-        })
-        self.cluster = make_rb_cluster(options['hosts'])
+    def __init__(self, **options):
+        self.cluster, options = get_cluster_from_options(self, options)
         self.client = self.cluster.get_routing_client()
 
-        super(RedisCache, self).__init__(version=version, prefix=prefix)
+        super(RedisCache, self).__init__(**options)
 
     def set(self, key, value, timeout, version=None):
         key = self.make_key(key, version=version)

@@ -18,7 +18,8 @@ __all__ = (
     'get', 'set', 'delete', 'register', 'UnknownOption',
 )
 
-default_store = OptionsStore()
+# See notes in ``runner.initializer`` regarding lazy cache configuration.
+default_store = OptionsStore(cache=None)
 default_store.connect_signals()
 
 default_manager = OptionsManager(store=default_store)

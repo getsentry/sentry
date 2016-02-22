@@ -5,6 +5,7 @@ import os.path
 import sys
 
 from django.conf import settings
+from django.core.management.base import CommandError
 from django.core.management.color import color_style
 from django.core.management.commands.runserver import Command as RunserverCommand
 from optparse import make_option
@@ -53,7 +54,10 @@ class Command(RunserverCommand):
         for watcher in self.get_watchers():
             if self.verbosity:
                 self.stdout.write(self.style.HTTP_INFO('>> Running {0}'.format(watcher)))
-            result.append(Popen(watcher, cwd=self.cwd, stdout=stdout, env=env))
+            try:
+                result.append(Popen(watcher, cwd=self.cwd, stdout=stdout, env=env))
+            except OSError:
+                raise CommandError('{0} not found.'.format(watcher[0]))
         return result
 
     def run_server(self, verbosity, **options):
