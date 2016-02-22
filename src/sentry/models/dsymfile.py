@@ -90,22 +90,17 @@ class DSymFile(Model):
             safe_extract_zip(fileobj, scratchpad)
             to_create = []
 
-            # If we're dealing with a resource bundle, use the DWARF
-            # folder otherwise assume people just dumped binaries directly
-            # into the thing.
-            path = os.path.join(scratchpad, 'Contents/Resources/DWARF')
-            if not os.path.isdir(path):
-                path = scratchpad
-
-            for fn in os.listdir(path):
-                try:
-                    uuids = get_macho_uuids(os.path.join(path, fn))
-                except (IOError, ValueError):
-                    # Whatever was contained there, was probably not a
-                    # macho file.
-                    continue
-                for cpu, uuid in uuids:
-                    to_create.append((cpu, uuid, os.path.join(path, fn)))
+            for dirpath, dirnames, filenames in os.walk(scratchpad):
+                for fn in filenames:
+                    fn = os.path.join(dirpath, fn)
+                    try:
+                        uuids = get_macho_uuids(fn)
+                    except (IOError, ValueError):
+                        # Whatever was contained there, was probably not a
+                        # macho file.
+                        continue
+                    for cpu, uuid in uuids:
+                        to_create.append((cpu, uuid, fn))
 
             rv = []
             for cpu, uuid, filename in to_create:
