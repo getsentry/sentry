@@ -1,6 +1,6 @@
 import moment from 'moment';
 import React from 'react';
-import {t} from '../locale';
+import {t, tct} from '../locale';
 
 import ApiMixin from '../mixins/apiMixin';
 import OrganizationState from '../mixins/organizationState';
@@ -31,25 +31,32 @@ const TodoItem = React.createClass({
     let org = this.getOrganization();
 
     let classNames = '';
-    let description = '';
-    let doneDescription = 'By being here, you\'ve done it. Welcome to Sentry!';
-    if (this.props.task.status == 'Complete') {
-      classNames += ' checked';
+    let description;
 
-      if (this.props.task.task == 0) {
-        description = doneDescription;
-      } else {
-        description = this.props.task.user + ' completed this ' + moment(this.props.task.date_completed).fromNow();
-      }
-
-    } else if (this.props.task.status == 'Pending') {
-      classNames += ' pending';
-      description = this.props.task.user + t(' kicked this off ') + moment(this.props.task.date_completed).fromNow();
-    } else if (this.props.task.status == 'Skipped') {
-      classNames += ' skipped';
-      description = this.props.task.user + t(' skipped this ') + moment(this.props.task.date_completed).fromNow();
-    } else {
-      description = this.props.task.description;
+    switch(this.props.task.status) {
+      case 'Complete':
+        classNames += ' checked';
+        description = tct('[user] completed [dateCompleted]', {
+          user: this.props.task.user,
+          dateCompleted: moment(this.props.task.dateCompleted).fromNow(),
+        });
+        break;
+      case 'Pending':
+        classNames += ' pending';
+        description = tct('[user] kicked off [dateCompleted]', {
+          user: this.props.task.user,
+          dateCompleted: moment(this.props.task.dateCompleted).fromNow(),
+        });
+        break;
+      case 'Skipped':
+        classNames += ' skipped';
+        description = tct('[user] skipped [dateCompleted]', {
+          user: this.props.task.user,
+          dateCompleted: moment(this.props.task.dateCompleted).fromNow(),
+        });
+        break;
+      default:
+        description = this.props.task.description;
     }
 
     if (this.state.showConfirmation) {
@@ -65,23 +72,25 @@ const TodoItem = React.createClass({
       learn_more_url = this.props.task.location;
     }
 
+    let showSkipButton = this.props.task.skippable && this.props.task.status != 'Skipped' &&
+      this.props.task.status != 'Complete' && !this.state.showConfirmation;
+
     return (
       <li className={classNames}>
-        { this.props.task.status == 'Pending' ? <span className="pending-bar" /> : null }
+        { this.props.task.status == 'Pending' && <span className="pending-bar" /> }
         <div className="todo-content">
           <div className="ob-checkbox">
-            { this.props.task.status == 'Complete' ? <span className="icon-checkmark" /> : null }
-            { this.props.task.status == 'Skipped' ? <span className="icon-x" /> : null }
-            { this.props.task.status == 'Pending' ? <span className="icon-ellipsis" /> : null }
+            { this.props.task.status == 'Complete' && <span className="icon-checkmark" /> }
+            { this.props.task.status == 'Skipped' && <span className="icon-x" /> }
+            { this.props.task.status == 'Pending' && <span className="icon-ellipsis" /> }
           </div>
           <a href={learn_more_url}><h4>{ this.props.task.title }</h4></a>
           <p>
             { description }
           </p>
-          { this.props.task.skippable && this.props.task.status != 'Skipped' && this.props.task.status != 'Complete' && !this.state.showConfirmation ?
-            <a className="skip-btn btn btn-default" onClick={this.toggleConfirmation}>{t('Skip')}</a> : null }
+          { showSkipButton && <a className="skip-btn btn btn-default" onClick={this.toggleConfirmation}>{t('Skip')}</a> }
         </div>
-        { this.state.showConfirmation ? <Confirmation task={this.props.task.task} onSkip={this.skip} dismiss={this.toggleConfirmation} /> : null }
+        { this.state.showConfirmation && <Confirmation task={this.props.task.task} onSkip={this.skip} dismiss={this.toggleConfirmation} /> }
       </li>
     );
   }
@@ -221,20 +230,17 @@ const TodoList = React.createClass({
   },
 
   componentWillMount() {
+    // Map server task state (who finished what) to TodoList.TASK objects
     let org = this.getOrganization();
-    let tasks = [];
-
-    for (let task of TodoList.TASKS) {
-      task.status = '';
-
+    let tasks = TodoList.TASKS.map((task) => {
       for (let server_task of org.onboardingTasks) {
         if (server_task.task == task.task) {
-          task = $.extend(task, server_task);
+          Object.assign(task, server_task);
           break;
         }
       }
-      tasks.push(task);
-    }
+      return task;
+    });
     this.setState({tasks: tasks});
   },
 
