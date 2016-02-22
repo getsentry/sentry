@@ -14,7 +14,8 @@ from sudo.views import redirect_to_sudo
 
 from sentry.auth import access
 from sentry.models import (
-    Organization, OrganizationMember, OrganizationStatus, Project, Team
+    Organization, OrganizationMember, OrganizationStatus, Project, ProjectStatus,
+    Team, TeamStatus
 )
 from sentry.web.helpers import get_login_url, render_to_response
 
@@ -118,6 +119,9 @@ class OrganizationMixin(object):
         except Team.DoesNotExist:
             return None
 
+        if team.status != TeamStatus.VISIBLE:
+            return None
+
         return team
 
     def get_active_project(self, request, organization, project_slug):
@@ -127,6 +131,9 @@ class OrganizationMixin(object):
                 organization=organization,
             )
         except Project.DoesNotExist:
+            return None
+
+        if project.status != ProjectStatus.VISIBLE:
             return None
 
         return project
