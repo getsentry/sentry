@@ -266,6 +266,10 @@ def configure(ctx, py, yaml, skip_backend_validation=False):
     if __installed:
         return
 
+    # Make sure that our warnings are always displayed
+    import warnings
+    warnings.filterwarnings('default', '', Warning, r'^sentry')
+
     from .importer import install
 
     if yaml is None:
