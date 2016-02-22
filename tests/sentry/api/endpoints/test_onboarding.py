@@ -13,7 +13,6 @@ class SkipOnboardingTaskTest(APITestCase):
         self.login_as(user=self.user)
 
         organization = self.create_organization(name='foo', owner=self.user)
-        user = self.create_user('bar@example.com')
         url = reverse('sentry-api-0-organization-onboardingtasks', kwargs={'organization_slug': organization.slug})
         self.client.post(url, data={'task': 9, 'status': 'Skipped'}, format='json')
 

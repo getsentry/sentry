@@ -262,4 +262,3 @@ class Fixtures(object):
             project=project or self.project,
             **kwargs
         )
-
