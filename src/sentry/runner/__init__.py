@@ -23,7 +23,7 @@ else:
 @click.group()
 @click.option(
     '--config',
-    default='~/.sentry',
+    default='',
     envvar='SENTRY_CONF',
     help='Path to configuration files.',
     metavar='PATH')
@@ -39,7 +39,9 @@ def cli(ctx, config):
     """
     # Elevate --config option to SENTRY_CONF env var, and just assume this
     # always will exist down the line
-    os.environ.setdefault('SENTRY_CONF', config)
+    if config:
+        os.environ['SENTRY_CONF'] = config
+    os.environ.setdefault('SENTRY_CONF', '~/.sentry')
 
 
 # TODO(mattrobenolt): Autodiscover commands?
