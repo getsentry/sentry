@@ -79,6 +79,7 @@ class EventSerializer(Serializer):
             'tags': tags,
             'platform': obj.platform,
             'dateCreated': obj.datetime,
+            'dateReceived': obj.data.get('received', obj.datetime),
             'timeSpent': obj.time_spent,
             'errors': errors,
         }

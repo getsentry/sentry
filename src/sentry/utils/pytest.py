@@ -4,7 +4,6 @@ import mock
 import os
 
 from django.conf import settings
-from redis import StrictRedis
 
 
 def pytest_configure(config):
@@ -70,9 +69,6 @@ def pytest_configure(config):
     # enable draft features
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
 
-    # disable error reporting by default
-    settings.SENTRY_REDIS_OPTIONS = {'hosts': {0: {'db': 9}}}
-
     settings.SENTRY_ALLOW_ORIGIN = '*'
 
     settings.SENTRY_TSDB = 'sentry.tsdb.inmemory.InMemoryTSDB'
@@ -96,18 +92,36 @@ def pytest_configure(config):
 
     settings.SOUTH_TESTS_MIGRATE = bool(os.environ.get('USE_SOUTH'))
 
+    if not hasattr(settings, 'SENTRY_OPTIONS'):
+        settings.SENTRY_OPTIONS = {}
+
+    settings.SENTRY_OPTIONS['redis.clusters'] = {
+        'default': {
+            'hosts': {
+                0: {
+                    'db': 9,
+                },
+            },
+        }
+    }
+
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
     patcher = mock.patch('socket.getfqdn', return_value='localhost')
     patcher.start()
 
-    client = StrictRedis(db=9)
-    client.flushdb()
+    from sentry.runner.initializer import initialize_receivers, fix_south, bind_cache_to_option_store
 
-    from sentry.runner.initializer import initialize_receivers, fix_south
     fix_south(settings)
 
+    bind_cache_to_option_store()
+
     initialize_receivers()
+
+    from sentry.utils.redis import clusters
+
+    with clusters.get('default').all() as client:
+        client.flushdb()
 
     # force celery registration
     from sentry.celery import app  # NOQA
@@ -117,8 +131,10 @@ def pytest_runtest_teardown(item):
     from sentry.app import tsdb
     tsdb.flush()
 
-    client = StrictRedis(db=9)
-    client.flushdb()
+    from sentry.utils.redis import clusters
+
+    with clusters.get('default').all() as client:
+        client.flushdb()
 
     from celery.task.control import discard_all
     discard_all()

@@ -14,7 +14,6 @@ To specify a backend, simply modify the ``SENTRY_TSDB`` and
 .. code-block:: python
 
     SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
-    SENTRY_TSDB_OPTIONS = {}
 
 
 The Redis Backend
@@ -25,32 +24,13 @@ Configuration is fairly straight forward:
 .. code-block:: python
 
     SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
-    SENTRY_TSDB_OPTIONS = {
-        'hosts': {
-            0: {
-                'host': 'localhost',
-                'port': 6379
-            }
-        }
-    }
 
-Because the Redis buffer relies on the Nydus package, this gives you the
-ability to specify multiple nodes and have keys automatically distributed.
-It's unlikely that you'll need this functionality, but if you do, a simple
-configuration might look like this:
+By default, this will use the ``default`` named Redis cluster. To use a
+different cluster, provide the ``cluster`` option, as such:
 
 .. code-block:: python
 
     SENTRY_TSDB_OPTIONS = {
-        'hosts': {
-            0: {
-                'host': '192.168.1.1'
-            }
-            1: {
-                'host': '192.168.1.2'
-            }
-        },
+        'cluster': 'tsdb',
     }
 
-With the default configuration this will distribute keys using a simple
-partition router (relatively even distribution).

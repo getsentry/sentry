@@ -138,7 +138,7 @@ const ReleaseDetails = React.createClass({
                 return to === this.context.location.pathname;
               }}>{t('New Issues')}</ListLink>
               <ListLink to={`/${orgId}/${projectId}/releases/${release.version}/all-events/`}>{t('All Issues')}</ListLink>
-              <ListLink to={`/${orgId}/${projectId}/releases/${release.version}/artifacts/`} className="pull-right">{t('Artifacts')}</ListLink>
+              <ListLink to={`/${orgId}/${projectId}/releases/${release.version}/artifacts/`}>{t('Artifacts')}</ListLink>
             </ul>
           </div>
           {React.cloneElement(this.props.children, {

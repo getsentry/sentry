@@ -703,9 +703,6 @@ SENTRY_ALLOW_ORIGIN = None
 # Enable scraping of javascript context for source code
 SENTRY_SCRAPE_JAVASCRIPT_CONTEXT = True
 
-# Redis connection information (see Nydus documentation)
-SENTRY_REDIS_OPTIONS = {}
-
 # Buffer backend
 SENTRY_BUFFER = 'sentry.buffer.Buffer'
 SENTRY_BUFFER_OPTIONS = {}

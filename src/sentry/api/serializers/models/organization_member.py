@@ -7,10 +7,16 @@ from sentry.models import OrganizationMember
 @register(OrganizationMember)
 class OrganizationMemberSerializer(Serializer):
     def serialize(self, obj, attrs, user):
+        if obj.user:
+            user_data = {'id': obj.user.id}
+        else:
+            user_data = None
+
         d = {
             'id': str(obj.id),
             'email': obj.get_email(),
             'name': obj.user.get_display_name() if obj.user else obj.get_email(),
+            'user': user_data,
             'role': obj.role,
             'roleName': obj.get_role_display(),
             'pending': obj.is_pending,

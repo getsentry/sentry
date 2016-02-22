@@ -7,16 +7,11 @@ sentry.quotas.redis
 """
 from __future__ import absolute_import
 
-from django.conf import settings
 from time import time
 
 from sentry.exceptions import InvalidConfiguration
-from sentry.quotas.base import Quota, RateLimited, NotRateLimited
-from sentry.utils.redis import (
-    load_script,
-    make_rb_cluster,
-)
-
+from sentry.quotas.base import NotRateLimited, Quota, RateLimited
+from sentry.utils.redis import get_cluster_from_options, load_script
 
 is_rate_limited = load_script('quotas/is_rate_limited.lua')
 
@@ -28,12 +23,8 @@ class RedisQuota(Quota):
     grace = 60
 
     def __init__(self, **options):
-        if not options:
-            # inherit default options from REDIS_OPTIONS
-            options = settings.SENTRY_REDIS_OPTIONS
+        self.cluster, options = get_cluster_from_options(self, options)
         super(RedisQuota, self).__init__(**options)
-        options.setdefault('hosts', {0: {}})
-        self.cluster = make_rb_cluster(options['hosts'])
         self.namespace = 'quota'
 
     def validate(self):
