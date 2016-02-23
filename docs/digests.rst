@@ -18,26 +18,26 @@ implementations.
 
     The ``minimum_delay`` option defines the default minimum amount of time (in
     seconds) to wait between scheduling digests for delivery after the initial
-    scheduling. (This can be overriden on a per-project basis in the
-    Notification Settings.)
+    scheduling. This can be overriden on a per-project basis in the
+    Notification Settings.
 
 .. describe:: maximum_delay
 
     The ``maximum_delay`` option defines the default maximum amount of time (in
-    seconds) to wait between scheduling digests for delivery. (This can be
-    overriden on a per-project basis in the Notification Settings.)
+    seconds) to wait between scheduling digests for delivery. This can be
+    overriden on a per-project basis in the Notification Settings.
 
 .. describe:: increment_delay
 
     The ``increment_delay`` option defines how long each observation of an
-    event should delay scheduling (up until the ``maximum_delay`` after the
-    last time a digest was processed.)
+    event should delay scheduling up until the ``maximum_delay`` after the
+    last time a digest was processed.
 
 .. describe:: capacity
 
     The ``capacity`` option defines the maximum number of items that should be
-    contained within a timeline. (Whether this is a hard or soft limit is
-    backend dependent -- see the ``truncation_chance`` option.)
+    contained within a timeline. Whether this is a hard or soft limit is
+    backend dependent -- see the ``truncation_chance`` option.
 
 .. describe:: truncation_chance
 
@@ -47,8 +47,8 @@ implementations.
     truncated on every ``add`` operation (effectively making it a hard limit),
     while a lower probability will increase the chance of the timeline growing
     past it's intended capacity, but increases the performance of ``add``
-    operations (by avoiding truncation, which is a potentially expensive
-    operation, especially on large data sets.)
+    operations by avoiding truncation, which is a potentially expensive
+    operation, especially on large data sets.
 
 Backends
 --------
@@ -85,7 +85,7 @@ The Redis backend accepts several options beyond the basic set, provided via
 .. describe:: cluster
 
     The ``cluster`` option defines the Redis cluster that should be used for
-    storage. (If no cluster is specified, the ``default`` cluster is used.)
+    storage. If no cluster is specified, the ``default`` cluster is used.
 
 .. important::
 
