@@ -34,21 +34,21 @@ const TodoItem = React.createClass({
     let description;
 
     switch(this.props.task.status) {
-      case 'Complete':
+      case 'complete':
         classNames += ' checked';
         description = tct('[user] completed [dateCompleted]', {
           user: this.props.task.user,
           dateCompleted: moment(this.props.task.dateCompleted).fromNow(),
         });
         break;
-      case 'Pending':
+      case 'pending':
         classNames += ' pending';
         description = tct('[user] kicked off [dateCompleted]', {
           user: this.props.task.user,
           dateCompleted: moment(this.props.task.dateCompleted).fromNow(),
         });
         break;
-      case 'Skipped':
+      case 'skipped':
         classNames += ' skipped';
         description = tct('[user] skipped [dateCompleted]', {
           user: this.props.task.user,
@@ -65,24 +65,23 @@ const TodoItem = React.createClass({
 
     let learn_more_url = '';
     if (this.props.task.feature_location === 'project') {
-      learn_more_url = '/organizations/' + org.slug + '/projects/choose/?next=' + this.props.task.location;
+      learn_more_url = '/organizations/' + org.slug + '/projects/choose/?onboarding=1&task=' + this.props.task.task;
     } else if (this.props.task.feature_location === 'organization') {
       learn_more_url = '/organizations/' + org.slug + '/' + this.props.task.location;
     } else if (this.props.task.feature_location === 'absolute') {
       learn_more_url = this.props.task.location;
     }
 
-    let showSkipButton = this.props.task.skippable && this.props.task.status != 'Skipped' &&
-      this.props.task.status != 'Complete' && !this.state.showConfirmation;
+    let showSkipButton = this.props.task.skippable && this.props.task.status != 'skipped' &&
+      this.props.task.status != 'complete' && !this.state.showConfirmation;
 
     return (
       <li className={classNames}>
-        { this.props.task.status == 'Pending' && <span className="pending-bar" /> }
         <div className="todo-content">
           <div className="ob-checkbox">
-            { this.props.task.status == 'Complete' && <span className="icon-checkmark" /> }
-            { this.props.task.status == 'Skipped' && <span className="icon-x" /> }
-            { this.props.task.status == 'Pending' && <span className="icon-ellipsis" /> }
+            { this.props.task.status == 'complete' && <span className="icon-checkmark" /> }
+            { this.props.task.status == 'skipped' && <span className="icon-x" /> }
+            { this.props.task.status == 'pending' && <span className="icon-ellipsis" /> }
           </div>
           <a href={learn_more_url}><h4>{ this.props.task.title }</h4></a>
           <p>
@@ -145,7 +144,7 @@ const TodoList = React.createClass({
         'skippable': false,
         'prereq': [1],
         'feature_location': 'project',
-        'location': 'install',
+        'location': 'settings/install/',
       },
       {
         'task': 3,
@@ -181,7 +180,7 @@ const TodoList = React.createClass({
         'skippable': false,
         'prereq': [1, 2],
         'feature_location': 'project',
-        'location': 'release-tracking',
+        'location': 'settings/release-tracking/',
       },
       {
         'task': 7,
@@ -208,7 +207,7 @@ const TodoList = React.createClass({
         'skippable': true,
         'prereq': [1, 2],
         'feature_location': 'project',
-        'location': 'issue-tracking',
+        'location': 'settings/issue-tracking/',
       },
       {
         'task': 10,
@@ -217,7 +216,7 @@ const TodoList = React.createClass({
         'skippable': true,
         'prereq': [1, 2],
         'feature_location': 'project',
-        'location': 'notification',
+        'location': 'settings/notification/',
       },
     ]
   },
@@ -262,11 +261,11 @@ const TodoList = React.createClass({
     let org = this.getOrganization();
     this.api.request('/organizations/' + org.slug + '/onboarding-tasks/', {
       method: 'POST',
-      data: {'task': skipped_task, 'status': 'Skipped'},
+      data: {'task': skipped_task, 'status': 'skipped'},
       success: () => {
         let new_state = this.state.tasks.map( (task) => {
           if (task.task == skipped_task) {
-            task.status = 'Skipped';
+            task.status = 'skipped';
           }
           return task;
         });
@@ -291,7 +290,7 @@ const TodoList = React.createClass({
       next_tasks = this.state.tasks;
     } else {
       next_tasks = this.state.tasks.filter( (task) => {
-        if (task.status != 'Complete') {
+        if (task.status != 'complete') {
           return task;
         }
       }).slice(0,3);
