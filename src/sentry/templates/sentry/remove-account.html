@@ -25,8 +25,8 @@
             <li>
               <label class="checkbox">
                 <input type="checkbox" value="{{ result.organization.slug }}"
-                  name="oID" checked="checked"
-                  {% if result.single_owner %} disabled="disabled"{% endif %}/>
+                  name="oID"
+                  {% if result.single_owner %} checked="checked" disabled="disabled"{% endif %}/>
                 {{ result.organization.name }} ({{ result.organization.slug }})
               </label>
             </li>
