@@ -12,6 +12,35 @@ import UserNav from './userNav';
 import OrganizationSelector from './organizationSelector';
 import TodoList from '../todos';
 
+const OnboardingStatus = React.createClass({
+  render() {
+    let org = this.props.org;
+    let percentage = Math.round(
+      (org.onboardingTasks.filter(
+        t => t.status === 'Complete'
+      ).length) / TodoList.TASKS.length * 100
+    ).toString();
+    let style = {
+      width: percentage + '%',
+    };
+
+    if (percentage >= 100)
+      return null;
+
+    if (org.features.indexOf('onboarding') === -1)
+      return null;
+
+    return (
+      <div className="onboarding-progress-bar" onClick={this.props.onToggleTodos}>
+        <div className="slider" style={style} ></div>
+        {this.props.showTodos &&
+          <div className="dropdown-menu"><TodoList onClose={this.props.onHideTodos} /></div>
+        }
+      </div>
+    );
+  }
+});
+
 const Header = React.createClass({
   mixins: [ApiMixin, OrganizationState],
 
@@ -52,16 +81,6 @@ const Header = React.createClass({
       logo = <span className="icon-sentry-logo-full"/>;
     }
 
-    // NOTE: this.props.orgId not guaranteed to be specified
-    let percentage = Math.round(
-      (org.onboardingTasks.filter(
-        t => t.status === 'Complete'
-      ).length) / TodoList.TASKS.length * 100
-    ).toString();
-    let style = {
-      width: percentage + '%',
-    };
-
     return (
       <header>
         <div className="container">
@@ -75,13 +94,10 @@ const Header = React.createClass({
           <OrganizationSelector organization={org} className="pull-right" />
 
           <StatusPage className="pull-right" />
-          { percentage < 100 && org.features.indexOf('onboarding') >= 0 ?
-            <div className="onboarding-progress-bar" onClick={this.toggleTodos}>
-              <div className="slider" style={style} ></div>
-              { this.state.showTodos ? <div className="dropdown-menu"><TodoList onClose={this.setState.bind(this, {showTodos:false})} /></div> : null }
-            </div>
-            :
-            null
+          {org &&
+            <OnboardingStatus org={org} showTodos={this.state.showTodos}
+                              onShowTodos={this.setState.bind(this, {showTodos: false})}
+                              onToggleTodos={this.toggleTodos} />
           }
         </div>
       </header>

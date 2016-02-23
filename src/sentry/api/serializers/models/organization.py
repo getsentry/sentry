@@ -28,7 +28,7 @@ class OnboardingTasksSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             'task': obj.task,
-            'status': dict(OrganizationOnboardingTask.STATUS_CHOICES).get(obj.status),
+            'status': dict(OrganizationOnboardingTask.STATUS_CHOICES).get(obj.status).lower(),
             'user': obj.user.name if obj.user else None,
             'dateCompleted': obj.date_completed,
             'data': obj.data,
