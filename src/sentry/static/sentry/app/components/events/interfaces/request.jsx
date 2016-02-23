@@ -85,7 +85,9 @@ const RequestInterface = React.createClass({
       <h3 key="title">
         <a href={fullUrl}>
           <strong>{data.method || 'GET'} {parsedUrl.pathname}</strong>
-          <em className="icon-open" style={{paddingLeft: '5px'}} />
+          <span className="external-icon">
+            <em className="icon-open" />
+          </span>
         </a>
         <small style={{marginLeft: 20}}>{parsedUrl.hostname}</small>
       </h3>
