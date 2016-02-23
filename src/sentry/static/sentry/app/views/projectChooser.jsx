@@ -32,20 +32,19 @@ const ProjectChooser = React.createClass({
     org.teams.map((team) => {
       let projectList = [];
       team.projects.map((project) => {
-        let next_url = '/' + org.slug+ '/' + project.slug + '/' + task.location;
         projectList.push(
           <tr key={project.id}><td><h5>
-            <a href={next_url}>{project.name}</a>
+            <a href={`/${org.slug}/${project.slug}/${task.location}`}>{project.name}</a>
           </h5></td></tr>);
       });
 
       teamProjectList.push(
         <div key={team.id}>
-          <div className='box-header' key={team.id}>
+          <div className="box-header" key={team.id}>
             <h3>{team.name}</h3>
           </div>
-          <div className='box-content'>
-            <table className='table project-list'>
+          <div className="box-content">
+            <table className="table project-list">
               <tbody>
                 {projectList}
               </tbody>
@@ -55,10 +54,10 @@ const ProjectChooser = React.createClass({
     });
 
     return (
-      <div className='container'>
+      <div className="container">
         <h3>Choose a project</h3>
-        <div className='team-list'>
-          <div className='box'>
+        <div className="team-list">
+          <div className="box">
             {teamProjectList}
           </div>
         </div>
