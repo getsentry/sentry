@@ -83,7 +83,12 @@ const RequestInterface = React.createClass({
 
     children.push(
       <h3 key="title">
-        <strong>{data.method || 'GET'} <a href={fullUrl}>{parsedUrl.pathname}</a></strong>
+        <a href={fullUrl}>
+          <strong>{data.method || 'GET'} {parsedUrl.pathname}</strong>
+          <span className="external-icon">
+            <em className="icon-open" />
+          </span>
+        </a>
         <small style={{marginLeft: 20}}>{parsedUrl.hostname}</small>
       </h3>
     );
