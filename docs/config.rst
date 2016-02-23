@@ -77,7 +77,7 @@ Redis
 
     Describes the Redis clusters avaialble to the Sentry server. These clusters
     may then be referenced by name by other internal services such as the
-    cache, digests and TSDB backends, among others.
+    cache, digests, and TSDB backends, among others.
 
     For example,
 
