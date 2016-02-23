@@ -80,7 +80,7 @@ const GroupActivity = React.createClass({
           return t('%s assigned this event to themselves', author);
         } else {
           assignee = MemberListStore.getById(data.assignee);
-          if (assignee.email) {
+          if (assignee && assignee.email) {
             return t('%(author)s assigned this event to %(assignee)s', {
               author: author,
               assignee: assignee.email
