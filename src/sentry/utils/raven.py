@@ -18,7 +18,7 @@ UNSAFE_FILES = (
 )
 
 
-def can_record_current_event():
+def is_current_event_safe():
     """
     Tests the current stack for unsafe locations that would likely cause
     recursion if an attempt to send to Sentry was made.
@@ -35,6 +35,16 @@ class SentryInternalClient(DjangoClient):
             return False
         return settings.SENTRY_PROJECT is not None
 
+    def can_record_current_event(self):
+        return self.remote.is_active() or is_current_event_safe()
+
+    def capture(self, *args, **kwargs):
+        if not self.can_record_current_event():
+            metrics.incr('internal.uncaptured.events')
+            self.error_logger.error('Not capturing event due to unsafe stacktrace:\n%r', kwargs)
+            return
+        return super(SentryInternalClient, self).capture(*args, **kwargs)
+
     def send(self, **kwargs):
         # TODO(dcramer): this should respect rate limits/etc and use the normal
         # pipeline
@@ -50,9 +60,7 @@ class SentryInternalClient(DjangoClient):
             super_kwargs['tags']['install-id'] = options.get('sentry:install-id')
             super(SentryInternalClient, self).send(**super_kwargs)
 
-        if not can_record_current_event():
-            metrics.incr('internal.uncaptured.events')
-            self.error_logger.error('Not capturing event due to unsafe stacktrace:\n%r', kwargs)
+        if not is_current_event_safe():
             return
 
         from sentry.app import tsdb
@@ -105,5 +113,6 @@ class SentryInternalClient(DjangoClient):
 
 class SentryInternalFilter(logging.Filter):
     def filter(self, record):
+        # TODO(mattrobenolt): handle an upstream Sentry
         metrics.incr('internal.uncaptured.logs')
-        return can_record_current_event()
+        return is_current_event_safe()
