@@ -8,7 +8,7 @@ from django.views.decorators.cache import never_cache
 
 from sentry import features
 from sentry.auth.helper import AuthHelper
-from sentry.models import AuthProvider, Organization
+from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.utils import auth
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
@@ -122,6 +122,9 @@ class AuthOrganizationLoginView(BaseView):
                 slug=organization_slug
             )
         except Organization.DoesNotExist:
+            return self.redirect(reverse('sentry-login'))
+
+        if organization.status != OrganizationStatus.VISIBLE:
             return self.redirect(reverse('sentry-login'))
 
         request.session.set_test_cookie()
