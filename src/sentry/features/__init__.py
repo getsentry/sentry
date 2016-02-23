@@ -59,6 +59,7 @@ default_manager.add('organizations:integrations-issue-sync', OrganizationFeature
 default_manager.add('organizations:internal-catchall', OrganizationFeature)  # NOQA
 default_manager.add('organizations:invite-members', OrganizationFeature)  # NOQA
 default_manager.add('organizations:js-loader', OrganizationFeature)  # NOQA
+default_manager.add('organizations:monitors', OrganizationFeature)  # NOQA
 default_manager.add('organizations:new-teams', OrganizationFeature)  # NOQA
 default_manager.add('organizations:onboarding', OrganizationFeature)  # NOQA
 default_manager.add('organizations:relay', OrganizationFeature)  # NOQA

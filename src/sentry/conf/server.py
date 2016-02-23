@@ -559,6 +559,13 @@ CELERYBEAT_SCHEDULE = {
             'expires': 30,
         },
     },
+    'check-monitors': {
+        'task': 'sentry.tasks.check_monitors',
+        'schedule': timedelta(minutes=1),
+        'options': {
+            'expires': 60,
+        },
+    },
     'clear-expired-snoozes': {
         'task': 'sentry.tasks.clear_expired_snoozes',
         'schedule': timedelta(minutes=5),
