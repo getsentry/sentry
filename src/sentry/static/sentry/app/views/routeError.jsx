@@ -6,11 +6,19 @@ const RouteError = React.createClass({
   componentWillMount() {
     // TODO(dcramer): show something in addition to embed (that contains it?)
     // TODO(dcramer): capture better context
-    Raven.captureException(this.props.error);
-    Raven.showReportDialog();
+    // throw this in a timeout so if it errors we dont fall over
+    this._timeout = window.setTimeout(function(){
+      Raven.captureException(this.props.error);
+      // TODO(dcramer): we do not have errorId until send() is called which
+      // has latency in production so this will literally never fire
+      Raven.showReportDialog();
+    }.bind(this));
   },
 
   componentWillUnmount() {
+    if (this._timeout) {
+      window.clearTimeout(this._timeout);
+    }
     $('.sentry-error-embed-wrapper').remove();
   },
 
