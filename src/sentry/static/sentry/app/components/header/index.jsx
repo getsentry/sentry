@@ -13,6 +13,10 @@ import OrganizationSelector from './organizationSelector';
 import TodoList from '../todos';
 
 const OnboardingStatus = React.createClass({
+  propTypes: {
+    onHideTodos: React.PropTypes.func
+  },
+
   render() {
     let org = this.props.org;
     let percentage = Math.round(
@@ -97,7 +101,8 @@ const Header = React.createClass({
           {org &&
             <OnboardingStatus org={org} showTodos={this.state.showTodos}
                               onShowTodos={this.setState.bind(this, {showTodos: false})}
-                              onToggleTodos={this.toggleTodos} />
+                              onToggleTodos={this.toggleTodos}
+                              onHideTodos={this.setState.bind(this, {showTodos: false})} />
           }
         </div>
       </header>
