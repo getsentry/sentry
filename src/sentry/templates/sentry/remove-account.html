@@ -9,7 +9,7 @@
 {% block main %}
   <h3>Close Account</h3>
 
-  <form class="form-stacked" action="" method="post">
+  <form class="form-stacked" action="" method="post" onsubmit="return confirm('Are you REALLY sure you want to go through with this?')">
     {% csrf_token %}
 
     <p>{% trans "This will permanently remove all associated data for your user." %}</p>
