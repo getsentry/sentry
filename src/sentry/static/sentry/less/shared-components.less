@@ -366,7 +366,8 @@ pre.plain {
   word-break: break-all;
 }
 
-a.external-icon {
+.external-icon {
+  .transition(.1s linear color);
   color: inherit;
   font-size: 11px;
   padding: 0 5px;
@@ -376,6 +377,10 @@ a.external-icon {
   &:hover {
     color: @gray;
   }
+}
+
+.box-header a:hover .external-icon {
+  color: @gray;
 }
 
 table.vars {
