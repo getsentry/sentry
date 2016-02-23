@@ -2,6 +2,7 @@ import React from 'react';
 import {Redirect, Route, IndexRoute} from 'react-router';
 
 import Admin from './views/admin';
+import AdminBuffer from './views/adminBuffer';
 import AdminOrganizations from './views/adminOrganizations';
 import AdminOverview from './views/adminOverview';
 import AdminSettings from './views/adminSettings';
@@ -58,6 +59,7 @@ let routes = (
   <Route path="/" component={errorHandler(App)}>
     <Route path="/manage/" component={errorHandler(Admin)}>
       <IndexRoute component={errorHandler(AdminOverview)} />
+      <Route path="buffer/" component={errorHandler(AdminBuffer)} />
       <Route path="organizations/" component={errorHandler(AdminOrganizations)} />
       <Route path="settings/" component={errorHandler(AdminSettings)} />
     </Route>
