@@ -29,7 +29,7 @@ def record_new_project(project, user, **kwargs):
                 task=OnboardingTask.FIRST_PROJECT,
                 user=user,
                 status=OnboardingTaskStatus.COMPLETE,
-                project=project,
+                project_id=project.id,
                 date_completed=timezone.now(),
             )
     except IntegrityError:
@@ -40,7 +40,7 @@ def record_new_project(project, user, **kwargs):
                     task=OnboardingTask.SECOND_PLATFORM,
                     user=user,
                     status=OnboardingTaskStatus.PENDING,
-                    project=project,
+                    project_id=project.id,
                     date_completed=timezone.now(),
                 )
         except IntegrityError:
@@ -55,7 +55,7 @@ def record_raven_installed(project, user, **kwargs):
         status=OnboardingTaskStatus.PENDING,
         defaults={
             'user': user,
-            'project': project,
+            'project_id': project.id,
             'date_completed': timezone.now()
         }
     )
@@ -77,7 +77,7 @@ def record_first_event(project, group, **kwargs):
         status=OnboardingTaskStatus.PENDING,
         values={
             'status': OnboardingTaskStatus.COMPLETE,
-            'project': project,
+            'project_id': project.id,
             'date_completed': project.first_event,
             'data': {'platform': group.platform},
         }
@@ -98,7 +98,7 @@ def record_first_event(project, group, **kwargs):
                 status=OnboardingTaskStatus.PENDING,
                 values={
                     'status': OnboardingTaskStatus.COMPLETE,
-                    'project': project,
+                    'project_id': project.id,
                     'date_completed': project.first_event,
                     'data': {'platform': group.platform},
                 }
@@ -144,7 +144,7 @@ def record_release_received(project, group, event, **kwargs):
                     organization=project.organization,
                     task=OnboardingTask.RELEASE_TRACKING,
                     status=OnboardingTaskStatus.COMPLETE,
-                    project=project,
+                    project_id=project.id,
                     date_completed=timezone.now()
                 )
         except IntegrityError:
@@ -160,7 +160,7 @@ def record_user_context_received(project, group, event, **kwargs):
                     organization=project.organization,
                     task=OnboardingTask.USER_CONTEXT,
                     status=OnboardingTaskStatus.COMPLETE,
-                    project=project,
+                    project_id=project.id,
                     date_completed=timezone.now()
                 )
         except IntegrityError:
@@ -176,7 +176,7 @@ def record_sourcemaps_received(project, group, event, **kwargs):
                     organization=project.organization,
                     task=OnboardingTask.SOURCEMAPS,
                     status=OnboardingTaskStatus.COMPLETE,
-                    project=project,
+                    project_id=project.id,
                     date_completed=timezone.now()
                 )
         except IntegrityError:
@@ -199,7 +199,7 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
                 task=task,
                 status=status,
                 user=user,
-                project=project,
+                project_id=project.id,
                 date_completed=timezone.now(),
                 data={'plugin': plugin.slug}
             )
@@ -216,7 +216,7 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
         values={
             'status': OnboardingTaskStatus.COMPLETE,
             'user': user,
-            'project': project,
+            'project_id': project.id,
             'date_completed': timezone.now(),
             'data': {'plugin': plugin.slug}
         }
