@@ -119,26 +119,29 @@ class RedisBuffer(Buffer):
             self.logger.info('Skipped process on %s; unable to get lock', key)
             return
 
-        conn = self.cluster.get_local_client_for_key(key)
-        pipe = conn.pipeline()
-        pipe.hgetall(key)
-        pipe.zrem(self.pending_key, key)
-        pipe.delete(key)
-        values = pipe.execute()[0]
+        try:
+            conn = self.cluster.get_local_client_for_key(key)
+            pipe = conn.pipeline()
+            pipe.hgetall(key)
+            pipe.zrem(self.pending_key, key)
+            pipe.delete(key)
+            values = pipe.execute()[0]
 
-        if not values:
-            metrics.incr('buffer.revoked', tags={'reason': 'empty'})
-            self.logger.info('Skipped process on %s; no values found', key)
-            return
+            if not values:
+                metrics.incr('buffer.revoked', tags={'reason': 'empty'})
+                self.logger.info('Skipped process on %s; no values found', key)
+                return
 
-        model = import_string(values['m'])
-        filters = pickle.loads(values['f'])
-        incr_values = {}
-        extra_values = {}
-        for k, v in values.iteritems():
-            if k.startswith('i+'):
-                incr_values[k[2:]] = int(v)
-            elif k.startswith('e+'):
-                extra_values[k[2:]] = pickle.loads(v)
+            model = import_string(values['m'])
+            filters = pickle.loads(values['f'])
+            incr_values = {}
+            extra_values = {}
+            for k, v in values.iteritems():
+                if k.startswith('i+'):
+                    incr_values[k[2:]] = int(v)
+                elif k.startswith('e+'):
+                    extra_values[k[2:]] = pickle.loads(v)
 
-        super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
+            super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
+        finally:
+            client.delete(lock_key)
