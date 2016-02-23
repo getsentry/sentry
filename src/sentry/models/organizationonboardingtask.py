@@ -11,6 +11,7 @@ from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.db.models import (
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -75,10 +76,10 @@ class OrganizationOnboardingTask(Model):
 
     organization = FlexibleForeignKey('sentry.Organization')
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)  # user that completed
-    project = FlexibleForeignKey('sentry.Project', null=True)  # if task is associated with a project
     task = BoundedPositiveIntegerField(choices=TASK_CHOICES)
     status = BoundedPositiveIntegerField(choices=STATUS_CHOICES)
     date_completed = models.DateTimeField(default=timezone.now)
+    project_id = BoundedBigIntegerField(blank=True, null=True)
     data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
 
     class Meta:
