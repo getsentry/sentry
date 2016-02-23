@@ -4,7 +4,7 @@ import {Link} from 'react-router';
 import ActivityFeed from '../components/activity/feed';
 import GroupStore from '../stores/groupStore';
 import IssueList from '../components/issueList';
-import OrganizationHomeContainer from '../components//organizations/homeContainer';
+import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import {t} from '../locale';
 
 const AssignedIssues = React.createClass({
@@ -54,6 +54,7 @@ const NewIssues = React.createClass({
 
 
 const Activity = React.createClass({
+
   getEndpoint() {
     return `/organizations/${this.props.params.orgId}/activity/`;
   },
@@ -70,7 +71,6 @@ const Activity = React.createClass({
   },
 });
 
-
 const OrganizationDashboard = React.createClass({
   getDefaultProps() {
     return {
@@ -86,9 +86,9 @@ const OrganizationDashboard = React.createClass({
   render() {
     return (
       <OrganizationHomeContainer>
+        <div className="early-adopter-banner"><strong>Psst!</strong> This feature is still a work-in-progress. Thanks for being an early adopter! YO! YO!</div>
         <div className="row">
           <div className="col-md-8">
-            <div className="alert alert-block alert-info">Psst! This feature is still a work-in-progress. Thanks for being an early adopter!</div>
             <AssignedIssues {...this.props} />
             <NewIssues {...this.props} />
           </div>

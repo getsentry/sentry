@@ -7,6 +7,7 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import roles
+from sentry.signals import member_invited
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.forms.invite_organization_member import InviteOrganizationMemberForm
 from sentry.web.forms.add_organization_member import AddOrganizationMemberForm
@@ -35,6 +36,9 @@ class CreateOrganizationMemberView(OrganizationView):
             if created:
                 messages.add_message(request, messages.SUCCESS,
                     _('The organization member was added.'))
+
+                member_invited.send(member=om, user=request.user, sender=self)
+
             else:
                 messages.add_message(request, messages.INFO,
                     _('The organization member already exists.'))

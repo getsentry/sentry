@@ -12,8 +12,12 @@ from django.conf import settings
 from django.utils.html import format_html
 from social_auth.models import UserSocialAuth
 
-from sentry.models import GroupMeta, Activity
+from sentry.models import (
+    Activity,
+    GroupMeta,
+)
 from sentry.plugins import Plugin
+from sentry.signals import issue_tracker_used
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -188,6 +192,7 @@ class IssueTrackingPlugin(Plugin):
                 data=issue_information,
             )
 
+            issue_tracker_used.send(plugin=self, project=group.project, user=request.user, sender=IssueTrackingPlugin)
             return self.redirect(group.get_absolute_url())
 
         context = {

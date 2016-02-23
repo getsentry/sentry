@@ -6,6 +6,7 @@ from django.utils.safestring import mark_safe
 
 from sentry import constants
 from sentry.plugins import plugins, IssueTrackingPlugin
+from sentry.signals import plugin_enabled
 from sentry.web.frontend.base import ProjectView
 
 
@@ -21,6 +22,9 @@ class ProjectIssueTrackingView(ProjectView):
     def _handle_enable_plugin(self, request, project):
         plugin = plugins.get(request.POST['plugin'])
         plugin.enable(project)
+
+        plugin_enabled.send(plugin=plugin, project=project, user=request.user, sender=self)
+
         messages.add_message(
             request, messages.SUCCESS,
             constants.OK_PLUGIN_ENABLED.format(name=plugin.get_title()),

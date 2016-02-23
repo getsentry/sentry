@@ -95,6 +95,7 @@ class OrganizationMember(Model):
         assert self.user_id or self.email, \
             'Must set user or email'
         super(OrganizationMember, self).save(*args, **kwargs)
+
         if not self.counter:
             self._set_counter()
 

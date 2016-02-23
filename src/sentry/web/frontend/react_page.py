@@ -4,6 +4,8 @@ from django.middleware.csrf import get_token as get_csrf_token
 from django.http import HttpResponse
 from django.template import loader, Context
 
+from sentry.models import Project
+from sentry.signals import first_event_pending
 from sentry.web.frontend.base import BaseView, OrganizationView
 
 
@@ -28,7 +30,10 @@ class ReactMixin(object):
 # TODO(dcramer): once we implement basic auth hooks in React we can make this
 # generic
 class ReactPageView(OrganizationView, ReactMixin):
-    def handle(self, request, **kwargs):
+    def handle(self, request, organization, **kwargs):
+        if 'project_id' in kwargs and request.GET.get('onboarding'):
+            project = Project.objects.filter(organization=organization, slug=kwargs['project_id']).first()
+            first_event_pending.send(project=project, user=request.user, sender=self)
         return self.handle_react(request)
 
 

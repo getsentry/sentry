@@ -50,6 +50,8 @@ update.alters_data = True
 def create_or_update(model, using=None, **kwargs):
     """
     Similar to get_or_create, either updates a row or creates it.
+    only values args are used for update
+    both default and values are used for create
 
     The result will be (rows affected, False), if the row was not created,
     or (instance, True) if the object is new.
