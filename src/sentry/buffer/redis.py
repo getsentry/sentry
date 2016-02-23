@@ -141,4 +141,7 @@ class RedisBuffer(Buffer):
             elif k.startswith('e+'):
                 extra_values[k[2:]] = pickle.loads(v)
 
-        super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
+        try:
+            super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
+        finally:
+            client.delete(lock_key)
