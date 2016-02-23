@@ -68,6 +68,35 @@ General
 
         $ sentry config generate-secret-key
 
+Redis
+-----
+
+.. describe:: redis.clusters
+
+    Declared in ``config.yml``.
+
+    Describes the Redis clusters avaialble to the Sentry server. These clusters
+    may then be referenced by name by other internal services such as the
+    cache, digests and TSDB backends, among others.
+
+    For example,
+
+    ::
+
+        redis.clusters:
+          default:  # cluster name
+            hosts:  # connection options, passed to `rb.Cluster`
+              0:
+                host: redis-1.example.com
+                port: 6379
+              1:
+                host: redis-2.example.com
+                port: 6379
+          other:
+            hosts:
+              0:
+                host: redis-3.example.com
+                port: 6379
 
 Authentication
 --------------
