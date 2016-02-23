@@ -48,7 +48,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         onboarding_tasks = list(OrganizationOnboardingTask.objects.filter(
             organization=obj,
-        ))
+        ).select_related('user'))
 
         feature_list = []
         if features.has('organizations:sso', obj, actor=user):
