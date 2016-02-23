@@ -56,7 +56,7 @@ Backends
 Dummy Backend
 ~~~~~~~~~~~~~
 
-The dummy backend disables digest scheduling, and all notifiations are sent as
+The dummy backend disables digest scheduling, and all notifications are sent as
 they occur (subject to rate limits.) This is the default digest backend for
 installations that were created prior to version 8.
 
