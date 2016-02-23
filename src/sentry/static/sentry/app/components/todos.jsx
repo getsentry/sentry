@@ -77,6 +77,7 @@ const TodoItem = React.createClass({
 
     return (
       <li className={classNames}>
+        { this.props.task.status == 'pending' && <div className="pending-bar" /> }
         <div className="todo-content">
           <div className="ob-checkbox">
             { this.props.task.status == 'complete' && <span className="icon-checkmark" /> }
