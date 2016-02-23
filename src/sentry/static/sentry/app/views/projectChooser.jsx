@@ -1,5 +1,6 @@
 import React from 'react';
 import {History} from 'react-router';
+import $ from 'jquery';
 
 import OrganizationState from '../mixins/organizationState';
 import TodoList from '../components/todos';
@@ -11,34 +12,32 @@ const ProjectChooser = React.createClass({
   ],
 
   componentWillMount() {
-    jQuery(document.body).addClass('narrow');
+    $(document.body).addClass('narrow');
   },
 
   componentWillUnmount() {
-    jQuery(document.body).removeClass('narrow');
+    $(document.body).removeClass('narrow');
   },
 
   render() {
     let org = this.getOrganization();
 
-    // Expect onboarding=1 and task=<task id> parameters and task.feature_location == 'project'
+    // Expect onboarding=1 and task=<task id> parameters and task.featureLocation == 'project'
     // TODO throw up report dialog if not true
     let task = TodoList.TASKS.filter((t) => t.task == this.props.location.query.task)[0];
-    if (task.feature_location != 'project') {
+    if (task.featureLocation != 'project') {
       throw new Error('User arrived on project chooser without a valid task id.');
     }
-    let teamProjectList = [];
+    let teamProjectList = org.teams.map((team) => {
 
-    org.teams.map((team) => {
-      let projectList = [];
-      team.projects.map((project) => {
-        projectList.push(
-          <tr key={project.id}><td><h5>
-            <a href={`/${org.slug}/${project.slug}/${task.location}`}>{project.name}</a>
-          </h5></td></tr>);
+      // Get list of projects per team
+      let projectList = team.projects.map(project => {
+        return (<tr key={project.id}><td><h5>
+          <a href={`/${org.slug}/${project.slug}/${task.location}`}>{project.name}</a>
+        </h5></td></tr>);
       });
 
-      teamProjectList.push(
+      return(
         <div key={team.id}>
           <div className="box-header" key={team.id}>
             <h3>{team.name}</h3>

@@ -63,13 +63,13 @@ const TodoItem = React.createClass({
       classNames += ' blur';
     }
 
-    let learn_more_url = '';
-    if (this.props.task.feature_location === 'project') {
-      learn_more_url = '/organizations/' + org.slug + '/projects/choose/?onboarding=1&task=' + this.props.task.task;
-    } else if (this.props.task.feature_location === 'organization') {
-      learn_more_url = '/organizations/' + org.slug + '/' + this.props.task.location;
-    } else if (this.props.task.feature_location === 'absolute') {
-      learn_more_url = this.props.task.location;
+    let learnMoreUrl = '';
+    if (this.props.task.featureLocation === 'project') {
+      learnMoreUrl = '/organizations/' + org.slug + '/projects/choose/?onboarding=1&task=' + this.props.task.task;
+    } else if (this.props.task.featureLocation === 'organization') {
+      learnMoreUrl = '/organizations/' + org.slug + '/' + this.props.task.location;
+    } else if (this.props.task.featureLocation === 'absolute') {
+      learnMoreUrl = this.props.task.location;
     }
 
     let showSkipButton = this.props.task.skippable && this.props.task.status != 'skipped' &&
@@ -83,7 +83,7 @@ const TodoItem = React.createClass({
             { this.props.task.status == 'skipped' && <span className="icon-x" /> }
             { this.props.task.status == 'pending' && <span className="icon-ellipsis" /> }
           </div>
-          <a href={learn_more_url}><h4>{ this.props.task.title }</h4></a>
+          <a href={learnMoreUrl}><h4>{ this.props.task.title }</h4></a>
           <p>
             { description }
           </p>
@@ -134,7 +134,7 @@ const TodoList = React.createClass({
         'description': t('Create your first Sentry project'),
         'skippable': false,
         'prereq': [],
-        'feature_location': 'organization',
+        'featureLocation': 'organization',
         'location': 'projects/new/',
       },
       {
@@ -143,7 +143,7 @@ const TodoList = React.createClass({
         'description': t('Install Sentry\'s client and send an event'),
         'skippable': false,
         'prereq': [1],
-        'feature_location': 'project',
+        'featureLocation': 'project',
         'location': 'settings/install/',
       },
       {
@@ -152,7 +152,7 @@ const TodoList = React.createClass({
         'description': t('Bring your team aboard'),
         'skippable': false,
         'prereq': [],
-        'feature_location': 'organization',
+        'featureLocation': 'organization',
         'location': 'members/',
       },
       {
@@ -161,7 +161,7 @@ const TodoList = React.createClass({
         'description': t('Add Sentry to a second platform'),
         'skippable': false,
         'prereq': [1, 2],
-        'feature_location': 'organization',
+        'featureLocation': 'organization',
         'location': 'projects/new/',
       },
       {
@@ -170,7 +170,7 @@ const TodoList = React.createClass({
         'description': t('Know who is being affected by crashes'),
         'skippable': false,
         'prereq': [1, 2],
-        'feature_location': 'absolute',
+        'featureLocation': 'absolute',
         'location': 'https://docs.getsentry.com/hosted/learn/context/#capturing-the-user',
       },
       {
@@ -179,7 +179,7 @@ const TodoList = React.createClass({
         'description': t('See what releases are generating errors.'),
         'skippable': false,
         'prereq': [1, 2],
-        'feature_location': 'project',
+        'featureLocation': 'project',
         'location': 'settings/release-tracking/',
       },
       {
@@ -188,7 +188,7 @@ const TodoList = React.createClass({
         'description': t('Deminify javascript stacktraces'),
         'skippable': false,
         'prereq': [1, 2, 8], // Is one of the platforms javascript?
-        'feature_location': 'absolute',
+        'featureLocation': 'absolute',
         'location': 'https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/'
       },
       // {
@@ -197,7 +197,7 @@ const TodoList = React.createClass({
       //   'description': 'Collect user feedback when your application crashes',
       //   'skippable': false,
       //   'prereq': [1, 2, 5]
-      //   'feature_location': 'project',
+      //   'featureLocation': 'project',
       //   'location': 'settings/user-reports/'
       // },
       {
@@ -206,7 +206,7 @@ const TodoList = React.createClass({
         'description': t('Link to Sentry issues within your issue tracker'),
         'skippable': true,
         'prereq': [1, 2],
-        'feature_location': 'project',
+        'featureLocation': 'project',
         'location': 'settings/issue-tracking/',
       },
       {
@@ -215,7 +215,7 @@ const TodoList = React.createClass({
         'description': t('Receive Sentry alerts in Slack or HipChat'),
         'skippable': true,
         'prereq': [1, 2],
-        'feature_location': 'project',
+        'featureLocation': 'project',
         'location': 'settings/notification/',
       },
     ]
