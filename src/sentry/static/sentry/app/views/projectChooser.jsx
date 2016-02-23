@@ -1,6 +1,7 @@
 import React from 'react';
 import {History} from 'react-router';
 import $ from 'jquery';
+import {t} from '../locale';
 
 import OrganizationState from '../mixins/organizationState';
 import TodoList from '../components/todos';
@@ -24,7 +25,7 @@ const ProjectChooser = React.createClass({
 
     // Expect onboarding=1 and task=<task id> parameters and task.featureLocation == 'project'
     // TODO throw up report dialog if not true
-    let task = TodoList.TASKS.filter((t) => t.task == this.props.location.query.task)[0];
+    let task = TodoList.TASKS.filter((task_inst) => task_inst.task == this.props.location.query.task)[0];
     if (task.featureLocation != 'project') {
       throw new Error('User arrived on project chooser without a valid task id.');
     }
@@ -54,7 +55,7 @@ const ProjectChooser = React.createClass({
 
     return (
       <div className="container">
-        <h3>Choose a project</h3>
+        <h3>{t('Choose a project')}</h3>
         <div className="team-list">
           <div className="box">
             {teamProjectList}
