@@ -2,6 +2,7 @@ Version 8.2.0
 -------------
 
 - SENTRY_DISALLOWED_IPS is no longer configured by default. If you're exposing Sentry outside of your company you may wish to configure this.
+- Do not require the documentation sync on repair to succeed.
 
 Schema Changes
 ~~~~~~~~~~~~~~
