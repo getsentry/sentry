@@ -20,7 +20,10 @@ def repair():
     click.echo('Forcing documentation sync')
     from sentry.utils.integrationdocs import sync_docs, DOC_FOLDER
     if os.access(DOC_FOLDER, os.W_OK):
-        sync_docs()
+        try:
+            sync_docs()
+        except Exception as e:
+            click.echo(' - skipping, failure: %s' % e)
     elif os.path.isdir(DOC_FOLDER):
         click.echo(' - skipping, path cannot be written to: %r' % DOC_FOLDER)
     else:
