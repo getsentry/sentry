@@ -28,6 +28,24 @@ from sentry.utils.http import absolute_uri
 transformers = {}
 
 
+def has_sourcemap(event):
+    if event.platform != 'javascript':
+        print(event.platform)
+        return False
+    data = event.data
+
+    if 'sentry.interfaces.Exception' not in data:
+        return False
+    exception = data['sentry.interfaces.Exception']
+    for value in exception['values']:
+        stacktrace = value.get('stacktrace', {})
+        for frame in stacktrace.get('frames', []):
+            if 'sourcemap' in frame.get('data', {}):
+                return True
+
+    return False
+
+
 def transform(objects, request=None):
     if request is None:
         request = getattr(env, 'request', None)

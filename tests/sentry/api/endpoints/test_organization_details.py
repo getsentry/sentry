@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse
 from mock import patch
 
 from sentry.models import Organization, OrganizationOption, OrganizationStatus
+from sentry.signals import project_created
 from sentry.testutils import APITestCase
 
 
@@ -14,9 +15,20 @@ class OrganizationDetailsTest(APITestCase):
         url = reverse('sentry-api-0-organization-details', kwargs={
             'organization_slug': org.slug,
         })
-        response = self.client.get(url)
+        response = self.client.get(url, format='json')
+        assert response.data['onboardingTasks'] == []
         assert response.status_code == 200, response.content
         assert response.data['id'] == str(org.id)
+
+        project = self.create_project(organization=org)
+        project_created.send(project=project, user=self.user, sender=type(project))
+
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': org.slug,
+        })
+        response = self.client.get(url, format='json')
+        assert len(response.data['onboardingTasks']) == 1
+        assert response.data['onboardingTasks'][0]['task'] == 1
 
 
 class OrganizationUpdateTest(APITestCase):

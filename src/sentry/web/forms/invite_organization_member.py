@@ -4,8 +4,11 @@ from django import forms
 from django.db import transaction, IntegrityError
 
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMember
+    AuditLogEntry,
+    AuditLogEntryEvent,
+    OrganizationMember,
 )
+from sentry.signals import member_invited
 
 
 class InviteOrganizationMemberForm(forms.ModelForm):
@@ -34,6 +37,7 @@ class InviteOrganizationMemberForm(forms.ModelForm):
         sid = transaction.savepoint(using='default')
         try:
             om.save()
+
         except IntegrityError:
             transaction.savepoint_rollback(sid, using='default')
             return OrganizationMember.objects.get(
@@ -50,7 +54,7 @@ class InviteOrganizationMemberForm(forms.ModelForm):
             event=AuditLogEntryEvent.MEMBER_INVITE,
             data=om.get_audit_log_data(),
         )
-
+        member_invited.send(member=om, user=actor, sender=InviteOrganizationMemberForm)
         om.send_invite_email()
 
         return om, True

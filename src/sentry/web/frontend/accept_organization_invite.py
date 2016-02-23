@@ -8,6 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMember, Project
 )
+from sentry.signals import member_joined
 from sentry.web.frontend.base import BaseView
 
 ERR_INVITE_INVALID = _('The invite link you followed is not valid.')
@@ -107,6 +108,8 @@ class AcceptOrganizationInviteView(BaseView):
                         organization.name.encode('utf-8'),
                     )
                 )
+
+                member_joined.send(member=om, sender=self)
 
             request.session.pop('can_register', None)
 

@@ -31,7 +31,7 @@ from sentry.models import (
     GroupStatus, Project, Release, TagKey, UserReport
 )
 from sentry.plugins import plugins
-from sentry.signals import regression_signal
+from sentry.signals import first_event_received, regression_signal
 from sentry.utils.logging import suppress_exceptions
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
@@ -513,6 +513,7 @@ class EventManager(object):
         if not raw:
             if not project.first_event:
                 project.update(first_event=date)
+                first_event_received.send(project=project, group=group, sender=Project)
 
             post_process_group.delay(
                 group=group,

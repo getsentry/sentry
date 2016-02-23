@@ -4,7 +4,11 @@ from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth import access
 from sentry.models import (
-    Organization, OrganizationAccessRequest, OrganizationOption, Team,
+    Organization,
+    OrganizationAccessRequest,
+    OrganizationOnboardingTask,
+    OrganizationOption,
+    Team,
     TeamStatus
 )
 
@@ -20,6 +24,17 @@ class OrganizationSerializer(Serializer):
         }
 
 
+class OnboardingTasksSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        return {
+            'task': obj.task,
+            'status': dict(OrganizationOnboardingTask.STATUS_CHOICES).get(obj.status).lower(),
+            'user': obj.user.name if obj.user else None,
+            'dateCompleted': obj.date_completed,
+            'data': obj.data,
+        }
+
+
 class DetailedOrganizationSerializer(OrganizationSerializer):
     def serialize(self, obj, attrs, user):
         from sentry import features
@@ -31,9 +46,15 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             status=TeamStatus.VISIBLE,
         ))
 
+        onboarding_tasks = list(OrganizationOnboardingTask.objects.filter(
+            organization=obj,
+        ))
+
         feature_list = []
         if features.has('organizations:sso', obj, actor=user):
             feature_list.append('sso')
+        if features.has('organizations:onboarding', obj, actor=user):
+            feature_list.append('onboarding')
 
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')
@@ -60,4 +81,5 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         context['pendingAccessRequests'] = OrganizationAccessRequest.objects.filter(
             team__organization=obj,
         ).count()
+        context['onboardingTasks'] = serialize(onboarding_tasks, user, OnboardingTasksSerializer())
         return context

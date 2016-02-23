@@ -22,6 +22,7 @@ import OrganizationDetails from './views/organizationDetails';
 import OrganizationRateLimits from './views/organizationRateLimits';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
+import ProjectChooser from './views/projectChooser';
 import ProjectDashboard from './views/projectDashboard';
 import ProjectDetails from './views/projectDetails';
 import ProjectEvents from './views/projectEvents';
@@ -71,6 +72,7 @@ let routes = (
       <Route path="/organizations/:orgId/issues/assigned/" component={errorHandler(MyIssuesAssignedToMe)} />
       <Route path="/organizations/:orgId/issues/bookmarks/" component={errorHandler(MyIssuesBookmarked)} />
       <Route path="/organizations/:orgId/issues/history/" component={errorHandler(MyIssuesViewed)} />
+      <Route path="/organizations/:orgId/projects/choose/" component={errorHandler(ProjectChooser)} />
       <Route path="/organizations/:orgId/rate-limits/" component={errorHandler(OrganizationRateLimits)} />
       <Route path="/organizations/:orgId/stats/" component={errorHandler(OrganizationStats)} />
       <Route path="/organizations/:orgId/teams/:teamId/" component={errorHandler(TeamDetails)}>
