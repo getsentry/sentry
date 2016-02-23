@@ -19,6 +19,7 @@ running on your own infrastructure.
    sso
    throttling
    tsdb
+   digests
    inbound-mail
    internal-metrics
    performance
