@@ -129,6 +129,26 @@ class OrganizationOnboardingTaskTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         )
         assert task is not None
+        assert 'platform' in task.data['platform']
+
+        second_project = self.create_project(first_event=timezone.now())
+        project_created.send(project=second_project, user=self.user, sender=type(second_project))
+        second_task = OrganizationOnboardingTask.objects.get(
+            organization=project.organization,
+            task=OnboardingTask.SECOND_PLATFORM,
+            status=OnboardingTaskStatus.PENDING,
+        )
+        assert second_task is not None
+
+        first_event_received.send(project=second_project, group=self.group, sender=type(second_project))
+        second_task = OrganizationOnboardingTask.objects.get(
+            organization=project.organization,
+            task=OnboardingTask.SECOND_PLATFORM,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        assert second_task is not None
+        assert 'platform' in second_task.data
+        assert task.data['platform'] != second_task.data['platform']
 
     def test_member_invited(self):
         user = self.create_user(email='test@example.org')
