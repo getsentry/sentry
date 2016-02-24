@@ -400,7 +400,9 @@ class EventManagerTest(TransactionTestCase):
 
     def test_record_frequencies(self):
         project = self.project
-        manager = EventManager(self.make_event())
+        manager = EventManager(self.make_event(
+            timestamp=time(),
+        ))
         event = manager.save(project)
 
         assert tsdb.get_most_frequent(
@@ -425,6 +427,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_event_user(self):
         manager = EventManager(self.make_event(**{
+            'timestamp': time(),
             'sentry.interfaces.User': {
                 'id': '1',
             }
