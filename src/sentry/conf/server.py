@@ -487,6 +487,9 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
     'handlers': {
+        'null': {
+            'class': 'django.utils.log.NullHandler',
+        },
         'console': {
             'level': 'WARNING',
             'class': 'logging.StreamHandler',
@@ -556,6 +559,7 @@ LOGGING = {
         },
         'toronado.cssutils': {
             'level': 'ERROR',
+            'handlers': ['null'],
             'propagate': False,
         },
     }
