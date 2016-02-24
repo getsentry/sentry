@@ -103,8 +103,9 @@ def sort_dependencies(app_list):
 
 @click.command()
 @click.argument('dest', default='-', type=click.File('wb'))
+@click.option('--silent', '-q', default=False, is_flag=True)
 @configuration
-def export(dest):
+def export(dest, silent):
     "Exports core metadata for the Sentry installation."
 
     from django.db.models import get_apps
@@ -116,17 +117,20 @@ def export(dest):
         # Collate the objects to be serialized.
         for model in sort_dependencies(app_list):
             if not getattr(model, '__core__', True):
-                click.echo(">> Skipping model <%s>" % (model.__name__,), err=True)
+                if not silent:
+                    click.echo(">> Skipping model <%s>" % (model.__name__,), err=True)
                 continue
 
             if model._meta.proxy:
-                click.echo(">> Skipping model <%s>\n" % (model.__name__,), err=True)
+                if not silent:
+                    click.echo(">> Skipping model <%s>\n" % (model.__name__,), err=True)
                 continue
 
             queryset = model._base_manager.order_by(model._meta.pk.name)
             for obj in queryset.iterator():
                 yield obj
 
-    click.echo('>> Beginning export', err=True)
+    if not silent:
+        click.echo('>> Beginning export', err=True)
     serializers.serialize("json", yield_objects(), indent=2, stream=dest,
                           use_natural_keys=True)
