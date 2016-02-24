@@ -14,7 +14,33 @@ const TeamStore = Reflux.createStore({
 
   loadInitialData(items) {
     this.items = items;
-    this.trigger(this.items, 'initial');
+    this.trigger(new Set(items.map(item => item.id)));
+  },
+
+  add(items) {
+    if (!items instanceof Array) {
+      items = [items];
+    }
+
+    let itemsById = {};
+    let itemIds = new Set();
+    items.forEach((item) => {
+      itemsById[item.id] = item;
+      itemIds.add(item.id);
+    });
+
+    items.forEach((item, idx) => {
+      if (itemsById[item.id]) {
+        this.items[idx] = jQuery.extend(true, {}, item, itemsById[item.id]);
+        delete itemsById[item.id];
+      }
+    });
+
+    for (let itemId in itemsById) {
+      this.items.push(itemsById[itemId]);
+    }
+
+    this.trigger(itemIds);
   },
 
   onUpdateSuccess(changeId, itemId, response) {
@@ -27,7 +53,7 @@ const TeamStore = Reflux.createStore({
     } else {
       $.extend(true, item, response);
     }
-    this.trigger(this.items, 'update');
+    this.trigger(new Set([itemId]));
   },
 
   getById(id) {

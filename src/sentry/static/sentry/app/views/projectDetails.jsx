@@ -64,7 +64,9 @@ const ProjectDetails = React.createClass({
     this.setState(this.getInitialState(), this.fetchData);
   },
 
-  onTeamChange() {
+  onTeamChange(itemIds) {
+    if (!this.state.team) return;
+    if (!itemIds.has(this.state.team.id)) return;
     this.fetchData();
   },
 
