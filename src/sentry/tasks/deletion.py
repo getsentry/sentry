@@ -225,7 +225,7 @@ def delete_tag_key(object_id, continuous=True, **kwargs):
 
 def delete_events(relation, limit=100, logger=None):
     from sentry.app import nodestore
-    from sentry.models import Event
+    from sentry.models import Event, EventTag
 
     has_more = False
     if logger is not None:
@@ -238,8 +238,11 @@ def delete_events(relation, limit=100, logger=None):
         node_ids = set(r.data.id for r in result_set)
         nodestore.delete_multi(node_ids)
 
+        event_ids = [r.id for r in result_set]
+
         # bulk delete by id
-        Event.objects.filter(id__in=[r.id for r in result_set]).delete()
+        EventTag.objects.filter(event_id__in=event_ids).delete()
+        Event.objects.filter(id__in=event_ids).delete()
     return has_more
 
 
