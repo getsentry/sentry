@@ -29,7 +29,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             task=OnboardingTask.FIRST_EVENT
         )
         assert task.status == OnboardingTaskStatus.COMPLETE
-        assert task.project == project
+        assert task.project_id == project.id
         assert task.date_completed == project.first_event
 
     def test_existing_pending_task(self):
@@ -43,7 +43,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         assert task.status == OnboardingTaskStatus.PENDING
-        assert task.project == project
+        assert task.project_id == project.id
 
         first_event_received.send(project=project, group=self.group, sender=type(project))
 
@@ -53,7 +53,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         assert task.status == OnboardingTaskStatus.COMPLETE
-        assert task.project == project
+        assert task.project_id == project.id
         assert task.date_completed == project.first_event
 
     def test_existing_complete_task(self):
@@ -68,7 +68,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         task = OrganizationOnboardingTask.objects.get(id=task.id)
         assert task.status == OnboardingTaskStatus.COMPLETE
-        assert not task.project
+        assert not task.project_id
 
     # Tests on the receivers
     def test_event_processed(self):
