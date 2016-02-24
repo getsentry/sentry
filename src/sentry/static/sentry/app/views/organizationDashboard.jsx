@@ -5,7 +5,9 @@ import ActivityFeed from '../components/activity/feed';
 import GroupStore from '../stores/groupStore';
 import IssueList from '../components/issueList';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
+import OrganizationState from '../mixins/organizationState';
 import {t} from '../locale';
+import {sortArray} from '../utils';
 
 const AssignedIssues = React.createClass({
   propTypes: {
@@ -62,6 +64,51 @@ const NewIssues = React.createClass({
   },
 });
 
+const ProjectList = React.createClass({
+  mixins: [OrganizationState],
+
+  getDefaultProps() {
+    return {
+      maxProjects: 5,
+    };
+  },
+
+  render() {
+    let org = this.getOrganization();
+    let maxProjects = this.props.maxProjects;
+    let projectList = [];
+    org.teams.forEach((team) => {
+      team.projects.forEach((project) => {
+        projectList.push(project);
+      });
+    });
+
+    projectList = sortArray(projectList, (item) => {
+      return [!item.isBookmarked, item.name];
+    });
+
+    return (
+      <div>
+        {projectList.length > maxProjects &&
+          <div className="pull-right">
+            <Link className="btn btn-sm btn-default"
+                  to={`/{$org.slug}/`}>View All</Link>
+          </div>
+        }
+        <h6 className="nav-header">Projects</h6>
+        <ul className="nav nav-stacked">
+          {projectList.slice(0, maxProjects).map((project) => {
+            return (
+              <li key={project.id}>
+                <Link to={`/${org.slug}/${project.slug}/`}>{project.name}</Link>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  },
+});
 
 const Activity = React.createClass({
 
@@ -103,6 +150,7 @@ const OrganizationDashboard = React.createClass({
             <NewIssues {...this.props} />
           </div>
           <div className="col-md-4">
+            <ProjectList {...this.props} />
             <Activity {...this.props} />
           </div>
         </div>

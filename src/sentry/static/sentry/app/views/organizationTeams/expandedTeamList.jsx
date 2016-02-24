@@ -94,6 +94,18 @@ const ExpandedTeamList = React.createClass({
     );
   },
 
+  toggleBookmark(project) {
+    let orgSlug = this.props.organization.slug;
+    // TODO(dcramer): we have no great way to populate changes to projects
+    // currently
+    this.api.request(`/projects/${orgSlug}/${project.slug}/`, {
+      method: 'PUT',
+      data: {
+        isBookmarked: !project.isBookmarked,
+      },
+    });
+  },
+
   renderProject(project) {
     let org = this.props.organization;
     let projectStats = this.props.projectStats;
@@ -105,7 +117,12 @@ const ExpandedTeamList = React.createClass({
     }
 
     return (
-      <tr key={project.id}>
+      <tr key={project.id} className={project.isBookmarked && 'isBookmarked'}>
+        <td>
+          <a onClick={this.toggleBookmark.bind(this, project)}>
+            <span className="icon-bookmark" />
+          </a>
+        </td>
         <td>
           <h5>
             <Link to={`/${org.slug}/${project.slug}/`}>
