@@ -103,9 +103,9 @@ def sort_dependencies(app_list):
 
 @click.command()
 @click.argument('dest', default='-', type=click.File('wb'))
-@click.option('--silent', '-q', default=False, is_flag=True)
-@click.option('--indent', default=2)
-@click.option('--exclude', default=None)
+@click.option('--silent', '-q', default=False, is_flag=True, help='Silence all debug output.')
+@click.option('--indent', default=2, help='Number of spaces to indent for the JSON output. (default: 2)')
+@click.option('--exclude', default=None, help='Models to exclude from export.', metavar='MODELS')
 @configuration
 def export(dest, silent, indent, exclude):
     "Exports core metadata for the Sentry installation."
