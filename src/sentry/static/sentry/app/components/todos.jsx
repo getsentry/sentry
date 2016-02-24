@@ -217,7 +217,7 @@ const TodoList = React.createClass({
         'skippable': true,
         'prereq': [1, 2],
         'featureLocation': 'project',
-        'location': 'settings/notification/',
+        'location': 'settings/notifications/',
       },
     ]
   },
