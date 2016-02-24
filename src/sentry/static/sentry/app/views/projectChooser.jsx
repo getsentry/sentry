@@ -39,16 +39,18 @@ const ProjectChooser = React.createClass({
       });
 
       return(
-        <div key={team.id}>
-          <div className="box-header" key={team.id}>
-            <h3>{team.name}</h3>
-          </div>
-          <div className="box-content">
-            <table className="table project-list">
-              <tbody>
-                {projectList}
-              </tbody>
-            </table>
+        <div className="box">
+          <div key={team.id}>
+            <div className="box-header" key={team.id}>
+              <h3>{team.name}</h3>
+            </div>
+            <div className="box-content">
+              <table className="table project-list">
+                <tbody>
+                  {projectList}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>);
     });
@@ -57,9 +59,7 @@ const ProjectChooser = React.createClass({
       <div className="container">
         <h3>{t('Choose a project')}</h3>
         <div className="team-list">
-          <div className="box">
-            {teamProjectList}
-          </div>
+          {teamProjectList}
         </div>
       </div>
     );
