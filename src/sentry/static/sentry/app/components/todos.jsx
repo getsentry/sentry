@@ -98,7 +98,7 @@ const TodoItem = React.createClass({
 
 const Confirmation = React.createClass({
   propTypes: {
-    task: React.PropTypes.string,
+    task: React.PropTypes.number,
   },
 
   skip: function(e) {

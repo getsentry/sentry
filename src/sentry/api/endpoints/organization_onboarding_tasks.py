@@ -14,7 +14,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
     permission_classes = [OrganizationPermission, ]
 
     def post(self, request, organization):
-        if request.DATA['status'] == 'Skipped':
+        if request.DATA['status'] == 'skipped':
             OrganizationOnboardingTask.objects.create_or_update(
                 organization=organization,
                 user=request.user,
