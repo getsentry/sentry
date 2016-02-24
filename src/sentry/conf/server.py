@@ -525,6 +525,13 @@ CELERYBEAT_SCHEDULE = {
             'queue': 'auth',
         }
     },
+    'enqueue-scheduled-jobs': {
+        'task': 'sentry.tasks.enqueue_scheduled_jobs',
+        'schedule': timedelta(minutes=1),
+        'options': {
+            'expires': 60,
+        },
+    },
     'send-beacon': {
         'task': 'sentry.tasks.send_beacon',
         'schedule': timedelta(hours=1),
