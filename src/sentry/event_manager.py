@@ -363,6 +363,8 @@ class EventManager(object):
 
     @suppress_exceptions
     def save(self, project, raw=False):
+        from sentry.tasks.post_process import index_event_tags
+
         project = Project.objects.get_from_cache(id=project)
 
         data = self.data.copy()
@@ -495,6 +497,12 @@ class EventManager(object):
                 self.logger.info('Duplicate Event found for event_id=%s', event_id,
                                  exc_info=True)
                 return event
+
+            index_event_tags.delay(
+                project_id=project.id,
+                event_id=event.id,
+                tags=tags,
+            )
 
         if event_user:
             tsdb.record_multi((
