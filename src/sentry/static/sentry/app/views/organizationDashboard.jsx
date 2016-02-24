@@ -86,7 +86,7 @@ const OrganizationDashboard = React.createClass({
   render() {
     return (
       <OrganizationHomeContainer>
-        <div className="early-adopter-banner"><strong>Psst!</strong> This feature is still a work-in-progress. Thanks for being an early adopter! YO! YO!</div>
+        <div className="early-adopter-banner"><strong>Psst!</strong> This feature is still a work-in-progress. Thanks for being an early adopter!</div>
         <div className="row">
           <div className="col-md-8">
             <AssignedIssues {...this.props} />
