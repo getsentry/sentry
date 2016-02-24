@@ -19,6 +19,9 @@ const OnboardingStatus = React.createClass({
 
   render() {
     let org = this.props.org;
+    if (org.features.indexOf('onboarding') === -1 && !org.onboardingTasks)
+      return null;
+
     let percentage = Math.round(
       (org.onboardingTasks.filter(
         t => t.status === 'complete'
@@ -29,9 +32,6 @@ const OnboardingStatus = React.createClass({
     };
 
     if (percentage >= 100)
-      return null;
-
-    if (org.features.indexOf('onboarding') === -1)
       return null;
 
     return (
