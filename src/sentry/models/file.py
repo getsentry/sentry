@@ -201,6 +201,8 @@ class File(Model):
 
 
 class FileBlobIndex(Model):
+    __core__ = False
+
     file = FlexibleForeignKey('sentry.File')
     blob = FlexibleForeignKey('sentry.FileBlob')
     offset = BoundedPositiveIntegerField()
