@@ -40,9 +40,8 @@ class SentryHTTPServer(Service):
         if validate:
             self.validate_settings()
 
-        self.host = host or settings.SENTRY_WEB_HOST
-        self.port = port or settings.SENTRY_WEB_PORT
-        self.workers = workers
+        host = host or settings.SENTRY_WEB_HOST
+        port = port or settings.SENTRY_WEB_PORT
 
         options = (settings.SENTRY_WEB_OPTIONS or {}).copy()
         options.setdefault('module', 'sentry.wsgi:application')
@@ -68,7 +67,7 @@ class SentryHTTPServer(Service):
         options.setdefault('virtualenv', sys.prefix)
         options.setdefault('log-format', '%(addr) - %(user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"')
 
-        options.setdefault('%s-socket' % options['protocol'], '%s:%s' % (self.host, self.port))
+        options.setdefault('%s-socket' % options['protocol'], '%s:%s' % (host, port))
 
         # We only need to set uid/gid when stepping down from root, but if
         # we are trying to run as root, then ignore it entirely.
