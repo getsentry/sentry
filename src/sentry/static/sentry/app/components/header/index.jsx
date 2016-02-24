@@ -21,7 +21,7 @@ const OnboardingStatus = React.createClass({
     let org = this.props.org;
     let percentage = Math.round(
       (org.onboardingTasks.filter(
-        t => t.status === 'Complete'
+        t => t.status === 'complete'
       ).length) / TodoList.TASKS.length * 100
     ).toString();
     let style = {
