@@ -16,6 +16,7 @@ class Migration(DataMigration):
         OrganizationMember = orm['sentry.OrganizationMember']
         OrganizationOnboardingTask = orm['sentry.OrganizationOnboardingTask']
         Project = orm['sentry.Project']
+        ProjectOption = orm['sentry.ProjectOption']
 
         queryset = Organization.objects.all()
 
@@ -25,7 +26,7 @@ class Migration(DataMigration):
                     with transaction.atomic():
                         OrganizationOnboardingTask.objects.create(
                             organization=org,
-                            task=OrganizationOnboardingTask.FIRST_PROJECT,
+                            task=OnboardingTask.FIRST_PROJECT,
                             status=OnboardingTaskStatus.COMPLETE
                         )
                 except IntegrityError:
@@ -37,7 +38,7 @@ class Migration(DataMigration):
                     with transaction.atomic():
                         OrganizationOnboardingTask.objects.create(
                             organization=org,
-                            task=OrganizationOnboardingTask.FIRST_EVENT,
+                            task=OnboardingTask.FIRST_EVENT,
                             status=OnboardingTaskStatus.COMPLETE,
                             project_id=projects[0].id
                         )
@@ -49,7 +50,7 @@ class Migration(DataMigration):
                 for project in projects:
                     first_event_kwargs = {
                         'organization': org,
-                        'task': OrganizationOnboardingTask.FIRST_EVENT,
+                        'task': OnboardingTask.FIRST_EVENT,
                         'status': OnboardingTaskStatus.COMPLETE,
                         'project_id': project.id
                     }
@@ -74,7 +75,7 @@ class Migration(DataMigration):
                                 with transaction.atomic():
                                     OrganizationOnboardingTask.objects.create(
                                         organization=org,
-                                        task=OrganizationOnboardingTask.SECOND_PLATFORM,
+                                        task=OnboardingTask.SECOND_PLATFORM,
                                         status=OnboardingTaskStatus.COMPLETE,
                                         project_id=project.id,
                                         data={'platform': group.platform}
@@ -97,7 +98,7 @@ class Migration(DataMigration):
                     with transaction.atomic():
                         OrganizationOnboardingTask.objects.create(
                             organization=org,
-                            task=OrganizationOnboardingTask.INVITE_MEMBER,
+                            task=OnboardingTask.INVITE_MEMBER,
                             status=OnboardingTaskStatus.COMPLETE,
                         )
                 except IntegrityError:
@@ -116,7 +117,7 @@ class Migration(DataMigration):
                     with transaction.atomic():
                         OrganizationOnboardingTask.objects.create(
                             organization=org,
-                            task=OrganizationOnboardingTask.ISSUE_TRACKER,
+                            task=OnboardingTask.ISSUE_TRACKER,
                             status=OnboardingTaskStatus.COMPLETE,
                             project_id=option.project_id,
                             data={'plugin': option.key.split(':')[0]}
@@ -135,7 +136,7 @@ class Migration(DataMigration):
                     with transaction.atomic():
                         OrganizationOnboardingTask.objects.create(
                             organization=org,
-                            task=OrganizationOnboardingTask.NOTIFICATION_SERVICE,
+                            task=OnboardingTask.NOTIFICATION_SERVICE,
                             status=OnboardingTaskStatus.COMPLETE,
                             project_id=option.project_id
                         )
