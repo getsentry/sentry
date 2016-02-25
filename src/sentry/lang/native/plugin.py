@@ -4,7 +4,7 @@ import posixpath
 
 from sentry.models import Project
 from sentry.plugins import Plugin2
-from sentry.lang.native.symbolizer import make_symbolizer
+from sentry.lang.native.symbolizer import make_symbolizer, have_symsynd
 
 
 def exception_from_apple_error_or_diagnosis(error, diagnosis=None):
@@ -81,4 +81,6 @@ class NativePlugin(Plugin2):
     can_disable = False
 
     def get_event_preprocessors(self, **kwargs):
+        if not have_symsynd:
+            return []
         return [preprocess_apple_crash_event]
