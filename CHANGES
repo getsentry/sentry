@@ -8,6 +8,8 @@ Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added ``ProjectBookmark`` model.
+- Added ``OrganizationOnboardingTask`` model.
+- Added ``EventTag`` model.
 
 Version 8.1.2
 -------------
