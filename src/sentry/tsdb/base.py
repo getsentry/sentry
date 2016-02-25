@@ -7,6 +7,8 @@ sentry.tsdb.base
 """
 from __future__ import absolute_import
 
+from collections import OrderedDict
+from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 from enum import Enum
@@ -67,7 +69,7 @@ class BaseTSDB(object):
     models = TSDBModel
 
     def __init__(self, rollups=settings.SENTRY_TSDB_ROLLUPS):
-        self.rollups = rollups
+        self.rollups = OrderedDict(sorted(rollups, key=lambda (duration, samples): duration))
 
     def validate(self):
         """
@@ -106,18 +108,25 @@ class BaseTSDB(object):
         """
         return int(epoch / seconds)
 
-    def get_optimal_rollup(self, start_timestamp, end_timestamp):
+    def get_optimal_rollup(self, start_timestamp, end_timestamp, rollup=None):
         """
-        Identify the lowest granularity rollup available within the given time
-        range.
         """
-        num_seconds = int(to_timestamp(end_timestamp)) - int(to_timestamp(start_timestamp))
+        now = timezone.now()
 
-        # calculate the highest rollup within time range
-        for rollup, samples in self.rollups:
-            if rollup * samples >= num_seconds:
-                return rollup
-        return self.rollups[-1][0]
+        def satisfies_range((duration, samples)):
+            retention = timedelta(seconds=duration * samples)
+            return start_timestamp >= (now - retention)
+
+        if rollup is None:
+            rollups = filter(satisfies_range, self.rollups.items())
+            assert rollups, 'could not find rollup that satisfies range'
+            rollup = rollups[0][0]
+        else:
+            samples = self.rollups.get(rollup)
+            assert samples is not None, 'invalid rollup: {}'.format(rollup)
+            assert satisfies_range((rollup, samples))
+
+        return rollup
 
     def get_optimal_rollup_series(self, start, end=None, rollup=None):
         if end is None:
@@ -125,8 +134,7 @@ class BaseTSDB(object):
 
         # NOTE: "optimal" here means "able to most closely reflect the upper
         # and lower bounds", not "able to construct the most efficient query"
-        if rollup is None:
-            rollup = self.get_optimal_rollup(start, end)
+        rollup = self.get_optimal_rollup(start, end, rollup)
 
         series = [self.normalize_to_epoch(start, rollup)]
         end_ts = int(to_timestamp(end))

@@ -56,7 +56,7 @@ class RedisTSDBTest(TestCase):
             (TSDBModel.project, 2),
         ], dts[3], count=4)
 
-        results = self.db.get_range(TSDBModel.project, [1], dts[0], dts[-1])
+        results = self.db.get_range(TSDBModel.project, [1], dts[0], dts[-1], rollup=3600)
         assert results == {
             1: [
                 (timestamp(dts[0]), 1),
@@ -65,7 +65,8 @@ class RedisTSDBTest(TestCase):
                 (timestamp(dts[3]), 4),
             ],
         }
-        results = self.db.get_range(TSDBModel.project, [2], dts[0], dts[-1])
+
+        results = self.db.get_range(TSDBModel.project, [2], dts[0], dts[-1], rollup=3600)
         assert results == {
             2: [
                 (timestamp(dts[0]), 0),
@@ -125,7 +126,7 @@ class RedisTSDBTest(TestCase):
             dts[3],
         )
 
-        assert self.db.get_distinct_counts_series(model, [1], dts[0], dts[-1]) == {
+        assert self.db.get_distinct_counts_series(model, [1], dts[0], dts[-1], rollup=3600) == {
             1: [
                 (timestamp(dts[0]), 2),
                 (timestamp(dts[1]), 1),
@@ -134,7 +135,7 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
-        assert self.db.get_distinct_counts_series(model, [2], dts[0], dts[-1]) == {
+        assert self.db.get_distinct_counts_series(model, [2], dts[0], dts[-1], rollup=3600) == {
             2: [
                 (timestamp(dts[0]), 0),
                 (timestamp(dts[1]), 0),
