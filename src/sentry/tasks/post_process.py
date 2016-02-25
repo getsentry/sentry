@@ -133,3 +133,34 @@ def record_affected_user(event, **kwargs):
     Group.objects.add_tags(event.group, [
         ('sentry:user', euser.tag_value)
     ])
+
+
+@instrumented_task(
+    name='sentry.tasks.index_event_tags',
+    default_retry_delay=60 * 5, max_retries=None)
+def index_event_tags(project_id, event_id, tags, **kwargs):
+    from sentry.models import EventTag, Project, TagKey, TagValue
+
+    for key, value in tags:
+        tagkey, _ = TagKey.objects.get_or_create(
+            project=Project(id=project_id),
+            key=key,
+        )
+
+        tagvalue, _ = TagValue.objects.get_or_create(
+            project=Project(id=project_id),
+            key=key,
+            value=value,
+        )
+
+        try:
+            # handle replaying of this task
+            with transaction.atomic():
+                EventTag.objects.create(
+                    project_id=project_id,
+                    event_id=event_id,
+                    key_id=tagkey.id,
+                    value_id=tagvalue.id,
+                )
+        except IntegrityError:
+            pass
