@@ -4,8 +4,9 @@ from __future__ import absolute_import
 
 from mock import Mock, patch
 
+from sentry.models import EventTag, TagKey, TagValue
 from sentry.testutils import TestCase
-from sentry.tasks.post_process import post_process_group
+from sentry.tasks.post_process import index_event_tags, post_process_group
 
 
 class PostProcessGroupTest(TestCase):
@@ -33,3 +34,56 @@ class PostProcessGroupTest(TestCase):
         mock_processor.return_value.apply.assert_called_once_with()
 
         mock_callback.assert_called_once_with(event, mock_futures)
+
+
+class IndexEventTagsTest(TestCase):
+    def test_simple(self):
+        group = self.create_group(project=self.project)
+        event = self.create_event(group=group)
+
+        with self.tasks():
+            index_event_tags.delay(
+                event_id=event.id,
+                project_id=self.project.id,
+                tags=[('foo', 'bar'), ('biz', 'baz')],
+            )
+
+        tags = list(EventTag.objects.filter(
+            event_id=event.id,
+        ).values_list('key_id', 'value_id'))
+        assert len(tags) == 2
+
+        tagkey = TagKey.objects.get(
+            key='foo',
+            project=self.project,
+        )
+        tagvalue = TagValue.objects.get(
+            key='foo',
+            value='bar',
+            project=self.project,
+        )
+        assert (tagkey.id, tagvalue.id) in tags
+
+        tagkey = TagKey.objects.get(
+            key='biz',
+            project=self.project,
+        )
+        tagvalue = TagValue.objects.get(
+            key='biz',
+            value='baz',
+            project=self.project,
+        )
+        assert (tagkey.id, tagvalue.id) in tags
+
+        # ensure it safely handles repeat runs
+        with self.tasks():
+            index_event_tags.delay(
+                event_id=event.id,
+                project_id=self.project.id,
+                tags=[('foo', 'bar'), ('biz', 'baz')],
+            )
+
+        queryset = EventTag.objects.filter(
+            event_id=event.id,
+        )
+        assert queryset.count() == 2

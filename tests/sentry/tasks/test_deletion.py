@@ -4,6 +4,7 @@ from mock import patch
 
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
+    Event, EventMapping, EventTag,
     Group, GroupAssignee, GroupMeta, GroupResolution, GroupStatus, GroupTagKey,
     GroupTagValue, Organization, OrganizationStatus, Project, ProjectStatus,
     Release, TagKey, TagValue, Team, TeamStatus
@@ -162,10 +163,36 @@ class DeleteGroupTest(TestCase):
             project=project,
             status=GroupStatus.PENDING_DELETION,
         )
-        GroupAssignee.objects.create(group=group, project=project, user=self.user)
-        GroupMeta.objects.create(group=group, key='foo', value='bar')
+        event = self.create_event(group=group)
+        EventMapping.objects.create(
+            project_id=project.id,
+            event_id='a' * 32,
+            group_id=group.id,
+        )
+        EventTag.objects.create(
+            event_id=event.id,
+            project_id=project.id,
+            key_id=1,
+            value_id=1,
+        )
+        GroupAssignee.objects.create(
+            group=group,
+            project=project,
+            user=self.user,
+        )
+        GroupMeta.objects.create(
+            group=group,
+            key='foo',
+            value='bar',
+        )
 
         with self.tasks():
             delete_group(object_id=group.id)
 
         assert not Group.objects.filter(id=group.id).exists()
+        assert not Event.objects.filter(id=event.id).exists()
+        assert not EventMapping.objects.filter(
+            event_id='a' * 32,
+            group_id=group.id,
+        ).exists()
+        assert not EventTag.objects.filter(event_id=event.id).exists()
