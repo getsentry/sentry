@@ -76,7 +76,7 @@ class Migration(DataMigration):
                                         organization=org,
                                         task=OrganizationOnboardingTask.SECOND_PLATFORM,
                                         status=OnboardingTaskStatus.COMPLETE,
-                                        project_id=project.id
+                                        project_id=project.id,
                                         data={'platform': group.platform}
                                     )
                             except IntegrityError:
