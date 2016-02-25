@@ -51,7 +51,7 @@ def record_new_project(project, user, **kwargs):
 def record_raven_installed(project, user, **kwargs):
     try:
         with transaction.atomic():
-            oot, created = OrganizationOnboardingTask.objects.create(
+            OrganizationOnboardingTask.objects.create(
                 organization=project.organization,
                 task=OnboardingTask.FIRST_EVENT,
                 status=OnboardingTaskStatus.PENDING,
