@@ -82,7 +82,7 @@ class Migration(DataMigration):
             # NOTIFICATION_SERVICE
             option = ProjectOption.objects.filter(
                 project__organization=org,
-                key__in='opsgenie:enabled', 'hipchat:enabled', 'slack:enabled', 'pagerduty:enabled',
+                key__in=['opsgenie:enabled', 'hipchat:enabled', 'slack:enabled', 'pagerduty:enabled',
                 'irc:enabled', 'flowdock:enabled', 'twilio:enabled', 'grove.io:enabled', 'pushover:enabled']
             ).first()
             if option:
