@@ -131,10 +131,13 @@ install_requires = [
     'urllib3>=1.14,<1.15',
     'uwsgi>2.0.0,<2.1.0',
     'rb>=1.4.0,<2.0.0',
-    'symsynd>=0.1.0,<1.0.0',
 ]
 
 postgres_requires = [
+]
+
+dsym_requires = [
+    'symsynd>=0.1.0,<1.0.0',
 ]
 
 
@@ -456,6 +459,7 @@ setup(
         'tests': tests_require,
         'dev': dev_requires,
         'postgres': install_requires + postgres_requires,
+        'dsym': dsym_requires,
     },
     cmdclass=cmdclass,
     license='BSD',

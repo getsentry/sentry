@@ -13,7 +13,11 @@ import shutil
 import tempfile
 from django.db import models, transaction, IntegrityError
 
-from symsynd.mach import get_macho_uuids
+try:
+    from symsynd.mach import get_macho_uuids
+    have_symsynd = True
+except ImportError:
+    have_symsynd = False
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.models.file import File
@@ -92,6 +96,9 @@ class DSymFile(Model):
         """Creates all missing dsym files from the given zip file.  This
         returns a list of all `DSymFiles` created.
         """
+        if not have_symsynd:
+            raise RuntimeError('symsynd is unavailable.  Install sentry with '
+                               'the dsym feature flag.')
         scratchpad = tempfile.mkdtemp()
         try:
             safe_extract_zip(fileobj, scratchpad)
