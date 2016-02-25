@@ -129,6 +129,18 @@ class EventManagerTest(TransactionTestCase):
         assert 'sentry.interfaces.User' not in data
 
     def test_platform_is_saved(self):
+        manager = EventManager(self.make_event(**{
+            'sentry.interfaces.AppleCrashReport': {
+                'crash': {},
+                'binary_images': []
+            }
+        }))
+        manager.normalize()
+        event = manager.save(1)
+
+        assert 'sentry.interfacse.AppleCrashReport' not in event.interfaces
+
+    def test_ephemral_interfaces_removed_on_save(self):
         manager = EventManager(self.make_event(platform='python'))
         event = manager.save(1)
 
