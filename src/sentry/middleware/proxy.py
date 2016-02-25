@@ -20,6 +20,9 @@ class ContentLengthHeaderMiddleware(object):
     """
 
     def process_response(self, request, response):
+        if 'Transfer-Encoding' in response or 'Content-Length' in response:
+            return response
+
         if response.streaming:
             response['Transfer-Encoding'] = 'chunked'
         else:
