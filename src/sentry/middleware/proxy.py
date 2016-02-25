@@ -12,3 +12,16 @@ class SetRemoteAddrFromForwardedFor(object):
             # Take just the first one.
             real_ip = real_ip.split(",")[0]
             request.META['REMOTE_ADDR'] = real_ip
+
+
+class ContentLengthHeaderMiddleware(object):
+    """
+    Ensure that we have a proper Content-Length/Transfer-Encoding header
+    """
+
+    def process_response(self, request, response):
+        if response.streaming:
+            response['Transfer-Encoding'] = 'chunked'
+        else:
+            response['Content-Length'] = str(len(response.content))
+        return response
