@@ -121,7 +121,8 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     def test_first_event_received(self):
         project = self.create_project(first_event=timezone.now())
-        first_event_received.send(project=project, group=self.group, sender=type(project))
+        group = self.create_group(project=project, platform='javascript', message='javascript error message')
+        first_event_received.send(project=project, group=group, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization,
@@ -140,6 +141,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert second_task is not None
 
+        second_group = self.create_group(project=second_project, platform='python', message='python error message')
         first_event_received.send(project=second_project, group=self.group, sender=type(second_project))
         second_task = OrganizationOnboardingTask.objects.get(
             organization=project.organization,
