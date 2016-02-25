@@ -4,6 +4,9 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models, IntegrityError, transaction
 
+from sentry.plugins import plugins
+from sentry.plugins import IssueTrackingPlugin, NotificationPlugin
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -17,6 +20,15 @@ class Migration(DataMigration):
         OrganizationOnboardingTask = orm['sentry.OrganizationOnboardingTask']
         Project = orm['sentry.Project']
         ProjectOption = orm['sentry.ProjectOption']
+
+        notification_keys = []
+        issue_keys = []
+
+        for p in plugins.all(version=1):
+            if isinstance(p, NotificationPlugin):
+                notification_keys.append(p._get_option_key('enabled'))
+            elif isinstance(p, IssueTrackingPlugin):
+                issue_keys.append(p._get_option_key('enabled'))
 
         queryset = Organization.objects.all()
 
@@ -107,10 +119,7 @@ class Migration(DataMigration):
             # ISSUE_TRACKER
             option = ProjectOption.objects.filter(
                 project__organization=org,
-                key__in=['github:enabled', 'pivotal:enabled', 'bitbucket:enabled', 'trello:enabled',
-                    'campfire:enabled', 'jira:enabled', 'sprintly:enabled', 'gitlab:enabled',
-                    'redmine:enabled', 'phabricator:enabled', 'taiga:enabled', 'lighthouse:enabled',
-                    'teamwork:enabled'],
+                key__in=issue_keys,
             ).first()
             if option:
                 try:
@@ -128,8 +137,7 @@ class Migration(DataMigration):
             # NOTIFICATION_SERVICE
             option = ProjectOption.objects.filter(
                 project__organization=org,
-                key__in=['opsgenie:enabled', 'hipchat:enabled', 'slack:enabled', 'pagerduty:enabled',
-                'irc:enabled', 'flowdock:enabled', 'twilio:enabled', 'grove.io:enabled', 'pushover:enabled']
+                key__in=notification_keys,
             ).first()
             if option:
                 try:
