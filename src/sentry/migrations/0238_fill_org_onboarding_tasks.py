@@ -2,7 +2,7 @@
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.db import models
+from django.db import models, IntegrityError, transaction
 
 class Migration(DataMigration):
 
@@ -20,47 +20,88 @@ class Migration(DataMigration):
         queryset = Organization.objects.all()
 
         for org in RangeQuerySetWrapperWithProgressBar(queryset):
-            if Project.objects.filter(organization=org).count() > 0:
-                OrganizationOnboardingTask.objects.create(
-                    organization=org,
-                    task=OrganizationOnboardingTask.FIRST_PROJECT,
-                    status=OnboardingTaskStatus.COMPLETE
-                )
+            if Project.objects.filter(organization=org).exists():
+                try:
+                    with transaction.atomic():
+                        OrganizationOnboardingTask.objects.create(
+                            organization=org,
+                            task=OrganizationOnboardingTask.FIRST_PROJECT,
+                            status=OnboardingTaskStatus.COMPLETE
+                        )
+                except IntegrityError:
+                    pass
 
-            projects = Project.objects.filter(organization=org).exclude(first_event=None).order_by('first_event')
-            project_count = projects.count()
-            if project_count > 0:
-                OrganizationOnboardingTask.objects.create(
-                    organization=org,
-                    task=OrganizationOnboardingTask.FIRST_EVENT,
-                    status=OnboardingTaskStatus.COMPLETE,
-                    project_id=projects[0].id
-                )
+            projects = Project.objects.filter(organization=org).exclude(first_event=None).order_by('first_event').all()
+            if len(projects) == 1:
+                try:
+                    with transaction.atomic():
+                        OrganizationOnboardingTask.objects.create(
+                            organization=org,
+                            task=OrganizationOnboardingTask.FIRST_EVENT,
+                            status=OnboardingTaskStatus.COMPLETE,
+                            project_id=projects[0].id
+                        )
+                except IntegrityError:
+                    pass
 
-                if project_count > 1:
+            elif len(projects) > 1:
+                platforms = set()
+                for project in projects:
+                    first_event_kwargs = {
+                        'organization': org,
+                        'task': OrganizationOnboardingTask.FIRST_EVENT,
+                        'status': OnboardingTaskStatus.COMPLETE,
+                        'project_id': project.id
+                    }
 
-                    platforms = set()
-                    for project in projects:
-                        # Lazily assume project's events are uniformly of the same platform
-                        group = Group.objects.filter(project=project).first()
-                        if group:
-                            platforms.add(group.platform)
-                            if len(platforms) > 1:
-                                OrganizationOnboardingTask.objects.create(
-                                    organization=org,
-                                    task=OrganizationOnboardingTask.SECOND_PLATFORM,
-                                    status=OnboardingTaskStatus.COMPLETE,
-                                    project_id=project.id
-                                )
-                                break
+                    # Lazily assume project's events are uniformly of the same platform
+                    group = Group.objects.filter(project=project).first()
+                    if group:
+                        platforms.add(group.platform)
+
+                        # If only one project with platform
+                        # This will always occur before len(platforms) > 1
+                        if len(platforms) == 1:
+                            first_event_kwargs.update(data={'platform': group.platform})
+                            try:
+                                with transaction.atomic()
+                                    OrganizationOnboardingTask.objects.create(**first_event_kwargs)
+                            except IntegrityError:
+                                pass
+
+                        if len(platforms) > 1:
+                            try:
+                                with transaction.atomic():
+                                    OrganizationOnboardingTask.objects.create(
+                                        organization=org,
+                                        task=OrganizationOnboardingTask.SECOND_PLATFORM,
+                                        status=OnboardingTaskStatus.COMPLETE,
+                                        project_id=project.id
+                                        data={'platform': group.platform}
+                                    )
+                            except IntegrityError:
+                                pass
+
+                            break
+                        # This occurs if we've iterated through all the projects and only one platform is found
+                        else:
+                            try:
+                                with transaction.atomic():
+                                    OrganizationOnboardingTask.objects.create(**first_event_kwargs)
+                            except IntegrityError:
+                                pass
 
             # INVITE_MEMBER
             if OrganizationMember.objects.filter(organization=org).exclude(user=None).count() > 1:
-                OrganizationOnboardingTask.objects.create(
-                    organization=org,
-                    task=OrganizationOnboardingTask.INVITE_MEMBER,
-                    status=OnboardingTaskStatus.COMPLETE,
-                )
+                try:
+                    with transaction.atomic():
+                        OrganizationOnboardingTask.objects.create(
+                            organization=org,
+                            task=OrganizationOnboardingTask.INVITE_MEMBER,
+                            status=OnboardingTaskStatus.COMPLETE,
+                        )
+                except IntegrityError:
+                    pass
 
             # ISSUE_TRACKER
             option = ProjectOption.objects.filter(
@@ -71,13 +112,17 @@ class Migration(DataMigration):
                     'teamwork:enabled'],
             ).first()
             if option:
-                OrganizationOnboardingTask.objects.create(
-                    organization=org,
-                    task=OrganizationOnboardingTask.ISSUE_TRACKER,
-                    status=OnboardingTaskStatus.COMPLETE,
-                    project_id=option.project.id,
-                    data={'plugin': option.key.split(':')[0]}
-                )
+                try:
+                    with transaction.atomic():
+                        OrganizationOnboardingTask.objects.create(
+                            organization=org,
+                            task=OrganizationOnboardingTask.ISSUE_TRACKER,
+                            status=OnboardingTaskStatus.COMPLETE,
+                            project_id=option.project_id,
+                            data={'plugin': option.key.split(':')[0]}
+                        )
+                except IntegrityError:
+                    pass
 
             # NOTIFICATION_SERVICE
             option = ProjectOption.objects.filter(
@@ -86,12 +131,16 @@ class Migration(DataMigration):
                 'irc:enabled', 'flowdock:enabled', 'twilio:enabled', 'grove.io:enabled', 'pushover:enabled']
             ).first()
             if option:
-                OrganizationOnboardingTask.objects.create(
-                    organization=org,
-                    task=OrganizationOnboardingTask.NOTIFICATION_SERVICE,
-                    status=OnboardingTaskStatus.COMPLETE,
-                    project_id=option.project.id
-                )
+                try:
+                    with transaction.atomic():
+                        OrganizationOnboardingTask.objects.create(
+                            organization=org,
+                            task=OrganizationOnboardingTask.NOTIFICATION_SERVICE,
+                            status=OnboardingTaskStatus.COMPLETE,
+                            project_id=option.project_id
+                        )
+                except IntegrityError:
+                    pass
 
 
     def backwards(self, orm):
