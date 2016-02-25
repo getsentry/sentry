@@ -611,6 +611,7 @@ SENTRY_FEATURES = {
     'projects:quotas': True,
     'projects:user-reports': False,
     'projects:plugins': True,
+    'projects:dsym': False,
 }
 
 # Default time zone for localization in the UI.
