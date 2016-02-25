@@ -49,16 +49,20 @@ def record_new_project(project, user, **kwargs):
 
 @first_event_pending.connect(weak=False)
 def record_raven_installed(project, user, **kwargs):
-    oot, created = OrganizationOnboardingTask.objects.get_or_create(
-        organization=project.organization,
-        task=OnboardingTask.FIRST_EVENT,
-        status=OnboardingTaskStatus.PENDING,
-        defaults={
-            'user': user,
-            'project_id': project.id,
-            'date_completed': timezone.now()
-        }
-    )
+    try:
+        with transaction.atomic():
+            oot, created = OrganizationOnboardingTask.objects.get_or_create(
+                organization=project.organization,
+                task=OnboardingTask.FIRST_EVENT,
+                status=OnboardingTaskStatus.PENDING,
+                defaults={
+                    'user': user,
+                    'project_id': project.id,
+                    'date_completed': timezone.now()
+                }
+            )
+    except IntegrityError:
+        pass
 
 
 @first_event_received.connect(weak=False)
