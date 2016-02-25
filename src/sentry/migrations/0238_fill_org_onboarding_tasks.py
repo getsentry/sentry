@@ -64,7 +64,7 @@ class Migration(DataMigration):
                         if len(platforms) == 1:
                             first_event_kwargs.update(data={'platform': group.platform})
                             try:
-                                with transaction.atomic()
+                                with transaction.atomic():
                                     OrganizationOnboardingTask.objects.create(**first_event_kwargs)
                             except IntegrityError:
                                 pass
