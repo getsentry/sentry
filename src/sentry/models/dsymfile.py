@@ -56,6 +56,13 @@ class DSymFile(Model):
         object to a dsym file.  This will not verify the uuid.  Use
         `create_files_from_macho_zip` for doing everything.
         """
+        # If we already have a match, return that one.  This is especially
+        # necessary for global dsyms which do not have a unique index
+        try:
+            return DSymFile.objects.get(project=project, uuid=uuid)
+        except DSymFile.DoesNotExist:
+            pass
+
         file = File.objects.create(
             name=uuid,
             type='%s.dsym' % (project and 'project' or 'global'),

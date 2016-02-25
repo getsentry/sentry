@@ -95,7 +95,10 @@ const Frame = React.createClass({
       title.push(<code key="function">{data.function}</code>);
     }
 
-    if (defined(data.lineNo)) {
+    // we don't want to render out zero line numbers which are used to
+    // indicate lack of source information for native setups.  We could
+    // TODO(mitsuhiko): only do this for events from native platforms?
+    if (defined(data.lineNo) && data.lineNo != 0) {
       // TODO(dcramer): we need to implement source mappings
       // title.push(<span className="pull-right blame"><a><span className="icon-mark-github"></span> View Code</a></span>);
       title.push(<span className="in-at" key="at"> {t('at line')} </span>);
@@ -104,6 +107,11 @@ const Frame = React.createClass({
       } else {
         title.push(<code key="line">{data.lineNo}</code>);
       }
+    }
+
+    if (defined(data.package)) {
+      title.push(<span className="within" key="within"> {t('within')} </span>);
+      title.push(<code>{data.package}</code>);
     }
 
     if (defined(data.origAbsPath)) {
