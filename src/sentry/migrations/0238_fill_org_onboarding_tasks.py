@@ -31,7 +31,7 @@ class Migration(DataMigration):
                 except IntegrityError:
                     pass
 
-            projects = Project.objects.filter(organization=org).exclude(first_event=None).order_by('first_event').all()
+            projects = list(Project.objects.filter(organization=org).exclude(first_event=None).order_by('first_event'))
             if len(projects) == 1:
                 try:
                     with transaction.atomic():
@@ -92,7 +92,7 @@ class Migration(DataMigration):
                                 pass
 
             # INVITE_MEMBER
-            if OrganizationMember.objects.filter(organization=org).exclude(user=None).count() > 1:
+            if OrganizationMember.objects.filter(organization=org).exclude(user=None)[0:2].count() > 1:
                 try:
                     with transaction.atomic():
                         OrganizationOnboardingTask.objects.create(
