@@ -36,7 +36,7 @@ class ProjectSerializer(Serializer):
             'name': obj.name,
             'isPublic': obj.public,
             'isBookmarked': attrs['is_bookmarked'],
-            'callSign': obj.call_sign,
+            'callSign': obj.callsign,
             # TODO(mitsuhiko): eventually remove this when we will treat
             # all short names as reviewed.
             'callSignReviewed': bool(obj.get_option('sentry:reviewed-callsign')),
