@@ -192,7 +192,8 @@ class StatsMixin(object):
         resolution = request.GET.get('resolution')
         if resolution:
             resolution = self._parse_resolution(resolution)
-            assert resolution in tsdb.rollups
+
+            assert any(r for r in tsdb.rollups if r[0] == resolution)
 
         end = request.GET.get('until')
         if end:

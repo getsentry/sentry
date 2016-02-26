@@ -18,7 +18,7 @@ const OrganizationStats = React.createClass({
 
   getInitialState() {
     let until = Math.floor(new Date().getTime() / 1000);
-    let since = until - 3600 * ((24 * 7) - 1);
+    let since = until - 3600 * 24 * 7;
 
     return {
       projectsError: false,
