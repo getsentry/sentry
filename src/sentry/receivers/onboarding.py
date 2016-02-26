@@ -92,7 +92,7 @@ def record_first_event(project, group, **kwargs):
                 organization=project.organization,
                 task=OnboardingTask.FIRST_EVENT
             )[0]
-        except OrganizationOnboardingTask.DoesNotExist:
+        except IndexError:
             return
 
         # Only counts if it's a new project and platform

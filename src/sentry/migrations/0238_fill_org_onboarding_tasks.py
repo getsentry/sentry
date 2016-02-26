@@ -44,7 +44,9 @@ class Migration(DataMigration):
                 except IntegrityError:
                     pass
 
-            projects = list(Project.objects.filter(organization=org).exclude(first_event=None).order_by('first_event'))
+            projects = list(Project.objects.filter(organization=org))
+            projects = [project for project in projects if project.first_event]
+            projects = sorted(projects, key=lambda project: project.first_event)
             if len(projects) == 1:
                 try:
                     with transaction.atomic():
@@ -68,8 +70,11 @@ class Migration(DataMigration):
                     }
 
                     # Lazily assume project's events are uniformly of the same platform
-                    group = Group.objects.filter(project=project).first()
-                    if group:
+                    try:
+                        group = Group.objects.filter(project=project)[0]
+                    except IndexError:
+                        pass
+                    else:
                         platforms.add(group.platform)
 
                         # If only one project with platform
@@ -117,11 +122,14 @@ class Migration(DataMigration):
                     pass
 
             # ISSUE_TRACKER
-            option = ProjectOption.objects.filter(
-                project__organization=org,
-                key__in=issue_keys,
-            ).first()
-            if option:
+            try:
+                option = ProjectOption.objects.filter(
+                    project__organization=org,
+                    key__in=issue_keys,
+                )[0]
+            except IndexError:
+                pass
+            else:
                 try:
                     with transaction.atomic():
                         OrganizationOnboardingTask.objects.create(
@@ -135,11 +143,14 @@ class Migration(DataMigration):
                     pass
 
             # NOTIFICATION_SERVICE
-            option = ProjectOption.objects.filter(
-                project__organization=org,
-                key__in=notification_keys,
-            ).first()
-            if option:
+            try:
+                option = ProjectOption.objects.filter(
+                    project__organization=org,
+                    key__in=notification_keys,
+                )[0]
+            except IndexError:
+                pass
+            else:
                 try:
                     with transaction.atomic():
                         OrganizationOnboardingTask.objects.create(
