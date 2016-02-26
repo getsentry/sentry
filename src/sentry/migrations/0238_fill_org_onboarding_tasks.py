@@ -231,7 +231,7 @@ class Migration(DataMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 3, 1, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 3, 4, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -265,6 +265,15 @@ class Migration(DataMigration):
             'group_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'project_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {})
+        },
+        'sentry.eventtag': {
+            'Meta': {'unique_together': "(('event_id', 'key_id', 'value_id'),)", 'object_name': 'EventTag'},
+            'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'event_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'key_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {}),
+            'project_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {}),
+            'value_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {})
         },
         'sentry.eventuser': {
             'Meta': {'unique_together': "(('project', 'ident'), ('project', 'hash'))", 'object_name': 'EventUser', 'index_together': "(('project', 'email'), ('project', 'username'), ('project', 'ip_address'))"},
