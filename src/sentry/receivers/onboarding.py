@@ -87,10 +87,13 @@ def record_first_event(project, group, **kwargs):
 
     # If first_event task is complete
     if not rows_affected and not created:
-        oot = OrganizationOnboardingTask.objects.filter(
-            organization=project.organization,
-            task=OnboardingTask.FIRST_EVENT
-        ).first()
+        try:
+            oot = OrganizationOnboardingTask.objects.filter(
+                organization=project.organization,
+                task=OnboardingTask.FIRST_EVENT
+            )[0]
+        except OrganizationOnboardingTask.DoesNotExist:
+            return
 
         # Only counts if it's a new project and platform
         if oot.project_id != project.id and oot.data['platform'] != group.platform:
