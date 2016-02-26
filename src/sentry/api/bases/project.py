@@ -17,8 +17,6 @@ class ProjectPermission(ScopedPermission):
 
     def has_object_permission(self, request, view, project):
         if request.auth:
-            if self.is_project_key(request):
-                return request.auth.project_id == project.id
             return request.auth.organization_id == project.organization_id
 
         request.access = access.from_request(request, project.organization)

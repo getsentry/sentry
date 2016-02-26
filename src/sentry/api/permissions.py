@@ -2,8 +2,6 @@ from __future__ import absolute_import
 
 from rest_framework import permissions
 
-from sentry.models import ProjectKey
-
 
 class NoPermission(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -40,9 +38,6 @@ class ScopedPermission(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return False
-
-    def is_project_key(self, request):
-        return isinstance(request.auth, ProjectKey)
 
 
 class SuperuserPermission(permissions.BasePermission):
