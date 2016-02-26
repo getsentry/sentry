@@ -23,13 +23,13 @@ class ShortIdsUpdateEndpoint(OrganizationEndpoint):
         projects = dict((str(p.id), p) for p in organization.project_set.all())
         rv = {}
 
-        for project_id, short_name in request.DATA.get('projects', {}).iteritems():
+        for project_id, callsign in request.DATA.get('projects', {}).iteritems():
             project = projects.get(project_id)
             if project is None:
                 continue
-            project.short_name = short_name
+            project.callsign = callsign
             project.update_option('sentry:reviewed-short-id', True)
-            rv[project.id] = short_name
+            rv[project.id] = callsign
 
         return Response({
             'updated_short_ids': rv
