@@ -362,7 +362,7 @@ class StoreView(APIView):
         scrub_data_key = 'sentry:scrub_data'
         scrub_data = org_options.get(scrub_data_key, False)
         if not scrub_data:
-            scrub_data = project.get_option('sentry:scrub_data', True)
+            scrub_data = project.get_option(scrub_data_key, True)
         if scrub_data:
             # We filter data immediately before it ever gets into the queue
             sensitive_fields_key = 'sentry:sensitive_fields'
