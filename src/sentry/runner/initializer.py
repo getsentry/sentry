@@ -185,7 +185,7 @@ def validate_backends():
 
 def validate_options(settings):
     from sentry.options import default_manager
-    default_manager.validate(settings.SENTRY_OPTIONS)
+    default_manager.validate(settings.SENTRY_OPTIONS, warn=True)
 
 
 def fix_south(settings):
