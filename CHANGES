@@ -3,14 +3,15 @@ Version 8.2.0
 
 - SENTRY_DISALLOWED_IPS is no longer configured by default. If you're exposing Sentry outside of your company you may wish to configure this.
 - Do not require the documentation sync on repair to succeed.
+- Added basic organization on-boarding.
 - Project keys are no longer usable within the web API.
 
 Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added ``ProjectBookmark`` model.
-- Added ``OrganizationOnboardingTask`` model.
 - Added ``EventTag`` model.
+- Added ``OrganizationOnboardingTask`` model.
 
 Version 8.1.2
 -------------
