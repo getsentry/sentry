@@ -57,7 +57,7 @@ class SensitiveDataFilter(object):
             fields = ()
         if include_defaults:
             fields += DEFAULT_SCRUBBED_FIELDS
-        self.fields = fields
+        self.fields = set(fields)
 
     def apply(self, data):
         # TODO(dcramer): move this into each interface

@@ -146,6 +146,18 @@
         snap: true
       });
     });
+
+    $.each({{ form.org_overrides|to_json|safe }}, function(n, value) {
+      if ($('#id_' + value).attr('disabled')) {
+        $('<span/>').addClass('disabled-indicator tip')
+          .attr('title', {% filter to_json %}{% trans "This option is enforced by your organization's settings and cannot be customized per-project." %}{% endfilter %})
+          .append(
+            $('<span/>').addClass('icon-question')
+          ).insertBefore('#hint_id_' + value);
+      }
+    });
+
+    $('.tip').tooltip();
   }());
   </script>
 {% endblock %}
