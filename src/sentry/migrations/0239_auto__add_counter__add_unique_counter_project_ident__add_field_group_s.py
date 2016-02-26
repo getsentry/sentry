@@ -3,6 +3,7 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
+from django.conf import settings
 
 
 class Migration(SchemaMigration):
@@ -36,6 +37,31 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'Project', fields ['organization', 'callsign']
         db.create_unique('sentry_project', ['organization_id', 'callsign'])
 
+        if 'postgres' in settings.DATABASES['default']['ENGINE']:
+            db.execute('''
+                create function sentry_increment_project_counter(
+                    project bigint, counter text, delta int) returns int as $$
+                declare
+                  new_val int;
+                begin
+                  loop
+                    update sentry_projectcounter set value = value + delta
+                     where project_id = project
+                       and ident = counter returning value into new_val;
+                    if found then
+                      return new_val;
+                    end if;
+                    begin
+                      insert into sentry_projectcounter(project_id, ident, value)
+                           values (project, counter, delta)
+                        returning value into new_val;
+                      return new_val;
+                    exception when unique_violation then
+                    end;
+                  end loop;
+                end
+                $$ language plpgsql;
+            ''')
 
     def backwards(self, orm):
         # Removing unique constraint on 'Project', fields ['organization', 'callsign']
