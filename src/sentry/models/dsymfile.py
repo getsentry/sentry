@@ -37,7 +37,7 @@ class DSymFile(Model):
 
     project = FlexibleForeignKey('sentry.Project', null=True)
     file = FlexibleForeignKey('sentry.File')
-    uuid = models.CharField(max_length=36)
+    uuid = models.CharField(max_length=36, db_index=True)
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
 
