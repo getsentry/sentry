@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework import permissions
 
-from sentry.models.apikey import SYSTEM_KEY
+from sentry.models.apikey import ROOT_KEY
 
 
 class NoPermission(permissions.BasePermission):
@@ -51,4 +51,4 @@ class SuperuserPermission(permissions.BasePermission):
 
 class SystemPermission(permissions.BasePermission):
     def has_permission(self, request, view):
-        return request.auth is SYSTEM_KEY
+        return request.auth is ROOT_KEY
