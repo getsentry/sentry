@@ -74,7 +74,7 @@ class Project(Model):
     """
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
-    short_name = models.CharField(max_length=40, null=True)
+    callsign = models.CharField(max_length=40, null=True)
     organization = FlexibleForeignKey('sentry.Organization')
     team = FlexibleForeignKey('sentry.Team')
     public = models.BooleanField(default=False)
@@ -97,7 +97,7 @@ class Project(Model):
         app_label = 'sentry'
         db_table = 'sentry_project'
         unique_together = (('team', 'slug'), ('organization', 'slug'),
-                           ('organization', 'short_name'))
+                           ('organization', 'callsign'))
 
     __repr__ = sane_repr('team_id', 'slug')
 

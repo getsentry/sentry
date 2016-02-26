@@ -55,12 +55,12 @@ class GroupManager(BaseManager):
         if match is None:
             return
         from sentry.models import Project
-        prefix, id = match.groups()
-        prefix = prefix.upper()
+        callsign, id = match.groups()
+        callsign = callsign.upper()
         try:
             project = Project.objects.get(
                 organization=org,
-                short_name=prefix
+                callsign=callsign
             )
         except Project.DoesNotExist:
             return
@@ -192,10 +192,10 @@ class Group(Model):
 
     @property
     def qualified_short_id(self):
-        if self.project.short_name is not None and \
+        if self.project.callsign is not None and \
            self.short_id is not None:
             return '%s-%s' % (
-                self.project.short_name,
+                self.project.callsign,
                 base36_encode(self.short_id),
             )
 

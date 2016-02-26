@@ -1,139 +1,61 @@
 # -*- coding: utf-8 -*-
-import re
-from itertools import count
-from contextlib import contextmanager
 from south.utils import datetime_utils as datetime
 from south.db import db
-from south.v2 import DataMigration
-from django.db import models, transaction
+from south.v2 import SchemaMigration
+from django.db import models
 
 
-_letters_re = re.compile(r'[A-Z]+')
-
-
-class RollbackLocally(Exception):
-    pass
-
-
-@contextmanager
-def catchable_atomic():
-    try:
-        with transaction.atomic():
-            yield
-    except RollbackLocally:
-        pass
-
-
-def iter_short_name_choices(project):
-    words = _letters_re.findall(project.name.upper())
-    bits = []
-
-    if len(words) == 2:
-        bits.append(words[0][:1] + words[1][:1])
-    bit = words[0][:2]
-    if len(bit) == 2:
-        bits.append(bit)
-
-    for bit in bits:
-        yield bit
-
-    try:
-        team_bit = _letters_re.findall(project.team.name.upper())[0][:1]
-        if team_bit:
-            for bit in bits:
-                yield team_bit + bit
-    except IndexError:
-        pass
-
-    for idx in count(2):
-        for bit in bits:
-            yield '%s%d' % (bit, idx)
-
-
-def get_short_names(projects):
-    rv = {}
-
-    for project in projects:
-        if project.short_name is not None:
-            rv[project.short_name] = project.id
-            continue
-        for short_name in iter_short_name_choices(project):
-            if short_name in rv:
-                continue
-            rv[short_name] = project.id
-            break
-
-    return dict((v, k) for k, v in rv.iteritems())
-
-
-class Migration(DataMigration):
+class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Note: Don't use "from appname.models import ModelName". 
-        # Use orm.ModelName to refer to models in this application,
-        # and orm['appname.ModelName'] for models in other applications.
+        # Adding model 'Counter'
+        db.create_table('sentry_projectcounter', (
+            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('ident', self.gf('django.db.models.fields.CharField')(max_length=40)),
+            ('value', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
+        ))
+        db.send_create_signal('sentry', ['Counter'])
 
-        from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
-        from sentry.models.counter import increment_project_counter
+        # Adding unique constraint on 'Counter', fields ['project', 'ident']
+        db.create_unique('sentry_projectcounter', ['project_id', 'ident'])
 
-        Organization = orm['sentry.Organization']
-        Group = orm['sentry.Group']
-        Project = orm['sentry.Project']
-        ProjectOption = orm['sentry.ProjectOption']
+        # Adding field 'Group.short_id'
+        db.add_column('sentry_groupedmessage', 'short_id',
+                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True),
+                      keep_default=False)
 
-        queryset = Organization.objects.all()
+        # Adding unique constraint on 'Group', fields ['project', 'short_id']
+        db.create_unique('sentry_groupedmessage', ['project_id', 'short_id'])
 
-        for org in RangeQuerySetWrapperWithProgressBar(queryset):
-            cnt = orm['sentry.Counter'].objects.all()
-            projects = list(org.project_set.all())
-            short_names = get_short_names(projects)
-            for project in projects:
-                if project.short_name is None:
-                    Project.objects.filter(
-                        pk=project.id,
-                        short_name=None
-                    ).update(short_name=short_names[project.id])
-                    ProjectOption.objects.filter(
-                        project=project,
-                        key='sentry:reviewed-short-id'
-                    ).delete()
-                q = Group.objects.filter(
-                    project=project,
-                    short_id=None,
-                ).order_by('first_seen')
-                for group in q.iterator():
-                    with catchable_atomic():
-                        pending_short_id = increment_project_counter(
-                            project, 'short-ids')
-                        updated = Group.objects.filter(
-                            pk=group.id,
-                            short_id=None
-                        ).update(short_id=pending_short_id)
-                        if updated == 0:
-                            raise RollbackLocally()
+        # Adding field 'Project.callsign'
+        db.add_column('sentry_project', 'callsign',
+                      self.gf('django.db.models.fields.CharField')(max_length=40, null=True),
+                      keep_default=False)
+
+        # Adding unique constraint on 'Project', fields ['organization', 'callsign']
+        db.create_unique('sentry_project', ['organization_id', 'callsign'])
+
 
     def backwards(self, orm):
-        from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+        # Removing unique constraint on 'Project', fields ['organization', 'callsign']
+        db.delete_unique('sentry_project', ['organization_id', 'callsign'])
 
-        Organization = orm['sentry.Organization']
-        Group = orm['sentry.Group']
-        Project = orm['sentry.Project']
-        ProjectOption = orm['sentry.ProjectOption']
+        # Removing unique constraint on 'Group', fields ['project', 'short_id']
+        db.delete_unique('sentry_groupedmessage', ['project_id', 'short_id'])
 
-        queryset = Organization.objects.all()
+        # Removing unique constraint on 'Counter', fields ['project', 'ident']
+        db.delete_unique('sentry_projectcounter', ['project_id', 'ident'])
 
-        for org in RangeQuerySetWrapperWithProgressBar(queryset):
-            project_ids = [x['id'] for x in org.project_set.values('id')]
-            Project.objects.filter(
-                organization=org
-            ).update(short_name=None)
-            ProjectOption.objects.filter(
-                project__in=project_ids,
-                key='sentry:reviewed-short-id'
-            ).delete()
-            Group.objects.filter(
-                project_id__in=project_ids
-            ).update(short_id=None)
+        # Deleting model 'Counter'
+        db.delete_table('sentry_projectcounter')
+
+        # Deleting field 'Group.short_id'
+        db.delete_column('sentry_groupedmessage', 'short_id')
+
+        # Deleting field 'Project.callsign'
+        db.delete_column('sentry_project', 'callsign')
+
 
     models = {
         'sentry.activity': {
@@ -200,7 +122,7 @@ class Migration(DataMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 2, 24, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 3, 4, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -222,6 +144,15 @@ class Migration(DataMigration):
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
             'value': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {})
         },
+        'sentry.dsymfile': {
+            'Meta': {'unique_together': "(('project', 'uuid'),)", 'object_name': 'DSymFile'},
+            'cpu_name': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
+            'file': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.File']"}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'object_name': ('django.db.models.fields.TextField', [], {}),
+            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
+            'uuid': ('django.db.models.fields.CharField', [], {'max_length': '36', 'db_index': 'True'})
+        },
         'sentry.event': {
             'Meta': {'unique_together': "(('project_id', 'event_id'),)", 'object_name': 'Event', 'db_table': "'sentry_message'", 'index_together': "(('group_id', 'datetime'),)"},
             'data': ('sentry.db.models.fields.node.NodeField', [], {'null': 'True', 'blank': 'True'}),
@@ -241,6 +172,15 @@ class Migration(DataMigration):
             'group_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'project_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {})
+        },
+        'sentry.eventtag': {
+            'Meta': {'unique_together': "(('event_id', 'key_id', 'value_id'),)", 'object_name': 'EventTag'},
+            'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'event_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'key_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {}),
+            'project_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {}),
+            'value_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {})
         },
         'sentry.eventuser': {
             'Meta': {'unique_together': "(('project', 'ident'), ('project', 'hash'))", 'object_name': 'EventUser', 'index_together': "(('project', 'email'), ('project', 'username'), ('project', 'ip_address'))"},
@@ -286,7 +226,7 @@ class Migration(DataMigration):
             'active_at': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'db_index': 'True'}),
             'culprit': ('django.db.models.fields.CharField', [], {'max_length': '200', 'null': 'True', 'db_column': "'view'", 'blank': 'True'}),
             'data': ('sentry.db.models.fields.gzippeddict.GzippedDictField', [], {'null': 'True', 'blank': 'True'}),
-            'first_release': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Release']", 'null': 'True'}),
+            'first_release': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Release']", 'null': 'True', 'on_delete': 'models.PROTECT'}),
             'first_seen': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_public': ('django.db.models.fields.NullBooleanField', [], {'default': 'False', 'null': 'True', 'blank': 'True'}),
@@ -457,6 +397,17 @@ class Migration(DataMigration):
             'organizationmember': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.OrganizationMember']"}),
             'team': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Team']"})
         },
+        'sentry.organizationonboardingtask': {
+            'Meta': {'unique_together': "(('organization', 'task'),)", 'object_name': 'OrganizationOnboardingTask'},
+            'data': ('jsonfield.fields.JSONField', [], {'default': '{}'}),
+            'date_completed': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'organization': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Organization']"}),
+            'project_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {'null': 'True', 'blank': 'True'}),
+            'status': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {}),
+            'task': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {}),
+            'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']", 'null': 'True'})
+        },
         'sentry.organizationoption': {
             'Meta': {'unique_together': "(('organization', 'key'),)", 'object_name': 'OrganizationOption', 'db_table': "'sentry_organizationoptions'"},
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
@@ -465,17 +416,24 @@ class Migration(DataMigration):
             'value': ('sentry.db.models.fields.pickle.UnicodePickledObjectField', [], {})
         },
         'sentry.project': {
-            'Meta': {'unique_together': "(('team', 'slug'), ('organization', 'slug'), ('organization', 'short_name'))", 'object_name': 'Project'},
+            'Meta': {'unique_together': "(('team', 'slug'), ('organization', 'slug'), ('organization', 'callsign'))", 'object_name': 'Project'},
+            'callsign': ('django.db.models.fields.CharField', [], {'max_length': '40', 'null': 'True'}),
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'first_event': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
             'organization': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Organization']"}),
             'public': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'short_name': ('django.db.models.fields.CharField', [], {'max_length': '40', 'null': 'True'}),
             'slug': ('django.db.models.fields.SlugField', [], {'max_length': '50', 'null': 'True'}),
             'status': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0', 'db_index': 'True'}),
             'team': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Team']"})
+        },
+        'sentry.projectbookmark': {
+            'Meta': {'unique_together': "(('project_id', 'user'),)", 'object_name': 'ProjectBookmark'},
+            'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'null': 'True'}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'project_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {'null': 'True', 'blank': 'True'}),
+            'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']"})
         },
         'sentry.projectkey': {
             'Meta': {'object_name': 'ProjectKey'},
@@ -607,4 +565,3 @@ class Migration(DataMigration):
     }
 
     complete_apps = ['sentry']
-    symmetrical = True

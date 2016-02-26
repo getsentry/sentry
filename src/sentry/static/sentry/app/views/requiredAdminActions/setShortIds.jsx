@@ -19,7 +19,7 @@ function getProjectInfoForReview(org) {
       let targetList = nonMemberProjects;
       if (team.isMember) {
         canReview = canWriteProjects;
-        if (!project.shortNameReviewed) {
+        if (!project.callSignReviewed) {
           requiresReview++;
           canReviewAnything = canReviewAnything || canReview;
         }
@@ -29,10 +29,10 @@ function getProjectInfoForReview(org) {
         projectId: project.id,
         projectName: project.name,
         isMember: team.isMember,
-        requiresReview: !project.shortNameReviewed,
+        requiresReview: !project.callSignReviewed,
         canReview: canReview,
         teamName: org.teams[i].name,
-        shortName: project.shortName || null
+        callSign: project.callSign || null
       });
     }
   }
@@ -125,7 +125,7 @@ const SetShortIdsAction = React.createClass({
                     disabled={disabled}
                     className="form-control"
                     onChange={this.onSetShortName.bind(this, project.projectId)}
-                    value={project.shortName}/>
+                    value={project.callSign}/>
                 </div>
               </div>
             );

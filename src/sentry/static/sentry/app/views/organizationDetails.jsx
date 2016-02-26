@@ -17,7 +17,7 @@ let ERROR_TYPES = {
 function doProjectsNeedShortId(teams) {
   for (let i = 0; i < teams.length; i++) {
     for (let j = 0; j < teams[i].projects.length; j++) {
-      if (!teams[i].projects[j].shortNameReviewed) {
+      if (!teams[i].projects[j].callSignReviewed) {
         return true;
       }
     }
