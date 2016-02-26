@@ -4,6 +4,7 @@ from django import forms
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
+from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import roles
@@ -39,10 +40,42 @@ class OrganizationSettingsForm(forms.ModelForm):
         help_text=_('Enable sharing of limited details on issues to anonymous users.'),
         required=False,
     )
+    scrub_data = forms.BooleanField(
+        label=_('Data Scrubber'),
+        help_text=_('Enable organization-wide server-side data scrubbing.'),
+        required=False
+    )
+    scrub_defaults = forms.BooleanField(
+        label=_('Use Default Scrubbers'),
+        help_text=_('Apply organization-wide default scrubbers to prevent things like passwords and credit cards from being stored.'),
+        required=False
+    )
+    sensitive_fields = forms.CharField(
+        label=_('Additional sensitive fields'),
+        help_text=_('Additional organization-wide field names to match against when scrubbing data. Separate multiple entries with a newline.'),
+        widget=forms.Textarea(attrs={
+            'placeholder': mark_safe(_('e.g. email')),
+            'class': 'span8',
+            'rows': '3',
+        }),
+        required=False,
+    )
+    scrub_ip_address = forms.BooleanField(
+        label=_('Don\'t store IP Addresses'),
+        help_text=_('Prevent IP addresses from being stored for new events organization-wide.'),
+        required=False
+    )
 
     class Meta:
         fields = ('name', 'slug', 'default_role')
         model = Organization
+
+    def clean_sensitive_fields(self):
+        value = self.cleaned_data.get('sensitive_fields')
+        if not value:
+            return
+
+        return filter(bool, (v.lower().strip() for v in value.split('\n')))
 
 
 class OrganizationSettingsView(OrganizationView):
@@ -57,17 +90,32 @@ class OrganizationSettingsView(OrganizationView):
                 'allow_joinleave': bool(organization.flags.allow_joinleave),
                 'enhanced_privacy': bool(organization.flags.enhanced_privacy),
                 'allow_shared_issues': bool(not organization.flags.disable_shared_issues),
+                'scrub_data': bool(organization.get_option('sentry:scrub_data', False)),
+                'scrub_defaults': bool(organization.get_option('sentry:scrub_defaults', False)),
+                'sensitive_fields': '\n'.join(organization.get_option('sentry:sensitive_fields', None) or []),
+                'scrub_ip_address': bool(organization.get_option('sentry:scrub_ip_address', False)),
             }
         )
 
     def handle(self, request, organization):
         form = self.get_form(request, organization)
         if form.is_valid():
-            instance = form.save(commit=False)
-            instance.flags.allow_joinleave = form.cleaned_data['allow_joinleave']
-            instance.flags.enhanced_privacy = form.cleaned_data['enhanced_privacy']
-            instance.flags.disable_shared_issues = not form.cleaned_data['allow_shared_issues']
-            instance.save()
+            organization = form.save(commit=False)
+            organization.flags.allow_joinleave = form.cleaned_data['allow_joinleave']
+            organization.flags.enhanced_privacy = form.cleaned_data['enhanced_privacy']
+            organization.flags.disable_shared_issues = not form.cleaned_data['allow_shared_issues']
+            organization.save()
+
+            for opt in (
+                    'scrub_data',
+                    'scrub_defaults',
+                    'sensitive_fields',
+                    'scrub_ip_address'):
+                value = form.cleaned_data.get(opt)
+                if value is None:
+                    organization.delete_option('sentry:%s' % (opt,))
+                else:
+                    organization.update_option('sentry:%s' % (opt,), value)
 
             AuditLogEntry.objects.create(
                 organization=organization,

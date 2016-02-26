@@ -221,3 +221,19 @@ class Organization(Model):
             model.objects.filter(
                 organization=from_org,
             ).update(organization=to_org)
+
+    # TODO: Make these a mixin
+    def update_option(self, *args, **kwargs):
+        from sentry.models import OrganizationOption
+
+        return OrganizationOption.objects.set_value(self, *args, **kwargs)
+
+    def get_option(self, *args, **kwargs):
+        from sentry.models import OrganizationOption
+
+        return OrganizationOption.objects.get_value(self, *args, **kwargs)
+
+    def delete_option(self, *args, **kwargs):
+        from sentry.models import OrganizationOption
+
+        return OrganizationOption.objects.unset_value(self, *args, **kwargs)
