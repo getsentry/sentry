@@ -68,11 +68,24 @@ class EditProjectForm(forms.ModelForm):
     blacklisted_ips = IPNetworksField(label=_('Blacklisted IP Addresses'), required=False,
         help_text=_('Separate multiple entries with a newline.'))
 
+    # Options that are overridden by Organization level settings
+    org_overrides = ('scrub_data', 'scrub_defaults', 'scrub_ip_address')
+
     class Meta:
         fields = ('name', 'team', 'slug')
         model = Project
 
     def __init__(self, request, organization, team_list, data, instance, *args, **kwargs):
+        # First, we need to check for the value overrides from the Organization options
+        # We need to do this before `initial` gets passed into the Form.
+        disabled = []
+        if 'initial' in kwargs:
+            for opt in self.org_overrides:
+                value = bool(organization.get_option('sentry:%s' % (opt,), False))
+                if value:
+                    disabled.append(opt)
+                    kwargs['initial'][opt] = value
+
         super(EditProjectForm, self).__init__(data=data, instance=instance, *args, **kwargs)
 
         self.organization = organization
@@ -80,6 +93,11 @@ class EditProjectForm(forms.ModelForm):
 
         self.fields['team'].choices = self.get_team_choices(team_list, instance.team)
         self.fields['team'].widget.choices = self.fields['team'].choices
+
+        # After the Form is initialized, we now need to disable the fields that have been
+        # overridden from Organization options.
+        for opt in disabled:
+            self.fields[opt].widget.attrs['disabled'] = 'disabled'
 
     def get_team_label(self, team):
         return '%s (%s)' % (team.name, team.slug)
@@ -161,7 +179,8 @@ class ProjectSettingsView(ProjectView):
 
         return EditProjectForm(
             request, organization, team_list, request.POST or None,
-            instance=project, initial={
+            instance=project,
+            initial={
                 'origins': '\n'.join(project.get_option('sentry:origins', ['*'])),
                 'token': security_token,
                 'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
@@ -186,9 +205,12 @@ class ProjectSettingsView(ProjectView):
                     'scrub_data',
                     'scrub_defaults',
                     'sensitive_fields',
-                    'scrub_ip_addresses',
+                    'scrub_ip_address',
                     'scrape_javascript',
                     'blacklisted_ips'):
+                # Value can't be overridden if set on the org level
+                if opt in form.org_overrides and organization.get_option('sentry:%s' % (opt,), False):
+                    continue
                 value = form.cleaned_data.get(opt)
                 if value is None:
                     project.delete_option('sentry:%s' % (opt,))

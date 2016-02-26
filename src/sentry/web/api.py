@@ -20,7 +20,7 @@ from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper,
 )
 from sentry.event_manager import EventManager
-from sentry.models import Project
+from sentry.models import Project, OrganizationOption
 from sentry.signals import event_received
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
@@ -339,7 +339,12 @@ class StoreView(APIView):
         manager = EventManager(data, version=auth.version)
         data = manager.normalize()
 
-        scrub_ip_address = project.get_option('sentry:scrub_ip_address', False)
+        org_options = OrganizationOption.objects.get_all_values(project.organization_id)
+
+        scrub_ip_address_key = 'sentry:scrub_ip_address'
+        scrub_ip_address = org_options.get(scrub_ip_address_key, False)
+        if not scrub_ip_address:
+            scrub_ip_address = project.get_option(scrub_ip_address_key, False)
 
         # insert IP address if not available
         if auth.is_public and not scrub_ip_address:
@@ -354,11 +359,26 @@ class StoreView(APIView):
         if cache.get(cache_key) is not None:
             raise APIForbidden('An event with the same ID already exists (%s)' % (event_id,))
 
-        if project.get_option('sentry:scrub_data', True):
+        scrub_data_key = 'sentry:scrub_data'
+        scrub_data = org_options.get(scrub_data_key, False)
+        if not scrub_data:
+            scrub_data = project.get_option('sentry:scrub_data', True)
+        if scrub_data:
             # We filter data immediately before it ever gets into the queue
+            sensitive_fields_key = 'sentry:sensitive_fields'
+            sensitive_fields = (
+                org_options.get(sensitive_fields_key, []) +
+                project.get_option(sensitive_fields_key, [])
+            )
+
+            scrub_defaults_key = 'sentry:scrub_defaults'
+            scrub_defaults = org_options.get(scrub_defaults_key, False)
+            if not scrub_defaults:
+                scrub_defaults = project.get_option(scrub_defaults_key, True)
+
             inst = SensitiveDataFilter(
-                fields=project.get_option('sentry:sensitive_fields', None),
-                include_defaults=project.get_option('sentry:scrub_defaults', True),
+                fields=sensitive_fields,
+                include_defaults=scrub_defaults,
             )
             inst.apply(data)
 
