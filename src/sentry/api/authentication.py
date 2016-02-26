@@ -7,7 +7,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from sentry import options
 from sentry.app import raven
 from sentry.models import ApiKey
-from sentry.models.apikey import SYSTEM_KEY
+from sentry.models.apikey import ROOT_KEY
 from django.utils.crypto import constant_time_compare
 
 
@@ -24,7 +24,7 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
         root_api_key = options.get('system.root-api-key')
         if root_api_key:
             if constant_time_compare(root_api_key, userid):
-                return (None, SYSTEM_KEY)
+                return (None, ROOT_KEY)
 
         try:
             key = ApiKey.objects.get_from_cache(key=userid)

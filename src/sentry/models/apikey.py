@@ -118,4 +118,4 @@ class SystemKey(object):
         return ApiKey.scopes
 
 
-SYSTEM_KEY = SystemKey()
+ROOT_KEY = SystemKey()
