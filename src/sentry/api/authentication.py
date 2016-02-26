@@ -18,16 +18,13 @@ class QuietBasicAuthentication(BasicAuthentication):
 
 class ApiKeyAuthentication(QuietBasicAuthentication):
     def authenticate_credentials(self, userid, password):
-        if userid == 'admin':
-            ref_pw = options.get('system.admin-auth-password')
-            if not ref_pw:
-                raise AuthenticationFailed('System admin authentication disabled')
-            if not constant_time_compare(ref_pw, password):
-                raise AuthenticationFailed('Invalid system admin password')
-            return (None, SYSTEM_KEY)
-
         if password:
             return
+
+        root_api_key = options.get('system.root-api-key')
+        if root_api_key:
+            if constant_time_compare(root_api_key, userid):
+                return (None, SYSTEM_KEY)
 
         try:
             key = ApiKey.objects.get_from_cache(key=userid)
