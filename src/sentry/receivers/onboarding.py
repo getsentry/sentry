@@ -49,16 +49,18 @@ def record_new_project(project, user, **kwargs):
 
 @first_event_pending.connect(weak=False)
 def record_raven_installed(project, user, **kwargs):
-    oot, created = OrganizationOnboardingTask.objects.get_or_create(
-        organization=project.organization,
-        task=OnboardingTask.FIRST_EVENT,
-        status=OnboardingTaskStatus.PENDING,
-        defaults={
-            'user': user,
-            'project_id': project.id,
-            'date_completed': timezone.now()
-        }
-    )
+    try:
+        with transaction.atomic():
+            OrganizationOnboardingTask.objects.create(
+                organization=project.organization,
+                task=OnboardingTask.FIRST_EVENT,
+                status=OnboardingTaskStatus.PENDING,
+                user=user,
+                project_id=project.id,
+                date_completed=timezone.now()
+            )
+    except IntegrityError:
+        pass
 
 
 @first_event_received.connect(weak=False)
@@ -85,10 +87,13 @@ def record_first_event(project, group, **kwargs):
 
     # If first_event task is complete
     if not rows_affected and not created:
-        oot = OrganizationOnboardingTask.objects.filter(
-            organization=project.organization,
-            task=OnboardingTask.FIRST_EVENT
-        ).first()
+        try:
+            oot = OrganizationOnboardingTask.objects.filter(
+                organization=project.organization,
+                task=OnboardingTask.FIRST_EVENT
+            )[0]
+        except IndexError:
+            return
 
         # Only counts if it's a new project and platform
         if oot.project_id != project.id and oot.data['platform'] != group.platform:
