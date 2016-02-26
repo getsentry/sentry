@@ -81,7 +81,7 @@ class EditProjectForm(forms.ModelForm):
         disabled = []
         if 'initial' in kwargs:
             for opt in self.org_overrides:
-                value = bool(organization.get_option('sentry:%s' % (opt,), False))
+                value = bool(organization.get_option('sentry:require_%s' % (opt,), False))
                 if value:
                     disabled.append(opt)
                     kwargs['initial'][opt] = value

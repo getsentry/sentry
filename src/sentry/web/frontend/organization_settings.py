@@ -40,19 +40,20 @@ class OrganizationSettingsForm(forms.ModelForm):
         help_text=_('Enable sharing of limited details on issues to anonymous users.'),
         required=False,
     )
-    scrub_data = forms.BooleanField(
-        label=_('Data Scrubber'),
-        help_text=_('Enable organization-wide server-side data scrubbing.'),
+    require_scrub_data = forms.BooleanField(
+        label=_('Require Data Scrubber'),
+        help_text=_('Require server-side data scrubbing be enabled for all projects.'),
         required=False
     )
-    scrub_defaults = forms.BooleanField(
-        label=_('Use Default Scrubbers'),
-        help_text=_('Apply organization-wide default scrubbers to prevent things like passwords and credit cards from being stored.'),
+    require_scrub_defaults = forms.BooleanField(
+        label=_('Require Using Default Scrubbers'),
+        help_text=_('Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects.'),
         required=False
     )
     sensitive_fields = forms.CharField(
-        label=_('Additional sensitive fields'),
-        help_text=_('Additional organization-wide field names to match against when scrubbing data. Separate multiple entries with a newline.'),
+        label=_('Global additional sensitive fields'),
+        help_text=_('Additional field names to match against when scrubbing data for all projects. '
+                    'Separate multiple entries with a newline.<br /><strong>Note: These fields will be used in addition to project specific fields.</strong>'),
         widget=forms.Textarea(attrs={
             'placeholder': mark_safe(_('e.g. email')),
             'class': 'span8',
@@ -60,9 +61,9 @@ class OrganizationSettingsForm(forms.ModelForm):
         }),
         required=False,
     )
-    scrub_ip_address = forms.BooleanField(
-        label=_('Don\'t store IP Addresses'),
-        help_text=_('Prevent IP addresses from being stored for new events organization-wide.'),
+    require_scrub_ip_address = forms.BooleanField(
+        label=_('Require not storing IP Addresses'),
+        help_text=_('Require preventing IP addresses from being stored for new events on all projects.'),
         required=False
     )
 
@@ -90,10 +91,10 @@ class OrganizationSettingsView(OrganizationView):
                 'allow_joinleave': bool(organization.flags.allow_joinleave),
                 'enhanced_privacy': bool(organization.flags.enhanced_privacy),
                 'allow_shared_issues': bool(not organization.flags.disable_shared_issues),
-                'scrub_data': bool(organization.get_option('sentry:scrub_data', False)),
-                'scrub_defaults': bool(organization.get_option('sentry:scrub_defaults', False)),
+                'require_scrub_data': bool(organization.get_option('sentry:require_scrub_data', False)),
+                'require_scrub_defaults': bool(organization.get_option('sentry:require_scrub_defaults', False)),
                 'sensitive_fields': '\n'.join(organization.get_option('sentry:sensitive_fields', None) or []),
-                'scrub_ip_address': bool(organization.get_option('sentry:scrub_ip_address', False)),
+                'require_scrub_ip_address': bool(organization.get_option('sentry:require_scrub_ip_address', False)),
             }
         )
 
@@ -107,10 +108,10 @@ class OrganizationSettingsView(OrganizationView):
             organization.save()
 
             for opt in (
-                    'scrub_data',
-                    'scrub_defaults',
+                    'require_scrub_data',
+                    'require_scrub_defaults',
                     'sensitive_fields',
-                    'scrub_ip_address'):
+                    'require_scrub_ip_address'):
                 value = form.cleaned_data.get(opt)
                 if value is None:
                     organization.delete_option('sentry:%s' % (opt,))
