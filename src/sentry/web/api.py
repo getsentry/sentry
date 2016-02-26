@@ -341,10 +341,10 @@ class StoreView(APIView):
 
         org_options = OrganizationOption.objects.get_all_values(project.organization_id)
 
-        scrub_ip_address_key = 'sentry:scrub_ip_address'
-        scrub_ip_address = org_options.get(scrub_ip_address_key, False)
-        if not scrub_ip_address:
-            scrub_ip_address = project.get_option(scrub_ip_address_key, False)
+        if org_options.get('sentry:require_scrub_ip_address', False):
+            scrub_ip_address = True
+        else:
+            scrub_ip_address = project.get_option('sentry:scrub_ip_address', False)
 
         # insert IP address if not available
         if auth.is_public and not scrub_ip_address:
@@ -359,10 +359,11 @@ class StoreView(APIView):
         if cache.get(cache_key) is not None:
             raise APIForbidden('An event with the same ID already exists (%s)' % (event_id,))
 
-        scrub_data_key = 'sentry:scrub_data'
-        scrub_data = org_options.get(scrub_data_key, False)
-        if not scrub_data:
-            scrub_data = project.get_option(scrub_data_key, True)
+        if org_options.get('sentry:require_scrub_data', False):
+            scrub_data = True
+        else:
+            scrub_data = project.get_option('sentry:scrub_data', True)
+
         if scrub_data:
             # We filter data immediately before it ever gets into the queue
             sensitive_fields_key = 'sentry:sensitive_fields'
@@ -371,10 +372,10 @@ class StoreView(APIView):
                 project.get_option(sensitive_fields_key, [])
             )
 
-            scrub_defaults_key = 'sentry:scrub_defaults'
-            scrub_defaults = org_options.get(scrub_defaults_key, False)
-            if not scrub_defaults:
-                scrub_defaults = project.get_option(scrub_defaults_key, True)
+            if org_options.get('sentry:require_scrub_defaults', False):
+                scrub_defaults = True
+            else:
+                scrub_defaults = project.get_option('sentry:scrub_defaults', True)
 
             inst = SensitiveDataFilter(
                 fields=sensitive_fields,

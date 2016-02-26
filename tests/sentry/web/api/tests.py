@@ -141,7 +141,7 @@ class StoreViewTest(TestCase):
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrubs_org_ip_address_override(self, mock_insert_data_to_database):
-        self.organization.update_option('sentry:scrub_ip_address', True)
+        self.organization.update_option('sentry:require_scrub_ip_address', True)
         self.project.update_option('sentry:scrub_ip_address', False)
         body = {
             "message": "foo bar",
@@ -238,9 +238,9 @@ class StoreViewTest(TestCase):
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_org_override(self, mock_insert_data_to_database):
-        self.organization.update_option('sentry:scrub_data', True)
+        self.organization.update_option('sentry:require_scrub_data', True)
         self.project.update_option('sentry:scrub_data', False)
-        self.organization.update_option('sentry:scrub_defaults', True)
+        self.organization.update_option('sentry:require_scrub_defaults', True)
         self.project.update_option('sentry:scrub_defaults', False)
         body = {
             "message": "foo bar",
@@ -259,8 +259,8 @@ class StoreViewTest(TestCase):
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_org_override_sensitive_fields(self, mock_insert_data_to_database):
-        self.organization.update_option('sentry:scrub_data', True)
-        self.organization.update_option('sentry:scrub_defaults', True)
+        self.organization.update_option('sentry:require_scrub_data', True)
+        self.organization.update_option('sentry:require_scrub_defaults', True)
         self.organization.update_option('sentry:sensitive_fields', ['baz'])
         self.project.update_option('sentry:sensitive_fields', ['foo', 'bar'])
         body = {
