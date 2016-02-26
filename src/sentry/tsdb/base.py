@@ -7,7 +7,6 @@ sentry.tsdb.base
 """
 from __future__ import absolute_import
 
-import logging
 from collections import OrderedDict
 from datetime import timedelta
 from django.conf import settings
@@ -15,9 +14,6 @@ from django.utils import timezone
 from enum import Enum
 
 from sentry.utils.dates import to_timestamp
-
-
-logger = logging.getLogger(__name__)
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -123,16 +119,12 @@ class BaseTSDB(object):
 
         if rollup is None:
             rollups = filter(satisfies_range, self.rollups.items())
-            if not rollups:
-                logger.warning('Could not find rollup that satisfies range: %r to %r', start_timestamp, end_timestamp)
-                rollup = rollups.keys()[-1]
-            else:
-                rollup = rollups[-1][0]
+            assert rollups, 'could not find rollup that satisfies range'
+            rollup = rollups[0][0]
         else:
             samples = self.rollups.get(rollup)
             assert samples is not None, 'invalid rollup: {}'.format(rollup)
-            if not satisfies_range((rollup, samples)):
-                logger.warning('Rollup %r does not satisfy range: %r to %r', rollup, start_timestamp, end_timestamp)
+            assert satisfies_range((rollup, samples))
 
         return rollup
 
