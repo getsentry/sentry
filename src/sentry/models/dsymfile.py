@@ -55,7 +55,7 @@ class ProjectDSymFile(CommonDSymFile):
     project = FlexibleForeignKey('sentry.Project', null=True)
     uuid = models.CharField(max_length=36)
 
-    class Meta:
+    class Meta(CommonDSymFile.Meta):
         unique_together = (('project', 'uuid'),)
         db_table = 'sentry_projectdsymfile'
 
@@ -63,7 +63,7 @@ class ProjectDSymFile(CommonDSymFile):
 class GlobalDSymFile(CommonDSymFile):
     uuid = models.CharField(max_length=36, unique=True)
 
-    class Meta:
+    class Meta(CommonDSymFile.Meta):
         db_table = 'sentry_globaldsymfile'
 
 
