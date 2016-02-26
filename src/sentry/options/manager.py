@@ -7,6 +7,7 @@ sentry.options.manager
 """
 from __future__ import absolute_import, print_function
 
+import sys
 import logging
 from itertools import ifilter
 from types import NoneType
@@ -212,9 +213,14 @@ class OptionsManager(object):
             # Raise here or nah?
             raise UnknownOption(key)
 
-    def validate(self, options):
+    def validate(self, options, warn=False):
         for k, v in options.iteritems():
-            self.validate_option(k, v)
+            try:
+                self.validate_option(k, v)
+            except UnknownOption as e:
+                if not warn:
+                    raise
+                sys.stderr.write('* Unknown config option found: %s\n' % e)
 
     def validate_option(self, key, value):
         opt = self.lookup_key(key)
