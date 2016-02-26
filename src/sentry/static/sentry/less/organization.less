@@ -519,7 +519,7 @@ table.project-list {
   }
 
   .slider:hover {
-    background: #00FF6F;
+    background: #38D97E;
   }
 
   .dropdown-menu {
@@ -556,10 +556,20 @@ table.project-list {
       }
     }
   }
+
+  &:before {
+    display: block;
+    content: "";
+    position: absolute;
+    top: -10px;
+    bottom: -10px;
+    left: -10px;
+    right: -10px;
+  }
 }
 
 .onboarding-progress-bar:hover {
-  box-shadow: 0px 0px 1px 1px rgba(255,255,255, .2);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255, .075), 0 0 8px rgba(255,255,255, .2);
 }
 
 /**

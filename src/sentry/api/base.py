@@ -21,7 +21,7 @@ from sentry.models import ApiKey, AuditLogEntry
 from sentry.utils.cursors import Cursor
 from sentry.utils.http import absolute_uri, is_valid_origin
 
-from .authentication import ApiKeyAuthentication, ProjectKeyAuthentication
+from .authentication import ApiKeyAuthentication
 from .paginator import Paginator
 from .permissions import NoPermission
 
@@ -34,7 +34,6 @@ LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; c
 
 DEFAULT_AUTHENTICATION = (
     ApiKeyAuthentication,
-    ProjectKeyAuthentication,
     SessionAuthentication
 )
 

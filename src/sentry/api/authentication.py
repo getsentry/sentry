@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
 from django.contrib.auth.models import AnonymousUser
-from django.utils.crypto import constant_time_compare
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
 from sentry import options
 from sentry.app import raven
-from sentry.models import ApiKey, ProjectKey
+from sentry.models import ApiKey
 from sentry.models.apikey import SYSTEM_KEY
+from django.utils.crypto import constant_time_compare
 
 
 class QuietBasicAuthentication(BasicAuthentication):
@@ -42,22 +42,3 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
         })
 
         return (AnonymousUser(), key)
-
-
-class ProjectKeyAuthentication(QuietBasicAuthentication):
-    def authenticate_credentials(self, userid, password):
-        try:
-            pk = ProjectKey.objects.get_from_cache(public_key=userid)
-        except ProjectKey.DoesNotExist:
-            return None
-
-        if not constant_time_compare(pk.secret_key, password):
-            return None
-
-        if not pk.is_active:
-            raise AuthenticationFailed('Key is disabled')
-
-        if not pk.roles.api:
-            raise AuthenticationFailed('Key does not allow API access')
-
-        return (AnonymousUser(), pk)

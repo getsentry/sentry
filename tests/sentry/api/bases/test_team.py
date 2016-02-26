@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from mock import Mock
 
 from sentry.api.bases.team import TeamPermission
-from sentry.models import ApiKey, ProjectKey
+from sentry.models import ApiKey
 from sentry.testutils import TestCase
 
 
@@ -51,12 +51,6 @@ class TeamPermissionTest(TeamPermissionBase):
             teams=[self.team],
         )
         assert self.has_object_perm('GET', self.team, user=user)
-
-    def test_get_project_key(self):
-        key = ProjectKey.objects.create(
-            project=self.create_project(team=self.team),
-        )
-        assert not self.has_object_perm('GET', self.team, auth=key)
 
     def test_get_api_key_with_org_access(self):
         key = ApiKey.objects.create(
