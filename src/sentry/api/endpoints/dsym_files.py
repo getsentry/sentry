@@ -10,7 +10,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.permissions import SystemPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import DSymFile
+from sentry.models import ProjectDSymFile, create_files_from_macho_zip
 
 ERR_FILE_EXISTS = 'A file matching this uuid already exists'
 
@@ -46,7 +46,7 @@ class DSymFilesEndpoint(ProjectEndpoint):
                                      dsym files of.
         :auth: required
         """
-        file_list = DSymFile.objects.filter(
+        file_list = ProjectDSymFile.objects.filter(
             project=project
         ).select_related('file', 'file__blob').order_by('name')
 
@@ -84,7 +84,7 @@ class DSymFilesEndpoint(ProjectEndpoint):
 
         fileobj = request.FILES['file']
 
-        files = DSymFile.create_files_from_macho_zip(project, fileobj)
+        files = create_files_from_macho_zip(fileobj, project)
 
         return Response(serialize(files, request.user), status=201)
 
@@ -96,5 +96,5 @@ class GlobalDSymFilesEndpoint(Endpoint):
         if 'file' not in request.FILES:
             return Response({'detail': 'Missing uploaded file'}, status=400)
         fileobj = request.FILES['file']
-        files = DSymFile.create_files_from_macho_zip(None, fileobj)
+        files = create_files_from_macho_zip(fileobj)
         return Response(serialize(files, request.user), status=201)
