@@ -5,6 +5,7 @@ Version 8.2.0
 - Do not require the documentation sync on repair to succeed.
 - Added basic organization on-boarding.
 - Project keys are no longer usable within the web API.
+- Allow requiring data scrubbing security options as an organization wide setting.
 
 Schema Changes
 ~~~~~~~~~~~~~~
