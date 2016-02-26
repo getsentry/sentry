@@ -155,7 +155,7 @@ class RedisTSDB(BaseTSDB):
             timestamp = timezone.now()
 
         with self.cluster.map() as client:
-            for rollup, max_values in self.rollups.items():
+            for rollup, max_values in self.rollups:
                 norm_rollup = normalize_to_rollup(timestamp, rollup)
                 for model, key in items:
                     model_key = self.get_model_key(key)
@@ -181,7 +181,8 @@ class RedisTSDB(BaseTSDB):
         normalize_to_rollup = self.normalize_to_rollup
         make_key = self.make_counter_key
 
-        rollup = self.get_optimal_rollup(start, end, rollup)
+        if rollup is None:
+            rollup = self.get_optimal_rollup(start, end)
 
         results = []
         timestamp = end
@@ -221,7 +222,7 @@ class RedisTSDB(BaseTSDB):
         with self.cluster.fanout() as client:
             for model, key, values in items:
                 c = client.target_key(key)
-                for rollup, max_values in self.rollups.items():
+                for rollup, max_values in self.rollups:
                     k = self.make_key(
                         model,
                         rollup,
@@ -309,7 +310,7 @@ class RedisTSDB(BaseTSDB):
 
                 # Figure out all of the keys we need to be incrementing, as
                 # well as their expiration policies.
-                for rollup, max_values in self.rollups.items():
+                for rollup, max_values in self.rollups:
                     chunk = self.make_frequency_table_keys(model, rollup, ts, key)
                     keys.extend(chunk)
 

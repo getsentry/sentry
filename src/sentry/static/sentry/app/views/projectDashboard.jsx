@@ -57,9 +57,9 @@ const ProjectDashboard = React.createClass({
     let now = new Date().getTime() / 1000;
     switch (statsPeriod) {
       case PERIOD_WEEK:
-        return now - 3600 * ((24 * 7) - 1);
+        return now - 3600 * 24 * 7;
       case PERIOD_HOUR:
-        return now - 3600 + 10;
+        return now - 3600;
       case PERIOD_DAY:
       default:
         return now - 3600 * 24;

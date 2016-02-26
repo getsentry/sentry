@@ -96,7 +96,7 @@ def record_first_event(project, group, **kwargs):
             return
 
         # Only counts if it's a new project and platform
-        if oot.project_id != project.id and oot.data['platform'] != group.platform:
+        if oot.project_id != project.id and oot.data.get('platform', group.platform) != group.platform:
             OrganizationOnboardingTask.objects.create_or_update(
                 organization=project.organization,
                 task=OnboardingTask.SECOND_PLATFORM,
