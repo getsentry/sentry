@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+from collections import namedtuple
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -141,30 +142,43 @@ class GroupSerializer(Serializer):
         }
 
 
+StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
+
+
 class StreamGroupSerializer(GroupSerializer):
+    STATS_PERIOD_CHOICES = {
+        '14d': StatsPeriod(14, timedelta(hours=24)),
+        '24h': StatsPeriod(24, timedelta(hours=1)),
+    }
+
     def __init__(self, stats_period=None):
+        if stats_period is not None:
+            assert stats_period in self.STATS_PERIOD_CHOICES
+
         self.stats_period = stats_period
-        assert stats_period in (None, '24h', '14d')
 
     def get_attrs(self, item_list, user):
         attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
 
         # we need to compute stats at 1d (1h resolution), and 14d
         group_ids = [g.id for g in item_list]
+
         if self.stats_period:
-            days = 14 if self.stats_period == '14d' else 1
+            segments, interval = self.STATS_PERIOD_CHOICES[self.stats_period]
             now = timezone.now()
-            stats = tsdb.rollup(tsdb.get_range(
+            stats = tsdb.get_range(
                 model=tsdb.models.group,
                 keys=group_ids,
                 end=now,
-                start=now - timedelta(days=days),
-            ), 3600 * days)
+                start=now - ((segments - 1) * interval),
+                rollup=int(interval.total_seconds()),
+            )
 
             for item in item_list:
                 attrs[item].update({
                     'stats': stats[item.id],
                 })
+
         return attrs
 
     def serialize(self, obj, attrs, user):
