@@ -47,7 +47,7 @@ class Migration(DataMigration):
             projects = list(Project.objects.filter(organization=org))
             projects = [project for project in projects if project.first_event]
             projects = sorted(projects, key=lambda project: project.first_event)
-            if len(projects) > 0:
+            if len(projects) == 1:
                 try:
                     with transaction.atomic():
                         OrganizationOnboardingTask.objects.create(
