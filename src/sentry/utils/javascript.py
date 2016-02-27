@@ -30,7 +30,6 @@ transformers = {}
 
 def has_sourcemap(event):
     if event.platform != 'javascript':
-        print(event.platform)
         return False
     data = event.data
 
