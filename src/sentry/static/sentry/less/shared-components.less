@@ -2052,9 +2052,16 @@ table.integrations {
     z-index: -2;
   }
 
-  &.dropdown-menu-right:after {
-    right: 13px;
-    left: auto;
+  &.dropdown-menu-right {
+    &:before {
+      right: 12px;
+      left: auto;
+    }
+
+    &:after {
+      right: 13px;
+      left: auto;
+    }
   }
 
   li a {
