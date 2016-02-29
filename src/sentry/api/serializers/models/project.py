@@ -26,12 +26,9 @@ class ProjectSerializer(Serializer):
         from sentry import features
 
         feature_list = []
-        if features.has('projects:quotas', obj, actor=user):
-            feature_list.append('quotas')
-        if features.has('projects:global-events', obj, actor=user):
-            feature_list.append('global-events')
-        if features.has('projects:user-reports', obj, actor=user):
-            feature_list.append('user-reports')
+        for feature in 'global-events', 'user-reports', 'dsym':
+            if features.has('projects:' + feature, obj, actor=user):
+                feature_list.append(feature)
 
         return {
             'id': str(obj.id),

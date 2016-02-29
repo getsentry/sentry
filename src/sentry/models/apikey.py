@@ -96,3 +96,26 @@ class ApiKey(Model):
 
     def get_scopes(self):
         return self.scopes.keys()
+
+
+class SystemKey(object):
+    is_active = True
+    organization = None
+
+    def get_allowed_origins(self):
+        return []
+
+    def get_audit_log_data(self):
+        return {
+            'label': 'System',
+            'key': '<system>',
+            'scopes': -1,
+            'status': ApiKeyStatus.ACTIVE
+        }
+
+    def get_scopes(self):
+        # All scopes!
+        return ApiKey.scopes
+
+
+ROOT_KEY = SystemKey()
