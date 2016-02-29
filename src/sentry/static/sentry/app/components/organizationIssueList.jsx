@@ -7,6 +7,12 @@ import OrganizationHomeContainer from './organizations/homeContainer';
 import {t} from '../locale';
 
 const OrganizationIssueList = React.createClass({
+  propTypes: {
+    title: React.PropTypes.string,
+    endpoint: React.PropTypes.string.isRequired,
+    pageSize: React.PropTypes.number
+  },
+
   getInitialState() {
     return this.getQueryStringState(this.props);
   },

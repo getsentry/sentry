@@ -9,6 +9,9 @@ import queryString from 'query-string';
 import {t} from '../../../locale';
 
 const RichHttpContent = React.createClass({
+  propTypes: {
+    data: React.PropTypes.object.isRequired
+  },
 
   /**
    * Converts an object of body/querystring key/value pairs

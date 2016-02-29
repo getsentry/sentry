@@ -7,6 +7,11 @@ import LoadingIndicator from '../../components/loadingIndicator';
 import ProjectState from '../../mixins/projectState';
 
 const ProjectChart = React.createClass({
+  propTypes: {
+    dateSince: React.PropTypes.number.isRequired,
+    resolution: React.PropTypes.string.isRequired
+  },
+
   mixins: [
     ApiMixin,
     ProjectState

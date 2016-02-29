@@ -13,7 +13,6 @@ import PropTypes from '../../proptypes';
 import SharedGroupHeader from './sharedGroupHeader';
 
 const SharedGroupDetails = React.createClass({
-
   childContextTypes: {
     group: PropTypes.Group,
   },

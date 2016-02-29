@@ -5,7 +5,8 @@ import {t} from '../locale';
 const ClippedBox = React.createClass({
   propTypes: {
     title: React.PropTypes.string,
-    defaultClipped: React.PropTypes.bool
+    defaultClipped: React.PropTypes.bool,
+    clipHeight: React.PropTypes.number
   },
 
   getDefaultProps() {

@@ -8,6 +8,11 @@ import OrganizationHomeContainer from '../components/organizations/homeContainer
 import {t} from '../locale';
 
 const AssignedIssues = React.createClass({
+  propTypes: {
+    statsPeriod: React.PropTypes.string,
+    pageSize: React.PropTypes.number
+  },
+
   getEndpoint() {
     return `/organizations/${this.props.params.orgId}/members/me/issues/assigned/?`;
   },
@@ -34,6 +39,11 @@ const AssignedIssues = React.createClass({
 });
 
 const NewIssues = React.createClass({
+  propTypes: {
+    statsPeriod: React.PropTypes.string,
+    pageSize: React.PropTypes.number
+  },
+
   getEndpoint() {
     return `/organizations/${this.props.params.orgId}/issues/new/`;
   },

@@ -1,5 +1,6 @@
-import marked from 'marked';
 import React from 'react';
+import marked from 'marked';
+
 import ApiMixin from '../../mixins/apiMixin';
 import GroupStore from '../../stores/groupStore';
 import IndicatorStore from '../../stores/indicatorStore';
@@ -15,6 +16,12 @@ function makeDefaultErrorJson() {
 }
 
 const NoteInput = React.createClass({
+  propTypes: {
+    item: React.PropTypes.object,
+    group: React.PropTypes.object.isRequired,
+    onFinish: React.PropTypes.func
+  },
+
   mixins: [
     PureRenderMixin,
     ApiMixin

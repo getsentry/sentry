@@ -7,6 +7,11 @@ import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 
 const EventChart = React.createClass({
+  propTypes: {
+    since: React.PropTypes.number.isRequired,
+    resolution: React.PropTypes.string.isRequired
+  },
+
   mixins: [
     ApiMixin
   ],

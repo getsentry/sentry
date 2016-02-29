@@ -5,8 +5,10 @@ import {t} from '../locale';
 
 const AlertMessage = React.createClass({
   propTypes: {
-    type: React.PropTypes.string,
-    message: React.PropTypes.string
+    className: React.PropTypes.string,
+    id: React.PropTypes.number.isRequired,
+    message: React.PropTypes.string.isRequired,
+    type: React.PropTypes.string
   },
 
   mixins: [PureRenderMixin],

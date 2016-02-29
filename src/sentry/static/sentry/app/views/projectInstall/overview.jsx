@@ -5,6 +5,10 @@ import AutoSelectText from '../../components/autoSelectText';
 import {t, tct} from '../../locale';
 
 const ProjectInstallOverview = React.createClass({
+  propTypes: {
+    platformData: React.PropTypes.object
+  },
+
   getInitialState() {
     return {
       data: this.props.platformData

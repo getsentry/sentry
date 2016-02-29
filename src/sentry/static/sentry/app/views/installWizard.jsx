@@ -10,6 +10,12 @@ import LoadingIndicator from '../components/loadingIndicator';
 import {getOption, getOptionField} from '../options';
 
 const InstallWizardSettings = React.createClass({
+  propTypes: {
+    options: React.PropTypes.object.isRequired,
+    formDisabled: React.PropTypes.bool,
+    onSubmit: React.PropTypes.func.isRequired
+  },
+
   getInitialState() {
     let options = {...this.props.options};
     let requiredOptions = Object.keys(_.pick(options, (option) => {
@@ -81,6 +87,10 @@ const InstallWizardSettings = React.createClass({
 });
 
 const InstallWizard = React.createClass({
+  propTypes: {
+    onConfigured: React.PropTypes.func.isRequired
+  },
+
   mixins: [
     ApiMixin
   ],

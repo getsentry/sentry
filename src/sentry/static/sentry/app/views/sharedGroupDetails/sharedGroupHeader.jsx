@@ -1,6 +1,10 @@
 import React from 'react';
 
 const SharedGroupHeader = React.createClass({
+  propTypes: {
+    group: React.PropTypes.object.isRequired
+  },
+
   render() {
     let group = this.props.group;
 

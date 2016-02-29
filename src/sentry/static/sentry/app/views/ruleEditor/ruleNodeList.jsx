@@ -4,6 +4,11 @@ import SelectInput from '../../components/selectInput';
 import RuleNode from './ruleNode';
 
 const RuleNodeList = React.createClass({
+  propTypes: {
+    initialItems: React.PropTypes.array,
+    nodes: React.PropTypes.array.isRequired
+  },
+
   getInitialState() {
     return {
       items: this.props.initialItems || []

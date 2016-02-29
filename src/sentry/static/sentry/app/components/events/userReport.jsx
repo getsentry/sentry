@@ -5,6 +5,10 @@ import utils from '../../utils';
 
 
 const EventUserReport = React.createClass({
+  propTypes: {
+    event: React.PropTypes.object.isRequired
+  },
+
   render() {
     let report = this.props.event.userReport;
 

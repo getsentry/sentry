@@ -6,11 +6,13 @@ require('bootstrap/js/dropdown');
 
 const DropdownLink = React.createClass({
   propTypes: {
-    title:     React.PropTypes.node,
-    caret:     React.PropTypes.bool,
-    disabled:  React.PropTypes.bool,
-    onOpen:    React.PropTypes.func,
-    onClose:   React.PropTypes.func,
+    title: React.PropTypes.node,
+    caret: React.PropTypes.bool,
+    disabled: React.PropTypes.bool,
+    onOpen: React.PropTypes.func,
+    onClose: React.PropTypes.func,
+    topLevelClasses: React.PropTypes.string,
+    menuClasses: React.PropTypes.string
   },
 
   getDefaultProps() {

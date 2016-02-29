@@ -8,6 +8,15 @@ import OrganizationState from '../../mixins/organizationState';
 import {t,tct} from '../../locale';
 
 const RangeInput = React.createClass({
+  propTypes: {
+    min: React.PropTypes.number.isRequired,
+    max: React.PropTypes.number.isRequired,
+    step: React.PropTypes.number.isRequired,
+    defaultValue: React.PropTypes.number,
+    formatLabel: React.PropTypes.func.isRequired,
+    onChange: React.PropTypes.func.isRequired
+  },
+
   getDefaultProps() {
     return {
       min: 1,
@@ -65,6 +74,10 @@ const RangeInput = React.createClass({
 });
 
 const RateLimitEditor = React.createClass({
+  propTypes: {
+    organization: React.PropTypes.object.isRequired
+  },
+
   mixins: [ApiMixin],
 
   getInitialState() {
