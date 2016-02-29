@@ -14,6 +14,11 @@ const PERIODS = new Set([PERIOD_HOUR, PERIOD_DAY, PERIOD_WEEK]);
 
 
 const ProjectDashboard = React.createClass({
+  propTypes: {
+    defaultStatsPeriod: React.PropTypes.string,
+    setProjectNavSection: React.PropTypes.func
+  },
+
   mixins: [
     ProjectState
   ],

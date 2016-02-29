@@ -26,6 +26,10 @@ import {t, tct} from '../locale';
 
 const Stream = React.createClass({
   propTypes: {
+    defaultSort: React.PropTypes.string,
+    defaultStatsPeriod: React.PropTypes.string,
+    defaultQuery: React.PropTypes.string,
+    maxItems: React.PropTypes.number,
     setProjectNavSection: React.PropTypes.func
   },
 

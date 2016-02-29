@@ -6,7 +6,8 @@ const Gravatar = React.createClass({
   propTypes: {
     email: React.PropTypes.string,
     size: React.PropTypes.number,
-    default: React.PropTypes.string
+    default: React.PropTypes.string,
+    title: React.PropTypes.string
   },
 
   getDefaultProps() {

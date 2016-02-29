@@ -8,7 +8,23 @@ import {t} from '../../locale';
 const StreamFilters = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    projectId: React.PropTypes.string.isRequired,
+    access: React.PropTypes.object.isRequired,
+    tags: React.PropTypes.object.isRequired,
+
+    searchId: React.PropTypes.string,
+    savedSearchList: React.PropTypes.array.isRequired,
+
+    defaultQuery: React.PropTypes.string,
+    sort: React.PropTypes.string,
+    filter: React.PropTypes.string,
+    query: React.PropTypes.string,
+    isSearchDisabled: React.PropTypes.bool,
+
+    onSortChange: React.PropTypes.func,
+    onSearch: React.PropTypes.func,
+    onSidebarToggle: React.PropTypes.func,
+    onSavedSearchCreate: React.PropTypes.func.isRequired
   },
 
   contextTypes: {

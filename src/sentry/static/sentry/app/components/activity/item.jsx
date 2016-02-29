@@ -12,6 +12,12 @@ import {tct} from '../../locale';
 
 
 const ActivityItem = React.createClass({
+  propTypes: {
+    clipHeight: React.PropTypes.number,
+    defaultClipped: React.PropTypes.bool,
+    item: React.PropTypes.object.isRequired,
+    orgId: React.PropTypes.string.isRequired
+  },
 
   getDefaultProps() {
     return {

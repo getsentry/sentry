@@ -14,7 +14,10 @@ import TodoList from '../todos';
 
 const OnboardingStatus = React.createClass({
   propTypes: {
-    onHideTodos: React.PropTypes.func
+    org: React.PropTypes.object.isRequired,
+    onToggleTodos: React.PropTypes.func.isRequired,
+    showTodos: React.PropTypes.bool,
+    onHideTodos: React.PropTypes.func,
   },
 
   render() {
@@ -46,6 +49,10 @@ const OnboardingStatus = React.createClass({
 });
 
 const Header = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired
+  },
+
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState: function() {

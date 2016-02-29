@@ -10,7 +10,8 @@ import {t} from '../../../locale';
 
 const Frame = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired
+    data: React.PropTypes.object.isRequired,
+    isExpanded: React.PropTypes.bool
   },
 
   mixins: [

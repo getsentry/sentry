@@ -2,12 +2,18 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {Link} from 'react-router';
 import jQuery from 'jquery';
+
 import ConfigStore from '../../stores/configStore';
 import DropdownLink from '../dropdownLink';
 import MenuItem from '../menuItem';
 import {t} from '../../locale';
 
 const ProjectSelector = React.createClass({
+  propTypes: {
+    projectId: React.PropTypes.string,
+    organization: React.PropTypes.object.isRequired
+  },
+
   contextTypes: {
     location: React.PropTypes.object
   },
@@ -94,7 +100,7 @@ const ProjectSelector = React.createClass({
 
     let menuItemProps = {
       key: projectId, // TODO: what if two projects w/ same name under diff orgs?
-      linkClassName: projectId == this.props.projectId && 'active',
+      linkClassName: projectId == this.props.projectId ? 'active' : '',
 
       // When router is available, use `to` property. Otherwise, use href
       // property. For example - when project selector is loaded on

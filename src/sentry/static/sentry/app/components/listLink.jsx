@@ -10,6 +10,7 @@ const ListLink = React.createClass({
     to: React.PropTypes.string.isRequired,
     query: React.PropTypes.object,
     onClick: React.PropTypes.func,
+    index: React.PropTypes.bool,
 
     // If supplied by parent component, decides whether link element
     // is "active" or not ... overriding default behavior of strict

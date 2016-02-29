@@ -11,9 +11,12 @@ import {t, tct} from '../../locale';
 
 const ExpandedTeamList = React.createClass({
   propTypes: {
+    access: React.PropTypes.object.isRequired,
     organization: PropTypes.Organization.isRequired,
     teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
-    projectStats: React.PropTypes.object
+    projectStats: React.PropTypes.object,
+    showAllTeams: React.PropTypes.func.isRequired,
+    hasTeams: React.PropTypes.bool
   },
 
   mixins: [

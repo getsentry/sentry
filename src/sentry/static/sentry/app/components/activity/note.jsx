@@ -1,5 +1,6 @@
-import marked from 'marked';
 import React from 'react';
+
+import marked from 'marked';
 import TimeSince from '../../components/timeSince';
 import ConfigStore from '../../stores/configStore';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
@@ -11,6 +12,13 @@ marked.setOptions({
 });
 
 const Note = React.createClass({
+  propTypes: {
+    author: React.PropTypes.object.isRequired,
+    item: React.PropTypes.object.isRequired,
+    onEdit: React.PropTypes.func.isRequired,
+    onDelete: React.PropTypes.func.isRequired,
+  },
+
   canEdit() {
     let user = ConfigStore.get('user');
     return user.isSuperuser || user.id === this.props.item.user.id;
