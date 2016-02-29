@@ -31,6 +31,8 @@ class OnboardingTask(object):
     ISSUE_TRACKER = 9
     NOTIFICATION_SERVICE = 10
 
+    REQUIRED_ONBOARDING_TASKS = [1, 2, 3, 4, 5, 6, 7, 9, 10]
+
 
 class OnboardingTaskStatus(object):
     """
