@@ -38,6 +38,23 @@ const Frame = React.createClass({
     });
   },
 
+  hasContextSource() {
+    return defined(this.props.data.context) && this.props.data.context.length;
+  },
+
+  hasExtendedSource() {
+    return this.hasContextSource() && this.props.data.context.length > 1;
+  },
+
+  hasContextVars() {
+    return !objectIsEmpty(this.props.data.vars);
+  },
+
+  isExpandable() {
+    return this.hasExtendedSource() || this.hasContextVars();
+  },
+
+
   renderOriginalSourceInfo() {
     let data = this.props.data;
 
@@ -138,16 +155,15 @@ const Frame = React.createClass({
       outerClassName += ' expanded';
     }
 
-    let hasContextSource = defined(data.context) && data.context.length;
-    let hasExtendedSource = hasContextSource && data.context.length > 1;
-    let hasContextVars = !objectIsEmpty(data.vars);
-    let expandable = hasExtendedSource || hasContextVars;
+    let hasContextSource = this.hasContextSource();
+    let hasContextVars = this.hasContextVars();
+    let expandable = this.isExpandable();
 
     if (hasContextSource || hasContextVars) {
       let startLineNo = hasContextSource ? data.context[0][0] : '';
       context = (
         <ol start={startLineNo} className={outerClassName}
-            onClick={this.toggleContext}>
+            onClick={expandable ? this.toggleContext : null}>
           {defined(data.errors) &&
           <li className={expandable ? 'expandable error' : 'error'}
               key="errors">{data.errors.join(', ')}</li>
@@ -198,7 +214,7 @@ const Frame = React.createClass({
     return (
       <li className={className}>
         <p>{this.renderTitle()}
-          {context ?
+          {this.isExpandable() ?
             <a
               title={t('Toggle context')}
               onClick={this.toggleContext}
