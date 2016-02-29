@@ -29,7 +29,7 @@ def list(pattern):
 
 
 @config.command()
-@click.option('--silent', default=False, is_flag=True, help='Suppress extraneous output.')
+@click.option('--silent', '-q', default=False, is_flag=True, help='Suppress extraneous output.')
 @click.argument('option')
 @configuration
 def get(option, silent):
