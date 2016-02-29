@@ -23,9 +23,7 @@ def is_active_superuser(request):
     if not user:
         return False
 
-    if settings.INTERNAL_IPS:
-        ip = request.META['REMOTE_ADDR']
-        if not any(ip in addr for addr in settings.INTERNAL_IPS):
-            return False
+    if not is_privileged_request(request):
+        return False
 
     return user.is_superuser
