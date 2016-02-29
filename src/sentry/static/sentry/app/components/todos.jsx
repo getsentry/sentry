@@ -151,7 +151,7 @@ const TodoList = React.createClass({
         'task': 3,
         'title': t('Invite team member'),
         'description': t('Bring your team aboard'),
-        'skippable': false,
+        'skippable': true,
         'prereq': [],
         'featureLocation': 'organization',
         'location': 'members/',
@@ -160,7 +160,7 @@ const TodoList = React.createClass({
         'task': 4,
         'title': t('Add a second platform'),
         'description': t('Add Sentry to a second platform'),
-        'skippable': false,
+        'skippable': true,
         'prereq': [1, 2],
         'featureLocation': 'organization',
         'location': 'projects/new/',
@@ -169,7 +169,7 @@ const TodoList = React.createClass({
         'task': 5,
         'title': t('Add user context'),
         'description': t('Know who is being affected by crashes'),
-        'skippable': false,
+        'skippable': true,
         'prereq': [1, 2],
         'featureLocation': 'absolute',
         'location': 'https://docs.getsentry.com/hosted/learn/context/#capturing-the-user',
@@ -178,7 +178,7 @@ const TodoList = React.createClass({
         'task': 6,
         'title': t('Set up release tracking'),
         'description': t('See what releases are generating errors.'),
-        'skippable': false,
+        'skippable': true,
         'prereq': [1, 2],
         'featureLocation': 'project',
         'location': 'settings/release-tracking/',
@@ -187,8 +187,8 @@ const TodoList = React.createClass({
         'task': 7,
         'title': t('Upload sourcemaps'),
         'description': t('Deminify javascript stacktraces'),
-        'skippable': false,
-        'prereq': [1, 2, 8], // Is one of the platforms javascript?
+        'skippable': true,
+        'prereq': [1, 2], // Is one of the platforms javascript?
         'featureLocation': 'absolute',
         'location': 'https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/'
       },
@@ -291,7 +291,7 @@ const TodoList = React.createClass({
       next_tasks = this.state.tasks;
     } else {
       next_tasks = this.state.tasks.filter( (task) => {
-        if (task.status != 'complete') {
+        if (task.status != 'complete' && task.status != 'skipped') {
           return task;
         }
       }).slice(0,3);

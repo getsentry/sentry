@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.utils import timezone
 
 from sentry.models import (
-    OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
+    OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask, OrganizationOption
 )
 from sentry.signals import (
     event_processed,
@@ -215,3 +215,24 @@ class OrganizationOnboardingTaskTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         )
         assert task is not None
+
+    def test_onboarding_complete(self):
+        user = self.create_user(email='test@example.org')
+        project = self.create_project(first_event=timezone.now())
+        second_project = self.create_project(first_event=timezone.now())
+        second_group = self.create_group(project=second_project, platform='python', message='python error message')
+        event = self.create_full_event()
+        member = self.create_member(organization=self.organization, teams=[self.team], user=user)
+
+        event_processed.send(project=project, group=self.group, event=event, sender=type(project))
+        project_created.send(project=project, user=user, sender=type(project))
+        project_created.send(project=second_project, user=user, sender=type(second_project))
+
+        first_event_received.send(project=project, group=self.group, sender=type(project))
+        first_event_received.send(project=second_project, group=second_group, sender=type(second_project))
+        member_joined.send(member=member, sender=type(member))
+        plugin_enabled.send(plugin=IssueTrackingPlugin(), project=project, user=user, sender=type(IssueTrackingPlugin))
+        issue_tracker_used.send(plugin=IssueTrackingPlugin(), project=project, user=user, sender=type(IssueTrackingPlugin))
+        plugin_enabled.send(plugin=NotificationPlugin(), project=project, user=user, sender=type(NotificationPlugin))
+
+        assert OrganizationOption.objects.filter(organization=self.organization, key="onboarding:complete").count() == 1

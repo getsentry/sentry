@@ -24,15 +24,12 @@ const OnboardingStatus = React.createClass({
 
     let percentage = Math.round(
       ((org.onboardingTasks || []).filter(
-        t => t.status === 'complete'
+        t => t.status === 'complete' || t.status === 'skipped'
       ).length) / TodoList.TASKS.length * 100
     ).toString();
     let style = {
       width: percentage + '%',
     };
-
-    if (percentage >= 100)
-      return null;
 
     return (
       <div className="onboarding-progress-bar" onClick={this.props.onToggleTodos}>

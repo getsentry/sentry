@@ -1,10 +1,14 @@
 from __future__ import print_function, absolute_import
 
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry.models import (
-    OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
+    OnboardingTask,
+    OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+    OrganizationOption
 )
 from sentry.plugins import IssueTrackingPlugin, NotificationPlugin
 from sentry.signals import (
@@ -18,6 +22,23 @@ from sentry.signals import (
     issue_tracker_used,
 )
 from sentry.utils.javascript import has_sourcemap
+
+
+def check_for_onboarding_complete(organization):
+    if OrganizationOption.objects.filter(organization=organization, key="onboarding:complete").exists():
+        return
+
+    completed = list(OrganizationOnboardingTask.objects.filter(Q(organization=organization) & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))).values_list('task', flat=True))
+    if sorted(completed) == OnboardingTask.REQUIRED_ONBOARDING_TASKS:
+        try:
+            with transaction.atomic():
+                OrganizationOption.objects.create(
+                    organization=organization,
+                    key="onboarding:complete",
+                    value={'updated': timezone.now()}
+                )
+        except IntegrityError:
+            pass
 
 
 @project_created.connect(weak=False)
@@ -128,7 +149,7 @@ def record_member_invited(member, user, **kwargs):
 
 @member_joined.connect(weak=False)
 def record_member_joined(member, **kwargs):
-    OrganizationOnboardingTask.objects.create_or_update(
+    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
         organization=member.organization,
         task=OnboardingTask.INVITE_MEMBER,
         status=OnboardingTaskStatus.PENDING,
@@ -138,6 +159,8 @@ def record_member_joined(member, **kwargs):
             'data': {'invited_member_id': member.id}
         }
     )
+    if created or rows_affected:
+        check_for_onboarding_complete(organization=member.organization)
 
 
 @event_processed.connect(weak=False)
@@ -152,6 +175,7 @@ def record_release_received(project, group, event, **kwargs):
                     project_id=project.id,
                     date_completed=timezone.now()
                 )
+                check_for_onboarding_complete(project.organization)
         except IntegrityError:
             pass
 
@@ -168,6 +192,7 @@ def record_user_context_received(project, group, event, **kwargs):
                     project_id=project.id,
                     date_completed=timezone.now()
                 )
+                check_for_onboarding_complete(project.organization)
         except IntegrityError:
             pass
 
@@ -184,6 +209,7 @@ def record_sourcemaps_received(project, group, event, **kwargs):
                     project_id=project.id,
                     date_completed=timezone.now()
                 )
+                check_for_onboarding_complete(project.organization)
         except IntegrityError:
             pass
 
@@ -208,13 +234,14 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
                 date_completed=timezone.now(),
                 data={'plugin': plugin.slug}
             )
+            check_for_onboarding_complete(project.organization)
     except IntegrityError:
         pass
 
 
 @issue_tracker_used.connect(weak=False)
 def record_issue_tracker_used(plugin, project, user, **kwargs):
-    OrganizationOnboardingTask.objects.create_or_update(
+    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
         organization=project.organization,
         task=OnboardingTask.ISSUE_TRACKER,
         status=OnboardingTaskStatus.PENDING,
@@ -226,3 +253,5 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
             'data': {'plugin': plugin.slug}
         }
     )
+    if rows_affected or created:
+        check_for_onboarding_complete(project.organization)
