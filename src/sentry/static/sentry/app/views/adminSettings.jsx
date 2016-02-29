@@ -16,6 +16,12 @@ const optionsAvailable = [
 ];
 
 const SettingsList = React.createClass({
+  propTypes: {
+    formDisabled: React.PropTypes.bool,
+    options: React.PropTypes.object.isRequired,
+    onSubmit: React.PropTypes.func.isRequired,
+  },
+
   getInitialState() {
     let options = this.props.options;
     let formData = {};

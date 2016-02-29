@@ -9,6 +9,13 @@ import {t} from '../../locale';
 import {logException} from '../../utils/logging';
 
 const ActivityFeed = React.createClass({
+  propTypes: {
+    endpoint: React.PropTypes.string,
+    query: React.PropTypes.object,
+    renderEmpty: React.PropTypes.func,
+    pagination: React.PropTypes.bool
+  },
+
   mixins: [ApiMixin],
 
   getDefaultProps() {

@@ -1,6 +1,11 @@
 import React from 'react';
 
 const LanguageNav = React.createClass({
+  propTypes: {
+    name: React.PropTypes.string.isRequired,
+    active: React.PropTypes.bool
+  },
+
   getInitialState() {
     return {
       isVisible: this.props.active || false

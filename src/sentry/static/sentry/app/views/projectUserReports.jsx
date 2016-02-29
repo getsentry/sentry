@@ -13,6 +13,7 @@ import {t} from '../locale';
 
 const ProjectUserReports = React.createClass({
   propTypes: {
+    defaultQuery: React.PropTypes.string,
     setProjectNavSection: React.PropTypes.func
   },
 

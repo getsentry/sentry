@@ -69,7 +69,8 @@ let tickFormatter = (value, axis) => {
 
 const FlotChart = React.createClass({
   propTypes: {
-    plotData: React.PropTypes.array
+    plotData: React.PropTypes.array,
+    style: React.PropTypes.object
   },
 
   componentDidMount() {

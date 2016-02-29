@@ -6,7 +6,9 @@ const StreamTagFilter = React.createClass({
   propTypes: {
     tag: React.PropTypes.object.isRequired,
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    projectId: React.PropTypes.string.isRequired,
+    value: React.PropTypes.string,
+    onSelect: React.PropTypes.func
   },
 
   statics: {

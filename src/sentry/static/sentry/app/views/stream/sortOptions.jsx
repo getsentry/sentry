@@ -5,6 +5,11 @@ import MenuItem from '../../components/menuItem';
 import {t} from '../../locale';
 
 const SortOptions = React.createClass({
+  propTypes: {
+    sort: React.PropTypes.string,
+    onSelect: React.PropTypes.func
+  },
+
   mixins: [PureRenderMixin],
 
   getInitialState() {

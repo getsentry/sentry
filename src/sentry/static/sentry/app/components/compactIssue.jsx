@@ -19,6 +19,12 @@ const Snooze = {
 
 
 const SnoozeAction = React.createClass({
+  propTypes: {
+    disabled: React.PropTypes.bool,
+    onSnooze: React.PropTypes.func.isRequired,
+    tooltip: React.PropTypes.string
+  },
+
   getInitialState() {
     return {
       isModalOpen: false
@@ -73,6 +79,13 @@ const SnoozeAction = React.createClass({
 });
 
 const CompactIssue = React.createClass({
+  propTypes: {
+    data: React.PropTypes.object,
+    id: React.PropTypes.string,
+    orgId: React.PropTypes.string,
+    statsPeriod: React.PropTypes.string
+  },
+
   mixins: [
     ApiMixin,
     Reflux.listenTo(GroupStore, 'onGroupChange')

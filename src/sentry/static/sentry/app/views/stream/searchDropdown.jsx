@@ -6,6 +6,13 @@ import LoadingIndicator from '../../components/loadingIndicator';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 const SearchDropdown = React.createClass({
+  propTypes: {
+    items: React.PropTypes.array.isRequired,
+    searchSubstring: React.PropTypes.string,
+    onClick: React.PropTypes.func.isRequired,
+    loading: React.PropTypes.bool
+  },
+
   mixins: [PureRenderMixin],
 
   getDefaultProps() {

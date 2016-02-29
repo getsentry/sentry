@@ -5,6 +5,10 @@ import DateTime from './dateTime';
 import {t} from '../locale';
 
 const MutedBox = React.createClass({
+  propTypes: {
+    statusDetails: React.PropTypes.object.isRequired
+  },
+
   mixins: [PureRenderMixin],
 
   render() {

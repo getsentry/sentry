@@ -17,7 +17,16 @@ import SearchDropdown from './searchDropdown';
 const SearchBar = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    projectId: React.PropTypes.string.isRequired,
+
+    defaultQuery: React.PropTypes.string,
+    query: React.PropTypes.string,
+    defaultSearchItems: React.PropTypes.array.isRequired,
+    disabled: React.PropTypes.bool,
+    placeholder: React.PropTypes.string,
+
+    onQueryChange: React.PropTypes.func,
+    onSearch: React.PropTypes.func
   },
 
   mixins: [

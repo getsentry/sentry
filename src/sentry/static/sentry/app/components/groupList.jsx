@@ -1,6 +1,7 @@
 import React from 'react';
 import Reflux from 'reflux';
 import jQuery from 'jquery';
+
 import ApiMixin from '../mixins/apiMixin';
 import GroupListHeader from '../components/groupListHeader';
 import GroupStore from '../stores/groupStore';
@@ -16,7 +17,8 @@ const GroupList = React.createClass({
     query: React.PropTypes.string.isRequired,
     canSelectGroups: React.PropTypes.bool,
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    projectId: React.PropTypes.string.isRequired,
+    bulkActions: React.PropTypes.bool.isRequired
   },
 
   contextTypes: {

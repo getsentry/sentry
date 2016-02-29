@@ -7,6 +7,13 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 
 const InternalChart = React.createClass({
+  propTypes: {
+    since: React.PropTypes.number.isRequired,
+    resolution: React.PropTypes.string.isRequired,
+    stat: React.PropTypes.string.isRequired,
+    label: React.PropTypes.string
+  },
+
   mixins: [ApiMixin],
 
   getInitialState() {

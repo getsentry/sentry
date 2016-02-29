@@ -8,6 +8,10 @@ import ConfigStore from '../../stores/configStore';
 import {t} from '../../locale';
 
 const OrganizationSelector = React.createClass({
+  propTypes: {
+    organization: React.PropTypes.object
+  },
+
   mixins: [
     AppState,
   ],

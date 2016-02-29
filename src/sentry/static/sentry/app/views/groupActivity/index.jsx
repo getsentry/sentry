@@ -19,6 +19,9 @@ import {t, tn} from '../../locale';
 
 const GroupActivity = React.createClass({
   // TODO(dcramer): only re-render on group/activity change
+  propTypes: {
+    group: React.PropTypes.object
+  },
 
   mixins: [
     GroupState,

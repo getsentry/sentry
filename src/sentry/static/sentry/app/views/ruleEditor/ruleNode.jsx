@@ -7,7 +7,8 @@ const RuleNode = React.createClass({
     data: React.PropTypes.object.isRequired,
     node: React.PropTypes.shape({
       html: React.PropTypes.string.isRequired
-    }).isRequired
+    }).isRequired,
+    onDelete: React.PropTypes.func.isRequired
   },
 
   componentDidMount() {

@@ -10,11 +10,14 @@ let TEXT_FILTER_DEBOUNCE_IN_MS = 300;
 
 const StreamSidebar = React.createClass({
   propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
+
     tags: React.PropTypes.object.isRequired,
+    query: React.PropTypes.string,
     onQueryChange: React.PropTypes.func.isRequired,
     defaultQuery: React.PropTypes.string,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    loading: React.PropTypes.bool
   },
 
   getDefaultProps() {

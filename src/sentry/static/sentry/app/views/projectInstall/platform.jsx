@@ -8,6 +8,10 @@ import LoadingIndicator from '../../components/loadingIndicator';
 import {t, tct} from '../../locale';
 
 const ProjectInstallPlatform = React.createClass({
+  propTypes: {
+    platformData: React.PropTypes.object.isRequired
+  },
+
   mixins: [
     ApiMixin
   ],

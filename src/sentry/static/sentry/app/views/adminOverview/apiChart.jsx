@@ -6,6 +6,10 @@ import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 
 const ApiChart = React.createClass({
+  propTypes: {
+    since: React.PropTypes.number.isRequired
+  },
+
   mixins: [
     ApiMixin
   ],

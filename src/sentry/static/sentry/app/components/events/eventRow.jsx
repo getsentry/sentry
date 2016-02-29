@@ -6,7 +6,9 @@ import TimeSince from '../timeSince';
 
 const EventRow = React.createClass({
   propTypes: {
-    id: React.PropTypes.string.isRequired
+    id: React.PropTypes.string.isRequired,
+    orgSlug: React.PropTypes.string.isRequired,
+    projectSlug: React.PropTypes.string.isRequired
   },
 
   getInitialState() {

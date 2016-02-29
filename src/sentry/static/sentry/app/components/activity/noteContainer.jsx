@@ -4,6 +4,13 @@ import Note from './note';
 import NoteInput from './noteInput';
 
 const NoteContainer = React.createClass({
+  propTypes: {
+    group: React.PropTypes.object.isRequired,
+    item: React.PropTypes.object.isRequired,
+    author: React.PropTypes.object.isRequired,
+    onDelete: React.PropTypes.func.isRequired
+  },
+
   getInitialState() {
     return {
       editing: false

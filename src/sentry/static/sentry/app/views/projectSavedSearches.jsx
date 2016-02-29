@@ -7,6 +7,16 @@ import LoadingIndicator from '../components/loadingIndicator';
 import {t} from '../locale';
 
 const SavedSearchRow = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
+    data: React.PropTypes.object.isRequired,
+
+    onDefault: React.PropTypes.func.isRequired,
+    onUserDefault: React.PropTypes.func.isRequired,
+    onRemove: React.PropTypes.func.isRequired,
+  },
+
   mixins: [ApiMixin],
 
   getInitialState() {

@@ -8,6 +8,7 @@ import OrganizationState from '../mixins/organizationState';
 const TodoItem = React.createClass({
   propTypes: {
     task: React.PropTypes.object,
+    onSkip: React.PropTypes.func.isRequired
   },
 
   mixins: [OrganizationState],
@@ -99,6 +100,8 @@ const TodoItem = React.createClass({
 const Confirmation = React.createClass({
   propTypes: {
     task: React.PropTypes.number,
+    onSkip: React.PropTypes.func.isRequired,
+    dismiss: React.PropTypes.func.isRequired
   },
 
   skip: function(e) {
