@@ -6,6 +6,12 @@ import ProjectSelector from './projectSelector';
 import {t} from '../../locale';
 
 const ProjectHeader = React.createClass({
+  propTypes: {
+    project: React.PropTypes.object.isRequired,
+    organization: React.PropTypes.object.isRequired,
+    activeSection: React.PropTypes.string
+  },
+
   render() {
     let navSection = this.props.activeSection;
     let urlPrefix = ConfigStore.get('urlPrefix');

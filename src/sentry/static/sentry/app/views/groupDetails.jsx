@@ -14,6 +14,11 @@ let ERROR_TYPES = {
 };
 
 const GroupDetails = React.createClass({
+  propTypes: {
+    setProjectNavSection: React.PropTypes.func,
+    memberList: React.PropTypes.array
+  },
+
   childContextTypes: {
     group: PropTypes.Group,
   },

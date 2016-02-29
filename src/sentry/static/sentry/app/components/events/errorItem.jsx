@@ -2,6 +2,10 @@ import React from 'react';
 import {t} from '../../locale';
 
 const EventErrorItem = React.createClass({
+  propTypes: {
+    error: React.PropTypes.object.isRequired
+  },
+
   getInitialState(){
     return {
       isOpen: false,

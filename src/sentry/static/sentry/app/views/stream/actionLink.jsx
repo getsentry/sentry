@@ -14,7 +14,9 @@ const ActionLink = React.createClass({
     disabled: React.PropTypes.bool,
     onAction: React.PropTypes.func.isRequired,
     onlyIfBulk: React.PropTypes.bool,
-    selectAllActive: React.PropTypes.bool.isRequired // "select all" checkbox
+    selectAllActive: React.PropTypes.bool.isRequired, // "select all" checkbox
+    tooltip: React.PropTypes.string,
+    extraDescription: React.PropTypes.string
   },
 
   mixins: [

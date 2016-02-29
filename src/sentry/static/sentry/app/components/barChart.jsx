@@ -10,6 +10,9 @@ const BarChart = React.createClass({
       y: React.PropTypes.number.isRequired,
       label: React.PropTypes.string
     })),
+    interval: React.PropTypes.string,
+    height: React.PropTypes.number,
+    width: React.PropTypes.number,
     placement: React.PropTypes.string,
     label: React.PropTypes.string,
     markers: React.PropTypes.arrayOf(React.PropTypes.shape({
@@ -58,8 +61,7 @@ const BarChart = React.createClass({
       placement: 'bottom',
       points: [],
       markers: [],
-      width: null,
-      viewport: null
+      width: null
     };
   },
 

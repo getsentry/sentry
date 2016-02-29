@@ -12,6 +12,7 @@ import {t} from '../../locale';
 
 const ProjectEvents = React.createClass({
   propTypes: {
+    defaultQuery: React.PropTypes.string,
     setProjectNavSection: React.PropTypes.func
   },
 

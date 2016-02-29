@@ -8,7 +8,10 @@ import {t} from '../../locale';
 const GroupChart = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
-    statsPeriod: React.PropTypes.string.isRequired
+    statsPeriod: React.PropTypes.string.isRequired,
+    firstSeen: React.PropTypes.string.isRequired,
+    lastSeen: React.PropTypes.string.isRequired,
+    title: React.PropTypes.string
   },
 
   mixins: [PureRenderMixin],

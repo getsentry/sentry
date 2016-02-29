@@ -3,6 +3,10 @@ import Raven from 'raven-js';
 import React from 'react';
 
 const RouteError = React.createClass({
+  propTypes: {
+    error: React.PropTypes.object.isRequired
+  },
+
   componentWillMount() {
     // TODO(dcramer): show something in addition to embed (that contains it?)
     // TODO(dcramer): capture better context

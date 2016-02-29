@@ -18,7 +18,8 @@ const StreamActions = React.createClass({
     onRealtimeChange: React.PropTypes.func.isRequired,
     onSelectStatsPeriod: React.PropTypes.func.isRequired,
     realtimeActive: React.PropTypes.bool.isRequired,
-    statsPeriod: React.PropTypes.string.isRequired
+    statsPeriod: React.PropTypes.string.isRequired,
+    query: React.PropTypes.string.isRequired
   },
 
   mixins: [

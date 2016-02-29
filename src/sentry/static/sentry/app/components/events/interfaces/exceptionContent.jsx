@@ -5,6 +5,7 @@ import StacktraceContent from './stacktraceContent';
 
 const ExceptionContent = React.createClass({
   propTypes: {
+    values: React.PropTypes.array.isRequired,
     view: React.PropTypes.string.isRequired,
     platform: React.PropTypes.string,
     newestFirst: React.PropTypes.bool

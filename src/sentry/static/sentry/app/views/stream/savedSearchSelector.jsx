@@ -16,6 +16,19 @@ const SaveSearchState = {
 };
 
 const SaveSearchButton = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
+
+    query: React.PropTypes.string.isRequired,
+    disabled: React.PropTypes.bool,
+    style: React.PropTypes.object,
+    tooltip: React.PropTypes.string,
+    buttonTitle: React.PropTypes.string,
+
+    onSave: React.PropTypes.func.isRequired,
+  },
+
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -138,6 +151,15 @@ const SaveSearchButton = React.createClass({
 });
 
 const SavedSearchSelector = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
+    searchId: React.PropTypes.string,
+    access: React.PropTypes.object.isRequired,
+    savedSearchList: React.PropTypes.array.isRequired,
+    onSavedSearchCreate: React.PropTypes.func.isRequired
+  },
+
   mixins: [ApiMixin],
 
   getTitle() {

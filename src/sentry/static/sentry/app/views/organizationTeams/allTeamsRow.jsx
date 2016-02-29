@@ -8,6 +8,13 @@ import {t} from '../../locale';
 // TODO(dcramer): this isnt great UX
 
 const AllTeamsRow = React.createClass({
+  propTypes: {
+    access: React.PropTypes.object.isRequired,
+    organization: React.PropTypes.object.isRequired,
+    team: React.PropTypes.object.isRequired,
+    openMembership: React.PropTypes.bool.isRequired
+  },
+
   mixins: [
     ApiMixin
   ],

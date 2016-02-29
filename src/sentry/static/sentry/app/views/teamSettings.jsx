@@ -12,6 +12,13 @@ const FormState = {
 };
 
 const TeamSettingsForm = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    teamId: React.PropTypes.string.isRequired,
+    initialData: React.PropTypes.object,
+    onSave: React.PropTypes.func.isRequired
+  },
+
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -100,6 +107,13 @@ const TeamSettingsForm = React.createClass({
 });
 
 const TeamSettings = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.object.isRequired,
+    teamId: React.PropTypes.object.isRequired,
+    team: React.PropTypes.object.isRequired,
+    onTeamChange: React.PropTypes.func.isRequired
+  },
+
   render() {
     let {orgId, teamId} = this.props.params;
     let team = this.props.team;

@@ -1,6 +1,7 @@
 import jQuery from 'jquery';
 import React from 'react';
 import {History} from 'react-router';
+
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -12,6 +13,7 @@ import ReleaseList from './releaseList';
 
 const ProjectReleases = React.createClass({
   propTypes: {
+    defaultQuery: React.PropTypes.string,
     setProjectNavSection: React.PropTypes.func
   },
 

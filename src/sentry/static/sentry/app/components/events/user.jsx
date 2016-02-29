@@ -1,5 +1,6 @@
-import _ from 'underscore';
 import React from 'react';
+import _ from 'underscore';
+
 import Gravatar from '../../components/gravatar';
 import KeyValueList from './interfaces/keyValueList';
 import EventDataSection from './eventDataSection';
@@ -7,6 +8,11 @@ import {t} from '../../locale';
 
 
 const EventUser = React.createClass({
+  propTypes: {
+    event: React.PropTypes.object.isRequired,
+    group: React.PropTypes.object.isRequired
+  },
+
   render() {
     let user = this.props.event.user;
     let builtins = [];

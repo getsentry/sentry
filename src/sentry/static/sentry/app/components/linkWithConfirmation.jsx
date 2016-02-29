@@ -7,6 +7,7 @@ const LinkWithConfirmation = React.createClass({
   propTypes: {
     disabled: React.PropTypes.bool,
     message: React.PropTypes.string.isRequired,
+    title: React.PropTypes.string.isRequired,
     onConfirm: React.PropTypes.func.isRequired
   },
 

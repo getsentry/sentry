@@ -8,6 +8,7 @@ import {tct} from '../../locale';
 
 const AllTeamsList = React.createClass({
   propTypes: {
+    access: React.PropTypes.object.isRequired,
     organization: PropTypes.Organization.isRequired,
     teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
     openMembership: React.PropTypes.bool
