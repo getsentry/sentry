@@ -101,6 +101,10 @@ class UserOption(Model):
 
     Options which are specific to a plugin should namespace
     their key. e.g. key='myplugin:optname'
+
+    Keeping user feature state
+    key: "feature:assignment"
+    value: { updated: datetime, state: bool }
     """
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     project = FlexibleForeignKey('sentry.Project', null=True)
