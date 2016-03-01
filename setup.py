@@ -375,11 +375,11 @@ class BuildJavascriptCommand(Command):
         # By setting NODE_ENV=production, a few things happen
         #   * React optimizes out certain code paths
         #   * Webpack will add version strings to built/referenced assets
-        os.environ['NODE_ENV'] = 'production'
 
         log.info("running [webpack]")
         env = dict(os.environ)
         env['SENTRY_STATIC_DIST_PATH'] = self.sentry_static_dist_path
+        env['NODE_ENV'] = 'production'
         check_output(['node_modules/.bin/webpack', '-p', '--bail'],
                      cwd=work_path, env=env)
 

@@ -137,7 +137,11 @@ var config = {
     }),
     new ExtractTextPlugin('[name].css'),
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), // ignore moment.js locale files
-
+    new webpack.DefinePlugin({
+      'process.env': {
+        NODE_ENV: JSON.stringify(process.env.NODE_ENV)
+      }
+    }),
     // restrict translation files pulled into dist/app.js to only those specified
     // in locale/catalogs.json
     new webpack.ContextReplacementPlugin(
