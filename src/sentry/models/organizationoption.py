@@ -111,6 +111,9 @@ class OrganizationOption(Model):
 
     Options which are specific to a plugin should namespace
     their key. e.g. key='myplugin:optname'
+
+    key: onboarding:complete
+    value: { updated: datetime }
     """
     organization = FlexibleForeignKey('sentry.Organization')
     key = models.CharField(max_length=64)
