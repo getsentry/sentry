@@ -147,6 +147,7 @@ CLIENT_RESERVED_ATTRS = (
     'logger',
     'server_name',
     'site',
+    'received',
     'timestamp',
     'extra',
     'modules',
