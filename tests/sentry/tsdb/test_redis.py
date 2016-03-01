@@ -125,7 +125,7 @@ class RedisTSDBTest(TestCase):
             dts[3],
         )
 
-        assert self.db.get_distinct_counts_series(model, [1], dts[0], dts[-1]) == {
+        assert self.db.get_distinct_counts_series(model, [1], dts[0], dts[-1], rollup=3600) == {
             1: [
                 (timestamp(dts[0]), 2),
                 (timestamp(dts[1]), 1),
@@ -134,7 +134,7 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
-        assert self.db.get_distinct_counts_series(model, [2], dts[0], dts[-1]) == {
+        assert self.db.get_distinct_counts_series(model, [2], dts[0], dts[-1], rollup=3600) == {
             2: [
                 (timestamp(dts[0]), 0),
                 (timestamp(dts[1]), 0),
@@ -143,7 +143,7 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
-        results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1])
+        results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1], rollup=3600)
         assert results == {
             1: 3,
             2: 2,
@@ -187,6 +187,7 @@ class RedisTSDBTest(TestCase):
             model,
             ('organization:1', 'organization:2'),
             now,
+            rollup=3600,
         ) == {
             'organization:1': [
                 ('project:3', 3.0),
@@ -201,6 +202,7 @@ class RedisTSDBTest(TestCase):
             ('organization:1', 'organization:2'),
             now,
             limit=1,
+            rollup=3600,
         ) == {
             'organization:1': [
                 ('project:3', 3.0),
@@ -213,6 +215,7 @@ class RedisTSDBTest(TestCase):
             ('organization:1', 'organization:2'),
             now - timedelta(hours=1),
             now,
+            rollup=3600,
         ) == {
             'organization:1': [
                 ('project:3', 3.0 + 3.0),
@@ -269,6 +272,7 @@ class RedisTSDBTest(TestCase):
             },
             now - timedelta(hours=1),
             now,
+            rollup=3600,
         ) == {
             'organization:1': {
                 "project:1": 1.0 + 1.0,
