@@ -12,7 +12,8 @@ with the form `org/project` where both are slugs.
 Options
 ```````
 
-- ``--days INTEGER``: Numbers of days to truncate on.
+- ``--days INTEGER``: Numbers of days to truncate on.  [default: 30]
 - ``--project TEXT``: Limit truncation to only entries from project.
 - ``--concurrency INTEGER``: The number of concurrent workers to run.
+  [default: 1]
 - ``--help``: print this help page.
