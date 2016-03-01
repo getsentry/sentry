@@ -29,7 +29,7 @@ def check_for_onboarding_complete(organization):
         return
 
     completed = list(OrganizationOnboardingTask.objects.filter(Q(organization=organization) & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))).values_list('task', flat=True))
-    if sorted(completed) == OnboardingTask.REQUIRED_ONBOARDING_TASKS:
+    if set(completed).issuperset(set(OnboardingTask.REQUIRED_ONBOARDING_TASKS)):
         try:
             with transaction.atomic():
                 OrganizationOption.objects.create(
