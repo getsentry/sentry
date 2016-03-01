@@ -139,8 +139,7 @@ if not settings.SENTRY_SAMPLE_DATA:
         return False
 else:
     def should_sample(current_datetime, last_seen, times_seen):
-        silence_timedelta = current_datetime - last_seen
-        silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
+        silence = current_datetime - last_seen
 
         if times_seen % count_limit(times_seen) == 0:
             return False
@@ -459,6 +458,9 @@ class EventManager(object):
             'first_seen': date,
             'time_spent_total': time_spent or 0,
             'time_spent_count': time_spent and 1 or 0,
+            'data': {
+                'last_received': event.data.get('received') or float(event.datetime.strftime('%s'))
+            },
         })
 
         if release:
@@ -656,7 +658,11 @@ class EventManager(object):
 
         # XXX(dcramer): it's important this gets called **before** the aggregate
         # is processed as otherwise values like last_seen will get mutated
-        can_sample = should_sample(event.datetime, group.last_seen, group.times_seen)
+        can_sample = should_sample(
+            event.data.get('received') or float(event.datetime.strftime('%s')),
+            group.data.get('last_received') or float(group.last_seen.strftime('%s')),
+            group.times_seen,
+        )
 
         if not is_new:
             is_regression = self._process_existing_aggregate(
