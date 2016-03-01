@@ -61,7 +61,7 @@ from .endpoints.release_details import ReleaseDetailsEndpoint
 from .endpoints.release_files import ReleaseFilesEndpoint
 from .endpoints.release_file_details import ReleaseFileDetailsEndpoint
 from .endpoints.dsym_files import DSymFilesEndpoint, GlobalDSymFilesEndpoint, \
-    UnknownDSymFilesEndpoint
+    UnknownDSymFilesEndpoint, UnknownGlobalDSymFilesEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
@@ -303,6 +303,9 @@ urlpatterns = patterns(
     url(r'^system/global-dsyms/$',
         GlobalDSymFilesEndpoint.as_view(),
         name='sentry-api-0-global-dsym-files'),
+    url(r'^system/global-dsyms/unknown/$',
+        UnknownGlobalDSymFilesEndpoint.as_view(),
+        name='sentry-api-0-unknown-global-dsym-files'),
 
     # Internal
     url(r'^internal/health/$',

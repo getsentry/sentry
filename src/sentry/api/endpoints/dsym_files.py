@@ -103,5 +103,14 @@ class UnknownDSymFilesEndpoint(ProjectEndpoint):
 
     def get(self, request, project):
         checksums = request.GET.getlist('checksums')
-        missing = find_missing_dsym_files(project, checksums)
+        missing = find_missing_dsym_files(checksums, project=project)
+        return Response({'missing': missing})
+
+
+class UnknownGlobalDSymFilesEndpoint(Endpoint):
+    permission_classes = (SystemPermission,)
+
+    def get(self, request):
+        checksums = request.GET.getlist('checksums')
+        missing = find_missing_dsym_files(checksums, project=None)
         return Response({'missing': missing})

@@ -179,20 +179,21 @@ def find_dsym_file(project, image_uuid):
         return None
 
 
-def find_missing_dsym_files(project, checksums):
+def find_missing_dsym_files(checksums, project=None):
     checksums = [x.lower() for x in checksums]
-
-    found = ProjectDSymFile.objects.filter(
-        file__checksum__in=checksums,
-        project=project
-    ).values('file__checksum')
-
     missing = set(checksums)
-    for values in found:
-        missing.discard(values.values()[0])
 
-    if not missing:
-        return []
+    if project is not None:
+        found = ProjectDSymFile.objects.filter(
+            file__checksum__in=checksums,
+            project=project
+        ).values('file__checksum')
+
+        for values in found:
+            missing.discard(values.values()[0])
+
+        if not missing:
+            return []
 
     found = GlobalDSymFile.objects.filter(
         file__checksum__in=list(missing),
