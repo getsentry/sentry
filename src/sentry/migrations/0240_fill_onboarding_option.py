@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models, IntegrityError, transaction
 from django.db.models import Q
+from django.utils import timezone
 
 class Migration(DataMigration):
 
@@ -19,7 +20,7 @@ class Migration(DataMigration):
 
         for organization in RangeQuerySetWrapperWithProgressBar(queryset):
             completed = list(OrganizationOnboardingTask.objects.filter(Q(organization=organization) & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))).values_list('task', flat=True))
-            if sorted(completed) == OnboardingTask.REQUIRED_ONBOARDING_TASKS:
+            if set(completed).issuperset(set(OnboardingTask.REQUIRED_ONBOARDING_TASKS)):
                 try:
                     with transaction.atomic():
                         OrganizationOption.objects.create(
