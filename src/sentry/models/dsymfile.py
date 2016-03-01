@@ -10,6 +10,7 @@ from __future__ import absolute_import
 
 import os
 import shutil
+import hashlib
 import tempfile
 from django.db import models, transaction, IntegrityError
 
@@ -82,10 +83,25 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
         extra['project'] = project
         file_type = 'project.dsym'
 
+    h = hashlib.sha1()
+    while 1:
+        chunk = fileobj.read(16384)
+        if not chunk:
+            break
+        h.update(chunk)
+    checksum = h.hexdigest()
+    fileobj.seek(0, 0)
+
     try:
-        return cls.objects.get(uuid=uuid, **extra)
+        rv = cls.objects.get(uuid=uuid, **extra)
+        if rv.file.checksum == checksum:
+            return rv
     except cls.DoesNotExist:
         pass
+    else:
+        # The checksum mismatches.  In this case we delete the old object
+        # and perform a re-upload.
+        rv.delete()
 
     file = File.objects.create(
         name=uuid,
