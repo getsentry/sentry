@@ -7,6 +7,7 @@ Version 8.2.0
 - Project keys are no longer usable within the web API.
 - Allow requiring data scrubbing security options as an organization wide setting.
 - Added basic support for dsym symbol handling.  This feature might leave behind temporary files when used in this version.
+- Added support for named Redis clusters for consistency in Redis connection management (GH-2693). This adds a ``redis.clusters`` section to ``config.yml`` (see documentation), and deprecates the ``SENTRY_REDIS_OPTIONS`` setting and per-backend configuration of Redis clusters.
 
 Schema Changes
 ~~~~~~~~~~~~~~
