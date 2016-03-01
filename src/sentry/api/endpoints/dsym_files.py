@@ -10,7 +10,8 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.permissions import SystemPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import ProjectDSymFile, create_files_from_macho_zip
+from sentry.models import ProjectDSymFile, create_files_from_macho_zip, \
+    find_missing_dsym_files
 
 ERR_FILE_EXISTS = 'A file matching this uuid already exists'
 
@@ -97,8 +98,10 @@ class GlobalDSymFilesEndpoint(Endpoint):
         return upload_from_request(request, project=None)
 
 
-class UnknownDSymFilesEndpoint(Endpoint):
-    permission_classes = (SystemPermission,)
+class UnknownDSymFilesEndpoint(ProjectEndpoint):
+    doc_section = DocSection.PROJECTS
 
-    def post(self, request):
-        return upload_from_request(request, project=None)
+    def get(self, request, project):
+        checksums = request.GET.getlist('checksums')
+        missing = find_missing_dsym_files(project, checksums)
+        return Response({'missing': missing})
