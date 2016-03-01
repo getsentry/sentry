@@ -263,7 +263,7 @@ class EventManager(object):
             timestamp = float(timestamp.strftime('%s'))
 
         data['timestamp'] = timestamp
-        data['received'] = current_timestamp
+        data['received'] = float(timezone.now().strftime('%s'))
 
         if not data.get('event_id'):
             data['event_id'] = uuid4().hex
