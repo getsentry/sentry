@@ -17,7 +17,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
     def post(self, request, organization):
         try:
             task_id = int(request.DATA['task'])
-        except ValueError:
+        except (TypeError, ValueError):
             return Response(status=500)
 
         if request.DATA['status'] == 'skipped' and task_id in (
