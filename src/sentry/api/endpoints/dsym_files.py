@@ -15,6 +15,14 @@ from sentry.models import ProjectDSymFile, create_files_from_macho_zip
 ERR_FILE_EXISTS = 'A file matching this uuid already exists'
 
 
+def upload_from_request(request, project=None):
+    if 'file' not in request.FILES:
+        return Response({'detail': 'Missing uploaded file'}, status=400)
+    fileobj = request.FILES['file']
+    files = create_files_from_macho_zip(fileobj, project=project)
+    return Response(serialize(files, request.user), status=201)
+
+
 class ConditionalContentNegotiation(DefaultContentNegotiation):
     """
     Overrides the parsers on POST to support file uploads.
@@ -79,22 +87,18 @@ class DSymFilesEndpoint(ProjectEndpoint):
         :param file file: the multipart encoded file.
         :auth: required
         """
-        if 'file' not in request.FILES:
-            return Response({'detail': 'Missing uploaded file'}, status=400)
-
-        fileobj = request.FILES['file']
-
-        files = create_files_from_macho_zip(fileobj, project)
-
-        return Response(serialize(files, request.user), status=201)
+        return upload_from_request(request, project=project)
 
 
 class GlobalDSymFilesEndpoint(Endpoint):
     permission_classes = (SystemPermission,)
 
     def post(self, request):
-        if 'file' not in request.FILES:
-            return Response({'detail': 'Missing uploaded file'}, status=400)
-        fileobj = request.FILES['file']
-        files = create_files_from_macho_zip(fileobj)
-        return Response(serialize(files, request.user), status=201)
+        return upload_from_request(request, project=None)
+
+
+class UnknownDSymFilesEndpoint(Endpoint):
+    permission_classes = (SystemPermission,)
+
+    def post(self, request):
+        return upload_from_request(request, project=None)
