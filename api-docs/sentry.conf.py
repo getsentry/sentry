@@ -49,16 +49,6 @@ SENTRY_WEB_OPTIONS = {
     'secure_scheme_headers': {'X-FORWARDED-PROTO': 'https'},
 }
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-
-EMAIL_HOST = 'localhost'
-EMAIL_HOST_PASSWORD = ''
-EMAIL_HOST_USER = ''
-EMAIL_PORT = 25
-EMAIL_USE_TLS = False
-
-SERVER_EMAIL = 'sentry@getsentry.com'
-
 SECRET_KEY = 'super secret secret key'
 
 SENTRY_OPTIONS.update({
@@ -69,4 +59,11 @@ SENTRY_OPTIONS.update({
     },
     'system.admin-email': 'admin@getsentry.com',
     'system.url-prefix': SENTRY_URL_PREFIX,
+    'mail.backend': 'django.core.mail.backends.smtp.EmailBackend',
+    'mail.host': 'localhost',
+    'mail.password': '',
+    'mail.username': '',
+    'mail.port': 25,
+    'mail.use-tls': False,
+    'mail.from': 'sentry@getsentry.com',
 })

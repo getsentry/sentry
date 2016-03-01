@@ -163,20 +163,6 @@ SENTRY_WEB_OPTIONS = {
 # Mail Server #
 ###############
 
-# For more information check Django's documentation:
-# https://docs.djangoproject.com/en/1.6/topics/email/
-
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-
-EMAIL_HOST = 'localhost'
-EMAIL_HOST_PASSWORD = ''
-EMAIL_HOST_USER = ''
-EMAIL_PORT = 25
-EMAIL_USE_TLS = False
-
-# The email address to send on behalf of
-SERVER_EMAIL = 'root@localhost'
-
 # If you're using mailgun for inbound mail, set your API key and configure a
 # route to forward to /api/hooks/mailgun/inbound/
 MAILGUN_API_KEY = ''
@@ -186,6 +172,18 @@ YAML_CONFIG_TEMPLATE = u"""\
 # new-style config (as of 8.0) you can also declare values here in this file
 # to enforce defaults or to ensure they cannot be changed via the UI. For more
 # information see the Sentry documentation.
+
+###############
+# Mail Server #
+###############
+
+mail.host: 'localhost'
+mail.port: 25
+mail.username: ''
+mail.password: ''
+mail.use-tls: false
+# The email address to send on behalf of
+mail.from: 'root@localhost'
 
 # If this file ever becomes compromised, it's important to regenerate your SECRET_KEY
 # Changing this value will result in all current sessions being invalidated

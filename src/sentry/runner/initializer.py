@@ -71,6 +71,14 @@ options_mapper = {
     'system.databases': 'DATABASES',
     'system.debug': 'DEBUG',
     'system.secret-key': 'SECRET_KEY',
+    'mail.backend': 'EMAIL_BACKEND',
+    'mail.host': 'EMAIL_HOST',
+    'mail.port': 'EMAIL_PORT',
+    'mail.username': 'EMAIL_HOST_USER',
+    'mail.password': 'EMAIL_HOST_PASSWORD',
+    'mail.use-tls': 'EMAIL_USE_TLS',
+    'mail.from': 'SERVER_EMAIL',
+    'mail.subject-prefix': 'EMAIL_SUBJECT_PREFIX',
 }
 
 
@@ -82,6 +90,7 @@ def bootstrap_options(settings, config):
     """
     if config is None:
         return
+    from sentry.conf.server import DEAD
     from sentry.utils.yaml import safe_load
     from yaml.parser import ParserError
     from yaml.scanner import ScannerError
@@ -103,7 +112,7 @@ def bootstrap_options(settings, config):
         raise ConfigurationError('Malformed config.yml file')
     # First move options from settings into options
     for k, v in options_mapper.iteritems():
-        if hasattr(settings, v):
+        if hasattr(settings, v) and k not in options and getattr(settings, v) is not DEAD:
             options[k] = getattr(settings, v)
     for k, v in options.iteritems():
         # Stuff everything else into SENTRY_OPTIONS
@@ -223,6 +232,8 @@ def show_big_error(message):
 
 
 def apply_legacy_settings(settings):
+    from sentry.conf.server import DEAD
+
     # SENTRY_USE_QUEUE used to determine if Celery was eager or not
     if hasattr(settings, 'SENTRY_USE_QUEUE'):
         warnings.warn(
@@ -234,17 +245,23 @@ def apply_legacy_settings(settings):
         )
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
 
-    if not settings.SENTRY_OPTIONS.get('system.admin-email') and hasattr(settings, 'SENTRY_ADMIN_EMAIL'):
-        warnings.warn(DeprecatedSettingWarning('SENTRY_ADMIN_EMAIL', 'SENTRY_OPTIONS["system.admin-email"]'))
-        settings.SENTRY_OPTIONS['system.admin-email'] = settings.SENTRY_ADMIN_EMAIL
-
-    if not settings.SENTRY_OPTIONS.get('system.url-prefix') and hasattr(settings, 'SENTRY_URL_PREFIX'):
-        warnings.warn(DeprecatedSettingWarning('SENTRY_URL_PREFIX', 'SENTRY_OPTIONS["system.url-prefix"]'))
-        settings.SENTRY_OPTIONS['system.url-prefix'] = settings.SENTRY_URL_PREFIX
-
-    if not settings.SENTRY_OPTIONS.get('system.rate-limit') and hasattr(settings, 'SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE'):
-        warnings.warn(DeprecatedSettingWarning('SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE', 'SENTRY_OPTIONS["system.rate-limit"]'))
-        settings.SENTRY_OPTIONS['system.rate-limit'] = settings.SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE
+    for old, new in (
+        ('SENTRY_ADMIN_EMAIL', 'system.admin-email'),
+        ('SENTRY_URL_PREFIX', 'system.url-prefix'),
+        ('SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE', 'system.rate-limit'),
+        ('EMAIL_BACKEND', 'mail.backend'),
+        ('EMAIL_HOST', 'mail.host'),
+        ('EMAIL_HOST_PASSWORD', 'mail.password'),
+        ('EMAIL_HOST_USER', 'mail.username'),
+        ('EMAIL_PORT', 'mail.port'),
+        ('EMAIL_USE_TLS', 'mail.use-tls'),
+        ('SERVER_EMAIL', 'mail.from'),
+        ('EMAIL_SUBJECT_PREFIX', 'mail.subject-prefix'),
+    ):
+        if not settings.SENTRY_OPTIONS.get(new) and getattr(settings, old, DEAD) is not DEAD:
+            warnings.warn(
+                DeprecatedSettingWarning(old, "SENTRY_OPTIONS['%s']" % new))
+            settings.SENTRY_OPTIONS[new] = getattr(settings, old)
 
     if hasattr(settings, 'SENTRY_REDIS_OPTIONS'):
         if 'redis.clusters' in settings.SENTRY_OPTIONS:
@@ -289,6 +306,8 @@ def apply_legacy_settings(settings):
     if hasattr(settings, 'SENTRY_ALLOW_REGISTRATION'):
         warnings.warn(DeprecatedSettingWarning('SENTRY_ALLOW_REGISTRATION', 'SENTRY_FEATURES["auth:register"]'))
         settings.SENTRY_FEATURES['auth:register'] = settings.SENTRY_ALLOW_REGISTRATION
+
+    settings.DEFAULT_FROM_EMAIL = options.get('mail.from', silent=True)
 
 
 def skip_migration_if_applied(settings, app_name, table_name,
