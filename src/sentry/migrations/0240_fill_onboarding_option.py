@@ -19,8 +19,8 @@ class Migration(DataMigration):
         queryset = Organization.objects.all()
 
         for organization in RangeQuerySetWrapperWithProgressBar(queryset):
-            completed = list(OrganizationOnboardingTask.objects.filter(Q(organization=organization) & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))).values_list('task', flat=True))
-            if set(completed).issuperset(set(OnboardingTask.REQUIRED_ONBOARDING_TASKS)):
+            completed = set(OrganizationOnboardingTask.objects.filter(Q(organization=organization) & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))).values_list('task', flat=True))
+            if completed >= OnboardingTask.REQUIRED_ONBOARDING_TASKS:
                 try:
                     with transaction.atomic():
                         OrganizationOption.objects.create(
