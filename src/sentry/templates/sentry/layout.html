@@ -128,7 +128,7 @@
     </header>
     {% endblock %}
 
-    {% if organization and request.user.is_authenticated and project %}
+    {% if organization and request.user.is_authenticated %}
     {% block sub-header %}
     <div class="sub-header">
       <div class="container">
@@ -143,7 +143,7 @@
         $(function(){
           React.render(React.createFactory(Sentry.ProjectSelector)({
             organization: {% serialize_detailed_org organization %},
-            projectId: '{{ project.slug }}'
+            projectId: {% if project %}'{{ project.slug }}'{% else %}null{% endif %},
           }), document.getElementById('blk_projectselect'));
         });
         </script>
