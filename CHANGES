@@ -1,3 +1,8 @@
+Version 8.2.1
+-------------
+
+- Fix compatibility with setuptools 20.2
+
 Version 8.2.0
 -------------
 
