@@ -20,7 +20,7 @@ from django.utils import timezone
 from sudo.decorators import sudo_required
 
 from sentry.models import (
-    LostPasswordHash, Project, UserOption
+    LostPasswordHash, Project, ProjectStatus, UserOption
 )
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required
@@ -178,6 +178,7 @@ def notification_settings(request):
     project_list = list(Project.objects.filter(
         team__organizationmemberteam__organizationmember__user=request.user,
         team__organizationmemberteam__is_active=True,
+        status=ProjectStatus.VISIBLE,
     ).distinct())
 
     project_forms = [
