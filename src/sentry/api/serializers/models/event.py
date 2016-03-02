@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+from datetime import datetime
+from django.utils import timezone
+
 from sentry.api.serializers import Serializer, register
 from sentry.models import Event, EventError
 
@@ -65,6 +68,12 @@ class EventSerializer(Serializer):
             } for k, v in obj.get_tags()
         ], key=lambda x: x['key'])
 
+        received = obj.data.get('received')
+        if received:
+            received = datetime.utcfromtimestamp(received).replace(
+                tzinfo=timezone.utc,
+            )
+
         # TODO(dcramer): move release serialization here
         d = {
             'id': str(obj.id),
@@ -79,7 +88,7 @@ class EventSerializer(Serializer):
             'tags': tags,
             'platform': obj.platform,
             'dateCreated': obj.datetime,
-            'dateReceived': obj.data.get('received', obj.datetime),
+            'dateReceived': received,
             'timeSpent': obj.time_spent,
             'errors': errors,
         }
