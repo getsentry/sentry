@@ -16,6 +16,11 @@ Schema Changes
 - Added ``EventTag`` model.
 - Added ``OrganizationOnboardingTask`` model.
 
+Version 8.1.3
+-------------
+
+- Fix compatibility with setuptools 20.2
+
 Version 8.1.2
 -------------
 
