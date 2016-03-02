@@ -190,6 +190,16 @@ YAML_CONFIG_TEMPLATE = u"""\
 # If this file ever becomes compromised, it's important to regenerate your SECRET_KEY
 # Changing this value will result in all current sessions being invalidated
 system.secret-key: '%(secret_key)s'
+
+# The ``redis.clusters`` setting is used, unsurprisingly, to configure Redis
+# clusters. These clusters can be then referred to by name when configuring
+# backends such as the cache, digests, or TSDB backend.
+redis.clusters:
+  default:
+    hosts:
+      0:
+        host: 127.0.0.1
+        port: 6379
 """
 
 
