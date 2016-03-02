@@ -120,6 +120,18 @@
   .loading {
     display: none;
   }
+
+  .icon-bookmark {
+    color: @gray-light;
+    display: inline-block;
+    padding-right: 10px;
+    top: 2px;
+    position: relative;
+  }
+
+  .isBookmarked .icon-bookmark {
+    color: @purple;
+  }
 }
 
 /**
@@ -245,10 +257,6 @@ table.project-list {
       width: 150px;
 
       &:first-child {
-        width: 16px;
-      }
-
-      &:nth-child(2) {
         width: auto;
       }
 
