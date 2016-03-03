@@ -38,8 +38,6 @@ SORT_OPTIONS = OrderedDict((
     ('date', _('Last Seen')),
     ('new', _('First Seen')),
     ('freq', _('Frequency')),
-    ('tottime', _('Total Time Spent')),
-    ('avgtime', _('Average Time Spent')),
 ))
 
 SEARCH_SORT_OPTIONS = OrderedDict((

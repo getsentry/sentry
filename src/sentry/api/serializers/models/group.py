@@ -124,7 +124,6 @@ class GroupSerializer(Serializer):
             'permalink': permalink,
             'firstSeen': obj.first_seen,
             'lastSeen': obj.last_seen,
-            'timeSpent': obj.avg_time_spent,
             'logger': obj.logger or None,
             'level': LOG_LEVELS.get(obj.level, 'unknown'),
             'status': status_label,
