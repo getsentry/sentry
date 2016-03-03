@@ -8,6 +8,7 @@ from sentry.models import find_dsym_file
 
 
 ONE_DAY = 60 * 60 * 24
+ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
 
 
 class DSymCache(object):
@@ -70,6 +71,32 @@ class DSymCache(object):
             os.rename(dsym + '_tmp', dsym)
 
         return dsym
+
+    def clear_old_entries(self):
+        try:
+            cache_folders = os.listdir(settings.DSYM_CACHE_PATH)
+        except OSError:
+            pass
+
+        cutoff = int(time.time()) - ONE_DAY_AND_A_HALF
+
+        for cache_folder in cache_folders:
+            cache_folder = os.path.join(settings.DSYM_CACHE_PATH, cache_folder)
+            try:
+                items = os.listdir(cache_folder)
+            except OSError:
+                continue
+            for cached_file in items:
+                cached_file = os.path.join(cache_folder, cached_file)
+                try:
+                    mtime = os.path.getmtime(cached_file)
+                except OSError:
+                    continue
+                if mtime < cutoff:
+                    try:
+                        os.remove(cached_file)
+                    except OSError:
+                        pass
 
 
 dsymcache = DSymCache()
