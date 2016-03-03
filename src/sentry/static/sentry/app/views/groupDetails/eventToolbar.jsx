@@ -32,18 +32,22 @@ let GroupEventToolbar  = React.createClass({
       options.clock24Hours ? 'HH:mm:ss z' : 'LTS z'
     );
     let dateCreated = moment(evt.dateCreated);
-    let dateReceived = moment(evt.dateReceived);
-
-    return (
+    let resp = (
       '<dl class="flat" style="text-align:left;margin:0;min-width:200px">' +
-        '<dt>Generated</dt>' +
+        '<dt>Occurred</dt>' +
         '<dd>' + dateCreated.format('ll') + '<br />' +
-          dateCreated.format(format) + '</dd>' +
+          dateCreated.format(format) + '</dd>'
+    );
+    if (evt.dateReceived) {
+      let dateReceived = moment(evt.dateReceived);
+
+      resp += (
         '<dt>Received</dt>' +
         '<dd>' + dateReceived.format('ll') + '<br />' +
-          dateReceived.format(format) + '</dd>' +
-      '</dl>'
-    );
+          dateReceived.format(format) + '</dd>'
+      );
+    }
+    return resp + '</dl>';
   },
 
   render() {
