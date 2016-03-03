@@ -164,12 +164,6 @@ class Group(Model):
         from sentry.models import Event
         return Event.objects.filter(group_id=self.id)
 
-    @property
-    def avg_time_spent(self):
-        if not self.time_spent_count:
-            return
-        return float(self.time_spent_total) / self.time_spent_count
-
     def is_over_resolve_age(self):
         resolve_age = self.project.get_option('sentry:resolve_age', None)
         if not resolve_age:
