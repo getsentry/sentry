@@ -2,6 +2,7 @@ Version 8.2.1
 -------------
 
 - Fix compatibility with setuptools 20.2
+- Make cleanup task show progress only on stdout
 
 Version 8.2.0
 -------------
