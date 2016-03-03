@@ -1,2 +1,8 @@
 [report]
-omit=src/sentry/migrations/*
+omit=
+    src/sentry/migrations/*
+    src/sentry/utils/apidocs.py
+    src/sentry/middleware/profiler.py
+    src/sentry/middleware/debug.py
+    src/sentry/utils/debug.py
+    src/sentry/web/frontend/debug/*
