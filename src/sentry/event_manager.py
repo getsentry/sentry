@@ -269,7 +269,6 @@ class EventManager(object):
 
         data.setdefault('message', '')
         data.setdefault('culprit', None)
-        data.setdefault('time_spent', None)
         data.setdefault('server_name', None)
         data.setdefault('site', None)
         data.setdefault('checksum', None)
@@ -348,9 +347,6 @@ class EventManager(object):
                 data['sentry.interfaces.User'].setdefault(
                     'ip_address', ip_address)
 
-        if data['time_spent']:
-            data['time_spent'] = int(data['time_spent'])
-
         if data['culprit']:
             data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
 
@@ -374,7 +370,6 @@ class EventManager(object):
         level = data.pop('level')
 
         culprit = data.pop('culprit', None)
-        time_spent = data.pop('time_spent', None)
         logger_name = data.pop('logger', None)
         server_name = data.pop('server_name', None)
         site = data.pop('site', None)
@@ -383,6 +378,9 @@ class EventManager(object):
         platform = data.pop('platform', None)
         release = data.pop('release', None)
         environment = data.pop('environment', None)
+
+        # unused
+        time_spent = data.pop('time_spent', None)
 
         if not culprit:
             culprit = generate_culprit(data)
@@ -456,8 +454,6 @@ class EventManager(object):
             'level': level,
             'last_seen': date,
             'first_seen': date,
-            'time_spent_total': time_spent or 0,
-            'time_spent_count': time_spent and 1 or 0,
             'data': {
                 'last_received': event.data.get('received') or float(event.datetime.strftime('%s'))
             },
@@ -807,11 +803,6 @@ class EventManager(object):
         update_kwargs = {
             'times_seen': 1,
         }
-        if event.time_spent:
-            update_kwargs.update({
-                'time_spent_total': event.time_spent,
-                'time_spent_count': 1,
-            })
 
         buffer.incr(Group, update_kwargs, {
             'id': group.id,

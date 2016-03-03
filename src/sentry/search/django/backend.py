@@ -149,11 +149,6 @@ class DjangoSearchBackend(SearchBackend):
         else:
             score_clause = SORT_CLAUSES[sort_by]
 
-        if sort_by == 'tottime':
-            queryset = queryset.filter(time_spent_count__gt=0)
-        elif sort_by == 'avgtime':
-            queryset = queryset.filter(time_spent_count__gt=0)
-
         queryset = queryset.extra(
             select={'sort_value': score_clause},
         )

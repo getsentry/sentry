@@ -94,7 +94,6 @@ class EventSerializer(Serializer):
             'platform': obj.platform,
             'dateCreated': obj.datetime,
             'dateReceived': received,
-            'timeSpent': obj.time_spent,
             'errors': errors,
         }
         return d
