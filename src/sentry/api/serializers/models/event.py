@@ -70,9 +70,14 @@ class EventSerializer(Serializer):
 
         received = obj.data.get('received')
         if received:
-            received = datetime.utcfromtimestamp(received).replace(
-                tzinfo=timezone.utc,
-            )
+            # Sentry at one point attempted to record invalid types here.
+            # Remove after June 2 2016
+            try:
+                received = datetime.utcfromtimestamp(received).replace(
+                    tzinfo=timezone.utc,
+                )
+            except TypeError:
+                received = None
 
         # TODO(dcramer): move release serialization here
         d = {
