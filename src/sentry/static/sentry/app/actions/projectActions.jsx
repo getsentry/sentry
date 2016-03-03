@@ -1,10 +1,7 @@
 import Reflux from 'reflux';
 
-let TeamActions = Reflux.createActions([
+export default Reflux.createActions([
   'update',
   'updateError',
   'updateSuccess'
 ]);
-
-
-export default TeamActions;
