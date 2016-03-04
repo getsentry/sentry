@@ -65,11 +65,15 @@ const NewIssues = React.createClass({
 });
 
 const ProjectList = React.createClass({
+  propTypes: {
+    maxProjects: React.PropTypes.number
+  },
+
   mixins: [OrganizationState],
 
   getDefaultProps() {
     return {
-      maxProjects: 5,
+      maxProjects: 10,
     };
   },
 
@@ -79,16 +83,16 @@ const ProjectList = React.createClass({
     let projectList = [];
     org.teams.forEach((team) => {
       team.projects.forEach((project) => {
-        projectList.push(project);
+        projectList.push({...project, teamName: team.name});
       });
     });
 
     projectList = sortArray(projectList, (item) => {
-      return [!item.isBookmarked, item.name];
+      return [!item.isBookmarked, item.teamName, item.name];
     });
 
     return (
-      <div>
+      <div className="organization-dashboard-projects">
         {projectList.length > maxProjects &&
           <div className="pull-right">
             <Link className="btn btn-sm btn-default"
@@ -100,7 +104,10 @@ const ProjectList = React.createClass({
           {projectList.slice(0, maxProjects).map((project) => {
             return (
               <li key={project.id}>
-                <Link to={`/${org.slug}/${project.slug}/`}>{project.name}</Link>
+                <Link to={`/${org.slug}/${project.slug}/`}>
+                  {project.isBookmarked &&  <span className="icon-bookmark"></span>}
+                  {project.teamName} / {project.name}
+                </Link>
               </li>
             );
           })}
