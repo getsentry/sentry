@@ -312,6 +312,8 @@ class AuditLogEntryAdmin(admin.ModelAdmin):
     list_filter = ('event', 'datetime')
     search_fields = ('actor__email', 'organization__name', 'organization__slug')
     raw_id_fields = ('organization', 'actor', 'target_user')
+    readonly_fields = ('organization', 'actor', 'actor_key', 'target_object',
+                       'target_user', 'event', 'ip_address', 'data', 'datetime')
 
 admin.site.register(AuditLogEntry, AuditLogEntryAdmin)
 
