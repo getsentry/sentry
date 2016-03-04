@@ -91,7 +91,7 @@ class Migration(DataMigration):
                     ).update(callsign=callsigns[project.id])
                     ProjectOption.objects.filter(
                         project=project,
-                        key='sentry:reviewed-short-id'
+                        key='sentry:reviewed-callsign'
                     ).delete()
                 q = Group.objects.filter(
                     project=project,
@@ -125,7 +125,7 @@ class Migration(DataMigration):
             ).update(callsign=None)
             ProjectOption.objects.filter(
                 project__in=project_ids,
-                key='sentry:reviewed-short-id'
+                key='sentry:reviewed-callsign'
             ).delete()
             Group.objects.filter(
                 project_id__in=project_ids

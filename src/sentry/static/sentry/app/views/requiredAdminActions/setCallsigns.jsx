@@ -58,10 +58,6 @@ const SetCallsignsAction = React.createClass({
     };
   },
 
-  getProjectList() {
-    return getProjectInfoForReview(this.getOrganization()).projects;
-  },
-
   onSubmit(event) {
     this.setState({
       isLoading: true
