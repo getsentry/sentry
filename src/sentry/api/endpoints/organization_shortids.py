@@ -28,7 +28,7 @@ class ShortIdsUpdateEndpoint(OrganizationEndpoint):
             if project is None:
                 continue
             project.callsign = callsign
-            project.update_option('sentry:reviewed-short-id', True)
+            project.update_option('sentry:reviewed-callsign', True)
             rv[project.id] = callsign
 
         return Response({
