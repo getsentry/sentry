@@ -158,7 +158,10 @@ const ProjectSelector = React.createClass({
     let projectId = project.slug;
 
     return (
-      <Link to={`/${orgId}/${projectId}/`}>{label}</Link>
+      <Link to={`/${orgId}/${projectId}/`}>
+        <span className="icon-bookmark bookmark"></span>
+        {label}
+      </Link>
     );
   },
 

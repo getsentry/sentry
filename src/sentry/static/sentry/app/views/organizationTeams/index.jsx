@@ -8,10 +8,11 @@ import OrganizationHomeContainer from '../../components/organizations/homeContai
 import OrganizationState from '../../mixins/organizationState';
 import TeamStore from '../../stores/teamStore';
 import TooltipMixin from '../../mixins/tooltip';
-import {sortArray} from '../../utils';
+import {sortArray, arrayIsEqual} from '../../utils';
 
 import ExpandedTeamList from './expandedTeamList';
 import OrganizationStatOverview from './organizationStatOverview';
+import {loadStats} from '../../actionCreators/projects';
 
 const OrganizationTeams = React.createClass({
   mixins: [
@@ -36,25 +37,20 @@ const OrganizationTeams = React.createClass({
     this.fetchStats();
   },
 
-  // TODO(dcramer): handle updating project stats when items change
+  componentWillUpdate(nextProps, nextState) {
+    if (!arrayIsEqual(nextState.teamList, this.state.teamList))
+      this.fetchStats();
+  },
+
   fetchStats() {
-    this.api.request(this.getOrganizationStatsEndpoint(), {
+    loadStats(this.api, {
+      orgId: this.props.params.orgId,
       query: {
         since: new Date().getTime() / 1000 - 3600 * 24,
         stat: 'generated',
         group: 'project'
-      },
-      success: (data) => {
-        this.setState({
-          projectStats: data
-        });
       }
     });
-  },
-
-  getOrganizationStatsEndpoint() {
-    let params = this.props.params;
-    return '/organizations/' + params.orgId + '/stats/';
   },
 
   onTeamListChange() {
@@ -65,8 +61,10 @@ const OrganizationTeams = React.createClass({
         return o.name;
       })
     });
+  },
 
-    this.fetchStats();
+  toggleTeams(nav) {
+    this.setState({activeNav: nav});
   },
 
   render() {
