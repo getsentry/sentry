@@ -1,5 +1,4 @@
 {
-    "culprit": "views.js in updateMember",
     "errors": [
         {"type": "invalid_attribute", "name": "foobar"},
         {"type": "invalid_attribute", "name": "foobar"},

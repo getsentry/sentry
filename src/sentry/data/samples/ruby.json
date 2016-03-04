@@ -1,5 +1,4 @@
 {
-    "culprit": "bin/raven in <main> at line 36",
     "sentry.interfaces.Exception": {
         "exc_omitted": null,
         "values": [

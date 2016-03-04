@@ -1,5 +1,4 @@
 {
-    "culprit": "javax.servlet.ServletException",
     "sentry.interfaces.Exception": {
         "values": [
             {
