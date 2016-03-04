@@ -18,6 +18,7 @@ import six
 from django.utils import timezone
 from pkg_resources import resource_string
 from redis.client import Script
+from redis.exceptions import ConnectionError
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.utils.dates import to_timestamp
@@ -154,17 +155,20 @@ class RedisTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
-        with self.cluster.map() as client:
-            for rollup, max_values in self.rollups:
-                norm_rollup = normalize_to_rollup(timestamp, rollup)
-                for model, key in items:
-                    model_key = self.get_model_key(key)
-                    hash_key = make_key(model, norm_rollup, model_key)
-                    client.hincrby(hash_key, model_key, count)
-                    client.expireat(
-                        hash_key,
-                        self.calculate_expiry(rollup, max_values, timestamp),
-                    )
+        try:
+            with self.cluster.map() as client:
+                for rollup, max_values in self.rollups:
+                    norm_rollup = normalize_to_rollup(timestamp, rollup)
+                    for model, key in items:
+                        model_key = self.get_model_key(key)
+                        hash_key = make_key(model, norm_rollup, model_key)
+                        client.hincrby(hash_key, model_key, count)
+                        client.expireat(
+                            hash_key,
+                            self.calculate_expiry(rollup, max_values, timestamp),
+                        )
+        except ConnectionError:
+            logging.getLogger('sentry.errors').exception('Unable to record to tsdb')
 
     def get_range(self, model, keys, start, end, rollup=None):
         """
@@ -219,25 +223,28 @@ class RedisTSDB(BaseTSDB):
 
         ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
-        with self.cluster.fanout() as client:
-            for model, key, values in items:
-                c = client.target_key(key)
-                for rollup, max_values in self.rollups:
-                    k = self.make_key(
-                        model,
-                        rollup,
-                        ts,
-                        key,
-                    )
-                    c.pfadd(k, *values)
-                    c.expireat(
-                        k,
-                        self.calculate_expiry(
+        try:
+            with self.cluster.fanout() as client:
+                for model, key, values in items:
+                    c = client.target_key(key)
+                    for rollup, max_values in self.rollups:
+                        k = self.make_key(
+                            model,
                             rollup,
-                            max_values,
-                            timestamp,
-                        ),
-                    )
+                            ts,
+                            key,
+                        )
+                        c.pfadd(k, *values)
+                        c.expireat(
+                            k,
+                            self.calculate_expiry(
+                                rollup,
+                                max_values,
+                                timestamp,
+                            ),
+                        )
+        except ConnectionError:
+            logging.getLogger('sentry.errors').exception('Unable to record to tsdb')
 
     def get_distinct_counts_series(self, model, keys, start, end=None, rollup=None):
         """
