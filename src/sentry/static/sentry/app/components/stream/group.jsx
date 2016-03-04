@@ -74,7 +74,11 @@ const StreamGroupHeader = React.createClass({
       <div>
         <h3 className="truncate">
           <Link to={`/${orgId}/${projectId}/issues/${data.id}/`}>
-            <span className="event-type truncate">{data.type}</span>
+            {this.props.hasEventTypes ?
+              <span className="event-type truncate">{data.type}</span>
+            :
+              <span className="error-level truncate">{data.level}</span>
+            }
             <span className="icon icon-soundoff"></span>
             <span className="icon icon-bookmark"></span>
             {this.getTitle()}
