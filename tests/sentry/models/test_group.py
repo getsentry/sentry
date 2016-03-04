@@ -118,3 +118,9 @@ class GroupTest(TestCase):
 
         group = Group.objects.get(id=group.id)
         assert group.first_release == release
+
+    def test_save_truncate_message(self):
+        assert len(self.create_group(message='x' * 300).message) == 255
+        assert self.create_group(message='\nfoo\n   ').message == 'foo'
+        assert self.create_group(message='foo').message == 'foo'
+        assert self.create_group(message='').message == ''
