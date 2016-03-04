@@ -1,7 +1,7 @@
-import SetShortIdsAction from '../views/requiredAdminActions/setShortIds';
+import SetCallsignsAction from '../views/requiredAdminActions/setCallsigns';
 
 const requiredAdminActions = {
-  SET_SHORT_IDS: SetShortIdsAction
+  SET_CALLSIGNS: SetCallsignsAction
 };
 
 for (let key in requiredAdminActions) {

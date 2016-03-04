@@ -48,7 +48,7 @@ function getProjectInfoForReview(org) {
 }
 
 
-const SetShortIdsAction = React.createClass({
+const SetCallsignsAction = React.createClass({
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
@@ -95,7 +95,7 @@ const SetShortIdsAction = React.createClass({
     let projects = info.projects;
 
     return (
-      <ActionOverlay actionId="SET_SHORT_IDS" isLoading={this.state.isLoading}>
+      <ActionOverlay actionId="SET_CALLSIGNS" isLoading={this.state.isLoading}>
         <h1>{t('Review Call Signs for Projects')}</h1>
         <p>{t('Sentry now requires you to specify a call sign (short name) for each project in the organization “%s”. These short names are used to identify the project in the issue IDs.  Ideally they are two or three letter long.', org.name)}</p>
         {info.hasNonMemberProjects
@@ -143,13 +143,13 @@ const SetShortIdsAction = React.createClass({
   }
 });
 
-SetShortIdsAction.requiresAction = function(org) {
+SetCallsignsAction.requiresAction = function(org) {
   let info = getProjectInfoForReview(org);
   return info.requiresReview > 0 && info.canReviewAnything;
 };
 
-SetShortIdsAction.getActionLinkTitle = function() {
+SetCallsignsAction.getActionLinkTitle = function() {
   return t('Review Call Signs for Projects');
 };
 
-export default SetShortIdsAction;
+export default SetCallsignsAction;
