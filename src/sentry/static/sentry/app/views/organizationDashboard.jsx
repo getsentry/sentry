@@ -1,5 +1,6 @@
 import React from 'react';
 import {Link} from 'react-router';
+import {Sparklines, SparklinesLine} from 'react-sparklines';
 
 import ActivityFeed from '../components/activity/feed';
 import GroupStore from '../stores/groupStore';
@@ -104,9 +105,17 @@ const ProjectList = React.createClass({
           {projectList.slice(0, maxProjects).map((project) => {
             return (
               <li key={project.id}>
+                <div className="pull-right">
+                  <Sparklines data={[5, 10, 5, 20]}>
+                    <SparklinesLine style={{stroke: '#24A6F7', fill: 'none', strokeWidth: 3}}/>
+                  </Sparklines>
+                </div>
                 <Link to={`/${org.slug}/${project.slug}/`}>
-                  {project.isBookmarked &&  <span className="icon-bookmark"></span>}
-                  {project.teamName} / {project.name}
+                  <h4>
+                    {project.isBookmarked &&  <span className="bookmark icon-bookmark"></span>}
+                    {project.name}
+                  </h4>
+                  <h5>{project.teamName}</h5>
                 </Link>
               </li>
             );

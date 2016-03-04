@@ -17,6 +17,7 @@ const ExpandedTeamList = React.createClass({
     organization: PropTypes.Organization.isRequired,
     teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
     projectStats: React.PropTypes.object,
+    showAllTeams: React.PropTypes.func.isRequired,
     hasTeams: React.PropTypes.bool
   },
 
@@ -109,20 +110,16 @@ const ExpandedTeamList = React.createClass({
 
   renderProject(project) {
     let org = this.props.organization;
-    let projectStats = this.props.projectStats;
-    let chartData = null;
-    if (projectStats[project.id]) {
-      chartData = projectStats[project.id].map((point) => {
-        return {x: point[0], y: point[1]};
-      });
-    }
+    let chartData = project.stats && project.stats.map(point => {
+      return {x: point[0], y: point[1]};
+    });
 
     return (
       <tr key={project.id} className={project.isBookmarked ? 'isBookmarked' : null}>
         <td>
           <h5>
             <a onClick={this.toggleBookmark.bind(this, project)}>
-              <span className="icon-bookmark" />
+              <span className="icon-bookmark bookmark"/>
             </a>
             <Link to={`/${org.slug}/${project.slug}/`}>
               <ProjectLabel project={project} organization={this.props.organization}/>

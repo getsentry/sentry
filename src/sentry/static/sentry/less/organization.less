@@ -55,14 +55,14 @@
 * Dashboard
 * ============================================================================
 */
-
 .organization-dashboard-projects {
-  .icon-bookmark {
-    color: @purple;
+  h4 {
+    font-size: 16px;
+    margin-bottom: 5px;
+  }
+  h5 {
     font-size: 14px;
-    position: relative;
-    padding-right: 5px;
-    top: 2px;
+    color: @gray-light;
   }
 }
 
@@ -136,15 +136,11 @@
     display: none;
   }
 
-  .icon-bookmark {
+  .bookmark {
     color: @gray-light;
-    display: inline-block;
-    padding-right: 10px;
-    top: 2px;
-    position: relative;
   }
 
-  .isBookmarked .icon-bookmark {
+  .isBookmarked .bookmark {
     color: @purple;
   }
 }
