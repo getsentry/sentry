@@ -116,7 +116,7 @@ class GroupSerializer(Serializer):
 
         event_type = obj.data.get('type', 'default')
         metadata = obj.data.get('metadata') or {
-            'title': obj.message.splitlines()[0][:100],
+            'title': obj.message_short,
         }
 
         return {
