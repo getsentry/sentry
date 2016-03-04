@@ -196,7 +196,7 @@ class Migration(DataMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 3, 4, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 3, 11, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -217,15 +217,6 @@ class Migration(DataMigration):
             'ident': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
             'value': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {})
-        },
-        'sentry.dsymfile': {
-            'Meta': {'unique_together': "(('project', 'uuid'),)", 'object_name': 'DSymFile'},
-            'cpu_name': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
-            'file': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.File']"}),
-            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
-            'object_name': ('django.db.models.fields.TextField', [], {}),
-            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
-            'uuid': ('django.db.models.fields.CharField', [], {'max_length': '36', 'db_index': 'True'})
         },
         'sentry.event': {
             'Meta': {'unique_together': "(('project_id', 'event_id'),)", 'object_name': 'Event', 'db_table': "'sentry_message'", 'index_together': "(('group_id', 'datetime'),)"},
@@ -294,6 +285,14 @@ class Migration(DataMigration):
             'file': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.File']"}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'offset': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {})
+        },
+        'sentry.globaldsymfile': {
+            'Meta': {'object_name': 'GlobalDSymFile'},
+            'cpu_name': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
+            'file': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.File']"}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'object_name': ('django.db.models.fields.TextField', [], {}),
+            'uuid': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '36'})
         },
         'sentry.group': {
             'Meta': {'unique_together': "(('project', 'short_id'),)", 'object_name': 'Group', 'db_table': "'sentry_groupedmessage'", 'index_together': "(('project', 'first_release'),)"},
@@ -508,6 +507,15 @@ class Migration(DataMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'project_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {'null': 'True', 'blank': 'True'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']"})
+        },
+        'sentry.projectdsymfile': {
+            'Meta': {'unique_together': "(('project', 'uuid'),)", 'object_name': 'ProjectDSymFile'},
+            'cpu_name': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
+            'file': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.File']"}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'object_name': ('django.db.models.fields.TextField', [], {}),
+            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
+            'uuid': ('django.db.models.fields.CharField', [], {'max_length': '36'})
         },
         'sentry.projectkey': {
             'Meta': {'object_name': 'ProjectKey'},
