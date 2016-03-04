@@ -26,6 +26,11 @@ Schema Changes
 - Added ``EventTag`` model.
 - Added ``OrganizationOnboardingTask`` model.
 
+Version 8.1.4
+-------------
+
+- [SECURITY] Fixed an issue where a superuser had the ability to inject data into audit logs through the admin UI.
+
 Version 8.1.3
 -------------
 
