@@ -102,6 +102,20 @@
       box-shadow: inset 0 0 4px @green;
     }
 
+    &.invalid input {
+      background: @red-light;
+      color: @red-dark;
+      text-shadow: none;
+      border-color: @red-dark;
+      box-shadow: inset 0 0 4px @red;
+    }
+
+    &.empty input {
+      background: @gray-lightest;
+      border-color: @gray-darker;
+      box-shadow: inset 0 0 4px @gray;
+    }
+
     label { text-align: left; }
     input {
       text-align: center;

@@ -1,8 +1,10 @@
 import React from 'react';
+import {History} from 'react-router';
 import ActionOverlay from '../../components/actionOverlay';
 import OrganizationState from '../../mixins/organizationState';
 import ApiMixin from '../../mixins/apiMixin';
 import {t} from '../../locale';
+import update from 'react-addons-update';
 
 function getProjectInfoForReview(org) {
   let projects = [];
@@ -49,13 +51,18 @@ function getProjectInfoForReview(org) {
 
 
 const SetCallsignsAction = React.createClass({
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [ApiMixin, History, OrganizationState],
 
   getInitialState() {
     return {
-      isLoading: false,
-      shortIds: {}
+      isLoading: true,
+      info: {},
+      callsigns: {}
     };
+  },
+
+  componentWillMount() {
+    this.fetchData();
   },
 
   onSubmit(event) {
@@ -66,10 +73,14 @@ const SetCallsignsAction = React.createClass({
     let orgId = this.getOrganization().slug;
     this.api.request(`/organizations/${orgId}/shortids/`, {
       method: 'PUT',
-      data: this.state.shortIds,
+      data: {'callsigns': this.state.callsigns},
       success: (data) => {
+        this.context.history.pushState('refresh', `/${orgId}/`);
       },
       error: (error) => {
+        /*eslint no-console:0*/
+        console.log('Failed to set callsigns:', error);
+        alert(t('Failed to set callsigns'));
       },
       complete: () => {
         this.setState({
@@ -81,14 +92,45 @@ const SetCallsignsAction = React.createClass({
 
   onSetShortName(projectId, event) {
     this.setState({
-
+      callsigns: update(this.state.callsigns, {
+        [projectId]: {$set: event.target.value.toUpperCase().trim()}
+      }),
     });
+  },
+
+  fetchData() {
+    let info = getProjectInfoForReview(this.getOrganization());
+    let callsigns = {};
+    info.projects.forEach((project) => {
+      callsigns[project.projectId] = project.callSign;
+    });
+
+    this.setState({
+      info: info,
+      callsigns: callsigns,
+      isLoading: false,
+    });
+  },
+
+  isValidCallsign(callsign) {
+    let found = 0;
+
+    if (callsign.match(/^[A-Z]{2,6}$/) === null) {
+      return false;
+    }
+
+    for (let key in this.state.callsigns) {
+      if (this.state.callsigns[key] === callsign) {
+        found++;
+      }
+    }
+    return found <= 1;
   },
 
   render() {
     let org = this.getOrganization();
-    let info = getProjectInfoForReview(this.getOrganization());
-    let projects = info.projects;
+    let info = this.state.info;
+    let canSubmit = true;
 
     return (
       <ActionOverlay actionId="SET_CALLSIGNS" isLoading={this.state.isLoading}>
@@ -98,15 +140,24 @@ const SetCallsignsAction = React.createClass({
           ? <p>{t('Projects of teams you are not a member of are shown grayed out.')}</p> : null}
         <p>{t('Projects which have been previously reviewed are shown in green.')}</p>
         <form className="form-horizontal">
-          {projects.map((project) => {
+          {info.projects.map((project) => {
             let inputId = 'input-' + project.projectId;
             let disabled = !project.canReview;
             let className = 'form-group short-id-form-group';
+            let callsign = this.state.callsigns[project.projectId] || '';
             if (disabled) {
               className += ' disabled';
             }
             if (!project.requiresReview) {
               className += ' reviewed';
+            }
+            if (!this.isValidCallsign(callsign)) {
+              className += ' invalid';
+              canSubmit = false;
+            }
+            if (callsign == '') {
+              className += ' empty';
+              canSubmit = false;
             }
 
             return (
@@ -121,7 +172,7 @@ const SetCallsignsAction = React.createClass({
                     disabled={disabled}
                     className="form-control"
                     onChange={this.onSetShortName.bind(this, project.projectId)}
-                    value={project.callSign}/>
+                    value={callsign}/>
                 </div>
               </div>
             );
@@ -129,7 +180,8 @@ const SetCallsignsAction = React.createClass({
           <div className="actions">
             <button type="button"
               onClick={this.onSubmit}
-              className="btn btn-primary btn-lg">
+              className="btn btn-primary btn-lg"
+              disabled={!canSubmit}>
               {t('Set Call Signs')}
             </button>
           </div>
