@@ -1,12 +1,19 @@
 import React from 'react';
+import Reflux from 'reflux';
 import {Link} from 'react-router';
 import {Sparklines, SparklinesLine} from 'react-sparklines';
 
-import ActivityFeed from '../components/activity/feed';
+import ApiMixin from '../mixins/apiMixin';
+import {loadStats} from '../actionCreators/projects';
+
 import GroupStore from '../stores/groupStore';
+import TeamStore from '../stores/teamStore';
+
+import ActivityFeed from '../components/activity/feed';
 import IssueList from '../components/issueList';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import OrganizationState from '../mixins/organizationState';
+
 import {t} from '../locale';
 import {sortArray} from '../utils';
 
@@ -182,15 +189,44 @@ const Activity = React.createClass({
 });
 
 const OrganizationDashboard = React.createClass({
+  mixins: [
+    ApiMixin,
+    Reflux.listenTo(TeamStore, 'onTeamListChange'),
+  ],
+
   getDefaultProps() {
     return {
       statsPeriod: '24h',
-      pageSize: 5,
+      pageSize: 5
     };
+  },
+
+  getInitialState() {
+    return {
+      teams: TeamStore.getAll()
+    };
+  },
+
+  componentWillMount() {
+    loadStats(this.api, {
+      orgId: this.props.params.orgId,
+      query: {
+        since: new Date().getTime() / 1000 - 3600 * 24,
+        stat: 'received',
+        group: 'project'
+      }
+    });
   },
 
   componentWillUnmount() {
     GroupStore.reset();
+  },
+
+
+  onTeamListChange() {
+    this.setState({
+      teams: TeamStore.getAll()
+    });
   },
 
   render() {
@@ -203,7 +239,7 @@ const OrganizationDashboard = React.createClass({
             <NewIssues {...this.props} />
           </div>
           <div className="col-md-4">
-            <ProjectList {...this.props} />
+            <ProjectList {...this.props} teams={this.state.teams} />
             <Activity {...this.props} />
           </div>
         </div>

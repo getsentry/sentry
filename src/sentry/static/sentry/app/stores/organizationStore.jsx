@@ -6,11 +6,7 @@ const OrganizationStore = Reflux.createStore({
   },
 
   get(slug) {
-    for (let i = 0; i < this.items.length; i++) {
-      if (this.items[i].slug === slug) {
-        return this.items[i];
-      }
-    }
+    return this.items.find(item => item.slug === slug);
   },
 
   getAll() {
