@@ -16,6 +16,9 @@ from django.utils.encoding import smart_unicode, force_unicode
 import six
 
 
+_callsign_re = re.compile(r'^[A-Z]{2,6}$')
+
+
 def truncatechars(value, arg):
     """
     Truncates a string after a certain number of chars.
@@ -88,3 +91,12 @@ def to_unicode(value):
         except Exception:
             value = '(Error decoding value)'
     return value
+
+
+def validate_callsign(value):
+    if not value:
+        return None
+    callsign = value.strip().upper()
+    if _callsign_re.match(callsign) is None:
+        return None
+    return callsign
