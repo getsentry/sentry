@@ -62,7 +62,8 @@ const OrganizationDetails = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.params.orgId !== this.props.params.orgId) {
+    if (nextProps.params.orgId !== this.props.params.orgId ||
+        nextProps.location.state === 'refresh') {
       this.remountComponent();
     }
   },
