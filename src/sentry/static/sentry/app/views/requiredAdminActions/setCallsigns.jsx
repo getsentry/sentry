@@ -80,6 +80,7 @@ const SetCallsignsAction = React.createClass({
       error: (error) => {
         /*eslint no-console:0*/
         console.log('Failed to set callsigns:', error);
+        /*eslint no-alert:0*/
         alert(t('Failed to set callsigns'));
       },
       complete: () => {
