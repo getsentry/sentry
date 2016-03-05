@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import re
-
 from django import forms
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -17,12 +15,10 @@ from sentry.web.forms.fields import (
     CustomTypedChoiceField, RangeField, OriginsField, IPNetworksField,
 )
 from sentry.web.frontend.base import ProjectView
+from sentry.utils.strings import validate_callsign
 
 
 BLANK_CHOICE = [("", "")]
-
-
-_callsign_re = re.compile(r'^[A-Z]{2,6}$')
 
 
 class EditProjectForm(forms.ModelForm):
@@ -165,16 +161,17 @@ class EditProjectForm(forms.ModelForm):
         return slug
 
     def clean_callsign(self):
-        callsign = self.cleaned_data.get('callsign').strip().upper()
-        if _callsign_re.match(callsign) is None:
-            raise forms.ValidationError('Callsign must be between 2 and 6 letters')
+        callsign = validate_callsign(self.cleaned_data.get('callsign'))
+        if callsign is None:
+            raise forms.ValidationError(_('Callsign must be between 2 '
+                                          'and 6 letters'))
         other = Project.objects.filter(
             callsign=callsign,
             organization=self.organization
         ).exclude(id=self.instance.id).first()
         if other is not None:
-            raise forms.ValidationError('Another project (%s) is already '
-                                        'using that callsign' % other.name)
+            raise forms.ValidationError(_('Another project (%s) is already '
+                                          'using that callsign') % other.name)
         return callsign
 
 
