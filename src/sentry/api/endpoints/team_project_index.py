@@ -42,6 +42,7 @@ class ProjectSerializer(serializers.Serializer):
         if callsign and validate_callsign(callsign) is None:
             raise serializers.ValidationError(
                 'Callsign must be between 2 and 6 characters long.')
+        return data
 
 
 class TeamProjectIndexEndpoint(TeamEndpoint):
