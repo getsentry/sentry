@@ -20,11 +20,11 @@ class AddProjectWithTeamForm(AddProjectForm):
     )
 
     class Meta:
-        fields = ('name', 'team')
+        fields = ('name', 'callsign', 'team')
         model = Project
 
-    def __init__(self, user, team_list, *args, **kwargs):
-        super(AddProjectWithTeamForm, self).__init__(*args, **kwargs)
+    def __init__(self, user, organization, team_list, *args, **kwargs):
+        super(AddProjectWithTeamForm, self).__init__(organization, *args, **kwargs)
 
         self.team_list = team_list
 
@@ -56,9 +56,11 @@ class CreateProjectView(OrganizationView):
     required_scope = 'team:write'
 
     def get_form(self, request, organization, team_list):
-        return AddProjectWithTeamForm(request.user, team_list, request.POST or None, initial={
+        data = {
             'team': request.GET.get('team'),
-        })
+        }
+        return AddProjectWithTeamForm(request.user, organization, team_list,
+                                      request.POST or None, initial=data)
 
     def handle(self, request, organization):
         team_list = [

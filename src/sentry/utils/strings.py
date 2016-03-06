@@ -10,6 +10,7 @@ from __future__ import absolute_import
 import base64
 import re
 import zlib
+from itertools import count
 
 from django.utils.encoding import smart_unicode, force_unicode
 
@@ -20,6 +21,7 @@ _callsign_re = re.compile(r'^[A-Z]{2,6}$')
 _word_sep_re = re.compile(r'[\s.;,_-]+(?u)')
 _camelcase_re = re.compile(
     r'(?:[A-Z]{2,}(?=[A-Z]))|(?:[A-Z][a-z0-9]+)|(?:[a-z0-9]+)')
+_letters_re = re.compile(r'[A-Z]+')
 _digit_re = re.compile(r'\d+')
 
 
@@ -104,6 +106,41 @@ def validate_callsign(value):
     if _callsign_re.match(callsign) is None:
         return None
     return callsign
+
+
+def iter_callsign_choices(project_name, team_name=None):
+    words = list(x.upper() for x in tokens_from_name(
+        project_name, remove_digits=True))
+    if not words:
+        words = ['AA']
+    bits = []
+
+    if len(words) == 2:
+        bits.append(words[0][:1] + words[1][:1])
+    elif len(words) == 3:
+        bits.append(words[0][:1] + words[1][:1] + words[2][:1])
+    bit = words[0][:2]
+    if len(bit) == 2:
+        bits.append(bit)
+    bit = words[0][:3]
+    if len(bit) == 3:
+        bits.append(bit)
+
+    for bit in bits:
+        yield bit
+
+    if team_name is not None:
+        try:
+            team_bit = _letters_re.findall(team_name.upper())[0][:1]
+            if team_bit:
+                for bit in bits:
+                    yield team_bit + bit
+        except IndexError:
+            pass
+
+    for idx in count(2):
+        for bit in bits:
+            yield '%s%d' % (bit, idx)
 
 
 def split_camelcase(word):

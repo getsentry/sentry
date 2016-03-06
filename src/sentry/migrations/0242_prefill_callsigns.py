@@ -6,7 +6,7 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
 from django.db import models, transaction
-from sentry.utils.strings import tokens_from_name
+from sentry.utils.strings import tokens_from_name, iter_callsign_choices
 
 
 class RollbackLocally(Exception):
@@ -22,40 +22,6 @@ def catchable_atomic():
         pass
 
 
-def iter_callsign_choices(project):
-    words = list(x.upper() for x in tokens_from_name(
-        project.name, remove_digits=True))
-    if not words:
-        words = ['AA']
-    bits = []
-
-    if len(words) == 2:
-        bits.append(words[0][:1] + words[1][:1])
-    elif len(words) == 3:
-        bits.append(words[0][:1] + words[1][:1] + words[2][:1])
-    bit = words[0][:2]
-    if len(bit) == 2:
-        bits.append(bit)
-    bit = words[0][:3]
-    if len(bit) == 3:
-        bits.append(bit)
-
-    for bit in bits:
-        yield bit
-
-    try:
-        team_bit = _letters_re.findall(project.team.name.upper())[0][:1]
-        if team_bit:
-            for bit in bits:
-                yield team_bit + bit
-    except IndexError:
-        pass
-
-    for idx in count(2):
-        for bit in bits:
-            yield '%s%d' % (bit, idx)
-
-
 def get_callsigns(projects):
     rv = {}
 
@@ -63,7 +29,8 @@ def get_callsigns(projects):
         if project.callsign is not None:
             rv[project.callsign] = project.id
             continue
-        for callsign in iter_callsign_choices(project):
+        for callsign in iter_callsign_choices(project.name,
+                                              team_name=project.team.name):
             if callsign in rv:
                 continue
             rv[callsign] = project.id
