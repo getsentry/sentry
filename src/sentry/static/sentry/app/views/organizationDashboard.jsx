@@ -37,7 +37,7 @@ const AssignedIssues = React.createClass({
         <div className="pull-right">
           <Link className="btn btn-sm btn-default" to={this.getViewMoreLink()}>{t('View more')}</Link>
         </div>
-        <h3>Assigned</h3>
+        <h3>Assigned to me</h3>
         <IssueList endpoint={this.getEndpoint()} query={{
           statsPeriod: this.props.statsPeriod,
           per_page: this.props.pageSize,

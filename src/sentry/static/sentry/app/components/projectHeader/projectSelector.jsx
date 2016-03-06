@@ -21,7 +21,7 @@ const ProjectSelector = React.createClass({
 
   getDefaultProps() {
     return {
-      projectId: null,
+      projectId: null
     };
   },
 
@@ -91,7 +91,12 @@ const ProjectSelector = React.createClass({
       ...this.getProjectUrlProps(project)
     };
 
-    return <MenuItem {...menuItemProps}>{label}</MenuItem>;
+    return (
+      <MenuItem {...menuItemProps}>
+        {project.isBookmarked && <span className="bookmark icon-bookmark"></span>}
+        {this.highlight(label, highlightText)}
+      </MenuItem>
+    );
   },
 
   getProjectLabel(team, project, hasSingleTeam, highlightText) {
