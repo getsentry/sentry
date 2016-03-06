@@ -39,7 +39,7 @@ class AddProjectForm(forms.ModelForm):
     def clean_callsign(self):
         callsign = self.cleaned_data.get('callsign')
         if not callsign:
-            it = iter_callsign_choices(self.cleaned_data['name'])
+            it = iter_callsign_choices(self.cleaned_data.get('name') or '')
             for potential_callsign in it:
                 try:
                     Project.objects.get(
