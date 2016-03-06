@@ -17,6 +17,10 @@ import six
 
 
 _callsign_re = re.compile(r'^[A-Z]{2,6}$')
+_word_sep_re = re.compile(r'[\s.;,_-]+(?u)')
+_camelcase_re = re.compile(
+    r'(?:[A-Z]{2,}(?=[A-Z]))|(?:[A-Z][a-z0-9]+)|(?:[a-z0-9]+)')
+_digit_re = re.compile(r'\d+')
 
 
 def truncatechars(value, arg):
@@ -100,3 +104,32 @@ def validate_callsign(value):
     if _callsign_re.match(callsign) is None:
         return None
     return callsign
+
+
+def split_camelcase(word):
+    pieces = _camelcase_re.findall(word)
+
+    # Unicode characters or some stuff, ignore it.
+    if sum(len(x) for x in pieces) != len(word):
+        yield word
+    else:
+        for piece in pieces:
+            yield piece
+
+
+def split_any_wordlike(value, handle_camelcase=False):
+    for word in _word_sep_re.split(value):
+        if handle_camelcase:
+            for chunk in split_camelcase(word):
+                yield chunk
+        else:
+            yield word
+
+
+def tokens_from_name(value, remove_digits=False):
+    for word in split_any_wordlike(value, handle_camelcase=True):
+        if remove_digits:
+            word = _digit_re.sub('', word)
+        word = word.lower()
+        if word:
+            yield word

@@ -6,9 +6,7 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
 from django.db import models, transaction
-
-
-_letters_re = re.compile(r'[A-Z]+')
+from sentry.utils.strings import tokens_from_name
 
 
 class RollbackLocally(Exception):
@@ -25,7 +23,10 @@ def catchable_atomic():
 
 
 def iter_callsign_choices(project):
-    words = _letters_re.findall(project.name.upper())
+    words = list(x.upper() for x in tokens_from_name(
+        project.name, remove_digits=True))
+    if not words:
+        words = ['AA']
     bits = []
 
     if len(words) == 2:
