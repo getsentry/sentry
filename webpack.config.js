@@ -170,4 +170,13 @@ var config = {
   devtool: 'source-map'
 };
 
+if (process.env.NODE_ENV === 'production') {
+  config.plugins.push(new (require('compression-webpack-plugin'))({
+    // zopfli gives us a better gzip compression
+    // See: http://googledevelopers.blogspot.com/2013/02/compress-data-more-densely-with-zopfli.html
+    algorithm: 'zopfli',
+    regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+  }));
+}
+
 module.exports = config;
