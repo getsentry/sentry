@@ -317,27 +317,12 @@ const Stream = React.createClass({
       method: 'GET',
       data: requestParams,
       success: (data, ignore, jqXHR) => {
-        // Was this the result of an event SHA search? If so, redirect
-        // to corresponding group details
-        if (data.length === 1 && /^[a-zA-Z0-9]{32}$/.test(requestParams.query.trim())) {
-          let params = this.props.params;
-          let groupId = data[0].id;
-
-          this.history.pushState(null, `/${params.orgId}/${params.projectId}/issues/${groupId}/`);
-          return;
-        }
-
-        // if this is a direct hit, but for another project we need to
-        // redirect.
+        // if this is a direct hit, we redirect to the intended result directly.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-          let project = this.getProject();
-          if (data[0].project.slug !== project.slug) {
-            let org = this.getOrganization();
-            this.context.history.pushState(null,
-              `/${org.slug}/${data[0].project.slug}/?query=${encodeURIComponent(this.state.query)}`);
-            return;
-          }
+          return void this.history.pushState(null,
+            `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`);
         }
+
         this._streamManager.push(data);
 
         this.setState({
