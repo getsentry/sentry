@@ -280,6 +280,20 @@ def configure(ctx, py, yaml, skip_backend_validation=False):
     import warnings
     warnings.filterwarnings('default', '', Warning, r'^sentry')
 
+    # Add in additional mimetypes that are useful for our static files
+    # which aren't common in default system registries
+    import mimetypes
+    for type, ext in (
+        ('application/json', 'map'),
+        ('application/font-woff', 'woff'),
+        ('application/font-woff2', 'woff2'),
+        ('application/vnd.ms-fontobject', 'eot'),
+        ('application/x-font-ttf', 'ttf'),
+        ('application/x-font-ttf', 'ttc'),
+        ('font/opentype', 'otf'),
+    ):
+        mimetypes.add_type(type, '.' + ext)
+
     from .importer import install
 
     if yaml is None:
