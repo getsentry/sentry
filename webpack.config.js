@@ -170,6 +170,9 @@ var config = {
   devtool: 'source-map'
 };
 
+// This compression-webpack-plugin generates pre-compressed files
+// ending in .gz, to be picked up and served by our internal static media
+// server as well as nginx when paired with the gzip_static module.
 if (process.env.NODE_ENV === 'production') {
   config.plugins.push(new (require('compression-webpack-plugin'))({
     // zopfli gives us a better gzip compression
