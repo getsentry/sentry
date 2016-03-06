@@ -37,6 +37,10 @@ from sentry.utils.numbers import base36_encode, base36_decode
 _short_id_re = re.compile(r'^(.*?)(?:[\s_-])([A-Za-z0-9]+)$')
 
 
+def looks_like_short_id(value):
+    return _short_id_re.match((value or '').strip()) is not None
+
+
 # TODO(dcramer): pull in enum library
 class GroupStatus(object):
     UNRESOLVED = 0
@@ -51,7 +55,7 @@ class GroupManager(BaseManager):
     use_for_related_fields = True
 
     def by_qualified_short_id(self, org, short_id):
-        match = _short_id_re.match(short_id)
+        match = _short_id_re.match(short_id.strip())
         if match is None:
             return
         from sentry.models import Project

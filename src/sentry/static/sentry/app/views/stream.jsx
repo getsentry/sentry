@@ -298,7 +298,8 @@ const Stream = React.createClass({
       query: this.state.query,
       limit: this.props.maxItems,
       sort: this.state.sort,
-      statsPeriod: this.state.statsPeriod
+      statsPeriod: this.state.statsPeriod,
+      shortIdLookup: '1',
     };
 
     let currentQuery = this.props.location.query || {};
@@ -322,15 +323,27 @@ const Stream = React.createClass({
           let params = this.props.params;
           let groupId = data[0].id;
 
-          return void this.history.pushState(null, `/${params.orgId}/${params.projectId}/issues/${groupId}/`);
+          this.history.pushState(null, `/${params.orgId}/${params.projectId}/issues/${groupId}/`);
+          return;
         }
 
+        // if this is a direct hit, but for another project we need to
+        // redirect.
+        if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+          let project = this.getProject();
+          if (data[0].project.slug !== project.slug) {
+            let org = this.getOrganization();
+            this.context.history.pushState(null,
+              `/${org.slug}/${data[0].project.slug}/?query=${encodeURIComponent(this.state.query)}`);
+            return;
+          }
+        }
         this._streamManager.push(data);
 
         this.setState({
           error: false,
           dataLoading: false,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {

@@ -17,6 +17,7 @@ from sentry.models import (
     Activity, EventMapping, Group, GroupBookmark, GroupResolution, GroupSeen,
     GroupSnooze, GroupStatus, Release, TagKey
 )
+from sentry.models.group import looks_like_short_id
 from sentry.search.utils import parse_query
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
@@ -158,6 +159,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         :qparam string statsPeriod: an optional stat period (can be one of
                                     ``"24h"``, ``"14d"``, and ``""``).
+        :qparam bool shortIdLookup: if this is set to true then short IDs are
+                                    looked up by this function as well.  This
+                                    can cause the return value of the function
+                                    to return an event group of a different
+                                    project which is why this is an opt-in.
+                                    Set to `1` to enable.
         :qparam querystring query: an optional Sentry structured search
                                    query.  If not provided an implied
                                    ``"is:resolved"`` is assumed.)
@@ -178,22 +185,36 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             stats_period = None
 
         query = request.GET.get('query')
-        if query and len(query) == 32:
-            # check to see if we've got an event ID
-            try:
-                mapping = EventMapping.objects.get(
-                    project_id=project.id,
-                    event_id=query,
-                )
-            except EventMapping.DoesNotExist:
-                pass
-            else:
-                matching_group = Group.objects.get(id=mapping.group_id)
-                return Response(serialize(
+        if query:
+            matching_group = None
+            if len(query) == 32:
+                # check to see if we've got an event ID
+                try:
+                    mapping = EventMapping.objects.get(
+                        project_id=project.id,
+                        event_id=query,
+                    )
+                except EventMapping.DoesNotExist:
+                    pass
+                else:
+                    matching_group = Group.objects.get(id=mapping.group_id)
+
+            # If the query looks like a short id, we want to provide some
+            # information about where that is.  Note that this can return
+            # results for another project.  The UI deals with this.
+            elif request.GET.get('shortIdLookup') == '1' and \
+                    looks_like_short_id(query):
+                matching_group = Group.objects.by_qualified_short_id(
+                    project.organization, query)
+
+            if matching_group is not None:
+                response = Response(serialize(
                     [matching_group], request.user, StreamGroupSerializer(
                         stats_period=stats_period
                     )
                 ))
+                response['X-Sentry-Direct-Hit'] = '1'
+                return response
 
         try:
             query_kwargs = self._build_query_params_from_request(request, project)
