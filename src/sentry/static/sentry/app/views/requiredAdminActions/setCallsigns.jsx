@@ -7,7 +7,7 @@ import {t} from '../../locale';
 import update from 'react-addons-update';
 
 function getProjectInfoForReview(org) {
-  let projects = [];
+  let memberProjects = [];
   let nonMemberProjects = [];
   let requiresReview = 0;
   let canReviewAnything = false;
@@ -25,7 +25,7 @@ function getProjectInfoForReview(org) {
           requiresReview++;
           canReviewAnything = canReviewAnything || canReview;
         }
-        targetList = projects;
+        targetList = memberProjects;
       }
       targetList.push({
         projectId: project.id,
@@ -39,10 +39,10 @@ function getProjectInfoForReview(org) {
     }
   }
 
-  projects = projects.concat(nonMemberProjects);
-
   return {
-    projects: projects,
+    memberProjects: memberProjects,
+    nonMemberProjects: nonMemberProjects,
+    projects: memberProjects.concat(nonMemberProjects),
     requiresReview: requiresReview,
     canReviewAnything: canReviewAnything,
     hasNonMemberProjects: nonMemberProjects.length > 0
@@ -102,7 +102,7 @@ const SetCallsignsAction = React.createClass({
   fetchData() {
     let info = getProjectInfoForReview(this.getOrganization());
     let callsigns = {};
-    info.projects.forEach((project) => {
+    info.memberProjects.forEach((project) => {
       callsigns[project.projectId] = project.callSign;
     });
 
@@ -125,6 +125,13 @@ const SetCallsignsAction = React.createClass({
         found++;
       }
     }
+
+    this.state.info.nonMemberProjects.forEach((project) => {
+      if (project.callSign === callsign) {
+        found++;
+      }
+    });
+
     return found <= 1;
   },
 
@@ -138,17 +145,13 @@ const SetCallsignsAction = React.createClass({
         <h1>{t('Review Call Signs for Projects')}</h1>
         <p>{t('Sentry now requires you to specify a call sign (short name) for each project in the organization “%s”. These short names are used to identify the project in the issue IDs.  Ideally they are two or three letter long.', org.name)}</p>
         {info.hasNonMemberProjects
-          ? <p>{t('Projects of teams you are not a member of are shown grayed out.')}</p> : null}
+          ? <p>{t('Projects of teams you are not a member of are not shown.')}</p> : null}
         <p>{t('Projects which have been previously reviewed are shown in green.')}</p>
         <form className="form-horizontal">
-          {info.projects.map((project) => {
+          {info.memberProjects.map((project) => {
             let inputId = 'input-' + project.projectId;
-            let disabled = !project.canReview;
             let className = 'form-group short-id-form-group';
             let callsign = this.state.callsigns[project.projectId] || '';
-            if (disabled) {
-              className += ' disabled';
-            }
             if (!project.requiresReview) {
               className += ' reviewed';
             }
@@ -170,7 +173,6 @@ const SetCallsignsAction = React.createClass({
                 <div className="col-sm-2">
                   <input type="text"
                     id={inputId}
-                    disabled={disabled}
                     className="form-control"
                     onChange={this.onSetShortName.bind(this, project.projectId)}
                     value={callsign}/>
