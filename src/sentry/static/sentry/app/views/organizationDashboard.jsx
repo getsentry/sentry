@@ -150,12 +150,7 @@ const ProjectList = React.createClass({
 
     return (
       <div className="organization-dashboard-projects">
-        {projects.length > maxProjects &&
-          <div className="pull-right">
-            <Link className="btn btn-sm btn-default"
-                  to={`/{$org.slug}/`}>View All</Link>
-          </div>
-        }
+        <Link className="btn-sidebar-header" to={`/${org.slug}/`}>View All</Link>
         <h6 className="nav-header">Projects</h6>
         <ul className="nav nav-stacked">
           {projects.map((project) => {
