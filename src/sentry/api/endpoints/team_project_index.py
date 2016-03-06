@@ -8,6 +8,7 @@ from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Project, AuditLogEntryEvent
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.strings import validate_callsign, iter_callsign_choices
 
 
 @scenario('ListTeamProjects')
@@ -34,6 +35,13 @@ def create_project_scenario(runner):
 class ProjectSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=True)
     slug = serializers.CharField(max_length=200, required=False)
+    callsign = serializers.CharField(max_length=6, required=False)
+
+    def validate(self, data):
+        callsign = data.get('callsign')
+        if callsign and validate_callsign(callsign) is None:
+            raise serializers.ValidationError(
+                'Callsign must be between 2 and 6 characters long.')
 
 
 class TeamProjectIndexEndpoint(TeamEndpoint):
@@ -75,6 +83,7 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
         :param string name: the name for the new project.
         :param string slug: optionally a slug for the new project.  If it's
                             not provided a slug is generated from the name.
+        :param string callsign: optionally a callsign for the new project.
         :auth: required
         """
         serializer = ProjectSerializer(data=request.DATA)
@@ -82,9 +91,22 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
         if serializer.is_valid():
             result = serializer.object
 
+            callsign = result.get('callsign')
+            if not callsign:
+                it = iter_callsign_choices(result['name'])
+                for callsign in it:
+                    try:
+                        Project.objects.get(
+                            organization=team.organization,
+                            callsign=callsign
+                        )
+                    except Project.DoesNotExist:
+                        break
+
             project = Project.objects.create(
                 name=result['name'],
                 slug=result.get('slug'),
+                callsign=callsign,
                 organization=team.organization,
                 team=team
             )
