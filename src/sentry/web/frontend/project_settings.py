@@ -161,7 +161,14 @@ class EditProjectForm(forms.ModelForm):
         return slug
 
     def clean_callsign(self):
-        callsign = validate_callsign(self.cleaned_data.get('callsign'))
+        # If no callsign was provided we go with the old one.  This
+        # primarily exists so that people without the callsign feature
+        # enabled will not screw up their callsigns.
+        callsign = self.cleaned_data.get('callsign')
+        if not callsign:
+            return self.instance.callsign
+
+        callsign = validate_callsign(callsign)
         if callsign is None:
             raise forms.ValidationError(_('Callsign must be between 2 '
                                           'and 6 letters'))

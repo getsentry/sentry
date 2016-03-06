@@ -53,7 +53,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         feature_list = []
         if features.has('organizations:sso', obj, actor=user):
             feature_list.append('sso')
-        if features.has('organizations:onboarding', obj, actor=user) and not OrganizationOption.objects.filter(organization=obj).exists():
+        if features.has('organizations:callsigns', obj, actor=user):
+            feature_list.append('callsigns')
+        if features.has('organizations:onboarding', obj, actor=user) and \
+           not OrganizationOption.objects.filter(organization=obj).exists():
             feature_list.append('onboarding')
 
         if getattr(obj.flags, 'allow_joinleave'):

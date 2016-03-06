@@ -1,5 +1,6 @@
 import React from 'react';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
+import OrganizationState from '../mixins/organizationState';
 
 const ProjectLabel = React.createClass({
   propTypes: {
@@ -7,15 +8,17 @@ const ProjectLabel = React.createClass({
   },
 
   mixins: [
-    PureRenderMixin
+    PureRenderMixin,
+    OrganizationState
   ],
 
   render() {
     let project = this.props.project;
+    let features = this.getFeatures();
     return (
       <span className="project-label">
         <span className="project-name">{project.name}</span>
-        {project.callSign
+        {features.has('callsigns') && project.callSign
           ? <span className="callsign-addon">{project.callSign}</span>
           : null}
       </span>

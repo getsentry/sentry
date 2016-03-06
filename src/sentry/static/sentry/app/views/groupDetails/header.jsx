@@ -98,7 +98,7 @@ const GroupHeader = React.createClass({
         <div className="row">
           <div className="col-sm-8">
             <h3>
-              {group.shortId
+              {this.getFeatures().has('callsigns') && group.shortId
                 ? <span className="short-id">{group.shortId}</span>
                 : null}
               {group.title}
