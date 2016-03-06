@@ -318,6 +318,9 @@ const Stream = React.createClass({
       data: requestParams,
       success: (data, ignore, jqXHR) => {
         // if this is a direct hit, we redirect to the intended result directly.
+        // we have to use the project slug from the result data instead of the
+        // the current props one as the shortIdLookup can return results for
+        // different projects.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           return void this.history.pushState(null,
             `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`);
