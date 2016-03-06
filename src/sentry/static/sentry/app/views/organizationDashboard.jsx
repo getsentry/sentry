@@ -111,6 +111,7 @@ ProjectSparkline.propTypes = {
 
 const ProjectList = React.createClass({
   propTypes: {
+    teams: React.PropTypes.array,
     maxProjects: React.PropTypes.number
   },
 
@@ -118,27 +119,38 @@ const ProjectList = React.createClass({
 
   getDefaultProps() {
     return {
-      maxProjects: 10,
+      maxProjects: 5
     };
   },
 
   render() {
     let org = this.getOrganization();
-    let maxProjects = this.props.maxProjects;
-    let projectList = [];
-    org.teams.forEach((team) => {
-      team.projects.forEach((project) => {
-        projectList.push({...project, teamName: team.name});
+    let {maxProjects} = this.props;
+    let projects = [];
+    this.props.teams.forEach(team => {
+      team.projects.forEach(project => {
+        projects.push({...project, teamName: team.name});
       });
     });
 
-    projectList = sortArray(projectList, (item) => {
+    projects = sortArray(projects, (item) => {
       return [!item.isBookmarked, item.teamName, item.name];
     });
 
+    // project list is
+    // a) all bookmarked projects
+    // b) if bookmarked projcets < maxProjects, then fill with sorted projects until maxProjects
+
+    let bookmarkedProjects = projects.filter(p => p.isBookmarked);
+    if (bookmarkedProjects.length < maxProjects) {
+      projects = bookmarkedProjects.concat(projects.slice(bookmarkedProjects.length, maxProjects));
+    } else {
+      projects = bookmarkedProjects;
+    }
+
     return (
       <div className="organization-dashboard-projects">
-        {projectList.length > maxProjects &&
+        {projects.length > maxProjects &&
           <div className="pull-right">
             <Link className="btn btn-sm btn-default"
                   to={`/{$org.slug}/`}>View All</Link>
@@ -146,7 +158,7 @@ const ProjectList = React.createClass({
         }
         <h6 className="nav-header">Projects</h6>
         <ul className="nav nav-stacked">
-          {projectList.slice(0, maxProjects).map((project) => {
+          {projects.map((project) => {
             return (
               <li key={project.id}>
                 <div className="pull-right">
