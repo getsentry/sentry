@@ -31,8 +31,13 @@ def iter_callsign_choices(project):
 
     if len(words) == 2:
         bits.append(words[0][:1] + words[1][:1])
+    elif len(words) == 3:
+        bits.append(words[0][:1] + words[1][:1] + words[2][:1])
     bit = words[0][:2]
     if len(bit) == 2:
+        bits.append(bit)
+    bit = words[0][:3]
+    if len(bit) == 3:
         bits.append(bit)
 
     for bit in bits:
