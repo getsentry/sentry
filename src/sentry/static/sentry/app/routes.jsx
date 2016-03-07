@@ -23,6 +23,7 @@ import OrganizationDetails from './views/organizationDetails';
 import OrganizationRateLimits from './views/organizationRateLimits';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
+import AllTeamsList from './views/organizationTeams/allTeamsList';
 import ProjectChooser from './views/projectChooser';
 import ProjectDashboard from './views/projectDashboard';
 import ProjectDetails from './views/projectDetails';
@@ -69,7 +70,10 @@ let routes = (
     <Route path="/share/issue/:shareId/" component={errorHandler(SharedGroupDetails)} />
 
     <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
-      <IndexRoute component={errorHandler(OrganizationTeams)} />
+      <IndexRoute component={errorHandler(OrganizationTeams)}/>
+      <Route path="/organizations/:orgId/all-teams/" component={errorHandler(OrganizationTeams)}>
+        <IndexRoute component={errorHandler(AllTeamsList)}/>
+      </Route>
 
       <Route path="/organizations/:orgId/dashboard/" component={errorHandler(OrganizationDashboard)} />
       <Route path="/organizations/:orgId/issues/assigned/" component={errorHandler(MyIssuesAssignedToMe)} />
