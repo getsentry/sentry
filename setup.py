@@ -137,7 +137,7 @@ postgres_requires = [
 ]
 
 dsym_requires = [
-    'symsynd>=0.1.0,<1.0.0',
+    'symsynd>=0.2.0,<1.0.0',
 ]
 
 

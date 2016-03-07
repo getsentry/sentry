@@ -23,13 +23,15 @@ class DSymCache(object):
         return os.path.join(settings.DSYM_CACHE_PATH, 'global')
 
     def fetch_dsyms(self, project, uuids):
-        base = self.get_project_path(project)
+        bases = set()
         loaded = []
         for image_uuid in uuids:
-            dsym = self.fetch_dsym(project, image_uuid)
-            if dsym is not None:
+            rv = self.fetch_dsym(project, image_uuid)
+            if rv is not None:
+                base, dsym = rv
                 loaded.append(dsym)
-        return base, loaded
+                bases.add(base)
+        return list(bases), loaded
 
     def try_bump_timestamp(self, path, old_stat):
         now = int(time.time())
@@ -70,7 +72,7 @@ class DSymCache(object):
                 shutil.copyfileobj(sf, df)
             os.rename(dsym + '_tmp', dsym)
 
-        return dsym
+        return base, dsym
 
     def clear_old_entries(self):
         try:
