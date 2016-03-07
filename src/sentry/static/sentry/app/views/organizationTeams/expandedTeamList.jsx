@@ -15,7 +15,6 @@ const ExpandedTeamList = React.createClass({
     organization: PropTypes.Organization.isRequired,
     teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
     projectStats: React.PropTypes.object,
-    showAllTeams: React.PropTypes.func.isRequired,
     hasTeams: React.PropTypes.bool
   },
 
@@ -120,17 +119,12 @@ const ExpandedTeamList = React.createClass({
     );
   },
 
-  showAllTeams(e) {
-    e.preventDefault();
-    this.props.showAllTeams();
-  },
-
   renderEmpty() {
     if (this.props.hasTeams) {
       return (
         <p>
           {tct('You are not a member of any teams. [joinLink:Join an existing team] or [createLink:create a new one].', {
-            joinLink: <a onClick={this.showAllTeams} />,
+            joinLink: <Link to={`/organizations/${this.props.organization.slug}/all-teams/`}/>,
             createLink: <a href={this.urlPrefix() + '/teams/new/'} />
           })}
         </p>
