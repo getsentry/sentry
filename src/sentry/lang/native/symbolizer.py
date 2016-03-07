@@ -8,7 +8,7 @@ except ImportError:
 from sentry.lang.native.dsymcache import dsymcache
 
 
-def make_symolizer(project, binary_images):
+def make_symbolizer(project, binary_images):
     if not have_symsynd:
         raise RuntimeError('symsynd is unavailable.  Install sentry with '
                            'the dsym feature flag.')
