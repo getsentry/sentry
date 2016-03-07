@@ -32,7 +32,11 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None):
         converted_frames.append({
             'abs_path': fn,
             'filename': fn and posixpath.basename(fn) or None,
-            'function': frame['symbol_name'],
+            # This can come back as `None` from the symbolizer, in which
+            # case we need to fill something else in or we will fail
+            # later fulfill the interface requirements which say that a
+            # function needs to be provided.
+            'function': frame['symbol_name'] or '<unknown>',
             'package': frame['object_name'],
             'lineno': frame.get('line'),
         })
