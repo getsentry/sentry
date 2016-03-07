@@ -53,7 +53,6 @@ class Migration(DataMigration):
         queryset = Organization.objects.all()
 
         for org in RangeQuerySetWrapperWithProgressBar(queryset):
-            cnt = orm['sentry.Counter'].objects.all()
             projects = list(org.project_set.all())
             callsigns = get_callsigns(projects)
             for project in projects:
