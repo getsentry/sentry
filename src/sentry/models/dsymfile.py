@@ -172,7 +172,7 @@ def find_dsym_file(project, image_uuid):
             project=project
         ).select_related('file', 'file__blob').get()
     except ProjectDSymFile.DoesNotExist:
-        return None
+        pass
     try:
         return GlobalDSymFile.objects.filter(
             uuid=image_uuid
