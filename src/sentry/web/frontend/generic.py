@@ -7,9 +7,13 @@ sentry.web.frontend.generic
 """
 from __future__ import absolute_import
 
+from django.conf import settings
 from django.views.generic import TemplateView as BaseTemplateView
 
 from sentry.web.helpers import render_to_response
+
+FOREVER_CACHE = 'max-age=315360000'
+NEVER_CACHE = 'max-age=0, no-cache, no-store, must-revalidate'
 
 
 def static_media(request, **kwargs):
@@ -31,9 +35,12 @@ def static_media(request, **kwargs):
     if path.endswith(('.js', '.ttf', '.ttc', '.otf', '.eot', '.woff', '.woff2')):
         response['Access-Control-Allow-Origin'] = '*'
 
-    # If we have a version, we can cache it FOREVER
-    if version is not None:
-        response['Cache-Control'] = 'max-age=315360000'
+    # If we have a version and not DEBUG, we can cache it FOREVER
+    if version is not None and not settings.DEBUG:
+        response['Cache-Control'] = FOREVER_CACHE
+    else:
+        # Otherwise, we explicitly don't want to cache at all
+        response['Cache-Control'] = NEVER_CACHE
 
     return response
 
