@@ -50,7 +50,7 @@ class DSymCache(object):
                 if e.errno != errno.ENOENT:
                     raise
             else:
-                return self.try_bump_timestamp(dsym, stat)
+                return base, self.try_bump_timestamp(dsym, stat)
 
         dsf = find_dsym_file(project, image_uuid)
         if dsf is None:
