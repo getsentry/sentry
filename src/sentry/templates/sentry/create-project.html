@@ -26,7 +26,9 @@
     {% feature organizations:callsigns organization %}
       {{ form.callsign|as_crispy_field }}
     {% endfeature %}
-    {{ form.team|as_crispy_field }}
+    {% if form.team %}
+      {{ form.team|as_crispy_field }}
+    {% endif %}
 
     <button type="submit" class="btn btn-primary" name="action_save">{% trans "Create Project" %}</button>
   </form>
