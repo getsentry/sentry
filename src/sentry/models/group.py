@@ -57,19 +57,12 @@ class GroupManager(BaseManager):
     def by_qualified_short_id(self, org, short_id):
         match = _short_id_re.match(short_id.strip())
         if match is None:
-            raise Group.DoesNotExist
-        from sentry.models import Project
+            raise Group.DoesNotExist()
         callsign, id = match.groups()
         callsign = callsign.upper()
-        try:
-            project = Project.objects.get(
-                organization=org,
-                callsign=callsign
-            )
-        except Project.DoesNotExist:
-            raise Group.DoesNotExist
         return Group.objects.get(
-            project=project,
+            project__organization=org,
+            project__callsign=callsign.upper(),
             short_id=base36_decode(id),
         )
 
