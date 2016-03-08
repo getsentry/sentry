@@ -86,7 +86,6 @@ const StreamGroupHeader = React.createClass({
             {this.getFeatures().has('callsigns') && data.shortId
               ? <span className="short-id">{data.shortId}</span>
               : null}
-            {data.title}
             {this.getTitle()}
           </Link>
         </h3>
