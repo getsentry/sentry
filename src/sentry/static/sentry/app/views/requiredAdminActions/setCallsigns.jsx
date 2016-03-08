@@ -6,6 +6,10 @@ import ApiMixin from '../../mixins/apiMixin';
 import {t} from '../../locale';
 import update from 'react-addons-update';
 
+
+/* given an organization find information about the projects that are
+   needed for callsign review.  Splits up projects you are a member of or
+   not into different lists. */
 function getProjectInfoForReview(org) {
   let memberProjects = [];
   let nonMemberProjects = [];
@@ -73,7 +77,7 @@ const SetCallsignsAction = React.createClass({
     let orgId = this.getOrganization().slug;
     this.api.request(`/organizations/${orgId}/shortids/`, {
       method: 'PUT',
-      data: {'callsigns': this.state.callsigns},
+      data: {callsigns: this.state.callsigns},
       success: (data) => {
         this.context.history.pushState('refresh', `/${orgId}/`);
       },
