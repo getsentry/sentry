@@ -17,10 +17,8 @@ function getProjectInfoForReview(org) {
   let canReviewAnything = false;
   let canWriteProjects = (new Set(org.access)).has('project:write');
 
-  for (let i = 0; i < org.teams.length; i++) {
-    let team = org.teams[i];
-    for (let j = 0; j < team.projects.length; j++) {
-      let project = team.projects[j];
+  for (let team of org.teams) {
+    for (let project of team.projects) {
       let canReview = false;
       let targetList = nonMemberProjects;
       if (team.isMember) {
@@ -37,7 +35,7 @@ function getProjectInfoForReview(org) {
         isMember: team.isMember,
         requiresReview: !project.callSignReviewed,
         canReview: canReview,
-        teamName: org.teams[i].name,
+        teamName: team.name,
         callSign: project.callSign || null
       });
     }
