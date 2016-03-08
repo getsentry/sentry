@@ -60,10 +60,14 @@ class GroupManager(BaseManager):
             raise Group.DoesNotExist()
         callsign, id = match.groups()
         callsign = callsign.upper()
+        try:
+            short_id = base32_decode(id)
+        except ValueError:
+            raise Group.DoesNotExist()
         return Group.objects.get(
             project__organization=org,
             project__callsign=callsign.upper(),
-            short_id=base32_decode(id),
+            short_id=short_id,
         )
 
     def from_kwargs(self, project, **kwargs):
