@@ -24,6 +24,7 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.cache import Lock
 from sentry.utils.http import absolute_uri
+from sentry.utils.colors import get_hashed_color
 
 
 # TODO(dcramer): pull in enum library
@@ -75,6 +76,7 @@ class Project(Model):
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
     callsign = models.CharField(max_length=40, null=True)
+    forced_color = models.CharField(max_length=6, null=True)
     organization = FlexibleForeignKey('sentry.Organization')
     team = FlexibleForeignKey('sentry.Team')
     public = models.BooleanField(default=False)
@@ -195,6 +197,12 @@ class Project(Model):
         from sentry.models import ProjectOption
 
         return ProjectOption.objects.unset_value(self, *args, **kwargs)
+
+    @property
+    def color(self):
+        if self.forced_color is not None:
+            return '#%s' % self.forced_color
+        return get_hashed_color(self.callsign or self.slug)
 
     @property
     def member_set(self):
