@@ -32,11 +32,11 @@ class ShortIdsUpdateEndpoint(OrganizationEndpoint):
                                 status=400)
             callsigns[project_id] = callsign
 
-        if len(callsigns) != len(callsigns.values()):
+        if len(callsigns) != len(set(callsigns.values())):
             return Response({'detail': 'Duplicate callsigns'}, status=400)
 
         project_q = organization.project_set.filter(
-            pk__in=[int(x) for x in callsigns if x.isdigit()]
+            pk__in=[int(x) for x in callsigns]
         )
 
         rv = {}
