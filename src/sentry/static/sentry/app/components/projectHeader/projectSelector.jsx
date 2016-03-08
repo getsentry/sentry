@@ -7,6 +7,7 @@ import ConfigStore from '../../stores/configStore';
 import ProjectLabel from '../../components/projectLabel';
 import DropdownLink from '../dropdownLink';
 import MenuItem from '../menuItem';
+import {sortArray} from '../../utils';
 import {t} from '../../locale';
 
 const ProjectSelector = React.createClass({
@@ -183,11 +184,11 @@ const ProjectSelector = React.createClass({
   render() {
     let org = this.props.organization;
     let filter = this.state.filter.toLowerCase();
-    let children = [];
     let activeTeam;
     let activeProject;
     let hasSingleTeam = org.teams.length === 1;
 
+    let projectList = [];
     org.teams.forEach((team) => {
       if (!team.isMember) {
         return;
@@ -201,8 +202,16 @@ const ProjectSelector = React.createClass({
         if (filter && fullName.indexOf(filter) === -1) {
           return;
         }
-        children.push(this.getProjectNode(team, project, this.state.filter, hasSingleTeam));
+        projectList.push([team, project]);
       });
+    });
+
+    projectList = sortArray(projectList, ([team, project]) => {
+      return [!project.isBookmarked, team.name, project.name];
+    });
+
+    let children = projectList.map(([team, project]) => {
+      return this.getProjectNode(team, project, this.state.filter, hasSingleTeam);
     });
 
     return (
