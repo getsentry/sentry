@@ -38,8 +38,8 @@ const HomeSidebar = React.createClass({
         <ul className="nav nav-stacked">
           <ListLink to={`/organizations/${orgId}/dashboard/`}>{t('Dashboard')}</ListLink>
           <ListLink to={`/${orgId}/`} isActive={() => {
-            // return true if path matches /slug-name/
-            return /^\/[^\/]+\/$/.test(this.context.location.pathname);
+            // return true if path matches /slug-name/ OR /organizations/slug-name/all-teams/
+            return /^\/([^\/]+|organizations\/[^\/]+\/all-teams)\/$/.test(this.context.location.pathname);
           }}>{t('Projects')}</ListLink>
           {access.has('org:read') &&
             <ListLink to={`/organizations/${orgId}/stats/`}>{t('Stats')}</ListLink>
