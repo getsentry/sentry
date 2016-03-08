@@ -39,3 +39,7 @@ register('redis.options', type=Dict, flags=FLAG_NOSTORE)
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 register('system.url-prefix', ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register('system.root-api-key', type=String)
+
+# symbolizer specifics
+register('dsym.llvm-symbolizer-path', type=String)
+register('dsym.cache-path', type=String, default='/tmp/sentry-dsym-cache')

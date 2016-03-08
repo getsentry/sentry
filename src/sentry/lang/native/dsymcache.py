@@ -3,7 +3,7 @@ import time
 import errno
 import shutil
 
-from django.conf import settings
+from sentry import options
 from sentry.models import find_dsym_file
 
 
@@ -13,14 +13,15 @@ ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
 
 class DSymCache(object):
 
-    def __init__(self):
-        pass
+    @property
+    def dsym_cache_path(self):
+        return options.get('dsym.cache-path')
 
     def get_project_path(self, project):
-        return os.path.join(settings.DSYM_CACHE_PATH, str(project.id))
+        return os.path.join(self.dsym_cache_path, str(project.id))
 
     def get_global_path(self):
-        return os.path.join(settings.DSYM_CACHE_PATH, 'global')
+        return os.path.join(self.dsym_cache_path, 'global')
 
     def fetch_dsyms(self, project, uuids):
         bases = set()
@@ -76,14 +77,14 @@ class DSymCache(object):
 
     def clear_old_entries(self):
         try:
-            cache_folders = os.listdir(settings.DSYM_CACHE_PATH)
+            cache_folders = os.listdir(self.dsym_cache_path)
         except OSError:
             pass
 
         cutoff = int(time.time()) - ONE_DAY_AND_A_HALF
 
         for cache_folder in cache_folders:
-            cache_folder = os.path.join(settings.DSYM_CACHE_PATH, cache_folder)
+            cache_folder = os.path.join(self.dsym_cache_path, cache_folder)
             try:
                 items = os.listdir(cache_folder)
             except OSError:
