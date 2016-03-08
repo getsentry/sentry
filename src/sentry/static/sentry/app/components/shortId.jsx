@@ -4,7 +4,7 @@ import ProjectState from '../mixins/projectState';
 
 const ShortId = React.createClass({
   propTypes: {
-    shortId: React.PropTypes.object,
+    shortId: React.PropTypes.string,
     project: React.PropTypes.object
   },
 
