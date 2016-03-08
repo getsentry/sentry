@@ -31,7 +31,7 @@ from sentry.db.models import (
 )
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars, strip
-from sentry.utils.numbers import base36_encode, base36_decode
+from sentry.utils.numbers import base32_encode, base32_decode
 
 
 _short_id_re = re.compile(r'^(.*?)(?:[\s_-])([A-Za-z0-9]+)$')
@@ -63,7 +63,7 @@ class GroupManager(BaseManager):
         return Group.objects.get(
             project__organization=org,
             project__callsign=callsign.upper(),
-            short_id=base36_decode(id),
+            short_id=base32_decode(id),
         )
 
     def from_kwargs(self, project, **kwargs):
@@ -190,7 +190,7 @@ class Group(Model):
            self.short_id is not None:
             return '%s-%s' % (
                 self.project.callsign,
-                base36_encode(self.short_id),
+                base32_encode(self.short_id),
             )
 
     @property
