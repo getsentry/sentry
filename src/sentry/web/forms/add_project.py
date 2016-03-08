@@ -53,7 +53,15 @@ class AddProjectForm(forms.ModelForm):
         if callsign is None:
             raise forms.ValidationError(_('Callsign must be between 2 '
                                           'and 6 letters'))
-        return callsign
+        try:
+            other = Project.objects.get(
+                organization=self.organization,
+                callsign=callsign
+            )
+        except Project.DoesNotExist:
+            return callsign
+        raise forms.ValidationError(_('Another project (%s) is already '
+                                      'using that callsign') % other.name)
 
     def save(self, actor, team, ip_address):
         project = super(AddProjectForm, self).save(commit=False)
