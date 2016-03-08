@@ -8,7 +8,7 @@ from django.contrib.auth import logout
 from sentry import roles
 from sentry.api import client
 from sentry.models import (
-    Organization, OrganizationMember, User
+    Organization, OrganizationMember, OrganizationStatus, User
 )
 from sentry.web.frontend.base import BaseView
 
@@ -29,6 +29,7 @@ class RemoveAccountView(BaseView):
         org_list = Organization.objects.filter(
             member_set__role=roles.get_top_dog().id,
             member_set__user=request.user,
+            status=OrganizationStatus.VISIBLE,
         )
         org_results = []
         for org in sorted(org_list, key=lambda x: x.name):
