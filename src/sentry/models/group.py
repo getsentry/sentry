@@ -57,7 +57,7 @@ class GroupManager(BaseManager):
     def by_qualified_short_id(self, org, short_id):
         match = _short_id_re.match(short_id.strip())
         if match is None:
-            return
+            raise Group.DoesNotExist
         from sentry.models import Project
         callsign, id = match.groups()
         callsign = callsign.upper()
@@ -67,14 +67,11 @@ class GroupManager(BaseManager):
                 callsign=callsign
             )
         except Project.DoesNotExist:
-            return
-        try:
-            return Group.objects.get(
-                project=project,
-                short_id=base36_decode(id),
-            )
-        except Group.DoesNotExist:
-            return
+            raise Group.DoesNotExist
+        return Group.objects.get(
+            project=project,
+            short_id=base36_decode(id),
+        )
 
     def from_kwargs(self, project, **kwargs):
         from sentry.event_manager import EventManager
