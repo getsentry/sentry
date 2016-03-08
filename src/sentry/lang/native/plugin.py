@@ -65,16 +65,18 @@ def preprocess_apple_crash_event(data):
         id=data['project'],
     )
 
-    sym = make_symbolizer(project, crash_report['binary_images'])
     crash = crash_report['crash']
-
-    bt = None
+    crashed_thread = None
     for thread in crash['threads']:
         if thread['crashed']:
-            with sym.driver:
-                bt = sym.symbolize_backtrace(thread['backtrace']['contents'])
+            crashed_thread = thread
+    if crashed_thread is None:
+        return
 
-    if bt is not None:
+    sym = make_symbolizer(project, crash_report['binary_images'],
+                          threads=[crashed_thread])
+    with sym.driver:
+        bt = sym.symbolize_backtrace(crashed_thread['backtrace']['contents'])
         inject_apple_backtrace(data, bt, crash.get('diagnosis'),
                                crash.get('error'))
 
