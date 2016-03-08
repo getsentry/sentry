@@ -5,6 +5,7 @@ try:
 except ImportError:
     have_symsynd = False
 
+from sentry import options
 from sentry.lang.native.dsymcache import dsymcache
 
 
@@ -16,7 +17,7 @@ def make_symbolizer(project, binary_images, threads=None):
     if not have_symsynd:
         raise RuntimeError('symsynd is unavailable.  Install sentry with '
                            'the dsym feature flag.')
-    driver = Driver()
+    driver = Driver(options.get('dsym.llvm-symbolizer-path') or None)
 
     if threads is None:
         to_load = [x['uuid'] for x in binary_images]
