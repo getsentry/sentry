@@ -37,8 +37,9 @@ class ShortIdLookupEndpoint(OrganizationEndpoint):
         :pparam string short_id: the short ID to look up.
         :auth: required
         """
-        group = Group.objects.by_qualified_short_id(organization, short_id)
-        if group is None:
+        try:
+            group = Group.objects.by_qualified_short_id(organization, short_id)
+        except Group.DoesNotExist:
             raise ResourceDoesNotExist()
 
         return Response({

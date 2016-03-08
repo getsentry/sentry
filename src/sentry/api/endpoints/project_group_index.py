@@ -204,8 +204,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             # results for another project.  The UI deals with this.
             elif request.GET.get('shortIdLookup') == '1' and \
                     looks_like_short_id(query):
-                matching_group = Group.objects.by_qualified_short_id(
-                    project.organization, query)
+                try:
+                    matching_group = Group.objects.by_qualified_short_id(
+                        project.organization, query)
+                except Group.DoesNotExist:
+                    matching_group = None
 
             if matching_group is not None:
                 response = Response(serialize(
