@@ -48,8 +48,8 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
                                    values.
         :auth: required
         """
-        group = request.GET.get('group')
-        if not group:
+        group = request.GET.get('group', 'organization')
+        if group == 'organization':
             keys = [organization.id]
         elif group == 'project':
             team_list = Team.objects.get_for_user(
@@ -70,6 +70,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
         if not keys:
             return Response([])
 
+        stat_model = None
         stat = request.GET.get('stat', 'received')
         if stat == 'received':
             if group == 'project':
@@ -86,8 +87,12 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 stat_model = tsdb.models.project_total_blacklisted
             else:
                 stat_model = tsdb.models.organization_total_blacklisted
-        else:
-            raise ValueError('Invalid stat: %s' % stat)
+        elif stat == 'generated':
+            if group == 'project':
+                stat_model = tsdb.models.project
+
+        if stat_model is None:
+            raise ValueError('Invalid group: %s, stat: %s' % (group, stat))
 
         data = tsdb.get_range(
             model=stat_model,
@@ -95,7 +100,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
             **self._parse_args(request)
         )
 
-        if not group:
+        if group == 'organization':
             data = data[organization.id]
 
         return Response(data)
