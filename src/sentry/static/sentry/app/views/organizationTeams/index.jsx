@@ -41,7 +41,7 @@ const OrganizationTeams = React.createClass({
     this.api.request(this.getOrganizationStatsEndpoint(), {
       query: {
         since: new Date().getTime() / 1000 - 3600 * 24,
-        stat: 'received',
+        stat: 'generated',
         group: 'project'
       },
       success: (data) => {
