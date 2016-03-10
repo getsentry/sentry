@@ -195,8 +195,8 @@ class ListResolver(object):
         Build a list-id string from an instance.
 
         Raises ``UnregisteredTypeError`` if there is no registered handler for
-        the instance type. Raises ``AssertionError`` if there is valid list-id
-        string cannot be generated from the values returned by the type handler.
+        the instance type. Raises ``AssertionError`` if a valid list-id string
+        cannot be generated from the values returned by the type handler.
         """
         try:
             handler = self.__type_handlers[type(instance)]
