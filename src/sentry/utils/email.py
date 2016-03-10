@@ -27,7 +27,7 @@ from django.utils.encoding import force_bytes, force_str, force_text
 from toronado import from_string as inline_css
 
 from sentry import options
-from sentry.models import GroupEmailThread, Group, Project, Event, User, UserOption
+from sentry.models import Activity, GroupEmailThread, Group, Project, Event, User, UserOption
 from sentry.web.helpers import render_to_string
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -212,6 +212,7 @@ class ListResolver(object):
 
 
 default_list_type_handlers = {
+    Activity: attrgetter('project.slug', 'project.organization.slug'),
     Project: attrgetter('slug', 'organization.slug'),
     Group: attrgetter('project.slug', 'organization.slug'),
     Event: attrgetter('project.slug', 'organization.slug'),
