@@ -279,6 +279,7 @@ class MessageBuilderTest(TestCase):
             self.event,
             self.event.group,
             self.event.project,
+            self.activity,
         )
 
         for reference in references:
