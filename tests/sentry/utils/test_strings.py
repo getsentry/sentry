@@ -1,5 +1,6 @@
 import functools
 from sentry.utils.strings import (
+    is_valid_dot_atom,
     soft_break,
     soft_hyphenate,
     tokens_from_name,
@@ -61,3 +62,11 @@ def test_iter_callsign_choices():
     choices = iter_callsign_choices('GetHub')
     assert next(choices) == 'GH2'
     assert next(choices) == 'GH3'
+
+
+def test_is_valid_dot_atom():
+    assert is_valid_dot_atom('foo')
+    assert is_valid_dot_atom('foo.bar')
+    assert not is_valid_dot_atom('.foo.bar')
+    assert not is_valid_dot_atom('foo.bar.')
+    assert not is_valid_dot_atom('foo.\x00')
