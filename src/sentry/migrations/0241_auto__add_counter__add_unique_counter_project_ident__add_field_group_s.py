@@ -80,7 +80,7 @@ class Migration(SchemaMigration):
         if 'postgres' in settings.DATABASES['default']['ENGINE']:
             db.execute('''
                 drop function sentry_increment_project_counter(
-                    bigint, text, int);
+                    bigint, int);
             ''')
 
 
