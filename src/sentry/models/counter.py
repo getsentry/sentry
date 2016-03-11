@@ -8,7 +8,7 @@ sentry.models.counter
 
 from __future__ import absolute_import
 
-from django.db import models, connection
+from django.db import connection
 
 from sentry.db.models import (
     FlexibleForeignKey, Model, sane_repr, BoundedBigIntegerField
@@ -24,24 +24,22 @@ class Counter(Model):
     """
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project')
-    ident = models.CharField(max_length=40)
+    project = FlexibleForeignKey('sentry.Project', unique=True)
     value = BoundedBigIntegerField()
 
-    __repr__ = sane_repr('project', 'ident')
+    __repr__ = sane_repr('project')
 
     class Meta:
-        unique_together = (('project', 'ident'),)
         app_label = 'sentry'
         db_table = 'sentry_projectcounter'
 
     @classmethod
-    def increment(cls, project, name, delta=1):
+    def increment(cls, project, delta=1):
         """Increments a counter.  This can never decrement."""
-        return increment_project_counter(project, name, delta)
+        return increment_project_counter(project, delta)
 
 
-def increment_project_counter(project, name, delta=1):
+def increment_project_counter(project, delta=1):
     """This method primarily exists so that south code can use it."""
     if delta <= 0:
         raise ValueError('There is only one way, and that\'s up.')
@@ -50,24 +48,24 @@ def increment_project_counter(project, name, delta=1):
     try:
         if db.is_postgres():
             cur.execute('''
-                select sentry_increment_project_counter(%s, %s, %s)
-            ''', [project.id, name, delta])
+                select sentry_increment_project_counter(%s, %s)
+            ''', [project.id, delta])
             return cur.fetchone()[0]
         elif db.is_sqlite():
             value = cur.execute('''
                 insert or ignore into sentry_projectcounter
-                  (project_id, ident, value) values (%s, %s, 0);
-            ''', [project.id, name])
+                  (project_id, value) values (%s, 0);
+            ''', [project.id])
             value = cur.execute('''
                 select value from sentry_projectcounter
-                 where project_id = %s and ident = %s
-            ''', [project.id, name]).fetchone()[0]
+                 where project_id = %s
+            ''', [project.id]).fetchone()[0]
             while 1:
                 cur.execute('''
                     update sentry_projectcounter
                        set value = value + %s
-                     where project_id = %s and ident = %s;
-                ''', [delta, project.id, name])
+                     where project_id = %s;
+                ''', [delta, project.id])
                 changes = cur.execute('''
                     select changes();
                 ''').fetchone()[0]
@@ -76,12 +74,12 @@ def increment_project_counter(project, name, delta=1):
         elif db.is_mysql():
             cur.execute('''
                 insert into sentry_projectcounter
-                            (project_id, ident, value)
-                     values (%s, %s, @new_val := %s)
+                            (project_id, value)
+                     values (%s, @new_val := %s)
            on duplicate key
                      update value = @new_val := value + %s;
                      select @new_val;
-            ''', [project.id, name, delta, delta])
+            ''', [project.id, delta, delta])
             return cur.fetchone()[0]
         else:
             raise AssertionError("Not implemented database engine path")

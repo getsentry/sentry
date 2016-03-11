@@ -100,11 +100,10 @@ class Migration(SchemaMigration):
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']"})
         },
         'sentry.counter': {
-            'Meta': {'unique_together': "(('project', 'ident'),)", 'object_name': 'Counter', 'db_table': "'sentry_projectcounter'"},
+            'Meta': {'object_name': 'Counter', 'db_table': "'sentry_projectcounter'"},
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
-            'ident': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
-            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
-            'value': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {})
+            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'unique': True}),
+            'value': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {})
         },
         'sentry.event': {
             'Meta': {'unique_together': "(('project_id', 'event_id'),)", 'object_name': 'Event', 'db_table': "'sentry_message'", 'index_together': "(('group_id', 'datetime'),)"},

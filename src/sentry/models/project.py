@@ -108,7 +108,7 @@ class Project(Model):
 
     def next_short_id(self):
         from sentry.models import Counter
-        return Counter.increment(self, 'short-ids')
+        return Counter.increment(self)
 
     def save(self, *args, **kwargs):
         if not self.slug:

@@ -41,6 +41,8 @@ def get_callsigns(projects):
 class Migration(DataMigration):
 
     def forwards(self, orm):
+        print 'DISABLED'
+        return
         from sentry.utils.query import RangeQuerySetWrapperWithProgressBar, \
             RangeQuerySetWrapper
         from sentry.models.counter import increment_project_counter
