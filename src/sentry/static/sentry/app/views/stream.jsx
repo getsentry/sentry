@@ -298,7 +298,8 @@ const Stream = React.createClass({
       query: this.state.query,
       limit: this.props.maxItems,
       sort: this.state.sort,
-      statsPeriod: this.state.statsPeriod
+      statsPeriod: this.state.statsPeriod,
+      shortIdLookup: '1',
     };
 
     let currentQuery = this.props.location.query || {};
@@ -316,13 +317,13 @@ const Stream = React.createClass({
       method: 'GET',
       data: requestParams,
       success: (data, ignore, jqXHR) => {
-        // Was this the result of an event SHA search? If so, redirect
-        // to corresponding group details
-        if (data.length === 1 && /^[a-zA-Z0-9]{32}$/.test(requestParams.query.trim())) {
-          let params = this.props.params;
-          let groupId = data[0].id;
-
-          return void this.history.pushState(null, `/${params.orgId}/${params.projectId}/issues/${groupId}/`);
+        // if this is a direct hit, we redirect to the intended result directly.
+        // we have to use the project slug from the result data instead of the
+        // the current props one as the shortIdLookup can return results for
+        // different projects.
+        if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+          return void this.history.pushState(null,
+            `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`);
         }
 
         this._streamManager.push(data);
@@ -330,7 +331,7 @@ const Stream = React.createClass({
         this.setState({
           error: false,
           dataLoading: false,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {

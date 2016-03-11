@@ -28,6 +28,7 @@
     "react-addons-css-transition-group": "0.14.0",
     "react-addons-pure-render-mixin": "0.14.0",
     "react-addons-test-utils": "0.14.0",
+    "react-addons-update": "0.14.0",
     "react-bootstrap": "0.27.3",
     "react-document-title": "1.0.4",
     "react-dom": "0.14.0",

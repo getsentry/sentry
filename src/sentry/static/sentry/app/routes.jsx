@@ -48,6 +48,8 @@ import TeamDetails from './views/teamDetails';
 import TeamMembers from './views/teamMembers';
 import TeamSettings from './views/teamSettings';
 
+import SetCallsignsAction from './views/requiredAdminActions/setCallsigns';
+
 import errorHandler from './utils/errorHandler';
 
 function appendTrailingSlash(nextState, replaceState) {
@@ -86,6 +88,7 @@ let routes = (
         <Route path="settings/" component={errorHandler(TeamSettings)} />
         <Route path="members/" component={errorHandler(TeamMembers)} />
       </Route>
+      <Route path="/organizations/:orgId/actions/set-callsigns/" component={errorHandler(SetCallsignsAction)} />
 
       <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
         <IndexRoute component={errorHandler(Stream)} />

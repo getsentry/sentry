@@ -4,6 +4,7 @@ import LazyLoad from 'react-lazy-load';
 
 import ApiMixin from '../../mixins/apiMixin';
 import BarChart from '../../components/barChart';
+import ProjectLabel from '../../components/projectLabel';
 import ConfigStore from '../../stores/configStore';
 import PropTypes from '../../proptypes';
 import {sortArray} from '../../utils';
@@ -108,7 +109,7 @@ const ExpandedTeamList = React.createClass({
         <td>
           <h5>
             <Link to={`/${org.slug}/${project.slug}/`}>
-              {project.name}
+              <ProjectLabel project={project}/>
             </Link>
           </h5>
         </td>

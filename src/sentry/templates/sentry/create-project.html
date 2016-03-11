@@ -1,6 +1,8 @@
 {% extends "sentry/bases/modal.html" %}
 
+{% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_features %}
 
 {% block title %}{% trans "New Project" %} | {{ block.super }}{% endblock %}
 
@@ -12,6 +14,23 @@
 
   <p>{% blocktrans %}Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for production vs development instances, or separate projects for your web app and mobile app.{% endblocktrans %}</p>
 
-  {% include "sentry/partial/_form.html" %}
+  <form action="" method="post">
+    {% csrf_token %}
+    {% if form.errors %}
+      <div class="alert alert-block alert-error">{% trans "Please correct the errors below." %}</div>
+    {% endif %}
+
+    {{ form|as_crispy_errors }}
+
+    {{ form.name|as_crispy_field }}
+    {% feature organizations:callsigns organization %}
+      {{ form.callsign|as_crispy_field }}
+    {% endfeature %}
+    {% if form.team %}
+      {{ form.team|as_crispy_field }}
+    {% endif %}
+
+    <button type="submit" class="btn btn-primary" name="action_save">{% trans "Create Project" %}</button>
+  </form>
 </div>
 {% endblock %}

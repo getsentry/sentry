@@ -9,8 +9,10 @@ import {Link} from 'react-router';
 import Broadcasts from './broadcasts';
 import StatusPage from './statuspage';
 import UserNav from './userNav';
+import requiredAdminActions from '../requiredAdminActions';
 import OrganizationSelector from './organizationSelector';
 import TodoList from '../todos';
+import {t} from '../../locale';
 
 const OnboardingStatus = React.createClass({
   propTypes: {
@@ -27,7 +29,7 @@ const OnboardingStatus = React.createClass({
 
     let percentage = Math.round(
       ((org.onboardingTasks || []).filter(
-        t => t.status === 'complete' || t.status === 'skipped'
+        task => task.status === 'complete' || task.status === 'skipped'
       ).length) / TodoList.TASKS.length * 100
     ).toString();
     let style = {
@@ -44,6 +46,16 @@ const OnboardingStatus = React.createClass({
     );
   }
 });
+
+function getFirstRequiredAdminAction(org) {
+  for (let key in requiredAdminActions) {
+    let action = requiredAdminActions[key];
+    if (action.requiresAction(org)) {
+      return action;
+    }
+  }
+  return null;
+}
 
 const Header = React.createClass({
   propTypes: {
@@ -89,6 +101,19 @@ const Header = React.createClass({
       logo = <span className="icon-sentry-logo-full"/>;
     }
 
+    let requiredAction = getFirstRequiredAdminAction(org);
+    let actionMessage = null;
+
+    if (org && requiredAction !== null) {
+      let slugId = requiredAction.ID.toLowerCase().replace(/_/g, '-');
+      let url = `/organizations/${org.slug}/actions/${slugId}/`;
+      actionMessage = (
+        <a href={url}>{t('Required Action:')}{' '}{
+          requiredAction.getActionLinkTitle()}</a>
+      );
+    }
+
+    // NOTE: this.props.orgId not guaranteed to be specified
     return (
       <header>
         <div className="container">
@@ -108,6 +133,9 @@ const Header = React.createClass({
                               onToggleTodos={this.toggleTodos}
                               onHideTodos={this.setState.bind(this, {showTodos: false})} />
           }
+          {actionMessage ?
+            <span className="admin-action-message">{actionMessage}</span>
+            : null}
         </div>
       </header>
     );
