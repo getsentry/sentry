@@ -205,6 +205,16 @@
     background: #fff;
     .transition(all .4s ease-in-out);
 
+    .short-id {
+      margin-right: 6px;
+      color: @blue;
+      font-weight: bold;
+      &:after {
+        content: ":";
+        color: @gray-dark;
+      }
+    }
+
     .icon-bookmark, .icon-soundoff {
       padding-right: 5px;
       font-size: 95%;

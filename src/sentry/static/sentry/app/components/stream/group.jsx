@@ -11,6 +11,8 @@ import ProjectState from '../../mixins/projectState';
 import TimeSince from '../timeSince';
 import GroupStore from '../../stores/groupStore';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
+import OrganizationState from '../../mixins/organizationState';
+import ShortId from '../shortId';
 
 import {valueIsEqual} from '../../utils';
 
@@ -21,6 +23,7 @@ const StreamGroupHeader = React.createClass({
     projectId: React.PropTypes.string.isRequired,
     hasEventTypes: React.PropTypes.bool,
   },
+  mixins: [OrganizationState],
 
   getTitle() {
     let data = this.props.data;
@@ -81,6 +84,7 @@ const StreamGroupHeader = React.createClass({
             }
             <span className="icon icon-soundoff"></span>
             <span className="icon icon-bookmark"></span>
+            <ShortId shortId={data.shortId} />
             {this.getTitle()}
           </Link>
         </h3>

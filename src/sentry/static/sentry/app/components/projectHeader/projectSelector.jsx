@@ -4,6 +4,7 @@ import {Link} from 'react-router';
 import jQuery from 'jquery';
 
 import ConfigStore from '../../stores/configStore';
+import ProjectLabel from '../../components/projectLabel';
 import DropdownLink from '../dropdownLink';
 import MenuItem from '../menuItem';
 import {t} from '../../locale';
@@ -113,9 +114,11 @@ const ProjectSelector = React.createClass({
   },
 
   getProjectLabel(team, project, hasSingleTeam) {
-    let label = project.name;
-    if (!hasSingleTeam && label.indexOf(team.name) === -1) {
-      label = team.name + ' / ' + project.name;
+    let label;
+    if (!hasSingleTeam && project.name.indexOf(team.name) === -1) {
+      label = <span>{team.name} / <ProjectLabel project={project}/></span>;
+    } else {
+      label = <span>{project.name}</span>;
     }
     return label;
   },

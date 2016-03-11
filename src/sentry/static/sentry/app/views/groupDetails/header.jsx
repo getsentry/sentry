@@ -8,6 +8,7 @@ import GroupActions from './actions';
 import GroupSeenBy from './seenBy';
 import IndicatorStore from '../../stores/indicatorStore';
 import ListLink from '../../components/listLink';
+import ShortId from '../../components/shortId';
 import ProjectState from '../../mixins/projectState';
 import {t} from '../../locale';
 
@@ -98,6 +99,7 @@ const GroupHeader = React.createClass({
         <div className="row">
           <div className="col-sm-8">
             <h3>
+              <ShortId shortId={group.shortId}/>
               {group.title}
             </h3>
             <div className="event-message">

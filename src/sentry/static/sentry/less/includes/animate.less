@@ -117,6 +117,31 @@ Copyright (c) 2015 Daniel Eden
   animation-name: flash;
 }
 
+@-webkit-keyframes flash-50 {
+  0%, 50%, 100% {
+    opacity: 1;
+  }
+
+  25%, 75% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes flash-50 {
+  0%, 50%, 100% {
+    opacity: 1;
+  }
+
+  25%, 75% {
+    opacity: 0.5;
+  }
+}
+
+.flash-50 {
+  -webkit-animation-name: flash-50;
+  animation-name: flash-50;
+}
+
 /* originally authored by Nick Pettit - https://github.com/nickpettit/glide */
 
 @-webkit-keyframes pulse {

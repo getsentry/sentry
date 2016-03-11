@@ -15,6 +15,7 @@ from sentry.web.forms.fields import (
     CustomTypedChoiceField, RangeField, OriginsField, IPNetworksField,
 )
 from sentry.web.frontend.base import ProjectView
+from sentry.utils.strings import validate_callsign
 
 
 BLANK_CHOICE = [("", "")]
@@ -27,6 +28,8 @@ class EditProjectForm(forms.ModelForm):
         label=_('Short name'),
         help_text=_('A unique ID used to identify this project.'),
     )
+    callsign = forms.CharField(label=_('Callsign'),
+        help_text=_('A short (typically two) letter sequence to identify issues.'))
     team = CustomTypedChoiceField(choices=(), coerce=int, required=False)
     origins = OriginsField(label=_('Allowed Domains'), required=False,
         help_text=_('Separate multiple entries with a newline.'))
@@ -72,7 +75,7 @@ class EditProjectForm(forms.ModelForm):
     org_overrides = ('scrub_data', 'scrub_defaults', 'scrub_ip_address')
 
     class Meta:
-        fields = ('name', 'team', 'slug')
+        fields = ('name', 'team', 'slug', 'callsign')
         model = Project
 
     def __init__(self, request, organization, team_list, data, instance, *args, **kwargs):
@@ -157,6 +160,27 @@ class EditProjectForm(forms.ModelForm):
             raise forms.ValidationError('Another project is already using that slug')
         return slug
 
+    def clean_callsign(self):
+        # If no callsign was provided we go with the old one.  This
+        # primarily exists so that people without the callsign feature
+        # enabled will not screw up their callsigns.
+        callsign = self.cleaned_data.get('callsign')
+        if not callsign:
+            return self.instance.callsign
+
+        callsign = validate_callsign(callsign)
+        if callsign is None:
+            raise forms.ValidationError(_('Callsign must be between 2 '
+                                          'and 6 letters'))
+        other = Project.objects.filter(
+            callsign=callsign,
+            organization=self.organization
+        ).exclude(id=self.instance.id).first()
+        if other is not None:
+            raise forms.ValidationError(_('Another project (%s) is already '
+                                          'using that callsign') % other.name)
+        return callsign
+
 
 class ProjectSettingsView(ProjectView):
     required_scope = 'project:write'
@@ -216,6 +240,8 @@ class ProjectSettingsView(ProjectView):
                     project.delete_option('sentry:%s' % (opt,))
                 else:
                     project.update_option('sentry:%s' % (opt,), value)
+
+            project.update_option('sentry:reviewed-callsign', True)
 
             AuditLogEntry.objects.create(
                 organization=organization,

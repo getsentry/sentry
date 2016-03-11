@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 import math
+import re
 import six
 import time
 import warnings
@@ -26,10 +27,19 @@ from sentry.constants import (
 )
 from sentry.db.models import (
     BaseManager, BoundedIntegerField, BoundedPositiveIntegerField,
-    FlexibleForeignKey, Model, GzippedDictField, sane_repr
+    BoundedBigIntegerField, FlexibleForeignKey, Model, GzippedDictField,
+    sane_repr
 )
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars, strip
+from sentry.utils.numbers import base32_encode, base32_decode
+
+
+_short_id_re = re.compile(r'^(.*?)(?:[\s_-])([A-Za-z0-9]+)$')
+
+
+def looks_like_short_id(value):
+    return _short_id_re.match((value or '').strip()) is not None
 
 
 # TODO(dcramer): pull in enum library
@@ -44,6 +54,22 @@ class GroupStatus(object):
 
 class GroupManager(BaseManager):
     use_for_related_fields = True
+
+    def by_qualified_short_id(self, org, short_id):
+        match = _short_id_re.match(short_id.strip())
+        if match is None:
+            raise Group.DoesNotExist()
+        callsign, id = match.groups()
+        callsign = callsign.upper()
+        try:
+            short_id = base32_decode(id)
+        except ValueError:
+            raise Group.DoesNotExist()
+        return Group.objects.get(
+            project__organization=org,
+            project__callsign=callsign.upper(),
+            short_id=short_id,
+        )
 
     def from_kwargs(self, project, **kwargs):
         from sentry.event_manager import EventManager
@@ -123,6 +149,7 @@ class Group(Model):
     score = BoundedIntegerField(default=0)
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
+    short_id = BoundedBigIntegerField(null=True)
 
     objects = GroupManager()
 
@@ -136,6 +163,9 @@ class Group(Model):
         )
         index_together = (
             ('project', 'first_release'),
+        )
+        unique_together = (
+            ('project', 'short_id'),
         )
 
     __repr__ = sane_repr('project_id')
@@ -158,6 +188,15 @@ class Group(Model):
     def get_absolute_url(self):
         return absolute_uri(reverse('sentry-group', args=[
             self.organization.slug, self.project.slug, self.id]))
+
+    @property
+    def qualified_short_id(self):
+        if self.project.callsign is not None and \
+           self.short_id is not None:
+            return '%s-%s' % (
+                self.project.callsign,
+                base32_encode(self.short_id),
+            )
 
     @property
     def event_set(self):
