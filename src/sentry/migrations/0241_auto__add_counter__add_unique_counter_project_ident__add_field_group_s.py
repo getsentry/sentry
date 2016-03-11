@@ -12,14 +12,10 @@ class Migration(SchemaMigration):
         # Adding model 'Counter'
         db.create_table('sentry_projectcounter', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('ident', self.gf('django.db.models.fields.CharField')(max_length=40)),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'], unique=True)),
             ('value', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')()),
         ))
         db.send_create_signal('sentry', ['Counter'])
-
-        # Adding unique constraint on 'Counter', fields ['project', 'ident']
-        db.create_unique('sentry_projectcounter', ['project_id', 'ident'])
 
         # Adding field 'Group.short_id'
         db.add_column('sentry_groupedmessage', 'short_id',
@@ -40,20 +36,20 @@ class Migration(SchemaMigration):
         if 'postgres' in settings.DATABASES['default']['ENGINE']:
             db.execute('''
                 create function sentry_increment_project_counter(
-                    project bigint, counter text, delta int) returns int as $$
+                    project bigint, delta int) returns int as $$
                 declare
                   new_val int;
                 begin
                   loop
                     update sentry_projectcounter set value = value + delta
                      where project_id = project
-                       and ident = counter returning value into new_val;
+                       returning value into new_val;
                     if found then
                       return new_val;
                     end if;
                     begin
-                      insert into sentry_projectcounter(project_id, ident, value)
-                           values (project, counter, delta)
+                      insert into sentry_projectcounter(project_id, value)
+                           values (project, delta)
                         returning value into new_val;
                       return new_val;
                     exception when unique_violation then
@@ -71,9 +67,6 @@ class Migration(SchemaMigration):
 
         # Removing unique constraint on 'Group', fields ['project', 'short_id']
         db.delete_unique('sentry_groupedmessage', ['project_id', 'short_id'])
-
-        # Removing unique constraint on 'Counter', fields ['project', 'ident']
-        db.delete_unique('sentry_projectcounter', ['project_id', 'ident'])
 
         # Deleting model 'Counter'
         db.delete_table('sentry_projectcounter')
@@ -172,10 +165,9 @@ class Migration(SchemaMigration):
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']"})
         },
         'sentry.counter': {
-            'Meta': {'unique_together': "(('project', 'ident'),)", 'object_name': 'Counter', 'db_table': "'sentry_projectcounter'"},
+            'Meta': {'object_name': 'Counter', 'db_table': "'sentry_projectcounter'"},
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
-            'ident': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
-            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
+            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'unique': True}),
             'value': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {})
         },
         'sentry.event': {

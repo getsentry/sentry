@@ -14,5 +14,5 @@ class ProjectCounterTest(TestCase):
         team = self.create_team(organization=org)
         project = self.create_project(team=team)
 
-        assert Counter.increment(project, 'demo', 42) == 42
-        assert Counter.increment(project, 'demo', 1) == 43
+        assert Counter.increment(project, 42) == 42
+        assert Counter.increment(project, 1) == 43
