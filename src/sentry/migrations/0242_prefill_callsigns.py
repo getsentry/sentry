@@ -29,8 +29,7 @@ def get_callsigns(projects):
         if project.callsign is not None:
             rv[project.callsign] = project.id
             continue
-        for callsign in iter_callsign_choices(project.name,
-                                              team_name=project.team.name):
+        for callsign in iter_callsign_choices(project.name):
             if callsign in rv:
                 continue
             rv[callsign] = project.id
