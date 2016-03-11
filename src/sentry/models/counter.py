@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from django.db import models, connection
 
 from sentry.db.models import (
-    FlexibleForeignKey, Model, sane_repr, BoundedPositiveIntegerField
+    FlexibleForeignKey, Model, sane_repr, BoundedBigIntegerField
 )
 from sentry.utils import db
 
@@ -26,7 +26,7 @@ class Counter(Model):
 
     project = FlexibleForeignKey('sentry.Project')
     ident = models.CharField(max_length=40)
-    value = BoundedPositiveIntegerField()
+    value = BoundedBigIntegerField()
 
     __repr__ = sane_repr('project', 'ident')
 
