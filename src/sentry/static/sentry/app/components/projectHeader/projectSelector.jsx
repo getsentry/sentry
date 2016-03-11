@@ -6,6 +6,7 @@ import jQuery from 'jquery';
 import ConfigStore from '../../stores/configStore';
 import ProjectLabel from '../../components/projectLabel';
 import DropdownLink from '../dropdownLink';
+import PropTypes from '../../proptypes';
 import MenuItem from '../menuItem';
 import {t} from '../../locale';
 
@@ -19,6 +20,13 @@ const ProjectSelector = React.createClass({
     location: React.PropTypes.object
   },
 
+  // this is necessary so that the project selector stays functional
+  // in non react pages.  Without this the organization state mixin
+  // will not be functional on old layout based pages.
+  childContextTypes: {
+    organization: PropTypes.Organization
+  },
+
   getDefaultProps() {
     return {
       projectId: null,
@@ -28,6 +36,12 @@ const ProjectSelector = React.createClass({
   getInitialState() {
     return {
       filter: ''
+    };
+  },
+
+  getChildContext() {
+    return {
+      organization: this.props.organization
     };
   },
 
