@@ -111,8 +111,6 @@ def validate_callsign(value):
 def iter_callsign_choices(project_name, team_name=None):
     words = list(x.upper() for x in tokens_from_name(
         project_name, remove_digits=True))
-    if not words:
-        words = ['AA']
     bits = []
 
     if len(words) == 2:
@@ -128,6 +126,10 @@ def iter_callsign_choices(project_name, team_name=None):
 
     for bit in bits:
         yield bit
+
+    # Fallback if nothing else works, use PR for project
+    if not bits:
+        bits.append('PR')
 
     if team_name is not None:
         try:
