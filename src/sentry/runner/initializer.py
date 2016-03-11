@@ -230,19 +230,19 @@ def apply_legacy_settings(settings):
 
     if not settings.SENTRY_OPTIONS.get('system.admin-email') and hasattr(settings, 'SENTRY_ADMIN_EMAIL'):
         import warnings
-        warnings.warn('SENTRY_ADMIN_EMAIL is deprecated.'
+        warnings.warn('SENTRY_ADMIN_EMAIL is deprecated. '
                       "Use SENTRY_OPTIONS instead, key 'system.admin-email'", DeprecationWarning)
         settings.SENTRY_OPTIONS['system.admin-email'] = settings.SENTRY_ADMIN_EMAIL
 
     if not settings.SENTRY_OPTIONS.get('system.url-prefix') and hasattr(settings, 'SENTRY_URL_PREFIX'):
         import warnings
-        warnings.warn('SENTRY_URL_PREFIX is deprecated.'
+        warnings.warn('SENTRY_URL_PREFIX is deprecated. '
                       "Use SENTRY_OPTIONS instead, key 'system.url-prefix'", DeprecationWarning)
         settings.SENTRY_OPTIONS['system.url-prefix'] = settings.SENTRY_URL_PREFIX
 
     if not settings.SENTRY_OPTIONS.get('system.rate-limit') and hasattr(settings, 'SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE'):
         import warnings
-        warnings.warn('SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE is deprecated.'
+        warnings.warn('SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE is deprecated. '
                       "Use SENTRY_OPTIONS instead, key 'system.rate-limit'", DeprecationWarning)
         settings.SENTRY_OPTIONS['system.rate-limit'] = settings.SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE
 
