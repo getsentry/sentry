@@ -42,7 +42,8 @@ def get_callsigns(projects):
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+        from sentry.utils.query import RangeQuerySetWrapperWithProgressBar, \
+            RangeQuerySetWrapper
         from sentry.models.counter import increment_project_counter
 
         Organization = orm['sentry.Organization']
@@ -68,8 +69,8 @@ class Migration(DataMigration):
                 q = Group.objects.filter(
                     project=project,
                     short_id=None,
-                ).order_by('first_seen')
-                for group in q.iterator():
+                )
+                for group in RangeQuerySetWrapper(q):
                     with catchable_atomic():
                         pending_short_id = increment_project_counter(
                             project, 'short-ids')
