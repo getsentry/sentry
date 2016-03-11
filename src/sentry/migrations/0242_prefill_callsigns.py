@@ -46,6 +46,8 @@ class Migration(DataMigration):
             RangeQuerySetWrapper
         from sentry.models.counter import increment_project_counter
 
+        db.commit_transaction()
+
         Organization = orm['sentry.Organization']
         Group = orm['sentry.Group']
         Project = orm['sentry.Project']
@@ -80,6 +82,8 @@ class Migration(DataMigration):
                         ).update(short_id=pending_short_id)
                         if updated == 0:
                             raise RollbackLocally()
+
+        db.start_transaction()
 
     def backwards(self, orm):
         from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
