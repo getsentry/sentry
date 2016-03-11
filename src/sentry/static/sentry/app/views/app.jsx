@@ -45,7 +45,7 @@ const App = React.createClass({
       success: (data) => {
         if (data && data.problems) {
           data.problems.forEach(problem => {
-            AlertActions.addAlert(problem, 'error', 0);
+            AlertActions.addAlert(problem.message, 'error', 0);
           });
         }
       },
