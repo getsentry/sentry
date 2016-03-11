@@ -100,7 +100,7 @@ class ErrorPageEmbedView(View):
             else:
                 report.group = Group.objects.get(id=mapping.group_id)
             report.save()
-            return HttpResponse(status=200)
+            return self._json_response(request)
         elif request.method == 'POST':
             return self._json_response(request, {
                 "errors": dict(form.errors),
@@ -111,7 +111,7 @@ class ErrorPageEmbedView(View):
         })
 
         context = {
-            'endpoint': mark_safe('*/' + json.dumps(request.get_full_path()) + ';/*'),
+            'endpoint': mark_safe('*/' + json.dumps(request.build_absolute_uri()) + ';/*'),
             'template': mark_safe('*/' + json.dumps(template) + ';/*'),
         }
 
