@@ -14,7 +14,7 @@ class Migration(SchemaMigration):
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
             ('ident', self.gf('django.db.models.fields.CharField')(max_length=40)),
-            ('value', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
+            ('value', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')()),
         ))
         db.send_create_signal('sentry', ['Counter'])
 
@@ -23,7 +23,7 @@ class Migration(SchemaMigration):
 
         # Adding field 'Group.short_id'
         db.add_column('sentry_groupedmessage', 'short_id',
-                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True),
+                      self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(null=True),
                       keep_default=False)
 
         # Adding unique constraint on 'Group', fields ['project', 'short_id']

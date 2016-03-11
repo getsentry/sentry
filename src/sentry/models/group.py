@@ -27,7 +27,8 @@ from sentry.constants import (
 )
 from sentry.db.models import (
     BaseManager, BoundedIntegerField, BoundedPositiveIntegerField,
-    FlexibleForeignKey, Model, GzippedDictField, sane_repr
+    BoundedBigIntegerField, FlexibleForeignKey, Model, GzippedDictField,
+    sane_repr
 )
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars, strip
@@ -148,7 +149,7 @@ class Group(Model):
     score = BoundedIntegerField(default=0)
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
-    short_id = BoundedPositiveIntegerField(null=True)
+    short_id = BoundedBigIntegerField(null=True)
 
     objects = GroupManager()
 
