@@ -76,7 +76,7 @@ class Migration(DataMigration):
                 for group in RangeQuerySetWrapper(q):
                     with catchable_atomic():
                         pending_short_id = increment_project_counter(
-                            project, 'short-ids')
+                            project)
                         updated = Group.objects.filter(
                             pk=group.id,
                             short_id=None
