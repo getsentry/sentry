@@ -101,7 +101,7 @@ const Header = React.createClass({
       logo = <span className="icon-sentry-logo-full"/>;
     }
 
-    let requiredAction = getFirstRequiredAdminAction(org);
+    let requiredAction = org && getFirstRequiredAdminAction(org);
     let actionMessage = null;
 
     if (org && requiredAction !== null) {
