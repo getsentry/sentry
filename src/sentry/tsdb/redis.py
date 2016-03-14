@@ -101,7 +101,7 @@ class RedisTSDB(BaseTSDB):
 
     def validate(self):
         logger.debug('Validating Redis version...')
-        version = Version((2, 8, 18 if self.enable_frequency_sketches else 9))
+        version = Version((2, 8, 18)) if self.enable_frequency_sketches else Version((2, 8, 9))
         check_cluster_versions(
             self.cluster,
             version,
