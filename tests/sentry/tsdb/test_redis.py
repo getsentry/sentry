@@ -23,7 +23,8 @@ class RedisTSDBTest(TestCase):
                 (ONE_HOUR, 24),  # 1 days at 1 hour
                 (ONE_DAY, 30),  # 30 days at 1 day
             ),
-            vnodes=64
+            vnodes=64,
+            enable_frequency_sketches=True,
         )
 
     def test_make_counter_key(self):
