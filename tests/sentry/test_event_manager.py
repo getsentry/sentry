@@ -181,6 +181,10 @@ class EventManagerTest(TransactionTestCase):
         assert group.times_seen == 2
         assert group.last_seen.replace(microsecond=0) == event.datetime.replace(microsecond=0)
         assert group.message == event2.message
+        assert group.data.get('type') == 'default'
+        assert group.data.get('metadata') == {
+            'title': 'foo bar',
+        }
 
     def test_updates_group_with_fingerprint(self):
         manager = EventManager(self.make_event(

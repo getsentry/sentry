@@ -126,6 +126,7 @@ def _rehash_group_events(group, limit=100):
             'level': group.level,
             'last_seen': event.datetime,
             'first_seen': event.datetime,
+            'data': group.data,
         }
 
         # XXX(dcramer): doesnt support checksums as they're not stored
