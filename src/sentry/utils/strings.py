@@ -17,6 +17,10 @@ from django.utils.encoding import smart_unicode, force_unicode
 import six
 
 
+# Callsigns we do not want to generate automatically because they might
+# overlap with something else that is popular (like GH for GitHub)
+CALLSIGN_BLACKLIST = ['GH']
+
 _callsign_re = re.compile(r'^[A-Z]{2,6}$')
 _word_sep_re = re.compile(r'[\s.;,_-]+(?u)')
 _camelcase_re = re.compile(
@@ -108,7 +112,7 @@ def validate_callsign(value):
     return callsign
 
 
-def iter_callsign_choices(project_name, team_name=None):
+def iter_callsign_choices(project_name):
     words = list(x.upper() for x in tokens_from_name(
         project_name, remove_digits=True))
     bits = []
@@ -130,20 +134,14 @@ def iter_callsign_choices(project_name, team_name=None):
         bits.append('PR')
 
     for bit in bits:
-        yield bit
-
-    if team_name is not None:
-        try:
-            team_bit = _letters_re.findall(team_name.upper())[0][:1]
-            if team_bit:
-                for bit in bits:
-                    yield team_bit + bit
-        except IndexError:
-            pass
+        if bit not in CALLSIGN_BLACKLIST:
+            yield bit
 
     for idx in count(2):
         for bit in bits:
-            yield '%s%d' % (bit, idx)
+            bit = '%s%d' % (bit, idx)
+            if bit not in CALLSIGN_BLACKLIST:
+                yield bit
 
 
 def split_camelcase(word):

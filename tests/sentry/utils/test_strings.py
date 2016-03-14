@@ -57,3 +57,7 @@ def test_iter_callsign_choices():
     assert next(choices) == 'PR'
     assert next(choices) == 'PR2'
     assert next(choices) == 'PR3'
+
+    choices = iter_callsign_choices('GetHub')
+    assert next(choices) == 'GH2'
+    assert next(choices) == 'GH3'
