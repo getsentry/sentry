@@ -8,6 +8,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from uuid import uuid1
 
+from sentry import features
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, Project, Team
 )
@@ -96,6 +97,9 @@ class EditProjectForm(forms.ModelForm):
 
         self.fields['team'].choices = self.get_team_choices(team_list, instance.team)
         self.fields['team'].widget.choices = self.fields['team'].choices
+
+        if not features.has('organizations:callsigns', organization, actor=request.user):
+            del self.fields['callsign']
 
         # After the Form is initialized, we now need to disable the fields that have been
         # overridden from Organization options.
