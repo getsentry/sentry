@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import itertools
+
 from django.http import HttpResponse
 
 
@@ -17,11 +19,14 @@ class HealthCheck(object):
         if 'full' not in request.GET:
             return HttpResponse('ok', content_type='text/plain')
 
-        from sentry.status_checks import check_all
+        from sentry.status_checks import Problem, check_all
         from sentry.utils import json
-        problems, checks = check_all()
+
+        threshold = Problem.threshold(Problem.SEVERITY_CRITICAL)
+        results = {check: filter(threshold, problems) for check, problems in check_all().items()}
+        problems = list(itertools.chain.from_iterable(results.values()))
 
         return HttpResponse(json.dumps({
             'problems': map(unicode, problems),
-            'healthy': checks,
+            'healthy': {type(check).__name__: not p for check, p in results.items()},
         }), content_type='application/json', status=(500 if problems else 200))
