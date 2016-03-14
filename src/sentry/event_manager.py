@@ -809,6 +809,7 @@ class EventManager(object):
         extra = {
             'last_seen': date,
             'score': ScoreClause(group),
+            'data': data['data'],
         }
         if event.message and event.message != group.message:
             extra['message'] = event.message
