@@ -96,13 +96,15 @@ class RedisTSDB(BaseTSDB):
         self.cluster, options = get_cluster_from_options(self, options)
         self.prefix = prefix
         self.vnodes = vnodes
+        self.enable_frequency_sketches = options.pop('enable_frequency_sketches', False)
         super(RedisTSDB, self).__init__(**options)
 
     def validate(self):
         logger.debug('Validating Redis version...')
+        version = Version((2, 8, 18 if self.enable_frequency_sketches else 9))
         check_cluster_versions(
             self.cluster,
-            Version((2, 8, 9)),
+            version,
             label='TSDB',
         )
 
@@ -296,6 +298,9 @@ class RedisTSDB(BaseTSDB):
         )
 
     def record_frequency_multi(self, requests, timestamp=None):
+        if not self.enable_frequency_sketches:
+            return
+
         if timestamp is None:
             timestamp = timezone.now()
 
@@ -332,6 +337,9 @@ class RedisTSDB(BaseTSDB):
         self.cluster.execute_commands(commands)
 
     def get_most_frequent(self, model, keys, start, end=None, rollup=None, limit=None):
+        if not self.enable_frequency_sketches:
+            raise NotImplementedError("Frequency sketches are disabled.")
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         commands = {}
@@ -354,6 +362,9 @@ class RedisTSDB(BaseTSDB):
         return results
 
     def get_frequency_series(self, model, items, start, end=None, rollup=None):
+        if not self.enable_frequency_sketches:
+            raise NotImplementedError("Frequency sketches are disabled.")
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         # Freeze ordering of the members (we'll need these later.)
@@ -381,6 +392,9 @@ class RedisTSDB(BaseTSDB):
         return results
 
     def get_frequency_totals(self, model, items, start, end=None, rollup=None):
+        if not self.enable_frequency_sketches:
+            raise NotImplementedError("Frequency sketches are disabled.")
+
         responses = {}
 
         for key, series in self.get_frequency_series(model, items, start, end, rollup).iteritems():
