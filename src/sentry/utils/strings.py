@@ -117,19 +117,20 @@ def iter_callsign_choices(project_name, team_name=None):
         bits.append(words[0][:1] + words[1][:1])
     elif len(words) == 3:
         bits.append(words[0][:1] + words[1][:1] + words[2][:1])
-    bit = words[0][:2]
-    if len(bit) == 2:
-        bits.append(bit)
-    bit = words[0][:3]
-    if len(bit) == 3:
-        bits.append(bit)
-
-    for bit in bits:
-        yield bit
+    elif words:
+        bit = words[0][:2]
+        if len(bit) == 2:
+            bits.append(bit)
+        bit = words[0][:3]
+        if len(bit) == 3:
+            bits.append(bit)
 
     # Fallback if nothing else works, use PR for project
     if not bits:
         bits.append('PR')
+
+    for bit in bits:
+        yield bit
 
     if team_name is not None:
         try:
