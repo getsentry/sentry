@@ -16,7 +16,7 @@ Some basic prerequisites which you'll need in order to run Sentry:
   ``libxml2-dev``, ``libz-dev``, ``libffi-dev``, ``libssl-dev``, ``libpq-dev``,
   ``libyaml-dev``
 * `PostgreSQL <http://www.postgresql.org/>`_
-* `Redis <http://redis.io>`_ (2.8.9 or newer)
+* `Redis <http://redis.io>`_ (the minimum version requirement is 2.8.9, but 2.8.18, 3.0, or newer are recommended)
 
   * If running Ubuntu < 15.04, you'll need to install from a different PPA.
     We recommend `chris-lea/redis-server <https://launchpad.net/~chris-lea/+archive/ubuntu/redis-server>`_
