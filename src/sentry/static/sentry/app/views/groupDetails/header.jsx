@@ -73,13 +73,63 @@ const GroupHeader = React.createClass({
     });
   },
 
+  getTitle(hasEventTypes) {
+    let data = this.props.group;
+    if (!hasEventTypes) {
+      return <span>{data.title}</span>;
+    }
+
+    let metadata = data.metadata;
+    switch (data.type) {
+      case 'error':
+        return (
+          <span>
+            <span style={{marginRight: 10}}>{metadata.type}</span>
+            <em style={{fontSize: '80%', color: '#666', fontWeight: 'normal'}}>{data.culprit}</em><br/>
+          </span>
+        );
+      case 'csp':
+        return (
+          <span>
+            <span style={{marginRight: 10}}>{metadata.directive}</span>
+            <em style={{fontSize: '80%', color: '#666', fontWeight: 'normal'}}>{metadata.uri}</em><br/>
+          </span>
+        );
+      case 'default':
+        return <span>{metadata.title}</span>;
+      default:
+        return <span>{data.title}</span>;
+    }
+  },
+
+  getMessage(hasEventTypes) {
+    let data = this.props.group;
+    if (!hasEventTypes) {
+      return <span>{data.culprit}</span>;
+    }
+
+    let metadata = data.metadata;
+    switch (data.type) {
+      case 'error':
+        return metadata.value;
+      case 'csp':
+        return metadata.message;
+      default:
+        return '';
+    }
+  },
+
   render() {
     let group = this.props.group,
         orgFeatures = new Set(this.getOrganization().features),
         userCount = group.userCount,
         features = this.getProjectFeatures();
 
-    let className = 'group-detail level-' + group.level;
+    let className = 'group-detail';
+
+    className += ' type-' + group.type;
+    className += ' level-' + group.level;
+
     if (group.isBookmarked) {
       className += ' isBookmarked';
     }
@@ -92,7 +142,8 @@ const GroupHeader = React.createClass({
 
     let groupId = group.id,
       projectId = this.getProject().slug,
-      orgId = this.getOrganization().slug;
+      orgId = this.getOrganization().slug,
+      hasEventTypes = this.getProjectFeatures().has('event-types');
 
     return (
       <div className={className}>
@@ -100,11 +151,15 @@ const GroupHeader = React.createClass({
           <div className="col-sm-8">
             <h3>
               <ShortId shortId={group.shortId}/>
-              {group.title}
+              {this.getTitle(hasEventTypes)}
             </h3>
             <div className="event-message">
-              <span className="error-level">{group.level}</span>
-              <span className="message">{group.culprit}</span>
+              {hasEventTypes ?
+                <span className="event-type">{group.type}</span>
+              :
+                <span className="error-level">{group.level}</span>
+              }
+              <span className="message">{this.getMessage(hasEventTypes)}</span>
               {group.logger &&
                 <span className="event-annotation">
                   <Link to={`/${orgId}/${projectId}/`} query={{query: 'logger:' + group.logger}}>
