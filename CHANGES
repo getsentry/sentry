@@ -1,3 +1,8 @@
+Version 8.2.3
+-------------
+
+- Fix compatibility with Redis 2.8.9.
+
 Version 8.2.2
 -------------
 
