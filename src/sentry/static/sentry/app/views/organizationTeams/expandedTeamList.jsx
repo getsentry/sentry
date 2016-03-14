@@ -109,7 +109,7 @@ const ExpandedTeamList = React.createClass({
         <td>
           <h5>
             <Link to={`/${org.slug}/${project.slug}/`}>
-              <ProjectLabel project={project}/>
+              <ProjectLabel project={project} organization={this.props.organization}/>
             </Link>
           </h5>
         </td>
