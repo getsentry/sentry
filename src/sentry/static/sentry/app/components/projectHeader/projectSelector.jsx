@@ -6,7 +6,6 @@ import jQuery from 'jquery';
 import ConfigStore from '../../stores/configStore';
 import ProjectLabel from '../../components/projectLabel';
 import DropdownLink from '../dropdownLink';
-import PropTypes from '../../proptypes';
 import MenuItem from '../menuItem';
 import {t} from '../../locale';
 
@@ -20,13 +19,6 @@ const ProjectSelector = React.createClass({
     location: React.PropTypes.object
   },
 
-  // this is necessary so that the project selector stays functional
-  // in non react pages.  Without this the organization state mixin
-  // will not be functional on old layout based pages.
-  childContextTypes: {
-    organization: PropTypes.Organization
-  },
-
   getDefaultProps() {
     return {
       projectId: null,
@@ -36,12 +28,6 @@ const ProjectSelector = React.createClass({
   getInitialState() {
     return {
       filter: ''
-    };
-  },
-
-  getChildContext() {
-    return {
-      organization: this.props.organization
     };
   },
 
@@ -130,7 +116,10 @@ const ProjectSelector = React.createClass({
   getProjectLabel(team, project, hasSingleTeam) {
     let label;
     if (!hasSingleTeam && project.name.indexOf(team.name) === -1) {
-      label = <span>{team.name} / <ProjectLabel project={project}/></span>;
+      label = (
+        <span>{team.name} / <ProjectLabel
+            project={project} organization={this.props.organization}/></span>
+      );
     } else {
       label = <span>{project.name}</span>;
     }

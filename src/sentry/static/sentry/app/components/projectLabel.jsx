@@ -1,20 +1,19 @@
 import React from 'react';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
-import OrganizationState from '../mixins/organizationState';
 
 const ProjectLabel = React.createClass({
   propTypes: {
-    project: React.PropTypes.object
+    project: React.PropTypes.object,
+    organization: React.PropTypes.object,
   },
 
   mixins: [
-    PureRenderMixin,
-    OrganizationState
+    PureRenderMixin
   ],
 
   render() {
     let project = this.props.project;
-    let features = this.getFeatures();
+    let features = new Set(this.props.organization.features);
     return (
       <span className="project-label">
         <span className="project-name">{project.name}</span>
