@@ -14,7 +14,8 @@ class WarningManager(object):
 
     def warn(self, message, category=None, stacklevel=None):
         if isinstance(message, Warning):
-            # Maybe log if `category` was passed and isn't an instance of `category`?
+            # Maybe log if `category` was passed and isn't a subclass of
+            # `type(message)`?
             warning = message
         else:
             if category is None:
