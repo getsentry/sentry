@@ -84,7 +84,6 @@ const StreamGroupHeader = React.createClass({
             }
             <span className="icon icon-soundoff"></span>
             <span className="icon icon-bookmark"></span>
-            <ShortId shortId={data.shortId} />
             {this.getTitle()}
           </Link>
         </h3>
@@ -203,6 +202,11 @@ const StreamGroup = React.createClass({
             hasEventTypes={features.has('event-types')} />
           <div className="event-extra">
             <ul>
+              {data.shortId &&
+                <li>
+                  <ShortId shortId={data.shortId} />
+                </li>
+              }
               <li>
                 <span className="icon icon-clock"></span>
                 <TimeSince date={data.lastSeen} />
