@@ -4,6 +4,29 @@ import collections
 import warnings
 
 
+class DeprecatedSettingWarning(DeprecationWarning):
+    def __init__(self, setting, replacement, url=None):
+        self.setting = setting
+        self.replacement = replacement
+        self.url = url
+        super(DeprecatedSettingWarning, self).__init__(setting, replacement, url)
+
+    def __str__(self):
+        chunks = [
+            'The {} setting is deprecated. Please use {} instead.'.format(
+                self.setting,
+                self.replacement,
+            )
+        ]
+
+        # TODO(tkaemming): This will be removed from the message in the future
+        # when it's added to the API payload separately.
+        if self.url:
+            chunks.append('See {} for more information.'.format(self.url))
+
+        return ' '.join(chunks)
+
+
 class WarningManager(object):
     """
     Transforms warnings into a standard form and invokes handlers.
