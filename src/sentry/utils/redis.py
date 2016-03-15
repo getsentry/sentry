@@ -11,7 +11,7 @@ from redis.connection import ConnectionPool
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
-from sentry.utils.warnings import manager as warnings
+from sentry.utils import warnings
 from sentry.utils.versioning import Version, check_versions
 
 _pool_cache = {}

@@ -69,3 +69,6 @@ manager = WarningManager((
     ),
     seen_warnings.add,
 ))
+
+# Make this act like the standard library ``warnings`` module.
+warn = manager.warn

@@ -11,7 +11,7 @@ import os
 
 import click
 
-from sentry.utils.warnings import manager as warnings
+from sentry.utils import warnings
 
 
 def install_plugin_apps(settings):
