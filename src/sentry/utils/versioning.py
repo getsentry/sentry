@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.exceptions import InvalidConfiguration
-from sentry.utils.warnings import manager as warnings
+from sentry.utils import warnings
 
 
 class Version(tuple):
