@@ -65,6 +65,7 @@ class SentryHTTPServer(Service):
         options.setdefault('ignore-write-errors', True)
         options.setdefault('disable-write-exception', True)
         options.setdefault('virtualenv', sys.prefix)
+        options.setdefault('die-on-term', True)
         options.setdefault('log-format', '%(addr) - %(user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"')
 
         options.setdefault('%s-socket' % options['protocol'], '%s:%s' % (host, port))
