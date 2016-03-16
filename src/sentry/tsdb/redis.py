@@ -93,7 +93,7 @@ class RedisTSDB(BaseTSDB):
     DEFAULT_SKETCH_PARAMETERS = SketchParameters(3, 128, 50)
 
     def __init__(self, prefix='ts:', vnodes=64, **options):
-        self.cluster, options = get_cluster_from_options(self, options)
+        self.cluster, options = get_cluster_from_options('SENTRY_TSDB_OPTIONS', options)
         self.prefix = prefix
         self.vnodes = vnodes
         self.enable_frequency_sketches = options.pop('enable_frequency_sketches', False)

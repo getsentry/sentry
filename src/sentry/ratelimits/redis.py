@@ -11,7 +11,7 @@ class RedisRateLimiter(RateLimiter):
     ttl = 60
 
     def __init__(self, **options):
-        self.cluster, options = get_cluster_from_options(self, options)
+        self.cluster, options = get_cluster_from_options('SENTRY_RATELIMITER_OPTIONS', options)
 
     def validate(self):
         try:
