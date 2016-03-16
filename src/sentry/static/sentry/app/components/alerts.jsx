@@ -21,7 +21,7 @@ const Alerts = React.createClass({
     return (
       <div {...this.props}>
         {this.state.alerts.map(function(alert, key) {
-           return <AlertMessage id={alert.id} key={key} type={alert.type} message={alert.message} />;
+           return <AlertMessage id={alert.id} key={key} type={alert.type} message={alert.message} url={alert.url} />;
         })}
       </div>
     );

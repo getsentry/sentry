@@ -9,7 +9,7 @@ const AlertStore = Reflux.createStore({
     this.count = 0;
   },
 
-  onAddAlert(message, type, expireAfter) {
+  onAddAlert(message, type, expireAfter, url) {
     // intentionally recreate array via concat because of Reflux
     // "bug" where React components are given same reference to tracked
     // data objects, and don't *see* that values have changed
@@ -18,7 +18,8 @@ const AlertStore = Reflux.createStore({
     this.alerts = this.alerts.concat([{
       id: alertId,
       message: message,
-      type: type
+      type: type,
+      url: url
     }]);
 
     if (typeof expireAfter === 'undefined') {
