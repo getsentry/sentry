@@ -16,6 +16,7 @@
         <li{% block admin-nav-packages %}{% endblock %}><a href="{% url 'sentry-admin-packages-status' %}">{% trans "Packages" %}</a></li>
         <li{% block admin-nav-mail %}{% endblock %}><a href="{% url 'sentry-admin-mail-status' %}">{% trans "Mail" %}</a></li>
         <li><a href="{% absolute_uri '/manage/settings/' %}">{% trans "Settings" %}</a></li>
+        <li{% block admin-nav-warnings %}{% endblock %}><a href="{% url 'sentry-admin-warnings-status' %}">Warnings</a></li>
     </ul>
 
     <h6 class="nav-header">{% trans "Manage" %}</h6>
