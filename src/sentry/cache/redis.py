@@ -18,7 +18,7 @@ class RedisCache(BaseCache):
     key_expire = 60 * 60  # 1 hour
 
     def __init__(self, **options):
-        self.cluster, options = get_cluster_from_options(self, options)
+        self.cluster, options = get_cluster_from_options('SENTRY_CACHE_OPTIONS', options)
         self.client = self.cluster.get_routing_client()
 
         super(RedisCache, self).__init__(**options)
