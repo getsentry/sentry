@@ -1,8 +1,8 @@
-from .base import Problem, StatusCheck
-
 from django.core.urlresolvers import reverse
 
 from sentry.utils.http import absolute_uri
+
+from .base import Problem, StatusCheck
 
 
 class WarningStatusCheck(StatusCheck):
