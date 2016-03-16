@@ -8,7 +8,8 @@ const AlertMessage = React.createClass({
     className: React.PropTypes.string,
     id: React.PropTypes.number.isRequired,
     message: React.PropTypes.string.isRequired,
-    type: React.PropTypes.string
+    type: React.PropTypes.string,
+    url: React.PropTypes.string
   },
 
   mixins: [PureRenderMixin],
@@ -31,7 +32,9 @@ const AlertMessage = React.createClass({
             <span aria-hidden="true">&times;</span>
           </button>
           <span className="icon"></span>
-          {this.props.message}
+          {this.props.url
+            ? <a href={this.props.url}>{this.props.message}</a>
+            : this.props.message}
         </div>
       </div>
     );

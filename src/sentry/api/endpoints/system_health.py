@@ -19,6 +19,7 @@ class SystemHealthEndpoint(Endpoint):
                 lambda problem: {
                     'message': problem.message,
                     'severity': problem.severity,
+                    'url': problem.url,
                 },
                 itertools.chain.from_iterable(results.values()),
             ),

@@ -21,10 +21,11 @@ class Problem(object):
         SEVERITY_WARNING: 1,
     }
 
-    def __init__(self, message, severity=SEVERITY_CRITICAL):
+    def __init__(self, message, severity=SEVERITY_CRITICAL, url=None):
         assert severity in self.SEVERITY_LEVELS
         self.message = unicode(message)
         self.severity = severity
+        self.url = url
 
     def __cmp__(self, other):
         if not isinstance(other, Problem):
