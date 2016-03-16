@@ -34,7 +34,10 @@ class AmqpBackend(object):
         # In AMQP, the way to do this is to attempt to create a queue passively.
         # which is basically checking for it's existence (passive=True), this also
         # returns back the queue size.
-        _, size, _ = self.app.amqp.queues[queue.name](conn.default_channel).queue_declare(passive=True)
+        try:
+            _, size, _ = queue(conn.default_channel).queue_declare(passive=True)
+        except Exception:
+            return 0
         return size
 
     def bulk_get_sizes(self, queues):
@@ -50,7 +53,7 @@ class AmqpBackend(object):
 
     def purge_queue(self, queue):
         with self.app.connection_or_acquire() as conn:
-            return self.app.amqp.queues[queue.name](conn.default_channel).purge()
+            return queue(conn.default_channel).purge()
 
 
 def get_backend_for_celery(app):
