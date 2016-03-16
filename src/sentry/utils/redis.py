@@ -46,6 +46,9 @@ _make_rb_cluster = functools.partial(rb.Cluster, pool_cls=_shared_pool)
 
 
 def make_rb_cluster(*args, **kwargs):
+    # This uses the standard library `warnings`, since this is provided for
+    # plugin compatibility but isn't actionable by the system administrator.
+    import warnings
     warnings.warn(
         'Direct Redis cluster construction is deprecated, please use named clusters.',
         DeprecationWarning,
