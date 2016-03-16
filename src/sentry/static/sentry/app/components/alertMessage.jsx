@@ -32,7 +32,9 @@ const AlertMessage = React.createClass({
             <span aria-hidden="true">&times;</span>
           </button>
           <span className="icon"></span>
-          {this.props.url ? <a href={this.props.url}>{this.props.message}</a> : this.props.message}
+          {this.props.url
+            ? <a href={this.props.url}>{this.props.message}</a>
+            : this.props.message}
         </div>
       </div>
     );
