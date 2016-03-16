@@ -12,6 +12,7 @@ import pkg_resources
 import six
 import sys
 import uuid
+from collections import defaultdict
 
 from django.conf import settings
 from django.core.context_processors import csrf
@@ -25,6 +26,7 @@ from django.views.decorators.csrf import csrf_protect
 from sentry.app import env
 from sentry.models import Team, Project, User
 from sentry.plugins import plugins
+from sentry.utils.warnings import seen_warnings, DeprecatedSettingWarning
 from sentry.utils.http import absolute_uri
 from sentry.web.forms import (
     NewUserForm, ChangeUserForm, RemoveUserForm, TestEmailForm)
@@ -309,6 +311,31 @@ def status_packages(request):
             for p in plugins.all(version=None)
         ],
     }, request)
+
+
+@requires_admin
+def status_warnings(request):
+    groupings = {
+        DeprecatedSettingWarning: 'Deprecated Settings',
+    }
+
+    groups = defaultdict(list)
+    warnings = []
+    for warning in seen_warnings:
+        cls = type(warning)
+        if cls in groupings:
+            groups[cls].append(warning)
+        else:
+            warnings.append(warning)
+
+    return render_to_response(
+        'sentry/admin/status/warnings.html',
+        {
+            'groups': [(groupings[key], values) for key, values in groups.items()],
+            'warnings': warnings,
+        },
+        request,
+    )
 
 
 @requires_admin
