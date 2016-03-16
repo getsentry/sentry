@@ -75,10 +75,45 @@ const ProjectSelector = React.createClass({
     this.refs.dropdownLink && this.refs.dropdownLink.close();
   },
 
-  highlight(text, highlightText) {
-    if (!highlightText) {
-      return text;
+  getProjectNode(team, project, highlightText, hasSingleTeam) {
+    let projectId = project.slug;
+    let label = this.getProjectLabel(team, project, hasSingleTeam,
+                                     highlightText);
+
+    let menuItemProps = {
+      key: projectId, // TODO: what if two projects w/ same name under diff orgs?
+      linkClassName: projectId == this.props.projectId ? 'active' : '',
+
+      // When router is available, use `to` property. Otherwise, use href
+      // property. For example - when project selector is loaded on
+      // Django-powered Settings pages.
+
+      ...this.getProjectUrlProps(project)
+    };
+
+    return <MenuItem {...menuItemProps}>{label}</MenuItem>;
+  },
+
+  getProjectLabel(team, project, hasSingleTeam, highlightText) {
+    let label, text;
+    if (!hasSingleTeam && project.name.indexOf(team.name) === -1) {
+      label = (
+        <span>{team.name} / <ProjectLabel
+            project={project} organization={this.props.organization}/></span>
+      );
+      text = team.name + ' / ' + project.name;
+    } else {
+      label = <span>{project.name}</span>;
+      text = project.name;
     }
+
+    if (!highlightText) {
+      return label;
+    }
+
+    // in case we have something to highlight we just render a replacement
+    // selector without the callsigns.
+    // TODO(mitsuhiko): make this work with the project label.
     highlightText = highlightText.toLowerCase();
     let idx = text.toLowerCase().indexOf(highlightText);
     if (idx === -1) {
@@ -93,37 +128,6 @@ const ProjectSelector = React.createClass({
         {text.substr(idx + highlightText.length)}
       </span>
     );
-  },
-
-  getProjectNode(team, project, highlightText, hasSingleTeam) {
-    let projectId = project.slug;
-    let label = this.getProjectLabel(team, project, hasSingleTeam);
-
-    let menuItemProps = {
-      key: projectId, // TODO: what if two projects w/ same name under diff orgs?
-      linkClassName: projectId == this.props.projectId ? 'active' : '',
-
-      // When router is available, use `to` property. Otherwise, use href
-      // property. For example - when project selector is loaded on
-      // Django-powered Settings pages.
-
-      ...this.getProjectUrlProps(project)
-    };
-
-    return <MenuItem {...menuItemProps}>{this.highlight(label, highlightText)}</MenuItem>;
-  },
-
-  getProjectLabel(team, project, hasSingleTeam) {
-    let label;
-    if (!hasSingleTeam && project.name.indexOf(team.name) === -1) {
-      label = (
-        <span>{team.name} / <ProjectLabel
-            project={project} organization={this.props.organization}/></span>
-      );
-    } else {
-      label = <span>{project.name}</span>;
-    }
-    return label;
   },
 
   /**
