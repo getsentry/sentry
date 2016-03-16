@@ -45,6 +45,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             organization=obj,
             status=TeamStatus.VISIBLE,
         ))
+        for team in team_list:
+            team._organization_cache = obj
 
         onboarding_tasks = list(OrganizationOnboardingTask.objects.filter(
             organization=obj,
