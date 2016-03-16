@@ -250,7 +250,13 @@ def apply_legacy_settings(settings):
         if 'redis.clusters' in settings.SENTRY_OPTIONS:
             raise Exception("Cannot specify both SENTRY_OPTIONS['redis.clusters'] option and SENTRY_REDIS_OPTIONS setting.")
         else:
-            warnings.warn(DeprecatedSettingWarning('SENTRY_REDIS_OPTIONS', 'SENTRY_OPTIONS["redis.clusters"]'))
+            warnings.warn(
+                DeprecatedSettingWarning(
+                    'SENTRY_REDIS_OPTIONS',
+                    'SENTRY_OPTIONS["redis.clusters"]',
+                    removed_in_version='8.5',
+                )
+            )
             settings.SENTRY_OPTIONS['redis.clusters'] = {
                 'default': settings.SENTRY_REDIS_OPTIONS,
             }

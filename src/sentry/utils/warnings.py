@@ -5,10 +5,11 @@ import warnings
 
 
 class DeprecatedSettingWarning(DeprecationWarning):
-    def __init__(self, setting, replacement, url=None):
+    def __init__(self, setting, replacement, url=None, removed_in_version=None):
         self.setting = setting
         self.replacement = replacement
         self.url = url
+        self.removed_in_version = removed_in_version
         super(DeprecatedSettingWarning, self).__init__(setting, replacement, url)
 
     def __str__(self):
@@ -18,6 +19,13 @@ class DeprecatedSettingWarning(DeprecationWarning):
                 self.replacement,
             )
         ]
+
+        if self.removed_in_version:
+            chunks.append(
+                'This setting will be removed in Sentry {}.'.format(
+                    self.removed_in_version,
+                ),
+            )
 
         # TODO(tkaemming): This will be removed from the message in the future
         # when it's added to the API payload separately.
