@@ -12,6 +12,7 @@ from redis.connection import ConnectionPool
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
+from sentry.utils.warnings import DeprecatedSettingWarning
 from sentry.utils.versioning import Version, check_versions
 
 _pool_cache = {}
@@ -79,7 +80,7 @@ class ClusterManager(object):
 clusters = ClusterManager(options.default_manager)
 
 
-def get_cluster_from_options(backend, options, cluster_manager=clusters):
+def get_cluster_from_options(setting, options, cluster_manager=clusters):
     cluster_option_name = 'cluster'
     default_cluster_name = 'default'
     cluster_constructor_option_names = frozenset(('hosts',))
@@ -96,14 +97,16 @@ def get_cluster_from_options(backend, options, cluster_manager=clusters):
             )
         else:
             warnings.warn(
-                'Providing Redis cluster configuration options ({}) to {!r} is '
-                'deprecated, please update your configuration to use named Redis '
-                'clusters ({!r}).'.format(
-                    ', '.join(map(repr, cluster_constructor_option_names)),
-                    backend,
-                    cluster_option_name,
+                DeprecatedSettingWarning(
+                    '{} parameter of {}'.format(
+                        ', '.join(map(repr, cluster_constructor_option_names)),
+                        setting,
+                    ),
+                    '{}["{}"]'.format(
+                        setting,
+                        cluster_option_name,
+                    ),
                 ),
-                DeprecationWarning,
                 stacklevel=2
             )
         cluster = rb.Cluster(pool_cls=_shared_pool, **cluster_options)

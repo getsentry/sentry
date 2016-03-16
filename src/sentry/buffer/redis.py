@@ -27,7 +27,7 @@ class RedisBuffer(Buffer):
     pending_key = 'b:p'
 
     def __init__(self, **options):
-        self.cluster, options = get_cluster_from_options(self, options)
+        self.cluster, options = get_cluster_from_options('SENTRY_BUFFER_OPTIONS', options)
 
     def validate(self):
         try:

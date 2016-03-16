@@ -23,7 +23,7 @@ class RedisQuota(Quota):
     grace = 60
 
     def __init__(self, **options):
-        self.cluster, options = get_cluster_from_options(self, options)
+        self.cluster, options = get_cluster_from_options('SENTRY_QUOTA_OPTIONS', options)
         super(RedisQuota, self).__init__(**options)
         self.namespace = 'quota'
 
