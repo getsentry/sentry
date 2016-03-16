@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import Project, ProjectBookmark
+from sentry.models import Project, ProjectBookmark, ProjectOption
 
 
 @register(Project)
@@ -15,10 +15,19 @@ class ProjectSerializer(Serializer):
         else:
             bookmarks = set()
 
+        reviewed_callsigns = {
+            p.project_id: p.value
+            for p in ProjectOption.objects.filter(
+                project__in=item_list,
+                key='sentry:reviewed-callsign',
+            )
+        }
+
         result = {}
         for item in item_list:
             result[item] = {
                 'is_bookmarked': item.id in bookmarks,
+                'reviewed-callsign': reviewed_callsigns.get(item.id),
             }
         return result
 
@@ -40,7 +49,7 @@ class ProjectSerializer(Serializer):
             'color': obj.color,
             # TODO(mitsuhiko): eventually remove this when we will treat
             # all short names as reviewed.
-            'callSignReviewed': bool(obj.get_option('sentry:reviewed-callsign')),
+            'callSignReviewed': bool(attrs['reviewed-callsign']),
             'dateCreated': obj.date_added,
             'firstEvent': obj.first_event,
             'features': feature_list,
