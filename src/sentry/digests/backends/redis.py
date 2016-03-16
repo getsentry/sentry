@@ -109,7 +109,7 @@ class RedisBackend(Backend):
 
     """
     def __init__(self, **options):
-        self.cluster, options = get_cluster_from_options(self, options)
+        self.cluster, options = get_cluster_from_options('SENTRY_DIGESTS_OPTIONS', options)
 
         self.namespace = options.pop('namespace', 'd')
 
