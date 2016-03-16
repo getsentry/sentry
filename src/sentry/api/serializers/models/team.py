@@ -75,6 +75,13 @@ class TeamWithProjectsSerializer(TeamSerializer):
             status=ProjectStatus.VISIBLE,
         ).order_by('name', 'slug'))
 
+        team_map = {i.id: i for i in item_list}
+
+        for project in project_qs:
+            project._team_cache = team_map[project.team_id]
+            assert getattr(project.team, '_organization_cache', None)
+            project._organization_cache = project.team.organization
+
         project_map = defaultdict(list)
         for project, data in itertools.izip(project_qs, serialize(project_qs, user)):
             project_map[project.team_id].append(data)
