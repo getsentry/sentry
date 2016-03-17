@@ -32,6 +32,7 @@ const Admin = React.createClass({
                     <li><a href={`${urlPrefix}/manage/status/packages/`}>Packages</a></li>
                     <li><a href={`${urlPrefix}/manage/status/mail/`}>Mail</a></li>
                     <ListLink to="/manage/settings/">Settings</ListLink>
+                    <li><a href={`${urlPrefix}/manage/status/warnings/`}>Warnings</a></li>
                   </ul>
 
                   <h6 className="nav-header">Manage</h6>
