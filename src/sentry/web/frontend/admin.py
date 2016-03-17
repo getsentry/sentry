@@ -8,29 +8,31 @@ sentry.web.frontend.admin
 from __future__ import absolute_import, print_function
 
 import logging
-import pkg_resources
-import six
 import sys
 import uuid
+from collections import defaultdict
 
+import pkg_resources
+import six
 from django.conf import settings
 from django.core.context_processors import csrf
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.db.models import Count
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.app import env
-from sentry.models import Team, Project, User
+from sentry.models import Project, Team, User
 from sentry.plugins import plugins
 from sentry.utils.http import absolute_uri
-from sentry.web.forms import (
-    NewUserForm, ChangeUserForm, RemoveUserForm, TestEmailForm)
+from sentry.utils.warnings import DeprecatedSettingWarning, seen_warnings
 from sentry.web.decorators import requires_admin
-from sentry.web.helpers import (
-    render_to_response, render_to_string)
+from sentry.web.forms import (
+    ChangeUserForm, NewUserForm, RemoveUserForm, TestEmailForm
+)
+from sentry.web.helpers import render_to_response, render_to_string
 
 
 def configure_plugin(request, slug):
@@ -309,6 +311,31 @@ def status_packages(request):
             for p in plugins.all(version=None)
         ],
     }, request)
+
+
+@requires_admin
+def status_warnings(request):
+    groupings = {
+        DeprecatedSettingWarning: 'Deprecated Settings',
+    }
+
+    groups = defaultdict(list)
+    warnings = []
+    for warning in seen_warnings:
+        cls = type(warning)
+        if cls in groupings:
+            groups[cls].append(warning)
+        else:
+            warnings.append(warning)
+
+    return render_to_response(
+        'sentry/admin/status/warnings.html',
+        {
+            'groups': [(groupings[key], values) for key, values in groups.items()],
+            'warnings': warnings,
+        },
+        request,
+    )
 
 
 @requires_admin
