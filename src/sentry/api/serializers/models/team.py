@@ -76,11 +76,12 @@ class TeamWithProjectsSerializer(TeamSerializer):
         ).order_by('name', 'slug'))
 
         team_map = {i.id: i for i in item_list}
+        # TODO(dcramer): we should query in bulk for ones we're missing here
+        orgs = {i.organization_id: i.organization for i in item_list}
 
         for project in project_qs:
             project._team_cache = team_map[project.team_id]
-            assert getattr(project.team, '_organization_cache', None)
-            project._organization_cache = project.team.organization
+            project._organization_cache = orgs[project.organization_id]
 
         project_map = defaultdict(list)
         for project, data in itertools.izip(project_qs, serialize(project_qs, user)):
