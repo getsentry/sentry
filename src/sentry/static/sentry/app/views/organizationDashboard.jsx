@@ -76,8 +76,8 @@ function ProjectSparkline(props) {
   let values = props.data.map(tuple => tuple[1]);
 
   return (
-    <Sparklines data={values} width={"140"} height={"40"}>
-      <SparklinesLine {...props} style={{stroke: '#24A6F7', fill: 'none', strokeWidth: 3}}/>
+    <Sparklines data={values} width={"100"} height={"32"}>
+      <SparklinesLine {...props} style={{stroke: '#25A6F7', fill: 'none', strokeWidth: 3}}/>
     </Sparklines>
   );
 }
@@ -132,14 +132,14 @@ const ProjectList = React.createClass({
           {projects.map((project) => {
             return (
               <li key={project.id}>
-                <div className="pull-right">
+                <div className="pull-right sparkline">
                   {project.stats &&
                     <ProjectSparkline data={project.stats}/>
                   }
                 </div>
                 <Link to={`/${org.slug}/${project.slug}/`}>
                   <h4>
-                    {project.isBookmarked &&  <span className="bookmark icon-bookmark"></span>}
+                    {project.isBookmarked &&  <span className="bookmark icon-star-solid"></span>}
                     {project.name}
                   </h4>
                   <h5>{project.teamName}</h5>
