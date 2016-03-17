@@ -217,7 +217,7 @@ const StreamActions = React.createClass({
                  tooltip={t('Add to Bookmarks')}
                  onlyIfBulk={true}
                  selectAllActive={this.state.pageSelected}>
-                <i aria-hidden="true" className="icon-bookmark"></i>
+                <i aria-hidden="true" className="icon-star-solid"></i>
               </ActionLink>
 
               <DropdownLink
