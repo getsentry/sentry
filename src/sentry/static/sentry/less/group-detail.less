@@ -105,26 +105,40 @@
       margin-left: 5px;
     }
 
+    .group-resolve .icon-checkmark {
+      font-size: 13px;
+    }
+
     .group-resolve.active {
       background: @green;
       color: #fff;
       border-color: @green-dark;
       text-shadow: 0 1px 0 rgba(0,0,0, .15);
-      box-shadow: none;
+      -webkit-text-stroke-color: @green-dark;
+      -webkit-text-stroke-width: 1px;
+    }
+
+    .group-bookmark .icon-star-solid {
+      position: relative;
+      top: 1px;
+      margin-left: -1px;
+      margin-right: -1px;
     }
 
     .group-bookmark.active {
-      background: @purple-light;
+      background: @yellow;
       color: #fff;
-      border-color: @purple-dark;
+      border-color: @yellow-dark;
       text-shadow: 0 1px 0 rgba(0,0,0, .15);
-      box-shadow: none;
+      -webkit-text-stroke-color: @yellow-dark;
+      -webkit-text-stroke-width: 1px;
     }
 
     .group-remove:hover {
       color: #fff;
       background: @red;
       border-color: @red-dark;
+      text-shadow: 0 1px 0 rgba(0,0,0, .15);
     }
 
     .clearfix;
