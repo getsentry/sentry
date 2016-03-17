@@ -21,7 +21,7 @@ from django.utils.encoding import force_bytes, force_str, force_text
 from django.utils.functional import cached_property
 from email.utils import parseaddr
 
-from sentry.models import GroupEmailThread, Group
+from sentry.models import GroupEmailThread, Group, User, UserOption
 from sentry.web.helpers import render_to_string
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -112,6 +112,42 @@ def make_msgid(domain):
 FROM_EMAIL_DOMAIN = domain_from_email(settings.DEFAULT_FROM_EMAIL)
 
 
+def get_email_addresses(user_ids, project=None):
+    pending = set(user_ids)
+    results = {}
+
+    if project:
+        queryset = UserOption.objects.filter(
+            project=project,
+            user__in=pending,
+            key='mail:email',
+        )
+        for option in (o for o in queryset if o.value):
+            results[option.user_id] = option.value
+            pending.discard(option.user_id)
+
+    if pending:
+        queryset = UserOption.objects.filter(
+            user__in=pending,
+            key='alert_email',
+        )
+        for option in (o for o in queryset if o.value):
+            results[option.user_id] = option.value
+            pending.discard(option.user_id)
+
+    if pending:
+        queryset = User.objects.filter(pk__in=pending, is_active=True)
+        for (user_id, email) in queryset.values_list('id', 'email'):
+            if email:
+                results[user_id] = email
+                pending.discard(user_id)
+
+    if pending:
+        logger.warning('Could not resolve email addresses for user IDs in %r, discarding...', pending)
+
+    return results
+
+
 class MessageBuilder(object):
     def __init__(self, subject, context=None, template=None, html_template=None,
                  body=None, html_body=None, headers=None, reference=None,
@@ -150,41 +186,9 @@ class MessageBuilder(object):
         return self._txt_body
 
     def add_users(self, user_ids, project=None):
-        from sentry.models import User, UserOption
-
-        email_list = set()
-        user_ids = set(user_ids)
-
-        # XXX: It's possible that options have been set to an empty value
-        if project:
-            queryset = UserOption.objects.filter(
-                project=project,
-                user__in=user_ids,
-                key='mail:email',
-            )
-            for option in (o for o in queryset if o.value):
-                user_ids.remove(option.user_id)
-                email_list.add(option.value)
-
-        if user_ids:
-            queryset = UserOption.objects.filter(
-                user__in=user_ids,
-                key='alert_email',
-            )
-            for option in (o for o in queryset if o.value):
-                try:
-                    user_ids.remove(option.user_id)
-                    email_list.add(option.value)
-                except KeyError:
-                    # options.user_id might not exist in user_ids set
-                    pass
-
-        if user_ids:
-            email_list |= set(filter(bool, User.objects.filter(
-                pk__in=user_ids, is_active=True,
-            ).values_list('email', flat=True)))
-
-        self._send_to.update(email_list)
+        self._send_to.update(
+            get_email_addresses(user_ids, project).values()
+        )
 
     def build(self, to, reply_to=None, cc=None, bcc=None):
         if self.headers is None:
