@@ -15,7 +15,7 @@ def pytest_configure(config):
 
     if not settings.configured:
         # only configure the db if its not already done
-        test_db = os.environ.get('DB', 'sqlite')
+        test_db = os.environ.get('DB', 'postgres')
         if test_db == 'mysql':
             settings.DATABASES['default'].update({
                 'ENGINE': 'django.db.backends.mysql',
