@@ -75,35 +75,11 @@ const NewIssues = React.createClass({
 function ProjectSparkline(props) {
   let values = props.data.map(tuple => tuple[1]);
 
-  let max = Math.max.apply(Math.max, values);
-
-  const WIDTH = 120;
-
-  if (max > 0) {
-    return (
-      <Sparklines data={values}>
-        <SparklinesLine {...props} style={{stroke: '#24A6F7', fill: 'none', strokeWidth: 3}}/>
-      </Sparklines>
-    );
-  } else {
-    // react-sparklines does not like flat lines, so lets make them ourselves
-    // https://github.com/borisyankov/react-sparklines/issues/39
-    //
-    // NOTE: this little hack means that project stats w/ the same event count for each entry
-    //       will not render! I'm just kind of counting on that being very unlikely; when the PR
-    //       for react-sparklines is accepted, we'll remove this.
-    let coords = values.map((_, idx) => {
-      return (WIDTH / values.length) * idx + ' 28';
-    }).join(' ');
-
-    return (
-      <svg width="120" height="30">
-        <g>
-          <polyline points={coords} style={{stroke: '#24A6F7', strokeWidth: 3, strokeLinejoin:'round', strokeLinecap:'round', fill:'none'}}/>
-        </g>
-      </svg>
-    );
-  }
+  return (
+    <Sparklines data={values} width={"140"} height={"40"}>
+      <SparklinesLine {...props} style={{stroke: '#24A6F7', fill: 'none', strokeWidth: 3}}/>
+    </Sparklines>
+  );
 }
 ProjectSparkline.propTypes = {
   data: React.PropTypes.array.isRequired
