@@ -119,7 +119,7 @@ const ExpandedTeamList = React.createClass({
         <td>
           <h5>
             <a onClick={this.toggleBookmark.bind(this, project)}>
-              <span className="icon-bookmark bookmark"/>
+              {project.isBookmarked ? <span className="icon-star-solid bookmark" /> : <span className="icon-star-outline bookmark" />}
             </a>
             <Link to={`/${org.slug}/${project.slug}/`}>
               <ProjectLabel project={project} organization={this.props.organization}/>
