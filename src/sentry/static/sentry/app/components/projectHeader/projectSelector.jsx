@@ -95,7 +95,7 @@ const ProjectSelector = React.createClass({
     return (
       <MenuItem {...menuItemProps}>
         {project.isBookmarked && <span className="bookmark icon-bookmark"></span>}
-        {this.highlight(label, highlightText)}
+        {label}
       </MenuItem>
     );
   },
