@@ -51,7 +51,7 @@ def make_rb_cluster(*args, **kwargs):
     # plugin compatibility but isn't actionable by the system administrator.
     import warnings
     warnings.warn(
-        'Direct Redis cluster construction is deprecated, please use named clusters. ',
+        'Direct Redis cluster construction is deprecated, please use named clusters. '
         'Direct cluster construction will be removed in Sentry 8.5.',
         DeprecationWarning,
     )
