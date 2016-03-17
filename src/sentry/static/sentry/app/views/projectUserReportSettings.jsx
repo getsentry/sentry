@@ -103,25 +103,24 @@ const ProjectUserReportSettings = React.createClass({
     return (
       '<!-- Sentry JS SDK 2.1.+ required -->\n' +
       '<script src="https://cdn.ravenjs.com/2.1.0/raven.min.js"></script>\n\n' +
-      '  <script>\n' +
-      '  // configure the SDK as you normally would\n' +
-      '  Raven.config(\'' + dsn + '\').install();\n\n' +
-      '  /**\n' +
-      '   * Report a routing error to Sentry and show a feedback dialog to\n' +
-      '   * the user.\n' +
-      '   * \n' +
-      '   * > try {\n' +
-      '   * >   renderRoute()\n' +
-      '   * > } catch (err) {\n' +
-      '   * >   handleRouteError(err);\n' +
-      '   * > }\n' +
-      '   */\n' +
-      '  function handleRouteError(err) {\n' +
-      '    Raven.captureException(err);\n' +
-      '    Raven.showReportDialog();\n' +
-      '  };\n' +
-      '  </script>\n' +
-      '{% endif %}\n'
+      '<script>\n' +
+      '// configure the SDK as you normally would\n' +
+      'Raven.config(\'' + dsn + '\').install();\n\n' +
+      '/**\n' +
+      ' * Report a routing error to Sentry and show a feedback dialog to\n' +
+      ' * the user.\n' +
+      ' * \n' +
+      ' * > try {\n' +
+      ' * >   renderRoute()\n' +
+      ' * > } catch (err) {\n' +
+      ' * >   handleRouteError(err);\n' +
+      ' * > }\n' +
+      ' */\n' +
+      'function handleRouteError(err) {\n' +
+      '  Raven.captureException(err);\n' +
+      '  Raven.showReportDialog();\n' +
+      '};\n' +
+      '</script>\n'
     );
   },
 
