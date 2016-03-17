@@ -653,6 +653,14 @@ class SourceProcessor(object):
             # TODO: theoretically a minified source could point to another mapped, minified source
             frame.pre_context, frame.context_line, frame.post_context = get_source_context(
                 source=source, lineno=frame.lineno, colno=frame.colno or 0)
+
+            if not frame.context_line:
+                all_errors.append({
+                    'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
+                    'column': frame.colno,
+                    'row': frame.lineno,
+                    'source': frame.abs_path,
+                })
         return all_errors
 
     def get_source(self, filename, release):
