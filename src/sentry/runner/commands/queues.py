@@ -21,17 +21,15 @@ def queues():
 @click.option('-r', 'reverse', default=False, is_flag=True, help='Reverse the sort order.')
 @configuration
 def list(sort_size, reverse):
-    "List queues."
+    "List queues and their sizes."
 
     from django.conf import settings
-    from sentry.monitoring.queues import get_backend_for_broker
+    from sentry.monitoring.queues import backend
 
-    try:
-        backend = get_backend_for_broker(settings.BROKER_URL)
-    except KeyError as e:
-        raise click.ClickException('unknown broker type: %r' % e.message)
+    if backend is None:
+        raise click.ClickException('unknown broker type')
 
-    queues = backend.bulk_get_sizes(settings.CELERY_QUEUES)
+    queues = backend.bulk_get_sizes([q.name for q in settings.CELERY_QUEUES])
 
     if sort_size:
         queues = sorted(queues, key=lambda q: (-q[1], q[0]), reverse=reverse)
@@ -49,20 +47,13 @@ def list(sort_size, reverse):
 def purge(force, queue):
     "Purge all messages from a queue."
 
-    from django.conf import settings
-    for q in settings.CELERY_QUEUES:
-        if q.name == queue:
-            queue = q
-            break
-    else:
+    from sentry.monitoring.queues import get_queue_by_name, backend
+
+    if get_queue_by_name(queue) is None:
         raise click.ClickException('unknown queue: %r' % queue)
 
-    from sentry.monitoring.queues import get_backend_for_broker
-
-    try:
-        backend = get_backend_for_broker(settings.BROKER_URL)
-    except KeyError as e:
-        raise click.ClickException('unknown broker type: %r' % e.message)
+    if backend is None:
+        raise click.ClickException('unknown broker type')
 
     size = backend.get_size(queue)
 
@@ -71,6 +62,6 @@ def purge(force, queue):
         return
 
     if not force:
-        click.confirm('Are you sure you want to purge %d messages from the queue %r?' % (size, queue.name), abort=True)
+        click.confirm('Are you sure you want to purge %d messages from the queue \'%s\'?' % (size, queue), abort=True)
 
     click.echo('Poof, %d messages deleted' % backend.purge_queue(queue), err=True)
