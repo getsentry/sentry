@@ -94,7 +94,7 @@ const ProjectSelector = React.createClass({
 
     return (
       <MenuItem {...menuItemProps}>
-        {project.isBookmarked && <span className="bookmark icon-bookmark"></span>}
+        {project.isBookmarked && <span className="icon-star-solid bookmark "></span>}
         {label}
       </MenuItem>
     );
@@ -165,7 +165,7 @@ const ProjectSelector = React.createClass({
 
     return (
       <Link to={`/${orgId}/${projectId}/`}>
-        <span className="icon-bookmark bookmark"></span>
+        <span className="bookmark icon-star-solid"></span>
         {label}
       </Link>
     );
