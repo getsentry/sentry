@@ -7,56 +7,61 @@ sentry.web.urls
 """
 from __future__ import absolute_import
 
-__all__ = ('urlpatterns',)
-
-from django.conf.urls import include, patterns, url
 from django.conf import settings
+from django.conf.urls import include, patterns, url
 from django.http import HttpResponse
 from django.views.generic import RedirectView
 
 from sentry.web import api
 from sentry.web.frontend import accounts, admin, generic
-
+from sentry.web.frontend.accept_organization_invite import \
+    AcceptOrganizationInviteView
 from sentry.web.frontend.admin_queue import AdminQueueView
-from sentry.web.frontend.accept_organization_invite import AcceptOrganizationInviteView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
-from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
+from sentry.web.frontend.auth_organization_login import \
+    AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
-from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
-from sentry.web.frontend.group_event_json import GroupEventJsonView
-from sentry.web.frontend.group_plugin_action import GroupPluginActionView
-from sentry.web.frontend.home import HomeView
-from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
-from sentry.web.frontend.organization_api_keys import OrganizationApiKeysView
-from sentry.web.frontend.organization_api_key_settings import OrganizationApiKeySettingsView
-from sentry.web.frontend.organization_audit_log import OrganizationAuditLogView
-from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
-from sentry.web.frontend.organization_members import OrganizationMembersView
-from sentry.web.frontend.organization_member_settings import OrganizationMemberSettingsView
-from sentry.web.frontend.organization_settings import OrganizationSettingsView
 from sentry.web.frontend.create_organization import CreateOrganizationView
-from sentry.web.frontend.create_organization_member import CreateOrganizationMemberView
+from sentry.web.frontend.create_organization_member import \
+    CreateOrganizationMemberView
 from sentry.web.frontend.create_project import CreateProjectView
 from sentry.web.frontend.create_project_key import CreateProjectKeyView
 from sentry.web.frontend.create_team import CreateTeamView
 from sentry.web.frontend.disable_project_key import DisableProjectKeyView
 from sentry.web.frontend.edit_project_key import EditProjectKeyView
 from sentry.web.frontend.enable_project_key import EnableProjectKeyView
-from sentry.web.frontend.remove_project_key import RemoveProjectKeyView
+from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
+from sentry.web.frontend.group_event_json import GroupEventJsonView
+from sentry.web.frontend.group_plugin_action import GroupPluginActionView
+from sentry.web.frontend.home import HomeView
+from sentry.web.frontend.mailgun_inbound_webhook import \
+    MailgunInboundWebhookView
+from sentry.web.frontend.organization_api_key_settings import \
+    OrganizationApiKeySettingsView
+from sentry.web.frontend.organization_api_keys import OrganizationApiKeysView
+from sentry.web.frontend.organization_audit_log import OrganizationAuditLogView
+from sentry.web.frontend.organization_auth_settings import \
+    OrganizationAuthSettingsView
+from sentry.web.frontend.organization_member_settings import \
+    OrganizationMemberSettingsView
+from sentry.web.frontend.organization_members import OrganizationMembersView
+from sentry.web.frontend.organization_settings import OrganizationSettingsView
 from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
 from sentry.web.frontend.project_keys import ProjectKeysView
-from sentry.web.frontend.project_plugins import ProjectPluginsView
-from sentry.web.frontend.project_plugin_configure import ProjectPluginConfigureView
+from sentry.web.frontend.project_notifications import ProjectNotificationsView
+from sentry.web.frontend.project_plugin_configure import \
+    ProjectPluginConfigureView
 from sentry.web.frontend.project_plugin_disable import ProjectPluginDisableView
 from sentry.web.frontend.project_plugin_enable import ProjectPluginEnableView
 from sentry.web.frontend.project_plugin_reset import ProjectPluginResetView
-from sentry.web.frontend.project_notifications import ProjectNotificationsView
+from sentry.web.frontend.project_plugins import ProjectPluginsView
 from sentry.web.frontend.project_quotas import ProjectQuotasView
-from sentry.web.frontend.project_release_tracking import ProjectReleaseTrackingView
-from sentry.web.frontend.project_rules import ProjectRulesView
+from sentry.web.frontend.project_release_tracking import \
+    ProjectReleaseTrackingView
 from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
 from sentry.web.frontend.project_rule_remove import ProjectRuleRemoveView
+from sentry.web.frontend.project_rules import ProjectRulesView
 from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.project_tags import ProjectTagsView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
@@ -64,8 +69,11 @@ from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.remove_account import RemoveAccountView
 from sentry.web.frontend.remove_organization import RemoveOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
+from sentry.web.frontend.remove_project_key import RemoveProjectKeyView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.replay_event import ReplayEventView
+
+__all__ = ('urlpatterns',)
 
 
 def init_all_applications():
@@ -187,6 +195,8 @@ urlpatterns += patterns(
         name='sentry-admin-packages-status'),
     url(r'^manage/status/mail/$', admin.status_mail,
         name='sentry-admin-mail-status'),
+    url(r'^manage/status/warnings/$', admin.status_warnings,
+        name='sentry-admin-warnings-status'),
 
     # Admin - Teams
     url(r'^manage/teams/$', admin.manage_teams,
