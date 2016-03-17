@@ -2,7 +2,7 @@
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.db import models, IntegrityError, transaction
+from django.db import connection, models, IntegrityError, transaction
 
 from sentry.plugins import plugins
 from sentry.plugins import IssueTrackingPlugin, NotificationPlugin
@@ -10,6 +10,9 @@ from sentry.plugins import IssueTrackingPlugin, NotificationPlugin
 class Migration(DataMigration):
 
     def forwards(self, orm):
+        if connection.vendor == 'sqlite':
+            transaction.set_autocommit(True)
+
         # These are constants, not models
         from sentry.models import OnboardingTask, OnboardingTaskStatus
         from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
