@@ -210,7 +210,7 @@
       font-weight: bold;
     }
 
-    .icon-bookmark, .icon-soundoff {
+    .icon-star-solid, .icon-soundoff {
       padding-right: 5px;
       font-size: 95%;
       position: relative;
@@ -218,11 +218,12 @@
       width: auto;
     }
 
-    .icon-bookmark {
-      font-size: 14px;
-      top: 2px;
+    .icon-star-solid {
+      font-size: 15px;
       display: none;
-      color: @purple;
+      color: @yellow;
+      -webkit-text-stroke-color: @yellow-dark;
+      -webkit-text-stroke-width: 1px;
       overflow: hidden;
     }
 
@@ -237,7 +238,7 @@
     }
 
     &.isBookmarked {
-      .icon-bookmark {
+      .icon-star-solid {
         display: inline-block;
       }
     }

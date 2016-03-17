@@ -82,8 +82,8 @@ const StreamGroupHeader = React.createClass({
             :
               <span className="error-level truncate">{data.level}</span>
             }
-            <span className="icon icon-soundoff"></span>
-            <span className="icon icon-bookmark"></span>
+            <span className="icon icon-soundoff" />
+            <span className="icon icon-star-solid" />
             {this.getTitle()}
           </Link>
         </h3>
