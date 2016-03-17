@@ -81,6 +81,8 @@ class AmqpBackend(object):
 
 
 def get_backend_for_broker(broker_url):
+    if broker_url is None:
+        raise KeyError
     return backends[urlparse(broker_url).scheme](broker_url)
 
 
