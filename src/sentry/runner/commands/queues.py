@@ -23,15 +23,15 @@ def queues():
 def list(sort_size, reverse):
     "List queues."
 
-    from sentry.celery import app
-    from sentry.monitoring.queues import get_backend_for_celery
+    from django.conf import settings
+    from sentry.monitoring.queues import get_backend_for_broker
 
     try:
-        backend = get_backend_for_celery(app)
+        backend = get_backend_for_broker(settings.BROKER_URL)
     except KeyError as e:
         raise click.ClickException('unknown broker type: %r' % e.message)
 
-    queues = backend.bulk_get_sizes(app.conf.CELERY_QUEUES)
+    queues = backend.bulk_get_sizes(settings.CELERY_QUEUES)
 
     if sort_size:
         queues = sorted(queues, key=lambda q: (-q[1], q[0]), reverse=reverse)
@@ -47,18 +47,20 @@ def list(sort_size, reverse):
 @click.argument('queue')
 @configuration
 def purge(force, queue):
-    from sentry.celery import app
-    for q in app.conf.CELERY_QUEUES:
+    "Purge all messages from a queue."
+
+    from django.conf import settings
+    for q in settings.CELERY_QUEUES:
         if q.name == queue:
             queue = q
             break
     else:
         raise click.ClickException('unknown queue: %r' % queue)
 
-    from sentry.monitoring.queues import get_backend_for_celery
+    from sentry.monitoring.queues import get_backend_for_broker
 
     try:
-        backend = get_backend_for_celery(app)
+        backend = get_backend_for_broker(settings.BROKER_URL)
     except KeyError as e:
         raise click.ClickException('unknown broker type: %r' % e.message)
 
