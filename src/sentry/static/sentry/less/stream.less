@@ -674,7 +674,7 @@
     position: relative;
 
     h3 {
-      .icon-bookmark, .icon-soundoff {
+      .icon-star-solid, .icon-soundoff {
         padding-right: 5px;
         font-size: 12px;
         position: relative;
@@ -682,10 +682,13 @@
         width: auto;
       }
 
-      .icon-bookmark {
-        top: 1px;
+      .icon-star-solid {
+        font-size: 14px;
+        top: -1px;
         display: none;
-        color: @purple;
+        color: @yellow;
+        -webkit-text-stroke-color: @yellow-dark;
+        -webkit-text-stroke-width: 1px;
         overflow: hidden;
       }
 
@@ -700,7 +703,7 @@
     }
 
     &.isBookmarked {
-      h3 .icon-bookmark {
+      h3 .icon-star-solid {
         display: inline-block;
       }
     }
