@@ -82,6 +82,7 @@ const ProjectDetails = React.createClass({
   },
 
   onProjectChange(projectIds) {
+    if (!this.state.project) return;
     if (!projectIds.has(this.state.project.id)) return;
 
     this.setState({
