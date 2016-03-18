@@ -252,16 +252,19 @@ class MessageBuilder(object):
         return results
 
     def send(self, to=None, bcc=None, fail_silently=False):
-        messages = self.get_built_messages(to, bcc=bcc)
-        self.send_all(messages, fail_silently=fail_silently)
-
-    def send_all(self, messages, fail_silently=False):
-        connection = get_connection(fail_silently=fail_silently)
-        metrics.incr('email.sent', len(messages))
-        return connection.send_messages(messages)
+        return send_messages(
+            self.get_built_messages(to, bcc=bcc),
+            fail_silently=fail_silently,
+        )
 
     def send_async(self, to=None, bcc=None):
         from sentry.tasks.email import send_email
         messages = self.get_built_messages(to, bcc=bcc)
         for message in messages:
             safe_execute(send_email.delay, message=message)
+
+
+def send_messages(messages, fail_silently=False):
+    connection = get_connection(fail_silently=fail_silently)
+    metrics.incr('email.sent', len(messages))
+    return connection.send_messages(messages)
