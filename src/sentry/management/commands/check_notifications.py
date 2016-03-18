@@ -7,8 +7,11 @@ sentry.management.commands.check_notifications
 """
 from __future__ import absolute_import, print_function
 
-from django.core.management.base import BaseCommand, CommandError
 from optparse import make_option
+
+from django.core.management.base import BaseCommand, CommandError
+
+from sentry.models import User
 
 
 def find_mail_plugin():
@@ -21,11 +24,11 @@ def find_mail_plugin():
 
 def handle_project(plugin, project, stream):
     stream.write('# Project: %s\n' % project)
-    from sentry.utils.email import MessageBuilder
-    msg = MessageBuilder('test')
-    msg.add_users(plugin.get_sendable_users(project), project)
-    for email in msg._send_to:
-        stream.write(email + '\n')
+    from sentry.utils.email import get_email_addresses
+    user_ids = plugin.get_sendable_users(project)
+    users = User.objects.in_bulk(user_ids)
+    for user_id, email in get_email_addresses(user_ids, project).items():
+        stream.write('{}: {}\n'.format(users[user_id].username, email))
 
 
 class Command(BaseCommand):
