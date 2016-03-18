@@ -4,13 +4,19 @@ import {Link} from 'react-router';
 import jQuery from 'jquery';
 
 import ConfigStore from '../../stores/configStore';
+import {update as projectUpdate} from '../../actionCreators/projects';
+import ApiMixin from '../../mixins/apiMixin';
+
 import ProjectLabel from '../../components/projectLabel';
 import DropdownLink from '../dropdownLink';
 import MenuItem from '../menuItem';
+import {sortArray} from '../../utils';
 import {t} from '../../locale';
 
 const ProjectSelector = React.createClass({
   propTypes: {
+    // Accepts a project id (slug) and not a project *object* because ProjectSelector
+    // is created from Django templates, and only organization is serialized
     projectId: React.PropTypes.string,
     organization: React.PropTypes.object.isRequired
   },
@@ -19,9 +25,11 @@ const ProjectSelector = React.createClass({
     location: React.PropTypes.object
   },
 
+  mixins: [ApiMixin],
+
   getDefaultProps() {
     return {
-      projectId: null,
+      projectId: null
     };
   },
 
@@ -75,6 +83,16 @@ const ProjectSelector = React.createClass({
     this.refs.dropdownLink && this.refs.dropdownLink.close();
   },
 
+  handleBookmarkClick(project) {
+    projectUpdate(this.api, {
+      orgId: this.props.organization.slug,
+      projectId: project.slug,
+      data: {
+        isBookmarked: !project.isBookmarked
+      }
+    });
+  },
+
   getProjectNode(team, project, highlightText, hasSingleTeam) {
     let projectId = project.slug;
     let label = this.getProjectLabel(team, project, hasSingleTeam,
@@ -91,7 +109,12 @@ const ProjectSelector = React.createClass({
       ...this.getProjectUrlProps(project)
     };
 
-    return <MenuItem {...menuItemProps}>{label}</MenuItem>;
+    return (
+      <MenuItem {...menuItemProps}>
+        {project.isBookmarked && <span className="icon-star-solid bookmark "></span>}
+        {label}
+      </MenuItem>
+    );
   },
 
   getProjectLabel(team, project, hasSingleTeam, highlightText) {
@@ -157,8 +180,14 @@ const ProjectSelector = React.createClass({
     let orgId = org.slug;
     let projectId = project.slug;
 
+    let className = 'bookmark ' + (project.isBookmarked ? 'icon-star-solid' : 'icon-star-outline');
     return (
-      <Link to={`/${orgId}/${projectId}/`}>{label}</Link>
+      <span>
+        <a className={className} onClick={this.handleBookmarkClick.bind(this, project)}></a>
+        <Link to={`/${orgId}/${projectId}/`}>
+          {label}
+        </Link>
+      </span>
     );
   },
 
@@ -175,26 +204,34 @@ const ProjectSelector = React.createClass({
   render() {
     let org = this.props.organization;
     let filter = this.state.filter.toLowerCase();
-    let children = [];
     let activeTeam;
     let activeProject;
     let hasSingleTeam = org.teams.length === 1;
 
+    let projectList = [];
     org.teams.forEach((team) => {
       if (!team.isMember) {
         return;
       }
       team.projects.forEach((project) => {
         if (project.slug == this.props.projectId) {
-          activeTeam = team;
           activeProject = project;
+          activeTeam = team;
         }
         let fullName = [team.name, project.name, team.slug, project.slug].join(' ').toLowerCase();
         if (filter && fullName.indexOf(filter) === -1) {
           return;
         }
-        children.push(this.getProjectNode(team, project, this.state.filter, hasSingleTeam));
+        projectList.push([team, project]);
       });
+    });
+
+    projectList = sortArray(projectList, ([team, project]) => {
+      return [!project.isBookmarked, team.name, project.name];
+    });
+
+    let children = projectList.map(([team, project]) => {
+      return this.getProjectNode(team, project, this.state.filter, hasSingleTeam);
     });
 
     return (

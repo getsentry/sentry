@@ -133,7 +133,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         return Response(data)
 
     @attach_scenarios([update_project_scenario])
-    @sudo_required
     def put(self, request, project):
         """
         Update a Project

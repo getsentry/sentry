@@ -3,6 +3,7 @@ import {Link} from 'react-router';
 import LazyLoad from 'react-lazy-load';
 
 import ApiMixin from '../../mixins/apiMixin';
+import {update as projectUpdate} from '../../actionCreators/projects';
 import BarChart from '../../components/barChart';
 import ProjectLabel from '../../components/projectLabel';
 import ConfigStore from '../../stores/configStore';
@@ -16,12 +17,11 @@ const ExpandedTeamList = React.createClass({
     organization: PropTypes.Organization.isRequired,
     teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
     projectStats: React.PropTypes.object,
+    showAllTeams: React.PropTypes.func.isRequired,
     hasTeams: React.PropTypes.bool
   },
 
-  mixins: [
-    ApiMixin
-  ],
+  mixins: [ApiMixin],
 
   leaveTeam(team) {
     // TODO(dcramer): handle loading indicator
@@ -94,20 +94,29 @@ const ExpandedTeamList = React.createClass({
     );
   },
 
+  toggleBookmark(project) {
+    projectUpdate(this.api, {
+      orgId: this.props.organization.slug,
+      projectId: project.slug,
+      data: {
+        isBookmarked: !project.isBookmarked
+      }
+    });
+  },
+
   renderProject(project) {
     let org = this.props.organization;
-    let projectStats = this.props.projectStats;
-    let chartData = null;
-    if (projectStats[project.id]) {
-      chartData = projectStats[project.id].map((point) => {
-        return {x: point[0], y: point[1]};
-      });
-    }
+    let chartData = project.stats && project.stats.map(point => {
+      return {x: point[0], y: point[1]};
+    });
 
     return (
-      <tr key={project.id}>
+      <tr key={project.id} className={project.isBookmarked ? 'isBookmarked' : null}>
         <td>
           <h5>
+            <a onClick={this.toggleBookmark.bind(this, project)}>
+              {project.isBookmarked ? <span className="icon-star-solid bookmark" /> : <span className="icon-star-outline bookmark" />}
+            </a>
             <Link to={`/${org.slug}/${project.slug}/`}>
               <ProjectLabel project={project} organization={this.props.organization}/>
             </Link>

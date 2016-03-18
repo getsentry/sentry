@@ -8,6 +8,7 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import PropTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
+import ProjectStore from '../stores/projectStore';
 import {t} from '../locale';
 
 let ERROR_TYPES = {
@@ -96,6 +97,9 @@ const OrganizationDetails = React.createClass({
         });
 
         TeamStore.loadInitialData(data.teams);
+        ProjectStore.loadInitialData(data.teams.reduce((out, team) => {
+          return out.concat(team.projects);
+        }, []));
       }, error: (_, textStatus, errorThrown) => {
         let errorType = null;
         switch (errorThrown) {

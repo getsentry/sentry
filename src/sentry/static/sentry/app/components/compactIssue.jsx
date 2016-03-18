@@ -174,7 +174,7 @@ const CompactIssue = React.createClass({
             <h3 className="truncate">
               <Link to={`/${orgId}/${projectId}/issues/${id}/`}>
                 <span className="icon icon-soundoff" />
-                <span className="icon icon-bookmark" />
+                <span className="icon icon-star-solid" />
                 {issue.title}
               </Link>
             </h3>
@@ -211,7 +211,7 @@ const CompactIssue = React.createClass({
               </li>
               <li>
                 <a onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}>
-                  <span className="icon-bookmark" />
+                  <span className="icon-star-solid" />
                 </a>
               </li>
               <li>
