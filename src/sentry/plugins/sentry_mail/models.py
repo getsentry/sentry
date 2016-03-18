@@ -48,8 +48,8 @@ class MailPlugin(NotificationPlugin):
     project_conf_form = None
     subject_prefix = settings.EMAIL_SUBJECT_PREFIX
 
-    def _build_message(self, subject, template=None, html_template=None, body=None,
-                   project=None, group=None, headers=None, context=None):
+    def _build_message(self, project, subject, template=None, html_template=None, body=None,
+                   group=None, headers=None, context=None):
         send_to = self.get_send_to(project)
         if not send_to:
             logger.debug('Skipping message rendering, no users to send to.')
@@ -96,7 +96,7 @@ class MailPlugin(NotificationPlugin):
 
         return super(MailPlugin, self).should_notify(group, event)
 
-    def get_send_to(self, project=None):
+    def get_send_to(self, project):
         """
         Returns a list of email addresses for the users that should be notified of alerts.
 
