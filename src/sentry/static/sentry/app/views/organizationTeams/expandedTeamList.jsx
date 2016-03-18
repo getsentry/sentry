@@ -36,10 +36,6 @@ const ExpandedTeamList = React.createClass({
     return ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
   },
 
-  onProjectChange() {
-
-  },
-
   renderProjectList(team) {
     return (
       <tbody>

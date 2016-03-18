@@ -29,7 +29,7 @@ const ProjectSelector = React.createClass({
 
   getDefaultProps() {
     return {
-      project: null
+      projectId: null
     };
   },
 
