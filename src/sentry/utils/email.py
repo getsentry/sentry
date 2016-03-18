@@ -10,21 +10,20 @@ from __future__ import absolute_import
 import logging
 import os
 import time
-import toronado
+from email.utils import parseaddr
 from random import randrange
 
 from django.conf import settings
-from django.core.mail import get_connection, EmailMultiAlternatives
-from django.core.signing import Signer, BadSignature
+from django.core.mail import EmailMultiAlternatives, get_connection
+from django.core.signing import BadSignature, Signer
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_bytes, force_str, force_text
-from email.utils import parseaddr
+from toronado import from_string as inline_css
 
-from sentry.models import GroupEmailThread, Group, User, UserOption
-from sentry.web.helpers import render_to_string
+from sentry.models import Group, GroupEmailThread, User, UserOption
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
-
+from sentry.web.helpers import render_to_string
 
 logger = logging.getLogger(__name__)
 
@@ -266,7 +265,3 @@ class MessageBuilder(object):
         messages = self.get_built_messages(to, bcc=bcc)
         for message in messages:
             safe_execute(send_email.delay, message=message)
-
-
-def inline_css(html):
-    return toronado.from_string(html)
