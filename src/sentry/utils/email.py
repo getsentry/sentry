@@ -18,7 +18,6 @@ from django.core.mail import get_connection, EmailMultiAlternatives
 from django.core.signing import Signer, BadSignature
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_bytes, force_str, force_text
-from django.utils.functional import cached_property
 from email.utils import parseaddr
 
 from sentry.models import GroupEmailThread, Group, User, UserOption
@@ -168,8 +167,7 @@ class MessageBuilder(object):
         self.from_email = from_email or settings.SERVER_EMAIL
         self._send_to = set()
 
-    @cached_property
-    def html_body(self):
+    def __render_html_body(self):
         html_body = None
         if self.html_template:
             html_body = render_to_string(self.html_template, self.context)
@@ -179,8 +177,7 @@ class MessageBuilder(object):
         if html_body is not None:
             return inline_css(html_body)
 
-    @cached_property
-    def txt_body(self):
+    def __render_text_body(self):
         if self.template:
             return render_to_string(self.template, self.context)
         return self._txt_body
@@ -233,15 +230,17 @@ class MessageBuilder(object):
 
         msg = EmailMultiAlternatives(
             subject=subject,
-            body=self.txt_body,
+            body=self.__render_text_body(),
             from_email=self.from_email,
             to=(to,),
             cc=cc or (),
             bcc=bcc or (),
             headers=headers,
         )
-        if self.html_body:
-            msg.attach_alternative(self.html_body, 'text/html')
+
+        html_body = self.__render_html_body()
+        if html_body:
+            msg.attach_alternative(html_body, 'text/html')
 
         return msg
 
