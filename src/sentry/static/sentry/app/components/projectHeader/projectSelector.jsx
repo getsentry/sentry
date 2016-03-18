@@ -4,6 +4,9 @@ import {Link} from 'react-router';
 import jQuery from 'jquery';
 
 import ConfigStore from '../../stores/configStore';
+import {update as projectUpdate} from '../../actionCreators/projects';
+import ApiMixin from '../../mixins/apiMixin';
+
 import ProjectLabel from '../../components/projectLabel';
 import DropdownLink from '../dropdownLink';
 import MenuItem from '../menuItem';
@@ -12,6 +15,8 @@ import {t} from '../../locale';
 
 const ProjectSelector = React.createClass({
   propTypes: {
+    // Accepts a project id (slug) and not a project *object* because ProjectSelector
+    // is created from Django templates, and only organization is serialized
     projectId: React.PropTypes.string,
     organization: React.PropTypes.object.isRequired
   },
@@ -20,9 +25,11 @@ const ProjectSelector = React.createClass({
     location: React.PropTypes.object
   },
 
+  mixins: [ApiMixin],
+
   getDefaultProps() {
     return {
-      projectId: null
+      project: null
     };
   },
 
@@ -74,6 +81,16 @@ const ProjectSelector = React.createClass({
     // onFilterBlur above after a timeout. My hunch is that sometimes
     // this DOM element is removed within the 200ms, so we error out.
     this.refs.dropdownLink && this.refs.dropdownLink.close();
+  },
+
+  handleBookmarkClick(project) {
+    projectUpdate(this.api, {
+      orgId: this.props.organization.slug,
+      projectId: project.slug,
+      data: {
+        isBookmarked: !project.isBookmarked
+      }
+    });
   },
 
   getProjectNode(team, project, highlightText, hasSingleTeam) {
@@ -163,11 +180,15 @@ const ProjectSelector = React.createClass({
     let orgId = org.slug;
     let projectId = project.slug;
 
+    let className = 'bookmark ' + project.isBookmarked ? 'icon-star-solid' : 'icon-star-outline';
+
     return (
-      <Link to={`/${orgId}/${projectId}/`}>
-        <span className="bookmark icon-star-solid"></span>
-        {label}
-      </Link>
+      <span>
+        <a className={className} onClick={this.handleBookmarkClick.bind(this, project)}></a>
+        <Link to={`/${orgId}/${projectId}/`}>
+          {label}
+        </Link>
+      </span>
     );
   },
 
@@ -195,8 +216,8 @@ const ProjectSelector = React.createClass({
       }
       team.projects.forEach((project) => {
         if (project.slug == this.props.projectId) {
-          activeTeam = team;
           activeProject = project;
+          activeTeam = team;
         }
         let fullName = [team.name, project.name, team.slug, project.slug].join(' ').toLowerCase();
         if (filter && fullName.indexOf(filter) === -1) {

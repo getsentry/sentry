@@ -47,7 +47,8 @@ const TeamStore = Reflux.createStore({
 
       // TODO: make copy of project? right now just assigning reference
       // to project form project store
-      team.project = ProjectStore.getById(projectId);
+      let project = ProjectStore.getById(projectId);
+      team.project = project;
       teamsChanged.add(team.id);
     });
     this.trigger(teamsChanged);
