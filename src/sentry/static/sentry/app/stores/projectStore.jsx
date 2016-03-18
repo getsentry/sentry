@@ -28,7 +28,7 @@ const ProjectStore = Reflux.createStore({
   onUpdateSuccess(data) {
     let project = this.getById(data.id);
     Object.assign(project, data);
-    this.trigger(new Set(data.id));
+    this.trigger(new Set([data.id]));
   },
 
   onStatsLoadSuccess(data) {
