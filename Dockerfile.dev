@@ -109,7 +109,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         redis-server \
         memcached \
         postfix \
-    && rm -rf /var/lib/api/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /usr/src/sentry
 RUN mkdir -p /etc/sentry
