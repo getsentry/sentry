@@ -1,6 +1,5 @@
 import React from 'react';
 import Reflux from 'reflux';
-import update from 'react-addons-update';
 
 import ApiMixin from '../mixins/apiMixin';
 import DocumentTitle from 'react-document-title';
@@ -58,14 +57,13 @@ const ProjectDetails = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.params.projectId !== this.props.params.projectId ||
-      nextProps.params.orgId != this.props.params.orgId) {
+    if (nextProps.params.projectId !== this.props.params.projectId) {
       this.remountComponent();
     }
   },
 
-  componentWillUpdate(nextProps, nextState) {
-    if (nextState.team.id !== this.state.team.id) {
+  componentDidUpdate(prevProps, prevState) {
+    if (prevProps.params.projectId !== this.props.params.projectId) {
       this.fetchData();
     }
   },
@@ -85,13 +83,14 @@ const ProjectDetails = React.createClass({
 
   onProjectChange(projectIds) {
     if (!projectIds.has(this.state.project.id)) return;
+
     this.setState({
       project: {...ProjectStore.getById(this.state.project.id)}
     });
   },
 
   identifyProject() {
-    let params = this.props.params;
+    let {params} = this.props;
     let projectSlug = params.projectId;
     let activeProject = null;
     let activeTeam = null;
@@ -115,6 +114,12 @@ const ProjectDetails = React.createClass({
     let [activeTeam, activeProject] = this.identifyProject();
     let hasAccess = activeTeam && activeTeam.hasAccess;
 
+    this.setState({
+      loading: true,
+      project: activeProject,
+      team: activeTeam
+    });
+
     if (activeProject && hasAccess) {
       // TODO(dcramer): move member list to organization level
       this.api.request(this.getMemberListEndpoint(), {
@@ -124,24 +129,18 @@ const ProjectDetails = React.createClass({
       });
 
       this.setState({
-        project: activeProject,
-        team: activeTeam,
         loading: false,
         error: false,
         errorType: null
       });
     } else if (activeTeam && activeTeam.isMember) {
       this.setState({
-        project: activeProject,
-        team: activeTeam,
         loading: false,
         error: true,
         errorType: ERROR_TYPES.MISSING_MEMBERSHIP
       });
     } else {
       this.setState({
-        project: activeProject,
-        team: activeTeam,
         loading: false,
         error: true,
         errorType: ERROR_TYPES.PROJECT_NOT_FOUND

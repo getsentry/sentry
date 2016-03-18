@@ -180,8 +180,7 @@ const ProjectSelector = React.createClass({
     let orgId = org.slug;
     let projectId = project.slug;
 
-    let className = 'bookmark ' + project.isBookmarked ? 'icon-star-solid' : 'icon-star-outline';
-
+    let className = 'bookmark ' + (project.isBookmarked ? 'icon-star-solid' : 'icon-star-outline');
     return (
       <span>
         <a className={className} onClick={this.handleBookmarkClick.bind(this, project)}></a>
