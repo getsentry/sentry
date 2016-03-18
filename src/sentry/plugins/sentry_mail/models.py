@@ -76,13 +76,6 @@ class MailPlugin(NotificationPlugin):
         if message is not None:
             return message.send()
 
-    def send_test_mail(self, project=None):
-        self._send_mail(
-            subject='Test Email',
-            body='This email was requested as a test of Sentry\'s outgoing email',
-            project=project,
-        )
-
     def get_notification_settings_url(self):
         return absolute_uri(reverse('sentry-account-settings-notifications'))
 
