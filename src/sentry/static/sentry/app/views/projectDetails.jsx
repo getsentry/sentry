@@ -1,5 +1,7 @@
 import React from 'react';
 import Reflux from 'reflux';
+import update from 'react-addons-update';
+
 import ApiMixin from '../mixins/apiMixin';
 import DocumentTitle from 'react-document-title';
 import MemberListStore from '../stores/memberListStore';
@@ -10,6 +12,7 @@ import ProjectHeader from '../components/projectHeader';
 import OrganizationState from '../mixins/organizationState';
 import PropTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
+import ProjectStore from '../stores/projectStore';
 import {t} from '../locale';
 
 const ERROR_TYPES = {
@@ -27,6 +30,7 @@ const ProjectDetails = React.createClass({
     ApiMixin,
     Reflux.connect(MemberListStore, 'memberList'),
     Reflux.listenTo(TeamStore, 'onTeamChange'),
+    Reflux.listenTo(ProjectStore, 'onProjectChange'),
     OrganizationState
   ],
 
@@ -60,14 +64,30 @@ const ProjectDetails = React.createClass({
     }
   },
 
+  componentWillUpdate(nextProps, nextState) {
+    if (nextState.team.id !== this.state.team.id) {
+      this.fetchData();
+    }
+  },
+
   remountComponent() {
-    this.setState(this.getInitialState(), this.fetchData);
+    this.setState(this.getInitialState());
   },
 
   onTeamChange(itemIds) {
     if (!this.state.team) return;
     if (!itemIds.has(this.state.team.id)) return;
-    this.fetchData();
+
+    this.setState({
+      team: {...TeamStore.getById(this.state.team.id)}
+    });
+  },
+
+  onProjectChange(projectIds) {
+    if (!projectIds.has(this.state.project.id)) return;
+    this.setState({
+      project: {...ProjectStore.getById(this.state.project.id)}
+    });
   },
 
   identifyProject() {
