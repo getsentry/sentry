@@ -114,8 +114,6 @@
       color: #fff;
       border-color: @green-dark;
       text-shadow: 0 1px 0 rgba(0,0,0, .15);
-      -webkit-text-stroke-color: @green-dark;
-      -webkit-text-stroke-width: 1px;
     }
 
     .group-bookmark .icon-star-solid {
@@ -126,12 +124,10 @@
     }
 
     .group-bookmark.active {
-      background: @yellow;
+      background: @yellow-orange;
       color: #fff;
-      border-color: @yellow-dark;
+      border-color: darken(@yellow-orange, 15);
       text-shadow: 0 1px 0 rgba(0,0,0, .15);
-      -webkit-text-stroke-color: @yellow-dark;
-      -webkit-text-stroke-width: 1px;
     }
 
     .group-remove:hover {
