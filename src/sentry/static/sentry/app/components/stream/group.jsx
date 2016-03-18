@@ -202,7 +202,7 @@ const StreamGroup = React.createClass({
             hasEventTypes={features.has('event-types')} />
           <div className="event-extra">
             <ul>
-              {data.shortId &&
+              {this.getFeatures().has('callsigns') && data.shortId &&
                 <li>
                   <ShortId shortId={data.shortId} />
                 </li>
