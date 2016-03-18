@@ -10,10 +10,9 @@ from __future__ import absolute_import, print_function
 
 import logging
 
-from django.core.mail import get_connection
-
 from sentry.auth import access
 from sentry.tasks.base import instrumented_task
+from sentry.utils.email import send_messages
 
 logger = logging.getLogger(__name__)
 
@@ -68,5 +67,4 @@ def process_inbound_email(mailfrom, group_id, payload):
     name='sentry.tasks.email.send_email',
     queue='email')
 def send_email(message):
-    connection = get_connection()
-    connection.send_messages([message])
+    send_messages([message])
