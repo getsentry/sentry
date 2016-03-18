@@ -66,7 +66,6 @@ class AmqpBackend(object):
             with conn.channel() as channel:
                 for queue in queues:
                     sizes.append((queue, self._get_size_from_channel(channel, queue)))
-                print(sizes)
                 return sizes
 
     def get_size(self, queue):
