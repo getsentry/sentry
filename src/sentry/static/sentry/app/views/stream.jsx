@@ -54,6 +54,7 @@ const Stream = React.createClass({
     let searchId = this.props.params.searchId || null;
     return {
       groupIds: [],
+      isDefaultSearch: null,
       searchId: searchId,
       // if we have no query then we can go ahead and fetch data
       loading: (searchId || !this.hasQuery() ? true : false),
@@ -99,8 +100,10 @@ const Stream = React.createClass({
       return;
     }
 
-    if (nextProps.params.searchId !== this.state.searchId
-          || nextProps.location.search !== this.props.location.search) {
+    let searchIdChanged = this.state.isDefaultSearch ?
+      nextProps.params.searchId : nextProps.params.searchId !== this.state.searchId;
+
+    if (searchIdChanged || nextProps.location.search !== this.props.location.search) {
       // TODO(dcramer): handle 404 from popState on searchId
       this.setState(this.getQueryState(nextProps), this.fetchData);
     }
@@ -135,6 +138,7 @@ const Stream = React.createClass({
     this.api.request(`/projects/${orgId}/${projectId}/searches/`, {
       success: (data) => {
         let newState = {
+          isDefaultSearch: false,
           savedSearchLoading: false,
           savedSearchList: data,
           loading: false,
@@ -152,6 +156,7 @@ const Stream = React.createClass({
               savedSearchLoading: false,
               savedSearchList: data,
               searchId: null,
+              isDefaultSearch: true,
             }, this.transitionTo);
           }
         } else if (!this.hasQuery()) {
@@ -166,6 +171,7 @@ const Stream = React.createClass({
           if (defaultResults.length) {
             newState.searchId = defaultResults[0].id;
             newState.query = defaultResults[0].query;
+            newState.isDefaultSearch = true;
           }
         }
         this.setState(newState, needsData ? this.fetchData : null);
@@ -175,10 +181,11 @@ const Stream = React.createClass({
         logAjaxError(error);
         this.setState({
           loading: false,
+          isDefaultSearch: null,
           searchId: null,
           savedSearchList: [],
           savedSearchLoading: false,
-          query: '',
+          query: ''
         });
       }
     });
@@ -248,6 +255,7 @@ const Stream = React.createClass({
       statsPeriod: statsPeriod,
       query: hasQuery ? currentQuery.query : '',
       searchId: searchId,
+      isDefaultSearch: false
     };
 
     // state is not yet defined
@@ -268,6 +276,7 @@ const Stream = React.createClass({
         return search.isDefault;
       });
       if (defaultResult.length) {
+        newState.isDefaultSearch = true;
         newState.searchId = defaultResult[0].id;
         newState.query = defaultResult[0].query;
       } else {

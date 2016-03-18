@@ -180,7 +180,7 @@ const GroupActions = React.createClass({
           <a className={bookmarkClassName}
              title={t('Bookmark')}
              onClick={this.onToggleBookmark}>
-            <span className="icon-bookmark" />
+            <span className="icon-star-solid" />
           </a>
         </div>
         <div className="btn-group">

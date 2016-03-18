@@ -54,6 +54,7 @@ var entry = {
     'react-document-title',
     'react-router',
     'react-bootstrap/lib/Modal',
+    'react-sparklines',
     'reflux',
     'select2',
     'flot/jquery.flot',

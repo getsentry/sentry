@@ -126,12 +126,24 @@ dl.flat dd {
   text-shadow: none;
 }
 
+/* Icons */
+.icon-star-solid.bookmark,
+.icon-star-outline.bookmark {
+  margin-right: 6px;
+}
+.icon-star-solid.bookmark {
+  color: @yellow-orange;
+  &:hover {
+    color: @yellow-orange;
+  }
+}
+
 /* Button icons */
 
 .btn {
-  .icon-bookmark {
+  .icon-star-solid {
     position: relative;
-    top: 2px;
+    top: 1px;
     margin-right: -1px;
     margin-left: -1px;
   }

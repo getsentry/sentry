@@ -1,4 +1,3 @@
-
 import Reflux from 'reflux';
 
 let TeamActions = Reflux.createActions([
@@ -9,4 +8,3 @@ let TeamActions = Reflux.createActions([
 
 
 export default TeamActions;
-

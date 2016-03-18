@@ -210,7 +210,7 @@
       font-weight: bold;
     }
 
-    .icon-bookmark, .icon-soundoff {
+    .icon-star-solid, .icon-soundoff {
       padding-right: 5px;
       font-size: 95%;
       position: relative;
@@ -218,11 +218,10 @@
       width: auto;
     }
 
-    .icon-bookmark {
-      font-size: 14px;
-      top: 2px;
+    .icon-star-solid {
+      font-size: 15px;
       display: none;
-      color: @purple;
+      color: @yellow-orange;
       overflow: hidden;
     }
 
@@ -237,7 +236,7 @@
     }
 
     &.isBookmarked {
-      .icon-bookmark {
+      .icon-star-solid {
         display: inline-block;
       }
     }
@@ -673,7 +672,7 @@
     position: relative;
 
     h3 {
-      .icon-bookmark, .icon-soundoff {
+      .icon-star-solid, .icon-soundoff {
         padding-right: 5px;
         font-size: 12px;
         position: relative;
@@ -681,10 +680,11 @@
         width: auto;
       }
 
-      .icon-bookmark {
-        top: 1px;
+      .icon-star-solid {
+        font-size: 14px;
+        top: -1px;
         display: none;
-        color: @purple;
+        color: @yellow-orange;
         overflow: hidden;
       }
 
@@ -699,7 +699,7 @@
     }
 
     &.isBookmarked {
-      h3 .icon-bookmark {
+      h3 .icon-star-solid {
         display: inline-block;
       }
     }
