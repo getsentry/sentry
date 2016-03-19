@@ -1,3 +1,5 @@
+import Raven from 'raven-js';
+
 export function logException(ex, context) {
   Raven.captureException(ex, {
     extra: context
@@ -7,9 +9,12 @@ export function logException(ex, context) {
 }
 
 export function logAjaxError(error, context) {
-  let errorString = (error.responseJSON ?
+  let errorString = error.responseJSON ?
     error.responseJSON.detail || error.responseJSON.toString() :
-    error.responseText.substr(0, 255));
+    error.responseText ?
+      error.responseText.substr(0, 255) :
+      '<unknown response>'; // occassionally responseText is undefined
+
   let message = `HTTP ${error.status}: ${errorString}`;
   Raven.captureMessage(message, {
     extra: context
