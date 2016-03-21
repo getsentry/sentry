@@ -363,4 +363,5 @@ def status_mail(request):
         'mail_port': options.get('mail.port'),
         'mail_use_tls': options.get('mail.use-tls'),
         'mail_from': options.get('mail.from'),
+        'mail_list_namespace': options.get('mail.list-namespace'),
     }, request)
