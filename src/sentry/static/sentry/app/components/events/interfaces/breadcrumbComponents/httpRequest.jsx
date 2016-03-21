@@ -23,7 +23,7 @@ const HttpRequestCrumbComponent = React.createClass({
         {data.response ?
           <span>({'response: '}<code>{data.response.statusCode}</code>)</span> :
           null}
-        <Classifier value={data.classifier} title="%s request" prefix="http_request" />
+        <Classifier value={data.classifier} title="%s request" />
       </p>
     );
   }
