@@ -12,12 +12,12 @@ import logging
 
 import sentry
 
-from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.template.loader import render_to_string
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
+from sentry import options
 from sentry.digests.utilities import get_digest_metadata
 from sentry.models import (
     Activity,
@@ -46,7 +46,12 @@ class MailPlugin(NotificationPlugin):
     author_url = "https://github.com/getsentry/sentry"
     project_default_enabled = True
     project_conf_form = None
-    subject_prefix = settings.EMAIL_SUBJECT_PREFIX
+    subject_prefix = None
+
+    def _subject_prefix(self):
+        if self.subject_prefix is not None:
+            return self.subject_prefix
+        return options.get('mail.subject-prefix')
 
     def _build_message(self, project, subject, template=None, html_template=None, body=None,
                    group=None, headers=None, context=None):
@@ -55,7 +60,7 @@ class MailPlugin(NotificationPlugin):
             logger.debug('Skipping message rendering, no users to send to.')
             return
 
-        subject_prefix = self.get_option('subject_prefix', project) or self.subject_prefix
+        subject_prefix = self.get_option('subject_prefix', project) or self._subject_prefix()
         subject_prefix = force_text(subject_prefix)
         subject = force_text(subject)
 
@@ -211,7 +216,7 @@ class MailPlugin(NotificationPlugin):
         }
 
         # TODO: Everything below should instead use `_send_mail` for consistency.
-        subject_prefix = project.get_option('subject_prefix', settings.EMAIL_SUBJECT_PREFIX)
+        subject_prefix = project.get_option('subject_prefix', options.get('mail.subject-prefix'))
         if subject_prefix:
             subject_prefix = subject_prefix.rstrip() + ' '
 
@@ -301,7 +306,7 @@ class MailPlugin(NotificationPlugin):
         template_name = activity.get_type_display()
 
         # TODO: Everything below should instead use `_send_mail` for consistency.
-        subject_prefix = project.get_option('subject_prefix', settings.EMAIL_SUBJECT_PREFIX)
+        subject_prefix = project.get_option('subject_prefix', options.get('mail.subject-prefix'))
         if subject_prefix:
             subject_prefix = subject_prefix.rstrip() + ' '
 
