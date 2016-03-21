@@ -30,9 +30,15 @@ class ReleaseSerializerTest(TestCase):
 
         result = serialize(release, user)
         assert result['version'] == release.version
+        assert result['shortVersion'] == release.version
         assert result['newGroups'] == 1
         assert result['firstEvent']
         assert result['lastEvent']
+
+        # Make sure a sha1 value gets truncated
+        release.version = '0' * 40
+        result = serialize(release, user)
+        assert result['shortVersion'] == '0' * 12
 
     def test_no_tag_data(self):
         user = self.create_user()
