@@ -36,6 +36,11 @@
         <dd>
 <pre class="val">{% if mail_use_tls %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</pre>
         </dd>
+
+        <dt>{% trans "Mailing List Namespace" %}</dt>
+        <dd>
+<pre class="val">{{ mail_list_namespace }}</pre>
+        </dd>
     </dl>
 
     <h3>{% trans "Test Settings" %}</h3>

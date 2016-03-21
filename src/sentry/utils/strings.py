@@ -9,13 +9,12 @@ from __future__ import absolute_import
 
 import base64
 import re
+import string
 import zlib
 from itertools import count
 
-from django.utils.encoding import smart_unicode, force_unicode
-
 import six
-
+from django.utils.encoding import force_unicode, smart_unicode
 
 # Callsigns we do not want to generate automatically because they might
 # overlap with something else that is popular (like GH for GitHub)
@@ -171,3 +170,18 @@ def tokens_from_name(value, remove_digits=False):
         word = word.lower()
         if word:
             yield word
+
+
+valid_dot_atom_characters = frozenset(
+    string.ascii_letters +
+    string.digits +
+    ".!#$%&'*+-/=?^_`{|}~"
+)
+
+
+def is_valid_dot_atom(value):
+    """Validate an input string as an RFC 2822 dot-atom-text value."""
+    return (isinstance(value, basestring)  # must be a string type
+        and not value[0] == '.'
+        and not value[-1] == '.'  # cannot start or end with a dot
+        and set(value).issubset(valid_dot_atom_characters))  # can only contain valid characters
