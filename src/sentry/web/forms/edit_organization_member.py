@@ -37,7 +37,6 @@ class EditOrganizationMemberForm(forms.ModelForm):
 
         OrganizationMemberTeam.objects.filter(
             organizationmember=om,
-            is_active=True,
         ).exclude(team__in=self.cleaned_data['teams']).delete()
 
         AuditLogEntry.objects.create(
