@@ -1,12 +1,12 @@
-import React from "react";
+import React from 'react';
 
-var MessageCrumbComponent = React.createClass({
+const MessageCrumbComponent = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
   },
 
   render() {
-    var data = this.props.data;
+    let data = this.props.data;
     return (
       <p>
         {data.level ? <span className="level">{data.level}</span> : null}

@@ -1,8 +1,8 @@
-import React from "react";
+import React from 'react';
 
-import Classifier from "./classifier";
+import Classifier from './classifier';
 
-var HttpRequestCrumbComponent = React.createClass({
+const HttpRequestCrumbComponent = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
   },
@@ -12,7 +12,7 @@ var HttpRequestCrumbComponent = React.createClass({
   },
 
   render() {
-    var data = this.props.data;
+    let data = this.props.data;
 
     return (
       <p>

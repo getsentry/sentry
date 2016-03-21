@@ -1,11 +1,11 @@
-import React from "react";
-import GroupEventDataSection from "../eventDataSection";
-import PropTypes from "../../../proptypes";
+import React from 'react';
+import GroupEventDataSection from '../eventDataSection';
+import PropTypes from '../../../proptypes';
 
-import MessageCrumbComponent from "./breadcrumb-components/message";
-import RpcCrumbComponent from "./breadcrumb-components/rpc";
-import QueryCrumbComponent from "./breadcrumb-components/query";
-import HttpRequestCrumbComponent from "./breadcrumb-components/httpRequest";
+import MessageCrumbComponent from './breadcrumb-components/message';
+import RpcCrumbComponent from './breadcrumb-components/rpc';
+import QueryCrumbComponent from './breadcrumb-components/query';
+import HttpRequestCrumbComponent from './breadcrumb-components/httpRequest';
 
 
 const crumbComponents = {
@@ -16,7 +16,7 @@ const crumbComponents = {
 };
 
 
-var BreadcrumbsInterface = React.createClass({
+let BreadcrumbsInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
@@ -31,11 +31,11 @@ var BreadcrumbsInterface = React.createClass({
   },
 
   render() {
-    var group = this.props.group;
-    var evt = this.props.event;
-    var data = this.props.data;
+    let group = this.props.group;
+    let evt = this.props.event;
+    let data = this.props.data;
 
-    var title = (
+    let title = (
       <div>
         <h3>
           <strong>Breadcrumbs</strong>{' '}
@@ -44,9 +44,9 @@ var BreadcrumbsInterface = React.createClass({
       </div>
     );
 
-    var crumbs = data.items.map((item, idx) => {
-      var Component = crumbComponents[item.type];
-      var el;
+    let crumbs = data.items.map((item, idx) => {
+      let Component = crumbComponents[item.type];
+      let el;
       if (Component) {
         el = <Component data={item.data} />;
       } else {
