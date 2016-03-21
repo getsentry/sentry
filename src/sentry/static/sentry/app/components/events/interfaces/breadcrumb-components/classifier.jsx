@@ -1,6 +1,6 @@
-import React from "react";
+import React from 'react';
 
-var Classifier = React.createClass({
+const Classifier = React.createClass({
   propTypes: {
     value: React.PropTypes.string.isRequired,
     prefix: React.PropTypes.string,
@@ -8,7 +8,7 @@ var Classifier = React.createClass({
   },
 
   render() {
-    var value = this.props.value;
+    let value = this.props.value;
     if (!value) {
       value = 'generic';
     } else if (this.props.prefix) {
@@ -18,7 +18,7 @@ var Classifier = React.createClass({
         value = 'generic';
       }
     }
-    var title = this.props.title;
+    let title = this.props.title;
     if (title) {
       title = title.replace('%s', value);
     } else {

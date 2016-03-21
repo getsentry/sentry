@@ -1,14 +1,14 @@
-import React from "react";
+import React from 'react';
 
-import Classifier from "./classifier";
+import Classifier from './classifier';
 
-var RpcCrumbComponent = React.createClass({
+const RpcCrumbComponent = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
   },
 
   render() {
-    var data = this.props.data;
+    let data = this.props.data;
     return (
       <p>
         <strong>Remote call to</strong> <code>{data.endpoint}</code>

@@ -1,16 +1,16 @@
-import React from "react";
+import React from 'react';
 
-import Classifier from "./classifier";
+import Classifier from './classifier';
 
-var QueryCrumbComponent = React.createClass({
+const QueryCrumbComponent = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
   },
 
   render() {
-    var data = this.props.data;
-    var placeholderIdx = 0;
-    var queryElements = [];
+    let data = this.props.data;
+    let placeholderIdx = 0;
+    let queryElements = [];
 
     data.query.split(/(%s)/).forEach((item, idx) => {
       queryElements.push(
