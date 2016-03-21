@@ -7,6 +7,7 @@ sentry.web.frontend.admin
 """
 from __future__ import absolute_import, print_function
 
+import functools
 import logging
 import sys
 import uuid
@@ -329,11 +330,13 @@ def status_warnings(request):
         else:
             warnings.append(warning)
 
+    sort_by_message = functools.partial(sorted, key=str)
+
     return render_to_response(
         'sentry/admin/status/warnings.html',
         {
-            'groups': [(groupings[key], values) for key, values in groups.items()],
-            'warnings': warnings,
+            'groups': [(groupings[key], sort_by_message(values)) for key, values in groups.items()],
+            'warnings': sort_by_message(warnings),
         },
         request,
     )
