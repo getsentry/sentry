@@ -177,13 +177,13 @@ YAML_CONFIG_TEMPLATE = u"""\
 # Mail Server #
 ###############
 
-mail.host: 'localhost'
-mail.port: 25
-mail.username: ''
-mail.password: ''
-mail.use-tls: false
+# mail.host: 'localhost'
+# mail.port: 25
+# mail.username: ''
+# mail.password: ''
+# mail.use-tls: false
 # The email address to send on behalf of
-mail.from: 'root@localhost'
+# mail.from: 'root@localhost'
 
 # If this file ever becomes compromised, it's important to regenerate your SECRET_KEY
 # Changing this value will result in all current sessions being invalidated
