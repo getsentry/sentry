@@ -44,7 +44,7 @@ const EventEntries = React.createClass({
     breadcrumbs: require('./interfaces/breadcrumbs'),
   },
 
-  render(){
+  render() {
     let group = this.props.group;
     let evt = this.props.event;
     let isShare = this.props.isShare;

@@ -2,10 +2,11 @@ import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 
-import MessageCrumbComponent from './breadcrumb-components/message';
-import RpcCrumbComponent from './breadcrumb-components/rpc';
-import QueryCrumbComponent from './breadcrumb-components/query';
-import HttpRequestCrumbComponent from './breadcrumb-components/httpRequest';
+import MessageCrumbComponent from './breadcrumbComponents/message';
+import RpcCrumbComponent from './breadcrumbComponents/rpc';
+import QueryCrumbComponent from './breadcrumbComponents/query';
+import HttpRequestCrumbComponent from './breadcrumbComponents/httpRequest';
+import UiEventComponent from './breadcrumbComponents/uiEvent';
 
 
 const crumbComponents = {
@@ -13,6 +14,7 @@ const crumbComponents = {
   rpc: RpcCrumbComponent,
   query: QueryCrumbComponent,
   http_request: HttpRequestCrumbComponent,
+  ui_event: UiEventComponent,
 };
 
 

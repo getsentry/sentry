@@ -58,7 +58,7 @@ def validate_payload_for_type(payload, type):
 @typevalidator('message')
 def validate_message(payload):
     rv = {}
-    for key in 'message', 'logger', 'level':
+    for key in 'message', 'logger', 'level', 'classifier':
         value = payload.get(key)
         if value is None:
             continue
@@ -106,6 +106,16 @@ def validate_query(payload):
     if 'query' not in rv:
         raise InterfaceValidationError("Query not provided for 'query' "
                                        "breadcrumb.")
+    return rv
+
+
+@typevalidator('ui_event')
+def validate_event(payload):
+    rv = {}
+    for key in 'type', 'target', 'classifier':
+        value = payload.get(key)
+        if value is not None:
+            rv[key] = trim(value, 1024)
     return rv
 
 
