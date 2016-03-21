@@ -12,7 +12,6 @@ from sentry.options import (
 )
 from sentry.utils.types import Dict, String
 
-
 # Cache
 register('cache.backend', flags=FLAG_NOSTORE)
 register('cache.options', type=Dict, flags=FLAG_NOSTORE)
