@@ -6,7 +6,7 @@ from django.core import mail
 
 from sentry.models import User, UserOption, GroupEmailThread
 from sentry.testutils import TestCase
-from sentry.utils.email import MessageBuilder
+from sentry.utils.email import MessageBuilder, get_from_email_domain
 
 
 class MessageBuilderTest(TestCase):
@@ -229,3 +229,15 @@ class MessageBuilderTest(TestCase):
         out = mail.outbox[0]
         assert out.to == ['foo@example.com']
         assert out.bcc == ['bar@example.com']
+
+
+class MiscTestCase(TestCase):
+    def test_get_from_email_domain(self):
+        with self.options({'mail.from': 'matt@example.com'}):
+            assert get_from_email_domain() == 'example.com'
+
+        with self.options({'mail.from': 'root@localhost'}):
+            assert get_from_email_domain() == 'localhost'
+
+        with self.options({'mail.from': 'garbage'}):
+            assert get_from_email_domain() == 'garbage'

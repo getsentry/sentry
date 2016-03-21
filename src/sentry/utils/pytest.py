@@ -95,15 +95,18 @@ def pytest_configure(config):
     if not hasattr(settings, 'SENTRY_OPTIONS'):
         settings.SENTRY_OPTIONS = {}
 
-    settings.SENTRY_OPTIONS['redis.clusters'] = {
-        'default': {
-            'hosts': {
-                0: {
-                    'db': 9,
+    settings.SENTRY_OPTIONS.update({
+        'redis.clusters': {
+            'default': {
+                'hosts': {
+                    0: {
+                        'db': 9,
+                    },
                 },
             },
-        }
-    }
+        },
+        'mail.backend': 'django.core.mail.backends.locmem.EmailBackend',
+    })
 
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable

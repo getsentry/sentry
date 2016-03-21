@@ -14,12 +14,17 @@ from email.utils import parseaddr
 from random import randrange
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives, get_connection
+from django.core.mail import (
+    get_connection as _get_connection,
+    send_mail as _send_mail,
+    EmailMultiAlternatives,
+)
 from django.core.signing import BadSignature, Signer
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_bytes, force_str, force_text
 from toronado import from_string as inline_css
 
+from sentry import options
 from sentry.models import Group, GroupEmailThread, User, UserOption
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -107,7 +112,17 @@ def make_msgid(domain):
     return msgid
 
 
-FROM_EMAIL_DOMAIN = domain_from_email(settings.DEFAULT_FROM_EMAIL)
+# cache the domain_from_email calculation
+# This is just a tuple of (email, email-domain)
+_from_email_domain_cache = (None, None)
+
+
+def get_from_email_domain():
+    global _from_email_domain_cache
+    from_ = options.get('mail.from')
+    if not _from_email_domain_cache[0] == from_:
+        _from_email_domain_cache = (from_, domain_from_email(from_))
+    return _from_email_domain_cache[1]
 
 
 def get_email_addresses(user_ids, project=None):
@@ -163,7 +178,7 @@ class MessageBuilder(object):
         self.headers = headers
         self.reference = reference  # The object that generated this message
         self.reply_reference = reply_reference  # The object this message is replying about
-        self.from_email = from_email or settings.SERVER_EMAIL
+        self.from_email = from_email or options.get('mail.from')
         self._send_to = set()
 
     def __render_html_body(self):
@@ -203,7 +218,7 @@ class MessageBuilder(object):
             headers.setdefault('Reply-To', reply_to)
 
         # Every message sent needs a unique message id
-        message_id = make_msgid(FROM_EMAIL_DOMAIN)
+        message_id = make_msgid(get_from_email_domain())
         headers.setdefault('Message-Id', message_id)
 
         subject = self.subject
@@ -268,3 +283,28 @@ def send_messages(messages, fail_silently=False):
     connection = get_connection(fail_silently=fail_silently)
     metrics.incr('email.sent', len(messages))
     return connection.send_messages(messages)
+
+
+def get_connection(fail_silently=False):
+    """
+    Gets an SMTP connection using our OptionsStore
+    """
+    return _get_connection(
+        backend=options.get('mail.backend'),
+        host=options.get('mail.host'),
+        port=options.get('mail.port'),
+        username=options.get('mail.username'),
+        password=options.get('mail.password'),
+        use_tls=options.get('mail.use-tls'),
+        fail_silently=fail_silently,
+    )
+
+
+def send_mail(subject, message, from_email, recipient_list, fail_silently=False):
+    """
+    Wrapper that forces sending mail through our connection.
+    """
+    return _send_mail(
+        subject, message, from_email, recipient_list,
+        connection=get_connection(fail_silently=fail_silently),
+    )
