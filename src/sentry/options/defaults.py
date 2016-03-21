@@ -12,7 +12,6 @@ from sentry.options import (
 )
 from sentry.utils.types import Dict, String
 
-
 # Cache
 register('cache.backend', flags=FLAG_NOSTORE)
 register('cache.options', type=Dict, flags=FLAG_NOSTORE)
@@ -59,3 +58,4 @@ register('mail.use-tls', default=False, flags=FLAG_PRIORITIZE_DISK)
 register('mail.subject-prefix', default='[Sentry] ', flags=FLAG_PRIORITIZE_DISK)
 register('mail.from', default='root@localhost', flags=FLAG_PRIORITIZE_DISK)
 register('mail.enable-replies', default=False, flags=FLAG_PRIORITIZE_DISK)
+register('mail.list-namespace', type=String, default='localhost', flags=FLAG_NOSTORE)
