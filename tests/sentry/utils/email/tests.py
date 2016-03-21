@@ -1,15 +1,18 @@
 from __future__ import absolute_import
 
 import functools
+
 import pytest
+from django.core import mail
 from mock import patch
 
-from django.core import mail
-
 from sentry import options
-from sentry.models import User, UserOption, GroupEmailThread
+from sentry.models import GroupEmailThread, User, UserOption
 from sentry.testutils import TestCase
-from sentry.utils.email import MessageBuilder, ListResolver, default_list_type_handlers, get_from_email_domain
+from sentry.utils.email import (
+    ListResolver, MessageBuilder, default_list_type_handlers,
+    get_from_email_domain
+)
 
 
 class ListResolverTestCase(TestCase):

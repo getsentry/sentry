@@ -13,10 +13,8 @@ import string
 import zlib
 from itertools import count
 
-from django.utils.encoding import smart_unicode, force_unicode
-
 import six
-
+from django.utils.encoding import force_unicode, smart_unicode
 
 # Callsigns we do not want to generate automatically because they might
 # overlap with something else that is popular (like GH for GitHub)
