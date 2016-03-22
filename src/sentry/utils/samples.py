@@ -71,6 +71,21 @@ def load_data(platform, default=None):
         "data": '{"hello": "world"}',
         "method": "GET"
     }
+    data['sentry.interfaces.Breadcrumbs'] = {
+        "items": [{
+            "type": "message",
+            "timestamp": "2016-01-17T12:30:00",
+            "data": {
+                "message": "This is the first breadcrumb",
+            }
+        }, {
+            "type": "message",
+            "timestamp": "2016-01-17T12:31:15",
+            "data": {
+                "message": "This is the second breadcrumb",
+            }
+        }]
+    }
 
     return data
 
