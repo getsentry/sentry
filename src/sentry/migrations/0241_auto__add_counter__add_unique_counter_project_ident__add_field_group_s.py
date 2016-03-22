@@ -168,7 +168,7 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'Counter', 'db_table': "'sentry_projectcounter'"},
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'unique': True}),
-            'value': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {})
+            'value': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {})
         },
         'sentry.event': {
             'Meta': {'unique_together': "(('project_id', 'event_id'),)", 'object_name': 'Event', 'db_table': "'sentry_message'", 'index_together': "(('group_id', 'datetime'),)"},
