@@ -126,10 +126,13 @@ class Breadcrumbs(Interface):
 
     - ``message`` must be no more than 1000 characters in length.
 
-    >>> {
-    >>>     "message": "My raw message with interpreted strings like %s",
-    >>>     "params": ["this"]
-    >>> }
+    >>> [{
+    >>>     "type": "message",
+    >>>     "timestamp": "2016-01-17T12:30:00",
+    >>>     "data": {
+    >>>         "message": "My raw message with interpreted strings like %s",
+    >>>     }
+    >>> ], ...}
     """
     display_score = 5000
     score = 100
