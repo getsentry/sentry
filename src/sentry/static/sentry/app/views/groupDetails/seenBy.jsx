@@ -36,7 +36,7 @@ const GroupSeenBy = React.createClass({
     let seenByNodes = seenBy.filter((user, userIdx) => {
       return activeUser.id !== user.id;
     }).map((user, userIdx) => {
-      let title = _.escape(userDisplayName(user)) + '<br/>' + moment(user.lastSeen).format('LL');
+      let title = _.escape(userDisplayName(user)) + '<br/>' + _.escape(moment(user.lastSeen).format('LL'));
       return (
         <li key={userIdx} className="tip" data-title={title}>
           <Gravatar size={52} email={user.email} />
