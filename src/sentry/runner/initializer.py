@@ -233,6 +233,7 @@ def show_big_error(message):
 
 def apply_legacy_settings(settings):
     from sentry.conf.server import DEAD
+    from sentry import options
 
     # SENTRY_USE_QUEUE used to determine if Celery was eager or not
     if hasattr(settings, 'SENTRY_USE_QUEUE'):
@@ -283,11 +284,9 @@ def apply_legacy_settings(settings):
         # This should be removed when ``SENTRY_REDIS_OPTIONS`` is officially
         # deprecated. (This also assumes ``FLAG_NOSTORE`` on the configuration
         # option.)
-        from sentry import options
         settings.SENTRY_REDIS_OPTIONS = options.get('redis.clusters')['default']
 
     if not hasattr(settings, 'SENTRY_URL_PREFIX'):
-        from sentry import options
         url_prefix = options.get('system.url-prefix', silent=True)
         if not url_prefix:
             # HACK: We need to have some value here for backwards compatibility
