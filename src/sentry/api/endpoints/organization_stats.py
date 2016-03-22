@@ -2,11 +2,11 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.app import tsdb
 from sentry.api.base import DocSection, StatsMixin
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.app import tsdb
 from sentry.models import Project, Team
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario('RetrieveEventCountsOrganization')
@@ -66,6 +66,10 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
             keys = [p.id for p in project_list]
         else:
             raise ValueError('Invalid group: %s' % group)
+
+        if 'id' in request.GET:
+            id_filter_set = frozenset(map(int, request.GET.getlist('id')))
+            keys = [k for k in keys if k in id_filter_set]
 
         if not keys:
             return Response([])
