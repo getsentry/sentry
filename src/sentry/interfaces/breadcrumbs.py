@@ -77,8 +77,8 @@ def validate_rpc(payload):
         if value is not None:
             rv[key] = trim(value, 1024)
     if not rv.get('endpoint'):
-        raise InterfaceValidationError("No message provided for "
-                                       "'message' breadcrumb.")
+        raise InterfaceValidationError("No endpoint provided for "
+                                       "'rpc' breadcrumb.")
     return rv
 
 
@@ -91,8 +91,8 @@ def validate_http_request(payload):
         if value is not None:
             rv[key] = trim(value, 1024)
     if not rv.get('url'):
-        raise InterfaceValidationError("No message provided for "
-                                       "'url' breadcrumb.")
+        raise InterfaceValidationError("No url provided for "
+                                       "'http_request' breadcrumb.")
     return rv
 
 
@@ -116,6 +116,19 @@ def validate_event(payload):
         value = payload.get(key)
         if value is not None:
             rv[key] = trim(value, 1024)
+    return rv
+
+
+@typevalidator('navigation')
+def validate_navigation(payload):
+    rv = {}
+    for key in 'to', 'from':
+        value = payload.get(key)
+        if value is not None:
+            rv[key] = trim(value, 1024)
+    if 'to' not in rv:
+        raise InterfaceValidationError("Location not provided for 'navigation' "
+                                       "breadcrumb.")
     return rv
 
 
@@ -144,7 +157,7 @@ class Breadcrumbs(Interface):
             ty = crumb.get('type') or 'message'
             ts = parse_new_timestamp(crumb.get('timestamp'))
             if ts is None:
-                continue
+                raise ValueError('fucked up')
             items.append({
                 'type': ty,
                 'timestamp': ts,
