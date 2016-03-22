@@ -56,7 +56,7 @@ let BreadcrumbsInterface = React.createClass({
       }
       return (
         <li key={idx} className={'crumb crumb-' + item.type.replace(/_/g, '-')}>
-          <span className="dt">{Math.round(item.dt * 1000 * 1000) / 1000}ms</span>
+          <span className="dt">{Math.round(item.dt * 1000) / 1000}ms</span>
           {el}
         </li>
       );

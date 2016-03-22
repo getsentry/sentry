@@ -72,19 +72,48 @@ def load_data(platform, default=None):
         "method": "GET"
     }
     data['sentry.interfaces.Breadcrumbs'] = {
-        "items": [{
-            "type": "message",
-            "timestamp": "2016-01-17T12:30:00",
-            "data": {
-                "message": "This is the first breadcrumb",
+        "items": [
+            {
+                "type": "navigation",
+                "dt": 8200,
+                "timestamp": "2016-01-17T12:29:59",
+                "data": {
+                    "to": "http://example.com/dashboard/",
+                    "from": "http://example.com/login/"
+                }
+            },
+            {
+                "type": "message",
+                "dt": 5000,
+                "timestamp": "2016-01-17T12:30:03",
+                "data": {
+                    "message": "This is a message breadcrumb",
+                }
+            },
+            {
+                "type": "http_request",
+                "dt": 3000,
+                "timestamp": "2016-01-17T12:32:05",
+                "data": {
+                    "url": "http://example.com/foo",
+                    "statusCode": 200,
+                    "method": "POST",
+                    "headers": {
+                        "Referer": "http://example.com",
+                        "Content-Type": "application/json"
+                    }
+                }
+            },
+            {
+                "type": "ui_event",
+                "dt": 1500,
+                "timestamp": "2016-01-17T12:33:07",
+                "data": {
+                    "type": "click",
+                    "target": "<button name=\"submit\" class=\"btn btn-small\"/>"
+                }
             }
-        }, {
-            "type": "message",
-            "timestamp": "2016-01-17T12:31:15",
-            "data": {
-                "message": "This is the second breadcrumb",
-            }
-        }]
+        ]
     }
 
     return data
