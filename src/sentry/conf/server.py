@@ -689,6 +689,7 @@ SENTRY_SMTP_PORT = 1025
 
 SERVER_EMAIL = DEAD
 DEFAULT_FROM_EMAIL = DEAD
+EMAIL_SUBJECT_PREFIX = DEAD
 
 SENTRY_INTERFACES = {
     'exception': 'sentry.interfaces.exception.Exception',
