@@ -67,7 +67,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
         else:
             raise ValueError('Invalid group: %s' % group)
 
-        if request.GET.getlist('id'):
+        if 'id' in request.GET:
             id_filter_set = frozenset(map(int, request.GET.getlist('id')))
             keys = [k for k in keys if k in id_filter_set]
 
