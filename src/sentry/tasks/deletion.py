@@ -162,7 +162,7 @@ def delete_group(object_id, continuous=True, **kwargs):
     from sentry.models import (
         EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupMeta,
         GroupResolution, GroupRuleStatus, GroupStatus, GroupTagKey,
-        GroupTagValue, GroupEmailThread, UserReport
+        GroupTagValue, GroupEmailThread, UserReport, GroupRedirect,
     )
 
     try:
@@ -177,7 +177,7 @@ def delete_group(object_id, continuous=True, **kwargs):
         # prioritize GroupHash
         GroupHash, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,
         GroupRuleStatus, GroupTagValue, GroupTagKey, EventMapping,
-        GroupEmailThread, UserReport
+        GroupEmailThread, UserReport, GroupRedirect,
     )
     for model in bulk_model_list:
         has_more = bulk_delete_objects(model, group_id=object_id, logger=logger)
