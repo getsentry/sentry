@@ -61,12 +61,10 @@ class OrganizationTest(TestCase):
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member,
             team=to_team,
-            is_active=True,
         ).exists()
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member,
             team=from_team,
-            is_active=True,
         ).exists()
 
         from_team_two = Team.objects.get(id=from_team_two.id)

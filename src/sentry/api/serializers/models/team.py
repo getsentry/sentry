@@ -21,7 +21,6 @@ class TeamSerializer(Serializer):
                 OrganizationMemberTeam.objects.filter(
                     organizationmember__user=user,
                     team__in=item_list,
-                    is_active=True,
                 ).values_list('team', flat=True)
             )
         else:
