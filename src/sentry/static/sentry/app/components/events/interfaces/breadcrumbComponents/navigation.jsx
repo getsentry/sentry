@@ -7,13 +7,23 @@ const NavigationCrumbComponent = React.createClass({
 
   render() {
     let data = this.props.data;
+
     return (
-      <p>
-        <strong>Navigation</strong>
-        {data.from &&
-          <span> from <code>{data.from}</code></span>}
-        to <code>{data.to}</code>
-      </p>
+      <div>
+        <h5>Navigation</h5>
+        <table className="table key-value">
+          <tbody>
+            {data.from &&
+              <tr><td className="key">from</td><td><pre>{data.from}</pre></td></tr>}
+            <tr>
+              <td className="key">to</td>
+              <td>
+                <pre>{data.to}</pre>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     );
   }
 });

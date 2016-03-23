@@ -10,10 +10,19 @@ const UiEventComponent = React.createClass({
   render() {
     let data = this.props.data;
     return (
-      <p>
-        <strong>{data.event || 'UI Event'}</strong> on <code>{data.target || 'undefined target'}</code>
-        <Classifier value={data.classifier} title="%s call"/>
-      </p>
+      <div>
+        <h5>{data.event || 'UI Event'} <Classifier value={data.classifier} title="%s call"/></h5>
+        <table className="table key-value">
+          <tbody>
+            <tr>
+              <td className="key">element</td>
+              <td>
+                <pre>{data.target || 'undefined target'}</pre>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     );
   }
 });

@@ -20,7 +20,6 @@ const crumbComponents = {
   error: ErrorCrumbComponent
 };
 
-
 const BreadcrumbsInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
@@ -43,8 +42,7 @@ const BreadcrumbsInterface = React.createClass({
     let title = (
       <div>
         <h3>
-          <strong>Breadcrumbs</strong>{' '}
-          <small>(significant events that lead up to this)</small>
+          <strong>Breadcrumb Timeline</strong>
         </h3>
       </div>
     );
@@ -71,6 +69,9 @@ const BreadcrumbsInterface = React.createClass({
       }
       return (
         <li key={idx} className={'crumb crumb-' + item.type.replace(/_/g, '-')}>
+          <span className="icon-container">
+            <span className="icon"/>
+          </span>
           <span className="dt">{Math.round(item.dt * 1000) / 1000}ms</span>
           {el}
         </li>
@@ -79,6 +80,7 @@ const BreadcrumbsInterface = React.createClass({
 
     return (
       <GroupEventDataSection
+          className="breadcrumb-box"
           group={group}
           event={evt}
           type={this.props.type}
