@@ -7,7 +7,7 @@ import RpcCrumbComponent from './breadcrumbComponents/rpc';
 import QueryCrumbComponent from './breadcrumbComponents/query';
 import HttpRequestCrumbComponent from './breadcrumbComponents/httpRequest';
 import UiEventComponent from './breadcrumbComponents/uiEvent';
-
+import NavigationCrumbComponent from './breadcrumbComponents/navigation';
 
 const crumbComponents = {
   message: MessageCrumbComponent,
@@ -15,6 +15,7 @@ const crumbComponents = {
   query: QueryCrumbComponent,
   http_request: HttpRequestCrumbComponent,
   ui_event: UiEventComponent,
+  navigation: NavigationCrumbComponent
 };
 
 
