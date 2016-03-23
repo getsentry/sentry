@@ -1509,7 +1509,7 @@ ul.crumbs {
     border-bottom: 1px solid lighten(@trim, 6);
     padding: 10px 20px 10px 70px;
     position: relative;
-    min-height: 52px;
+    min-height: 46px;
 
     &:before {
       display: block;
@@ -1524,7 +1524,7 @@ ul.crumbs {
 
     h5 {
       font-size: 15px;
-      margin-bottom: 0;
+      margin-bottom: 3px;
       line-height: 24px;
     }
 
@@ -1543,6 +1543,7 @@ ul.crumbs {
       text-align: center;
       line-height: 32px;
       position: absolute;
+      top: 7px;
       left: 19px;
     }
 
@@ -1561,15 +1562,25 @@ ul.crumbs {
 
     .table.key-value {
       margin-bottom: 0;
+
       td {
-        padding-top: 7px;
-        padding-bottom: 7px;
+        padding-top: 0 !important;
+        padding-bottom: 5px !important;
       }
+
+      tr:last-child td {
+        padding-bottom: 0 !important;
+      }
+
       .key {
-        width: 130px;
+        width: 126px;
         color: @gray-dark;
-        padding-top: 5px;
-        padding-bottom: 5px;
+      }
+
+      pre {
+        display: inline-block;
+        padding: 2px 8px;
+        margin: -4px 0 0;
       }
     }
 
@@ -1597,6 +1608,7 @@ ul.crumbs {
     }
 
     &.crumb-message {
+      font-size: 15px;
       span.level {
         font-weight: bold;
         text-transform: capitalize;
