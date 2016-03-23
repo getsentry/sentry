@@ -8,6 +8,7 @@ import QueryCrumbComponent from './breadcrumbComponents/query';
 import HttpRequestCrumbComponent from './breadcrumbComponents/httpRequest';
 import UiEventComponent from './breadcrumbComponents/uiEvent';
 import NavigationCrumbComponent from './breadcrumbComponents/navigation';
+import ErrorCrumbComponent from './breadcrumbComponents/error';
 
 const crumbComponents = {
   message: MessageCrumbComponent,
@@ -15,11 +16,12 @@ const crumbComponents = {
   query: QueryCrumbComponent,
   http_request: HttpRequestCrumbComponent,
   ui_event: UiEventComponent,
-  navigation: NavigationCrumbComponent
+  navigation: NavigationCrumbComponent,
+  error: ErrorCrumbComponent
 };
 
 
-let BreadcrumbsInterface = React.createClass({
+const BreadcrumbsInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
@@ -47,7 +49,19 @@ let BreadcrumbsInterface = React.createClass({
       </div>
     );
 
-    let crumbs = data.items.map((item, idx) => {
+    // Add the error event as the final breadcrumb
+    let crumbs = [].slice.call(data.items, 0);
+
+    let exception = evt.entries.find(entry => entry.type === 'exception');
+    if (exception) {
+      crumbs.push({
+        type: 'error',
+        dt: 0,
+        data: exception.data.values[0]
+      });
+    }
+
+    let renderedCrumbs = crumbs.map((item, idx) => {
       let Component = crumbComponents[item.type];
       let el;
       if (Component) {
@@ -70,7 +84,7 @@ let BreadcrumbsInterface = React.createClass({
           type={this.props.type}
           title={title}
           wrapTitle={false}>
-        <ul className="crumbs">{crumbs}</ul>
+        <ul className="crumbs">{renderedCrumbs}</ul>
       </GroupEventDataSection>
     );
   }
