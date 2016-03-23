@@ -15,16 +15,28 @@ const HttpRequestCrumbComponent = React.createClass({
     let data = this.props.data;
 
     return (
-      <p>
-        <strong>HTTP Request</strong>{' '}
-        <code>{data.method}</code>
-        {' to '}
-        <code>{data.url}</code>{' '}
-        {data.response ?
-          <span>({'response: '}<code>{data.response.statusCode}</code>)</span> :
-          null}
-        <Classifier value={data.classifier} title="%s request" />
-      </p>
+      <div>
+        <h5>HTTP Request <Classifier value={data.classifier} title="%s request" /></h5>
+        <table className="table key-value">
+          <tbody>
+            <tr>
+              <td className="key">method</td>
+              <td>
+                <pre>{data.method}</pre>
+              </td>
+            </tr>
+            <tr>
+              <td className="key">url</td>
+              <td>
+                <pre>{data.url}</pre>
+              </td>
+            </tr>
+            {data.response ?
+              <tr><td className="key">response</td><td><pre>{data.response.statusCode}</pre></td></tr> :
+              null}
+          </tbody>
+        </table>
+      </div>
     );
   }
 });

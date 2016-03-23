@@ -1490,22 +1490,42 @@ pre.val, span.val {
 }
 
 /**
-* Breadcrumbs
+* Breadcrumbs / Timeline
 * ============================================================================
 */
+
+.breadcrumb-box {
+  .box-content {
+    padding: 0 !important;
+  }
+}
+
 ul.crumbs {
-  list-style: none;
-  margin: 0 0 20px 0;
-  padding: 0;
-  font-size: 13px;
+  .list-unstyled;
+  margin: 0 -1px -1px;
 
   li {
     margin: 0;
-    border: 1px solid lighten(@trim, 6);
-    padding: 2px 8px;
+    border-bottom: 1px solid lighten(@trim, 6);
+    padding: 10px 20px 10px 70px;
+    position: relative;
+    min-height: 52px;
 
-    + li {
-      border-top: none;
+    &:before {
+      display: block;
+      content: "";
+      width: 2px;
+      top: 0;
+      bottom: 0;
+      left: 35px;
+      background: #E7EAEF;
+      position: absolute;
+    }
+
+    h5 {
+      font-size: 15px;
+      margin-bottom: 0;
+      line-height: 24px;
     }
 
     p {
@@ -1513,16 +1533,44 @@ ul.crumbs {
       padding: 0;
     }
 
+    .icon-container {
+      display: block;
+      .square(32px);
+      background: #fff;
+      border: 1px solid @gray-lighter;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+      border-radius: 32px;
+      text-align: center;
+      line-height: 32px;
+      position: absolute;
+      left: 19px;
+    }
+
     time, span.dt {
       float: right;
-      font-size: 11px;
-      font-weight: bold;
+      font-size: 12px;
+      color: @gray;
     }
 
     span.crumb-classifier {
-      font-style: italic;
-      padding-left: 10px;
-      font-size: 11px;
+      padding-left: 6px;
+      color: @gray;
+      font-weight: normal;
+      font-size: 90%;
+    }
+
+    .table.key-value {
+      margin-bottom: 0;
+      td {
+        padding-top: 7px;
+        padding-bottom: 7px;
+      }
+      .key {
+        width: 130px;
+        color: @gray-dark;
+        padding-top: 5px;
+        padding-bottom: 5px;
+      }
     }
 
     &.crumb-query {
@@ -1541,11 +1589,11 @@ ul.crumbs {
     }
 
     &.crumb-rpc {
-      background: lighten(@blue, 42);
+
     }
 
     &.crumb-http-request {
-      background: lighten(@green, 42);
+
     }
 
     &.crumb-message {
