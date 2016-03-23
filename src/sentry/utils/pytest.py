@@ -90,7 +90,7 @@ def pytest_configure(config):
         }
     }
 
-    settings.SOUTH_TESTS_MIGRATE = bool(os.environ.get('USE_SOUTH'))
+    settings.SOUTH_TESTS_MIGRATE = True
 
     if not hasattr(settings, 'SENTRY_OPTIONS'):
         settings.SENTRY_OPTIONS = {}
