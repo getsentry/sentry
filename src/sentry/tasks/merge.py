@@ -25,7 +25,7 @@ def merge_group(from_object_id=None, to_object_id=None, **kwargs):
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models import (
         Activity, Group, GroupAssignee, GroupHash, GroupRuleStatus, GroupTagKey,
-        GroupTagValue, EventMapping, Event, UserReport
+        GroupTagValue, EventMapping, Event, UserReport, GroupRedirect,
     )
 
     if not (from_object_id and to_object_id):
@@ -46,7 +46,7 @@ def merge_group(from_object_id=None, to_object_id=None, **kwargs):
 
     model_list = (
         Activity, GroupAssignee, GroupHash, GroupRuleStatus, GroupTagValue,
-        GroupTagKey, EventMapping, Event, UserReport
+        GroupTagKey, EventMapping, Event, UserReport, GroupRedirect,
     )
 
     has_more = merge_objects(model_list, group, new_group, logger=logger)
@@ -58,7 +58,14 @@ def merge_group(from_object_id=None, to_object_id=None, **kwargs):
         )
         return
 
+    previous_group_id = group.id
+
     group.delete()
+
+    GroupRedirect.objects.create(
+        group_id=new_group.id,
+        previous_group_id=previous_group_id,
+    )
 
     new_group.update(
         # TODO(dcramer): ideally these would be SQL clauses
