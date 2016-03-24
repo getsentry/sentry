@@ -17,7 +17,6 @@ const ExpandedTeamList = React.createClass({
     organization: PropTypes.Organization.isRequired,
     teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
     projectStats: React.PropTypes.object,
-    showAllTeams: React.PropTypes.func.isRequired,
     hasTeams: React.PropTypes.bool
   },
 

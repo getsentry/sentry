@@ -45,6 +45,7 @@ class LostPasswordHash(Model):
         return self.date_added > timezone.now() - timedelta(hours=48)
 
     def send_recover_mail(self):
+        from sentry import options
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
 
@@ -57,7 +58,7 @@ class LostPasswordHash(Model):
             )),
         }
         msg = MessageBuilder(
-            subject='%sPassword Recovery' % (settings.EMAIL_SUBJECT_PREFIX,),
+            subject='%sPassword Recovery' % (options.get('mail.subject-prefix'),),
             template='sentry/emails/recover_account.txt',
             context=context,
         )

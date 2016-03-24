@@ -17,7 +17,7 @@ The following information is reported:
 - The version of Sentry
 - A technical contact email (``system.admin-email``)
 - General anonymous statistics on the data pattern (such as the number of
-  users)
+  users and volume of errors)
 - Names and version of the installed Python modules
 
 Note: The contact email is utilized for security announcements, and will

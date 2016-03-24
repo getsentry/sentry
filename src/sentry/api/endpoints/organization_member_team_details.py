@@ -116,21 +116,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             omt = OrganizationMemberTeam.objects.create(
                 team=team,
                 organizationmember=om,
-                is_active=True,
             )
         else:
-            if omt.is_active:
-                return Response(status=204)
-            elif not (request.access.has_scope('org:write') or organization.flags.allow_joinleave):
-                omt, created = OrganizationAccessRequest.objects.get_or_create(
-                    team=team,
-                    member=om,
-                )
-                if created:
-                    omt.send_request_email()
-                return Response(status=202)
-            omt.is_active = True
-            omt.save()
+            return Response(status=204)
 
         self.create_audit_entry(
             request=request,
@@ -172,20 +160,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
                 organizationmember=om,
             )
         except OrganizationMemberTeam.DoesNotExist:
-            # we need to create the row in order to handle superusers leaving a
-            # team which they were never a member for (therefor there was never
-            # a matching row)
-            omt = OrganizationMemberTeam(
-                team=team,
-                organizationmember=om,
-                # setting this to true ensures it gets saved below
-                is_active=True,
-            )
-
-        if omt.is_active:
-            omt.is_active = False
-            omt.save()
-
+            pass
+        else:
             self.create_audit_entry(
                 request=request,
                 organization=organization,
@@ -194,6 +170,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
                 event=AuditLogEntryEvent.MEMBER_LEAVE_TEAM,
                 data=omt.get_audit_log_data(),
             )
+            omt.delete()
 
         return Response(serialize(
             team, request.user, TeamWithProjectsSerializer()), status=200)

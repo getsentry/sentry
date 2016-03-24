@@ -25,6 +25,9 @@ import sentry
 
 gettext_noop = lambda s: s
 
+# A marker for indicating builtin Django settings that are to not be used
+DEAD = object()
+
 socket.setdefaulttimeout(5)
 
 DEBUG = False
@@ -83,8 +86,6 @@ if 'DATABASE_URL' in os.environ:
 
     if url.scheme == 'mysql':
         DATABASES['default']['ENGINE'] = 'django.db.backends.mysql'
-
-EMAIL_SUBJECT_PREFIX = '[Sentry] '
 
 # This should always be UTC.
 TIME_ZONE = 'UTC'
@@ -685,6 +686,10 @@ SENTRY_ENABLE_EMAIL_REPLIES = False
 SENTRY_SMTP_HOSTNAME = 'localhost'
 SENTRY_SMTP_HOST = 'localhost'
 SENTRY_SMTP_PORT = 1025
+
+SERVER_EMAIL = DEAD
+DEFAULT_FROM_EMAIL = DEAD
+EMAIL_SUBJECT_PREFIX = DEAD
 
 SENTRY_INTERFACES = {
     'exception': 'sentry.interfaces.exception.Exception',

@@ -13,7 +13,6 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint):
                 organization=organization,
                 team__in=OrganizationMemberTeam.objects.filter(
                     organizationmember=member,
-                    is_active=True,
                 ).values('team')
             )
         ).select_related('project', 'group', 'user')

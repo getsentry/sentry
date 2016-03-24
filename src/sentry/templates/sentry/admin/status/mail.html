@@ -14,27 +14,32 @@
     <dl class="vars">
         <dt>{% trans "From Address" %}</dt>
         <dd>
-<pre class="val">{{ SERVER_EMAIL }}</pre>
+<pre class="val">{{ mail_from }}</pre>
         </dd>
 
         <dt>{% trans "Host" %}</dt>
         <dd>
-<pre class="vall">{{ EMAIL_HOST }}:{{ EMAIL_PORT }}</pre>
+<pre class="vall">{{ mail_host }}:{{ mail_port }}</pre>
         </dd>
 
         <dt>{% trans "Username" %}</dt>
         <dd>
-<pre class="val">{% if EMAIL_HOST_USER %}{{ EMAIL_HOST_USER }}{% else %}<em>{% trans "not set" %}</em>{% endif %}</pre>
+<pre class="val">{% if mail_username %}{{ mail_username }}{% else %}<em>{% trans "not set" %}</em>{% endif %}</pre>
         </dd>
 
         <dt>{% trans "Password" %}</dt>
         <dd>
-<pre class="val">{% if EMAIL_HOST_PASSWORD %}********{% else %}<em>{% trans "not set" %}</em>{% endif %}</pre>
+<pre class="val">{% if mail_password %}********{% else %}<em>{% trans "not set" %}</em>{% endif %}</pre>
         </dd>
 
         <dt>{% trans "TLS?" %}</dt>
         <dd>
-<pre class="val">{% if EMAIL_USE_TLS %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</pre>
+<pre class="val">{% if mail_use_tls %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</pre>
+        </dd>
+
+        <dt>{% trans "Mailing List Namespace" %}</dt>
+        <dd>
+<pre class="val">{{ mail_list_namespace }}</pre>
         </dd>
     </dl>
 

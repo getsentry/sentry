@@ -24,6 +24,7 @@ Subcommands
  repair <repair/index>
  upgrade <upgrade/index>
  help <help/index>
+ queues <queues/index>
  plugins <plugins/index>
  devserver <devserver/index>
  django <django/index>

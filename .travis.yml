@@ -21,7 +21,6 @@ env:
     - TEST_SUITE=cli
     - TEST_SUITE=dist
   global:
-    - USE_SOUTH=1
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
 install:
