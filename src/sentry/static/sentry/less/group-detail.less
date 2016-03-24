@@ -1682,8 +1682,18 @@ ul.crumbs {
     &.crumb-message {
       padding-top: 11px;
 
-      &:before {
-        background: #D7E1EA;
+      & + .crumb-message {
+        margin-top: -1px;
+        background: #fff;
+        min-height: 0;
+        padding-top: 0;
+        padding-bottom: 10px;
+        border-left: 1px solid @trim;
+        border-right: 1px solid @trim;
+
+        .icon-container {
+          display: none;
+        }
       }
 
       .icon-container {
