@@ -42,7 +42,7 @@ const BreadcrumbsInterface = React.createClass({
     let title = (
       <div>
         <h3>
-          <strong>Breadcrumb Timeline</strong>
+          <strong>Breadcrumbs</strong>
         </h3>
       </div>
     );
@@ -86,7 +86,15 @@ const BreadcrumbsInterface = React.createClass({
           type={this.props.type}
           title={title}
           wrapTitle={false}>
-        <ul className="crumbs">{renderedCrumbs}</ul>
+        <ul className="crumbs">
+          <li className="crumbs-collapsed">
+            <span className="icon-container">
+              <span className="icon icon-ellipsis"/>
+            </span>
+            <a>Show 12 collapsed crumbs</a>
+          </li>
+          {renderedCrumbs}
+        </ul>
       </GroupEventDataSection>
     );
   }

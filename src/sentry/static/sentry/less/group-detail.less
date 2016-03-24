@@ -1511,7 +1511,7 @@ ul.crumbs {
     border-bottom: 1px solid lighten(@trim, 6);
     padding: 10px 20px 10px 70px;
     position: relative;
-    min-height: 47px;
+    min-height: 46px;
 
     &:before {
       display: block;
@@ -1605,6 +1605,32 @@ ul.crumbs {
         display: inline-block;
         padding: 2px 8px;
         margin: -4px 0 0;
+      }
+    }
+
+    &.crumbs-collapsed {
+      background: @white-dark;
+      margin: 0 1px;
+      box-shadow: inset 0 -1px 2px rgba(0,0,0, .04);
+
+      &:before {
+        left: 34px;
+      }
+
+      .icon {
+        color: @gray;
+        top: 8px;
+      }
+
+      a {
+        color: @gray-dark;
+        display: block;
+        padding: 6px 0 5px;
+        margin: -5px 0;
+
+        &:hover {
+          color: @gray-darkest;
+        }
       }
     }
 
