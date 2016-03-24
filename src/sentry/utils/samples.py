@@ -88,6 +88,7 @@ def load_data(platform, default=None):
                 "timestamp": "2016-01-17T12:30:03",
                 "data": {
                     "message": "This is a message breadcrumb",
+                    "level": "info"
                 }
             },
             {
