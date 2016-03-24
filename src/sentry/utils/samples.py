@@ -92,6 +92,24 @@ def load_data(platform, default=None):
                 }
             },
             {
+                "type": "message",
+                "dt": 4000,
+                "timestamp": "2016-01-17T12:31:03",
+                "data": {
+                    "message": "This is a warning message",
+                    "level": "warning"
+                }
+            },
+            {
+                "type": "message",
+                "dt": 3500,
+                "timestamp": "2016-01-17T12:31:50",
+                "data": {
+                    "message": "This is an error message",
+                    "level": "error"
+                }
+            },
+            {
                 "type": "http_request",
                 "dt": 3000,
                 "timestamp": "2016-01-17T12:32:05",
