@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db import IntegrityError, transaction
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -71,19 +72,15 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
             return Response(status=400)
 
         if is_approved:
-            affected, _ = OrganizationMemberTeam.objects.create_or_update(
-                organizationmember=access_request.member,
-                team=access_request.team,
-                values={
-                    'is_active': is_approved,
-                }
-            )
-            if affected:
-                omt = OrganizationMemberTeam.objects.get(
-                    organizationmember=access_request.member,
-                    team=access_request.team,
-                )
-
+            try:
+                with transaction.atomic():
+                    omt = OrganizationMemberTeam.objects.create(
+                        organizationmember=access_request.member,
+                        team=access_request.team,
+                    )
+            except IntegrityError:
+                pass
+            else:
                 self.create_audit_entry(
                     request=request,
                     organization=organization,

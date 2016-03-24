@@ -93,11 +93,10 @@ class CreateOrganizationMemberTeamTest(APITestCase):
 
         assert resp.status_code == 201
 
-        omt = OrganizationMemberTeam.objects.get(
+        assert OrganizationMemberTeam.objects.filter(
             team=team,
             organizationmember=member_om,
-        )
-        assert omt.is_active
+        ).exists()
 
 
 class DeleteOrganizationMemberTeamTest(APITestCase):
@@ -122,10 +121,9 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
 
         assert resp.status_code == 200
 
-        assert OrganizationMemberTeam.objects.filter(
+        assert not OrganizationMemberTeam.objects.filter(
             team=team,
             organizationmember=member_om,
-            is_active=False,
         ).exists()
 
     def test_can_leave_as_non_member(self):
@@ -149,10 +147,9 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
 
         assert resp.status_code == 200
 
-        assert OrganizationMemberTeam.objects.filter(
+        assert not OrganizationMemberTeam.objects.filter(
             team=team,
             organizationmember=member_om,
-            is_active=False,
         ).exists()
 
     def test_can_leave_as_superuser_without_membership(self):
@@ -176,8 +173,7 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
 
         assert resp.status_code == 200
 
-        assert OrganizationMemberTeam.objects.filter(
+        assert not OrganizationMemberTeam.objects.filter(
             team=team,
             organizationmember=member_om,
-            is_active=False,
         ).exists()
