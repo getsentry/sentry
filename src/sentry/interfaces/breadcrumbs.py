@@ -21,8 +21,11 @@ validators = {}
 
 
 def parse_new_timestamp(value):
+    # TODO(mitsuhiko): merge this code with coreapis date parser
     if isinstance(value, datetime):
         return value
+    elif isinstance(value, (int, long, float)):
+        return datetime.utcfromtimestamp(value).replace(tzinfo=pytz.utc)
     value = (value or '').rstrip('Z').encode('ascii', 'replace').split('.', 1)
     if not value:
         return None
