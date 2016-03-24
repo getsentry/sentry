@@ -1229,6 +1229,49 @@ ol.context-line {
   }
 }
 
+.stacktrace-table {
+  background: lighten(@blue-light, 25);
+
+  &.in-app {
+    background: white;
+  }
+
+  .trace-col {
+    display: inline-block;
+    padding: 0 5px;
+  }
+
+  .package {
+    width: 15%;
+    font-size: 13px;
+    font-weight: bold;
+  }
+  .address {
+    width: 10%;
+    font-size: 12px;
+    letter-spacing: -0.5px;
+  }
+  .symbol {
+    width: 75%;
+    code {
+      font-size: 12px;
+      background: transparent;
+      color: @blue-dark;
+    }
+    span.filename {
+      &:before {
+        content: "(";
+      }
+      &:after {
+        content: ")";
+      }
+      font-size: 12px;
+      color: @purple;
+      padding-left: 10px;
+    }
+  }
+}
+
 #full-message {
   line-height: 1.5em;
 

@@ -25,21 +25,64 @@ def exception_from_apple_error_or_diagnosis(error, diagnosis=None):
         }
 
 
-def inject_apple_backtrace(data, frames, diagnosis=None, error=None):
+def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
+                           system=None):
+    # TODO:
+    #   in-app (based on global/project dsym?)
+    #   instruction_offset:
+    #       image + offset
+    #       symbol if found + offset
+    #   pad out addresses in UI
+    #   user report stacktraces from unity
+
+    if system:
+        app_uuid = system.get('app_uuid').lower()
+    else:
+        app_uuid = None
+
     converted_frames = []
+    longest_addr = 0
     for frame in frames:
         fn = frame.get('filename')
-        converted_frames.append({
+        in_app = False
+
+        if app_uuid is not None:
+            frame_uuid = frame.get('uuid')
+            if frame_uuid == app_uuid:
+                in_app = True
+
+        # We only record the offset if we found a symbol but we did not
+        # find a line number.  In that case it's the offset in bytes from
+        # the beginning of the symbol.
+        function = frame['symbol_name'] or '<unknown>'
+        lineno = frame.get('line')
+        offset = None
+        if not lineno:
+            offset = frame['instruction_addr'] - frame['symbol_addr']
+
+        cframe = {
+            'in_app': in_app,
             'abs_path': fn,
             'filename': fn and posixpath.basename(fn) or None,
             # This can come back as `None` from the symbolizer, in which
             # case we need to fill something else in or we will fail
             # later fulfill the interface requirements which say that a
             # function needs to be provided.
-            'function': frame['symbol_name'] or '<unknown>',
+            'function': function,
             'package': frame['object_name'],
-            'lineno': frame.get('line'),
-        })
+            'symbol_addr': '%x' % frame['symbol_addr'],
+            'instruction_addr': '%x' % frame['instruction_addr'],
+            'instruction_offset': offset,
+            'lineno': lineno,
+        }
+        converted_frames.append(cframe)
+        longest_addr = max(longest_addr, len(cframe['symbol_addr']),
+                           len(cframe['instruction_addr']))
+
+    # Pad out addresses to be of the same length and add prefix
+    for frame in converted_frames:
+        for key in 'symbol_addr', 'instruction_addr':
+            frame[key] = '0x' + frame[key][2:].rjust(longest_addr, '0')
 
     stacktrace = {'frames': converted_frames}
 
@@ -78,7 +121,7 @@ def preprocess_apple_crash_event(data):
     with sym.driver:
         bt = sym.symbolize_backtrace(crashed_thread['backtrace']['contents'])
         inject_apple_backtrace(data, bt, crash.get('diagnosis'),
-                               crash.get('error'))
+                               crash.get('error'), crash_report.get('system'))
 
     return data
 
