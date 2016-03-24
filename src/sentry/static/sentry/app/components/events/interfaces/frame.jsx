@@ -218,7 +218,7 @@ const Frame = React.createClass({
   renderDefaultLine() {
     return (
       <p>
-        {this.renderTitle()}
+        {this.renderDefaultTitle()}
         {this.renderExpander()}
       </p>
     );
