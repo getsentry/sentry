@@ -5,7 +5,7 @@ from mock import patch
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
     Event, EventMapping, EventTag,
-    Group, GroupAssignee, GroupMeta, GroupResolution, GroupStatus, GroupTagKey,
+    Group, GroupAssignee, GroupMeta, GroupResolution, GroupRedirect, GroupStatus, GroupTagKey,
     GroupTagValue, Organization, OrganizationStatus, Project, ProjectStatus,
     Release, TagKey, TagValue, Team, TeamStatus
 )
@@ -185,6 +185,10 @@ class DeleteGroupTest(TestCase):
             key='foo',
             value='bar',
         )
+        GroupRedirect.objects.create(
+            group_id=group.id,
+            previous_group_id=1,
+        )
 
         with self.tasks():
             delete_group(object_id=group.id)
@@ -196,3 +200,4 @@ class DeleteGroupTest(TestCase):
             group_id=group.id,
         ).exists()
         assert not EventTag.objects.filter(event_id=event.id).exists()
+        assert not GroupRedirect.objects.filter(group_id=group.id).exists()

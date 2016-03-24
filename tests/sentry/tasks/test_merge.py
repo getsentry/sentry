@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.tasks.merge import merge_group, rehash_group_events
-from sentry.models import Event, Group
+from sentry.models import Event, Group, GroupRedirect
 from sentry.testutils import TestCase
 
 
@@ -30,6 +30,26 @@ class MergeGroupTest(TestCase):
         assert event2.group_id == group2.id
         Event.objects.bind_nodes([event2], 'data')
         assert event2.data == {'foo': 'baz'}
+
+    def test_merge_creates_redirect(self):
+        groups = [self.create_group() for _ in xrange(0, 3)]
+
+        with self.tasks():
+            merge_group(groups[0].id, groups[1].id)
+
+        assert not Group.objects.filter(id=groups[0].id).exists()
+        assert GroupRedirect.objects.filter(
+            group_id=groups[1].id,
+            previous_group_id=groups[0].id,
+        ).count() == 1
+
+        with self.tasks():
+            merge_group(groups[1].id, groups[2].id)
+
+        assert not Group.objects.filter(id=groups[1].id).exists()
+        assert GroupRedirect.objects.filter(
+            group_id=groups[2].id,
+        ).count() == 2
 
 
 class RehashGroupEventsTest(TestCase):

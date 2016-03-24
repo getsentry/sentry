@@ -98,6 +98,17 @@ Redis
                 host: redis-3.example.com
                 port: 6379
 
+Mail
+----
+
+.. describe:: mail.list-namespace
+
+    Declared in ``config.yml``.
+
+    The mailing list namespace for emails sent by this Sentry server. This
+    should be a domain you own (often the same domain as the domain part of the
+    ``mail.from`` configuration parameter value) or ``localhost``.
+
 Authentication
 --------------
 

@@ -18,7 +18,6 @@ class TeamTest(TestCase):
         OrganizationMemberTeam.objects.create(
             organizationmember=member,
             team=team,
-            is_active=True,
         )
         assert list(team.member_set.all()) == [member]
 
@@ -26,14 +25,9 @@ class TeamTest(TestCase):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        member = OrganizationMember.objects.get(
+        OrganizationMember.objects.get(
             user=user,
             organization=org,
-        )
-        OrganizationMemberTeam.objects.create(
-            organizationmember=member,
-            team=team,
-            is_active=False
         )
 
         assert list(team.member_set.all()) == []

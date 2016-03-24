@@ -8,15 +8,18 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding field 'Project.forced_color'
-        db.add_column('sentry_project', 'forced_color',
-                      self.gf('django.db.models.fields.CharField')(max_length=6, null=True),
-                      keep_default=False)
+        # Adding model 'GroupRedirect'
+        db.create_table('sentry_groupredirect', (
+            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
+            ('group_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(db_index=True)),
+            ('previous_group_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(unique=True)),
+        ))
+        db.send_create_signal('sentry', ['GroupRedirect'])
 
 
     def backwards(self, orm):
-        # Deleting field 'Project.forced_color'
-        db.delete_column('sentry_project', 'forced_color')
+        # Deleting model 'GroupRedirect'
+        db.delete_table('sentry_groupredirect')
 
 
     models = {
@@ -84,7 +87,7 @@ class Migration(SchemaMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 3, 15, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 3, 30, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -102,7 +105,7 @@ class Migration(SchemaMigration):
         'sentry.counter': {
             'Meta': {'object_name': 'Counter', 'db_table': "'sentry_projectcounter'"},
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
-            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'unique': True}),
+            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'unique': 'True'}),
             'value': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {})
         },
         'sentry.event': {
@@ -243,6 +246,12 @@ class Migration(SchemaMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'value': ('django.db.models.fields.TextField', [], {})
+        },
+        'sentry.groupredirect': {
+            'Meta': {'object_name': 'GroupRedirect'},
+            'group_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {'db_index': 'True'}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'previous_group_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {'unique': 'True'})
         },
         'sentry.groupresolution': {
             'Meta': {'object_name': 'GroupResolution'},
