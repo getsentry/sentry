@@ -1633,7 +1633,7 @@ ul.crumbs {
 
         .icon {
           top: 7px;
-          color: darken(@yellow-orange, 3);
+          color: darken(@yellow-orange, 5);
           &:before {content: "\e61d";}
         }
       }
@@ -1642,20 +1642,32 @@ ul.crumbs {
     &.crumb-http-request {
       .icon-container {
         border-color: @green-dark;
+
+        .icon {
+          top: 7px;
+          color: @green;
+          &:before {
+            content: "\e908";
+          }
+        }
       }
     }
 
     &.crumb-message {
-      background: #FBFDFF;
-      border: 1px solid #B6D6EB;
-      margin: -1px 0 0;
-
       &:before {
         background: #D7E1EA;
       }
 
       .icon-container {
         border-color: @blue-dark;
+      }
+
+      .icon {
+        color: @blue;
+        top: 8px;
+        &:before {
+          content: "\e909";
+        }
       }
 
       span.level {
@@ -1691,6 +1703,13 @@ ul.crumbs {
       border: 1px solid #E7C0BC;
       margin: -1px 0;
 
+      .icon {
+        color: @red;
+        &:before {
+          content: "\e906";
+        }
+      }
+
       h5 {
         color: #000 !important;
       }
@@ -1705,6 +1724,8 @@ ul.crumbs {
 
       &:before {
          background: #F1D8D5;
+         bottom: auto;
+         height: 20px;
       }
 
       pre {
