@@ -169,6 +169,7 @@ VALID_PLATFORMS = set([
     'as3',
     'c',
     'cfml',
+    'cocoa',
     'csharp',
     'go',
     'java',
