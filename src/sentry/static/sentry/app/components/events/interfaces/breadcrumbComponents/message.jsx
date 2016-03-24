@@ -9,9 +9,11 @@ const MessageCrumbComponent = React.createClass({
 
   render() {
     let data = this.props.data;
+    let levelClasses = 'level level-' + data.level;
+
     return (
       <p>
-        {data.level ? <span className="level">{data.level}</span> : null}
+        {data.level ? <span className={levelClasses}>{data.level}</span> : null}
         {' ' + data.message + ' '}
         {data.logger ? <span className="logger">[{data.logger}]</span> : null}
         <Classifier value={data.classifier} title="%s" hideIfEmpty={true}/>

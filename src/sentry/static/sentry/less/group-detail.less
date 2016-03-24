@@ -1611,7 +1611,7 @@ ul.crumbs {
     &.crumbs-collapsed {
       background: @white-dark;
       margin: 0 1px;
-      box-shadow: inset 0 -1px 2px rgba(0,0,0, .04);
+      box-shadow: inset 0 -1px 2px rgba(0,0,0, .03);
 
       &:before {
         left: 34px;
@@ -1680,6 +1680,8 @@ ul.crumbs {
     }
 
     &.crumb-message {
+      padding-top: 11px;
+
       &:before {
         background: #D7E1EA;
       }
@@ -1690,23 +1692,51 @@ ul.crumbs {
 
       .icon {
         color: @blue;
-        top: 8px;
+        top: 7px;
+
         &:before {
           content: "\e909";
         }
       }
 
       span.level {
+        font-size: 11px;
         font-weight: bold;
         text-transform: capitalize;
+        background: @white-darkest;
+        color: @gray-dark;
+        border-radius: 2px;
+        display: inline-block;
+        padding: 4px 8px;
+        margin-right: 6px;
+        line-height: 1;
+        position: relative;
+        top: -2px;
       }
-      span.level:after {
-        content: ": ";
+
+      span.level-info {
+        background: @blue;
+        color: @white;
       }
+
+      span.level-error {
+        background: @orange;
+        color: @white;
+      }
+
+      span.level-warning {
+        background: @yellow-orange;
+        color: @white;
+      }
+
+      span.level-fatal {
+        background: @red;
+        color: @white;
+      }
+
       span.logger {
-        font-size: 11px;
-        padding-left: 10px;
-        color: @blue;
+        padding-left: 8px;
+        color: @gray;
       }
     }
 
