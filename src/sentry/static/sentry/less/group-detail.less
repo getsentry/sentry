@@ -1511,7 +1511,7 @@ ul.crumbs {
     border-bottom: 1px solid lighten(@trim, 6);
     padding: 10px 20px 10px 70px;
     position: relative;
-    min-height: 46px;
+    min-height: 47px;
 
     &:before {
       display: block;
@@ -1547,11 +1547,27 @@ ul.crumbs {
       border: 1px solid @gray-lighter;
       box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
       border-radius: 32px;
-      text-align: center;
-      line-height: 32px;
       position: absolute;
       top: 7px;
       left: 19px;
+
+      .icon {
+        font-size: 16px;
+        position: absolute;
+        left: 8px;
+        top: 6px;
+        font-family: 'sentry-simple';
+        speak: none;
+        font-style: normal;
+        font-weight: normal;
+        font-variant: normal;
+        text-transform: none;
+        line-height: 1;
+
+        /* Better Font Rendering =========== */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
     }
 
     time, span.dt {
@@ -1614,18 +1630,32 @@ ul.crumbs {
     &.crumb-navigation {
       .icon-container {
         border-color: @yellow-orange-dark;
+
+        .icon {
+          top: 7px;
+          color: darken(@yellow-orange, 3);
+          &:before {content: "\e61d";}
+        }
       }
     }
 
     &.crumb-http-request {
       .icon-container {
-        border-color: @blue-dark;
+        border-color: @green-dark;
       }
     }
 
     &.crumb-message {
+      background: #FBFDFF;
+      border: 1px solid #B6D6EB;
+      margin: -1px 0 0;
+
+      &:before {
+        background: #D7E1EA;
+      }
+
       .icon-container {
-        border-color: @green-dark;
+        border-color: @blue-dark;
       }
 
       span.level {
@@ -1646,12 +1676,28 @@ ul.crumbs {
       .icon-container {
         border-color: @purple-dark;
       }
+
+      .icon {
+        color: @purple;
+      }
+
+      .icon:before {
+        content: "\e608";
+      }
     }
 
     &.crumb-error {
       background: #fffcfb;
       border: 1px solid #E7C0BC;
       margin: -1px 0;
+
+      h5 {
+        color: #000 !important;
+      }
+
+      td, pre, time, .dt {
+        color: #504140 !important;
+      }
 
       .icon-container {
         border-color: @red-dark;
