@@ -25,9 +25,6 @@ import sentry
 
 gettext_noop = lambda s: s
 
-# A marker for indicating builtin Django settings that are to not be used
-DEAD = object()
-
 socket.setdefaulttimeout(5)
 
 DEBUG = False
@@ -188,8 +185,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-# Make this unique, and don't share it with anybody.
-SECRET_KEY = hashlib.md5(socket.gethostname() + ')*)&8a36)6%74e@-ne5(-!8a(vv#tkv)(eyg&@0=zd^pl!7=y@').hexdigest()
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -687,10 +682,6 @@ SENTRY_SMTP_HOSTNAME = 'localhost'
 SENTRY_SMTP_HOST = 'localhost'
 SENTRY_SMTP_PORT = 1025
 
-SERVER_EMAIL = DEAD
-DEFAULT_FROM_EMAIL = DEAD
-EMAIL_SUBJECT_PREFIX = DEAD
-
 SENTRY_INTERFACES = {
     'exception': 'sentry.interfaces.exception.Exception',
     'logentry': 'sentry.interfaces.message.Message',
@@ -912,7 +903,18 @@ SENTRY_ROLES = (
 )
 
 # See sentry/options/__init__.py for more information
-SENTRY_OPTIONS = {}
+SENTRY_OPTIONS = {
+    'mail.backend': 'django.core.mail.backends.smtp.EmailBackend',
+    'mail.host': 'localhost',
+    'mail.port': 25,
+    'mail.username': '',
+    'mail.password': '',
+    'mail.use-tls': False,
+    'mail.subject-prefix': '[Sentry] ',
+    'mail.from': 'root@localhost',
+    # Make this unique, and don't share it with anybody.
+    'system.secret-key': hashlib.md5(socket.gethostname() + ')*)&8a36)6%74e@-ne5(-!8a(vv#tkv)(eyg&@0=zd^pl!7=y@').hexdigest(),
+}
 
 # You should not change this setting after your database has been created
 # unless you have altered all schemas first
@@ -944,3 +946,18 @@ def get_raven_config():
     }
 
 RAVEN_CONFIG = get_raven_config()
+
+# Config options that are explicitly disabled from Django
+DEAD = object()
+
+# This will eventually get set from values in SENTRY_OPTIONS during
+# sentry.runner.initializer:bootstrap_options
+SECRET_KEY = DEAD
+EMAIL_BACKEND = DEAD
+EMAIL_HOST = DEAD
+EMAIL_PORT = DEAD
+EMAIL_HOST_USER = DEAD
+EMAIL_HOST_PASSWORD = DEAD
+EMAIL_USE_TLS = DEAD
+SERVER_EMAIL = DEAD
+EMAIL_SUBJECT_PREFIX = DEAD

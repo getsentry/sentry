@@ -66,10 +66,10 @@ def get_asset_version(settings):
 # bootstrapping. Everything else will get validated and used
 # as a part of OptionsManager.
 options_mapper = {
-    'cache.backend': 'SENTRY_CACHE',
-    'cache.options': 'SENTRY_CACHE_OPTIONS',
-    'system.databases': 'DATABASES',
-    'system.debug': 'DEBUG',
+    # 'cache.backend': 'SENTRY_CACHE',
+    # 'cache.options': 'SENTRY_CACHE_OPTIONS',
+    # 'system.databases': 'DATABASES',
+    # 'system.debug': 'DEBUG',
     'system.secret-key': 'SECRET_KEY',
     'mail.backend': 'EMAIL_BACKEND',
     'mail.host': 'EMAIL_HOST',
@@ -82,44 +82,60 @@ options_mapper = {
 }
 
 
-def bootstrap_options(settings, config):
+def bootstrap_options(settings, config=None):
     """
     Quickly bootstrap options that come in from a config file
     and convert options into Django settings that are
     required to even initialize the rest of the app.
     """
-    if config is None:
-        return
+    options = {}
+    if config is not None:
+        # Attempt to load our config yaml file
+        from sentry.utils.yaml import safe_load
+        from yaml.parser import ParserError
+        from yaml.scanner import ScannerError
+        try:
+            with open(config, 'rb') as fp:
+                options = safe_load(fp)
+        except IOError:
+            # Gracefully fail if yaml file doesn't exist
+            pass
+        except (AttributeError, ParserError, ScannerError) as e:
+            from .importer import ConfigurationError
+            raise ConfigurationError('Malformed config.yml file: %s' % unicode(e))
+
+        # Empty options file, so fail gracefully
+        if options is None:
+            options = {}
+        # Options needs to be a dict
+        elif not isinstance(options, dict):
+            from .importer import ConfigurationError
+            raise ConfigurationError('Malformed config.yml file')
+
     from sentry.conf.server import DEAD
-    from sentry.utils.yaml import safe_load
-    from yaml.parser import ParserError
-    from yaml.scanner import ScannerError
-    try:
-        with open(config, 'rb') as fp:
-            options = safe_load(fp)
-    except IOError:
-        # Gracefully fail if yaml file doesn't exist
-        return
-    except (AttributeError, ParserError, ScannerError) as e:
-        from .importer import ConfigurationError
-        raise ConfigurationError('Malformed config.yml file: %s' % unicode(e))
-    # Empty options file, so fail gracefully
-    if options is None:
-        return
-    # Options needs to be a dict
-    if not isinstance(options, dict):
-        from .importer import ConfigurationError
-        raise ConfigurationError('Malformed config.yml file')
+
     # First move options from settings into options
     for k, v in options_mapper.iteritems():
-        if hasattr(settings, v) and k not in options and getattr(settings, v) is not DEAD:
+        if getattr(settings, v, DEAD) is not DEAD and k not in options:
+            warnings.warn(
+                DeprecatedSettingWarning(
+                    options_mapper[k],
+                    "SENTRY_OPTIONS['%s']" % k,
+                )
+            )
             options[k] = getattr(settings, v)
+
+    # Stuff everything else into SENTRY_OPTIONS
+    # these will be validated later after bootstrapping
     for k, v in options.iteritems():
-        # Stuff everything else into SENTRY_OPTIONS
-        # these will be validated later after bootstrapping
         settings.SENTRY_OPTIONS[k] = v
-        # Escalate the few needed to actually get the app bootstrapped into settings
+
+    # Now go back through all of SENTRY_OPTIONS and promote
+    # back into settings. This catches the case when values are defined
+    # only in SENTRY_OPTIONS and no config.yml file
+    for k, v in settings.SENTRY_OPTIONS.iteritems():
         if k in options_mapper:
+            # Escalate the few needed to actually get the app bootstrapped into settings
             setattr(settings, options_mapper[k], v)
 
 
@@ -232,7 +248,6 @@ def show_big_error(message):
 
 
 def apply_legacy_settings(settings):
-    from sentry.conf.server import DEAD
     from sentry import options
 
     # SENTRY_USE_QUEUE used to determine if Celery was eager or not
@@ -250,16 +265,8 @@ def apply_legacy_settings(settings):
         ('SENTRY_ADMIN_EMAIL', 'system.admin-email'),
         ('SENTRY_URL_PREFIX', 'system.url-prefix'),
         ('SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE', 'system.rate-limit'),
-        ('EMAIL_BACKEND', 'mail.backend'),
-        ('EMAIL_HOST', 'mail.host'),
-        ('EMAIL_HOST_PASSWORD', 'mail.password'),
-        ('EMAIL_HOST_USER', 'mail.username'),
-        ('EMAIL_PORT', 'mail.port'),
-        ('EMAIL_USE_TLS', 'mail.use-tls'),
-        ('SERVER_EMAIL', 'mail.from'),
-        ('EMAIL_SUBJECT_PREFIX', 'mail.subject-prefix'),
     ):
-        if not settings.SENTRY_OPTIONS.get(new) and getattr(settings, old, DEAD) is not DEAD:
+        if new not in settings.SENTRY_OPTIONS and hasattr(settings, old):
             warnings.warn(
                 DeprecatedSettingWarning(old, "SENTRY_OPTIONS['%s']" % new))
             settings.SENTRY_OPTIONS[new] = getattr(settings, old)
@@ -306,7 +313,7 @@ def apply_legacy_settings(settings):
         warnings.warn(DeprecatedSettingWarning('SENTRY_ALLOW_REGISTRATION', 'SENTRY_FEATURES["auth:register"]'))
         settings.SENTRY_FEATURES['auth:register'] = settings.SENTRY_ALLOW_REGISTRATION
 
-    settings.DEFAULT_FROM_EMAIL = options.get('mail.from', silent=True)
+    settings.DEFAULT_FROM_EMAIL = settings.SENTRY_OPTIONS.get('mail.from')
 
 
 def skip_migration_if_applied(settings, app_name, table_name,
