@@ -49,14 +49,13 @@ SENTRY_WEB_OPTIONS = {
     'secure_scheme_headers': {'X-FORWARDED-PROTO': 'https'},
 }
 
-SECRET_KEY = 'super secret secret key'
-
 SENTRY_OPTIONS.update({
     'redis.clusters': {
         'default': {
             'hosts': {i: {'port': SENTRY_APIDOCS_REDIS_PORT} for i in xrange(0, 4)},
         },
     },
+    'system.secret-key': 'super secret secret key',
     'system.admin-email': 'admin@getsentry.com',
     'system.url-prefix': SENTRY_URL_PREFIX,
     'mail.backend': 'django.core.mail.backends.smtp.EmailBackend',

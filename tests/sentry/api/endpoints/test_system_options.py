@@ -15,7 +15,6 @@ class SystemOptionsTest(APITestCase):
         assert 'system.secret-key' in response.data
         assert 'system.url-prefix' in response.data
         assert 'system.admin-email' in response.data
-        assert 'cache.backend' in response.data
 
     def test_bad_query(self):
         self.login_as(user=self.user)
