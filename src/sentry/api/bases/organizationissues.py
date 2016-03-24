@@ -34,7 +34,6 @@ class OrganizationIssuesEndpoint(OrganizationMemberEndpoint):
             organization=organization,
             team__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=member,
-                is_active=True,
             ).values('team')
         )
 
