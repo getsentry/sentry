@@ -16,5 +16,5 @@ Options
 - ``--project TEXT``: Limit truncation to only entries from project.
 - ``--concurrency INTEGER``: The number of concurrent workers to run.
   [default: 1]
-- ``--quiet``: Run quietly. No output on success. default off.
+- ``-q, --silent``: Run quietly. No output on success.
 - ``--help``: print this help page.
