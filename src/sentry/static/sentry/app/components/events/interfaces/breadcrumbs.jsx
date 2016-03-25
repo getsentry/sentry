@@ -10,7 +10,7 @@ import UiEventComponent from './breadcrumbComponents/uiEvent';
 import NavigationCrumbComponent from './breadcrumbComponents/navigation';
 import ErrorCrumbComponent from './breadcrumbComponents/error';
 
-const crumbComponents = {
+const CRUMB_COMPONENTS = {
   message: MessageCrumbComponent,
   rpc: RpcCrumbComponent,
   query: QueryCrumbComponent,
@@ -18,6 +18,21 @@ const crumbComponents = {
   ui_event: UiEventComponent,
   navigation: NavigationCrumbComponent,
   error: ErrorCrumbComponent
+};
+
+function Collapsed(props) {
+  return (
+    <li className="crumbs-collapsed">
+      <span className="icon-container">
+        <span className="icon icon-ellipsis"/>
+      </span>
+      <a onClick={props.onClick}>Show {props.count} collapsed crumbs</a>
+    </li>
+  );
+}
+Collapsed.propTypes = {
+  onClick: React.PropTypes.func.isRequired,
+  count: React.PropTypes.number.isRequired
 };
 
 const BreadcrumbsInterface = React.createClass({
@@ -34,33 +49,27 @@ const BreadcrumbsInterface = React.createClass({
     project: PropTypes.Project
   },
 
-  render() {
-    let group = this.props.group;
-    let evt = this.props.event;
-    let data = this.props.data;
+  statics: {
+    MAX_CRUMBS_WHEN_COLLAPSED: 5
+  },
 
-    let title = (
-      <div>
-        <h3>
-          <strong>Breadcrumbs</strong>
-        </h3>
-      </div>
-    );
+  getInitialState() {
+    return {
+      collapsed: true
+    };
+  },
 
-    // Add the error event as the final breadcrumb
-    let crumbs = [].slice.call(data.values, 0);
+  onCollapseToggle() {
+    this.setState({
+      collapsed: !this.state.collapsed
+    });
+  },
 
-    let exception = evt.entries.find(entry => entry.type === 'exception');
-    if (exception) {
-      crumbs.push({
-        type: 'error',
-        dt: 0,
-        data: exception.data.values[0]
-      });
-    }
-
-    let renderedCrumbs = crumbs.map((item, idx) => {
-      let Component = crumbComponents[item.type];
+  renderBreadcrumbs(crumbs) {
+    // reverse array to get consistent idx between collapsed/expanded state
+    // (indexes begin and increment from last breadcrumb)
+    return crumbs.reverse().map((item, idx) => {
+      let Component = CRUMB_COMPONENTS[item.type];
       let el;
       if (Component) {
         el = <Component data={item.data} />;
@@ -76,7 +85,43 @@ const BreadcrumbsInterface = React.createClass({
           {el}
         </li>
       );
-    });
+    }).reverse(); // un-reverse rendered result
+  },
+
+  render() {
+    let group = this.props.group;
+    let evt = this.props.event;
+    let data = this.props.data;
+
+    let title = (
+      <div>
+        <h3>
+          <strong>{'Breadcrumbs'}</strong>
+        </h3>
+      </div>
+    );
+
+    let all = data.values;
+
+    // Add the error event as the final breadcrumb
+    // TODO: what about non-exceptions (e.g. generic messages)?
+    let exception = evt.entries.find(entry => entry.type === 'exception');
+    if (exception) {
+      // make copy of values array / don't mutate props
+      all = all.slice(0).concat([{
+        type: 'error',
+        dt: 0,
+        data: exception.data.values[0]
+      }]);
+    }
+
+    let crumbs = all;
+    const MAX = BreadcrumbsInterface.MAX_CRUMBS_WHEN_COLLAPSED;
+    if (this.state.collapsed && crumbs.length > MAX) {
+      crumbs = all.slice(-MAX);
+    }
+
+    let numCollapsed = all.length - crumbs.length;
 
     return (
       <GroupEventDataSection
@@ -87,13 +132,8 @@ const BreadcrumbsInterface = React.createClass({
           title={title}
           wrapTitle={false}>
         <ul className="crumbs">
-          <li className="crumbs-collapsed">
-            <span className="icon-container">
-              <span className="icon icon-ellipsis"/>
-            </span>
-            <a>Show 12 collapsed crumbs</a>
-          </li>
-          {renderedCrumbs}
+          {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
+          {this.renderBreadcrumbs(crumbs)}
         </ul>
       </GroupEventDataSection>
     );
