@@ -36,10 +36,13 @@ const HomeSidebar = React.createClass({
       <div>
         <h6 className="nav-header">{t('Organization')}</h6>
         <ul className="nav nav-stacked">
-          <ListLink to={`/organizations/${orgId}/dashboard/`}>{t('Dashboard')}</ListLink>
           <ListLink to={`/${orgId}/`} isActive={() => {
-            // return true if path matches /slug-name/ OR /organizations/slug-name/all-teams/
-            return /^\/([^\/]+|organizations\/[^\/]+\/all-teams)\/$/.test(this.context.location.pathname);
+            // return true if path matches /organizations/slug-name/teams/ OR /organizations/slug-name/all-teams/
+            return /^\/[^\/]+\/$/.test(this.context.location.pathname);
+          }}>{t('Dashboard')}</ListLink>
+          <ListLink to={`/organizations/${orgId}/teams/`} isActive={() => {
+            // return true if path matches /organizations/slug-name/teams/ OR /organizations/slug-name/all-teams/
+            return /^\/organizations\/[^\/]+\/(teams|all-teams)\/$/.test(this.context.location.pathname);
           }}>{t('Projects & Teams')}</ListLink>
           {access.has('org:read') &&
             <ListLink to={`/organizations/${orgId}/stats/`}>{t('Stats')}</ListLink>
