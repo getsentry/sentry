@@ -12,6 +12,7 @@ const UiEventComponent = React.createClass({
     let data = this.props.data;
 
     let list = [];
+    list.push(['type', data.type || 'undefined type']);
     list.push(['element', data.target || 'undefined target']);
 
     return (
