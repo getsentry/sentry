@@ -1,5 +1,7 @@
 import React from 'react';
 
+import KeyValueList from '../keyValueList';
+
 const NavigationCrumbComponent = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
@@ -8,21 +10,14 @@ const NavigationCrumbComponent = React.createClass({
   render() {
     let data = this.props.data;
 
+    let list = [];
+    list.push(['from', data.from]);
+    list.push(['to', data.to]);
+
     return (
       <div>
         <h5>Navigation</h5>
-        <table className="table key-value">
-          <tbody>
-            {data.from &&
-              <tr><td className="key">from</td><td><pre>{data.from}</pre></td></tr>}
-            <tr>
-              <td className="key">to</td>
-              <td>
-                <pre>{data.to}</pre>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <KeyValueList data={list} isSorted={false} />
       </div>
     );
   }

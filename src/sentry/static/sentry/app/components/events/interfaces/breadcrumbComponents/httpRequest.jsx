@@ -1,6 +1,7 @@
 import React from 'react';
 
 import Classifier from './classifier';
+import KeyValueList from '../keyValueList';
 
 const HttpRequestCrumbComponent = React.createClass({
   propTypes: {
@@ -14,28 +15,18 @@ const HttpRequestCrumbComponent = React.createClass({
   render() {
     let data = this.props.data;
 
+    let list = [];
+    list.push(['method', data.method]);
+    list.push(['url', data.url]);
+
+    if(data.response) {
+      list.push(['response', data.response.statusCode]);
+    }
+
     return (
       <div>
         <h5>HTTP Request <Classifier value={data.classifier} title="%s request" /></h5>
-        <table className="table key-value">
-          <tbody>
-            <tr>
-              <td className="key">method</td>
-              <td>
-                <pre>{data.method}</pre>
-              </td>
-            </tr>
-            <tr>
-              <td className="key">url</td>
-              <td>
-                <pre>{data.url}</pre>
-              </td>
-            </tr>
-            {data.response ?
-              <tr><td className="key">response</td><td><pre>{data.response.statusCode}</pre></td></tr> :
-              null}
-          </tbody>
-        </table>
+        <KeyValueList data={list} isSorted={false} />
       </div>
     );
   }
