@@ -9,6 +9,15 @@ import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationStore from '../stores/organizationStore';
 import {t} from '../locale';
 
+function getAlertTypeForProblem(problem) {
+  switch (problem.severity) {
+    case 'critical':
+      return 'error';
+    default:
+      return 'warning';
+  }
+}
+
 const App = React.createClass({
   mixins: [
     ApiMixin
@@ -45,7 +54,12 @@ const App = React.createClass({
       success: (data) => {
         if (data && data.problems) {
           data.problems.forEach(problem => {
-            AlertActions.addAlert(problem.message, 'error', 0, problem.url);
+            AlertActions.addAlert(
+              problem.message,
+              getAlertTypeForProblem(problem),
+              0,
+              problem.url
+            );
           });
         }
       },

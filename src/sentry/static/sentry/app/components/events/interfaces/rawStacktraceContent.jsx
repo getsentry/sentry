@@ -89,6 +89,32 @@ export function getJavaFrame(frame) {
   return result;
 }
 
+function ljust(str, len) {
+  return str + Array(Math.max(0, len - str.length) + 1).join(' ');
+}
+
+export function getCocoaFrame(frame) {
+  let result = '  ';
+  if (defined(frame.package)) {
+    result += ljust(frame.package, 20);
+  }
+  if (defined(frame.instructionAddr)) {
+    result += ljust(frame.instructionAddr, 12);
+  }
+  result += ' ' + (frame.function || frame.symbolAddr);
+  if (frame.instructionOffset) {
+    result += ' + ' + frame.instructionOffset;
+  }
+  if (defined(frame.filename)) {
+    result += ' (' + frame.filename;
+    if (defined(frame.lineNo) && frame.lineNo >= 0) {
+      result += ':' + frame.lineNo;
+    }
+    result += ')';
+  }
+  return result;
+}
+
 function getFrame(frame, platform) {
   switch (platform) {
     case 'javascript':
@@ -99,6 +125,9 @@ function getFrame(frame, platform) {
       return getPythonFrame(frame);
     case 'java':
       return getJavaFrame(frame);
+    case 'objc':
+    case 'cocoa':
+      return getCocoaFrame(frame);
     default:
       return getPythonFrame(frame);
   }

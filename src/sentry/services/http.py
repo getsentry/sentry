@@ -34,7 +34,7 @@ class SentryHTTPServer(Service):
     name = 'http'
 
     def __init__(self, host=None, port=None, debug=False, workers=None,
-                 validate=True):
+                 validate=True, extra_options=None):
         from django.conf import settings
 
         if validate:
@@ -44,6 +44,9 @@ class SentryHTTPServer(Service):
         port = port or settings.SENTRY_WEB_PORT
 
         options = (settings.SENTRY_WEB_OPTIONS or {}).copy()
+        if extra_options is not None:
+            for k, v in extra_options.iteritems():
+                options[k] = v
         options.setdefault('module', 'sentry.wsgi:application')
         options.setdefault('protocol', 'http')
         options.setdefault('auto-procname', True)
@@ -116,13 +119,16 @@ class SentryHTTPServer(Service):
 
         validate_settings(django_settings)
 
-    def run(self):
+    def prepare_environment(self, env=None):
+        if env is None:
+            env = os.environ
+
         # Move all of the options into UWSGI_ env vars
         for k, v in convert_options_to_env(self.options):
-            os.environ.setdefault(k, v)
+            env.setdefault(k, v)
 
         # This has already been validated inside __init__
-        os.environ['SENTRY_SKIP_BACKEND_VALIDATION'] = '1'
+        env['SENTRY_SKIP_BACKEND_VALIDATION'] = '1'
 
         # Look up the bin directory where `sentry` exists, which should be
         # sys.argv[0], then inject that to the front of our PATH so we can reliably
@@ -130,8 +136,10 @@ class SentryHTTPServer(Service):
         # This is so the virtualenv doesn't need to be sourced in, which effectively
         # does exactly this.
         virtualenv_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-        current_path = os.environ.get('PATH', '')
+        current_path = env.get('PATH', '')
         if virtualenv_path not in current_path:
-            os.environ['PATH'] = '%s:%s' % (virtualenv_path, current_path)
+            env['PATH'] = '%s:%s' % (virtualenv_path, current_path)
 
+    def run(self):
+        self.prepare_environment()
         os.execvp('uwsgi', ('uwsgi',))

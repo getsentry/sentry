@@ -7,6 +7,7 @@ const StacktraceContent = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
     includeSystemFrames: React.PropTypes.bool,
+    platform: React.PropTypes.string,
     newestFirst: React.PropTypes.bool
   },
 
@@ -14,6 +15,20 @@ const StacktraceContent = React.createClass({
     return {
       includeSystemFrames: true
     };
+  },
+
+  shouldRenderAsTable() {
+    return this.props.platform === 'cocoa';
+  },
+
+  renderOmittedFrames(firstFrameOmitted, lastFrameOmitted) {
+    let props = {
+      className: 'frame frames-omitted',
+      key: 'omitted'
+    };
+    let text = t('Frames %d until %d were omitted and not available.',
+                 firstFrameOmitted, lastFrameOmitted);
+    return <li {...props}>{text}</li>;
   },
 
   render() {
@@ -32,14 +47,16 @@ const StacktraceContent = React.createClass({
     let frames = [];
     data.frames.forEach((frame, frameIdx) => {
       if (includeSystemFrames || frame.inApp) {
-        frames.push(<Frame key={frameIdx} data={frame} />);
+        frames.push(
+          <Frame
+            key={frameIdx}
+            data={frame}
+            platform={this.props.platform} />
+        );
       }
       if (frameIdx === firstFrameOmitted) {
-        frames.push((
-          <li className="frame frames-omitted" key="omitted">
-            {t('Frames %d until %d were omitted and not available.', firstFrameOmitted, lastFrameOmitted)}
-          </li>
-        ));
+        frames.push(this.renderOmittedFrames(
+          firstFrameOmitted, lastFrameOmitted));
       }
     });
 
@@ -49,9 +66,7 @@ const StacktraceContent = React.createClass({
 
     return (
       <div className="traceback">
-        <ul>
-          {frames}
-        </ul>
+        <ul>{frames}</ul>
       </div>
     );
   }
