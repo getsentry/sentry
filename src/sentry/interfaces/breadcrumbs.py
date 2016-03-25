@@ -144,6 +144,7 @@ class Breadcrumbs(Interface):
 
     >>> [{
     >>>     "type": "message",
+    >>>     // timestamp can be ISO format or a unix timestamp (as float)
     >>>     "timestamp": "2016-01-17T12:30:00",
     >>>     "data": {
     >>>         "message": "My raw message with interpreted strings like %s",
@@ -155,19 +156,18 @@ class Breadcrumbs(Interface):
 
     @classmethod
     def to_python(cls, data):
-        items = []
-        for crumb in data.get('items') or ():
+        values = []
+        for crumb in data.get('values') or ():
             ty = crumb.get('type') or 'message'
             ts = parse_new_timestamp(crumb.get('timestamp'))
             if ts is None:
-                raise ValueError('fucked up')
-            items.append({
+                raise InterfaceValidationError('Unable to determine timestamp for crumb')
+            values.append({
                 'type': ty,
                 'timestamp': ts,
-                'dt': crumb.get('dt'),
                 'data': validate_payload_for_type(crumb.get('data'), ty),
             })
-        return cls(items=items)
+        return cls(values=values)
 
     def get_path(self):
         return 'sentry.interfaces.Breadcrumbs'
@@ -177,5 +177,5 @@ class Breadcrumbs(Interface):
 
     def get_api_context(self, is_public=False):
         return {
-            'items': self.items,
+            'values': self.values,
         }
