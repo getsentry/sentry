@@ -71,7 +71,7 @@ var entry = {
 };
 
 // dynamically iterate over locale files and add to `entry` config
-var localeCatalogPath = path.join('src', 'sentry', 'locale', 'catalogs.json');
+var localeCatalogPath = path.join(__dirname, 'src', 'sentry', 'locale', 'catalogs.json');
 var localeCatalog = JSON.parse(fs.readFileSync(localeCatalogPath, 'utf8'));
 var localeEntries = [];
 
