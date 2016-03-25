@@ -27,6 +27,7 @@ def devserver(ctx, reload, watchers, workers, bind):
         host = bind
         port = None
 
+    import os
     from django.conf import settings
     from sentry.services.http import SentryHTTPServer
 
@@ -53,6 +54,8 @@ def devserver(ctx, reload, watchers, workers, bind):
             ['sentry', 'celery', 'beat', '-l', 'INFO'],
         ]
 
+    cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
+
     daemon_list = []
     server = None
     try:
@@ -63,7 +66,7 @@ def devserver(ctx, reload, watchers, workers, bind):
             for daemon in daemons:
                 click.secho('*** Running: {0}'.format(' '.join([os.path.basename(daemon[0])] + daemon[1:])), bold=True)
                 try:
-                    daemon_list.append(Popen(daemon, env=env))
+                    daemon_list.append(Popen(daemon, cwd=cwd, env=env))
                 except OSError:
                     raise click.ClickException('{0} not found.'.format(daemon[0]))
 
@@ -72,7 +75,7 @@ def devserver(ctx, reload, watchers, workers, bind):
             host=host,
             port=port,
             workers=1,
-        ).run_subprocess()
+        ).run_subprocess(cwd=cwd)
         server.wait()
     finally:
         if server and server.poll() is None:
