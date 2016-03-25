@@ -128,18 +128,23 @@ const ProjectList = React.createClass({
       <div className="organization-dashboard-projects">
         <Link className="btn-sidebar-header" to={`/${org.slug}/`}>View All</Link>
         <h6 className="nav-header">Projects</h6>
+        {bookmarkedProjects.length === 0 &&
+          <div className="alert alert-info" style={{marginBottom: 10}}>
+            Bookmark your most used <Link to={`/${org.slug}/`}>projects</Link> to have them appear here.
+          </div>
+        }
         <ul className="nav nav-stacked">
           {projects.map((project) => {
             return (
               <li key={project.id}>
                 <div className="pull-right sparkline">
                   {project.stats &&
-                    <ProjectSparkline data={project.stats}/>
+                    <ProjectSparkline data={project.stats} />
                   }
                 </div>
                 <Link to={`/${org.slug}/${project.slug}/`}>
                   <h4>
-                    {project.isBookmarked &&  <span className="bookmark icon-star-solid"></span>}
+                    {project.isBookmarked && <span className="bookmark icon-star-solid" />}
                     {project.name}
                   </h4>
                   <h5>{project.teamName}</h5>
