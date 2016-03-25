@@ -98,7 +98,7 @@ var config = {
         test: /\.jsx?$/,
         loader: 'babel-loader',
         include: path.join(__dirname, staticPrefix),
-        exclude: /(vendor|node_modules)/,
+        exclude: /(vendor|node_modules|dist)/,
         query: babelQuery
       },
       {
