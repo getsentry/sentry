@@ -17,8 +17,7 @@ from sentry.runner.decorators import configuration
 @click.option('--workers/--no-workers', default=False, help='Run asynchronous workers.')
 @click.argument('bind', default='127.0.0.1:8000', metavar='ADDRESS')
 @configuration
-@click.pass_context
-def devserver(ctx, reload, watchers, workers, bind):
+def devserver(reload, watchers, workers, bind):
     "Starts a lightweight web server for development."
     if ':' in bind:
         host, port = bind.split(':', 1)
@@ -54,28 +53,33 @@ def devserver(ctx, reload, watchers, workers, bind):
             ['sentry', 'celery', 'beat', '-l', 'INFO'],
         ]
 
+    # If we don't need any other daemons, just launch a normal uwsgi webserver
+    # and avoid dealing with subprocesses
+    if not daemons:
+        click.secho('*** Launching webserver..', bold=True)
+        SentryHTTPServer(host=host, port=port, workers=1).run()
+        return
+
+    from subprocess import Popen
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
+    env = os.environ.copy()
 
     daemon_list = []
     server = None
     try:
-        if daemons:
-            import os
-            from subprocess import Popen
-            env = os.environ.copy()
-            for daemon in daemons:
-                click.secho('*** Running: {0}'.format(' '.join([os.path.basename(daemon[0])] + daemon[1:])), bold=True)
-                try:
-                    daemon_list.append(Popen(daemon, cwd=cwd, env=env))
-                except OSError:
-                    raise click.ClickException('{0} not found.'.format(daemon[0]))
+        for daemon in daemons:
+            click.secho('*** Running: {0}'.format(' '.join([os.path.basename(daemon[0])] + daemon[1:])), bold=True)
+            try:
+                daemon_list.append(Popen(daemon, cwd=cwd, env=env))
+            except OSError:
+                raise click.ClickException('{0} not found.'.format(daemon[0]))
 
         click.secho('*** Launching webserver..', bold=True)
         server = SentryHTTPServer(
             host=host,
             port=port,
             workers=1,
-        ).run_subprocess(cwd=cwd)
+        ).run_subprocess(cwd=cwd, env=env)
         server.wait()
     finally:
         if server and server.poll() is None:
