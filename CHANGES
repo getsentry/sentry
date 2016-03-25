@@ -6,6 +6,12 @@ Version 8.3.0
 - Added CLI tool to monitor queue sizes. ``sentry queues --help``
 - Moved email configuration into ``config.yml``.
 - Added mailing list support (via ``List-Id`` header) for outbound email.
+- URLs for issues that have been merged now redirect to the issue that absorbed the requested issue.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``GroupRedirect`` model.
 
 Version 8.2.3
 -------------
