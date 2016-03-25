@@ -7,7 +7,7 @@
       <div class="container">
         <a class="close" data-dismiss="alert">×</a>
         <span class="icon icon-exclamation"></span>
-        {{ problem|linebreaks }}
+        {% if problem.url %}<a href="{{ problem.url }}">{% endif %}{{ problem|linebreaks }}{% if problem.url %}</a>{% endif %}
       </div>
     </div>
   {% endfor %}
