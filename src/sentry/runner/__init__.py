@@ -49,6 +49,7 @@ map(lambda cmd: cli.add_command(import_string(cmd)), (
     'sentry.runner.commands.cleanup.cleanup',
     'sentry.runner.commands.config.config',
     'sentry.runner.commands.createuser.createuser',
+    'sentry.runner.commands.devserver.devserver',
     'sentry.runner.commands.django.django',
     'sentry.runner.commands.backup.export',
     'sentry.runner.commands.help.help',
@@ -85,7 +86,6 @@ def make_django_command(name, django_command=None, help=None):
 
 
 map(cli.add_command, (
-    make_django_command('devserver', 'runserver', help='Start a light Web server for development.'),
     make_django_command('shell', help='Run a Python interactive interpreter.'),
     make_django_command('celery', help='Start background workers.'),
 ))
