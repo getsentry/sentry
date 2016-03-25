@@ -34,7 +34,10 @@ def devserver(reload, watchers, workers, bind):
         # Make sure we don't try and use uwsgi protocol
         'protocol': 'http',
         # A better log-format for local dev
-        'log-format': '"%(method) %(uri) %(proto)" %(status) %(size)'
+        'log-format': '"%(method) %(uri) %(proto)" %(status) %(size)',
+        # Make sure we reload really quickly for local dev in case it
+        # doesn't want to shut down nicely on it's own, NO MERCY
+        'worker-reload-mercy': 2,
     }
 
     if reload:
