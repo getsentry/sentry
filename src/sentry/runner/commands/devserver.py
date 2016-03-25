@@ -30,6 +30,9 @@ def devserver(ctx, reload, watchers, workers, bind):
     from django.conf import settings
     from sentry.services.http import SentryHTTPServer
 
+    # Make sure we don't try and use uwsgi protocol
+    settings.SENTRY_WEB_OPTIONS['protocol'] = 'http'
+
     # A better log-format for local dev
     settings.SENTRY_WEB_OPTIONS['log-format'] = '[%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"'
 
