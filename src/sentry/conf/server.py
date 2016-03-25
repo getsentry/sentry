@@ -48,6 +48,8 @@ if 'site-packages' in __file__:
 else:
     NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'node_modules')
 
+NODE_MODULES_ROOT = os.path.normpath(NODE_MODULES_ROOT)
+
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -928,7 +930,7 @@ SENTRY_API_RESPONSE_DELAY = 0
 # webpack.config.js is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
     [os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '-d', '--watch',
-     "--config={}".format(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))],
+     "--config={}".format(os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")))],
 )
 
 # statuspage.io support
