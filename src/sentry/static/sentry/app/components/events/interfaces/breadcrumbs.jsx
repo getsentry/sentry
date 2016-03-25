@@ -48,7 +48,7 @@ const BreadcrumbsInterface = React.createClass({
     );
 
     // Add the error event as the final breadcrumb
-    let crumbs = [].slice.call(data.items, 0);
+    let crumbs = [].slice.call(data.values, 0);
 
     let exception = evt.entries.find(entry => entry.type === 'exception');
     if (exception) {

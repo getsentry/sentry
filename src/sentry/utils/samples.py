@@ -72,7 +72,7 @@ def load_data(platform, default=None):
         "method": "GET"
     }
     data['sentry.interfaces.Breadcrumbs'] = {
-        "items": [
+        "values": [
             {
                 "type": "navigation",
                 "dt": 8200,
