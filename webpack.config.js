@@ -13,6 +13,8 @@ if (process.env.SENTRY_STATIC_DIST_PATH) {
     distPath = process.env.SENTRY_STATIC_DIST_PATH;
 }
 
+var IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
 var babelQuery = {
   plugins: [],
   extra: {}
@@ -174,13 +176,15 @@ var config = {
     library: 'exports',
     sourceMapFilename: '[name].js.map',
   },
-  devtool: 'source-map'
+  devtool: IS_PRODUCTION ?
+    'source-map' :
+    'cheap-module-eval-source-map'
 };
 
 // This compression-webpack-plugin generates pre-compressed files
 // ending in .gz, to be picked up and served by our internal static media
 // server as well as nginx when paired with the gzip_static module.
-if (process.env.NODE_ENV === 'production') {
+if (IS_PRODUCTION) {
   config.plugins.push(new (require('compression-webpack-plugin'))({
     // zopfli gives us a better gzip compression
     // See: http://googledevelopers.blogspot.com/2013/02/compress-data-more-densely-with-zopfli.html
