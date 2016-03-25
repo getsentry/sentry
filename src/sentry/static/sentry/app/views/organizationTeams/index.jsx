@@ -33,6 +33,9 @@ const OrganizationTeams = React.createClass({
     };
   },
 
+  componentWillMount() {
+    this.fetchStats();
+  },
 
   componentWillUpdate(nextProps, nextState) {
     if (!arrayIsEqual(nextState.teamList.map(team => team.id), this.state.teamList.map(team => team.id)))
