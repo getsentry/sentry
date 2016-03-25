@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-03-25 22:10+0000\n"
+"POT-Creation-Date: 2016-03-25 22:12+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2597,10 +2597,6 @@ msgstr ""
 msgid "Organization"
 msgstr ""
 
-#: static/sentry/app/views/app.jsx:98
-msgid "Getting a list of all of your organizations."
-msgstr ""
-
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:82
 msgid "Saving changes.."
 msgstr ""
@@ -2623,6 +2619,10 @@ msgstr ""
 msgid ""
 "We were unable to submit your changes to the Sentry server. Please take a"
 " look at the service logs."
+msgstr ""
+
+#: static/sentry/app/views/app.jsx:98
+msgid "Getting a list of all of your organizations."
 msgstr ""
 
 #: static/sentry/app/views/groupDetails.jsx:143
@@ -3096,30 +3096,6 @@ msgstr ""
 msgid "New Events"
 msgstr ""
 
-#: static/sentry/app/views/installWizard.jsx:179
-#, python-format
-msgid ""
-"An invalid option (%s) was passed to the server. Please report this issue"
-" to the Sentry team."
-msgstr ""
-
-#: static/sentry/app/views/installWizard.jsx:183
-#, python-format
-msgid "An invalid value for (%s) was passed to the server."
-msgstr ""
-
-#: static/sentry/app/views/installWizard.jsx:187
-msgid "An unknown error occurred. Please take a look at the service logs."
-msgstr ""
-
-#: static/sentry/app/views/installWizard.jsx:207
-msgid "Sentry Setup"
-msgstr ""
-
-#: static/sentry/app/views/installWizard.jsx:212
-msgid "Welcome to Sentry"
-msgstr ""
-
 #: static/sentry/app/options.jsx:8
 msgid "Root URL"
 msgstr ""
@@ -3144,6 +3120,30 @@ msgstr ""
 msgid ""
 "The maximum number of events the system should accept per minute. A value"
 " of 0 will disable the default rate limit."
+msgstr ""
+
+#: static/sentry/app/views/installWizard.jsx:179
+#, python-format
+msgid ""
+"An invalid option (%s) was passed to the server. Please report this issue"
+" to the Sentry team."
+msgstr ""
+
+#: static/sentry/app/views/installWizard.jsx:183
+#, python-format
+msgid "An invalid value for (%s) was passed to the server."
+msgstr ""
+
+#: static/sentry/app/views/installWizard.jsx:187
+msgid "An unknown error occurred. Please take a look at the service logs."
+msgstr ""
+
+#: static/sentry/app/views/installWizard.jsx:207
+msgid "Sentry Setup"
+msgstr ""
+
+#: static/sentry/app/views/installWizard.jsx:212
+msgid "Welcome to Sentry"
 msgstr ""
 
 #: static/sentry/app/views/stream/searchBar.jsx:82
@@ -3282,10 +3282,6 @@ msgstr ""
 msgid "Team Settings"
 msgstr ""
 
-#: static/sentry/app/views/projectDashboard/eventList.jsx:108
-msgid "No data available."
-msgstr ""
-
 #: static/sentry/app/components/todos.jsx:40
 msgid "[user] completed [dateCompleted]"
 msgstr ""
@@ -3392,6 +3388,10 @@ msgstr ""
 
 #: static/sentry/app/components/clippedBox.jsx:58
 msgid "Show more"
+msgstr ""
+
+#: static/sentry/app/views/projectDashboard/eventList.jsx:108
+msgid "No data available."
 msgstr ""
 
 #: static/sentry/app/components/missingProjectMembership.jsx:61
@@ -3723,22 +3723,6 @@ msgstr ""
 msgid "Required Action:"
 msgstr ""
 
-#: static/sentry/app/views/organizationStats/projectTable.jsx:50
-msgid "Dropped"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:49
-msgid "(Rate Limit)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:50
-msgid "(Blacklist)"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:51
-msgid "Total"
-msgstr ""
-
 #: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:66
 msgid ""
 "There are no projects in this team. Get started by [link:creating your "
@@ -3757,6 +3741,22 @@ msgid ""
 "[link:creating your first team]."
 msgstr ""
 
+#: static/sentry/app/views/organizationStats/projectTable.jsx:50
+msgid "Dropped"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:49
+msgid "(Rate Limit)"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:50
+msgid "(Blacklist)"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:51
+msgid "Total"
+msgstr ""
+
 #: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:87
 msgid "Events Per Minute"
 msgstr ""
@@ -3767,18 +3767,6 @@ msgstr ""
 
 #: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:93
 msgid "View all stats"
-msgstr ""
-
-#: static/sentry/app/components/assigneeSelector.jsx:195
-msgid "No matching users found."
-msgstr ""
-
-#: static/sentry/app/components/assigneeSelector.jsx:223
-msgid "Filter people"
-msgstr ""
-
-#: static/sentry/app/components/assigneeSelector.jsx:232
-msgid "Clear Assignee"
 msgstr ""
 
 #: static/sentry/app/views/groupDetails/actions.jsx:34
@@ -3841,6 +3829,18 @@ msgstr ""
 
 #: static/sentry/app/views/groupDetails/actions.jsx:190
 msgid "Deleting this event is permanent. Are you sure you wish to continue?"
+msgstr ""
+
+#: static/sentry/app/components/assigneeSelector.jsx:195
+msgid "No matching users found."
+msgstr ""
+
+#: static/sentry/app/components/assigneeSelector.jsx:223
+msgid "Filter people"
+msgstr ""
+
+#: static/sentry/app/components/assigneeSelector.jsx:232
+msgid "Clear Assignee"
 msgstr ""
 
 #: static/sentry/app/components/events/errors.jsx:42
@@ -4023,36 +4023,6 @@ msgstr ""
 msgid "This action cannot be undone."
 msgstr ""
 
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:205
-msgid "Save Current Search"
-msgstr ""
-
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:117
-msgid ""
-"Saving this search will give you and your team quick access to it in the "
-"future."
-msgstr ""
-
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:132
-msgid "Make this the default view for myself."
-msgstr ""
-
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:136
-msgid "Make this the default view for my team."
-msgstr ""
-
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:144
-msgid "Save"
-msgstr ""
-
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:171
-msgid "Custom Search"
-msgstr ""
-
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:193
-msgid "There don't seem to be any saved searches yet."
-msgstr ""
-
 #: static/sentry/app/views/stream/searchBar.jsx:68
 msgid "Tag"
 msgstr ""
@@ -4083,6 +4053,36 @@ msgstr ""
 
 #: static/sentry/app/views/stream/sortOptions.jsx:59
 msgid "Sort by"
+msgstr ""
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:205
+msgid "Save Current Search"
+msgstr ""
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:117
+msgid ""
+"Saving this search will give you and your team quick access to it in the "
+"future."
+msgstr ""
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:132
+msgid "Make this the default view for myself."
+msgstr ""
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:136
+msgid "Make this the default view for my team."
+msgstr ""
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:144
+msgid "Save"
+msgstr ""
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:171
+msgid "Custom Search"
+msgstr ""
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:193
+msgid "There don't seem to be any saved searches yet."
 msgstr ""
 
 #: static/sentry/app/components/activity/note.jsx:40

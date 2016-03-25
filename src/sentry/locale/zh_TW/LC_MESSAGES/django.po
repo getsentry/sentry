@@ -4,7 +4,7 @@
 # 
 # Translators:
 # Chun-Hao,Liu <clive819@gmail.com>, 2014
-# Dca Hsu <dcahsu@gmail.com>, 2013-2015
+# Dca Hsu <inactive+dca35311@transifex.com>, 2013-2015
 # Sammy Lin <sammylintw@gmail.com>, 2015
 # Shuning Hong <>, 2012
 # TW C2 <lily@weasto.com>, 2015
@@ -14,14 +14,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-03-01 16:25+0000\n"
-"PO-Revision-Date: 2016-03-01 16:26+0000\n"
-"Last-Translator: mattrobenolt <m@robenolt.com>\n"
+"POT-Creation-Date: 2016-03-25 22:12+0000\n"
+"PO-Revision-Date: 2016-03-25 22:13+0000\n"
+"Last-Translator: David Cramer <dcramer@gmail.com>\n"
 "Language-Team: Chinese (Taiwan) (http://www.transifex.com/getsentry/sentry/language/zh_TW/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.0\n"
+"Generated-By: Babel 2.1.1\n"
 "Language: zh_TW\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
@@ -50,14 +50,14 @@ msgstr "更改密碼: %s"
 msgid "Priority"
 msgstr "優先級"
 
-#: constants.py:38 constants.py:47
+#: constants.py:38 constants.py:45
 #: templates/sentry/plugins/bases/tag/index.html:24
 #: templates/sentry/users/list.html:35
 #: static/sentry/app/views/stream/sortOptions.jsx:52
 msgid "Last Seen"
 msgstr "最後出現時間"
 
-#: constants.py:39 constants.py:48
+#: constants.py:39 constants.py:46
 #: templates/sentry/plugins/bases/tag/index.html:23
 #: static/sentry/app/views/stream/sortOptions.jsx:45
 msgid "First Seen"
@@ -67,29 +67,21 @@ msgstr "首次出現時間"
 msgid "Frequency"
 msgstr "頻率"
 
-#: constants.py:41
-msgid "Total Time Spent"
-msgstr "總花費時間"
-
-#: constants.py:42
-msgid "Average Time Spent"
-msgstr "平均花費時間"
-
-#: constants.py:46
+#: constants.py:44
 msgid "Score"
 msgstr "得分"
 
-#: constants.py:187
+#: constants.py:186
 #, python-brace-format
 msgid "The {name} integration has been enabled."
 msgstr "{name} 整合已經啟用。"
 
-#: constants.py:189
+#: constants.py:188
 #, python-brace-format
 msgid "The {name} integration has been disabled."
 msgstr "{name} 整合已經停用。"
 
-#: constants.py:191
+#: constants.py:190
 #, python-brace-format
 msgid "Configuration for the {name} integration has been saved."
 msgstr "{name} 的整合設定已經儲存。"
@@ -422,15 +414,15 @@ msgstr "Redis"
 msgid "Request"
 msgstr "請求"
 
-#: interfaces/stacktrace.py:664
+#: interfaces/stacktrace.py:678
 msgid "Stacktrace (most recent call first):"
 msgstr "堆疊追蹤(最近的一次):"
 
-#: interfaces/stacktrace.py:666
+#: interfaces/stacktrace.py:680
 msgid "Stacktrace (most recent call last):"
 msgstr "堆疊追蹤(最近的一次):"
 
-#: models/apikey.py:52 models/project.py:82 models/projectkey.py:48
+#: models/apikey.py:52 models/project.py:85 models/projectkey.py:48
 #: models/team.py:93
 msgid "Active"
 msgstr "啟用"
@@ -447,28 +439,28 @@ msgstr "訊息"
 msgid "messages"
 msgstr "訊息"
 
-#: models/event.py:92 models/group.py:310
+#: models/event.py:92 models/group.py:349
 msgid "error"
 msgstr "錯誤"
 
-#: models/group.py:109
+#: models/group.py:140
 #: static/sentry/app/components/organizationIssueList.jsx:49
 msgid "Unresolved"
 msgstr "未解決"
 
-#: models/group.py:110 models/groupresolution.py:37
+#: models/group.py:141 models/groupresolution.py:37
 msgid "Resolved"
 msgstr "已解決"
 
-#: models/group.py:111
+#: models/group.py:142
 msgid "Muted"
 msgstr "已靜音"
 
-#: models/group.py:132
+#: models/group.py:164
 msgid "grouped messages"
 msgstr "已分組訊息"
 
-#: models/group.py:133
+#: models/group.py:165
 msgid "grouped message"
 msgstr "已分組訊息"
 
@@ -480,12 +472,12 @@ msgstr "等待中"
 msgid "Visible"
 msgstr "可見的"
 
-#: models/organization.py:71 models/project.py:83 models/tagkey.py:68
+#: models/organization.py:71 models/project.py:86 models/tagkey.py:68
 #: models/team.py:94
 msgid "Pending Deletion"
 msgstr "刪除等待中"
 
-#: models/organization.py:72 models/project.py:84 models/tagkey.py:69
+#: models/organization.py:72 models/project.py:87 models/tagkey.py:69
 #: models/team.py:95
 msgid "Deletion in Progress"
 msgstr "正在進行刪除"
@@ -714,23 +706,35 @@ msgstr "「組織」代表階層中的最高層級。您將可以集合組織中
 msgid "Create Organization"
 msgstr "建立組織"
 
-#: templates/sentry/create-project.html:5
+#: templates/sentry/create-project.html:7
 #: templates/sentry/projects/cannot_create_teams.html:5
 #: static/sentry/app/components/organizations/homeContainer.jsx:37
 msgid "New Project"
 msgstr "新项目"
 
-#: templates/sentry/create-project.html:10
+#: templates/sentry/create-project.html:12
 msgid "Create a New Project"
 msgstr "建立新的專案"
 
-#: templates/sentry/create-project.html:13
+#: templates/sentry/create-project.html:15
 msgid ""
 "Projects allow you to scope events to a specific application in your "
 "organization. For example, you might have separate projects for production "
 "vs development instances, or separate projects for your web app and mobile "
 "app."
 msgstr "「專案」可方便您管理組織中特定應用程式的事件。例如，您可能會將生產與開發實例區分成個別專案，或是把網頁應用程式與行動應用程式列入不同專案。"
+
+#: templates/sentry/create-project.html:20
+#: templates/sentry/organization-api-key-settings.html:19
+#: templates/sentry/organization-member-settings.html:22
+#: templates/sentry/organization-settings.html:17
+#: templates/sentry/partial/form_base.html:5
+msgid "Please correct the errors below."
+msgstr "請修正以下錯誤："
+
+#: templates/sentry/create-project.html:33
+msgid "Create Project"
+msgstr ""
 
 #: templates/sentry/create-team.html:5
 #: static/sentry/app/components/organizations/homeContainer.jsx:47
@@ -813,13 +817,6 @@ msgstr "您無權存取 Sentry 中的任何組織，請洽詢 Sentry 管理員�
 msgid "API Key Settings"
 msgstr "API 金鑰設定"
 
-#: templates/sentry/organization-api-key-settings.html:19
-#: templates/sentry/organization-member-settings.html:22
-#: templates/sentry/organization-settings.html:17
-#: templates/sentry/partial/form_base.html:5
-msgid "Please correct the errors below."
-msgstr "請修正以下錯誤："
-
 #: templates/sentry/organization-api-key-settings.html:33
 msgid "Key"
 msgstr "金鑰"
@@ -834,7 +831,7 @@ msgstr "金鑰"
 #: templates/sentry/admin/users/edit.html:19
 #: templates/sentry/partial/_form.html:16
 #: templates/sentry/projects/edit_key.html:74
-#: templates/sentry/projects/manage.html:96
+#: templates/sentry/projects/manage.html:99
 #: templates/sentry/projects/manage_tags.html:42
 #: templates/sentry/projects/quotas.html:38
 #: static/sentry/app/components/forms/form.jsx:14
@@ -900,7 +897,7 @@ msgstr "角色"
 #: templates/sentry/organization-member-details.html:80
 #: templates/sentry/organization-member-settings.html:88
 #: templates/sentry/admin/teams/list.html:16
-#: templates/sentry/bases/admin.html:24
+#: templates/sentry/bases/admin.html:25
 msgid "Teams"
 msgstr "團隊"
 
@@ -945,7 +942,7 @@ msgstr "成員"
 
 #: templates/sentry/organization-members.html:102
 #: templates/sentry/projects/keys.html:25
-#: static/sentry/app/views/groupDetails/header.jsx:165
+#: static/sentry/app/views/groupDetails/header.jsx:224
 msgid "Details"
 msgstr "詳細訊息"
 
@@ -979,7 +976,7 @@ msgstr "感謝使用 Sentry！希望能儘快與您相見！"
 
 #: templates/sentry/project-issue-tracking.html:7
 #: templates/sentry/project-issue-tracking.html:10
-#: templates/sentry/projects/manage.html:186
+#: templates/sentry/projects/manage.html:189
 #: static/sentry/app/views/projectSettings/index.jsx:93
 msgid "Issue Tracking"
 msgstr "問題追蹤"
@@ -993,13 +990,13 @@ msgstr "未啟用的整合"
 #: templates/sentry/project-notifications.html:8
 #: templates/sentry/project-notifications.html:11
 #: templates/sentry/bases/account.html:23
-#: templates/sentry/projects/manage.html:172
+#: templates/sentry/projects/manage.html:175
 #: static/sentry/app/views/projectSettings/index.jsx:87
 msgid "Notifications"
 msgstr "提醒"
 
 #: templates/sentry/project-notifications.html:18
-#: templates/sentry/projects/manage.html:180
+#: templates/sentry/projects/manage.html:183
 #: templates/sentry/projects/rules/list.html:10
 #: static/sentry/app/views/projectSettings/index.jsx:91
 msgid "Rules"
@@ -1023,7 +1020,7 @@ msgstr ""
 
 #: templates/sentry/project-release-tracking.html:7
 #: templates/sentry/project-release-tracking.html:10
-#: templates/sentry/projects/manage.html:189
+#: templates/sentry/projects/manage.html:192
 #: static/sentry/app/views/projectSettings/index.jsx:94
 msgid "Release Tracking"
 msgstr "版本追蹤"
@@ -1063,7 +1060,7 @@ msgstr "如果繼續，將會移除以下組織："
 #: templates/sentry/admin/users/remove.html:17
 #: templates/sentry/projects/remove.html:30
 #: templates/sentry/teams/remove.html:40
-#: static/sentry/app/views/stream/actionLink.jsx:115
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:142
 msgid "Cancel"
 msgstr "取消"
 
@@ -1081,7 +1078,7 @@ msgid "Appearance"
 msgstr "外觀"
 
 #: templates/sentry/account/appearance.html:15
-#: static/sentry/app/views/stream/actions.jsx:388
+#: static/sentry/app/components/projectHeader/index.jsx:42
 msgid "Events"
 msgstr "事件"
 
@@ -1135,7 +1132,7 @@ msgid ""
 msgstr "注意：如果專案設定為停用通知 (可從「專案」設定中加以設定)，您將永遠不會收到通知。"
 
 #: templates/sentry/account/notifications.html:57
-#: web/frontend/project_settings.py:24
+#: web/frontend/project_settings.py:26
 msgid "Project Name"
 msgstr "專案名稱"
 
@@ -1217,9 +1214,9 @@ msgstr "管理项目"
 #: templates/sentry/admin/teams/list.html:31
 #: templates/sentry/admin/users/edit.html:28
 #: templates/sentry/admin/users/list_projects.html:7
-#: templates/sentry/bases/admin.html:25
+#: templates/sentry/bases/admin.html:26
 #: templates/sentry/bases/organization.html:25
-#: static/sentry/app/components/organizations/homeSidebar.jsx:43
+#: static/sentry/app/views/adminOrganizations.jsx:147
 msgid "Projects"
 msgstr "專案"
 
@@ -1280,7 +1277,7 @@ msgid "Environment not found (are you using the builtin Sentry webserver?)."
 msgstr "找不到環境參數(您正在使用Sentry內建的伺服器嗎?)"
 
 #: templates/sentry/admin/status/env.html:40
-#: templates/sentry/projects/manage.html:166
+#: templates/sentry/projects/manage.html:169
 #: static/sentry/app/views/projectSettings/index.jsx:84
 msgid "Configuration"
 msgstr "配置"
@@ -1326,17 +1323,21 @@ msgstr "是"
 msgid "No"
 msgstr "否"
 
-#: templates/sentry/admin/status/mail.html:41
+#: templates/sentry/admin/status/mail.html:40
+msgid "Mailing List Namespace"
+msgstr ""
+
+#: templates/sentry/admin/status/mail.html:46
 msgid "Test Settings"
 msgstr "測試信箱設定"
 
-#: templates/sentry/admin/status/mail.html:46
+#: templates/sentry/admin/status/mail.html:51
 msgid ""
 "Send an email to your account's email address to confirm that everything is "
 "configured correctly."
 msgstr "發送一封測試信到您帳號指定的 E-mail 信箱確定您的配置是否正確。"
 
-#: templates/sentry/admin/status/mail.html:54
+#: templates/sentry/admin/status/mail.html:59
 #, python-format
 msgid "Send a test email to %(email)s"
 msgstr "發送測試信到 %(email)s"
@@ -1394,13 +1395,13 @@ msgid "Manage Users"
 msgstr "管理用戶"
 
 #: templates/sentry/admin/users/list.html:17
-#: templates/sentry/bases/admin.html:26
+#: templates/sentry/bases/admin.html:27
 #: static/sentry/app/views/stream/actions.jsx:389
 msgid "Users"
 msgstr "用戶"
 
 #: templates/sentry/admin/users/list.html:30 web/forms/__init__.py:41
-#: web/forms/accounts.py:257 web/forms/add_project.py:15
+#: web/forms/accounts.py:257 web/forms/add_project.py:16
 #: web/forms/add_team.py:13
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:120
 msgid "Name"
@@ -1454,17 +1455,17 @@ msgstr "概況"
 msgid "Buffer"
 msgstr ""
 
-#: templates/sentry/bases/admin.html:21
+#: templates/sentry/bases/admin.html:22
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:210
 msgid "Manage"
 msgstr "管理"
 
-#: templates/sentry/bases/admin.html:23
+#: templates/sentry/bases/admin.html:24
 #: static/sentry/app/views/adminOrganizations.jsx:131
 msgid "Organizations"
 msgstr "組織"
 
-#: templates/sentry/bases/admin.html:31
+#: templates/sentry/bases/admin.html:32
 msgid "Plugins"
 msgstr "插件"
 
@@ -1503,7 +1504,7 @@ msgid "History"
 msgstr ""
 
 #: templates/sentry/bases/organization.html:78
-#: templates/sentry/projects/manage.html:176
+#: templates/sentry/projects/manage.html:179
 #: templates/sentry/projects/quotas.html:7
 #: templates/sentry/projects/quotas.html:10
 #: static/sentry/app/components/organizations/homeSidebar.jsx:80
@@ -1709,7 +1710,7 @@ msgid "Revoke"
 msgstr "重新配發"
 
 #: templates/sentry/projects/manage.html:29
-#: templates/sentry/projects/manage.html:169
+#: templates/sentry/projects/manage.html:172
 #: static/sentry/app/views/projectSettings/index.jsx:86
 msgid "Project Settings"
 msgstr "專案設定"
@@ -1718,93 +1719,93 @@ msgstr "專案設定"
 msgid "Project Details"
 msgstr "專案詳細訊息"
 
-#: templates/sentry/projects/manage.html:48
+#: templates/sentry/projects/manage.html:51
 msgid "Event Settings"
 msgstr "事件設定"
 
-#: templates/sentry/projects/manage.html:61
+#: templates/sentry/projects/manage.html:64
 msgid "Client Security"
 msgstr "客戶端安全"
 
-#: templates/sentry/projects/manage.html:65
+#: templates/sentry/projects/manage.html:68
 #, python-format
 msgid ""
 "Configure origin URLs which Sentry should accept events from. This is used "
 "for communication with clients like <a href=\"%(link)s\">raven-js</a>."
 msgstr "設定 Sentry 用來接受事件的原始 URL。此 URL 會用於與用戶端 (例如 <a href=\"%(link)s\">raven-js</a>) 通訊。"
 
-#: templates/sentry/projects/manage.html:67
+#: templates/sentry/projects/manage.html:70
 msgid ""
 "This will restrict requests based on the <code>Origin</code> and "
 "<code>Referer</code> headers."
 msgstr "如此將根據「<code>Origin</code>」與「<code>Referer</code>」等標頭來限制要求。"
 
-#: templates/sentry/projects/manage.html:78
-#: templates/sentry/projects/manage.html:87
+#: templates/sentry/projects/manage.html:81
+#: templates/sentry/projects/manage.html:90
 #: templates/sentry/projects/remove.html:6
 #: templates/sentry/projects/remove.html:11
 #: templates/sentry/projects/remove.html:29
 msgid "Remove Project"
 msgstr "删除项目"
 
-#: templates/sentry/projects/manage.html:82
+#: templates/sentry/projects/manage.html:85
 msgid "You do not have the required permission to remove this project."
 msgstr "您沒有移除此專案所需的權限。"
 
-#: templates/sentry/projects/manage.html:84
+#: templates/sentry/projects/manage.html:87
 msgid ""
 "This project cannot be removed. It is used internally by the Sentry server."
 msgstr "此專案用於 Sentry 伺服器內部，無法移除。"
 
-#: templates/sentry/projects/manage.html:153
+#: templates/sentry/projects/manage.html:156
 msgid ""
 "This option is enforced by your organization's settings and cannot be "
 "customized per-project."
 msgstr ""
 
-#: templates/sentry/projects/manage.html:183
+#: templates/sentry/projects/manage.html:186
 #: templates/sentry/projects/manage_tags.html:7
 #: templates/sentry/projects/manage_tags.html:10
 #: static/sentry/app/components/events/eventTags.jsx:29
 msgid "Tags"
 msgstr "標籤"
 
-#: templates/sentry/projects/manage.html:192
+#: templates/sentry/projects/manage.html:195
 #: static/sentry/app/views/projectSettings/index.jsx:95
 msgid "Saved Searches"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:196
+#: templates/sentry/projects/manage.html:199
 #: static/sentry/app/views/projectSettings/index.jsx:100
 msgid "Debug Symbols"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:201
+#: templates/sentry/projects/manage.html:204
 #: static/sentry/app/components/projectHeader/index.jsx:49
 msgid "User Reports"
 msgstr "使用者報告"
 
-#: templates/sentry/projects/manage.html:205
+#: templates/sentry/projects/manage.html:208
 #: static/sentry/app/views/projectSettings/index.jsx:103
 msgid "Setup"
 msgstr "設定"
 
-#: templates/sentry/projects/manage.html:208
+#: templates/sentry/projects/manage.html:211
 #: static/sentry/app/views/projectSettings/index.jsx:110
 msgid "Instructions"
 msgstr "指示"
 
-#: templates/sentry/projects/manage.html:211
+#: templates/sentry/projects/manage.html:214
 msgid "Client Keys (DSN)"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:215
+#: templates/sentry/projects/manage.html:218
 #: templates/sentry/projects/plugins/list.html:10
 #: static/sentry/app/views/projectSettings/index.jsx:113
 msgid "Integrations"
 msgstr "整合"
 
-#: templates/sentry/projects/manage.html:218
+#: templates/sentry/projects/manage.html:221
 #: static/sentry/app/views/projectSettings/index.jsx:115
 msgid "All Integrations"
 msgstr "所有整合"
@@ -2104,9 +2105,34 @@ msgstr "時區"
 msgid "Use a 24-hour clock"
 msgstr "使用 24 小時制"
 
-#: web/forms/add_project.py:17
+#: web/forms/add_project.py:18
 msgid "i.e. API, Frontend, My Application Name"
 msgstr "亦即 API、前端、我的應用程式名稱"
+
+#: web/forms/add_project.py:20
+msgid "Using the repository name generally works well."
+msgstr ""
+
+#: web/forms/add_project.py:22 web/frontend/project_settings.py:32
+msgid "Callsign"
+msgstr ""
+
+#: web/forms/add_project.py:24
+msgid "2-6 letter prefix.  Leave empty for auto assignment."
+msgstr ""
+
+#: web/forms/add_project.py:27
+msgid "This is added as prefix for issue IDs."
+msgstr ""
+
+#: web/forms/add_project.py:54 web/frontend/project_settings.py:177
+msgid "Callsign must be between 2 and 6 letters"
+msgstr ""
+
+#: web/forms/add_project.py:63 web/frontend/project_settings.py:184
+#, python-format
+msgid "Another project (%s) is already using that callsign"
+msgstr ""
 
 #: web/forms/add_team.py:15
 msgid "E.g. Operations, Web, Desktop, ..."
@@ -2228,12 +2254,12 @@ msgid "The API key (%s) was enabled."
 msgstr "API 金鑰 (%s) 已經被啟用"
 
 #: web/frontend/organization_api_key_settings.py:16
-#: web/frontend/project_settings.py:31
+#: web/frontend/project_settings.py:35
 msgid "Allowed Domains"
 msgstr "允許的網域"
 
 #: web/frontend/organization_api_key_settings.py:17
-#: web/frontend/project_settings.py:32 web/frontend/project_settings.py:69
+#: web/frontend/project_settings.py:36 web/frontend/project_settings.py:73
 msgid "Separate multiple entries with a newline."
 msgstr "使用換行來切割多筆資訊"
 
@@ -2285,7 +2311,7 @@ msgid "The name of your organization. i.e. My Company"
 msgstr "您的組織名稱. 範例: 我的公司"
 
 #: web/frontend/organization_settings.py:20
-#: web/frontend/project_settings.py:27
+#: web/frontend/project_settings.py:29
 #: static/sentry/app/views/teamSettings.jsx:94
 msgid "Short name"
 msgstr "簡短名稱"
@@ -2354,18 +2380,17 @@ msgid ""
 msgstr ""
 
 #: web/frontend/organization_settings.py:58
-#: web/frontend/project_settings.py:52
+#: web/frontend/project_settings.py:56
 msgid "e.g. email"
 msgstr "e.g. email"
 
 #: web/frontend/organization_settings.py:65
-msgid "Require not storing IP Addresses"
+msgid "Prevent Storing of IP Addresses"
 msgstr ""
 
 #: web/frontend/organization_settings.py:66
 msgid ""
-"Require preventing IP addresses from being stored for new events on all "
-"projects."
+"Preventing IP addresses from being stored for new events on all projects."
 msgstr ""
 
 #: web/frontend/organization_settings.py:131
@@ -2390,84 +2415,88 @@ msgstr "尚未啟用此專案的版本追蹤功能。"
 msgid "The rule was removed."
 msgstr "此規則已被刪除。"
 
-#: web/frontend/project_settings.py:25
+#: web/frontend/project_settings.py:27
 msgid "Production"
 msgstr "生產"
 
-#: web/frontend/project_settings.py:28
+#: web/frontend/project_settings.py:30
 msgid "A unique ID used to identify this project."
 msgstr "用於識別此專案的專屬 ID。"
 
 #: web/frontend/project_settings.py:33
+msgid "A short (typically two) letter sequence to identify issues."
+msgstr ""
+
+#: web/frontend/project_settings.py:37
 msgid "Security token"
 msgstr "安全令牌"
 
-#: web/frontend/project_settings.py:34
+#: web/frontend/project_settings.py:38
 #, python-brace-format
 msgid ""
 "Outbound requests matching Allowed Domains will have the header \"X-Sentry-"
 "Token: {token}\" appended."
 msgstr "符合「已允許網域」的傳出要求將會附加標頭「X-Sentry-Token: {token}」。"
 
-#: web/frontend/project_settings.py:35
+#: web/frontend/project_settings.py:39
 msgid "Auto resolve"
 msgstr "自動解決"
 
-#: web/frontend/project_settings.py:37
+#: web/frontend/project_settings.py:41
 msgid ""
 "Treat an event as resolved if it hasn't been seen for this amount of time."
 msgstr "如果某事件的查看次數未達到要求，該事件會被視為尚未解決。"
 
-#: web/frontend/project_settings.py:39
+#: web/frontend/project_settings.py:43
 msgid "Data Scrubber"
 msgstr "資料清除程式"
 
-#: web/frontend/project_settings.py:40
+#: web/frontend/project_settings.py:44
 msgid "Enable server-side data scrubbing."
 msgstr ""
 
-#: web/frontend/project_settings.py:44
+#: web/frontend/project_settings.py:48
 msgid "Use Default Scrubbers"
 msgstr ""
 
-#: web/frontend/project_settings.py:45
+#: web/frontend/project_settings.py:49
 msgid ""
 "Apply default scrubbers to prevent things like passwords and credit cards "
 "from being stored."
 msgstr ""
 
-#: web/frontend/project_settings.py:49
+#: web/frontend/project_settings.py:53
 msgid "Additional sensitive fields"
 msgstr "其他敏感欄位"
 
-#: web/frontend/project_settings.py:50
+#: web/frontend/project_settings.py:54
 msgid ""
 "Additional field names to match against when scrubbing data. Separate "
 "multiple entries with a newline."
 msgstr "清除資料時用於比對的其他欄位名稱，個別項目之間會以新行區隔。"
 
-#: web/frontend/project_settings.py:59
+#: web/frontend/project_settings.py:63
 msgid "Don't store IP Addresses"
 msgstr "不要儲存IP位置"
 
-#: web/frontend/project_settings.py:60
+#: web/frontend/project_settings.py:64
 msgid "Prevent IP addresses from being stored for new events."
 msgstr "防止新事件儲存 IP 位址。"
 
-#: web/frontend/project_settings.py:64
+#: web/frontend/project_settings.py:68
 msgid "Enable JavaScript source fetching"
 msgstr "啟用 JavaScript 來源擷取"
 
-#: web/frontend/project_settings.py:65
+#: web/frontend/project_settings.py:69
 msgid ""
 "Allow Sentry to scrape missing JavaScript source context when possible."
 msgstr "允許 Sentry 在可行的情況下抓取缺少的 JavaScript 來源內容。"
 
-#: web/frontend/project_settings.py:68
+#: web/frontend/project_settings.py:72
 msgid "Blacklisted IP Addresses"
 msgstr "已列入黑名單的 IP 位址"
 
-#: web/frontend/project_settings.py:231
+#: web/frontend/project_settings.py:261
 msgid "Changes to your project were saved."
 msgstr "您的專案變動已經被儲存"
 
@@ -2503,18 +2532,18 @@ msgstr "載入資料時發生錯誤。"
 msgid "Retry"
 msgstr "重試"
 
+#: static/sentry/app/components/projectHeader/projectSelector.jsx:242
+msgid "Select a project"
+msgstr ""
+
+#: static/sentry/app/components/projectHeader/projectSelector.jsx:250
+msgid "Filter projects"
+msgstr "篩選專案"
+
 #: static/sentry/app/components/timeSince.jsx:67
 #, python-format
 msgid "%(time)s old"
 msgstr ""
-
-#: static/sentry/app/components/projectHeader/projectSelector.jsx:195
-msgid "Select a project"
-msgstr ""
-
-#: static/sentry/app/components/projectHeader/projectSelector.jsx:203
-msgid "Filter projects"
-msgstr "篩選專案"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:115
 msgid ""
@@ -2573,20 +2602,52 @@ msgstr "搜尋組織。"
 msgid "Organization"
 msgstr "組織"
 
-#: static/sentry/app/views/app.jsx:84
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:82
+msgid "Saving changes.."
+msgstr "正在儲存變更.."
+
+#: static/sentry/app/views/adminSettings.jsx:137
+msgid "Your changes were saved, and will propagate to services shortly."
+msgstr ""
+
+#: static/sentry/app/views/installWizard.jsx:217
+msgid "Please wait while we load configuration."
+msgstr ""
+
+#: static/sentry/app/views/installWizard.jsx:222
+msgid ""
+"We were unable to load the required configuration from the Sentry server. "
+"Please take a look at the service logs."
+msgstr ""
+
+#: static/sentry/app/views/adminSettings.jsx:170
+msgid ""
+"We were unable to submit your changes to the Sentry server. Please take a "
+"look at the service logs."
+msgstr ""
+
+#: static/sentry/app/views/app.jsx:98
 msgid "Getting a list of all of your organizations."
 msgstr ""
 
-#: static/sentry/app/views/groupDetails.jsx:112
+#: static/sentry/app/views/groupDetails.jsx:143
 msgid "The issue you were looking for was not found."
 msgstr "找不到您要搜尋的問題。"
 
-#: static/sentry/app/views/groupHashes.jsx:83
-msgid "There don't seem to be any hashes for this issue."
+#: static/sentry/app/views/groupEvents.jsx:102
+msgid "Sorry, no events match your search query."
 msgstr ""
 
-#: static/sentry/app/views/groupEvents.jsx:177
+#: static/sentry/app/views/groupEvents.jsx:111
+msgid "There don't seem to be any events yet."
+msgstr ""
+
+#: static/sentry/app/views/groupHashes.jsx:104
 msgid "ID"
+msgstr ""
+
+#: static/sentry/app/views/groupHashes.jsx:83
+msgid "There don't seem to be any hashes for this issue."
 msgstr ""
 
 #: static/sentry/app/views/groupTags.jsx:100
@@ -2618,45 +2679,47 @@ msgstr "瞭解如何整合「使用者當機報告」"
 msgid "Assigned to me"
 msgstr ""
 
-#: static/sentry/app/views/organizationDashboard.jsx:28
+#: static/sentry/app/views/organizationDashboard.jsx:38
 msgid "View more"
 msgstr ""
 
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:82
-msgid "Saving changes.."
-msgstr "正在儲存變更.."
-
-#: static/sentry/app/views/adminSettings.jsx:137
-msgid "Your changes were saved, and will propagate to services shortly."
+#: static/sentry/app/views/organizationDetails.jsx:134
+msgid "Loading data for your organization."
 msgstr ""
 
-#: static/sentry/app/views/installWizard.jsx:217
-msgid "Please wait while we load configuration."
-msgstr ""
+#: static/sentry/app/views/organizationDetails.jsx:143
+msgid "The organization you were looking for was not found."
+msgstr "找不到您要搜尋的組織。"
 
-#: static/sentry/app/views/installWizard.jsx:222
+#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:41
 msgid ""
-"We were unable to load the required configuration from the Sentry server. "
-"Please take a look at the service logs."
-msgstr ""
-
-#: static/sentry/app/views/adminSettings.jsx:170
-msgid ""
-"We were unable to submit your changes to the Sentry server. Please take a "
-"look at the service logs."
-msgstr ""
+"You don't have any teams for this organization yet. Get started by "
+"[link:creating your first team]."
+msgstr "你在此組織中尚未擁有任何團隊。若要開始使用，請參閱[link:建立第一個團隊]。"
 
 #: static/sentry/app/views/projectChooser.jsx:60
 msgid "Choose a project"
 msgstr ""
 
-#: static/sentry/app/views/organizationDetails.jsx:108
-msgid "Loading data for your organization."
+#: static/sentry/app/views/projectDashboard.jsx:126
+msgid "1 hour"
+msgstr "1 小時"
+
+#: static/sentry/app/views/projectDashboard.jsx:143
+msgid "1 week"
+msgstr "1 星期"
+
+#: static/sentry/app/views/projectDashboard.jsx:155
+msgid "Trending Issues"
 msgstr ""
 
-#: static/sentry/app/views/organizationDetails.jsx:117
-msgid "The organization you were looking for was not found."
-msgstr "找不到您要搜尋的組織。"
+#: static/sentry/app/views/releaseDetails.jsx:139
+msgid "New Issues"
+msgstr "新問題"
+
+#: static/sentry/app/views/projectDetails.jsx:178
+msgid "The project you were looking for was not found."
+msgstr "找不到您要搜尋的專案。"
 
 #: static/sentry/app/views/projectInstall/overview.jsx:50
 msgid "Configure your application"
@@ -2692,17 +2755,22 @@ msgstr "架構"
 msgid "Languages"
 msgstr ""
 
-#: static/sentry/app/views/groupEvents.jsx:102
-msgid "Sorry, no events match your search query."
-msgstr ""
+#: static/sentry/app/views/projectInstall/platform.jsx:96
+msgid "Full Documentation"
+msgstr "完整文件"
 
-#: static/sentry/app/views/groupEvents.jsx:111
-msgid "There don't seem to be any events yet."
-msgstr ""
+#: static/sentry/app/views/projectInstall/platform.jsx:99
+#, python-format
+msgid "Configure %(integration)s"
+msgstr "設定 %(integration)s"
 
-#: static/sentry/app/views/projectDetails.jsx:156
-msgid "The project you were looking for was not found."
-msgstr "找不到您要搜尋的專案。"
+#: static/sentry/app/views/projectInstall/platform.jsx:140
+msgid "Generic"
+msgstr "一般"
+
+#: static/sentry/app/views/projectSavedSearches.jsx:210
+msgid "There are no saved searches for this project."
+msgstr ""
 
 #: static/sentry/app/views/projectDebugSymbols.jsx:72
 msgid "There are no debug symbols for this project."
@@ -2728,22 +2796,6 @@ msgstr ""
 msgid "Size"
 msgstr ""
 
-#: static/sentry/app/views/projectDashboard.jsx:126
-msgid "1 hour"
-msgstr "1 小時"
-
-#: static/sentry/app/views/projectDashboard.jsx:143
-msgid "1 week"
-msgstr "1 星期"
-
-#: static/sentry/app/views/projectDashboard.jsx:155
-msgid "Trending Issues"
-msgstr ""
-
-#: static/sentry/app/views/releaseDetails.jsx:139
-msgid "New Issues"
-msgstr "新問題"
-
 #: static/sentry/app/views/projectUserReports.jsx:136
 msgid "Sorry, no results match your search query."
 msgstr ""
@@ -2752,44 +2804,9 @@ msgstr ""
 msgid "No user reports have been collected for this project."
 msgstr ""
 
-#: static/sentry/app/views/projectInstall/platform.jsx:96
-msgid "Full Documentation"
-msgstr "完整文件"
-
-#: static/sentry/app/views/projectInstall/platform.jsx:99
-#, python-format
-msgid "Configure %(integration)s"
-msgstr "設定 %(integration)s"
-
-#: static/sentry/app/views/projectInstall/platform.jsx:140
-msgid "Generic"
-msgstr "一般"
-
 #: static/sentry/app/views/releaseAllEvents.jsx:20
 msgid "View all events seen in this release in the stream"
 msgstr "檢視此資料流版本中所有已查看的事件"
-
-#: static/sentry/app/views/projectSavedSearches.jsx:210
-msgid "There are no saved searches for this project."
-msgstr ""
-
-#: static/sentry/app/views/releaseNewEvents.jsx:20
-msgid "View new events seen in this release in the stream"
-msgstr "檢視此資料流版本中所有已查看的事件"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:199
-msgid "More"
-msgstr "更多"
-
-#: static/sentry/app/views/teamSettings.jsx:80
-msgid ""
-"Unable to save your changes. Please ensure all fields are valid and try "
-"again."
-msgstr ""
-
-#: static/sentry/app/views/teamSettings.jsx:87
-msgid "e.g. API Team"
-msgstr ""
 
 #: static/sentry/app/views/releaseArtifacts.jsx:75
 msgid "Removing artifact.."
@@ -2815,10 +2832,6 @@ msgstr ""
 msgid "Are you sure you want to remove this artifact?"
 msgstr ""
 
-#: static/sentry/app/components/alertMessage.jsx:29
-msgid "Close"
-msgstr "關閉"
-
 #: static/sentry/app/components/group/seenInfo.jsx:27
 msgid "Release"
 msgstr "版本"
@@ -2839,13 +2852,71 @@ msgstr "全部事件"
 msgid "Artifacts"
 msgstr "成品"
 
-#: static/sentry/app/views/organizationTeams/index.jsx:98
-msgid "Your Teams"
-msgstr "您的團隊"
+#: static/sentry/app/views/releaseNewEvents.jsx:20
+msgid "View new events seen in this release in the stream"
+msgstr "檢視此資料流版本中所有已查看的事件"
 
-#: static/sentry/app/views/organizationTeams/index.jsx:101
-msgid "All Teams"
-msgstr "全部團隊"
+#: static/sentry/app/views/stream.jsx:509
+msgid "Waiting for events…"
+msgstr ""
+
+#: static/sentry/app/views/stream.jsx:510
+msgid "Our error robot is waiting to [cross:devour] receive your first event."
+msgstr ""
+
+#: static/sentry/app/views/stream.jsx:511
+msgid "Installation Instructions"
+msgstr ""
+
+#: static/sentry/app/views/projectEvents/index.jsx:133
+msgid "Sorry, no events match your filters."
+msgstr "很抱歉，沒有符合您篩選條件的事件。"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:199
+msgid "More"
+msgstr "更多"
+
+#: static/sentry/app/views/teamSettings.jsx:80
+msgid ""
+"Unable to save your changes. Please ensure all fields are valid and try "
+"again."
+msgstr ""
+
+#: static/sentry/app/views/teamSettings.jsx:87
+msgid "e.g. API Team"
+msgstr ""
+
+#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:86
+msgid "Failed to set callsigns"
+msgstr ""
+
+#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:206
+msgid "Review Call Signs for Projects"
+msgstr ""
+
+#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:148
+#, python-format
+msgid ""
+"Sentry now requires you to specify a call sign (short name) for each project"
+" in the organization “%s”. These short names are used to identify the "
+"project in the issue IDs.  Ideally they are two or three letter long."
+msgstr ""
+
+#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:150
+msgid "Projects of teams you are not a member of are not shown."
+msgstr ""
+
+#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:151
+msgid "Projects which have been previously reviewed are shown in green."
+msgstr ""
+
+#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:190
+msgid "Set Call Signs"
+msgstr ""
+
+#: static/sentry/app/components/alertMessage.jsx:30
+msgid "Close"
+msgstr "關閉"
 
 #: static/sentry/app/views/groupActivity/index.jsx:37
 #, python-format
@@ -2969,14 +3040,6 @@ msgstr ""
 msgid "There are no rate limits configured for your organization."
 msgstr ""
 
-#: static/sentry/app/views/stream.jsx:511
-msgid "Sorry, no events match your filters."
-msgstr "很抱歉，沒有符合您篩選條件的事件。"
-
-#: static/sentry/app/views/projectEvents/index.jsx:142
-msgid "There don't seem to be any events."
-msgstr ""
-
 #: static/sentry/app/views/organizationStats/projectTable.jsx:48
 msgid "Accepted"
 msgstr "已接受"
@@ -2996,6 +3059,18 @@ msgstr "每分鐘事件數"
 #: static/sentry/app/views/organizationStats/index.jsx:311
 msgid "Events by Project"
 msgstr "依專案篩選所得的事件"
+
+#: static/sentry/app/views/organizationTeams/index.jsx:81
+msgid "Your Teams"
+msgstr "您的團隊"
+
+#: static/sentry/app/views/organizationTeams/index.jsx:84
+msgid "All Teams"
+msgstr "全部團隊"
+
+#: static/sentry/app/views/projectEvents/index.jsx:142
+msgid "There don't seem to be any events."
+msgstr ""
 
 #: static/sentry/app/views/projectReleases/index.jsx:138
 msgid "Sorry, no releases match your filters."
@@ -3025,126 +3100,6 @@ msgstr "版本"
 msgid "New Events"
 msgstr "新事件"
 
-#: static/sentry/app/views/stream.jsx:499
-msgid "Waiting for events…"
-msgstr ""
-
-#: static/sentry/app/views/stream.jsx:500
-msgid "Our error robot is waiting to [cross:devour] receive your first event."
-msgstr ""
-
-#: static/sentry/app/views/stream.jsx:501
-msgid "Installation Instructions"
-msgstr ""
-
-#: static/sentry/app/views/installWizard.jsx:179
-#, python-format
-msgid ""
-"An invalid option (%s) was passed to the server. Please report this issue to"
-" the Sentry team."
-msgstr ""
-
-#: static/sentry/app/views/installWizard.jsx:183
-#, python-format
-msgid "An invalid value for (%s) was passed to the server."
-msgstr ""
-
-#: static/sentry/app/views/installWizard.jsx:187
-msgid "An unknown error occurred. Please take a look at the service logs."
-msgstr ""
-
-#: static/sentry/app/views/installWizard.jsx:207
-msgid "Sentry Setup"
-msgstr ""
-
-#: static/sentry/app/views/installWizard.jsx:212
-msgid "Welcome to Sentry"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:61
-msgid "Oldest"
-msgstr "時間最早"
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:75
-msgid "Older"
-msgstr "時間較早"
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:84
-msgid "Newer"
-msgstr "時間較近"
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:91
-msgid "Newest"
-msgstr "時間最近"
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:111
-#, python-format
-msgid "Event %s"
-msgstr ""
-
-#: static/sentry/app/components/group/sidebar.jsx:19
-msgid "Last 24 Hours"
-msgstr "過去 24 小時"
-
-#: static/sentry/app/components/group/sidebar.jsx:23
-msgid "Last 30 Days"
-msgstr "過去 30 天"
-
-#: static/sentry/app/components/group/chart.jsx:33
-msgid "First seen"
-msgstr "首次查看"
-
-#: static/sentry/app/components/group/chart.jsx:40
-msgid "Last seen"
-msgstr "最後一次查看"
-
-#: static/sentry/app/components/events/eventEntries.jsx:76
-msgid "There was an error rendering this data."
-msgstr ""
-
-#: static/sentry/app/components/mutedBox.jsx:19
-#, python-format
-msgid "This issue has been snoozed until %s"
-msgstr "此問題已延遲至 %s"
-
-#: static/sentry/app/components/mutedBox.jsx:24
-msgid "This issue has been muted"
-msgstr "此問題已設為靜音"
-
-#: static/sentry/app/components/mutedBox.jsx:26
-msgid ""
-"You will not be notified of any changes and it will not show up by default "
-"in feeds."
-msgstr "您將不會收到任何變更的通知，且根據預設也不會顯示於摘要中。"
-
-#: static/sentry/app/views/stream/searchBar.jsx:82
-msgid "Assigned"
-msgstr "已指派"
-
-#: static/sentry/app/views/groupDetails/header.jsx:152
-msgid "Share this event"
-msgstr "分享此事件"
-
-#: static/sentry/app/views/groupDetails/header.jsx:168
-msgid "Comments"
-msgstr "註解"
-
-#: static/sentry/app/views/groupDetails/header.jsx:179
-msgid "Related Events"
-msgstr "相關事件"
-
-#: static/sentry/app/components/issueList.jsx:120
-msgid "Nothing to show here, move along."
-msgstr ""
-
-#: static/sentry/app/components/organizations/homeContainer.jsx:35
-msgid "You do not have enough permission to create new projects"
-msgstr "您的權限不足，無法建立新專案"
-
-#: static/sentry/app/components/organizations/homeContainer.jsx:46
-msgid "You do not have enough permission to create new teams"
-msgstr "您的權限不足，無法建立新團隊"
-
 #: static/sentry/app/options.jsx:8
 msgid "Root URL"
 msgstr ""
@@ -3172,27 +3127,45 @@ msgid ""
 " 0 will disable the default rate limit."
 msgstr ""
 
-#: static/sentry/app/components/missingProjectMembership.jsx:61
+#: static/sentry/app/views/installWizard.jsx:179
 #, python-format
-msgid "To view this data you must first join the %s team."
-msgstr "若要檢視此資料，您必須先加入 %s 團隊。"
+msgid ""
+"An invalid option (%s) was passed to the server. Please report this issue to"
+" the Sentry team."
+msgstr ""
 
-#: static/sentry/app/components/missingProjectMembership.jsx:63
+#: static/sentry/app/views/installWizard.jsx:183
 #, python-format
-msgid "To view this data you must first request access to the %s team."
-msgstr "若要檢視此資料，您必須先索取 %s 團隊的存取權。"
+msgid "An invalid value for (%s) was passed to the server."
+msgstr ""
 
-#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:100
-msgid "Request Pending"
-msgstr "要求等待中"
+#: static/sentry/app/views/installWizard.jsx:187
+msgid "An unknown error occurred. Please take a look at the service logs."
+msgstr ""
 
-#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:103
-msgid "Join Team"
-msgstr "加入團隊"
+#: static/sentry/app/views/installWizard.jsx:207
+msgid "Sentry Setup"
+msgstr ""
 
-#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:106
-msgid "Request Access"
-msgstr "要求存取權"
+#: static/sentry/app/views/installWizard.jsx:212
+msgid "Welcome to Sentry"
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:82
+msgid "Assigned"
+msgstr "已指派"
+
+#: static/sentry/app/views/groupDetails/header.jsx:211
+msgid "Share this event"
+msgstr "分享此事件"
+
+#: static/sentry/app/views/groupDetails/header.jsx:227
+msgid "Comments"
+msgstr "註解"
+
+#: static/sentry/app/views/groupDetails/header.jsx:238
+msgid "Related Events"
+msgstr "相關事件"
 
 #: static/sentry/app/stores/groupStore.jsx:221
 msgid "Unable to change assignee. Please try again."
@@ -3218,13 +3191,101 @@ msgstr "選取的事件已排定準備合併。"
 msgid "Unable to update events. Please try again."
 msgstr "無法更新事件，請再試一次。"
 
-#: static/sentry/app/views/projectDashboard/eventList.jsx:108
-msgid "No data available."
-msgstr "無可用資料。"
+#: static/sentry/app/components/events/eventEntries.jsx:76
+msgid "There was an error rendering this data."
+msgstr ""
 
-#: static/sentry/app/views/stream/actionLink.jsx:107
-msgid "Please confirm"
-msgstr "請確認"
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:65
+msgid "Oldest"
+msgstr "時間最早"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:79
+msgid "Older"
+msgstr "時間較早"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:88
+msgid "Newer"
+msgstr "時間較近"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:95
+msgid "Newest"
+msgstr "時間最近"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:119
+#, python-format
+msgid "Event %s"
+msgstr ""
+
+#: static/sentry/app/components/group/sidebar.jsx:19
+msgid "Last 24 Hours"
+msgstr "過去 24 小時"
+
+#: static/sentry/app/components/group/sidebar.jsx:23
+msgid "Last 30 Days"
+msgstr "過去 30 天"
+
+#: static/sentry/app/components/group/chart.jsx:33
+msgid "First seen"
+msgstr "首次查看"
+
+#: static/sentry/app/components/group/chart.jsx:40
+msgid "Last seen"
+msgstr "最後一次查看"
+
+#: static/sentry/app/components/mutedBox.jsx:19
+#, python-format
+msgid "This issue has been snoozed until %s"
+msgstr "此問題已延遲至 %s"
+
+#: static/sentry/app/components/mutedBox.jsx:24
+msgid "This issue has been muted"
+msgstr "此問題已設為靜音"
+
+#: static/sentry/app/components/mutedBox.jsx:26
+msgid ""
+"You will not be notified of any changes and it will not show up by default "
+"in feeds."
+msgstr "您將不會收到任何變更的通知，且根據預設也不會顯示於摘要中。"
+
+#: static/sentry/app/components/issueList.jsx:120
+msgid "Nothing to show here, move along."
+msgstr ""
+
+#: static/sentry/app/components/organizations/homeContainer.jsx:35
+msgid "You do not have enough permission to create new projects"
+msgstr "您的權限不足，無法建立新專案"
+
+#: static/sentry/app/components/organizations/homeContainer.jsx:46
+msgid "You do not have enough permission to create new teams"
+msgstr "您的權限不足，無法建立新團隊"
+
+#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:50
+msgid "There was an error while trying to join the team."
+msgstr "嘗試加入團隊時發生錯誤。"
+
+#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:78
+msgid "There was an error while trying to leave the team."
+msgstr "嘗試離開團隊時發生錯誤。"
+
+#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:85
+msgid "Leave Team"
+msgstr "離開團隊"
+
+#: static/sentry/app/components/missingProjectMembership.jsx:69
+msgid "Request Pending"
+msgstr "要求等待中"
+
+#: static/sentry/app/components/missingProjectMembership.jsx:72
+msgid "Join Team"
+msgstr "加入團隊"
+
+#: static/sentry/app/components/missingProjectMembership.jsx:75
+msgid "Request Access"
+msgstr "要求存取權"
+
+#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:89
+msgid "Team Settings"
+msgstr "團隊設定"
 
 #: static/sentry/app/components/todos.jsx:40
 msgid "[user] completed [dateCompleted]"
@@ -3334,13 +3395,27 @@ msgstr ""
 msgid "Show more"
 msgstr "顯示更多"
 
-#: static/sentry/app/components/groupList.jsx:125
-msgid "There don't seem to be any events fitting the query."
-msgstr "似乎沒有任何事件符合查詢結果。"
+#: static/sentry/app/views/projectDashboard/eventList.jsx:108
+msgid "No data available."
+msgstr "無可用資料。"
+
+#: static/sentry/app/components/missingProjectMembership.jsx:61
+#, python-format
+msgid "To view this data you must first join the %s team."
+msgstr "若要檢視此資料，您必須先加入 %s 團隊。"
+
+#: static/sentry/app/components/missingProjectMembership.jsx:63
+#, python-format
+msgid "To view this data you must first request access to the %s team."
+msgstr "若要檢視此資料，您必須先索取 %s 團隊的存取權。"
 
 #: static/sentry/app/components/compactIssue.jsx:58
 msgid "zZz"
 msgstr ""
+
+#: static/sentry/app/views/stream/actionLink.jsx:107
+msgid "Please confirm"
+msgstr "請確認"
 
 #: static/sentry/app/components/compactIssue.jsx:63
 msgid "How long should we snooze this issue?"
@@ -3362,117 +3437,9 @@ msgstr "24小時"
 msgid "Forever"
 msgstr ""
 
-#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:41
-msgid ""
-"You don't have any teams for this organization yet. Get started by "
-"[link:creating your first team]."
-msgstr "你在此組織中尚未擁有任何團隊。若要開始使用，請參閱[link:建立第一個團隊]。"
-
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:87
-msgid "Events Per Minute"
-msgstr "每分鐘事件數"
-
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:89
-msgid "Rejected in last 24h"
-msgstr "在過去 24 小時內拒絕"
-
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:93
-msgid "View all stats"
-msgstr "檢視所有統計資料"
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:50
-msgid "Dropped"
-msgstr "已捨棄"
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:49
-msgid "(Rate Limit)"
-msgstr "(速率限制)"
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:50
-msgid "(Blacklist)"
-msgstr "(黑名單)"
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:51
-msgid "Total"
-msgstr "總計"
-
-#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:55
-msgid ""
-"There are no projects in this team. Get started by [link:creating your first"
-" project]."
-msgstr "此團隊沒有任何專案。若要開始使用，請參閱[link:建立第一個專案]。"
-
-#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:98
-msgid "Leave Team"
-msgstr "離開團隊"
-
-#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:111
-msgid "Team Settings"
-msgstr "團隊設定"
-
-#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:132
-msgid ""
-"You are not a member of any teams. [joinLink:Join an existing team] or "
-"[createLink:create a new one]."
-msgstr "您不隸屬於任何團隊。現在就[joinLink:加入既有團隊]，或者[createLink:建立新的團隊]。"
-
-#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:142
-msgid ""
-"You dont have any teams for this organization yet. Get started by "
-"[link:creating your first team]."
-msgstr "您在此組織中尚未擁有任何團隊。若要開始使用，請參閱[link:建立第一個團隊]。"
-
-#: static/sentry/app/components/activity/noteInput.jsx:15
-msgid "Unknown error. Please try again."
-msgstr "發生不明錯誤，請再試一次"
-
-#: static/sentry/app/components/activity/noteInput.jsx:106
-msgid "Posting comment.."
-msgstr "正在張貼註解..."
-
-#: static/sentry/app/components/activity/noteInput.jsx:140
-msgid "Updating comment.."
-msgstr "正在更新註解..."
-
-#: static/sentry/app/components/activity/noteInput.jsx:219
-msgid "Save Comment"
-msgstr "儲存註解"
-
-#: static/sentry/app/components/activity/noteInput.jsx:219
-msgid "Post Comment"
-msgstr "張貼註解"
-
-#: static/sentry/app/components/activity/note.jsx:37
-msgid "Edit"
-msgstr "編輯"
-
-#: static/sentry/app/components/activity/noteInput.jsx:226
-msgid "Write"
-msgstr "寫入"
-
-#: static/sentry/app/components/activity/noteInput.jsx:229
-msgid "Preview"
-msgstr ""
-
-#: static/sentry/app/components/activity/noteInput.jsx:233
-msgid "Markdown supported"
-msgstr "支援 Markdown"
-
-#: static/sentry/app/components/activity/noteInput.jsx:241
-msgid "Add details or updates to this event"
-msgstr ""
-
-#: static/sentry/app/views/stream/filters.jsx:76
-msgid "Search for events, users, tags, and everything else."
-msgstr "搜尋事件、使用者、標籤等所有項目。"
-
-#: static/sentry/app/views/stream/sidebar.jsx:107
-msgid "Text"
-msgstr "文字"
-
-#: static/sentry/app/views/stream/sidebar.jsx:111
-msgid "Search title and culprit text body"
-msgstr "搜尋標題及造成問題的文字本文"
+#: static/sentry/app/components/groupList.jsx:125
+msgid "There don't seem to be any events fitting the query."
+msgstr "似乎沒有任何事件符合查詢結果。"
 
 #: static/sentry/app/views/stream/actions.jsx:93
 msgid "Removing events.."
@@ -3690,100 +3657,111 @@ msgstr[0] ""
 msgid "Select all issues matching this search query."
 msgstr ""
 
-#: static/sentry/app/components/group/seenInfo.jsx:22
-msgid "When"
-msgstr "時間"
+#: static/sentry/app/views/stream/filters.jsx:76
+msgid "Search for events, users, tags, and everything else."
+msgstr "搜尋事件、使用者、標籤等所有項目。"
 
-#: static/sentry/app/components/group/seenInfo.jsx:24
-msgid "Date"
-msgstr "日期"
+#: static/sentry/app/views/stream/sidebar.jsx:107
+msgid "Text"
+msgstr "文字"
 
-#: static/sentry/app/components/group/tagDistributionMeter.jsx:112
-msgid "Other"
+#: static/sentry/app/views/stream/sidebar.jsx:111
+msgid "Search title and culprit text body"
+msgstr "搜尋標題及造成問題的文字本文"
+
+#: static/sentry/app/components/actionOverlay.jsx:52
+msgid "Do this later …"
 msgstr ""
 
-#: static/sentry/app/components/group/tagDistributionMeter.jsx:125
-msgid "No recent data."
+#: static/sentry/app/components/activity/noteInput.jsx:15
+msgid "Unknown error. Please try again."
+msgstr "發生不明錯誤，請再試一次"
+
+#: static/sentry/app/components/activity/noteInput.jsx:106
+msgid "Posting comment.."
+msgstr "正在張貼註解..."
+
+#: static/sentry/app/components/activity/noteInput.jsx:140
+msgid "Updating comment.."
+msgstr "正在更新註解..."
+
+#: static/sentry/app/components/activity/noteInput.jsx:219
+msgid "Save Comment"
+msgstr "儲存註解"
+
+#: static/sentry/app/components/activity/noteInput.jsx:219
+msgid "Post Comment"
+msgstr "張貼註解"
+
+#: static/sentry/app/components/activity/note.jsx:37
+msgid "Edit"
+msgstr "編輯"
+
+#: static/sentry/app/components/activity/noteInput.jsx:226
+msgid "Write"
+msgstr "寫入"
+
+#: static/sentry/app/components/activity/noteInput.jsx:229
+msgid "Preview"
 msgstr ""
 
-#: static/sentry/app/components/events/errors.jsx:42
-msgid "Hide"
-msgstr "隱藏"
+#: static/sentry/app/components/activity/noteInput.jsx:233
+msgid "Markdown supported"
+msgstr "支援 Markdown"
 
-#: static/sentry/app/components/events/errors.jsx:42
-msgid "Show"
-msgstr "顯示"
-
-#: static/sentry/app/components/events/errors.jsx:44
-#, python-format
-msgid "There was %d error encountered while processing this event"
-msgid_plural "There were %d errors encountered while processing this event"
-msgstr[0] ""
-
-#: static/sentry/app/components/events/extraData.jsx:27
-msgid "Additional Data"
-msgstr "附加数据"
-
-#: static/sentry/app/components/events/message.jsx:18
-msgid "Message"
-msgstr "訊息"
-
-#: static/sentry/app/components/events/interfaces/exception.jsx:58
-msgid "App Only"
-msgstr "僅限應用程式"
-
-#: static/sentry/app/components/events/interfaces/exception.jsx:60
-msgid "Full"
-msgstr "完整"
-
-#: static/sentry/app/components/events/interfaces/csp.jsx:55
-msgid "Raw"
-msgstr "原始"
-
-#: static/sentry/app/components/events/interfaces/exception.jsx:69
-msgid "most recent call last"
-msgstr "時間越近的呼叫排越後面"
-
-#: static/sentry/app/components/events/interfaces/exception.jsx:67
-msgid "most recent call first"
-msgstr "時間越近的呼叫排越前面"
-
-#: static/sentry/app/components/events/interfaces/exception.jsx:64
-msgid "Exception"
-msgstr "异常"
-
-# this means "rich" rendering (fancy tables)
-#: static/sentry/app/components/events/interfaces/request.jsx:77
-msgid "Rich"
-msgstr "豐富版"
-
-#: static/sentry/app/components/events/interfaces/template.jsx:25
-msgid "Template"
-msgstr "範本"
-
-#: static/sentry/app/components/events/interfaces/csp.jsx:54
-msgid "Report"
-msgstr "報告"
-
-#: static/sentry/app/components/events/interfaces/csp.jsx:56
-msgid "Help"
-msgstr "說明"
-
-#: static/sentry/app/components/events/interfaces/csp.jsx:58
-msgid "CSP Report"
-msgstr "CSP 報告"
-
-#: static/sentry/app/components/assigneeSelector.jsx:195
-msgid "No matching users found."
+#: static/sentry/app/components/activity/noteInput.jsx:241
+msgid "Add details or updates to this event"
 msgstr ""
 
-#: static/sentry/app/components/assigneeSelector.jsx:223
-msgid "Filter people"
+#: static/sentry/app/components/header/index.jsx:111
+msgid "Required Action:"
 msgstr ""
 
-#: static/sentry/app/components/assigneeSelector.jsx:232
-msgid "Clear Assignee"
-msgstr ""
+#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:66
+msgid ""
+"There are no projects in this team. Get started by [link:creating your first"
+" project]."
+msgstr "此團隊沒有任何專案。若要開始使用，請參閱[link:建立第一個專案]。"
+
+#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:149
+msgid ""
+"You are not a member of any teams. [joinLink:Join an existing team] or "
+"[createLink:create a new one]."
+msgstr "您不隸屬於任何團隊。現在就[joinLink:加入既有團隊]，或者[createLink:建立新的團隊]。"
+
+#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:159
+msgid ""
+"You dont have any teams for this organization yet. Get started by "
+"[link:creating your first team]."
+msgstr "您在此組織中尚未擁有任何團隊。若要開始使用，請參閱[link:建立第一個團隊]。"
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:50
+msgid "Dropped"
+msgstr "已捨棄"
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:49
+msgid "(Rate Limit)"
+msgstr "(速率限制)"
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:50
+msgid "(Blacklist)"
+msgstr "(黑名單)"
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:51
+msgid "Total"
+msgstr "總計"
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:87
+msgid "Events Per Minute"
+msgstr "每分鐘事件數"
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:89
+msgid "Rejected in last 24h"
+msgstr "在過去 24 小時內拒絕"
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:93
+msgid "View all stats"
+msgstr "檢視所有統計資料"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:34
 msgid "Delete event.."
@@ -3846,6 +3824,101 @@ msgstr "刪除"
 #: static/sentry/app/views/groupDetails/actions.jsx:190
 msgid "Deleting this event is permanent. Are you sure you wish to continue?"
 msgstr "刪除此事件具永久效力，確定要繼續嗎？"
+
+#: static/sentry/app/components/assigneeSelector.jsx:195
+msgid "No matching users found."
+msgstr ""
+
+#: static/sentry/app/components/assigneeSelector.jsx:223
+msgid "Filter people"
+msgstr ""
+
+#: static/sentry/app/components/assigneeSelector.jsx:232
+msgid "Clear Assignee"
+msgstr ""
+
+#: static/sentry/app/components/events/errors.jsx:42
+msgid "Hide"
+msgstr "隱藏"
+
+#: static/sentry/app/components/events/errors.jsx:42
+msgid "Show"
+msgstr "顯示"
+
+#: static/sentry/app/components/events/errors.jsx:44
+#, python-format
+msgid "There was %d error encountered while processing this event"
+msgid_plural "There were %d errors encountered while processing this event"
+msgstr[0] ""
+
+#: static/sentry/app/components/events/extraData.jsx:27
+msgid "Additional Data"
+msgstr "附加数据"
+
+#: static/sentry/app/components/events/message.jsx:18
+msgid "Message"
+msgstr "訊息"
+
+#: static/sentry/app/components/events/interfaces/stacktrace.jsx:60
+msgid "App Only"
+msgstr "僅限應用程式"
+
+#: static/sentry/app/components/events/interfaces/stacktrace.jsx:62
+msgid "Full"
+msgstr "完整"
+
+#: static/sentry/app/components/events/interfaces/csp.jsx:55
+msgid "Raw"
+msgstr "原始"
+
+#: static/sentry/app/components/events/interfaces/exception.jsx:64
+msgid "Exception"
+msgstr "异常"
+
+#: static/sentry/app/components/events/interfaces/stacktrace.jsx:70
+msgid "most recent call first"
+msgstr "時間越近的呼叫排越前面"
+
+#: static/sentry/app/components/events/interfaces/stacktrace.jsx:68
+msgid "most recent call last"
+msgstr "時間越近的呼叫排越後面"
+
+# this means "rich" rendering (fancy tables)
+#: static/sentry/app/components/events/interfaces/request.jsx:77
+msgid "Rich"
+msgstr "豐富版"
+
+#: static/sentry/app/components/events/interfaces/template.jsx:25
+msgid "Template"
+msgstr "範本"
+
+#: static/sentry/app/components/events/interfaces/csp.jsx:54
+msgid "Report"
+msgstr "報告"
+
+#: static/sentry/app/components/events/interfaces/csp.jsx:56
+msgid "Help"
+msgstr "說明"
+
+#: static/sentry/app/components/events/interfaces/csp.jsx:58
+msgid "CSP Report"
+msgstr "CSP 報告"
+
+#: static/sentry/app/components/group/seenInfo.jsx:22
+msgid "When"
+msgstr "時間"
+
+#: static/sentry/app/components/group/seenInfo.jsx:24
+msgid "Date"
+msgstr "日期"
+
+#: static/sentry/app/components/group/tagDistributionMeter.jsx:112
+msgid "Other"
+msgstr ""
+
+#: static/sentry/app/components/group/tagDistributionMeter.jsx:125
+msgid "No recent data."
+msgstr ""
 
 #: static/sentry/app/components/activity/item.jsx:58
 msgid "[author] commented on [link:an issue] in [project]"
@@ -3923,6 +3996,10 @@ msgstr ""
 msgid "[author] released version [version] to [project]"
 msgstr ""
 
+#: static/sentry/app/components/organizations/homeSidebar.jsx:43
+msgid "Projects & Teams"
+msgstr ""
+
 #: static/sentry/app/components/groupListHeader.jsx:10
 msgid "Event"
 msgstr "事件"
@@ -3935,29 +4012,37 @@ msgstr "過去 24 小時"
 msgid "events"
 msgstr "事件"
 
-#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:50
-msgid "There was an error while trying to join the team."
-msgstr "嘗試加入團隊時發生錯誤。"
+#: static/sentry/app/views/stream/actionLink.jsx:111
+msgid "This action cannot be undone."
+msgstr "此動作無法復原。"
 
-#: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:78
-msgid "There was an error while trying to leave the team."
-msgstr "嘗試離開團隊時發生錯誤。"
+#: static/sentry/app/views/stream/searchBar.jsx:68
+msgid "Tag"
+msgstr "標籤"
 
-#: static/sentry/app/components/activity/note.jsx:40
-msgid "Are you sure you wish to delete this comment?"
-msgstr "確定要刪除此註解嗎？"
-
-#: static/sentry/app/components/header/broadcasts.jsx:118
-msgid "No recent broadcasts from the Sentry team."
-msgstr "最近沒有 Sentry 團隊的廣播。"
-
-#: static/sentry/app/components/header/broadcasts.jsx:128
-msgid "Read more"
-msgstr "閱讀更多"
-
-#: static/sentry/app/components/header/statuspage.jsx:125
-msgid "Read more …"
+#: static/sentry/app/views/stream/searchBar.jsx:69
+msgid "key/value pair associated to an issue"
 msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:76
+msgid "State of an issue"
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:83
+msgid "team member assigned to an issue"
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:89
+msgid "Bookmarked By"
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:90
+msgid "team member who bookmarked an issue"
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:96
+msgid "or paste an event id to jump straight to it"
+msgstr "或貼上事件 ID 直接跳到事件"
 
 #: static/sentry/app/views/stream/sortOptions.jsx:59
 msgid "Sort by"
@@ -3993,37 +4078,21 @@ msgstr ""
 msgid "There don't seem to be any saved searches yet."
 msgstr ""
 
-#: static/sentry/app/views/stream/searchBar.jsx:68
-msgid "Tag"
-msgstr "標籤"
+#: static/sentry/app/components/activity/note.jsx:40
+msgid "Are you sure you wish to delete this comment?"
+msgstr "確定要刪除此註解嗎？"
 
-#: static/sentry/app/views/stream/searchBar.jsx:69
-msgid "key/value pair associated to an issue"
+#: static/sentry/app/components/header/broadcasts.jsx:118
+msgid "No recent broadcasts from the Sentry team."
+msgstr "最近沒有 Sentry 團隊的廣播。"
+
+#: static/sentry/app/components/header/broadcasts.jsx:128
+msgid "Read more"
+msgstr "閱讀更多"
+
+#: static/sentry/app/components/header/statuspage.jsx:125
+msgid "Read more …"
 msgstr ""
-
-#: static/sentry/app/views/stream/searchBar.jsx:76
-msgid "State of an issue"
-msgstr ""
-
-#: static/sentry/app/views/stream/searchBar.jsx:83
-msgid "team member assigned to an issue"
-msgstr ""
-
-#: static/sentry/app/views/stream/searchBar.jsx:89
-msgid "Bookmarked By"
-msgstr ""
-
-#: static/sentry/app/views/stream/searchBar.jsx:90
-msgid "team member who bookmarked an issue"
-msgstr ""
-
-#: static/sentry/app/views/stream/searchBar.jsx:96
-msgid "or paste an event id to jump straight to it"
-msgstr "或貼上事件 ID 直接跳到事件"
-
-#: static/sentry/app/views/stream/actionLink.jsx:111
-msgid "This action cannot be undone."
-msgstr "此動作無法復原。"
 
 #: static/sentry/app/components/events/errorItem.jsx:29
 msgid "Collapse"
@@ -4032,11 +4101,6 @@ msgstr "收合"
 #: static/sentry/app/components/events/errorItem.jsx:29
 msgid "Expand"
 msgstr "展開"
-
-#: static/sentry/app/components/events/interfaces/stacktraceContent.jsx:40
-#, python-format
-msgid "Frames %d until %d were omitted and not available."
-msgstr ""
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:72
 msgid "Query String"
@@ -4054,42 +4118,47 @@ msgstr "Cookie"
 msgid "Headers"
 msgstr "標頭"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:67
+#: static/sentry/app/components/events/interfaces/stacktraceContent.jsx:29
+#, python-format
+msgid "Frames %d until %d were omitted and not available."
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/frame.jsx:68
 msgid "Original Filename"
 msgstr "原始檔案名稱"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:68
+#: static/sentry/app/components/events/interfaces/frame.jsx:69
 msgid "Line Number"
 msgstr "行數"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:69
+#: static/sentry/app/components/events/interfaces/frame.jsx:70
 msgid "Column Number"
 msgstr "欄數"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:70
+#: static/sentry/app/components/events/interfaces/frame.jsx:71
 msgid "Function"
 msgstr "功能"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:71
+#: static/sentry/app/components/events/interfaces/frame.jsx:72
 msgid "Source Map"
 msgstr "來源對應"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:108
+#: static/sentry/app/components/events/interfaces/frame.jsx:109
 msgid "in"
 msgstr "in"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:122
+#: static/sentry/app/components/events/interfaces/frame.jsx:123
 msgid "at line"
 msgstr "位置行："
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:131
+#: static/sentry/app/components/events/interfaces/frame.jsx:132
 msgid "within"
 msgstr ""
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:144
+#: static/sentry/app/components/events/interfaces/frame.jsx:145
 msgid "application"
 msgstr "應用程式"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:219
+#: static/sentry/app/components/events/interfaces/frame.jsx:210
 msgid "Toggle context"
 msgstr "切換內容"
