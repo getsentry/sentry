@@ -42,7 +42,7 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
 
     converted_frames = []
     longest_addr = 0
-    for frame in frames:
+    for frame in reversed(frames):
         fn = frame.get('filename')
         in_app = False
 
