@@ -69,6 +69,7 @@ IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 dev_requires = [
     'Babel',
     'flake8>=2.0,<2.1',
+    'honcho',
     'isort>=4.2.2,<4.3.0',
 ]
 
