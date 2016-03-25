@@ -116,13 +116,16 @@ class SentryHTTPServer(Service):
 
         validate_settings(django_settings)
 
-    def prepare_environment(self):
+    def prepare_environment(self, env=None):
+        if env is None:
+            env = os.environ
+
         # Move all of the options into UWSGI_ env vars
         for k, v in convert_options_to_env(self.options):
-            os.environ.setdefault(k, v)
+            env.setdefault(k, v)
 
         # This has already been validated inside __init__
-        os.environ['SENTRY_SKIP_BACKEND_VALIDATION'] = '1'
+        env['SENTRY_SKIP_BACKEND_VALIDATION'] = '1'
 
         # Look up the bin directory where `sentry` exists, which should be
         # sys.argv[0], then inject that to the front of our PATH so we can reliably
@@ -130,15 +133,17 @@ class SentryHTTPServer(Service):
         # This is so the virtualenv doesn't need to be sourced in, which effectively
         # does exactly this.
         virtualenv_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-        current_path = os.environ.get('PATH', '')
+        current_path = env.get('PATH', '')
         if virtualenv_path not in current_path:
-            os.environ['PATH'] = '%s:%s' % (virtualenv_path, current_path)
+            env['PATH'] = '%s:%s' % (virtualenv_path, current_path)
 
     def run(self):
         self.prepare_environment()
         os.execvp('uwsgi', ('uwsgi',))
 
-    def run_subprocess(self, cwd=None):
+    def run_subprocess(self, cwd=None, env=None):
         from subprocess import Popen
-        self.prepare_environment()
-        return Popen(['uwsgi'], cwd=cwd, env=os.environ.copy())
+        if env is None:
+            env = os.environ.copy()
+        self.prepare_environment(env)
+        return Popen(['uwsgi'], cwd=cwd, env=env)
