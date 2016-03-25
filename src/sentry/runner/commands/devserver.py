@@ -74,6 +74,12 @@ def devserver(reload, watchers, workers, bind):
         ('server', ['sentry', 'start']),
     ]
 
+    # Change directory globally to affect all subprocesses. This is less than ideal,
+    # but Honcho doesn't provide the ability to pass in a cwd to subprocesses yet.
+    # See: https://github.com/nickstenning/honcho/pull/170
+    cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
+    os.chdir(cwd)
+
     manager = Manager()
     for name, cmd in daemons:
         manager.add_process(
