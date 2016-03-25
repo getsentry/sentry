@@ -62,8 +62,8 @@ class OrganizationSettingsForm(forms.ModelForm):
         required=False,
     )
     require_scrub_ip_address = forms.BooleanField(
-        label=_('Require not storing IP Addresses'),
-        help_text=_('Require preventing IP addresses from being stored for new events on all projects.'),
+        label=_('Prevent Storing of IP Addresses'),
+        help_text=_('Preventing IP addresses from being stored for new events on all projects.'),
         required=False
     )
 
