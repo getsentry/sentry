@@ -1,9 +1,9 @@
 import pytest
 
 from sentry.api.bases.group import get_group
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Group, GroupRedirect
 from sentry.testutils import TestCase
-from sentry.api.exceptions import ResourceDoesNotExist
 
 
 class GroupEndpointTestCase(TestCase):

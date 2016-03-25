@@ -3,10 +3,9 @@ from __future__ import absolute_import
 import logging
 
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.bases.project import ProjectPermission
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Group, GroupRedirect
-
 
 logger = logging.getLogger(__name__)
 
