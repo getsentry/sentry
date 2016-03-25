@@ -116,7 +116,7 @@ class SentryHTTPServer(Service):
 
         validate_settings(django_settings)
 
-    def run(self):
+    def prepare_environment(self):
         # Move all of the options into UWSGI_ env vars
         for k, v in convert_options_to_env(self.options):
             os.environ.setdefault(k, v)
@@ -134,4 +134,13 @@ class SentryHTTPServer(Service):
         if virtualenv_path not in current_path:
             os.environ['PATH'] = '%s:%s' % (virtualenv_path, current_path)
 
+    def run(self):
+        self.prepare_environment()
         os.execvp('uwsgi', ('uwsgi',))
+
+    def run_subprocess(self):
+        from subprocess import Popen
+        from django.conf import settings
+        self.prepare_environment()
+        cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
+        return Popen(['uwsgi'], cwd=cwd, env=os.environ.copy())
