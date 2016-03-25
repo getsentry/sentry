@@ -1869,15 +1869,21 @@ table.integrations {
    .alert {
      color: #fff;
      font-weight: bold;
-     background: @yellow-light;
+     background: darken(@yellow-orange, 2);
      border: 0;
 
      .close {
-       color: rgba(255,255,255, .5);
+       color: rgba(255,255,255, .7);
 
        &:hover {
-         color: rgba(255,255,255, .8);
+         color: rgba(255,255,255, .9);
        }
+     }
+   }
+
+   .alert-warning {
+     .icon:before {
+       content: "\e615";
      }
    }
 

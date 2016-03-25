@@ -11,7 +11,8 @@ import {t} from '../../../locale';
 const Frame = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
-    isExpanded: React.PropTypes.bool
+    platform: React.PropTypes.string,
+    isExpanded: React.PropTypes.bool,
   },
 
   mixins: [
@@ -92,7 +93,7 @@ const Frame = React.createClass({
     return out;
   },
 
-  renderTitle() {
+  renderDefaultTitle() {
     let data = this.props.data;
     let title = [];
 
@@ -200,6 +201,66 @@ const Frame = React.createClass({
     return context;
   },
 
+  renderExpander() {
+    if (!this.isExpandable()) {
+      return null;
+    }
+    return (
+      <a
+        title={t('Toggle context')}
+        onClick={this.toggleContext}
+        className="btn btn-sm btn-default btn-toggle">
+        <span className={this.state.isExpanded ? 'icon-minus' : 'icon-plus'}/>
+      </a>
+    );
+  },
+
+  renderDefaultLine() {
+    return (
+      <p>
+        {this.renderDefaultTitle()}
+        {this.renderExpander()}
+      </p>
+    );
+  },
+
+  renderCocoaLine() {
+    let data = this.props.data;
+    let className = 'stacktrace-table';
+    if (data.inApp) {
+      className += ' in-app';
+    }
+    return (
+      <div className={className}>
+        <div className="trace-col package">
+          {data.package}
+        </div>
+        <div className="trace-col address">
+          {data.instructionAddr}
+        </div>
+        <div className="trace-col symbol">
+          <code>{data.function || '<unknown>'}</code>
+          {data.instructionOffset &&
+            <span className="offset">{' + ' + data.instructionOffset}</span>}
+          {data.filename &&
+            <span className="filename">{data.filename}
+              {data.lineNo ? ':' + data.lineNo : ''}</span>}
+          {this.renderExpander()}
+        </div>
+      </div>
+    );
+  },
+
+  renderLine() {
+    switch (this.props.platform) {
+      case 'objc':
+      case 'cocoa':
+        return this.renderCocoaLine();
+      default:
+        return this.renderDefaultLine();
+    }
+  },
+
   render() {
     let data = this.props.data;
 
@@ -208,22 +269,13 @@ const Frame = React.createClass({
       'system-frame': !data.inApp,
       'frame-errors': data.errors,
     });
+    let props = {className: className};
 
     let context = this.renderContext();
 
     return (
-      <li className={className}>
-        <p>{this.renderTitle()}
-          {this.isExpandable() ?
-            <a
-              title={t('Toggle context')}
-              onClick={this.toggleContext}
-              className="btn btn-sm btn-default btn-toggle">
-              <span className={this.state.isExpanded ? 'icon-minus' : 'icon-plus'}/>
-            </a>
-            : ''
-          }
-        </p>
+      <li {...props}>
+        {this.renderLine()}
         {context}
       </li>
     );

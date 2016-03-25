@@ -185,8 +185,9 @@ YAML_CONFIG_TEMPLATE = u"""\
 # The email address to send on behalf of
 # mail.from: 'root@localhost'
 
-# If this file ever becomes compromised, it's important to regenerate your SECRET_KEY
-# Changing this value will result in all current sessions being invalidated
+# If this file ever becomes compromised, it's important to regenerate your a new key
+# Changing this value will result in all current sessions being invalidated.
+# A new key can be generated with `$ sentry config generate-secret-key`
 system.secret-key: '%(secret_key)s'
 
 # The ``redis.clusters`` setting is used, unsurprisingly, to configure Redis

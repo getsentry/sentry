@@ -64,8 +64,6 @@ def pytest_configure(config):
     middleware[sudo] = 'sentry.testutils.middleware.SudoMiddleware'
     settings.MIDDLEWARE_CLASSES = tuple(middleware)
 
-    settings.SENTRY_OPTIONS['system.url-prefix'] = 'http://testserver'
-
     # enable draft features
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
 
@@ -106,6 +104,7 @@ def pytest_configure(config):
             },
         },
         'mail.backend': 'django.core.mail.backends.locmem.EmailBackend',
+        'system.url-prefix': 'http://testserver',
     })
 
     # django mail uses socket.getfqdn which doesn't play nice if our
@@ -113,8 +112,10 @@ def pytest_configure(config):
     patcher = mock.patch('socket.getfqdn', return_value='localhost')
     patcher.start()
 
-    from sentry.runner.initializer import initialize_receivers, fix_south, bind_cache_to_option_store
+    from sentry.runner.initializer import (
+        bootstrap_options, initialize_receivers, fix_south, bind_cache_to_option_store)
 
+    bootstrap_options(settings)
     fix_south(settings)
 
     bind_cache_to_option_store()

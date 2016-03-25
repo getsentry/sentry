@@ -25,9 +25,6 @@ import sentry
 
 gettext_noop = lambda s: s
 
-# A marker for indicating builtin Django settings that are to not be used
-DEAD = object()
-
 socket.setdefaulttimeout(5)
 
 DEBUG = False
@@ -50,6 +47,8 @@ if 'site-packages' in __file__:
     NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, 'node_modules')
 else:
     NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'node_modules')
+
+NODE_MODULES_ROOT = os.path.normpath(NODE_MODULES_ROOT)
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
@@ -188,8 +187,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-# Make this unique, and don't share it with anybody.
-SECRET_KEY = hashlib.md5(socket.gethostname() + ')*)&8a36)6%74e@-ne5(-!8a(vv#tkv)(eyg&@0=zd^pl!7=y@').hexdigest()
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -687,10 +684,6 @@ SENTRY_SMTP_HOSTNAME = 'localhost'
 SENTRY_SMTP_HOST = 'localhost'
 SENTRY_SMTP_PORT = 1025
 
-SERVER_EMAIL = DEAD
-DEFAULT_FROM_EMAIL = DEAD
-EMAIL_SUBJECT_PREFIX = DEAD
-
 SENTRY_INTERFACES = {
     'exception': 'sentry.interfaces.exception.Exception',
     'logentry': 'sentry.interfaces.message.Message',
@@ -913,7 +906,18 @@ SENTRY_ROLES = (
 )
 
 # See sentry/options/__init__.py for more information
-SENTRY_OPTIONS = {}
+SENTRY_OPTIONS = {
+    'mail.backend': 'django.core.mail.backends.smtp.EmailBackend',
+    'mail.host': 'localhost',
+    'mail.port': 25,
+    'mail.username': '',
+    'mail.password': '',
+    'mail.use-tls': False,
+    'mail.subject-prefix': '[Sentry] ',
+    'mail.from': 'root@localhost',
+    # Make this unique, and don't share it with anybody.
+    'system.secret-key': hashlib.md5(socket.gethostname() + ')*)&8a36)6%74e@-ne5(-!8a(vv#tkv)(eyg&@0=zd^pl!7=y@').hexdigest(),
+}
 
 # You should not change this setting after your database has been created
 # unless you have altered all schemas first
@@ -926,8 +930,8 @@ SENTRY_API_RESPONSE_DELAY = 0
 # XXX(dcramer): this doesn't work outside of a source distribution as the
 # webpack.config.js is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
-    [os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '-d', '--watch',
-     "--config={}".format(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))],
+    ('webpack', [os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '--output-pathinfo', '--watch',
+     "--config={}".format(os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")))]),
 )
 
 # statuspage.io support
@@ -945,3 +949,18 @@ def get_raven_config():
     }
 
 RAVEN_CONFIG = get_raven_config()
+
+# Config options that are explicitly disabled from Django
+DEAD = object()
+
+# This will eventually get set from values in SENTRY_OPTIONS during
+# sentry.runner.initializer:bootstrap_options
+SECRET_KEY = DEAD
+EMAIL_BACKEND = DEAD
+EMAIL_HOST = DEAD
+EMAIL_PORT = DEAD
+EMAIL_HOST_USER = DEAD
+EMAIL_HOST_PASSWORD = DEAD
+EMAIL_USE_TLS = DEAD
+SERVER_EMAIL = DEAD
+EMAIL_SUBJECT_PREFIX = DEAD

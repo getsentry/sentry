@@ -262,12 +262,20 @@ class Frame(Interface):
         except AssertionError:
             raise InterfaceValidationError("Invalid value for 'in_app'")
 
+        instruction_offset = data.get('instruction_offset')
+        if instruction_offset is not None and \
+           not isinstance(instruction_offset, (int, long)):
+            raise InterfaceValidationError("Invalid value for 'instruction_offset'")
+
         kwargs = {
             'abs_path': trim(abs_path, 256),
             'filename': trim(filename, 256),
             'module': trim(module, 256),
             'function': trim(function, 256),
             'package': trim(data.get('package'), 256),
+            'symbol_addr': trim(data.get('symbol_addr'), 16),
+            'instruction_addr': trim(data.get('instruction_addr'), 16),
+            'instruction_offset': instruction_offset,
             'in_app': in_app,
             'context_line': context_line,
             # TODO(dcramer): trim pre/post_context
@@ -349,6 +357,9 @@ class Frame(Interface):
             'absPath': self.abs_path,
             'module': self.module,
             'package': self.package,
+            'instructionAddr': self.instruction_addr,
+            'instructionOffset': self.instruction_offset,
+            'symbolAddr': self.symbol_addr,
             'function': self.function,
             'context': get_context(
                 lineno=self.lineno,
@@ -376,6 +387,7 @@ class Frame(Interface):
             })
             if is_url(self.data['sourcemap']):
                 data['mapUrl'] = self.data['sourcemap']
+
         return data
 
     def is_url(self):

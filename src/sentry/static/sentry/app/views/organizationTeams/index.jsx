@@ -7,8 +7,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import OrganizationHomeContainer from '../../components/organizations/homeContainer';
 import OrganizationState from '../../mixins/organizationState';
 import TeamStore from '../../stores/teamStore';
-import TooltipMixin from '../../mixins/tooltip';
-import {sortArray, arrayIsEqual} from '../../utils';
+import {sortArray} from '../../utils';
 
 import ExpandedTeamList from './expandedTeamList';
 import OrganizationStatOverview from './organizationStatOverview';
@@ -18,10 +17,7 @@ const OrganizationTeams = React.createClass({
   mixins: [
     ApiMixin,
     OrganizationState,
-    Reflux.listenTo(TeamStore, 'onTeamListChange'),
-    TooltipMixin({
-      selector: '.tip'
-    })
+    Reflux.listenTo(TeamStore, 'onTeamListChange')
   ],
 
   getInitialState() {
@@ -33,10 +29,8 @@ const OrganizationTeams = React.createClass({
     };
   },
 
-
-  componentWillUpdate(nextProps, nextState) {
-    if (!arrayIsEqual(nextState.teamList.map(team => team.id), this.state.teamList.map(team => team.id)))
-      this.fetchStats();
+  componentWillMount() {
+    this.fetchStats();
   },
 
   fetchStats() {

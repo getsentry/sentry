@@ -8,6 +8,7 @@ import BarChart from '../../components/barChart';
 import ProjectLabel from '../../components/projectLabel';
 import ConfigStore from '../../stores/configStore';
 import PropTypes from '../../proptypes';
+import TooltipMixin from '../../mixins/tooltip';
 import {sortArray} from '../../utils';
 import {t, tct} from '../../locale';
 
@@ -20,7 +21,18 @@ const ExpandedTeamList = React.createClass({
     hasTeams: React.PropTypes.bool
   },
 
-  mixins: [ApiMixin],
+  mixins: [
+    ApiMixin,
+    TooltipMixin(function () {
+      return {
+        selector: '.tip',
+        title: function (instance) {
+          return (this.getAttribute('data-isbookmarked') === 'true' ?
+            'Remove from bookmarks' : 'Add to bookmarks');
+        }
+      };
+    })
+  ],
 
   leaveTeam(team) {
     // TODO(dcramer): handle loading indicator
@@ -113,7 +125,9 @@ const ExpandedTeamList = React.createClass({
       <tr key={project.id} className={project.isBookmarked ? 'isBookmarked' : null}>
         <td>
           <h5>
-            <a onClick={this.toggleBookmark.bind(this, project)}>
+            <a onClick={this.toggleBookmark.bind(this, project)}
+               className="tip"
+               data-isbookmarked={project.isBookmarked}>
               {project.isBookmarked ? <span className="icon-star-solid bookmark" /> : <span className="icon-star-outline bookmark" />}
             </a>
             <Link to={`/${org.slug}/${project.slug}/`}>

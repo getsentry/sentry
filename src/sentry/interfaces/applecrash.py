@@ -34,6 +34,7 @@ class AppleCrashReport(Interface):
 
         kwargs = {
             'crash': data['crash'],
+            'system': data.get('system') or {},
             'binary_images': data['binary_images'],
         }
 

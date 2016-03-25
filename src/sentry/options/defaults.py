@@ -13,13 +13,13 @@ from sentry.options import (
 from sentry.utils.types import Dict, String
 
 # Cache
-register('cache.backend', flags=FLAG_NOSTORE)
-register('cache.options', type=Dict, flags=FLAG_NOSTORE)
+# register('cache.backend', flags=FLAG_NOSTORE)
+# register('cache.options', type=Dict, flags=FLAG_NOSTORE)
 
 # System
 register('system.admin-email', flags=FLAG_REQUIRED)
 register('system.databases', type=Dict, flags=FLAG_NOSTORE)
-register('system.debug', default=False, flags=FLAG_NOSTORE)
+# register('system.debug', default=False, flags=FLAG_NOSTORE)
 register('system.rate-limit', default=0, flags=FLAG_PRIORITIZE_DISK)
 register('system.secret-key', flags=FLAG_NOSTORE)
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
@@ -57,5 +57,5 @@ register('mail.password', flags=FLAG_PRIORITIZE_DISK)
 register('mail.use-tls', default=False, flags=FLAG_PRIORITIZE_DISK)
 register('mail.subject-prefix', default='[Sentry] ', flags=FLAG_PRIORITIZE_DISK)
 register('mail.from', default='root@localhost', flags=FLAG_PRIORITIZE_DISK)
-register('mail.enable-replies', default=False, flags=FLAG_PRIORITIZE_DISK)
+# register('mail.enable-replies', default=False, flags=FLAG_PRIORITIZE_DISK)
 register('mail.list-namespace', type=String, default='localhost', flags=FLAG_NOSTORE)

@@ -13,6 +13,8 @@ if (process.env.SENTRY_STATIC_DIST_PATH) {
     distPath = process.env.SENTRY_STATIC_DIST_PATH;
 }
 
+var IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
 var babelQuery = {
   plugins: [],
   extra: {}
@@ -71,7 +73,7 @@ var entry = {
 };
 
 // dynamically iterate over locale files and add to `entry` config
-var localeCatalogPath = path.join('src', 'sentry', 'locale', 'catalogs.json');
+var localeCatalogPath = path.join(__dirname, 'src', 'sentry', 'locale', 'catalogs.json');
 var localeCatalog = JSON.parse(fs.readFileSync(localeCatalogPath, 'utf8'));
 var localeEntries = [];
 
@@ -98,7 +100,7 @@ var config = {
         test: /\.jsx?$/,
         loader: 'babel-loader',
         include: path.join(__dirname, staticPrefix),
-        exclude: /(vendor|node_modules)/,
+        exclude: /(vendor|node_modules|dist)/,
         query: babelQuery
       },
       {
@@ -122,7 +124,13 @@ var config = {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
         loader: 'file-loader?name=' + '[name].[ext]'
       }
-    ]
+    ],
+    noParse: [
+      // don't parse known, pre-built javascript files (improves webpack perf)
+      path.join(__dirname, 'node_modules', 'jquery', 'dist', 'jquery.js'),
+      path.join(__dirname, 'node_modules', 'jed', 'jed.js'),
+      path.join(__dirname, 'node_modules', 'marked', 'lib', 'marked.js')
+    ],
   },
   plugins: [
     new webpack.optimize.CommonsChunkPlugin({
@@ -168,13 +176,15 @@ var config = {
     library: 'exports',
     sourceMapFilename: '[name].js.map',
   },
-  devtool: 'source-map'
+  devtool: IS_PRODUCTION ?
+    'source-map' :
+    'cheap-module-eval-source-map'
 };
 
 // This compression-webpack-plugin generates pre-compressed files
 // ending in .gz, to be picked up and served by our internal static media
 // server as well as nginx when paired with the gzip_static module.
-if (process.env.NODE_ENV === 'production') {
+if (IS_PRODUCTION) {
   config.plugins.push(new (require('compression-webpack-plugin'))({
     // zopfli gives us a better gzip compression
     // See: http://googledevelopers.blogspot.com/2013/02/compress-data-more-densely-with-zopfli.html
