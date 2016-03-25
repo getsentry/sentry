@@ -122,7 +122,13 @@ var config = {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
         loader: 'file-loader?name=' + '[name].[ext]'
       }
-    ]
+    ],
+    noParse: [
+      // don't parse known, pre-built javascript files (improves webpack perf)
+      path.join(__dirname, 'node_modules', 'jquery', 'dist', 'jquery.js'),
+      path.join(__dirname, 'node_modules', 'jed', 'jed.js'),
+      path.join(__dirname, 'node_modules', 'marked', 'lib', 'marked.js')
+    ],
   },
   plugins: [
     new webpack.optimize.CommonsChunkPlugin({
