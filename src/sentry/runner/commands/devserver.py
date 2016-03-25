@@ -30,14 +30,17 @@ def devserver(reload, watchers, workers, bind):
     from django.conf import settings
     from sentry.services.http import SentryHTTPServer
 
-    # Make sure we don't try and use uwsgi protocol
-    settings.SENTRY_WEB_OPTIONS['protocol'] = 'http'
-
-    # A better log-format for local dev
-    settings.SENTRY_WEB_OPTIONS['log-format'] = '[%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"'
+    uwsgi_overrides = {
+        # Make sure we don't try and use uwsgi protocol
+        'protocol': 'http',
+        # A better log-format for local dev
+        'log-format': '"%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"'
+    }
 
     if reload:
-        settings.SENTRY_WEB_OPTIONS['py-autoreload'] = 1
+        uwsgi_overrides['py-autoreload'] = 1
+
+    server = SentryHTTPServer(host=host, port=port, workers=1, extra_options=uwsgi_overrides)
 
     daemons = []
 
@@ -49,49 +52,34 @@ def devserver(reload, watchers, workers, bind):
             raise click.ClickException('Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
 
         daemons += [
-            ['sentry', 'celery', 'worker', '-l', 'INFO'],
-            ['sentry', 'celery', 'beat', '-l', 'INFO'],
+            ('worker', ['sentry', 'celery', 'worker', '-c', '1', '-l', 'INFO']),
+            ('beat', ['sentry', 'celery', 'beat', '-l', 'INFO']),
         ]
 
     # If we don't need any other daemons, just launch a normal uwsgi webserver
     # and avoid dealing with subprocesses
     if not daemons:
-        click.secho('*** Launching webserver..', bold=True)
-        SentryHTTPServer(host=host, port=port, workers=1).run()
-        return
+        return server.run()
 
-    from subprocess import Popen
-    cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
-    env = os.environ.copy()
+    import sys
+    from subprocess import list2cmdline
+    from honcho.manager import Manager
 
-    daemon_list = []
-    server = None
-    try:
-        for daemon in daemons:
-            click.secho('*** Running: {0}'.format(' '.join([os.path.basename(daemon[0])] + daemon[1:])), bold=True)
-            try:
-                daemon_list.append(Popen(daemon, cwd=cwd, env=env))
-            except OSError:
-                raise click.ClickException('{0} not found.'.format(daemon[0]))
+    os.environ['PYTHONUNBUFFERED'] = 'true'
 
-        click.secho('*** Launching webserver..', bold=True)
-        server = SentryHTTPServer(
-            host=host,
-            port=port,
-            workers=1,
-        ).run_subprocess(cwd=cwd, env=env)
-        server.wait()
-    finally:
-        if server and server.poll() is None:
-            server.terminate()
+    # Make sure that the environment is prepared before honcho takes over
+    # This sets all the appropriate uwsgi env vars, etc
+    server.prepare_environment()
+    daemons += [
+        ('server', ['sentry', 'start']),
+    ]
 
-            if server.poll() is None:
-                server.kill()
+    manager = Manager()
+    for name, cmd in daemons:
+        manager.add_process(
+            name, list2cmdline(cmd),
+            quiet=False, env=os.environ.copy()
+        )
 
-        for daemon in daemon_list:
-            if daemon.poll() is None:
-                daemon.terminate()
-
-        for daemon in daemon_list:
-            if daemon.poll() is None:
-                daemon.wait()
+    manager.loop()
+    sys.exit(manager.returncode)

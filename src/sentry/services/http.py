@@ -34,7 +34,7 @@ class SentryHTTPServer(Service):
     name = 'http'
 
     def __init__(self, host=None, port=None, debug=False, workers=None,
-                 validate=True):
+                 validate=True, extra_options=None):
         from django.conf import settings
 
         if validate:
@@ -44,6 +44,9 @@ class SentryHTTPServer(Service):
         port = port or settings.SENTRY_WEB_PORT
 
         options = (settings.SENTRY_WEB_OPTIONS or {}).copy()
+        if extra_options is not None:
+            for k, v in extra_options.iteritems():
+                options[k] = v
         options.setdefault('module', 'sentry.wsgi:application')
         options.setdefault('protocol', 'http')
         options.setdefault('auto-procname', True)
@@ -140,10 +143,3 @@ class SentryHTTPServer(Service):
     def run(self):
         self.prepare_environment()
         os.execvp('uwsgi', ('uwsgi',))
-
-    def run_subprocess(self, cwd=None, env=None):
-        from subprocess import Popen
-        if env is None:
-            env = os.environ.copy()
-        self.prepare_environment(env)
-        return Popen(['uwsgi'], cwd=cwd, env=env)
