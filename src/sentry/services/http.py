@@ -138,9 +138,7 @@ class SentryHTTPServer(Service):
         self.prepare_environment()
         os.execvp('uwsgi', ('uwsgi',))
 
-    def run_subprocess(self):
+    def run_subprocess(self, cwd=None):
         from subprocess import Popen
-        from django.conf import settings
         self.prepare_environment()
-        cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
         return Popen(['uwsgi'], cwd=cwd, env=os.environ.copy())
