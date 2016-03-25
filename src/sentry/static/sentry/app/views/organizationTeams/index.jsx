@@ -7,7 +7,6 @@ import ApiMixin from '../../mixins/apiMixin';
 import OrganizationHomeContainer from '../../components/organizations/homeContainer';
 import OrganizationState from '../../mixins/organizationState';
 import TeamStore from '../../stores/teamStore';
-import TooltipMixin from '../../mixins/tooltip';
 import {sortArray} from '../../utils';
 
 import ExpandedTeamList from './expandedTeamList';
@@ -18,10 +17,7 @@ const OrganizationTeams = React.createClass({
   mixins: [
     ApiMixin,
     OrganizationState,
-    Reflux.listenTo(TeamStore, 'onTeamListChange'),
-    TooltipMixin({
-      selector: '.tip'
-    })
+    Reflux.listenTo(TeamStore, 'onTeamListChange')
   ],
 
   getInitialState() {
