@@ -11,6 +11,7 @@ import {t} from '../../../locale';
 const Frame = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
+    nextFrameInApp: React.PropTypes.object.bool,
     platform: React.PropTypes.string,
     isExpanded: React.PropTypes.bool,
   },
@@ -227,9 +228,6 @@ const Frame = React.createClass({
   renderCocoaLine() {
     let data = this.props.data;
     let className = 'stacktrace-table';
-    if (data.inApp) {
-      className += ' in-app';
-    }
     return (
       <div className={className}>
         <div className="trace-col package">
@@ -268,6 +266,7 @@ const Frame = React.createClass({
       'frame': true,
       'system-frame': !data.inApp,
       'frame-errors': data.errors,
+      'leads-to-app': !data.inApp && this.props.nextFrameInApp
     });
     let props = {className: className};
 

@@ -31,10 +31,17 @@ const StacktraceContent = React.createClass({
     return <li {...props}>{text}</li>;
   },
 
+  frameIsVisible(frame, nextFrame) {
+    return (
+      this.props.includeSystemFrames ||
+      frame.inApp ||
+      (nextFrame && nextFrame.inApp)
+    );
+  },
+
   render() {
     let data = this.props.data;
     let firstFrameOmitted, lastFrameOmitted;
-    let includeSystemFrames = this.props.includeSystemFrames;
 
     if (data.framesOmitted) {
       firstFrameOmitted = data.framesOmitted[0];
@@ -46,11 +53,13 @@ const StacktraceContent = React.createClass({
 
     let frames = [];
     data.frames.forEach((frame, frameIdx) => {
-      if (includeSystemFrames || frame.inApp) {
+      let nextFrame = data.frames[frameIdx + 1];
+      if (this.frameIsVisible(frame, nextFrame)) {
         frames.push(
           <Frame
             key={frameIdx}
             data={frame}
+            nextFrameInApp={nextFrame && nextFrame.inApp}
             platform={this.props.platform} />
         );
       }
