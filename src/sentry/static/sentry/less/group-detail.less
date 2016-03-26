@@ -965,6 +965,8 @@
 
   &.system-frame {}
 
+  &.leads-to-app {}
+
   h3 {
     font-size: 22px;
   }
@@ -1230,11 +1232,6 @@ ol.context-line {
 }
 
 .stacktrace-table {
-  background: lighten(@blue-light, 25);
-
-  &.in-app {
-    background: white;
-  }
 
   .trace-col {
     display: inline-block;
@@ -1270,6 +1267,14 @@ ol.context-line {
       padding-left: 10px;
     }
   }
+}
+
+.system-frame .stacktrace-table {
+  background: lighten(@blue-light, 25);
+}
+
+.leads-to-app .stacktrace-table {
+  background: lighten(@green-light, 28);
 }
 
 #full-message {
