@@ -79,7 +79,7 @@ class DSymCache(object):
         try:
             cache_folders = os.listdir(self.dsym_cache_path)
         except OSError:
-            pass
+            return
 
         cutoff = int(time.time()) - ONE_DAY_AND_A_HALF
 
