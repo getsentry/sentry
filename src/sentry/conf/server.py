@@ -482,13 +482,14 @@ CELERYBEAT_SCHEDULE = {
             'expires': 300,
         },
     },
-    'clear-old-cached-dsyms': {
-        'task': 'sentry.tasks.clear_old_cached_dsyms',
-        'schedule': timedelta(minutes=60),
-        'options': {
-            'expires': 3600,
-        },
-    },
+    # Disabled for the time being:
+    # 'clear-old-cached-dsyms': {
+    #     'task': 'sentry.tasks.clear_old_cached_dsyms',
+    #     'schedule': timedelta(minutes=60),
+    #     'options': {
+    #         'expires': 3600,
+    #     },
+    # },
 }
 
 LOGGING = {
