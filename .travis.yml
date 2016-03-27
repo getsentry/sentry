@@ -31,4 +31,5 @@ script:
 after_success:
   - codecov -e TEST_SUITE
 before_cache:
-  - rm -f $HOME/.cache/pip/log/debug.log
+  - rm -rf $HOME/.cache/pip/http/
+  - rm -rf $HOME/.cache/pip/log/
