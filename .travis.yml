@@ -21,6 +21,7 @@ env:
     - TEST_SUITE=cli
     - TEST_SUITE=dist
   global:
+    - PIP_DISABLE_PIP_VERSION_CHECK=on
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
 install:
@@ -31,5 +32,7 @@ script:
 after_success:
   - codecov -e TEST_SUITE
 before_cache:
+  - rm -f $HOME/.cache/pip/selfcheck.json
   - rm -rf $HOME/.cache/pip/http/
   - rm -rf $HOME/.cache/pip/log/
+  - rm -rf $HOME/virtualenv/python2.7.9/lib/python2.7/site-packages/pip-6*
