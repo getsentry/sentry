@@ -21,7 +21,6 @@ develop: update-submodules setup-git develop-only install-python-tests
 	@echo ""
 
 dev-postgres: install-python
-	pip install "file://`pwd`#egg=sentry[postgres]"
 
 dev-docs:
 	pip install -r doc-requirements.txt

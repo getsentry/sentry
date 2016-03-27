@@ -134,9 +134,6 @@ install_requires = [
     'rb>=1.4.0,<2.0.0',
 ]
 
-postgres_requires = [
-]
-
 dsym_requires = [
     'symsynd>=0.3.0,<1.0.0',
 ]
@@ -459,7 +456,7 @@ setup(
     extras_require={
         'tests': tests_require,
         'dev': dev_requires,
-        'postgres': install_requires + postgres_requires,
+        'postgres': install_requires,
         'dsym': dsym_requires,
     },
     cmdclass=cmdclass,
