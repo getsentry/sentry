@@ -307,6 +307,17 @@ def configure(ctx, py, yaml, skip_backend_validation=False):
             raise click.ClickException("Configuration file does not exist. Use 'sentry init' to initialize the file.")
         raise ValueError("Configuration file does not exist at '%s'" % click.format_filename(yaml))
 
+    # Add autoreload for config.yml file if needed
+    if 'UWSGI_PY_AUTORELOAD' in os.environ:
+        if yaml is not None and os.path.exists(yaml):
+            try:
+                import uwsgi
+                from uwsgidecorators import filemon
+            except ImportError:
+                pass
+            else:
+                filemon(yaml)(uwsgi.reload)
+
     os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry_config'
 
     install('sentry_config', py, DEFAULT_SETTINGS_MODULE)
