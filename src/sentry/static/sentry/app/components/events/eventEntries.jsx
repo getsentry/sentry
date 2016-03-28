@@ -41,9 +41,10 @@ const EventEntries = React.createClass({
     stacktrace: require('./interfaces/stacktrace'),
     template: require('./interfaces/template'),
     csp: require('./interfaces/csp'),
+    breadcrumbs: require('./interfaces/breadcrumbs'),
   },
 
-  render(){
+  render() {
     let group = this.props.group;
     let evt = this.props.event;
     let isShare = this.props.isShare;
