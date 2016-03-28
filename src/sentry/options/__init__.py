@@ -31,5 +31,6 @@ delete = default_manager.delete
 register = default_manager.register
 all = default_manager.all
 filter = default_manager.filter
+isset = default_manager.isset
 
 from .defaults import *  # NOQA

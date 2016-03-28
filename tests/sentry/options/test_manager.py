@@ -270,3 +270,23 @@ class OptionsManagerTest(TestCase):
 
         keys = list(self.manager.filter(flag=FLAG_REQUIRED))
         assert {k.name for k in keys} == {'required', 'nostorerequired'}
+
+    def test_isset(self):
+        self.manager.register('basic')
+        assert self.manager.isset('basic') is False
+
+        with patch.object(self.store, 'get', side_effect='awesome'):
+            assert self.manager.isset('basic') is True
+
+        with self.settings(SENTRY_OPTIONS={'basic': 'awesome'}):
+            assert self.manager.isset('basic') is True
+
+        self.manager.register('nostore', flags=FLAG_NOSTORE)
+        assert self.manager.isset('nostore') is False
+
+        # This shouldn't be affected by the store value since it's NOSTORE
+        with patch.object(self.store, 'get', side_effect='awesome'):
+            assert self.manager.isset('nostore') is False
+
+        with self.settings(SENTRY_OPTIONS={'nostore': 'awesome'}):
+            assert self.manager.isset('nostore') is True
