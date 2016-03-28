@@ -519,8 +519,9 @@ class ClientApiHelper(object):
                 continue
 
             if type(value) != dict:
-                # HACK(dcramer): the exception interface supports a list as the
-                # value. We should change this in a new protocol version.
+                # HACK(dcramer): the exception/breadcrumbs interface supports a
+                # list as the value. We should change this in a new protocol
+                # version.
                 if type(value) in (list, tuple):
                     value = {'values': value}
                 else:

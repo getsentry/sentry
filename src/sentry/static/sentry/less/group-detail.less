@@ -598,6 +598,7 @@
         time {
           float: right;
           color: lighten(@gray, 20);
+          font-style: normal;
         }
       }
     }
@@ -1541,6 +1542,321 @@ pre.val, span.val {
     }
   }
 }
+
+/**
+* Breadcrumbs / Timeline
+* ============================================================================
+*/
+
+.breadcrumb-box {
+  .box-content {
+    padding: 0 !important;
+  }
+}
+
+ul.crumbs {
+  .list-unstyled;
+  margin: 0 -1px -1px;
+
+  li {
+    margin: 0;
+    border-left: 1px solid transparent;
+    border-right: 1px solid transparent;
+    border-bottom: 1px solid lighten(@trim, 6);
+    padding: 10px 20px 10px 70px;
+    position: relative;
+    min-height: 46px;
+
+    &:before {
+      display: block;
+      content: "";
+      width: 2px;
+      top: 0;
+      bottom: 0;
+      left: 35px;
+      background: #E7EAEF;
+      position: absolute;
+    }
+
+    &:last-child {
+      border-bottom: 0;
+      border-radius: 0 0 2px 2px;
+    }
+
+    h5 {
+      font-size: 15px;
+      margin-bottom: 3px;
+      line-height: 24px;
+    }
+
+    p {
+      margin: 0;
+      padding: 0;
+    }
+
+    .icon-container {
+      display: block;
+      .square(32px);
+      background: #fff;
+      border: 1px solid @gray-lighter;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+      border-radius: 32px;
+      position: absolute;
+      top: 7px;
+      left: 19px;
+
+      .icon {
+        font-size: 16px;
+        position: absolute;
+        left: 8px;
+        top: 6px;
+        font-family: 'sentry-simple';
+        speak: none;
+        font-style: normal;
+        font-weight: normal;
+        font-variant: normal;
+        text-transform: none;
+        line-height: 1;
+
+        /* Better Font Rendering =========== */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+    }
+
+    time, span.dt {
+      float: right;
+      font-size: 12px;
+      color: @gray;
+    }
+
+    span.crumb-classifier {
+      padding-left: 6px;
+      color: @gray;
+      font-weight: normal;
+      font-size: 90%;
+    }
+
+    .table.key-value {
+      margin-bottom: 0;
+      background: none;
+
+      td {
+        padding-top: 0 !important;
+        padding-bottom: 5px !important;
+      }
+
+      tr:last-child td {
+        padding-bottom: 0 !important;
+      }
+
+      .key {
+        width: 126px;
+        color: @gray-dark;
+      }
+
+      pre {
+        display: inline-block;
+        padding: 2px 8px;
+        margin: -4px 0 0;
+      }
+    }
+
+    &.crumbs-collapsed {
+      background: @white-dark;
+      margin: 0 1px;
+      box-shadow: inset 0 -1px 2px rgba(0,0,0, .03);
+
+      &:before {
+        left: 34px;
+      }
+
+      .icon {
+        color: @gray;
+        top: 8px;
+      }
+
+      a {
+        color: @gray-dark;
+        display: block;
+        padding: 6px 0 5px;
+        margin: -5px 0;
+
+        &:hover {
+          color: @gray-darkest;
+        }
+      }
+    }
+
+    &.crumb-query {
+      background: lighten(@orange, 42);
+      code {
+        white-space: pre;
+
+        span.param {
+          display: inline;
+          color: @blue;
+          padding: 0 3px;
+          background: white;
+          border-radius: 2px;
+        }
+      }
+    }
+
+    &.crumb-rpc {
+
+    }
+
+    &.crumb-navigation {
+      .icon-container {
+        border-color: @yellow-orange-dark;
+
+        .icon {
+          top: 7px;
+          color: darken(@yellow-orange, 5);
+          &:before {content: "\e61d";}
+        }
+      }
+    }
+
+    &.crumb-http-request {
+      .icon-container {
+        border-color: @green-dark;
+
+        .icon {
+          top: 7px;
+          color: @green;
+          &:before {
+            content: "\e908";
+          }
+        }
+      }
+    }
+
+    &.crumb-message {
+      padding-top: 11px;
+
+      & + .crumb-message {
+        margin-top: -6px;
+        background: #fff;
+        min-height: 0;
+        padding-top: 0;
+        padding-bottom: 10px;
+        border-left: 1px solid @trim;
+        border-right: 1px solid @trim;
+
+        .icon-container {
+          display: none;
+        }
+      }
+
+      .icon-container {
+        border-color: @blue-dark;
+      }
+
+      .icon {
+        color: @blue;
+        top: 7px;
+
+        &:before {
+          content: "\e909";
+        }
+      }
+
+      span.level {
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: capitalize;
+        background: @white-darkest;
+        color: @gray-dark;
+        border-radius: 2px;
+        display: inline-block;
+        padding: 4px 0;
+        margin-right: 6px;
+        line-height: 1;
+        position: relative;
+        top: -2px;
+        width: 54px;
+        text-align: center;
+      }
+
+      span.level-info {
+        background: @blue;
+        color: @white;
+      }
+
+      span.level-error {
+        background: @orange;
+        color: @white;
+      }
+
+      span.level-warning {
+        background: @yellow-orange;
+        color: @white;
+      }
+
+      span.level-fatal {
+        background: @red;
+        color: @white;
+      }
+
+      span.logger {
+        padding-left: 8px;
+        color: @gray;
+      }
+    }
+
+    &.crumb-ui-event {
+      .icon-container {
+        border-color: @purple-dark;
+      }
+
+      .icon {
+        color: @purple;
+      }
+
+      .icon:before {
+        content: "\e608";
+      }
+    }
+
+    &.crumb-error {
+      background: #fffcfb;
+      border: 1px solid #E7C0BC;
+      margin: -1px 0;
+
+      .icon {
+        color: @red;
+        &:before {
+          content: "\e906";
+        }
+      }
+
+      h5 {
+        color: #000 !important;
+      }
+
+      td, pre, time, .dt {
+        color: #504140 !important;
+      }
+
+      .icon-container {
+        border-color: @red-dark;
+      }
+
+      &:before {
+         background: #F1D8D5;
+         bottom: auto;
+         height: 20px;
+      }
+
+      pre {
+        background: #F8EEED;
+      }
+    }
+  }
+}
+
 
 /**
 * Responsive medium screen
