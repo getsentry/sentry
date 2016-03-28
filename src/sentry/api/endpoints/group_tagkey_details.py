@@ -6,7 +6,9 @@ from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import GroupTagValue, TagKey, TagKeyStatus, Group
+from sentry.models import (
+    GroupTagKey, GroupTagValue, TagKey, TagKeyStatus, Group
+)
 from sentry.utils.apidocs import scenario
 
 
@@ -51,6 +53,14 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         except TagKey.DoesNotExist:
             raise ResourceDoesNotExist
 
+        try:
+            group_tag_key = GroupTagKey.objects.get(
+                group=group,
+                key=lookup_key,
+            )
+        except GroupTagKey.DoesNotExist:
+            raise ResourceDoesNotExist
+
         total_values = GroupTagValue.get_value_count(group.id, lookup_key)
 
         top_values = GroupTagValue.get_top_values(group.id, lookup_key, limit=3)
@@ -58,7 +68,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         data = {
             'key': key,
             'name': tag_key.get_label(),
-            'uniqueValues': tag_key.values_seen,
+            'uniqueValues': group_tag_key.values_seen,
             'totalValues': total_values,
             'topValues': serialize(top_values, request.user),
         }
