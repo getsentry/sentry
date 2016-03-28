@@ -72,12 +72,12 @@ let routes = (
     <Route path="/share/issue/:shareId/" component={errorHandler(SharedGroupDetails)} />
 
     <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
-      <IndexRoute component={errorHandler(OrganizationTeams)}/>
+      <IndexRoute component={errorHandler(OrganizationDashboard)}/>
+
+      <Route path="/organizations/:orgId/teams/" component={errorHandler(OrganizationTeams)} />
       <Route path="/organizations/:orgId/all-teams/" component={errorHandler(OrganizationTeams)}>
         <IndexRoute component={errorHandler(AllTeamsList)}/>
       </Route>
-
-      <Route path="/organizations/:orgId/dashboard/" component={errorHandler(OrganizationDashboard)} />
       <Route path="/organizations/:orgId/issues/assigned/" component={errorHandler(MyIssuesAssignedToMe)} />
       <Route path="/organizations/:orgId/issues/bookmarks/" component={errorHandler(MyIssuesBookmarked)} />
       <Route path="/organizations/:orgId/issues/history/" component={errorHandler(MyIssuesViewed)} />
