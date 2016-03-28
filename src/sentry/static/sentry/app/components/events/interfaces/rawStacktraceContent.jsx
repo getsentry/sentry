@@ -115,6 +115,23 @@ export function getCocoaFrame(frame) {
   return result;
 }
 
+function getJavaPreamble(exception) {
+  let result = `${exception.type}: ${exception.value}`;
+  if (exception.module) {
+    result = `${exception.module}.${result}`;
+  }
+  return result;
+}
+
+function getPreamble(exception, platform) {
+  switch (platform) {
+    case 'java':
+      return getJavaPreamble(exception);
+    default:
+      return exception.type + ': ' + exception.value;
+  }
+}
+
 function getFrame(frame, platform) {
   switch (platform) {
     case 'javascript':
@@ -135,11 +152,7 @@ function getFrame(frame, platform) {
 
 export default function render (data, platform, exception) {
   let firstFrameOmitted, lastFrameOmitted;
-  let children = [];
-
-  if (exception) {
-    children.push(exception.type + ': ' + exception.value);
-  }
+  let frames = [];
 
   if (data.framesOmitted) {
     firstFrameOmitted = data.framesOmitted[0];
@@ -150,14 +163,22 @@ export default function render (data, platform, exception) {
   }
 
   data.frames.forEach((frame, frameIdx) => {
-    children.push(getFrame(frame, platform));
+    frames.push(getFrame(frame, platform));
     if (frameIdx === firstFrameOmitted) {
-      children.push((
+      frames.push((
         '.. frames ' + firstFrameOmitted + ' until ' + lastFrameOmitted + ' were omitted and not available ..'
       ));
     }
 
   });
 
-  return children.join('\n');
+  if (platform !== 'python') {
+    frames.reverse();
+  }
+
+  if (exception) {
+    frames.unshift(getPreamble(exception, platform));
+  }
+
+  return frames.join('\n');
 }
