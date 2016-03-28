@@ -1,12 +1,15 @@
 from __future__ import absolute_import
 
-import pytest
+from datetime import datetime, timedelta
 
-from datetime import timedelta, datetime
+import pytest
 from django.db.models import ProtectedError
 from django.utils import timezone
 
-from sentry.models import Group, GroupSnooze, GroupStatus, Release, get_group_with_redirect, GroupRedirect
+from sentry.models import (
+    Group, GroupRedirect, GroupSnooze, GroupStatus, Release,
+    get_group_with_redirect
+)
 from sentry.testutils import TestCase
 
 

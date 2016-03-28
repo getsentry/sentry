@@ -1,9 +1,9 @@
 from __future__ import absolute_import, division
 
-from django.http import HttpResponse, Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 
-from sentry.models import Group, GroupMeta, Event, get_group_with_redirect
+from sentry.models import Event, Group, GroupMeta, get_group_with_redirect
 from sentry.utils import json
 from sentry.web.frontend.base import ProjectView
 
@@ -13,6 +13,8 @@ class GroupEventJsonView(ProjectView):
 
     def get(self, request, organization, project, team, group_id, event_id_or_latest):
         try:
+            # TODO(tkaemming): This should *actually* redirect, see similar
+            # comment in ``GroupEndpoint.convert_args``.
             group, _ = get_group_with_redirect(
                 group_id,
                 queryset=Group.objects.filter(project=project),
