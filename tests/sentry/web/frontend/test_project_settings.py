@@ -79,7 +79,6 @@ class ProjectSettingsTest(TestCase):
             'name': 'bar',
             'slug': self.project.slug,
             'team': self.team.id,
-            'callsign': self.project.callsign,
             'scrub_data': '1',
             'token': 'foobar',
         })

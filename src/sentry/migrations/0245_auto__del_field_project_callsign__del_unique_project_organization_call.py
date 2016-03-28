@@ -3,71 +3,16 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
-from django.conf import settings
 
 
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding model 'Counter'
-        db.create_table('sentry_projectcounter', (
-            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'], unique=True)),
-            ('value', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')()),
-        ))
-        db.send_create_signal('sentry', ['Counter'])
-
-        # Adding field 'Group.short_id'
-        db.add_column('sentry_groupedmessage', 'short_id',
-                      self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(null=True),
-                      keep_default=False)
-
-        # Adding unique constraint on 'Group', fields ['project', 'short_id']
-        db.create_unique('sentry_groupedmessage', ['project_id', 'short_id'])
-
-        if 'postgres' in settings.DATABASES['default']['ENGINE']:
-            db.execute('''
-                create function sentry_increment_project_counter(
-                    project bigint, delta int) returns int as $$
-                declare
-                  new_val int;
-                begin
-                  loop
-                    update sentry_projectcounter set value = value + delta
-                     where project_id = project
-                       returning value into new_val;
-                    if found then
-                      return new_val;
-                    end if;
-                    begin
-                      insert into sentry_projectcounter(project_id, value)
-                           values (project, delta)
-                        returning value into new_val;
-                      return new_val;
-                    exception when unique_violation then
-                    end;
-                  end loop;
-                end
-                $$ language plpgsql;
-            ''')
-
-
+        # This is a dummy migration
+        pass
 
     def backwards(self, orm):
-        # Removing unique constraint on 'Group', fields ['project', 'short_id']
-        db.delete_unique('sentry_groupedmessage', ['project_id', 'short_id'])
-
-        # Deleting model 'Counter'
-        db.delete_table('sentry_projectcounter')
-
-        # Deleting field 'Group.short_id'
-        db.delete_column('sentry_groupedmessage', 'short_id')
-
-        if 'postgres' in settings.DATABASES['default']['ENGINE']:
-            db.execute('''
-                drop function sentry_increment_project_counter(
-                    bigint, int);
-            ''')
+        pass
 
 
     models = {
@@ -135,7 +80,7 @@ class Migration(SchemaMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 3, 11, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 4, 4, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -153,7 +98,7 @@ class Migration(SchemaMigration):
         'sentry.counter': {
             'Meta': {'object_name': 'Counter', 'db_table': "'sentry_projectcounter'"},
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
-            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'unique': True}),
+            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'unique': 'True'}),
             'value': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {})
         },
         'sentry.event': {
@@ -250,7 +195,7 @@ class Migration(SchemaMigration):
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
             'resolved_at': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'db_index': 'True'}),
             'score': ('sentry.db.models.fields.bounded.BoundedIntegerField', [], {'default': '0'}),
-            'short_id': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'null': 'True'}),
+            'short_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {'null': 'True'}),
             'status': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0', 'db_index': 'True'}),
             'time_spent_count': ('sentry.db.models.fields.bounded.BoundedIntegerField', [], {'default': '0'}),
             'time_spent_total': ('sentry.db.models.fields.bounded.BoundedIntegerField', [], {'default': '0'}),
@@ -294,6 +239,12 @@ class Migration(SchemaMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'value': ('django.db.models.fields.TextField', [], {})
+        },
+        'sentry.groupredirect': {
+            'Meta': {'object_name': 'GroupRedirect'},
+            'group_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {'db_index': 'True'}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'previous_group_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {'unique': 'True'})
         },
         'sentry.groupresolution': {
             'Meta': {'object_name': 'GroupResolution'},
@@ -427,10 +378,10 @@ class Migration(SchemaMigration):
             'value': ('sentry.db.models.fields.pickle.UnicodePickledObjectField', [], {})
         },
         'sentry.project': {
-            'Meta': {'unique_together': "(('team', 'slug'), ('organization', 'slug'), ('organization', 'callsign'))", 'object_name': 'Project'},
-            'callsign': ('django.db.models.fields.CharField', [], {'max_length': '40', 'null': 'True'}),
+            'Meta': {'unique_together': "(('team', 'slug'), ('organization', 'slug'))", 'object_name': 'Project'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'first_event': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
+            'forced_color': ('django.db.models.fields.CharField', [], {'max_length': '6', 'null': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
             'organization': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Organization']"}),

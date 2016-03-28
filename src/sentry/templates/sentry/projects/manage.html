@@ -39,9 +39,6 @@
       <div class="box-content with-padding">
         {{ form.name|as_crispy_field }}
         {{ form.slug|as_crispy_field }}
-        {% feature organizations:callsigns project.organization %}
-          {{ form.callsign|as_crispy_field }}
-        {% endfeature %}
         {{ form.team|as_crispy_field }}
       </div>
     </div>

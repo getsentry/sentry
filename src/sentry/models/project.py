@@ -75,7 +75,6 @@ class Project(Model):
     """
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
-    callsign = models.CharField(max_length=40, null=True)
     forced_color = models.CharField(max_length=6, null=True)
     organization = FlexibleForeignKey('sentry.Organization')
     team = FlexibleForeignKey('sentry.Team')
@@ -98,8 +97,7 @@ class Project(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_project'
-        unique_together = (('team', 'slug'), ('organization', 'slug'),
-                           ('organization', 'callsign'))
+        unique_together = (('team', 'slug'), ('organization', 'slug'))
 
     __repr__ = sane_repr('team_id', 'slug')
 
@@ -197,6 +195,10 @@ class Project(Model):
         from sentry.models import ProjectOption
 
         return ProjectOption.objects.unset_value(self, *args, **kwargs)
+
+    @property
+    def callsign(self):
+        return self.slug.upper()
 
     @property
     def color(self):

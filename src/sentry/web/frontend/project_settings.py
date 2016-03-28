@@ -8,7 +8,6 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from uuid import uuid1
 
-from sentry import features
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, Project, Team
 )
@@ -16,7 +15,6 @@ from sentry.web.forms.fields import (
     CustomTypedChoiceField, RangeField, OriginsField, IPNetworksField,
 )
 from sentry.web.frontend.base import ProjectView
-from sentry.utils.strings import validate_callsign
 
 
 BLANK_CHOICE = [("", "")]
@@ -29,8 +27,6 @@ class EditProjectForm(forms.ModelForm):
         label=_('Short name'),
         help_text=_('A unique ID used to identify this project.'),
     )
-    callsign = forms.CharField(label=_('Callsign'),
-        help_text=_('A short (typically two) letter sequence to identify issues.'))
     team = CustomTypedChoiceField(choices=(), coerce=int, required=False)
     origins = OriginsField(label=_('Allowed Domains'), required=False,
         help_text=_('Separate multiple entries with a newline.'))
@@ -76,7 +72,7 @@ class EditProjectForm(forms.ModelForm):
     org_overrides = ('scrub_data', 'scrub_defaults', 'scrub_ip_address')
 
     class Meta:
-        fields = ('name', 'team', 'slug', 'callsign')
+        fields = ('name', 'team', 'slug')
         model = Project
 
     def __init__(self, request, organization, team_list, data, instance, *args, **kwargs):
@@ -97,9 +93,6 @@ class EditProjectForm(forms.ModelForm):
 
         self.fields['team'].choices = self.get_team_choices(team_list, instance.team)
         self.fields['team'].widget.choices = self.fields['team'].choices
-
-        if not features.has('organizations:callsigns', organization, actor=request.user):
-            del self.fields['callsign']
 
         # After the Form is initialized, we now need to disable the fields that have been
         # overridden from Organization options.
@@ -156,34 +149,14 @@ class EditProjectForm(forms.ModelForm):
         slug = self.cleaned_data.get('slug')
         if not slug:
             return
-        exists_qs = Project.objects.filter(
-            slug=slug,
-            organization=self.organization
-        ).exclude(id=self.instance.id)
-        if exists_qs.exists():
-            raise forms.ValidationError('Another project is already using that slug')
-        return slug
-
-    def clean_callsign(self):
-        # If no callsign was provided we go with the old one.  This
-        # primarily exists so that people without the callsign feature
-        # enabled will not screw up their callsigns.
-        callsign = self.cleaned_data.get('callsign')
-        if not callsign:
-            return self.instance.callsign
-
-        callsign = validate_callsign(callsign)
-        if callsign is None:
-            raise forms.ValidationError(_('Callsign must be between 2 '
-                                          'and 6 letters'))
         other = Project.objects.filter(
-            callsign=callsign,
+            slug=slug,
             organization=self.organization
         ).exclude(id=self.instance.id).first()
         if other is not None:
-            raise forms.ValidationError(_('Another project (%s) is already '
-                                          'using that callsign') % other.name)
-        return callsign
+            raise forms.ValidationError('Another project (%s) is already '
+                                        'using that slug' % other.name)
+        return slug
 
 
 class ProjectSettingsView(ProjectView):
