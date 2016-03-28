@@ -59,7 +59,7 @@ const SetCallsignsAction = React.createClass({
     return {
       isLoading: true,
       info: {},
-      callsigns: {}
+      slugs: {}
     };
   },
 
@@ -73,17 +73,17 @@ const SetCallsignsAction = React.createClass({
     });
 
     let orgId = this.getOrganization().slug;
-    this.api.request(`/organizations/${orgId}/shortids/`, {
+    this.api.request(`/organizations/${orgId}/slugs/`, {
       method: 'PUT',
-      data: {callsigns: this.state.callsigns},
+      data: {slugs: this.state.slugs},
       success: (data) => {
         this.context.history.pushState('refresh', `/${orgId}/`);
       },
       error: (error) => {
         /*eslint no-console:0*/
-        console.log('Failed to set callsigns:', error);
+        console.log('Failed to set slugs:', error);
         /*eslint no-alert:0*/
-        alert(t('Failed to set callsigns'));
+        alert(t('Failed to set slugs'));
       },
       complete: () => {
         this.setState({
@@ -95,7 +95,7 @@ const SetCallsignsAction = React.createClass({
 
   onSetShortName(projectId, event) {
     this.setState({
-      callsigns: update(this.state.callsigns, {
+      slugs: update(this.state.slugs, {
         [projectId]: {$set: event.target.value.toUpperCase().trim()}
       }),
     });
@@ -103,14 +103,14 @@ const SetCallsignsAction = React.createClass({
 
   fetchData() {
     let info = getProjectInfoForReview(this.getOrganization());
-    let callsigns = {};
+    let slugs = {};
     info.memberProjects.forEach((project) => {
-      callsigns[project.projectId] = project.callSign;
+      slugs[project.projectId] = project.callSign;
     });
 
     this.setState({
       info: info,
-      callsigns: callsigns,
+      slugs: slugs,
       isLoading: false,
     });
   },
@@ -122,8 +122,8 @@ const SetCallsignsAction = React.createClass({
       return false;
     }
 
-    for (let key in this.state.callsigns) {
-      if (this.state.callsigns[key] === callsign) {
+    for (let key in this.state.slugs) {
+      if (this.state.slugs[key] === callsign) {
         found++;
       }
     }
@@ -153,7 +153,7 @@ const SetCallsignsAction = React.createClass({
           {info.memberProjects.map((project) => {
             let inputId = 'input-' + project.projectId;
             let className = 'form-group short-id-form-group';
-            let callsign = this.state.callsigns[project.projectId] || '';
+            let callsign = this.state.slugs[project.projectId] || '';
             if (!project.requiresReview) {
               className += ' reviewed';
             }
