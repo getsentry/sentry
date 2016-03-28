@@ -10,6 +10,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import ProjectLabel from '../../components/projectLabel';
 import DropdownLink from '../dropdownLink';
 import MenuItem from '../menuItem';
+import TooltipMixin from '../../mixins/tooltip';
 import {sortArray} from '../../utils';
 import {t} from '../../locale';
 
@@ -25,7 +26,18 @@ const ProjectSelector = React.createClass({
     location: React.PropTypes.object
   },
 
-  mixins: [ApiMixin],
+  mixins: [
+    ApiMixin,
+    TooltipMixin(function () {
+      return {
+        selector: '.tip',
+        title: function (instance) {
+          return (this.getAttribute('data-isbookmarked') === 'true' ?
+            'Remove from bookmarks' : 'Add to bookmarks');
+        }
+      };
+    })
+  ],
 
   getDefaultProps() {
     return {
@@ -180,10 +192,12 @@ const ProjectSelector = React.createClass({
     let orgId = org.slug;
     let projectId = project.slug;
 
-    let className = 'bookmark ' + (project.isBookmarked ? 'icon-star-solid' : 'icon-star-outline');
+    let className = 'bookmark tip ' + (project.isBookmarked ? 'icon-star-solid' : 'icon-star-outline');
     return (
       <span>
-        <a className={className} onClick={this.handleBookmarkClick.bind(this, project)}></a>
+        <a className={className}
+           onClick={this.handleBookmarkClick.bind(this, project)}
+           data-isbookmarked={project.isBookmarked} />
         <Link to={`/${orgId}/${projectId}/`}>
           {label}
         </Link>
