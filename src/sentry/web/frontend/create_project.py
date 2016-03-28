@@ -20,7 +20,7 @@ class AddProjectWithTeamForm(AddProjectForm):
     )
 
     class Meta:
-        fields = ('name', 'callsign', 'team')
+        fields = ('name', 'team')
         model = Project
 
     def __init__(self, user, organization, team_list, *args, **kwargs):

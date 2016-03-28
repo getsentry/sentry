@@ -23,9 +23,6 @@
     {{ form|as_crispy_errors }}
 
     {{ form.name|as_crispy_field }}
-    {% feature organizations:callsigns organization %}
-      {{ form.callsign|as_crispy_field }}
-    {% endfeature %}
     {% if form.team %}
       {{ form.team|as_crispy_field }}
     {% endif %}
