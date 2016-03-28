@@ -31,6 +31,10 @@ const AssignedIssues = React.createClass({
     return `/organizations/${this.props.params.orgId}/issues/assigned/`;
   },
 
+  renderEmpty() {
+    return <div className="box empty">{t('No issues have been assigned to you.')}</div>;
+  },
+
   render() {
     return (
       <div>
@@ -42,7 +46,7 @@ const AssignedIssues = React.createClass({
           statsPeriod: this.props.statsPeriod,
           per_page: this.props.pageSize,
           status: 'unresolved',
-        }} pagination={false} {...this.props} />
+        }} pagination={false} renderEmpty={this.renderEmpty} {...this.props} />
       </div>
     );
   },
@@ -58,6 +62,10 @@ const NewIssues = React.createClass({
     return `/organizations/${this.props.params.orgId}/issues/new/`;
   },
 
+  renderEmpty() {
+    return <div className="box empty">{t('No new issues have been seen in the last 24 hours.')}</div>;
+  },
+
   render() {
     return (
       <div>
@@ -66,7 +74,7 @@ const NewIssues = React.createClass({
           statsPeriod: this.props.statsPeriod,
           per_page: this.props.pageSize,
           status: 'unresolved',
-        }} pagination={false} {...this.props} />
+        }} pagination={false} renderEmpty={this.renderEmpty} {...this.props} />
       </div>
     );
   },
