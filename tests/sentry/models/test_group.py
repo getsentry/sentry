@@ -1,12 +1,15 @@
 from __future__ import absolute_import
 
-import pytest
+from datetime import datetime, timedelta
 
-from datetime import timedelta, datetime
+import pytest
 from django.db.models import ProtectedError
 from django.utils import timezone
 
-from sentry.models import Group, GroupSnooze, GroupStatus, Release
+from sentry.models import (
+    Group, GroupRedirect, GroupSnooze, GroupStatus, Release,
+    get_group_with_redirect
+)
 from sentry.testutils import TestCase
 
 
@@ -124,3 +127,23 @@ class GroupTest(TestCase):
         assert self.create_group(message='\nfoo\n   ').message == 'foo'
         assert self.create_group(message='foo').message == 'foo'
         assert self.create_group(message='').message == ''
+
+    def test_get_group_with_redirect(self):
+        group = self.create_group()
+        assert get_group_with_redirect(group.id) == (group, False)
+
+        duplicate_id = self.create_group().id
+        Group.objects.filter(id=duplicate_id).delete()
+        GroupRedirect.objects.create(
+            group_id=group.id,
+            previous_group_id=duplicate_id,
+        )
+
+        assert get_group_with_redirect(duplicate_id) == (group, True)
+
+        # We shouldn't end up in a case where the redirect points to a bad
+        # reference, but testing this path for completeness.
+        group.delete()
+
+        with pytest.raises(Group.DoesNotExist):
+            get_group_with_redirect(duplicate_id)

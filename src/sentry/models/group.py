@@ -10,12 +10,12 @@ from __future__ import absolute_import, print_function
 import logging
 import math
 import re
-import six
 import time
 import warnings
-
 from base64 import b16decode, b16encode
 from datetime import timedelta
+
+import six
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
@@ -23,17 +23,18 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import buffer
 from sentry.constants import (
-    DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH, EVENT_ORDERING_KEY,
+    DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
 )
 from sentry.db.models import (
-    BaseManager, BoundedIntegerField, BoundedPositiveIntegerField,
-    BoundedBigIntegerField, FlexibleForeignKey, Model, GzippedDictField,
+    BaseManager, BoundedBigIntegerField, BoundedIntegerField,
+    BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model,
     sane_repr
 )
 from sentry.utils.http import absolute_uri
-from sentry.utils.strings import truncatechars, strip
-from sentry.utils.numbers import base32_encode, base32_decode
+from sentry.utils.numbers import base32_decode, base32_encode
+from sentry.utils.strings import strip, truncatechars
 
+logger = logging.getLogger(__name__)
 
 _short_id_re = re.compile(r'^(.*?)(?:[\s_-])([A-Za-z0-9]+)$')
 
@@ -50,6 +51,31 @@ class GroupStatus(object):
     PENDING_DELETION = 3
     DELETION_IN_PROGRESS = 4
     PENDING_MERGE = 5
+
+
+def get_group_with_redirect(id, queryset=None):
+    """
+    Retrieve a group by ID, checking the redirect table if the requested group
+    does not exist. Returns a two-tuple of ``(object, redirected)``.
+    """
+    from sentry.models import GroupRedirect
+
+    if queryset is None:
+        queryset = Group.objects.all()
+
+    try:
+        return queryset.get(id=id), False
+    except Group.DoesNotExist as error:
+        try:
+            redirect = GroupRedirect.objects.get(previous_group_id=id)
+        except GroupRedirect.DoesNotExist:
+            raise error  # raise original `DoesNotExist`
+
+        try:
+            return queryset.get(id=redirect.group_id), True
+        except Group.DoesNotExist:
+            logger.warning('%r redirected to group that does not exist!', redirect, exc_info=True)
+            raise error  # raise original `DoesNotExist`
 
 
 class GroupManager(BaseManager):
