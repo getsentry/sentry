@@ -10,12 +10,12 @@ from __future__ import absolute_import, print_function
 import logging
 import math
 import re
-import six
 import time
 import warnings
-
 from base64 import b16decode, b16encode
 from datetime import timedelta
+
+import six
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
@@ -23,17 +23,16 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import buffer
 from sentry.constants import (
-    DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH, EVENT_ORDERING_KEY,
+    DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
 )
 from sentry.db.models import (
-    BaseManager, BoundedIntegerField, BoundedPositiveIntegerField,
-    BoundedBigIntegerField, FlexibleForeignKey, Model, GzippedDictField,
+    BaseManager, BoundedBigIntegerField, BoundedIntegerField,
+    BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model,
     sane_repr
 )
 from sentry.utils.http import absolute_uri
-from sentry.utils.strings import truncatechars, strip
-from sentry.utils.numbers import base32_encode, base32_decode
-
+from sentry.utils.numbers import base32_decode, base32_encode
+from sentry.utils.strings import strip, truncatechars
 
 logger = logging.getLogger(__name__)
 
