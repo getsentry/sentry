@@ -1245,8 +1245,10 @@ ol.context-line {
   }
   .address {
     width: 10%;
-    font-size: 12px;
-    letter-spacing: -0.5px;
+    font-family: @font-family-code;
+    font-size: 11px;
+    color: @gray-dark;
+    letter-spacing: -0.25px;
   }
   .symbol {
     width: 75%;
@@ -1254,6 +1256,10 @@ ol.context-line {
       font-size: 12px;
       background: transparent;
       color: @blue-dark;
+    }
+    span.offset {
+      font-size: 12px;
+      font-weight: bold;
     }
     span.filename {
       &:before {
