@@ -8,21 +8,11 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Removing unique constraint on 'Project', fields ['organization', 'callsign']
-        db.delete_unique(u'sentry_project', ['organization_id', 'callsign'])
-
-        # Deleting field 'Project.callsign'
-        db.delete_column(u'sentry_project', 'callsign')
-
+        # This is a dummy migration
+        pass
 
     def backwards(self, orm):
-        # Adding field 'Project.callsign'
-        db.add_column(u'sentry_project', 'callsign',
-                      self.gf('django.db.models.fields.CharField')(max_length=40, null=True),
-                      keep_default=False)
-
-        # Adding unique constraint on 'Project', fields ['organization', 'callsign']
-        db.create_unique(u'sentry_project', ['organization_id', 'callsign'])
+        pass
 
 
     models = {
