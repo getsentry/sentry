@@ -33,4 +33,6 @@ all = default_manager.all
 filter = default_manager.filter
 isset = default_manager.isset
 
-from .defaults import *  # NOQA
+
+def load_defaults():
+    from .defaults import *  # NOQA
