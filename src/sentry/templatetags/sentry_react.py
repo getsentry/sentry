@@ -43,7 +43,7 @@ def _needs_upgrade():
 
     # Check all required options to see if they've been set
     for key in options.filter(flag=options.FLAG_REQUIRED):
-        if not options.get(key.name):
+        if not options.isset(key.name):
             return True
 
     if version_configured != sentry.get_version():

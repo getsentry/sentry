@@ -103,6 +103,19 @@ class OptionsManager(object):
                 return self.store.make_key(key, lambda: '', Any, DEFAULT_FLAGS, 0, 0)
             raise UnknownOption(key)
 
+    def isset(self, key):
+        """
+        Check if a key has been set to a value and not inheriting from its default.
+        """
+        opt = self.lookup_key(key)
+
+        if not (opt.flags & FLAG_NOSTORE):
+            result = self.store.get(opt, silent=True)
+            if result is not None:
+                return True
+
+        return key in settings.SENTRY_OPTIONS
+
     def get(self, key, silent=False):
         """
         Get the value of an option, falling back to the local configuration.
