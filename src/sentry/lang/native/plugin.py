@@ -28,11 +28,6 @@ def exception_from_apple_error_or_diagnosis(error, diagnosis=None):
 def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
                            system=None):
     # TODO:
-    #   in-app (based on global/project dsym?)
-    #   instruction_offset:
-    #       image + offset
-    #       symbol if found + offset
-    #   pad out addresses in UI
     #   user report stacktraces from unity
 
     if system:
