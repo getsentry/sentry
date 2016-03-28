@@ -160,7 +160,10 @@ class OptionsManager(object):
             # default to the hardcoded local configuration for this key
             return settings.SENTRY_OPTIONS[key]
         except KeyError:
-            return opt.default()
+            try:
+                return settings.SENTRY_DEFAULT_OPTIONS[key]
+            except KeyError:
+                return opt.default()
 
     def delete(self, key):
         """
@@ -216,6 +219,9 @@ class OptionsManager(object):
         # value from the type
         if default_value is None:
             default = type
+            default_value = default()
+
+        settings.SENTRY_DEFAULT_OPTIONS[key] = default_value
 
         self.registry[key] = self.store.make_key(key, default, type, flags, ttl, grace)
 

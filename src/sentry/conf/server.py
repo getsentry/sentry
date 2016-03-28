@@ -908,15 +908,8 @@ SENTRY_ROLES = (
 )
 
 # See sentry/options/__init__.py for more information
-SENTRY_OPTIONS = {
-    'mail.backend': 'django.core.mail.backends.smtp.EmailBackend',
-    'mail.host': 'localhost',
-    'mail.port': 25,
-    'mail.username': '',
-    'mail.password': '',
-    'mail.use-tls': False,
-    'mail.subject-prefix': '[Sentry] ',
-    'mail.from': 'root@localhost',
+SENTRY_OPTIONS = {}
+SENTRY_DEFAULT_OPTIONS = {
     # Make this unique, and don't share it with anybody.
     'system.secret-key': hashlib.md5(socket.gethostname() + ')*)&8a36)6%74e@-ne5(-!8a(vv#tkv)(eyg&@0=zd^pl!7=y@').hexdigest(),
 }
