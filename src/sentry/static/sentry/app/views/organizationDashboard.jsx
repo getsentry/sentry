@@ -134,7 +134,7 @@ const ProjectList = React.createClass({
 
     return (
       <div className="organization-dashboard-projects">
-        <Link className="btn-sidebar-header" to={`/${org.slug}/`}>View All</Link>
+        <Link className="btn-sidebar-header" to={`/organizations/${org.slug}/teams/`}>View All</Link>
         <h6 className="nav-header">Projects</h6>
         {bookmarkedProjects.length === 0 &&
           <div className="alert alert-info" style={{marginBottom: 10}}>
