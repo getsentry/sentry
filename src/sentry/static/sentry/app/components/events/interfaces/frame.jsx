@@ -11,7 +11,7 @@ import {t} from '../../../locale';
 const Frame = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
-    nextFrameInApp: React.PropTypes.object.bool,
+    nextFrameInApp: React.PropTypes.bool,
     platform: React.PropTypes.string,
     isExpanded: React.PropTypes.bool,
   },
