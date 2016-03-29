@@ -17,5 +17,5 @@ class ContentLengthHeaderMiddlewareTest(TestCase):
 
     def test_streaming(self):
         response = self.middleware.process_response(None, StreamingHttpResponse())
-        assert response['Transfer-Encoding'] == 'chunked'
+        assert 'Transfer-Encoding' not in response
         assert 'Content-Length' not in response
