@@ -42,8 +42,7 @@ class RiakNodeStorage(NodeStorage):
         )
 
     def set(self, id, data):
-        data = json.dumps(data, separators=(',', ':'))
-        self.conn.put(self.bucket, id, data, returnbody='false')
+        self.conn.put(self.bucket, id, json.dumps(data), returnbody='false')
 
     def delete(self, id):
         self.conn.delete(self.bucket, id)
