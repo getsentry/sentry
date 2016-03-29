@@ -83,7 +83,7 @@ const BreadcrumbsInterface = React.createClass({
           <span className="icon-container">
             <span className="icon"/>
           </span>
-          <span className="dt">{Math.round(item.dt * 1000) / 1000}ms</span>
+          <span className="dt">{moment(item.timestamp).format('HH:mm:ss')}</span>
           {el}
         </li>
       );
@@ -123,15 +123,6 @@ const BreadcrumbsInterface = React.createClass({
     if (this.state.collapsed && crumbs.length > MAX) {
       crumbs = all.slice(-MAX);
     }
-
-    // calculate dt
-    let errorDatetime = moment(evt.dateCreated);
-    crumbs = crumbs.map(crumb => {
-      return {
-        ...crumb,
-        dt: moment.duration(moment(crumb.timestamp).diff(errorDatetime))
-      };
-    });
 
     let numCollapsed = all.length - crumbs.length;
 
