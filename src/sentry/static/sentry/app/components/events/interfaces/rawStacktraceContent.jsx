@@ -115,7 +115,7 @@ export function getCocoaFrame(frame) {
   return result;
 }
 
-function getJavaPreamble(exception) {
+export function getJavaPreamble(exception) {
   let result = `${exception.type}: ${exception.value}`;
   if (exception.module) {
     result = `${exception.module}.${result}`;
