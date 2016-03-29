@@ -10,10 +10,25 @@ from __future__ import absolute_import
 
 import six
 
-import simplejson as json
+from simplejson import JSONEncoder, _default_decoder
 
 from sentry.nodestore.base import NodeStorage
 from .client import RiakClient
+
+
+# Cache an instance of the encoder we want to use
+json_dumps = JSONEncoder(
+    separators=(',', ':'),
+    skipkeys=False,
+    ensure_ascii=True,
+    check_circular=True,
+    allow_nan=True,
+    indent=None,
+    encoding='utf-8',
+    default=None,
+).encode
+
+json_loads = _default_decoder.decode
 
 
 class RiakNodeStorage(NodeStorage):
@@ -43,7 +58,7 @@ class RiakNodeStorage(NodeStorage):
         )
 
     def set(self, id, data):
-        self.conn.put(self.bucket, id, json.dumps(data, separators=(',', ':')),
+        self.conn.put(self.bucket, id, json_dumps(data),
                       returnbody='false')
 
     def delete(self, id):
@@ -53,7 +68,7 @@ class RiakNodeStorage(NodeStorage):
         rv = self.conn.get(self.bucket, id, r=1)
         if rv.status != 200:
             return None
-        return json.loads(rv.data)
+        return json_loads(rv.data)
 
     def get_multi(self, id_list):
         # shortcut for just one id since this is a common
@@ -70,7 +85,7 @@ class RiakNodeStorage(NodeStorage):
             if value.status != 200:
                 results[key] = None
             else:
-                results[key] = json.loads(value.data)
+                results[key] = json_loads(value.data)
         return results
 
     def cleanup(self, cutoff_timestamp):
