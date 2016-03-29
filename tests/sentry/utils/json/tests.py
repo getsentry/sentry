@@ -30,7 +30,7 @@ class JSONTest(TestCase):
     def test_escape(self):
         res = '<script>alert(1);</script>'
         assert json.dumps(res) == '"<script>alert(1);</script>"'
-        assert json.dumps(res, escape=True) == '"<script>alert(1);<\/script>"'
+        assert json.dumps(res, escape=True) == '"\\u003cscript\\u003ealert(1);\\u003c/script\\u003e"'
 
     def test_inf(self):
         res = float('inf')
