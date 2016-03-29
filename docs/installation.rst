@@ -252,7 +252,7 @@ using a simple SMTP server, you can simply configure the following:
 
 Being that Django is a pluggable framework, you also have the ability to
 specify different mail backends. See the `official Django documentation
-<https://docs.djangoproject.com/en/1.3/topics/email/?from=olddocs#email-backends>`_
+<https://docs.djangoproject.com/en/1.7/topics/email/#topic-email-backends>`_
 for more information on alternative backends.
 
 Running Migrations
