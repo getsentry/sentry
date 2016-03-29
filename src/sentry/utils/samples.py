@@ -8,13 +8,23 @@ sentry.utils.samples
 from __future__ import absolute_import
 
 import os.path
+from datetime import datetime, timedelta
 
 from sentry.constants import DATA_ROOT
 from sentry.event_manager import EventManager
 from sentry.utils import json
 
+epoch = datetime.utcfromtimestamp(0)
+
+
+def milliseconds_ago(now, milliseconds):
+    ago = (now - timedelta(milliseconds=milliseconds))
+    return (ago - epoch).total_seconds()
+
 
 def load_data(platform, default=None):
+    now = datetime.now()
+
     data = None
     for platform in (platform, default):
         if platform is None:
@@ -71,12 +81,13 @@ def load_data(platform, default=None):
         "data": '{"hello": "world"}',
         "method": "GET"
     }
+
     data['sentry.interfaces.Breadcrumbs'] = {
         "values": [
             {
                 "type": "navigation",
                 "dt": 8200,
-                "timestamp": "2016-01-17T12:29:59",
+                "timestamp": milliseconds_ago(now, 5200),
                 "data": {
                     "to": "http://example.com/dashboard/",
                     "from": "http://example.com/login/"
@@ -85,7 +96,7 @@ def load_data(platform, default=None):
             {
                 "type": "message",
                 "dt": 5000,
-                "timestamp": "2016-01-17T12:30:03",
+                "timestamp": milliseconds_ago(now, 4000),
                 "data": {
                     "message": "This is a message breadcrumb",
                     "level": "info"
@@ -94,7 +105,7 @@ def load_data(platform, default=None):
             {
                 "type": "message",
                 "dt": 4000,
-                "timestamp": "2016-01-17T12:31:03",
+                "timestamp": milliseconds_ago(now, 3300),
                 "data": {
                     "message": "This is a warning message",
                     "level": "warning"
@@ -103,7 +114,7 @@ def load_data(platform, default=None):
             {
                 "type": "message",
                 "dt": 3500,
-                "timestamp": "2016-01-17T12:31:50",
+                "timestamp": milliseconds_ago(now, 2700),
                 "data": {
                     "message": "This is an error message",
                     "level": "error"
@@ -112,7 +123,7 @@ def load_data(platform, default=None):
             {
                 "type": "http_request",
                 "dt": 3000,
-                "timestamp": "2016-01-17T12:32:05",
+                "timestamp": milliseconds_ago(now, 1300),
                 "data": {
                     "url": "http://example.com/foo",
                     "statusCode": 200,
@@ -126,7 +137,7 @@ def load_data(platform, default=None):
             {
                 "type": "ui_event",
                 "dt": 1500,
-                "timestamp": "2016-01-17T12:33:07",
+                "timestamp": milliseconds_ago(now, 1000),
                 "data": {
                     "type": "click",
                     "target": "<button name=\"submit\" class=\"btn btn-small\"/>"
