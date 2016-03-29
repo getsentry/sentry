@@ -103,7 +103,7 @@ const ProjectList = React.createClass({
 
   getDefaultProps() {
     return {
-      maxProjects: 5
+      maxProjects: 8
     };
   },
 
