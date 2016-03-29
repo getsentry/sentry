@@ -184,6 +184,27 @@ const Activity = React.createClass({
   },
 });
 
+const EPM = React.createClass({
+
+  mixins: [OrganizationState],
+
+  getEndpoint() {
+    return `/organizations/${this.props.params.orgId}/activity/`;
+  },
+
+  render() {
+    let org = this.getOrganization();
+
+    return (
+      <div>
+        <Link className="btn-sidebar-header" to={`/organizations/${org.slug}/stats/`}>View Stats</Link>
+        <h6 className="nav-header">Events Per Minute</h6>
+
+      </div>
+    );
+  },
+});
+
 const OrganizationDashboard = React.createClass({
   mixins: [
     ApiMixin,
@@ -235,6 +256,8 @@ const OrganizationDashboard = React.createClass({
             <Activity {...this.props} />
           </div>
           <div className="col-md-4">
+            <EPM />
+            <hr />
             <ProjectList {...this.props} teams={this.state.teams} />
           </div>
         </div>
