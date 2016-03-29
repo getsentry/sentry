@@ -14,7 +14,7 @@ from django.db import models
 from django.db.models import signals
 
 from .fields.bounded import BoundedBigAutoField
-from .manager import BaseManager
+from .manager import BaseManager, RestrictedManager
 from .query import update
 
 __all__ = ('BaseModel', 'Model', 'sane_repr')
@@ -42,7 +42,10 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
-    objects = BaseManager()
+    # the first manager declared becomes the default manager
+    all_objects = BaseManager()
+
+    objects = RestrictedManager()
 
     update = update
 

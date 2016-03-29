@@ -16,14 +16,14 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import env, locks
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
-    sane_repr
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
+from sentry.db.models.manager import RestrictedManager
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.retries import TimedRetryPolicy
 
 
-class TeamManager(BaseManager):
+class TeamManager(RestrictedManager):
     def get_for_user(self, organization, user, with_projects=False):
         """
         Returns a list of all teams a user has some level of access to.

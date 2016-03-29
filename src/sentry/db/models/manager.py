@@ -24,6 +24,7 @@ from hashlib import md5
 from sentry.utils.cache import cache
 
 from .query import create_or_update
+from .queryset import RestrictedQuerySet
 
 __all__ = ('BaseManager',)
 
@@ -322,3 +323,8 @@ class BaseManager(Manager):
         """
         Triggered when a model bound to this manager is deleted.
         """
+
+
+class RestrictedManager(BaseManager):
+    def get_queryset(self, *args, **kwargs):
+        return RestrictedQuerySet(self.model, using=self._db)

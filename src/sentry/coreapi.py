@@ -203,7 +203,9 @@ class ClientApiHelper(object):
             raise APIUnauthorized('Invalid api key')
 
         try:
-            pk = ProjectKey.objects.get_from_cache(public_key=auth.public_key)
+            pk = ProjectKey.all_objects.get_from_cache(
+                public_key=auth.public_key,
+            )
         except ProjectKey.DoesNotExist:
             raise APIUnauthorized('Invalid api key')
 
@@ -217,7 +219,7 @@ class ClientApiHelper(object):
         if not pk.roles.store:
             raise APIUnauthorized('Key does not allow event storage access')
 
-        return Project.objects.get_from_cache(id=pk.project_id)
+        return Project.all_objects.get_from_cache(id=pk.project_id)
 
     def decompress_deflate(self, encoded_data):
         try:
