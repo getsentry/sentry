@@ -41,7 +41,7 @@ const AssignedIssues = React.createClass({
         <div className="pull-right">
           <Link className="btn btn-sm btn-default" to={this.getViewMoreLink()}>{t('View more')}</Link>
         </div>
-        <h3>Assigned to me</h3>
+        <h4>Assigned to me</h4>
         <IssueList endpoint={this.getEndpoint()} query={{
           statsPeriod: this.props.statsPeriod,
           per_page: this.props.pageSize,
@@ -69,7 +69,7 @@ const NewIssues = React.createClass({
   render() {
     return (
       <div>
-        <h3>New</h3>
+        <h4>New issues</h4>
         <IssueList endpoint={this.getEndpoint()} query={{
           statsPeriod: this.props.statsPeriod,
           per_page: this.props.pageSize,
@@ -175,7 +175,7 @@ const Activity = React.createClass({
   render() {
     return (
       <div>
-        <h6 className="nav-header">Activity</h6>
+        <h4>Recent activity</h4>
         <ActivityFeed endpoint={this.getEndpoint()} query={{
           per_page: 10,
         }} pagination={false} {...this.props} />
@@ -233,10 +233,10 @@ const OrganizationDashboard = React.createClass({
           <div className="col-md-8">
             <AssignedIssues {...this.props} />
             <NewIssues {...this.props} />
+            <Activity {...this.props} />
           </div>
           <div className="col-md-4">
             <ProjectList {...this.props} teams={this.state.teams} />
-            <Activity {...this.props} />
           </div>
         </div>
       </OrganizationHomeContainer>

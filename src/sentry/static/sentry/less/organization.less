@@ -51,6 +51,111 @@
   }
 }
 
+.organization-home {
+  .activity {
+    margin: -10px 0 20px;
+
+    .activity-item {
+      margin: 0;
+      padding: 10px 0 10px 45px;
+      border-bottom: 1px solid lighten(@trim, 5);
+      line-height: 1.4;
+      font-size: 14px;
+
+      &:before {
+        display: none;
+      }
+
+      .activity-item-content {
+        display: block;
+      }
+
+      .activity-item-bubble {
+        background: @white-dark;
+        margin: 5px 0;
+        padding: 6px 8px;
+        border: 1px solid @trim;
+        border-radius: 3px;
+        box-shadow: 0 1px 1px rgba(0,0,0, .04);
+        position: relative;
+        overflow: hidden;
+
+        a {
+          max-width: 100%;
+          overflow-x: hidden;
+          text-overflow: ellipsis;
+        }
+
+        p {
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
+
+        &.clipped {
+          max-height: 68px;
+
+          &:after {
+            position: absolute;
+            content: "";
+            display: block;
+            bottom: 0;
+            right: 0;
+            left: 0;
+            height: 36px;
+            #gradient > .vertical(rgba(255, 255, 255, .15), rgba(255,255,255, 1));
+            border-bottom: 6px solid #fff;
+            border-radius: 0 0 3px 3px;
+            pointer-events: none;
+          }
+        }
+      }
+
+      .avatar {
+        position: absolute;
+        .square(36px);
+        left: 0;
+        top: 10px;
+
+        &.sentry {
+          top: 10px;
+          text-align: center;
+          background: @purple;
+          color: #fff;
+          line-height: 36px;
+          border-radius: 50%;
+        }
+      }
+
+      .activity-meta {
+        color: @gray;
+        font-size: 90%;
+
+        a {
+          color: @gray;
+          &:hover {
+            color: @gray-dark;
+          }
+        }
+      }
+
+      .project {
+        font-weight: bold;
+      }
+
+      time {
+        float: none;
+        display: inline;
+        margin-left: 0;
+      }
+
+      &:last-child {
+        border-bottom: 0;
+      }
+    }
+  }
+}
+
 /**
 * Dashboard
 * ============================================================================
