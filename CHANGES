@@ -48,6 +48,11 @@ Schema Changes
 - Added ``EventTag`` model.
 - Added ``OrganizationOnboardingTask`` model.
 
+Version 8.1.5
+-------------
+
+- [SECURITY] If being run in multi-organization mode, it was possible for a user to craft a URL which would allow them to view membership details of other users.
+
 Version 8.1.4
 -------------
 
