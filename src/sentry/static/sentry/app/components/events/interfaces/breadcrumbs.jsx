@@ -1,4 +1,6 @@
 import React from 'react';
+import moment from 'moment';
+
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 
@@ -110,16 +112,26 @@ const BreadcrumbsInterface = React.createClass({
       // make copy of values array / don't mutate props
       all = all.slice(0).concat([{
         type: 'error',
-        dt: 0,
-        data: exception.data.values[0]
+        data: exception.data.values[0],
+        timestamp: evt.dateCreated
       }]);
     }
 
+    // cap max number of breadcrumbs to show
     let crumbs = all;
     const MAX = BreadcrumbsInterface.MAX_CRUMBS_WHEN_COLLAPSED;
     if (this.state.collapsed && crumbs.length > MAX) {
       crumbs = all.slice(-MAX);
     }
+
+    // calculate dt
+    let errorDatetime = moment(evt.dateCreated);
+    crumbs = crumbs.map(crumb => {
+      return {
+        ...crumb,
+        dt: moment.duration(moment(crumb.timestamp).diff(errorDatetime))
+      };
+    });
 
     let numCollapsed = all.length - crumbs.length;
 
