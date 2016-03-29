@@ -23,7 +23,7 @@ def milliseconds_ago(now, milliseconds):
 
 
 def load_data(platform, default=None):
-    now = datetime.now()
+    # now = datetime.now()
 
     data = None
     for platform in (platform, default):
@@ -82,69 +82,72 @@ def load_data(platform, default=None):
         "method": "GET"
     }
 
-    data['sentry.interfaces.Breadcrumbs'] = {
-        "values": [
-            {
-                "type": "navigation",
-                "dt": 8200,
-                "timestamp": milliseconds_ago(now, 5200),
-                "data": {
-                    "to": "http://example.com/dashboard/",
-                    "from": "http://example.com/login/"
-                }
-            },
-            {
-                "type": "message",
-                "dt": 5000,
-                "timestamp": milliseconds_ago(now, 4000),
-                "data": {
-                    "message": "This is a message breadcrumb",
-                    "level": "info"
-                }
-            },
-            {
-                "type": "message",
-                "dt": 4000,
-                "timestamp": milliseconds_ago(now, 3300),
-                "data": {
-                    "message": "This is a warning message",
-                    "level": "warning"
-                }
-            },
-            {
-                "type": "message",
-                "dt": 3500,
-                "timestamp": milliseconds_ago(now, 2700),
-                "data": {
-                    "message": "This is an error message",
-                    "level": "error"
-                }
-            },
-            {
-                "type": "http_request",
-                "dt": 3000,
-                "timestamp": milliseconds_ago(now, 1300),
-                "data": {
-                    "url": "http://example.com/foo",
-                    "statusCode": 200,
-                    "method": "POST",
-                    "headers": {
-                        "Referer": "http://example.com",
-                        "Content-Type": "application/json"
-                    }
-                }
-            },
-            {
-                "type": "ui_event",
-                "dt": 1500,
-                "timestamp": milliseconds_ago(now, 1000),
-                "data": {
-                    "type": "click",
-                    "target": "<button name=\"submit\" class=\"btn btn-small\"/>"
-                }
-            }
-        ]
-    }
+    # We can't send Breadcrumb data as a part of the sample event.
+    # This gets used for all new projects as the "starter" event.
+    #
+    # data['sentry.interfaces.Breadcrumbs'] = {
+    #     "values": [
+    #         {
+    #             "type": "navigation",
+    #             "dt": 8200,
+    #             "timestamp": milliseconds_ago(now, 5200),
+    #             "data": {
+    #                 "to": "http://example.com/dashboard/",
+    #                 "from": "http://example.com/login/"
+    #             }
+    #         },
+    #         {
+    #             "type": "message",
+    #             "dt": 5000,
+    #             "timestamp": milliseconds_ago(now, 4000),
+    #             "data": {
+    #                 "message": "This is a message breadcrumb",
+    #                 "level": "info"
+    #             }
+    #         },
+    #         {
+    #             "type": "message",
+    #             "dt": 4000,
+    #             "timestamp": milliseconds_ago(now, 3300),
+    #             "data": {
+    #                 "message": "This is a warning message",
+    #                 "level": "warning"
+    #             }
+    #         },
+    #         {
+    #             "type": "message",
+    #             "dt": 3500,
+    #             "timestamp": milliseconds_ago(now, 2700),
+    #             "data": {
+    #                 "message": "This is an error message",
+    #                 "level": "error"
+    #             }
+    #         },
+    #         {
+    #             "type": "http_request",
+    #             "dt": 3000,
+    #             "timestamp": milliseconds_ago(now, 1300),
+    #             "data": {
+    #                 "url": "http://example.com/foo",
+    #                 "statusCode": 200,
+    #                 "method": "POST",
+    #                 "headers": {
+    #                     "Referer": "http://example.com",
+    #                     "Content-Type": "application/json"
+    #                 }
+    #             }
+    #         },
+    #         {
+    #             "type": "ui_event",
+    #             "dt": 1500,
+    #             "timestamp": milliseconds_ago(now, 1000),
+    #             "data": {
+    #                 "type": "click",
+    #                 "target": "<button name=\"submit\" class=\"btn btn-small\"/>"
+    #             }
+    #         }
+    #     ]
+    # }
 
     return data
 
