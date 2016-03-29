@@ -10,8 +10,9 @@ from __future__ import absolute_import
 
 import six
 
+import simplejson as json
+
 from sentry.nodestore.base import NodeStorage
-from sentry.utils import json
 from .client import RiakClient
 
 
@@ -42,7 +43,8 @@ class RiakNodeStorage(NodeStorage):
         )
 
     def set(self, id, data):
-        self.conn.put(self.bucket, id, json.dumps(data), returnbody='false')
+        self.conn.put(self.bucket, id, json.dumps(data, separators=(',', ':')),
+                      returnbody='false')
 
     def delete(self, id):
         self.conn.delete(self.bucket, id)
