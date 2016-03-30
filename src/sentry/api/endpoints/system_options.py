@@ -36,6 +36,9 @@ class SystemOptionsEndpoint(Endpoint):
                     # We're disabled if the disk has taken priority
                     'disabled': diskPriority,
                     'disabledReason': 'diskPriority' if diskPriority else None,
+                    'isSet': options.isset(k.name),
+                    'allowEmpty': bool(k.flags & options.FLAG_ALLOW_EMPTY),
+
                 }
             }
 
@@ -47,10 +50,7 @@ class SystemOptionsEndpoint(Endpoint):
             if v and isinstance(v, basestring):
                 v = v.strip()
             try:
-                if not v:
-                    options.delete(k)
-                else:
-                    options.set(k, v)
+                option = options.lookup_key(k)
             except options.UnknownOption:
                 # TODO(dcramer): unify API errors
                 return Response({
@@ -59,6 +59,12 @@ class SystemOptionsEndpoint(Endpoint):
                         'option': k,
                     },
                 }, status=400)
+
+            try:
+                if not (option.flags & options.FLAG_ALLOW_EMPTY) and not v:
+                    options.delete(k)
+                else:
+                    options.set(k, v)
             except TypeError as e:
                 return Response({
                     'error': 'invalid_type',
