@@ -358,12 +358,20 @@ def send_messages(messages, fail_silently=False):
     return connection.send_messages(messages)
 
 
+def get_mail_backend():
+    backend = options.get('mail.backend')
+    try:
+        return settings.SENTRY_EMAIL_BACKEND_ALIASES[backend]
+    except KeyError:
+        return backend
+
+
 def get_connection(fail_silently=False):
     """
     Gets an SMTP connection using our OptionsStore
     """
     return _get_connection(
-        backend=options.get('mail.backend'),
+        backend=get_mail_backend(),
         host=options.get('mail.host'),
         port=options.get('mail.port'),
         username=options.get('mail.username'),
