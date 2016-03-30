@@ -45,6 +45,7 @@ from .endpoints.project_events import ProjectEventsEndpoint
 from .endpoints.project_event_details import ProjectEventDetailsEndpoint
 from .endpoints.project_group_index import ProjectGroupIndexEndpoint
 from .endpoints.project_group_stats import ProjectGroupStatsEndpoint
+from .endpoints.project_index import ProjectIndexEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
@@ -181,6 +182,9 @@ urlpatterns = patterns(
         LegacyProjectRedirectEndpoint.as_view()),
 
     # Projects
+    url(r'^projects/$',
+        ProjectIndexEndpoint.as_view(),
+        name='sentry-api-0-projects'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$',
         ProjectDetailsEndpoint.as_view(),
         name='sentry-api-0-project-details'),
