@@ -54,12 +54,12 @@ const App = React.createClass({
       success: (data) => {
         if (data && data.problems) {
           data.problems.forEach(problem => {
-            AlertActions.addAlert(
-              problem.message,
-              getAlertTypeForProblem(problem),
-              0,
-              problem.url
-            );
+            AlertActions.addAlert({
+              id: problem.id,
+              message: problem.message,
+              type: getAlertTypeForProblem(problem),
+              url: problem.url
+            });
           });
         }
       },
@@ -67,7 +67,10 @@ const App = React.createClass({
     });
 
     ConfigStore.get('messages').forEach((msg) => {
-      AlertActions.addAlert(msg.message, msg.level);
+      AlertActions.addAlert({
+        message: msg.message,
+        type: msg.level
+      });
     });
   },
 
