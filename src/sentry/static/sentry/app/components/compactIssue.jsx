@@ -1,13 +1,15 @@
+import Raven from 'raven-js';
 import React from 'react';
 import Reflux from 'reflux';
 import {Link} from 'react-router';
+import Modal from 'react-bootstrap/lib/Modal';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import DropdownLink from './dropdownLink';
 import GroupChart from './stream/groupChart';
 import GroupStore from '../stores/groupStore';
-import Modal from 'react-bootstrap/lib/Modal';
+import ProjectStore from '../stores/projectStore';
 import {t} from '../locale';
 
 const Snooze = {
@@ -74,6 +76,91 @@ const SnoozeAction = React.createClass({
           </div>
         </Modal>
       </a>
+    );
+  }
+});
+
+const CompactIssueHeader = React.createClass({
+  propTypes: {
+    data: React.PropTypes.object.isRequired,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
+    hasEventTypes: React.PropTypes.bool,
+  },
+
+  getTitle() {
+    let data = this.props.data;
+    if (!this.props.hasEventTypes) {
+      return <span>{data.title}</span>;
+    }
+
+    let metadata = data.metadata;
+    switch (data.type) {
+      case 'error':
+        return (
+          <span>
+            <span style={{marginRight: 10}}>{metadata.type}</span>
+            <em style={{fontSize: '80%', color: '#6F7E94', fontWeight: 'normal'}}>{data.culprit}</em><br/>
+          </span>
+        );
+      case 'csp':
+        return (
+          <span>
+            <span style={{marginRight: 10}}>{metadata.directive}</span>
+            <em style={{fontSize: '80%', color: '#6F7E94', fontWeight: 'normal'}}>{metadata.uri}</em><br/>
+          </span>
+        );
+      case 'default':
+        return <span>{metadata.title}</span>;
+      default:
+        return <span>{data.title}</span>;
+    }
+  },
+
+  getMessage() {
+    let data = this.props.data;
+    if (!this.props.hasEventTypes) {
+      return <span>{data.culprit}</span>;
+    }
+
+    let metadata = data.metadata;
+    switch (data.type) {
+      case 'error':
+        return metadata.value;
+      case 'csp':
+        return metadata.message;
+      default:
+        return '';
+    }
+  },
+
+  render() {
+    let {orgId, projectId, data} = this.props;
+    return (
+      <div>
+        <span className="error-level truncate" title={data.level} />
+        <h3 className="truncate">
+          <Link to={`/${orgId}/${projectId}/issues/${data.id}/`}>
+            <span className="icon icon-soundoff" />
+            <span className="icon icon-star-solid" />
+            {this.getTitle()}
+          </Link>
+        </h3>
+        <div className="event-extra">
+          <span className="project-name">
+            <Link to={`/${orgId}/${projectId}/`}>{data.project.name}</Link>
+          </span>
+          {data.numComments !== 0 &&
+            <span>
+              <Link to={`/${orgId}/${projectId}/issues/${data.id}/activity/`} className="comments">
+                <span className="icon icon-comments" />
+                <span className="tag-count">{data.numComments}</span>
+              </Link>
+            </span>
+          }
+          <span className="culprit">{this.getMessage()}</span>
+        </div>
+      </div>
     );
   }
 });
@@ -165,67 +252,53 @@ const CompactIssue = React.createClass({
     let {id, orgId} = this.props;
     let projectId = issue.project.slug;
 
+    let project = ProjectStore.getBySlug(issue.project.slug);
+    let hasEventTypes = false;
+    if (project === undefined) {
+      Raven.captureMessage('project ' + issue.project.slug + ' not found in store on dashboard');
+    } else {
+      hasEventTypes = new Set(project.features).has('event-types');
+    }
+
     let title = <span className="icon-more"></span>;
 
     return (
       <li className={className} onClick={this.toggleSelect}>
-          <div>
-            <span className="error-level truncate" title={issue.level}></span>
-            <h3 className="truncate">
-              <Link to={`/${orgId}/${projectId}/issues/${id}/`}>
-                <span className="icon icon-soundoff" />
-                <span className="icon icon-star-solid" />
-                {issue.title}
-              </Link>
-            </h3>
-            <div className="event-extra">
-              <span className="project-name">
-                <Link to={`/${orgId}/${projectId}/`}>{issue.project.name}</Link>
-              </span>
-              {issue.numComments !== 0 &&
-                <span>
-                  <Link to={`/${orgId}/${projectId}/issues/${id}/activity/`} className="comments">
-                    <span className="icon icon-comments" />
-                    <span className="tag-count">{issue.numComments}</span>
-                  </Link>
-                </span>
-              }
-              <span className="culprit">{issue.culprit}</span>
-            </div>
+        <CompactIssueHeader data={issue} orgId={orgId} projectId={projectId}
+                            hasEventTypes={hasEventTypes} />
+        {this.props.statsPeriod &&
+          <div className="event-graph">
+            <GroupChart id={id} statsPeriod={this.props.statsPeriod} />
           </div>
-          {this.props.statsPeriod &&
-            <div className="event-graph">
-              <GroupChart id={id} statsPeriod={this.props.statsPeriod} />
-            </div>
-          }
-          <div className="more-menu-container align-right">
-            <DropdownLink
-              topLevelClasses="more-menu"
-              className="more-menu-toggle"
-              caret={false}
-              title={title}>
-              <li>
-                <a onClick={this.onUpdate.bind(this, {status: issue.status !== 'resolved' ? 'resolved' : 'unresolved'})}>
-                  <span className="icon-checkmark" />
-                </a>
-              </li>
-              <li>
-                <a onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}>
-                  <span className="icon-star-solid" />
-                </a>
-              </li>
-              <li>
-                <SnoozeAction
-                  orgId={orgId}
-                  projectId={projectId}
-                  groupId={id}
-                  onSnooze={this.onSnooze} />
-              </li>
-              {false &&
-                <li><a href="#"><span className="icon-user" /></a></li>
-              }
-            </DropdownLink>
-          </div>
+        }
+        <div className="more-menu-container align-right">
+          <DropdownLink
+            topLevelClasses="more-menu"
+            className="more-menu-toggle"
+            caret={false}
+            title={title}>
+            <li>
+              <a onClick={this.onUpdate.bind(this, {status: issue.status !== 'resolved' ? 'resolved' : 'unresolved'})}>
+                <span className="icon-checkmark" />
+              </a>
+            </li>
+            <li>
+              <a onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}>
+                <span className="icon-star-solid" />
+              </a>
+            </li>
+            <li>
+              <SnoozeAction
+                orgId={orgId}
+                projectId={projectId}
+                groupId={id}
+                onSnooze={this.onSnooze} />
+            </li>
+            {false &&
+              <li><a href="#"><span className="icon-user" /></a></li>
+            }
+          </DropdownLink>
+        </div>
         {this.props.children}
       </li>
     );
