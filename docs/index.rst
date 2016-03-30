@@ -24,7 +24,7 @@ running on your own infrastructure.
    internal-metrics
    performance
    cli/index
-   health-checks
+   monitoring
    beacon
    plugins
    faq
