@@ -5,23 +5,28 @@ import {t} from '../locale';
 
 const AlertMessage = React.createClass({
   propTypes: {
-    className: React.PropTypes.string,
-    id: React.PropTypes.number.isRequired,
-    message: React.PropTypes.string.isRequired,
-    type: React.PropTypes.string,
-    url: React.PropTypes.string
+    alert: React.PropTypes.shape({
+      id: React.PropTypes.string,
+      message: React.PropTypes.string.isRequired,
+      type: React.PropTypes.oneOf([
+        'success',
+        'error',
+        'warning'
+      ]),
+      url: React.PropTypes.string
+    })
   },
 
   mixins: [PureRenderMixin],
 
   closeAlert: function() {
-    AlertActions.closeAlert(this.props.id);
+    AlertActions.closeAlert(this.props.alert);
   },
 
   render: function() {
-    let className = this.props.className || 'alert';
-    if (this.props.type !== '') {
-      className += ' alert-' + this.props.type;
+    let className = 'alert';
+    if (this.props.alert.type !== '') {
+      className += ' alert-' + this.props.alert.type;
     }
 
     return (
@@ -32,9 +37,9 @@ const AlertMessage = React.createClass({
             <span aria-hidden="true">&times;</span>
           </button>
           <span className="icon"></span>
-          {this.props.url
-            ? <a href={this.props.url}>{this.props.message}</a>
-            : this.props.message}
+          {this.props.alert.url
+            ? <a href={this.props.alert.url}>{this.props.alert.message}</a>
+            : this.props.alert.message}
         </div>
       </div>
     );
