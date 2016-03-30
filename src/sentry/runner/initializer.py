@@ -88,6 +88,10 @@ def bootstrap_options(settings, config=None):
     and convert options into Django settings that are
     required to even initialize the rest of the app.
     """
+    # Make sure our options have gotten registered
+    from sentry.options import load_defaults
+    load_defaults()
+
     options = {}
     if config is not None:
         # Attempt to load our config yaml file
@@ -133,10 +137,11 @@ def bootstrap_options(settings, config=None):
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
     # only in SENTRY_OPTIONS and no config.yml file
-    for k, v in settings.SENTRY_OPTIONS.iteritems():
-        if k in options_mapper:
-            # Escalate the few needed to actually get the app bootstrapped into settings
-            setattr(settings, options_mapper[k], v)
+    for o in (settings.SENTRY_DEFAULT_OPTIONS, settings.SENTRY_OPTIONS):
+        for k, v in o.iteritems():
+            if k in options_mapper:
+                # Escalate the few needed to actually get the app bootstrapped into settings
+                setattr(settings, options_mapper[k], v)
 
 
 def initialize_app(config, skip_backend_validation=False):
@@ -313,7 +318,8 @@ def apply_legacy_settings(settings):
         warnings.warn(DeprecatedSettingWarning('SENTRY_ALLOW_REGISTRATION', 'SENTRY_FEATURES["auth:register"]'))
         settings.SENTRY_FEATURES['auth:register'] = settings.SENTRY_ALLOW_REGISTRATION
 
-    settings.DEFAULT_FROM_EMAIL = settings.SENTRY_OPTIONS.get('mail.from')
+    settings.DEFAULT_FROM_EMAIL = settings.SENTRY_OPTIONS.get(
+        'mail.from', settings.SENTRY_DEFAULT_OPTIONS.get('mail.from'))
 
 
 def skip_migration_if_applied(settings, app_name, table_name,
