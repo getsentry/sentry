@@ -9,7 +9,7 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import (
@@ -66,14 +66,29 @@ def clean_newline_inputs(value):
     return result
 
 
-class ProjectSerializer(serializers.Serializer):
+class ProjectMemberSerializer(serializers.Serializer):
+    isBookmarked = serializers.BooleanField()
+
+
+class ProjectAdminSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
     name = serializers.CharField(max_length=200)
     slug = serializers.SlugField(max_length=200)
 
 
+class RelaxedProjectPermission(ProjectPermission):
+    scope_map = {
+        'GET': ['project:read', 'project:write', 'project:delete'],
+        'POST': ['project:write', 'project:delete'],
+        # PUT checks for permissions based on fields
+        'PUT': ['project:read', 'project:write', 'project:delete'],
+        'DELETE': ['project:delete'],
+    }
+
+
 class ProjectDetailsEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
+    permission_classes = [RelaxedProjectPermission]
 
     def _get_unresolved_count(self, project):
         queryset = Group.objects.filter(
@@ -153,7 +168,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                                project settings.
         :auth: required
         """
-        serializer = ProjectSerializer(data=request.DATA, partial=True)
+        if request.access.has_scope('project:write'):
+            serializer_cls = ProjectAdminSerializer
+        else:
+            serializer_cls = ProjectMemberSerializer
+
+        serializer = serializer_cls(data=request.DATA, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
@@ -186,31 +206,32 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 user=request.user,
             ).delete()
 
-        options = request.DATA.get('options', {})
-        if 'sentry:origins' in options:
-            project.update_option(
-                'sentry:origins',
-                clean_newline_inputs(options['sentry:origins'])
-            )
-        if 'sentry:resolve_age' in options:
-            project.update_option('sentry:resolve_age', int(options['sentry:resolve_age']))
-        if 'sentry:scrub_data' in options:
-            project.update_option('sentry:scrub_data', bool(options['sentry:scrub_data']))
-        if 'sentry:scrub_defaults' in options:
-            project.update_option('sentry:scrub_defaults', bool(options['sentry:scrub_defaults']))
-        if 'sentry:sensitive_fields' in options:
-            project.update_option(
-                'sentry:sensitive_fields',
-                [s.strip().lower() for s in options['sentry:sensitive_fields']]
-            )
+        if request.access.has_scope('project:write'):
+            options = request.DATA.get('options', {})
+            if 'sentry:origins' in options:
+                project.update_option(
+                    'sentry:origins',
+                    clean_newline_inputs(options['sentry:origins'])
+                )
+            if 'sentry:resolve_age' in options:
+                project.update_option('sentry:resolve_age', int(options['sentry:resolve_age']))
+            if 'sentry:scrub_data' in options:
+                project.update_option('sentry:scrub_data', bool(options['sentry:scrub_data']))
+            if 'sentry:scrub_defaults' in options:
+                project.update_option('sentry:scrub_defaults', bool(options['sentry:scrub_defaults']))
+            if 'sentry:sensitive_fields' in options:
+                project.update_option(
+                    'sentry:sensitive_fields',
+                    [s.strip().lower() for s in options['sentry:sensitive_fields']]
+                )
 
-        self.create_audit_entry(
-            request=request,
-            organization=project.organization,
-            target_object=project.id,
-            event=AuditLogEntryEvent.PROJECT_EDIT,
-            data=project.get_audit_log_data(),
-        )
+            self.create_audit_entry(
+                request=request,
+                organization=project.organization,
+                target_object=project.id,
+                event=AuditLogEntryEvent.PROJECT_EDIT,
+                data=project.get_audit_log_data(),
+            )
 
         data = serialize(project, request.user)
         data['options'] = {
