@@ -255,9 +255,17 @@ class OptionsStore(object):
         """
         to_expire = []
         now = int(time())
-        for k, (_, _, grace) in self._local_cache.iteritems():
-            if now > grace:
-                to_expire.append(k)
+
+        try:
+            for k, (_, _, grace) in self._local_cache.iteritems():
+                if now > grace:
+                    to_expire.append(k)
+        except RuntimeError:
+            # It's possible for the dictionary to be mutated in another thread
+            # while iterating, but this case is rare, so instead of making a
+            # copy and iterating that, it's more efficient to just let it fail
+            # gracefully. It'll just get re-run later.
+            return
 
         for k in to_expire:
             try:
