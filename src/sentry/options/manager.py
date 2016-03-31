@@ -36,6 +36,8 @@ FLAG_REQUIRED = 1 << 4
 # If the value is defined on disk, use that and don't attempt to fetch from db.
 # This also make the value immutible to changes from web UI.
 FLAG_PRIORITIZE_DISK = 1 << 5
+# If the value is allowed to be empty to be considered valid
+FLAG_ALLOW_EMPTY = 1 << 6
 
 # How long will a cache key exist in local memory before being evicted
 DEFAULT_KEY_TTL = 10
@@ -220,6 +222,11 @@ class OptionsManager(object):
         if default_value is None:
             default = type
             default_value = default()
+
+        # Boolean values need to be set to ALLOW_EMPTY becaues otherwise, "False"
+        # would be treated as a not valid value
+        if default_value is True or default_value is False:
+            flags |= FLAG_ALLOW_EMPTY
 
         settings.SENTRY_DEFAULT_OPTIONS[key] = default_value
 
