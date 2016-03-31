@@ -1,15 +1,17 @@
 import React from 'react';
 import {History} from 'react-router';
 
-import ApiMixin from '../mixins/apiMixin';
-import FileSize from '../components/fileSize';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import IndicatorStore from '../stores/indicatorStore';
-import Pagination from '../components/pagination';
-import LinkWithConfirmation from '../components/linkWithConfirmation';
+import ApiMixin from '../../mixins/apiMixin';
+import FileSize from '../../components/fileSize';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
+import IndicatorStore from '../../stores/indicatorStore';
+import Pagination from '../../components/pagination';
+import LinkWithConfirmation from '../../components/linkWithConfirmation';
 
-import {t} from '../locale';
+import UploadArtifactButton from './uploadArtifactButton';
+
+import {t} from '../../locale';
 
 const ReleaseArtifacts = React.createClass({
   contextTypes: {
@@ -100,7 +102,15 @@ const ReleaseArtifacts = React.createClass({
     });
   },
 
+  onFileUpload(file) {
+    this.setState({
+      fileList: this.state.fileList.concat([file])
+    });
+  },
+
   render() {
+    let {orgId, projectId, version} = this.props.params;
+
     if (this.state.loading)
       return <LoadingIndicator />;
     else if (this.state.error)
@@ -120,7 +130,9 @@ const ReleaseArtifacts = React.createClass({
           <div className="row">
             <div className="col-sm-9 col-xs-8">{'Name'}</div>
             <div className="col-sm-2 col-xs-2 align-right">{'Size'}</div>
-            <div className="col-sm-1 col-xs-2 align-right"></div>
+            <div className="col-sm-1 col-xs-2 align-right">
+              <UploadArtifactButton orgId={orgId} projectId={projectId} version={version} onUpload={this.onFileUpload}/>
+            </div>
           </div>
         </div>
         <div className="release-list">

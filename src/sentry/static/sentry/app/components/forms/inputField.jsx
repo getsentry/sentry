@@ -55,6 +55,7 @@ export default class InputField extends FormField {
             </span>
           }
           <input type={this.getType()}
+                 name={this.props.name}
                  className="form-control"
                  placeholder={this.props.placeholder}
                  onChange={this.onChange.bind(this)}
