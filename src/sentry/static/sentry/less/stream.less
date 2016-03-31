@@ -297,6 +297,16 @@
       }
     }
 
+    &.type-default {
+      .event-assignee, .group-list, .event-graph {
+        padding-top: 20px;
+      }
+
+      .event-count, .event-users {
+        padding-top: 22px;
+      }
+    }
+
     &:first-child {
       .event-cell{
         border-top: 0;
@@ -1182,6 +1192,12 @@
 @media(max-width: 767px) {
   .event-users, .event-count {
     padding-top: 33px !important;
+  }
+
+  .type-default {
+    .event-users, .event-count {
+      padding-top: 22px !important;
+    }
   }
 
   .search {
