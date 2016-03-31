@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.models import Project
+from sentry.models import Project, ProjectStatus
 from sentry.testutils import APITestCase
 
 
@@ -47,3 +47,48 @@ class ProjectsListTest(APITestCase):
         response = self.client.get(self.path)
         assert response.status_code == 200
         assert len(response.data) == 2
+
+    def test_status_filter(self):
+        Project.objects.all().delete()
+
+        user = self.create_user('foo@example.com', is_superuser=True)
+
+        org = self.create_organization(name='foo')
+        project1 = self.create_project(organization=org)
+
+        org2 = self.create_organization(name='bar')
+        project2 = self.create_project(organization=org2, status=ProjectStatus.PENDING_DELETION)
+
+        self.login_as(user=user)
+
+        response = self.client.get(self.path + '?status=active')
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == str(project1.id)
+
+        response = self.client.get(self.path + '?status=deleted')
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == str(project2.id)
+
+    def test_query_filter(self):
+        Project.objects.all().delete()
+
+        user = self.create_user('foo@example.com', is_superuser=True)
+
+        org = self.create_organization(name='foo')
+        project1 = self.create_project(name='foo', organization=org)
+
+        org2 = self.create_organization(name='bar')
+        self.create_project(name='bar', organization=org2)
+
+        self.login_as(user=user)
+
+        response = self.client.get(self.path + '?query=foo')
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == str(project1.id)
+
+        response = self.client.get(self.path + '?query=baz')
+        assert response.status_code == 200
+        assert len(response.data) == 0
