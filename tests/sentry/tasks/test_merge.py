@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.tasks.merge import merge_group, rehash_group_events
-from sentry.models import Event, Group, GroupRedirect
+from sentry.models import Event, Group, GroupRedirect, GroupTagKey
 from sentry.testutils import TestCase
 
 
@@ -50,6 +50,28 @@ class MergeGroupTest(TestCase):
         assert GroupRedirect.objects.filter(
             group_id=groups[2].id,
         ).count() == 2
+
+    def test_merge_updates_tag_values_seen(self):
+        project = self.create_project()
+        groups = [self.create_group(project) for _ in xrange(0, 2)]
+
+        for group in groups:
+            GroupTagKey.objects.create(
+                project=project,
+                group=group,
+                key='sentry:user',
+                values_seen=1,
+            )
+
+        with self.tasks():
+            merge_group(groups[0].id, groups[1].id)
+
+        assert not Group.objects.filter(id=groups[0].id).exists()
+        assert not GroupTagKey.objects.filter(group_id=groups[0].id).exists()
+
+        assert GroupTagKey.objects.get(
+            group_id=groups[1].id, key='sentry:user',
+        ).values_seen == 2
 
 
 class RehashGroupEventsTest(TestCase):
