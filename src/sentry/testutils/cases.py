@@ -15,7 +15,6 @@ __all__ = (
 
 import base64
 import os.path
-import urllib
 
 from click.testing import CliRunner
 from django.conf import settings
@@ -25,6 +24,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
 from django.utils.importlib import import_module
+from django.utils.http import urlencode
 from exam import before, fixture, Exam
 from rest_framework.test import APITestCase as BaseAPITestCase
 
@@ -178,7 +178,7 @@ class BaseTestCase(Fixtures, Exam):
         }
         with self.tasks():
             resp = self.client.get(
-                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urllib.urlencode(qs)),
+                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urlencode(qs)),
                 **headers
             )
         return resp
@@ -199,7 +199,7 @@ class BaseTestCase(Fixtures, Exam):
         }
         with self.tasks():
             resp = self.client.post(
-                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urllib.urlencode(qs)),
+                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urlencode(qs)),
                 data=message,
                 content_type='application/json',
                 **headers
