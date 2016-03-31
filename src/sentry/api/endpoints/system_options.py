@@ -54,7 +54,6 @@ class SystemOptionsEndpoint(Endpoint):
                     'disabledReason': disabled_reason,
                     'isSet': options.isset(k.name),
                     'allowEmpty': bool(k.flags & options.FLAG_ALLOW_EMPTY),
-
                 }
             }
 
