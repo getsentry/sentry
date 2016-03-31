@@ -84,6 +84,7 @@ const definitionsMap = _.indexBy(definitions, 'key');
 
 const disabledReasons = {
   diskPriority: 'This setting is defined in config.yml and may not be changed via the web UI.',
+  smtpDisabled: 'SMTP mail has been disabled, so this option is unavailable',
 };
 
 export function getOption(option) {
