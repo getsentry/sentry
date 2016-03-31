@@ -49,7 +49,7 @@ register('dsym.llvm-symbolizer-path', type=String)
 register('dsym.cache-path', type=String, default='/tmp/sentry-dsym-cache')
 
 # Mail
-register('mail.backend', default='django.core.mail.backends.smtp.EmailBackend', flags=FLAG_NOSTORE)
+register('mail.backend', default='smtp', flags=FLAG_NOSTORE)
 register('mail.host', default='localhost', flags=FLAG_PRIORITIZE_DISK)
 register('mail.port', default=25, flags=FLAG_PRIORITIZE_DISK)
 register('mail.username', flags=FLAG_PRIORITIZE_DISK)
