@@ -73,9 +73,9 @@ class BoolType(Type):
 
     def convert(self, value):
         value = value.lower()
-        if value in ('y', 'yes', 't', 'true', '1'):
+        if value in ('y', 'yes', 't', 'true', '1', 'on'):
             return True
-        if value in ('n', 'no', 'f', 'false', '0'):
+        if value in ('n', 'no', 'f', 'false', '0', 'off'):
             return False
 
 
