@@ -409,9 +409,12 @@ class PreviewBackend(BaseEmailBackend):
                 prefix='sentry-email-preview-',
                 suffix='.eml',
             )
-            preview.write(content)
-            preview.flush()
-            preview.close()
+            try:
+                preview.write(content)
+                preview.flush()
+            finally:
+                preview.close()
+
             subprocess.check_call(('open', preview.name))
 
         return len(email_messages)
