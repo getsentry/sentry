@@ -153,11 +153,7 @@ const GroupHeader = React.createClass({
               {this.getTitle(hasEventTypes)}
             </h3>
             <div className="event-message">
-              {hasEventTypes ?
-                <span className="event-type">{group.type}</span>
-              :
-                <span className="error-level">{group.level}</span>
-              }
+              <span className="error-level">{group.level}</span>
               {group.shortId &&
                 <ShortId shortId={group.shortId} />
               }
