@@ -1,7 +1,14 @@
 from __future__ import absolute_import
 
-from sentry.api.serializers import Serializer, register
-from sentry.models import Project, ProjectBookmark, ProjectOption
+from sentry.api.serializers import Serializer, register, serialize
+from sentry.models import Project, ProjectBookmark, ProjectOption, ProjectStatus
+
+STATUS_LABELS = {
+    ProjectStatus.VISIBLE: 'active',
+    ProjectStatus.HIDDEN: 'deleted',
+    ProjectStatus.PENDING_DELETION: 'deleted',
+    ProjectStatus.DELETION_IN_PROGRESS: 'deleted',
+}
 
 
 @register(Project)
@@ -39,6 +46,8 @@ class ProjectSerializer(Serializer):
             if features.has('projects:' + feature, obj, actor=user):
                 feature_list.append(feature)
 
+        status_label = STATUS_LABELS.get(obj.status, 'unknown')
+
         return {
             'id': str(obj.id),
             'slug': obj.slug,
@@ -53,4 +62,27 @@ class ProjectSerializer(Serializer):
             'dateCreated': obj.date_added,
             'firstEvent': obj.first_event,
             'features': feature_list,
+            'status': status_label,
         }
+
+
+class ProjectWithOrganizationSerializer(ProjectSerializer):
+    def get_attrs(self, item_list, user):
+        attrs = super(ProjectWithOrganizationSerializer, self).get_attrs(
+            item_list, user
+        )
+
+        orgs = {
+            d['id']: d
+            for d in serialize(list(set(i.organization for i in item_list)), user)
+        }
+        for item in item_list:
+            attrs[item]['organization'] = orgs[str(item.organization_id)]
+        return attrs
+
+    def serialize(self, obj, attrs, user):
+        data = super(ProjectWithOrganizationSerializer, self).serialize(
+            obj, attrs, user
+        )
+        data['organization'] = attrs['organization']
+        return data
