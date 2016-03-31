@@ -177,6 +177,7 @@ YAML_CONFIG_TEMPLATE = u"""\
 # Mail Server #
 ###############
 
+# mail.backend: 'smtp'  # Use dummy if you want to disable email entirely
 # mail.host: 'localhost'
 # mail.port: 25
 # mail.username: ''

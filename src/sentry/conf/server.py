@@ -709,6 +709,12 @@ SENTRY_INTERFACES = {
     'sentry.interfaces.Breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
 }
 
+SENTRY_EMAIL_BACKEND_ALIASES = {
+    'smtp': 'django.core.mail.backends.smtp.EmailBackend',
+    'dummy': 'django.core.mail.backends.dummy.EmailBackend',
+    'console': 'django.core.mail.backends.console.EmailBackend',
+}
+
 # Should users without superuser permissions be allowed to
 # make projects public
 SENTRY_ALLOW_PUBLIC_PROJECTS = True
