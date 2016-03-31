@@ -197,6 +197,14 @@ def handle_nan(value):
     return value
 
 
+class InvalidFrame(Interface):
+    def __init__(self, reason):
+        self._data = {'errors': [reason]}
+
+    def get_hash(self):
+        return ['<invalid_frame>']
+
+
 class Frame(Interface):
     @classmethod
     def to_python(cls, data):
@@ -207,7 +215,7 @@ class Frame(Interface):
 
         for name in ('abs_path', 'filename', 'function', 'module'):
             if not isinstance(data.get(name), (string_types, NoneType)):
-                raise InterfaceValidationError("Invalid value for '%s'" % name)
+                return InvalidFrame("Invalid value for '%s'" % name)
 
         # absolute path takes priority over filename
         # (in the end both will get set)
@@ -226,7 +234,7 @@ class Frame(Interface):
                 filename = abs_path
 
         if not (filename or function or module):
-            raise InterfaceValidationError("No 'filename' or 'function' or 'module'")
+            return InvalidFrame("No 'filename' or 'function' or 'module'")
 
         if function == '?':
             function = None
@@ -260,12 +268,12 @@ class Frame(Interface):
         try:
             in_app = validate_bool(data.get('in_app'), False)
         except AssertionError:
-            raise InterfaceValidationError("Invalid value for 'in_app'")
+            return InvalidFrame("Invalid value for 'in_app'")
 
         instruction_offset = data.get('instruction_offset')
         if instruction_offset is not None and \
            not isinstance(instruction_offset, (int, long)):
-            raise InterfaceValidationError("Invalid value for 'instruction_offset'")
+            return InvalidFrame("Invalid value for 'instruction_offset'")
 
         kwargs = {
             'abs_path': trim(abs_path, 256),
