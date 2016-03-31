@@ -406,15 +406,12 @@ class PreviewBackend(BaseEmailBackend):
             content = str(message.message())
             preview = tempfile.NamedTemporaryFile(
                 delete=False,
-                prefix='preview-',
+                prefix='sentry-email-preview-',
                 suffix='.eml',
             )
             preview.write(content)
             preview.flush()
             preview.close()
-            try:
-                subprocess.check_call(('open', preview.name))
-            finally:
-                os.unlink(preview.name)
+            subprocess.check_call(('open', preview.name))
 
         return len(email_messages)
