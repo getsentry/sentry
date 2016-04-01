@@ -255,7 +255,9 @@ const CompactIssue = React.createClass({
     let project = ProjectStore.getBySlug(issue.project.slug);
     let hasEventTypes = false;
     if (project === undefined) {
-      Raven.captureMessage('project ' + issue.project.slug + ' not found in store on dashboard');
+      Raven.captureMessage('project ' + issue.project.slug + ' not found in store on dashboard', {
+        fingerprint: ['project undefined dashboard']
+      });
     } else {
       hasEventTypes = new Set(project.features).has('event-types');
     }
