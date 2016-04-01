@@ -107,3 +107,20 @@ Mail
     ::
 
         mail.subject-prefix: '[Sentry] '
+
+Redis
+~~~~~
+
+.. describe:: SENTRY_REDIS_OPTIONS
+
+    ::
+
+        redis.clusters:
+          default:  # cluster name; `default` replaces `SENTRY_REDIS_OPTIONS`
+            hosts:  # options are passed as keyword arguments to `rb.Cluster`
+              0:
+                host: redis-1.example.com
+                port: 6379
+              1:
+                host: redis-2.example.com
+                port: 6379
