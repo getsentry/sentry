@@ -27,6 +27,7 @@ running on your own infrastructure.
    monitoring
    beacon
    plugins
+   warnings
    faq
 
 .. sentry:edition:: self, on-premise
