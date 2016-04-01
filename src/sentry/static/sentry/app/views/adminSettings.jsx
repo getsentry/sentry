@@ -134,7 +134,10 @@ const AdminSettings = React.createClass({
         this.setState({
           submitInProgress: false,
         });
-        AlertActions.addAlert(t('Your changes were saved, and will propagate to services shortly.'), 'success');
+        AlertActions.addAlert({
+            message: t('Your changes were saved, and will propagate to services shortly.'),
+            type: 'success'
+        });
       },
       error: () => {
         this.setState({
