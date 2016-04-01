@@ -434,6 +434,15 @@ class StacktraceTest(TestCase):
             {'x': '<nan>'},
         )
 
+    def test_invalid_frame_looks_like_frame(self):
+        frame = InvalidFrame('oops')
+        assert frame.get_hash() == ['<invalid_frame>']
+        assert frame.get_culprit_string() == ''
+        assert frame.is_url() is False
+        assert frame.is_caused_by() is False
+        assert frame.is_unhashable_module() is False
+        assert frame.is_unhashable_function() is False
+
 
 class SlimFrameDataTest(TestCase):
     def test_under_max(self):

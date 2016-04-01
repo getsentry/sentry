@@ -199,10 +199,31 @@ def handle_nan(value):
 
 class InvalidFrame(Interface):
     def __init__(self, reason):
-        self._data = {'errors': [reason]}
+        self._data = {
+            'in_app': False,
+            'vars': None,
+            'pre_context': None,
+            'post_context': None,
+            'errors': [reason],
+        }
 
     def get_hash(self):
         return ['<invalid_frame>']
+
+    def get_culprit_string(self, platform=None):
+        return ''
+
+    def is_url(self):
+        return False
+
+    def is_caused_by(self):
+        return False
+
+    def is_unhashable_module(self):
+        return False
+
+    def is_unhashable_function(self):
+        return False
 
 
 class Frame(Interface):
