@@ -1,7 +1,7 @@
 Version 8.3.0
 -------------
 
-- Added initial support for per-project callsigns and short IDs.
+- Added initial support for per-project callsigns and short IDs.  This feature is not exposed to users yet.
 - Improved static file delivery performance.
 - Added CLI tool to monitor queue sizes. ``sentry queues --help``
 - Moved email configuration into ``config.yml``.
