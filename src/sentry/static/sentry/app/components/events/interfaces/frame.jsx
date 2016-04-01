@@ -145,6 +145,18 @@ const Frame = React.createClass({
     if (data.inApp) {
       title.push(<span key="in-app"><span className="divider"/>{t('application')}</span>);
     }
+
+    if (!title.length) {
+      title = [<code key="title">{'<invalid frame>'}</code>];
+      if (defined(data.errors)) {
+        title.push(
+          <a key="frame-errors" className="in-at tip original-src" data-title={data.errors.join(', ')}>
+            <span className="icon-question" />
+          </a>
+        );
+      }
+    }
+
     return title;
   },
 
