@@ -564,6 +564,15 @@ class EventManagerTest(TransactionTestCase):
             'message': "Blocked 'script' from 'example.com'",
         }
 
+    def test_invalid_frame(self):
+        manager = EventManager(self.make_event(**{
+            'sentry.interfaces.Stacktrace': {
+                'frames': [{}],
+            },
+        }))
+        manager.normalize()
+        manager.save(self.project.id)
+
 
 class GetHashesFromEventTest(TestCase):
     @patch('sentry.interfaces.stacktrace.Stacktrace.compute_hashes')
