@@ -10,7 +10,7 @@ from exam import fixture
 
 from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.stacktrace import (
-    Frame, Stacktrace, get_context, slim_frame_data
+    Frame, InvalidFrame, Stacktrace, get_context, slim_frame_data
 )
 from sentry.models import Event
 from sentry.testutils import TestCase
@@ -45,9 +45,10 @@ class StacktraceTest(TestCase):
         assert interface == event.interfaces['sentry.interfaces.Stacktrace']
 
     def test_requires_filename(self):
-        with self.assertRaises(InterfaceValidationError):
-            Stacktrace.to_python(dict(frames=[{}]))
-
+        assert isinstance(
+            Stacktrace.to_python(dict(frames=[{}])).frames[0],
+            InvalidFrame,
+        )
         Stacktrace.to_python(dict(frames=[{
             'filename': 'foo.py',
         }]))
@@ -393,26 +394,22 @@ class StacktraceTest(TestCase):
         self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo", line 3, in biz\n    def foo(r):\n  File "bar", line 5, in baz\n    return None')
 
     def test_bad_input(self):
-        with self.assertRaises(InterfaceValidationError):
-            Frame.to_python({
-                'filename': 1,
-            })
+        assert isinstance(Frame.to_python({
+            'filename': 1,
+        }), InvalidFrame)
 
-        with self.assertRaises(InterfaceValidationError):
-            Frame.to_python({
-                'filename': 'foo',
-                'abs_path': 1,
-            })
+        assert isinstance(Frame.to_python({
+            'filename': 'foo',
+            'abs_path': 1,
+        }), InvalidFrame)
 
-        with self.assertRaises(InterfaceValidationError):
-            Frame.to_python({
-                'function': 1,
-            })
+        assert isinstance(Frame.to_python({
+            'function': 1,
+        }), InvalidFrame)
 
-        with self.assertRaises(InterfaceValidationError):
-            Frame.to_python({
-                'module': 1,
-            })
+        assert isinstance(Frame.to_python({
+            'module': 1,
+        }), InvalidFrame)
 
     def test_context_with_nan(self):
         self.assertEquals(
