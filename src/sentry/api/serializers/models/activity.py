@@ -8,14 +8,14 @@ from sentry.models import Activity
 class ActivitySerializer(Serializer):
     def get_attrs(self, item_list, user):
         # TODO(dcramer); assert on relations
-        users = dict(zip(
-            item_list,
-            serialize([i.user for i in item_list], user)
-        ))
+        users = {
+            d['id']: d
+            for d in serialize(set(i.user for i in item_list if i.user_id), user)
+        }
 
         return {
             item: {
-                'user': users[item],
+                'user': users[str(item.user_id)] if item.user_id else None,
             } for item in item_list
         }
 
@@ -36,21 +36,19 @@ class OrganizationActivitySerializer(ActivitySerializer):
             item_list, user,
         )
 
-        group_list = list(set([i.group for i in item_list if i.group]))
-        groups = dict(zip(
-            [g.id for g in group_list],
-            serialize(group_list, user)
-        ))
+        groups = {
+            d['id']: d
+            for d in serialize(set(i.group for i in item_list if i.group_id), user)
+        }
 
-        project_list = list(set([i.project for i in item_list]))
-        projects = dict(zip(
-            [p.id for p in project_list],
-            serialize(project_list, user)
-        ))
+        projects = {
+            d['id']: d
+            for d in serialize(set(i.project for i in item_list), user)
+        }
 
         for item in item_list:
-            attrs[item]['issue'] = groups[item.group_id] if item.group_id else None
-            attrs[item]['project'] = projects[item.project_id]
+            attrs[item]['issue'] = groups[str(item.group_id)] if item.group_id else None
+            attrs[item]['project'] = projects[str(item.project_id)]
         return attrs
 
     def serialize(self, obj, attrs, user):
