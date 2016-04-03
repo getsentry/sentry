@@ -32,6 +32,7 @@ class SystemOptionsEndpoint(Endpoint):
             'django.core.mail.backends.console.EmailBackend',
             'django.core.mail.backends.locmem.EmailBackend',
             'django.core.mail.backends.filebased.EmailBackend',
+            'sentry.utils.email.PreviewBackend',
         )
 
         results = {}
