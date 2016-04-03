@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers import register, serialize, Serializer
 from sentry.models import Project, ProjectBookmark, ProjectOption, ProjectStatus
 
 STATUS_LABELS = {
@@ -86,3 +86,25 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
         )
         data['organization'] = attrs['organization']
         return data
+
+
+class SharedProjectSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        from sentry import features
+
+        feature_list = []
+        for feature in ('breadcrumbs', 'event-types', 'global-events', 'user-reports', 'dsym'):
+            if features.has('projects:' + feature, obj, actor=user):
+                feature_list.append(feature)
+
+        return {
+            'slug': obj.slug,
+            'name': obj.name,
+            'callSign': obj.callsign,
+            'color': obj.color,
+            'features': feature_list,
+            'organization': {
+                'slug': obj.organization.slug,
+                'name': obj.organization.name,
+            },
+        }
