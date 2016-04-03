@@ -168,7 +168,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                                project settings.
         :auth: required
         """
-        if request.access.has_scope('project:write'):
+        if request.auth and request.auth.has_scope('project:write'):
+            serializer_cls = ProjectAdminSerializer
+        elif request.access.has_scope('project:write'):
             serializer_cls = ProjectAdminSerializer
         else:
             serializer_cls = ProjectMemberSerializer
