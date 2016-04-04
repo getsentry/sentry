@@ -4,7 +4,7 @@ import mock
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Project, ProjectBookmark, ProjectStatus
+from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption
 from sentry.testutils import APITestCase
 
 
@@ -149,6 +149,31 @@ class ProjectUpdateTest(APITestCase):
             project_id=project.id,
             user=self.user,
         ).exists()
+
+    def test_subscription(self):
+        project = self.project  # force creation
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-project-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+        resp = self.client.put(url, data={
+            'isSubscribed': 'true',
+        })
+        assert resp.status_code == 200, resp.content
+        assert UserOption.objects.get(
+            user=self.user,
+            project=project,
+        ).value == 1
+
+        resp = self.client.put(url, data={
+            'isSubscribed': 'false',
+        })
+        assert resp.status_code == 200, resp.content
+        assert UserOption.objects.get(
+            user=self.user,
+            project=project,
+        ).value == 0
 
 
 class ProjectDeleteTest(APITestCase):
