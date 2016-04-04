@@ -69,7 +69,6 @@ IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 dev_requires = [
     'Babel',
     'flake8>=2.0,<2.1',
-    'honcho',
     'isort>=4.2.2,<4.3.0',
 ]
 
@@ -107,6 +106,7 @@ install_requires = [
     'enum34>=0.9.18,<1.2.0',
     'exam>=0.5.1',
     'hiredis>=0.1.0,<0.2.0',
+    'honcho==0.6.6',
     'ipaddr>=2.1.11,<2.2.0',
     'kombu==3.0.30',
     'lxml>=3.4.1',
