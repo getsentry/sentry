@@ -16,7 +16,7 @@ class CspReportViewTest(TestCase):
     @fixture
     def path(self):
         path = reverse('sentry-api-csp-report', kwargs={'project_id': self.project.id})
-        return path + '?sentry_key=%s&sentry_version=5' % self.projectkey.public_key
+        return path + '?sentry_key=%s' % self.projectkey.public_key
 
     def test_get_response(self):
         resp = self.client.get(self.path)
