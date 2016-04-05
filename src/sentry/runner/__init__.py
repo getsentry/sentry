@@ -46,14 +46,14 @@ def cli(ctx, config):
 
 # TODO(mattrobenolt): Autodiscover commands?
 map(lambda cmd: cli.add_command(import_string(cmd)), (
+    'sentry.runner.commands.backup.export',
+    'sentry.runner.commands.backup.import_',
     'sentry.runner.commands.cleanup.cleanup',
     'sentry.runner.commands.config.config',
     'sentry.runner.commands.createuser.createuser',
     'sentry.runner.commands.devserver.devserver',
     'sentry.runner.commands.django.django',
-    'sentry.runner.commands.backup.export',
     'sentry.runner.commands.help.help',
-    'sentry.runner.commands.backup.import_',
     'sentry.runner.commands.init.init',
     'sentry.runner.commands.plugins.plugins',
     'sentry.runner.commands.queues.queues',
