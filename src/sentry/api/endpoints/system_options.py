@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 import sentry
 from sentry import options
-from sentry.utils.email import get_mail_backend
+from sentry.utils.email import is_smtp_enabled
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SuperuserPermission
 
@@ -23,17 +23,7 @@ class SystemOptionsEndpoint(Endpoint):
         else:
             option_list = options.all()
 
-        # This is a fragile, hardcoded list of mail backends, but the likelihood of
-        # someone using something custom here is slim, and even if they did, the worst
-        # is they'd be prompted for SMTP information. These backends are guaranteed
-        # to not need SMTP information.
-        smtp_disabled = get_mail_backend() in (
-            'django.core.mail.backends.dummy.EmailBackend',
-            'django.core.mail.backends.console.EmailBackend',
-            'django.core.mail.backends.locmem.EmailBackend',
-            'django.core.mail.backends.filebased.EmailBackend',
-            'sentry.utils.email.PreviewBackend',
-        )
+        smtp_disabled = not is_smtp_enabled()
 
         results = {}
         for k in option_list:
