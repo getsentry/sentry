@@ -95,7 +95,12 @@ const SharedGroupDetails = React.createClass({
             <div className="content">
               <SharedGroupHeader group={group} />
               <div className="group-overview">
-                <EventEntries group={group} event={evt} isShare={true} />
+                <EventEntries
+                  group={group}
+                  event={evt}
+                  orgId={group.project.organization.slug}
+                  project={group.project}
+                  isShare={true} />
               </div>
             </div>
           </div>
