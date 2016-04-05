@@ -18,7 +18,7 @@ const EventEntries = React.createClass({
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
+    project: React.PropTypes.object.isRequired,
     // TODO(dcramer): ideally isShare would be replaced with simple permission
     // checks
     isShare: React.PropTypes.bool
@@ -48,8 +48,13 @@ const EventEntries = React.createClass({
     let group = this.props.group;
     let evt = this.props.event;
     let isShare = this.props.isShare;
+    let project = this.props.project;
+    let projectFeatures = new Set(project.features);
 
     let entries = evt.entries.map((entry, entryIdx) => {
+      if (entry.type === 'breadcrumbs' && !projectFeatures.has('breadcrumbs')) {
+        return null;
+      }
       try {
         let Component = this.interfaces[entry.type];
         if (!Component) {
@@ -80,7 +85,6 @@ const EventEntries = React.createClass({
       }
     });
 
-    let {orgId, projectId} = this.props;
     return (
       <div>
         {evt.userReport &&
@@ -99,8 +103,8 @@ const EventEntries = React.createClass({
         <EventTags
           group={group}
           event={evt}
-          orgId={orgId}
-          projectId={projectId} />
+          orgId={this.props.orgId}
+          projectId={project.slug} />
         {!utils.objectIsEmpty(evt.user) &&
           <EventUser
             group={group}
