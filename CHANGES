@@ -1,3 +1,11 @@
+Version 8.3.1
+-------------
+
+- Fixed bug that, ironically, prevented saving a saved search.
+- Fixed bug when merging groups and the counts are merged incorrectly.
+- Fixed bug that caused the Installation Wizard to never go away if using a non-smtp email.backend setting.
+- Fixed an ImproperlyConfigured issue from a cascading error.
+
 Version 8.3.0
 -------------
 
