@@ -1,5 +1,5 @@
 import React from 'react';
-import ConfigStore from '../../stores/configStore';
+import {Link} from 'react-router';
 import Count from '../../components/count';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import {t} from '../../locale';
@@ -29,7 +29,6 @@ const ProjectTable = React.createClass({
     let projectTotals = this.props.projectTotals;
     let orgTotal = this.props.orgTotal;
     let org = this.props.organization;
-    let urlPrefix = ConfigStore.get('urlPrefix') + '/' + org.slug;
 
     if (!projectTotals) {
       return <div/>;
@@ -58,7 +57,7 @@ const ProjectTable = React.createClass({
             return (
               <tr key={item.id}>
                 <td>
-                  <a href={urlPrefix + '/' + project.slug + '/'}>{project.team.name} / {project.name}</a>
+                  <Link to={`/${org.slug}/${project.slug}/`}>{project.team.name} / {project.name}</Link>
                 </td>
                 <td className="align-right">
                   <Count value={item.accepted} /><br/>
