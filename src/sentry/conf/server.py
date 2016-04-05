@@ -715,6 +715,18 @@ SENTRY_EMAIL_BACKEND_ALIASES = {
     'console': 'django.core.mail.backends.console.EmailBackend',
 }
 
+# set of backends that do not support needing SMTP mail.* settings
+# This list is a bit fragile and hardcoded, but it's unlikely that
+# a user will be using a different backend that also mandates SMTP
+# credentials.
+SENTRY_SMTP_DISABLED_BACKENDS = frozenset((
+    'django.core.mail.backends.dummy.EmailBackend',
+    'django.core.mail.backends.console.EmailBackend',
+    'django.core.mail.backends.locmem.EmailBackend',
+    'django.core.mail.backends.filebased.EmailBackend',
+    'sentry.utils.email.PreviewBackend',
+))
+
 # Should users without superuser permissions be allowed to
 # make projects public
 SENTRY_ALLOW_PUBLIC_PROJECTS = True
