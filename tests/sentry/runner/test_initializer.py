@@ -16,6 +16,7 @@ def settings():
     s.SENTRY_FEATURES = {}
     s.SENTRY_OPTIONS = {}
     s.SENTRY_DEFAULT_OPTIONS = {}
+    s.SENTRY_EMAIL_BACKEND_ALIASES = {'dummy': 'alias-for-dummy'}
     return s
 
 
@@ -136,6 +137,14 @@ def test_bootstrap_options_no_config_only_sentry_options(settings):
     assert settings.EMAIL_USE_TLS is True
     assert settings.SERVER_EMAIL == 'my-mail-from'
     assert settings.EMAIL_SUBJECT_PREFIX == 'my-mail-subject-prefix'
+
+
+def test_bootstrap_options_mail_aliases(settings):
+    settings.SENTRY_OPTIONS = {
+        'mail.backend': 'dummy',
+    }
+    bootstrap_options(settings)
+    assert settings.EMAIL_BACKEND == 'alias-for-dummy'
 
 
 def test_bootstrap_options_missing_file(settings):

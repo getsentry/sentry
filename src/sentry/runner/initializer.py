@@ -140,6 +140,12 @@ def bootstrap_options(settings, config=None):
     for o in (settings.SENTRY_DEFAULT_OPTIONS, settings.SENTRY_OPTIONS):
         for k, v in o.iteritems():
             if k in options_mapper:
+                # Map the mail.backend aliases to something Django understands
+                if k == 'mail.backend':
+                    try:
+                        v = settings.SENTRY_EMAIL_BACKEND_ALIASES[v]
+                    except KeyError:
+                        pass
                 # Escalate the few needed to actually get the app bootstrapped into settings
                 setattr(settings, options_mapper[k], v)
 
