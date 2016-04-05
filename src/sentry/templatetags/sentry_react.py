@@ -13,6 +13,7 @@ from sentry import features, options
 from sentry.api.serializers.base import serialize
 from sentry.models import ProjectKey
 from sentry.utils import json
+from sentry.utils.email import is_smtp_enabled
 from sentry.utils.assets import get_asset_url
 from sentry.utils.functional import extract_lazy_object
 
@@ -41,8 +42,13 @@ def _needs_upgrade():
         # we want to force an upgrade, even if the values are set.
         return True
 
+    smtp_disabled = not is_smtp_enabled()
+
     # Check all required options to see if they've been set
     for key in options.filter(flag=options.FLAG_REQUIRED):
+        # Ignore mail.* keys if smtp is disabled
+        if smtp_disabled and key.name[:5] == 'mail.':
+            continue
         if not options.isset(key.name):
             return True
 

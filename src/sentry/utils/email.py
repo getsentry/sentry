@@ -394,6 +394,15 @@ def send_mail(subject, message, from_email, recipient_list, fail_silently=False)
     )
 
 
+def is_smtp_enabled(backend=None):
+    """
+    Check if the current backend is SMTP based.
+    """
+    if backend is None:
+        backend = get_mail_backend()
+    return backend not in settings.SENTRY_SMTP_DISABLED_BACKENDS
+
+
 class PreviewBackend(BaseEmailBackend):
     """
     Email backend that can be used in local development to open messages in the
