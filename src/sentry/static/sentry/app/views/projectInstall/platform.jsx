@@ -5,6 +5,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import LanguageNav from './languageNav';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
+import NotFound from '../../components/errors/notFound';
 import {t, tct} from '../../locale';
 
 const ProjectInstallPlatform = React.createClass({
@@ -16,12 +17,13 @@ const ProjectInstallPlatform = React.createClass({
     ApiMixin
   ],
 
-  getInitialState() {
-    let params = this.props.params;
+  getInitialState(props) {
+    props = props || this.props;
+    let params = props.params;
     let key = params.platform;
     let integration;
     let platform;
-    this.props.platformData.platforms.forEach((p_item) => {
+    props.platformData.platforms.forEach((p_item) => {
       if (integration) {
         return;
       }
@@ -48,7 +50,7 @@ const ProjectInstallPlatform = React.createClass({
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.params.platform !== this.props.params.platform) {
-      this.setState(this.getInitialState(), this.fetchData);
+      this.setState(this.getInitialState(nextProps), this.fetchData);
     }
   },
 
@@ -82,67 +84,84 @@ const ProjectInstallPlatform = React.createClass({
     );
   },
 
-  render() {
+  renderSidebar() {
+    let platform = this.state.platform;
+    return (
+      <div className="install-sidebar col-md-2">
+        {this.props.platformData.platforms.map((p_item) => {
+          return (
+            <LanguageNav name={p_item.name} active={platform && platform.id === p_item.id}>
+              {p_item.integrations.map((i_item) => {
+                return this.getPlatformLink(i_item.id, (i_item.id === p_item.id ? t('Generic') : i_item.name));
+              })}
+            </LanguageNav>
+          );
+        })}
+      </div>
+    );
+  },
+
+  renderBody() {
     let {integration, platform} = this.state;
     let queryParams = this.props.location.query;
     let {orgId, projectId} = this.props.params;
 
+    if (!integration || !platform) {
+      return <NotFound />;
+    }
+
+    return (
+      <div className="box">
+        <div className="box-header">
+          <div className="pull-right">
+            <a href={integration.link} className="btn btn-sm btn-default">{t('Full Documentation')}</a>
+          </div>
+
+          <h3>{t('Configure %(integration)s', {integration: integration.name})}</h3>
+        </div>
+        <div className="box-content with-padding">
+          <p>
+            {tct(`
+             This is a quick getting started guide. For in-depth instructions
+             on integrating Sentry with [integration], view
+             [docLink:our complete documentation].
+            `, {
+              integration: integration.name,
+              docLink: <a href={integration.link} />
+            })}
+          </p>
+
+          {this.state.loading ?
+            <LoadingIndicator />
+          : (this.state.error ?
+            <LoadingError onRetry={this.fetchData} />
+          :
+            <div dangerouslySetInnerHTML={{__html: this.state.html}}/>
+          )}
+
+          {queryParams.onboarding ?
+            <p>
+              <Link
+                to={`/${orgId}/${projectId}/?onboarding=1#welcome`}
+                className="btn btn-primary btn-lg">
+                  Got it! Take me to the Issue Stream.
+              </Link>
+            </p>
+          :
+            null
+          }
+        </div>
+      </div>
+    );
+  },
+
+  render() {
     return (
       <div className="install row">
         <div className="install-content col-md-10">
-          <div className="box">
-            <div className="box-header">
-              <div className="pull-right">
-                <a href={integration.link} className="btn btn-sm btn-default">{t('Full Documentation')}</a>
-              </div>
-
-              <h3>{t('Configure %(integration)s', {integration: integration.name})}</h3>
-            </div>
-            <div className="box-content with-padding">
-              <p>
-                {tct(`
-                 This is a quick getting started guide. For in-depth instructions
-                 on integrating Sentry with [integration], view
-                 [docLink:our complete documentation].
-                `, {
-                  integration: integration.name,
-                  docLink: <a href={integration.link} />
-                })}
-              </p>
-
-              {this.state.loading ?
-                <LoadingIndicator />
-              : (this.state.error ?
-                <LoadingError onRetry={this.fetchData} />
-              :
-                <div dangerouslySetInnerHTML={{__html: this.state.html}}/>
-              )}
-
-              {queryParams.onboarding ?
-                <p>
-                  <Link
-                    to={`/${orgId}/${projectId}/?onboarding=1#welcome`}
-                    className="btn btn-primary btn-lg">
-                      Got it! Take me to the Issue Stream.
-                  </Link>
-                </p>
-              :
-                null
-              }
-            </div>
-          </div>
+          {this.renderBody()}
         </div>
-        <div className="install-sidebar col-md-2">
-          {this.props.platformData.platforms.map((p_item) => {
-            return (
-              <LanguageNav name={p_item.name} active={platform.id === p_item.id}>
-                {p_item.integrations.map((i_item) => {
-                  return this.getPlatformLink(i_item.id, (i_item.id === p_item.id ? t('Generic') : i_item.name));
-                })}
-              </LanguageNav>
-            );
-          })}
-        </div>
+        {this.renderSidebar()}
       </div>
     );
   }
