@@ -106,7 +106,7 @@ const ProjectInstallPlatform = React.createClass({
     let queryParams = this.props.location.query;
     let {orgId, projectId} = this.props.params;
 
-    if (!(integration && platform)) {
+    if (!integration || !platform) {
       return <NotFound />;
     }
 
