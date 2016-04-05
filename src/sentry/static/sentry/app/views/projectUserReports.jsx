@@ -41,7 +41,7 @@ const ProjectUserReports = React.createClass({
   },
 
   componentWillMount() {
-    this.props.setProjectNavSection('user-reports');
+    this.props.setProjectNavSection('user-feedback');
     this.fetchData();
   },
 
@@ -60,7 +60,7 @@ const ProjectUserReports = React.createClass({
       targetQueryParams.query = query;
 
     let {orgId, projectId} = this.props.params;
-    this.history.pushState(null, `/${orgId}/${projectId}/user-reports/`, targetQueryParams);
+    this.history.pushState(null, `/${orgId}/${projectId}/user-feedback/`, targetQueryParams);
   },
 
   fetchData() {
@@ -101,7 +101,7 @@ const ProjectUserReports = React.createClass({
   getUserReportsUrl() {
     let params = this.props.params;
 
-    return `/${params.orgId}/${params.projectId}/settings/user-reports/`;
+    return `/${params.orgId}/${params.projectId}/settings/user-feedback/`;
   },
 
   renderStreamBody() {
@@ -143,7 +143,7 @@ const ProjectUserReports = React.createClass({
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
         <p>{t('No user reports have been collected for this project.')}</p>
-        <p><Link to={this.getUserReportsUrl()}>{t('Learn how to integrate User Crash Reports')}</Link></p>
+        <p><Link to={this.getUserReportsUrl()}>{t('Learn how to integrate User Feedback')}</Link></p>
       </div>
     );
   },
@@ -189,7 +189,7 @@ const ProjectUserReports = React.createClass({
       <div>
         <div className="row release-list-header">
           <div className="col-sm-7">
-            <h3>{t('User Reports')}</h3>
+            <h3>{t('User Feedback')}</h3>
           </div>
         </div>
         <div className="alert alert-block alert-info">Psst! This feature is still a work-in-progress. Thanks for being an early adopter!</div>

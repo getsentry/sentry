@@ -146,11 +146,11 @@ const ProjectUserReportSettings = React.createClass({
     // TODO(dcramer): localize when language is final
     return (
       <div>
-        <h1>{t('User Reports')}</h1>
+        <h1>{t('User Feedback')}</h1>
 
         <div className="alert alert-block alert-info">Psst! This feature is still a work-in-progress. Thanks for being an early adopter!</div>
 
-        <p>Enabling User Reports allows you to interact with your users on an unprecedented level. Collect additional details about issues affecting them, and more importantly reach out to them with resolutions.</p>
+        <p>Enabling User Feedback allows you to interact with your users on an unprecedented level. Collect additional details about issues affecting them, and more importantly reach out to them with resolutions.</p>
 
         <p>When configured, your users will be presented with a dialog prompting them for additional information. That information will get attached to the issue in Sentry</p>
 

@@ -66,7 +66,7 @@ const GroupUserReports = React.createClass({
   getUserReportsUrl() {
     let params = this.props.params;
 
-    return `/${params.orgId}/${params.projectId}/settings/user-reports/`;
+    return `/${params.orgId}/${params.projectId}/settings/user-feedback/`;
   },
 
   render() {
@@ -108,7 +108,7 @@ const GroupUserReports = React.createClass({
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
         <p>{t('No user reports have been collected for this event.')}</p>
-        <p><Link to={this.getUserReportsUrl()}>{t('Learn how to integrate User Crash Reports')}</Link></p>
+        <p><Link to={this.getUserReportsUrl()}>{t('Learn how to integrate User Feedback')}</Link></p>
       </div>
     );
   }

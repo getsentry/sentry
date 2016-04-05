@@ -16,6 +16,7 @@ default_manager.add('projects:global-events', ProjectFeature)
 default_manager.add('projects:quotas', ProjectFeature)
 default_manager.add('projects:user-reports', ProjectFeature)
 default_manager.add('projects:plugins', ProjectPluginFeature)
+default_manager.add('projects:csp', ProjectFeature)
 default_manager.add('projects:dsym', ProjectFeature)
 
 
