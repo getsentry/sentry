@@ -52,7 +52,7 @@ export default class InputField extends FormField {
           type={this.getType()}
           className="form-control"
           placeholder={this.props.placeholder}
-          onChange={this.onChange}
+          onChange={this.onChange.bind(this)}
           disabled={this.props.disabled}
           value={this.state.value} />
     );
