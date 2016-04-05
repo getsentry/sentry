@@ -153,13 +153,15 @@ def _rehash_group_events(group, limit=100):
 
 def merge_objects(models, group, new_group, limit=1000,
                   logger=None):
+    from sentry.models import GroupTagKey, GroupTagValue
 
     has_more = False
     for model in models:
         if logger is not None:
             logger.info('Merging %r objects where %r into %r', model, group,
                         new_group)
-        has_group = 'group' in model._meta.get_all_field_names()
+        all_fields = model._meta.get_all_field_names()
+        has_group = 'group' in all_fields
         if has_group:
             queryset = model.objects.filter(group=group)
         else:
@@ -179,7 +181,26 @@ def merge_objects(models, group, new_group, limit=1000,
                 delete = True
             else:
                 delete = False
+
             if delete:
+                # Before deleting, we want to merge in counts
+                try:
+                    if model == GroupTagKey:
+                        with transaction.atomic(using=router.db_for_write(model)):
+                            model.objects.filter(
+                                group=new_group,
+                                key=obj.key,
+                            ).update(values_seen=F('values_seen') + obj.values_seen)
+                    elif model == GroupTagValue:
+                        with transaction.atomic(using=router.db_for_write(model)):
+                            model.objects.filter(
+                                group=new_group,
+                                key=obj.key,
+                                value=obj.value,
+                            ).update(times_seen=F('times_seen') + obj.times_seen)
+                except DataError:
+                    # it's possible to hit an out of range value for counters
+                    pass
                 obj.delete()
             has_more = True
 
