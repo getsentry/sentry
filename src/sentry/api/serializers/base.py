@@ -12,7 +12,9 @@ def serialize(objects, user=None, serializer=None):
 
     if not objects:
         return objects
-    elif not isinstance(objects, (list, tuple)):
+    # sets aren't predictable, so generally you should use a list, but it's
+    # supported out of convenience
+    elif not isinstance(objects, (list, tuple, set, frozenset)):
         return serialize([objects], user=user, serializer=serializer)[0]
 
     # elif isinstance(obj, dict):
