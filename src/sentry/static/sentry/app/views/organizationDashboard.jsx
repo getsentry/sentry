@@ -23,6 +23,7 @@ const AssignedIssues = React.createClass({
     pageSize: React.PropTypes.number
   },
 
+
   getEndpoint() {
     return `/organizations/${this.props.params.orgId}/members/me/issues/assigned/?`;
   },
@@ -35,18 +36,27 @@ const AssignedIssues = React.createClass({
     return <div className="box empty">{t('No issues have been assigned to you.')}</div>;
   },
 
+  refresh() {
+    this.refs.issueList.remountComponent();
+  },
+
   render() {
     return (
       <div>
         <div className="pull-right">
           <Link className="btn btn-sm btn-default" to={this.getViewMoreLink()}>{t('View more')}</Link>
+          <a className="btn btn-sm btn-default" style={{marginLeft: 5}}
+             onClick={this.refresh}>
+            <span className="icon icon-refresh" />
+          </a>
         </div>
-        <h3>Assigned to me</h3>
+        <h4>Assigned to me</h4>
         <IssueList endpoint={this.getEndpoint()} query={{
           statsPeriod: this.props.statsPeriod,
           per_page: this.props.pageSize,
           status: 'unresolved',
-        }} pagination={false} renderEmpty={this.renderEmpty} {...this.props} />
+        }} pagination={false} renderEmpty={this.renderEmpty}
+           ref="issueList" {...this.props} />
       </div>
     );
   },
@@ -63,18 +73,29 @@ const NewIssues = React.createClass({
   },
 
   renderEmpty() {
-    return <div className="box empty">{t('No new issues have been seen in the last 24 hours.')}</div>;
+    return <div className="box empty">{t('No new issues have been seen in the last week.')}</div>;
+  },
+
+  refresh() {
+    this.refs.issueList.remountComponent();
   },
 
   render() {
     return (
       <div>
-        <h3>New</h3>
+        <div className="pull-right">
+          <a className="btn btn-sm btn-default" style={{marginLeft: 5}}
+             onClick={this.refresh}>
+            <span className="icon icon-refresh" />
+          </a>
+        </div>
+        <h4>New this week</h4>
         <IssueList endpoint={this.getEndpoint()} query={{
           statsPeriod: this.props.statsPeriod,
           per_page: this.props.pageSize,
           status: 'unresolved',
-        }} pagination={false} renderEmpty={this.renderEmpty} {...this.props} />
+        }} pagination={false} renderEmpty={this.renderEmpty}
+           ref="issueList" {...this.props} />
       </div>
     );
   },
