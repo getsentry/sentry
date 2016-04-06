@@ -85,7 +85,8 @@ def organizations(metrics, since, until):
     if since is None:
         since = until - timedelta(minutes=60)
 
-    assert until >= since
+    if until < since:
+        raise click.ClickException('invalid time range provided: {} to {}'.format(since, until))
 
     stderr.write(
         'Dumping {} from {} to {}...\n'.format(
