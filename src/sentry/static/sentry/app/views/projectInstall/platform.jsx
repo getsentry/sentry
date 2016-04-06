@@ -46,11 +46,13 @@ const ProjectInstallPlatform = React.createClass({
 
   componentDidMount() {
     this.fetchData();
+    $(window).scrollTop(0);
   },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.params.platform !== this.props.params.platform) {
       this.setState(this.getInitialState(nextProps), this.fetchData);
+      $(window).scrollTop(0);
     }
   },
 
