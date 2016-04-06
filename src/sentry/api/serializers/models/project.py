@@ -42,7 +42,7 @@ class ProjectSerializer(Serializer):
         from sentry import features
 
         feature_list = []
-        for feature in ('csp', 'event-types', 'global-events', 'user-reports', 'dsym'):
+        for feature in ('breadcrumbs', 'csp', 'event-types', 'global-events', 'user-reports', 'dsym'):
             if features.has('projects:' + feature, obj, actor=user):
                 feature_list.append(feature)
 
@@ -93,7 +93,7 @@ class SharedProjectSerializer(Serializer):
         from sentry import features
 
         feature_list = []
-        for feature in ('breadcrumbs', 'event-types', 'global-events', 'user-reports', 'dsym'):
+        for feature in ('event-types', 'global-events', 'user-reports', 'dsym'):
             if features.has('projects:' + feature, obj, actor=user):
                 feature_list.append(feature)
 
