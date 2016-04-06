@@ -243,7 +243,7 @@ Configure Outbound Mail
 Initially, you will be prompted to supply these values during our Installation
 Wizard, but you may wish to explicitly declare them in your config file. For
 the standard implementation, using a simple SMTP server, you can simply
-configure the following in ``config.yml``::
+configure the following in ``config.yml``:
 
 .. code-block:: yaml
 
@@ -274,7 +274,7 @@ you've created the database:
 
 Once done, you can create the initial schema using the ``upgrade`` command:
 
-.. code-block:: python
+.. code-block:: bash
 
     $ SENTRY_CONF=/etc/sentry sentry upgrade
 
