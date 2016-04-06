@@ -151,7 +151,7 @@ const ProjectDetails = React.createClass({
 
   getMemberListEndpoint() {
     let params = this.props.params;
-    return '/projects/' + params.orgId + '/' + params.projectId + '/members/';
+    return '/organizations/' + params.orgId + '/members/';
   },
 
   setProjectNavSection(section) {
