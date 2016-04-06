@@ -21,6 +21,7 @@ describe('StreamActions', function() {
     beforeEach(function() {
       this.actions = shallow(
           <StreamActions
+            query=""
             orgId="1337"
             projectId="1"
             groupIds={[1,2,3]}
