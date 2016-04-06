@@ -147,5 +147,22 @@ describe('AssigneeSelector', function() {
       expect(assigneeSelector.state.filter).to.eql('foo');
     });
   });
+
+  describe('componentDidUpdate()', function() {
+    beforeEach(function() {
+      this.assigneeSelector = TestUtils.renderIntoDocument(<AssigneeSelector id="1337"/>);
+    });
+
+    it('should destroy old assignee tooltip and create a new assignee tooltip', function(done) {
+      this.sandbox.spy(this.assigneeSelector, 'attachTooltips');
+      this.sandbox.spy(this.assigneeSelector, 'removeTooltips');
+
+      this.assigneeSelector.setState({assignedTo: USER_1}, () => {
+        expect(this.assigneeSelector.attachTooltips.calledOnce).to.be.ok;
+        expect(this.assigneeSelector.removeTooltips.calledOnce).to.be.ok;
+        done();
+      });
+    });
+  });
 });
 
