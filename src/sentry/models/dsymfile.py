@@ -20,7 +20,8 @@ try:
 except ImportError:
     have_symsynd = False
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, BoundedBigIntegerField, \
+    sane_repr
 from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 
@@ -28,6 +29,75 @@ from sentry.utils.zip import safe_extract_zip
 KNOWN_DSYM_TYPES = {
     'application/x-mach-binary': 'macho'
 }
+
+
+'''
+system symbols:
+
+  architecture   VARCHAR(20)
+  sdk-version    MAJOR.MINOR.PATCHLEVEL-BUILD
+  uuid           UUID
+  path           VARCHAR(255)
+  address        BIGINT
+  symbol         TEXT
+
+lookup logic:
+
+  primary lookup:
+    uuid -> exact match
+    address -> lower than or equal to reference address
+      limit 1
+
+  secondary lookup:
+    path -> exact match
+    sdk-version -> fuzzy match
+    address -> lower than or equal to reference address
+      limit 1
+'''
+
+
+class DSymSDK(Model):
+    __core__ = False
+    dsym_type = models.CharField(max_length=20, db_index=True)
+    sdk_name = models.CharField(max_length=20)
+    version_major = models.IntegerField()
+    version_minor = models.IntegerField()
+    version_patchlevel = models.IntegerField()
+    version_build = models.CharField(max_length=40)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_dsymsdk'
+        index_together = [
+            ('version_major', 'version_minor', 'version_patchlevel',
+             'version_build'),
+        ]
+
+
+class DSymBundle(Model):
+    __core__ = False
+    sdk = FlexibleForeignKey('sentry.DSymSDK')
+    cpu_name = models.CharField(max_length=40)
+    object_path = models.TextField(db_index=True)
+    uuid = models.CharField(max_length=36, db_index=True)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_dsymbundle'
+
+
+class DSymSymbol(Model):
+    __core__ = False
+    bundle = FlexibleForeignKey('sentry.DSymBundle')
+    address = BoundedBigIntegerField(db_index=True)
+    symbol = models.TextField()
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_dsymsymbol'
+        unique_together = [
+            ('bundle', 'address'),
+        ]
 
 
 class CommonDSymFile(Model):
