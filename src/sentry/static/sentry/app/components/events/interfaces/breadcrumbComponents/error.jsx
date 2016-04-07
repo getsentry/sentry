@@ -3,11 +3,19 @@ import React from 'react';
 import KeyValueList from '../keyValueList';
 
 function Error(props) {
-  let {type, value} = props.data;
+  let {type, value, message, eventId} = props.data;
 
   let list = [];
-  list.push(['type', type]);
-  list.push(['message', value]);
+  if (type && value) {
+    list.push(['type', type]);
+    list.push(['message', value]);
+  }
+  if (message) {
+    list.push(['message', message]);
+  }
+  if (eventId) {
+    list.push(['event_id', eventId]);
+  }
 
   return (
     <div>

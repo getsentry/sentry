@@ -16,6 +16,8 @@ class SharedGroupDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data['id'] == str(group.id)
         assert response.data['latestEvent']['id'] == str(event.id)
+        assert response.data['project']['slug'] == group.project.slug
+        assert response.data['project']['organization']['slug'] == group.organization.slug
 
     def test_feature_disabled(self):
         self.login_as(user=self.user)

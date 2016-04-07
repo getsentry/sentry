@@ -36,7 +36,7 @@ from sentry.utils.strings import strip, truncatechars
 
 logger = logging.getLogger(__name__)
 
-_short_id_re = re.compile(r'^(.*?)(?:[\s_-])([A-Za-z0-9]+)$')
+_short_id_re = re.compile(r'^(.*?)(?:[\s_-])([A-Za-z0-9-._]+)$')
 
 
 def looks_like_short_id(value):
@@ -86,7 +86,7 @@ class GroupManager(BaseManager):
         if match is None:
             raise Group.DoesNotExist()
         callsign, id = match.groups()
-        callsign = callsign.upper()
+        callsign = callsign.lower()
         try:
             short_id = base32_decode(id)
             # We need to make sure the short id is not overflowing the
@@ -98,7 +98,7 @@ class GroupManager(BaseManager):
             raise Group.DoesNotExist()
         return Group.objects.get(
             project__organization=org,
-            project__callsign=callsign.upper(),
+            project__slug=callsign,
             short_id=short_id,
         )
 
@@ -223,10 +223,9 @@ class Group(Model):
 
     @property
     def qualified_short_id(self):
-        if self.project.callsign is not None and \
-           self.short_id is not None:
+        if self.short_id is not None:
             return '%s-%s' % (
-                self.project.callsign,
+                self.project.slug.upper(),
                 base32_encode(self.short_id),
             )
 

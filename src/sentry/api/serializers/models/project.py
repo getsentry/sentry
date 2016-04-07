@@ -1,7 +1,14 @@
 from __future__ import absolute_import
 
-from sentry.api.serializers import Serializer, register
-from sentry.models import Project, ProjectBookmark, ProjectOption
+from sentry.api.serializers import register, serialize, Serializer
+from sentry.models import Project, ProjectBookmark, ProjectOption, ProjectStatus
+
+STATUS_LABELS = {
+    ProjectStatus.VISIBLE: 'active',
+    ProjectStatus.HIDDEN: 'deleted',
+    ProjectStatus.PENDING_DELETION: 'deleted',
+    ProjectStatus.DELETION_IN_PROGRESS: 'deleted',
+}
 
 
 @register(Project)
@@ -35,9 +42,11 @@ class ProjectSerializer(Serializer):
         from sentry import features
 
         feature_list = []
-        for feature in ('event-types', 'global-events', 'user-reports', 'dsym'):
+        for feature in ('breadcrumbs', 'csp', 'event-types', 'global-events', 'user-reports', 'dsym'):
             if features.has('projects:' + feature, obj, actor=user):
                 feature_list.append(feature)
+
+        status_label = STATUS_LABELS.get(obj.status, 'unknown')
 
         return {
             'id': str(obj.id),
@@ -53,4 +62,49 @@ class ProjectSerializer(Serializer):
             'dateCreated': obj.date_added,
             'firstEvent': obj.first_event,
             'features': feature_list,
+            'status': status_label,
+        }
+
+
+class ProjectWithOrganizationSerializer(ProjectSerializer):
+    def get_attrs(self, item_list, user):
+        attrs = super(ProjectWithOrganizationSerializer, self).get_attrs(
+            item_list, user
+        )
+
+        orgs = {
+            d['id']: d
+            for d in serialize(list(set(i.organization for i in item_list)), user)
+        }
+        for item in item_list:
+            attrs[item]['organization'] = orgs[str(item.organization_id)]
+        return attrs
+
+    def serialize(self, obj, attrs, user):
+        data = super(ProjectWithOrganizationSerializer, self).serialize(
+            obj, attrs, user
+        )
+        data['organization'] = attrs['organization']
+        return data
+
+
+class SharedProjectSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        from sentry import features
+
+        feature_list = []
+        for feature in ('event-types', 'global-events', 'user-reports', 'dsym'):
+            if features.has('projects:' + feature, obj, actor=user):
+                feature_list.append(feature)
+
+        return {
+            'slug': obj.slug,
+            'name': obj.name,
+            'callSign': obj.callsign,
+            'color': obj.color,
+            'features': feature_list,
+            'organization': {
+                'slug': obj.organization.slug,
+                'name': obj.organization.name,
+            },
         }

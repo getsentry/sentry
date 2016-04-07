@@ -9,6 +9,8 @@ from __future__ import absolute_import
 
 import logging
 import os
+import subprocess
+import tempfile
 import time
 from email.utils import parseaddr
 from operator import attrgetter
@@ -18,6 +20,7 @@ from django.conf import settings
 from django.core.mail import get_connection as _get_connection
 from django.core.mail import send_mail as _send_mail
 from django.core.mail import EmailMultiAlternatives
+from django.core.mail.backends.base import BaseEmailBackend
 from django.core.signing import BadSignature, Signer
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_bytes, force_str, force_text
@@ -358,12 +361,20 @@ def send_messages(messages, fail_silently=False):
     return connection.send_messages(messages)
 
 
+def get_mail_backend():
+    backend = options.get('mail.backend')
+    try:
+        return settings.SENTRY_EMAIL_BACKEND_ALIASES[backend]
+    except KeyError:
+        return backend
+
+
 def get_connection(fail_silently=False):
     """
     Gets an SMTP connection using our OptionsStore
     """
     return _get_connection(
-        backend=options.get('mail.backend'),
+        backend=get_mail_backend(),
         host=options.get('mail.host'),
         port=options.get('mail.port'),
         username=options.get('mail.username'),
@@ -381,3 +392,38 @@ def send_mail(subject, message, from_email, recipient_list, fail_silently=False)
         subject, message, from_email, recipient_list,
         connection=get_connection(fail_silently=fail_silently),
     )
+
+
+def is_smtp_enabled(backend=None):
+    """
+    Check if the current backend is SMTP based.
+    """
+    if backend is None:
+        backend = get_mail_backend()
+    return backend not in settings.SENTRY_SMTP_DISABLED_BACKENDS
+
+
+class PreviewBackend(BaseEmailBackend):
+    """
+    Email backend that can be used in local development to open messages in the
+    local mail client as they are sent.
+
+    Probably only works on OS X.
+    """
+    def send_messages(self, email_messages):
+        for message in email_messages:
+            content = str(message.message())
+            preview = tempfile.NamedTemporaryFile(
+                delete=False,
+                prefix='sentry-email-preview-',
+                suffix='.eml',
+            )
+            try:
+                preview.write(content)
+                preview.flush()
+            finally:
+                preview.close()
+
+            subprocess.check_call(('open', preview.name))
+
+        return len(email_messages)

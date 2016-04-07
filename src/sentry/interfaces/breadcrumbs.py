@@ -15,6 +15,7 @@ from datetime import datetime
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim
+from sentry.utils.dates import to_timestamp, to_datetime
 
 
 validators = {}
@@ -88,7 +89,7 @@ def validate_rpc(payload):
 @typevalidator('http_request')
 def validate_http_request(payload):
     rv = {}
-    for key in 'statusCode', 'reason', 'method', 'url', 'headers', \
+    for key in 'status_code', 'reason', 'method', 'url', 'headers', \
                'response', 'classifier':
         value = payload.get(key)
         if value is not None:
@@ -135,6 +136,16 @@ def validate_navigation(payload):
     return rv
 
 
+@typevalidator('error')
+def validate_error(payload):
+    rv = {}
+    for key in 'type', 'message', 'event_id':
+        value = payload.get(key)
+        if value is not None:
+            rv[key] = trim(value, 1024)
+    return rv
+
+
 class Breadcrumbs(Interface):
     """
     This interface stores informationt that leads up to an error in the
@@ -164,7 +175,9 @@ class Breadcrumbs(Interface):
                 raise InterfaceValidationError('Unable to determine timestamp for crumb')
             values.append({
                 'type': ty,
-                'timestamp': ts,
+                # We need to store timestamps here as this will go into
+                # the node store which does not support datetime objects.
+                'timestamp': to_timestamp(ts),
                 'data': validate_payload_for_type(crumb.get('data'), ty),
             })
         return cls(values=values)
@@ -176,6 +189,12 @@ class Breadcrumbs(Interface):
         return 'breadcrumbs'
 
     def get_api_context(self, is_public=False):
+        def _convert(x):
+            return {
+                'type': x['type'],
+                'timestamp': to_datetime(x['timestamp']),
+                'data': x['data'],
+            }
         return {
-            'values': self.values,
+            'values': map(_convert, self.values),
         }

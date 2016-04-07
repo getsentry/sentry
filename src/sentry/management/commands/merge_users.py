@@ -24,7 +24,9 @@ class Command(BaseCommand):
     )
 
     def _get_organization_user_sets(self, organization):
-        queryset = OrganizationMember.objects.filter(organization__slug='hubspot-dev').select_related('user')
+        queryset = OrganizationMember.objects.filter(
+            organization=organization,
+        ).select_related('user')
 
         members_by_email = defaultdict(list)
         for member in queryset:

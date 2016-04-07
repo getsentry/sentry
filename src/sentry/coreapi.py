@@ -606,6 +606,17 @@ class CspApiHelper(ClientApiHelper):
         # We don't use an origin here
         return None
 
+    def auth_from_request(self, request):
+        key = request.GET.get('sentry_key')
+        if not key:
+            raise APIUnauthorized('Unable to find authentication information')
+
+        auth = Auth({
+            'sentry_key': key,
+        }, is_public=True)
+        auth.client = request.META.get('HTTP_USER_AGENT')
+        return auth
+
     def validate_data(self, project, data):
         # All keys are sent with hyphens, so we want to conver to underscores
         report = dict(map(lambda v: (v[0].replace('-', '_'), v[1]), data.iteritems()))

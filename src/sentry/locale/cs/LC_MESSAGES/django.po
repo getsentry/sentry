@@ -9,14 +9,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-03-25 22:12+0000\n"
-"PO-Revision-Date: 2016-03-25 22:13+0000\n"
-"Last-Translator: David Cramer <dcramer@gmail.com>\n"
+"POT-Creation-Date: 2016-04-01 16:30+0000\n"
+"PO-Revision-Date: 2016-04-01 16:31+0000\n"
+"Last-Translator: mattrobenolt <m@robenolt.com>\n"
 "Language-Team: Czech (http://www.transifex.com/getsentry/sentry/language/cs/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.1.1\n"
+"Generated-By: Babel 2.2.0\n"
 "Language: cs\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 
@@ -419,7 +419,7 @@ msgstr "Výpis zásobníku (nejnovější volání první):"
 msgid "Stacktrace (most recent call last):"
 msgstr "Výpis zásobníku (nejnovější volání poslední):"
 
-#: models/apikey.py:52 models/project.py:85 models/projectkey.py:48
+#: models/apikey.py:52 models/project.py:84 models/projectkey.py:48
 #: models/team.py:93
 msgid "Active"
 msgstr "Aktivní"
@@ -436,28 +436,28 @@ msgstr "zpráva"
 msgid "messages"
 msgstr "zprávy"
 
-#: models/event.py:92 models/group.py:349
+#: models/event.py:92 models/group.py:374
 msgid "error"
 msgstr "chyba"
 
-#: models/group.py:140
+#: models/group.py:166
 #: static/sentry/app/components/organizationIssueList.jsx:49
 msgid "Unresolved"
 msgstr "Nevyřešeno"
 
-#: models/group.py:141 models/groupresolution.py:37
+#: models/group.py:167 models/groupresolution.py:37
 msgid "Resolved"
 msgstr "Vyřešeno"
 
-#: models/group.py:142
+#: models/group.py:168
 msgid "Muted"
 msgstr "Ztlumeno"
 
-#: models/group.py:164
+#: models/group.py:190
 msgid "grouped messages"
 msgstr "seskupené zprávy"
 
-#: models/group.py:165
+#: models/group.py:191
 msgid "grouped message"
 msgstr "seskupená zpráva"
 
@@ -469,12 +469,12 @@ msgstr "Nevyřízeno"
 msgid "Visible"
 msgstr "Viditelné"
 
-#: models/organization.py:71 models/project.py:86 models/tagkey.py:68
+#: models/organization.py:71 models/project.py:85 models/tagkey.py:68
 #: models/team.py:94
 msgid "Pending Deletion"
 msgstr "Nevyřízené smazání"
 
-#: models/organization.py:72 models/project.py:87 models/tagkey.py:69
+#: models/organization.py:72 models/project.py:86 models/tagkey.py:69
 #: models/team.py:95
 msgid "Deletion in Progress"
 msgstr "Smazání probíhá"
@@ -729,9 +729,9 @@ msgstr "Projekty Vám umožňují zobrazit události z konkrétní aplikace ve v
 msgid "Please correct the errors below."
 msgstr "Prosím opravte chyby níže."
 
-#: templates/sentry/create-project.html:33
+#: templates/sentry/create-project.html:30
 msgid "Create Project"
-msgstr ""
+msgstr "Vytvořit projekt"
 
 #: templates/sentry/create-team.html:5
 #: static/sentry/app/components/organizations/homeContainer.jsx:47
@@ -828,7 +828,7 @@ msgstr "Klíč"
 #: templates/sentry/admin/users/edit.html:19
 #: templates/sentry/partial/_form.html:16
 #: templates/sentry/projects/edit_key.html:74
-#: templates/sentry/projects/manage.html:99
+#: templates/sentry/projects/manage.html:96
 #: templates/sentry/projects/manage_tags.html:42
 #: templates/sentry/projects/quotas.html:38
 #: static/sentry/app/components/forms/form.jsx:14
@@ -838,13 +838,13 @@ msgstr "Uložit změny"
 #: templates/sentry/organization-api-keys.html:7
 #: templates/sentry/organization-api-keys.html:19
 #: templates/sentry/bases/organization.html:68
-#: static/sentry/app/components/organizations/homeSidebar.jsx:74
+#: static/sentry/app/components/organizations/homeSidebar.jsx:77
 msgid "API Keys"
 msgstr "Klíče API"
 
 #: templates/sentry/organization-audit-log.html:6
 #: templates/sentry/bases/organization.html:75
-#: static/sentry/app/components/organizations/homeSidebar.jsx:77
+#: static/sentry/app/components/organizations/homeSidebar.jsx:80
 msgid "Audit Log"
 msgstr "Záznam kontrol"
 
@@ -854,7 +854,7 @@ msgstr "Sentry uchovává záznam o důležitých událostí uvnitř vaší orga
 
 #: templates/sentry/organization-auth-settings.html:5
 #: templates/sentry/bases/organization.html:60
-#: static/sentry/app/components/organizations/homeSidebar.jsx:71
+#: static/sentry/app/components/organizations/homeSidebar.jsx:74
 msgid "Auth"
 msgstr "Ověření"
 
@@ -909,7 +909,7 @@ msgstr "Znovu zaslat pozvánku"
 #: templates/sentry/organization-members.html:7
 #: templates/sentry/organization-members.html:23
 #: templates/sentry/bases/organization.html:48
-#: static/sentry/app/components/organizations/homeSidebar.jsx:63
+#: static/sentry/app/components/organizations/homeSidebar.jsx:66
 msgid "Members"
 msgstr "Členové"
 
@@ -939,7 +939,7 @@ msgstr "Člen"
 
 #: templates/sentry/organization-members.html:102
 #: templates/sentry/projects/keys.html:25
-#: static/sentry/app/views/groupDetails/header.jsx:224
+#: static/sentry/app/views/groupDetails/header.jsx:220
 msgid "Details"
 msgstr "Podrobnosti"
 
@@ -973,7 +973,7 @@ msgstr "Děkujeme, že používáte Sentry! Doufáme, že se brzo zase uvidíme!
 
 #: templates/sentry/project-issue-tracking.html:7
 #: templates/sentry/project-issue-tracking.html:10
-#: templates/sentry/projects/manage.html:189
+#: templates/sentry/projects/manage.html:186
 #: static/sentry/app/views/projectSettings/index.jsx:93
 msgid "Issue Tracking"
 msgstr "Sledování úloh"
@@ -987,13 +987,13 @@ msgstr "Neaktivní začlenění"
 #: templates/sentry/project-notifications.html:8
 #: templates/sentry/project-notifications.html:11
 #: templates/sentry/bases/account.html:23
-#: templates/sentry/projects/manage.html:175
+#: templates/sentry/projects/manage.html:172
 #: static/sentry/app/views/projectSettings/index.jsx:87
 msgid "Notifications"
 msgstr "Oznámení"
 
 #: templates/sentry/project-notifications.html:18
-#: templates/sentry/projects/manage.html:183
+#: templates/sentry/projects/manage.html:180
 #: templates/sentry/projects/rules/list.html:10
 #: static/sentry/app/views/projectSettings/index.jsx:91
 msgid "Rules"
@@ -1017,7 +1017,7 @@ msgstr "Přehledy"
 
 #: templates/sentry/project-release-tracking.html:7
 #: templates/sentry/project-release-tracking.html:10
-#: templates/sentry/projects/manage.html:192
+#: templates/sentry/projects/manage.html:189
 #: static/sentry/app/views/projectSettings/index.jsx:94
 msgid "Release Tracking"
 msgstr "Sledování vydání"
@@ -1057,7 +1057,7 @@ msgstr "Pokud budete pokračovat, následující organizace budou odstraněny:"
 #: templates/sentry/admin/users/remove.html:17
 #: templates/sentry/projects/remove.html:30
 #: templates/sentry/teams/remove.html:40
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:142
+#: static/sentry/app/views/stream/actionLink.jsx:115
 msgid "Cancel"
 msgstr "Zrušit"
 
@@ -1129,7 +1129,7 @@ msgid ""
 msgstr "Poznámka: Pokud má projekt upozornění zakázána (v nasatvení projektu), nikdy je neobdržíte"
 
 #: templates/sentry/account/notifications.html:57
-#: web/frontend/project_settings.py:26
+#: web/frontend/project_settings.py:24
 msgid "Project Name"
 msgstr "Název projektu"
 
@@ -1158,7 +1158,7 @@ msgid "Your password was not valid."
 msgstr "Vaše heslo není platné."
 
 #: templates/sentry/account/sudo.html:52
-#: static/sentry/app/views/installWizard.jsx:82
+#: static/sentry/app/views/installWizard.jsx:86
 msgid "Continue"
 msgstr "Pokračovat"
 
@@ -1212,7 +1212,6 @@ msgstr "Spravovat projekty"
 #: templates/sentry/admin/users/edit.html:28
 #: templates/sentry/admin/users/list_projects.html:7
 #: templates/sentry/bases/admin.html:26
-#: templates/sentry/bases/organization.html:25
 #: static/sentry/app/views/adminOrganizations.jsx:147
 msgid "Projects"
 msgstr "Projekty"
@@ -1274,7 +1273,7 @@ msgid "Environment not found (are you using the builtin Sentry webserver?)."
 msgstr "Prostředí nenalezeno (používáte zabudovaný server Sentry?)"
 
 #: templates/sentry/admin/status/env.html:40
-#: templates/sentry/projects/manage.html:169
+#: templates/sentry/projects/manage.html:166
 #: static/sentry/app/views/projectSettings/index.jsx:84
 msgid "Configuration"
 msgstr "Konfigurace"
@@ -1322,7 +1321,7 @@ msgstr "Ne"
 
 #: templates/sentry/admin/status/mail.html:40
 msgid "Mailing List Namespace"
-msgstr ""
+msgstr "Jmenný prostor poštovního seznamu"
 
 #: templates/sentry/admin/status/mail.html:46
 msgid "Test Settings"
@@ -1398,7 +1397,7 @@ msgid "Users"
 msgstr "Uživatelé"
 
 #: templates/sentry/admin/users/list.html:30 web/forms/__init__.py:41
-#: web/forms/accounts.py:257 web/forms/add_project.py:16
+#: web/forms/accounts.py:257 web/forms/add_project.py:15
 #: web/forms/add_team.py:13
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:120
 msgid "Name"
@@ -1435,7 +1434,7 @@ msgstr "Potvrdit"
 
 #: templates/sentry/bases/account.html:6 templates/sentry/bases/admin.html:18
 #: templates/sentry/bases/organization.html:81
-#: static/sentry/app/components/organizations/homeSidebar.jsx:83
+#: static/sentry/app/components/organizations/homeSidebar.jsx:86
 msgid "Settings"
 msgstr "Nastavení"
 
@@ -1471,40 +1470,45 @@ msgid "Organization Settings"
 msgstr "Nastavení organizace"
 
 #: templates/sentry/bases/organization.html:20
-#: static/sentry/app/components/organizations/homeSidebar.jsx:39
+#: static/sentry/app/components/organizations/homeSidebar.jsx:42
 msgid "Dashboard"
 msgstr "Nástěnka"
 
+#: templates/sentry/bases/organization.html:25
+#: static/sentry/app/components/organizations/homeSidebar.jsx:46
+msgid "Projects & Teams"
+msgstr "Projekty a týmy"
+
 #: templates/sentry/bases/organization.html:31
-#: static/sentry/app/components/organizations/homeSidebar.jsx:45
+#: static/sentry/app/components/organizations/homeSidebar.jsx:48
 msgid "Stats"
 msgstr "Stats"
 
 #: templates/sentry/bases/organization.html:36
-#: static/sentry/app/components/organizations/homeSidebar.jsx:49
+#: static/sentry/app/components/organizations/homeSidebar.jsx:52
 msgid "Issues"
 msgstr "Úlohy"
 
 #: templates/sentry/bases/organization.html:38
-#: static/sentry/app/components/organizations/homeSidebar.jsx:51
+#: static/sentry/app/components/organizations/homeSidebar.jsx:54
 msgid "Assigned to Me"
 msgstr "Přidělené mně"
 
 #: templates/sentry/bases/organization.html:39
-#: static/sentry/app/components/organizations/homeSidebar.jsx:52
+#: static/sentry/app/components/organizations/homeSidebar.jsx:55
 msgid "Bookmarks"
 msgstr "Záložky"
 
 #: templates/sentry/bases/organization.html:40
-#: static/sentry/app/components/organizations/homeSidebar.jsx:53
+#: static/sentry/app/components/organizations/homeSidebar.jsx:56
 msgid "History"
 msgstr "Historie"
 
 #: templates/sentry/bases/organization.html:78
-#: templates/sentry/projects/manage.html:179
+#: templates/sentry/projects/manage.html:176
 #: templates/sentry/projects/quotas.html:7
 #: templates/sentry/projects/quotas.html:10
-#: static/sentry/app/components/organizations/homeSidebar.jsx:80
+#: static/sentry/app/components/organizations/homeSidebar.jsx:83
 msgid "Rate Limits"
 msgstr "Omezení četnosti"
 
@@ -1707,7 +1711,7 @@ msgid "Revoke"
 msgstr "Zrušit"
 
 #: templates/sentry/projects/manage.html:29
-#: templates/sentry/projects/manage.html:172
+#: templates/sentry/projects/manage.html:169
 #: static/sentry/app/views/projectSettings/index.jsx:86
 msgid "Project Settings"
 msgstr "Nastavení projektu"
@@ -1716,93 +1720,93 @@ msgstr "Nastavení projektu"
 msgid "Project Details"
 msgstr "Podrobnosti projektu"
 
-#: templates/sentry/projects/manage.html:51
+#: templates/sentry/projects/manage.html:48
 msgid "Event Settings"
 msgstr "Nastavení události"
 
-#: templates/sentry/projects/manage.html:64
+#: templates/sentry/projects/manage.html:61
 msgid "Client Security"
 msgstr "Zabezpečení klienta"
 
-#: templates/sentry/projects/manage.html:68
+#: templates/sentry/projects/manage.html:65
 #, python-format
 msgid ""
 "Configure origin URLs which Sentry should accept events from. This is used "
 "for communication with clients like <a href=\"%(link)s\">raven-js</a>."
 msgstr "Nastavte počáteční URL, z které by Sentry mělo přijímat události. Toto je použito pro komunikaci s klienty jako <a href=\"%(link)s\">raven-js</a>."
 
-#: templates/sentry/projects/manage.html:70
+#: templates/sentry/projects/manage.html:67
 msgid ""
 "This will restrict requests based on the <code>Origin</code> and "
 "<code>Referer</code> headers."
 msgstr "Toto omezí žádosti na základě hlaviček <code>Origin</code> a <code>Referer</code>."
 
-#: templates/sentry/projects/manage.html:81
-#: templates/sentry/projects/manage.html:90
+#: templates/sentry/projects/manage.html:78
+#: templates/sentry/projects/manage.html:87
 #: templates/sentry/projects/remove.html:6
 #: templates/sentry/projects/remove.html:11
 #: templates/sentry/projects/remove.html:29
 msgid "Remove Project"
 msgstr "Odstranit projekt"
 
-#: templates/sentry/projects/manage.html:85
+#: templates/sentry/projects/manage.html:82
 msgid "You do not have the required permission to remove this project."
 msgstr "Pro odstranění tohoto projektu nemáte dostatečná oprávnění."
 
-#: templates/sentry/projects/manage.html:87
+#: templates/sentry/projects/manage.html:84
 msgid ""
 "This project cannot be removed. It is used internally by the Sentry server."
 msgstr "Tento projekt nelze odstranit. Je používán vnitřně serverem Sentry."
 
-#: templates/sentry/projects/manage.html:156
+#: templates/sentry/projects/manage.html:153
 msgid ""
 "This option is enforced by your organization's settings and cannot be "
 "customized per-project."
 msgstr "Tato volba je vynucena nastavením vaší organizace a nemůže být měněna podle projektu."
 
-#: templates/sentry/projects/manage.html:186
+#: templates/sentry/projects/manage.html:183
 #: templates/sentry/projects/manage_tags.html:7
 #: templates/sentry/projects/manage_tags.html:10
 #: static/sentry/app/components/events/eventTags.jsx:29
 msgid "Tags"
 msgstr "Značky"
 
-#: templates/sentry/projects/manage.html:195
+#: templates/sentry/projects/manage.html:192
 #: static/sentry/app/views/projectSettings/index.jsx:95
 msgid "Saved Searches"
 msgstr "Uložená hledání"
 
-#: templates/sentry/projects/manage.html:199
+#: templates/sentry/projects/manage.html:196
 #: static/sentry/app/views/projectSettings/index.jsx:100
 msgid "Debug Symbols"
 msgstr "Symboly pro ladění"
 
-#: templates/sentry/projects/manage.html:204
+#: templates/sentry/projects/manage.html:201
 #: static/sentry/app/components/projectHeader/index.jsx:49
 msgid "User Reports"
 msgstr "Hlášení uživatelů"
 
-#: templates/sentry/projects/manage.html:208
+#: templates/sentry/projects/manage.html:205
 #: static/sentry/app/views/projectSettings/index.jsx:103
 msgid "Setup"
 msgstr "Nastavení"
 
-#: templates/sentry/projects/manage.html:211
+#: templates/sentry/projects/manage.html:208
 #: static/sentry/app/views/projectSettings/index.jsx:110
 msgid "Instructions"
 msgstr "Pokyny"
 
-#: templates/sentry/projects/manage.html:214
+#: templates/sentry/projects/manage.html:211
 msgid "Client Keys (DSN)"
 msgstr "Klíče klienta (DSN)"
 
-#: templates/sentry/projects/manage.html:218
+#: templates/sentry/projects/manage.html:215
 #: templates/sentry/projects/plugins/list.html:10
 #: static/sentry/app/views/projectSettings/index.jsx:113
 msgid "Integrations"
 msgstr "Začlenění"
 
-#: templates/sentry/projects/manage.html:221
+#: templates/sentry/projects/manage.html:218
 #: static/sentry/app/views/projectSettings/index.jsx:115
 msgid "All Integrations"
 msgstr "Všechna začlenění"
@@ -2102,34 +2106,13 @@ msgstr "Časové pásmo"
 msgid "Use a 24-hour clock"
 msgstr "Použít hodiny ve 24hodinovém formátu"
 
-#: web/forms/add_project.py:18
+#: web/forms/add_project.py:17
 msgid "i.e. API, Frontend, My Application Name"
 msgstr "Tj. API, uživatelské prostředí, název mé aplikace"
 
-#: web/forms/add_project.py:20
+#: web/forms/add_project.py:19
 msgid "Using the repository name generally works well."
-msgstr ""
-
-#: web/forms/add_project.py:22 web/frontend/project_settings.py:32
-msgid "Callsign"
-msgstr ""
-
-#: web/forms/add_project.py:24
-msgid "2-6 letter prefix.  Leave empty for auto assignment."
-msgstr ""
-
-#: web/forms/add_project.py:27
-msgid "This is added as prefix for issue IDs."
-msgstr ""
-
-#: web/forms/add_project.py:54 web/frontend/project_settings.py:177
-msgid "Callsign must be between 2 and 6 letters"
-msgstr ""
-
-#: web/forms/add_project.py:63 web/frontend/project_settings.py:184
-#, python-format
-msgid "Another project (%s) is already using that callsign"
-msgstr ""
+msgstr "Zadání názvu úložiště je zpravidla dobrá volba."
 
 #: web/forms/add_team.py:15
 msgid "E.g. Operations, Web, Desktop, ..."
@@ -2251,12 +2234,12 @@ msgid "The API key (%s) was enabled."
 msgstr "Klíč API (%s) byl povolen."
 
 #: web/frontend/organization_api_key_settings.py:16
-#: web/frontend/project_settings.py:35
+#: web/frontend/project_settings.py:31
 msgid "Allowed Domains"
 msgstr "Povolené domény"
 
 #: web/frontend/organization_api_key_settings.py:17
-#: web/frontend/project_settings.py:36 web/frontend/project_settings.py:73
+#: web/frontend/project_settings.py:32 web/frontend/project_settings.py:69
 msgid "Separate multiple entries with a newline."
 msgstr "Více položek oddělujte novým řádkem."
 
@@ -2299,7 +2282,7 @@ msgstr "Výchozí role, kterou noví členové obdrží při jejich prvním při
 msgid "An invitation to join %(organization)s has been sent to %(email)s"
 msgstr "Pozvánka ke vstupu do %(organization)s byla odeslána na %(email)s"
 
-#: web/frontend/organization_member_settings.py:83
+#: web/frontend/organization_member_settings.py:84
 msgid "Your changes were saved."
 msgstr "Vaše změny byly uloženy."
 
@@ -2308,7 +2291,7 @@ msgid "The name of your organization. i.e. My Company"
 msgstr "Název vaší organizace, např. Moje Společnost"
 
 #: web/frontend/organization_settings.py:20
-#: web/frontend/project_settings.py:29
+#: web/frontend/project_settings.py:27
 #: static/sentry/app/views/teamSettings.jsx:94
 msgid "Short name"
 msgstr "Krátký název"
@@ -2367,7 +2350,7 @@ msgstr "Vyžadovat použití výchozího čističe dat, aby se zabránilo uklád
 
 #: web/frontend/organization_settings.py:54
 msgid "Global additional sensitive fields"
-msgstr ""
+msgstr "Globální dodatečná citlivá pole"
 
 #: web/frontend/organization_settings.py:55
 msgid ""
@@ -2377,18 +2360,18 @@ msgid ""
 msgstr "Dodatečné názvy polí pro porovnávání při čištění dat u všech projektů. Jednotlivé položky oddělujte novým řádkem.<br /><strong>Poznámka: Tyto pole budou použita spolu s poli konkrétních projektů.</strong>"
 
 #: web/frontend/organization_settings.py:58
-#: web/frontend/project_settings.py:56
+#: web/frontend/project_settings.py:52
 msgid "e.g. email"
 msgstr "např. e-mail"
 
 #: web/frontend/organization_settings.py:65
 msgid "Prevent Storing of IP Addresses"
-msgstr ""
+msgstr "Zabránit ukládání IP adres"
 
 #: web/frontend/organization_settings.py:66
 msgid ""
 "Preventing IP addresses from being stored for new events on all projects."
-msgstr ""
+msgstr "Zabraňuje ukládání IP adres u nových událostí ve všech projektech."
 
 #: web/frontend/organization_settings.py:131
 msgid "Changes to your organization were saved."
@@ -2412,88 +2395,84 @@ msgstr "Funkce sledování vydání není v tomto projektu povolena."
 msgid "The rule was removed."
 msgstr "Pravidlo bylo odstraněno."
 
-#: web/frontend/project_settings.py:27
+#: web/frontend/project_settings.py:25
 msgid "Production"
 msgstr "Běžný provoz"
 
-#: web/frontend/project_settings.py:30
+#: web/frontend/project_settings.py:28
 msgid "A unique ID used to identify this project."
 msgstr "Jedinečné ID sloužící k identifikaci tohoto projektu."
 
 #: web/frontend/project_settings.py:33
-msgid "A short (typically two) letter sequence to identify issues."
-msgstr ""
-
-#: web/frontend/project_settings.py:37
 msgid "Security token"
 msgstr "Bezpečnostní známka"
 
-#: web/frontend/project_settings.py:38
+#: web/frontend/project_settings.py:34
 #, python-brace-format
 msgid ""
 "Outbound requests matching Allowed Domains will have the header \"X-Sentry-"
 "Token: {token}\" appended."
 msgstr "Odchozí žádosti odpovídající Povoleným doménám budou mít v hlavičce připojeno \"X-Sentry-Token: {token}\""
 
-#: web/frontend/project_settings.py:39
+#: web/frontend/project_settings.py:35
 msgid "Auto resolve"
 msgstr "Automaticky vyřešit"
 
-#: web/frontend/project_settings.py:41
+#: web/frontend/project_settings.py:37
 msgid ""
 "Treat an event as resolved if it hasn't been seen for this amount of time."
 msgstr "Považovat událost za vyřešenou, pokud se po této době již znovu neobjevila."
 
-#: web/frontend/project_settings.py:43
+#: web/frontend/project_settings.py:39
 msgid "Data Scrubber"
 msgstr "Čistič dat"
 
-#: web/frontend/project_settings.py:44
+#: web/frontend/project_settings.py:40
 msgid "Enable server-side data scrubbing."
 msgstr "Povolit čištění dat na straně serveru"
 
-#: web/frontend/project_settings.py:48
+#: web/frontend/project_settings.py:44
 msgid "Use Default Scrubbers"
 msgstr "Použít výchozí čističe"
 
-#: web/frontend/project_settings.py:49
+#: web/frontend/project_settings.py:45
 msgid ""
 "Apply default scrubbers to prevent things like passwords and credit cards "
 "from being stored."
 msgstr "Použít výchozí čističe, aby se zabránilo uložení citlivých údajů jako hesla nebo čísla kreditních karet."
 
-#: web/frontend/project_settings.py:53
+#: web/frontend/project_settings.py:49
 msgid "Additional sensitive fields"
 msgstr "Dodatečná citlivá pole"
 
-#: web/frontend/project_settings.py:54
+#: web/frontend/project_settings.py:50
 msgid ""
 "Additional field names to match against when scrubbing data. Separate "
 "multiple entries with a newline."
 msgstr "Dodatečné názvy polí pro porovnávání při čištění dat. Jednotlivé položky oddělujte novým řádkem."
 
-#: web/frontend/project_settings.py:63
+#: web/frontend/project_settings.py:59
 msgid "Don't store IP Addresses"
 msgstr "Neukládat IP adresy"
 
-#: web/frontend/project_settings.py:64
+#: web/frontend/project_settings.py:60
 msgid "Prevent IP addresses from being stored for new events."
 msgstr "Zabránit ukládání IP adres pro nové události."
 
-#: web/frontend/project_settings.py:68
+#: web/frontend/project_settings.py:64
 msgid "Enable JavaScript source fetching"
 msgstr "Povolit získávání zdrojového JavaScriptu"
 
-#: web/frontend/project_settings.py:69
+#: web/frontend/project_settings.py:65
 msgid ""
 "Allow Sentry to scrape missing JavaScript source context when possible."
 msgstr "Umožnit Sentry získat chybějící zdrojový kontext JavaScript, pokud je to možné."
 
-#: web/frontend/project_settings.py:72
+#: web/frontend/project_settings.py:68
 msgid "Blacklisted IP Addresses"
 msgstr "Zakázané IP adresy"
 
-#: web/frontend/project_settings.py:261
+#: web/frontend/project_settings.py:234
 msgid "Changes to your project were saved."
 msgstr "Změny vašeho projektu byly uloženy."
 
@@ -2529,18 +2508,18 @@ msgstr "Při načítání dat došlo k chybě."
 msgid "Retry"
 msgstr "Zkusit znovu"
 
-#: static/sentry/app/components/projectHeader/projectSelector.jsx:242
-msgid "Select a project"
-msgstr "Vyberte projekt"
-
-#: static/sentry/app/components/projectHeader/projectSelector.jsx:250
-msgid "Filter projects"
-msgstr "Filtrovat projekty"
-
 #: static/sentry/app/components/timeSince.jsx:67
 #, python-format
 msgid "%(time)s old"
 msgstr "staré %(time)s"
+
+#: static/sentry/app/components/projectHeader/projectSelector.jsx:256
+msgid "Select a project"
+msgstr "Vyberte projekt"
+
+#: static/sentry/app/components/projectHeader/projectSelector.jsx:264
+msgid "Filter projects"
+msgstr "Filtrovat projekty"
 
 #: static/sentry/app/views/ruleEditor/index.jsx:115
 msgid ""
@@ -2587,6 +2566,10 @@ msgstr "Provést tyto činnosti:"
 msgid "Save Rule"
 msgstr "Uložit pravidlo"
 
+#: static/sentry/app/components/alertMessage.jsx:30
+msgid "Close"
+msgstr "Zvařít"
+
 #: static/sentry/app/views/adminOrganizations.jsx:103
 msgid "Sorry, no results match your filters."
 msgstr "Vašim filtrům, bohužel, neodpovídají žádné výsledky."
@@ -2599,53 +2582,17 @@ msgstr "Hledat organizaci."
 msgid "Organization"
 msgstr "Organizace"
 
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:82
-msgid "Saving changes.."
-msgstr "Ukládání změn..."
-
-#: static/sentry/app/views/adminSettings.jsx:137
-msgid "Your changes were saved, and will propagate to services shortly."
-msgstr "Vaše změny byly uloženy. Ve službách se projeví za chvíli."
-
-#: static/sentry/app/views/installWizard.jsx:217
-msgid "Please wait while we load configuration."
-msgstr "Čekejte chvíli prosím, načítáme nastavení"
-
-#: static/sentry/app/views/installWizard.jsx:222
-msgid ""
-"We were unable to load the required configuration from the Sentry server. "
-"Please take a look at the service logs."
-msgstr "Nemohli jsme načíst požadované nastavení ze serveru Sentry. Prosím podívejte se do záznamů služby."
-
-#: static/sentry/app/views/adminSettings.jsx:170
-msgid ""
-"We were unable to submit your changes to the Sentry server. Please take a "
-"look at the service logs."
-msgstr "Nemohli jsme vaše změny odeslat na server Sentry. Prosím podívejte se do záznamů služby."
-
 #: static/sentry/app/views/app.jsx:98
 msgid "Getting a list of all of your organizations."
 msgstr "Získávání seznamu všech vašich organizací."
 
-#: static/sentry/app/views/groupDetails.jsx:143
-msgid "The issue you were looking for was not found."
-msgstr "Problém, který hledáte, nebyl nalezen."
-
-#: static/sentry/app/views/groupEvents.jsx:102
-msgid "Sorry, no events match your search query."
-msgstr "Vašemu dotazu hledání, bohužel, neodpovídají žádné události."
-
-#: static/sentry/app/views/groupEvents.jsx:111
-msgid "There don't seem to be any events yet."
-msgstr "Zdá se, že se zatím nevyskytly žádné události."
-
-#: static/sentry/app/views/groupHashes.jsx:104
-msgid "ID"
-msgstr "ID"
-
 #: static/sentry/app/views/groupHashes.jsx:83
 msgid "There don't seem to be any hashes for this issue."
 msgstr "Zdá se, že neexistují žádné kontrolní součty pro tuto úlohu."
+
+#: static/sentry/app/views/groupEvents.jsx:177
+msgid "ID"
+msgstr "ID"
 
 #: static/sentry/app/views/groupTags.jsx:100
 msgid "More Details"
@@ -2678,9 +2625,51 @@ msgstr "Zjistěte jak začlenit hlášení o pádu od uživatelů"
 msgid "Assigned to me"
 msgstr "Přidělené mně"
 
-#: static/sentry/app/views/organizationDashboard.jsx:38
+#: static/sentry/app/views/groupDetails.jsx:143
+msgid "The issue you were looking for was not found."
+msgstr "Problém, který hledáte, nebyl nalezen."
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:82
+msgid "Saving changes.."
+msgstr "Ukládání změn..."
+
+#: static/sentry/app/views/adminSettings.jsx:137
+msgid "Your changes were saved, and will propagate to services shortly."
+msgstr "Vaše změny byly uloženy. Ve službách se projeví za chvíli."
+
+#: static/sentry/app/views/installWizard.jsx:221
+msgid "Please wait while we load configuration."
+msgstr "Čekejte chvíli prosím, načítáme nastavení"
+
+#: static/sentry/app/views/installWizard.jsx:226
+msgid ""
+"We were unable to load the required configuration from the Sentry server. "
+"Please take a look at the service logs."
+msgstr "Nemohli jsme načíst požadované nastavení ze serveru Sentry. Prosím podívejte se do záznamů služby."
+
+#: static/sentry/app/views/adminSettings.jsx:170
+msgid ""
+"We were unable to submit your changes to the Sentry server. Please take a "
+"look at the service logs."
+msgstr "Nemohli jsme vaše změny odeslat na server Sentry. Prosím podívejte se do záznamů služby."
+
+#: static/sentry/app/views/organizationDashboard.jsx:35
+msgid "No issues have been assigned to you."
+msgstr ""
+
+#: static/sentry/app/views/organizationDashboard.jsx:42
 msgid "View more"
 msgstr "Zobrazit více"
+
+#: static/sentry/app/views/organizationDashboard.jsx:66
+msgid "No new issues have been seen in the last 24 hours."
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:41
+msgid ""
+"You don't have any teams for this organization yet. Get started by "
+"[link:creating your first team]."
+msgstr "V této organizaci zatím nejsou žádné týmy. Můžete začít [link: vytvořením vašeho prvního týmu]."
 
 #: static/sentry/app/views/organizationDetails.jsx:134
 msgid "Loading data for your organization."
@@ -2690,35 +2679,9 @@ msgstr "Načítání dat vaší organizace."
 msgid "The organization you were looking for was not found."
 msgstr "Organizace, kterou hledáte, nebyla nalezena."
 
-#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:41
-msgid ""
-"You don't have any teams for this organization yet. Get started by "
-"[link:creating your first team]."
-msgstr "V této organizaci zatím nejsou žádné týmy. Můžete začít [link: vytvořením vašeho prvního týmu]."
-
 #: static/sentry/app/views/projectChooser.jsx:60
 msgid "Choose a project"
 msgstr "Zvolte projekt"
-
-#: static/sentry/app/views/projectDashboard.jsx:126
-msgid "1 hour"
-msgstr "1 hodina"
-
-#: static/sentry/app/views/projectDashboard.jsx:143
-msgid "1 week"
-msgstr "1 týden"
-
-#: static/sentry/app/views/projectDashboard.jsx:155
-msgid "Trending Issues"
-msgstr "Nejčastější úlohy"
-
-#: static/sentry/app/views/releaseDetails.jsx:139
-msgid "New Issues"
-msgstr "Nové úlohy"
-
-#: static/sentry/app/views/projectDetails.jsx:178
-msgid "The project you were looking for was not found."
-msgstr "Projekt, který hledáte, nebyl nalezen."
 
 #: static/sentry/app/views/projectInstall/overview.jsx:50
 msgid "Configure your application"
@@ -2754,22 +2717,29 @@ msgstr "Frameworky"
 msgid "Languages"
 msgstr "Jazyky"
 
-#: static/sentry/app/views/projectInstall/platform.jsx:96
-msgid "Full Documentation"
-msgstr "Úplná dokumentace"
+#: static/sentry/app/views/groupEvents.jsx:102
+msgid "Sorry, no events match your search query."
+msgstr "Vašemu dotazu hledání, bohužel, neodpovídají žádné události."
 
-#: static/sentry/app/views/projectInstall/platform.jsx:99
-#, python-format
-msgid "Configure %(integration)s"
-msgstr "Nastavit %(integration)s"
+#: static/sentry/app/views/groupEvents.jsx:111
+msgid "There don't seem to be any events yet."
+msgstr "Zdá se, že se zatím nevyskytly žádné události."
 
-#: static/sentry/app/views/projectInstall/platform.jsx:140
-msgid "Generic"
-msgstr "Obecné"
+#: static/sentry/app/views/projectDashboard.jsx:126
+msgid "1 hour"
+msgstr "1 hodina"
 
-#: static/sentry/app/views/projectSavedSearches.jsx:210
-msgid "There are no saved searches for this project."
-msgstr "V tomto projektu nejsou uložena žádná hledání."
+#: static/sentry/app/views/projectDashboard.jsx:143
+msgid "1 week"
+msgstr "1 týden"
+
+#: static/sentry/app/views/projectDashboard.jsx:155
+msgid "Trending Issues"
+msgstr "Nejčastější úlohy"
+
+#: static/sentry/app/views/releaseDetails.jsx:139
+msgid "New Issues"
+msgstr "Nové úlohy"
 
 #: static/sentry/app/views/projectDebugSymbols.jsx:72
 msgid "There are no debug symbols for this project."
@@ -2795,6 +2765,31 @@ msgstr "Datum nahrání"
 msgid "Size"
 msgstr "Velikost"
 
+#: static/sentry/app/views/projectInstall/platform.jsx:96
+msgid "Full Documentation"
+msgstr "Úplná dokumentace"
+
+#: static/sentry/app/views/projectInstall/platform.jsx:99
+#, python-format
+msgid "Configure %(integration)s"
+msgstr "Nastavit %(integration)s"
+
+#: static/sentry/app/views/projectInstall/platform.jsx:140
+msgid "Generic"
+msgstr "Obecné"
+
+#: static/sentry/app/views/projectSavedSearches.jsx:210
+msgid "There are no saved searches for this project."
+msgstr "V tomto projektu nejsou uložena žádná hledání."
+
+#: static/sentry/app/views/projectDetails.jsx:178
+msgid "The project you were looking for was not found."
+msgstr "Projekt, který hledáte, nebyl nalezen."
+
+#: static/sentry/app/views/releaseAllEvents.jsx:20
+msgid "View all events seen in this release in the stream"
+msgstr "Zobrazit všechny události zjištěné v této verzi v proudu"
+
 #: static/sentry/app/views/projectUserReports.jsx:136
 msgid "Sorry, no results match your search query."
 msgstr "Vašemu hledání, bohužel, neodpovídají žádné výsledky."
@@ -2803,9 +2798,9 @@ msgstr "Vašemu hledání, bohužel, neodpovídají žádné výsledky."
 msgid "No user reports have been collected for this project."
 msgstr "Pro tento projekt nebyla shromážděna žádná hlášení od uživatelů."
 
-#: static/sentry/app/views/releaseAllEvents.jsx:20
-msgid "View all events seen in this release in the stream"
-msgstr "Zobrazit všechny události zjištěné v této verzi v proudu"
+#: static/sentry/app/views/releaseNewEvents.jsx:20
+msgid "View new events seen in this release in the stream"
+msgstr "Zobrazit nové události zjištěné v této verzi v proudu"
 
 #: static/sentry/app/views/releaseArtifacts.jsx:75
 msgid "Removing artifact.."
@@ -2851,9 +2846,47 @@ msgstr "Všechny úlohy"
 msgid "Artifacts"
 msgstr "Soubory"
 
-#: static/sentry/app/views/releaseNewEvents.jsx:20
-msgid "View new events seen in this release in the stream"
-msgstr "Zobrazit nové události zjištěné v této verzi v proudu"
+#: static/sentry/app/views/groupDetails/actions.jsx:199
+msgid "More"
+msgstr "Další"
+
+#: static/sentry/app/views/teamSettings.jsx:80
+msgid ""
+"Unable to save your changes. Please ensure all fields are valid and try "
+"again."
+msgstr "Vaše změny nelze uložit. Ujistěte se, že všechna pole jsou platná a zkuste to znovu."
+
+#: static/sentry/app/views/teamSettings.jsx:87
+msgid "e.g. API Team"
+msgstr "např. API tým"
+
+#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:86
+msgid "Failed to set slugs"
+msgstr ""
+
+#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:206
+msgid "Review Call Signs for Projects"
+msgstr "Zkontrolovat označení projektů"
+
+#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:148
+#, python-format
+msgid ""
+"Sentry now requires you to specify a call sign (short name) for each project"
+" in the organization “%s”. These short names are used to identify the "
+"project in the issue IDs.  Ideally they are two or three letter long."
+msgstr "Sentry nyní vyžaduje zadání označení (krátkého názvu) pro každý projekt v organizaci \"%s\". Tyto krátké názvy jsou použity k určení projektu v ID úloh. Doporučená délka označení jsou dvě až tři písmena."
+
+#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:150
+msgid "Projects of teams you are not a member of are not shown."
+msgstr "Projekty nebo týmy, v kterých nejste členem, nejsou zobrazeny."
+
+#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:151
+msgid "Projects which have been previously reviewed are shown in green."
+msgstr "Projekty, které již byly dříve zkontrolovány, jsou zobrazeny zelenou barvou."
+
+#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:190
+msgid "Set Call Signs"
+msgstr "Nastavit označení"
 
 #: static/sentry/app/views/stream.jsx:509
 msgid "Waiting for events…"
@@ -2871,51 +2904,53 @@ msgstr "Pokyny k instalaci"
 msgid "Sorry, no events match your filters."
 msgstr "Vašim filtrům, bohužel, neodpovídají žádné události."
 
-#: static/sentry/app/views/groupDetails/actions.jsx:199
-msgid "More"
-msgstr "Další"
+#: static/sentry/app/views/organizationRateLimits/index.jsx:102
+msgid "Saving.."
+msgstr "Ukládání..."
 
-#: static/sentry/app/views/teamSettings.jsx:80
+#: static/sentry/app/views/organizationRateLimits/index.jsx:137
 msgid ""
-"Unable to save your changes. Please ensure all fields are valid and try "
-"again."
-msgstr "Vaše změny nelze uložit. Ujistěte se, že všechna pole jsou platná a zkuste to znovu."
+"Your organization is limited to [strong:[maxRate] events per minute]. When "
+"this rate is exceeded the system will begin discarding data until the next "
+"interval."
+msgstr "Vaše organizace má omezení [strong:[maxRate] událostí za minutu]. Pokud je toto množství překročeno, začne systém data zahazovat dokud nenastane další časový interval."
 
-#: static/sentry/app/views/teamSettings.jsx:87
-msgid "e.g. API Team"
-msgstr "např. API tým"
+#: static/sentry/app/views/organizationRateLimits/index.jsx:145
+msgid "You may set a limit to the maximum amount a single project may send:"
+msgstr "Můžete nastavit omezení maximálního počtu, který jednotlivé projekty mohou zaslat."
 
-#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:86
-msgid "Failed to set callsigns"
-msgstr ""
-
-#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:206
-msgid "Review Call Signs for Projects"
-msgstr ""
-
-#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:148
-#, python-format
+#: static/sentry/app/views/organizationRateLimits/index.jsx:152
 msgid ""
-"Sentry now requires you to specify a call sign (short name) for each project"
-" in the organization “%s”. These short names are used to identify the "
-"project in the issue IDs.  Ideally they are two or three letter long."
-msgstr ""
+"The maximum percentage of your quota an individual project can consume."
+msgstr "Maximální procento z vaší kvóty, které každý projekt může využít."
 
-#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:150
-msgid "Projects of teams you are not a member of are not shown."
-msgstr ""
+#: static/sentry/app/views/organizationRateLimits/index.jsx:158
+msgid "Apply Changes"
+msgstr "Použit změny"
 
-#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:151
-msgid "Projects which have been previously reviewed are shown in green."
-msgstr ""
+#: static/sentry/app/views/organizationRateLimits/index.jsx:186
+msgid "There are no rate limits configured for your organization."
+msgstr "Pro vaši organizaci nejsou nastavena žádná omezení četnosti."
 
-#: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:190
-msgid "Set Call Signs"
-msgstr ""
+#: static/sentry/app/views/organizationStats/projectTable.jsx:48
+msgid "Accepted"
+msgstr "Přijato"
 
-#: static/sentry/app/components/alertMessage.jsx:30
-msgid "Close"
-msgstr "Zvařít"
+#: static/sentry/app/views/organizationStats/index.jsx:252
+msgid "Dropped (Rate Limit)"
+msgstr "Zahozeno (Omezení četnosti)"
+
+#: static/sentry/app/views/organizationStats/index.jsx:264
+msgid "Dropped (Blacklist)"
+msgstr "Zahozeno (Seznam zákazů)"
+
+#: static/sentry/app/views/organizationStats/index.jsx:290
+msgid "Events per minute"
+msgstr "Události za minutu"
+
+#: static/sentry/app/views/organizationStats/index.jsx:311
+msgid "Events by Project"
+msgstr "Události podle projektu"
 
 #: static/sentry/app/views/groupActivity/index.jsx:37
 #, python-format
@@ -3013,65 +3048,13 @@ msgstr[2] "%2$s sloučil(a) %1$d úloh do této"
 msgid "Removing comment.."
 msgstr "Odstraňování komentáře..."
 
-#: static/sentry/app/views/organizationRateLimits/index.jsx:102
-msgid "Saving.."
-msgstr "Ukládání..."
-
-#: static/sentry/app/views/organizationRateLimits/index.jsx:137
-msgid ""
-"Your organization is limited to [strong:[maxRate] events per minute]. When "
-"this rate is exceeded the system will begin discarding data until the next "
-"interval."
-msgstr "Vaše organizace má omezení [strong:[maxRate] událostí za minutu]. Pokud je toto množství překročeno, začne systém data zahazovat dokud nenastane další časový interval."
-
-#: static/sentry/app/views/organizationRateLimits/index.jsx:145
-msgid "You may set a limit to the maximum amount a single project may send:"
-msgstr "Můžete nastavit omezení maximálního počtu, který jednotlivé projekty mohou zaslat."
-
-#: static/sentry/app/views/organizationRateLimits/index.jsx:152
-msgid ""
-"The maximum percentage of your quota an individual project can consume."
-msgstr "Maximální procento z vaší kvóty, které každý projekt může využít."
-
-#: static/sentry/app/views/organizationRateLimits/index.jsx:158
-msgid "Apply Changes"
-msgstr "Použit změny"
-
-#: static/sentry/app/views/organizationRateLimits/index.jsx:186
-msgid "There are no rate limits configured for your organization."
-msgstr "Pro vaši organizaci nejsou nastavena žádná omezení četnosti."
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:48
-msgid "Accepted"
-msgstr "Přijato"
-
-#: static/sentry/app/views/organizationStats/index.jsx:252
-msgid "Dropped (Rate Limit)"
-msgstr "Zahozeno (Omezení četnosti)"
-
-#: static/sentry/app/views/organizationStats/index.jsx:264
-msgid "Dropped (Blacklist)"
-msgstr "Zahozeno (Seznam zákazů)"
-
-#: static/sentry/app/views/organizationStats/index.jsx:290
-msgid "Events per minute"
-msgstr "Události za minutu"
-
-#: static/sentry/app/views/organizationStats/index.jsx:311
-msgid "Events by Project"
-msgstr "Události podle projektu"
-
-#: static/sentry/app/views/organizationTeams/index.jsx:81
+#: static/sentry/app/views/organizationTeams/index.jsx:74
 msgid "Your Teams"
 msgstr "Vaše týmy"
 
-#: static/sentry/app/views/organizationTeams/index.jsx:84
+#: static/sentry/app/views/organizationTeams/index.jsx:75
 msgid "All Teams"
 msgstr "Všechny týmy"
-
-#: static/sentry/app/views/projectEvents/index.jsx:142
-msgid "There don't seem to be any events."
-msgstr "Zdá se, že žádné události zatím neexistují."
 
 #: static/sentry/app/views/projectReleases/index.jsx:138
 msgid "Sorry, no releases match your filters."
@@ -3101,98 +3084,11 @@ msgstr "Verze"
 msgid "New Events"
 msgstr "Nové události"
 
-#: static/sentry/app/options.jsx:8
-msgid "Root URL"
-msgstr "Kořenová URL adresa"
+#: static/sentry/app/views/projectEvents/index.jsx:142
+msgid "There don't seem to be any events."
+msgstr "Zdá se, že žádné události zatím neexistují."
 
-#: static/sentry/app/options.jsx:10
-msgid ""
-"The root web address which is used to communicate with the Sentry backend."
-msgstr "Kořenová internetová adresa, která je použita ke komunikaci se serverovou částí Sentry."
-
-#: static/sentry/app/options.jsx:14
-msgid "Admin Email"
-msgstr "E-mail správce"
-
-#: static/sentry/app/options.jsx:16
-msgid "The technical contact for this Sentry installation."
-msgstr "Technický kontakt této instalace Sentry."
-
-#: static/sentry/app/options.jsx:22
-msgid "Rate Limit"
-msgstr "Omezení četnosti"
-
-#: static/sentry/app/options.jsx:24
-msgid ""
-"The maximum number of events the system should accept per minute. A value of"
-" 0 will disable the default rate limit."
-msgstr "Maximální počet událostí, které systém má za minutu přijmout. Hodnota 0 zakáže výchozí omezení četnosti."
-
-#: static/sentry/app/views/installWizard.jsx:179
-#, python-format
-msgid ""
-"An invalid option (%s) was passed to the server. Please report this issue to"
-" the Sentry team."
-msgstr "Serveru byla předána neplatná volba (%s). Prosím nahlaste tento problém týmu Sentry."
-
-#: static/sentry/app/views/installWizard.jsx:183
-#, python-format
-msgid "An invalid value for (%s) was passed to the server."
-msgstr "Serveru byla předána neplatná hodnota pro (%s)."
-
-#: static/sentry/app/views/installWizard.jsx:187
-msgid "An unknown error occurred. Please take a look at the service logs."
-msgstr "Objevila se neznámá chyba. Prosím podívejte se do záznamů služby."
-
-#: static/sentry/app/views/installWizard.jsx:207
-msgid "Sentry Setup"
-msgstr "Nastavení Sentry"
-
-#: static/sentry/app/views/installWizard.jsx:212
-msgid "Welcome to Sentry"
-msgstr "Vítejte v Sentry"
-
-#: static/sentry/app/views/stream/searchBar.jsx:82
-msgid "Assigned"
-msgstr "Přiděleno"
-
-#: static/sentry/app/views/groupDetails/header.jsx:211
-msgid "Share this event"
-msgstr "Sdílet tuto událost"
-
-#: static/sentry/app/views/groupDetails/header.jsx:227
-msgid "Comments"
-msgstr "Komentáře"
-
-#: static/sentry/app/views/groupDetails/header.jsx:238
-msgid "Related Events"
-msgstr "Související události"
-
-#: static/sentry/app/stores/groupStore.jsx:221
-msgid "Unable to change assignee. Please try again."
-msgstr "Nelze změnit řešitele. Zkuste to prosím znovu."
-
-#: static/sentry/app/stores/groupStore.jsx:245
-msgid "Unable to delete events. Please try again."
-msgstr "Nelze smazat události. Zkuste to prosím znovu."
-
-#: static/sentry/app/stores/groupStore.jsx:256
-msgid "The selected events have been scheduled for deletion."
-msgstr "Bylo naplánováno smazání vybraných událostí."
-
-#: static/sentry/app/stores/groupStore.jsx:275
-msgid "Unable to merge events. Please try again."
-msgstr "Události nelze sloučit. Zkuste to prosím znovu."
-
-#: static/sentry/app/stores/groupStore.jsx:292
-msgid "The selected events have been scheduled for merge."
-msgstr "Bylo naplánováno sloučení vybraných událostí."
-
-#: static/sentry/app/stores/groupStore.jsx:324
-msgid "Unable to update events. Please try again."
-msgstr "Události nelze aktualizovat. Zkuste to prosím znovu."
-
-#: static/sentry/app/components/events/eventEntries.jsx:76
+#: static/sentry/app/components/events/eventEntries.jsx:77
 msgid "There was an error rendering this data."
 msgstr "Při vykreslování těchto dat došlo k chybě."
 
@@ -3248,6 +3144,113 @@ msgid ""
 "in feeds."
 msgstr "Nebudou Vám oznamovány žádné změny a nebude zobrazována v odběrech kanálů."
 
+#: static/sentry/app/stores/groupStore.jsx:221
+msgid "Unable to change assignee. Please try again."
+msgstr "Nelze změnit řešitele. Zkuste to prosím znovu."
+
+#: static/sentry/app/stores/groupStore.jsx:245
+msgid "Unable to delete events. Please try again."
+msgstr "Nelze smazat události. Zkuste to prosím znovu."
+
+#: static/sentry/app/stores/groupStore.jsx:256
+msgid "The selected events have been scheduled for deletion."
+msgstr "Bylo naplánováno smazání vybraných událostí."
+
+#: static/sentry/app/stores/groupStore.jsx:275
+msgid "Unable to merge events. Please try again."
+msgstr "Události nelze sloučit. Zkuste to prosím znovu."
+
+#: static/sentry/app/stores/groupStore.jsx:292
+msgid "The selected events have been scheduled for merge."
+msgstr "Bylo naplánováno sloučení vybraných událostí."
+
+#: static/sentry/app/stores/groupStore.jsx:324
+msgid "Unable to update events. Please try again."
+msgstr "Události nelze aktualizovat. Zkuste to prosím znovu."
+
+#: static/sentry/app/views/installWizard.jsx:183
+#, python-format
+msgid ""
+"An invalid option (%s) was passed to the server. Please report this issue to"
+" the Sentry team."
+msgstr "Serveru byla předána neplatná volba (%s). Prosím nahlaste tento problém týmu Sentry."
+
+#: static/sentry/app/views/installWizard.jsx:187
+#, python-format
+msgid "An invalid value for (%s) was passed to the server."
+msgstr "Serveru byla předána neplatná hodnota pro (%s)."
+
+#: static/sentry/app/views/installWizard.jsx:191
+msgid "An unknown error occurred. Please take a look at the service logs."
+msgstr "Objevila se neznámá chyba. Prosím podívejte se do záznamů služby."
+
+#: static/sentry/app/views/installWizard.jsx:211
+msgid "Sentry Setup"
+msgstr "Nastavení Sentry"
+
+#: static/sentry/app/views/installWizard.jsx:216
+msgid "Welcome to Sentry"
+msgstr "Vítejte v Sentry"
+
+#: static/sentry/app/options.jsx:14
+msgid "Outbound email"
+msgstr ""
+
+#: static/sentry/app/options.jsx:22
+msgid "Root URL"
+msgstr "Kořenová URL adresa"
+
+#: static/sentry/app/options.jsx:24
+msgid ""
+"The root web address which is used to communicate with the Sentry backend."
+msgstr "Kořenová internetová adresa, která je použita ke komunikaci se serverovou částí Sentry."
+
+#: static/sentry/app/options.jsx:29
+msgid "Admin Email"
+msgstr "E-mail správce"
+
+#: static/sentry/app/options.jsx:31
+msgid "The technical contact for this Sentry installation."
+msgstr "Technický kontakt této instalace Sentry."
+
+#: static/sentry/app/options.jsx:38
+msgid "Rate Limit"
+msgstr "Omezení četnosti"
+
+#: static/sentry/app/options.jsx:40
+msgid ""
+"The maximum number of events the system should accept per minute. A value of"
+" 0 will disable the default rate limit."
+msgstr "Maximální počet událostí, které systém má za minutu přijmout. Hodnota 0 zakáže výchozí omezení četnosti."
+
+#: static/sentry/app/options.jsx:44
+msgid "Email From"
+msgstr ""
+
+#: static/sentry/app/options.jsx:47
+msgid "Email address to be used in From for all outbound email."
+msgstr ""
+
+#: static/sentry/app/options.jsx:51
+msgid "SMTP Host"
+msgstr ""
+
+#: static/sentry/app/options.jsx:57
+msgid "SMTP Port"
+msgstr ""
+
+#: static/sentry/app/options.jsx:63
+msgid "SMTP Username"
+msgstr ""
+
+#: static/sentry/app/options.jsx:68
+msgid "SMTP Password"
+msgstr ""
+
+#: static/sentry/app/options.jsx:77
+msgid "Use TLS?"
+msgstr ""
+
 #: static/sentry/app/components/issueList.jsx:120
 msgid "Nothing to show here, move along."
 msgstr "Tady není nic k vidění, můžete jít dál."
@@ -3287,6 +3290,48 @@ msgstr "Zažádat o přístup"
 #: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:89
 msgid "Team Settings"
 msgstr "Nastavení týmu"
+
+#: static/sentry/app/views/projectDashboard/eventList.jsx:108
+msgid "No data available."
+msgstr "Žádná data nejsou dostupná."
+
+#: static/sentry/app/components/missingProjectMembership.jsx:61
+#, python-format
+msgid "To view this data you must first join the %s team."
+msgstr "Pro zobrazení těchto dat se nejdříve musíte připojit k týmu %s."
+
+#: static/sentry/app/components/missingProjectMembership.jsx:63
+#, python-format
+msgid "To view this data you must first request access to the %s team."
+msgstr "Pro zobrazení těchto dat nejdříve musíte požádat o přístup do týmu %s."
+
+#: static/sentry/app/components/groupList.jsx:125
+msgid "There don't seem to be any events fitting the query."
+msgstr "Nezdá se, že by dotazu odpovídaly nějaké události."
+
+#: static/sentry/app/views/stream/actionLink.jsx:107
+msgid "Please confirm"
+msgstr "Prosím potvrďte"
+
+#: static/sentry/app/components/actionOverlay.jsx:52
+msgid "Do this later …"
+msgstr "Toto udělat později ..."
+
+#: static/sentry/app/views/stream/searchBar.jsx:82
+msgid "Assigned"
+msgstr "Přiděleno"
+
+#: static/sentry/app/views/groupDetails/header.jsx:207
+msgid "Share this event"
+msgstr "Sdílet tuto událost"
+
+#: static/sentry/app/views/groupDetails/header.jsx:223
+msgid "Comments"
+msgstr "Komentáře"
+
+#: static/sentry/app/views/groupDetails/header.jsx:234
+msgid "Related Events"
+msgstr "Související události"
 
 #: static/sentry/app/components/todos.jsx:40
 msgid "[user] completed [dateCompleted]"
@@ -3366,7 +3411,7 @@ msgstr "Nahrát zdrojové mapy"
 
 #: static/sentry/app/components/todos.jsx:192
 msgid "Deminify javascript stacktraces"
-msgstr ""
+msgstr "Dekomprimovat výpisy zásobníku javascript"
 
 #: static/sentry/app/components/todos.jsx:209
 msgid "Set up issue tracking"
@@ -3374,7 +3419,7 @@ msgstr "Nastavit sledování úloh"
 
 #: static/sentry/app/components/todos.jsx:210
 msgid "Link to Sentry issues within your issue tracker"
-msgstr ""
+msgstr "Odkazovat na úlohy Sentry z vašeho systému pro sledování úloh"
 
 #: static/sentry/app/components/todos.jsx:218
 msgid "Set up a notification service"
@@ -3382,7 +3427,7 @@ msgstr "Nastavit službu pro oznámení"
 
 #: static/sentry/app/components/todos.jsx:219
 msgid "Receive Sentry alerts in Slack or HipChat"
-msgstr ""
+msgstr "Začít dostávat upozornění od Sentry v Slack nebo HipChat"
 
 #: static/sentry/app/components/todos.jsx:310
 msgid "Getting started with Sentry"
@@ -3396,51 +3441,41 @@ msgstr "Zobrazit méně"
 msgid "Show more"
 msgstr "Zobrazit více"
 
-#: static/sentry/app/views/projectDashboard/eventList.jsx:108
-msgid "No data available."
-msgstr "Žádná data nejsou dostupná."
+#: static/sentry/app/views/stream/sidebar.jsx:107
+msgid "Text"
+msgstr "Text"
 
-#: static/sentry/app/components/missingProjectMembership.jsx:61
-#, python-format
-msgid "To view this data you must first join the %s team."
-msgstr "Pro zobrazení těchto dat se nejdříve musíte připojit k týmu %s."
+#: static/sentry/app/views/stream/sidebar.jsx:111
+msgid "Search title and culprit text body"
+msgstr "Hledání názvu a těla textu chyby"
 
-#: static/sentry/app/components/missingProjectMembership.jsx:63
-#, python-format
-msgid "To view this data you must first request access to the %s team."
-msgstr "Pro zobrazení těchto dat nejdříve musíte požádat o přístup do týmu %s."
+#: static/sentry/app/views/stream/filters.jsx:76
+msgid "Search for events, users, tags, and everything else."
+msgstr "Hledání událostí, uživatelů, značek a čehokoliv dalšího."
 
-#: static/sentry/app/components/compactIssue.jsx:58
+#: static/sentry/app/components/compactIssue.jsx:60
 msgid "zZz"
 msgstr "zZz"
 
-#: static/sentry/app/views/stream/actionLink.jsx:107
-msgid "Please confirm"
-msgstr "Prosím potvrďte"
-
-#: static/sentry/app/components/compactIssue.jsx:63
+#: static/sentry/app/components/compactIssue.jsx:65
 msgid "How long should we snooze this issue?"
 msgstr "Na jak dlouho má být tato úloha uspána?"
 
-#: static/sentry/app/components/compactIssue.jsx:65
+#: static/sentry/app/components/compactIssue.jsx:67
 msgid "30 minutes"
 msgstr "30 minut"
 
-#: static/sentry/app/components/compactIssue.jsx:66
+#: static/sentry/app/components/compactIssue.jsx:68
 msgid "2 hours"
 msgstr "2 hodiny"
 
-#: static/sentry/app/components/compactIssue.jsx:67
+#: static/sentry/app/components/compactIssue.jsx:69
 msgid "24 hours"
 msgstr "24 hodin"
 
-#: static/sentry/app/components/compactIssue.jsx:68
+#: static/sentry/app/components/compactIssue.jsx:70
 msgid "Forever"
 msgstr "Navždy"
-
-#: static/sentry/app/components/groupList.jsx:125
-msgid "There don't seem to be any events fitting the query."
-msgstr "Nezdá se, že by dotazu odpovídaly nějaké události."
 
 #: static/sentry/app/views/stream/actions.jsx:93
 msgid "Removing events.."
@@ -3688,21 +3723,55 @@ msgstr[2] "Vybráno %d úloh na této stránce."
 msgid "Select all issues matching this search query."
 msgstr "Vybrat všechny úlohy odpovídající tomuto hledání."
 
-#: static/sentry/app/views/stream/filters.jsx:76
-msgid "Search for events, users, tags, and everything else."
-msgstr "Hledání událostí, uživatelů, značek a čehokoliv dalšího."
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:87
+msgid "Events Per Minute"
+msgstr "Události za minutu"
 
-#: static/sentry/app/views/stream/sidebar.jsx:107
-msgid "Text"
-msgstr "Text"
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:89
+msgid "Rejected in last 24h"
+msgstr "Zamítnuto za posledních 24h"
 
-#: static/sentry/app/views/stream/sidebar.jsx:111
-msgid "Search title and culprit text body"
-msgstr "Hledání názvu a těla textu chyby"
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:93
+msgid "View all stats"
+msgstr "Zobrazit všechny statistiky"
 
-#: static/sentry/app/components/actionOverlay.jsx:52
-msgid "Do this later …"
-msgstr ""
+#: static/sentry/app/views/organizationStats/projectTable.jsx:50
+msgid "Dropped"
+msgstr "Zahozeno"
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:49
+msgid "(Rate Limit)"
+msgstr "(Omezení četnosti)"
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:50
+msgid "(Blacklist)"
+msgstr "(Seznam zákazů)"
+
+#: static/sentry/app/views/organizationStats/projectTable.jsx:51
+msgid "Total"
+msgstr "Celkem"
+
+#: static/sentry/app/components/header/index.jsx:111
+msgid "Required Action:"
+msgstr "Vyžadované činnosti:"
+
+#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:66
+msgid ""
+"There are no projects in this team. Get started by [link:creating your first"
+" project]."
+msgstr "V tomto týmu nejsou žádné projekty. Můžete začít [link:vytvořením vašeho prvního projektu]."
+
+#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:149
+msgid ""
+"You are not a member of any teams. [joinLink:Join an existing team] or "
+"[createLink:create a new one]."
+msgstr "Nejste členem žádného týmu. [joinLink:Připojte se k existujícímu] nebo [createLink:ho vytvořte]."
+
+#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:159
+msgid ""
+"You dont have any teams for this organization yet. Get started by "
+"[link:creating your first team]."
+msgstr "V této organizaci zatím nejsou žádné týmy. Můžete začít [link: vytvořením vašeho prvního týmu]."
 
 #: static/sentry/app/components/activity/noteInput.jsx:15
 msgid "Unknown error. Please try again."
@@ -3743,130 +3812,6 @@ msgstr "Syntaxe Markdown je podporována"
 #: static/sentry/app/components/activity/noteInput.jsx:241
 msgid "Add details or updates to this event"
 msgstr "Přidat aktualizace nebo podrobnosti k této události"
-
-#: static/sentry/app/components/header/index.jsx:111
-msgid "Required Action:"
-msgstr ""
-
-#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:66
-msgid ""
-"There are no projects in this team. Get started by [link:creating your first"
-" project]."
-msgstr "V tomto týmu nejsou žádné projekty. Můžete začít [link:vytvořením vašeho prvního projektu]."
-
-#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:149
-msgid ""
-"You are not a member of any teams. [joinLink:Join an existing team] or "
-"[createLink:create a new one]."
-msgstr "Nejste členem žádného týmu. [joinLink:Připojte se k existujícímu] nebo [createLink:ho vytvořte]."
-
-#: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:159
-msgid ""
-"You dont have any teams for this organization yet. Get started by "
-"[link:creating your first team]."
-msgstr "V této organizaci zatím nejsou žádné týmy. Můžete začít [link: vytvořením vašeho prvního týmu]."
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:50
-msgid "Dropped"
-msgstr "Zahozeno"
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:49
-msgid "(Rate Limit)"
-msgstr "(Omezení četnosti)"
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:50
-msgid "(Blacklist)"
-msgstr "(Seznam zákazů)"
-
-#: static/sentry/app/views/organizationStats/projectTable.jsx:51
-msgid "Total"
-msgstr "Celkem"
-
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:87
-msgid "Events Per Minute"
-msgstr "Události za minutu"
-
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:89
-msgid "Rejected in last 24h"
-msgstr "Zamítnuto za posledních 24h"
-
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:93
-msgid "View all stats"
-msgstr "Zobrazit všechny statistiky"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:34
-msgid "Delete event.."
-msgstr "Smazat událost."
-
-#: static/sentry/app/views/groupDetails/actions.jsx:107
-msgid ""
-"This event is resolved due to the Auto Resolve configuration for this "
-"project"
-msgstr "Tato událost byla vyřešena pomocí Automatického řešení nastaveného pro tento projekt"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:112
-msgid "Unresolve"
-msgstr "Odstranit řešení"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:135
-msgid "Resolved in next release"
-msgstr "Vyřešeno v příští verzi"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:141
-msgid "Snooze notifications until this issue reoccurs in a future release."
-msgstr "Odložit oznámení pro tuto úlohu dokud se znovu neobjeví v budoucí verzi."
-
-#: static/sentry/app/views/groupDetails/actions.jsx:139
-msgid "Set up release tracking in order to use this feature."
-msgstr "Pro použití této funkce nastavte sledování vydání."
-
-#: static/sentry/app/views/groupDetails/actions.jsx:140
-msgid "Resolved in next release."
-msgstr "Vyřešeno v příští verzi."
-
-#: static/sentry/app/views/groupDetails/actions.jsx:152
-msgid "Remove Snooze"
-msgstr "Odstranit odložení"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:161
-msgid "Snooze"
-msgstr "Odložit"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:165
-msgid "for 30 minutes"
-msgstr "na 30 minut"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:168
-msgid "for 2 hours"
-msgstr "na 2 hodiny"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:171
-msgid "for 24 hours"
-msgstr "na 24 hodin"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:174
-msgid "forever"
-msgstr "navždy"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:189
-msgid "Delete"
-msgstr "Smazat"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:190
-msgid "Deleting this event is permanent. Are you sure you wish to continue?"
-msgstr "Smazání této události nelze vrátit. Opravdu si přejete pokračovat?"
-
-#: static/sentry/app/components/assigneeSelector.jsx:195
-msgid "No matching users found."
-msgstr "Odpovídající uživatel nenalezen."
-
-#: static/sentry/app/components/assigneeSelector.jsx:223
-msgid "Filter people"
-msgstr "Filtrovat uživatele"
-
-#: static/sentry/app/components/assigneeSelector.jsx:232
-msgid "Clear Assignee"
-msgstr "Vyčistit řešitele"
 
 #: static/sentry/app/components/events/errors.jsx:42
 msgid "Hide"
@@ -3953,6 +3898,18 @@ msgstr "Ostatní"
 msgid "No recent data."
 msgstr "Žádná nedávná data."
 
+#: static/sentry/app/components/groupListHeader.jsx:10
+msgid "Event"
+msgstr "Událost"
+
+#: static/sentry/app/components/groupListHeader.jsx:13
+msgid "Last 24 hours"
+msgstr "Posledních 24 hodin"
+
+#: static/sentry/app/components/groupListHeader.jsx:15
+msgid "events"
+msgstr "událostí"
+
 #: static/sentry/app/components/activity/item.jsx:58
 msgid "[author] commented on [link:an issue] in [project]"
 msgstr "[author] vložil(a) komentář v [link:úloze] v projektu [project]"
@@ -4029,21 +3986,113 @@ msgstr "[author] sloučill(a) [count] [link:úloh]"
 msgid "[author] released version [version] to [project]"
 msgstr "[author] vydal(a) [version] v projektu [project]"
 
-#: static/sentry/app/components/organizations/homeSidebar.jsx:43
-msgid "Projects & Teams"
-msgstr ""
+#: static/sentry/app/views/groupDetails/actions.jsx:34
+msgid "Delete event.."
+msgstr "Smazat událost."
 
-#: static/sentry/app/components/groupListHeader.jsx:10
-msgid "Event"
-msgstr "Událost"
+#: static/sentry/app/views/groupDetails/actions.jsx:107
+msgid ""
+"This event is resolved due to the Auto Resolve configuration for this "
+"project"
+msgstr "Tato událost byla vyřešena pomocí Automatického řešení nastaveného pro tento projekt"
 
-#: static/sentry/app/components/groupListHeader.jsx:13
-msgid "Last 24 hours"
-msgstr "Posledních 24 hodin"
+#: static/sentry/app/views/groupDetails/actions.jsx:112
+msgid "Unresolve"
+msgstr "Odstranit řešení"
 
-#: static/sentry/app/components/groupListHeader.jsx:15
-msgid "events"
-msgstr "událostí"
+#: static/sentry/app/views/groupDetails/actions.jsx:135
+msgid "Resolved in next release"
+msgstr "Vyřešeno v příští verzi"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:141
+msgid "Snooze notifications until this issue reoccurs in a future release."
+msgstr "Odložit oznámení pro tuto úlohu dokud se znovu neobjeví v budoucí verzi."
+
+#: static/sentry/app/views/groupDetails/actions.jsx:139
+msgid "Set up release tracking in order to use this feature."
+msgstr "Pro použití této funkce nastavte sledování vydání."
+
+#: static/sentry/app/views/groupDetails/actions.jsx:140
+msgid "Resolved in next release."
+msgstr "Vyřešeno v příští verzi."
+
+#: static/sentry/app/views/groupDetails/actions.jsx:152
+msgid "Remove Snooze"
+msgstr "Odstranit odložení"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:161
+msgid "Snooze"
+msgstr "Odložit"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:165
+msgid "for 30 minutes"
+msgstr "na 30 minut"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:168
+msgid "for 2 hours"
+msgstr "na 2 hodiny"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:171
+msgid "for 24 hours"
+msgstr "na 24 hodin"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:174
+msgid "forever"
+msgstr "navždy"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:189
+msgid "Delete"
+msgstr "Smazat"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:190
+msgid "Deleting this event is permanent. Are you sure you wish to continue?"
+msgstr "Smazání této události nelze vrátit. Opravdu si přejete pokračovat?"
+
+#: static/sentry/app/views/stream/sortOptions.jsx:59
+msgid "Sort by"
+msgstr "Seřadit podle"
+
+#: static/sentry/app/components/assigneeSelector.jsx:195
+msgid "No matching users found."
+msgstr "Odpovídající uživatel nenalezen."
+
+#: static/sentry/app/components/assigneeSelector.jsx:223
+msgid "Filter people"
+msgstr "Filtrovat uživatele"
+
+#: static/sentry/app/components/assigneeSelector.jsx:232
+msgid "Clear Assignee"
+msgstr "Vyčistit řešitele"
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:205
+msgid "Save Current Search"
+msgstr "Uložit současné hledání"
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:117
+msgid ""
+"Saving this search will give you and your team quick access to it in the "
+"future."
+msgstr "Uložením tohoto hledání získáte k němu Vy a váš tým do budoucna rychlý přístup "
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:132
+msgid "Make this the default view for myself."
+msgstr "Toto učinit mým výchozím zobrazením."
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:136
+msgid "Make this the default view for my team."
+msgstr "Toto učinit výchozím zobrazením pro můj tým."
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:144
+msgid "Save"
+msgstr "Uložit"
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:171
+msgid "Custom Search"
+msgstr "Vlastní hledání"
+
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:193
+msgid "There don't seem to be any saved searches yet."
+msgstr "Zdá se, že žádná uložená hledání zatím neexistují."
 
 #: static/sentry/app/views/stream/actionLink.jsx:111
 msgid "This action cannot be undone."
@@ -4077,40 +4126,6 @@ msgstr "člen týmu který úlohu přidal do záložek"
 msgid "or paste an event id to jump straight to it"
 msgstr "nebo vložte id události, čímž se na ní hned přesunete"
 
-#: static/sentry/app/views/stream/sortOptions.jsx:59
-msgid "Sort by"
-msgstr "Seřadit podle"
-
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:205
-msgid "Save Current Search"
-msgstr "Uložit současné hledání"
-
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:117
-msgid ""
-"Saving this search will give you and your team quick access to it in the "
-"future."
-msgstr "Uložením tohoto hledání získáte k němu Vy a váš tým do budoucna rychlý přístup "
-
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:132
-msgid "Make this the default view for myself."
-msgstr "Toto učinit mým výchozím zobrazením."
-
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:136
-msgid "Make this the default view for my team."
-msgstr "Toto učinit výchozím zobrazením pro můj tým."
-
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:144
-msgid "Save"
-msgstr "Uložit"
-
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:171
-msgid "Custom Search"
-msgstr "Vlastní hledání"
-
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:193
-msgid "There don't seem to be any saved searches yet."
-msgstr "Zdá se, že žádná uložená hledání zatím neexistují."
-
 #: static/sentry/app/components/activity/note.jsx:40
 msgid "Are you sure you wish to delete this comment?"
 msgstr "Opravdu chcete smazat tento komentář?"
@@ -4135,6 +4150,11 @@ msgstr "Sbalit"
 msgid "Expand"
 msgstr "Rozšířit"
 
+#: static/sentry/app/components/events/interfaces/stacktraceContent.jsx:29
+#, python-format
+msgid "Frames %d until %d were omitted and not available."
+msgstr "Snímky %d až %d byly vynechány a nejsou dostupné."
+
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:72
 msgid "Query String"
 msgstr "Řetězec dotazu"
@@ -4151,47 +4171,42 @@ msgstr "Cookies"
 msgid "Headers"
 msgstr "Hlavičky"
 
-#: static/sentry/app/components/events/interfaces/stacktraceContent.jsx:29
-#, python-format
-msgid "Frames %d until %d were omitted and not available."
-msgstr "Snímky %d až %d byly vynechány a nejsou dostupné."
-
-#: static/sentry/app/components/events/interfaces/frame.jsx:68
+#: static/sentry/app/components/events/interfaces/frame.jsx:69
 msgid "Original Filename"
 msgstr "Původní název souboru"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:69
+#: static/sentry/app/components/events/interfaces/frame.jsx:70
 msgid "Line Number"
 msgstr "Číslo řádku"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:70
+#: static/sentry/app/components/events/interfaces/frame.jsx:71
 msgid "Column Number"
 msgstr "Číslo sloupce"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:71
+#: static/sentry/app/components/events/interfaces/frame.jsx:72
 msgid "Function"
 msgstr "Funkce"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:72
+#: static/sentry/app/components/events/interfaces/frame.jsx:73
 msgid "Source Map"
 msgstr "Mapa zdroje"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:109
+#: static/sentry/app/components/events/interfaces/frame.jsx:110
 msgid "in"
 msgstr "v"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:123
+#: static/sentry/app/components/events/interfaces/frame.jsx:124
 msgid "at line"
 msgstr "na řadku"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:132
+#: static/sentry/app/components/events/interfaces/frame.jsx:133
 msgid "within"
 msgstr "během"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:145
+#: static/sentry/app/components/events/interfaces/frame.jsx:146
 msgid "application"
 msgstr "aplikace"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:210
+#: static/sentry/app/components/events/interfaces/frame.jsx:211
 msgid "Toggle context"
 msgstr "Zobrazit/skrýt kontext"

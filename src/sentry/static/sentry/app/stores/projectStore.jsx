@@ -48,6 +48,10 @@ const ProjectStore = Reflux.createStore({
 
   getById(id) {
     return this.items.find(project => project.id === id);
+  },
+
+  getBySlug(slug) {
+    return this.items.find(project => project.slug === slug);
   }
 });
 

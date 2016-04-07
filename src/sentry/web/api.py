@@ -17,7 +17,7 @@ from raven.contrib.django.models import client as Raven
 
 from sentry import app
 from sentry.coreapi import (
-    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper,
+    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper
 )
 from sentry.event_manager import EventManager
 from sentry.models import Project, OrganizationOption
@@ -403,7 +403,6 @@ class CspReportView(StoreView):
 
     def _dispatch(self, request, helper, project_id=None, origin=None,
                   *args, **kwargs):
-        # NOTE: We need to override the auth flow for a CSP report!
         # A CSP report is sent as a POST request with no Origin or Referer
         # header. What we're left with is a 'document-uri' key which is
         # inside of the JSON body of the request. This 'document-uri' value
@@ -425,7 +424,7 @@ class CspReportView(StoreView):
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
         # `sentry_version` to be set in querystring
-        auth = self._parse_header(request, helper, project)
+        auth = helper.auth_from_request(request)
 
         project_ = helper.project_from_auth(auth)
         if project_ != project:

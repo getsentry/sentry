@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import (
-    serialize, SharedEventSerializer, SharedGroupSerializer
+    serialize, SharedEventSerializer, SharedGroupSerializer,
+    SharedProjectSerializer
 )
 from sentry.models import Group
 
@@ -37,8 +38,7 @@ class SharedGroupDetailsEndpoint(Endpoint):
         event = group.get_latest_event()
 
         context = serialize(group, request.user, SharedGroupSerializer())
+        # TODO(dcramer): move latestEvent/project into SharedGroupSerializer
         context['latestEvent'] = serialize(event, request.user, SharedEventSerializer())
-
-        # TODO(dcramer): use specific serializer for public group and embed
-        # event details as part of api response
+        context['project'] = serialize(group.project, request.user, SharedProjectSerializer())
         return Response(context)

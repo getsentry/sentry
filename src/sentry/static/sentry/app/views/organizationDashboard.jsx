@@ -112,9 +112,11 @@ const ProjectList = React.createClass({
     let {maxProjects} = this.props;
     let projects = [];
     this.props.teams.forEach(team => {
-      team.projects.forEach(project => {
-        projects.push({...project, teamName: team.name});
-      });
+      if (team.isMember) {
+        team.projects.forEach(project => {
+          projects.push({...project, teamName: team.name});
+        });
+      }
     });
 
     projects = sortArray(projects, (item) => {
@@ -138,7 +140,7 @@ const ProjectList = React.createClass({
         <h6 className="nav-header">Projects</h6>
         {bookmarkedProjects.length === 0 &&
           <div className="alert alert-info" style={{marginBottom: 10}}>
-            Bookmark your most used <Link to={`/${org.slug}/`}>projects</Link> to have them appear here.
+            Bookmark your most used <Link to={`/organizations/${org.slug}/teams/`}>projects</Link> to have them appear here.
           </div>
         }
         <ul className="nav nav-stacked">

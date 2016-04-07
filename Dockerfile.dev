@@ -39,7 +39,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         llvm-3.5 \
 
         # Extra dev tooling
-        postgresql-client \
         make \
         vim-nox \
         less \
@@ -89,9 +88,10 @@ ENV PG_VERSION 9.4.6-1.pgdg80+1
 ENV PATH /usr/lib/postgresql/$PG_MAJOR/bin:$PATH
 
 RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main' $PG_MAJOR > /etc/apt/sources.list.d/pgdg.list \
-    && apt-get update && apt-get install -y postgresql-common \
-    && apt-get install -y \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        postgresql-common \
         postgresql-$PG_MAJOR=$PG_VERSION \
+        postgresql-client-$PG_MAJOR=$PG_VERSION \
         postgresql-contrib-$PG_MAJOR=$PG_VERSION \
     && rm -rf /var/lib/apt/lists/* \
     && rm "/etc/postgresql/$PG_MAJOR/main/pg_hba.conf" \

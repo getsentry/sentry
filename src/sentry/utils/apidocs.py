@@ -290,16 +290,13 @@ class MockUtils(object):
             },
         )[0]
 
-    def create_project(self, name, team, org, callsign=None):
+    def create_project(self, name, team, org):
         from sentry.models import Project
-        if callsign is None:
-            callsign = name.upper()[:2]
         return Project.objects.get_or_create(
             team=team,
             name=name,
             defaults={
                 'organization': org,
-                'callsign': callsign,
             }
         )[0]
 

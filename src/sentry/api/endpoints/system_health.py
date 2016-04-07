@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import itertools
+from hashlib import md5
 
 from rest_framework.response import Response
 
@@ -17,6 +18,7 @@ class SystemHealthEndpoint(Endpoint):
         return Response({
             'problems': map(
                 lambda problem: {
+                    'id': md5(problem.message).hexdigest(),
                     'message': problem.message,
                     'severity': problem.severity,
                     'url': problem.url,
