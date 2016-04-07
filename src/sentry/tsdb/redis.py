@@ -105,6 +105,7 @@ class RedisTSDB(BaseTSDB):
         check_cluster_versions(
             self.cluster,
             version,
+            recommended=Version((2, 8, 18)),
             label='TSDB',
         )
 
