@@ -108,6 +108,14 @@ def create_sample_time_series(event):
         now = now - timedelta(hours=1)
 
 
+epoch = datetime.utcfromtimestamp(0)
+
+
+def milliseconds_ago(now, milliseconds):
+    ago = (now - timedelta(milliseconds=milliseconds))
+    return (ago - epoch).total_seconds()
+
+
 def main(num_events=1):
     user = User.objects.filter(is_superuser=True)[0]
 
@@ -152,6 +160,71 @@ def main(num_events=1):
             'role': roles.get_default().id,
         }
     )
+
+    now = datetime.now()
+    sample_breadcrumbs = {
+        "values": [
+            {
+                "type": "navigation",
+                "dt": 8200,
+                "timestamp": milliseconds_ago(now, 5200),
+                "data": {
+                    "to": "http://example.com/dashboard/",
+                    "from": "http://example.com/login/"
+                }
+            },
+            {
+                "type": "message",
+                "dt": 5000,
+                "timestamp": milliseconds_ago(now, 4000),
+                "data": {
+                    "message": "This is a message breadcrumb",
+                    "level": "info"
+                }
+            },
+            {
+                "type": "message",
+                "dt": 4000,
+                "timestamp": milliseconds_ago(now, 3300),
+                "data": {
+                    "message": "This is a warning message",
+                    "level": "warning"
+                }
+            },
+            {
+                "type": "message",
+                "dt": 3500,
+                "timestamp": milliseconds_ago(now, 2700),
+                "data": {
+                    "message": "This is an error message",
+                    "level": "error"
+                }
+            },
+            {
+                "type": "http_request",
+                "dt": 3000,
+                "timestamp": milliseconds_ago(now, 1300),
+                "data": {
+                    "url": "http://example.com/foo",
+                    "statusCode": 200,
+                    "method": "POST",
+                    "headers": {
+                        "Referer": "http://example.com",
+                        "Content-Type": "application/json"
+                    }
+                }
+            },
+            {
+                "type": "ui_event",
+                "dt": 1500,
+                "timestamp": milliseconds_ago(now, 1000),
+                "data": {
+                    "type": "click",
+                    "target": "<button name=\"submit\" class=\"btn btn-small\"/>"
+                }
+            }
+        ]
+    }
 
     for team_name, project_names in mocks:
         print('> Mocking team {}'.format(team_name))
@@ -208,6 +281,7 @@ def main(num_events=1):
                     level=LEVELS.next(),
                     message='This is a mostly useless example %s exception' % platform,
                     checksum=md5(platform + str(_)).hexdigest(),
+                    breadcrumbs=sample_breadcrumbs,
                 )
 
             for _ in range(num_events):
@@ -221,6 +295,7 @@ def main(num_events=1):
                     project=project,
                     platform='javascript',
                     release=release.version,
+                    breadcrumbs=sample_breadcrumbs,
                 )
 
                 event3 = create_sample_event(project, 'java')
