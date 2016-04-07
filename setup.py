@@ -46,7 +46,7 @@ from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.develop import develop as DevelopCommand
 
 # The version of sentry
-VERSION = '8.3.0.dev0'
+VERSION = '8.4.0.dev0'
 
 # Also see sentry.utils.integrationdocs.DOC_FOLDER
 INTEGRATION_DOC_FOLDER = os.path.join(os.path.abspath(
@@ -69,7 +69,6 @@ IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 dev_requires = [
     'Babel',
     'flake8>=2.0,<2.1',
-    'honcho',
     'isort>=4.2.2,<4.3.0',
 ]
 
@@ -107,6 +106,7 @@ install_requires = [
     'enum34>=0.9.18,<1.2.0',
     'exam>=0.5.1',
     'hiredis>=0.1.0,<0.2.0',
+    'honcho==0.6.6',
     'ipaddr>=2.1.11,<2.2.0',
     'kombu==3.0.30',
     'lxml>=3.4.1',

@@ -1,7 +1,15 @@
+Version 8.3.1
+-------------
+
+- Fixed bug that, ironically, prevented saving a saved search.
+- Fixed bug when merging groups and the counts are merged incorrectly.
+- Fixed bug that caused the Installation Wizard to never go away if using a non-smtp email.backend setting.
+- Fixed an ImproperlyConfigured issue from a cascading error.
+
 Version 8.3.0
 -------------
 
-- Added initial support for per-project callsigns and short IDs.
+- Added initial support for per-project callsigns and short IDs.  This feature is not exposed to users yet.
 - Improved static file delivery performance.
 - Added CLI tool to monitor queue sizes. ``sentry queues --help``
 - Moved email configuration into ``config.yml``.
@@ -13,7 +21,18 @@ Version 8.3.0
 Schema Changes
 ~~~~~~~~~~~~~~
 
+- Added ``ProjectDSymFile`` model.
+- Added ``Counter`` model.
+- Added ``GlobalDSymFile`` model.
+- Added ``Group.short_id`` column.
+- Added ``sentry_increment_project_counter`` function for PostgreSQL.
+- Added ``Project.forced_color`` column.
 - Added ``GroupRedirect`` model.
+
+Version 8.2.4
+-------------
+
+- [SECURITY] If being run in multi-organization mode, it was possible for a user to craft a URL which would allow them to view membership details of other users.
 
 Version 8.2.3
 -------------
@@ -47,6 +66,11 @@ Schema Changes
 - Added ``ProjectBookmark`` model.
 - Added ``EventTag`` model.
 - Added ``OrganizationOnboardingTask`` model.
+
+Version 8.1.5
+-------------
+
+- [SECURITY] If being run in multi-organization mode, it was possible for a user to craft a URL which would allow them to view membership details of other users.
 
 Version 8.1.4
 -------------

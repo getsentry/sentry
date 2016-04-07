@@ -55,6 +55,7 @@ class OrganizationMemberSettingsView(OrganizationView):
         try:
             member = OrganizationMember.objects.get(
                 Q(user__is_active=True) | Q(user__isnull=True),
+                organization=organization,
                 id=member_id,
             )
         except OrganizationMember.DoesNotExist:

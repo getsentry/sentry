@@ -8,7 +8,7 @@ service memcached start
 service postfix start
 
 if [ "$1" = 'bootstrap' ]; then
-  SENTRY_LIGHT_BUILD=1 pip install -e .[dev,tests]
+  SENTRY_LIGHT_BUILD=1 pip install -vvv -e .[dev,tests]
   npm install
   sentry init $SENTRY_CONF
   sentry upgrade --noinput

@@ -15,6 +15,15 @@ from sentry.utils import json
 
 
 def load_data(platform, default=None):
+    # NOTE: Before editing this data, make sure you understand the context
+    # in which its being used. It is NOT only used for local development and
+    # has production consequences.
+    #   * bin/load-mocks to generate fake data for local testing
+    #   * When a new project is created, a fake event is generated as a "starter"
+    #     event so it's not an empty project.
+    #   * When a user clicks Test Configuration from notification plugin settings page,
+    #     a fake event is generated to go through the pipeline.
+
     data = None
     for platform in (platform, default):
         if platform is None:
@@ -70,69 +79,6 @@ def load_data(platform, default=None):
         "query_string": "foo=bar",
         "data": '{"hello": "world"}',
         "method": "GET"
-    }
-    data['sentry.interfaces.Breadcrumbs'] = {
-        "values": [
-            {
-                "type": "navigation",
-                "dt": 8200,
-                "timestamp": "2016-01-17T12:29:59",
-                "data": {
-                    "to": "http://example.com/dashboard/",
-                    "from": "http://example.com/login/"
-                }
-            },
-            {
-                "type": "message",
-                "dt": 5000,
-                "timestamp": "2016-01-17T12:30:03",
-                "data": {
-                    "message": "This is a message breadcrumb",
-                    "level": "info"
-                }
-            },
-            {
-                "type": "message",
-                "dt": 4000,
-                "timestamp": "2016-01-17T12:31:03",
-                "data": {
-                    "message": "This is a warning message",
-                    "level": "warning"
-                }
-            },
-            {
-                "type": "message",
-                "dt": 3500,
-                "timestamp": "2016-01-17T12:31:50",
-                "data": {
-                    "message": "This is an error message",
-                    "level": "error"
-                }
-            },
-            {
-                "type": "http_request",
-                "dt": 3000,
-                "timestamp": "2016-01-17T12:32:05",
-                "data": {
-                    "url": "http://example.com/foo",
-                    "statusCode": 200,
-                    "method": "POST",
-                    "headers": {
-                        "Referer": "http://example.com",
-                        "Content-Type": "application/json"
-                    }
-                }
-            },
-            {
-                "type": "ui_event",
-                "dt": 1500,
-                "timestamp": "2016-01-17T12:33:07",
-                "data": {
-                    "type": "click",
-                    "target": "<button name=\"submit\" class=\"btn btn-small\"/>"
-                }
-            }
-        ]
     }
 
     return data

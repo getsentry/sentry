@@ -7,9 +7,11 @@ export default class InputField extends FormField {
   constructor(props) {
     super(props);
 
-    this.state.value = (
-      props.value !== '' ? props.value : (props.defaultValue || '')
-    );
+    this.state.value = this.valueFromProps(props);
+  }
+
+  valueFromProps(props) {
+    return props.value !== '' ? props.value : (props.defaultValue || '');
   }
 
   // XXX(dcramer): this comes from TooltipMixin
@@ -40,6 +42,22 @@ export default class InputField extends FormField {
     });
   }
 
+  getId() {
+    return 'wizard-' + this.props.name;
+  }
+
+  getField() {
+    return (
+      <input id={this.getId()}
+          type={this.getType()}
+          className="form-control"
+          placeholder={this.props.placeholder}
+          onChange={this.onChange.bind(this)}
+          disabled={this.props.disabled}
+          value={this.state.value} />
+    );
+  }
+
   render() {
     let className = 'control-group';
     if (this.props.error) {
@@ -48,18 +66,13 @@ export default class InputField extends FormField {
     return (
       <div className={className}>
         <div className="controls">
-          <label className="control-label">{this.props.label}</label>
+          <label htmlFor={this.getId()} className="control-label">{this.props.label}</label>
           {this.props.disabled && this.props.disabledReason &&
             <span className="disabled-indicator tip" title={this.props.disabledReason}>
               <span className="icon-question" />
             </span>
           }
-          <input type={this.getType()}
-                 className="form-control"
-                 placeholder={this.props.placeholder}
-                 onChange={this.onChange.bind(this)}
-                 disabled={this.props.disabled}
-                 value={this.state.value} />
+          {this.getField()}
           {this.props.help &&
             <p className="help-block">{this.props.help}</p>
           }

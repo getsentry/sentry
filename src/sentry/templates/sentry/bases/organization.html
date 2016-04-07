@@ -16,13 +16,13 @@
   <ul class="nav nav-stacked">
     <!-- <li class="nav-header"><h6>{{ organization.name }}</h6></li> -->
     <li>
-      <a href="{% absolute_uri '/organizations/{}/dashboard/' organization.slug %}">
+      <a href="{% absolute_uri '/{}/' organization.slug %}">
         {% trans "Dashboard" %}
       </a>
     </li>
     <li>
-      <a href="{% url 'sentry-organization-home' organization.slug %}">
-        {% trans "Projects" %}
+      <a href="{% absolute_uri '/organizations/{}/teams/' organization.slug %}">
+        {% trans "Projects & Teams" %}
       </a>
     </li>
     {% if ACCESS.org_read %}

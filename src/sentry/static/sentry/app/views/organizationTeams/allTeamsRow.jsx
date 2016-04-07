@@ -46,10 +46,10 @@ const AllTeamsRow = React.createClass({
           loading: false,
           error: true
         });
-        AlertActions.addAlert(
-          t('There was an error while trying to join the team.'),
-          'error'
-        );
+        AlertActions.addAlert({
+          message: t('There was an error while trying to join the team.'),
+          type: 'error'
+        });
       }
     });
   },
@@ -74,10 +74,10 @@ const AllTeamsRow = React.createClass({
           loading: false,
           error: true
         });
-        AlertActions.addAlert(
-          t('There was an error while trying to leave the team.'),
-          'error'
-        );
+        AlertActions.addAlert({
+          message: t('There was an error while trying to leave the team.'),
+          type: 'error'
+        });
       }
     });
   },

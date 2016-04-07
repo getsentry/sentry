@@ -11,7 +11,6 @@ import ProjectState from '../../mixins/projectState';
 import TimeSince from '../timeSince';
 import GroupStore from '../../stores/groupStore';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
-import OrganizationState from '../../mixins/organizationState';
 import ShortId from '../shortId';
 
 import {valueIsEqual} from '../../utils';
@@ -23,7 +22,6 @@ const StreamGroupHeader = React.createClass({
     projectId: React.PropTypes.string.isRequired,
     hasEventTypes: React.PropTypes.bool,
   },
-  mixins: [OrganizationState],
 
   getTitle() {
     let data = this.props.data;
@@ -77,11 +75,7 @@ const StreamGroupHeader = React.createClass({
       <div>
         <h3 className="truncate">
           <Link to={`/${orgId}/${projectId}/issues/${data.id}/`}>
-            {this.props.hasEventTypes ?
-              <span className="event-type truncate">{data.type}</span>
-            :
-              <span className="error-level truncate">{data.level}</span>
-            }
+            <span className="error-level truncate">{data.level}</span>
             <span className="icon icon-soundoff" />
             <span className="icon icon-star-solid" />
             {this.getTitle()}

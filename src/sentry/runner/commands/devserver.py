@@ -33,8 +33,6 @@ def devserver(reload, watchers, workers, bind):
     uwsgi_overrides = {
         # Make sure we don't try and use uwsgi protocol
         'protocol': 'http',
-        # A better log-format for local dev
-        'log-format': '"%(method) %(uri) %(proto)" %(status) %(size)',
         # Make sure we reload really quickly for local dev in case it
         # doesn't want to shut down nicely on it's own, NO MERCY
         'worker-reload-mercy': 2,
@@ -42,8 +40,6 @@ def devserver(reload, watchers, workers, bind):
 
     if reload:
         uwsgi_overrides['py-autoreload'] = 1
-
-    server = SentryHTTPServer(host=host, port=port, workers=1, extra_options=uwsgi_overrides)
 
     daemons = []
 
@@ -58,6 +54,15 @@ def devserver(reload, watchers, workers, bind):
             ('worker', ['sentry', 'celery', 'worker', '-c', '1', '-l', 'INFO']),
             ('beat', ['sentry', 'celery', 'beat', '-l', 'INFO']),
         ]
+
+    # A better log-format for local dev when running through honcho,
+    # but if there aren't any other daemons, we don't want to override.
+    if daemons:
+        uwsgi_overrides['log-format'] = '"%(method) %(uri) %(proto)" %(status) %(size)'
+    else:
+        uwsgi_overrides['log-format'] = '[%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size)'
+
+    server = SentryHTTPServer(host=host, port=port, workers=1, extra_options=uwsgi_overrides)
 
     # If we don't need any other daemons, just launch a normal uwsgi webserver
     # and avoid dealing with subprocesses

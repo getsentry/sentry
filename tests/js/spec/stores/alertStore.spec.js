@@ -7,7 +7,7 @@ describe('AlertStore', function () {
   });
 
   describe('onAddAlert()', function () {
-    it('should add a new alert with incrementing id', function () {
+    it('should add a new alert with incrementing key', function () {
       AlertStore.onAddAlert({
         message: 'Bzzzzzzp *crash*',
         type: 'error'
@@ -19,24 +19,30 @@ describe('AlertStore', function () {
       });
 
       expect(AlertStore.alerts.length).to.eql(2);
-      expect(AlertStore.alerts[0].id).to.eql(0);
-      expect(AlertStore.alerts[1].id).to.eql(1);
+      expect(AlertStore.alerts[0].key).to.eql(0);
+      expect(AlertStore.alerts[1].key).to.eql(1);
     });
   });
 
   describe('onCloseAlert()', function () {
-    it('should remove alert with given id', function () {
+    it('should remove alert', function () {
       AlertStore.alerts = [
-        {id: 1, message: 'foo', type: 'error '},
-        {id: 2, message: 'bar', type: 'error '},
-        {id: 3, message: 'baz', type: 'error '},
+        {key: 1, message: 'foo', type: 'error'},
+        {key: 2, message: 'bar', type: 'error'},
+        {key: 3, message: 'baz', type: 'error'},
       ];
 
-      AlertStore.onCloseAlert(2);
+      AlertStore.onCloseAlert(AlertStore.alerts[1]);
 
       expect(AlertStore.alerts.length).to.eql(2);
-      expect(AlertStore.alerts[0].id).to.eql(1);
-      expect(AlertStore.alerts[1].id).to.eql(3);
+      expect(AlertStore.alerts[0].key).to.eql(1);
+      expect(AlertStore.alerts[1].key).to.eql(3);
+    });
+    it('should persist removal of persistent alerts', function () {
+      let alert = {key: 1, id: 'test', message: 'foo', type: 'error'};
+      AlertStore.onCloseAlert(alert);
+      AlertStore.onAddAlert(alert);
+      expect(AlertStore.alerts.length).to.eql(0);
     });
   });
 });

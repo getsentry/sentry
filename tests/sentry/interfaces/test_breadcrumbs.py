@@ -2,9 +2,6 @@
 
 from __future__ import absolute_import
 
-from datetime import datetime
-from django.utils import timezone
-
 from sentry.interfaces.breadcrumbs import Breadcrumbs
 from sentry.testutils import TestCase
 
@@ -23,5 +20,7 @@ class BreadcrumbsTest(TestCase):
         }]))
         assert len(result.values) == 1
         assert result.values[0]['type'] == 'message'
-        assert result.values[0]['timestamp'] == datetime(2016, 3, 24, 22, 6, 33, 973275, tzinfo=timezone.utc)
+        ts = result.values[0]['timestamp']
+        assert int(ts) == 1458857193
+        assert abs(ts - 1458857193.973275) < 0.001
         assert result.values[0]['data'] == {'message': 'Whats up dawg?'}

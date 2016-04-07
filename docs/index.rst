@@ -24,9 +24,10 @@ running on your own infrastructure.
    internal-metrics
    performance
    cli/index
-   health-checks
+   monitoring
    beacon
    plugins
+   warnings
    faq
 
 .. sentry:edition:: self, on-premise
