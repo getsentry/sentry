@@ -4,7 +4,7 @@ import posixpath
 
 from sentry.models import Project
 from sentry.plugins import Plugin2
-from sentry.lang.native.symbolizer import make_symbolizer, have_symsynd
+from sentry.lang.native.symbolizer import Symbolizer, have_symsynd
 
 
 def exception_from_apple_error_or_diagnosis(error, diagnosis=None):
@@ -112,9 +112,9 @@ def preprocess_apple_crash_event(data):
     if crashed_thread is None:
         return
 
-    sym = make_symbolizer(project, crash_report['binary_images'],
-                          threads=[crashed_thread])
-    with sym.driver:
+    sym = Symbolizer(project, crash_report['binary_images'],
+                     threads=[crashed_thread])
+    with sym:
         bt = sym.symbolize_backtrace(crashed_thread['backtrace']['contents'])
         inject_apple_backtrace(data, bt, crash.get('diagnosis'),
                                crash.get('error'), crash_report.get('system'))

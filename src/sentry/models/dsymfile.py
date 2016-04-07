@@ -15,7 +15,7 @@ import tempfile
 from django.db import models, transaction, IntegrityError
 
 try:
-    from symsynd.mach import get_macho_uuids
+    from symsynd.macho.arch import get_macho_uuids
     have_symsynd = True
 except ImportError:
     have_symsynd = False
@@ -74,12 +74,23 @@ class DSymSDK(Model):
         ]
 
 
-class DSymBundle(Model):
+class DSymObject(Model):
     __core__ = False
-    sdk = FlexibleForeignKey('sentry.DSymSDK')
     cpu_name = models.CharField(max_length=40)
     object_path = models.TextField(db_index=True)
     uuid = models.CharField(max_length=36, db_index=True)
+    vmaddr = BoundedBigIntegerField(null=True)
+    vmsize = BoundedBigIntegerField(null=True)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_dsymobject'
+
+
+class DSymBundle(Model):
+    __core__ = False
+    sdk = FlexibleForeignKey('sentry.DSymSDK')
+    object = FlexibleForeignKey('sentry.DSymObject')
 
     class Meta:
         app_label = 'sentry'
@@ -88,7 +99,7 @@ class DSymBundle(Model):
 
 class DSymSymbol(Model):
     __core__ = False
-    bundle = FlexibleForeignKey('sentry.DSymBundle')
+    object = FlexibleForeignKey('sentry.DSymObject')
     address = BoundedBigIntegerField(db_index=True)
     symbol = models.TextField()
 
@@ -96,7 +107,7 @@ class DSymSymbol(Model):
         app_label = 'sentry'
         db_table = 'sentry_dsymsymbol'
         unique_together = [
-            ('bundle', 'address'),
+            ('object', 'address'),
         ]
 
 

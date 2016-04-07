@@ -11,14 +11,14 @@ class Migration(SchemaMigration):
         # Adding model 'DSymSymbol'
         db.create_table('sentry_dsymsymbol', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('bundle', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.DSymBundle'])),
-            ('address', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')()),
+            ('object', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.DSymObject'])),
+            ('address', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(db_index=True)),
             ('symbol', self.gf('django.db.models.fields.TextField')()),
         ))
         db.send_create_signal('sentry', ['DSymSymbol'])
 
-        # Adding unique constraint on 'DSymSymbol', fields ['bundle', 'address']
-        db.create_unique('sentry_dsymsymbol', ['bundle_id', 'address'])
+        # Adding unique constraint on 'DSymSymbol', fields ['object', 'address']
+        db.create_unique('sentry_dsymsymbol', ['object_id', 'address'])
 
         # Adding model 'DSymSDK'
         db.create_table('sentry_dsymsdk', (
@@ -35,13 +35,22 @@ class Migration(SchemaMigration):
         # Adding index on 'DSymSDK', fields ['version_major', 'version_minor', 'version_patchlevel', 'version_build']
         db.create_index('sentry_dsymsdk', ['version_major', 'version_minor', 'version_patchlevel', 'version_build'])
 
+        # Adding model 'DSymObject'
+        db.create_table('sentry_dsymobject', (
+            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
+            ('cpu_name', self.gf('django.db.models.fields.CharField')(max_length=40)),
+            ('object_path', self.gf('django.db.models.fields.TextField')(db_index=True)),
+            ('uuid', self.gf('django.db.models.fields.CharField')(max_length=36, db_index=True)),
+            ('vmaddr', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(null=True)),
+            ('vmsize', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(null=True)),
+        ))
+        db.send_create_signal('sentry', ['DSymObject'])
+
         # Adding model 'DSymBundle'
         db.create_table('sentry_dsymbundle', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('sdk', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.DSymSDK'])),
-            ('cpu_name', self.gf('django.db.models.fields.CharField')(max_length=40)),
-            ('object_path', self.gf('django.db.models.fields.TextField')(db_index=True)),
-            ('uuid', self.gf('django.db.models.fields.CharField')(max_length=36, db_index=True)),
+            ('object', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.DSymObject'])),
         ))
         db.send_create_signal('sentry', ['DSymBundle'])
 
@@ -50,14 +59,17 @@ class Migration(SchemaMigration):
         # Removing index on 'DSymSDK', fields ['version_major', 'version_minor', 'version_patchlevel', 'version_build']
         db.delete_index('sentry_dsymsdk', ['version_major', 'version_minor', 'version_patchlevel', 'version_build'])
 
-        # Removing unique constraint on 'DSymSymbol', fields ['bundle', 'address']
-        db.delete_unique('sentry_dsymsymbol', ['bundle_id', 'address'])
+        # Removing unique constraint on 'DSymSymbol', fields ['object', 'address']
+        db.delete_unique('sentry_dsymsymbol', ['object_id', 'address'])
 
         # Deleting model 'DSymSymbol'
         db.delete_table('sentry_dsymsymbol')
 
         # Deleting model 'DSymSDK'
         db.delete_table('sentry_dsymsdk')
+
+        # Deleting model 'DSymObject'
+        db.delete_table('sentry_dsymobject')
 
         # Deleting model 'DSymBundle'
         db.delete_table('sentry_dsymbundle')
@@ -128,7 +140,7 @@ class Migration(SchemaMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 4, 13, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 4, 14, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -151,11 +163,18 @@ class Migration(SchemaMigration):
         },
         'sentry.dsymbundle': {
             'Meta': {'object_name': 'DSymBundle'},
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'object': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.DSymObject']"}),
+            'sdk': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.DSymSDK']"})
+        },
+        'sentry.dsymobject': {
+            'Meta': {'object_name': 'DSymObject'},
             'cpu_name': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'object_path': ('django.db.models.fields.TextField', [], {'db_index': 'True'}),
-            'sdk': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.DSymSDK']"}),
-            'uuid': ('django.db.models.fields.CharField', [], {'max_length': '36', 'db_index': 'True'})
+            'uuid': ('django.db.models.fields.CharField', [], {'max_length': '36', 'db_index': 'True'}),
+            'vmaddr': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {'null': 'True'}),
+            'vmsize': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {'null': 'True'})
         },
         'sentry.dsymsdk': {
             'Meta': {'object_name': 'DSymSDK', 'index_together': "[('version_major', 'version_minor', 'version_patchlevel', 'version_build')]"},
@@ -168,10 +187,10 @@ class Migration(SchemaMigration):
             'version_patchlevel': ('django.db.models.fields.IntegerField', [], {})
         },
         'sentry.dsymsymbol': {
-            'Meta': {'unique_together': "[('bundle', 'address')]", 'object_name': 'DSymSymbol'},
-            'address': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {}),
-            'bundle': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.DSymBundle']"}),
+            'Meta': {'unique_together': "[('object', 'address')]", 'object_name': 'DSymSymbol'},
+            'address': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {'db_index': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'object': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.DSymObject']"}),
             'symbol': ('django.db.models.fields.TextField', [], {})
         },
         'sentry.event': {

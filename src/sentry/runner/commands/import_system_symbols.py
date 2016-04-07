@@ -13,7 +13,7 @@ import click
 import zipfile
 import threading
 import Queue
-from django.db import connection
+from django.db import connection, IntegrityError
 from sentry.runner.decorators import configuration
 
 
@@ -21,7 +21,7 @@ SHUTDOWN = object()
 
 
 def load_bundle(q, uuid, data, sdk_info):
-    from sentry.models import DSymBundle, DSymSDK
+    from sentry.models import DSymBundle, DSymObject, DSymSDK
 
     sdk = DSymSDK.objects.get_or_create(
         dsym_type=sdk_info['dsym_type'],
@@ -32,11 +32,17 @@ def load_bundle(q, uuid, data, sdk_info):
         version_build=sdk_info['version_build'],
     )[0]
 
-    bundle = DSymBundle.objects.get_or_create(
-        sdk=sdk,
+    obj = DSymObject.objects.get_or_create(
         cpu_name=data['arch'],
-        object_path=data['image'],
+        object_path='/' + data['image'].strip('/'),
         uuid=str(uuid),
+        vmaddr=data['vmaddr'],
+        vmsize=data['vmsize'],
+    )[0]
+
+    DSymBundle.objects.get_or_create(
+        sdk=sdk,
+        object=obj
     )[0]
 
     step = 4000
@@ -44,7 +50,7 @@ def load_bundle(q, uuid, data, sdk_info):
     for idx in xrange(0, len(symbols) + step, step):
         end_idx = min(idx + step, len(symbols))
         yield [{
-            'bundle_id': bundle.id,
+            'object_id': obj.id,
             'address': symbols[x][0],
             'symbol': symbols[x][1],
         } for x in xrange(idx, end_idx)]
@@ -58,18 +64,22 @@ def process_archive(members, zip, sdk_info, threads):
         cur.execute('begin')
         cur.execute('''
             prepare add_sym(bigint, bigint, text) as
-                insert into sentry_dsymsymbol (bundle_id, address, symbol)
+                insert into sentry_dsymsymbol (object_id, address, symbol)
                 select $1, $2, $3
                 where not exists (select 1 from sentry_dsymsymbol
-                    where bundle_id = $1 and address = $2);
+                    where object_id = $1 and address = $2);
         ''')
         while 1:
             items = q.get()
             if items is SHUTDOWN:
                 break
-            cur.executemany('''
-                execute add_sym(%(bundle_id)s, %(address)s, %(symbol)s);
-            ''', items)
+            try:
+                cur.executemany('''
+                    execute add_sym(%(object_id)s, %(address)s, %(symbol)s);
+                ''', items)
+            except IntegrityError:
+                print 'warning: already seen'
+                continue
         cur.execute('commit')
 
     pool = []
