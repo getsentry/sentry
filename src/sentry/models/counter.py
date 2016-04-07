@@ -80,7 +80,9 @@ def increment_project_counter(project, delta=1):
                      update value = @new_val := value + %s;
                      select @new_val;
             ''', [project.id, delta, delta])
-            return cur.fetchone()[0]
+            res = cur.fetchone()
+            db.commit()
+            return res[0]
         else:
             raise AssertionError("Not implemented database engine path")
     finally:
