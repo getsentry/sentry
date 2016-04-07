@@ -32,6 +32,18 @@ class AuthFromRequestTest(BaseAPITest):
         result = self.helper.auth_from_request(request)
         assert result.public_key == 'value'
 
+    def test_valid_missing_space(self):
+        request = mock.Mock()
+        request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value,biz=baz'}
+        result = self.helper.auth_from_request(request)
+        assert result.public_key == 'value'
+
+    def test_valid_ignore_case(self):
+        request = mock.Mock()
+        request.META = {'HTTP_X_SENTRY_AUTH': 'SeNtRy sentry_key=value, biz=baz'}
+        result = self.helper.auth_from_request(request)
+        assert result.public_key == 'value'
+
     def test_invalid_header_defers_to_GET(self):
         request = mock.Mock()
         request.META = {'HTTP_X_SENTRY_AUTH': 'foobar'}
@@ -45,6 +57,25 @@ class AuthFromRequestTest(BaseAPITest):
         request.GET = {'sentry_version': '1', 'foo': 'bar'}
         result = self.helper.auth_from_request(request)
         assert result.version == '1'
+
+    def test_invalid_header_bad_token(self):
+        request = mock.Mock()
+        request.META = {'HTTP_X_SENTRY_AUTH': 'Sentryfoo'}
+        request.GET = {}
+        with self.assertRaises(APIUnauthorized):
+            self.helper.auth_from_request(request)
+
+    def test_invalid_header_missing_pair(self):
+        request = mock.Mock()
+        request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry foo'}
+        with self.assertRaises(APIUnauthorized):
+            self.helper.auth_from_request(request)
+
+    def test_invalid_malformed_value(self):
+        request = mock.Mock()
+        request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value,,biz=baz'}
+        with self.assertRaises(APIUnauthorized):
+            self.helper.auth_from_request(request)
 
 
 class ProjectFromAuthTest(BaseAPITest):
