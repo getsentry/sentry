@@ -89,7 +89,7 @@ def validate_rpc(payload):
 @typevalidator('http_request')
 def validate_http_request(payload):
     rv = {}
-    for key in 'statusCode', 'reason', 'method', 'url', 'headers', \
+    for key in 'status_code', 'reason', 'method', 'url', 'headers', \
                'response', 'classifier':
         value = payload.get(key)
         if value is not None:
@@ -133,6 +133,16 @@ def validate_navigation(payload):
     if 'to' not in rv:
         raise InterfaceValidationError("Location not provided for 'navigation' "
                                        "breadcrumb.")
+    return rv
+
+
+@typevalidator('error')
+def validate_error(payload):
+    rv = {}
+    for key in 'type', 'message', 'event_id':
+        value = payload.get(key)
+        if value is not None:
+            rv[key] = trim(value, 1024)
     return rv
 
 
