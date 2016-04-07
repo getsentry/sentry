@@ -94,6 +94,14 @@ const AssigneeSelector = React.createClass({
     // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
     let node = jQuery(ReactDOM.findDOMNode(this.refs.container));
     node.hide().show(0);
+    let oldAssignee = prevState.assignedTo && prevState.assignedTo.id;
+    let newAssignee = this.state.assignedTo && this.state.assignedTo.id;
+    if (oldAssignee !== newAssignee) {
+      this.removeTooltips();
+      if (newAssignee) {
+        this.attachTooltips();
+      }
+    }
   },
 
   onGroupChange(itemIds) {
