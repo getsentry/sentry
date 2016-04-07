@@ -118,7 +118,7 @@ def get_cluster_from_options(setting, options, cluster_manager=clusters):
     return cluster, options
 
 
-def check_cluster_versions(cluster, required, recommended=Version((3, 0, 4)), label=None):
+def check_cluster_versions(cluster, required, recommended=None, label=None):
     try:
         with cluster.all() as client:
             results = client.info()
