@@ -73,13 +73,15 @@ def process_archive(members, zip, sdk_info, threads):
             items = q.get()
             if items is SHUTDOWN:
                 break
-            try:
-                cur.executemany('''
-                    execute add_sym(%(object_id)s, %(address)s, %(symbol)s);
-                ''', items)
-            except IntegrityError:
-                print 'warning: already seen'
-                continue
+            while 1:
+                try:
+                    cur.executemany('''
+                        execute add_sym(%(object_id)s, %(address)s, %(symbol)s);
+                    ''', items)
+                except IntegrityError:
+                    connection.rollback()
+                    continue
+                break
         cur.execute('commit')
 
     pool = []
