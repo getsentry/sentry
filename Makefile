@@ -36,7 +36,8 @@ reset-db:
 setup-git:
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
-	cd .git/hooks && ln -sf ../../hooks/* ./
+	git config commit.template config/commit-template
+	cd .git/hooks && ln -sf ../../config/hooks/* ./
 	@echo ""
 
 build: locale
