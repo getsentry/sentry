@@ -307,6 +307,17 @@ class BuildJavascriptCommand(Command):
                 log.fatal('Could not determine sentry version or build')
                 sys.exit(1)
 
+            node_version = []
+            for app in 'node', 'npm':
+                try:
+                    node_version.append(check_output([app, '--version']).rstrip())
+                except OSError:
+                    log.fatal('Cannot find `{0}` executable. Please install {0}`'
+                              ' and try again.'.format(app))
+                    sys.exit(1)
+
+            log.info('using node ({}) and npm ({})'.format(*node_version))
+
             try:
                 self._build_static()
             except Exception:
