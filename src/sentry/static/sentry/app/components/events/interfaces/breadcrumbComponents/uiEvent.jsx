@@ -16,7 +16,9 @@ const UiEventComponent = React.createClass({
 
     return (
       <div>
-        <h5>{data.type || 'UI Event'} <Classifier value={data.classifier} title="%s call"/></h5>
+        <h5>{data.type || 'UI Event'}
+          {data.classifier ? <Classifier value={data.classifier} title="%s call"/> : null}
+        </h5>
         <KeyValueList data={list} isSorted={false} />
       </div>
     );
