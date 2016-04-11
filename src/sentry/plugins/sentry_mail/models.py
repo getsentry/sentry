@@ -54,8 +54,8 @@ class MailPlugin(NotificationPlugin):
         return options.get('mail.subject-prefix')
 
     def _build_message(self, project, subject, template=None, html_template=None, body=None,
-                   group=None, headers=None, context=None):
-        send_to = self.get_send_to(project)
+                   reference=None, reply_reference=None, headers=None, context=None, send_to = None):
+        send_to = send_to or self.get_send_to(project)
         if not send_to:
             logger.debug('Skipping message rendering, no users to send to.')
             return
@@ -71,7 +71,8 @@ class MailPlugin(NotificationPlugin):
             body=body,
             headers=headers,
             context=context,
-            reference=group,
+            reference=reference,
+            reply_reference=reply_reference,
         )
         msg.add_users(send_to, project=project)
         return msg
@@ -184,7 +185,7 @@ class MailPlugin(NotificationPlugin):
             template=template,
             html_template=html_template,
             project=project,
-            group=group,
+            reference=group,
             headers=headers,
             context=context,
         )
@@ -215,21 +216,13 @@ class MailPlugin(NotificationPlugin):
             'counts': counts,
         }
 
-        # TODO: Everything below should instead use `_send_mail` for consistency.
-        subject_prefix = project.get_option('subject_prefix', options.get('mail.subject-prefix'))
-        if subject_prefix:
-            subject_prefix = subject_prefix.rstrip() + ' '
-
-        message = self._build_message(
-            subject=subject_prefix + render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
+        self._send_mail(
+            subject=render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
             template='sentry/emails/digests/body.txt',
             html_template='sentry/emails/digests/body.html',
             project=project,
             context=context,
         )
-
-        if message is not None:
-            message.send()
 
     def notify_about_activity(self, activity):
         if activity.type not in (Activity.NOTE, Activity.ASSIGNED, Activity.RELEASE):
@@ -305,19 +298,16 @@ class MailPlugin(NotificationPlugin):
 
         template_name = activity.get_type_display()
 
-        # TODO: Everything below should instead use `_send_mail` for consistency.
-        subject_prefix = project.get_option('subject_prefix', options.get('mail.subject-prefix'))
-        if subject_prefix:
-            subject_prefix = subject_prefix.rstrip() + ' '
-
         if group:
-            subject = '%s%s' % (subject_prefix, group.get_email_subject())
+            subject = group.get_email_subject()
         elif activity.type == Activity.RELEASE:
-            subject = '%sRelease %s' % (subject_prefix, activity.data['version'])
+            subject = 'Release %s' % activity.data['version']
         else:
             raise NotImplementedError
 
-        msg = MessageBuilder(
+        self._send_mail(
+            project=project,
+            send_to=recipient_ids,
             subject=subject,
             context=context,
             template='sentry/emails/activity/{}.txt'.format(template_name),
@@ -326,8 +316,6 @@ class MailPlugin(NotificationPlugin):
             reference=activity,
             reply_reference=group,
         )
-        msg.add_users(recipient_ids, project=project)
-        msg.send()
 
 
 # Legacy compatibility
