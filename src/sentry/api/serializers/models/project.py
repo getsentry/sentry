@@ -1,7 +1,11 @@
 from __future__ import absolute_import
 
+from django.db.models import Q
+
 from sentry.api.serializers import register, serialize, Serializer
-from sentry.models import Project, ProjectBookmark, ProjectOption, ProjectStatus
+from sentry.models import (
+    Project, ProjectBookmark, ProjectOption, ProjectStatus, UserOption
+)
 
 STATUS_LABELS = {
     ProjectStatus.VISIBLE: 'active',
@@ -19,8 +23,18 @@ class ProjectSerializer(Serializer):
                 user=user,
                 project_id__in=[i.id for i in item_list],
             ).values_list('project_id', flat=True))
+            user_options = {
+                (u.project_id, u.key): u.value
+                for u in UserOption.objects.filter(
+                    Q(user=user, project__in=item_list, key='mail:alert') |
+                    Q(user=user, key='subscribe_by_default', project__isnull=True)
+                )
+            }
+            default_subscribe = int(user_options.get('subscribe_by_default', 1))
         else:
             bookmarks = set()
+            user_options = {}
+            default_subscribe = False
 
         reviewed_callsigns = {
             p.project_id: p.value
@@ -34,6 +48,10 @@ class ProjectSerializer(Serializer):
         for item in item_list:
             result[item] = {
                 'is_bookmarked': item.id in bookmarks,
+                'is_subscribed': bool(user_options.get(
+                    (item.id, 'mail:alert'),
+                    default_subscribe,
+                )),
                 'reviewed-callsign': reviewed_callsigns.get(item.id),
             }
         return result

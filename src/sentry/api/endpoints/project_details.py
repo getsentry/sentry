@@ -14,7 +14,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark,
-    ProjectStatus
+    ProjectStatus, UserOption
 )
 from sentry.plugins import plugins
 from sentry.tasks.deletion import delete_project
@@ -68,10 +68,12 @@ def clean_newline_inputs(value):
 
 class ProjectMemberSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
+    isSubscribed = serializers.BooleanField()
 
 
 class ProjectAdminSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
+    isSubscribed = serializers.BooleanField()
     name = serializers.CharField(max_length=200)
     slug = serializers.SlugField(max_length=200)
 
@@ -207,6 +209,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project_id=project.id,
                 user=request.user,
             ).delete()
+
+        if result.get('isSubscribed'):
+            UserOption.objects.set_value(request.user, project, 'mail:alert', 1)
+        elif result.get('isSubscribed') is False:
+            UserOption.objects.set_value(request.user, project, 'mail:alert', 0)
 
         if request.access.has_scope('project:write'):
             options = request.DATA.get('options', {})
