@@ -16,7 +16,6 @@ const HttpRequestCrumbComponent = React.createClass({
     let data = this.props.data;
 
     let list = [];
-    list.push(['method', data.method]);
     list.push(['url', data.url]);
 
     if(data.response) {
@@ -25,7 +24,7 @@ const HttpRequestCrumbComponent = React.createClass({
 
     return (
       <div>
-        <h5>HTTP Request <Classifier value={data.classifier} title="%s request" /></h5>
+        <h5>HTTP Request ({data.method || "Unknown"}) <Classifier value={data.classifier} title="%s request" /></h5>
         <KeyValueList data={list} isSorted={false} />
       </div>
     );
