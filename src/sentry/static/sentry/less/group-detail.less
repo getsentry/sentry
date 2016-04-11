@@ -1576,9 +1576,9 @@ ul.crumbs {
     border-left: 1px solid transparent;
     border-right: 1px solid transparent;
     border-bottom: 1px solid lighten(@trim, 6);
-    padding: 10px 20px 10px 70px;
+    padding: 6px 20px 6px 60px;
     position: relative;
-    min-height: 46px;
+    min-height: 39px;
 
     &:before {
       display: block;
@@ -1586,7 +1586,7 @@ ul.crumbs {
       width: 2px;
       top: 0;
       bottom: 0;
-      left: 35px;
+      left: 30px;
       background: #E7EAEF;
       position: absolute;
     }
@@ -1608,22 +1608,28 @@ ul.crumbs {
       padding: 0;
     }
 
+    .message-text {
+      font-size: 15px;
+      padding-top: 2px;
+    }
+
     .icon-container {
       display: block;
-      .square(32px);
+      .square(26px);
       background: #fff;
       border: 1px solid @gray-lighter;
       box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
       border-radius: 32px;
       position: absolute;
-      top: 7px;
-      left: 19px;
+      top: 6px;
+      left: 18px;
+      z-index: 1;
 
       .icon {
-        font-size: 16px;
+        font-size: 14px;
         position: absolute;
-        left: 8px;
-        top: 6px;
+        left: 5px;
+        top: 4px;
         font-family: 'sentry-simple';
         speak: none;
         font-style: normal;
@@ -1682,18 +1688,23 @@ ul.crumbs {
       box-shadow: inset 0 -1px 2px rgba(0,0,0, .03);
 
       &:before {
-        left: 34px;
+        left: 29px;
+      }
+
+      .icon-container {
+        left: 17px;
       }
 
       .icon {
         color: @gray;
-        top: 8px;
+        top: 6px;
       }
 
       a {
         color: @gray-dark;
         display: block;
-        padding: 6px 0 5px;
+        font-size: 15px;
+        padding: 7px 0 5px;
         margin: -5px 0;
 
         &:hover {
@@ -1726,7 +1737,7 @@ ul.crumbs {
         border-color: @yellow-orange-dark;
 
         .icon {
-          top: 7px;
+          top: 5px;
           color: darken(@yellow-orange, 5);
           &:before {content: "\e61d";}
         }
@@ -1738,7 +1749,7 @@ ul.crumbs {
         border-color: @green-dark;
 
         .icon {
-          top: 7px;
+          top: 5px;
           color: @green;
           &:before {
             content: "\e908";
@@ -1748,14 +1759,15 @@ ul.crumbs {
     }
 
     &.crumb-message {
-      padding-top: 11px;
+      padding-top: 7px;
+      clear: both;
 
       & + .crumb-message {
-        margin-top: -6px;
+        margin-top: -9px;
         background: #fff;
         min-height: 0;
         padding-top: 0;
-        padding-bottom: 10px;
+        padding-bottom: 6px;
         border-left: 1px solid @trim;
         border-right: 1px solid @trim;
 
@@ -1770,7 +1782,7 @@ ul.crumbs {
 
       .icon {
         color: @blue;
-        top: 7px;
+        top: 5px;
 
         &:before {
           content: "\e909";
@@ -1785,7 +1797,7 @@ ul.crumbs {
         color: @gray-dark;
         border-radius: 2px;
         display: inline-block;
-        padding: 4px 0;
+        padding: 3px 0;
         margin-right: 6px;
         line-height: 1;
         position: relative;
