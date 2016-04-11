@@ -25,7 +25,7 @@ const HttpRequestCrumbComponent = React.createClass({
     return (
       <div>
         <h5>HTTP Request ({data.method || "Unknown"})
-          {data.classifier ? <Classifier value={data.classifier} title="%s request"/> : null}
+          <Classifier value={data.classifier} title="%s request" hideIfEmpty={true}/>
         </h5>
         <KeyValueList data={list} isSorted={false} />
       </div>
