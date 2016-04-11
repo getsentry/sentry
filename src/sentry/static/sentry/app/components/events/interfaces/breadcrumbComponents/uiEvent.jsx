@@ -12,12 +12,11 @@ const UiEventComponent = React.createClass({
     let data = this.props.data;
 
     let list = [];
-    list.push(['type', data.type || 'undefined type']);
     list.push(['element', data.target || 'undefined target']);
 
     return (
       <div>
-        <h5>{data.event || 'UI Event'} <Classifier value={data.classifier} title="%s call"/></h5>
+        <h5>{data.type || 'UI Event'} <Classifier value={data.classifier} title="%s call"/></h5>
         <KeyValueList data={list} isSorted={false} />
       </div>
     );
