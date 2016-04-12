@@ -11,12 +11,35 @@ from sentry import options
 from sentry.lang.native.dsymcache import dsymcache
 
 
-def find_system_symbol(img, instruction_addr):
+SDK_MAPPING = {
+    'iPhone OS': 'iOS',
+}
+
+
+def get_sdk_from_system_info(info):
+    if not info:
+        return None
+    try:
+        sdk_name = SDK_MAPPING[info['system_name']]
+        system_version = tuple(int(x) for x in (
+            info['system_version'] + '.0' * 3).split('.')[:3])
+    except LookupError:
+        return None
+
+    return {
+        'dsym_type': 'macho',
+        'sdk_name': sdk_name,
+        'version_major': system_version[0],
+        'version_minor': system_version[1],
+        'version_patchlevel': system_version[2],
+    }
+
+
+def find_system_symbol(img, instruction_addr, system_info=None):
     """Finds a system symbol."""
     addr = instruction_addr - img['image_addr']
 
     uuid = img['uuid'].lower()
-    # TODO(mitsuhiko): also funnel in version info so we can fuzzy match
     cur = connection.cursor()
     try:
         # First try: exact match on uuid
@@ -38,20 +61,33 @@ def find_system_symbol(img, instruction_addr):
         # Second try: exact match on path and arch
         cpu_name = get_cpu_name(img['cpu_type'],
                                 img['cpu_subtype'])
-        if cpu_name is None:
+        sdk_info = get_sdk_from_system_info(system_info)
+        if sdk_info is None or cpu_name is None:
             return
+
         cur.execute('''
             select symbol
               from sentry_dsymsymbol s,
-                   sentry_dsymobject o
-             where o.cpu_name = %s and
-                   o.object_path = %s and
+                   sentry_dsymobject o,
+                   sentry_dsymsdk k,
+                   sentry_dsymbundle b
+             where b.sdk_id = k.id and
+                   b.object_id = o.id and
                    s.object_id = o.id and
+                   k.sdk_name = %s and
+                   k.dsym_type = %s and
+                   k.version_major = %s and
+                   k.version_minor = %s and
+                   k.version_patchlevel = %s and
+                   o.cpu_name = %s and
+                   o.object_path = %s and
                    s.address <= o.vmaddr + %s and
                    s.address >= o.vmaddr
           order by address desc
              limit 1;
-        ''', [cpu_name, img['name'], addr])
+        ''', [sdk_info['sdk_name'], sdk_info['dsym_type'],
+              sdk_info['version_major'], sdk_info['version_minor'],
+              sdk_info['version_patchlevel'], cpu_name, img['name'], addr])
         rv = cur.fetchone()
         if rv:
             return rv[0]
@@ -100,7 +136,7 @@ class Symbolizer(object):
     def __exit__(self, *args):
         return self.symsynd_symbolizer.driver.__exit__(*args)
 
-    def symbolize_frame(self, frame):
+    def symbolize_frame(self, frame, system_info=None):
         # Step one: try to symbolize with cached dsym files.
         new_frame = self.symsynd_symbolizer.symbolize_frame(frame)
         if new_frame is not None:
@@ -109,14 +145,15 @@ class Symbolizer(object):
         # If that does not work, look up system symbols.
         img = self.images.get(frame['object_addr'])
         if img is not None:
-            symbol = find_system_symbol(img, frame['instruction_addr'])
+            symbol = find_system_symbol(img, frame['instruction_addr'],
+                                        system_info)
             if symbol is not None:
                 return dict(frame, symbol_name=symbol, filename=None,
                             line=0, column=0, uuid=img['uuid'])
 
-    def symbolize_backtrace(self, backtrace):
+    def symbolize_backtrace(self, backtrace, system_info=None):
         rv = []
         for frame in backtrace:
-            new_frame = self.symbolize_frame(frame)
+            new_frame = self.symbolize_frame(frame, system_info)
             rv.append(new_frame or frame)
         return rv
