@@ -564,6 +564,21 @@ class EventManagerTest(TransactionTestCase):
             'message': "Blocked 'script' from 'example.com'",
         }
 
+    def test_sdk(self):
+        manager = EventManager(self.make_event(**{
+            'sdk': {
+                'name': 'sentry-unity',
+                'version': '1.0',
+            },
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert event.data['sdk'] == {
+            'name': 'sentry-unity',
+            'version': '1.0',
+        }
+
 
 class GetHashesFromEventTest(TestCase):
     @patch('sentry.interfaces.stacktrace.Stacktrace.compute_hashes')
