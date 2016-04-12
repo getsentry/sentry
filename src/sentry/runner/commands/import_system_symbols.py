@@ -10,9 +10,7 @@ from __future__ import absolute_import
 import uuid
 import json
 import click
-import zipfile
 import threading
-import Queue
 from django.db import connection, IntegrityError
 from sentry.runner.decorators import configuration
 
@@ -57,6 +55,7 @@ def load_bundle(q, uuid, data, sdk_info):
 
 
 def process_archive(members, zip, sdk_info, threads):
+    import Queue
     q = Queue.Queue(threads)
 
     def process_items():
@@ -121,6 +120,7 @@ def import_system_symbols(bundles, sdk, dsym_type, threads):
     actual zipped up dsym files cannot be used here, they need to be
     preprocessed.
     """
+    import zipfile
     for path in bundles:
         with zipfile.ZipFile(path) as f:
             sdk_info = json.load(f.open('sdk_info'))
