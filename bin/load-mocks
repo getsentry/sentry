@@ -305,6 +305,10 @@ def main(num_events=1):
                     platform='javascript',
                     release=release.version,
                     breadcrumbs=get_sample_breadcrumbs(prior_event_id=event1.event_id),
+                    sdk={
+                        'name': 'raven-js',
+                        'version': '2.1.0',
+                    },
                 )
 
                 event3 = create_sample_event(project, 'java')
