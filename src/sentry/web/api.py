@@ -335,6 +335,11 @@ class StoreView(APIView):
         # mutates data
         data = helper.validate_data(project, data)
 
+        if 'sdk' not in data:
+            sdk = helper.parse_client_as_sdk(auth.client)
+            if sdk:
+                data['sdk'] = sdk
+
         # mutates data
         manager = EventManager(data, version=auth.version)
         data = manager.normalize()

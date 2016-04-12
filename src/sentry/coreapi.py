@@ -328,6 +328,21 @@ class ClientApiHelper(object):
             result.append(unicode(bit))
         return result
 
+    def parse_client_as_sdk(self, value):
+        if not value:
+            return
+        try:
+            name, version = value.split('/', 1)
+        except ValueError:
+            try:
+                name, version = value.split(' ', 1)
+            except ValueError:
+                return
+        return {
+            'name': name,
+            'version': version,
+        }
+
     def validate_data(self, project, data):
         # TODO(dcramer): move project out of the data packet
         data['project'] = project.id
