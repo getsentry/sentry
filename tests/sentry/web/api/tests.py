@@ -278,6 +278,20 @@ class StoreViewTest(TestCase):
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['sentry.interfaces.Http']['data'] == 'password=[Filtered]&foo=[Filtered]&bar=[Filtered]&baz=[Filtered]'
 
+    @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
+    def test_uses_client_as_sdk(self, mock_insert_data_to_database):
+        body = {
+            "message": "foo bar",
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 200, resp.content
+
+        call_data = mock_insert_data_to_database.call_args[0][0]
+        assert call_data['sdk'] == {
+            'name': '_postWithHeader',
+            'version': '0.0.0',
+        }
+
 
 class CrossDomainXmlTest(TestCase):
     @fixture
