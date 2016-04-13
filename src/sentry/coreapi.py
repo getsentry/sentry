@@ -174,16 +174,16 @@ class ClientApiHelper(object):
         self.log = ClientLogHelper(self.context)
 
     def auth_from_request(self, request):
-        if request.META.get('HTTP_X_SENTRY_AUTH', '').startswith('Sentry'):
+        if request.META.get('HTTP_X_SENTRY_AUTH', '')[:7].lower() == 'sentry ':
             result = parse_auth_header(request.META['HTTP_X_SENTRY_AUTH'])
-        elif request.META.get('HTTP_AUTHORIZATION', '').startswith('Sentry'):
+        elif request.META.get('HTTP_AUTHORIZATION', '')[:7].lower() == 'sentry ':
             result = parse_auth_header(request.META['HTTP_AUTHORIZATION'])
         else:
-            result = dict(
-                (k, request.GET[k])
+            result = {
+                k: request.GET[k]
                 for k in request.GET.iterkeys()
-                if k.startswith('sentry_')
-            )
+                if k[:7] == 'sentry_'
+            }
         if not result:
             raise APIUnauthorized('Unable to find authentication information')
 
@@ -327,6 +327,21 @@ class ClientApiHelper(object):
                 raise InvalidFingerprint
             result.append(unicode(bit))
         return result
+
+    def parse_client_as_sdk(self, value):
+        if not value:
+            return
+        try:
+            name, version = value.split('/', 1)
+        except ValueError:
+            try:
+                name, version = value.split(' ', 1)
+            except ValueError:
+                return
+        return {
+            'name': name,
+            'version': version,
+        }
 
     def validate_data(self, project, data):
         # TODO(dcramer): move project out of the data packet

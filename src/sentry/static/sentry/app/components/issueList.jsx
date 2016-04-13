@@ -14,7 +14,7 @@ const IssueList = React.createClass({
     query: React.PropTypes.object,
     pagination: React.PropTypes.bool,
     renderEmpty: React.PropTypes.func,
-    statsPeriod: React.PropTypes.string
+    statsPeriod: React.PropTypes.string,
   },
 
   mixins: [ApiMixin],

@@ -142,13 +142,15 @@ const ProjectInstallPlatform = React.createClass({
             <div dangerouslySetInnerHTML={{__html: this.state.html}}/>
           )}
 
-          {queryParams.onboarding ?
+          {queryParams.hasOwnProperty('signup') ?
             <p>
-              <Link
-                to={`/${orgId}/${projectId}/?onboarding=1#welcome`}
+              // Using <a /> instead of <Link /> as hashchange events are not
+              // triggered when switching views within React Router
+              <a
+                href={`/${orgId}/${projectId}/#welcome`}
                 className="btn btn-primary btn-lg">
-                  Got it! Take me to the Issue Stream.
-              </Link>
+                  {t('Got it! Take me to the Issue Stream.')}
+              </a>
             </p>
           :
             null

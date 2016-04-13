@@ -695,6 +695,7 @@ SENTRY_INTERFACES = {
     'query': 'sentry.interfaces.query.Query',
     'user': 'sentry.interfaces.user.User',
     'csp': 'sentry.interfaces.csp.Csp',
+    'sdk': 'sentry.interfaces.sdk.Sdk',
     'applecrashreport': 'sentry.interfaces.applecrash.AppleCrashReport',
     'breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
     'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
