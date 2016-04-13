@@ -263,7 +263,10 @@ class MailPluginTest(TestCase):
         assert send.call_count is 1
         assert notify.call_count is 1
 
-    @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: "[Example prefix] " if k=="mail:subject_prefix" else d))
+    @mock.patch(
+        'sentry.models.ProjectOption.objects.get_value',
+        Mock(side_effect=lambda p, k, d: "[Example prefix] " if k == "mail:subject_prefix" else d)
+    )
     def test_notify_digest_subject_prefix(self):
         project = self.event.project
         rule = project.rule_set.all()[0]
@@ -282,7 +285,10 @@ class MailPluginTest(TestCase):
 
         assert msg.subject.startswith('[Example prefix] [foo Bar]')
 
-    @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: "[Example prefix] " if k=="mail:subject_prefix" else d))
+    @mock.patch(
+        'sentry.models.ProjectOption.objects.get_value',
+        Mock(side_effect=lambda p, k, d: "[Example prefix] " if k == "mail:subject_prefix" else d)
+    )
     def test_assignment(self):
         activity = Activity.objects.create(
             project=self.project,

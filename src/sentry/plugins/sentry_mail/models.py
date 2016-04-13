@@ -54,7 +54,7 @@ class MailPlugin(NotificationPlugin):
         return options.get('mail.subject-prefix')
 
     def _build_message(self, project, subject, template=None, html_template=None, body=None,
-                   reference=None, reply_reference=None, headers=None, context=None, send_to = None):
+                   reference=None, reply_reference=None, headers=None, context=None, send_to=None):
         send_to = send_to or self.get_send_to(project)
         if not send_to:
             logger.debug('Skipping message rendering, no users to send to.')
