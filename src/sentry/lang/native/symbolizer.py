@@ -2,6 +2,7 @@ try:
     from symsynd.driver import Driver
     from symsynd.report import ReportSymbolizer
     from symsynd.macho.arch import get_cpu_name
+    from symsynd.demangle import demangle_symbol
     have_symsynd = True
 except ImportError:
     have_symsynd = False
@@ -9,11 +10,18 @@ except ImportError:
 from django.db import connection
 from sentry import options
 from sentry.lang.native.dsymcache import dsymcache
+from sentry.utils.safe import trim
 
 
 SDK_MAPPING = {
     'iPhone OS': 'iOS',
 }
+
+
+def trim_frame(frame):
+    frame['symbol_name'] = trim(frame.get('symbol_name'), 1024)
+    frame['filename'] = trim(frame.get('filename'), 512)
+    return frame
 
 
 def get_sdk_from_system_info(info):
@@ -140,7 +148,7 @@ class Symbolizer(object):
         # Step one: try to symbolize with cached dsym files.
         new_frame = self.symsynd_symbolizer.symbolize_frame(frame)
         if new_frame is not None:
-            return new_frame
+            return trim_frame(new_frame)
 
         # If that does not work, look up system symbols.
         img = self.images.get(frame['object_addr'])
@@ -148,8 +156,10 @@ class Symbolizer(object):
             symbol = find_system_symbol(img, frame['instruction_addr'],
                                         system_info)
             if symbol is not None:
-                return dict(frame, symbol_name=symbol, filename=None,
-                            line=0, column=0, uuid=img['uuid'])
+                symbol = demangle_symbol(symbol) or symbol
+                rv = dict(frame, symbol_name=symbol, filename=None,
+                          line=0, column=0, uuid=img['uuid'])
+                return trim_frame(rv)
 
     def symbolize_backtrace(self, backtrace, system_info=None):
         rv = []
