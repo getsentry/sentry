@@ -135,7 +135,7 @@ class MailPluginTest(TestCase):
         assert _send_mail.call_count is 1
         args, kwargs = _send_mail.call_args
         self.assertEquals(kwargs.get('project'), self.project)
-        self.assertEquals(kwargs.get('group'), group)
+        self.assertEquals(kwargs.get('reference'), group)
         assert kwargs.get('subject') == u"[{0} {1}] ERROR: hello world".format(
             self.team.name, self.project.name)
 
@@ -263,6 +263,26 @@ class MailPluginTest(TestCase):
         assert send.call_count is 1
         assert notify.call_count is 1
 
+    @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: "[Example prefix] " if k=="mail:subject_prefix" else d))
+    def test_notify_digest_subject_prefix(self):
+        project = self.event.project
+        rule = project.rule_set.all()[0]
+        digest = build_digest(
+            project,
+            (
+                event_to_record(self.create_event(group=self.create_group()), (rule,)),
+                event_to_record(self.event, (rule,)),
+            ),
+        )
+        self.plugin.notify_digest(project, digest)
+
+        assert len(mail.outbox) == 1
+
+        msg = mail.outbox[0]
+
+        assert msg.subject.startswith('[Example prefix] [foo Bar]')
+
+    @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: "[Example prefix] " if k=="mail:subject_prefix" else d))
     def test_assignment(self):
         activity = Activity.objects.create(
             project=self.project,
@@ -280,7 +300,7 @@ class MailPluginTest(TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject == 'Re: [Sentry] [foo Bar] ERROR: Foo bar'
+        assert msg.subject == 'Re: [Example prefix] [foo Bar] ERROR: Foo bar'
         assert msg.to == [self.user.email]
 
     def test_note(self):
