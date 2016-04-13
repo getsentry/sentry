@@ -1,3 +1,8 @@
+Version 8.4
+-----------
+
+- Fixed bug that caused some email subjects to generated without respecting the project subject prefix option.
+
 Version 8.3.2
 -------------
 
