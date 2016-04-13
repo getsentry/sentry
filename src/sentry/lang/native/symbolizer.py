@@ -19,8 +19,9 @@ SDK_MAPPING = {
 
 
 def trim_frame(frame):
-    frame['symbol_name'] = trim(frame.get('symbol_name'), 1024)
-    frame['filename'] = trim(frame.get('filename'), 512)
+    # This matches what's in stacktrace.py
+    frame['symbol_name'] = trim(frame.get('symbol_name'), 256)
+    frame['filename'] = trim(frame.get('filename'), 256)
     return frame
 
 
