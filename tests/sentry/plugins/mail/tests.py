@@ -52,7 +52,6 @@ class MailPluginTest(TestCase):
 
         msg = mail.outbox[0]
         assert msg.subject == '[Sentry] [foo Bar] ERROR: Hello world'
-        print dir(msg)
         assert 'my rule' in msg.alternatives[0][0]
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
