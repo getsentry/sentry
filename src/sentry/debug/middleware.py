@@ -2,39 +2,49 @@ from __future__ import absolute_import
 
 import json
 import re
-import thread
 
-from debug_toolbar.toolbar import DebugToolbar
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.encoding import force_text
 
 
-class ToolbarCache(object):
-    def __init__(self):
-        self._toolbars = {}
+# Lazily create ToolbarCache class only if needed
+# This prevents the need to import django_toolbar at all
+# if we're not going to use it
+def ToolbarCache():
+    import thread
+    from debug_toolbar.toolbar import DebugToolbar
 
-    def create(self, request):
-        toolbar = DebugToolbar(request)
-        self._toolbars[thread.get_ident()] = toolbar
-        return toolbar
+    class _ToolbarCache(object):
+        def __init__(self):
+            self._toolbars = {}
 
-    def pop(self):
-        return self._toolbars.pop(thread.get_ident(), None)
+        def create(self, request):
+            toolbar = DebugToolbar(request)
+            self._toolbars[thread.get_ident()] = toolbar
+            return toolbar
 
-    def get(self):
-        return self._toolbars.get(thread.get_ident(), None)
+        def pop(self):
+            return self._toolbars.pop(thread.get_ident(), None)
 
-toolbar_cache = ToolbarCache()
+        def get(self):
+            return self._toolbars.get(thread.get_ident(), None)
+
+    return _ToolbarCache()
 
 
 class DebugMiddleware(object):
-    _body_regexp = re.compile(re.escape('</body>'), flags=re.IGNORECASE)
+    def __init__(self):
+        # Bail out early and disable this middleware entirely
+        if not settings.SENTRY_DEBUGGER:
+            from django.core.exceptions import MiddlewareNotUsed
+            raise MiddlewareNotUsed
+
+        self.toolbar_cache = ToolbarCache()
+        self._body_regexp = re.compile(re.escape('</body>'), flags=re.IGNORECASE)
 
     def show_toolbar(self, request):
         # TODO(dcramer): support VPN via INTERNAL_IPS + ipaddr maps
-        if not settings.SENTRY_DEBUGGER:
-            return False
         if not request.is_superuser():
             return False
         if 'text/html' not in request.META.get('HTTP_ACCEPT', '*/*'):
@@ -46,7 +56,7 @@ class DebugMiddleware(object):
         if not self.show_toolbar(request):
             return
 
-        toolbar = toolbar_cache.create(request)
+        toolbar = self.toolbar_cache.create(request)
 
         # Activate instrumentation ie. monkey-patch.
         for panel in toolbar.enabled_panels:
@@ -61,7 +71,7 @@ class DebugMiddleware(object):
         return response
 
     def process_view(self, request, view_func, view_args, view_kwargs):
-        toolbar = toolbar_cache.get()
+        toolbar = self.toolbar_cache.get()
         if not toolbar:
             return
 
@@ -73,7 +83,7 @@ class DebugMiddleware(object):
                 break
 
     def process_response(self, request, response):
-        toolbar = toolbar_cache.pop()
+        toolbar = self.toolbar_cache.pop()
         if not toolbar:
             return response
 
