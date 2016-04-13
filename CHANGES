@@ -1,3 +1,13 @@
+Version 8.4
+-----------
+
+- Fixed bug that caused some email subjects to be generated without respecting the project subject prefix option.
+
+Version 8.3.2
+-------------
+
+- Fixed bug affecting only MySQL users, see `GH-3030 <https://github.com/getsentry/sentry/issues/3030>`_.
+
 Version 8.3.1
 -------------
 

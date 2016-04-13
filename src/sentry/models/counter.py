@@ -77,9 +77,9 @@ def increment_project_counter(project, delta=1):
                             (project_id, value)
                      values (%s, @new_val := %s)
            on duplicate key
-                     update value = @new_val := value + %s;
-                     select @new_val;
+                     update value = @new_val := value + %s
             ''', [project.id, delta, delta])
+            cur.execute('select @new_val')
             return cur.fetchone()[0]
         else:
             raise AssertionError("Not implemented database engine path")
