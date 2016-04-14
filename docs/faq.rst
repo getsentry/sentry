@@ -5,6 +5,13 @@ This document covers some frequently asked questions that come up.
 
 .. class:: qa
 
+Sentry shows *Bad Request (400)* when loading the web UI.
+
+    Your **system.url-prefix** setting is wrong. See :doc:`config` for
+    more information.
+
+.. class:: qa
+
 My sentry is running at **example.com:9000** but whenever I visit it I get
 redirected to **example.com**.
 
