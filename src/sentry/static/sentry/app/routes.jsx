@@ -25,6 +25,7 @@ import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
 import AllTeamsList from './views/organizationTeams/allTeamsList';
 import ProjectChooser from './views/projectChooser';
+import ProjectCspSettings from './views/projectCspSettings';
 import ProjectDashboard from './views/projectDashboard';
 import ProjectDetails from './views/projectDetails';
 import ProjectEvents from './views/projectEvents';
@@ -101,7 +102,7 @@ let routes = (
           <Route path="all-events/" component={errorHandler(ReleaseAllEvents)} />
           <Route path="artifacts/" component={errorHandler(ReleaseArtifacts)} />
         </Route>
-        <Route path="user-reports/" component={errorHandler(ProjectUserReports)} />
+        <Route path="user-feedback/" component={errorHandler(ProjectUserReports)} />
         <Route path="settings/" component={errorHandler(ProjectSettings)}>
           <Route path="install/" component={errorHandler(ProjectInstall)}>
             <IndexRoute component={errorHandler(ProjectInstallOverview)}/>
@@ -109,7 +110,8 @@ let routes = (
           </Route>
           <Route path="saved-searches/" component={errorHandler(ProjectSavedSearches)} />
           <Route path="debug-symbols/" component={errorHandler(ProjectDebugSymbols)} />
-          <Route path="user-reports/" component={errorHandler(ProjectUserReportSettings)} />
+          <Route path="user-feedback/" component={errorHandler(ProjectUserReportSettings)} />
+          <Route path="csp/" component={errorHandler(ProjectCspSettings)} />
         </Route>
         <Redirect from="group/:groupId/" to="issues/:groupId/" />
         <Route path="issues/:groupId/" component={errorHandler(GroupDetails)}
@@ -122,7 +124,7 @@ let routes = (
           <Route path="hashes/" component={errorHandler(GroupHashes)} />
           <Route path="tags/" component={errorHandler(GroupTags)} />
           <Route path="tags/:tagKey/" component={errorHandler(GroupTagValues)} />
-          <Route path="reports/" component={errorHandler(GroupUserReports)} />
+          <Route path="feedback/" component={errorHandler(GroupUserReports)} />
         </Route>
       </Route>
     </Route>

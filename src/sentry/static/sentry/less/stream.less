@@ -206,7 +206,6 @@
     .transition(all .4s ease-in-out);
 
     .short-id {
-      color: @blue;
       font-weight: bold;
     }
 
@@ -297,6 +296,16 @@
       }
     }
 
+    &.type-default {
+      .event-assignee, .group-list, .event-graph {
+        padding-top: 20px;
+      }
+
+      .event-count, .event-users {
+        padding-top: 22px;
+      }
+    }
+
     &:first-child {
       .event-cell{
         border-top: 0;
@@ -357,6 +366,10 @@
         float: left;
         border-radius: 2px;
         margin-right: 5px;
+      }
+
+      em {
+        font-style: normal;
       }
 
       a {
@@ -695,6 +708,10 @@
         width: auto;
         overflow: hidden;
         padding-left: 1px;
+      }
+
+      em {
+        font-style: normal;
       }
     }
 
@@ -1182,6 +1199,12 @@
 @media(max-width: 767px) {
   .event-users, .event-count {
     padding-top: 33px !important;
+  }
+
+  .type-default {
+    .event-users, .event-count {
+      padding-top: 22px !important;
+    }
   }
 
   .search {

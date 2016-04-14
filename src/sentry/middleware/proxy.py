@@ -23,8 +23,7 @@ class ContentLengthHeaderMiddleware(object):
         if 'Transfer-Encoding' in response or 'Content-Length' in response:
             return response
 
-        if response.streaming:
-            response['Transfer-Encoding'] = 'chunked'
-        else:
+        if not response.streaming:
             response['Content-Length'] = str(len(response.content))
+
         return response

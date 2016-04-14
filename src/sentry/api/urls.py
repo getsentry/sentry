@@ -25,7 +25,7 @@ from .endpoints.organization_access_request_details import OrganizationAccessReq
 from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
-from .endpoints.organization_shortids import ShortIdsUpdateEndpoint
+from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_member_index import OrganizationMemberIndexEndpoint
@@ -45,6 +45,7 @@ from .endpoints.project_events import ProjectEventsEndpoint
 from .endpoints.project_event_details import ProjectEventDetailsEndpoint
 from .endpoints.project_group_index import ProjectGroupIndexEndpoint
 from .endpoints.project_group_stats import ProjectGroupStatsEndpoint
+from .endpoints.project_index import ProjectIndexEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
@@ -112,8 +113,8 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$',
         ShortIdLookupEndpoint.as_view(),
         name='sentry-api-0-short-id-lookup'),
-    url(r'^organizations/(?P<organization_slug>[^\/]+)/shortids/$',
-        ShortIdsUpdateEndpoint.as_view(),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/slugs/$',
+        SlugsUpdateEndpoint.as_view(),
         name='sentry-api-0-short-ids-update'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/access-requests/(?P<request_id>\d+)/$',
         OrganizationAccessRequestDetailsEndpoint.as_view(),
@@ -181,6 +182,9 @@ urlpatterns = patterns(
         LegacyProjectRedirectEndpoint.as_view()),
 
     # Projects
+    url(r'^projects/$',
+        ProjectIndexEndpoint.as_view(),
+        name='sentry-api-0-projects'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$',
         ProjectDetailsEndpoint.as_view(),
         name='sentry-api-0-project-details'),

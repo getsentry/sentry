@@ -14,7 +14,7 @@ const MessageCrumbComponent = React.createClass({
     return (
       <p>
         {data.level ? <span className={levelClasses}>{data.level}</span> : null}
-        {' ' + data.message + ' '}
+        <span className="message-text">{' ' + data.message + ' '}</span>
         {data.logger ? <span className="logger">[{data.logger}]</span> : null}
         <Classifier value={data.classifier} title="%s" hideIfEmpty={true}/>
       </p>

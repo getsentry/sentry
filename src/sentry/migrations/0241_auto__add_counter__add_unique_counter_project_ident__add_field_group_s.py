@@ -25,14 +25,6 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'Group', fields ['project', 'short_id']
         db.create_unique('sentry_groupedmessage', ['project_id', 'short_id'])
 
-        # Adding field 'Project.callsign'
-        db.add_column('sentry_project', 'callsign',
-                      self.gf('django.db.models.fields.CharField')(max_length=40, null=True),
-                      keep_default=False)
-
-        # Adding unique constraint on 'Project', fields ['organization', 'callsign']
-        db.create_unique('sentry_project', ['organization_id', 'callsign'])
-
         if 'postgres' in settings.DATABASES['default']['ENGINE']:
             db.execute('''
                 create function sentry_increment_project_counter(
@@ -62,9 +54,6 @@ class Migration(SchemaMigration):
 
 
     def backwards(self, orm):
-        # Removing unique constraint on 'Project', fields ['organization', 'callsign']
-        db.delete_unique('sentry_project', ['organization_id', 'callsign'])
-
         # Removing unique constraint on 'Group', fields ['project', 'short_id']
         db.delete_unique('sentry_groupedmessage', ['project_id', 'short_id'])
 
@@ -73,9 +62,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'Group.short_id'
         db.delete_column('sentry_groupedmessage', 'short_id')
-
-        # Deleting field 'Project.callsign'
-        db.delete_column('sentry_project', 'callsign')
 
         if 'postgres' in settings.DATABASES['default']['ENGINE']:
             db.execute('''

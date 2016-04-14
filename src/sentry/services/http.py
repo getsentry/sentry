@@ -127,6 +127,9 @@ class SentryHTTPServer(Service):
         for k, v in convert_options_to_env(self.options):
             env.setdefault(k, v)
 
+        # Signal that we're running within uwsgi
+        env['SENTRY_RUNNING_UWSGI'] = '1'
+
         # This has already been validated inside __init__
         env['SENTRY_SKIP_BACKEND_VALIDATION'] = '1'
 

@@ -153,11 +153,7 @@ const GroupHeader = React.createClass({
               {this.getTitle(hasEventTypes)}
             </h3>
             <div className="event-message">
-              {hasEventTypes ?
-                <span className="event-type">{group.type}</span>
-              :
-                <span className="error-level">{group.level}</span>
-              }
+              <span className="error-level">{group.level}</span>
               {group.shortId &&
                 <ShortId shortId={group.shortId} />
               }
@@ -227,8 +223,8 @@ const GroupHeader = React.createClass({
             {t('Comments')} <span className="badge animated">{group.numComments}</span>
           </ListLink>
           {features.has('user-reports') &&
-            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/reports/`}>
-              {t('User Reports')} <span className="badge animated">{group.userReportCount}</span>
+            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/feedback/`}>
+              {t('User Feedback')} <span className="badge animated">{group.userReportCount}</span>
             </ListLink>
           }
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/tags/`}>

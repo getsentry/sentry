@@ -20,7 +20,7 @@ class AddProjectWithTeamForm(AddProjectForm):
     )
 
     class Meta:
-        fields = ('name', 'callsign', 'team')
+        fields = ('name', 'team')
         model = Project
 
     def __init__(self, user, organization, team_list, *args, **kwargs):
@@ -78,10 +78,15 @@ class CreateProjectView(OrganizationView):
         if form.is_valid():
             project = form.save(request.user, request.META['REMOTE_ADDR'])
 
-            return self.redirect(absolute_uri('/{}/{}/settings/install/'.format(
+            install_uri = absolute_uri('/{}/{}/settings/install/'.format(
                 organization.slug,
                 project.slug,
-            )))
+            ))
+
+            if 'signup' in request.GET:
+                install_uri += '?signup'
+
+            return self.redirect(install_uri)
 
         context = {
             'form': form,

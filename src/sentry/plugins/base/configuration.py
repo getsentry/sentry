@@ -13,6 +13,7 @@ from django.template import RequestContext
 from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.http import Http404
+from requests.exceptions import HTTPError
 
 
 def default_plugin_config(plugin, project, request):
@@ -40,8 +41,10 @@ def default_plugin_config(plugin, project, request):
             try:
                 test_results = plugin.test_configuration(project)
             except Exception as exc:
-                if hasattr(exc, 'read') and callable(exc.read):
-                    test_results = '%s\n%s' % (exc, exc.read())
+                if isinstance(exc, HTTPError):
+                    test_results = '%s\n%s' % (exc, exc.response.text[:256])
+                elif hasattr(exc, 'read') and callable(exc.read):
+                    test_results = '%s\n%s' % (exc, exc.read()[:256])
                 else:
                     logging.exception('Plugin(%s) raised an error during test',
                                       plugin_key)

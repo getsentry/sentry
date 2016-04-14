@@ -22,14 +22,16 @@ class UserReportSerializer(Serializer):
 class ProjectUserReportSerializer(UserReportSerializer):
     def get_attrs(self, item_list, user):
         # TODO(dcramer); assert on relations
-        groups = dict(zip(
-            item_list,
-            serialize([i.group for i in item_list], user)
-        ))
+        groups = {
+            d['id']: d
+            for d in serialize(set(i.group for i in item_list if i.group_id), user)
+        }
 
         attrs = {}
         for item in item_list:
-            attrs[item] = {'group': groups[item]}
+            attrs[item] = {
+                'group': groups[str(item.group_id)] if item.group_id else None,
+            }
         return attrs
 
     def serialize(self, obj, attrs, user):

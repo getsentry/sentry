@@ -198,7 +198,11 @@ class Exception(Interface):
             if not exc.get('stacktrace'):
                 continue
 
-            for frame in exc['stacktrace'].get('frames', []):
+            frames = exc['stacktrace'].get('frames')
+            if not frames:
+                continue
+
+            for frame in frames:
                 # XXX(dcramer): handle PHP sending an empty array for a frame
                 if not isinstance(frame, dict):
                     continue
