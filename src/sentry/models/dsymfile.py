@@ -33,6 +33,8 @@ KNOWN_DSYM_TYPES = {
 
 SDK_MAPPING = {
     'iPhone OS': 'iOS',
+    'tvOS': 'tvOS',
+    'Mac OS': 'macOS',
 }
 
 
