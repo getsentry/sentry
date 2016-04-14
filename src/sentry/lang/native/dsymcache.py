@@ -1,4 +1,5 @@
 import os
+import uuid
 import time
 import errno
 import shutil
@@ -69,9 +70,21 @@ class DSymCache(object):
             pass
 
         with dsf.file.getfile() as sf:
-            with open(dsym + '_tmp', 'w') as df:
-                shutil.copyfileobj(sf, df)
-            os.rename(dsym + '_tmp', dsym)
+            suffix = '_%s' % uuid.uuid4()
+            done = False
+            try:
+                with open(dsym + suffix, 'w') as df:
+                    shutil.copyfileobj(sf, df)
+                os.rename(dsym + suffix, dsym)
+                done = True
+            finally:
+                # Use finally here because it does not lie about the
+                # error on exit
+                if not done:
+                    try:
+                        os.remove(dsym + suffix)
+                    except Exception:
+                        pass
 
         return base, dsym
 
