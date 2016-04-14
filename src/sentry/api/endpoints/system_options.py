@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 import sentry
 from sentry import options
+from sentry.utils.email import is_smtp_enabled
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SuperuserPermission
 
@@ -22,10 +23,17 @@ class SystemOptionsEndpoint(Endpoint):
         else:
             option_list = options.all()
 
+        smtp_disabled = not is_smtp_enabled()
+
         results = {}
         for k in option_list:
-            # TODO(mattrobenolt): Expose this as a property on Key.
-            diskPriority = bool(k.flags & options.FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(k.name))
+            disabled, disabled_reason = False, None
+
+            if smtp_disabled and k.name[:5] == 'mail.':
+                disabled_reason, disabled = 'smtpDisabled', True
+            elif bool(k.flags & options.FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(k.name)):
+                # TODO(mattrobenolt): Expose this as a property on Key.
+                disabled_reason, disabled = 'diskPriority', True
 
             # TODO(mattrobenolt): help, placeholder, title, type
             results[k.name] = {
@@ -33,9 +41,10 @@ class SystemOptionsEndpoint(Endpoint):
                 'field': {
                     'default': k.default(),
                     'required': bool(k.flags & options.FLAG_REQUIRED),
-                    # We're disabled if the disk has taken priority
-                    'disabled': diskPriority,
-                    'disabledReason': 'diskPriority' if diskPriority else None,
+                    'disabled': disabled,
+                    'disabledReason': disabled_reason,
+                    'isSet': options.isset(k.name),
+                    'allowEmpty': bool(k.flags & options.FLAG_ALLOW_EMPTY),
                 }
             }
 
@@ -47,10 +56,7 @@ class SystemOptionsEndpoint(Endpoint):
             if v and isinstance(v, basestring):
                 v = v.strip()
             try:
-                if not v:
-                    options.delete(k)
-                else:
-                    options.set(k, v)
+                option = options.lookup_key(k)
             except options.UnknownOption:
                 # TODO(dcramer): unify API errors
                 return Response({
@@ -59,6 +65,12 @@ class SystemOptionsEndpoint(Endpoint):
                         'option': k,
                     },
                 }, status=400)
+
+            try:
+                if not (option.flags & options.FLAG_ALLOW_EMPTY) and not v:
+                    options.delete(k)
+                else:
+                    options.set(k, v)
             except TypeError as e:
                 return Response({
                     'error': 'invalid_type',

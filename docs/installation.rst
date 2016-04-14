@@ -211,7 +211,9 @@ you can configure the nodes in very different ones to enable more
 aggressive/optimized LRU.
 
 That said, if you're running a small install you can probably get away
-with just setting up the defaults in ``config.yml``::
+with just setting up the defaults in ``config.yml``:
+
+.. code-block:: yaml
 
     redis.clusters:
       default:
@@ -238,22 +240,25 @@ See the individual documentation for :doc:`the queue <queue/>`,
 Configure Outbound Mail
 -----------------------
 
-Several settings exist as part of the Django framework which will
-configure your outbound mail server. For the standard implementation,
-using a simple SMTP server, you can simply configure the following:
+Initially, you will be prompted to supply these values during our Installation
+Wizard, but you may wish to explicitly declare them in your config file. For
+the standard implementation, using a simple SMTP server, you can simply
+configure the following in ``config.yml``:
 
-.. code-block:: python
+.. code-block:: yaml
 
-    EMAIL_HOST = 'localhost'
-    EMAIL_HOST_PASSWORD = ''
-    EMAIL_HOST_USER = ''
-    EMAIL_PORT = 25
-    EMAIL_USE_TLS = False
+    mail.from: 'sentry@localhost'
+    mail.host: 'localhost'
+    mail.port: 25
+    mail.username: ''
+    mail.password: ''
+    mail.use-tls: false
 
-Being that Django is a pluggable framework, you also have the ability to
-specify different mail backends. See the `official Django documentation
-<https://docs.djangoproject.com/en/1.3/topics/email/?from=olddocs#email-backends>`_
-for more information on alternative backends.
+Alternatively, if you want to disable email entirely, you could set:
+
+.. code-block:: yaml
+
+    mail.backend: 'dummy'
 
 Running Migrations
 ------------------
@@ -269,7 +274,7 @@ you've created the database:
 
 Once done, you can create the initial schema using the ``upgrade`` command:
 
-.. code-block:: python
+.. code-block:: bash
 
     $ SENTRY_CONF=/etc/sentry sentry upgrade
 

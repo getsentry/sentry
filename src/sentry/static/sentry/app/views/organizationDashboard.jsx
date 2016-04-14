@@ -23,6 +23,7 @@ const AssignedIssues = React.createClass({
     pageSize: React.PropTypes.number
   },
 
+
   getEndpoint() {
     return `/organizations/${this.props.params.orgId}/members/me/issues/assigned/?`;
   },
@@ -35,18 +36,27 @@ const AssignedIssues = React.createClass({
     return <div className="box empty">{t('No issues have been assigned to you.')}</div>;
   },
 
+  refresh() {
+    this.refs.issueList.remountComponent();
+  },
+
   render() {
     return (
       <div>
         <div className="pull-right">
           <Link className="btn btn-sm btn-default" to={this.getViewMoreLink()}>{t('View more')}</Link>
+          <a className="btn btn-sm btn-default" style={{marginLeft: 5}}
+             onClick={this.refresh}>
+            <span className="icon icon-refresh" />
+          </a>
         </div>
         <h4>Assigned to me</h4>
         <IssueList endpoint={this.getEndpoint()} query={{
           statsPeriod: this.props.statsPeriod,
           per_page: this.props.pageSize,
           status: 'unresolved',
-        }} pagination={false} renderEmpty={this.renderEmpty} {...this.props} />
+        }} pagination={false} renderEmpty={this.renderEmpty}
+           ref="issueList" {...this.props} />
       </div>
     );
   },
@@ -63,18 +73,29 @@ const NewIssues = React.createClass({
   },
 
   renderEmpty() {
-    return <div className="box empty">{t('No new issues have been seen in the last 24 hours.')}</div>;
+    return <div className="box empty">{t('No new issues have been seen in the last week.')}</div>;
+  },
+
+  refresh() {
+    this.refs.issueList.remountComponent();
   },
 
   render() {
     return (
       <div>
+        <div className="pull-right">
+          <a className="btn btn-sm btn-default" style={{marginLeft: 5}}
+             onClick={this.refresh}>
+            <span className="icon icon-refresh" />
+          </a>
+        </div>
         <h4>New issues</h4>
         <IssueList endpoint={this.getEndpoint()} query={{
           statsPeriod: this.props.statsPeriod,
           per_page: this.props.pageSize,
           status: 'unresolved',
-        }} pagination={false} renderEmpty={this.renderEmpty} {...this.props} />
+        }} pagination={false} renderEmpty={this.renderEmpty}
+           ref="issueList" {...this.props} />
       </div>
     );
   },
@@ -112,9 +133,11 @@ const ProjectList = React.createClass({
     let {maxProjects} = this.props;
     let projects = [];
     this.props.teams.forEach(team => {
-      team.projects.forEach(project => {
-        projects.push({...project, teamName: team.name});
-      });
+      if (team.isMember) {
+        team.projects.forEach(project => {
+          projects.push({...project, teamName: team.name});
+        });
+      }
     });
 
     projects = sortArray(projects, (item) => {
@@ -138,7 +161,7 @@ const ProjectList = React.createClass({
         <h6 className="nav-header">Projects</h6>
         {bookmarkedProjects.length === 0 &&
           <div className="alert alert-info" style={{marginBottom: 10}}>
-            Bookmark your most used <Link to={`/${org.slug}/`}>projects</Link> to have them appear here.
+            Bookmark your most used <Link to={`/organizations/${org.slug}/teams/`}>projects</Link> to have them appear here.
           </div>
         }
         <ul className="nav nav-stacked">

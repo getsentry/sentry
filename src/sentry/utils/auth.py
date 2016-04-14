@@ -19,8 +19,15 @@ from sentry.models import User
 logger = logging.getLogger('sentry.auth')
 
 
+def _make_key_value(val):
+    return val.strip().split('=', 1)
+
+
 def parse_auth_header(header):
-    return dict(map(lambda x: x.strip().split('='), header.split(' ', 1)[1].split(',')))
+    try:
+        return dict(map(_make_key_value, header.split(' ', 1)[1].split(',')))
+    except Exception:
+        return {}
 
 
 def get_auth_providers():

@@ -108,6 +108,86 @@ def create_sample_time_series(event):
         now = now - timedelta(hours=1)
 
 
+epoch = datetime.utcfromtimestamp(0)
+
+
+def milliseconds_ago(now, milliseconds):
+    ago = (now - timedelta(milliseconds=milliseconds))
+    return (ago - epoch).total_seconds()
+
+
+def get_sample_breadcrumbs(prior_event_id=None):
+    now = datetime.now()
+    sample_breadcrumbs = {
+        "values": [
+            {
+                "type": "navigation",
+                "timestamp": milliseconds_ago(now, 5200),
+                "data": {
+                    "to": "http://example.com/dashboard/",
+                    "from": "http://example.com/login/"
+                }
+            },
+            {
+                "type": "message",
+                "timestamp": milliseconds_ago(now, 4000),
+                "data": {
+                    "message": "This is a message breadcrumb",
+                    "level": "info"
+                }
+            },
+            {
+                "type": "message",
+                "timestamp": milliseconds_ago(now, 3300),
+                "data": {
+                    "message": "This is a warning message",
+                    "level": "warning"
+                }
+            },
+            {
+                "type": "message",
+                "timestamp": milliseconds_ago(now, 2700),
+                "data": {
+                    "message": "This is an error message",
+                    "level": "error"
+                }
+            },
+            {
+                "type": "http_request",
+                "timestamp": milliseconds_ago(now, 1300),
+                "data": {
+                    "url": "http://example.com/foo",
+                    "status_code": 200,
+                    "method": "POST",
+                    "headers": {
+                        "Referer": "http://example.com",
+                        "Content-Type": "application/json"
+                    }
+                }
+            },
+            {
+                "type": "ui_event",
+                "timestamp": milliseconds_ago(now, 1000),
+                "data": {
+                    "type": "click",
+                    "target": "<button name=\"submit\" class=\"btn btn-small\"/>"
+                }
+            }
+        ]
+    }
+
+    if prior_event_id:
+        sample_breadcrumbs["values"].insert(2, {
+            "type": "error",
+            "timestamp": milliseconds_ago(now, 3000),
+            "data": {
+                "message": "TypeError: something broke earlier",
+                "event_id": prior_event_id
+            }
+        })
+
+    return sample_breadcrumbs
+
 def main(num_events=1):
     user = User.objects.filter(is_superuser=True)[0]
 
@@ -199,15 +279,18 @@ def main(num_events=1):
             )
 
             # Add a bunch of additional dummy events to support pagination
+            last_event = None
             for _ in range(45):
                 platform = PLATFORMS.next()
-                create_sample_event(
+
+                last_event = create_sample_event(
                     project=project,
                     platform=platform,
                     release=release.version,
                     level=LEVELS.next(),
                     message='This is a mostly useless example %s exception' % platform,
                     checksum=md5(platform + str(_)).hexdigest(),
+                    breadcrumbs=get_sample_breadcrumbs(prior_event_id=last_event.id if last_event else None),
                 )
 
             for _ in range(num_events):
@@ -221,6 +304,11 @@ def main(num_events=1):
                     project=project,
                     platform='javascript',
                     release=release.version,
+                    breadcrumbs=get_sample_breadcrumbs(prior_event_id=event1.event_id),
+                    sdk={
+                        'name': 'raven-js',
+                        'version': '2.1.0',
+                    },
                 )
 
                 event3 = create_sample_event(project, 'java')

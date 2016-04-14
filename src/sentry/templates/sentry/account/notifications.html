@@ -18,8 +18,11 @@
         font-size: 16px;
         padding-bottom: 10px;
     }
+    td label small {
+        font-weight: normal;
+    }
     </style>
-    <form action="" method="post">
+    <form action="" method="post" class="">
         {% csrf_token %}
 
         <p>{% blocktrans %}Notifications are generally sent when a new event is
@@ -34,6 +37,7 @@
         {% endwith %}
 
         {% if project_forms %}
+            <hr />
             <h4>{% trans "Mail" %}</h4>
             <p>{% blocktrans %}Choose which projects you wish to receive email notifications for, as well as an alternative email address to send to.{% endblocktrans %}</p>
             <p><small>{% blocktrans %}Note: You will never receive notifications if a project has them disabled (via the Project settings){% endblocktrans %}</small></p>
@@ -46,7 +50,7 @@
                     {% if not forloop.first %}
                         </table>
                     {% endif %}
-                    <h4>{{ project.team.name }}</h4>
+                    <h5>{{ project.team.name }} <small>{{ project.organization.name }}</small></h5>
 
                     <table class="table table-bordered table-striped" style="margin-bottom: 20px">
                         <thead>
@@ -63,7 +67,7 @@
                 {% endifchanged %}
                 <tr>
                     <td>{{ form.alert }}</td>
-                    <td><label for="{{ form.alert.auto_id }}">{{ project.name }}</label></td>
+                    <td><label for="{{ form.alert.auto_id }}">{{ project.name }} <small>&mdash; {{ project.slug }}</small></label></td>
                     <td style="text-align:right">
                         <a href="javascript:void(0)" data-target="{{ form.email.auto_id }}" data-toggle="change-target-value">
                             {% if form.email.value %}{{ form.email.value }}{% else %}<em>Default</em>{% endif %}

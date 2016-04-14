@@ -16,7 +16,7 @@ class CspReportViewTest(TestCase):
     @fixture
     def path(self):
         path = reverse('sentry-api-csp-report', kwargs={'project_id': self.project.id})
-        return path + '?sentry_key=%s&sentry_version=5' % self.projectkey.public_key
+        return path + '?sentry_key=%s' % self.projectkey.public_key
 
     def test_get_response(self):
         resp = self.client.get(self.path)
@@ -277,6 +277,20 @@ class StoreViewTest(TestCase):
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['sentry.interfaces.Http']['data'] == 'password=[Filtered]&foo=[Filtered]&bar=[Filtered]&baz=[Filtered]'
+
+    @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
+    def test_uses_client_as_sdk(self, mock_insert_data_to_database):
+        body = {
+            "message": "foo bar",
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 200, resp.content
+
+        call_data = mock_insert_data_to_database.call_args[0][0]
+        assert call_data['sdk'] == {
+            'name': '_postWithHeader',
+            'version': '0.0.0',
+        }
 
 
 class CrossDomainXmlTest(TestCase):

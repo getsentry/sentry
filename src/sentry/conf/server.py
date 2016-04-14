@@ -695,6 +695,7 @@ SENTRY_INTERFACES = {
     'query': 'sentry.interfaces.query.Query',
     'user': 'sentry.interfaces.user.User',
     'csp': 'sentry.interfaces.csp.Csp',
+    'sdk': 'sentry.interfaces.sdk.Sdk',
     'applecrashreport': 'sentry.interfaces.applecrash.AppleCrashReport',
     'breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
     'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
@@ -708,6 +709,24 @@ SENTRY_INTERFACES = {
     'sentry.interfaces.AppleCrashReport': 'sentry.interfaces.applecrash.AppleCrashReport',
     'sentry.interfaces.Breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
 }
+
+SENTRY_EMAIL_BACKEND_ALIASES = {
+    'smtp': 'django.core.mail.backends.smtp.EmailBackend',
+    'dummy': 'django.core.mail.backends.dummy.EmailBackend',
+    'console': 'django.core.mail.backends.console.EmailBackend',
+}
+
+# set of backends that do not support needing SMTP mail.* settings
+# This list is a bit fragile and hardcoded, but it's unlikely that
+# a user will be using a different backend that also mandates SMTP
+# credentials.
+SENTRY_SMTP_DISABLED_BACKENDS = frozenset((
+    'django.core.mail.backends.dummy.EmailBackend',
+    'django.core.mail.backends.console.EmailBackend',
+    'django.core.mail.backends.locmem.EmailBackend',
+    'django.core.mail.backends.filebased.EmailBackend',
+    'sentry.utils.email.PreviewBackend',
+))
 
 # Should users without superuser permissions be allowed to
 # make projects public
@@ -908,15 +927,8 @@ SENTRY_ROLES = (
 )
 
 # See sentry/options/__init__.py for more information
-SENTRY_OPTIONS = {
-    'mail.backend': 'django.core.mail.backends.smtp.EmailBackend',
-    'mail.host': 'localhost',
-    'mail.port': 25,
-    'mail.username': '',
-    'mail.password': '',
-    'mail.use-tls': False,
-    'mail.subject-prefix': '[Sentry] ',
-    'mail.from': 'root@localhost',
+SENTRY_OPTIONS = {}
+SENTRY_DEFAULT_OPTIONS = {
     # Make this unique, and don't share it with anybody.
     'system.secret-key': hashlib.md5(socket.gethostname() + ')*)&8a36)6%74e@-ne5(-!8a(vv#tkv)(eyg&@0=zd^pl!7=y@').hexdigest(),
 }

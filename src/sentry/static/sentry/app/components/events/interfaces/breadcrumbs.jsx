@@ -1,4 +1,6 @@
 import React from 'react';
+import moment from 'moment';
+
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 
@@ -81,7 +83,7 @@ const BreadcrumbsInterface = React.createClass({
           <span className="icon-container">
             <span className="icon"/>
           </span>
-          <span className="dt">{Math.round(item.dt * 1000) / 1000}ms</span>
+          <span className="dt">{moment(item.timestamp).format('HH:mm:ss')}</span>
           {el}
         </li>
       );
@@ -110,11 +112,12 @@ const BreadcrumbsInterface = React.createClass({
       // make copy of values array / don't mutate props
       all = all.slice(0).concat([{
         type: 'error',
-        dt: 0,
-        data: exception.data.values[0]
+        data: exception.data.values[0],
+        timestamp: evt.dateCreated
       }]);
     }
 
+    // cap max number of breadcrumbs to show
     let crumbs = all;
     const MAX = BreadcrumbsInterface.MAX_CRUMBS_WHEN_COLLAPSED;
     if (this.state.collapsed && crumbs.length > MAX) {

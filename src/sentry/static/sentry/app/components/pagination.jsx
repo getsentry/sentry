@@ -5,7 +5,7 @@ import {t} from '../locale';
 
 const Pagination = React.createClass({
   propTypes: {
-    pageLinks: React.PropTypes.string.isRequired,
+    pageLinks: React.PropTypes.string,
     to: React.PropTypes.string
   },
 
