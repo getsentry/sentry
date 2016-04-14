@@ -7,101 +7,31 @@ try:
 except ImportError:
     have_symsynd = False
 
-from django.db import connection
 from sentry import options
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
-
-
-SDK_MAPPING = {
-    'iPhone OS': 'iOS',
-}
+from sentry.models import DSymSymbol
+from sentry.models.dsymfile import MAX_SYM
 
 
 def trim_frame(frame):
     # This matches what's in stacktrace.py
-    frame['symbol_name'] = trim(frame.get('symbol_name'), 256)
+    frame['symbol_name'] = trim(frame.get('symbol_name'), MAX_SYM)
     frame['filename'] = trim(frame.get('filename'), 256)
     return frame
 
 
-def get_sdk_from_system_info(info):
-    if not info:
-        return None
-    try:
-        sdk_name = SDK_MAPPING[info['system_name']]
-        system_version = tuple(int(x) for x in (
-            info['system_version'] + '.0' * 3).split('.')[:3])
-    except LookupError:
-        return None
-
-    return {
-        'dsym_type': 'macho',
-        'sdk_name': sdk_name,
-        'version_major': system_version[0],
-        'version_minor': system_version[1],
-        'version_patchlevel': system_version[2],
-    }
-
-
 def find_system_symbol(img, instruction_addr, system_info=None):
     """Finds a system symbol."""
-    addr = instruction_addr - img['image_addr']
-
-    uuid = img['uuid'].lower()
-    cur = connection.cursor()
-    try:
-        # First try: exact match on uuid
-        cur.execute('''
-            select symbol
-              from sentry_dsymsymbol s,
-                   sentry_dsymobject o
-             where o.uuid = %s and
-                   s.object_id = o.id and
-                   s.address <= o.vmaddr + %s and
-                   s.address >= o.vmaddr
-          order by address desc
-             limit 1;
-        ''', [uuid, addr])
-        rv = cur.fetchone()
-        if rv:
-            return rv[0]
-
-        # Second try: exact match on path and arch
-        cpu_name = get_cpu_name(img['cpu_type'],
-                                img['cpu_subtype'])
-        sdk_info = get_sdk_from_system_info(system_info)
-        if sdk_info is None or cpu_name is None:
-            return
-
-        cur.execute('''
-            select symbol
-              from sentry_dsymsymbol s,
-                   sentry_dsymobject o,
-                   sentry_dsymsdk k,
-                   sentry_dsymbundle b
-             where b.sdk_id = k.id and
-                   b.object_id = o.id and
-                   s.object_id = o.id and
-                   k.sdk_name = %s and
-                   k.dsym_type = %s and
-                   k.version_major = %s and
-                   k.version_minor = %s and
-                   k.version_patchlevel = %s and
-                   o.cpu_name = %s and
-                   o.object_path = %s and
-                   s.address <= o.vmaddr + %s and
-                   s.address >= o.vmaddr
-          order by address desc
-             limit 1;
-        ''', [sdk_info['sdk_name'], sdk_info['dsym_type'],
-              sdk_info['version_major'], sdk_info['version_minor'],
-              sdk_info['version_patchlevel'], cpu_name, img['name'], addr])
-        rv = cur.fetchone()
-        if rv:
-            return rv[0]
-    finally:
-        cur.close()
+    return DSymSymbol.objects.lookup_symbol(
+        instruction_addr=instruction_addr,
+        image_addr=img['image_addr'],
+        uuid=img['uuid'],
+        cpu_name=get_cpu_name(img['cpu_type'],
+                              img['cpu_subtype']),
+        object_path=img['name'],
+        system_info=system_info
+    )
 
 
 def make_symbolizer(project, binary_images, threads=None):

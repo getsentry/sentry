@@ -12,7 +12,7 @@ import os
 import shutil
 import hashlib
 import tempfile
-from django.db import models, transaction, IntegrityError
+from django.db import models, transaction, connection, IntegrityError
 
 try:
     from symsynd.macho.arch import get_macho_uuids
@@ -21,39 +21,87 @@ except ImportError:
     have_symsynd = False
 
 from sentry.db.models import FlexibleForeignKey, Model, BoundedBigIntegerField, \
-    sane_repr
+    sane_repr, BaseManager
 from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 
 
+MAX_SYM = 256
 KNOWN_DSYM_TYPES = {
     'application/x-mach-binary': 'macho'
 }
 
+SDK_MAPPING = {
+    'iPhone OS': 'iOS',
+}
 
-'''
-system symbols:
 
-  architecture   VARCHAR(20)
-  sdk-version    MAJOR.MINOR.PATCHLEVEL-BUILD
-  uuid           UUID
-  path           VARCHAR(255)
-  address        BIGINT
-  symbol         TEXT
+def get_sdk_from_system_info(info):
+    if not info:
+        return None
+    try:
+        sdk_name = SDK_MAPPING[info['system_name']]
+        system_version = tuple(int(x) for x in (
+            info['system_version'] + '.0' * 3).split('.')[:3])
+    except LookupError:
+        return None
 
-lookup logic:
+    return {
+        'dsym_type': 'macho',
+        'sdk_name': sdk_name,
+        'version_major': system_version[0],
+        'version_minor': system_version[1],
+        'version_patchlevel': system_version[2],
+    }
 
-  primary lookup:
-    uuid -> exact match
-    address -> lower than or equal to reference address
-      limit 1
 
-  secondary lookup:
-    path -> exact match
-    sdk-version -> fuzzy match
-    address -> lower than or equal to reference address
-      limit 1
-'''
+class DSymSDKManager(BaseManager):
+
+    def enumerate_sdks(self, sdk=None, version=None):
+        """Return a grouped list of SDKs."""
+        filter = ''
+        args = []
+        if version is not None:
+            for col, val in zip(['major', 'minor', 'patchlevel'],
+                                version.split('.')):
+                if not val.isdigit():
+                    return []
+                filter += ' and k.version_%s = %d' % (
+                    col,
+                    int(val)
+                )
+        if sdk is not None:
+            filter += ' and k.sdk_name = %s'
+            args.append(sdk)
+        cur = connection.cursor()
+        cur.execute('''
+   select distinct k.*, count(b.*) as bundle_count, o.cpu_name
+              from sentry_dsymsdk k,
+                   sentry_dsymbundle b,
+                   sentry_dsymobject o
+             where b.sdk_id = k.id and
+                   b.object_id = o.id %s
+          group by k.id, k.sdk_name, o.cpu_name
+        ''' % filter, args)
+        rv = []
+        for row in cur.fetchall():
+            row = dict(zip([x[0] for x in cur.description], row))
+            ver = '%s.%s.%s' % (
+                row['version_major'],
+                row['version_minor'],
+                row['version_patchlevel']
+            )
+            rv.append({
+                'sdk_name': row['sdk_name'],
+                'version': ver,
+                'build': row['version_build'],
+                'bundle_count': row['bundle_count'],
+                'cpu_name': row['cpu_name'],
+            })
+        return sorted(rv, key=lambda x: (x['sdk_name'],
+                                         x['version'],
+                                         x['build'],
+                                         x['cpu_name']))
 
 
 class DSymSDK(Model):
@@ -64,6 +112,8 @@ class DSymSDK(Model):
     version_minor = models.IntegerField()
     version_patchlevel = models.IntegerField()
     version_build = models.CharField(max_length=40)
+
+    objects = DSymSDKManager()
 
     class Meta:
         app_label = 'sentry'
@@ -97,11 +147,76 @@ class DSymBundle(Model):
         db_table = 'sentry_dsymbundle'
 
 
+class DSymSymbolManager(BaseManager):
+
+    def lookup_symbol(self, instruction_addr, image_addr, uuid,
+                      cpu_name=None, object_path=None, system_info=None):
+        """Finds a system symbol."""
+        addr = instruction_addr - image_addr
+
+        uuid = str(uuid).lower()
+        cur = connection.cursor()
+        try:
+            # First try: exact match on uuid
+            cur.execute('''
+                select symbol
+                  from sentry_dsymsymbol s,
+                       sentry_dsymobject o
+                 where o.uuid = %s and
+                       s.object_id = o.id and
+                       s.address <= o.vmaddr + %s and
+                       s.address >= o.vmaddr
+              order by address desc
+                 limit 1;
+            ''', [uuid, addr])
+            rv = cur.fetchone()
+            if rv:
+                return rv[0]
+
+            # Second try: exact match on path and arch
+            sdk_info = get_sdk_from_system_info(system_info)
+            if sdk_info is None or \
+               cpu_name is None or \
+               object_path is None:
+                return
+
+            cur.execute('''
+                select symbol
+                  from sentry_dsymsymbol s,
+                       sentry_dsymobject o,
+                       sentry_dsymsdk k,
+                       sentry_dsymbundle b
+                 where b.sdk_id = k.id and
+                       b.object_id = o.id and
+                       s.object_id = o.id and
+                       k.sdk_name = %s and
+                       k.dsym_type = %s and
+                       k.version_major = %s and
+                       k.version_minor = %s and
+                       k.version_patchlevel = %s and
+                       o.cpu_name = %s and
+                       o.object_path = %s and
+                       s.address <= o.vmaddr + %s and
+                       s.address >= o.vmaddr
+              order by address desc
+                 limit 1;
+            ''', [sdk_info['sdk_name'], sdk_info['dsym_type'],
+                  sdk_info['version_major'], sdk_info['version_minor'],
+                  sdk_info['version_patchlevel'], cpu_name, object_path, addr])
+            rv = cur.fetchone()
+            if rv:
+                return rv[0]
+        finally:
+            cur.close()
+
+
 class DSymSymbol(Model):
     __core__ = False
     object = FlexibleForeignKey('sentry.DSymObject')
     address = BoundedBigIntegerField(db_index=True)
     symbol = models.TextField()
+
+    objects = DSymSymbolManager()
 
     class Meta:
         app_label = 'sentry'
