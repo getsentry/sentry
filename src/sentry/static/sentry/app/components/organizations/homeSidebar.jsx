@@ -77,7 +77,7 @@ const HomeSidebar = React.createClass({
                 <li><a href={urlPrefix + '/api-keys/'}>{t('API Keys')}</a></li>
               }
               {access.has('org:write') &&
-                <li><a href={urlPrefix + '/audit-log/'}>{t('Audit Log')}</a></li>
+                <ListLink to={`/organizations/${orgId}/audit-log/`}>{t('Audit Log')}</ListLink>
               }
               {access.has('org:write') &&
                 <ListLink to={`/organizations/${orgId}/rate-limits/`}>{t('Rate Limits')}</ListLink>

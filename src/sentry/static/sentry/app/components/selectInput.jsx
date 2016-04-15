@@ -48,7 +48,9 @@ const SelectInput = React.createClass({
   },
 
   create() {
-    this.select2 = jQuery(this.refs.select).select2();
+    this.select2 = jQuery(this.refs.select).select2({
+      width: 'element'
+    });
     this.select2.on('change', this.onChange);
   },
 
@@ -61,17 +63,8 @@ const SelectInput = React.createClass({
   },
 
   render() {
-    let opts = {
-        ref: 'select',
-        disabled: this.props.disabled,
-        required: this.props.required,
-        multiple: this.props.multiple,
-        placeholder: this.props.placeholder,
-        className: this.props.className,
-        value: this.props.value,
-    };
     return (
-      <select {...opts}>
+      <select ref="select" {...this.props}>
         {this.props.children}
       </select>
     );
