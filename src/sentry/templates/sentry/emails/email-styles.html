@@ -388,6 +388,14 @@
   .avatar-column {
     width: 60px;
     vertical-align: top;
+    position: relative;
+  }
+  .avatar-column span,
+  .avatar-container svg,
+  .avatar-container img {
+    position: absolute;
+    top: 0px;
+    left: 0px;
   }
   .notch-column {
     width: 7px;
@@ -396,6 +404,14 @@
 
   .notch-column img {
     display: block;
+  }
+  .avatar-container {
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+    position: relative;
+    display: inline-block;
+    vertical-align: bottom;
   }
   .avatar {
     border-radius: 3px;

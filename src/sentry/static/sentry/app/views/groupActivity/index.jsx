@@ -139,7 +139,7 @@ const GroupActivity = React.createClass({
 
     let children = group.activity.map((item, itemIdx) => {
       let avatar = (item.user ?
-        <Gravatar email={item.user.email} size={64} className="avatar" /> :
+        <Gravatar user={item.user} size={64} className="avatar" /> :
         <div className="avatar sentry"><span className="icon-sentry-logo"></span></div>);
 
       let author = {
@@ -177,7 +177,7 @@ const GroupActivity = React.createClass({
           <div className="activity-container">
             <ul className="activity">
               <li className="activity-note" key="activity-note">
-                <Gravatar email={me.email} size={64} className="avatar" />
+                <Gravatar user={me} size={64} className="avatar" />
                 <div className="activity-bubble">
                   <NoteInput group={group} />
                 </div>
