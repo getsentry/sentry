@@ -20,7 +20,7 @@ const UserNav = React.createClass({
     }
 
     let title = (
-      <Gravatar email={user.email} className="avatar" />
+      <Gravatar user={user} className="avatar" />
     );
 
     return (

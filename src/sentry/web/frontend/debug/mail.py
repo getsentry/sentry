@@ -217,9 +217,9 @@ def assigned(request):
         data=load_data('python'),
     )
     assigned = Activity(
-        group=event.group, event=event, project=event.project,
+        group=event.group, project=event.project,
         type=Activity.ASSIGNED, user=request.user,
-        data={'text': 'This is an example note!'},
+        data={'text': 'This is an example note!', 'assignee': 'foo@example.com'},
     )
 
     return MailPreview(

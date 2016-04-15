@@ -74,7 +74,10 @@
       {% for member, needs_sso in member_list %}
         <tr>
           <td class="table-user-info">
-            <img class="avatar" src="{% gravatar_url member.get_email size 80 %}">
+            <span class="avatar">
+              {% letter_avatar_svg member.get_display_name member.get_label %}
+              <img src="{% gravatar_url member.get_email size 80 default 'blank' %}">
+            </span>
             <h5><a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
               {{ member.get_display_name }}
             </a></h5>

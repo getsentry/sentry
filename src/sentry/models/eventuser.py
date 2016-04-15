@@ -68,3 +68,6 @@ class EventUser(Model):
 
     def get_label(self):
         return self.email or self.username or self.ident or self.ip_address
+
+    def get_display_name(self):
+        return self.email or self.username

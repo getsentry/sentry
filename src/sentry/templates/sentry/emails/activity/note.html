@@ -18,7 +18,10 @@
   <table class="note">
     <tr>
       <td class="avatar-column">
-        <img class="avatar" width="48" height="48" src="{% gravatar_url author.email size 96 %}">
+        <span>{% letter_avatar_svg author.get_display_name author.get_label size 48 %}</span>
+        <span>
+          <img class="avatar" width="48" height="48" src="{% gravatar_url author.email size 96 default 'blank' %}">
+        </span>
       </td>
       <td class="notch-column">
         <img width="7" height="48" src="{% absolute_asset_url 'sentry' 'images/email/avatar-notch.png' %}">
