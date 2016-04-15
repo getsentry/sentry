@@ -55,6 +55,28 @@
       color: @red;
     }
   }
+
+  .dashboard-sparkline {
+    height: 45px;
+
+    a {
+      height: 45px;
+
+      > span {
+        left: 2px;
+        right: 2px;
+        background: @purple-light;
+
+        &.rejected {
+          background: @red-light;
+        }
+
+        &.blacklisted {
+          background: @gray-light;
+        }
+      }
+    }
+  }
 }
 
 .organization-home {
