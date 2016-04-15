@@ -9,8 +9,10 @@ import {loadStats} from '../actionCreators/projects';
 import GroupStore from '../stores/groupStore';
 import TeamStore from '../stores/teamStore';
 
+import BarChart from '../components/barChart';
 import ActivityFeed from '../components/activity/feed';
 import IssueList from '../components/issueList';
+import LoadingError from '../components/loadingError';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import OrganizationState from '../mixins/organizationState';
 
@@ -207,22 +209,95 @@ const Activity = React.createClass({
   },
 });
 
-const EPM = React.createClass({
+const EPH = React.createClass({
 
-  mixins: [OrganizationState],
+  mixins: [ApiMixin, OrganizationState],
+
+  getInitialState() {
+    let until = Math.floor(new Date().getTime() / 1000);
+    let since = until - 3600 * 24;
+
+    return {
+      rawOrgData: {received: null, rejected: null, blacklisted: null},
+      formattedData: null,
+      querySince: since,
+      queryUntil: until,
+      error: false
+    };
+  },
+
+  componentDidMount() {
+    this.fetchData();
+  },
+
+  STAT_OPTS: ['received', 'rejected', 'blacklisted'],
+
+  fetchData() {
+    let statEndpoint = this.getEndpoint();
+
+    let query = {
+      since: this.state.querySince,
+      until: this.state.queryUntil,
+      resolution: '1h',
+    };
+
+    $.when.apply($, this.STAT_OPTS.map(stat => {
+        let deferred = $.Deferred();
+        this.api.request(statEndpoint, {
+          query: Object.assign({stat: stat}, query),
+          success: deferred.resolve.bind(deferred),
+          error: deferred.reject.bind(deferred)
+        });
+        return deferred;
+      }
+    )).done(function() {
+      let rawOrgData = {};
+      for (let i = 0; i < this.STAT_OPTS.length; i++) {
+        rawOrgData[this.STAT_OPTS[i]] = arguments[i][0];
+      }
+      this.setState(Object.assign({rawOrgData: rawOrgData}, this.getChartState(rawOrgData)));
+    }.bind(this)).fail(function() {
+      this.setState({error: true});
+    }.bind(this));
+  },
 
   getEndpoint() {
-    return `/organizations/${this.props.params.orgId}/activity/`;
+    return `/organizations/${this.props.params.orgId}/stats/`;
+  },
+
+  getChartState(rawData) {
+    // TODO: make sure stats data is zero filled otherwise this will be wrong
+    let chartData = [];
+    let barClasses = [];
+    for (let i = 0; i < rawData.received.length; i++) {
+      let point = {x: rawData.received[i][0], y: []};
+      for (let statType in rawData) {
+        point.y.push(rawData[statType][i][1]);
+        barClasses.push(statType);
+      }
+      chartData.push(point);
+    }
+    return {
+      formattedData: chartData,
+      barClasses: barClasses
+    };
   },
 
   render() {
+    if (this.state.error) {
+      return <LoadingError />;
+    }
+
+    if (!this.state.formattedData) {
+      return null;
+    }
     let org = this.getOrganization();
 
     return (
       <div>
-        <Link className="btn-sidebar-header" to={`/organizations/${org.slug}/stats/`}>View Stats</Link>
-        <h6 className="nav-header">Events Per Minute</h6>
-
+        <Link className="btn-sidebar-header" to={`/organizations/${org.slug}/stats/`}>{t('View Stats')}</Link>
+        <h6 className="nav-header">{t('Events Per Hour')}</h6>
+          <BarChart points={this.state.formattedData} className="sparkline" barClasses={this.state.barClasses} />
       </div>
     );
   },
@@ -279,7 +354,7 @@ const OrganizationDashboard = React.createClass({
             <Activity {...this.props} />
           </div>
           <div className="col-md-4">
-            <EPM />
+            <EPH {...this.props}/>
             <hr />
             <ProjectList {...this.props} teams={this.state.teams} />
           </div>

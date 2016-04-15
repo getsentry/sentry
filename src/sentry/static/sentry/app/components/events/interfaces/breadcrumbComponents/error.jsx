@@ -6,8 +6,7 @@ function Error(props) {
   let {type, value, message, eventId} = props.data;
 
   let list = [];
-  if (type && value) {
-    list.push(['type', type]);
+  if (value) {
     list.push(['message', value]);
   }
   if (message) {
@@ -19,7 +18,7 @@ function Error(props) {
 
   return (
     <div>
-      <h5>Error</h5>
+      <h5>{type || 'Error'}</h5>
       <KeyValueList data={list} isSorted={false} />
     </div>
   );

@@ -7,7 +7,7 @@ const BarChart = React.createClass({
   propTypes: {
     points: React.PropTypes.arrayOf(React.PropTypes.shape({
       x: React.PropTypes.number.isRequired,
-      y: React.PropTypes.number.isRequired,
+      y: React.PropTypes.array.isRequired,
       label: React.PropTypes.string
     })),
     interval: React.PropTypes.string,
@@ -18,7 +18,8 @@ const BarChart = React.createClass({
     markers: React.PropTypes.arrayOf(React.PropTypes.shape({
       x: React.PropTypes.number.isRequired,
       label: React.PropTypes.string
-    }))
+    })),
+    barClasses: React.PropTypes.array
   },
 
   mixins: [
@@ -61,7 +62,8 @@ const BarChart = React.createClass({
       placement: 'bottom',
       points: [],
       markers: [],
-      width: null
+      width: null,
+      barClasses: ['chart-bar']
     };
   },
 
@@ -144,8 +146,12 @@ const BarChart = React.createClass({
   maxPointValue() {
     let maxval = 10;
     this.props.points.forEach((point) => {
-      if (point.y > maxval) {
-        maxval = point.y;
+      let totalY = 0;
+      point.y.forEach((y) => {
+        totalY += y;
+      });
+      if (totalY > maxval) {
+        maxval = totalY;
       }
     });
     return maxval;
@@ -174,9 +180,13 @@ const BarChart = React.createClass({
   renderTooltip(pointIdx) {
     let point = this.props.points[pointIdx];
     let timeLabel = this.getTimeLabel(point);
+    let totalY = 0;
+    for (let i = 0; i < point.y.length; i++) {
+      totalY += point.y[i];
+    }
     let title = (
       '<div style="width:130px">' +
-        point.y + ' ' + this.props.label + '<br/>' +
+        totalY + ' ' + this.props.label + '<br/>' +
         timeLabel +
       '</div>'
     );
@@ -188,15 +198,28 @@ const BarChart = React.createClass({
 
   renderChartColumn(pointIdx, maxval, pointWidth) {
     let point = this.props.points[pointIdx];
-    let pct = this.floatFormat(point.y / maxval * 99, 2) + '%';
-
+    let totalY = 0;
+    for (let i = 0; i < point.y.length; i++) {
+      totalY += point.y[i];
+    }
+    let totalPct = totalY / maxval;
+    let prevPct = 0;
+    let pts = point.y.map((y, i) => {
+        let pct = totalY && this.floatFormat((y / totalY) * totalPct * 99, 2);
+        let pt = (
+          <span key={i} className={this.props.barClasses[i]}
+                style={{height: pct + '%', bottom: prevPct + '%'}}>{y}</span>
+        );
+        prevPct += pct;
+        return pt;
+     });
     return (
       <a key={point.x}
          className="chart-column tip"
          data-point-index={pointIdx}
          style={{width: pointWidth}}
        >
-        <span style={{height: pct}}>{point.y}</span>
+       {pts}
       </a>
     );
   },

@@ -21,7 +21,7 @@ const GroupChart = React.createClass({
     let stats = group.stats[this.props.statsPeriod];
     if (!stats || !stats.length) return null;
     let points = stats.map((point) => {
-      return {x: point[0], y: point[1]};
+      return {x: point[0], y: [point[1]]};
     });
     let className = 'bar-chart group-chart ' + (this.props.className || '');
 
