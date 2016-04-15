@@ -28,6 +28,5 @@ class AuditLogEntrySerializer(Serializer):
             'event': obj.get_event_display(),
             'ipAddress': obj.ip_address,
             'note': obj.get_note(),
-            'data': obj.data,
             'dateCreated': obj.datetime,
         }
