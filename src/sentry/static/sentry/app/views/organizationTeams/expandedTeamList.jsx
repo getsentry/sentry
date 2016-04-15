@@ -118,7 +118,7 @@ const ExpandedTeamList = React.createClass({
   renderProject(project) {
     let org = this.props.organization;
     let chartData = project.stats && project.stats.map(point => {
-      return {x: point[0], y: point[1]};
+      return {x: point[0], y: [point[1]]};
     });
 
     return (
