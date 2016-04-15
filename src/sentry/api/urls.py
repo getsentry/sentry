@@ -23,6 +23,7 @@ from .endpoints.internal_stats import InternalStatsEndpoint
 from .endpoints.legacy_project_redirect import LegacyProjectRedirectEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_activity import OrganizationActivityEndpoint
+from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
@@ -122,6 +123,9 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/activity/$',
         OrganizationActivityEndpoint.as_view(),
         name='sentry-api-0-organization-activity'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/audit-logs/$',
+        OrganizationAuditLogsEndpoint.as_view(),
+        name='sentry-api-0-organization-audit-logs'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/issues/new/$',
         OrganizationIssuesNewEndpoint.as_view(),
         name='sentry-api-0-organization-issues-new'),
