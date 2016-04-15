@@ -76,8 +76,9 @@
         <div class="pull-right">
           <div class="dropdown">
             <a class="dropdown-toggle" data-toggle="dropdown">
-              <span>
-                <img src="{% gravatar_url user.email size 72 %}" class="avatar">
+              <span class="avatar">
+                {% letter_avatar_svg request.user.get_display_name request.user.get_label %}
+                <img src="{% gravatar_url user.email size 72 default 'blank' %}">
               </span>
               <i class="icon-arrow-down"></i>
             </a>

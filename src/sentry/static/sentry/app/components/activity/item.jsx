@@ -189,7 +189,7 @@ const ActivityItem = React.createClass({
     }
 
     let avatar = (item.user ?
-      <Gravatar email={item.user.email} size={64} className="avatar" /> :
+      <Gravatar user={item.user} size={64} className="avatar" /> :
       <div className="avatar sentry"><span className="icon-sentry-logo"></span></div>);
 
     let author = {

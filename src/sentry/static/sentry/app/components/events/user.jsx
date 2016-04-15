@@ -36,7 +36,9 @@ const EventUser = React.createClass({
           type="user"
           title={t('User')}>
         <div className="user-widget">
-          <div className="pull-left"><Gravatar email={user.email} size={96} /></div>
+          <div className="pull-left">
+            <Gravatar user={user} size={96} />
+          </div>
           <KeyValueList data={builtins} isContextData={false} />
           {children &&
             <KeyValueList data={children} isContextData={true} />

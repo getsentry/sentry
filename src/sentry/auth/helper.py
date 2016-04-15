@@ -332,6 +332,12 @@ class AuthHelper(object):
             captcha=bool(request.session.get('needs_captcha')),
         )
 
+    def _get_display_name(self, identity):
+        return identity.get('name') or identity.get('email')
+
+    def _get_identifier(self, identity):
+        return identity.get('email') or identity.get('id')
+
     def _handle_unknown_identity(self, identity):
         """
         Flow is activated upon a user logging in to where an AuthIdentity is
@@ -376,12 +382,16 @@ class AuthHelper(object):
                 return self.respond('sentry/auth-confirm-link.html', {
                     'identity': identity,
                     'existing_user': request.user,
+                    'identity_display_name': self._get_display_name(identity),
+                    'identity_identifier': self._get_identifier(identity)
                 })
 
             return self.respond('sentry/auth-confirm-identity.html', {
                 'existing_user': existing_user,
                 'identity': identity,
                 'login_form': login_form,
+                'identity_display_name': self._get_display_name(identity),
+                'identity_identifier': self._get_identifier(identity)
             })
 
         user = auth_identity.user

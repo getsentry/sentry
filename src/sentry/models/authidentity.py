@@ -47,3 +47,9 @@ class AuthIdentity(Model):
         if self.last_verified < timezone.now() - timedelta(hours=24):
             return False
         return True
+
+    def get_display_name(self):
+        return self.user.get_display_name()
+
+    def get_label(self):
+        return self.user.get_label()

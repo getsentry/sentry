@@ -81,7 +81,7 @@ const GroupUserReports = React.createClass({
 
       return (
         <li className="activity-note" key={itemIdx}>
-          <Gravatar email={item.email} size={64} className="avatar" />
+          <Gravatar user={item} size={64} className="avatar" />
           <div className="activity-bubble">
             <TimeSince date={item.dateCreated} />
             <div className="activity-author">{item.name} <small>{item.email}</small></div>
