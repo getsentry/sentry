@@ -136,6 +136,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'sentry:scrub_data': bool(project.get_option('sentry:scrub_data', True)),
             'sentry:scrub_defaults': bool(project.get_option('sentry:scrub_defaults', True)),
             'sentry:sensitive_fields': project.get_option('sentry:sensitive_fields', []),
+            'sentry:csp_ignored_sources_defaults': bool(project.get_option('sentry:csp_ignored_sources_defaults', True)),
+            'sentry:csp_ignored_sources': '\n'.join(project.get_option('sentry:csp_ignored_sources', []) or []),
         }
         data['activePlugins'] = active_plugins
         data['team'] = serialize(project.team, request.user)
@@ -233,6 +235,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     'sentry:sensitive_fields',
                     [s.strip().lower() for s in options['sentry:sensitive_fields']]
                 )
+            if 'sentry:csp_ignored_sources_defaults' in options:
+                project.update_option('sentry:csp_ignored_sources_defaults', bool(options['sentry:csp_ignored_sources_defaults']))
+            if 'sentry:csp_ignored_sources' in options:
+                project.update_option(
+                    'sentry:csp_ignored_sources',
+                    clean_newline_inputs(options['sentry:csp_ignored_sources']))
 
             self.create_audit_entry(
                 request=request,
@@ -244,7 +252,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         data = serialize(project, request.user)
         data['options'] = {
-            'sentry:origins': '\n'.join(project.get_option('sentry:origins', '*') or []),
+            'sentry:origins': '\n'.join(project.get_option('sentry:origins', ['*']) or []),
             'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
         }
         return Response(data)
