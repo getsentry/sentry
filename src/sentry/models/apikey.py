@@ -97,6 +97,9 @@ class ApiKey(Model):
     def get_scopes(self):
         return self.scopes.keys()
 
+    def has_scope(self, scope):
+        return scope in self.scopes
+
 
 class SystemKey(object):
     is_active = True
