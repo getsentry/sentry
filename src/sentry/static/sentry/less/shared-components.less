@@ -614,6 +614,15 @@ table.integrations {
   height: 20px;
   vertical-align: middle;
   border-radius: 2px;
+  position: relative;
+  display: inline-block;
+
+    svg, img {
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      border-radius: 3px;
+    }
 }
 
 /**
@@ -1503,7 +1512,6 @@ table.integrations {
     display: inline-block;
     width: 24px;
     height: 24px;
-    border-radius: 4px;
     position: relative;
     left: -2px;
     top: -1px;
@@ -1575,7 +1583,7 @@ table.integrations {
         text-overflow: ellipsis;
         text-align: left;
 
-        img {
+        span.avatar {
           margin-right: 5px;
           position: absolute;
           left: 8px;

@@ -191,8 +191,7 @@ const AssigneeSelector = React.createClass({
         <MenuItem key={item.id}
                   disabled={loading}
                   onSelect={this.assignTo.bind(this, item)} >
-          <Gravatar email={item.email} className="avatar"
-                    size={48} />
+          <Gravatar user={item} className="avatar" size={48} />
           {this.highlight(item.name || item.email, this.state.filter)}
         </MenuItem>
       );
@@ -221,8 +220,7 @@ const AssigneeSelector = React.createClass({
               onOpen={this.onDropdownOpen}
               onClose={this.onDropdownClose}
               title={assignedTo ?
-                <Gravatar email={assignedTo.email} className="avatar"
-                          size={48} />
+                <Gravatar user={assignedTo} className="avatar" size={48} />
                 :
                 <span className="icon-user" />
               }>
