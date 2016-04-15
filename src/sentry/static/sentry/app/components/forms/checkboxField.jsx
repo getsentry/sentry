@@ -47,7 +47,7 @@ export default class CheckboxField extends FormField {
           <input type="checkbox"
                  onChange={this.onChange.bind(this)}
                  disabled={this.props.disabled}
-                 selected={this.props.value} />
+                 checked={this.props.value} />
           {this.props.label}
           {this.props.disabled && this.props.disabledReason &&
             <span className="disabled-indicator tip" title={this.props.disabledReason}>

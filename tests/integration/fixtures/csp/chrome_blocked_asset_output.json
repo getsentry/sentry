@@ -1,22 +1,22 @@
 {
-  "message": "Blocked 'style' from 'localhost:8000'",
+  "message": "Blocked 'style' from 'notlocalhost:8000'",
   "tags": {
     "logger": "csp",
     "effective-directive": "style-src",
-    "blocked-uri": "http://localhost:8000/lol.css"
+    "blocked-uri": "http://notlocalhost:8000/lol.css"
   },
   "data": {
     "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
     "sentry.interfaces.Csp": {
-      "blocked_uri": "http://localhost:8000/lol.css",
+      "blocked_uri": "http://notlocalhost:8000/lol.css",
       "status_code": 200,
       "violated_directive": "style-src cdn.example.com",
-      "document_uri": "http://localhost:8000/",
+      "document_uri": "http://notlocalhost:8000/",
       "original_policy": "default-src 'none'; style-src cdn.example.com; report-uri http://requestb.in/1im8m061",
       "effective_directive": "style-src"
     },
     "sentry.interfaces.Http": {
-      "url": "http://localhost:8000/",
+      "url": "http://notlocalhost:8000/",
       "headers": [["User-Agent", "awesome"]]
     }
   }

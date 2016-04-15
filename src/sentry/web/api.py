@@ -24,6 +24,7 @@ from sentry.models import Project, OrganizationOption
 from sentry.signals import event_received
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
+from sentry.utils.csp import is_valid_csp_report
 from sentry.utils.data_scrubber import SensitiveDataFilter
 from sentry.utils.http import (
     is_valid_origin, get_origins, is_same_domain, is_valid_ip,
@@ -464,6 +465,17 @@ class CspReportView(StoreView):
 
         if not is_valid_origin(origin, project):
             raise APIForbidden('Invalid document-uri')
+
+        # An invalid CSP report must go against quota
+        if not is_valid_csp_report(report, project):
+            app.tsdb.incr_multi([
+                (app.tsdb.models.project_total_received, project.id),
+                (app.tsdb.models.project_total_blacklisted, project.id),
+                (app.tsdb.models.organization_total_received, project.organization_id),
+                (app.tsdb.models.organization_total_blacklisted, project.organization_id),
+            ])
+            metrics.incr('events.blacklisted')
+            raise APIForbidden('Rejected CSP report')
 
         response_or_event_id = self.process(
             request,

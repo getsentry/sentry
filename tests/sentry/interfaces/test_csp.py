@@ -4,7 +4,6 @@ from __future__ import absolute_import
 
 from exam import fixture
 
-from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.testutils import TestCase
 
@@ -31,24 +30,6 @@ class CspTest(TestCase):
         assert result.document_uri == 'http://example.com'
         assert result.violated_directive == 'style-src cdn.example.com'
         assert result.blocked_uri == 'http://example.com/lol.css'
-
-    def test_to_python_validation_errors(self):
-        with self.assertRaises(InterfaceValidationError):
-            Csp.to_python(dict(
-                effective_directive='style-src',
-                blocked_uri='about',
-            ))
-
-        with self.assertRaises(InterfaceValidationError):
-            Csp.to_python(dict(
-                effective_directive='lol',
-            ))
-
-        with self.assertRaises(InterfaceValidationError):
-            Csp.to_python(dict(
-                effective_directive='style-src',
-                source_file='chrome-extension://fdasfdsafdsfdsa',
-            ))
 
     def test_coerce_blocked_uri_if_missing(self):
         result = Csp.to_python(dict(

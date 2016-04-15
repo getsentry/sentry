@@ -43,7 +43,7 @@ export default class InputField extends FormField {
   }
 
   getId() {
-    return 'wizard-' + this.props.name;
+    return 'id-' + this.props.name;
   }
 
   getField() {
