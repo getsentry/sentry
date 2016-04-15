@@ -18,7 +18,8 @@ const BarChart = React.createClass({
     markers: React.PropTypes.arrayOf(React.PropTypes.shape({
       x: React.PropTypes.number.isRequired,
       label: React.PropTypes.string
-    }))
+    })),
+    barClasses: React.PropTypes.array
   },
 
   mixins: [
@@ -61,7 +62,8 @@ const BarChart = React.createClass({
       placement: 'bottom',
       points: [],
       markers: [],
-      width: null
+      width: null,
+      barClasses: ['chart-bar']
     };
   },
 
@@ -205,7 +207,8 @@ const BarChart = React.createClass({
     let pts = point.y.map((y, i) => {
         let pct = totalY && this.floatFormat((y / totalY) * totalPct * 99, 2);
         let pt = (
-          <span key={i} style={{height: pct + '%', bottom: prevPct + '%'}}>{y}</span>
+          <span key={i} className={this.props.barClasses[i]}
+                style={{height: pct + '%', bottom: prevPct + '%'}}>{y}</span>
         );
         prevPct += pct;
         return pt;
