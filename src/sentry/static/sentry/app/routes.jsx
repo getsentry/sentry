@@ -18,6 +18,7 @@ import GroupUserReports from './views/groupUserReports';
 import MyIssuesAssignedToMe from './views/myIssues/assignedToMe';
 import MyIssuesBookmarked from './views/myIssues/bookmarked';
 import MyIssuesViewed from './views/myIssues/viewed';
+import OrganizationAuditLog from './views/organizationAuditLog';
 import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
 import OrganizationRateLimits from './views/organizationRateLimits';
@@ -75,6 +76,7 @@ let routes = (
     <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
       <IndexRoute component={errorHandler(OrganizationDashboard)}/>
 
+      <Route path="/organizations/:orgId/audit-log/" component={errorHandler(OrganizationAuditLog)} />
       <Route path="/organizations/:orgId/teams/" component={errorHandler(OrganizationTeams)} />
       <Route path="/organizations/:orgId/all-teams/" component={errorHandler(OrganizationTeams)}>
         <IndexRoute component={errorHandler(AllTeamsList)}/>

@@ -70,11 +70,7 @@
       </li>
     {% endif %}
     {% if ACCESS.org_write %}
-      <li class="{% block org_auditlog_nav %}{% endblock %}">
-        <a href="{% url 'sentry-organization-audit-log' organization.slug %}">
-          {% trans "Audit Log" %}
-        </a>
-      </li>
+      <li><a href="{% absolute_uri '/organizations/{}/audit-logs/' organization.slug %}">{% trans "Audit Log" %}</a></li>
       <li><a href="{% absolute_uri '/organizations/{}/rate-limits/' organization.slug %}">{% trans "Rate Limits" %}</li></a>
       <li class="{% block org_settings_nav %}{% endblock %}">
         <a href="{% url 'sentry-organization-settings' organization.slug %}">
