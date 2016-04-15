@@ -297,7 +297,7 @@ const EPH = React.createClass({
       <div>
         <Link className="btn-sidebar-header" to={`/organizations/${org.slug}/stats/`}>{t('View Stats')}</Link>
         <h6 className="nav-header">{t('Events Per Hour')}</h6>
-          <BarChart points={this.state.formattedData} className="sparkline" barClasses={this.state.barClasses} />
+          <BarChart points={this.state.formattedData} className="sparkline dashboard-sparkline" barClasses={this.state.barClasses} />
       </div>
     );
   },
