@@ -255,10 +255,7 @@ const EPH = React.createClass({
       for (let i = 0; i < this.STAT_OPTS.length; i++) {
         rawOrgData[this.STAT_OPTS[i]] = arguments[i][0];
       }
-      this.setState({
-        rawOrgData: rawOrgData,
-        formattedData: this.formatData(rawOrgData)
-      });
+      this.setState(Object.assign({rawOrgData: rawOrgData}, this.getChartState(rawOrgData)));
     }.bind(this)).fail(function() {
       this.setState({error: true});
     }.bind(this));
@@ -268,17 +265,22 @@ const EPH = React.createClass({
     return `/organizations/${this.props.params.orgId}/stats/`;
   },
 
-  formatData(rawData) {
+  getChartState(rawData) {
     // TODO: make sure stats data is zero filled otherwise this will be wrong
     let chartData = [];
+    let barClasses = [];
     for (let i = 0; i < rawData.received.length; i++) {
       let point = {x: rawData.received[i][0], y: []};
       for (let statType in rawData) {
         point.y.push(rawData[statType][i][1]);
+        barClasses.push(statType);
       }
       chartData.push(point);
     }
-    return chartData;
+    return {
+      formattedData: chartData,
+      barClasses: barClasses
+    };
   },
 
   render() {
@@ -295,7 +297,7 @@ const EPH = React.createClass({
       <div>
         <Link className="btn-sidebar-header" to={`/organizations/${org.slug}/stats/`}>{t('View Stats')}</Link>
         <h6 className="nav-header">{t('Events Per Hour')}</h6>
-          <BarChart points={this.state.formattedData} className="sparkline" />
+          <BarChart points={this.state.formattedData} className="sparkline" barClasses={this.state.barClasses} />
       </div>
     );
   },
