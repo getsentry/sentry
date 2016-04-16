@@ -285,7 +285,10 @@ const EPH = React.createClass({
     let chartData = [];
     allXValues.forEach(x => {
       let point = {x: +x, y: []};
-      this.STAT_OPTS.forEach(stat => {
+      // convert received --> accepted
+      let acceptedY = valueLookup.received[x] - valueLookup.rejected[x] - valueLookup.blacklisted[x];
+      point.y.push(acceptedY);
+      ['rejected', 'blacklisted'].forEach(stat => {
         let yVal = valueLookup[stat][x] || 0;
         point.y.push(yVal);
       });
