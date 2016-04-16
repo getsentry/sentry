@@ -13,6 +13,8 @@ def pytest_configure(config):
     os.environ.setdefault('RECAPTCHA_TESTING', 'True')
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sentry.conf.server')
 
+    settings.SOUTH_TESTS_MIGRATE = os.environ.get('SENTRY_SOUTH_TESTS_MIGRATE', '1') == '1'
+
     if not settings.configured:
         # only configure the db if its not already done
         test_db = os.environ.get('DB', 'postgres')
@@ -28,6 +30,10 @@ def pytest_configure(config):
                 'USER': 'postgres',
                 'NAME': 'sentry',
             })
+            # postgres requires running full migration all the time
+            # since it has to install stored functions which come from
+            # an actual migration.
+            settings.SOUTH_TESTS_MIGRATE = True
         elif test_db == 'sqlite':
             settings.DATABASES['default'].update({
                 'ENGINE': 'django.db.backends.sqlite3',
@@ -87,8 +93,6 @@ def pytest_configure(config):
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
         }
     }
-
-    settings.SOUTH_TESTS_MIGRATE = True
 
     if not hasattr(settings, 'SENTRY_OPTIONS'):
         settings.SENTRY_OPTIONS = {}
