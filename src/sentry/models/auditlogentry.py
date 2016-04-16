@@ -211,10 +211,10 @@ class AuditLogEntry(Model):
             return 'linked their account to a new identity'
 
         elif self.event == AuditLogEntryEvent.APIKEY_ADD:
-            return 'added api key %s (%s)' % (self.data['label'], self.data['key'])
+            return 'added api key %s' % (self.data['label'],)
         elif self.event == AuditLogEntryEvent.APIKEY_EDIT:
-            return 'edited api key %s (%s)' % (self.data['label'], self.data['key'])
+            return 'edited api key %s' % (self.data['label'],)
         elif self.event == AuditLogEntryEvent.APIKEY_REMOVE:
-            return 'removed api key %s (%s)' % (self.data['label'], self.data['key'])
+            return 'removed api key %s' % (self.data['label'],)
 
         return ''
