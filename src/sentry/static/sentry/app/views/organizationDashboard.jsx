@@ -218,7 +218,7 @@ const EPH = React.createClass({
     let since = until - 3600 * 24;
 
     return {
-      rawOrgData: {received: null, rejected: null, blacklisted: null},
+      rawOrgData: {},
       formattedData: null,
       querySince: since,
       queryUntil: until,
@@ -230,6 +230,7 @@ const EPH = React.createClass({
     this.fetchData();
   },
 
+  // Use this so there's a standard order for y values and bar classes
   STAT_OPTS: ['received', 'rejected', 'blacklisted'],
 
   fetchData() {
@@ -255,7 +256,10 @@ const EPH = React.createClass({
       for (let i = 0; i < this.STAT_OPTS.length; i++) {
         rawOrgData[this.STAT_OPTS[i]] = arguments[i][0];
       }
-      this.setState(Object.assign({rawOrgData: rawOrgData}, this.getChartState(rawOrgData)));
+      this.setState({
+        rawOrgData: rawOrgData,
+        formattedData: this.formatData(rawOrgData)
+      });
     }.bind(this)).fail(function() {
       this.setState({error: true});
     }.bind(this));
@@ -265,22 +269,40 @@ const EPH = React.createClass({
     return `/organizations/${this.props.params.orgId}/stats/`;
   },
 
-  getChartState(rawData) {
-    // TODO: make sure stats data is zero filled otherwise this will be wrong
+  formatData(rawData) {
+    // Do this grossness to make sure data is zero filled
+    let allXValues = {};
+    let valueLookup = {};
+    this.STAT_OPTS.forEach(stat => {
+      valueLookup[stat] = {};
+      rawData[stat] && rawData[stat].forEach(point => {
+        allXValues[point[0]] = null;
+        valueLookup[stat][point[0]] = point[1];
+      });
+    });
+    allXValues = Object.keys(allXValues);
+
     let chartData = [];
-    let barClasses = [];
-    for (let i = 0; i < rawData.received.length; i++) {
-      let point = {x: rawData.received[i][0], y: []};
-      for (let statType in rawData) {
-        point.y.push(rawData[statType][i][1]);
-        barClasses.push(statType);
-      }
+    allXValues.forEach(x => {
+      let point = {x: +x, y: []};
+      this.STAT_OPTS.forEach(stat => {
+        let yVal = valueLookup[stat][x] || 0;
+        point.y.push(yVal);
+      });
       chartData.push(point);
-    }
-    return {
-      formattedData: chartData,
-      barClasses: barClasses
-    };
+    });
+
+    chartData.sort((a, b) => {
+      if (a.x < b.x) {
+        return -1;
+      }
+      if (a.x > b.x) {
+        return 1;
+      }
+      return 0;
+    });
+
+    return chartData;
   },
 
   render() {
@@ -297,7 +319,7 @@ const EPH = React.createClass({
       <div>
         <Link className="btn-sidebar-header" to={`/organizations/${org.slug}/stats/`}>{t('View Stats')}</Link>
         <h6 className="nav-header">{t('Events Per Hour')}</h6>
-          <BarChart points={this.state.formattedData} className="sparkline dashboard-sparkline" barClasses={this.state.barClasses} />
+          <BarChart points={this.state.formattedData} className="sparkline dashboard-sparkline" barClasses={this.STAT_OPTS} />
       </div>
     );
   },
