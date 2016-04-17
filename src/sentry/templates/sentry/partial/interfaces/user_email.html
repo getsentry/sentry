@@ -46,7 +46,7 @@
     {% if user_email %}
       <td style="padding-top:5px; width:64px; vertical-align:top; text-align: right;">
         <span class="avatar-container" style="width: inherit;">
-          {% letter_avatar_svg user.get_display_name user.get_label %}
+          {% letter_avatar_svg user.get_display_name user.get_label size 64 use_svg False %}
           <img src="{% gravatar_url user_email size 64 default 'blank' %}" style="border-radius: 3px;">
         </span>
       </td>

@@ -61,17 +61,29 @@ def get_letter_avatar_color(identifier):
     return LETTER_AVATAR_COLORS[hashed_id % COLOR_COUNT]
 
 
-def get_letter_avatar(display_name, identifier, size=None):
+def get_letter_avatar(display_name, identifier, size=None, use_svg=True):
     display_name = display_name or '?'
     names = display_name.split(' ')
     initials = '%s%s' % (names[0][0], names[-1][0] if len(names) > 1 else '')
     initials = escape(initials.upper())
     color = get_letter_avatar_color(identifier)
-    size_attrs = 'height="%s" width="%s"' % (size, size) if size else ''
-    return (
-        u'<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" {size_attrs}>'
-        '<rect x="0" y="0" width="120" height="120" rx="15" ry="15" fill={color}></rect>'
-        '<text x="50%" y="50%" font-size="65" dominant-baseline="central" text-anchor="middle" fill="#FFFFFF">'
-        '{initials}'
-        '</text>'
-        '</svg>').format(color=color, initials=initials, size_attrs=size_attrs)
+    if use_svg:
+        size_attrs = 'height="%s" width="%s"' % (size, size) if size else ''
+        return (
+            u'<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" {size_attrs}>'
+            '<rect x="0" y="0" width="120" height="120" rx="15" ry="15" fill={color}></rect>'
+            '<text x="50%" y="50%" font-size="65" dominant-baseline="central" text-anchor="middle" fill="#FFFFFF">'
+            '{initials}'
+            '</text>'
+            '</svg>').format(color=color, initials=initials, size_attrs=size_attrs)
+    else:
+        size_attrs = 'height:%spx;width:%spx;' % (size, size) if size else ''
+        font_size = 'font-size:%spx;' % (size / 2) if size else ''
+        line_height = 'line-height:%spx;' % size if size else ''
+        return (
+            u'<span class="html-avatar" '
+            'style="background-color:{color};{size_attrs}{font_size}{line_height}">'
+            '{initials}</span>').format(color=color, initials=initials,
+                                        size_attrs=size_attrs, font_size=font_size,
+                                        line_height=line_height)
+
