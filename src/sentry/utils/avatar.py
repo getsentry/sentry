@@ -86,4 +86,3 @@ def get_letter_avatar(display_name, identifier, size=None, use_svg=True):
             '{initials}</span>').format(color=color, initials=initials,
                                         size_attrs=size_attrs, font_size=font_size,
                                         line_height=line_height)
-
