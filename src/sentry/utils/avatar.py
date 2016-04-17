@@ -13,6 +13,7 @@ from __future__ import absolute_import
 import urllib
 
 from django.conf import settings
+from django.utils.encoding import force_text
 from django.utils.html import escape
 
 from sentry.utils.hashlib import md5
@@ -53,7 +54,8 @@ COLOR_COUNT = len(LETTER_AVATAR_COLORS)
 
 
 def hash_user_identifier(identifier):
-    return sum(map(ord, str(identifier)))
+    identifier = force_text(identifier, errors='replace')
+    return sum(map(ord, identifier))
 
 
 def get_letter_avatar_color(identifier):
