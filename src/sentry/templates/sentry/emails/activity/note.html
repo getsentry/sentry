@@ -18,7 +18,7 @@
   <table class="note">
     <tr>
       <td class="avatar-column">
-        <span>{% letter_avatar_svg author.get_display_name author.get_label size 48 %}</span>
+        <span>{% letter_avatar_svg author.get_display_name author.get_label size 48 use_svg False %}</span>
         <span>
           <img class="avatar" width="48" height="48" src="{% gravatar_url author.email size 96 default 'blank' %}">
         </span>
