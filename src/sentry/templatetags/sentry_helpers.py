@@ -303,9 +303,10 @@ def gravatar_url(context, email, size=None, default='mm'):
 
 @tag(register, [Variable('display_name'),
                 Variable('identifier'),
-                Optional([Constant('size'), Variable('size')])])
-def letter_avatar_svg(context, display_name, identifier, size=None):
-    return get_letter_avatar(display_name, identifier, size=size)
+                Optional([Constant('size'), Variable('size')]),
+                Optional([Constant('use_svg'), Variable('use_svg')])])
+def letter_avatar_svg(context, display_name, identifier, size=None, use_svg=True):
+    return get_letter_avatar(display_name, identifier, size=size, use_svg=use_svg)
 
 
 @register.filter
