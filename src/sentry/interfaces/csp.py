@@ -11,7 +11,7 @@ from __future__ import absolute_import
 __all__ = ('Csp',)
 
 from urlparse import urlsplit, urlunsplit
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.safe import trim
@@ -32,21 +32,6 @@ KEYWORDS = frozenset((
     "'none'", "'self'", "'unsafe-inline'", "'unsafe-eval'",
 ))
 
-DIRECTIVES = frozenset((
-    'base-uri', 'child-src', 'connect-src', 'default-src',
-    'font-src', 'form-action', 'frame-ancestors',
-    'img-src', 'manifest-src', 'media-src', 'object-src',
-    'plugin-types', 'referrer', 'script-src', 'style-src',
-    'upgrade-insecure-requests',
-
-    # Deprecated directives
-    # > Note: This directive is deprecated. Use child-src instead.
-    # > https://developer.mozilla.org/en-US/docs/Web/Security/CSP/CSP_policy_directives#frame-src
-    # 'frame-src',
-
-    # I don't really know what this even is.
-    # 'sandbox',
-))
 
 ALL_SCHEMES = (
     'data:', 'mediastream:', 'blob:', 'filesystem:',
@@ -77,11 +62,6 @@ DIRECTIVE_TO_MESSAGES = {
 
 DEFAULT_MESSAGE = ('Blocked {directive!r} from {uri!r}', 'Blocked inline {directive!r}')
 
-DISALLOWED_SOURCES = (
-    'chrome-extension://',
-    'safari-extension://',
-)
-
 
 class Csp(Interface):
     """
@@ -103,21 +83,6 @@ class Csp(Interface):
     @classmethod
     def to_python(cls, data):
         kwargs = {k: trim(data.get(k, None), 1024) for k in REPORT_KEYS}
-
-        if kwargs['effective_directive'] not in DIRECTIVES:
-            raise InterfaceValidationError("Invalid value for 'effective-directive'")
-
-        # Some reports from Chrome report blocked-uri as just 'about'.
-        # In this case, this is not actionable and is just noisy.
-        # Observed in Chrome 45 and 46.
-        if kwargs['blocked_uri'] == 'about':
-            raise InterfaceValidationError("Invalid value for 'blocked-uri'")
-
-        # Here, we want to block reports that are coming from browser extensions
-        # and other sources that are meaningless
-        if kwargs['source_file'] is not None:
-            if kwargs['source_file'].startswith(DISALLOWED_SOURCES):
-                raise InterfaceValidationError("Invalid value for 'source-file'")
 
         # Anything resulting from an "inline" whatever violation is either sent
         # as 'self', or left off. In the case if it missing, we want to noramalize.

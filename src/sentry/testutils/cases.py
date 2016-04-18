@@ -153,7 +153,7 @@ class BaseTestCase(Fixtures, Exam):
         elif isinstance(data, basestring):
             body = data
         path = reverse('sentry-api-csp-report', kwargs={'project_id': self.project.id})
-        path += '?sentry_key=%s&sentry_version=5' % self.projectkey.public_key
+        path += '?sentry_key=%s' % self.projectkey.public_key
         with self.tasks():
             return self.client.post(
                 path, data=body,
