@@ -30,10 +30,11 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
     # TODO:
     #   user report stacktraces from unity
 
+    app_uuid = None
     if system:
-        app_uuid = system.get('app_uuid').lower()
-    else:
-        app_uuid = None
+        app_uuid = system.get('app_uuid')
+        if app_uuid is not None:
+            app_uuid = app_uuid.lower()
 
     converted_frames = []
     longest_addr = 0
