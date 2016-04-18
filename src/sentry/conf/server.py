@@ -687,15 +687,16 @@ SENTRY_SMTP_HOST = 'localhost'
 SENTRY_SMTP_PORT = 1025
 
 SENTRY_INTERFACES = {
+    'csp': 'sentry.interfaces.csp.Csp',
+    'device': 'sentry.interfaces.device.Device',
     'exception': 'sentry.interfaces.exception.Exception',
     'logentry': 'sentry.interfaces.message.Message',
+    'query': 'sentry.interfaces.query.Query',
     'request': 'sentry.interfaces.http.Http',
+    'sdk': 'sentry.interfaces.sdk.Sdk',
     'stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
     'template': 'sentry.interfaces.template.Template',
-    'query': 'sentry.interfaces.query.Query',
     'user': 'sentry.interfaces.user.User',
-    'csp': 'sentry.interfaces.csp.Csp',
-    'sdk': 'sentry.interfaces.sdk.Sdk',
     'applecrashreport': 'sentry.interfaces.applecrash.AppleCrashReport',
     'breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
     'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
