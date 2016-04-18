@@ -164,7 +164,7 @@ const ProjectUserReports = React.createClass({
           <div className="activity-container" style={{margin: '10px 0 5px'}}>
             <ul className="activity">
               <li className="activity-note" style={{paddingBottom: 0}}>
-                <Gravatar email={item.email} size={64} className="avatar" />
+                <Gravatar user={item} size={64} className="avatar" />
                 <div className="activity-bubble">
                   <TimeSince date={item.dateCreated} />
                   <div className="activity-author">{item.name} <small>{item.email}</small></div>

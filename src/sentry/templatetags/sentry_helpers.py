@@ -38,7 +38,7 @@ from sentry.constants import EVENTS_PER_PAGE
 from sentry.models import Organization
 from sentry.utils import json
 from sentry.utils.strings import to_unicode
-from sentry.utils.avatar import get_gravatar_url
+from sentry.utils.avatar import get_gravatar_url, get_letter_avatar
 from sentry.utils.javascript import to_json
 from sentry.utils.strings import (
     soft_break as _soft_break,
@@ -299,6 +299,14 @@ def get_project_dsn(context, user, project, asvar):
                 Optional([Constant('default'), Variable('default')])])
 def gravatar_url(context, email, size=None, default='mm'):
     return get_gravatar_url(email, size, default)
+
+
+@tag(register, [Variable('display_name'),
+                Variable('identifier'),
+                Optional([Constant('size'), Variable('size')]),
+                Optional([Constant('use_svg'), Variable('use_svg')])])
+def letter_avatar_svg(context, display_name, identifier, size=None, use_svg=True):
+    return get_letter_avatar(display_name, identifier, size=size, use_svg=use_svg)
 
 
 @register.filter

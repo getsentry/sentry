@@ -17,7 +17,7 @@ const EventUserReport = React.createClass({
         <div className="activity-container">
           <ul className="activity">
             <li className="activity-note">
-              <Gravatar email={report.email} size={64} className="avatar" />
+              <Gravatar user={report} size={64} className="avatar" />
               <div className="activity-bubble">
                 <TimeSince date={report.dateCreated} />
                 <div className="activity-author">{report.name} <small>{report.email}</small></div>
