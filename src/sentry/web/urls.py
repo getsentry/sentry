@@ -41,7 +41,6 @@ from sentry.web.frontend.mailgun_inbound_webhook import \
 from sentry.web.frontend.organization_api_key_settings import \
     OrganizationApiKeySettingsView
 from sentry.web.frontend.organization_api_keys import OrganizationApiKeysView
-from sentry.web.frontend.organization_audit_log import OrganizationAuditLogView
 from sentry.web.frontend.organization_auth_settings import \
     OrganizationAuthSettingsView
 from sentry.web.frontend.organization_member_settings import \
@@ -101,6 +100,7 @@ if settings.DEBUG:
     from sentry.web.frontend.debug.debug_trigger_error import DebugTriggerErrorView
     from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
     from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
+    from sentry.web.frontend.debug import debug_auth_views
 
     urlpatterns += patterns(
         '',
@@ -124,6 +124,10 @@ if settings.DEBUG:
             DebugErrorPageEmbedView.as_view()),
         url(r'^debug/trigger-error/$',
             DebugTriggerErrorView.as_view()),
+        url(r'^debug/auth-confirm-identity/$',
+            debug_auth_views.DebugAuthConfirmIdentity.as_view()),
+        url(r'^debug/auth-confirm-link/$',
+            debug_auth_views.DebugAuthConfirmLink.as_view()),
     )
 
 urlpatterns += patterns(
@@ -249,8 +253,6 @@ urlpatterns += patterns(
         name='sentry-organization-api-key-settings'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/auth/$', OrganizationAuthSettingsView.as_view(),
         name='sentry-organization-auth-settings'),
-    url(r'^organizations/(?P<organization_slug>[\w_-]+)/audit-log/$', OrganizationAuditLogView.as_view(),
-        name='sentry-organization-audit-log'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/members/$', OrganizationMembersView.as_view(),
         name='sentry-organization-members'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/members/new/$', CreateOrganizationMemberView.as_view(),

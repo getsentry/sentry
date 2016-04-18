@@ -156,7 +156,7 @@ const GroupEvents = React.createClass({
             <td className="event-user table-user-info">
               {event.user ?
                 <div>
-                  <Gravatar email={event.user.email} size={64} className="avatar" />
+                  <Gravatar user={event.user} size={64} className="avatar" />
                   {event.user.email}
                 </div>
               :

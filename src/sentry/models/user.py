@@ -78,6 +78,9 @@ class User(BaseModel, AbstractBaseUser):
         warnings.warn('User.has_module_perms is deprecated', DeprecationWarning)
         return self.is_superuser
 
+    def get_label(self):
+        return self.email or self.username or self.id
+
     def get_display_name(self):
         return self.name or self.email or self.username
 

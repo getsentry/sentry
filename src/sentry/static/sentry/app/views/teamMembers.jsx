@@ -97,7 +97,7 @@ const TeamMembers = React.createClass({
               return (
                 <tr>
                   <td className="table-user-info">
-                    <Gravatar email={member.email} size={80} />
+                    <Gravatar user={member} size={80} />
                     <h5><a href={`${memberPrefix}/${member.id}/`}>{member.email}</a></h5>
                     {member.email}
                   </td>

@@ -39,7 +39,7 @@ const GroupSeenBy = React.createClass({
       let title = _.escape(userDisplayName(user)) + '<br/>' + _.escape(moment(user.lastSeen).format('LL'));
       return (
         <li key={userIdx} className="tip" data-title={title}>
-          <Gravatar size={52} email={user.email} />
+          <Gravatar size={52} user={user} />
         </li>
       );
     });

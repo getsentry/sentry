@@ -184,6 +184,11 @@ class OrganizationMember(Model):
             return self.user.get_display_name()
         return self.email
 
+    def get_label(self):
+        if self.user_id:
+            return self.user.get_label()
+        return self.email or self.id
+
     def get_email(self):
         if self.user_id:
             return self.user.email
