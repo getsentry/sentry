@@ -18,6 +18,11 @@ def test_letter_avatar():
     assert '?' in letter_avatar
     assert '#E35141' in letter_avatar
 
+    # Test display name with trailing spaces
+    letter_avatar = get_letter_avatar('johnsmith@example.com ', 2)
+    assert 'J' in letter_avatar
+    assert '#6FBA57' in letter_avatar
+
     # Test name as display name and email as identifier for html
     letter_avatar = get_letter_avatar('Jane Doe', 'janedoe@example.com', use_svg=False)
     assert 'JD' in letter_avatar
