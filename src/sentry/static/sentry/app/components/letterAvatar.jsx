@@ -47,11 +47,11 @@ const LetterAvatar = React.createClass({
 
   getDisplayName() {
     let user = this.props.user;
-    return user.name || user.email || user.username || '?';
+    return user.name || user.email || user.username || '';
   },
 
   getInitials() {
-    let names = this.getDisplayName().split(' ');
+    let names = (this.getDisplayName().trim() || '?').split(' ');
     let initials = names[0][0] + (names.length > 1 ? names[names.length - 1][0] : '');
     return initials.toUpperCase();
   },

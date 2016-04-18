@@ -22,6 +22,16 @@ describe('LetterAvatar', function() {
   const USER_5 = {
     ip_address: '127.0.0.1'
   };
+  const USER_6 = {
+    id: 1,
+    name: 'Jane Doe ',
+    email: 'janedoe@example.com'
+  };
+  const USER_7 = {
+    id: 1,
+    name: ' ',
+    email: 'janedoe@example.com'
+  };
 
   describe('getInitials()', function() {
     it('should get initials based on name', function() {
@@ -39,9 +49,19 @@ describe('LetterAvatar', function() {
       expect(this.letterAvatar.getInitials()).to.eql('F');
     });
 
-    it('should get show question mark if user has no display name', function() {
+    it('should show question mark if user has no display name', function() {
       this.letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar user={USER_4}/>);
       expect(this.letterAvatar.getInitials()).to.eql('?');
+    });
+
+    it('should show question mark even if display name is a space', function() {
+      this.letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar user={USER_7}/>);
+      expect(this.letterAvatar.getInitials()).to.eql('?');
+    });
+
+    it('should get initials based on name even if there are trailing spaces', function() {
+      this.letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar user={USER_6}/>);
+      expect(this.letterAvatar.getInitials()).to.eql('JD');
     });
   });
 
