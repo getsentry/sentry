@@ -9,7 +9,7 @@ from sentry.models import Event, EventError
 
 @register(Event)
 class EventSerializer(Serializer):
-    _reserved_keys = frozenset(['sentry.interfaces.User', 'sdk'])
+    _reserved_keys = frozenset(['sentry.interfaces.User', 'sdk', 'device'])
 
     def _get_entries(self, event, user, is_public=False):
         # XXX(dcramer): These are called entries for future-proofing
@@ -38,6 +38,11 @@ class EventSerializer(Serializer):
                 user_data = user_interface.to_json()
             else:
                 user_data = None
+            device_interface = item.interfaces.get('device')
+            if device_interface:
+                device_data = device_interface.to_json()
+            else:
+                device_data = None
 
             sdk_interface = item.interfaces.get('sdk')
             if sdk_interface:
@@ -49,6 +54,7 @@ class EventSerializer(Serializer):
                 'entries': self._get_entries(item, user, is_public=is_public),
                 'user': user_data,
                 'sdk': sdk_data,
+                'device': device_data,
             }
         return results
 
@@ -98,6 +104,7 @@ class EventSerializer(Serializer):
             'message': obj.message,
             'user': attrs['user'],
             'sdk': attrs['sdk'],
+            'device': attrs['device'],
             'context': obj.data.get('extra', {}),
             'packages': obj.data.get('modules', {}),
             'tags': tags,
