@@ -10,7 +10,6 @@ selected, the svg, etc) will also need to be changed there.
 """
 from __future__ import absolute_import
 
-import requests
 import urllib
 
 from django.conf import settings
@@ -20,6 +19,7 @@ from django.utils.encoding import force_text
 from django.utils.html import escape
 
 from sentry.utils.hashlib import md5
+from sentry.http import safe_urlopen
 
 
 def get_gravatar_url(email, size=None, default='mm'):
@@ -99,9 +99,13 @@ def get_email_avatar(display_name, identifier, size=None):
     except ValidationError:
         pass
     else:
-        resp = requests.get(get_gravatar_url(identifier, default=404))
-        if resp.status_code == 200:
-            # default to mm if including in emails
-            gravatar_url = get_gravatar_url(identifier, size=size)
-            return u'<img class="avatar" src="{url}">'.format(url=gravatar_url)
+        try:
+            resp = safe_urlopen(get_gravatar_url(identifier, default=404))
+        except Exception:
+            pass
+        else:
+            if resp.status_code == 200:
+                # default to mm if including in emails
+                gravatar_url = get_gravatar_url(identifier, size=size)
+                return u'<img class="avatar" src="{url}">'.format(url=gravatar_url)
     return get_letter_avatar(display_name, identifier, size, use_svg=False)
