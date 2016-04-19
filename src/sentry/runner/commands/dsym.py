@@ -18,10 +18,6 @@ from sentry.runner.decorators import configuration
 SHUTDOWN = object()
 
 
-class Done(Exception):
-    pass
-
-
 def load_bundle(q, uuid, data, sdk_info, trim_symbols, demangle):
     from sentry.models import DSymBundle, DSymObject, DSymSDK
     from sentry.models.dsymfile import MAX_SYM
@@ -81,7 +77,7 @@ def process_archive(members, zip, sdk_info, threads=8, trim_symbols=False,
         while 1:
             items = q.get()
             if items is SHUTDOWN:
-                raise Done
+                break
             DSymSymbol.objects.bulk_insert(items)
 
     pool = []
