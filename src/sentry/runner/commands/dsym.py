@@ -28,6 +28,7 @@ class Done(Exception):
 def load_bundle(q, uuid, data, sdk_info, trim_symbols, demangle):
     from sentry.models import DSymBundle, DSymObject, DSymSDK
     from sentry.models.dsymfile import MAX_SYM
+    from sentry.utils.db import is_sqlite
     from symsynd.demangle import demangle_symbol
 
     def _process_symbol(sym):
@@ -62,7 +63,13 @@ def load_bundle(q, uuid, data, sdk_info, trim_symbols, demangle):
         object=obj
     )[0]
 
-    step = 4000
+    # SQlite has a low parameter limit of 999.  Since we need three
+    # parameters to insert a row, we can only do 333 items in a batch
+    if is_sqlite():
+        step = 333
+    else:
+        step = 4000
+
     symbols = data['symbols']
     for idx in xrange(0, len(symbols) + step, step):
         end_idx = min(idx + step, len(symbols))
@@ -121,7 +128,6 @@ def process_archive(members, zip, sdk_info, threads=8, trim_symbols=False,
                         can_bulk = True
             except IntegrityError:
                 can_bulk = False
-                items = None
             except Done:
                 break
 
