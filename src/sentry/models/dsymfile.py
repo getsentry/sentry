@@ -12,7 +12,8 @@ import os
 import shutil
 import hashlib
 import tempfile
-from django.db import models, transaction, connection, IntegrityError
+from itertools import chain
+from django.db import models, router, transaction, connection, IntegrityError
 
 try:
     from symsynd.macho.arch import get_macho_uuids
@@ -24,6 +25,7 @@ from sentry.db.models import FlexibleForeignKey, Model, BoundedBigIntegerField, 
     sane_repr, BaseManager
 from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
+from sentry.utils.db import is_sqlite
 
 
 MAX_SYM = 256
@@ -150,6 +152,49 @@ class DSymBundle(Model):
 
 
 class DSymSymbolManager(BaseManager):
+
+    def bulk_insert(self, items):
+        db = router.db_for_write(DSymSymbol)
+        items = list(items)
+        if not items:
+            return
+
+        # On SQLite we don't do this.  Two reasons: one, it does not
+        # seem significantly faster and you're an idiot if you import
+        # huge amounts of system symbols into sqlite anyways.  secondly
+        # because of the low parameter limit
+        if not is_sqlite():
+            try:
+                with transaction.atomic(using=db):
+                    cur = connection.cursor()
+                    cur.execute('''
+                        insert into sentry_dsymsymbol
+                            (object_id, address, symbol)
+                             values %s
+                    ''' % ', '.join(['(%s, %s, %s)'] * len(items)),
+                        list(chain(*items)))
+                    cur.close()
+                return
+            except IntegrityError:
+                pass
+
+        cur = connection.cursor()
+        for item in items:
+            cur.execute('''
+                insert into sentry_dsymsymbol
+                    (object_id, address, symbol)
+                select
+                    %(object_id)s, %(address)s, %(symbol)s
+                where not exists (
+                    select 1 from sentry_dsymsymbol
+                       where object_id = %(object_id)s
+                         and address = %(address)s);
+            ''', {
+                'object_id': item[0],
+                'address': item[1],
+                'symbol': item[2],
+            })
+        cur.close()
 
     def lookup_symbol(self, instruction_addr, image_addr, uuid,
                       cpu_name=None, object_path=None, system_info=None):
