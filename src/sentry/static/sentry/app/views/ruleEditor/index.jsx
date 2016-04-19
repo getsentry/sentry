@@ -129,6 +129,7 @@ const RuleEditor = React.createClass({
                   <SelectInput ref="actionMatch"
                         className={(this.hasError('actionMatch') ? ' error' : '')}
                         value={actionMatch}
+                        style={{width:80}}
                         required={true}>
                     <option value="all">{t('all')}</option>
                     <option value="any">{t('any')}</option>
