@@ -38,7 +38,7 @@ from sentry.constants import EVENTS_PER_PAGE
 from sentry.models import Organization
 from sentry.utils import json
 from sentry.utils.strings import to_unicode
-from sentry.utils.avatar import get_gravatar_url, get_letter_avatar
+from sentry.utils.avatar import get_gravatar_url, get_email_avatar, get_letter_avatar
 from sentry.utils.javascript import to_json
 from sentry.utils.strings import (
     soft_break as _soft_break,
@@ -303,10 +303,18 @@ def gravatar_url(context, email, size=None, default='mm'):
 
 @tag(register, [Variable('display_name'),
                 Variable('identifier'),
-                Optional([Constant('size'), Variable('size')]),
-                Optional([Constant('use_svg'), Variable('use_svg')])])
-def letter_avatar_svg(context, display_name, identifier, size=None, use_svg=True):
-    return get_letter_avatar(display_name, identifier, size=size, use_svg=use_svg)
+                Optional([Constant('size'), Variable('size')])])
+def letter_avatar_svg(context, display_name, identifier, size=None):
+    return get_letter_avatar(display_name, identifier, size=size)
+
+
+# Don't use this in any situations where you're rendering more
+# than 1-2 avatars. It will make a request for every user!
+@tag(register, [Variable('display_name'),
+                Variable('identifier'),
+                Optional([Constant('size'), Variable('size')])])
+def email_avatar(context, display_name, identifier, size=None):
+    return get_email_avatar(display_name, identifier, size)
 
 
 @register.filter
