@@ -15,7 +15,13 @@ from random import random
 from django.utils import timezone
 from django.utils.functional import cached_property
 from sentry.db.models.query import create_or_update
+from sentry.utils.compat import pickle
 from sentry.utils.hashlib import md5
+
+try:
+    import uwsgi
+except ImportError:
+    uwsgi = None
 
 
 Key = namedtuple('Key', ('name', 'default', 'type', 'flags', 'ttl', 'grace', 'cache_key'))
@@ -89,10 +95,18 @@ class OptionsStore(object):
         if value is not None:
             return value
 
+        cache_key = key.cache_key
+
+        if uwsgi:
+            value = uwsgi.cache_get(cache_key)
+            if value is not None:
+                value = pickle.loads(value)
+                self._local_cache[cache_key] = _make_cache_value(key, value)
+                return value
+
         if self.cache is None:
             return None
 
-        cache_key = key.cache_key
         try:
             value = self.cache.get(cache_key)
         except Exception:
@@ -101,6 +115,8 @@ class OptionsStore(object):
             value = None
         else:
             if key.ttl > 0:
+                if uwsgi:
+                    uwsgi.cache_set(cache_key, pickle.dumps(value), key.ttl)
                 self._local_cache[cache_key] = _make_cache_value(key, value)
         return value
 
@@ -204,13 +220,15 @@ class OptionsStore(object):
         )
 
     def set_cache(self, key, value):
-        if self.cache is None:
-            return None
-
         cache_key = key.cache_key
 
         if key.ttl > 0:
+            if uwsgi:
+                uwsgi.cache_set(cache_key, pickle.dumps(value), key.ttl)
             self._local_cache[cache_key] = _make_cache_value(key, value)
+
+        if self.cache is None:
+            return None
 
         try:
             self.cache.set(cache_key, value, self.ttl)
@@ -240,6 +258,9 @@ class OptionsStore(object):
             del self._local_cache[cache_key]
         except KeyError:
             pass
+
+        if uwsgi:
+            uwsgi.cache_del(cache_key)
 
         try:
             self.cache.delete(cache_key)
