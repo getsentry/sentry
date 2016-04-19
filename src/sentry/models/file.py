@@ -151,8 +151,8 @@ class File(Model):
 
     def delete(self, *args, **kwargs):
         super(File, self).delete(*args, **kwargs)
-        # TODO(dcramer): let's move blob cleanup to the 'cleanup' script as its
-        # more complex now with M2M relations
+        # This is legacy code.  The "blobs" are cleaned up by
+        # the cleanup_unused_files functionality in the cleanup command.
         if self.blob and not File.objects.filter(blob=self.blob).exists():
             self.blob.delete()
 
