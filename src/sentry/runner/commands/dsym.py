@@ -11,9 +11,6 @@ import uuid
 import json
 import click
 import threading
-from itertools import chain
-
-from django.db import connection, transaction, IntegrityError
 
 from sentry.runner.decorators import configuration
 
@@ -28,7 +25,6 @@ class Done(Exception):
 def load_bundle(q, uuid, data, sdk_info, trim_symbols, demangle):
     from sentry.models import DSymBundle, DSymObject, DSymSDK
     from sentry.models.dsymfile import MAX_SYM
-    from sentry.utils.db import is_sqlite
     from symsynd.demangle import demangle_symbol
 
     def _process_symbol(sym):
@@ -63,13 +59,7 @@ def load_bundle(q, uuid, data, sdk_info, trim_symbols, demangle):
         object=obj
     )[0]
 
-    # SQlite has a low parameter limit of 999.  Since we need three
-    # parameters to insert a row, we can only do 333 items in a batch
-    if is_sqlite():
-        step = 333
-    else:
-        step = 4000
-
+    step = 4000
     symbols = data['symbols']
     for idx in xrange(0, len(symbols) + step, step):
         end_idx = min(idx + step, len(symbols))
@@ -83,53 +73,16 @@ def load_bundle(q, uuid, data, sdk_info, trim_symbols, demangle):
 
 def process_archive(members, zip, sdk_info, threads=8, trim_symbols=False,
                     demangle=True):
+    from sentry.models import DSymSymbol
     import Queue
     q = Queue.Queue(threads)
 
     def process_items():
-        items = None
-        can_bulk = True
         while 1:
-            try:
-                with transaction.atomic():
-                    cur = connection.cursor()
-                    while 1:
-                        if items is None:
-                            items = q.get()
-                        if items is SHUTDOWN:
-                            raise Done
-                        if not items:
-                            continue
-
-                        if can_bulk:
-                            bulk = '''
-                                insert into sentry_dsymsymbol
-                                    (object_id, address, symbol)
-                                     values %s
-                            ''' % ', '.join(['(%s, %s, %s)'] * len(items))
-                            cur.execute(bulk, list(chain(*items)))
-                        else:
-                            for item in items:
-                                cur.execute('''
-                                    insert into sentry_dsymsymbol
-                                        (object_id, address, symbol)
-                                    select
-                                        %(object_id)s, %(address)s, %(symbol)s
-                                    where not exists (
-                                        select 1 from sentry_dsymsymbol
-                                           where object_id = %(object_id)s
-                                             and address = %(address)s);
-                                ''', {
-                                    'object_id': item[0],
-                                    'address': item[1],
-                                    'symbol': item[2],
-                                })
-                        items = None
-                        can_bulk = True
-            except IntegrityError:
-                can_bulk = False
-            except Done:
-                break
+            items = q.get()
+            if items is SHUTDOWN:
+                raise Done
+            DSymSymbol.objects.bulk_insert(items)
 
     pool = []
     for x in xrange(threads):
