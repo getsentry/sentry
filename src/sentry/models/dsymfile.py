@@ -161,7 +161,7 @@ class DSymSymbolManager(BaseManager):
         try:
             # First try: exact match on uuid
             cur.execute('''
-                select symbol
+                select s.symbol
                   from sentry_dsymsymbol s,
                        sentry_dsymobject o
                  where o.uuid = %s and
@@ -183,7 +183,7 @@ class DSymSymbolManager(BaseManager):
                 return
 
             cur.execute('''
-                select symbol
+                select s.symbol
                   from sentry_dsymsymbol s,
                        sentry_dsymobject o,
                        sentry_dsymsdk k,
