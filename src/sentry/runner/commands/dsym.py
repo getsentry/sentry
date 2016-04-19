@@ -80,19 +80,15 @@ def process_archive(members, zip, sdk_info, threads=8, trim_symbols=False,
     def process_items():
         cur = connection.cursor()
         cur.execute('begin')
-        cur.execute('''
-            prepare add_sym(bigint, bigint, text) as
-                insert into sentry_dsymsymbol (object_id, address, symbol)
-                select $1, $2, $3
-                where not exists (select 1 from sentry_dsymsymbol
-                    where object_id = $1 and address = $2);
-        ''')
         while 1:
             items = q.get()
             if items is SHUTDOWN:
                 break
             cur.executemany('''
-                execute add_sym(%(object_id)s, %(address)s, %(symbol)s);
+                insert into sentry_dsymsymbol (object_id, address, symbol)
+                select %(object_id)s, %(address)s, %(symbol)s
+                where not exists (select 1 from sentry_dsymsymbol
+                    where object_id = %(object_id)s and address = %(address)s);
             ''', items)
         cur.execute('commit')
 
