@@ -616,7 +616,6 @@ SENTRY_FEATURES = {
     'organizations:create': True,
     'organizations:sso': True,
     'organizations:callsigns': False,
-    'projects:event-types': False,
     'projects:global-events': False,
     'projects:quotas': True,
     'projects:user-reports': False,
