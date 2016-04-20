@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Project, AuditLogEntryEvent
+from sentry.models import Project, ProjectStatus, AuditLogEntryEvent
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -56,7 +56,11 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
             results = list(Project.objects.get_for_user(
                 team=team, user=request.user))
         else:
-            results = list(Project.objects.filter(team=team))
+            # TODO(dcramer): status should be selectable
+            results = list(Project.objects.filter(
+                team=team,
+                status=ProjectStatus.visible,
+            ))
 
         return Response(serialize(results, request.user))
 
