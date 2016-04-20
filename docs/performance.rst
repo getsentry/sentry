@@ -24,86 +24,50 @@ configurations:
 Web Server
 ----------
 
-Switching off of the default Sentry worker model and to uWSGI + emperor
-mode can yield very good results.
+Switching Sentry to run in uwsgi mode as opposed to http is a way to yield
+some better results. uwsgi protocol is a binary protocol that Nginx can
+speak using the `ngx_http_uwsgi_module <http://nginx.org/en/docs/http/ngx_http_uwsgi_module.html>`_.
 
-If you're using supervisord, you can easily implement emperor mode and
-uWSGI yourself by doing something along the lines of::
+This can be enabled by adding to your ``SENTRY_WEB_OPTIONS`` inside
+``sentry.conf.py``::
 
-	[program:web]
-	command=newrelic-admin run-program /srv/www/getsentry.com/env/bin/uwsgi -s 127.0.0.1:90%(process_num)02d --log-x-forwarded-for --buffer-size 32768 --post-buffering 65536 --need-app --disable-logging --wsgi-file getsentry/wsgi.py --processes 1 --threads 6
-	process_name=%(program_name)s_%(process_num)02d
-	numprocs=20
-	numprocs_start=0
-	startsecs=5
-	startretries=3
-	stopsignal=QUIT
-	stopwaitsecs=10
-	stopasgroup=true
-	killasgroup=true
-	environment=SENTRY_CONF="/etc/sentry"
-	directory=/srv/www/getsentry.com/current/
-	stdout_logfile syslog
-	stderr_logfile syslog
-
-Once you're running multiple processes, you'll of course need to also
-configure something like Nginx to load balance to them::
-
-	upstream internal {
-	  least_conn;
-	  server 127.0.0.1:9000;
-	  server 127.0.0.1:9001;
-	  server 127.0.0.1:9002;
-	  server 127.0.0.1:9003;
-	  server 127.0.0.1:9004;
-	  server 127.0.0.1:9005;
-	  server 127.0.0.1:9006;
-	  server 127.0.0.1:9007;
-	  server 127.0.0.1:9008;
-	  server 127.0.0.1:9009;
-	  server 127.0.0.1:9010;
-	  server 127.0.0.1:9011;
-	  server 127.0.0.1:9012;
-	  server 127.0.0.1:9013;
-	  server 127.0.0.1:9014;
-	  server 127.0.0.1:9015;
-	  server 127.0.0.1:9016;
-	  server 127.0.0.1:9017;
-	  server 127.0.0.1:9018;
-	  server 127.0.0.1:9019;
+	SENTRY_WEB_OPTIONS = {
+	    'protocol': 'uwsgi',
 	}
 
+.. Note:: When in uwsgi mode, it's not possible to access directly from
+          a web browser or tools like curl since it no longer speaks HTTP.
+
+With Sentry running in uwsgi protocol mode, it'll require a slight
+modification to your nginx config to use ``uwsgi_pass`` rather than
+``proxy_pass``::
+
 	server {
-	  listen   80;
-
-	  server_name     sentry.example.com;
-
-          # keepalive + raven.js is a disaster
-          keepalive_timeout 0;
-
-          # use very aggressive timeouts
-          proxy_read_timeout 5s;
-          proxy_send_timeout 5s;
-          send_timeout 5s;
-          resolver_timeout 5s;
-          client_body_timeout 5s;
-
-          # buffer larger messages
-          client_max_body_size 150k;
-          client_body_buffer_size 150k;
+	  listen   443 ssl;
 
 	  location / {
-	    uwsgi_pass    internal;
-
-	    uwsgi_param   Host                 $host;
-	    uwsgi_param   X-Forwarded-For      $proxy_add_x_forwarded_for;
-	    uwsgi_param   X-Forwarded-Proto    $http_x_forwarded_proto;
-
-	    include uwsgi_params;
+	    include     uwsgi_params;
+	    uwsgi_pass  127.0.0.1:9000;
 	  }
 	}
 
-See uWSGI's official documentation for emperor mode details.
+
+You also will likely want to run more web processes, which will spawn as
+children of the Sentry master process. The default number of workers is
+``3``. It's possible to bump this up to ``36`` or more depending on how
+many cores you have on the machine. You can do this either by editing
+``SENTRY_WEB_OPTIONS`` again::
+
+	SENTRY_WEB_OPTIONS = {
+	    'workers': 16,
+	}
+
+or can be passed through the command line as::
+
+	$ sentry start -w 16
+
+See `uWSGI's official documentation <https://uwsgi-docs.readthedocs.org/en/latest/Options.html>`_
+for more options that can be configured in ``SENTRY_WEB_OPTIONS``.
 
 
 Celery
@@ -115,12 +79,10 @@ more difficult, as currently the sourcemap and context scraping can buffer
 large amounts of memory depending on your configurations and the size of
 your source files.
 
-On a completely anecdotal note, you can take the same approach that you
-might take with improving the webserver: spawn more processes. We again
-look to supervisord for managing this for us::
+We can leverage supervisord to do this for us::
 
 	[program:celeryd]
-	command=/srv/www/getsentry.com/env/bin/sentry celery worker -c 4 -B -l WARNING -n worker-%(process_num)02d
+	command=/www/sentry/bin/sentry celery worker -c 4 -l WARNING -n worker-%(process_num)02d
 	process_name=%(program_name)s_%(process_num)02d
 	numprocs=16
 	numprocs_start=0
@@ -131,8 +93,7 @@ look to supervisord for managing this for us::
 	stopasgroup=false
 	killasgroup=true
 	environment=SENTRY_CONF="/etc/sentry"
-	directory=/srv/www/getsentry.com/current/
-
+	directory=/www/sentry/
 
 If you're running a worker configuration with a high concurrency
 level (> 4) we suggest decreasing it and running more masters as
