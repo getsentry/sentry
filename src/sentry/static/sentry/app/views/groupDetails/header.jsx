@@ -73,12 +73,8 @@ const GroupHeader = React.createClass({
     });
   },
 
-  getTitle(hasEventTypes) {
+  getTitle() {
     let data = this.props.group;
-    if (!hasEventTypes) {
-      return <span>{data.title}</span>;
-    }
-
     let metadata = data.metadata;
     switch (data.type) {
       case 'error':
@@ -102,12 +98,8 @@ const GroupHeader = React.createClass({
     }
   },
 
-  getMessage(hasEventTypes) {
+  getMessage() {
     let data = this.props.group;
-    if (!hasEventTypes) {
-      return <span>{data.culprit}</span>;
-    }
-
     let metadata = data.metadata;
     switch (data.type) {
       case 'error':
@@ -142,22 +134,21 @@ const GroupHeader = React.createClass({
 
     let groupId = group.id,
       projectId = this.getProject().slug,
-      orgId = this.getOrganization().slug,
-      hasEventTypes = this.getProjectFeatures().has('event-types');
+      orgId = this.getOrganization().slug;
 
     return (
       <div className={className}>
         <div className="row">
           <div className="col-sm-8">
             <h3>
-              {this.getTitle(hasEventTypes)}
+              {this.getTitle()}
             </h3>
             <div className="event-message">
               <span className="error-level">{group.level}</span>
               {group.shortId &&
                 <ShortId shortId={group.shortId} />
               }
-              <span className="message">{this.getMessage(hasEventTypes)}</span>
+              <span className="message">{this.getMessage()}</span>
               {group.logger &&
                 <span className="event-annotation">
                   <Link to={`/${orgId}/${projectId}/`} query={{query: 'logger:' + group.logger}}>

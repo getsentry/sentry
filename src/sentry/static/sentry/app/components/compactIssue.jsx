@@ -1,4 +1,3 @@
-import Raven from 'raven-js';
 import React from 'react';
 import Reflux from 'reflux';
 import {Link} from 'react-router';
@@ -9,7 +8,6 @@ import IndicatorStore from '../stores/indicatorStore';
 import DropdownLink from './dropdownLink';
 import GroupChart from './stream/groupChart';
 import GroupStore from '../stores/groupStore';
-import ProjectStore from '../stores/projectStore';
 import {t} from '../locale';
 
 const Snooze = {
@@ -85,15 +83,10 @@ const CompactIssueHeader = React.createClass({
     data: React.PropTypes.object.isRequired,
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-    hasEventTypes: React.PropTypes.bool,
   },
 
   getTitle() {
     let data = this.props.data;
-    if (!this.props.hasEventTypes) {
-      return <span>{data.title}</span>;
-    }
-
     let metadata = data.metadata;
     switch (data.type) {
       case 'error':
@@ -119,10 +112,6 @@ const CompactIssueHeader = React.createClass({
 
   getMessage() {
     let data = this.props.data;
-    if (!this.props.hasEventTypes) {
-      return <span>{data.culprit}</span>;
-    }
-
     let metadata = data.metadata;
     switch (data.type) {
       case 'error':
@@ -251,23 +240,11 @@ const CompactIssue = React.createClass({
 
     let {id, orgId} = this.props;
     let projectId = issue.project.slug;
-
-    let project = ProjectStore.getBySlug(issue.project.slug);
-    let hasEventTypes = false;
-    if (project === undefined) {
-      Raven.captureMessage('project ' + issue.project.slug + ' not found in store on dashboard', {
-        fingerprint: ['project undefined dashboard']
-      });
-    } else {
-      hasEventTypes = new Set(project.features).has('event-types');
-    }
-
     let title = <span className="icon-more"></span>;
 
     return (
       <li className={className} onClick={this.toggleSelect}>
-        <CompactIssueHeader data={issue} orgId={orgId} projectId={projectId}
-                            hasEventTypes={hasEventTypes} />
+        <CompactIssueHeader data={issue} orgId={orgId} projectId={projectId} />
         {this.props.statsPeriod &&
           <div className="event-graph">
             <GroupChart id={id} statsPeriod={this.props.statsPeriod} />
