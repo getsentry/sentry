@@ -207,11 +207,9 @@
         <a href="{% absolute_uri '/{}/{}/settings/csp/' project.organization.slug project.slug %}">{% trans "CSP Reports" %}</a>
     </li>
     {% endif %}
-    {% feature projects:user-reports project %}
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/user-feedback/' project.organization.slug project.slug %}">{% trans "User Feedback" %}</a>
     </li>
-    {% endfeature %}
     <li{% if page == 'keys' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "Client Keys (DSN)" %}</a>
     </li>

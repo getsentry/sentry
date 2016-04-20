@@ -110,9 +110,7 @@ const ProjectSettings = React.createClass({
             {isEarlyAdopter &&
               <ListLink to={`/${orgId}/${projectId}/settings/csp/`}>{t('CSP Reports')}</ListLink>
             }
-            {features.has('user-reports') &&
-              <ListLink to={`/${orgId}/${projectId}/settings/user-feedback/`}>{t('User Feedback')}</ListLink>
-            }
+            <ListLink to={`/${orgId}/${projectId}/settings/user-feedback/`}>{t('User Feedback')}</ListLink>
             <li><a href={`${settingsUrlRoot}/keys/`}>{t('Client Keys')} (DSN)</a></li>
           </ul>
           <h6 className="nav-header">{t('Integrations')}</h6>
