@@ -7,6 +7,7 @@ sentry.runner.commands.start
 """
 from __future__ import absolute_import, print_function
 
+import sys
 import click
 from sentry.runner.decorators import configuration
 
@@ -25,7 +26,14 @@ SERVICES = {
 @configuration
 @click.pass_context
 def start(ctx, service, bind, workers, upgrade, noinput):
-    "Start running a service."
+    "DEPRECATED see `sentry run` instead."
+
+    from sentry.runner.initializer import show_big_error
+    show_big_error([
+        '`sentry start%s` is deprecated.' % (' ' + service if 'http' in sys.argv else ''),
+        'Use `sentry run %s` instead.' % {'http': 'web'}.get(service, service),
+    ])
+
     if bind:
         if ':' in bind:
             host, port = bind.split(':', 1)
@@ -49,7 +57,6 @@ def start(ctx, service, bind, workers, upgrade, noinput):
     # remove command line arguments to avoid optparse failures with service code
     # that calls call_command which reparses the command line, and if --noupgrade is supplied
     # a parse error is thrown
-    import sys
     sys.argv = sys.argv[:1]
 
     from sentry.utils.imports import import_string
