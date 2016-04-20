@@ -411,8 +411,8 @@
 
   .activity-notes {
     .nav {
-      padding: 7px 15px 0;
-      border-bottom: 1px solid @trim;
+      padding: 7px 20px 0;
+      border-bottom: 1px solid lighten(@trim, 5);
       margin-bottom: 0;
 
       li {
@@ -432,18 +432,17 @@
 
   .activity-field {
     .transition(padding .2s ease-in-out);
-    margin: -10px -13px 0;
+    margin: -15px -20px 0;
 
     textarea, .note-preview {
       display: block;
       width: 100%;
-      min-height: 88px;
+      min-height: 140px;
       max-height: 1000px;
       max-width: 100%;
       margin: 0;
-      .transition(.2s ease-in-out all);
       border: 0;
-      padding: 15px 0 0 15px;
+      padding: 15px 20px 0;
       overflow: auto;
 
       .placeholder(@gray-lighter);
@@ -531,17 +530,17 @@
         position: absolute;
         left: 0;
         top: 0;
-        .square(32px);
+        .square(38px);
       }
 
       .activity-bubble {
         background: #fff;
         border: 1px solid @trim;
-        margin-left: 42px;
+        margin-left: 50px;
         border-radius: 3px;
-        font-size: 14px;
-        line-height: 18px;
-        padding: 10px 13px 0;
+        font-size: 15px;
+        line-height: 22px;
+        padding: 15px 20px 0;
         position: relative;
 
         &:before {
@@ -554,7 +553,7 @@
           border-right: 7px solid @trim;
           position: absolute;
           left: -7px;
-          top: 10px;
+          top: 12px;
         }
 
         &:after {
@@ -567,14 +566,18 @@
           border-right: 6px solid #fff;
           position: absolute;
           left: -6px;
-          top: 11px;
+          top: 13px;
         }
 
-        p, ul:not(.nav), ol, pre {
-          margin-bottom: 10px;
+        h1, h2, h3, h4, p, ul:not(.nav), ol, pre, hr {
+          margin-bottom: 15px;
         }
         ul:not(.nav), ol {
           padding-left: 20px;
+        }
+
+        ul {
+          list-style: disc;
         }
 
         p {
@@ -583,14 +586,13 @@
           }
         }
 
-        pre {
-          font-size: 12px;
-        }
-
         .activity-author {
           font-weight: 600;
           margin-bottom: 5px;
           font-size: 13px;
+          padding: 0 20px 8px;
+          margin: -6px -20px 15px;
+          border-bottom: 1px solid lighten(@trim, 5);
 
           small {
             font-weight: 300;
@@ -602,8 +604,8 @@
 
             a {
               padding: 0 7px;
-              border-left: 1px solid lighten(@gray, 40);
-              color: lighten(@gray, 30);
+              border-left: 1px solid lighten(@trim, 5);
+              color: @gray;
               font-weight: normal;
               &:hover { color: #666; }
               &:hover.danger { color: #d21c25; }
@@ -614,8 +616,9 @@
 
         time {
           float: right;
-          color: lighten(@gray, 20);
+          color: @gray-light;
           font-style: normal;
+          font-size: 14px;
         }
       }
     }
