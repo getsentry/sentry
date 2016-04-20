@@ -172,9 +172,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                                project settings.
         :auth: required
         """
-        if request.auth and request.auth.has_scope('project:write'):
-            serializer_cls = ProjectAdminSerializer
-        elif request.access.has_scope('project:write'):
+        has_project_write = (
+            (request.auth and request.auth.has_scope('project:write')) or
+            (request.access and request.access.has_scope('project:write'))
+        )
+
+        if has_project_write:
             serializer_cls = ProjectAdminSerializer
         else:
             serializer_cls = ProjectMemberSerializer
@@ -217,7 +220,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         elif result.get('isSubscribed') is False:
             UserOption.objects.set_value(request.user, project, 'mail:alert', 0)
 
-        if request.access.has_scope('project:write'):
+        if has_project_write:
             options = request.DATA.get('options', {})
             if 'sentry:origins' in options:
                 project.update_option(
