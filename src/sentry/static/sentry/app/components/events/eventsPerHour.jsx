@@ -3,7 +3,7 @@ import React from 'react';
 import {Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
-import BarChart from '../../components/barChart';
+import StackedBarChart from '../../components/stackedBarChart';
 import LoadingError from '../../components/loadingError';
 import OrganizationState from '../../mixins/organizationState';
 
@@ -123,7 +123,7 @@ const EventsPerHour = React.createClass({
       <div>
         <Link className="btn-sidebar-header" to={`/organizations/${org.slug}/stats/`}>{t('View Stats')}</Link>
         <h6 className="nav-header">{t('Events Per Hour')}</h6>
-          <BarChart points={this.state.formattedData} className="sparkline dashboard-sparkline" barClasses={this.STAT_OPTS} />
+          <StackedBarChart points={this.state.formattedData} className="sparkline dashboard-sparkline" barClasses={this.STAT_OPTS} />
       </div>
     );
   },

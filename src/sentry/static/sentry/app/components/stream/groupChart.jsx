@@ -60,7 +60,7 @@ const GroupChart = React.createClass({
       return null;
 
     let chartData = this.state.stats.map((point) => {
-      return {x: point[0], y: [point[1]]};
+      return {x: point[0], y: point[1]};
     });
 
     return (

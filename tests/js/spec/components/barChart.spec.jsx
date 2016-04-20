@@ -15,9 +15,9 @@ describe('BarChart', function() {
 
     it('renders with points data', function () {
       let points = [
-        {x: 1439766000, y: [10]},
-        {x: 1439769600, y: [20]},
-        {x: 1439773200, y: [30]},
+        {x: 1439766000, y: 10},
+        {x: 1439769600, y: 20},
+        {x: 1439773200, y: 30},
       ];
 
       let comp = TestUtils.renderIntoDocument(<BarChart points={points}/>);
@@ -31,9 +31,9 @@ describe('BarChart', function() {
 
     it('renders with points and markers', function () {
       let points = [
-        {x: 1439769600, y: [10]},
-        {x: 1439773200, y: [20]},
-        {x: 1439776800, y: [30]}
+        {x: 1439769600, y: 10},
+        {x: 1439773200, y: 20},
+        {x: 1439776800, y: 30}
       ];
       let markers = [
         {x: 1439769600, className: 'first-seen', label: 'first seen'}, // matches first point
@@ -55,7 +55,7 @@ describe('BarChart', function() {
 
     it('renders with points and markers, when first and last seen are same data point', function () {
       let points = [
-        {x: 1439776800, y: [30]}
+        {x: 1439776800, y: 30}
       ];
       let markers = [
         {x: 1439776800, className: 'first-seen', label: 'first seen'},
