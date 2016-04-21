@@ -52,8 +52,8 @@
               <strong>{{ tag_key }}</strong>
               <em>=</em>
               <span>
-              {% with query_string=tag_key|add:":"|add:tag_value %}
-                <a href="{% absolute_uri project_link %}?query={{ query_string|urlencode }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
+              {% with query=tag_key|add:":\""|add:tag_value|add:"\""|urlencode %}
+                <a href="{% absolute_uri project_link %}?query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
               {% endwith %}
               </span>
           </li>
