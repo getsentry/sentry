@@ -26,9 +26,12 @@
   margin-top: 4%;
   text-align: left;
   border: 1px solid #fff;
-  padding: 30px;
+  padding: 40px;
   max-width: 700px;
   overflow: auto;
+  border-radius: 3px;
+  color: #546076;
+  box-shadow: 0 0 0 1px rgba(0,0,0, .3), 0 10px 40px rgba(0,0,0, .3);
 }
 .sentry-error-embed .clearfix {
   *zoom: 1;
@@ -44,7 +47,7 @@
 }
 .sentry-error-embed a,
 .sentry-error-embed a:visited {
-  color: #000;
+  color: #546076;
   font-weight: 500;
   text-decoration: none;
 }
@@ -60,20 +63,23 @@
 }
 .sentry-error-embed a:active,
 .sentry-error-embed a:focus, a:hover {
-  color: #0666b8;
+  color: #1E263C;
   text-decoration: underline;
 }
 .sentry-error-embed h2 {
   font-size: 28px;
   font-weight: 500;
-  margin: 0;
+  margin: 0 0 5px;
+  color: #394359;
 }
 .sentry-error-embed header {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #E8EBF1;
 }
 .sentry-error-embed header p {
-  color: #999;
+  color: #94A0B3;
   font-size: 16px;
 }
 .sentry-error-embed .form-field {
@@ -91,9 +97,9 @@
 .sentry-error-embed .form-field input,
 .sentry-error-embed .form-field textarea {
   font-size: 15px;
-  padding: 8px;
-  border: 1px solid #fcfcfc;
-  background: #fcfcfc;
+  padding: 8px 12px;
+  border: 1px solid #BAC2D3;
+  background: #FBFBFC;
   border-radius: 0;
   box-shadow: none;
   width: 100%;
@@ -101,10 +107,24 @@
   -webkit-box-sizing : border-box;‌​
   -moz-box-sizing : border-box;
   box-sizing : border-box;
+  box-shadow: inset 0 1px 1px rgba(0,0,0, .06);
+  border-radius: 2px;
 }
+
+.sentry-error-embed .form-field input::-webkit-input-placeholder,
+.sentry-error-embed .form-field textarea::-webkit-input-placeholder {
+  color: #94A0B3;
+}
+
+.sentry-error-embed .form-field input:focus,
+.sentry-error-embed .form-field textarea:focus {
+  outline: none;
+  border-color: #94A0B3;
+}
+
 .sentry-error-embed .form-errors input,
 .sentry-error-embed .form-errors textarea {
-  border-color: red;
+  border-color: #E35141;
 }
 .sentry-error-embed .form-field textarea {
   height: 100px;
@@ -112,40 +132,51 @@
 .sentry-error-embed .form-submit .btn {
   border: none;
   color: #fff;
-  background: #1791F8;
+  background: #25A6F7;
   padding: 10px 15px;
+  margin-right: 15px;
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   float: left;
+  border: 1px solid #1D87CE;
+  box-shadow: 0 1px 1px rgba(0,0,0, .12);
 }
 .sentry-error-embed .form-submit .close {
-  padding: 10px 15px;
+  padding: 10px 0;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   float: left;
 }
 .sentry-error-embed .form-submit .btn:hover {
-  background: #0666b8;
+  background: #1D87CE;
 }
 .sentry-error-embed .form-submit .powered-by {
   padding: 10px 0;
   margin: 0;
   float: right;
-  font-size: 12px;
+  font-size: 14px;
+}
+.sentry-error-embed .form-submit .powered-by a {
+  color: #1E263C;
 }
 .sentry-error-embed .message-success,
 .sentry-error-embed .message-error {
   text-align: center;
-  font-size: 14px;
+  font-size: 16px;
+  padding: 30px;
+  margin: -21px 0 20px;
+  border-radius: 3px;
+  box-shadow: 0 1px 1px rgba(0,0,0, .06);
 }
 .sentry-error-embed .message-success {
-  color: green;
-  margin-bottom: 40px;
+  border: 1px solid #C9DEC2;
+  background: #FCFEFB;
 }
 .sentry-error-embed .message-error {
-  color: red;
+  border: 1px solid #ECCFCC;
+  background: #FEFDFD;
 }
 .sentry-error-embed .error-wrapper p:last-child {
   margin-bottom: 0;
