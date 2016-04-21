@@ -2,7 +2,6 @@
 
 {% load i18n %}
 {% load sentry_helpers %}
-{% load sentry_features %}
 
 {% block title %}{% trans "Client Keys" %} | {{ block.super }}{% endblock %}
 
@@ -61,13 +60,13 @@
             <div class="help-block">{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}Use your public DSN with browser-based clients such as <a href="{{ link }}">raven-js</a>.{% endblocktrans %}</div>
           </div>
 
-          {% feature projects:csp project %}
+          {% if organization.flags.early_adopter %}
           <div class="form-group">
             <label>{% trans "CSP Endpoint" %}</label>
             <div class="form-control disabled auto-select">{{ key.csp_endpoint }}</div>
             <div class="help-block">{% blocktrans %}Use your CSP endpoint in the <code>report-uri</code> directive in your <code>Content-Security-Policy</code> header.{% endblocktrans %}</div>
           </div>
-          {% endfeature %}
+          {% endif %}
         </div>
       {% endfor %}
     </div>
