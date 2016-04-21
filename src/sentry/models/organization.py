@@ -83,6 +83,7 @@ class Organization(Model):
         ('allow_joinleave', 'Allow members to join and leave teams without requiring approval.'),
         ('enhanced_privacy', 'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.'),
         ('disable_shared_issues', 'Disable sharing of limited details on issues to anonymous users.'),
+        ('early_adopter', 'Enable early adopter status, gaining access to features prior to public release.'),
     ), default=1)
 
     objects = OrganizationManager(cache_fields=(

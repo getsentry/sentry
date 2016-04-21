@@ -21,6 +21,7 @@ class OrganizationSerializer(Serializer):
             'slug': obj.slug,
             'name': obj.name,
             'dateCreated': obj.date_added,
+            'isEarlyAdopter': bool(obj.flags.early_adopter),
         }
 
 
