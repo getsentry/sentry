@@ -32,7 +32,11 @@ class UserReportForm(forms.ModelForm):
 
 class ErrorPageEmbedView(View):
     def _get_project_key(self, request):
-        dsn = request.GET.get('dsn')
+        try:
+            dsn = request.GET['dsn']
+        except KeyError:
+            return
+
         try:
             key = ProjectKey.from_dsn(dsn)
         except ProjectKey.DoesNotExist:
