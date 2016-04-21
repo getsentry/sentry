@@ -114,8 +114,7 @@ const GroupHeader = React.createClass({
   render() {
     let group = this.props.group,
         orgFeatures = new Set(this.getOrganization().features),
-        userCount = group.userCount,
-        features = this.getProjectFeatures();
+        userCount = group.userCount;
 
     let className = 'group-detail';
 
@@ -213,11 +212,9 @@ const GroupHeader = React.createClass({
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}>
             {t('Comments')} <span className="badge animated">{group.numComments}</span>
           </ListLink>
-          {features.has('user-reports') &&
-            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/feedback/`}>
-              {t('User Feedback')} <span className="badge animated">{group.userReportCount}</span>
-            </ListLink>
-          }
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/feedback/`}>
+            {t('User Feedback')} <span className="badge animated">{group.userReportCount}</span>
+          </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/tags/`}>
             {t('Tags')}
           </ListLink>

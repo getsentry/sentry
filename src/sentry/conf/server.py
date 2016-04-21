@@ -618,7 +618,6 @@ SENTRY_FEATURES = {
     'organizations:callsigns': False,
     'projects:global-events': False,
     'projects:quotas': True,
-    'projects:user-reports': False,
     'projects:plugins': True,
     'projects:dsym': False,
 }
