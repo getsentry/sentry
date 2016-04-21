@@ -251,10 +251,16 @@ def bind_cache_to_option_store():
 
 
 def show_big_error(message):
+    if isinstance(message, basestring):
+        lines = message.splitlines()
+    else:
+        lines = message
+    maxline = max(map(len, lines))
     click.echo('', err=True)
-    click.secho('!! %s !!' % ('!' * min(len(message), 80),), err=True, fg='red')
-    click.secho('!! %s !!' % message, err=True, fg='red')
-    click.secho('!! %s !!' % ('!' * min(len(message), 80),), err=True, fg='red')
+    click.secho('!! %s !!' % ('!' * min(maxline, 80),), err=True, fg='red')
+    for line in lines:
+        click.secho('!! %s !!' % line.center(maxline), err=True, fg='red')
+    click.secho('!! %s !!' % ('!' * min(maxline, 80),), err=True, fg='red')
     click.echo('', err=True)
 
 
