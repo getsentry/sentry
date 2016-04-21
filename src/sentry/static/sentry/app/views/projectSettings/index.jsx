@@ -13,7 +13,8 @@ const ProjectSettings = React.createClass({
   },
 
   contextTypes: {
-    location: React.PropTypes.object
+    location: React.PropTypes.object,
+    organization: React.PropTypes.object,
   },
 
   mixins: [
@@ -77,6 +78,7 @@ const ProjectSettings = React.createClass({
     let project = this.state.project;
     let features = new Set(project.features);
     let rootInstallPath = `/${orgId}/${projectId}/settings/install/`;
+    let isEarlyAdopter = this.context.organization.isEarlyAdopter;
 
     return (
       <div className="row">
@@ -93,8 +95,7 @@ const ProjectSettings = React.createClass({
             <li><a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a></li>
             <li><a href={`${settingsUrlRoot}/release-tracking/`}>{t('Release Tracking')}</a></li>
             <ListLink to={`/${orgId}/${projectId}/settings/saved-searches/`}>{t('Saved Searches')}</ListLink>
-
-            {features.has('dsym') &&
+            {isEarlyAdopter &&
               <ListLink to={`/${orgId}/${projectId}/settings/debug-symbols/`}>{t('Debug Symbols')}</ListLink>
             }
           </ul>
@@ -106,7 +107,7 @@ const ProjectSettings = React.createClass({
               // Because react-router 1.0 removes router.isActive(route)
               return pathname === rootInstallPath || /install\/[\w\-]+\/$/.test(pathname);
             }.bind(this)}>{t('Error Tracking')}</ListLink>
-            {features.has('csp') &&
+            {isEarlyAdopter &&
               <ListLink to={`/${orgId}/${projectId}/settings/csp/`}>{t('CSP Reports')}</ListLink>
             }
             {features.has('user-reports') &&
