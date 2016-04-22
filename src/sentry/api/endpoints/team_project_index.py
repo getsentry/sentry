@@ -59,7 +59,7 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
             # TODO(dcramer): status should be selectable
             results = list(Project.objects.filter(
                 team=team,
-                status=ProjectStatus.visible,
+                status=ProjectStatus.VISIBLE,
             ))
 
         return Response(serialize(results, request.user))
