@@ -18,7 +18,7 @@ from sentry.utils.safe import trim
 from sentry.utils.dates import to_timestamp, to_datetime
 
 
-validators = {}
+crumb_types = {}
 
 
 def parse_new_timestamp(value):
@@ -43,107 +43,154 @@ def parse_new_timestamp(value):
     return rv.replace(tzinfo=pytz.utc)
 
 
-def typevalidator(ty):
-    def decorator(f):
-        validators[ty] = f
-        return f
-    return decorator
-
-
 def validate_payload_for_type(payload, type):
     payload = payload or {}
-    func = validators.get(type)
-    if func is None:
+    ty = crumb_types.get(type)
+    if ty is None:
         raise InterfaceValidationError("Invalid breadcrumb type (%s)." %
                                        (type,))
-    return func(payload)
+    return ty.validate_payload(payload)
 
 
-@typevalidator('message')
-def validate_message(payload):
-    rv = {}
-    for key in 'message', 'logger', 'level', 'classifier':
-        value = payload.get(key)
-        if value is None:
-            continue
-        rv[key] = trim(value, 1024)
-    if 'message' not in rv:
-        raise InterfaceValidationError("No message provided for "
-                                       "'message' breadcrumb.")
-    return rv
+def get_api_context_for_type(data, type, is_public=False):
+    ty = crumb_types.get(type)
+    if ty is None:
+        raise InterfaceValidationError("Invalid breadcrumb type (%s)." %
+                                       (type,))
+    return ty.get_api_context(data, type, is_public=is_public)
 
 
-@typevalidator('rpc')
-def validate_rpc(payload):
-    rv = {}
-    for key in 'endpoint', 'params', 'classifier':
-        value = payload.get(key)
-        if value is not None:
+class CrumbType(type):
+
+    def __new__(cls, name, bases, d):
+        rv = type.__new__(cls, name, bases, d)
+        if d.get('type'):
+            crumb_types[d['type']] = rv()
+        return rv
+
+
+class Crumb(object):
+    __metaclass__ = CrumbType
+    type = None
+
+    def validiate_payload(self, payload):
+        return payload
+
+    def get_api_context(self, data, is_public=False):
+        return data
+
+
+class MessageCrumb(Crumb):
+    type = 'message'
+
+    def validate_payload(self, payload):
+        rv = {}
+        for key in 'message', 'logger', 'level', 'classifier':
+            value = payload.get(key)
+            if value is None:
+                continue
             rv[key] = trim(value, 1024)
-    if not rv.get('endpoint'):
-        raise InterfaceValidationError("No endpoint provided for "
-                                       "'rpc' breadcrumb.")
-    return rv
+        if 'message' not in rv:
+            raise InterfaceValidationError("No message provided for "
+                                           "'message' breadcrumb.")
+        return rv
 
 
-@typevalidator('http_request')
-def validate_http_request(payload):
-    rv = {}
-    for key in 'status_code', 'reason', 'method', 'url', 'headers', \
-               'response', 'classifier':
-        value = payload.get(key)
-        if value is not None:
-            rv[key] = trim(value, 1024)
-    if not rv.get('url'):
-        raise InterfaceValidationError("No url provided for "
-                                       "'http_request' breadcrumb.")
-    return rv
+class RpcCrumb(Crumb):
+    type = 'rpc'
+
+    def validate_payload(self, payload):
+        rv = {}
+        for key in 'endpoint', 'params', 'classifier':
+            value = payload.get(key)
+            if value is not None:
+                rv[key] = trim(value, 1024)
+        if not rv.get('endpoint'):
+            raise InterfaceValidationError("No endpoint provided for "
+                                           "'rpc' breadcrumb.")
+        return rv
 
 
-@typevalidator('query')
-def validate_query(payload):
-    rv = {}
-    for key in 'query', 'params', 'classifier':
-        value = payload.get(key)
-        if value is not None:
-            rv[key] = trim(value, 1024)
-    if 'query' not in rv:
-        raise InterfaceValidationError("Query not provided for 'query' "
-                                       "breadcrumb.")
-    return rv
+class HttpRequestCrumb(Crumb):
+    type = 'http_request'
+
+    def validate_payload(self, payload):
+        rv = {}
+        for key in 'status_code', 'reason', 'method', 'url', 'headers', \
+                   'response', 'classifier':
+            value = payload.get(key)
+            if value is not None:
+                rv[key] = trim(value, 1024)
+        if not rv.get('url'):
+            raise InterfaceValidationError("No url provided for "
+                                           "'http_request' breadcrumb.")
+        return rv
+
+    def get_api_context(self, data, is_public=False):
+        rv = dict(data)
+        status_code = data.pop('status_code', None)
+        data['statusCode'] = status_code
+        return rv
 
 
-@typevalidator('ui_event')
-def validate_event(payload):
-    rv = {}
-    for key in 'type', 'target', 'classifier':
-        value = payload.get(key)
-        if value is not None:
-            rv[key] = trim(value, 1024)
-    return rv
+class QueryCrumb(Crumb):
+    type = 'query'
+
+    def validate_payload(self, payload):
+        rv = {}
+        for key in 'query', 'params', 'classifier':
+            value = payload.get(key)
+            if value is not None:
+                rv[key] = trim(value, 1024)
+        if 'query' not in rv:
+            raise InterfaceValidationError("Query not provided for 'query' "
+                                           "breadcrumb.")
+        return rv
 
 
-@typevalidator('navigation')
-def validate_navigation(payload):
-    rv = {}
-    for key in 'to', 'from':
-        value = payload.get(key)
-        if value is not None:
-            rv[key] = trim(value, 1024)
-    if 'to' not in rv:
-        raise InterfaceValidationError("Location not provided for 'navigation' "
-                                       "breadcrumb.")
-    return rv
+class UiEventCrumb(Crumb):
+    type = 'ui_event'
+
+    def validate_payload(self, payload):
+        rv = {}
+        for key in 'type', 'target', 'classifier':
+            value = payload.get(key)
+            if value is not None:
+                rv[key] = trim(value, 1024)
+        return rv
 
 
-@typevalidator('error')
-def validate_error(payload):
-    rv = {}
-    for key in 'type', 'message', 'event_id':
-        value = payload.get(key)
-        if value is not None:
-            rv[key] = trim(value, 1024)
-    return rv
+class NavigationCrumb(Crumb):
+    type = 'navigation'
+
+    def validate_payload(self, payload):
+        rv = {}
+        for key in 'to', 'from':
+            value = payload.get(key)
+            if value is not None:
+                rv[key] = trim(value, 1024)
+        if 'to' not in rv:
+            raise InterfaceValidationError("Location not provided for 'navigation' "
+                                           "breadcrumb.")
+        return rv
+
+
+class ErrorCrumb(Crumb):
+    type = 'error'
+
+    def validate_payload(self, payload):
+        rv = {}
+        for key in 'type', 'message', 'event_id':
+            value = payload.get(key)
+            if value is not None:
+                rv[key] = trim(value, 1024)
+        return rv
+
+    def get_api_context(self, data, is_public=False):
+        rv = dict(data)
+        event_id = data.pop('event_id', None)
+        data['eventId'] = event_id
+        return rv
 
 
 class Breadcrumbs(Interface):
@@ -193,7 +240,8 @@ class Breadcrumbs(Interface):
             return {
                 'type': x['type'],
                 'timestamp': to_datetime(x['timestamp']),
-                'data': x['data'],
+                'data': get_api_context_for_type(x['data'], x['type'],
+                                                 is_public=is_public),
             }
         return {
             'values': map(_convert, self.values),
