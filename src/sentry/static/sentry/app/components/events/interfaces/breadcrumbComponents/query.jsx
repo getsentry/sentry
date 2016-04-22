@@ -1,6 +1,7 @@
 import React from 'react';
 
 import Classifier from './classifier';
+import Duration from '../../../duration';
 
 const QueryCrumbComponent = React.createClass({
   propTypes: {
@@ -19,9 +20,15 @@ const QueryCrumbComponent = React.createClass({
       ;
     });
 
+    let timing = null;
+    if (data.duration !== undefined && data.duration !== null) {
+      timing = <Duration key="duration" seconds={data.duration} />;
+    }
+
     return (
       <p>
         <strong>Query:</strong> <code>{queryElements}</code>
+        {timing}
         <Classifier value={data.classifier} title="%s query" />
       </p>
     );

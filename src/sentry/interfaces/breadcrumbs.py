@@ -103,7 +103,7 @@ def validate_http_request(payload):
 @typevalidator('query')
 def validate_query(payload):
     rv = {}
-    for key in 'query', 'params', 'classifier':
+    for key in 'query', 'params', 'duration', 'classifier':
         value = payload.get(key)
         if value is not None:
             rv[key] = trim(value, 1024)
