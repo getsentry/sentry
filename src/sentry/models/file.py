@@ -149,16 +149,7 @@ class File(Model):
         app_label = 'sentry'
         db_table = 'sentry_file'
 
-    def delete(self, *args, **kwargs):
-        super(File, self).delete(*args, **kwargs)
-        # This is legacy code.  The "blobs" are cleaned up by
-        # the cleanup_unused_files functionality in the cleanup command.
-        if self.blob and not File.objects.filter(blob=self.blob).exists():
-            self.blob.delete()
-
     def getfile(self, *args, **kwargs):
-        if self.blob:
-            return self.blob.getfile()
         return FileObj(ChunkedFileBlobIndexWrapper(FileBlobIndex.objects.filter(
             file=self,
         ).select_related('blob').order_by('offset')), 'rb')
