@@ -159,6 +159,7 @@ def test_bootstrap_options_empty_file(settings, config_yml):
 
 
 def test_apply_legacy_settings(settings):
+    settings.ALLOWED_HOSTS = []
     settings.SENTRY_USE_QUEUE = True
     settings.SENTRY_ALLOW_REGISTRATION = True
     settings.SENTRY_ADMIN_EMAIL = 'admin-email'
@@ -179,6 +180,7 @@ def test_apply_legacy_settings(settings):
         'mail.from': 'mail-from',
     }
     assert settings.DEFAULT_FROM_EMAIL == 'mail-from'
+    assert settings.ALLOWED_HOSTS == ['*']
 
 
 def test_initialize_app(settings):
