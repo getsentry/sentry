@@ -43,15 +43,3 @@ class FileTest(TestCase):
             assert fp.read() == 'foo bar'
             fp.seek(4)
             assert fp.read() == 'bar'
-
-    def test_legacy_blob(self):
-        fileobj = ContentFile("foo bar")
-        blob = FileBlob.from_file(fileobj)
-        file1 = File.objects.create(
-            name='baz.js',
-            type='default',
-            size=7,
-            blob=blob,
-        )
-        with file1.getfile() as fp:
-            assert fp.read() == 'foo bar'

@@ -20,15 +20,10 @@ const StreamGroupHeader = React.createClass({
     data: React.PropTypes.object.isRequired,
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-    hasEventTypes: React.PropTypes.bool,
   },
 
   getTitle() {
     let data = this.props.data;
-    if (!this.props.hasEventTypes) {
-      return <span>{data.title}</span>;
-    }
-
     let metadata = data.metadata;
     switch (data.type) {
       case 'error':
@@ -54,10 +49,6 @@ const StreamGroupHeader = React.createClass({
 
   getMessage() {
     let data = this.props.data;
-    if (!this.props.hasEventTypes) {
-      return <span>{data.culprit}</span>;
-    }
-
     let metadata = data.metadata;
     switch (data.type) {
       case 'error':
@@ -160,7 +151,6 @@ const StreamGroup = React.createClass({
   render() {
     let data = this.state.data;
     let userCount = data.userCount;
-    let features = this.getProjectFeatures();
 
     let className = 'group row';
     if (data.isBookmarked) {
@@ -192,8 +182,7 @@ const StreamGroup = React.createClass({
           <StreamGroupHeader
             orgId={orgId}
             projectId={projectId}
-            data={data}
-            hasEventTypes={features.has('event-types')} />
+            data={data} />
           <div className="event-extra">
             <ul>
               {this.getFeatures().has('callsigns') && data.shortId &&

@@ -86,10 +86,16 @@ class ProjectKey(Model):
         public_key = urlparts.username
         project_id = urlparts.path.rsplit('/', 1)[-1]
 
-        return ProjectKey.objects.get(
-            public_key=public_key,
-            project=project_id,
-        )
+        try:
+            return ProjectKey.objects.get(
+                public_key=public_key,
+                project=project_id,
+            )
+        except ValueError:
+            # ValueError would come from a non-integer project_id,
+            # which is obviously a DoesNotExist. We catch and rethrow this
+            # so anything downstream expecting DoesNotExist works fine
+            raise ProjectKey.DoesNotExist('ProjectKey matching query does not exist.')
 
     @classmethod
     def get_default(cls, project):

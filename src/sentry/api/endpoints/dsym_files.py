@@ -57,7 +57,7 @@ class DSymFilesEndpoint(ProjectEndpoint):
         """
         file_list = ProjectDSymFile.objects.filter(
             project=project
-        ).select_related('file', 'file__blob').order_by('name')
+        ).select_related('file').order_by('name')
 
         return self.paginate(
             request=request,

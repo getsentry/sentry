@@ -49,6 +49,7 @@ DISALLOWED_SOURCES = (
     'saveyoutime.ru',
     'cdncache-a.akamaihd.net',
     'x.rafomedia.com',
+    'savingsslider-a.akamaihd.net'
 )
 
 ALLOWED_DIRECTIVES = frozenset((

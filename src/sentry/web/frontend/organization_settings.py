@@ -66,6 +66,11 @@ class OrganizationSettingsForm(forms.ModelForm):
         help_text=_('Preventing IP addresses from being stored for new events on all projects.'),
         required=False
     )
+    early_adopter = forms.BooleanField(
+        label=_('Early Adopter'),
+        help_text=_('Opt-in to new features before they\'re released to the public.'),
+        required=False
+    )
 
     class Meta:
         fields = ('name', 'slug', 'default_role')
@@ -95,6 +100,7 @@ class OrganizationSettingsView(OrganizationView):
                 'require_scrub_defaults': bool(organization.get_option('sentry:require_scrub_defaults', False)),
                 'sensitive_fields': '\n'.join(organization.get_option('sentry:sensitive_fields', None) or []),
                 'require_scrub_ip_address': bool(organization.get_option('sentry:require_scrub_ip_address', False)),
+                'early_adopter': bool(organization.flags.early_adopter),
             }
         )
 
@@ -105,6 +111,7 @@ class OrganizationSettingsView(OrganizationView):
             organization.flags.allow_joinleave = form.cleaned_data['allow_joinleave']
             organization.flags.enhanced_privacy = form.cleaned_data['enhanced_privacy']
             organization.flags.disable_shared_issues = not form.cleaned_data['allow_shared_issues']
+            organization.flags.early_adopter = form.cleaned_data['early_adopter']
             organization.save()
 
             for opt in (

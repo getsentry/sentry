@@ -1,7 +1,7 @@
-`sentry start [SERVICE]`
-------------------------
+`sentry run web`
+----------------
 
-DEPRECATED see `sentry run` instead.
+Run web service.
 
 Options
 ```````

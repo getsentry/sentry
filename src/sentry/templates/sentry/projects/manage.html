@@ -191,27 +191,25 @@
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/saved-searches/' project.organization.slug project.slug %}">{% trans "Saved Searches" %}</a>
     </li>
-    {% feature projects:dsym project %}
+    {% if organization.flags.early_adopter %}
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/debug-symbols/' project.organization.slug project.slug %}">{% trans "Debug Symbols" %}</a>
     </li>
-    {% endfeature %}
+    {% endif %}
   </ul>
   <h6 class="nav-header">{% trans "Data" %}</h6>
   <ul class="nav nav-stacked">
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/install/' project.organization.slug project.slug %}">{% trans "Error Tracking" %}</a>
     </li>
-    {% feature projects:csp project %}
+    {% if organization.flags.early_adopter %}
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/csp/' project.organization.slug project.slug %}">{% trans "CSP Reports" %}</a>
     </li>
-    {% endfeature %}
-    {% feature projects:user-reports project %}
+    {% endif %}
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/user-feedback/' project.organization.slug project.slug %}">{% trans "User Feedback" %}</a>
     </li>
-    {% endfeature %}
     <li{% if page == 'keys' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "Client Keys (DSN)" %}</a>
     </li>
