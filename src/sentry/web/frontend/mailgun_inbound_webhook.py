@@ -4,7 +4,6 @@ from hashlib import sha256
 import hmac
 import logging
 
-from django.conf import settings
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
@@ -13,6 +12,7 @@ from django.utils.decorators import method_decorator
 from email_reply_parser import EmailReplyParser
 from email.utils import parseaddr
 
+from sentry import options
 from sentry.tasks.email import process_inbound_email
 from sentry.utils.email import email_to_group_id
 
@@ -34,11 +34,12 @@ class MailgunInboundWebhookView(View):
         signature = request.POST['signature']
         timestamp = request.POST['timestamp']
 
-        if not settings.MAILGUN_API_KEY:
-            logging.error('MAILGUN_API_KEY is not set')
+        key = options.get('mail.mailgun-api-key')
+        if not key:
+            logging.error('mail.mailgun-api-key is not set')
             return HttpResponse(status=500)
 
-        if not self.verify(settings.MAILGUN_API_KEY, token, timestamp, signature):
+        if not self.verify(key, token, timestamp, signature):
             logging.info('Unable to verify signature for mailgun request')
             return HttpResponse(status=403)
 
