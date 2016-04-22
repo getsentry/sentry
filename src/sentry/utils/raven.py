@@ -96,7 +96,8 @@ class SentryInternalClient(DjangoClient):
 
         kwargs['project'] = project.id
         try:
-            manager = EventManager(kwargs)
+            data = helper.validate_data(project, kwargs)
+            manager = EventManager(data)
             data = manager.normalize()
             tsdb.incr_multi([
                 (tsdb.models.project_total_received, project.id),
