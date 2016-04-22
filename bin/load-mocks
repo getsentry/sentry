@@ -166,6 +166,16 @@ def get_sample_breadcrumbs(prior_event_id=None):
                 }
             },
             {
+                "type": "query",
+                "timestamp": milliseconds_ago(now, 1200),
+                "data": {
+                    "classifier": u'django.db',
+                    "params": [1],
+                    "duration": 0.002,
+                    "query": u'SELECT "auth_user"."password", "auth_user"."last_login", "auth_user"."id", "auth_user"."username", "auth_user"."first_name", "auth_user"."email", "auth_user"."is_staff", "auth_user"."is_active", "auth_user"."is_superuser", "auth_user"."is_managed", "auth_user"."date_joined" FROM "auth_user" WHERE "auth_user"."id" = %s'
+                },
+            },
+            {
                 "type": "ui_event",
                 "timestamp": milliseconds_ago(now, 1000),
                 "data": {
