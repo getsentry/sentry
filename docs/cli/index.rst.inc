@@ -23,6 +23,7 @@ Subcommands
 
  repair <repair/index>
  upgrade <upgrade/index>
+ run <run/index>
  help <help/index>
  queues <queues/index>
  plugins <plugins/index>
@@ -37,4 +38,6 @@ Subcommands
  import <import/index>
  shell <shell/index>
  config <config/index>
+ tsdb <tsdb/index>
+ dsym <dsym/index>
 
