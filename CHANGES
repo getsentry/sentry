@@ -1,5 +1,5 @@
-Version 8.4
------------
+Version 8.4 (Unreleased)
+------------------------
 
 - Fixed bug that caused some email subjects to be generated without respecting the project subject prefix option.
 - Organizaiton's can now opt-in to early adopter features (via organization settings).
