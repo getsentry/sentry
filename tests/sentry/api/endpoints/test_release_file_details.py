@@ -21,7 +21,6 @@ class ReleaseFileDetailsTest(APITestCase):
             project=project,
             release=release,
             file=File.objects.create(
-                path='http://example.com',
                 name='application.js',
                 type='release.file',
             ),
@@ -56,7 +55,6 @@ class ReleaseFileUpdateTest(APITestCase):
             project=project,
             release=release,
             file=File.objects.create(
-                path='http://example.com',
                 name='application.js',
                 type='release.file',
             ),
@@ -96,7 +94,6 @@ class ReleaseFileDeleteTest(APITestCase):
             project=project,
             release=release,
             file=File.objects.create(
-                path='http://example.com',
                 name='application.js',
                 type='release.file',
             ),
