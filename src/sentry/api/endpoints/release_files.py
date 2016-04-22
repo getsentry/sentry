@@ -93,7 +93,7 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
 
         file_list = ReleaseFile.objects.filter(
             release=release,
-        ).select_related('file', 'file__blob').order_by('name')
+        ).select_related('file').order_by('name')
 
         return self.paginate(
             request=request,

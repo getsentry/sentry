@@ -20,7 +20,6 @@ class ReleaseFilesListTest(APITestCase):
             project=project,
             release=release,
             file=File.objects.create(
-                path='http://example.com',
                 name='application.js',
                 type='release.file',
             ),
