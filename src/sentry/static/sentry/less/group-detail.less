@@ -1720,10 +1720,16 @@ ul.crumbs {
     &.crumb-query {
       background: lighten(@orange, 42);
       code {
-        white-space: pre;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        background: transparent;
+        font-size: 13px;
+
+        span {
+          display: inline;
+        }
 
         span.param {
-          display: inline;
           color: @blue;
           padding: 0 3px;
           background: white;
