@@ -48,6 +48,7 @@ SENTRY_USE_BIG_INTS = True
 # Instruct Sentry that this install intends to be run by a single organization
 # and thus various UI optimizations should be enabled.
 SENTRY_SINGLE_ORGANIZATION = True
+DEBUG = %(debug_flag)s
 
 #########
 # Cache #
@@ -178,7 +179,7 @@ YAML_CONFIG_TEMPLATE = u"""\
 # Mail Server #
 ###############
 
-# mail.backend: 'smtp'  # Use dummy if you want to disable email entirely
+# mail.backend: '%(mail.backend)s'  # Use dummy if you want to disable email entirely
 # mail.host: 'localhost'
 # mail.port: 25
 # mail.username: ''
@@ -210,13 +211,18 @@ def generate_secret_key():
     return get_random_string(50, chars)
 
 
-def generate_settings():
+def generate_settings(dev=False):
     """
     This command is run when ``default_path`` doesn't exist, or ``init`` is
     run and returns a string representing the default data to put into their
     settings file.
     """
-    context = {'secret_key': generate_secret_key()}
+    context = {
+        'secret_key': generate_secret_key(),
+        'debug_flag': dev,
+        'mail.backend': 'console' if dev else 'smtp',
+    }
+
     py = PY_CONFIG_TEMPLATE % context
     yaml = YAML_CONFIG_TEMPLATE % context
     return py, yaml
