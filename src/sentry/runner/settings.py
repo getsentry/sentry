@@ -159,14 +159,6 @@ SENTRY_WEB_OPTIONS = {
     # 'workers': 3,  # the number of web workers
     # 'protocol': 'uwsgi',  # Enable uwsgi protocol instead of http
 }
-
-###############
-# Mail Server #
-###############
-
-# If you're using mailgun for inbound mail, set your API key and configure a
-# route to forward to /api/hooks/mailgun/inbound/
-MAILGUN_API_KEY = ''
 """
 YAML_CONFIG_TEMPLATE = u"""\
 # While a lot of configuration in Sentry can be changed via the UI, for all
@@ -186,6 +178,20 @@ YAML_CONFIG_TEMPLATE = u"""\
 # mail.use-tls: false
 # The email address to send on behalf of
 # mail.from: 'root@localhost'
+
+# If you'd like to configure email replies, enable this.
+# mail.enable-replies: false
+
+# When email-replies are enabled, this value is used in the Reply-To header
+# mail.reply-hostname: ''
+
+# If you're using mailgun for inbound mail, set your API key and configure a
+# route to forward to /api/hooks/mailgun/inbound/
+# mail.mailgun-api-key: ''
+
+###################
+# System Settings #
+###################
 
 # If this file ever becomes compromised, it's important to regenerate your a new key
 # Changing this value will result in all current sessions being invalidated.

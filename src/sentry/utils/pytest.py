@@ -71,7 +71,7 @@ def pytest_configure(config):
     settings.MIDDLEWARE_CLASSES = tuple(middleware)
 
     # enable draft features
-    settings.SENTRY_ENABLE_EMAIL_REPLIES = True
+    settings.SENTRY_OPTIONS['mail.enable-replies'] = True
 
     settings.SENTRY_ALLOW_ORIGIN = '*'
 

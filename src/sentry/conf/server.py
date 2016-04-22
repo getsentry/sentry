@@ -331,8 +331,6 @@ TRELLO_API_SECRET = ''
 BITBUCKET_CONSUMER_KEY = ''
 BITBUCKET_CONSUMER_SECRET = ''
 
-MAILGUN_API_KEY = ''
-
 SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.user.get_username',
     'social_auth.backends.pipeline.social.social_auth_user',
@@ -679,8 +677,6 @@ SENTRY_WEB_PORT = 9000
 SENTRY_WEB_OPTIONS = {}
 
 # SMTP Service
-SENTRY_ENABLE_EMAIL_REPLIES = False
-SENTRY_SMTP_HOSTNAME = 'localhost'
 SENTRY_SMTP_HOST = 'localhost'
 SENTRY_SMTP_PORT = 1025
 
