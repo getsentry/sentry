@@ -12,7 +12,7 @@ import click
 
 
 @click.command()
-@click.option('--dev/--no-dev', default=False, help='Use settings more conducive to local development.')
+@click.option('--dev', default=False, is_flag=True, help='Use settings more conducive to local development.')
 @click.argument('directory', required=False)
 @click.pass_context
 def init(ctx, dev, directory):
