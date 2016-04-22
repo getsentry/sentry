@@ -124,8 +124,8 @@ def get_sample_breadcrumbs(prior_event_id=None):
                 "type": "navigation",
                 "timestamp": milliseconds_ago(now, 5200),
                 "data": {
-                    "to": "http://example.com/dashboard/",
-                    "from": "http://example.com/login/"
+                    "from": "/login/",
+                    "to": "/dashboard/",
                 }
             },
             {
@@ -180,7 +180,7 @@ def get_sample_breadcrumbs(prior_event_id=None):
                 "timestamp": milliseconds_ago(now, 1000),
                 "data": {
                     "type": "click",
-                    "target": "<button name=\"submit\" class=\"btn btn-small\"/>"
+                    "target": "div > form[name=\"post\"] > button.btn.btn-small[name=\"submit\"]"
                 }
             }
         ]
