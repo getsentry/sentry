@@ -13,13 +13,14 @@ const EventSdk = React.createClass({
   render() {
     let {group, event} = this.props;
     let data = event.sdk;
+
     return (
       <GroupEventDataSection
           group={group}
           event={event}
           type="sdk"
           title={t('SDK')}
-          wrapTitle={false}>
+          wrapTitle={true}>
         <table className="table key-value">
           <tbody>
             <tr key="name">
