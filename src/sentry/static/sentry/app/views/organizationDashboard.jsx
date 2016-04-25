@@ -10,6 +10,7 @@ import GroupStore from '../stores/groupStore';
 import TeamStore from '../stores/teamStore';
 
 import ActivityFeed from '../components/activity/feed';
+import EventsPerHour from '../components/events/eventsPerHour';
 import IssueList from '../components/issueList';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import OrganizationState from '../mixins/organizationState';
@@ -124,7 +125,7 @@ const ProjectList = React.createClass({
 
   getDefaultProps() {
     return {
-      maxProjects: 5
+      maxProjects: 8
     };
   },
 
@@ -198,7 +199,7 @@ const Activity = React.createClass({
   render() {
     return (
       <div>
-        <h6 className="nav-header">Activity</h6>
+        <h4>Recent activity</h4>
         <ActivityFeed endpoint={this.getEndpoint()} query={{
           per_page: 10,
         }} pagination={false} {...this.props} />
@@ -206,6 +207,7 @@ const Activity = React.createClass({
     );
   },
 });
+
 
 const OrganizationDashboard = React.createClass({
   mixins: [
@@ -251,15 +253,16 @@ const OrganizationDashboard = React.createClass({
   render() {
     return (
       <OrganizationHomeContainer>
-        <div className="early-adopter-banner"><strong>Psst!</strong> This feature is still a work-in-progress. Thanks for being an early adopter!</div>
         <div className="row">
           <div className="col-md-8">
             <AssignedIssues {...this.props} />
             <NewIssues {...this.props} />
+            <Activity {...this.props} />
           </div>
           <div className="col-md-4">
+            <EventsPerHour {...this.props}/>
+            <hr />
             <ProjectList {...this.props} teams={this.state.teams} />
-            <Activity {...this.props} />
           </div>
         </div>
       </OrganizationHomeContainer>

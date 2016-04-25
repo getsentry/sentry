@@ -15,6 +15,8 @@
 
 .organization-home {
   .sub-header {
+    margin-bottom: 30px;
+
     .pull-right {
       margin-top: -7px;
 
@@ -28,6 +30,10 @@
         padding: 5px 14px;
       }
     }
+  }
+
+  .box, .issue-list {
+    margin-bottom: 25px;
   }
 
   .nav-header {
@@ -47,6 +53,137 @@
 
     &.rejected {
       color: @red;
+    }
+  }
+
+  .dashboard-sparkline {
+    height: 45px;
+
+    a {
+      height: 45px;
+
+      > span {
+        left: 2px;
+        right: 2px;
+        background: @purple-light;
+
+        &.rejected {
+          background: @red-light;
+        }
+
+        &.blacklisted {
+          background: @gray-light;
+        }
+      }
+    }
+  }
+}
+
+.organization-home {
+  hr {
+    margin: 30px 0;
+  }
+  .activity {
+    .box;
+
+    .activity-item {
+      margin: 0;
+      padding: 10px 15px 10px 62px;
+      border-bottom: 1px solid lighten(@trim, 5);
+      line-height: 1.4;
+      font-size: 15px;
+
+      &:before {
+        display: none;
+      }
+
+      .activity-item-content {
+        display: block;
+        padding: 0;
+      }
+
+      .activity-item-bubble {
+        background: @white-dark;
+        margin: 5px 0;
+        padding: 6px 12px;
+        border: 1px solid @trim;
+        border-radius: 3px;
+        box-shadow: 0 1px 1px rgba(0,0,0, .04);
+        position: relative;
+        overflow: hidden;
+
+        a {
+          max-width: 100%;
+          overflow-x: hidden;
+          text-overflow: ellipsis;
+        }
+
+        p {
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
+
+        &.clipped {
+          max-height: 68px;
+
+          &:after {
+            position: absolute;
+            content: "";
+            display: block;
+            bottom: 0;
+            right: 0;
+            left: 0;
+            height: 36px;
+            #gradient > .vertical(rgba(255, 255, 255, .15), rgba(255,255,255, 1));
+            border-bottom: 6px solid #fff;
+            border-radius: 0 0 3px 3px;
+            pointer-events: none;
+          }
+        }
+      }
+
+      .avatar {
+        position: absolute;
+        .square(36px);
+        left: 15px;
+        top: 12px;
+
+        &.sentry {
+          top: 12px;
+          text-align: center;
+          background: @purple;
+          color: #fff;
+          line-height: 36px;
+          border-radius: 50%;
+        }
+      }
+
+      .activity-meta {
+        color: @gray;
+        font-size: 90%;
+
+        a {
+          color: @gray;
+          &:hover {
+            color: @gray-dark;
+          }
+        }
+      }
+
+      .project {
+        font-weight: bold;
+      }
+
+      time {
+        float: none;
+        display: inline;
+        margin-left: 0;
+      }
+
+      &:last-child {
+        border-bottom: 0;
+      }
     }
   }
 }
