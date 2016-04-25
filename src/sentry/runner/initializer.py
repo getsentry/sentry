@@ -323,8 +323,7 @@ def apply_legacy_settings(settings):
 
     # Set ALLOWED_HOSTS if it's not already available
     if not settings.ALLOWED_HOSTS:
-        from .hacks import AllowedHosts
-        settings.ALLOWED_HOSTS = AllowedHosts()
+        settings.ALLOWED_HOSTS = ['*']
 
     if hasattr(settings, 'SENTRY_ALLOW_REGISTRATION'):
         warnings.warn(DeprecatedSettingWarning('SENTRY_ALLOW_REGISTRATION', 'SENTRY_FEATURES["auth:register"]'))

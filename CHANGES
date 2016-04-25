@@ -5,6 +5,7 @@ Version 8.4 (Unreleased)
 - Organizaiton's can now opt-in to early adopter features (via organization settings).
 - User Feedback is now enabled by default.
 - Deprecated ``sentry start`` in favor of new ``sentry run``.
+- Access is no longer restricted by default to the domain matching ``system.url-prefix``. You must opt into this by setting ``ALLOWED_HOSTS`` explicitly.
 
 Version 8.3.2
 -------------
