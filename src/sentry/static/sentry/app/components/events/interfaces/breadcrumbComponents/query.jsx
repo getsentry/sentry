@@ -5,22 +5,55 @@ import Duration from '../../../duration';
 
 
 function summarizeSqlQuery(sql) {
-  let match = sql.match(/^\s*select\b(.*?)\bfrom\s+["`]?([^\s,."`]+)/im);
+  // select
+  let match;
+ 
+  match = sql.match(/^\s*(select\s+(?:\s+all\b|distinct\b)?)(.*?)\bfrom\s+["`]?([^\s,."`]+)/im);
   if (match) {
-    let selectors = match[1].split(/,/g);
+    let selectors = match[2].split(/,/g);
     let selector = selectors[0].split(/\bas\b/i)[0].trim();
     if (selectors.length > 1) {
       selector += ', …';
     }
     return (
       <span className="sql-summary">
-        <span className="keyword statement">SELECT</span>{' '}
+        <span className="keyword statement">{match[1].toUpperCase()}</span>{' '}
         <span className="literal">{selector}</span>{' '}
         <span className="keyword">FROM</span>{' '}
-        <span className="literal">{match[2].trim()}</span>
+        <span className="literal">{match[3].trim()}</span>
       </span>
     );
   }
+
+  match = sql.match(/^\s*insert\s+into\s+["`]?([^\s,."`]+)/im);
+  if (match) {
+    return (
+      <span className="sql-summary">
+        <span className="keyword statement">INSERT INTO</span>{' '}
+        <span className="literal">{match[1]}</span>
+      </span>
+    );
+  }
+  
+  match = sql.match(/^\s*update\s+["`]?([^\s,."`]+)/im);
+  if (match) {
+    return (
+      <span className="sql-summary">
+        <span className="keyword statement">UPDATE</span>{' '}
+        <span className="literal">{match[1]}</span>
+      </span>
+    );
+  }
+ 
+  match = sql.match(/^\s+(\S+)/);
+  if (match) {
+    return (
+      <span className="sql-summary">
+        <span className="keyword statement">{match[1]}</span>
+      </span>
+    );
+  }
+
   return null;
 }
 
@@ -33,13 +66,13 @@ const QueryCrumbComponent = React.createClass({
   getInitialState() {
     return {
       showFullQuery: false
-    }
+    };
   },
 
   toggleFullQuery() {
     this.setState({
       showFullQuery: !this.state.showFullQuery
-    })
+    });
   },
 
   renderQuery() {
@@ -65,23 +98,31 @@ const QueryCrumbComponent = React.createClass({
       ;
     });
 
-    let timing = null;
-    if (data.duration !== undefined && data.duration !== null) {
-      timing = <Duration key="duration" seconds={data.duration} />;
-    }
-
     return (
       <span className="query" onClick={querySummary ? this.toggleFullQuery : null}>
         {querySummary && !this.state.showFullQuery ?
-          <code className="query-summary">
+          <code className="query-summary expand">
             {querySummary}
             <span className="elipsis">…</span>
           </code> : null
         }
-        {this.state.showFullQuery ?
-          <code className="full-query">{queryElements}</code> : null}
+        {!querySummary || this.state.showFullQuery ?
+          <code className={'full-query' + (querySummary ? ' expand' : '')
+            }>{queryElements}</code> : null}
       </span>
     );
+  },
+
+  renderTiming() {
+    let {duration} = this.props.data;
+    if (duration !== undefined && duration !== null) {
+      return (
+        <span className="timing">
+          [<Duration key="duration" seconds={duration} />]
+        </span>
+      );
+    }
+    return null;
   },
 
   render() {
@@ -89,7 +130,7 @@ const QueryCrumbComponent = React.createClass({
       <p>
         <strong className="preamble">Query:</strong>
         {this.renderQuery()}
-        {timing}
+        {this.renderTiming()}
         <Classifier value={this.props.data.classifier} title="%s query" />
       </p>
     );
