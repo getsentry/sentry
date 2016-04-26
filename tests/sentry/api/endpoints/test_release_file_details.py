@@ -77,6 +77,7 @@ class ReleaseFileUpdateTest(APITestCase):
 
         releasefile = ReleaseFile.objects.get(id=releasefile.id)
         assert releasefile.name == 'foobar'
+        assert releasefile.ident == ReleaseFile.get_ident('foobar')
 
 
 class ReleaseFileDeleteTest(APITestCase):
