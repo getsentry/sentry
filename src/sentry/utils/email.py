@@ -37,9 +37,6 @@ from sentry.web.helpers import render_to_string
 
 logger = logging.getLogger(__name__)
 
-SMTP_HOSTNAME = getattr(settings, 'SENTRY_SMTP_HOSTNAME', 'localhost')
-ENABLE_EMAIL_REPLIES = getattr(settings, 'SENTRY_ENABLE_EMAIL_REPLIES', False)
-
 
 class _CaseInsensitiveSigner(Signer):
     """
@@ -85,7 +82,10 @@ def email_to_group_id(address):
 
 def group_id_to_email(group_id):
     signed_data = signer.sign(str(group_id))
-    return '@'.join((signed_data.replace(':', '+'), SMTP_HOSTNAME))
+    return '@'.join((
+        signed_data.replace(':', '+'),
+        options.get('mail.reply-hostname') or get_from_email_domain(),
+    ))
 
 
 def domain_from_email(email):
@@ -283,7 +283,7 @@ class MessageBuilder(object):
         else:
             headers = self.headers.copy()
 
-        if ENABLE_EMAIL_REPLIES and 'X-Sentry-Reply-To' in headers:
+        if options.get('mail.enable-replies') and 'X-Sentry-Reply-To' in headers:
             reply_to = headers['X-Sentry-Reply-To']
         else:
             reply_to = set(reply_to or ())

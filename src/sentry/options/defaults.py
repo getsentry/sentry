@@ -58,5 +58,7 @@ register('mail.password', flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITI
 register('mail.use-tls', default=False, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register('mail.subject-prefix', default='[Sentry] ', flags=FLAG_PRIORITIZE_DISK)
 register('mail.from', default='root@localhost', flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
-# register('mail.enable-replies', default=False, flags=FLAG_PRIORITIZE_DISK)
 register('mail.list-namespace', type=String, default='localhost', flags=FLAG_NOSTORE)
+register('mail.enable-replies', default=False, flags=FLAG_PRIORITIZE_DISK)
+register('mail.reply-hostname', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register('mail.mailgun-api-key', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)

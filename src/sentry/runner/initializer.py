@@ -282,6 +282,9 @@ def apply_legacy_settings(settings):
         ('SENTRY_ADMIN_EMAIL', 'system.admin-email'),
         ('SENTRY_URL_PREFIX', 'system.url-prefix'),
         ('SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE', 'system.rate-limit'),
+        ('SENTRY_ENABLE_EMAIL_REPLIES', 'mail.enable-replies'),
+        ('SENTRY_SMTP_HOSTNAME', 'mail.reply-hostname'),
+        ('MAILGUN_API_KEY', 'mail.mailgun-api-key'),
     ):
         if new not in settings.SENTRY_OPTIONS and hasattr(settings, old):
             warnings.warn(
