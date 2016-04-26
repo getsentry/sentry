@@ -69,6 +69,7 @@ class ReleaseFileCreateTest(APITestCase):
 
         releasefile = ReleaseFile.objects.get(release=release)
         assert releasefile.name == 'http://example.com/application.js'
+        assert releasefile.ident == ReleaseFile.get_ident('http://example.com/application.js')
         assert releasefile.file.headers == {
             'Content-Type': 'application/javascript',
             'X-SourceMap': 'http://example.com',
