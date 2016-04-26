@@ -3,19 +3,64 @@ import React from 'react';
 import Classifier from './classifier';
 import Duration from '../../../duration';
 
+
+function summarizeSqlQuery(sql) {
+  let match = sql.match(/^\s*select\b(.*?)\bfrom\s+["`]?([^\s,."`]+)/im);
+  if (match) {
+    let selectors = match[1].split(/,/g);
+    let selector = selectors[0].split(/\bas\b/i)[0].trim();
+    if (selectors.length > 1) {
+      selector += ', …';
+    }
+    return (
+      <span className="sql-summary">
+        <span className="keyword statement">SELECT</span>{' '}
+        <span className="literal">{selector}</span>{' '}
+        <span className="keyword">FROM</span>{' '}
+        <span className="literal">{match[2].trim()}</span>
+      </span>
+    );
+  }
+  return null;
+}
+
+
 const QueryCrumbComponent = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
   },
 
-  render() {
-    let data = this.props.data;
-    let placeholderIdx = 0;
+  getInitialState() {
+    return {
+      showFullQuery: false
+    }
+  },
 
-    let queryElements = data.query.split(/(%s)/).map((item, idx) => {
+  toggleFullQuery() {
+    this.setState({
+      showFullQuery: !this.state.showFullQuery
+    })
+  },
+
+  renderQuery() {
+    let {query, params} = this.props.data;
+
+    if (typeof query !== 'string') {
+      return (
+        <span className="query">
+          <code className="full-query">
+            <span className="json">{JSON.stringify(query, null, 2)}</span>
+          </code>
+        </span>
+      );
+    }
+
+    let querySummary = summarizeSqlQuery(query);
+    let placeholderIdx = 0;
+    let queryElements = query.split(/(%s)/).map((item, idx) => {
       return item === '%s'
         ? <span key={idx} className="param">{
-            data.params ? data.params[placeholderIdx++] : item}</span>
+            params ? params[placeholderIdx++] : item}</span>
         : <span key={idx} className="literal">{item}</span>
       ;
     });
@@ -26,10 +71,26 @@ const QueryCrumbComponent = React.createClass({
     }
 
     return (
+      <span className="query" onClick={querySummary ? this.toggleFullQuery : null}>
+        {querySummary && !this.state.showFullQuery ?
+          <code className="query-summary">
+            {querySummary}
+            <span className="elipsis">…</span>
+          </code> : null
+        }
+        {this.state.showFullQuery ?
+          <code className="full-query">{queryElements}</code> : null}
+      </span>
+    );
+  },
+
+  render() {
+    return (
       <p>
-        <strong>Query:</strong> <code>{queryElements}</code>
+        <strong className="preamble">Query:</strong>
+        {this.renderQuery()}
         {timing}
-        <Classifier value={data.classifier} title="%s query" />
+        <Classifier value={this.props.data.classifier} title="%s query" />
       </p>
     );
   }
