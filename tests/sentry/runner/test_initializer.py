@@ -166,6 +166,9 @@ def test_apply_legacy_settings(settings):
     settings.SENTRY_URL_PREFIX = 'http://url-prefix'
     settings.SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE = 10
     settings.SENTRY_REDIS_OPTIONS = {'foo': 'bar'}
+    settings.SENTRY_ENABLE_EMAIL_REPLIES = True
+    settings.SENTRY_SMTP_HOSTNAME = 'reply-hostname'
+    settings.MAILGUN_API_KEY = 'mailgun-api-key'
     settings.SENTRY_OPTIONS = {
         'mail.from': 'mail-from',
     }
@@ -178,6 +181,9 @@ def test_apply_legacy_settings(settings):
         'system.rate-limit': 10,
         'redis.clusters': {'default': {'foo': 'bar'}},
         'mail.from': 'mail-from',
+        'mail.enable-replies': True,
+        'mail.reply-hostname': 'reply-hostname',
+        'mail.mailgun-api-key': 'mailgun-api-key',
     }
     assert settings.DEFAULT_FROM_EMAIL == 'mail-from'
     assert settings.ALLOWED_HOSTS == ['*']

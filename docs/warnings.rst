@@ -108,6 +108,25 @@ Mail
 
         mail.subject-prefix: '[Sentry] '
 
+.. describe:: SENTRY_ENABLE_EMAIL_REPLIES
+
+    ::
+
+        mail.enable-replies: true
+
+.. describe:: SENTRY_SMTP_HOSTNAME
+
+    ::
+
+        mail.reply-hostname: 'inbound.example.com'
+
+.. describe:: MAILGUN_API_KEY
+
+    ::
+
+        mail.mailgun-api-key: 'abc123'
+
+
 Redis
 ~~~~~
 
