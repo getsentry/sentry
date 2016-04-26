@@ -1660,12 +1660,20 @@ ul.crumbs {
         padding-top: 4px;
       }
 
+      span.timing {
+        margin-left: 10px;
+        font-size: 90%;
+      }
+
       code {
         white-space: pre-wrap;
         word-wrap: break-word;
         background: transparent;
         font-size: 13px;
-        cursor: pointer;
+
+        &.expand {
+          cursor: pointer;
+        }
 
         &.query-summary {
           &:hover span.elipsis {

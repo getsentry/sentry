@@ -103,13 +103,14 @@ def validate_http_request(payload):
 @typevalidator('query')
 def validate_query(payload):
     rv = {}
-    for key in 'query', 'params', 'duration', 'classifier':
+    for key in 'params', 'duration', 'classifier':
         value = payload.get(key)
         if value is not None:
             rv[key] = trim(value, 1024)
-    if 'query' not in rv:
+    if 'query' not in payload:
         raise InterfaceValidationError("Query not provided for 'query' "
                                        "breadcrumb.")
+    rv['query'] = trim(payload['query'], 4096)
     return rv
 
 
