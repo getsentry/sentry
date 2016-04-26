@@ -177,8 +177,8 @@ var config = {
     sourceMapFilename: '[name].js.map',
   },
   devtool: IS_PRODUCTION ?
-    'source-map' :
-    'cheap-module-eval-source-map'
+    '#source-map' :
+    '#cheap-module-eval-source-map'
 };
 
 // This compression-webpack-plugin generates pre-compressed files
