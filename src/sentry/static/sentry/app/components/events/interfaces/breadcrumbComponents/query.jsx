@@ -75,6 +75,16 @@ const QueryCrumbComponent = React.createClass({
     });
   },
 
+  formatSqlParam(value) {
+    if (value === null) {
+      return 'NULL';
+    } else if (typeof value === 'string') {
+      return '\'' + value.replace(/\'/g, '\'\'') + '\'';
+    } else {
+      return value.toString();
+    }
+  },
+
   renderQuery() {
     let {query, params} = this.props.data;
 
@@ -93,7 +103,7 @@ const QueryCrumbComponent = React.createClass({
     let queryElements = query.split(/(%s)/).map((item, idx) => {
       return item === '%s'
         ? <span key={idx} className="param">{
-            params ? params[placeholderIdx++] : item}</span>
+            params ? this.formatSqlParam(params[placeholderIdx++]) : item}</span>
         : <span key={idx} className="literal">{item}</span>
       ;
     });
