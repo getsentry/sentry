@@ -11,12 +11,23 @@ base = celery.CeleryCommand(app=app)
 # this is a reimplementation of the djcelery 'celery' command
 class Command(CeleryCommand):
     """The celery command."""
-    help = 'celery commands, see celery help'
+    help = 'DEPRECATED see `sentry run {worker,cron} instead.'
     options = (CeleryCommand.options
                + base.get_options()
                + base.preload_options)
 
     def run_from_argv(self, argv):
+        from sentry.runner.initializer import show_big_error
+        if 'worker' in argv:
+            show_big_error([
+                '`sentry celery worker` is deprecated.',
+                'Use `sentry run worker` instead.',
+            ])
+        elif 'beat' in argv:
+            show_big_error([
+                '`sentry celery beat` is deprecated.',
+                'Use `sentry run cron` instead.',
+            ])
         argv = self.handle_default_options(argv)
         if self.requires_model_validation:
             self.validate()
