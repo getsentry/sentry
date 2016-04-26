@@ -40,6 +40,12 @@ class ReleaseFile(Model):
             self.ident = type(self).get_ident(self.name)
         return super(ReleaseFile, self).save(*args, **kwargs)
 
+    def update(self, *args, **kwargs):
+        # If our name is changing, we must also change the ident
+        if 'name' in kwargs and 'ident' not in kwargs:
+            kwargs['ident'] = self.ident = type(self).get_ident(kwargs['name'])
+        return super(ReleaseFile, self).update(*args, **kwargs)
+
     @classmethod
     def get_ident(cls, name):
         return sha1(name).hexdigest()
