@@ -79,7 +79,7 @@ def devserver(reload, watchers, workers, bind):
     # This sets all the appropriate uwsgi env vars, etc
     server.prepare_environment()
     daemons += [
-        ('server', ['sentry', 'start']),
+        ('server', ['sentry', 'run', 'web']),
     ]
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
