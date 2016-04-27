@@ -45,7 +45,7 @@ const DropdownLink = React.createClass({
             isOpen: false,
           });
           this.props.onClose && this.props.onClose(e);
-        }, 0);
+        });
       });
   },
 
