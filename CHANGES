@@ -1,3 +1,8 @@
+Version 8.2.5
+-------------
+
+- [SECURITY] Fixed a bug which allows API keys more permission than granted within the organization.
+
 Version 8.2.4
 -------------
 
