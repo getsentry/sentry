@@ -1585,6 +1585,7 @@ ul.crumbs {
       color: @gray;
       font-weight: normal;
       font-size: 90%;
+      text-transform: none;
     }
 
     .table.key-value {
@@ -1644,15 +1645,65 @@ ul.crumbs {
     }
 
     &.crumb-query {
-      background: lighten(@orange, 42);
+      .icon-container {
+        border-color: lighten(@purple, 10);
+
+        .icon {
+          top: 5px;
+          left: 5.5px;
+          color: darken(@purple, 5);
+          &:before {content: "\e601";}
+        }
+      }
+
+      p {
+        line-height: 1.2;
+        padding-top: 4px;
+      }
+
+      span.timing {
+        margin-left: 10px;
+        font-size: 90%;
+      }
+
       code {
-        white-space: pre;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        background: transparent;
+        font-size: 13px;
+
+        &.expand {
+          cursor: pointer;
+        }
+
+        &.query-summary {
+          &:hover span.elipsis {
+            background: @gray;
+            color: white;
+          }
+        }
+
+        span {
+          display: inline;
+        }
+
+        span.elipsis {
+          border-radius: 2px;
+          padding: 2px 7px;
+          margin: -2px -5px -2px 10px;
+        }
+
+        span.keyword {
+          font-weight: bold;
+          color: darken(@blue-dark, 10);
+        }
 
         span.param {
-          display: inline;
-          color: @blue;
-          padding: 0 3px;
-          background: white;
+          color: darken(@blue-dark, 10);
+          font-weight: bold;
+          padding: 2px 5px;
+          margin: -2px -3px;
+          background: lighten(@blue-light, 25);
           border-radius: 2px;
         }
       }
