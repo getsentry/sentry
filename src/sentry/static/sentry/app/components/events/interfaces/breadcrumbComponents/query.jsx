@@ -25,27 +25,17 @@ function summarizeSqlQuery(sql) {
     );
   }
 
-  match = sql.match(/^\s*insert\s+into\s+["`]?([^\s,."`]+)/im);
+  match = sql.match(/^\s*(insert\s+into|delete\s+from|update)\s+["`]?([^\s,."`]+)/im);
   if (match) {
     return (
       <span className="sql-summary">
-        <span className="keyword statement">INSERT INTO</span>{' '}
-        <span className="literal">{match[1]}</span>
-      </span>
-    );
-  }
-  
-  match = sql.match(/^\s*update\s+["`]?([^\s,."`]+)/im);
-  if (match) {
-    return (
-      <span className="sql-summary">
-        <span className="keyword statement">UPDATE</span>{' '}
-        <span className="literal">{match[1]}</span>
+        <span className="keyword statement">{match[1].toUpperCase()}</span>{' '}
+        <span className="literal">{match[2]}</span>
       </span>
     );
   }
  
-  match = sql.match(/^\s+(\S+)/);
+  match = sql.match(/^\s*(\S+)/);
   if (match) {
     return (
       <span className="sql-summary">
@@ -78,11 +68,8 @@ const QueryCrumbComponent = React.createClass({
   formatSqlParam(value) {
     if (value === null) {
       return 'NULL';
-    } else if (typeof value === 'string') {
-      return '\'' + value.replace(/\'/g, '\'\'') + '\'';
-    } else {
-      return value.toString();
     }
+    return value.toString();
   },
 
   renderQuery() {
