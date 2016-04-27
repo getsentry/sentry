@@ -304,7 +304,7 @@ const Stream = React.createClass({
     let url = this.getGroupListEndpoint();
 
     let requestParams = {
-      query: this.state.query,
+      query: this.state.query.replace(/^\s+|\s+$/g, ''),
       limit: this.props.maxItems,
       sort: this.state.sort,
       statsPeriod: this.state.statsPeriod,

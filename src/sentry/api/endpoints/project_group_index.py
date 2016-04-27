@@ -184,7 +184,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             # disable stats
             stats_period = None
 
-        query = request.GET.get('query')
+        query = request.GET.get('query', '').strip()
         if query:
             matching_group = None
             if len(query) == 32:
