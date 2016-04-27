@@ -2,11 +2,13 @@ Version 8.4 (Unreleased)
 ------------------------
 
 - Fixed bug that caused some email subjects to be generated without respecting the project subject prefix option.
-- Organizaiton's can now opt-in to early adopter features (via organization settings).
+- Organization's can now opt-in to early adopter features (via organization settings).
 - User Feedback is now enabled by default.
 - Deprecated ``sentry start`` in favor of new ``sentry run``.
 - Access is no longer restricted by default to the domain matching ``system.url-prefix``. You must opt into this by setting ``ALLOWED_HOSTS`` explicitly.
 - Replaced Gravatar mystery man with letter avatars
+- Added 'Events Per Hour' graph to organization dashboard
+- Moved organization activity stream to main column from sidebar
 
 Version 8.3.2
 -------------
