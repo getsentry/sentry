@@ -127,6 +127,12 @@ def new_event(request):
             'interfaces': interface_list,
             'tags': event.get_tags(),
             'project_label': project.name,
+            'tags': [
+                ('logger', 'javascript'),
+                ('environment', 'prod'),
+                ('level', 'error'),
+                ('device', 'Other')
+            ]
         },
     ).render()
 
