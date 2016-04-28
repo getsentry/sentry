@@ -1646,12 +1646,12 @@ ul.crumbs {
 
     &.crumb-query {
       .icon-container {
-        border-color: lighten(@purple, 10);
+        border-color: @green-dark;
 
         .icon {
           top: 5px;
           left: 5.5px;
-          color: darken(@purple, 5);
+          color: @green-dark;
           &:before {content: "\e601";}
         }
       }
@@ -1667,6 +1667,7 @@ ul.crumbs {
       }
 
       code {
+        padding-left: 0;
         white-space: pre-wrap;
         word-wrap: break-word;
         background: transparent;
@@ -1695,15 +1696,15 @@ ul.crumbs {
 
         span.keyword {
           font-weight: bold;
-          color: darken(@blue-dark, 10);
+          color: @gray-darker;
         }
 
         span.param {
-          color: darken(@blue-dark, 10);
+          color: @gray-darker;
           font-weight: bold;
           padding: 2px 5px;
           margin: -2px -3px;
-          background: lighten(@blue-light, 25);
+          background: @gray-lightest;
           border-radius: 2px;
         }
       }
