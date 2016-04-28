@@ -1853,14 +1853,19 @@ ul.crumbs {
         border-color: @red-dark;
       }
 
-      &:before {
-         background: #F1D8D5;
-         bottom: auto;
-         height: 20px;
-      }
-
       pre {
         background: #F8EEED;
+      }
+
+      &:before {
+        background: #F1D8D5;
+      }
+
+      &:last-child {
+        &:before {
+           bottom: auto;
+           height: 20px;
+        }
       }
     }
   }
