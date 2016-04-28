@@ -95,6 +95,10 @@ class NotificationPlugin(Plugin):
         pass
 
     def get_sendable_users(self, project):
+        """
+        Return a collection of user IDs that are eligible to receive
+        notifications for the provided project.
+        """
         conf_key = self.get_conf_key()
 
         alert_settings = dict(

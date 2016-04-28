@@ -104,12 +104,10 @@ class MailPlugin(NotificationPlugin):
 
     def get_send_to(self, project):
         """
-        Returns a list of email addresses for the users that should be notified of alerts.
+        Returns a list of user IDs for the users that should receive
+        notifications for the provided project.
 
-        The logic for this is a bit complicated, but it does the following:
-
-        The results of this call can be fairly expensive to calculate, so the send_to list gets cached
-        for 60 seconds.
+        This result may come from cached data.
         """
         if not (project and project.team):
             logger.debug('Tried to send notification to invalid project: %r', project)
