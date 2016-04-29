@@ -22,7 +22,7 @@ describe('RuleNodeList', function() {
   });
 
   describe('getInitialItems()', function () {
-    it('should give each initial item a unique incremented key, and set state.counter', function () {
+    it('should give each initial item a unique incremented key_attr, and set state.counter', function () {
       let initialItems = [
         {
           id: 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
@@ -36,14 +36,14 @@ describe('RuleNodeList', function() {
 
       let wrapper = shallow(<RuleNodeList nodes={this.sampleNodes} initialItems={initialItems}/>);
 
-      expect(wrapper.state('items')[0]).to.have.property('key', 0);
-      expect(wrapper.state('items')[1]).to.have.property('key', 1);
+      expect(wrapper.state('items')[0]).to.have.property('key_attr', 0);
+      expect(wrapper.state('items')[1]).to.have.property('key_attr', 1);
       expect(wrapper.state('counter')).to.equal(2);
     });
   });
 
   describe('onAddRow()', function() {
-    it('should add a new item with key value equal to state.counter, and increment state.counter', function () {
+    it('should add a new item with key_attr value equal to state.counter, and increment state.counter', function () {
       let wrapper = shallow(<RuleNodeList nodes={this.sampleNodes} />);
 
       wrapper.setState({
@@ -58,7 +58,7 @@ describe('RuleNodeList', function() {
 
       expect(wrapper.state('items')[0]).to.eql({
         id: 'sentry.rules.conditions.every_event.EveryEventCondition',
-        key: 5
+        key_attr: 5
       });
       expect(wrapper.state('counter')).to.equal(6);
     });
