@@ -12,7 +12,7 @@ const RuleNodeList = React.createClass({
   getInitialState() {
     let counter = 0;
     let initialItems = (this.props.initialItems || []).map(item => {
-      return {...item, key: counter++};
+      return {...item, key_attr: counter++};
     });
 
     return {
@@ -41,7 +41,7 @@ const RuleNodeList = React.createClass({
       // need to make sure elements aren't accidentally re-rendered. So, give each
       // row a consistent key using a counter that initializes at 0 when RuleNodeList
       // is mounted.
-      key: this.state.counter
+      key_attr: this.state.counter
     });
     this.setState({
       items: this.state.items,
@@ -69,7 +69,7 @@ const RuleNodeList = React.createClass({
           <tbody>
             {this.state.items.map((item, idx) => {
               return (
-                <RuleNode key={item.key}
+                <RuleNode key={item.key_attr}
                   node={this.getNode(item.id)}
                   onDelete={this.onDeleteRow.bind(this, idx)}
                   data={item} />
