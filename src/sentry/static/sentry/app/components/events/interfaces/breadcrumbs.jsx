@@ -4,6 +4,7 @@ import moment from 'moment';
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 
+import DefaultCrumb from './breadcrumbComponents/default';
 import MessageCrumbComponent from './breadcrumbComponents/message';
 import RpcCrumbComponent from './breadcrumbComponents/rpc';
 import QueryCrumbComponent from './breadcrumbComponents/query';
@@ -52,7 +53,7 @@ const BreadcrumbsInterface = React.createClass({
   },
 
   statics: {
-    MAX_CRUMBS_WHEN_COLLAPSED: 5
+    MAX_CRUMBS_WHEN_COLLAPSED: 10
   },
 
   getInitialState() {
@@ -74,7 +75,8 @@ const BreadcrumbsInterface = React.createClass({
       let Component = CRUMB_COMPONENTS[item.type];
       let el;
       if (Component) {
-        el = <Component data={item.data} />;
+        // el = <Component data={item.data} />;
+        el = <DefaultCrumb crumb={item} />;
       } else {
         el = <div className="errors">Missing crumb "{item.type}"</div>;
       }
