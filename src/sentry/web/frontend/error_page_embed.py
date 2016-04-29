@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
 from django import forms
+from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from django.views.generic import View
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 
@@ -103,7 +105,26 @@ class ErrorPageEmbedView(View):
                 pass
             else:
                 report.group = Group.objects.get(id=mapping.group_id)
-            report.save()
+
+            try:
+                with transaction.atomic():
+                    report.save()
+            except IntegrityError:
+                # There was a duplicate, so just overwrite the existing
+                # row with the new one. The only way this ever happens is
+                # if someone is messing around with the API, or doing
+                # something wrong with the SDK, but this behavior is
+                # more reasonable than just hard erroring and is more
+                # expected.
+                UserReport.objects.filter(
+                    project=report.project,
+                    event_id=report.event_id,
+                ).update(
+                    name=report.name,
+                    email=report.email,
+                    comments=report.comments,
+                    date_added=timezone.now(),
+                )
             return self._json_response(request)
         elif request.method == 'POST':
             return self._json_response(request, {
