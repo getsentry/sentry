@@ -7,7 +7,7 @@ import Duration from '../../../duration';
 function summarizeSqlQuery(sql) {
   // select
   let match;
- 
+
   match = sql.match(/^\s*(select\s+(?:\s+all\b|distinct\b)?)(.*?)\bfrom\s+["`]?([^\s,."`]+)/im);
   if (match) {
     let selectors = match[2].split(/,/g);
@@ -34,7 +34,7 @@ function summarizeSqlQuery(sql) {
       </span>
     );
   }
- 
+
   match = sql.match(/^\s*(\S+)/);
   if (match) {
     return (
@@ -125,7 +125,6 @@ const QueryCrumbComponent = React.createClass({
   render() {
     return (
       <p>
-        <strong className="preamble">Query:</strong>
         {this.renderQuery()}
         {this.renderTiming()}
         <Classifier value={this.props.data.classifier} title="%s query" />
