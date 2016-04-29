@@ -72,23 +72,26 @@ const BreadcrumbsInterface = React.createClass({
     // reverse array to get consistent idx between collapsed/expanded state
     // (indexes begin and increment from last breadcrumb)
     return crumbs.reverse().map((item, idx) => {
-      let Component = CRUMB_COMPONENTS[item.type];
+      // let Component = CRUMB_COMPONENTS[item.type];
       let el;
-      if (Component) {
+      // if (Component) {
         // el = <Component data={item.data} />;
         el = <DefaultCrumb crumb={item} />;
-      } else {
-        el = <div className="errors">Missing crumb "{item.type}"</div>;
-      }
-      return (
-        <li key={idx} className={'crumb crumb-' + item.type.replace(/_/g, '-')}>
-          <span className="icon-container">
-            <span className="icon"/>
-          </span>
-          <span className="dt">{moment(item.timestamp).format('HH:mm:ss')}</span>
-          {el}
-        </li>
-      );
+      // }
+      // else {
+      //   el = <div className="errors">Missing crumb "{item.type}"</div>;
+      // }
+      return <DefaultCrumb key={idx} crumb={item} />;
+
+      // (
+      //   <li key={idx} className={'crumb crumb-' + item.type.replace(/_/g, '-')}>
+      //     <span className="icon-container">
+      //       <span className="icon"/>
+      //     </span>
+      //     <span className="dt">{moment(item.timestamp).format('HH:mm:ss')}</span>
+      //     {el}
+      //   </li>
+      // );
     }).reverse(); // un-reverse rendered result
   },
 
@@ -111,10 +114,12 @@ const BreadcrumbsInterface = React.createClass({
     // TODO: what about non-exceptions (e.g. generic messages)?
     let exception = evt.entries.find(entry => entry.type === 'exception');
     if (exception) {
+      let {type, value} = exception.data.values[0];
       // make copy of values array / don't mutate props
       all = all.slice(0).concat([{
         type: 'error',
-        data: exception.data.values[0],
+        category: 'error',
+        message: type + ': ' + value,
         timestamp: evt.dateCreated
       }]);
     }

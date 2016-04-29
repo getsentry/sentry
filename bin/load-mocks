@@ -123,65 +123,49 @@ def get_sample_breadcrumbs(prior_event_id=None):
             {
                 "type": "navigation",
                 "timestamp": milliseconds_ago(now, 5200),
+                "category": "location",
                 "data": {
                     "from": "/login/",
                     "to": "/dashboard/",
                 }
             },
             {
-                "type": "message",
+                "type": "log",
                 "timestamp": milliseconds_ago(now, 4000),
-                "data": {
-                    "message": "This is a message breadcrumb",
-                    "level": "info"
-                }
+                "message": "This is an info log message",
             },
             {
-                "type": "message",
+                "type": "log",
                 "timestamp": milliseconds_ago(now, 3300),
-                "data": {
-                    "message": "This is a warning message",
-                    "level": "warning"
-                }
+                "message": "This is a warning log message",
+                "category": "warning"
             },
             {
-                "type": "message",
+                "type": "log",
                 "timestamp": milliseconds_ago(now, 2700),
-                "data": {
-                    "message": "This is an error message",
-                    "level": "error"
-                }
+                "message": "This is an error log message",
+                "category": "error"
             },
             {
-                "type": "http_request",
+                "type": "http",
+                "category": "io",
                 "timestamp": milliseconds_ago(now, 1300),
-                "data": {
-                    "url": "http://example.com/foo",
-                    "status_code": 200,
-                    "method": "POST",
-                    "headers": {
-                        "Referer": "http://example.com",
-                        "Content-Type": "application/json"
-                    }
-                }
+                "message": "POST http://example.com [200]"
             },
             {
                 "type": "query",
+                "category": "io",
                 "timestamp": milliseconds_ago(now, 1200),
-                "data": {
-                    "classifier": u'django.db',
-                    "params": [1],
-                    "duration": 0.002,
-                    "query": u'SELECT "auth_user"."password", "auth_user"."last_login", "auth_user"."id", "auth_user"."username", "auth_user"."first_name", "auth_user"."email", "auth_user"."is_staff", "auth_user"."is_active", "auth_user"."is_superuser", "auth_user"."is_managed", "auth_user"."date_joined" FROM "auth_user" WHERE "auth_user"."id" = %s'
-                },
+                "message": u'SELECT "auth_user"."password", "auth_user"."last_login", "auth_user"."id", "auth_user"."username", "auth_user"."first_name", "auth_user"."email", "auth_user"."is_staff", "auth_user"."is_active", "auth_user"."is_superuser", "auth_user"."is_managed", "auth_user"."date_joined" FROM "auth_user" WHERE "auth_user"."id" = %s',
+                "message_args": [1],
+                "duration": 0.002,
+                "classifier": u'django.db'
             },
             {
-                "type": "ui_event",
+                "type": "click",
+                "category": "user",
                 "timestamp": milliseconds_ago(now, 1000),
-                "data": {
-                    "type": "click",
-                    "target": "div > form[name=\"post\"] > button.btn.btn-small[name=\"submit\"]"
-                }
+                "message": "div > form[name=\"post\"] > button.btn.btn-small[name=\"submit\"]"
             }
         ]
     }
@@ -190,8 +174,9 @@ def get_sample_breadcrumbs(prior_event_id=None):
         sample_breadcrumbs["values"].insert(2, {
             "type": "error",
             "timestamp": milliseconds_ago(now, 3000),
+            "message": "TypeError: something broke earlier",
+            "category": "error",
             "data": {
-                "message": "TypeError: something broke earlier",
                 "event_id": prior_event_id
             }
         })

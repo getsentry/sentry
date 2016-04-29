@@ -174,12 +174,16 @@ class Breadcrumbs(Interface):
             ts = parse_new_timestamp(crumb.get('timestamp'))
             if ts is None:
                 raise InterfaceValidationError('Unable to determine timestamp for crumb')
+
+            # TODO: re-implement breadcrumb validation
             values.append({
                 'type': ty,
                 # We need to store timestamps here as this will go into
                 # the node store which does not support datetime objects.
                 'timestamp': to_timestamp(ts),
-                'data': validate_payload_for_type(crumb.get('data'), ty),
+                'message': crumb.get('message', None),
+                'category': crumb.get('category', 'default'),
+                'data': crumb.get('data', {}),
             })
         return cls(values=values)
 
@@ -194,6 +198,8 @@ class Breadcrumbs(Interface):
             return {
                 'type': x['type'],
                 'timestamp': to_datetime(x['timestamp']),
+                'message': x['message'],
+                'category': x['category'],
                 'data': x['data'],
             }
         return {

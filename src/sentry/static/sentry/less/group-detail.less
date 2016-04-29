@@ -1717,19 +1717,19 @@ ul.crumbs {
 
     }
 
-    &.crumb-navigation {
+    &.crumb-location {
       .icon-container {
-        border-color: @yellow-orange-dark;
+        border-color: @blue-dark;
 
         .icon {
           top: 5px;
-          color: darken(@yellow-orange, 5);
+          color: darken(@blue-dark, 5);
           &:before {content: "\e61d";}
         }
       }
     }
 
-    &.crumb-http-request {
+    &.crumb-io {
       .icon-container {
         border-color: @green-dark;
 
@@ -1743,72 +1743,21 @@ ul.crumbs {
       }
     }
 
-    &.crumb-message {
+    &.crumb-default {
       padding-top: 7px;
       clear: both;
 
-      //& + .crumb-message {
-      //  margin-top: -9px;
-      //  background: #fff;
-      //  min-height: 0;
-      //  padding-top: 0;
-      //  padding-bottom: 6px;
-      //  border-left: 1px solid @trim;
-      //  border-right: 1px solid @trim;
-      //
-      //  .icon-container {
-      //    display: none;
-      //  }
-      //}
-
       .icon-container {
-        border-color: @blue-dark;
+        border-color: @gray-dark;
       }
 
       .icon {
-        color: @blue;
+        color: @gray-dark;
         top: 5px;
 
         &:before {
           content: "\e909";
         }
-      }
-
-      span.level {
-        font-size: 11px;
-        font-weight: bold;
-        text-transform: capitalize;
-        background: @white-darkest;
-        color: @gray-dark;
-        border-radius: 2px;
-        display: inline-block;
-        padding: 3px 0;
-        margin-right: 6px;
-        line-height: 1;
-        position: relative;
-        top: -2px;
-        width: 54px;
-        text-align: center;
-      }
-
-      span.level-info {
-        background: @blue;
-        color: @white;
-      }
-
-      span.level-error {
-        background: @orange;
-        color: @white;
-      }
-
-      span.level-warning {
-        background: @yellow-orange;
-        color: @white;
-      }
-
-      span.level-fatal {
-        background: @red;
-        color: @white;
       }
 
       span.logger {
@@ -1817,7 +1766,7 @@ ul.crumbs {
       }
     }
 
-    &.crumb-ui-event {
+    &.crumb-user {
       .icon-container {
         border-color: @purple-dark;
       }
@@ -1828,6 +1777,21 @@ ul.crumbs {
 
       .icon:before {
         content: "\e608";
+      }
+    }
+
+    &.crumb-warning {
+
+      .icon-container {
+        border-color: @yellow-orange-dark;
+
+        .icon {
+          top: 5px;
+          color: darken(@yellow-orange, 5);
+          &:before {
+            content: "\e906";
+          }
+        }
       }
     }
 
