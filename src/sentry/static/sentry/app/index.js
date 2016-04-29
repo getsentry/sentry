@@ -61,6 +61,7 @@ export default {
     Pagination: require('./components/pagination'),
     ProjectSelector: require('./components/projectHeader/projectSelector'),
     RuleEditor: require('./views/ruleEditor'),
-    TimeSince: require('./components/timeSince')
+    TimeSince: require('./components/timeSince'),
+    TodoList: require('./components/todos')
   }
 };
