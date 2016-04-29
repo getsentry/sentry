@@ -1506,9 +1506,8 @@ ul.crumbs {
     border-left: 1px solid transparent;
     border-right: 1px solid transparent;
     border-bottom: 1px solid lighten(@trim, 6);
-    padding: 6px 20px 6px 60px;
+    padding: 6px 20px 3px 60px;
     position: relative;
-    min-height: 39px;
 
     &:before {
       display: block;
@@ -1551,7 +1550,7 @@ ul.crumbs {
       box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
       border-radius: 32px;
       position: absolute;
-      top: 6px;
+      top: 5px;
       left: 18px;
       z-index: 1;
 
@@ -1598,23 +1597,20 @@ ul.crumbs {
       }
 
       td {
-        padding-top: 0 !important;
-        padding-bottom: 5px !important;
-      }
-
-      tr:last-child td {
-        padding-bottom: 0 !important;
+        padding: 2px 0 !important;
+        font-weight: normal;
       }
 
       .key {
-        width: 110px;
+        width: 120px;
         color: @gray-dark;
+        line-height: 1.5 !important;
       }
 
       pre {
         display: inline-block;
         padding: 2px 8px;
-        margin: -4px 0 0;
+        margin: -1px 0 0;
       }
     }
 
