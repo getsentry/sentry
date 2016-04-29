@@ -64,7 +64,7 @@ many cores you have on the machine. You can do this either by editing
 
 or can be passed through the command line as::
 
-	$ sentry start -w 16
+	$ sentry run web -w 16
 
 See `uWSGI's official documentation <https://uwsgi-docs.readthedocs.org/en/latest/Options.html>`_
 for more options that can be configured in ``SENTRY_WEB_OPTIONS``.
@@ -103,14 +103,14 @@ e.g. if you had something like:
 
 ```
 numprocs=1
-command=celery worker -c 64
+command=sentry celery worker -c 64
 ```
 
 change it to:
 
 ```
 numprocs=16
-command=celery worker -c 4
+command=sentry celery worker -c 4
 ```
 
 
