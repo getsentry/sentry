@@ -1575,9 +1575,10 @@ ul.crumbs {
     }
 
     time, span.dt {
-      float: right;
       font-size: 12px;
       color: @gray;
+      position: absolute;
+      right: 20px
     }
 
     span.crumb-classifier {
@@ -1591,6 +1592,10 @@ ul.crumbs {
     .table.key-value {
       margin-bottom: 0;
       background: none;
+
+      thead td:first-child {
+        font-weight: bold;
+      }
 
       td {
         padding-top: 0 !important;
@@ -1745,19 +1750,19 @@ ul.crumbs {
       padding-top: 7px;
       clear: both;
 
-      & + .crumb-message {
-        margin-top: -9px;
-        background: #fff;
-        min-height: 0;
-        padding-top: 0;
-        padding-bottom: 6px;
-        border-left: 1px solid @trim;
-        border-right: 1px solid @trim;
-
-        .icon-container {
-          display: none;
-        }
-      }
+      //& + .crumb-message {
+      //  margin-top: -9px;
+      //  background: #fff;
+      //  min-height: 0;
+      //  padding-top: 0;
+      //  padding-bottom: 6px;
+      //  border-left: 1px solid @trim;
+      //  border-right: 1px solid @trim;
+      //
+      //  .icon-container {
+      //    display: none;
+      //  }
+      //}
 
       .icon-container {
         border-color: @blue-dark;
