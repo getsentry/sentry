@@ -16,6 +16,7 @@ const DefaultCrumbComponent = React.createClass({
 
     let message = crumb.message || crumb.data && crumb.data.message;
 
+    let category = crumb.category || 'default';
     let body = _.chain(crumb.data)
       .map((val, key) => [val, key])
       .filter(([val, key]) => key !== 'message' && key !== 'level' && key !== 'classifier')
@@ -30,20 +31,25 @@ const DefaultCrumbComponent = React.createClass({
       .value();
 
     return (
-      <table className="table key-value">
-        <thead>
-          <tr>
-            <td className="key">{crumb.type}</td>
-            <td>{message && <pre><code>{message}</code></pre>}</td>
-          </tr>
-        </thead>
-        {crumb.data &&
-          <tbody>
-            {body}
-          </tbody>
-        }
-      </table>
-
+      <li className={'crumb crumb-' + category}>
+        <span className="icon-container">
+          <span className="icon"/>
+        </span>
+        <span className="dt">{moment(crumb.timestamp).format('HH:mm:ss')}</span>
+        <table className="table key-value">
+          <thead>
+            <tr>
+              <td className="key">{crumb.type}</td>
+              <td>{message && <pre><code>{message}</code></pre>}</td>
+            </tr>
+          </thead>
+          {crumb.data &&
+            <tbody>
+              {body}
+            </tbody>
+          }
+        </table>
+      </li>
     );
   }
 });
