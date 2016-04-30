@@ -38,8 +38,13 @@ class FileTest(TestCase):
         with file1.getfile() as fp:
             assert fp.read() == 'foo bar'
             fp.seek(2)
+            fp.tell() == 2
             assert fp.read() == 'o bar'
             fp.seek(0)
+            fp.tell() == 0
             assert fp.read() == 'foo bar'
             fp.seek(4)
+            fp.tell() == 4
             assert fp.read() == 'bar'
+            fp.seek(1000)
+            fp.tell() == 1000

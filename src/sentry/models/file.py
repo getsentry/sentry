@@ -254,6 +254,9 @@ class ChunkedFileBlobIndexWrapper(object):
             raise Exception('Cannot seek to pos')
         self._curfile.seek(pos - self._curidx.offset)
 
+    def tell(self):
+        return self._curidx.offset + self._curfile.tell()
+
     def read(self, bytes=4096):
         if self.closed:
             raise IOError('Cannot read on a closed file')
