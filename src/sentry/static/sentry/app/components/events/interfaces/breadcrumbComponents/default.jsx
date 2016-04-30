@@ -1,10 +1,8 @@
 import React from 'react';
+import moment from 'moment';
 import _ from 'underscore';
 
 import Classifier from './classifier';
-import KeyValueList from '../keyValueList';
-
-import ContextData from '../../../contextData';
 
 const DefaultCrumbComponent = React.createClass({
   propTypes: {
@@ -22,7 +20,7 @@ const DefaultCrumbComponent = React.createClass({
       .filter(([val, key]) => key !== 'message' && key !== 'level' && key !== 'classifier')
       .map(([val, key]) => {
         return (
-          <tr>
+          <tr key={key}>
             <td className="key">{key}</td>
             <td><pre>{val + ''}</pre></td>
           </tr>
@@ -40,7 +38,14 @@ const DefaultCrumbComponent = React.createClass({
           <thead>
             <tr>
               <td className="key">{crumb.type}</td>
-              <td>{message && <pre><code>{message}</code></pre>}</td>
+              <td>
+                {message &&
+                  <pre>
+                    <code>{message}</code>
+                    <Classifier value={crumb.classifier} hideIfEmpty={true}/>
+                  </pre>
+                }
+              </td>
             </tr>
           </thead>
           {crumb.data &&
