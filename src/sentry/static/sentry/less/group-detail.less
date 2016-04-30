@@ -1651,70 +1651,24 @@ ul.crumbs {
       }
     }
 
-    &.crumb-query {
-      .icon-container {
-        border-color: @green-dark;
+    .query {
+      display: inline;
 
-        .icon {
-          top: 6px;
-          left: 6px;
-          color: @green-dark;
-          &:before {content: "\e601";}
-          font-size: 12px;
-        }
+      .keyword {
+        font-weight: 600;
       }
 
-      p {
-        line-height: 1.2;
-        padding-top: 4px;
+      span {
+        display: inline;
       }
-
-      code {
-        padding-left: 0;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        background: transparent;
-        font-size: 13px;
-
-        &.expand {
-          cursor: pointer;
-        }
-
-        &.query-summary {
-          &:hover span.elipsis {
-            background: @gray;
-            color: white;
-          }
-        }
-
-        span {
-          display: inline;
-        }
-
-        span.elipsis {
-          border-radius: 2px;
-          padding: 2px 7px;
-          margin: -2px -5px -2px 10px;
-        }
-
-        span.keyword {
-          font-weight: bold;
-          color: @gray-darker;
-        }
-
-        span.param {
-          color: @gray-darker;
-          font-weight: bold;
-          padding: 2px 5px;
-          margin: -2px -3px;
-          background: @gray-lightest;
-          border-radius: 2px;
-        }
+      span.param {
+        color: @gray-darker;
+        font-weight: bold;
+        padding: 2px 5px;
+        margin: -2px -3px;
+        background: @gray-lightest;
+        border-radius: 2px;
       }
-    }
-
-    &.crumb-rpc {
-
     }
 
     &.crumb-location {

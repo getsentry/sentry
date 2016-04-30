@@ -1,27 +1,9 @@
 import React from 'react';
-import moment from 'moment';
 
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 
 import DefaultCrumb from './breadcrumbComponents/default';
-import MessageCrumbComponent from './breadcrumbComponents/message';
-import RpcCrumbComponent from './breadcrumbComponents/rpc';
-import QueryCrumbComponent from './breadcrumbComponents/query';
-import HttpRequestCrumbComponent from './breadcrumbComponents/httpRequest';
-import UiEventComponent from './breadcrumbComponents/uiEvent';
-import NavigationCrumbComponent from './breadcrumbComponents/navigation';
-import ErrorCrumbComponent from './breadcrumbComponents/error';
-
-const CRUMB_COMPONENTS = {
-  message: MessageCrumbComponent,
-  rpc: RpcCrumbComponent,
-  query: QueryCrumbComponent,
-  http_request: HttpRequestCrumbComponent,
-  ui_event: UiEventComponent,
-  navigation: NavigationCrumbComponent,
-  error: ErrorCrumbComponent
-};
 
 function Collapsed(props) {
   return (
@@ -72,26 +54,7 @@ const BreadcrumbsInterface = React.createClass({
     // reverse array to get consistent idx between collapsed/expanded state
     // (indexes begin and increment from last breadcrumb)
     return crumbs.reverse().map((item, idx) => {
-      // let Component = CRUMB_COMPONENTS[item.type];
-      let el;
-      // if (Component) {
-        // el = <Component data={item.data} />;
-        el = <DefaultCrumb crumb={item} />;
-      // }
-      // else {
-      //   el = <div className="errors">Missing crumb "{item.type}"</div>;
-      // }
       return <DefaultCrumb key={idx} crumb={item} />;
-
-      // (
-      //   <li key={idx} className={'crumb crumb-' + item.type.replace(/_/g, '-')}>
-      //     <span className="icon-container">
-      //       <span className="icon"/>
-      //     </span>
-      //     <span className="dt">{moment(item.timestamp).format('HH:mm:ss')}</span>
-      //     {el}
-      //   </li>
-      // );
     }).reverse(); // un-reverse rendered result
   },
 

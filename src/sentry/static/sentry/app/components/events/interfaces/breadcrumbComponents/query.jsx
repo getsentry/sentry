@@ -1,9 +1,5 @@
 import React from 'react';
 
-import Classifier from './classifier';
-import Duration from '../../../duration';
-
-
 function summarizeSqlQuery(sql) {
   // select
   let match;
@@ -47,8 +43,7 @@ function summarizeSqlQuery(sql) {
   return null;
 }
 
-
-const QueryCrumbComponent = React.createClass({
+const QueryCrumbBody = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
   },
@@ -73,7 +68,9 @@ const QueryCrumbComponent = React.createClass({
   },
 
   renderQuery() {
-    let {query, params} = this.props.data;
+    let {data} = this.props;
+    let query = data.message;
+    let params = [1];
 
     if (typeof query !== 'string') {
       return (
@@ -110,27 +107,9 @@ const QueryCrumbComponent = React.createClass({
     );
   },
 
-  renderTiming() {
-    let {duration} = this.props.data;
-    if (duration !== undefined && duration !== null) {
-      return (
-        <span className="timing">
-          [<Duration key="duration" seconds={duration} />]
-        </span>
-      );
-    }
-    return null;
-  },
-
   render() {
-    return (
-      <p>
-        {this.renderQuery()}
-        {this.renderTiming()}
-        <Classifier value={this.props.data.classifier} title="%s query" />
-      </p>
-    );
+    return this.renderQuery();
   }
 });
 
-export default QueryCrumbComponent;
+export default QueryCrumbBody;
