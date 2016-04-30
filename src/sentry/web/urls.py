@@ -65,6 +65,7 @@ from sentry.web.frontend.project_rules import ProjectRulesView
 from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.project_tags import ProjectTagsView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
+from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.remove_account import RemoveAccountView
 from sentry.web.frontend.remove_organization import RemoveOrganizationView
@@ -162,10 +163,10 @@ urlpatterns += patterns(
         name='sentry-auth-organization'),
     url(r'^auth/sso/$', AuthProviderLoginView.as_view(),
         name='sentry-auth-sso'),
-
-
     url(r'^auth/logout/$', AuthLogoutView.as_view(),
         name='sentry-logout'),
+    url(r'^auth/reactivate/$', ReactivateAccountView.as_view(),
+        name='sentry-reactivate-account'),
 
     # Account
     url(r'^login-redirect/$', accounts.login_redirect,

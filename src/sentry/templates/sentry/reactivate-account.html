@@ -1,0 +1,21 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Reactivate Account" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  <form class="form-stacked" action="" method="post" autocomplete="off">
+    {% csrf_token %}
+
+    <h2>Account Disabled</h2>
+
+    <input type="hidden" name="op" value="confirm" />
+
+    <p>Your account was disabled and scheduled for removal. You may reactivate this account, though any data that has been already removed is not recoverable (such as organization membership).</p>
+
+    <fieldset class="form-actions">
+      <button type="submit" class="btn btn-primary">{% trans "Reactivate Account" %}</button>
+    </fieldset>
+  </form>
+{% endblock %}
