@@ -23,7 +23,7 @@ const DefaultCrumbComponent = React.createClass({
         return (
           <tr key={key}>
             <td className="key">{key}</td>
-            <td><pre>{val + ''}</pre></td>
+            <td className="value"><pre>{val + ''}</pre></td>
           </tr>
         );
       })
@@ -39,7 +39,7 @@ const DefaultCrumbComponent = React.createClass({
           <thead>
             <tr>
               <td className="key">{crumb.type}</td>
-              <td>
+              <td className="value">
                 {message &&
                   <pre>
                     <code>{message}</code>
