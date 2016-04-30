@@ -43,108 +43,12 @@ def parse_new_timestamp(value):
     return rv.replace(tzinfo=pytz.utc)
 
 
-def typevalidator(ty):
-    def decorator(f):
-        validators[ty] = f
-        return f
-    return decorator
-
-
-def validate_payload_for_type(payload, type):
-    payload = payload or {}
-    func = validators.get(type)
-    if func is None:
-        raise InterfaceValidationError("Invalid breadcrumb type (%s)." %
-                                       (type,))
-    return func(payload)
-
-
-@typevalidator('message')
-def validate_message(payload):
-    rv = {}
-    for key in 'message', 'logger', 'level', 'classifier':
-        value = payload.get(key)
-        if value is None:
-            continue
-        rv[key] = trim(value, 1024)
-    if 'message' not in rv:
-        raise InterfaceValidationError("No message provided for "
-                                       "'message' breadcrumb.")
-    return rv
-
-
-@typevalidator('rpc')
-def validate_rpc(payload):
-    rv = {}
-    for key in 'endpoint', 'params', 'classifier':
-        value = payload.get(key)
-        if value is not None:
-            rv[key] = trim(value, 1024)
-    if not rv.get('endpoint'):
-        raise InterfaceValidationError("No endpoint provided for "
-                                       "'rpc' breadcrumb.")
-    return rv
-
-
-@typevalidator('http_request')
-def validate_http_request(payload):
-    rv = {}
-    for key in 'status_code', 'reason', 'method', 'url', 'headers', \
-               'response', 'classifier':
-        value = payload.get(key)
-        if value is not None:
-            rv[key] = trim(value, 1024)
-    if not rv.get('url'):
-        raise InterfaceValidationError("No url provided for "
-                                       "'http_request' breadcrumb.")
-    return rv
-
-
-@typevalidator('query')
-def validate_query(payload):
-    rv = {}
-    for key in 'params', 'duration', 'classifier':
-        value = payload.get(key)
-        if value is not None:
-            rv[key] = trim(value, 1024)
-    if 'query' not in payload:
-        raise InterfaceValidationError("Query not provided for 'query' "
-                                       "breadcrumb.")
-    rv['query'] = trim(payload['query'], 4096)
-    return rv
-
-
-@typevalidator('ui_event')
-def validate_event(payload):
-    rv = {}
-    for key in 'type', 'target', 'classifier':
-        value = payload.get(key)
-        if value is not None:
-            rv[key] = trim(value, 1024)
-    return rv
-
-
-@typevalidator('navigation')
-def validate_navigation(payload):
-    rv = {}
-    for key in 'to', 'from':
-        value = payload.get(key)
-        if value is not None:
-            rv[key] = trim(value, 1024)
-    if 'to' not in rv:
-        raise InterfaceValidationError("Location not provided for 'navigation' "
-                                       "breadcrumb.")
-    return rv
-
-
-@typevalidator('error')
-def validate_error(payload):
-    rv = {}
-    for key in 'type', 'message', 'event_id':
-        value = payload.get(key)
-        if value is not None:
-            rv[key] = trim(value, 1024)
-    return rv
+def _get_implied_category(category, type):
+    if category is not None:
+        return category
+    if type in ('critical', 'error', 'warning', 'info', 'debug'):
+        return type
+    return 'info'
 
 
 class Breadcrumbs(Interface):
@@ -170,24 +74,42 @@ class Breadcrumbs(Interface):
     def to_python(cls, data):
         values = []
         for crumb in data.get('values') or ():
-            ty = crumb.get('type') or 'message'
-            ts = parse_new_timestamp(crumb.get('timestamp'))
-            if ts is None:
-                raise InterfaceValidationError('Unable to determine timestamp for crumb')
-
-            # TODO: re-implement breadcrumb validation
-            values.append({
-                'type': ty,
-                # We need to store timestamps here as this will go into
-                # the node store which does not support datetime objects.
-                'timestamp': to_timestamp(ts),
-                'message': crumb.get('message', None),
-                'category': crumb.get('category', 'default'),
-                'classifier': crumb.get('classifier', None),
-                'duration': crumb.get('duration', None),
-                'data': crumb.get('data', {}),
-            })
+            values.append(cls.normalize_crumb(crumb))
         return cls(values=values)
+
+    @classmethod
+    def normalize_crumb(cls, crumb):
+        ty = crumb.get('type') or 'info'
+        ts = parse_new_timestamp(crumb.get('timestamp'))
+        if ts is None:
+            raise InterfaceValidationError('Unable to determine timestamp '
+                                           'for crumb')
+
+        rv = {
+            'type': ty,
+            'timestamp': to_timestamp(ts),
+        }
+
+        msg = crumb.get('message')
+        if msg is not None:
+            rv['message'] = trim(unicode(msg), 4096)
+            msg_args = crumb.get('message_args')
+            if msg_args:
+                rv['message_args'] = trim(list(msg_args), 2048)
+
+        for key in 'category', 'classifier':
+            val = crumb.get(key)
+            if val is not None:
+                rv[key] = trim(unicode(val), 256)
+
+        duration = crumb.get('duration')
+        if duration is not None:
+            rv['duration'] = float(duration)
+
+        if 'data' in crumb:
+            rv['data'] = trim(crumb['data'], 4096)
+
+        return rv
 
     def get_path(self):
         return 'sentry.interfaces.Breadcrumbs'
@@ -200,11 +122,13 @@ class Breadcrumbs(Interface):
             return {
                 'type': x['type'],
                 'timestamp': to_datetime(x['timestamp']),
-                'message': x['message'],
-                'category': x['category'],
-                'classifier': x['classifier'],
-                'duration': x['duration'],
-                'data': x['data'],
+                'duration': x.get('duration'),
+                'message': x.get('message'),
+                'message_args': x.get('message_args'),
+                'category': _get_implied_category(x.get('category'), x['type']),
+                'classifier': x.get('classifier'),
+                'duration': x.get('duration'),
+                'data': x.get('data') or {},
             }
         return {
             'values': map(_convert, self.values),
