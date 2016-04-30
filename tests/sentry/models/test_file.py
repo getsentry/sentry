@@ -36,7 +36,6 @@ class FileTest(TestCase):
         assert results[2].offset == 6
 
         fp = None
-
         with file1.getfile() as fp:
             assert fp.read() == 'foo bar'
             fp.seek(2)
@@ -50,6 +49,9 @@ class FileTest(TestCase):
             assert fp.read() == 'bar'
             fp.seek(1000)
             fp.tell() == 1000
+
+            with self.assertRaises(IOError):
+                fp.seek(-1)
 
         with self.assertRaises(ValueError):
             fp.seek(0)

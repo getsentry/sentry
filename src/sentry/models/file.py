@@ -244,6 +244,8 @@ class ChunkedFileBlobIndexWrapper(object):
     def seek(self, pos):
         if self.closed:
             raise ValueError('I/O operation on closed file')
+        if pos < 0:
+            raise IOError('Invalid argument')
         for n, idx in enumerate(self._indexes[::-1]):
             if idx.offset <= pos:
                 if idx != self._curidx:
