@@ -3,6 +3,7 @@ import moment from 'moment';
 import _ from 'underscore';
 
 import Classifier from './classifier';
+import Duration from '../../../duration';
 
 const DefaultCrumbComponent = React.createClass({
   propTypes: {
@@ -42,7 +43,12 @@ const DefaultCrumbComponent = React.createClass({
                 {message &&
                   <pre>
                     <code>{message}</code>
-                    <Classifier value={crumb.classifier} hideIfEmpty={true}/>
+                    {crumb.classifier && <Classifier value={crumb.classifier}/>}
+                    {crumb.duration &&
+                      <span className="timing">
+                        [<Duration seconds={crumb.duration}/>]
+                      </span>
+                    }
                   </pre>
                 }
               </td>
