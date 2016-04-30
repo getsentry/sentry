@@ -138,13 +138,15 @@ def get_sample_breadcrumbs(prior_event_id=None):
                 "type": "log",
                 "timestamp": milliseconds_ago(now, 3300),
                 "message": "This is a warning log message",
-                "category": "warning"
+                "category": "warning",
+                "classifier": 'django.utils.log'
             },
             {
                 "type": "log",
                 "timestamp": milliseconds_ago(now, 2700),
                 "message": "This is an error log message",
-                "category": "error"
+                "category": "error",
+                "classifier": 'django.utils.log'
             },
             {
                 "type": "http",

@@ -183,6 +183,8 @@ class Breadcrumbs(Interface):
                 'timestamp': to_timestamp(ts),
                 'message': crumb.get('message', None),
                 'category': crumb.get('category', 'default'),
+                'classifier': crumb.get('classifier', None),
+                'duration': crumb.get('duration', None),
                 'data': crumb.get('data', {}),
             })
         return cls(values=values)
@@ -200,6 +202,8 @@ class Breadcrumbs(Interface):
                 'timestamp': to_datetime(x['timestamp']),
                 'message': x['message'],
                 'category': x['category'],
+                'classifier': x['classifier'],
+                'duration': x['duration'],
                 'data': x['data'],
             }
         return {
