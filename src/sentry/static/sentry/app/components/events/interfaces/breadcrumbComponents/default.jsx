@@ -5,9 +5,31 @@ import _ from 'underscore';
 import Classifier from './classifier';
 import Duration from '../../../duration';
 
+import QueryCrumbBody from './query';
+
 const DefaultCrumbComponent = React.createClass({
   propTypes: {
     crumb: React.PropTypes.object.isRequired,
+  },
+
+  renderMessage() {
+    let {crumb} = this.props;
+    let {message, type} = crumb;
+
+    return (
+      <pre>
+        {type === 'query' ?
+          <QueryCrumbBody data={crumb}/> :
+          <code>{message}</code>
+        }
+        {crumb.classifier && <Classifier value={crumb.classifier}/>}
+        {crumb.duration &&
+          <span className="timing">
+            [<Duration seconds={crumb.duration}/>]
+          </span>
+        }
+      </pre>
+    );
   },
 
   render() {
@@ -39,19 +61,7 @@ const DefaultCrumbComponent = React.createClass({
           <thead>
             <tr>
               <td className="key">{crumb.type}</td>
-              <td className="value">
-                {message &&
-                  <pre>
-                    <code>{message}</code>
-                    {crumb.classifier && <Classifier value={crumb.classifier}/>}
-                    {crumb.duration &&
-                      <span className="timing">
-                        [<Duration seconds={crumb.duration}/>]
-                      </span>
-                    }
-                  </pre>
-                }
-              </td>
+              <td className="value">{message && this.renderMessage()}</td>
             </tr>
           </thead>
           {crumb.data &&
