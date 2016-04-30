@@ -123,8 +123,6 @@ class AuthenticationForm(CaptchaForm):
                     self.error_messages['invalid_login'] % {
                         'username': self.username_field.verbose_name
                     })
-            elif not self.user_cache.is_active:
-                raise forms.ValidationError(self.error_messages['inactive'])
         self.check_for_test_cookie()
         return self.cleaned_data
 

@@ -181,7 +181,10 @@ class BaseView(View, OrganizationMixin):
         return super(BaseView, self).dispatch(request, *args, **kwargs)
 
     def is_auth_required(self, request, *args, **kwargs):
-        return self.auth_required and not request.user.is_authenticated()
+        return (
+            self.auth_required
+            and not (request.user.is_authenticated() and request.user.is_active)
+        )
 
     def handle_auth_required(self, request, *args, **kwargs):
         request.session['_next'] = request.get_full_path()
