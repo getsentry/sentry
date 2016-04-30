@@ -393,6 +393,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.ping',
     'sentry.tasks.post_process',
     'sentry.tasks.process_buffer',
+    'sentry.tasks.collect_project_platforms',
 )
 CELERY_QUEUES = [
     Queue('default', routing_key='default'),
@@ -407,6 +408,7 @@ CELERY_QUEUES = [
     Queue('options', routing_key='options'),
     Queue('digests.delivery', routing_key='digests.delivery'),
     Queue('digests.scheduling', routing_key='digests.scheduling'),
+    Queue('stats', routing_key='stats'),
 ]
 
 for queue in CELERY_QUEUES:
@@ -488,6 +490,13 @@ CELERYBEAT_SCHEDULE = {
     #         'expires': 3600,
     #     },
     # },
+    'collect-project-platforms': {
+        'task': 'sentry.tasks.collect_project_platforms',
+        'schedule': timedelta(days=1),
+        'options': {
+            'expires': 3600 * 24,
+        },
+    },
 }
 
 LOGGING = {
