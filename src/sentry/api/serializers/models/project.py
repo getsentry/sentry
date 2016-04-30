@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
+from collections import defaultdict
 from django.db.models import Q
 
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.models import (
-    Project, ProjectBookmark, ProjectOption, ProjectStatus, UserOption
+    Project, ProjectBookmark, ProjectOption, ProjectPlatform, ProjectStatus,
+    UserOption
 )
 
 STATUS_LABELS = {
@@ -18,10 +20,11 @@ STATUS_LABELS = {
 @register(Project)
 class ProjectSerializer(Serializer):
     def get_attrs(self, item_list, user):
+        project_ids = [i.id for i in item_list]
         if user.is_authenticated() and item_list:
             bookmarks = set(ProjectBookmark.objects.filter(
                 user=user,
-                project_id__in=[i.id for i in item_list],
+                project_id__in=project_ids,
             ).values_list('project_id', flat=True))
             user_options = {
                 (u.project_id, u.key): u.value
@@ -44,6 +47,13 @@ class ProjectSerializer(Serializer):
             )
         }
 
+        platforms = ProjectPlatform.objects.filter(
+            project_id__in=project_ids,
+        ).values_list('project_id', 'platform')
+        platforms_by_project = defaultdict(list)
+        for project_id, platform in platforms:
+            platforms_by_project[project_id].append(platform)
+
         result = {}
         for item in item_list:
             result[item] = {
@@ -53,6 +63,7 @@ class ProjectSerializer(Serializer):
                     default_subscribe,
                 )),
                 'reviewed-callsign': reviewed_callsigns.get(item.id),
+                'platforms': platforms_by_project[item.id],
             }
         return result
 
@@ -81,6 +92,7 @@ class ProjectSerializer(Serializer):
             'firstEvent': obj.first_event,
             'features': feature_list,
             'status': status_label,
+            'platforms': attrs['platforms'],
         }
 
 
