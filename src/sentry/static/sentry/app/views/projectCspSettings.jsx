@@ -270,7 +270,7 @@ const ProjectCspSettings = React.createClass({
 
             <pre>{this.getInstructions()}</pre>
 
-            <p>Additionally you can setup CSP reports to simply send reports rather than actually enforcing the policy:</p>
+            <p>Alternatively you can setup CSP reports to simply send reports rather than actually enforcing the policy:</p>
 
             <pre>{this.getReportOnlyInstructions()}</pre>
 
