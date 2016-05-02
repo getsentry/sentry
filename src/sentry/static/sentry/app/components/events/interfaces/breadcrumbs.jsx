@@ -1,26 +1,9 @@
 import React from 'react';
-import moment from 'moment';
 
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 
-import MessageCrumbComponent from './breadcrumbComponents/message';
-import RpcCrumbComponent from './breadcrumbComponents/rpc';
-import QueryCrumbComponent from './breadcrumbComponents/query';
-import HttpRequestCrumbComponent from './breadcrumbComponents/httpRequest';
-import UiEventComponent from './breadcrumbComponents/uiEvent';
-import NavigationCrumbComponent from './breadcrumbComponents/navigation';
-import ErrorCrumbComponent from './breadcrumbComponents/error';
-
-const CRUMB_COMPONENTS = {
-  message: MessageCrumbComponent,
-  rpc: RpcCrumbComponent,
-  query: QueryCrumbComponent,
-  http_request: HttpRequestCrumbComponent,
-  ui_event: UiEventComponent,
-  navigation: NavigationCrumbComponent,
-  error: ErrorCrumbComponent
-};
+import CrumbComponent from './breadcrumbComponents/crumb';
 
 function Collapsed(props) {
   return (
@@ -32,6 +15,18 @@ function Collapsed(props) {
     </li>
   );
 }
+
+function moduleToCategory(module) {
+  if (!module) {
+    return null;
+  }
+  let match = module.match(/^.*\/(.*?)(:\d+)/);
+  if (match) {
+    return match[1];
+  }
+  return module.split(/./)[0];
+}
+
 Collapsed.propTypes = {
   onClick: React.PropTypes.func.isRequired,
   count: React.PropTypes.number.isRequired
@@ -52,7 +47,7 @@ const BreadcrumbsInterface = React.createClass({
   },
 
   statics: {
-    MAX_CRUMBS_WHEN_COLLAPSED: 5
+    MAX_CRUMBS_WHEN_COLLAPSED: 10
   },
 
   getInitialState() {
@@ -71,22 +66,7 @@ const BreadcrumbsInterface = React.createClass({
     // reverse array to get consistent idx between collapsed/expanded state
     // (indexes begin and increment from last breadcrumb)
     return crumbs.reverse().map((item, idx) => {
-      let Component = CRUMB_COMPONENTS[item.type];
-      let el;
-      if (Component) {
-        el = <Component data={item.data} />;
-      } else {
-        el = <div className="errors">Missing crumb "{item.type}"</div>;
-      }
-      return (
-        <li key={idx} className={'crumb crumb-' + item.type.replace(/_/g, '-')}>
-          <span className="icon-container">
-            <span className="icon"/>
-          </span>
-          <span className="dt">{moment(item.timestamp).format('HH:mm:ss')}</span>
-          {el}
-        </li>
-      );
+      return <CrumbComponent key={idx} crumb={item} />;
     }).reverse(); // un-reverse rendered result
   },
 
@@ -109,10 +89,13 @@ const BreadcrumbsInterface = React.createClass({
     // TODO: what about non-exceptions (e.g. generic messages)?
     let exception = evt.entries.find(entry => entry.type === 'exception');
     if (exception) {
+      let {type, value, module} = exception.data.values[0];
       // make copy of values array / don't mutate props
       all = all.slice(0).concat([{
         type: 'error',
-        data: exception.data.values[0],
+        level: 'error',
+        category: moduleToCategory(module || null),
+        message: type + ': ' + value,
         timestamp: evt.dateCreated
       }]);
     }

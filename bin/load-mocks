@@ -123,65 +123,68 @@ def get_sample_breadcrumbs(prior_event_id=None):
             {
                 "type": "navigation",
                 "timestamp": milliseconds_ago(now, 5200),
+                "category": "react-router",
                 "data": {
                     "from": "/login/",
                     "to": "/dashboard/",
                 }
             },
             {
-                "type": "message",
                 "timestamp": milliseconds_ago(now, 4000),
-                "data": {
-                    "message": "This is a message breadcrumb",
-                    "level": "info"
-                }
+                "message": "This is an info log message",
+                "category": "django"
             },
             {
-                "type": "message",
                 "timestamp": milliseconds_ago(now, 3300),
-                "data": {
-                    "message": "This is a warning message",
-                    "level": "warning"
-                }
+                "message": "This is a warning log message",
+                "level": "warning",
+                "category": 'django'
             },
             {
-                "type": "message",
                 "timestamp": milliseconds_ago(now, 2700),
+                "message": "This is an error log message",
+                "level": "error",
+                "category": 'django'
+            },
+            {
+                "timestamp": milliseconds_ago(now, 2700),
+                "message": "This is a critical log message",
+                "level": "critical",
+                "category": 'django'
+            },
+            {
+                "timestamp": milliseconds_ago(now, 2700),
+                "message": "This is a debug log message",
+                "level": "debug",
+                "category": 'django',
                 "data": {
-                    "message": "This is an error message",
-                    "level": "error"
+                    "foo": "bar",
+                    "baz": "blah"
                 }
             },
             {
-                "type": "http_request",
+                "type": "http",
+                "category": "requests",
                 "timestamp": milliseconds_ago(now, 1300),
                 "data": {
-                    "url": "http://example.com/foo",
+                    "reason": "OK",
                     "status_code": 200,
-                    "method": "POST",
-                    "headers": {
-                        "Referer": "http://example.com",
-                        "Content-Type": "application/json"
-                    }
+                    "url": "Http://example.com/",
+                    "method": "POST"
                 }
             },
             {
                 "type": "query",
+                "category": "django",
                 "timestamp": milliseconds_ago(now, 1200),
-                "data": {
-                    "classifier": u'django.db',
-                    "params": [1],
-                    "duration": 0.002,
-                    "query": u'SELECT "auth_user"."password", "auth_user"."last_login", "auth_user"."id", "auth_user"."username", "auth_user"."first_name", "auth_user"."email", "auth_user"."is_staff", "auth_user"."is_active", "auth_user"."is_superuser", "auth_user"."is_managed", "auth_user"."date_joined" FROM "auth_user" WHERE "auth_user"."id" = %s'
-                },
+                "message": u'SELECT "auth_user"."password", "auth_user"."last_login", "auth_user"."id", "auth_user"."username", "auth_user"."first_name", "auth_user"."email", "auth_user"."is_staff", "auth_user"."is_active", "auth_user"."is_superuser", "auth_user"."is_managed", "auth_user"."date_joined" FROM "auth_user" WHERE "auth_user"."id" = 1',
+                "duration": 0.002
             },
             {
-                "type": "ui_event",
+                "type": "ui",
                 "timestamp": milliseconds_ago(now, 1000),
-                "data": {
-                    "type": "click",
-                    "target": "div > form[name=\"post\"] > button.btn.btn-small[name=\"submit\"]"
-                }
+                "message": "div > form[name=\"post\"] > button.btn.btn-small[name=\"submit\"]",
+                "category": 'ui.click'
             }
         ]
     }
@@ -190,10 +193,9 @@ def get_sample_breadcrumbs(prior_event_id=None):
         sample_breadcrumbs["values"].insert(2, {
             "type": "error",
             "timestamp": milliseconds_ago(now, 3000),
-            "data": {
-                "message": "TypeError: something broke earlier",
-                "event_id": prior_event_id
-            }
+            "message": "TypeError: something broke earlier",
+            "category": "error",
+            "event_id": prior_event_id
         })
 
     return sample_breadcrumbs
