@@ -96,7 +96,11 @@ class SentryInternalClient(DjangoClient):
 
         kwargs['project'] = project.id
         try:
-            data = helper.validate_data(project, kwargs)
+            # This in theory is the right way to do it because validate
+            # also normalizes currently, but we just send in data already
+            # normalised in the raven client now.
+            # data = helper.validate_data(project, kwargs)
+            data = kwargs
             manager = EventManager(data)
             data = manager.normalize()
             tsdb.incr_multi([
