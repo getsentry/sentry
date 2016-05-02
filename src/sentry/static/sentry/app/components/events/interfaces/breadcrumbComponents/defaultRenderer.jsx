@@ -35,7 +35,7 @@ const DefaultRenderer = React.createClass({
       <CrumbTable
         title={this.getTitle()}
         summary={this.renderSummary()}
-        kvData={this.props.crumb.data}
+        kvData={this.props.crumb.data || {}}
         {...this.props} />
     );
   }
