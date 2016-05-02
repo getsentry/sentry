@@ -12,11 +12,10 @@ const CrumbComponent = React.createClass({
 
   renderSummary() {
     let {crumb} = this.props;
-    let {message, type} = crumb;
 
     return (
       <div className="summary">
-        {message && <pre><code>{message}</code></pre>}
+        {crumb.message && <pre><code>{crumb.message}</code></pre>}
         {crumb.category && <Category value={crumb.category}/>}
         {crumb.duration &&
           <span className="crumb-timing">
@@ -59,8 +58,13 @@ const CrumbComponent = React.createClass({
     );
   },
 
-  render() {
-    let crumb = this.props.crumb;
+  renderData() {
+    let {crumb} = this.props;
+
+    if (!crumb.data) {
+      return null;
+    }
+
     let body = _.chain(crumb.data)
       .map((val, key) => [val, key])
       .map(([val, key]) => {
@@ -72,6 +76,14 @@ const CrumbComponent = React.createClass({
         );
       })
       .value();
+
+    return (
+      <tbody>{body}</tbody>
+    );
+  },
+
+  render() {
+    let crumb = this.props.crumb;
 
     return (
       <li className={this.getClassName()}>
@@ -89,11 +101,7 @@ const CrumbComponent = React.createClass({
               <td className="value">{this.renderSummary()}</td>
             </tr>
           </thead>
-          {crumb.data &&
-            <tbody>
-              {body}
-            </tbody>
-          }
+          {this.renderData()}
         </table>
       </li>
     );
