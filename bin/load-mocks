@@ -130,42 +130,36 @@ def get_sample_breadcrumbs(prior_event_id=None):
                 }
             },
             {
-                "type": "log",
                 "timestamp": milliseconds_ago(now, 4000),
                 "message": "This is an info log message",
             },
             {
-                "type": "log",
                 "timestamp": milliseconds_ago(now, 3300),
                 "message": "This is a warning log message",
-                "category": "warning",
-                "classifier": 'django.utils.log'
+                "level": "warning",
+                "category": 'django.utils.log'
             },
             {
-                "type": "log",
                 "timestamp": milliseconds_ago(now, 2700),
                 "message": "This is an error log message",
-                "category": "error",
-                "classifier": 'django.utils.log'
+                "level": "error",
+                "category": 'django.utils.log'
             },
             {
                 "type": "http",
-                "category": "io",
+                "category": "requests",
                 "timestamp": milliseconds_ago(now, 1300),
                 "message": "POST http://example.com [200]"
             },
             {
                 "type": "query",
-                "category": "io",
+                "category": "django.db",
                 "timestamp": milliseconds_ago(now, 1200),
-                "message": u'SELECT "auth_user"."password", "auth_user"."last_login", "auth_user"."id", "auth_user"."username", "auth_user"."first_name", "auth_user"."email", "auth_user"."is_staff", "auth_user"."is_active", "auth_user"."is_superuser", "auth_user"."is_managed", "auth_user"."date_joined" FROM "auth_user" WHERE "auth_user"."id" = %s',
-                "message_args": [1],
-                "duration": 0.002,
-                "classifier": u'django.db'
+                "message": u'SELECT "auth_user"."password", "auth_user"."last_login", "auth_user"."id", "auth_user"."username", "auth_user"."first_name", "auth_user"."email", "auth_user"."is_staff", "auth_user"."is_active", "auth_user"."is_superuser", "auth_user"."is_managed", "auth_user"."date_joined" FROM "auth_user" WHERE "auth_user"."id" = 1',
+                "duration": 0.002
             },
             {
                 "type": "click",
-                "category": "user",
                 "timestamp": milliseconds_ago(now, 1000),
                 "message": "div > form[name=\"post\"] > button.btn.btn-small[name=\"submit\"]"
             }

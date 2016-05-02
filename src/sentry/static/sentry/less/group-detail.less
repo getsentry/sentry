@@ -1580,7 +1580,7 @@ ul.crumbs {
       right: 20px
     }
 
-    span.crumb-classifier,
+    span.crumb-category,
     span.timing {
       padding-left: 6px;
       color: @gray;
@@ -1589,13 +1589,25 @@ ul.crumbs {
       text-transform: none;
     }
 
+    span.crumb-level {
+      background: @gray;
+      border-radius: 2px;
+      font-size: 11px;
+      font-weight: bold;
+      color: white;
+      padding: 2px 4px;
+    }
+
+    * + span.crumb-level {
+      margin-left: 6px;
+    }
+
     .table.key-value {
       margin-bottom: 0;
       background: none;
 
       thead td:first-child {
         font-weight: bold;
-        text-transform: capitalize;
       }
 
       td {
@@ -1617,6 +1629,16 @@ ul.crumbs {
         display: inline-block;
         padding: 2px 8px;
         margin: -1px 0 0;
+      }
+    }
+
+    div.summary {
+      pre {
+        display: inline-block;
+      }
+
+      * {
+        vertical-align: middle;
       }
     }
 
@@ -1671,34 +1693,6 @@ ul.crumbs {
       }
     }
 
-    &.crumb-location {
-      .icon-container {
-        border-color: @blue-dark;
-
-        .icon {
-          top: 5px;
-          left: 5.5px;
-          color: @blue;
-          &:before {content: "\e90b";}
-        }
-      }
-    }
-
-    &.crumb-io {
-      .icon-container {
-        border-color: @green-dark;
-
-        .icon {
-          top: 5px;
-          left: 5.5px;
-          color: @green;
-          &:before {
-            content: "\e908";
-          }
-        }
-      }
-    }
-
     &.crumb-default {
       padding-top: 7px;
       clear: both;
@@ -1723,6 +1717,34 @@ ul.crumbs {
       }
     }
 
+    &.crumb-navigation {
+      .icon-container {
+        border-color: @blue-dark;
+
+        .icon {
+          top: 5px;
+          left: 5.5px;
+          color: @blue;
+          &:before {content: "\e90b";}
+        }
+      }
+    }
+
+    &.crumb-http {
+      .icon-container {
+        border-color: @green-dark;
+
+        .icon {
+          top: 5px;
+          left: 5.5px;
+          color: @green;
+          &:before {
+            content: "\e908";
+          }
+        }
+      }
+    }
+
     &.crumb-user {
       .icon-container {
         border-color: @purple-dark;
@@ -1739,6 +1761,9 @@ ul.crumbs {
     }
 
     &.crumb-warning {
+      .crumb-level {
+        background: @yellow-orange;
+      }
 
       .icon-container {
         border-color: @yellow-orange-dark;
@@ -1754,10 +1779,20 @@ ul.crumbs {
       }
     }
 
-    &.crumb-error {
+    &.crumb-debug {
+      .crumb-level {
+        background: @blue;
+      }
+    }
+
+    &.crumb-error, &.crumb-critical {
       background: #fffcfb;
       border: 1px solid #E7C0BC;
       margin: -1px 0;
+
+      .crumb-level {
+        background: @red;
+      }
 
       .icon {
         color: @red;

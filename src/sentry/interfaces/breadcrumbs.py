@@ -79,7 +79,7 @@ class Breadcrumbs(Interface):
 
     @classmethod
     def normalize_crumb(cls, crumb):
-        ty = crumb.get('type') or 'info'
+        ty = crumb.get('type') or 'default'
         ts = parse_new_timestamp(crumb.get('timestamp'))
         if ts is None:
             raise InterfaceValidationError('Unable to determine timestamp '
@@ -90,21 +90,21 @@ class Breadcrumbs(Interface):
             'timestamp': to_timestamp(ts),
         }
 
+        level = crumb.get('level')
+        if level not in (None, 'info'):
+            rv['level'] = level
+
         msg = crumb.get('message')
         if msg is not None:
             rv['message'] = trim(unicode(msg), 4096)
-            msg_args = crumb.get('message_args')
-            if msg_args:
-                rv['message_args'] = trim(list(msg_args), 2048)
 
-        for key in 'category', 'classifier':
-            val = crumb.get(key)
-            if val is not None:
-                rv[key] = trim(unicode(val), 256)
+        category = crumb.get('category')
+        if category is not None:
+            rv['category'] = trim(unicode(category), 256)
 
         duration = crumb.get('duration')
         if duration is not None:
-            rv['duration'] = float(duration)
+            rv['data'] = float(duration)
 
         if 'data' in crumb:
             rv['data'] = trim(crumb['data'], 4096)
@@ -123,11 +123,9 @@ class Breadcrumbs(Interface):
                 'type': x['type'],
                 'timestamp': to_datetime(x['timestamp']),
                 'duration': x.get('duration'),
+                'level': x.get('level', 'info'),
                 'message': x.get('message'),
-                'message_args': x.get('message_args'),
-                'category': _get_implied_category(x.get('category'), x['type']),
-                'classifier': x.get('classifier'),
-                'duration': x.get('duration'),
+                'category': x.get('category'),
                 'data': x.get('data') or {},
             }
         return {

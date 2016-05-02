@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Classifier = React.createClass({
+const Category = React.createClass({
   propTypes: {
     value: React.PropTypes.string.isRequired,
     title: React.PropTypes.string,
@@ -22,9 +22,9 @@ const Classifier = React.createClass({
       title = value;
     }
     return (
-      <span className="crumb-classifier">({title})</span>
+      <span className="crumb-category">({title})</span>
     );
   }
 });
 
-export default Classifier;
+export default Category;
