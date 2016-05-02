@@ -1588,6 +1588,11 @@ ul.crumbs {
       text-transform: none;
     }
 
+    span.crumb-category {
+      .truncate;
+      padding-right: 10px;
+    }
+
     span.timing {
       font-size: 90%;
       padding-left: 6px;
@@ -1625,7 +1630,8 @@ ul.crumbs {
       }
 
       .key {
-        width: 100px;
+        width: 110px;
+        max-width: 110px;
         color: @gray-dark;
         line-height: 1.6 !important;
       }
