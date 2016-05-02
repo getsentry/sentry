@@ -104,7 +104,7 @@ class Breadcrumbs(Interface):
 
         duration = crumb.get('duration')
         if duration is not None:
-            rv['data'] = float(duration)
+            rv['duration'] = float(duration)
 
         event_id = crumb.get('event_id')
         if event_id is not None:
