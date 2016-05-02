@@ -67,8 +67,8 @@ class Breadcrumbs(Interface):
     >>>     }
     >>> ], ...}
     """
-    display_score = 5000
-    score = 100
+    display_score = 1100
+    score = 800
 
     @classmethod
     def to_python(cls, data):
