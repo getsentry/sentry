@@ -126,7 +126,7 @@ class Breadcrumbs(Interface):
                 'level': x.get('level', 'info'),
                 'message': x.get('message'),
                 'category': x.get('category'),
-                'data': x.get('data') or {},
+                'data': x.get('data') or None,
             }
         return {
             'values': map(_convert, self.values),
