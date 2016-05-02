@@ -16,6 +16,17 @@ function Collapsed(props) {
   );
 }
 
+function moduleToCategory(module) {
+  if (!module) {
+    return null;
+  }
+  let match = module.match(/^.*\/(.*?)(:\d+)/);
+  if (match) {
+    return match[1];
+  }
+  return module.split(/./)[0];
+}
+
 Collapsed.propTypes = {
   onClick: React.PropTypes.func.isRequired,
   count: React.PropTypes.number.isRequired
@@ -83,7 +94,7 @@ const BreadcrumbsInterface = React.createClass({
       all = all.slice(0).concat([{
         type: 'error',
         level: 'error',
-        category: module || null,
+        category: moduleToCategory(module || null),
         message: type + ': ' + value,
         timestamp: evt.dateCreated
       }]);
