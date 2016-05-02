@@ -10,14 +10,11 @@ const SummaryLine = React.createClass({
 
   render() {
     let {crumb} = this.props;
+    // this is where we can later also show other interesting
+    // information (maybe duration?)
     return (
       <div className="summary">
         {this.props.children}
-        {crumb.duration &&
-          <span className="crumb-timing">
-            [<Duration seconds={crumb.duration}/>]
-          </span>
-        }
       </div>
     );
   }
