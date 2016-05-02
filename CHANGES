@@ -10,6 +10,14 @@ Version 8.4 (Unreleased)
 - Added 'Events Per Hour' graph to organization dashboard
 - Moved organization activity stream to main column from sidebar
 
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``DSymSymbol`` model.
+- Added ``DSymSDK`` model.
+- Added ``DSymObject`` model.
+- Added ``DSymBundle`` model.
+
 Version 8.3.3
 -------------
 
