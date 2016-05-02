@@ -150,9 +150,12 @@ class File(Model):
         db_table = 'sentry_file'
 
     def getfile(self, *args, **kwargs):
-        return FileObj(ChunkedFileBlobIndexWrapper(FileBlobIndex.objects.filter(
-            file=self,
-        ).select_related('blob').order_by('offset')), 'rb')
+        return FileObj(ChunkedFileBlobIndexWrapper(
+            FileBlobIndex.objects.filter(
+                file=self,
+            ).select_related('blob').order_by('offset'),
+            mode=kwargs.get('mode'),
+        ), self.name)
 
     def putfile(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True):
         """
@@ -205,11 +208,12 @@ class FileBlobIndex(Model):
 
 
 class ChunkedFileBlobIndexWrapper(object):
-    def __init__(self, indexes):
+    def __init__(self, indexes, mode=None):
         # eager load from database incase its a queryset
         self._indexes = list(indexes)
         self._curfile = None
         self._curidx = None
+        self.mode = mode
         self.open()
 
     def __enter__(self):
