@@ -23,7 +23,7 @@ Now, ``SENTRY_CONF`` should be pointed to the parent directory that contains bot
 the python file and the yaml file. ``sentry init`` will generate the right
 structure needed for the future.::
 
-    $ SENTRY_CONF=/etc/sentry sentry start
+    $ SENTRY_CONF=/etc/sentry sentry run web
 
 The following will be a simple mapping of old (``sentry.conf.py``) keys to new
 (``config.yml``). Old settings should be completely removed.

@@ -300,11 +300,11 @@ get you off the ground quickly, also you can setup Sentry as WSGI
 application, in that case skip to section `Running Sentry as WSGI
 application`.
 
-To start the built-in webserver run ``sentry start``:
+To start the built-in webserver run ``sentry run web``:
 
 ::
 
-  SENTRY_CONF=/etc/sentry sentry start
+  SENTRY_CONF=/etc/sentry sentry run web
 
 You should now be able to test the web service by visiting `http://localhost:9000/`.
 
