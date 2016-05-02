@@ -3,7 +3,7 @@ import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 
-import DefaultCrumb from './breadcrumbComponents/default';
+import CrumbComponent from './breadcrumbComponents/crumb';
 
 function Collapsed(props) {
   return (
@@ -15,6 +15,7 @@ function Collapsed(props) {
     </li>
   );
 }
+
 Collapsed.propTypes = {
   onClick: React.PropTypes.func.isRequired,
   count: React.PropTypes.number.isRequired
@@ -54,7 +55,7 @@ const BreadcrumbsInterface = React.createClass({
     // reverse array to get consistent idx between collapsed/expanded state
     // (indexes begin and increment from last breadcrumb)
     return crumbs.reverse().map((item, idx) => {
-      return <DefaultCrumb key={idx} crumb={item} />;
+      return <CrumbComponent key={idx} crumb={item} />;
     }).reverse(); // un-reverse rendered result
   },
 
@@ -77,11 +78,12 @@ const BreadcrumbsInterface = React.createClass({
     // TODO: what about non-exceptions (e.g. generic messages)?
     let exception = evt.entries.find(entry => entry.type === 'exception');
     if (exception) {
-      let {type, value} = exception.data.values[0];
+      let {type, value, module} = exception.data.values[0];
       // make copy of values array / don't mutate props
       all = all.slice(0).concat([{
         type: 'error',
-        category: 'error',
+        level: 'error',
+        category: module || null,
         message: type + ': ' + value,
         timestamp: evt.dateCreated
       }]);
