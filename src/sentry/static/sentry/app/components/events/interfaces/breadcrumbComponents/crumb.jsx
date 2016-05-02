@@ -1,6 +1,5 @@
 import React from 'react';
 import moment from 'moment';
-import _ from 'underscore';
 
 import HttpRenderer from './httpRenderer';
 import DefaultRenderer from './defaultRenderer';
