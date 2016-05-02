@@ -20,6 +20,11 @@ const CrumbComponent = React.createClass({
     if (crumb.type !== 'default') {
       rv += ' crumb-' + crumb.type.replace(/[\s_]+/g, '-').toLowerCase();
     }
+    // special case for 'ui.' category breadcrumbs
+    // TODO: find a better way to customize UI around non-schema data
+    if (crumb.category && crumb.category.slice(0, 3) === 'ui.') {
+      rv += ' crumb-user';
+    }
     return rv;
   },
 
