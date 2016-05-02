@@ -63,6 +63,11 @@ _default_escaped_encoder = JSONEncoderForHTML(
 )
 
 
+def dump(value, fp, **kwargs):
+    for chunk in _default_encoder.iterencode(value):
+        fp.write(chunk)
+
+
 def dumps(value, escape=False, **kwargs):
     if escape:
         return _default_escaped_encoder.encode(value)
