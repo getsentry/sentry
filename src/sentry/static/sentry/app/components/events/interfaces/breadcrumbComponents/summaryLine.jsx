@@ -1,7 +1,5 @@
 import React from 'react';
 
-import Duration from '../../../duration';
-
 
 const SummaryLine = React.createClass({
   propTypes: {
@@ -9,7 +7,6 @@ const SummaryLine = React.createClass({
   },
 
   render() {
-    let {crumb} = this.props;
     // this is where we can later also show other interesting
     // information (maybe duration?)
     return (
