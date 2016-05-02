@@ -1,6 +1,5 @@
 import React from 'react';
 
-import Category from './category';
 import Duration from '../../../duration';
 
 
@@ -14,7 +13,6 @@ const SummaryLine = React.createClass({
     return (
       <div className="summary">
         {this.props.children}
-        {crumb.category && <Category value={crumb.category}/>}
         {crumb.duration &&
           <span className="crumb-timing">
             [<Duration seconds={crumb.duration}/>]

@@ -1,8 +1,12 @@
 import React from 'react';
 import _ from 'underscore';
 
+import Category from './category';
+
+
 const CrumbTable = React.createClass({
   propTypes: {
+    crumb: React.PropTypes.object,
     title: React.PropTypes.string,
     kvData: React.PropTypes.object,
     summary: React.PropTypes.object,
@@ -31,7 +35,7 @@ const CrumbTable = React.createClass({
         <thead>
           <tr>
             <td className="key">
-              {this.props.title}
+              <Category value={this.props.crumb.category}/>
             </td>
             <td className="value">{this.props.summary}</td>
           </tr>
