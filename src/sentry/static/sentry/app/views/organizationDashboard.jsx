@@ -196,11 +196,21 @@ const Activity = React.createClass({
     return `/organizations/${this.props.params.orgId}/activity/`;
   },
 
+  refresh() {
+    this.refs.activityFeed.remountComponent();
+  },
+
   render() {
     return (
       <div>
+        <div className="pull-right">
+          <a className="btn btn-sm btn-default" style={{marginLeft: 5}}
+             onClick={this.refresh}>
+            <span className="icon icon-refresh" />
+          </a>
+        </div>
         <h4>Recent activity</h4>
-        <ActivityFeed endpoint={this.getEndpoint()} query={{
+        <ActivityFeed ref="activityFeed" endpoint={this.getEndpoint()} query={{
           per_page: 10,
         }} pagination={false} {...this.props} />
       </div>
