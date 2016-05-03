@@ -70,7 +70,7 @@ class SensitiveDataFilter(object):
                     self.filter_stacktrace(exc['stacktrace'])
 
         if 'sentry.interfaces.Breadcrumbs' in data:
-            for crumb in data['sentry.interfaces.Breadcrumbs']['values']:
+            for crumb in data['sentry.interfaces.Breadcrumbs'].get('values') or ():
                 self.filter_crumb(crumb)
 
         if 'sentry.interfaces.Http' in data:
