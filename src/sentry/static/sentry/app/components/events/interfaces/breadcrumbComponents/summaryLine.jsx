@@ -10,15 +10,33 @@ const SummaryLine = React.createClass({
     crumb: React.PropTypes.object.isRequired
   },
 
+  componentDidMount() {
+    this.domElement = null;
+    window.addEventListener('resize', this.respondToLayoutChanges);
+  },
+
+  componentWillUnmount() {
+    this.domElement = null;
+    window.addEventListener('resize', this.respondToLayoutChanges);
+  },
+
   getInitialState() {
     return {
       expanded: false,
       hasOverflow: false
-    }
+    };
   },
 
   makeSummariesGreatAgain(ref) {
-    let hasOverflow = isOverflowing(ref);
+    this.domElement = ref;
+    this.respondToLayoutChanges();
+  },
+
+  respondToLayoutChanges() {
+    if (!this.domElement) {
+      return;
+    }
+    let hasOverflow = isOverflowing(this.domElement);
     if (hasOverflow !== this.state.hasOverflow) {
       this.setState({
         hasOverflow: hasOverflow
