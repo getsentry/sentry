@@ -1,16 +1,68 @@
 import React from 'react';
 
 
+function isOverflowing(el) {
+  return el.clientHeight < el.scrollHeight;
+}
+
 const SummaryLine = React.createClass({
   propTypes: {
     crumb: React.PropTypes.object.isRequired
   },
 
+  getInitialState() {
+    return {
+      expanded: false,
+      hasOverflow: false
+    };
+  },
+
+  componentDidMount() {
+    this.domElement = null;
+    window.addEventListener('resize', this.respondToLayoutChanges);
+  },
+
+  componentWillUnmount() {
+    this.domElement = null;
+    window.addEventListener('resize', this.respondToLayoutChanges);
+  },
+
+  makeSummariesGreatAgain(ref) {
+    this.domElement = ref;
+    this.respondToLayoutChanges();
+  },
+
+  respondToLayoutChanges() {
+    if (!this.domElement) {
+      return;
+    }
+    let hasOverflow = isOverflowing(this.domElement);
+    if (hasOverflow !== this.state.hasOverflow) {
+      this.setState({
+        hasOverflow: hasOverflow
+      });
+    }
+  },
+
+  onToggle() {
+    this.setState({
+      expanded: !this.state.expanded
+    });
+  },
+
   render() {
-    // this is where we can later also show other interesting
-    // information (maybe duration?)
+    let className = 'summary';
+    if (this.state.hasOverflow) {
+      className += ' can-expand';
+    }
+    if (this.state.expanded) {
+      className += ' expanded';
+    }
     return (
-      <div className="summary">
+      <div
+        className={className}
+        onClick={this.onToggle}
+        ref={this.makeSummariesGreatAgain}>
         {this.props.children}
       </div>
     );
