@@ -10,6 +10,13 @@ const SummaryLine = React.createClass({
     crumb: React.PropTypes.object.isRequired
   },
 
+  getInitialState() {
+    return {
+      expanded: false,
+      hasOverflow: false
+    };
+  },
+
   componentDidMount() {
     this.domElement = null;
     window.addEventListener('resize', this.respondToLayoutChanges);
@@ -18,13 +25,6 @@ const SummaryLine = React.createClass({
   componentWillUnmount() {
     this.domElement = null;
     window.addEventListener('resize', this.respondToLayoutChanges);
-  },
-
-  getInitialState() {
-    return {
-      expanded: false,
-      hasOverflow: false
-    };
   },
 
   makeSummariesGreatAgain(ref) {
