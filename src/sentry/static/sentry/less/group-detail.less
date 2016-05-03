@@ -1641,6 +1641,39 @@ ul.crumbs {
     }
 
     div.summary {
+      max-height: 42px;
+      overflow: hidden;
+
+      &.can-expand {
+        cursor: pointer;
+        position: relative;
+
+        &:after {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          content: " ";
+          display: block;
+          width: 100%;
+          height: 8px;
+          #gradient > .vertical(rgba(255, 255, 255, 0), #ffffff);
+        }
+
+        &:hover {
+          pre {
+            background: @white-darkest;
+          }
+        }
+      }
+
+      &.expanded {
+        max-height: none;
+        &:after {
+          display: none;
+        }
+      }
+
       pre {
         display: inline-block;
       }
