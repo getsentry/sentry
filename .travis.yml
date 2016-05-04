@@ -2,6 +2,7 @@ sudo: false
 language: python
 services:
   - memcached
+  - mysql
   - riak
   - postgresql
   - redis-server
@@ -17,6 +18,7 @@ env:
   matrix:
     - TEST_SUITE=sqlite DB=sqlite
     - TEST_SUITE=postgres DB=postgres
+    - TEST_SUITE=mysql DB=mysql
     - TEST_SUITE=js
     - TEST_SUITE=cli
     - TEST_SUITE=dist
