@@ -22,7 +22,7 @@ const Category = React.createClass({
       title = value;
     }
     return (
-      <span className="crumb-category">{title}</span>
+      <span className="crumb-category" title={title}>{title}</span>
     );
   }
 });
