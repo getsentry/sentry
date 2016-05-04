@@ -95,7 +95,10 @@ const BreadcrumbsInterface = React.createClass({
         type: 'error',
         level: 'error',
         category: moduleToCategory(module || null),
-        message: type + ': ' + value,
+        data: {
+          type: type,
+          value: value
+        },
         timestamp: evt.dateCreated
       }]);
     }
