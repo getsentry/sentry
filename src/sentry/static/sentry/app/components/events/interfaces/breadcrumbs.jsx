@@ -94,8 +94,11 @@ const BreadcrumbsInterface = React.createClass({
       all = all.slice(0).concat([{
         type: 'error',
         level: 'error',
-        category: moduleToCategory(module || null),
-        message: type + ': ' + value,
+        category: moduleToCategory(module || null) || 'error',
+        data: {
+          type: type,
+          value: value
+        },
         timestamp: evt.dateCreated
       }]);
     }

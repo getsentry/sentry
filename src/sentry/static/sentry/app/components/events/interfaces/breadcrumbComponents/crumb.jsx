@@ -2,10 +2,12 @@ import React from 'react';
 import moment from 'moment';
 
 import HttpRenderer from './httpRenderer';
+import ErrorRenderer from './errorRenderer';
 import DefaultRenderer from './defaultRenderer';
 
 const CUSTOM_RENDERERS = {
   http: HttpRenderer,
+  error: ErrorRenderer,
 };
 
 

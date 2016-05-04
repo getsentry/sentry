@@ -4,7 +4,7 @@ import CrumbTable from './crumbTable';
 import SummaryLine from './summaryLine';
 
 
-const HttpRenderer = React.createClass({
+const ErrorRenderer = React.createClass({
   propTypes: {
     crumb: React.PropTypes.object.isRequired,
   },
@@ -19,14 +19,22 @@ const HttpRenderer = React.createClass({
 
   render() {
     let {crumb} = this.props;
-    let {method, status_code, reason, url, ...extra} = crumb.data;
+    let {type, value, ...extra} = crumb.data || {};
+    let messages = [];
+
+    if (value) {
+      messages.push(value);
+    }
+    if (crumb.message) {
+      messages.push(crumb.message);
+    }
+
     let summary = (
       <SummaryLine crumb={crumb}>
         <pre>
           <code>
-            {method && <strong>{method} </strong>}
-            {url && this.renderUrl(url)}
-            {status_code && (' [' + status_code + ']')}
+            {type && <strong>{type}: </strong>}
+            {messages.join('. ')}
           </code>
         </pre>
       </SummaryLine>
@@ -34,7 +42,7 @@ const HttpRenderer = React.createClass({
 
     return (
       <CrumbTable
-        title="HTTP Request"
+        title="Error"
         summary={summary}
         kvData={extra}
         {...this.props} />
@@ -42,4 +50,4 @@ const HttpRenderer = React.createClass({
   }
 });
 
-export default HttpRenderer;
+export default ErrorRenderer;

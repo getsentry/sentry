@@ -2,7 +2,8 @@ import React from 'react';
 
 
 function isOverflowing(el) {
-  return el.clientHeight < el.scrollHeight;
+  // XXX(mitsuhiko): subtract one because of reasons. Not sure which ones.
+  return el.offsetHeight < el.scrollHeight - 1;
 }
 
 const SummaryLine = React.createClass({
