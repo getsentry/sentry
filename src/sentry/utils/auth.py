@@ -9,9 +9,6 @@ from __future__ import absolute_import
 
 import logging
 
-import time
-import math
-
 from django.conf import settings
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
@@ -116,9 +113,3 @@ class EmailAuthBackend(ModelBackend):
                 except ValueError:
                     continue
         return None
-
-
-def bump_session_timestamp(request):
-    # Round up so that the truncation does not conflict with higher
-    # solution on the db data on password change
-    request.session['_auth_ts'] = int(math.ceil(time.time()))
