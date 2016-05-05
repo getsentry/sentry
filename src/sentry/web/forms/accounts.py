@@ -20,7 +20,7 @@ from six.moves import range
 
 from sentry.constants import LANGUAGES
 from sentry.models import UserOption, User
-from sentry.utils.auth import find_users, bump_session_timestamp
+from sentry.utils.auth import find_users
 from sentry.web.forms.fields import ReadOnlyTextField
 
 
@@ -295,13 +295,10 @@ class AccountSettingsForm(forms.Form):
             raise forms.ValidationError(_("That username is already in use."))
         return value
 
-    def save(self, commit=True, request=None):
+    def save(self, commit=True):
         if self.cleaned_data.get('new_password'):
             self.user.set_password(self.cleaned_data['new_password'])
-            if request is not None:
-                bump_session_timestamp(request)
         self.user.name = self.cleaned_data['name']
-        self.user.first_name = self.cleaned_data['first_name']
 
         if self.cleaned_data['email'] != self.user.email:
             new_username = self.user.email == self.user.username
