@@ -48,6 +48,11 @@ def _get_implied_category(category, type):
         return category
     if type in ('critical', 'error', 'warning', 'info', 'debug'):
         return type
+    # Common aliases
+    if type == 'warn':
+        return 'warning'
+    elif type == 'fatal':
+        return 'critical'
     return 'info'
 
 
