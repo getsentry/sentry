@@ -3,6 +3,7 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
+from sentry.utils.db import is_mysql
 
 
 class Migration(SchemaMigration):
@@ -39,11 +40,22 @@ class Migration(SchemaMigration):
         db.create_table('sentry_dsymobject', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('cpu_name', self.gf('django.db.models.fields.CharField')(max_length=40)),
-            ('object_path', self.gf('django.db.models.fields.TextField')(db_index=True)),
+            ('object_path', self.gf('django.db.models.fields.TextField')(db_index=not is_mysql())),
             ('uuid', self.gf('django.db.models.fields.CharField')(max_length=36, db_index=True)),
             ('vmaddr', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(null=True)),
             ('vmsize', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(null=True)),
         ))
+
+        # On MySQL we need to create the index here differently because
+        # the index must have a limit.  As we have the type already
+        # defined to text in the model earlier we just restrict the index
+        # to 255.  The hash matches what south would have created.
+        if is_mysql():
+            db.execute('''
+                create index sentry_dsymobject_39c06cbd
+                          on sentry_dsymobject (object_path(255))
+            ''')
+
         db.send_create_signal('sentry', ['DSymObject'])
 
         # Adding model 'DSymBundle'

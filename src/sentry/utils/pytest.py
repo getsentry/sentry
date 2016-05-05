@@ -24,6 +24,8 @@ def pytest_configure(config):
                 'NAME': 'sentry',
                 'USER': 'root',
             })
+            # mysql requires running full migration all the time
+            settings.SOUTH_TESTS_MIGRATE = True
         elif test_db == 'postgres':
             settings.DATABASES['default'].update({
                 'ENGINE': 'sentry.db.postgres',
