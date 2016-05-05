@@ -18,9 +18,6 @@ from sentry.utils.safe import trim
 from sentry.utils.dates import to_timestamp, to_datetime
 
 
-validators = {}
-
-
 def parse_new_timestamp(value):
     # TODO(mitsuhiko): merge this code with coreapis date parser
     if isinstance(value, datetime):
