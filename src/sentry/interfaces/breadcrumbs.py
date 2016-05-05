@@ -107,10 +107,6 @@ class Breadcrumbs(Interface):
         if category is not None:
             rv['category'] = trim(unicode(category), 256)
 
-        duration = crumb.get('duration')
-        if duration is not None:
-            rv['duration'] = float(duration)
-
         event_id = crumb.get('event_id')
         if event_id is not None:
             rv['event_id'] = event_id
@@ -131,7 +127,6 @@ class Breadcrumbs(Interface):
             return {
                 'type': x['type'],
                 'timestamp': to_datetime(x['timestamp']),
-                'duration': x.get('duration'),
                 'level': x.get('level', 'info'),
                 'message': x.get('message'),
                 'category': x.get('category'),
