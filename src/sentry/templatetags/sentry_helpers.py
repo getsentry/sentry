@@ -20,10 +20,11 @@ from datetime import timedelta
 from paging.helpers import paginate as paginate_func
 from pkg_resources import parse_version as Version
 from six.moves import range
-from urllib import quote
+from urllib import quote, urlencode
 
 from django import template
 from django.conf import settings
+from django.core.urlresolvers import reverse
 from django.template import RequestContext
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
@@ -35,10 +36,14 @@ from django.utils.translation import ugettext as _
 from sentry import options
 from sentry.api.serializers import serialize as serialize_func
 from sentry.constants import EVENTS_PER_PAGE
-from sentry.models import Organization
+from sentry.models import UserAvatar, Organization
 from sentry.utils import json
 from sentry.utils.strings import to_unicode
-from sentry.utils.avatar import get_gravatar_url, get_email_avatar, get_letter_avatar
+from sentry.utils.avatar import (
+    get_gravatar_url,
+    get_email_avatar,
+    get_letter_avatar
+)
 from sentry.utils.javascript import to_json
 from sentry.utils.strings import (
     soft_break as _soft_break,
@@ -308,13 +313,27 @@ def letter_avatar_svg(context, display_name, identifier, size=None):
     return get_letter_avatar(display_name, identifier, size=size)
 
 
+@tag(register, [Variable('user_id'),
+                Optional([Constant('size'), Variable('size')])])
+def profile_photo_url(context, user_id, size=None):
+    try:
+        avatar = UserAvatar.objects.get(user__id=user_id)
+    except UserAvatar.DoesNotExist:
+        return
+    url = reverse('sentry-user-avatar-url', args=[avatar.ident])
+    if size:
+        url += '?' + urlencode({'s': size})
+    return settings.SENTRY_URL_PREFIX + url
+
+
 # Don't use this in any situations where you're rendering more
 # than 1-2 avatars. It will make a request for every user!
 @tag(register, [Variable('display_name'),
                 Variable('identifier'),
-                Optional([Constant('size'), Variable('size')])])
-def email_avatar(context, display_name, identifier, size=None):
-    return get_email_avatar(display_name, identifier, size)
+                Optional([Constant('size'), Variable('size')]),
+                Optional([Constant('try_gravatar'), Variable('try_gravatar')])])
+def email_avatar(context, display_name, identifier, size=None, try_gravatar=True):
+    return get_email_avatar(display_name, identifier, size, try_gravatar)
 
 
 @register.filter

@@ -1,7 +1,7 @@
 import React from 'react';
 import _ from 'underscore';
 
-import Gravatar from '../../components/gravatar';
+import Avatar from '../../components/avatar';
 import KeyValueList from './interfaces/keyValueList';
 import EventDataSection from './eventDataSection';
 import {t} from '../../locale';
@@ -37,7 +37,7 @@ const EventUser = React.createClass({
           title={t('User')}>
         <div className="user-widget">
           <div className="pull-left">
-            <Gravatar user={user} size={96} />
+            <Avatar user={user} size={96} />
           </div>
           <KeyValueList data={builtins} isContextData={false} />
           {children &&

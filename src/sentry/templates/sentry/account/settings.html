@@ -24,16 +24,6 @@
         {% with form.email as field %}
             {{ field|as_crispy_field }}
         {% endwith %}
-        <fieldset class="control-group">
-            <label>Avatar</label>
-            <div class="controls">
-                <span class="avatar">
-                    {% letter_avatar_svg user.get_display_name user.get_label %}
-                    <img src="{% gravatar_url user.email size 32 default 'blank' %}">
-                </span>
-                <a href="http://gravatar.com/">Change your avatar at Gravatar.com</a>
-            </div>
-        </fieldset>
         {% if form.new_password %}
         <hr>
         <p>{% trans "You may also optionally change your password." %}</p>

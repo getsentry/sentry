@@ -4,7 +4,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
 
 import Duration from '../../components/duration';
-import Gravatar from '../../components/gravatar';
+import Avatar from '../../components/avatar';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
 import NoteContainer from '../../components/activity/noteContainer';
@@ -139,7 +139,7 @@ const GroupActivity = React.createClass({
 
     let children = group.activity.map((item, itemIdx) => {
       let avatar = (item.user ?
-        <Gravatar user={item.user} size={64} className="avatar" /> :
+        <Avatar user={item.user} size={64} className="avatar" /> :
         <div className="avatar sentry"><span className="icon-sentry-logo"></span></div>);
 
       let author = {
@@ -177,7 +177,7 @@ const GroupActivity = React.createClass({
           <div className="activity-container">
             <ul className="activity">
               <li className="activity-note" key="activity-note">
-                <Gravatar user={me} size={64} className="avatar" />
+                <Avatar user={me} size={64} className="avatar" />
                 <div className="activity-bubble">
                   <NoteInput group={group} />
                 </div>

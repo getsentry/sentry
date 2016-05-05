@@ -90,6 +90,14 @@ class User(BaseModel, AbstractBaseUser):
     def get_short_name(self):
         return self.username
 
+    def get_avatar_type(self):
+        from sentry.models import UserAvatar
+        try:
+            avatar = UserAvatar.objects.get(user=self)
+        except UserAvatar.DoesNotExist:
+            return 'letter_avatar'
+        return avatar.avatar_type
+
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
         from sentry.models import (
