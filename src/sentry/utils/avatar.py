@@ -93,19 +93,20 @@ def get_letter_avatar(display_name, identifier, size=None, use_svg=True):
                                         line_height=line_height)
 
 
-def get_email_avatar(display_name, identifier, size=None):
-    try:
-        validate_email(identifier)
-    except ValidationError:
-        pass
-    else:
+def get_email_avatar(display_name, identifier, size=None, try_gravatar=True):
+    if try_gravatar:
         try:
-            resp = safe_urlopen(get_gravatar_url(identifier, default=404))
-        except Exception:
+            validate_email(identifier)
+        except ValidationError:
             pass
         else:
-            if resp.status_code == 200:
-                # default to mm if including in emails
-                gravatar_url = get_gravatar_url(identifier, size=size)
-                return u'<img class="avatar" src="{url}">'.format(url=gravatar_url)
+            try:
+                resp = safe_urlopen(get_gravatar_url(identifier, default=404))
+            except Exception:
+                pass
+            else:
+                if resp.status_code == 200:
+                    # default to mm if including in emails
+                    gravatar_url = get_gravatar_url(identifier, size=size)
+                    return u'<img class="avatar" src="{url}">'.format(url=gravatar_url)
     return get_letter_avatar(display_name, identifier, size, use_svg=False)

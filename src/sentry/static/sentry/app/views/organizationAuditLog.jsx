@@ -4,7 +4,7 @@ import {History} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import DateTime from '../components/dateTime';
-import Gravatar from '../components/gravatar';
+import Avatar from '../components/avatar';
 import LoadingIndicator from '../components/loadingIndicator';
 import LoadingError from '../components/loadingError';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
@@ -133,7 +133,7 @@ const OrganizationAuditLog = React.createClass({
         <tr key={entry.id}>
           <td className="table-user-info">
             {entry.actor.email &&
-              <Gravatar user={entry.actor} />
+              <Avatar user={entry.actor} />
             }
             <h5>{entry.actor.name}</h5>
             {entry.note}

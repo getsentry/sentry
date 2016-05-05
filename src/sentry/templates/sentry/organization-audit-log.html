@@ -32,7 +32,11 @@
               {% if entry.actor %}
                 <span class="avatar">
                   {% letter_avatar_svg entry.actor.get_display_name entry.actor.get_label %}
-                  <img src="{% gravatar_url entry.actor.email size 72 default 'blank' %}" />
+                  {% if entry.actor.get_avatar_type == 'upload' %}
+                    <img src="{% profile_photo_url entry.actor.id size 72 %}">
+                  {% elif entry.actor.get_avatar_type == 'gravatar' %}
+                    <img src="{% gravatar_url entry.actor.email size 72 default 'blank' %}" />
+                  {% endif %}
                 </span>
               {% endif %}
               <h5>{{ entry.get_actor_name }}</h5>

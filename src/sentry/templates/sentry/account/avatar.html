@@ -1,0 +1,18 @@
+{% extends "sentry/bases/account.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Account Settings" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  <div id="avatar-settings"></div>
+  <script>
+    $(function() {
+      ReactDOM.render(React.createFactory(Sentry.AvatarSettings)({
+        userId: {{ request.user.id }}
+      }), document.getElementById('avatar-settings'))
+    });
+  </script>
+{% endblock %}

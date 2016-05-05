@@ -78,7 +78,11 @@
             <a class="dropdown-toggle" data-toggle="dropdown">
               <span class="avatar">
                 {% letter_avatar_svg request.user.get_display_name request.user.get_label %}
-                <img src="{% gravatar_url user.email size 72 default 'blank' %}">
+                {% if request.user.get_avatar_type == 'upload' %}
+                  <img src="{% profile_photo_url request.user.id size 72 %}">
+                {% elif request.user.get_avatar_type == 'gravatar' %}
+                  <img src="{% gravatar_url user.email size 72 default 'blank' %}">
+                {% endif %}
               </span>
               <i class="icon-arrow-down"></i>
             </a>

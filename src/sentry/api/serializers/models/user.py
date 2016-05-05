@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.conf import settings
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import User, UserOption
+from sentry.models import User, UserAvatar, UserOption
 from sentry.utils.avatar import get_gravatar_url
 
 
@@ -41,4 +41,13 @@ class UserSerializer(Serializer):
                 'timezone': options.get('timezone') or settings.SENTRY_DEFAULT_TIME_ZONE,
                 'clock24Hours': options.get('clock_24_hours') or False,
             }
+
+        try:
+            avatar = UserAvatar.objects.get(user=obj)
+        except UserAvatar.DoesNotExist:
+            avatar = {'avatarType': 'letter_avatar', 'avatar_uuid': None}
+        else:
+            avatar = {'avatarType': avatar.avatar_type, 'avatar_uuid': avatar.ident}
+        d['avatar'] = avatar
+
         return d

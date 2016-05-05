@@ -194,6 +194,10 @@ class OrganizationMember(Model):
             return self.user.email
         return self.email
 
+    def get_avatar_type(self):
+        if self.user_id:
+            return self.user.get_avatar_type()
+
     def get_audit_log_data(self):
         from sentry.models import Team
         return {
