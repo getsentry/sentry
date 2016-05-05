@@ -289,7 +289,7 @@ All schema changes and database upgrades are handled via the ``upgrade``
 command, and this is the first thing you'll want to run when upgrading to
 future versions of Sentry.
 
-.. note:: Internally this uses `South <http://south.aeracode.org>`_ to
+.. note:: Internally this uses `South <http://south.readthedocs.io/en/latest/index.html>`_ to
           manage database migrations.
 
 Starting the Web Service
