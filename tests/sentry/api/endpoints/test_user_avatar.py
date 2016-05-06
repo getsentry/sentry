@@ -9,7 +9,6 @@ from sentry.testutils import APITestCase
 class UserAvatarTest(APITestCase):
     def test_get(self):
         user = self.create_user(email='a@example.com')
-        avatar = UserAvatar.objects.create(user=user)
 
         self.login_as(user=user)
 
@@ -21,7 +20,7 @@ class UserAvatarTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data['id'] == str(user.id)
         assert response.data['avatar']['avatarType'] == 'letter_avatar'
-        assert response.data['avatar']['avatar_uuid'] == avatar.ident
+        assert response.data['avatar']['avatar_uuid'] is None
 
     def test_put(self):
         user = self.create_user(email='a@example.com')
