@@ -45,6 +45,7 @@ export default {
     createHistory: require('history/lib/createBrowserHistory'),
     Alerts: require('./components/alerts'),
     AlertActions: require('./actions/alertActions'),
+    Avatar: require('./components/avatar'),
     AvatarSettings: require('./components/avatarSettings'),
     mixins: {
       ApiMixin: require('./mixins/apiMixin'),

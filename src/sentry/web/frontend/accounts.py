@@ -19,6 +19,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
 from sudo.decorators import sudo_required
 
+from sentry.api.serializers import serialize
 from sentry.models import (
     LostPasswordHash, Project, ProjectStatus, UserOption
 )
@@ -133,6 +134,7 @@ def settings(request):
         'form': form,
         'page': 'settings',
         'AUTH_PROVIDERS': get_auth_providers(),
+        'avatar_user' : serialize(request.user, request.user),
     })
     return render_to_response('sentry/account/settings.html', context, request)
 

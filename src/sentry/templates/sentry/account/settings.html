@@ -13,18 +13,26 @@
 
         <legend style="margin-top: 0;">Your details</legend>
 
-        {% with form.name as field %}
-            {{ field|as_crispy_field }}
-        {% endwith %}
-        {% if form.username %}
-            {% with form.username as field %}
+        <div class="account-settings-overview">
+          <div class="avatar-preview">
+            <label class="control-label">Avatar</label>
+            <div id="avatar"></div>
+          </div>
+          <div class="account-settings-body">
+            {% with form.name as field %}
                 {{ field|as_crispy_field }}
             {% endwith %}
-        {% endif %}
-        {% with form.email as field %}
-            {{ field|as_crispy_field }}
-        {% endwith %}
-        {% if form.new_password %}
+            {% if form.username %}
+                {% with form.username as field %}
+                    {{ field|as_crispy_field }}
+                {% endwith %}
+            {% endif %}
+            {% with form.email as field %}
+                {{ field|as_crispy_field }}
+            {% endwith %}
+            {% if form.new_password %}
+          </div>
+        </div>
         <hr>
         <p>{% trans "You may also optionally change your password." %}</p>
         {% with form.new_password as field %}
@@ -38,4 +46,13 @@
         </fieldset>
         {% endif %}
     </form>
+
+    <script>
+      $(function() {
+        ReactDOM.render(React.createFactory(Sentry.Avatar)({
+          user: "{{ avatar_user }}",
+          size: 128
+        }), document.getElementById('avatar'))
+      });
+    </script>
 {% endblock %}
