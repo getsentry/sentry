@@ -307,6 +307,10 @@ const AvatarCropper = React.createClass({
   },
 
   renderImageCrop() {
+    let src = this.getImgSrc();
+    if (!src) {
+      return null;
+    }
     let style = {
       top: this.state.resizeDimensions.top,
       left: this.state.resizeDimensions.left,
@@ -317,7 +321,7 @@ const AvatarCropper = React.createClass({
       <div className="image-cropper">
         <div className="crop-container" ref="cropContainer">
           <div className="image-container">
-            <img className="preview" ref="image" src={this.getImgSrc()}
+            <img className="preview" ref="image" src={src}
                  onLoad={this.onLoad} onDragStart={this.onImgDrag}/>
           </div>
           <div className="cropper" style={style} onMouseDown={this.onMouseDown}>
@@ -331,7 +335,8 @@ const AvatarCropper = React.createClass({
     );
   },
 
-  uploadClick() {
+  uploadClick(ev) {
+    ev.preventDefault();
     $(this.refs.file).click();
   },
 
@@ -347,19 +352,19 @@ const AvatarCropper = React.createClass({
   },
 
   render() {
+    let src = this.getImgSrc();
     return (
       <div>
-        {!this.getImgSrc() &&
+        {!src &&
         <div className="image-well well blankslate">
           <p><a onClick={this.uploadClick}><strong>Upload a photo</strong></a> to get started.</p>
         </div>}
-
+        {this.renderImageCrop()}
+        {this.renderCanvas()}
         <div className="form-group">
-          <span className="btn btn-primary" onClick={this.uploadClick}>{t('Upload Photo')}</span>
+          {src && <a onClick={this.uploadClick}>{t('Change Photo')}</a>}
           <input ref="file" type="file" accept="image/*" onChange={this.onChange}/>
         </div>
-        {this.getImgSrc() && this.renderImageCrop()}
-        {this.renderCanvas()}
       </div>
     );
   }
@@ -482,7 +487,6 @@ const AvatarSettings = React.createClass({
       },
       error: this.handleError.bind(this, 'There was an error saving your preferences.')
     });
-
   },
 
   render() {
