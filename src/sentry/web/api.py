@@ -284,7 +284,12 @@ class StoreView(APIView):
         metrics.incr('events.total')
 
         remote_addr = request.META['REMOTE_ADDR']
-        event_received.send_robust(ip=remote_addr, sender=type(self))
+        event_received.send_robust(
+            ip=remote_addr,
+            auth=auth,
+            data=data,
+            sender=type(self),
+        )
 
         if not is_valid_ip(remote_addr, project):
             app.tsdb.incr_multi([
