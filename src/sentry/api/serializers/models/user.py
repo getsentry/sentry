@@ -47,7 +47,10 @@ class UserSerializer(Serializer):
         except UserAvatar.DoesNotExist:
             avatar = {'avatarType': 'letter_avatar', 'avatar_uuid': None}
         else:
-            avatar = {'avatarType': avatar.avatar_type, 'avatar_uuid': avatar.ident}
+            avatar = {
+                'avatarType': avatar.avatar_type,
+                'avatar_uuid': avatar.ident if avatar.file else None
+            }
         d['avatar'] = avatar
 
         return d
