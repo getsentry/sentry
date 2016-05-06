@@ -2926,12 +2926,22 @@ ul.radio-inputs {
   margin-bottom: 20px;
   border-radius: 3px;
 
+  p {
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
   &.important {
     background: @yellow;
     border: 0;
     a, a:active {
       color: @gray-dark;
     }
+  }
+
+  &.image-well {
+    padding: 80px 30px;
   }
 }
 
