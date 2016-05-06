@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import StringIO
-import base64
 import uuid
 
 from PIL import Image
@@ -27,7 +26,7 @@ class UserAvatar(Model):
     ALLOWED_SIZES = (20, 48, 52, 64, 80, 96)
 
     user = FlexibleForeignKey('sentry.User', unique=True, related_name='avatar')
-    file = FlexibleForeignKey('sentry.File', unique=True, null=True)
+    file = FlexibleForeignKey('sentry.File', unique=True, null=True, on_delete=models.SET_NULL)
     ident = models.CharField(max_length=36, unique=True, db_index=True, null=True)
     avatar_type = models.CharField(max_length=20, choices=AVATAR_TYPES, default='letter_avatar')
 
@@ -39,6 +38,11 @@ class UserAvatar(Model):
         if not self.ident:
             self.ident = uuid.uuid4()
         return super(UserAvatar, self).save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.file:
+            self.file.delete()
+        return super(UserAvatar, self).delete(*args, **kwargs)
 
     def get_cache_key(self, size):
         return 'avatar:%s:%s' % (self.user_id, size)

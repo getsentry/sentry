@@ -63,6 +63,7 @@ class User(BaseModel, AbstractBaseUser):
     def delete(self):
         if self.username == 'sentry':
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
+        self.avatar.first().delete()
         return super(User, self).delete()
 
     def save(self, *args, **kwargs):
