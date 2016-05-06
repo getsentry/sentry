@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import StringIO
-
 from PIL import Image
 
 from rest_framework import status
@@ -10,11 +8,13 @@ from rest_framework.response import Response
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import UserAvatar, File
+from sentry.utils.compat import StringIO
 
 
 MIN_DIMENSION = 256
 
 MAX_DIMENSION = 1024
+
 
 class UserAvatarEndpoint(UserEndpoint):
     FILE_TYPE = 'avatar.file'
@@ -39,13 +39,13 @@ class UserAvatarEndpoint(UserEndpoint):
         photo = None
         if photo_string:
             photo_string = photo_string.decode('base64')
-            with Image.open(StringIO.StringIO(photo_string)) as img:
+            with Image.open(StringIO(photo_string)) as img:
                 width, height = img.size
                 if not self.is_valid_size(width, height):
                     return Response(status=status.HTTP_400_BAD_REQUEST)
             file_name = '%s.png' % user.id
             photo = File.objects.create(name=file_name, type=self.FILE_TYPE)
-            photo.putfile(StringIO.StringIO(photo_string))
+            photo.putfile(StringIO(photo_string))
 
         avatar, _ = UserAvatar.objects.get_or_create(user=user)
         if avatar.file and photo:

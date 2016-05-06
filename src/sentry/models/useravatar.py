@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import StringIO
 import uuid
 
 from PIL import Image
@@ -9,6 +8,8 @@ from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model
 from sentry.utils.cache import cache
+from sentry.utils.compat import StringIO
+
 
 class UserAvatar(Model):
     """
@@ -48,8 +49,7 @@ class UserAvatar(Model):
         return 'avatar:%s:%s' % (self.user_id, size)
 
     def clear_cached_photos(self):
-        for size in self.ALLOWED_SIZES:
-            cache.delete(self.get_cache_key(size))
+        cache.delete_many(map(self.get_cache_key, self.ALLOWED_SIZES))
 
     def get_cached_photo(self, size):
         if not self.file:
@@ -62,7 +62,7 @@ class UserAvatar(Model):
             photo_file = self.file.getfile()
             with Image.open(photo_file) as image:
                 image = image.resize((size, size))
-                image_file = StringIO.StringIO()
+                image_file = StringIO()
                 image.save(image_file, 'PNG')
                 photo_file = image_file.getvalue()
                 cache.set(cache_key, photo_file)
