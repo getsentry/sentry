@@ -37,7 +37,7 @@ class UserAvatar(Model):
 
     def save(self, *args, **kwargs):
         if not self.ident:
-            self.ident = uuid.uuid4()
+            self.ident = str(uuid.uuid4())
         return super(UserAvatar, self).save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):

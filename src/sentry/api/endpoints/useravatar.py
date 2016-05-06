@@ -55,6 +55,10 @@ class UserAvatarEndpoint(UserEndpoint):
             avatar.file = photo
 
         avatar_type = request.DATA.get('avatar_type')
+
+        if not avatar.file and avatar_type == 'upload':
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         if avatar_type:
             avatar.avatar_type = avatar_type
 
