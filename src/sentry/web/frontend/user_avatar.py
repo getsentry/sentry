@@ -7,7 +7,6 @@ from sentry.models import UserAvatar
 
 
 class UserAvatarPhotoView(View):
-    ALLOWED_SIZES = (20, 48, 52, 64, 80, 96)
 
     def get_file_name(self, user):
         return '%s.png' % user.id

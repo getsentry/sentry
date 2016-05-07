@@ -134,7 +134,6 @@ def settings(request):
         'form': form,
         'page': 'settings',
         'AUTH_PROVIDERS': get_auth_providers(),
-        'avatar_user' : serialize(request.user, request.user),
     })
     return render_to_response('sentry/account/settings.html', context, request)
 

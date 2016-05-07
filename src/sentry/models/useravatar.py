@@ -24,7 +24,7 @@ class UserAvatar(Model):
         ('gravatar', 'Gravatar'),
     )
 
-    ALLOWED_SIZES = (20, 48, 52, 64, 80, 96)
+    ALLOWED_SIZES = (20, 48, 52, 64, 80, 96, 120)
 
     user = FlexibleForeignKey('sentry.User', unique=True, related_name='avatar')
     file = FlexibleForeignKey('sentry.File', unique=True, null=True, on_delete=models.SET_NULL)
