@@ -16,7 +16,16 @@
         <div class="account-settings-overview">
           <div class="avatar-preview">
             <label class="control-label">Avatar</label>
-            <div id="avatar"></div>
+            <div>
+                <span class="avatar">
+                {% letter_avatar_svg request.user.get_display_name request.user.get_label size 120 %}
+                {% if request.user.get_avatar_type == 'upload' %}
+                    <img src="{% profile_photo_url request.user.id size 120 %}">
+                {% elif request.user.get_avatar_type == 'gravatar' %}
+                    <img src="{% gravatar_url user.email size 120 default 'blank' %}">
+                {% endif %}
+                </span>
+            </div>
           </div>
           <div class="account-settings-body">
             {% with form.name as field %}
@@ -46,13 +55,4 @@
         </fieldset>
         {% endif %}
     </form>
-
-    <script>
-      $(function() {
-        ReactDOM.render(React.createFactory(Sentry.Avatar)({
-          user: "{{ avatar_user }}",
-          size: 128
-        }), document.getElementById('avatar'))
-      });
-    </script>
 {% endblock %}
