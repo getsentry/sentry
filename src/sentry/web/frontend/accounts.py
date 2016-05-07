@@ -19,7 +19,6 @@ from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
 from sudo.decorators import sudo_required
 
-from sentry.api.serializers import serialize
 from sentry.models import (
     LostPasswordHash, Project, ProjectStatus, UserOption
 )
