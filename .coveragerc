@@ -1,2 +1,2 @@
 [report]
-omit=src/sentry/migrations/*
+omit=src/sentry/south_migrations/*
