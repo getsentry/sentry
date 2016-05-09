@@ -18,11 +18,11 @@
             <label class="control-label">Avatar</label>
             <div>
                 <span class="avatar">
-                {% letter_avatar_svg request.user.get_display_name request.user.get_label size 120 %}
+                {% letter_avatar_svg request.user.get_display_name request.user.get_label size 118 %}
                 {% if request.user.get_avatar_type == 'upload' %}
-                    <img src="{% profile_photo_url request.user.id size 120 %}">
+                    <img src="{% profile_photo_url request.user.id size 118 %}">
                 {% elif request.user.get_avatar_type == 'gravatar' %}
-                    <img src="{% gravatar_url user.email size 120 default 'blank' %}">
+                    <img src="{% gravatar_url user.email size 118 default 'blank' %}">
                 {% endif %}
                 </span>
             </div>
