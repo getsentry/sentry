@@ -13,7 +13,7 @@ install-npm:
 	npm install
 
 install-python-tests:
-	pip install "file://`pwd`#egg=sentry[dev,tests]"
+	pip install "file://`pwd`#egg=sentry[dev,tests,dsym]"
 
 develop-only: update-submodules install-python install-python-tests install-npm
 
@@ -149,7 +149,7 @@ travis-upgrade-pip:
 travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
-travis-install-python: travis-upgrade-pip install-python-tests travis-setup-cassandra
+travis-install-python: travis-upgrade-pip install-python install-python-tests travis-setup-cassandra
 	python -m pip install codecov
 travis-noop:
 	@echo "nothing to do here."
