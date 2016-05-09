@@ -953,6 +953,9 @@ SENTRY_WATCHERS = (
      "--config={}".format(os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")))]),
 )
 
+# Max file size for avatar photo uploads
+SENTRY_MAX_AVATAR_SIZE = 5000000
+
 # statuspage.io support
 STATUS_PAGE_ID = None
 STATUS_PAGE_API_HOST = 'statuspage.io'

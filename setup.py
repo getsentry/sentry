@@ -112,7 +112,7 @@ install_requires = [
     'lxml>=3.4.1',
     'mock>=0.8.0,<1.1',
     'petname>=1.7,<1.8',
-    'Pillow==3.2.0',
+    'Pillow>=3.2.0,<3.3.0',
     'progressbar>=2.2,<2.4',
     'psycopg2>=2.6.0,<2.7.0',
     'pytest>=2.6.4,<2.7.0',

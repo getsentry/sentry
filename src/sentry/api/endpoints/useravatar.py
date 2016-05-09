@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 from PIL import Image
 
+from django.conf import settings
+
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -39,6 +41,8 @@ class UserAvatarEndpoint(UserEndpoint):
         photo = None
         if photo_string:
             photo_string = photo_string.decode('base64')
+            if len(photo_string) > settings.SENTRY_MAX_AVATAR_SIZE:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
             with Image.open(StringIO(photo_string)) as img:
                 width, height = img.size
                 if not self.is_valid_size(width, height):
@@ -60,7 +64,10 @@ class UserAvatarEndpoint(UserEndpoint):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         if avatar_type:
-            avatar.avatar_type = avatar_type
+            try:
+                avatar.avatar_type = [i for i, n in UserAvatar.AVATAR_TYPES if n == avatar_type][0]
+            except IndexError:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
 
         avatar.save()
         return Response(serialize(user, request.user))

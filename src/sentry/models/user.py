@@ -63,7 +63,9 @@ class User(BaseModel, AbstractBaseUser):
     def delete(self):
         if self.username == 'sentry':
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
-        self.avatar.first().delete()
+        avatar = self.avatar.first()
+        if avatar:
+            avatar.delete()
         return super(User, self).delete()
 
     def save(self, *args, **kwargs):
@@ -92,12 +94,10 @@ class User(BaseModel, AbstractBaseUser):
         return self.username
 
     def get_avatar_type(self):
-        from sentry.models import UserAvatar
-        try:
-            avatar = UserAvatar.objects.get(user=self)
-        except UserAvatar.DoesNotExist:
-            return 'letter_avatar'
-        return avatar.avatar_type
+        avatar = self.avatar.first()
+        if avatar:
+            return avatar.get_avatar_type()
+        return 'letter_avatar'
 
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
