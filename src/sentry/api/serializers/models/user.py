@@ -45,11 +45,11 @@ class UserSerializer(Serializer):
         try:
             avatar = UserAvatar.objects.get(user=obj)
         except UserAvatar.DoesNotExist:
-            avatar = {'avatarType': 'letter_avatar', 'avatar_uuid': None}
+            avatar = {'avatarType': 'letter_avatar', 'avatarUuid': None}
         else:
             avatar = {
-                'avatarType': avatar.avatar_type,
-                'avatar_uuid': avatar.ident if avatar.file else None
+                'avatarType': avatar.get_avatar_type(),
+                'avatarUuid': avatar.ident if avatar.file else None
             }
         d['avatar'] = avatar
 

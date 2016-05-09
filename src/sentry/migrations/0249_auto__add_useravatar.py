@@ -13,8 +13,8 @@ class Migration(SchemaMigration):
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(related_name='avatar', unique=True, to=orm['sentry.User'])),
             ('file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.File'], unique=True, null=True, on_delete=models.SET_NULL)),
-            ('ident', self.gf('django.db.models.fields.CharField')(max_length=36, unique=True, null=True, db_index=True)),
-            ('avatar_type', self.gf('django.db.models.fields.CharField')(default='letter_avatar', max_length=20)),
+            ('ident', self.gf('django.db.models.fields.CharField')(max_length=32, unique=True, null=True, db_index=True)),
+            ('avatar_type', self.gf('django.db.models.fields.PositiveSmallIntegerField')(default=0)),
         ))
         db.send_create_signal('sentry', ['UserAvatar'])
 
@@ -89,7 +89,7 @@ class Migration(SchemaMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 5, 13, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 5, 16, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -565,10 +565,10 @@ class Migration(SchemaMigration):
         },
         'sentry.useravatar': {
             'Meta': {'object_name': 'UserAvatar'},
-            'avatar_type': ('django.db.models.fields.CharField', [], {'default': "'letter_avatar'", 'max_length': '20'}),
+            'avatar_type': ('django.db.models.fields.PositiveSmallIntegerField', [], {'default': '0'}),
             'file': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.File']", 'unique': 'True', 'null': 'True', 'on_delete': 'models.SET_NULL'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
-            'ident': ('django.db.models.fields.CharField', [], {'max_length': '36', 'unique': 'True', 'null': 'True', 'db_index': 'True'}),
+            'ident': ('django.db.models.fields.CharField', [], {'max_length': '32', 'unique': 'True', 'null': 'True', 'db_index': 'True'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'avatar'", 'unique': 'True', 'to': "orm['sentry.User']"})
         },
         'sentry.useroption': {

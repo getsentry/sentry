@@ -22,7 +22,7 @@ describe('Avatar', function() {
       let user = Object.assign({}, USER, {
         avatar: {
           avatarType: 'gravatar',
-          avatar_uuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e'
+          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e'
         }
       });
       let avatar = TestUtils.renderIntoDocument(<Avatar user={user}/>);
@@ -37,7 +37,7 @@ describe('Avatar', function() {
       let user = Object.assign({}, USER, {
         avatar: {
           avatarType: 'upload',
-          avatar_uuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e'
+          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e'
         }
       });
       let avatar = TestUtils.renderIntoDocument(<Avatar user={user}/>);
@@ -52,7 +52,7 @@ describe('Avatar', function() {
       let user = Object.assign({}, USER, {
         avatar: {
           avatarType: 'letter_avatar',
-          avatar_uuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e'
+          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e'
         }
       });
       let avatar = TestUtils.renderIntoDocument(<Avatar user={user}/>);

@@ -41,7 +41,7 @@ const Avatar = React.createClass({
   },
 
   buildProfileUrl() {
-    let url = '/avatar/' + this.props.user.avatar.avatar_uuid + '/';
+    let url = '/avatar/' + this.props.user.avatar.avatarUuid + '/';
     if (this.props.size) {
       url += '?' + $.param({s: this.props.size});
     }

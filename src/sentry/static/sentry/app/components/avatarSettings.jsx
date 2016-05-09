@@ -297,7 +297,7 @@ const AvatarCropper = React.createClass({
   },
 
   getImgSrc() {
-    let uuid = this.props.user.avatar.avatar_uuid;
+    let uuid = this.props.user.avatar.avatarUuid;
     let photoUrl = uuid && '/avatar/' + uuid + '/';
     return this.props.savedDataUrl || this.state.objectURL || photoUrl;
   },

@@ -19,17 +19,17 @@ class UserAvatar(Model):
     __core__ = False
 
     AVATAR_TYPES = (
-        ('letter_avatar', 'LetterAvatar'),
-        ('upload', 'Upload'),
-        ('gravatar', 'Gravatar'),
+        (0, 'letter_avatar'),
+        (1, 'upload'),
+        (2, 'gravatar'),
     )
 
     ALLOWED_SIZES = (20, 48, 52, 64, 80, 96, 120)
 
     user = FlexibleForeignKey('sentry.User', unique=True, related_name='avatar')
     file = FlexibleForeignKey('sentry.File', unique=True, null=True, on_delete=models.SET_NULL)
-    ident = models.CharField(max_length=36, unique=True, db_index=True, null=True)
-    avatar_type = models.CharField(max_length=20, choices=AVATAR_TYPES, default='letter_avatar')
+    ident = models.CharField(max_length=32, unique=True, db_index=True, null=True)
+    avatar_type = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         app_label = 'sentry'
@@ -37,13 +37,16 @@ class UserAvatar(Model):
 
     def save(self, *args, **kwargs):
         if not self.ident:
-            self.ident = str(uuid.uuid4())
+            self.ident = uuid.uuid4().hex
         return super(UserAvatar, self).save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         if self.file:
             self.file.delete()
         return super(UserAvatar, self).delete(*args, **kwargs)
+
+    def get_avatar_type(self):
+        return [n for i, n in self.AVATAR_TYPES if i == self.avatar_type][0]
 
     def get_cache_key(self, size):
         return 'avatar:%s:%s' % (self.user_id, size)
@@ -58,7 +61,7 @@ class UserAvatar(Model):
             size = min(self.ALLOWED_SIZES, key=lambda x: abs(x - size))
         cache_key = self.get_cache_key(size)
         photo = cache.get(cache_key)
-        if not photo:
+        if photo is None:
             photo_file = self.file.getfile()
             with Image.open(photo_file) as image:
                 image = image.resize((size, size))

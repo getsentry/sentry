@@ -20,7 +20,7 @@ class UserAvatarTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data['id'] == str(user.id)
         assert response.data['avatar']['avatarType'] == 'letter_avatar'
-        assert response.data['avatar']['avatar_uuid'] is None
+        assert response.data['avatar']['avatarUuid'] is None
 
     def test_put(self):
         user = self.create_user(email='a@example.com')
@@ -34,7 +34,7 @@ class UserAvatarTest(APITestCase):
 
         avatar = UserAvatar.objects.get(user=user)
         assert response.status_code == 200, response.content
-        assert avatar.avatar_type == 'gravatar'
+        assert avatar.get_avatar_type() == 'gravatar'
 
     def test_put_bad(self):
         user = self.create_user(email='a@example.com')
@@ -48,7 +48,11 @@ class UserAvatarTest(APITestCase):
 
         avatar = UserAvatar.objects.get(user=user)
         assert response.status_code == 400
-        assert avatar.avatar_type == 'letter_avatar'
+        assert avatar.get_avatar_type() == 'letter_avatar'
+
+        response = self.client.put(url, data={'avatar_type': 'foo'}, format='json')
+        assert response.status_code == 400
+        assert avatar.get_avatar_type() == 'letter_avatar'
 
     def test_put_forbidden(self):
         user = self.create_user(email='a@example.com')
