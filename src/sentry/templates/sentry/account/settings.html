@@ -17,6 +17,7 @@
           <div class="avatar-preview">
             <label class="control-label">Avatar</label>
             <div>
+              <a class="avatar-edit-link" href="{% url 'sentry-account-settings-avatar' %}">
                 <span class="avatar">
                 {% letter_avatar_svg request.user.get_display_name request.user.get_label size 118 %}
                 {% if request.user.get_avatar_type == 'upload' %}
@@ -25,6 +26,8 @@
                     <img src="{% gravatar_url user.email size 118 default 'blank' %}">
                 {% endif %}
                 </span>
+                <span class="icon-settings"></span>
+              </a>
             </div>
           </div>
           <div class="account-settings-body">
