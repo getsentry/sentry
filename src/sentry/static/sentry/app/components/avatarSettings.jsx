@@ -1,5 +1,4 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
 
 import AlertActions from '../actions/alertActions';
 import ApiMixin from '../mixins/apiMixin';
@@ -38,10 +37,10 @@ const AvatarCropper = React.createClass({
 
   onChange(ev) {
     let file = ev.target.files[0];
-    if (!/^image\//.test(file.type)) {
-      this.setState({error: 'That is not a supported file type.'});
-      return;
-    }
+
+    if (!/^image\//.test(file.type))
+      return void this.setState({error: 'That is not a supported file type.'});
+
     this.state.objectURL && window.URL.revokeObjectURL(this.state.objectURL);
     this.setState({
       file: file,
@@ -56,7 +55,7 @@ const AvatarCropper = React.createClass({
   },
 
   updateDimensions(ev) {
-    let $container = $(ReactDOM.findDOMNode(this.refs.cropContainer));
+    let $container = $(this.refs.cropContainer);
     let resizeDimensions = this.state.resizeDimensions;
     let pageY = ev.pageY;
     let pageX = ev.pageX;
@@ -77,8 +76,8 @@ const AvatarCropper = React.createClass({
       pageX = this.state.mousePosition.pageX;
     }
     this.setState({
-      resizeDimensions: Object.assign({}, resizeDimensions, {top: top, left: left}),
-      mousePosition: {pageX: pageX, pageY: pageY}
+      resizeDimensions: Object.assign({}, resizeDimensions, {top, left}),
+      mousePosition: {pageX, pageY}
     });
   },
 
@@ -130,109 +129,96 @@ const AvatarCropper = React.createClass({
   },
 
   updateSize(ev) {
-    let newResizeState = {};
     let yDiff = ev.pageY - this.state.mousePosition.pageY;
     let xDiff = ev.pageX - this.state.mousePosition.pageX;
-    let $container = $(ReactDOM.findDOMNode(this.refs.cropContainer));
-    if (this.state.resizeDirection === 'nw') {
-      newResizeState = this.getUpdatedSizeNW($container, yDiff, xDiff);
-    } else if (this.state.resizeDirection === 'ne') {
-      newResizeState = this.getUpdatedSizeNE($container, yDiff, xDiff);
-    } else if (this.state.resizeDirection === 'se') {
-      newResizeState = this.getUpdatedSizeSE($container, yDiff, xDiff);
-    } else if (this.state.resizeDirection === 'sw') {
-      newResizeState = this.getUpdatedSizeSW($container, yDiff, xDiff);
-    }
+    let $container = $(this.refs.cropContainer);
+
     this.setState({
-      resizeDimensions: newResizeState,
+      resizeDimensions: this.getNewDimensions($container, yDiff, xDiff),
       mousePosition: {pageX: ev.pageX, pageY: ev.pageY}
     });
   },
 
-  getUpdatedSizeNW($container, yDiff, xDiff) {
-    let resizeDimensions = this.state.resizeDimensions;
-    let diff = ((yDiff - (yDiff * 2)) + (xDiff - (xDiff * 2))) / 2;
-    let size = resizeDimensions.size + diff;
-    let left = resizeDimensions.left - diff;
-    let top = resizeDimensions.top - diff;
-    let maxSize = Math.min($container.width() - left,
-                           $container.height() - top);
-    if (top < 0) {
-      size = size + top;
-      left = left - top;
-      top = 0;
-    }
-    if (left < 0) {
-      size = size + left;
-      top = top - left;
-      left = 0;
-    }
-    if (size > maxSize) {
-      top = top + size - maxSize;
-      left = left + size - maxSize;
-      size = maxSize;
-    } else if (size < this.MIN_DIMENSION) {
-      top = top + size - this.MIN_DIMENSION;
-      left = left + size - this.MIN_DIMENSION;
-      size = this.MIN_DIMENSION;
-    }
-    return {size: size, top: top, left: left};
+  // Normalize diff accross dimensions so that negative diffs
+  // are always making the cropper smaller and positive ones
+  // are making the cropper larger
+  getDiffNW(yDiff, xDiff) {
+    return ((yDiff - (yDiff * 2)) + (xDiff - (xDiff * 2))) / 2;
   },
 
-  getUpdatedSizeNE($container, yDiff, xDiff) {
-    let resizeDimensions = this.state.resizeDimensions;
-    let diff = ((yDiff - (yDiff * 2)) + xDiff) / 2;
-    let size = resizeDimensions.size + diff;
-    let top = resizeDimensions.top - diff;
-    let maxSize = Math.min($container.width() - resizeDimensions.left,
-                           $container.height() - top);
-    if (top < 0) {
-      size = size + top;
-      top = 0;
-    }
-    if (size > maxSize) {
-      top = top + size - maxSize;
-      size = maxSize;
-    } else if (size < this.MIN_DIMENSION) {
-      top = top + size - this.MIN_DIMENSION;
-      size = this.MIN_DIMENSION;
-    }
-    return Object.assign({}, resizeDimensions, {size: size, top: top});
+  getDiffNE(yDiff, xDiff) {
+    return ((yDiff - (yDiff * 2)) + xDiff) / 2;
   },
 
-  getUpdatedSizeSW($container, yDiff, xDiff) {
-    let resizeDimensions = this.state.resizeDimensions;
-    let diff = (yDiff + (xDiff - (xDiff * 2))) / 2;
-    let size = resizeDimensions.size + diff;
-    let left = resizeDimensions.left - diff;
-    let maxSize = Math.min($container.width() - left,
-                           $container.height() - resizeDimensions.top);
-    if (left < 0) {
-      size = size + left;
-      left = 0;
-    }
-    if (size > maxSize) {
-      left = left + size - maxSize;
-      size = maxSize;
-    } else if (size < this.MIN_DIMENSION) {
-      left = left + size - this.MIN_DIMENSION;
-      size = this.MIN_DIMENSION;
-    }
-    return Object.assign({}, resizeDimensions, {size: size, left: left});
+  getDiffSW(yDiff, xDiff) {
+    return (yDiff + (xDiff - (xDiff * 2))) / 2;
   },
 
-  getUpdatedSizeSE($container, yDiff, xDiff) {
-    let diff = (yDiff + xDiff) / 2;
-    let resizeDimensions = this.state.resizeDimensions;
-    let size = resizeDimensions.size + diff;
-    let maxSize = Math.min($container.width() - resizeDimensions.left,
-                           $container.height() - resizeDimensions.top);
-    if (size > maxSize) {
-      size = maxSize;
-    } else if (size < this.MIN_DIMENSION) {
-      size = this.MIN_DIMENSION;
+  getDiffSE(yDiff, xDiff) {
+    return (yDiff + xDiff) / 2;
+  },
+
+  getNewDimensions($container, yDiff, xDiff) {
+    let oldDimensions = this.state.resizeDimensions;
+    let resizeDirection = this.state.resizeDirection;
+    let diff = this['getDiff' + resizeDirection.toUpperCase()](yDiff, xDiff);
+
+    let height = $container.height() - oldDimensions.top;
+    let width = $container.width() - oldDimensions.left;
+
+    // Depending on the direction, we update different dimensions:
+    // nw: size, top, left
+    // ne: size, top
+    // sw: size, left
+    // se: size
+    let newDimensions = {size: oldDimensions.size + diff};
+    if (resizeDirection === 'nw' || resizeDirection === 'ne') {
+      newDimensions.top = oldDimensions.top - diff;
+      height = $container.height() - newDimensions.top;
     }
-    return Object.assign({}, resizeDimensions, {size: size});
+
+    if (resizeDirection === 'nw' || resizeDirection === 'sw') {
+      newDimensions.left = oldDimensions.left - diff;
+      width = $container.width() - newDimensions.left;
+    }
+
+    if (newDimensions.top < 0) {
+      newDimensions.size = newDimensions.size + newDimensions.top;
+      // Only update left if it's something we edit in this direction
+      if (newDimensions.hasOwnProperty('left')) {
+        newDimensions.left = newDimensions.left - newDimensions.top;
+      }
+      newDimensions.top = 0;
+    }
+
+    if (newDimensions.left < 0) {
+      newDimensions.size = newDimensions.size + newDimensions.left;
+      // Only update top if it's something we edit in this direction
+      if (newDimensions.hasOwnProperty('top')) {
+        newDimensions.top = newDimensions.top - newDimensions.left;
+      }
+      newDimensions.left = 0;
+    }
+
+    let maxSize = Math.min(width, height);
+    if (newDimensions.size > maxSize) {
+      if (newDimensions.hasOwnProperty('top')) {
+        newDimensions.top = newDimensions.top + newDimensions.size - maxSize;
+      }
+      if (newDimensions.hasOwnProperty('left')) {
+        newDimensions.left = newDimensions.left + newDimensions.size - maxSize;
+      }
+      newDimensions.size = maxSize;
+    } else if (newDimensions.size < this.MIN_DIMENSION) {
+      if (newDimensions.hasOwnProperty('top')) {
+        newDimensions.top = newDimensions.top + newDimensions.size - this.MIN_DIMENSION;
+      }
+      if (newDimensions.hasOwnProperty('left')) {
+        newDimensions.left = newDimensions.left + newDimensions.size - this.MIN_DIMENSION;
+      }
+      newDimensions.size = this.MIN_DIMENSION;
+    }
+    return Object.assign({}, oldDimensions, newDimensions);
   },
 
   handleError(msg) {
@@ -272,9 +258,9 @@ const AvatarCropper = React.createClass({
   },
 
   drawToCanvas() {
-    let canvas = $(ReactDOM.findDOMNode(this.refs.canvas))[0];
+    let canvas = this.refs.canvas;
     let resizeDimensions = this.state.resizeDimensions;
-    let img = ReactDOM.findDOMNode(this.refs.image);
+    let img = this.refs.image;
     // Calculate difference between natural dimensions and rendered dimensions
     let imgRatio = (img.naturalHeight / $(img).height() +
                     img.naturalWidth / $(img).width()) / 2;
@@ -292,7 +278,7 @@ const AvatarCropper = React.createClass({
   },
 
   finishCrop() {
-    let canvas = $(ReactDOM.findDOMNode(this.refs.canvas))[0];
+    let canvas = this.refs.canvas;
     this.props.updateDataUrlState({dataUrl: canvas.toDataURL()});
   },
 
@@ -311,11 +297,12 @@ const AvatarCropper = React.createClass({
     if (!src) {
       return null;
     }
+    let resizeDimensions = this.state.resizeDimensions;
     let style = {
-      top: this.state.resizeDimensions.top,
-      left: this.state.resizeDimensions.left,
-      width: this.state.resizeDimensions.size,
-      height: this.state.resizeDimensions.size
+      top: resizeDimensions.top,
+      left: resizeDimensions.left,
+      width: resizeDimensions.size,
+      height: resizeDimensions.size
     };
     return (
       <div className="image-cropper">
@@ -337,7 +324,7 @@ const AvatarCropper = React.createClass({
 
   uploadClick(ev) {
     ev.preventDefault();
-    $(this.refs.file).click();
+    this.refs.file.click();
   },
 
   renderCanvas() {
@@ -361,7 +348,7 @@ const AvatarCropper = React.createClass({
       <div>
         {!src &&
         <div className="image-well well blankslate">
-          <p><a onClick={this.uploadClick}><strong>Upload a photo</strong></a> to get started.</p>
+          <p><a onClick={this.uploadClick}><strong>{t('Upload a photo')}</strong></a>{t(' to get started.')}</p>
         </div>}
         {this.renderImageCrop()}
         {this.renderCanvas()}
