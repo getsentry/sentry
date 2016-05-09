@@ -353,6 +353,10 @@ const AvatarCropper = React.createClass({
 
   render() {
     let src = this.getImgSrc();
+    let style = {
+        position : "absolute"
+    };
+
     return (
       <div>
         {!src &&
@@ -363,7 +367,7 @@ const AvatarCropper = React.createClass({
         {this.renderCanvas()}
         <div className="form-group">
           {src && <a onClick={this.uploadClick}>{t('Change Photo')}</a>}
-          <input ref="file" type="file" accept="image/*" onChange={this.onChange}/>
+          <input ref="file" type="file" accept="image/*" onChange={this.onChange} style={style}/>
         </div>
       </div>
     );
