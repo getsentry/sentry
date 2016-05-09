@@ -117,6 +117,29 @@ section.org-login {
   position: relative;
   padding-right: 140px;
 
+  .avatar-edit-link {
+    .icon-settings {
+      opacity: 0;
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      color: #fff;
+      background: rgba(0,0,0, .4);
+      .square(20px);
+      border-radius: 3px;
+      text-align: center;
+      line-height: 20px;
+      font-size: 12px;
+      .transition(.1s opacity linear);
+    }
+
+    &:hover {
+      .icon-settings {
+        opacity: 1;
+      }
+    }
+  }
+
   .avatar-preview {
     position: absolute;
     top: 0;
