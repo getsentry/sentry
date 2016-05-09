@@ -1,7 +1,7 @@
 `sentry celery [MANAGEMENT_ARGS]...`
 ------------------------------------
 
-Start background workers.
+DEPRECATED see `sentry run` instead.
 
 Options
 ```````
