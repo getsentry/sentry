@@ -51,8 +51,8 @@ def devserver(reload, watchers, workers, bind):
             raise click.ClickException('Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
 
         daemons += [
-            ('worker', ['sentry', 'celery', 'worker', '-c', '1', '-l', 'INFO']),
-            ('beat', ['sentry', 'celery', 'beat', '-l', 'INFO']),
+            ('worker', ['sentry', 'run', 'worker', '-c', '1', '-l', 'INFO', '--autoreload']),
+            ('cron', ['sentry', 'run', 'cron', '-l', 'INFO', '--autoreload']),
         ]
 
     # A better log-format for local dev when running through honcho,
