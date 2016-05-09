@@ -213,6 +213,9 @@ class Http(Interface):
         return _('Request')
 
     def get_api_context(self, is_public=False):
+        if is_public:
+            return {}
+
         data = self.data
         if isinstance(data, dict):
             data = json.dumps(data)
@@ -232,10 +235,7 @@ class Http(Interface):
             'fragment': self.fragment,
             'data': data,
             'headers': headers,
+            'cookies': cookies,
+            'env': self.env or None,
         }
-        if not is_public:
-            data.update({
-                'cookies': cookies,
-                'env': self.env or None,
-            })
         return data
