@@ -1546,7 +1546,7 @@ ul.crumbs {
       display: block;
       .square(26px);
       background: #fff;
-      border: 1px solid @gray-lighter;
+      border: 1px solid @gray;
       box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
       border-radius: 32px;
       position: absolute;
@@ -1696,6 +1696,7 @@ ul.crumbs {
       background: @white-dark;
       margin: 0 1px;
       box-shadow: inset 0 -1px 2px rgba(0,0,0, .03);
+      min-height: 36px;
 
       &:before {
         left: 29px;
@@ -1708,13 +1709,14 @@ ul.crumbs {
       .icon {
         color: @gray;
         top: 6px;
+        left: 5.5px;
       }
 
       a {
         color: @gray-dark;
         display: block;
         font-size: 15px;
-        padding: 7px 0 5px;
+        padding: 6px 0 5px;
         margin: -5px 0;
 
         &:hover {
@@ -1746,10 +1748,6 @@ ul.crumbs {
     &.crumb-default {
       padding-top: 7px;
       clear: both;
-
-      .icon-container {
-        border-color: @gray-dark;
-      }
 
       .icon {
         color: @gray-dark;
@@ -1846,6 +1844,7 @@ ul.crumbs {
 
       .icon {
         color: @red;
+        top: 4px;
         left: 5.5px;
         &:before {
           content: "\e906";
