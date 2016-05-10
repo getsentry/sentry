@@ -370,7 +370,7 @@ const AvatarRadio = React.createClass({
   OPTIONS: {
     upload: 'Upload a Photo',
     gravatar: 'Use Gravatar',
-    letter_avatar: 'Use Letter Avatar'
+    letter_avatar: 'Use my initials'
   },
 
   onChange(ev) {
