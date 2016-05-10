@@ -165,21 +165,22 @@ const AvatarCropper = React.createClass({
     // ne: size, top
     // sw: size, left
     // se: size
+    let editingTop = resizeDirection === 'nw' || resizeDirection === 'ne';
+    let editingLeft = resizeDirection === 'nw' || resizeDirection === 'sw';
     let newDimensions = {size: oldDimensions.size + diff};
-    if (resizeDirection === 'nw' || resizeDirection === 'ne') {
+    if (editingTop) {
       newDimensions.top = oldDimensions.top - diff;
       height = $container.height() - newDimensions.top;
     }
 
-    if (resizeDirection === 'nw' || resizeDirection === 'sw') {
+    if (editingLeft) {
       newDimensions.left = oldDimensions.left - diff;
       width = $container.width() - newDimensions.left;
     }
 
     if (newDimensions.top < 0) {
       newDimensions.size = newDimensions.size + newDimensions.top;
-      // Only update left if it's something we edit in this direction
-      if (newDimensions.hasOwnProperty('left')) {
+      if (editingLeft) {
         newDimensions.left = newDimensions.left - newDimensions.top;
       }
       newDimensions.top = 0;
@@ -187,8 +188,7 @@ const AvatarCropper = React.createClass({
 
     if (newDimensions.left < 0) {
       newDimensions.size = newDimensions.size + newDimensions.left;
-      // Only update top if it's something we edit in this direction
-      if (newDimensions.hasOwnProperty('top')) {
+      if (editingTop) {
         newDimensions.top = newDimensions.top - newDimensions.left;
       }
       newDimensions.left = 0;
@@ -196,18 +196,18 @@ const AvatarCropper = React.createClass({
 
     let maxSize = Math.min(width, height);
     if (newDimensions.size > maxSize) {
-      if (newDimensions.hasOwnProperty('top')) {
+      if (editingTop) {
         newDimensions.top = newDimensions.top + newDimensions.size - maxSize;
       }
-      if (newDimensions.hasOwnProperty('left')) {
+      if (editingLeft) {
         newDimensions.left = newDimensions.left + newDimensions.size - maxSize;
       }
       newDimensions.size = maxSize;
     } else if (newDimensions.size < this.MIN_DIMENSION) {
-      if (newDimensions.hasOwnProperty('top')) {
+      if (editingTop) {
         newDimensions.top = newDimensions.top + newDimensions.size - this.MIN_DIMENSION;
       }
-      if (newDimensions.hasOwnProperty('left')) {
+      if (editingLeft) {
         newDimensions.left = newDimensions.left + newDimensions.size - this.MIN_DIMENSION;
       }
       newDimensions.size = this.MIN_DIMENSION;
