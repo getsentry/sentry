@@ -118,6 +118,12 @@ class GroupSerializer(Serializer):
         metadata = obj.data.get('metadata') or {
             'title': obj.message_short,
         }
+        # TODO(dcramer): remove in 8.6+
+        if event_type == 'error':
+            if 'value' in metadata:
+                metadata['value'] = unicode(metadata['value'])
+            if 'type' in metadata:
+                metadata['type'] = unicode(metadata['type'])
 
         return {
             'id': str(obj.id),
