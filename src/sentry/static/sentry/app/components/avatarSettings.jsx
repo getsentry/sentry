@@ -26,7 +26,7 @@ const AvatarSettings = React.createClass({
   },
 
   componentDidMount() {
-    this.api.request(this.getPhotoEndpoint(), {
+    this.api.request(this.getEndpoint(), {
       method: 'GET',
       success: this.updateUserState,
       error: () => {
@@ -35,11 +35,7 @@ const AvatarSettings = React.createClass({
     });
   },
 
-  getOptionsEndpoint() {
-    return '/users/me/options/';
-  },
-
-  getPhotoEndpoint() {
+  getEndpoint() {
     return '/users/me/avatar/';
   },
 
@@ -72,7 +68,7 @@ const AvatarSettings = React.createClass({
     if (this.state.dataUrl) {
       avatarPhoto = this.state.dataUrl.split(',')[1];
     }
-    this.api.request(this.getPhotoEndpoint(), {
+    this.api.request(this.getEndpoint(), {
       method: 'PUT',
       data: {
         avatar_photo: avatarPhoto,
@@ -94,14 +90,19 @@ const AvatarSettings = React.createClass({
       return <LoadingIndicator />;
     }
 
-    let gravatarMessage = <div className="well">{t('Gravatars are managed through ')}<a href="http://gravatar.com" target="_blank">Gravatar.com</a></div>;
+    let gravatarMessage = (
+      <div className="well">
+        {t('Gravatars are managed through ')}
+        <a href="http://gravatar.com" target="_blank">Gravatar.com</a>
+      </div>
+    );
 
     return (
       <div>
         <form>
           <AvatarRadio user={this.state.user} updateUser={this.updateUserState}/>
 
-          {this.state.user.avatar.avatarType === 'gravatar' && gravatarMessage }
+          {this.state.user.avatar.avatarType === 'gravatar' && gravatarMessage}
 
           {this.state.user.avatar.avatarType === 'upload' &&
             <AvatarCropper {...this.props} user={this.state.user} savedDataUrl={this.state.savedDataUrl}
