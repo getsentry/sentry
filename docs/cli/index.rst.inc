@@ -21,6 +21,7 @@ Subcommands
 .. toctree::
  :maxdepth: 1
 
+ files <files/index>
  repair <repair/index>
  upgrade <upgrade/index>
  run <run/index>
