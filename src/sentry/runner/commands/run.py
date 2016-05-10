@@ -136,7 +136,7 @@ def worker(**options):
         without_gossip=True,
         without_mingle=True,
         without_heartbeat=True,
-        pool_cls='processes',
+        pool_cls='prefork',
         **options
     )
     worker.start()
