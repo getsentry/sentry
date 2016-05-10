@@ -1,0 +1,6 @@
+comment:
+  layout: header, changes, diff, sunburst
+coverage:
+  ignore:
+  - src/sentry/lint/.*
+  - src/sentry/.*?/migrations/*
