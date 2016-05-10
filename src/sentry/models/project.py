@@ -75,7 +75,7 @@ class Project(Model):
     """
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
-    forced_color = models.CharField(max_length=6, null=True)
+    forced_color = models.CharField(max_length=6, null=True, blank=True)
     organization = FlexibleForeignKey('sentry.Organization')
     team = FlexibleForeignKey('sentry.Team')
     public = models.BooleanField(default=False)
