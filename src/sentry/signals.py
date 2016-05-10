@@ -25,7 +25,7 @@ class BetterSignal(Signal):
 
 regression_signal = BetterSignal(providing_args=["instance"])
 buffer_incr_complete = BetterSignal(providing_args=["model", "columns", "extra", "result"])
-event_received = BetterSignal(providing_args=["ip"])
+event_received = BetterSignal(providing_args=["ip", "auth", "data"])
 pending_delete = BetterSignal(providing_args=["instance"])
 event_processed = BetterSignal(providing_args=['project', 'group', 'event'])
 

@@ -19,8 +19,13 @@ class EventSerializer(Serializer):
             if key in self._reserved_keys:
                 continue
 
+            data = interface.get_api_context(is_public=is_public)
+            # data might not be returned for e.g. a public HTTP repr
+            if not data:
+                continue
+
             entry = {
-                'data': interface.get_api_context(is_public=is_public),
+                'data': data,
                 'type': interface.get_alias(),
             }
             interface_list.append((interface, entry))

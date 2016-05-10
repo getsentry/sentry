@@ -48,3 +48,18 @@ class ErrorPageEmbedTest(TestCase):
         assert report.event_id == self.event_id
         assert report.project == self.project
         assert report.group is None
+
+        resp = self.client.post(self.path, {
+            'name': 'Joe Shmoe',
+            'email': 'joe@example.com',
+            'comments': 'haha I updated it!',
+        }, HTTP_REFERER='http://example.com')
+        assert resp.status_code == 200
+
+        report = UserReport.objects.get()
+        assert report.name == 'Joe Shmoe'
+        assert report.email == 'joe@example.com'
+        assert report.comments == 'haha I updated it!'
+        assert report.event_id == self.event_id
+        assert report.project == self.project
+        assert report.group is None
