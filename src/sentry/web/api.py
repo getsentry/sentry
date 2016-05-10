@@ -21,7 +21,7 @@ from sentry.coreapi import (
 )
 from sentry.event_manager import EventManager
 from sentry.models import Project, OrganizationOption
-from sentry.signals import event_received
+from sentry.signals import event_accepted, event_received
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.csp import is_valid_csp_report
@@ -286,8 +286,6 @@ class StoreView(APIView):
         remote_addr = request.META['REMOTE_ADDR']
         event_received.send_robust(
             ip=remote_addr,
-            auth=auth,
-            data=data,
             sender=type(self),
         )
 
@@ -404,6 +402,12 @@ class StoreView(APIView):
         cache.set(cache_key, '', 60 * 5)
 
         helper.log.debug('New event received (%s)', event_id)
+
+        event_accepted.send_robust(
+            ip=remote_addr,
+            data=data,
+            sender=type(self),
+        )
 
         return event_id
 
