@@ -487,10 +487,16 @@ const AvatarSettings = React.createClass({
     if (!this.state.user) {
       return <LoadingIndicator/>;
     }
+
+    let gravatarMessage = <div className="well">Gravatars are managed through <a href="http://gravatar.com" target="_blank">Gravatar.com</a></div>;
+
     return (
       <div>
         <form>
           <AvatarRadio user={this.state.user} updateUser={this.updateUserState}/>
+
+          {this.state.user.avatar.avatarType ==='gravatar' && gravatarMessage }
+
           {this.state.user.avatar.avatarType === 'upload' &&
             <AvatarCropper {...this.props} user={this.state.user} savedDataUrl={this.state.savedDataUrl}
                            updateDataUrlState={this.updateDataUrlState}/>}
