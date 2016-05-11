@@ -44,6 +44,7 @@ class IndexEventTagsTest(TestCase):
         with self.tasks():
             index_event_tags.delay(
                 event_id=event.id,
+                group_id=group.id,
                 project_id=self.project.id,
                 tags=[('foo', 'bar'), ('biz', 'baz')],
             )
@@ -79,6 +80,7 @@ class IndexEventTagsTest(TestCase):
         with self.tasks():
             index_event_tags.delay(
                 event_id=event.id,
+                group_id=group.id,
                 project_id=self.project.id,
                 tags=[('foo', 'bar'), ('biz', 'baz')],
             )
