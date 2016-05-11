@@ -406,6 +406,7 @@ class StoreView(APIView):
         event_accepted.send_robust(
             ip=remote_addr,
             data=data,
+            project=project,
             sender=type(self),
         )
 
