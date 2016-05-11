@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from threading import Lock
 from sentry.utils.imports import import_string
 
 
@@ -7,10 +8,12 @@ class PatchContext(object):
     def __init__(self, target, callback):
         target, attr = target.rsplit('.', 1)
         target = import_string(target)
-        self.func = getattr(target, attr)
         self.target = target
         self.attr = attr
         self.callback = callback
+        self._lock = Lock()
+        with self._lock:
+            self.func = getattr(target, attr)
 
     def __enter__(self):
         self.patch()
@@ -20,19 +23,21 @@ class PatchContext(object):
         self.unpatch()
 
     def patch(self):
-        func = getattr(self.target, self.attr)
+        with self._lock:
+            func = getattr(self.target, self.attr)
 
-        def wrapped(*args, **kwargs):
-            __traceback_hide__ = True  # NOQA
-            return self.callback(self.func, *args, **kwargs)
+            def wrapped(*args, **kwargs):
+                __traceback_hide__ = True  # NOQA
+                return self.callback(self.func, *args, **kwargs)
 
-        wrapped.__name__ = func.__name__
-        if hasattr(func, '__doc__'):
-            wrapped.__doc__ = func.__doc__
-        if hasattr(func, '__module__'):
-            wrapped.__module__ = func.__module__
+            wrapped.__name__ = func.__name__
+            if hasattr(func, '__doc__'):
+                wrapped.__doc__ = func.__doc__
+            if hasattr(func, '__module__'):
+                wrapped.__module__ = func.__module__
 
-        setattr(self.target, self.attr, wrapped)
+            setattr(self.target, self.attr, wrapped)
 
     def unpatch(self):
-        setattr(self.target, self.attr, self.func)
+        with self._lock:
+            setattr(self.target, self.attr, self.func)
