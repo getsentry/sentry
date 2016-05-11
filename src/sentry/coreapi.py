@@ -349,6 +349,12 @@ class ClientApiHelper(object):
 
         data['errors'] = []
 
+        # Ignore any breadcrumbs data sent in older versions
+        # of sentry server to be more backwards compatible without
+        # yelling on every recorded event
+        data.pop('breadcrumbs', None)
+        data.pop('sentry.interfaces.Breadcrumbs', None)
+
         if not data.get('message'):
             data['message'] = '<no message value>'
         elif not isinstance(data['message'], six.string_types):
