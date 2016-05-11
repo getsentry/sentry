@@ -96,7 +96,7 @@ class User(BaseModel, AbstractBaseUser):
     def get_avatar_type(self):
         avatar = self.avatar.first()
         if avatar:
-            return avatar.get_avatar_type()
+            return avatar.get_avatar_type_display()
         return 'letter_avatar'
 
     def merge_to(from_user, to_user):

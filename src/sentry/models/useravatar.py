@@ -28,8 +28,8 @@ class UserAvatar(Model):
 
     user = FlexibleForeignKey('sentry.User', unique=True, related_name='avatar')
     file = FlexibleForeignKey('sentry.File', unique=True, null=True, on_delete=models.SET_NULL)
-    ident = models.CharField(max_length=32, unique=True, db_index=True, null=True)
-    avatar_type = models.PositiveSmallIntegerField(default=0)
+    ident = models.CharField(max_length=32, unique=True, db_index=True)
+    avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)
 
     class Meta:
         app_label = 'sentry'
@@ -44,9 +44,6 @@ class UserAvatar(Model):
         if self.file:
             self.file.delete()
         return super(UserAvatar, self).delete(*args, **kwargs)
-
-    def get_avatar_type(self):
-        return [n for i, n in self.AVATAR_TYPES if i == self.avatar_type][0]
 
     def get_cache_key(self, size):
         return 'avatar:%s:%s' % (self.user_id, size)

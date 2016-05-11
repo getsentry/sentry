@@ -9,6 +9,15 @@ from sentry.utils.avatar import get_gravatar_url
 
 @register(User)
 class UserSerializer(Serializer):
+    def get_attrs(self, item_list, user):
+        avatars = {
+            a.user_id: a
+            for a in UserAvatar.objects.filter(
+                user__in=item_list
+            )
+        }
+        return {u: {'avatar': avatars.get(u.id)} for u in item_list if u}
+
     def serialize(self, obj, attrs, user):
         d = {
             'id': str(obj.id),
@@ -42,15 +51,13 @@ class UserSerializer(Serializer):
                 'clock24Hours': options.get('clock_24_hours') or False,
             }
 
-        try:
-            avatar = UserAvatar.objects.get(user=obj)
-        except UserAvatar.DoesNotExist:
-            avatar = {'avatarType': 'letter_avatar', 'avatarUuid': None}
-        else:
+        if attrs.get('avatar'):
             avatar = {
-                'avatarType': avatar.get_avatar_type(),
-                'avatarUuid': avatar.ident if avatar.file else None
+                'avatarType': attrs['avatar'].get_avatar_type_display(),
+                'avatarUuid': attrs['avatar'].ident if attrs['avatar'].file else None
             }
+        else:
+            avatar = {'avatarType': 'letter_avatar', 'avatarUuid': None}
         d['avatar'] = avatar
 
         return d
