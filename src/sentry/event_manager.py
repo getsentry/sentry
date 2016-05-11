@@ -522,6 +522,7 @@ class EventManager(object):
 
             index_event_tags.delay(
                 project_id=project.id,
+                group_id=group.id,
                 event_id=event.id,
                 tags=tags,
             )
