@@ -1,3 +1,9 @@
+Version 8.4.1
+-------------
+- Fixed issue in running 8.4 migrations on MySQL only.
+- Fixed issue that caused an infinite loop in ``patch_context.py`` under a race condition.
+- Silently ignore breadcrumb data coming from clients instead of showing an error in the UI.
+
 Version 8.4
 -----------
 
