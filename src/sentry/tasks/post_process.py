@@ -138,7 +138,7 @@ def record_affected_user(event, **kwargs):
 @instrumented_task(
     name='sentry.tasks.index_event_tags',
     default_retry_delay=60 * 5, max_retries=None)
-def index_event_tags(project_id, group_id, event_id, tags, **kwargs):
+def index_event_tags(project_id, event_id, tags, group_id=None, **kwargs):
     from sentry.models import EventTag, Project, TagKey, TagValue
 
     for key, value in tags:
