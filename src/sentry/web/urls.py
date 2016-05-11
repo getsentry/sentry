@@ -73,6 +73,7 @@ from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.remove_project_key import RemoveProjectKeyView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.replay_event import ReplayEventView
+from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 
 __all__ = ('urlpatterns',)
 
@@ -182,6 +183,8 @@ urlpatterns += patterns(
         name='sentry-account-recover-confirm'),
     url(r'^account/settings/$', accounts.settings,
         name='sentry-account-settings'),
+    url(r'^account/settings/avatar/$', accounts.avatar_settings,
+        name='sentry-account-settings-avatar'),
     url(r'^account/settings/appearance/$', accounts.appearance_settings,
         name='sentry-account-settings-appearance'),
     url(r'^account/settings/identities/$', accounts.list_identities,
@@ -348,6 +351,10 @@ urlpatterns += patterns(
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/new/$',
         ProjectRuleEditView.as_view(),
         name='sentry-new-project-rule'),
+
+    url(r'^avatar/(?P<avatar_id>[^\/]+)/$',
+        UserAvatarPhotoView.as_view(),
+        name='sentry-user-avatar-url'),
 
     # Generic
     url(r'^$', HomeView.as_view(),

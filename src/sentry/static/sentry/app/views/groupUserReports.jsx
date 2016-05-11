@@ -2,7 +2,7 @@ import $ from 'jquery';
 import React from 'react';
 import {Link, History} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
-import Gravatar from '../components/gravatar';
+import Avatar from '../components/avatar';
 import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -81,7 +81,7 @@ const GroupUserReports = React.createClass({
 
       return (
         <li className="activity-note" key={itemIdx}>
-          <Gravatar user={item} size={64} className="avatar" />
+          <Avatar user={item} size={64} className="avatar" />
           <div className="activity-bubble">
             <TimeSince date={item.dateCreated} />
             <div className="activity-author">{item.name} <small>{item.email}</small></div>

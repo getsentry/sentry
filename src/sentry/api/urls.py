@@ -77,6 +77,7 @@ from .endpoints.team_project_index import TeamProjectIndexEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
+from .endpoints.useravatar import UserAvatarEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 
 
@@ -100,6 +101,9 @@ urlpatterns = patterns(
     url(r'^users/(?P<user_id>[^\/]+)/$',
         UserDetailsEndpoint.as_view(),
         name='sentry-api-0-user-details'),
+    url(r'^users/(?P<user_id>[^\/]+)/avatar/$',
+        UserAvatarEndpoint.as_view(),
+        name='sentry-api-0-user-avatar'),
     url(r'^users/(?P<user_id>[^\/]+)/organizations/$',
         UserOrganizationsEndpoint.as_view(),
         name='sentry-api-0-user-organizations'),

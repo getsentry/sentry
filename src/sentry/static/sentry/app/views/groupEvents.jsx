@@ -3,7 +3,7 @@ import {History, Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import DateTime from '../components/dateTime';
-import Gravatar from '../components/gravatar';
+import Avatar from '../components/avatar';
 import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -156,7 +156,7 @@ const GroupEvents = React.createClass({
             <td className="event-user table-user-info">
               {event.user ?
                 <div>
-                  <Gravatar user={event.user} size={64} className="avatar" />
+                  <Avatar user={event.user} size={64} className="avatar" />
                   {event.user.email}
                 </div>
               :

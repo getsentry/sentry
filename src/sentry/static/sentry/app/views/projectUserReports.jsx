@@ -2,7 +2,7 @@ import jQuery from 'jquery';
 import React from 'react';
 import {History, Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
-import Gravatar from '../components/gravatar';
+import Avatar from '../components/avatar';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
@@ -164,7 +164,7 @@ const ProjectUserReports = React.createClass({
           <div className="activity-container" style={{margin: '10px 0 5px'}}>
             <ul className="activity">
               <li className="activity-note" style={{paddingBottom: 0}}>
-                <Gravatar user={item} size={64} className="avatar" />
+                <Avatar user={item} size={64} className="avatar" />
                 <div className="activity-bubble">
                   <TimeSince date={item.dateCreated} />
                   <div className="activity-author">{item.name} <small>{item.email}</small></div>

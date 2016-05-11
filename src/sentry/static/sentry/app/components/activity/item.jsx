@@ -2,7 +2,7 @@ import marked from 'marked';
 import React from 'react';
 
 import Duration from '../../components/duration';
-import Gravatar from '../../components/gravatar';
+import Avatar from '../../components/avatar';
 import {Link} from 'react-router';
 import MemberListStore from '../../stores/memberListStore';
 import TimeSince from '../../components/timeSince';
@@ -185,7 +185,7 @@ const ActivityItem = React.createClass({
     }
 
     let avatar = (item.user ?
-      <Gravatar user={item.user} size={64} className="avatar" /> :
+      <Avatar user={item.user} size={64} className="avatar" /> :
       <div className="avatar sentry"><span className="icon-sentry-logo" /></div>);
 
     let author = {

@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 import ApiMixin from '../mixins/apiMixin';
-import Gravatar from '../components/gravatar';
+import Avatar from '../components/avatar';
 import GroupStore from '../stores/groupStore';
 import ConfigStore from '../stores/configStore';
 import DropdownLink from './dropdownLink';
@@ -191,7 +191,7 @@ const AssigneeSelector = React.createClass({
         <MenuItem key={item.id}
                   disabled={loading}
                   onSelect={this.assignTo.bind(this, item)} >
-          <Gravatar user={item} className="avatar" size={48} />
+          <Avatar user={item} className="avatar" size={48} />
           {this.highlight(item.name || item.email, this.state.filter)}
         </MenuItem>
       );
@@ -220,7 +220,7 @@ const AssigneeSelector = React.createClass({
               onOpen={this.onDropdownOpen}
               onClose={this.onDropdownClose}
               title={assignedTo ?
-                <Gravatar user={assignedTo} className="avatar" size={48} />
+                <Avatar user={assignedTo} className="avatar" size={48} />
                 :
                 <span className="icon-user" />
               }>
