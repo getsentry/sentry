@@ -12,6 +12,7 @@ class EventTag(Model):
     __core__ = False
 
     project_id = BoundedBigIntegerField()
+    group_id = BoundedBigIntegerField(null=True)
     event_id = BoundedBigIntegerField()
     # We want to keep this model lightweight, so lets use a pointer to
     # TagKey/TagValue
