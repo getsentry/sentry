@@ -1505,7 +1505,7 @@ ul.crumbs {
     margin: 0;
     border-left: 1px solid transparent;
     border-right: 1px solid transparent;
-    border-bottom: 1px solid lighten(@trim, 6);
+    border-bottom: 1px solid lighten(@trim, 4);
     padding: 6px 20px 3px 60px;
     position: relative;
 
@@ -1546,7 +1546,7 @@ ul.crumbs {
       display: block;
       .square(26px);
       background: #fff;
-      border: 1px solid @gray-lighter;
+      border: 1px solid @gray;
       box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
       border-radius: 32px;
       position: absolute;
@@ -1575,9 +1575,13 @@ ul.crumbs {
 
     time, span.dt {
       font-size: 12px;
-      color: @gray;
+      color: @gray-dark;
       position: absolute;
       right: 20px
+    }
+
+    em {
+      font-style: normal;
     }
 
     span.crumb-category {
@@ -1635,8 +1639,9 @@ ul.crumbs {
 
       pre {
         display: inline-block;
-        padding: 2px 8px;
-        margin: -1px 0 0;
+        padding: 0;
+        margin-top: 1px;
+        background: none;
       }
     }
 
@@ -1656,20 +1661,32 @@ ul.crumbs {
           content: " ";
           display: block;
           width: 100%;
-          height: 8px;
-          #gradient > .vertical(rgba(255, 255, 255, 0), #ffffff);
+          height: 15px;
+          #gradient > .vertical(rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
+          z-index: 1;
         }
 
         &:hover {
-          pre {
-            background: @white-darkest;
+          &:before {
+            position: absolute;
+            bottom: 4px;
+            right: 0;
+            font-family: 'sentry-simple';
+            content: "\e617";
+            background: @white-dark;
+            border: 1px solid darken(@trim, 5);
+            border-radius: 3px;
+            box-shadow: 0 1px 3px rgba(0,0,0, .1);
+            z-index: 2;
+            padding: 0 5px;
+            margin-left: -14px;
           }
         }
       }
 
       &.expanded {
         max-height: none;
-        &:after {
+        &:after, &:before {
           display: none;
         }
       }
@@ -1683,6 +1700,7 @@ ul.crumbs {
       background: @white-dark;
       margin: 0 1px;
       box-shadow: inset 0 -1px 2px rgba(0,0,0, .03);
+      min-height: 36px;
 
       &:before {
         left: 29px;
@@ -1695,13 +1713,14 @@ ul.crumbs {
       .icon {
         color: @gray;
         top: 6px;
+        left: 5.5px;
       }
 
       a {
         color: @gray-dark;
         display: block;
         font-size: 15px;
-        padding: 7px 0 5px;
+        padding: 6px 0 5px;
         margin: -5px 0;
 
         &:hover {
@@ -1733,10 +1752,6 @@ ul.crumbs {
     &.crumb-default {
       padding-top: 7px;
       clear: both;
-
-      .icon-container {
-        border-color: @gray-dark;
-      }
 
       .icon {
         color: @gray-dark;
@@ -1833,6 +1848,7 @@ ul.crumbs {
 
       .icon {
         color: @red;
+        top: 4px;
         left: 5.5px;
         &:before {
           content: "\e906";
@@ -1849,10 +1865,6 @@ ul.crumbs {
 
       .icon-container {
         border-color: @red-dark;
-      }
-
-      pre {
-        background: #F8EEED;
       }
 
       &:before {
