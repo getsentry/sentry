@@ -19,6 +19,7 @@
         </div>
         <ul class="nav nav-tabs border-bottom">
           <li{% if page == 'settings' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
+          <li{% if page == 'avatar' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-avatar' %}">{% trans "Avatar" %}</a></li>
           <li{% if page == 'appearance' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-appearance' %}">{% trans "Appearance" %}</a></li>
           <li{% if page == 'notifications' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-notifications' %}">{% trans "Notifications" %}</a></li>
       {% if AUTH_PROVIDERS %}

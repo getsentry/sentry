@@ -13,28 +13,38 @@
 
         <legend style="margin-top: 0;">Your details</legend>
 
-        {% with form.name as field %}
-            {{ field|as_crispy_field }}
-        {% endwith %}
-        {% if form.username %}
-            {% with form.username as field %}
+        <div class="account-settings-overview">
+          <div class="avatar-preview">
+            <label class="control-label">Avatar</label>
+            <div>
+              <a class="avatar-edit-link" href="{% url 'sentry-account-settings-avatar' %}">
+                <span class="avatar">
+                {% letter_avatar_svg request.user.get_display_name request.user.get_label size 118 %}
+                {% if request.user.get_avatar_type == 'upload' %}
+                    <img src="{% profile_photo_url request.user.id size 118 %}">
+                {% elif request.user.get_avatar_type == 'gravatar' %}
+                    <img src="{% gravatar_url user.email size 118 default 'blank' %}">
+                {% endif %}
+                </span>
+                <span class="icon-settings"></span>
+              </a>
+            </div>
+          </div>
+          <div class="account-settings-body">
+            {% with form.name as field %}
                 {{ field|as_crispy_field }}
             {% endwith %}
-        {% endif %}
-        {% with form.email as field %}
-            {{ field|as_crispy_field }}
-        {% endwith %}
-        <fieldset class="control-group">
-            <label>Avatar</label>
-            <div class="controls">
-                <span class="avatar">
-                    {% letter_avatar_svg user.get_display_name user.get_label %}
-                    <img src="{% gravatar_url user.email size 32 default 'blank' %}">
-                </span>
-                <a href="http://gravatar.com/">Change your avatar at Gravatar.com</a>
-            </div>
-        </fieldset>
-        {% if form.new_password %}
+            {% if form.username %}
+                {% with form.username as field %}
+                    {{ field|as_crispy_field }}
+                {% endwith %}
+            {% endif %}
+            {% with form.email as field %}
+                {{ field|as_crispy_field }}
+            {% endwith %}
+            {% if form.new_password %}
+          </div>
+        </div>
         <hr>
         <p>{% trans "You may also optionally change your password." %}</p>
         {% with form.new_password as field %}

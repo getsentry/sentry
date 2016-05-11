@@ -13,7 +13,11 @@
     <div class="sso-link">
       <span class="avatar">
         {% letter_avatar_svg existing_user.get_display_name existing_user.get_label %}
-        <img src="{% gravatar_url existing_user.email size 36 default 'blank' %}">
+        {% if existing_user.get_avatar_type == 'upload' %}
+          <img src="{% profile_photo_url existing_user.id size 36 %}">
+        {% elif existing_user.get_avatar_type == 'gravatar' %}
+          <img src="{% gravatar_url existing_user.email size 36 default 'blank' %}">
+        {% endif %}
       </span>
       <span class="icon-arrow-right"></span>
       <span class="icon-arrow-left"></span>

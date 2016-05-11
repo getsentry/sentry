@@ -142,6 +142,20 @@ def settings(request):
 @login_required
 @sudo_required
 @transaction.atomic
+def avatar_settings(request):
+    context = csrf(request)
+    context.update({
+        'page': 'avatar',
+        'AUTH_PROVIDERS': get_auth_providers(),
+    })
+    return render_to_response('sentry/account/avatar.html', context, request)
+
+
+@csrf_protect
+@never_cache
+@login_required
+@sudo_required
+@transaction.atomic
 def appearance_settings(request):
     from django.conf import settings
 

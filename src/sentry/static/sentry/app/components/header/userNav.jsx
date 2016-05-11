@@ -1,7 +1,7 @@
 import React from 'react';
 import ConfigStore from '../../stores/configStore';
 import DropdownLink from '../dropdownLink';
-import Gravatar from '../gravatar';
+import Avatar from '../avatar';
 import MenuItem from '../menuItem';
 import {t} from '../../locale';
 
@@ -20,7 +20,7 @@ const UserNav = React.createClass({
     }
 
     let title = (
-      <Gravatar user={user} className="avatar" />
+      <Avatar user={user} className="avatar" />
     );
 
     return (
