@@ -4,6 +4,7 @@ from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotFou
 from django.views.generic import View
 
 from sentry.models import UserAvatar
+from sentry.web.frontend.generic import FOREVER_CACHE
 
 
 class UserAvatarPhotoView(View):
@@ -31,4 +32,7 @@ class UserAvatarPhotoView(View):
                 return HttpResponseBadRequest()
             else:
                 photo_file = avatar.get_cached_photo(size)
-        return HttpResponse(photo_file, content_type='image/png')
+
+        res = HttpResponse(photo_file, content_type='image/png')
+        res['Cache-Control'] = FOREVER_CACHE
+        return res
