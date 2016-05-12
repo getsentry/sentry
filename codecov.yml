@@ -1,4 +1,11 @@
 coverage:
+  status:
+    project:
+      default:
+        target: 0%
+    patch:
+      default:
+        target: 0%
   ignore:
   - src/sentry/lint/.*
   - src/sentry/.*?/migrations/*
