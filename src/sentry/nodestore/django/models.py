@@ -12,7 +12,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    BaseModel, GzippedDictField, sane_repr)
+    BaseModel, GzippedDictField)
 
 
 class Node(BaseModel):
@@ -24,7 +24,7 @@ class Node(BaseModel):
     data = GzippedDictField()
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
 
-    __repr__ = sane_repr('timestamp')
+    __sane__ = ('timestamp')
 
     class Meta:
         app_label = 'nodestore'

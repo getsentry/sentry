@@ -14,7 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, TAG_LABELS
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, FlexibleForeignKey, sane_repr
+    Model, BoundedPositiveIntegerField, FlexibleForeignKey
 )
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
@@ -76,7 +76,7 @@ class TagKey(Model):
         db_table = 'sentry_filterkey'
         unique_together = (('project', 'key'),)
 
-    __repr__ = sane_repr('project_id', 'key')
+    __sane__ = ('project_id', 'key')
 
     @classmethod
     def is_valid_key(self, key):

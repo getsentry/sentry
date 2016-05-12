@@ -3,7 +3,7 @@ from __future__ import absolute_import, print_function
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model
 
 
 class SavedSearch(Model):
@@ -23,7 +23,7 @@ class SavedSearch(Model):
         db_table = 'sentry_savedsearch'
         unique_together = (('project', 'name'),)
 
-    __repr__ = sane_repr('project_id', 'name')
+    __sane__ = ('project_id', 'name')
 
 
 class SavedSearchUserDefault(Model):

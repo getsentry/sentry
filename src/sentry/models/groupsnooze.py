@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from django.db import models
-from sentry.db.models import Model, FlexibleForeignKey, sane_repr
+from sentry.db.models import Model, FlexibleForeignKey
 
 
 class GroupSnooze(Model):
@@ -14,4 +14,4 @@ class GroupSnooze(Model):
         db_table = 'sentry_groupsnooze'
         app_label = 'sentry'
 
-    __repr__ = sane_repr('group_id')
+    __sane__ = ('group_id')

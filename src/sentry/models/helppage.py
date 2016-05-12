@@ -11,7 +11,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 
-from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
+from sentry.db.models import BoundedPositiveIntegerField, Model
 from sentry.db.models.manager import BaseManager
 
 
@@ -32,7 +32,7 @@ class HelpPage(Model):
         db_table = 'sentry_helppage'
         app_label = 'sentry'
 
-    __repr__ = sane_repr('title')
+    __sane__ = ('title')
 
     @property
     def slug(self):

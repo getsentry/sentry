@@ -22,7 +22,7 @@ except ImportError:
     have_symsynd = False
 
 from sentry.db.models import FlexibleForeignKey, Model, BoundedBigIntegerField, \
-    sane_repr, BaseManager
+    BaseManager
 from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 from sentry.utils.db import is_sqlite
@@ -283,7 +283,7 @@ class CommonDSymFile(Model):
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
 
-    __repr__ = sane_repr('object_name', 'cpu_name', 'uuid')
+    __sane__ = ('object_name', 'cpu_name', 'uuid')
 
     class Meta:
         abstract = True

@@ -12,7 +12,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    BoundedBigIntegerField, FlexibleForeignKey, Model, BaseManager, sane_repr
+    BoundedBigIntegerField, FlexibleForeignKey, Model, BaseManager
 )
 
 
@@ -34,4 +34,4 @@ class ProjectBookmark(Model):
         db_table = 'sentry_projectbookmark'
         unique_together = (('project_id', 'user',))
 
-    __repr__ = sane_repr('project_id', 'user_id')
+    __sane__ = ('project_id', 'user_id')

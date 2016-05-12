@@ -14,8 +14,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    Model,
-    sane_repr
+    Model
 )
 
 
@@ -89,4 +88,4 @@ class OrganizationOnboardingTask(Model):
         db_table = 'sentry_organizationonboardingtask'
         unique_together = (('organization', 'task'),)
 
-    __repr__ = sane_repr('organization', 'task')
+    __sane__ = ('organization', 'task')

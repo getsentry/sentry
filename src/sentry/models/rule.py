@@ -11,7 +11,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    Model, FlexibleForeignKey, GzippedDictField, sane_repr
+    Model, FlexibleForeignKey, GzippedDictField
 )
 from sentry.db.models.manager import BaseManager
 
@@ -30,4 +30,4 @@ class Rule(Model):
         db_table = 'sentry_rule'
         app_label = 'sentry'
 
-    __repr__ = sane_repr('project_id', 'label')
+    __sane__ = ('project_id', 'label')

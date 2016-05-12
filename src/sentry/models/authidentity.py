@@ -6,7 +6,7 @@ from django.db import models
 from django.utils import timezone
 from jsonfield import JSONField
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model
 
 
 class AuthIdentity(Model):
@@ -23,7 +23,7 @@ class AuthIdentity(Model):
         db_table = 'sentry_authidentity'
         unique_together = (('auth_provider', 'ident'), ('auth_provider', 'user'))
 
-    __repr__ = sane_repr('user_id', 'auth_provider_id')
+    __sane__ = ('user_id', 'auth_provider_id')
 
     def __unicode__(self):
         return self.ident

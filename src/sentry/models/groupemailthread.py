@@ -11,7 +11,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    Model, FlexibleForeignKey, BaseManager, sane_repr,
+    Model, FlexibleForeignKey, BaseManager,
 )
 
 
@@ -40,4 +40,4 @@ class GroupEmailThread(Model):
             ('email', 'msgid'),
         )
 
-    __repr__ = sane_repr('email', 'group_id', 'msgid')
+    __sane__ = ('email', 'group_id', 'msgid')

@@ -13,8 +13,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField,
-    sane_repr
+    Model, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField
 )
 from sentry.tasks import activity
 
@@ -69,8 +68,7 @@ class Activity(Model):
         app_label = 'sentry'
         db_table = 'sentry_activity'
 
-    __repr__ = sane_repr('project_id', 'group_id', 'event_id', 'user_id',
-                         'type', 'ident')
+    __sane__ = ('project_id', 'group_id', 'event_id', 'user_id', 'type', 'ident')
 
     def __init__(self, *args, **kwargs):
         super(Activity, self).__init__(*args, **kwargs)

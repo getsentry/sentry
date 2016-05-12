@@ -16,8 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from uuid import uuid4
 
 from sentry.db.models import (
-    Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey,
-    sane_repr
+    Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey
 )
 
 
@@ -63,7 +62,7 @@ class ApiKey(Model):
         app_label = 'sentry'
         db_table = 'sentry_apikey'
 
-    __repr__ = sane_repr('organization_id', 'key')
+    __sane__ = ('organization_id', 'key')
 
     def __unicode__(self):
         return six.text_type(self.key)

@@ -22,8 +22,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import options
 from sentry.db.models import (
-    Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey,
-    sane_repr
+    Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey
 )
 
 
@@ -70,7 +69,7 @@ class ProjectKey(Model):
         app_label = 'sentry'
         db_table = 'sentry_projectkey'
 
-    __repr__ = sane_repr('project_id', 'public_key')
+    __sane__ = ('project_id', 'public_key')
 
     def __unicode__(self):
         return six.text_type(self.public_key)

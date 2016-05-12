@@ -14,7 +14,7 @@ from django.core.signals import request_finished
 from django.db import models
 
 from sentry.exceptions import CacheNotPopulated
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model
 from sentry.db.models.manager import BaseManager
 
 
@@ -120,4 +120,4 @@ class GroupMeta(Model):
         db_table = 'sentry_groupmeta'
         unique_together = (('group', 'key'),)
 
-    __repr__ = sane_repr('group_id', 'key', 'value')
+    __sane__ = ('group_id', 'key', 'value')

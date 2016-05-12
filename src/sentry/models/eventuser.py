@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model
 from sentry.utils.hashlib import md5
 
 KEYWORD_MAP = {
@@ -35,7 +35,7 @@ class EventUser(Model):
             ('project', 'ip_address'),
         )
 
-    __repr__ = sane_repr('project_id', 'ident', 'email', 'username', 'ip_address')
+    __sane__ = ('project_id', 'ident', 'email', 'username', 'ip_address')
 
     @classmethod
     def attr_from_keyword(cls, keyword):

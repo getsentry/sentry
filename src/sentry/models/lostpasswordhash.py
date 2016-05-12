@@ -13,7 +13,7 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model
 from sentry.utils.http import absolute_uri
 
 
@@ -28,7 +28,7 @@ class LostPasswordHash(Model):
         app_label = 'sentry'
         db_table = 'sentry_lostpasswordhash'
 
-    __repr__ = sane_repr('user_id', 'hash')
+    __sane__ = ('user_id', 'hash')
 
     def save(self, *args, **kwargs):
         if not self.hash:

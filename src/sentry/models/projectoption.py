@@ -11,7 +11,7 @@ from celery.signals import task_postrun
 from django.core.signals import request_finished
 from django.db import models
 
-from sentry.db.models import Model, FlexibleForeignKey, sane_repr
+from sentry.db.models import Model, FlexibleForeignKey
 from sentry.db.models.fields import UnicodePickledObjectField
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
@@ -123,4 +123,4 @@ class ProjectOption(Model):
         db_table = 'sentry_projectoptions'
         unique_together = (('project', 'key',),)
 
-    __repr__ = sane_repr('project_id', 'key', 'value')
+    __sane__ = ('project_id', 'key', 'value')

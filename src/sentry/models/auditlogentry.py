@@ -11,8 +11,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField,
-    sane_repr
+    Model, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField
 )
 
 
@@ -120,7 +119,7 @@ class AuditLogEntry(Model):
         app_label = 'sentry'
         db_table = 'sentry_auditlogentry'
 
-    __repr__ = sane_repr('organization_id', 'type')
+    __sane__ = ('organization_id', 'type')
 
     def save(self, *args, **kwargs):
         if not self.actor_label:
