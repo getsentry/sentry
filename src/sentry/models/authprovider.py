@@ -34,7 +34,7 @@ class AuthProvider(Model):
         app_label = 'sentry'
         db_table = 'sentry_authprovider'
 
-    __sane__ = ('organization_id', 'provider')
+    __loggingattrs__ = ('organization_id', 'provider')
 
     def __unicode__(self):
         return self.provider

@@ -35,4 +35,4 @@ class GroupTagKey(Model):
         db_table = 'sentry_grouptagkey'
         unique_together = (('project', 'group', 'key'),)
 
-    __sane__ = ('project_id', 'group_id', 'key')
+    __loggingattrs__ = ('project_id', 'group_id', 'key')

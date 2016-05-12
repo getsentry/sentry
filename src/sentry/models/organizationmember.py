@@ -38,7 +38,7 @@ class OrganizationMemberTeam(BaseModel):
         db_table = 'sentry_organizationmember_teams'
         unique_together = (('team', 'organizationmember'),)
 
-    __sane__ = ('team_id', 'organizationmember_id')
+    __loggingattrs__ = ('team_id', 'organizationmember_id')
 
     def get_audit_log_data(self):
         return {
@@ -88,7 +88,7 @@ class OrganizationMember(Model):
             ('organization', 'email'),
         )
 
-    __sane__ = ('organization_id', 'user_id', 'role',)
+    __loggingattrs__ = ('organization_id', 'user_id', 'role',)
 
     @transaction.atomic
     def save(self, *args, **kwargs):

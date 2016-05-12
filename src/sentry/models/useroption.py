@@ -118,4 +118,4 @@ class UserOption(Model):
         db_table = 'sentry_useroption'
         unique_together = (('user', 'project', 'key',),)
 
-    __sane__ = ('user_id', 'project_id', 'key', 'value')
+    __loggingattrs__ = ('user_id', 'project_id', 'key', 'value')

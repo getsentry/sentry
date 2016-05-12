@@ -28,7 +28,7 @@ class ReleaseFile(Model):
     ident = models.CharField(max_length=40)
     name = models.TextField()
 
-    __sane__ = ('release', 'ident')
+    __loggingattrs__ = ('release', 'ident')
 
     class Meta:
         unique_together = (('release', 'ident'),)

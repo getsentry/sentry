@@ -31,4 +31,4 @@ class GroupRuleStatus(Model):
         app_label = 'sentry'
         unique_together = (('rule', 'group'),)
 
-    __sane__ = ('rule_id', 'group_id', 'status')
+    __loggingattrs__ = ('rule_id', 'group_id', 'status')

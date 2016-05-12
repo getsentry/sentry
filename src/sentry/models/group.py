@@ -198,7 +198,7 @@ class Group(Model):
             ('project', 'short_id'),
         )
 
-    __sane__ = ('project_id')
+    __loggingattrs__ = ('project_id')
 
     def __unicode__(self):
         return "(%s) %s" % (self.times_seen, self.error())

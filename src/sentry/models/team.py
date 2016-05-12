@@ -105,7 +105,7 @@ class Team(Model):
         db_table = 'sentry_team'
         unique_together = (('organization', 'slug'),)
 
-    __sane__ = ('slug', 'name')
+    __loggingattrs__ = ('slug', 'name')
 
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)

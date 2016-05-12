@@ -14,4 +14,4 @@ class GroupSnooze(Model):
         db_table = 'sentry_groupsnooze'
         app_label = 'sentry'
 
-    __sane__ = ('group_id')
+    __loggingattrs__ = ('group_id')

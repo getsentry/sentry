@@ -69,7 +69,7 @@ class ProjectKey(Model):
         app_label = 'sentry'
         db_table = 'sentry_projectkey'
 
-    __sane__ = ('project_id', 'public_key')
+    __loggingattrs__ = ('project_id', 'public_key')
 
     def __unicode__(self):
         return six.text_type(self.public_key)

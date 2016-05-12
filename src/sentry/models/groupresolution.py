@@ -42,4 +42,4 @@ class GroupResolution(Model):
         db_table = 'sentry_groupresolution'
         app_label = 'sentry'
 
-    __sane__ = ('group_id', 'release_id')
+    __loggingattrs__ = ('group_id', 'release_id')

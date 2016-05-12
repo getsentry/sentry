@@ -24,7 +24,7 @@ class Node(BaseModel):
     data = GzippedDictField()
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
 
-    __sane__ = ('timestamp')
+    __loggingattrs__ = ('timestamp')
 
     class Meta:
         app_label = 'nodestore'

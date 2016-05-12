@@ -32,7 +32,7 @@ class HelpPage(Model):
         db_table = 'sentry_helppage'
         app_label = 'sentry'
 
-    __sane__ = ('title')
+    __loggingattrs__ = ('title')
 
     @property
     def slug(self):

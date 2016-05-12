@@ -30,4 +30,4 @@ class Option(Model):
         app_label = 'sentry'
         db_table = 'sentry_option'
 
-    __sane__ = ('key', 'value')
+    __loggingattrs__ = ('key', 'value')

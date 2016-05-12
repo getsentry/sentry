@@ -23,7 +23,7 @@ class AuthIdentity(Model):
         db_table = 'sentry_authidentity'
         unique_together = (('auth_provider', 'ident'), ('auth_provider', 'user'))
 
-    __sane__ = ('user_id', 'auth_provider_id')
+    __loggingattrs__ = ('user_id', 'auth_provider_id')
 
     def __unicode__(self):
         return self.ident

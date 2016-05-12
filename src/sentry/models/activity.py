@@ -68,7 +68,7 @@ class Activity(Model):
         app_label = 'sentry'
         db_table = 'sentry_activity'
 
-    __sane__ = ('project_id', 'group_id', 'event_id', 'user_id', 'type', 'ident')
+    __loggingattrs__ = ('project_id', 'group_id', 'event_id', 'user_id', 'type', 'ident')
 
     def __init__(self, *args, **kwargs):
         super(Activity, self).__init__(*args, **kwargs)

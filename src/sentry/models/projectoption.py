@@ -123,4 +123,4 @@ class ProjectOption(Model):
         db_table = 'sentry_projectoptions'
         unique_together = (('project', 'key',),)
 
-    __sane__ = ('project_id', 'key', 'value')
+    __loggingattrs__ = ('project_id', 'key', 'value')

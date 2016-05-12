@@ -98,7 +98,7 @@ class Project(Model):
         db_table = 'sentry_project'
         unique_together = (('team', 'slug'), ('organization', 'slug'))
 
-    __sane__ = ('team_id', 'slug')
+    __loggingattrs__ = ('team_id', 'slug')
 
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)

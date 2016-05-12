@@ -283,7 +283,7 @@ class CommonDSymFile(Model):
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
 
-    __sane__ = ('object_name', 'cpu_name', 'uuid')
+    __loggingattrs__ = ('object_name', 'cpu_name', 'uuid')
 
     class Meta:
         abstract = True

@@ -28,7 +28,7 @@ class EventMapping(Model):
         db_table = 'sentry_eventmapping'
         unique_together = (('project_id', 'event_id'),)
 
-    __sane__ = ('project_id', 'group_id', 'event_id')
+    __loggingattrs__ = ('project_id', 'group_id', 'event_id')
 
     @property
     def team(self):

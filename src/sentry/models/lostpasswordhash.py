@@ -28,7 +28,7 @@ class LostPasswordHash(Model):
         app_label = 'sentry'
         db_table = 'sentry_lostpasswordhash'
 
-    __sane__ = ('user_id', 'hash')
+    __loggingattrs__ = ('user_id', 'hash')
 
     def save(self, *args, **kwargs):
         if not self.hash:

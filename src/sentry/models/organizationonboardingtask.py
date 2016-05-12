@@ -88,4 +88,4 @@ class OrganizationOnboardingTask(Model):
         db_table = 'sentry_organizationonboardingtask'
         unique_together = (('organization', 'task'),)
 
-    __sane__ = ('organization', 'task')
+    __loggingattrs__ = ('organization', 'task')

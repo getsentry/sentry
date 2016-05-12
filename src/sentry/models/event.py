@@ -54,7 +54,7 @@ class Event(Model):
         unique_together = (('project_id', 'event_id'),)
         index_together = (('group_id', 'datetime'),)
 
-    __sane__ = ('project_id', 'group_id')
+    __loggingattrs__ = ('project_id', 'group_id')
 
     # Implement a ForeignKey-like accessor for backwards compat
     def _set_group(self, group):

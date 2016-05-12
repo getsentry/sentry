@@ -25,4 +25,4 @@ class EventTag(Model):
         db_table = 'sentry_eventtag'
         unique_together = (('event_id', 'key_id', 'value_id'),)
 
-    __sane__ = ('event_id', 'key_id', 'value_id')
+    __loggingattrs__ = ('event_id', 'key_id', 'value_id')

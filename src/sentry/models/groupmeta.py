@@ -120,4 +120,4 @@ class GroupMeta(Model):
         db_table = 'sentry_groupmeta'
         unique_together = (('group', 'key'),)
 
-    __sane__ = ('group_id', 'key', 'value')
+    __loggingattrs__ = ('group_id', 'key', 'value')

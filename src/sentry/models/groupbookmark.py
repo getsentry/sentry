@@ -35,4 +35,4 @@ class GroupBookmark(Model):
         # composite index includes project for efficient queries
         unique_together = (('project', 'user', 'group'),)
 
-    __sane__ = ('project_id', 'group_id', 'user_id')
+    __loggingattrs__ = ('project_id', 'group_id', 'user_id')

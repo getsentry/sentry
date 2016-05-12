@@ -62,7 +62,7 @@ class ApiKey(Model):
         app_label = 'sentry'
         db_table = 'sentry_apikey'
 
-    __sane__ = ('organization_id', 'key')
+    __loggingattrs__ = ('organization_id', 'key')
 
     def __unicode__(self):
         return six.text_type(self.key)

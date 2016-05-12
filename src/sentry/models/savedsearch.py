@@ -23,7 +23,7 @@ class SavedSearch(Model):
         db_table = 'sentry_savedsearch'
         unique_together = (('project', 'name'),)
 
-    __sane__ = ('project_id', 'name')
+    __loggingattrs__ = ('project_id', 'name')
 
 
 class SavedSearchUserDefault(Model):

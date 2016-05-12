@@ -24,7 +24,7 @@ class OrganizationAccessRequest(Model):
         db_table = 'sentry_organizationaccessrequest'
         unique_together = (('team', 'member'),)
 
-    __sane__ = ('team_id', 'member_id')
+    __loggingattrs__ = ('team_id', 'member_id')
 
     def send_request_email(self):
         from sentry.models import OrganizationMember

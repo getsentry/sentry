@@ -76,7 +76,7 @@ class TagKey(Model):
         db_table = 'sentry_filterkey'
         unique_together = (('project', 'key'),)
 
-    __sane__ = ('project_id', 'key')
+    __loggingattrs__ = ('project_id', 'key')
 
     @classmethod
     def is_valid_key(self, key):

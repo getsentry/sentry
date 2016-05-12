@@ -30,4 +30,4 @@ class Rule(Model):
         db_table = 'sentry_rule'
         app_label = 'sentry'
 
-    __sane__ = ('project_id', 'label')
+    __loggingattrs__ = ('project_id', 'label')

@@ -48,7 +48,7 @@ class Release(Model):
         db_table = 'sentry_release'
         unique_together = (('project', 'version'),)
 
-    __sane__ = ('project_id', 'version')
+    __loggingattrs__ = ('project_id', 'version')
 
     @classmethod
     def get_cache_key(cls, project_id, version):

@@ -119,7 +119,7 @@ class AuditLogEntry(Model):
         app_label = 'sentry'
         db_table = 'sentry_auditlogentry'
 
-    __sane__ = ('organization_id', 'type')
+    __loggingattrs__ = ('organization_id', 'type')
 
     def save(self, *args, **kwargs):
         if not self.actor_label:

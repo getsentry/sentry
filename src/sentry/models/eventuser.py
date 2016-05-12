@@ -35,7 +35,7 @@ class EventUser(Model):
             ('project', 'ip_address'),
         )
 
-    __sane__ = ('project_id', 'ident', 'email', 'username', 'ip_address')
+    __loggingattrs__ = ('project_id', 'ident', 'email', 'username', 'ip_address')
 
     @classmethod
     def attr_from_keyword(cls, keyword):

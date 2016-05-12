@@ -94,7 +94,7 @@ class Organization(Model):
         app_label = 'sentry'
         db_table = 'sentry_organization'
 
-    __sane__ = ('owner_id', 'name', 'slug')
+    __loggingattrs__ = ('owner_id', 'name', 'slug')
 
     @classmethod
     def get_default(cls):

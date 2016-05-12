@@ -40,4 +40,4 @@ class GroupEmailThread(Model):
             ('email', 'msgid'),
         )
 
-    __sane__ = ('email', 'group_id', 'msgid')
+    __loggingattrs__ = ('email', 'group_id', 'msgid')

@@ -33,7 +33,7 @@ class Broadcast(Model):
         app_label = 'sentry'
         db_table = 'sentry_broadcast'
 
-    __sane__ = ('message')
+    __loggingattrs__ = ('message')
 
 
 class BroadcastSeen(Model):
@@ -48,4 +48,4 @@ class BroadcastSeen(Model):
         db_table = 'sentry_broadcastseen'
         unique_together = (('broadcast', 'user'))
 
-    __sane__ = ('broadcast', 'user', 'date_seen')
+    __loggingattrs__ = ('broadcast', 'user', 'date_seen')

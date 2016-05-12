@@ -126,4 +126,4 @@ class OrganizationOption(Model):
         db_table = 'sentry_organizationoptions'
         unique_together = (('organization', 'key',),)
 
-    __sane__ = ('organization_id', 'key', 'value')
+    __loggingattrs__ = ('organization_id', 'key', 'value')

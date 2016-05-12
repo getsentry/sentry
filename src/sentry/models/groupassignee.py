@@ -89,4 +89,4 @@ class GroupAssignee(Model):
         app_label = 'sentry'
         db_table = 'sentry_groupasignee'
 
-    __sane__ = ('group_id', 'user_id')
+    __loggingattrs__ = ('group_id', 'user_id')

@@ -17,4 +17,4 @@ class GroupRedirect(Model):
         db_table = 'sentry_groupredirect'
         app_label = 'sentry'
 
-    __sane__ = ('group_id', 'previous_group_id')
+    __loggingattrs__ = ('group_id', 'previous_group_id')

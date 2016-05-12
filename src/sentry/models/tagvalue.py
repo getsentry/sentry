@@ -42,7 +42,7 @@ class TagValue(Model):
         db_table = 'sentry_filtervalue'
         unique_together = (('project', 'key', 'value'),)
 
-    __sane__ = ('project_id', 'key', 'value')
+    __loggingattrs__ = ('project_id', 'key', 'value')
 
     def get_label(self):
         # HACK(dcramer): quick and dirty way to hack in better display states

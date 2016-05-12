@@ -30,4 +30,4 @@ class GroupSeen(Model):
         db_table = 'sentry_groupseen'
         unique_together = (('user', 'group'),)
 
-    __sane__ = ('project_id', 'group_id', 'user_id', 'last_seen')
+    __loggingattrs__ = ('project_id', 'group_id', 'user_id', 'last_seen')

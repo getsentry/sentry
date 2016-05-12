@@ -34,4 +34,4 @@ class ProjectBookmark(Model):
         db_table = 'sentry_projectbookmark'
         unique_together = (('project_id', 'user',))
 
-    __sane__ = ('project_id', 'user_id')
+    __loggingattrs__ = ('project_id', 'user_id')

@@ -27,7 +27,7 @@ class Counter(Model):
     project = FlexibleForeignKey('sentry.Project', unique=True)
     value = BoundedBigIntegerField()
 
-    __sane__ = ('project')
+    __loggingattrs__ = ('project')
 
     class Meta:
         app_label = 'sentry'
