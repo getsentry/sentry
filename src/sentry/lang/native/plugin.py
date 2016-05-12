@@ -136,7 +136,7 @@ def preprocess_apple_crash_event(data):
             logger.exception('Failed to symbolicate')
             append_error(data, {
                 'type': EventError.NATIVE_INTERNAL_FAILURE,
-                'error': e
+                'error': '%s: %s' % (e.__class__.__name__, str(e)),
             })
             return
 
