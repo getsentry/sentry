@@ -37,16 +37,12 @@ class EventError(object):
         JS_INVALID_SOURCE_ENCODING: 'Source file was not \'{value}\' encoding: {url}',
         JS_INVALID_SOURCEMAP_LOCATION: 'Invalid location in sourcemap: ({column}, {row})',
         NATIVE_NO_CRASHED_THREAD: 'No crashed thread found in crash report',
-        NATIVE_INTERNAL_FAILURE: 'Internal failure when attempting to symbolicate.',
+        NATIVE_INTERNAL_FAILURE: 'Internal failure when attempting to symbolicate: {error}',
     }
 
     @classmethod
     def get_message(cls, data):
-        message = data.get('message')
-        if message is not None:
-            return message
         return cls._messages[data['type']].format(**data)
 
     def to_dict(self):
-        return {k: v for k, v in self.iteritems()
-                if k not in ('type', 'message')}
+        return {k: v for k, v in self.iteritems() if k != 'type'}
