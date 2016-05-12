@@ -41,7 +41,7 @@ class AuthProviderSettingsForm(forms.Form):
 
 
 class OrganizationAuthSettingsView(OrganizationView):
-    required_scope = 'org:delete'
+    required_scope = 'org:write'
 
     def _disable_provider(self, request, organization, auth_provider):
         AuditLogEntry.objects.create(
