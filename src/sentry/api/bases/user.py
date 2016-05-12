@@ -11,11 +11,13 @@ class UserPermission(ScopedPermission):
     def has_object_permission(self, request, view, user):
         if request.auth is ROOT_KEY:
             return True
+        if request.user == user:
+            return True
         if request.auth:
             return False
         if request.is_superuser():
             return True
-        return request.user == user
+        return False
 
 
 class UserEndpoint(Endpoint):
