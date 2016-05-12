@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from uuid import uuid4
+
 from PIL import Image
 
 from django.conf import settings
@@ -57,6 +59,7 @@ class UserAvatarEndpoint(UserEndpoint):
             avatar.clear_cached_photos()
         if photo:
             avatar.file = photo
+            avatar.ident = uuid4().hex
 
         avatar_type = request.DATA.get('avatar_type')
 
