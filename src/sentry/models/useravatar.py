@@ -64,7 +64,6 @@ class UserAvatar(Model):
                 image = image.resize((size, size))
                 image_file = StringIO()
                 image.save(image_file, 'PNG')
-                photo_file = image_file.getvalue()
-                cache.set(cache_key, photo_file)
-                photo = cache.get(cache_key)
+                photo = image_file.getvalue()
+                cache.set(cache_key, photo)
         return photo
