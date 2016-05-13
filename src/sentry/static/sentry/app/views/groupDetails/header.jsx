@@ -48,11 +48,6 @@ const GroupHeader = React.createClass({
     });
   },
 
-  onShare() {
-    let {shareId} = this.props.group;
-    return this.history.pushState(null, `/share/issue/${shareId}/`);
-  },
-
   onTogglePublic() {
     let group = this.props.group;
     let project = this.getProject();
