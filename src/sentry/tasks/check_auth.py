@@ -90,13 +90,12 @@ def check_auth_identity(auth_identity_id, **kwargs):
     except Exception as exc:
         # to ensure security we count any kind of error as an invalidation
         # event
-        if prev_is_valid:
-            metrics.incr('auth.identities.refresh_error')
-            logger.exception(
-                u'AuthIdentity(id=%s) returned an error during validation: %s',
-                auth_identity_id,
-                unicode(exc),
-            )
+        metrics.incr('auth.identities.refresh_error')
+        logger.exception(
+            u'AuthIdentity(id=%s) returned an error during validation: %s',
+            auth_identity_id,
+            unicode(exc),
+        )
         is_linked = True
         is_valid = False
     else:
