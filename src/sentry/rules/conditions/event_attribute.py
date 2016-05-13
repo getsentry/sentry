@@ -157,6 +157,7 @@ class EventAttributeCondition(EventCondition):
                 stacks = [
                     e.stacktrace
                     for e in event.interfaces['sentry.interfaces.Exception'].values
+                    if e.stacktrace
                 ]
 
             result = []
