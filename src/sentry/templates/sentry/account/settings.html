@@ -51,6 +51,14 @@
             {{ field|as_crispy_field }}
         {% endwith %}
         {% endif %}
+        <p>
+          {% trans "If you want you can also manage two-factor authentication here." %}
+          {% if has_2fa %}
+            <a href="{% url "sentry-account-settings-2fa" %}">{% trans "Manage or disable two-factor authentication" %}</a>.
+          {% else %}
+            <a href="{% url "sentry-account-settings-2fa" %}">{% trans "Enable two-factor authentication" %}</a>.
+          {% endif %}
+        </p>
 
         {% if not form.is_readonly %}
         <fieldset class="form-actions">
