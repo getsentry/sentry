@@ -250,7 +250,7 @@ class RedisBackend(Backend):
                 for entry in self.__schedule_partition(host, deadline, chunk):
                     yield entry
             except Exception as error:
-                logger.warning(
+                logger.error(
                     'Failed to perform scheduling for partition %r due to error: %r',
                     host,
                     error,
@@ -380,7 +380,7 @@ class RedisBackend(Backend):
             try:
                 self.__maintenance_partition(host, deadline, chunk)
             except Exception as error:
-                logger.warning(
+                logger.error(
                     'Failed to perform maintenance on digest partition %r due to error: %r',
                     host,
                     error,
