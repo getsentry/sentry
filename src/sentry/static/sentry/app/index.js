@@ -63,6 +63,7 @@ export default {
     Pagination: require('./components/pagination'),
     ProjectSelector: require('./components/projectHeader/projectSelector'),
     RuleEditor: require('./views/ruleEditor'),
+    StackedBarChart: require('./components/stackedBarChart'),
     TimeSince: require('./components/timeSince'),
     TodoList: require('./components/todos')
   }
