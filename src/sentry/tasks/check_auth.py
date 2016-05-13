@@ -8,7 +8,8 @@ sentry.tasks.check_alerts
 
 from __future__ import absolute_import, division
 
-from celery.utils.log import get_task_logger
+import logging
+
 from datetime import timedelta
 from django.utils import timezone
 
@@ -17,7 +18,7 @@ from sentry.models import AuthIdentity, OrganizationMember
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
-logger = get_task_logger(__name__)
+logger = logging.getLogger('sentry.auth')
 
 AUTH_CHECK_INTERVAL = 3600
 
