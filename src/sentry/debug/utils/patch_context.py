@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from threading import Lock
+from threading import RLock
 from sentry.utils.imports import import_string
 
 
@@ -11,7 +11,7 @@ class PatchContext(object):
         self.target = target
         self.attr = attr
         self.callback = callback
-        self._lock = Lock()
+        self._lock = RLock()
         with self._lock:
             self.func = getattr(target, attr)
 
