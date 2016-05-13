@@ -8,7 +8,8 @@ sentry.tasks.post_process
 
 from __future__ import absolute_import, print_function
 
-from celery.utils.log import get_task_logger
+import logging
+
 from django.db import IntegrityError, router, transaction
 from raven.contrib.django.models import client as Raven
 
@@ -18,7 +19,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
-logger = get_task_logger(__name__)
+logger = logging.getLogger('sentry')
 
 
 def _capture_stats(event, is_new):

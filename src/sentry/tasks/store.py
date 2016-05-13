@@ -8,7 +8,8 @@ sentry.tasks.store
 
 from __future__ import absolute_import
 
-from celery.utils.log import get_task_logger
+import logging
+
 from raven.contrib.django.models import client as Raven
 from time import time
 
@@ -17,7 +18,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
-logger = get_task_logger(__name__)
+logger = logging.getLogger('sentry')
 
 
 @instrumented_task(

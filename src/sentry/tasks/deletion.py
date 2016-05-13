@@ -8,14 +8,14 @@ sentry.tasks.deletion
 
 from __future__ import absolute_import
 
-from celery.utils.log import get_task_logger
+import logging
 
 from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.query import bulk_delete_objects
 
-logger = get_task_logger(__name__)
+logger = logging.getLogger('sentry.deletions')
 
 
 @instrumented_task(name='sentry.tasks.deletion.delete_organization', queue='cleanup',
