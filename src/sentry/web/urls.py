@@ -183,6 +183,8 @@ urlpatterns += patterns(
         name='sentry-account-recover-confirm'),
     url(r'^account/settings/$', accounts.settings,
         name='sentry-account-settings'),
+    url(r'^account/settings/2fa/$', accounts.twofactor_settings,
+        name='sentry-account-settings-2fa'),
     url(r'^account/settings/avatar/$', accounts.avatar_settings,
         name='sentry-account-settings-avatar'),
     url(r'^account/settings/appearance/$', accounts.appearance_settings,
