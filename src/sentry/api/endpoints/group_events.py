@@ -24,7 +24,8 @@ def list_available_samples_scenario(runner):
 class GroupEventsEndpoint(GroupEndpoint):
     doc_section = DocSection.EVENTS
 
-    def _tags_to_filter(self, project, tags):
+    def _tags_to_filter(self, group, tags):
+        project = group.project
         tagkeys = dict(TagKey.objects.filter(
             project=project,
             key__in=tags.keys(),
@@ -56,7 +57,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         matches = list(EventTag.objects.filter(
             key_id=k,
             value_id=v,
-            project_id=project.id,
+            group_id=group.id,
         ).values_list('event_id', flat=True)[:1000])
 
         # for each remaining tag, find matches contained in our
@@ -66,7 +67,7 @@ class GroupEventsEndpoint(GroupEndpoint):
                 key_id=k,
                 value_id=v,
                 event_id__in=matches,
-                project_id=project.id,
+                group_id=group.id,
             ).values_list('event_id', flat=True)[:1000])
         return matches
 
@@ -97,7 +98,7 @@ class GroupEventsEndpoint(GroupEndpoint):
 
             if query_kwargs['tags']:
                 events = events.filter(
-                    id__in=self._tags_to_filter(group.project, query_kwargs['tags']),
+                    id__in=self._tags_to_filter(group, query_kwargs['tags']),
                 )
 
         return self.paginate(
