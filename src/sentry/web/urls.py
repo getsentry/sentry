@@ -18,6 +18,7 @@ from sentry.web.frontend.accept_organization_invite import \
     AcceptOrganizationInviteView
 from sentry.web.frontend.admin_queue import AdminQueueView
 from sentry.web.frontend.auth_login import AuthLoginView
+from sentry.web.frontend.twofactor import TwoFactorAuthView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import \
     AuthOrganizationLoginView
@@ -160,6 +161,8 @@ urlpatterns += patterns(
         name='sentry-auth-link-identity'),
     url(r'^auth/login/$', AuthLoginView.as_view(),
         name='sentry-login'),
+    url(r'^auth/login/2fa/$', TwoFactorAuthView.as_view(),
+        name='sentry-2fa-dialog'),
     url(r'^auth/login/(?P<organization_slug>[^/]+)/$', AuthOrganizationLoginView.as_view(),
         name='sentry-auth-organization'),
     url(r'^auth/sso/$', AuthProviderLoginView.as_view(),

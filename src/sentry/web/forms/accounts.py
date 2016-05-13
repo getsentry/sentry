@@ -413,3 +413,11 @@ class ProjectEmailOptionsForm(forms.Form):
         else:
             UserOption.objects.unset_value(
                 self.user, self.project, 'mail:email')
+
+
+class TwoFactorForm(forms.Form):
+    otp = forms.CharField(
+        label=_('One-time password'), max_length=20, widget=forms.TextInput(
+            attrs={'placeholder': _('Code from authenticator'),
+        }),
+    )
