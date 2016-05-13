@@ -1,11 +1,11 @@
 from __future__ import absolute_import, print_function
 
-from celery.utils.log import get_task_logger
+import logging
 
 from sentry.models import Organization, OrganizationMember
 from sentry.tasks.base import instrumented_task
 
-logger = get_task_logger(__name__)
+logger = logging.getLogger('sentry.auth')
 
 
 @instrumented_task(name='sentry.tasks.send_sso_link_emails', queue='auth')

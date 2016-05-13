@@ -8,14 +8,17 @@ sentry.tasks.merge
 
 from __future__ import absolute_import
 
-from celery.utils.log import get_task_logger
+import logging
+
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.deletion import delete_group
 
-logger = get_task_logger(__name__)
+# TODO(dcramer): probably should have a new logger for this, but it removes data
+# so lets bundle under deletions
+logger = logging.getLogger('sentry.deletions')
 
 
 @instrumented_task(name='sentry.tasks.merge.merge_group', queue='merge',
