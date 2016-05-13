@@ -17,12 +17,19 @@ class OrganizationPermission(ScopedPermission):
     }
 
     def has_object_permission(self, request, view, organization):
-        if request.auth:
+        if request.user and request.user.is_authenticated() and request.auth:
+            request.access = access.from_request(
+                request, organization, scopes=request.auth.get_scopes(),
+            )
+
+        elif request.auth:
             if request.auth is ROOT_KEY:
                 return True
             return request.auth.organization_id == organization.id
 
-        request.access = access.from_request(request, organization)
+        else:
+            request.access = access.from_request(request, organization)
+
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
