@@ -13,7 +13,6 @@ from django.utils.encoding import force_bytes, force_text
 from collections import namedtuple
 from os.path import splitext
 from requests.exceptions import RequestException
-from simplejson import JSONDecodeError
 from urlparse import urlparse, urljoin, urlsplit
 
 # In case SSL is unavailable (light builds) we can't import this here.
@@ -379,7 +378,7 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
 
     try:
         return sourcemap_to_index(body)
-    except (JSONDecodeError, ValueError, AssertionError) as exc:
+    except Exception as exc:
         logger.warn(unicode(exc))
         raise UnparseableSourcemap({
             'url': url,
