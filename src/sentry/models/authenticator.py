@@ -103,7 +103,7 @@ class RecoveryCodeInterface(AuthenticatorInterface):
 
     def validate_otp(self, otp):
         mask = self.config['used']
-        code = otp.strip().replace('-', '')
+        code = otp.strip().replace('-', '').upper()
         for idx, ref_code in enumerate(self.codes):
             if code == ref_code:
                 if mask & (1 << idx):

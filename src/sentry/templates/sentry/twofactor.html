@@ -1,0 +1,32 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Two-Factor Authentication" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+  <div class="tab-content">
+    <div class="tab-pane active" id="login">
+      <h3>Two-Factor Authentication</h3>
+      <p>
+        Your account is protected with two-factor authentication.  To continue
+        with the sign-in you need to provide the access code from your
+        authenticator or a recovery code if you have one.
+      </p>
+      <form class="form-stacked" action="" method="post" autocomplete="off">
+        {% csrf_token %}
+
+        {{ form|as_crispy_errors }}
+
+        {% for field in form %}
+          {{ field|as_crispy_field }}
+        {% endfor %}
+
+        <fieldset class="form-actions">
+          <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+        </fieldset>
+      </form>
+    </div>
+  </div>
+{% endblock %}
