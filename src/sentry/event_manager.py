@@ -618,8 +618,8 @@ class EventManager(object):
         for hash in bad_hashes:
             if hash.group_id:
                 merge_group.delay(
-                    from_group_id=hash.group_id,
-                    to_group_id=group.id,
+                    from_object_id=hash.group_id,
+                    to_object_id=group.id,
                 )
 
         return GroupHash.objects.filter(
