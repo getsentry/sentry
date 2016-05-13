@@ -1,14 +1,18 @@
 from uuid import uuid4
 
+from sentry.utils.locking import Lock
 from sentry.utils.locking.manager import LockManager
-from sentry.utils.redis import load_script
+from sentry.utils import redis
 
 
-delete_lock = load_script('utils/locking/delete_lock.lua')
+delete_lock = redis.load_script('utils/locking/delete_lock.lua')
 
 
 class RedisLockManager(LockManager):
-    def __init__(self, cluster, prefix='l:', uuid=None):
+    def __init__(self, cluster=None, prefix='l:', uuid=None):
+        if cluster is None:
+            cluster = redis.clusters.get('default')
+
         if uuid is None:
             uuid = uuid4().hex
 
@@ -18,6 +22,9 @@ class RedisLockManager(LockManager):
 
     def __prefix_key(self, key):
         return self.prefix + str(key)
+
+    def get(self, *args, **kwargs):
+        return Lock(self, *args, **kwargs)
 
     def acquire(self, key, duration):
         key = self.__prefix_key(key)

@@ -21,7 +21,7 @@ from sentry.db.models import (
     sane_repr
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.utils.cache import Lock
+from sentry.utils.locking.redis import RedisLockManager
 
 
 # TODO(dcramer): pull in enum library
@@ -111,8 +111,11 @@ class Organization(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock_key = 'slug:organization'
-            with Lock(lock_key):
+            lock = RedisLockManager().get(
+                'slug:organization',
+                duration=5,
+            )
+            with lock.acquire():
                 slugify_instance(self, self.name,
                                  reserved=RESERVED_ORGANIZATION_SLUGS)
             super(Organization, self).save(*args, **kwargs)

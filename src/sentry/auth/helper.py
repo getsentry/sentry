@@ -18,7 +18,8 @@ from sentry.models import (
 )
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth
-from sentry.utils.cache import Lock
+from sentry.utils.locking.redis import RedisLockManager
+from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.http import absolute_uri
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
@@ -455,11 +456,14 @@ class AuthHelper(object):
         their account.
         """
         auth_provider = self.auth_provider
-        lock_key = 'sso:auth:{}:{}'.format(
-            auth_provider.id,
-            md5(unicode(identity['id'])).hexdigest(),
+        lock = RedisLockManager().get(
+            'sso:auth:{}:{}'.format(
+                auth_provider.id,
+                md5(unicode(identity['id'])).hexdigest(),
+            ),
+            duration=5,
         )
-        with Lock(lock_key, timeout=5):
+        with TimedRetryPolicy(5)(lock.acquire):
             try:
                 auth_identity = AuthIdentity.objects.get(
                     auth_provider=auth_provider,

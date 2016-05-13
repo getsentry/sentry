@@ -20,7 +20,8 @@ from sentry.db.models import (
     sane_repr
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.utils.cache import Lock
+from sentry.utils.locking.redis import RedisLockManager
+from sentry.utils.http import absolute_uri
 
 
 class TeamManager(BaseManager):
@@ -113,8 +114,8 @@ class Team(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock_key = 'slug:team'
-            with Lock(lock_key):
+            lock = RedisLockManager().get('slug:team', duration=5)
+            with lock.acquire():
                 slugify_instance(self, self.name, organization=self.organization)
             super(Team, self).save(*args, **kwargs)
         else:

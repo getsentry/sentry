@@ -6,15 +6,20 @@ from south.v2 import DataMigration
 from django.db import models
 
 
+
 class Migration(DataMigration):
     def _ensure_blob(self, orm, file):
-        from sentry.utils.cache import Lock
+        from sentry.utils.locking.redis import RedisLockManager
 
         File = orm['sentry.File']
         FileBlob = orm['sentry.FileBlob']
 
-        lock_key = 'fileblob:convert:{}'.format(file.checksum)
-        with Lock(lock_key, timeout=60):
+        lock = RedisLockManager().get(
+            'fileblob:convert:{}'.format(file.checksum),
+            duration=60,
+        )
+
+        with lock.acquire():
             if not file.storage:
                 return
 

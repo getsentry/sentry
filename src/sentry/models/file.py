@@ -21,7 +21,8 @@ from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, Model
 )
 from sentry.utils import metrics
-from sentry.utils.cache import Lock
+from sentry.utils.locking.redis import RedisLockManager
+
 
 ONE_DAY = 60 * 60 * 24
 
@@ -57,10 +58,14 @@ class FileBlob(Model):
             checksum.update(chunk)
         checksum = checksum.hexdigest()
 
-        lock_key = 'fileblob:upload:{}'.format(checksum)
+        lock = RedisLockManager().get(
+           'fileblob:upload:{}'.format(checksum),
+           duration=60 * 10,
+        )
+
         # TODO(dcramer): the database here is safe, but if this lock expires
         # and duplicate files are uploaded then we need to prune one
-        with Lock(lock_key, timeout=600):
+        with lock.acquire():
             # test for presence
             try:
                 existing = FileBlob.objects.get(checksum=checksum)
@@ -90,8 +95,12 @@ class FileBlob(Model):
         return '/'.join(pieces)
 
     def delete(self, *args, **kwargs):
-        lock_key = 'fileblob:upload:{}'.format(self.checksum)
-        with Lock(lock_key, timeout=600):
+        lock = RedisLockManager().get(
+           'fileblob:upload:{}'.format(self.checksum),
+           duration=60 * 10,
+        )
+
+        with lock.acquire():
             if self.path:
                 self.deletefile(commit=False)
             super(FileBlob, self).delete(*args, **kwargs)
