@@ -63,11 +63,13 @@
       {% endfeature %}
     {% endif %}
     {% if ACCESS.org_delete %}
-      <li class="{% block org_apikeys_nav %}{% endblock %}">
-        <a href="{% url 'sentry-organization-api-keys' organization.slug %}">
-          {% trans "API Keys" %}
-        </a>
-      </li>
+      {% feature organizations:api-keys organization %}
+        <li class="{% block org_apikeys_nav %}{% endblock %}">
+          <a href="{% url 'sentry-organization-api-keys' organization.slug %}">
+            {% trans "API Keys" %}
+          </a>
+        </li>
+      {% endfeature %}
     {% endif %}
     {% if ACCESS.org_write %}
       <li><a href="{% absolute_uri '/organizations/{}/audit-log/' organization.slug %}">{% trans "Audit Log" %}</a></li>
