@@ -30,6 +30,13 @@ class AuthenticatorManager(BaseManager):
     def user_has_2fa(self, user):
         return Authenticator.objects.filter(user=user).first() is not None
 
+    def validate_otp(self, user, otp):
+        for auth in self.get_for_user(user):
+            if auth.interface.validate_otp(otp):
+                auth.save()
+                return True
+        return False
+
     def create_totp(self, user):
         return Authenticator.objects.create(
             user=user,
@@ -89,7 +96,7 @@ class RecoveryCodeInterface(AuthenticatorInterface):
     def __init__(self, authenticator):
         AuthenticatorInterface.__init__(self, authenticator)
         self.codes = []
-        h = hmac.new(self.config['secret'], None, hashlib.sha1)
+        h = hmac.new(self.config['salt'], None, hashlib.sha1)
         for x in xrange(10):
             h.update('%s|' % x)
             self.codes.append(base64.b32encode(h.digest())[:8])
@@ -99,6 +106,8 @@ class RecoveryCodeInterface(AuthenticatorInterface):
         code = otp.strip().replace('-', '')
         for idx, ref_code in enumerate(self.codes):
             if code == ref_code:
+                if mask & (1 << idx):
+                    break
                 self.config['used'] = mask | (1 << idx)
                 return True
         return False
@@ -130,7 +139,7 @@ class Authenticator(BaseModel):
     id = BoundedAutoField(primary_key=True)
     user = FlexibleForeignKey('sentry.User', db_index=True)
     created_at = models.DateTimeField(_('created at'), default=timezone.now)
-    last_used_at = models.DateTimeField(_('last used at'))
+    last_used_at = models.DateTimeField(_('last used at'), null=True)
     type = BoundedPositiveIntegerField(choices=AUTHENTICATOR_CHOICES)
     config = UnicodePickledObjectField()
 
@@ -145,3 +154,9 @@ class Authenticator(BaseModel):
     @cached_property
     def interface(self):
         return AUTHENTICATOR_INTERFACES[self.type](self)
+
+    def __repr__(self):
+        return '<Authenticator user=%r interface=%r>' % (
+            self.user.email,
+            self.interface.interface_id,
+        )
