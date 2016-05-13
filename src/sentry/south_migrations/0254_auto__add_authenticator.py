@@ -12,13 +12,10 @@ class Migration(SchemaMigration):
         db.create_table('auth_authenticator', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedAutoField')(primary_key=True)),
             ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=128)),
             ('created_at', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
-            ('last_used_at', self.gf('django.db.models.fields.DateTimeField')()),
-            ('type', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=1)),
+            ('last_used_at', self.gf('django.db.models.fields.DateTimeField')(null=True)),
+            ('type', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
             ('config', self.gf('sentry.db.models.fields.pickle.UnicodePickledObjectField')()),
-            ('recovery_codes_salt', self.gf('django.db.models.fields.CharField')(max_length=32)),
-            ('recovery_codes_mask', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0)),
         ))
         db.send_create_signal('sentry', ['Authenticator'])
 
@@ -70,11 +67,8 @@ class Migration(SchemaMigration):
             'config': ('sentry.db.models.fields.pickle.UnicodePickledObjectField', [], {}),
             'created_at': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'id': ('sentry.db.models.fields.bounded.BoundedAutoField', [], {'primary_key': 'True'}),
-            'last_used_at': ('django.db.models.fields.DateTimeField', [], {}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
-            'recovery_codes_mask': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0'}),
-            'recovery_codes_salt': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
-            'type': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '1'}),
+            'last_used_at': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
+            'type': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']"})
         },
         'sentry.authidentity': {
@@ -105,7 +99,7 @@ class Migration(SchemaMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 5, 19, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 5, 20, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
