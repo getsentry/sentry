@@ -25,6 +25,9 @@ class EventTag(Model):
         app_label = 'sentry'
         db_table = 'sentry_eventtag'
         unique_together = (('event_id', 'key_id', 'value_id'),)
-        index_together = (('project_id', 'key_id', 'value_id'),)
+        index_together = (
+            ('project_id', 'key_id', 'value_id'),
+            ('group_id', 'key_id', 'value_id'),
+        )
 
     __repr__ = sane_repr('event_id', 'key_id', 'value_id')
