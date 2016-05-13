@@ -20,7 +20,8 @@ from django.utils import timezone
 from sudo.decorators import sudo_required
 
 from sentry.models import (
-    LostPasswordHash, Project, ProjectStatus, UserOption
+    LostPasswordHash, Project, ProjectStatus, UserOption, Authenticator,
+    AUTHENTICATOR_INTERFACES
 )
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required
@@ -132,9 +133,36 @@ def settings(request):
     context.update({
         'form': form,
         'page': 'settings',
+        'has_2fa': Authenticator.objects.user_has_2fa(request.user),
         'AUTH_PROVIDERS': get_auth_providers(),
     })
     return render_to_response('sentry/account/settings.html', context, request)
+
+
+@csrf_protect
+@never_cache
+@login_required
+@sudo_required
+@transaction.atomic
+def twofactor_settings(request):
+    missing_authenticators = AUTHENTICATOR_INTERFACES.copy()
+    active_authenticators = Authenticator.objects.get_for_user(request.user)
+    for auth in active_authenticators:
+        missing_authenticators.pop(auth.interface_id, None)
+    missing_authenticators = [{
+        'interface_id': x.interface_id,
+        'name': x.name,
+    } for x in sorted(missing_authenticators.values(),
+                      key=lambda x: (x.type == 0, x.type))]
+
+    context = csrf(request)
+    context.update({
+        'page': 'settings',
+        'has_2fa': len(active_authenticators) > 0,
+        'active_authenticators': active_authenticators,
+        'missing_authenticators': missing_authenticators,
+    })
+    return render_to_response('sentry/account/twofactor.html', context, request)
 
 
 @csrf_protect
