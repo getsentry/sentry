@@ -144,9 +144,6 @@ const GroupHeader = React.createClass({
             </h3>
             <div className="event-message">
               <span className="error-level">{group.level}</span>
-              {group.shortId &&
-                <ShortId shortId={group.shortId} />
-              }
               <span className="message">{this.getMessage()}</span>
               {group.logger &&
                 <span className="event-annotation">
@@ -188,17 +185,11 @@ const GroupHeader = React.createClass({
             </div>
           </div>
         </div>
-        <GroupSeenBy />
-        <GroupActions />
-        {orgFeatures.has('shared-issues') &&
-          <div className="pull-right">
-            <div className="group-privacy">
-              <a onClick={this.onShare}>
-                <span className="icon" /> {t('Share this event')}
-              </a>
-            </div>
-          </div>
+        {group.shortId &&
+          <ShortId shortId={group.shortId} />
         }
+        <GroupActions />
+        <GroupSeenBy />
         <ul className="nav nav-tabs">
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/`} isActive={function (to) {
             let rootGroupPath = `/${orgId}/${projectId}/issues/${groupId}/`;

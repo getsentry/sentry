@@ -25,13 +25,18 @@
   }
 
   .short-id {
-    display: inline;
-    font-weight: bold;
-    font-size: 90%;
-    border-right: 1px solid @trim;
-    padding-right: 8px;
-    margin-right: 8px;
+    display: block;
+    float: right;
+    margin-top: 15px;
     color: @gray;
+
+    &:before {
+      font-family: "sentry-simple";
+      content: "\e90c";
+      padding-right: 5px;
+      color: @gray-lighter;
+      font-size: 13px;
+    }
 
     div {
       display: inline;
