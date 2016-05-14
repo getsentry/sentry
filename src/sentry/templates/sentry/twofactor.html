@@ -14,6 +14,9 @@
         with the sign-in you need to provide the access code from your
         authenticator or a recovery code if you have one.
       </p>
+      {% if activation_message %}
+        <p><em>{{ activation_message }}</em></p>
+      {% endif %}
       <form class="form-stacked" action="" method="post" autocomplete="off">
         {% csrf_token %}
 
@@ -26,6 +29,15 @@
         <fieldset class="form-actions">
           <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
         </fieldset>
+
+        {% if other_interfaces %}
+          <p>Other authentication methods:
+          <ul>
+            {% for interface in other_interfaces %}
+              <li><a href="?interface={{ interface.interface_id }}">{{ interface.name }}</a>
+            {% endfor %}
+          </ul>
+        {% endif %}
       </form>
     </div>
   </div>

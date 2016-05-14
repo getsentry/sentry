@@ -1,3 +1,4 @@
+from django import forms
 from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
@@ -5,6 +6,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
 from django.core.context_processors import csrf
+from django.utils.translation import ugettext_lazy as _
 
 from sudo.decorators import sudo_required
 
@@ -13,6 +15,12 @@ from sentry.web.frontend.base import BaseView
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response
 from sentry.web.forms.accounts import TwoFactorForm
+
+
+class SmsForm(forms.Form):
+    phone_number = forms.CharField(
+        label=_('Phone number'), max_length=40
+    )
 
 
 class TwoFactorSettingsView(BaseView):
@@ -112,7 +120,7 @@ class TotpSettingsView(TwoFactorSettingsView):
     def enroll(self, request, interface, insecure=False):
         totp_secret = request.POST.get('totp_secret')
         if totp_secret is not None:
-            interface.config['secret'] = totp_secret
+            interface.set_secret(totp_secret)
 
         if 'otp' in request.POST:
             form = TwoFactorForm(request.POST)
@@ -129,4 +137,43 @@ class TotpSettingsView(TwoFactorSettingsView):
         context['provision_qrcode'] = interface.get_provision_qrcode(
             request.user.email)
         return render_to_response('sentry/account/twofactor/enroll_totp.html',
+                                  context, request)
+
+
+class SmsSettingsView(TwoFactorSettingsView):
+    interface_id = 'sms'
+    configure_template = 'sentry/account/twofactor/configure_sms.html'
+
+    def enroll(self, request, interface, insecure=False):
+        stage = request.POST.get('stage') or 'initial'
+
+        totp_secret = request.POST.get('totp_secret')
+        if totp_secret is not None:
+            interface.set_secret(totp_secret)
+
+        phone_number = request.POST.get('phone_number')
+        if phone_number is not None:
+            interface.set_phone_number(phone_number)
+
+        sms_form = SmsForm()
+        otp_form = TwoFactorForm()
+
+        if stage == 'pick_number':
+            sms_form = SmsForm(request.POST)
+            if sms_form.is_valid():
+                interface.send_text()
+                stage = 'confirm'
+        elif stage == 'confirm':
+            otp_form = TwoFactorForm(request.POST)
+            if otp_form.is_valid() and interface.validate_otp(
+                    otp_form.cleaned_data['otp']):
+                return TwoFactorSettingsView.enroll(self, request, interface)
+            else:
+                otp_form.errors['__all__'] = ['Invalid confirmation code.']
+
+        context = self.make_context(request, interface)
+        context['sms_form'] = sms_form
+        context['otp_form'] = otp_form
+        context['stage'] = stage
+        return render_to_response('sentry/account/twofactor/enroll_sms.html',
                                   context, request)
