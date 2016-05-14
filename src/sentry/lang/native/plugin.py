@@ -6,6 +6,7 @@ import posixpath
 from sentry.models import Project, EventError
 from sentry.plugins import Plugin2
 from sentry.lang.native.symbolizer import Symbolizer, have_symsynd
+from sentry.models.dsymfile import SDK_MAPPING
 
 
 logger = logging.getLogger(__name__)
@@ -103,6 +104,29 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
     data['sentry.interfaces.Stacktrace'] = stacktrace
 
 
+def inject_apple_device_data(data, system):
+    container = data.setdefault('device', {})
+    try:
+        container['name'] = SDK_MAPPING[system['system_name']]
+    except LookupError:
+        container['name'] = system.get('system_name') or 'Generic Apple'
+
+    if 'system_version' in system:
+        container['version'] = system['system_version']
+    if 'os_version' in system:
+        container['build'] = system['os_version']
+
+    extra = container.setdefault('data', {})
+    if 'cpu_arch' in system:
+        extra['cpu_arch'] = system['cpu_arch']
+    if 'model' in system:
+        extra['device_model_id'] = system['model']
+    if 'machine' in system:
+        extra['device_model'] = system['machine']
+    if 'kernel_version' in system:
+        extra['kernel_version'] = system['kernel_version']
+
+
 def preprocess_apple_crash_event(data):
     crash_report = data.get('sentry.interfaces.AppleCrashReport')
     if crash_report is None:
@@ -139,6 +163,9 @@ def preprocess_apple_crash_event(data):
                 'error': '%s: %s' % (e.__class__.__name__, str(e)),
             })
             return
+
+    if system:
+        inject_apple_device_data(data, system)
 
     return data
 
