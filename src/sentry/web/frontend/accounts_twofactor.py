@@ -71,13 +71,21 @@ class TwoFactorSettingsView(BaseView):
         return render_to_response('sentry/account/twofactor/remove.html',
                                   context, request)
 
-    def enroll(self, request, interface):
-        interface.enroll(request.user)
+    def enroll(self, request, interface, insecure=False):
+        # Only enroll if it's either not an insecure enrollment or we are
+        # enrolling a backup interface when we already had a primary one.
+        if not insecure \
+           or (interface.backup_interface and
+               Authenticator.objects.user_has_2fa(request.user,
+                                                  ignore_backup=True)):
+            interface.enroll(request.user)
         return HttpResponseRedirect(request.path)
 
     def configure(self, request, interface):
-        if 'enroll' in request.POST and not interface.is_enrolled:
-            return self.enroll(request, interface)
+        if 'enroll' in request.POST or \
+           request.GET.get('enroll') == 'yes':
+            return self.enroll(request, interface,
+                               insecure='enroll' not in request.POST)
         context = self.make_context(request, interface)
         return render_to_response(self.configure_template,
                                   context, request)
@@ -91,17 +99,20 @@ class RecoveryCodeSettingsView(TwoFactorSettingsView):
 class TotpSettingsView(TwoFactorSettingsView):
     interface_id = 'totp'
 
-    def enroll(self, request, interface):
+    def enroll(self, request, interface, insecure=False):
         totp_secret = request.POST.get('totp_secret')
         if totp_secret is not None:
             interface.config['secret'] = totp_secret
 
-        form = TwoFactorForm(request.POST)
-        if 'otp' in request.POST and form.is_valid():
-            if interface.validate_otp(form.cleaned_data['otp']):
+        if 'otp' in request.POST:
+            form = TwoFactorForm(request.POST)
+            if form.is_valid() and interface.validate_otp(
+                    form.cleaned_data['otp']):
                 return TwoFactorSettingsView.enroll(self, request, interface)
             else:
                 form.errors['__all__'] = ['Invalid confirmation code.']
+        else:
+            form = TwoFactorForm()
 
         context = self.make_context(request, interface)
         context['otp_form'] = form

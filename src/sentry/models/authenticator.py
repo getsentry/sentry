@@ -38,7 +38,7 @@ class AuthenticatorManager(BaseManager):
         has_authenticators = False
         for authenticator in Authenticator.objects.filter(user=user):
             if authenticator.interface.backup_interface:
-                return True
+                return False
             has_authenticators = True
         return has_authenticators
 
@@ -54,7 +54,12 @@ class AuthenticatorManager(BaseManager):
         except Authenticator.DoesNotExist:
             return interface()
 
-    def user_has_2fa(self, user):
+    def user_has_2fa(self, user, ignore_backup=False):
+        if ignore_backup:
+            for authenticator in Authenticator.objects.filter(user=user):
+                if not authenticator.interface.backup_interface:
+                    return True
+            return False
         return Authenticator.objects.filter(user=user).first() is not None
 
     def validate_otp(self, user, otp):
