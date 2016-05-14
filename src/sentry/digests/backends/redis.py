@@ -10,7 +10,8 @@ from redis.exceptions import ResponseError, WatchError
 
 from sentry.digests import Record, ScheduleEntry
 from sentry.digests.backends.base import Backend, InvalidState
-from sentry.utils.locking.redis import RedisLockManager
+from sentry.utils.locking.manager import LockManager
+from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.redis import (
     check_cluster_versions, get_cluster_from_options, load_script
 )
@@ -110,7 +111,7 @@ class RedisBackend(Backend):
     """
     def __init__(self, **options):
         self.cluster, options = get_cluster_from_options('SENTRY_DIGESTS_OPTIONS', options)
-        self.locks = RedisLockManager(self.cluster)
+        self.locks = LockManager(RedisLockBackend(self.cluster))
 
         self.namespace = options.pop('namespace', 'd')
 

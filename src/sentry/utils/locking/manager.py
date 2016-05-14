@@ -1,6 +1,9 @@
-class LockManager(object):
-    def acquire(self, key, duration):
-        raise NotImplementedError
+from sentry.utils.locking.lock import Lock
 
-    def release(self, key):
-        raise NotImplementedError
+
+class LockManager(object):
+    def __init__(self, backend):
+        self.backend = backend
+
+    def get(self, *args, **kwargs):
+        return Lock(self.backend, *args, **kwargs)

@@ -39,6 +39,8 @@ tsdb = get_instance(settings.SENTRY_TSDB, settings.SENTRY_TSDB_OPTIONS)
 raven = client
 
 
-from sentry.utils.locking.redis import RedisLockManager
+from sentry.utils import redis
+from sentry.utils.locking.manager import LockManager
+from sentry.utils.locking.backends.redis import RedisLockBackend
 
-locks = RedisLockManager()
+locks = LockManager(RedisLockBackend(redis.clusters.get('default')))

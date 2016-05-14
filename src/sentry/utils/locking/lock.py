@@ -7,8 +7,8 @@ logger = logging.getLogger(__name__)
 
 
 class Lock(object):
-    def __init__(self, manager, key, duration):
-        self.manager = manager
+    def __init__(self, backend, key, duration):
+        self.backend = backend
         self.key = key
         self.duration = duration
 
@@ -16,7 +16,7 @@ class Lock(object):
         return '<Lock: {!r}>'.format(self.key)
 
     def acquire(self):
-        self.manager.acquire(self.key, self.duration)
+        self.backend.acquire(self.key, self.duration)
 
         @contextmanager
         def releaser():
@@ -29,6 +29,6 @@ class Lock(object):
 
     def release(self):
         try:
-            self.manager.release(self.key)
+            self.backend.release(self.key)
         except Exception as error:
-            logger.warning('Failed to release lock (%r) due to error: %s', self, error, exc_info=True)
+            logger.warning('Failed to release %r due to error: %r', self, error, exc_info=True)
