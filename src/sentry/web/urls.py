@@ -13,7 +13,7 @@ from django.http import HttpResponse
 from django.views.generic import RedirectView
 
 from sentry.web import api
-from sentry.web.frontend import accounts, admin, generic
+from sentry.web.frontend import accounts, admin, generic, accounts_twofactor
 from sentry.web.frontend.accept_organization_invite import \
     AcceptOrganizationInviteView
 from sentry.web.frontend.admin_queue import AdminQueueView
@@ -188,6 +188,12 @@ urlpatterns += patterns(
         name='sentry-account-settings'),
     url(r'^account/settings/2fa/$', accounts.twofactor_settings,
         name='sentry-account-settings-2fa'),
+    url(r'^account/settings/2fa/recovery/$',
+        accounts_twofactor.RecoveryCodeSettingsView.as_view(),
+        name='sentry-account-settings-2fa-recovery'),
+    url(r'^account/settings/2fa/totp/$',
+        accounts_twofactor.TotpSettingsView.as_view(),
+        name='sentry-account-settings-2fa-totp'),
     url(r'^account/settings/avatar/$', accounts.avatar_settings,
         name='sentry-account-settings-avatar'),
     url(r'^account/settings/appearance/$', accounts.appearance_settings,

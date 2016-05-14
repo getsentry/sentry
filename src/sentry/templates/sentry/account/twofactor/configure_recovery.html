@@ -1,0 +1,14 @@
+{% extends "sentry/account/twofactor/configure.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block twofactor_info %}
+  {{ block.super }}
+
+  {% if auth.is_enrolled %}
+  <h4>Unused Codes</h4>
+  <pre>{% for code in auth.get_unused_codes %}{{ code }}
+{% endfor %}</pre>
+  {% endif %}
+{% endblock %}
