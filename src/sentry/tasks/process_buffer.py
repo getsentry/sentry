@@ -9,7 +9,6 @@ sentry.tasks.process_buffer
 from __future__ import absolute_import
 
 from sentry.tasks.base import instrumented_task
-from sentry.utils.locking.redis import RedisLockManager
 
 
 @instrumented_task(
@@ -19,7 +18,7 @@ def process_pending():
     Process pending buffers.
     """
     from sentry import app
-    lock = RedisLockManager().get('buffer:process_pending', duration=60)
+    lock = app.locks.get('buffer:process_pending', duration=60)
     with lock.acquire():
         app.buffer.process_pending()
 

@@ -37,3 +37,8 @@ ratelimiter = get_instance(
 search = get_instance(settings.SENTRY_SEARCH, settings.SENTRY_SEARCH_OPTIONS)
 tsdb = get_instance(settings.SENTRY_TSDB, settings.SENTRY_TSDB_OPTIONS)
 raven = client
+
+
+from sentry.utils.locking.redis import RedisLockManager
+
+locks = RedisLockManager()

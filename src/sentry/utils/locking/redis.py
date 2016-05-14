@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from sentry.utils.locking import Lock
+from sentry.utils.locking.lock import Lock
 from sentry.utils.locking.manager import LockManager
 from sentry.utils import redis
 

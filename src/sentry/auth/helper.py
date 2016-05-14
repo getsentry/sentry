@@ -12,13 +12,13 @@ from django.utils.translation import ugettext_lazy as _
 from hashlib import md5
 from uuid import uuid4
 
+from sentry.app import locks
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
     OrganizationMember, OrganizationMemberTeam, User
 )
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth
-from sentry.utils.locking.redis import RedisLockManager
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.http import absolute_uri
 from sentry.web.forms.accounts import AuthenticationForm
@@ -456,7 +456,7 @@ class AuthHelper(object):
         their account.
         """
         auth_provider = self.auth_provider
-        lock = RedisLockManager().get(
+        lock = locks.get(
             'sso:auth:{}:{}'.format(
                 auth_provider.id,
                 md5(unicode(identity['id'])).hexdigest(),

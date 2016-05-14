@@ -14,13 +14,12 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.app import env
+from sentry.app import env, locks
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.utils.locking.redis import RedisLockManager
 from sentry.utils.http import absolute_uri
 
 
@@ -114,7 +113,7 @@ class Team(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = RedisLockManager().get('slug:team', duration=5)
+            lock = locks.get('slug:team', duration=5)
             with lock.acquire():
                 slugify_instance(self, self.name, organization=self.organization)
             super(Team, self).save(*args, **kwargs)

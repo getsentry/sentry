@@ -17,12 +17,12 @@ from django.db.models import F
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.app import locks
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.utils.locking.redis import RedisLockManager
 from sentry.utils.http import absolute_uri
 from sentry.utils.colors import get_hashed_color
 
@@ -110,10 +110,7 @@ class Project(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = RedisLockManager().get(
-                'slug:project',
-                duration=5,
-            )
+            lock = locks.get('slug:project', duration=5)
             with lock.acquire():
                 slugify_instance(self, self.name, organization=self.organization)
             super(Project, self).save(*args, **kwargs)

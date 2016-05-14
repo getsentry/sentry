@@ -110,7 +110,7 @@ class RedisBackend(Backend):
     """
     def __init__(self, **options):
         self.cluster, options = get_cluster_from_options('SENTRY_DIGESTS_OPTIONS', options)
-        self.__lock_manager = RedisLockManager(self.cluster)
+        self.locks = RedisLockManager(self.cluster)
 
         self.namespace = options.pop('namespace', 'd')
 
@@ -192,7 +192,7 @@ class RedisBackend(Backend):
     def __schedule_partition(self, host, deadline, chunk):
         connection = self.cluster.get_local_client(host)
 
-        lock = self.__lock_manager.get('{0}:s:{1}'.format(self.namespace, host), duration=30)
+        lock = self.locks.get('{0}:s:{1}'.format(self.namespace, host), duration=30)
         with lock.acquire():
             # Prevent a runaway loop by setting a maximum number of
             # iterations. Note that this limits the total number of
@@ -283,7 +283,7 @@ class RedisBackend(Backend):
                 returning ``None``.
                 """
                 key, timestamp = item
-                lock = self.__lock_manager.get(make_timeline_key(self.namespace, key), duration=5)
+                lock = self.locks.get(make_timeline_key(self.namespace, key), duration=5)
                 try:
                     lock.acquire()
                 except Exception:
@@ -403,7 +403,7 @@ class RedisBackend(Backend):
 
         connection = self.cluster.get_local_client_for_key(timeline_key)
 
-        lock = self.__lock_manager.get(timeline_key, duration=30)
+        lock = self.locks.get(timeline_key, duration=30)
         with lock.acquire():
             # Check to ensure the timeline is in the correct state ("ready")
             # before sending. This acts as a throttling mechanism to prevent
@@ -503,7 +503,7 @@ class RedisBackend(Backend):
 
         connection = self.cluster.get_local_client_for_key(timeline_key)
 
-        lock = self.__lock_manager.get(timeline_key, duration=30)
+        lock = self.locks.get(timeline_key, duration=30)
         with lock.acquire(), connection.pipeline() as pipeline:
             truncate_timeline(pipeline, (timeline_key,), (0, timeline_key))
             truncate_timeline(pipeline, (make_digest_key(timeline_key),), (0, timeline_key))
