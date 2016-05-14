@@ -67,7 +67,17 @@ class TwoFactorSettingsView(BaseView):
         elif 'yes' in request.POST:
             self.delete_authenticator(interface)
             return HttpResponseRedirect(reverse('sentry-account-settings-2fa'))
+
+        all_interfaces = Authenticator.objects.all_interfaces_for_user(
+            request.user)
+        other_interfaces = [x for x in all_interfaces
+                            if x.interface_id != interface.interface_id]
+        backup_interfaces = [x for x in other_interfaces if x.backup_interface]
+        removes_backups = backup_interfaces and \
+            len(backup_interfaces) == len(other_interfaces)
+
         context = self.make_context(request, interface)
+        context['removes_backups'] = removes_backups
         return render_to_response('sentry/account/twofactor/remove.html',
                                   context, request)
 

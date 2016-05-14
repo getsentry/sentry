@@ -4,12 +4,21 @@
 {% load sentry_helpers %}
 
 {% block twofactor_title %}{% trans "Remove Method:" %} {{ auth.name }}{% endblock %}
+{% block twofactor_backup_warning %}{% endblock %}
 {% block twofactor_body %}
   <p>
     Do you want to remove the method?  You will no longer be able to
     use it for two-factor authentication afterwards.  Removing the last
     authenticator removes two-factor authentication.
   </p>
+
+  {% if removes_backups %}
+  <p>
+    Removing this authentication method will also automatically remove
+    backup methods such as recovery codes and disable two-factor
+    authentication.
+  </p>
+  {% endif %}
 
   <form action="" method="post" class="form-stacked">
     {% csrf_token %}
