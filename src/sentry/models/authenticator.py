@@ -76,6 +76,7 @@ class AuthenticatorInterface(object):
     interface_id = None
     name = None
     description = None
+    backup_interface = False
     enroll_button = _('Enroll')
     configure_button = _('Configure')
     remove_button = _('Remove')
@@ -125,6 +126,7 @@ class RecoveryCodeInterface(AuthenticatorInterface):
                     'receive two-factor authentication codes.')
     enroll_button = _('Activate')
     configure_button = _('View Codes')
+    backup_interface = True
 
     def __init__(self, authenticator=None):
         AuthenticatorInterface.__init__(self, authenticator)

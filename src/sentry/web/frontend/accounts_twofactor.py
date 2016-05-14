@@ -37,12 +37,33 @@ class TwoFactorSettingsView(BaseView):
         context['page'] = 'settings'
         return context
 
+    def delete_authenticator(self, interface):
+        if interface.authenticator is None:
+            return
+
+        user = interface.authenticator.user
+        interface.authenticator.delete()
+
+        # If this was an authenticator that was a backup interface we just
+        # deleted, then nothing happens.
+        if interface.backup_interface:
+            return
+
+        # If however if we delete an actual authenticator and all that
+        # remainds are backup interfaces, then we kill them in the
+        # process.
+        interfaces = Authenticator.objects.all_interfaces_for_user(user)
+        backup_interfaces = [x for x in interfaces if x.backup_interface]
+        if len(backup_interfaces) == len(interfaces):
+            for iface in backup_interfaces:
+                iface.authenticator.delete()
+
     def remove(self, request, interface):
         if 'no' in request.POST or \
            not interface.is_enrolled:
             return HttpResponseRedirect(reverse('sentry-account-settings-2fa'))
         elif 'yes' in request.POST:
-            interface.authenticator.delete()
+            self.delete_authenticator(interface)
             return HttpResponseRedirect(reverse('sentry-account-settings-2fa'))
         context = self.make_context(request, interface)
         return render_to_response('sentry/account/twofactor/remove.html',
