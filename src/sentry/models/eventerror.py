@@ -18,6 +18,9 @@ class EventError(object):
     JS_INVALID_SOURCE_ENCODING = 'js_invalid_source_encoding'
     JS_INVALID_SOURCEMAP_LOCATION = 'js_invalid_sourcemap_location'
 
+    NATIVE_NO_CRASHED_THREAD = 'native_no_crashed_thread'
+    NATIVE_INTERNAL_FAILURE = 'native_internal_failure'
+
     _messages = {
         INVALID_DATA: 'Discarded invalid value for parameter \'{name}\'',
         INVALID_ATTRIBUTE: 'Discarded invalid parameter \'{name}\'',
@@ -33,8 +36,13 @@ class EventError(object):
         JS_TOO_MANY_REMOTE_SOURCES: 'The maximum number of remote source requests was made',
         JS_INVALID_SOURCE_ENCODING: 'Source file was not \'{value}\' encoding: {url}',
         JS_INVALID_SOURCEMAP_LOCATION: 'Invalid location in sourcemap: ({column}, {row})',
+        NATIVE_NO_CRASHED_THREAD: 'No crashed thread found in crash report',
+        NATIVE_INTERNAL_FAILURE: 'Internal failure when attempting to symbolicate: {error}',
     }
 
     @classmethod
     def get_message(cls, data):
         return cls._messages[data['type']].format(**data)
+
+    def to_dict(self):
+        return {k: v for k, v in self.iteritems() if k != 'type'}
