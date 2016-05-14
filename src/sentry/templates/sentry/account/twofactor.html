@@ -1,41 +1,51 @@
 {% extends "sentry/bases/account.html" %}
 
-{% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
 
 {% block title %}{% trans "Two-Factor Authentication Settings" %} | {{ block.super }}{% endblock %}
 
 {% block main %}
-    <form action="" method="post">
-        {% csrf_token %}
-        <legend style="margin-top: 0;">{% trans "Two-Factor Authentication" %}</legend>
+  <legend style="margin-top: 0;">{% trans "Two-Factor Authentication" %}</legend>
 
-        <div class="account-settings-overview">
-          <p>
-            Two-factor authentication improves your security by requiring an authentication
-            code in addition to your password.
-            {% if has_2fa %}
-              <strong>2FA is currently enabled</strong>.
-            {% else %}
-              <strong>2FA is currently disabled</strong>.
-            {% endif %}
-          </p>
-          {% for auth in active_authenticators %}
-            <h4>{{ auth.name }}</h4>
-            <p>{{ auth.description }}</p>
-            <p><button type="submit" class="btn btn-default">{% trans "Remove" %}</button></p>
-          {% endfor %}
-          {% if missing_authenticators %}
-            <ul>
-              {% for auth in missing_authenticators %}
-                <li><button class="btn btn-primary btn-sm" name="add_{{ auth.interface_id }}">Add {{ auth.name }}</button></li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-        </div>
-        <fieldset class="form-actions">
-            <button type="submit" name="back" class="btn btn-default">{% trans "Back" %}</button>
-        </fieldset>
-    </form>
+  <p>
+    Two-factor authentication improves your security by requiring an authentication
+    code in addition to your password.
+    {% if has_2fa %}
+      <strong>2FA is currently enabled</strong>.
+    {% else %}
+      <strong>2FA is currently disabled</strong>.
+    {% endif %}
+  </p>
+  {% for auth in active_authenticators %}
+    <div class="well">
+      <h4>{{ auth.name }}</h4>
+      <p>{{ auth.description }}</p>
+      {% if auth.configure_button %}
+        <a href="{{ auth.interface_id }}/" class="btn btn-default btn-sm">{{ auth.configure_button }}</a>
+      {% endif %}
+      {% if auth.remove_button %}
+        <form action="{{ auth.interface_id }}/" method="post" style="display: inline">
+          {% csrf_token %}
+          <button type="submit" name="remove"
+            class="btn btn-default btn-sm">{{ auth.remove_button }}</button>
+        </form>
+      {% endif %}
+    </div>
+  {% endfor %}
+  {% if missing_authenticators %}
+    <p>Add more methods:</p>
+    <ul>
+      {% for auth in missing_authenticators %}
+        <li><a href="{{ auth.interface_id }}/" class="btn btn-primary btn-sm">{{ auth.name }}</a></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <form action="" method="post" class="form-stacked">
+    {% csrf_token %}
+    <fieldset class="form-actions">
+      <button type="submit" name="back" class="btn btn-default">{% trans "Back" %}</button>
+    </fieldset>
+  </form>
 {% endblock %}

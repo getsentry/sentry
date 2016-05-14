@@ -56,33 +56,6 @@ def _get_ts(ts):
     return int(ts)
 
 
-class _OTPQR(object):
-
-    def __init__(self, qr):
-        self._qr = qr
-        self._matrix = qr.get_matrix()
-
-    def __iter__(self):
-        return iter(self._matrix)
-
-    def __getitem__(self, item):
-        if isinstance(item, tuple):
-            x, y = item
-            return self._matrix[y][x]
-        return self._matrix[item]
-
-    def as_html_table(self, class_='qrcode'):
-        rows = []
-        for row in self:
-            rows.append('<tr>%s</tr>' % ''.join(
-                '<td class="%s"></td>' % (x and 'filled' or 'empty')
-                for x in row))
-        return '<table class="%s">%s</table>' % (
-            class_,
-            '\n'.join(rows),
-        )
-
-
 class TOTP(object):
 
     def __init__(self, secret=None, digits=6, interval=30):
@@ -130,6 +103,6 @@ class TOTP(object):
         return rv
 
     def get_provision_qrcode(self, user, issuer=None):
-        qr = qrcode.QRCode()
-        qr.make(self.get_provision_url(user, issuer=issuer))
-        return _OTPQR(qr)
+        qr = qrcode.QRCode(border=0)
+        qr.add_data(self.get_provision_url(user, issuer=issuer))
+        return qr.get_matrix()
