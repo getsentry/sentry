@@ -34,6 +34,14 @@ class AuthenticatorManager(BaseManager):
             rvm.pop(iface.interface_id, None)
         return _sort(rv), _sort([x() for x in rvm.values()])
 
+    def is_missing_backup_interfaces(self, user):
+        has_authenticators = False
+        for authenticator in Authenticator.objects.filter(user=user):
+            if authenticator.interface.backup_interface:
+                return True
+            has_authenticators = True
+        return has_authenticators
+
     def get_interface(self, user, interface_id):
         interface = AUTHENTICATOR_INTERFACES.get(interface_id)
         if interface is None:

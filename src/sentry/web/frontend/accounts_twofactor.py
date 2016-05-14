@@ -35,6 +35,8 @@ class TwoFactorSettingsView(BaseView):
         context = csrf(request)
         context['auth'] = interface
         context['page'] = 'settings'
+        context['is_missing_backup_interfaces'] = \
+            Authenticator.objects.is_missing_backup_interfaces(request.user)
         return context
 
     def delete_authenticator(self, interface):
