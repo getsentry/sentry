@@ -9,14 +9,17 @@ from __future__ import absolute_import
 
 import os
 import hmac
+import urllib
 import base64
 import hashlib
+import requests
 
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
+from sentry import options
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, \
     FlexibleForeignKey, BoundedPositiveIntegerField, UnicodePickledObjectField
 from sentry.utils.otp import generate_secret_key, TOTP
@@ -105,6 +108,11 @@ class AuthenticatorInterface(object):
         return self.authenticator is not None
 
     @property
+    def requires_otp_flow_activation(self):
+        return self.on_otp_flow_activation.im_func is not \
+            AuthenticatorInterface.on_otp_flow_activation.im_func
+
+    @property
     def config(self):
         if self.authenticator is not None:
             return self.authenticator.config
@@ -115,6 +123,9 @@ class AuthenticatorInterface(object):
 
     def generate_new_config(self):
         return {}
+
+    def on_otp_flow_activation(self, request):
+        pass
 
     def enroll(self, user):
         if self.authenticator is not None:
@@ -194,12 +205,67 @@ class TotpInterface(AuthenticatorInterface):
             'secret': generate_secret_key(),
         }
 
+    def set_secret(self, secret):
+        self.config['secret'] = secret
+
     def validate_otp(self, otp):
+        otp = otp.strip().replace('-', '').replace(' ', '')
         return TOTP(self.config['secret']).verify(otp)
 
     def get_provision_qrcode(self, user, issuer=None):
         return TOTP(self.config['secret']).get_provision_qrcode(
             user, issuer=issuer)
+
+
+@register_authenticator
+class SmsInterface(TotpInterface):
+    type = 2
+    interface_id = 'sms'
+    name = _('Text Message')
+    description = _('This authenticator sends you text messages for '
+                    'verification.  It\'s useful as a backup method '
+                    'or when you do not have a phone that supports '
+                    'an authenticator application.')
+
+    def generate_new_config(self):
+        return {
+            'secret': generate_secret_key(),
+            'phone_number': None
+        }
+
+    def set_secret(self, secret):
+        self.config['secret'] = secret
+
+    def set_phone_number(self, number):
+        self.config['phone_number'] = number
+
+    def make_totp(self):
+        return TOTP(self.config['secret'], digits=4, interval=60)
+
+    def validate_otp(self, otp):
+        return self.make_totp().verify(otp)
+
+    def on_otp_flow_activation(self, request):
+        self.send_text()
+        return _('A confirmation code was sent to your phone.')
+
+    def send_text(self):
+        code = self.make_totp().generate_otp()
+        number = self.config['phone_number']
+        if number is None:
+            raise RuntimeError('No phone number set')
+        account = options.get('2fa.twilio_account')
+        if account[:2] != 'AC':
+            account = 'AC' + account
+        url = 'https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json' % \
+            urllib.quote(account)
+        body = 'Your Sentry authentication code is %s.' % code
+        requests.post(url, auth=(account,
+                                 options.get('2fa.twilio_token')), data={
+            'To': number,
+            'From': options.get('2fa.twilio_number'),
+            'Body': body,
+        }).raise_for_status()
 
 
 class Authenticator(BaseModel):

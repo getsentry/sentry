@@ -62,3 +62,8 @@ register('mail.list-namespace', type=String, default='localhost', flags=FLAG_NOS
 register('mail.enable-replies', default=False, flags=FLAG_PRIORITIZE_DISK)
 register('mail.reply-hostname', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('mail.mailgun-api-key', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+
+# 2FA
+register('2fa.twilio_account', default='', flags=FLAG_ALLOW_EMPTY)
+register('2fa.twilio_token', default='', flags=FLAG_ALLOW_EMPTY)
+register('2fa.twilio_number', default='', flags=FLAG_ALLOW_EMPTY)
