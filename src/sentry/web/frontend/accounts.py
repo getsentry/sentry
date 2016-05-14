@@ -156,6 +156,8 @@ def twofactor_settings(request):
         'has_2fa': len(active) > 0,
         'active_authenticators': active,
         'missing_authenticators': missing,
+        'is_missing_backup_interfaces':
+            Authenticator.objects.is_missing_backup_interfaces(request.user)
     })
     return render_to_response('sentry/account/twofactor.html', context, request)
 

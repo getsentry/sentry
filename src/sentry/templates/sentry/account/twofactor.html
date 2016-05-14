@@ -1,13 +1,12 @@
-{% extends "sentry/bases/account.html" %}
+{% extends "sentry/bases/twofactor_settings.html" %}
 
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block title %}{% trans "Two-Factor Authentication Settings" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Two-Factor Authentication" %} | {{ block.super }}{% endblock %}
 
-{% block main %}
-  <legend style="margin-top: 0;">{% trans "Two-Factor Authentication" %}</legend>
-
+{% block twofactor_title %}{% trans "Two-Factor Authentication" %}{% endblock %}
+{% block twofactor_body %}
   <p>
     Two-factor authentication improves your security by requiring an authentication
     code in addition to your password.
