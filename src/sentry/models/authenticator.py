@@ -123,6 +123,7 @@ class AuthenticatorInterface(object):
     enroll_button = _('Enroll')
     configure_button = _('Configure')
     remove_button = _('Remove')
+    is_available = True
 
     def __init__(self, authenticator=None):
         if authenticator is None:
