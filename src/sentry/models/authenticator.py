@@ -322,7 +322,7 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
                  'can try again later or sign in with a different method.')
 
     def send_text(self):
-        code = self.make_totp().generate_otp()
+        code = self.make_otp().generate_otp()
         return send_sms('Your Sentry authentication code is %s.' % code,
                         to=self.phone_number)
 
