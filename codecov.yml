@@ -9,3 +9,5 @@ coverage:
   ignore:
   - src/sentry/lint/.*
   - src/sentry/.*?/migrations/*
+
+comment: false
