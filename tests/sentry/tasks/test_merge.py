@@ -24,12 +24,12 @@ class MergeGroupTest(TestCase):
         event1 = Event.objects.get(id=event1.id)
         assert event1.group_id == group2.id
         Event.objects.bind_nodes([event1], 'data')
-        assert event1.data == {'foo': 'bar'}
+        assert event1.data['foo'] == 'bar'
 
         event2 = Event.objects.get(id=event2.id)
         assert event2.group_id == group2.id
         Event.objects.bind_nodes([event2], 'data')
-        assert event2.data == {'foo': 'baz'}
+        assert event2.data['foo'] == 'baz'
 
     def test_merge_creates_redirect(self):
         groups = [self.create_group() for _ in xrange(0, 3)]
