@@ -32,7 +32,7 @@
       {% endfor %}
 
       <input type="hidden" name="enroll">
-      <input type="hidden" name="totp_secret" value="{{ auth.config.secret }}">
+      <input type="hidden" name="totp_secret" value="{{ auth.secret }}">
       <div>
         <a href="{% url 'sentry-account-settings-2fa-totp' %}" class="btn btn-default">{% trans "Cancel" %}</a>
         <button type="submit" class="btn btn-primary">{% trans "Confirm" %}</button> 

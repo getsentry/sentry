@@ -20,9 +20,9 @@
         {{ field|as_crispy_field }}
       {% endfor %}
     {% elif stage == 'confirm' %}
-      <p>Sent confirmation code to <strong>{{ auth.config.phone_number }}</strong>:</p>
+      <p>Sent confirmation code to <strong>{{ auth.phone_number }}</strong>:</p>
       <input type="hidden" name="stage" value="confirm">
-      <input type="hidden" name="phone_number" value="{{ auth.config.phone_number }}">
+      <input type="hidden" name="phone_number" value="{{ auth.phone_number }}">
       {{ otp_form|as_crispy_errors }}
       {% for field in otp_form %}
         {{ field|as_crispy_field }}
@@ -34,10 +34,10 @@
       {% csrf_token %}
 
       <input type="hidden" name="enroll">
-      <input type="hidden" name="totp_secret" value="{{ auth.config.secret }}">
+      <input type="hidden" name="totp_secret" value="{{ auth.secret }}">
       <div>
         <a href="{% url 'sentry-account-settings-2fa-totp' %}" class="btn btn-default">{% trans "Cancel" %}</a>
-        {% if not auth.config.phone_number %}
+        {% if not auth.phone_number %}
         <button type="submit" class="btn btn-primary">{% trans "Send Confirmation Code" %}</button> 
         {% else %}
         <button type="submit" class="btn btn-primary">{% trans "Confirm" %}</button> 

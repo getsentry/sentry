@@ -7,6 +7,6 @@
   {{ block.super }}
 
   {% if auth.is_enrolled %}
-  <p>Confirmation codes are sent to the following phone: <strong>{{ auth.config.phone_number }}</strong></p>
+  <p>Confirmation codes are sent to the following phone: <strong>{{ auth.phone_number }}</strong></p>
   {% endif %}
 {% endblock %}
