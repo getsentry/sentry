@@ -32,8 +32,7 @@ class TwoFactorAuthView(BaseView):
         for idx, interface in enumerate(all):
             if interface.interface_id == selected.interface_id:
                 continue
-            if idx == 0 or \
-               interface.requires_otp_flow_activation:
+            if idx == 0 or interface.requires_activation:
                 rv.append(interface)
         return rv
 
@@ -51,7 +50,7 @@ class TwoFactorAuthView(BaseView):
 
         interface = self.negotiate_interface(request, interfaces)
         if request.method == 'GET':
-            activation_message = interface.on_otp_flow_activation(request)
+            activation_message = interface.activate(request)
 
         otp = request.POST.get('otp')
         if otp:

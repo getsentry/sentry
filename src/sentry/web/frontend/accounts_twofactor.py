@@ -1,6 +1,6 @@
 from django import forms
 from django.db import transaction
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, Http404
 from django.core.urlresolvers import reverse
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.cache import never_cache
@@ -33,8 +33,11 @@ class TwoFactorSettingsView(BaseView):
     @method_decorator(sudo_required)
     @method_decorator(transaction.atomic)
     def handle(self, request):
-        interface = Authenticator.objects.get_interface(
-            request.user, self.interface_id)
+        try:
+            interface = Authenticator.objects.get_interface(
+                request.user, self.interface_id)
+        except LookupError:
+            raise Http404
         if 'remove' in request.POST:
             return self.remove(request, interface)
         return self.configure(request, interface)
@@ -120,7 +123,7 @@ class TotpSettingsView(TwoFactorSettingsView):
     def enroll(self, request, interface, insecure=False):
         totp_secret = request.POST.get('totp_secret')
         if totp_secret is not None:
-            interface.set_secret(totp_secret)
+            interface.secret = totp_secret
 
         if 'otp' in request.POST:
             form = TwoFactorForm(request.POST)
@@ -149,11 +152,11 @@ class SmsSettingsView(TwoFactorSettingsView):
 
         totp_secret = request.POST.get('totp_secret')
         if totp_secret is not None:
-            interface.set_secret(totp_secret)
+            interface.secret = totp_secret
 
         phone_number = request.POST.get('phone_number')
         if phone_number is not None:
-            interface.set_phone_number(phone_number)
+            interface.phone_number = phone_number
 
         sms_form = SmsForm()
         otp_form = TwoFactorForm()
