@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import time
+
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 
@@ -56,6 +58,10 @@ class TwoFactorAuthView(BaseView):
         if otp:
             if Authenticator.objects.validate_otp(user, otp):
                 return self.perform_signin(request, user)
+            else:
+                # Ladies and gentlemen: he world's shittiest bruteforce
+                # prevention.
+                time.sleep(2.0)
 
         form = TwoFactorForm()
         return render_to_response('sentry/twofactor.html', {
