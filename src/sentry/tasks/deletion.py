@@ -91,11 +91,12 @@ def delete_team(object_id, continuous=True, **kwargs):
 @retry(exclude=(DeleteAborted,))
 def delete_project(object_id, continuous=True, **kwargs):
     from sentry.models import (
-        Activity, EventMapping, Group, GroupAssignee, GroupBookmark,
+        Activity, EventMapping, EventUser, Group, GroupAssignee, GroupBookmark,
         GroupEmailThread, GroupHash, GroupMeta, GroupResolution,
         GroupRuleStatus, GroupSeen, GroupSnooze, GroupTagKey, GroupTagValue,
         Project, ProjectBookmark, ProjectKey, ProjectStatus, Release,
-        ReleaseFile, SavedSearchUserDefault, SavedSearch, TagKey, TagValue, UserReport
+        ReleaseFile, SavedSearchUserDefault, SavedSearch, TagKey, TagValue,
+        UserReport
     )
 
     try:
@@ -114,10 +115,10 @@ def delete_project(object_id, continuous=True, **kwargs):
     ProjectKey.objects.filter(project_id=object_id).delete()
 
     model_list = (
-        Activity, EventMapping, GroupAssignee, GroupBookmark, GroupEmailThread,
-        GroupHash, GroupSeen, GroupRuleStatus, GroupTagKey,
-        GroupTagValue, ProjectBookmark, ProjectKey, TagKey, TagValue,
-        SavedSearchUserDefault, SavedSearch, UserReport
+        Activity, EventMapping, EventUser, GroupAssignee, GroupBookmark,
+        GroupEmailThread, GroupHash, GroupSeen, GroupRuleStatus,
+        GroupTagKey, GroupTagValue, ProjectBookmark, ProjectKey, TagKey,
+        TagValue, SavedSearchUserDefault, SavedSearch, UserReport
     )
     for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, logger=logger)
