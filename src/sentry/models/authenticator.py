@@ -121,7 +121,7 @@ class AuthenticatorInterface(object):
     description = None
     backup_interface = False
     enroll_button = _('Enroll')
-    configure_button = _('Configure')
+    configure_button = _('Info')
     remove_button = _('Remove')
     is_available = True
 
@@ -293,6 +293,7 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
                     'verification.  It\'s useful as a backup method '
                     'or when you do not have a phone that supports '
                     'an authenticator application.')
+    code_ttl = 45
 
     @property
     def is_available(self):
@@ -304,7 +305,8 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
         return config
 
     def make_otp(self):
-        return TOTP(self.config['secret'], digits=4, interval=60)
+        return TOTP(self.config['secret'], digits=6, interval=self.code_ttl,
+                    default_window=1)
 
     def _get_phone_number(self):
         return self.config['phone_number']
@@ -316,15 +318,27 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
     del _get_phone_number, _set_phone_number
 
     def activate(self, request):
-        if self.send_text():
-            return _('A confirmation code was sent to your phone.')
-        return _('Error: we failed to send a text message to you.  You '
+        if self.send_text(request=request):
+            return _('A confirmation code was sent to your phone. '
+                     'It is valid for %d seconds.') % self.code_ttl
+        return _('Error: we failed to send a text message to you. You '
                  'can try again later or sign in with a different method.')
 
-    def send_text(self):
-        code = self.make_otp().generate_otp()
-        return send_sms('Your Sentry authentication code is %s.' % code,
-                        to=self.phone_number)
+    def send_text(self, for_enrollment=False, request=None):
+        ctx = {'code': self.make_otp().generate_otp()}
+
+        if for_enrollment:
+            text = _('You are about to set up two-factor authentication '
+                     'through text messages. Your confirmation code is '
+                     '%(code)s.')
+        else:
+            text = _('Your Sentry authentication code is %(code)s.')
+
+        if request is not None:
+            text = u'%s\n\n%s' % (text, _('Requested from %(ip)s'))
+            ctx['ip'] = request.META['REMOTE_ADDR']
+
+        return send_sms(text % ctx, to=self.phone_number)
 
 
 class Authenticator(BaseModel):

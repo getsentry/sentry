@@ -164,7 +164,7 @@ class SmsSettingsView(TwoFactorSettingsView):
         if stage == 'pick_number':
             sms_form = SmsForm(request.POST)
             if sms_form.is_valid():
-                interface.send_text()
+                interface.send_text(for_enrollment=True, request=request)
                 stage = 'confirm'
         elif stage == 'confirm':
             otp_form = TwoFactorForm(request.POST)
