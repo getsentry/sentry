@@ -58,7 +58,8 @@ def _get_ts(ts):
 
 class TOTP(object):
 
-    def __init__(self, secret=None, digits=6, interval=30):
+    def __init__(self, secret=None, digits=6, interval=30,
+                 default_window=2):
         if secret is None:
             secret = generate_secret_key()
         if len(secret) % 8 != 0:
@@ -66,6 +67,7 @@ class TOTP(object):
         self.secret = secret
         self.digits = digits
         self.interval = interval
+        self.default_window = default_window
 
     def generate_otp(self, ts=None, offset=0):
         ts = _get_ts(ts)
@@ -81,8 +83,10 @@ class TOTP(object):
         str_code = str(code % 10 ** self.digits)
         return ('0' * (self.digits - len(str_code))) + str_code
 
-    def verify(self, otp, ts=None, window=2):
+    def verify(self, otp, ts=None, window=None):
         ts = _get_ts(ts)
+        if window is None:
+            window = self.default_window
         for i in xrange(-window, window + 1):
             if constant_time_compare(otp, self.generate_otp(ts, i)):
                 return True
