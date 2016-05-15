@@ -16,7 +16,7 @@ from exam import fixture
 from uuid import uuid4
 
 from sentry.models import (
-    Activity, Event, Group, Organization, OrganizationMember,
+    Activity, Event, EventError, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User
 )
 from sentry.utils.compat import pickle
@@ -168,6 +168,11 @@ class Fixtures(object):
             if isinstance(tags, dict):
                 tags = tags.items()
             kwargs['data']['tags'] = tags
+
+        kwargs['data'].setdefault('errors', [{
+            'type': EventError.INVALID_DATA,
+            'name': 'foobar',
+        }])
 
         event = Event(
             event_id=event_id,
