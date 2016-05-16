@@ -55,8 +55,7 @@ def _get_implied_category(category, type):
 
 class Breadcrumbs(Interface):
     """
-    This interface stores informationt that leads up to an error in the
-    database.
+    This interface stores information that leads up to an error.
 
     - ``message`` must be no more than 1000 characters in length.
 
