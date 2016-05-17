@@ -44,8 +44,6 @@ def pytest_configure(config):
 
     settings.TEMPLATE_DEBUG = True
 
-    settings.SENTRY_DISALLOWED_IPS = ('127.0.0.1',)
-
     # Disable static compiling in tests
     settings.STATIC_BUNDLES = {}
 
@@ -135,6 +133,10 @@ def pytest_configure(config):
 
     # force celery registration
     from sentry.celery import app  # NOQA
+
+    # disable DISALLOWED_IPS
+    from sentry import http
+    http.DISALLOWED_IPS = set()
 
 
 def pytest_runtest_teardown(item):
