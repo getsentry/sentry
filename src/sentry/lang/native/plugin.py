@@ -34,6 +34,15 @@ def exception_from_apple_error_or_diagnosis(error, diagnosis=None):
         }
 
 
+def get_culprit(exc, frames):
+    if not frames:
+        return exc['type']
+    return '%s in %s' % (
+        exc['type'],
+        frames[-1]['package'],
+    )
+
+
 def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
                            system=None):
     # TODO:
@@ -92,14 +101,15 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
     stacktrace = {'frames': converted_frames}
 
     if error or diagnosis:
-        if diagnosis is not None:
-            data['culprit'] = diagnosis
         error = error or {}
         exc = exception_from_apple_error_or_diagnosis(error, diagnosis)
         if exc is not None:
+            data['culprit'] = get_culprit(exc, converted_frames)
             exc['stacktrace'] = stacktrace
             data['sentry.interfaces.Exception'] = exc
             return
+        if diagnosis is not None:
+            data['culprit'] = diagnosis
 
     data['sentry.interfaces.Stacktrace'] = stacktrace
 
