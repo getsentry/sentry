@@ -24,7 +24,10 @@ class DefaultEvent(BaseEvent):
         return True
 
     def get_metadata(self):
-        message = strip(self.data.get('message'))
+        # See GH-3248
+        message = strip(self.data.get('sentry.interfaces.Message', {
+            'message': self.data.get('message', ''),
+        })['message'])
         if not message:
             title = '<unlabeled event>'
         else:

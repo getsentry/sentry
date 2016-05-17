@@ -40,9 +40,11 @@ class EventManagerTest(TransactionTestCase):
         # 'event.message' instead of '[event.message]' which caused it to
         # generate a hash per letter
         manager = EventManager(self.make_event(message='foo bar'))
+        manager.normalize()
         event1 = manager.save(1)
 
         manager = EventManager(self.make_event(message='foo baz'))
+        manager.normalize()
         event2 = manager.save(1)
 
         assert event1.group_id != event2.group_id
@@ -213,6 +215,7 @@ class EventManagerTest(TransactionTestCase):
             fingerprint=['{{ default }}', 'a' * 32],
         ))
         with self.tasks():
+            manager.normalize()
             event = manager.save(1)
 
         manager = EventManager(self.make_event(
@@ -220,6 +223,7 @@ class EventManagerTest(TransactionTestCase):
             fingerprint=['a' * 32],
         ))
         with self.tasks():
+            manager.normalize()
             event2 = manager.save(1)
 
         assert event.group_id != event2.group_id
@@ -384,7 +388,8 @@ class EventManagerTest(TransactionTestCase):
             message='x' * (settings.SENTRY_MAX_MESSAGE_LENGTH + 1),
         ))
         data = manager.normalize()
-        assert len(data['message']) == settings.SENTRY_MAX_MESSAGE_LENGTH
+        assert len(data['sentry.interfaces.Message']['message']) == \
+            settings.SENTRY_MAX_MESSAGE_LENGTH
 
     def test_default_version(self):
         manager = EventManager(self.make_event())
