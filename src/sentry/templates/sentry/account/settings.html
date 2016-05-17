@@ -55,14 +55,14 @@
         {% feature auth:twofactor %}
         <legend>{% trans "Two-factor authenticaton"  %}</legend>
           {% if has_2fa %}
-            <p class="well">{% blocktrans  %}Two-factor authentication is <strong>enabled</strong>.{% endblocktrans  %}</p>
+            <p class="well"><span class="circle-indicator enabled"></span>{% blocktrans  %}Two-factor authentication is <strong>enabled</strong>.{% endblocktrans  %}</p>
             <p><a class="btn btn-default" href="{% url "sentry-account-settings-2fa" %}">{% trans "Manage" %}</a></p>
           {% else %}
-            <p class="well">{% blocktrans  %}Two-factor authentication is currently <strong>disabled</strong>.{% endblocktrans  %}</p>
+            <p class="well"><span class="circle-indicator disabled"></span>{% blocktrans  %}Two-factor authentication is currently <strong>disabled</strong>.{% endblocktrans  %}</p>
             <p><a class="btn btn-default" href="{% url "sentry-account-settings-2fa" %}">{% trans "Enable" %}</a></p>
           {% endif %}
         {% endfeature %}
-        
+
         {% if not form.is_readonly %}
           <fieldset class="form-actions">
               <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
