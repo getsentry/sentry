@@ -193,7 +193,12 @@ class RedisBackend(Backend):
     def __schedule_partition(self, host, deadline, chunk):
         connection = self.cluster.get_local_client(host)
 
-        lock = self.locks.get('{0}:s:{1}'.format(self.namespace, host), duration=30)
+        lock = self.locks.get(
+            '{0}:s:{1}'.format(self.namespace, host),
+            duration=30,
+            routing_key=host,
+        )
+
         with lock.acquire():
             # Prevent a runaway loop by setting a maximum number of
             # iterations. Note that this limits the total number of
@@ -284,7 +289,12 @@ class RedisBackend(Backend):
                 returning ``None``.
                 """
                 key, timestamp = item
-                lock = self.locks.get(make_timeline_key(self.namespace, key), duration=5)
+                timeline_key = make_timeline_key(self.namespace, key),
+                lock = self.locks.get(
+                    timeline_key,
+                    duration=5,
+                    routing_key=timeline_key,
+                )
                 try:
                     lock.acquire()
                 except Exception:
@@ -404,7 +414,7 @@ class RedisBackend(Backend):
 
         connection = self.cluster.get_local_client_for_key(timeline_key)
 
-        lock = self.locks.get(timeline_key, duration=30)
+        lock = self.locks.get(timeline_key, duration=30, routing_key=timeline_key)
         with lock.acquire():
             # Check to ensure the timeline is in the correct state ("ready")
             # before sending. This acts as a throttling mechanism to prevent
@@ -504,7 +514,7 @@ class RedisBackend(Backend):
 
         connection = self.cluster.get_local_client_for_key(timeline_key)
 
-        lock = self.locks.get(timeline_key, duration=30)
+        lock = self.locks.get(timeline_key, duration=30, routing_key=timeline_key)
         with lock.acquire(), connection.pipeline() as pipeline:
             truncate_timeline(pipeline, (timeline_key,), (0, timeline_key))
             truncate_timeline(pipeline, (make_digest_key(timeline_key),), (0, timeline_key))
