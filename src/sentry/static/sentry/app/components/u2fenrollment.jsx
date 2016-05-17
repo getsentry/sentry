@@ -29,9 +29,6 @@ const U2fEnrollment = React.createClass({
       u2f.register(registerRequests, authenticateRequests).then((data) => {
         this.state.responseElement.value = JSON.stringify(data);
         this.state.formElement.submit();
-      }).catch((err) => {
-        //TOOD: handle this in UI
-        console.log('U2F Failure: ' + err);
       });
     });
   },

@@ -28,8 +28,6 @@ const U2fSign = React.createClass({
       u2f.sign(this.props.challengeData.authenticateRequests).then((data) => {
         this.state.responseElement.value = JSON.stringify(data);
         this.state.formElement.submit();
-      }).catch((err) => {
-        alert('Error: ' + err);
       });
     });
   },
