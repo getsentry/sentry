@@ -16,30 +16,26 @@
     Two-factor authentication improves your security by requiring an authentication
     code in addition to your password.
   </p>
-  {% for auth in active_authenticators %}
-    <div class="well">
+  {% for auth in interfaces %}
+    <div class="well {% if auth.is_enrolled %}enrolled{% else %}not-enrolled{% endif %}">
       <h4>{{ auth.name }}</h4>
       <p>{{ auth.description }}</p>
-      {% if auth.configure_button %}
-        <a href="{{ auth.interface_id }}/" class="btn btn-default btn-sm">{{ auth.configure_button }}</a>
-      {% endif %}
-      {% if auth.remove_button %}
-        <form action="{{ auth.interface_id }}/" method="post" style="display: inline">
-          {% csrf_token %}
-          <button type="submit" name="remove"
-            class="btn btn-default btn-sm">{{ auth.remove_button }}</button>
-        </form>
+      {% if auth.is_enrolled %}
+        {% if auth.configure_button %}
+          <a href="{{ auth.interface_id }}/" class="btn btn-default btn-sm">{{ auth.configure_button }}</a>
+        {% endif %}
+        {% if auth.remove_button %}
+          <form action="{{ auth.interface_id }}/" method="post" style="display: inline">
+            {% csrf_token %}
+            <button type="submit" name="remove"
+              class="btn btn-default btn-sm">{{ auth.remove_button }}</button>
+          </form>
+        {% endif %}
+      {% else %}
+        <a href="{{ auth.interface_id }}/" class="btn btn-default btn-sm">Add</a>
       {% endif %}
     </div>
   {% endfor %}
-  {% if missing_authenticators %}
-    <h6>Add more methods:</h6>
-    <ul>
-      {% for auth in missing_authenticators %}
-        <li><a href="{{ auth.interface_id }}/">{{ auth.name }}</a></li>
-      {% endfor %}
-    </ul>
-  {% endif %}
 
   <form action="" method="post" class="form-stacked">
     {% csrf_token %}
