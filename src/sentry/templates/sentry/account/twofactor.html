@@ -5,16 +5,16 @@
 
 {% block title %}{% trans "Two-Factor Authentication" %} | {{ block.super }}{% endblock %}
 
-{% block twofactor_title %}{% trans "Two-Factor Authentication" %}{% endblock %}
+{% block twofactor_title %}{% trans "Two-factor Authentication" %}{% endblock %}
 {% block twofactor_body %}
+{% if has_2fa %}
+  <p class="well"><span class="circle-indicator enabled"></span>{% blocktrans  %}Two-factor authentication is <strong>enabled</strong>.{% endblocktrans  %}</p>
+{% else %}
+  <p class="well"><span class="circle-indicator disabled"></span>{% blocktrans  %}Two-factor authentication is currently <strong>disabled</strong>.{% endblocktrans  %}</p>
+{% endif %}
   <p>
     Two-factor authentication improves your security by requiring an authentication
     code in addition to your password.
-    {% if has_2fa %}
-      <strong>2FA is currently enabled</strong>.
-    {% else %}
-      <strong>2FA is currently disabled</strong>.
-    {% endif %}
   </p>
   {% for auth in active_authenticators %}
     <div class="well">
