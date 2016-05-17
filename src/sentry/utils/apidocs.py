@@ -19,9 +19,11 @@ from django.conf import settings
 # Do not import from sentry here!  Bad things will happen
 
 
-optional_group_matcher = re.compile(r'\(\?\:(.+)\)')
+optional_group_matcher = re.compile(r'\(\?\:([^\)]+)\)')
 named_group_matcher = re.compile(r'\(\?P<(\w+)>[^\)]+\)')
-non_named_group_matcher = re.compile(r'\(.*?\)')
+non_named_group_matcher = re.compile(r'\([^\)]+\)')
+# [foo|bar|baz]
+either_option_matcher = re.compile(r'\[([^\]]+)\|([^\]]+)\]')
 camel_re = re.compile(r'([A-Z]+)([a-z])')
 
 
@@ -44,6 +46,9 @@ def simplify_regex(pattern):
 
     # handle non-named groups
     pattern = non_named_group_matcher.sub("{var}", pattern)
+
+    # handle optional params
+    pattern = either_option_matcher.sub(lambda m: m.group(1), pattern)
 
     # clean up any outstanding regex-y characters.
     pattern = pattern.replace('^', '').replace('$', '') \
