@@ -51,29 +51,18 @@
             {{ field|as_crispy_field }}
         {% endwith %}
         {% endif %}
-<<<<<<< 5a8c362290c02b43a5a64ac86a8f9105a2f177d0
 
         {% feature auth:twofactor %}
-          <p>
-            {% trans "If you want you can also manage two-factor authentication here." %}
-            {% if has_2fa %}
-              <a href="{% url "sentry-account-settings-2fa" %}">{% trans "Manage or disable two-factor authentication" %}</a>.
-            {% else %}
-              <a href="{% url "sentry-account-settings-2fa" %}">{% trans "Enable two-factor authentication" %}</a>.
-            {% endif %}
-          </p>
-        {% endfeature %}
-
-=======
         <legend>{% trans "Two-factor authenticaton"  %}</legend>
-        {% if has_2fa %}
-          <p class="well">{% blocktrans  %}Two-factor authentication is <strong>enabled</strong>.{% endblocktrans  %}</p>
-          <p><a class="btn btn-default" href="{% url "sentry-account-settings-2fa" %}">{% trans "Manage" %}</a></p>
-        {% else %}
-          <p class="well">{% blocktrans  %}Two-factor authentication is currently <strong>disabled</strong>.{% endblocktrans  %}</p>
-          <p><a class="btn btn-default" href="{% url "sentry-account-settings-2fa" %}">{% trans "Enable" %}</a></p>
-        {% endif %}
->>>>>>> Add 2fa section to account overview
+          {% if has_2fa %}
+            <p class="well">{% blocktrans  %}Two-factor authentication is <strong>enabled</strong>.{% endblocktrans  %}</p>
+            <p><a class="btn btn-default" href="{% url "sentry-account-settings-2fa" %}">{% trans "Manage" %}</a></p>
+          {% else %}
+            <p class="well">{% blocktrans  %}Two-factor authentication is currently <strong>disabled</strong>.{% endblocktrans  %}</p>
+            <p><a class="btn btn-default" href="{% url "sentry-account-settings-2fa" %}">{% trans "Enable" %}</a></p>
+          {% endif %}
+        {% endfeature %}
+        
         {% if not form.is_readonly %}
           <fieldset class="form-actions">
               <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
