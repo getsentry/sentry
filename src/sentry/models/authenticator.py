@@ -15,6 +15,8 @@ import hashlib
 from u2flib_server import u2f
 from u2flib_server import jsapi as u2f_jsapi
 
+from cryptography.exceptions import InvalidSignature, InvalidKey
+
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -433,10 +435,12 @@ class U2fInterface(AuthenticatorInterface):
         )
 
     def validate_response(self, request, challenge, response):
-        # XXX: handle error
-        counter, touch = u2f.verify_authenticate([self.get_u2f_device()],
-                                                 challenge, response,
-                                                 self.u2f_facets)
+        try:
+            counter, touch = u2f.verify_authenticate([self.get_u2f_device()],
+                                                     challenge, response,
+                                                     self.u2f_facets)
+        except (InvalidSignature, InvalidKey, StopIteration):
+            return False
         return True
 
 

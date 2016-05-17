@@ -22,9 +22,8 @@
       <form class="form-stacked" action="" method="post" autocomplete="off">
         {% csrf_token %}
 
+        {{ form|as_crispy_errors }}
         {% block twofactor_form_body %}
-          {{ form|as_crispy_errors }}
-
           {% for field in form %}
             {{ field|as_crispy_field }}
           {% endfor %}

@@ -4,6 +4,7 @@ import time
 
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
+from django.utils.translation import ugettext as _
 
 from sentry.web.frontend.base import BaseView
 from sentry.web.forms.accounts import TwoFactorForm
@@ -19,10 +20,12 @@ class TwoFactorAuthView(BaseView):
         auth.login(request, user, passed_2fa=True)
         return HttpResponseRedirect(auth.get_login_redirect(request))
 
-    def fail_signin(self, request, user):
+    def fail_signin(self, request, user, form):
         # Ladies and gentlemen: he world's shittiest bruteforce
         # prevention.
         time.sleep(2.0)
+        form.errors['__all__'] = [
+            _('Invalid confirmation code. Try again.')]
 
     def negotiate_interface(self, request, interfaces):
         if len(interfaces) == 1:
@@ -62,14 +65,16 @@ class TwoFactorAuthView(BaseView):
             if activation is not None and activation.type == 'challenge':
                 challenge = activation.challenge
         elif 'challenge' in request.POST:
-            challenge = json.loads(request.POST.get('challenge'))
+            challenge = json.loads(request.POST['challenge'])
+
+        form = TwoFactorForm()
 
         # If an OTP response was supplied, we try to make it pass.
         otp = request.POST.get('otp')
         if otp:
             if Authenticator.objects.validate_otp(user, otp):
                 return self.perform_signin(request, user)
-            self.fail_signin(request, user)
+            self.fail_signin(request, user, form)
 
         # If a challenge and response exists, validate
         if challenge:
@@ -78,9 +83,8 @@ class TwoFactorAuthView(BaseView):
                 response = json.loads(response)
                 if interface.validate_response(request, challenge, response):
                     return self.perform_signin(request, user)
-                self.fail_signin(request, user)
+                self.fail_signin(request, user, form)
 
-        form = TwoFactorForm()
         return render_to_response(['sentry/twofactor_%s.html' %
                                    interface.interface_id,
                                    'sentry/twofactor.html'], {
