@@ -2,14 +2,8 @@ import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
-import {TextField} from '../components/forms';
+import {FormState, TextField} from '../components/forms';
 import {t} from '../locale';
-
-const FormState = {
-  READY: 'Ready',
-  SAVING: 'Saving',
-  ERROR: 'Error',
-};
 
 const TeamSettingsForm = React.createClass({
   propTypes: {

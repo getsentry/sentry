@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 from django.conf.urls import patterns, url
 
+from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
@@ -83,6 +84,11 @@ from .endpoints.user_organizations import UserOrganizationsEndpoint
 
 urlpatterns = patterns(
     '',
+
+    # Api Tokens
+    url(r'^api-tokens/$',
+        ApiTokensEndpoint.as_view(),
+        name='sentry-api-0-api-tokens'),
 
     # Auth
     url(r'^auth/$',

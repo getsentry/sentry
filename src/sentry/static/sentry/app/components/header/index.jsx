@@ -59,7 +59,7 @@ function getFirstRequiredAdminAction(org) {
 
 const Header = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired
+    orgId: React.PropTypes.string
   },
 
   mixins: [ApiMixin, OrganizationState],
