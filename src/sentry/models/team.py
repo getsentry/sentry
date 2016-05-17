@@ -20,7 +20,6 @@ from sentry.db.models import (
     sane_repr
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.utils.http import absolute_uri
 
 
 class TeamManager(BaseManager):
