@@ -16,11 +16,11 @@ from u2flib_server import u2f
 from u2flib_server import jsapi as u2f_jsapi
 
 from django.db import models
-from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
+from sentry import options
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, \
     FlexibleForeignKey, BoundedPositiveIntegerField, UnicodePickledObjectField
 from sentry.utils.otp import generate_secret_key, TOTP
@@ -391,7 +391,7 @@ class U2fInterface(AuthenticatorInterface):
                     'a browser which supports this system (like Google '
                     'Chrome).')
 
-    u2f_app_id = settings.SENTRY_URL_PREFIX
+    u2f_app_id = options.get('system.url-prefix')
     u2f_facets = [u2f_app_id]
 
     def generate_new_config(self):
