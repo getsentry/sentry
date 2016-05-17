@@ -270,7 +270,6 @@ class EventManager(object):
         if not data.get('event_id'):
             data['event_id'] = uuid4().hex
 
-        data.setdefault('message', '')
         data.setdefault('culprit', None)
         data.setdefault('server_name', None)
         data.setdefault('site', None)
@@ -327,6 +326,19 @@ class EventManager(object):
             except Exception:
                 pass
 
+        # message is coerced to an interface, as its used for pure
+        # index of searchable strings
+        # See GH-3248
+        if 'sentry.interfaces.Message' not in data and data.get('message'):
+            interface = get_interface('sentry.interfaces.Message')
+            try:
+                inst = interface.to_python({
+                    'message': data.pop('message').strip(),
+                })
+                data[inst.get_path()] = inst.to_json()
+            except Exception:
+                pass
+
         # the SDKs currently do not describe event types, and we must infer
         # them from available attributes
         data['type'] = eventtypes.infer(data).key
@@ -357,10 +369,6 @@ class EventManager(object):
         if data['culprit']:
             data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
 
-        if data['message']:
-            data['message'] = trim(
-                data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH)
-
         return data
 
     @suppress_exceptions
@@ -373,7 +381,6 @@ class EventManager(object):
 
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.pop('event_id')
-        message = data.pop('message')
         level = data.pop('level')
 
         culprit = data.pop('culprit', None)
@@ -388,6 +395,7 @@ class EventManager(object):
 
         # unused
         time_spent = data.pop('time_spent', None)
+        message = data.pop('message', '')
 
         if not culprit:
             culprit = generate_culprit(data, platform=platform)
@@ -396,7 +404,6 @@ class EventManager(object):
         date = date.replace(tzinfo=timezone.utc)
 
         kwargs = {
-            'message': message,
             'platform': platform,
         }
 
@@ -457,6 +464,29 @@ class EventManager(object):
         # TODO(dcramer): temp workaround for complexity
         data['message'] = message
         event_type = eventtypes.get(data.get('type', 'default'))(data)
+        event_metadata = event_type.get_metadata()
+        # TODO(dcramer): temp workaround for complexity
+        del data['message']
+
+        # index components into ``Event.message``
+        # See GH-3248
+        if event_type.key != 'default':
+            if 'sentry.interfaces.Message' in data and \
+                    data['sentry.interfaces.Message']['message'] != message:
+                message = u'{} {}'.format(
+                    message,
+                    data['sentry.interfaces.Message']['message'],
+                )
+
+        for value in event_metadata.itervalues():
+            value_u = unicode(value)
+            if value_u not in message:
+                message = u'{} {}'.format(message, value_u)
+
+        message = trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
+
+        event.message = message
+        kwargs['message'] = message
 
         group_kwargs = kwargs.copy()
         group_kwargs.update({
@@ -470,12 +500,9 @@ class EventManager(object):
                 'type': event_type.key,
                 # we cache the events metadata on the group to ensure its
                 # accessible in the stream
-                'metadata': event_type.get_metadata(),
+                'metadata': event_metadata,
             },
         })
-
-        # TODO(dcramer): temp workaround for complexity
-        del data['message']
 
         if release:
             release = Release.get_or_create(

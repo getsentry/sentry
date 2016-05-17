@@ -349,11 +349,6 @@ class ClientApiHelper(object):
 
         data['errors'] = []
 
-        if not data.get('message'):
-            data['message'] = '<no message value>'
-        elif not isinstance(data['message'], six.string_types):
-            raise APIForbidden('Invalid value for message')
-
         if data.get('culprit'):
             if not isinstance(data['culprit'], six.string_types):
                 raise APIForbidden('Invalid value for culprit')
@@ -549,6 +544,31 @@ class ClientApiHelper(object):
                     })
                     continue
 
+            try:
+                inst = interface.to_python(value)
+                data[inst.get_path()] = inst.to_json()
+            except Exception as e:
+                if isinstance(e, InterfaceValidationError):
+                    log = self.log.info
+                else:
+                    log = self.log.error
+                log('Discarded invalid value for interface: %s (%r)', k, value,
+                    exc_info=True)
+                data['errors'].append({
+                    'type': EventError.INVALID_DATA,
+                    'name': k,
+                    'value': value,
+                })
+
+        # message is coerced to an interface, as its used for pure
+        # index of searchable strings
+        # See GH-3248
+        if 'sentry.interfaces.Message' not in data and data.get('message'):
+            k = 'sentry.interfaces.Message'
+            value = {
+                'message': data.pop('message'),
+            }
+            interface = get_interface(k)
             try:
                 inst = interface.to_python(value)
                 data[inst.get_path()] = inst.to_json()
