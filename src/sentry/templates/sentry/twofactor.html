@@ -14,21 +14,27 @@
         with the sign-in you need to provide the access code from your
         authenticator or a recovery code if you have one.
       </p>
-      {% if activation_message %}
-        <p><em>{{ activation_message }}</em></p>
+      {% if activation %}
+        {% if activation.type == 'error' or activation.type == 'warning' or activation.type == 'info' %}
+          <p class="{{ activation.type }}">{{ activation.message }}</p>
+        {% endif %}
       {% endif %}
       <form class="form-stacked" action="" method="post" autocomplete="off">
         {% csrf_token %}
 
-        {{ form|as_crispy_errors }}
+        {% block twofactor_form_body %}
+          {{ form|as_crispy_errors }}
 
-        {% for field in form %}
-          {{ field|as_crispy_field }}
-        {% endfor %}
+          {% for field in form %}
+            {{ field|as_crispy_field }}
+          {% endfor %}
+        {% endblock %}
 
+        {% block twofactor_submit %}
         <fieldset class="form-actions">
           <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
         </fieldset>
+        {% endblock %}
 
         {% if other_interfaces %}
           <p>Other authentication methods:

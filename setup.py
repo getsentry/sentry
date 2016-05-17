@@ -134,6 +134,7 @@ install_requires = [
     'uwsgi>2.0.0,<2.1.0',
     'rb>=1.4.0,<2.0.0',
     'qrcode>=5.2.2,<6.0.0',
+    'python-u2flib-server>=4.0.1,<4.1.0',
 ]
 
 dsym_requires = [

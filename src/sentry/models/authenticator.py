@@ -12,7 +12,11 @@ import hmac
 import base64
 import hashlib
 
+from u2flib_server import u2f
+from u2flib_server import jsapi as u2f_jsapi
+
 from django.db import models
+from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
@@ -21,6 +25,25 @@ from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, \
     FlexibleForeignKey, BoundedPositiveIntegerField, UnicodePickledObjectField
 from sentry.utils.otp import generate_secret_key, TOTP
 from sentry.utils.sms import send_sms, sms_available
+
+
+class ActivationResult(object):
+    type = None
+
+
+class ActivationMessageResult(ActivationResult):
+
+    def __init__(self, message, type='info'):
+        assert type in ('error', 'warning', 'info')
+        self.type = type
+        self.message = message
+
+
+class ActivationChallengeResult(ActivationResult):
+    type = 'challenge'
+
+    def __init__(self, challenge):
+        self.challenge = challenge
 
 
 class AuthenticatorManager(BaseManager):
@@ -95,9 +118,7 @@ class AuthenticatorManager(BaseManager):
         """
         for interface in self.all_interfaces_for_user(user):
             if interface.validate_otp(otp):
-                auth = interface.authenticator
-                auth.last_used_at = timezone.now()
-                auth.save()
+                interface.authenticator.mark_used()
                 return True
         return False
 
@@ -187,8 +208,23 @@ class AuthenticatorInterface(object):
 
     def validate_otp(self, otp):
         """This method is invoked for an OTP response and has to return
-        `True` or `False` based on the validity of the OTP response.
+        `True` or `False` based on the validity of the OTP response.  Note
+        that this can be called with otp responses from other interfaces.
         """
+        return False
+
+    def validate_response(self, request, challenge, response):
+        """If the activation generates a challenge that needs to be
+        responded to this validates the response for that challenge.  This
+        is only ever called for challenges emitted by the activation of this
+        activation interface.
+        """
+        if self.validate_response_impl(request, challenge, response):
+            self.authenticator.mark_used()
+            return True
+        return False
+
+    def validate_response_impl(self, request, challenge, response):
         return False
 
 
@@ -319,10 +355,13 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
 
     def activate(self, request):
         if self.send_text(request=request):
-            return _('A confirmation code was sent to your phone. '
-                     'It is valid for %d seconds.') % self.code_ttl
-        return _('Error: we failed to send a text message to you. You '
-                 'can try again later or sign in with a different method.')
+            return ActivationMessageResult(
+                _('A confirmation code was sent to your phone. '
+                  'It is valid for %d seconds.') % self.code_ttl)
+        return ActivationMessageResult(
+            _('Error: we failed to send a text message to you. You '
+              'can try again later or sign in with a different method.'),
+            type='error')
 
     def send_text(self, for_enrollment=False, request=None):
         ctx = {'code': self.make_otp().generate_otp()}
@@ -339,6 +378,66 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
             ctx['ip'] = request.META['REMOTE_ADDR']
 
         return send_sms(text % ctx, to=self.phone_number)
+
+
+@register_authenticator
+class U2fInterface(AuthenticatorInterface):
+    type = 3
+    interface_id = 'u2f'
+    name = _('U2F (Universal 2nd Factor)')
+    description = _('Authenticate with a U2F hardware device. This is a '
+                    'device like a Yubikey or something similar which '
+                    'supports FIDO\'s U2F specification. This also requires '
+                    'a browser which supports this system (like Google '
+                    'Chrome).')
+
+    u2f_app_id = settings.SENTRY_URL_PREFIX
+    u2f_facets = [u2f_app_id]
+
+    def generate_new_config(self):
+        return {
+            'enrollment': dict(u2f.start_register(self.u2f_app_id, [])),
+        }
+
+    def _get_enrollment_data(self):
+        return self.config.get('enrollment')
+
+    def _set_enrollment_data(self, value):
+        if 'device' in self.config:
+            raise RuntimeError('Cannot set enrollment data if interface is '
+                               'already enrolled.')
+        self.config['enrollment'] = value
+
+    enrollment_data = property(_get_enrollment_data, _set_enrollment_data)
+    del _get_enrollment_data, _set_enrollment_data
+
+    def get_u2f_device(self):
+        device = self.config.get('device')
+        if device is None:
+            raise RuntimeError('This authenticator is not enrolled.')
+        return u2f_jsapi.DeviceRegistration(device)
+
+    def try_enroll(self, response_data):
+        # XXX: handle error
+        enrollment_data = self.config.get('enrollment')
+        if enrollment_data is None:
+            raise RuntimeError('This authenticator is not in a state that '
+                               'permits user enrollment.')
+        binding, cert = u2f.complete_register(enrollment_data, response_data,
+                                              self.u2f_facets)
+        self.config['device'] = dict(binding)
+
+    def activate(self, request):
+        return ActivationChallengeResult(
+            challenge=dict(u2f.start_authenticate([self.get_u2f_device()])),
+        )
+
+    def validate_response(self, request, challenge, response):
+        # XXX: handle error
+        counter, touch = u2f.verify_authenticate([self.get_u2f_device()],
+                                                 challenge, response,
+                                                 self.u2f_facets)
+        return True
 
 
 class Authenticator(BaseModel):
@@ -360,6 +459,11 @@ class Authenticator(BaseModel):
     @cached_property
     def interface(self):
         return AUTHENTICATOR_INTERFACES_BY_TYPE[self.type](self)
+
+    def mark_used(self, save=True):
+        self.last_used_at = timezone.now()
+        if save:
+            self.save()
 
     def __repr__(self):
         return '<Authenticator user=%r interface=%r>' % (
