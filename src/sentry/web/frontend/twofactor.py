@@ -59,7 +59,7 @@ class TwoFactorAuthView(BaseView):
         interface = self.negotiate_interface(request, interfaces)
         if request.method == 'GET':
             activation = interface.activate(request)
-            if activation is not None:
+            if activation is not None and activation.type == 'challenge':
                 challenge = activation.challenge
         elif 'challenge' in request.POST:
             challenge = json.loads(request.POST.get('challenge'))
