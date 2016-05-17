@@ -144,7 +144,7 @@ def settings(request):
 @sudo_required
 @transaction.atomic
 def twofactor_settings(request):
-    active, missing = Authenticator.objects.all_interfaces_for_user(
+    interfaces = Authenticator.objects.all_interfaces_for_user(
         request.user, return_missing=True)
 
     if request.method == 'POST' and 'back' in request.POST:
@@ -153,9 +153,8 @@ def twofactor_settings(request):
     context = csrf(request)
     context.update({
         'page': 'settings',
-        'has_2fa': len(active) > 0,
-        'active_authenticators': active,
-        'missing_authenticators': missing,
+        'has_2fa': any(x.is_enrolled for x in interfaces),
+        'interfaces': interfaces,
         'is_missing_backup_interfaces':
             Authenticator.objects.is_missing_backup_interfaces(request.user)
     })

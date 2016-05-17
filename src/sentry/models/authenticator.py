@@ -52,23 +52,24 @@ class AuthenticatorManager(BaseManager):
 
     def all_interfaces_for_user(self, user, return_missing=False):
         """Returns a correctly sorted list of all interfaces the user
-        has enabled.  If `return_missing` is set to `True` the return
-        value is a tuple of `(enrolled, unenrolled)` interfaces.
+        has enabled.  If `return_missing` is set to `True` then all
+        interfaces are returned even if not enabled.
         """
         _sort = lambda x: sorted(x, key=lambda x: (x.type == 0, x.type))
         rv = [x.interface for x in Authenticator.objects.filter(user=user)
               if x.interface.is_available]
         if not return_missing:
             return _sort(rv)
+
         rvm = dict(AUTHENTICATOR_INTERFACES)
-        for iface in rv:
-            rvm.pop(iface.interface_id, None)
-        others = []
-        for key, iface_cls in rvm.iteritems():
+        for iface_cls in rv:
+            rvm.pop(iface_cls.interface_id, None)
+        for iface_cls in rvm.itervalues():
             iface = iface_cls()
             if iface.is_available:
-                others.append(iface)
-        return _sort(rv), _sort(others)
+                rv.append(iface)
+
+        return _sort(rv)
 
     def is_missing_backup_interfaces(self, user):
         """This checks if the user provided should add a backup interface
