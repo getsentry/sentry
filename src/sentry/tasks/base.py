@@ -16,7 +16,6 @@ from raven.contrib.django.models import client as Raven
 
 from sentry.celery import app
 from sentry.utils import metrics
-from sentry.utils.performance import SqlQueryCountMonitor
 
 
 def get_rss_usage():
@@ -50,8 +49,7 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
                 'transaction_id': transaction_id,
             })
             with metrics.timer(key, instance=instance), \
-                    track_memory_usage('jobs.memory_change', instance=instance), \
-                    SqlQueryCountMonitor(name):
+                    track_memory_usage('jobs.memory_change', instance=instance):
                 try:
                     result = func(*args, **kwargs)
                 finally:

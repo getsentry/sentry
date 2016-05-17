@@ -20,7 +20,6 @@ from sentry.app import raven, tsdb
 from sentry.models import ApiKey, AuditLogEntry
 from sentry.utils.cursors import Cursor
 from sentry.utils.http import absolute_uri, is_valid_origin
-from sentry.utils.performance import SqlQueryCountMonitor
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import Paginator
@@ -118,8 +117,6 @@ class Endpoint(APIView):
         self.request = request
         self.headers = self.default_response_headers  # deprecate?
 
-        metric_name = '{}.{}'.format(type(self).__name__, request.method.lower())
-
         if settings.SENTRY_API_RESPONSE_DELAY:
             time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0)
 
@@ -145,8 +142,7 @@ class Endpoint(APIView):
             else:
                 handler = self.http_method_not_allowed
 
-            with SqlQueryCountMonitor(metric_name):
-                response = handler(request, *args, **kwargs)
+            response = handler(request, *args, **kwargs)
 
         except Exception as exc:
             response = self.handle_exception(request, exc)
