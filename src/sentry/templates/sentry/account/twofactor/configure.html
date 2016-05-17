@@ -14,6 +14,14 @@
   <p>
     {{ auth.description }}
   </p>
+    {% if auth.is_enrolled %}
+    <dl>
+      <dt>Last used:
+      <dd>{% if auth.authenticator.last_used_at %}{{ auth.authenticator.last_used_at|date:"N j, Y, P e" }}{% else %}{% trans "never" %}{% endif %}</dd>
+      <dt>Created at:
+      <dd>{% if auth.authenticator.created_at %}{{ auth.authenticator.created_at|date:"N j, Y, P e" }}{% else %}{% trans "never" %}{% endif %}</dd>
+    </dl>
+    {% endif %}
   {% endblock %}
 
   <fieldset class="form-actions">
