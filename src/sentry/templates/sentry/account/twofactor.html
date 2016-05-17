@@ -33,10 +33,10 @@
     </div>
   {% endfor %}
   {% if missing_authenticators %}
-    <p>Add more methods:</p>
+    <h6>Add more methods:</h6>
     <ul>
       {% for auth in missing_authenticators %}
-        <li><a href="{{ auth.interface_id }}/" class="btn btn-primary btn-sm">{{ auth.name }}</a></li>
+        <li><a href="{{ auth.interface_id }}/">{{ auth.name }}</a></li>
       {% endfor %}
     </ul>
   {% endif %}
