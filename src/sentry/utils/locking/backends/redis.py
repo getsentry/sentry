@@ -16,16 +16,26 @@ class RedisLockBackend(LockBackend):
         self.prefix = prefix
         self.uuid = uuid
 
+    def get_client(self, key, routing_key=None):
+        if isinstance(routing_key, int):
+            index = routing_key % len(self.cluster.hosts)
+            return self.cluster.get_local_client(index)
+
+        if routing_key is not None:
+            key = routing_key
+        else:
+            key = self.__prefix_key(key)
+
+        return self.cluster.get_local_client_for_key(key)
+
     def __prefix_key(self, key):
         return self.prefix + str(key)
 
-    def acquire(self, key, duration):
-        key = self.__prefix_key(key)
-        client = self.cluster.get_local_client_for_key(key)
-        if client.set(key, self.uuid, ex=duration, nx=True) is not True:
+    def acquire(self, key, duration, routing_key=None):
+        client = self.get_client(key, routing_key)
+        if client.set(self.__prefix_key(key), self.uuid, ex=duration, nx=True) is not True:
             raise Exception('Could not acquire lock!')
 
-    def release(self, key):
-        key = self.__prefix_key(key)
-        client = self.cluster.get_local_client_for_key(key)
-        delete_lock(client, (key,), (self.uuid,))
+    def release(self, key, routing_key=None):
+        client = self.get_client(key, routing_key)
+        delete_lock(client, (self.__prefix_key(key),), (self.uuid,))
