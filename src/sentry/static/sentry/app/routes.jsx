@@ -1,6 +1,8 @@
 import React from 'react';
 import {Redirect, Route, IndexRoute} from 'react-router';
 
+import ApiDashboard from './views/apiDashboard';
+import ApiNewToken from './views/apiNewToken';
 import Admin from './views/admin';
 import AdminBuffer from './views/adminBuffer';
 import AdminOrganizations from './views/adminOrganizations';
@@ -63,6 +65,9 @@ function appendTrailingSlash(nextState, replaceState) {
 
 let routes = (
   <Route path="/" component={errorHandler(App)}>
+    <Route path="/api/" component={errorHandler(ApiDashboard)} />
+    <Route path="/api/new-token/" component={errorHandler(ApiNewToken)} />
+
     <Route path="/manage/" component={errorHandler(Admin)}>
       <IndexRoute component={errorHandler(AdminOverview)} />
       <Route path="buffer/" component={errorHandler(AdminBuffer)} />
