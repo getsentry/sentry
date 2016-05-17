@@ -55,11 +55,15 @@
         {% feature auth:twofactor %}
         <legend>{% trans "Two-factor authenticaton"  %}</legend>
           {% if has_2fa %}
-            <p class="well"><span class="circle-indicator enabled"></span>{% blocktrans  %}Two-factor authentication is <strong>enabled</strong>.{% endblocktrans  %}</p>
-            <p><a class="btn btn-default" href="{% url "sentry-account-settings-2fa" %}">{% trans "Manage" %}</a></p>
+            <p class="well">
+              <a class="btn btn-default pull-right" style="margin-top: -7px; margin-right: -10px" href="{% url "sentry-account-settings-2fa" %}">{% trans "Manage" %}</a>
+              <span class="circle-indicator enabled"></span>{% blocktrans  %}Two-factor authentication is <strong>enabled</strong>.{% endblocktrans  %}
+            </p>
           {% else %}
-            <p class="well"><span class="circle-indicator disabled"></span>{% blocktrans  %}Two-factor authentication is currently <strong>disabled</strong>.{% endblocktrans  %}</p>
-            <p><a class="btn btn-default" href="{% url "sentry-account-settings-2fa" %}">{% trans "Enable" %}</a></p>
+            <p class="well">
+              <a class="btn btn-default pull-right" style="margin-top: -7px; margin-right: -10px" href="{% url "sentry-account-settings-2fa" %}">{% trans "Enable" %}</a>
+              <span class="circle-indicator disabled"></span>{% blocktrans  %}Two-factor authentication is currently <strong>disabled</strong>.{% endblocktrans  %}</p>
+            <p></p>
           {% endif %}
         {% endfeature %}
 
