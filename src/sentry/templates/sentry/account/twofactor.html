@@ -28,7 +28,7 @@
           <form action="{{ auth.interface_id }}/" method="post" style="display: inline">
             {% csrf_token %}
             <button type="submit" name="remove"
-              class="btn btn-default btn-sm">{{ auth.remove_button }}</button>
+              class="btn btn-default btn-sm"><span class="icon-trash"></span></button>
           </form>
         {% endif %}
       {% else %}
