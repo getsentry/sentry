@@ -151,3 +151,41 @@ section.org-login {
     }
   }
 }
+
+// 2FA
+
+.method-list {
+  .box {
+    padding: 20px 20px 0;
+    position: relative;
+    z-index: 1;
+
+    h4 {
+      margin-bottom: 12px;
+    }
+
+    .pull-right {
+      margin-top: -4px;
+    }
+
+    &.enrolled {
+      color: #434C40;
+      background: #FCFFFC;
+      border-color: #BBD6B3;
+      z-index: 2;
+
+      h4 {
+        color: darken(#434C40, 5);
+      }
+
+      .btn-default {
+        border-color: darken(#BBD6B3, 5);
+        color: darken(#434C40, 5);
+
+        &:hover {
+          border-color: darken(#BBD6B3, 15);
+        }
+      }
+    }
+  }
+}

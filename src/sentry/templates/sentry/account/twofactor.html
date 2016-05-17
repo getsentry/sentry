@@ -16,10 +16,10 @@
     Two-factor authentication improves your security by requiring an authentication
     code in addition to your password.
   </p>
+  <div class="method-list">
   {% for auth in interfaces %}
-    <div class="well {% if auth.is_enrolled %}enrolled{% else %}not-enrolled{% endif %}">
-      <h4>{{ auth.name }}</h4>
-      <p>{{ auth.description }}</p>
+    <div class="box box-collapse-margins {% if auth.is_enrolled %}enrolled{% else %}not-enrolled{% endif %}">
+      <div class="pull-right">
       {% if auth.is_enrolled %}
         {% if auth.configure_button %}
           <a href="{{ auth.interface_id }}/" class="btn btn-default btn-sm">{{ auth.configure_button }}</a>
@@ -32,10 +32,14 @@
           </form>
         {% endif %}
       {% else %}
-        <a href="{{ auth.interface_id }}/" class="btn btn-default btn-sm">Add</a>
+        <a href="{{ auth.interface_id }}/" class="btn btn-primary btn-sm">Add</a>
       {% endif %}
+      </div>
+      <h4>{{ auth.name }}</h4>
+      <p>{{ auth.description }}</p>
     </div>
   {% endfor %}
+  </div>
 
   <form action="" method="post" class="form-stacked">
     {% csrf_token %}
