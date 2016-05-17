@@ -15,6 +15,7 @@ from sentry.web.frontend.base import BaseView
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response
 from sentry.web.forms.accounts import TwoFactorForm
+from sentry.utils import json
 
 
 class SmsForm(forms.Form):
@@ -25,7 +26,6 @@ class SmsForm(forms.Form):
 
 class TwoFactorSettingsView(BaseView):
     interface_id = None
-    configure_template = 'sentry/account/twofactor/configure.html'
 
     @method_decorator(csrf_protect)
     @method_decorator(never_cache)
@@ -108,13 +108,14 @@ class TwoFactorSettingsView(BaseView):
             return self.enroll(request, interface,
                                insecure='enroll' not in request.POST)
         context = self.make_context(request, interface)
-        return render_to_response(self.configure_template,
+        return render_to_response(['sentry/account/twofactor/configure_%s.html'
+                                   % self.interface_id,
+                                   'sentry/account/twofactor/configure.html'],
                                   context, request)
 
 
 class RecoveryCodeSettingsView(TwoFactorSettingsView):
     interface_id = 'recovery'
-    configure_template = 'sentry/account/twofactor/configure_recovery.html'
 
 
 class TotpSettingsView(TwoFactorSettingsView):
@@ -145,7 +146,6 @@ class TotpSettingsView(TwoFactorSettingsView):
 
 class SmsSettingsView(TwoFactorSettingsView):
     interface_id = 'sms'
-    configure_template = 'sentry/account/twofactor/configure_sms.html'
 
     def enroll(self, request, interface, insecure=False):
         stage = request.POST.get('stage') or 'initial'
@@ -179,4 +179,22 @@ class SmsSettingsView(TwoFactorSettingsView):
         context['otp_form'] = otp_form
         context['stage'] = stage
         return render_to_response('sentry/account/twofactor/enroll_sms.html',
+                                  context, request)
+
+
+class U2fSettingsView(TwoFactorSettingsView):
+    interface_id = 'u2f'
+
+    def enroll(self, request, interface, insecure=False):
+        challenge = request.POST.get('challenge')
+        if challenge:
+            interface.enrollment_data = json.loads(challenge)
+
+        response = request.POST.get('response')
+        if response:
+            interface.try_enroll(json.loads(response))
+            return TwoFactorSettingsView.enroll(self, request, interface)
+
+        context = self.make_context(request, interface)
+        return render_to_response('sentry/account/twofactor/enroll_u2f.html',
                                   context, request)

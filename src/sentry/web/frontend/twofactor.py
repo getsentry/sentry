@@ -8,7 +8,7 @@ from django.core.urlresolvers import reverse
 from sentry.web.frontend.base import BaseView
 from sentry.web.forms.accounts import TwoFactorForm
 from sentry.web.helpers import render_to_response
-from sentry.utils import auth
+from sentry.utils import auth, json
 from sentry.models import Authenticator
 
 
@@ -18,6 +18,11 @@ class TwoFactorAuthView(BaseView):
     def perform_signin(self, request, user):
         auth.login(request, user, passed_2fa=True)
         return HttpResponseRedirect(auth.get_login_redirect(request))
+
+    def fail_signin(self, request, user):
+        # Ladies and gentlemen: he world's shittiest bruteforce
+        # prevention.
+        time.sleep(2.0)
 
     def negotiate_interface(self, request, interfaces):
         if len(interfaces) == 1:
@@ -50,23 +55,37 @@ class TwoFactorAuthView(BaseView):
         if not interfaces:
             return self.perform_signin(request, user)
 
+        challenge = activation = None
         interface = self.negotiate_interface(request, interfaces)
         if request.method == 'GET':
-            activation_message = interface.activate(request)
+            activation = interface.activate(request)
+            if activation is not None:
+                challenge = activation.challenge
+        elif 'challenge' in request.POST:
+            challenge = json.loads(request.POST.get('challenge'))
 
+        # If an OTP response was supplied, we try to make it pass.
         otp = request.POST.get('otp')
         if otp:
             if Authenticator.objects.validate_otp(user, otp):
                 return self.perform_signin(request, user)
-            else:
-                # Ladies and gentlemen: he world's shittiest bruteforce
-                # prevention.
-                time.sleep(2.0)
+            self.fail_signin(request, user)
+
+        # If a challenge and response exists, validate
+        if challenge:
+            response = request.POST.get('response')
+            if response:
+                response = json.loads(response)
+                if interface.validate_response(request, challenge, response):
+                    return self.perform_signin(request, user)
+                self.fail_signin(request, user)
 
         form = TwoFactorForm()
-        return render_to_response('sentry/twofactor.html', {
+        return render_to_response(['sentry/twofactor_%s.html' %
+                                   interface.interface_id,
+                                   'sentry/twofactor.html'], {
             'form': form,
             'interface': interface.interface_id,
             'other_interfaces': self.get_other_interfaces(interface, interfaces),
-            'activation_message': activation_message,
+            'activation': activation,
         }, request, status=200)

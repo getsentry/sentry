@@ -50,6 +50,8 @@ export default {
       ApiMixin: require('./mixins/apiMixin'),
     },
     BarChart: require('./components/barChart'),
+    U2fEnrollment: require('./components/u2fenrollment'),
+    U2fSign: require('./components/u2fsign'),
     i18n: require('./locale'),
     ConfigStore: require('./stores/configStore'),
     DropdownLink: require('./components/dropdownLink'),
