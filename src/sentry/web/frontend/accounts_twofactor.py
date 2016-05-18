@@ -118,6 +118,12 @@ class TwoFactorSettingsView(BaseView):
 class RecoveryCodeSettingsView(TwoFactorSettingsView):
     interface_id = 'recovery'
 
+    def configure(self, request, interface):
+        if 'regenerate' in request.POST:
+            interface.regenerate_codes()
+            return HttpResponseRedirect(request.path)
+        return TwoFactorSettingsView.configure(self, request, interface)
+
 
 class TotpSettingsView(TwoFactorSettingsView):
     interface_id = 'totp'

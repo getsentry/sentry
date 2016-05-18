@@ -266,6 +266,13 @@ class RecoveryCodeInterface(AuthenticatorInterface):
             'used': 0,
         }
 
+    def regenerate_codes(self, save=True):
+        if not self.is_enrolled:
+            raise RuntimeError('Interface is not enrolled')
+        self.config.update(self.generate_new_config())
+        if save:
+            self.authenticator.save()
+
     def validate_otp(self, otp):
         mask = self.config['used']
         code = otp.strip().replace('-', '').upper()
