@@ -80,7 +80,7 @@ class TagKey(Model):
 
     @classmethod
     def is_valid_key(self, key):
-        return TAG_KEY_RE.match(key)
+        return bool(TAG_KEY_RE.match(key))
 
     @classmethod
     def is_reserved_key(self, key):
