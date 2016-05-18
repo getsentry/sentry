@@ -38,20 +38,20 @@ class TwoFactorAuthView(BaseView):
         if len(interfaces) == 1:
             return interfaces[0]
 
-        # In case an interface was remembered in a cookie, go with that
-        # one first.
-        interface_type = request.COOKIES.get('s2fai')
-        if interface_type:
-            for interface in interfaces:
-                if str(interface.type) == interface_type:
-                    return interface
-
         # Next option is to go with the interface that was selected in the
         # URL.
         interface_id = request.GET.get('interface')
         if interface_id:
             for interface in interfaces:
                 if interface.interface_id == interface_id:
+                    return interface
+
+        # Fallback case an interface was remembered in a cookie, go with that
+        # one first.
+        interface_type = request.COOKIES.get('s2fai')
+        if interface_type:
+            for interface in interfaces:
+                if str(interface.type) == interface_type:
                     return interface
 
         # Fallback is to go the highest ranked as default.  This will be
