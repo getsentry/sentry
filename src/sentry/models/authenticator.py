@@ -401,6 +401,8 @@ class U2fInterface(AuthenticatorInterface):
     u2f_app_id = options.get('system.url-prefix')
     u2f_facets = [u2f_app_id]
 
+    is_available = u2f_app_id.startswith('https://')
+
     def generate_new_config(self):
         return {
             'enrollment': dict(u2f.start_register(self.u2f_app_id, [])),
