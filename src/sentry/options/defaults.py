@@ -64,6 +64,6 @@ register('mail.reply-hostname', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORI
 register('mail.mailgun-api-key', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 
 # SMS
-register('sms.twilio_account', default='', flags=FLAG_ALLOW_EMPTY)
-register('sms.twilio_token', default='', flags=FLAG_ALLOW_EMPTY)
-register('sms.twilio_number', default='', flags=FLAG_ALLOW_EMPTY)
+register('sms.twilio-account', default='', flags=FLAG_ALLOW_EMPTY)
+register('sms.twilio-token', default='', flags=FLAG_ALLOW_EMPTY)
+register('sms.twilio-number', default='', flags=FLAG_ALLOW_EMPTY)
