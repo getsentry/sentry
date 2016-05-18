@@ -302,6 +302,17 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['name'] == 'tags'
         assert data['errors'][0]['value'] == ('release', 'abc123')
 
+    def test_tag_value(self):
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo',
+            'tags': [('foo', 'bar\n'), ('biz', 'baz')],
+        })
+        assert data['tags'] == [('biz', 'baz')]
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'tags'
+        assert data['errors'][0]['value'] == ('foo', 'bar\n')
+
     def test_extra_as_string(self):
         data = self.helper.validate_data(self.project, {
             'message': 'foo',
