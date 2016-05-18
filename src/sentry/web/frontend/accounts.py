@@ -12,6 +12,7 @@ import itertools
 from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate
 from django.core.context_processors import csrf
+from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.views.decorators.cache import never_cache
@@ -20,8 +21,7 @@ from django.utils import timezone
 from sudo.decorators import sudo_required
 
 from sentry.models import (
-    LostPasswordHash, Project, ProjectStatus, UserOption
-)
+    LostPasswordHash, Project, ProjectStatus, UserOption, Authenticator)
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required
 from sentry.web.forms.accounts import (
@@ -132,9 +132,31 @@ def settings(request):
     context.update({
         'form': form,
         'page': 'settings',
+        'has_2fa': Authenticator.objects.user_has_2fa(request.user),
         'AUTH_PROVIDERS': get_auth_providers(),
     })
     return render_to_response('sentry/account/settings.html', context, request)
+
+
+@csrf_protect
+@never_cache
+@login_required
+@sudo_required
+@transaction.atomic
+def twofactor_settings(request):
+    interfaces = Authenticator.objects.all_interfaces_for_user(
+        request.user, return_missing=True)
+
+    if request.method == 'POST' and 'back' in request.POST:
+        return HttpResponseRedirect(reverse('sentry-account-settings'))
+
+    context = csrf(request)
+    context.update({
+        'page': 'settings',
+        'has_2fa': any(x.is_enrolled for x in interfaces),
+        'interfaces': interfaces,
+    })
+    return render_to_response('sentry/account/twofactor.html', context, request)
 
 
 @csrf_protect

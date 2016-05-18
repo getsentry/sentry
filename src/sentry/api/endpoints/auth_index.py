@@ -5,6 +5,7 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.response import Response
 
 from sentry.api.authentication import QuietBasicAuthentication
+from sentry.models import Authenticator
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
 from sentry.utils import auth
@@ -53,6 +54,14 @@ class AuthIndexEndpoint(Endpoint):
         """
         if not request.user.is_authenticated():
             return Response(status=400)
+
+        # If 2fa login is enabled then we cannot sign in with username and
+        # password through this api endpoint.
+        if Authenticator.objects.user_has_2fa(request.user):
+            return Response({
+                '2fa_required': True,
+                'message': 'Cannot sign-in with basic auth when 2fa is enabled.'
+            }, status=400)
 
         # Must use the real request object that Django knows about
         auth.login(request._request, request.user)

@@ -1923,6 +1923,19 @@ table.integrations {
       padding: 10px 10px 0;
     }
   }
+
+  .box-collapse-margins {
+    border-radius: 2px 2px 0 0;
+
+    + .box-collapse-margins {
+      margin-top: -21px;
+      border-radius: 0;
+    }
+
+    &:last-of-type {
+      border-radius: 0 0 2px 2px;
+    }
+  }
 }
 
 /**
@@ -2483,6 +2496,28 @@ table.integrations {
     line-height: 18px;
     border: 1px solid @gray-lighter;
     background: inherit;
+  }
+}
+
+/**
+* Circle indicators
+* ============================================================================
+*/
+
+.circle-indicator {
+  display: inline-block;
+  .square(14px);
+  border-radius: 14px;
+  margin-right: 8px;
+  position: relative;
+  top: 1px;
+
+  &.enabled {
+    background: @green;
+  }
+
+  &.disabled {
+      background: @red;
   }
 }
 
@@ -3211,6 +3246,25 @@ ul.tag-list {
     padding-left: 7px;
     font-size: 80%;
     vertical-align: top;
+  }
+}
+
+/**
+* QR Code
+* ============================================================================
+*/
+div.qrcode {
+  table {
+    border-spacing: 0;
+    margin: 40px auto;
+    td {
+      width: 5px;
+      height: 5px;
+
+      &.black {
+        background: black;
+      }
+    }
   }
 }
 

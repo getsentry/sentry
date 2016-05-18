@@ -1,0 +1,58 @@
+{% extends "sentry/bases/twofactor_settings.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Two-Factor Authentication" %} | {{ block.super }}{% endblock %}
+
+{% block twofactor_title %}{% trans "Two-factor Authentication" %}{% endblock %}
+{% block twofactor_body %}
+{% if has_2fa %}
+  <p class="well"><span class="circle-indicator enabled"></span>{% blocktrans  %}Two-factor authentication is <strong>enabled</strong>.{% endblocktrans  %}</p>
+{% else %}
+  <p class="well"><span class="circle-indicator disabled"></span>{% blocktrans  %}Two-factor authentication is currently <strong>disabled</strong>.{% endblocktrans  %}</p>
+{% endif %}
+  <p>
+    Two-factor authentication improves your security by requiring an authentication
+    code in addition to your password.
+  </p>
+  <div class="method-list">
+  {% for auth in interfaces %}
+    <div class="box box-collapse-margins {% if auth.is_enrolled %}enrolled{% else %}not-enrolled{% endif %}">
+      <div class="pull-right">
+      {% if auth.is_enrolled %}
+        {% if auth.configure_button %}
+          <a href="{{ auth.interface_id }}/" class="btn btn-default btn-sm">{{ auth.configure_button }}</a>
+        {% endif %}
+        {% if auth.remove_button %}
+          <form action="{{ auth.interface_id }}/" method="post" style="display: inline">
+            {% csrf_token %}
+            <button type="submit" name="remove"
+              class="btn btn-default btn-sm"><span class="icon-trash"></span></button>
+          </form>
+        {% endif %}
+      {% else %}
+        {% if not has_2fa and auth.is_backup_interface %}
+          <em><small>this can only be managed if 2FA is enabled</small></em>
+        {% else %}
+          <form action="{{ auth.interface_id }}/" method="post" style="display: inline">
+            {% csrf_token %}
+            <button type="submit" name="enroll"
+              class="btn btn-primary btn-sm">Add</button>
+          </form>
+        {% endif %}
+      {% endif %}
+      </div>
+      <h4>{{ auth.name }}</h4>
+      <p>{{ auth.description }}</p>
+    </div>
+  {% endfor %}
+  </div>
+
+  <form action="" method="post" class="form-stacked">
+    {% csrf_token %}
+    <fieldset class="form-actions">
+      <button type="submit" name="back" class="btn btn-default">{% trans "Back" %}</button>
+    </fieldset>
+  </form>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "sentry/bases/account.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{{ auth.name }} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  <legend style="margin-top: 0;">{% block twofactor_title %}{% trans "Method:" %} {{ auth.name }}{% endblock %}</legend>
+  {% block twofactor_body %}{% endblock %}
+{% endblock %}

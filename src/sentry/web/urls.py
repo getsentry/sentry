@@ -13,11 +13,12 @@ from django.http import HttpResponse
 from django.views.generic import RedirectView
 
 from sentry.web import api
-from sentry.web.frontend import accounts, admin, generic
+from sentry.web.frontend import accounts, admin, generic, accounts_twofactor
 from sentry.web.frontend.accept_organization_invite import \
     AcceptOrganizationInviteView
 from sentry.web.frontend.admin_queue import AdminQueueView
 from sentry.web.frontend.auth_login import AuthLoginView
+from sentry.web.frontend.twofactor import TwoFactorAuthView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import \
     AuthOrganizationLoginView
@@ -162,6 +163,8 @@ urlpatterns += patterns(
         name='sentry-login'),
     url(r'^auth/login/(?P<organization_slug>[^/]+)/$', AuthOrganizationLoginView.as_view(),
         name='sentry-auth-organization'),
+    url(r'^auth/2fa/$', TwoFactorAuthView.as_view(),
+        name='sentry-2fa-dialog'),
     url(r'^auth/sso/$', AuthProviderLoginView.as_view(),
         name='sentry-auth-sso'),
     url(r'^auth/logout/$', AuthLogoutView.as_view(),
@@ -183,6 +186,20 @@ urlpatterns += patterns(
         name='sentry-account-recover-confirm'),
     url(r'^account/settings/$', accounts.settings,
         name='sentry-account-settings'),
+    url(r'^account/settings/2fa/$', accounts.twofactor_settings,
+        name='sentry-account-settings-2fa'),
+    url(r'^account/settings/2fa/recovery/$',
+        accounts_twofactor.RecoveryCodeSettingsView.as_view(),
+        name='sentry-account-settings-2fa-recovery'),
+    url(r'^account/settings/2fa/totp/$',
+        accounts_twofactor.TotpSettingsView.as_view(),
+        name='sentry-account-settings-2fa-totp'),
+    url(r'^account/settings/2fa/sms/$',
+        accounts_twofactor.SmsSettingsView.as_view(),
+        name='sentry-account-settings-2fa-sms'),
+    url(r'^account/settings/2fa/u2f/$',
+        accounts_twofactor.U2fSettingsView.as_view(),
+        name='sentry-account-settings-2fa-u2f'),
     url(r'^account/settings/avatar/$', accounts.avatar_settings,
         name='sentry-account-settings-avatar'),
     url(r'^account/settings/appearance/$', accounts.appearance_settings,

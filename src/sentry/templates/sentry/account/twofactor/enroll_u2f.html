@@ -1,0 +1,24 @@
+{% extends "sentry/bases/twofactor_settings.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block twofactor_title %}{% trans "Enrollment: " %} {{ auth.name }}{% endblock %}
+{% block twofactor_body %}
+  <form action="" method="post">
+    <div id="u2f-enrollment"></div>
+    {% csrf_token %}
+    <fieldset class="form-actions">
+      <input type="hidden" name="enroll">
+      <div>
+        <a href="{% url 'sentry-account-settings-2fa-u2f' %}" class="btn btn-default">{% trans "Cancel" %}</a>
+      </div>
+    </fieldset>
+  </form>
+  <script>
+    ReactDOM.render(React.createElement(Sentry.U2fEnrollment, {
+      enrollmentData: {{ auth.enrollment_data|to_json|safe }}
+    }), document.getElementById('u2f-enrollment'));
+  </script>
+{% endblock %}

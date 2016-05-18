@@ -1,0 +1,20 @@
+{% extends "sentry/account/twofactor/configure.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block twofactor_info %}
+  {{ block.super }}
+
+  {% if auth.is_enrolled %}
+  <p><strong>Make sure to keep a copy of these codes to recover your
+    account if you lose your authenticator.</strong></p>
+  <h4>Unused Codes</h4>
+  <pre>{% for code in auth.get_unused_codes %}{{ code }}
+{% endfor %}</pre>
+  {% endif %}
+{% endblock %}
+{% block twofactor_buttons %}
+  <button type="submit" name="regenerate" class="btn btn-primary">Regenerate codes</button>
+  {{ block.super }}
+{% endblock %}
