@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import time
 import hmac
-import random
 import base64
 import qrcode
 import urllib
@@ -11,12 +10,11 @@ from datetime import datetime
 
 from sentry.utils.dates import to_timestamp
 
-from django.utils.crypto import constant_time_compare
+from django.utils.crypto import constant_time_compare, get_random_string
 
 
 def generate_secret_key(length=32):
-    return ''.join(random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567')
-                   for _ in range(length))
+    return get_random_string(length, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567')
 
 
 def _pack_int(i):
