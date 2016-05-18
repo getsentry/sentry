@@ -45,7 +45,7 @@ class TagValue(Model):
     __repr__ = sane_repr('project_id', 'key', 'value')
 
     @classmethod
-    def is_valid_value(self, value):
+    def is_valid_value(cls, value):
         return '\n' not in value
 
     def get_label(self):

@@ -216,7 +216,7 @@ class ScoreClause(object):
         return (sql, [])
 
     @classmethod
-    def calculate(self, times_seen, last_seen):
+    def calculate(cls, times_seen, last_seen):
         return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
 
 

@@ -60,7 +60,7 @@ class CursorResult(Sequence):
         return '<%s: results=%s>' % (type(self).__name__, len(self.results))
 
     @classmethod
-    def from_ids(self, id_list, key=None, limit=100, cursor=None):
+    def from_ids(cls, id_list, key=None, limit=100, cursor=None):
         from sentry.models import Group
 
         group_map = Group.objects.in_bulk(id_list)
