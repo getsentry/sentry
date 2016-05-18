@@ -71,10 +71,10 @@ class AuthenticatorManager(BaseManager):
 
         return _sort(rv)
 
-    def auto_enroll_backup_interface(self, user, force=False):
-        """This automatically enrolls the recovery code backup interface
-        in case no backup interface is currently set for the user.
-        Returns the interface that was added.
+    def auto_add_recovery_codes(self, user, force=False):
+        """This automatically adds the recovery code backup interface in
+        case no backup interface is currently set for the user.  Returns
+        the interface that was added.
         """
         has_authenticators = False
         for authenticator in Authenticator.objects.filter(user=user):
