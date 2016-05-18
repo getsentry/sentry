@@ -403,11 +403,13 @@ class U2fInterface(AuthenticatorInterface):
 
     @property
     def u2f_facets(self):
-        return [self.u2f_app_id]
+        app_id = self.u2f_app_id
+        return app_id and [self.app_id] or []
 
     @property
     def is_available(self):
-        return self.u2f_app_id.startswith('https://')
+        return self.u2f_app_id is not None and \
+            self.u2f_app_id.startswith('https://')
 
     def generate_new_config(self):
         return {
