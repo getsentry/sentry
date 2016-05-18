@@ -14,3 +14,7 @@
 {% endfor %}</pre>
   {% endif %}
 {% endblock %}
+{% block twofactor_buttons %}
+  <button type="submit" name="regenerate" class="btn btn-primary">Regenerate codes</button>
+  {{ block.super }}
+{% endblock %}

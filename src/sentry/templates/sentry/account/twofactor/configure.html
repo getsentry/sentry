@@ -27,12 +27,14 @@
   <fieldset class="form-actions">
     <form action="" method="post" style="display: inline">
       {% csrf_token %}
-    {% if not auth.is_enrolled %}
-      <button type="submit" name="enroll" class="btn btn-primary">{{ auth.enroll_button }}</button>
-    {% else %}
-      <button type="submit" name="remove"
-        class="btn btn-default">{{ auth.remove_button }}</button>
-    {% endif %}
+      {% block twofactor_buttons %}
+        {% if not auth.is_enrolled %}
+          <button type="submit" name="enroll" class="btn btn-primary">{{ auth.enroll_button }}</button>
+        {% elif auth.remove_button %}
+          <button type="submit" name="remove"
+            class="btn btn-default">{{ auth.remove_button }}</button>
+        {% endif %}
+      {% endblock %}
     </form>
     <a href="{% url 'sentry-account-settings-2fa' %}" class="btn btn-default">{% trans "Back" %}</a>
   </fieldset>
