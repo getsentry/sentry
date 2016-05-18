@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-import re
 
 
 class SetRemoteAddrFromForwardedFor(object):
@@ -12,9 +11,8 @@ class SetRemoteAddrFromForwardedFor(object):
             # HTTP_X_FORWARDED_FOR can be a comma-separated list of IPs.
             # Take just the first one.
             real_ip = real_ip.split(",")[0]
-            if real_ip.count(':') == 1:
-                # if the count > 1 it's ipv6 and count < 1 there's no port
-                real_ip = re.sub(r':\d+$', '', real_ip)
+            if ':' in real_ip:
+                real_ip = real_ip.split(':', 1)[0]
             request.META['REMOTE_ADDR'] = real_ip
 
 
