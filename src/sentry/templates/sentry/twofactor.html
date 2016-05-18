@@ -10,14 +10,15 @@
     <div class="tab-pane active" id="login">
       <h3>Two-Factor Authentication</h3>
       <p>
-        Your account is protected with two-factor authentication.  To continue
-        with the sign-in you need to provide the access code from your
-        authenticator or a recovery code if you have one.
-      </p>
-      {% if activation %}
-        {% if activation.type == 'error' or activation.type == 'warning' or activation.type == 'info' %}
-          <p class="{{ activation.type }}">{{ activation.message }}</p>
+        Your account is protected with two-factor authentication.
+        {% if interface.can_validate_otp %}
+          To continue with the sign-in you
+          need to provide the access code from your authenticator or a recovery
+          code if you have one.
         {% endif %}
+      </p>
+      {% if activation and activation.message %}
+        <p class="{% if activation.type != 'challenge' %}{{ activation.type }}{% else %}info{% endif %}">{{ activation.message }}</p>
       {% endif %}
       <form class="form-stacked" action="" method="post" autocomplete="off">
         {% csrf_token %}
