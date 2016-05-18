@@ -378,7 +378,7 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
                      'through text messages. Your confirmation code is '
                      '%(code)s.')
         else:
-            text = _('Your Sentry authentication code is %(code)s.')
+            text = _('%(code)s is your Sentry authentication code.')
 
         if request is not None:
             text = u'%s\n\n%s' % (text, _('Requested from %(ip)s'))
