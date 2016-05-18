@@ -7,6 +7,8 @@
   {{ block.super }}
 
   {% if auth.is_enrolled %}
+  <p><strong>Make sure to keep a copy of these codes to recovery your
+    account if you lose your authenticator.</strong></p>
   <h4>Unused Codes</h4>
   <pre>{% for code in auth.get_unused_codes %}{{ code }}
 {% endfor %}</pre>

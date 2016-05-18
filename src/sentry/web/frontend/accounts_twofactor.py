@@ -91,6 +91,7 @@ class TwoFactorSettingsView(BaseView):
                                   context, request)
 
     def enroll(self, request, interface, insecure=False):
+        next = request.path
         # Only enroll if it's either not an insecure enrollment or we are
         # enrolling a backup interface when we already had a primary one.
         if not insecure \
@@ -98,8 +99,9 @@ class TwoFactorSettingsView(BaseView):
                Authenticator.objects.user_has_2fa(request.user,
                                                   ignore_backup=True)):
             interface.enroll(request.user)
-            Authenticator.objects.auto_enroll_backup_interface(request.user)
-        return HttpResponseRedirect(request.path)
+            if Authenticator.objects.auto_add_recovery_codes(request.user):
+                next = reverse('sentry-account-settings-2fa-recovery')
+        return HttpResponseRedirect(next)
 
     def configure(self, request, interface):
         if 'enroll' in request.POST or \
