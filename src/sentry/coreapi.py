@@ -30,7 +30,7 @@ from sentry.constants import (
 )
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
-from sentry.models import EventError, Project, ProjectKey, TagKey
+from sentry.models import EventError, Project, ProjectKey, TagKey, TagValue
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
@@ -503,6 +503,15 @@ class ClientApiHelper(object):
 
                 if not TagKey.is_valid_key(k):
                     self.log.info('Discarded invalid tag key: %s', k)
+                    data['errors'].append({
+                        'type': EventError.INVALID_DATA,
+                        'name': 'tags',
+                        'value': pair,
+                    })
+                    continue
+
+                if not TagValue.is_valid_value(v):
+                    self.log.info('Discard invalid tag value: %s', v)
                     data['errors'].append({
                         'type': EventError.INVALID_DATA,
                         'name': 'tags',
