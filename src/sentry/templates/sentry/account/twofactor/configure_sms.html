@@ -1,0 +1,12 @@
+{% extends "sentry/account/twofactor/configure.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block twofactor_info %}
+  {{ block.super }}
+
+  {% if auth.is_enrolled %}
+  <p>Confirmation codes are sent to the following phone: <strong>{{ auth.phone_number }}</strong></p>
+  {% endif %}
+{% endblock %}

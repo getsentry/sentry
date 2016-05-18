@@ -7,6 +7,7 @@ sentry.utils.auth
 """
 from __future__ import absolute_import
 
+import time
 import logging
 
 from django.conf import settings
@@ -14,7 +15,7 @@ from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
 from django.core.urlresolvers import reverse
 
-from sentry.models import User
+from sentry.models import User, Authenticator
 
 logger = logging.getLogger('sentry.auth')
 
@@ -38,9 +39,34 @@ def get_auth_providers():
     ]
 
 
+def get_pending_2fa_user(request):
+    rv = request.session.get('_pending_2fa')
+    if rv is None:
+        return
+
+    user_id, created_at = rv
+    if created_at < time.time() - 60 * 5:
+        return None
+
+    try:
+        return User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        pass
+
+
+def has_pending_2fa(request):
+    return request.session.get('_pending_2fa') is not None
+
+
 def get_login_redirect(request, default=None):
     if default is None:
         default = reverse('sentry')
+
+    # If there is a pending 2fa authentication bound to the session then
+    # we need to go to the 2fa dialog.
+    if has_pending_2fa(request):
+        return reverse('sentry-2fa-dialog')
+
     login_url = request.session.pop('_next', None) or default
     if login_url.startswith(('http://', 'https://')):
         login_url = default
@@ -70,9 +96,19 @@ def find_users(username, with_valid_password=True):
     return []
 
 
-def login(request, user):
-    log_auth_success(request, user.username)
-    _login(request, user)
+def login(request, user, passed_2fa=False):
+    has_2fa = Authenticator.objects.user_has_2fa(user)
+    if has_2fa and not passed_2fa:
+        request.session['_pending_2fa'] = [user.id, time.time()]
+    else:
+        # If there is no authentication backend, just attach the first
+        # one and hope it goes through.  This apparently is a thing we
+        # have been doing for a long time, just moved it to a more
+        # reasonable place.
+        if not hasattr(user, 'backend'):
+            user.backend = settings.AUTHENTICATION_BACKENDS[0]
+        _login(request, user)
+        log_auth_success(request, user.username)
 
 
 def log_auth_success(request, username):

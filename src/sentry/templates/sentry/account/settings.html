@@ -3,6 +3,7 @@
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
+{% load sentry_features %}
 
 {% block title %}{% trans "Account Settings" %} | {{ block.super }}{% endblock %}
 
@@ -45,17 +46,31 @@
             {% if form.new_password %}
           </div>
         </div>
-        <hr>
-        <p>{% trans "You may also optionally change your password." %}</p>
+        <p class="help-block pull-right" style="margin-top: 0">({% trans "Optional" %})</p>
         {% with form.new_password as field %}
             {{ field|as_crispy_field }}
         {% endwith %}
         {% endif %}
 
+        {% feature auth:twofactor %}
+        <legend>{% trans "Two-factor authenticaton"  %}</legend>
+          {% if has_2fa %}
+            <p class="well">
+              <a class="btn btn-default pull-right" style="margin-top: -7px; margin-right: -10px" href="{% url "sentry-account-settings-2fa" %}">{% trans "Manage" %}</a>
+              <span class="circle-indicator enabled"></span>{% blocktrans  %}Two-factor authentication is <strong>enabled</strong>.{% endblocktrans  %}
+            </p>
+          {% else %}
+            <p class="well">
+              <a class="btn btn-default pull-right" style="margin-top: -7px; margin-right: -10px" href="{% url "sentry-account-settings-2fa" %}">{% trans "Enable" %}</a>
+              <span class="circle-indicator disabled"></span>{% blocktrans  %}Two-factor authentication is currently <strong>disabled</strong>.{% endblocktrans  %}</p>
+            <p></p>
+          {% endif %}
+        {% endfeature %}
+
         {% if not form.is_readonly %}
-        <fieldset class="form-actions">
-            <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
-        </fieldset>
+          <fieldset class="form-actions">
+              <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+          </fieldset>
         {% endif %}
     </form>
 {% endblock %}

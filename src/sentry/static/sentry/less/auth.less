@@ -151,3 +151,40 @@ section.org-login {
     }
   }
 }
+
+// 2FA
+
+.method-list {
+  .box {
+    padding: 20px 20px 0;
+    position: relative;
+    z-index: 1;
+
+    h4 {
+      margin-bottom: 12px;
+    }
+
+    p {
+      color: @gray-dark;
+    }
+
+    .pull-right {
+      margin-top: -4px;
+    }
+
+    .icon-trash {
+      margin-left: -2px;
+    }
+
+    &.enrolled {
+      h4:after {
+        display: inline-block;
+        content: "";
+        .square(14px);
+        border-radius: 14px;
+        margin-left: 10px;
+        background: @green;
+      }
+    }
+  }
+}
