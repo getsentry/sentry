@@ -60,11 +60,25 @@ class TwoFactorAuthView(BaseView):
 
     def get_other_interfaces(self, selected, all):
         rv = []
+
+        can_validate_otp = selected.can_validate_otp
+        backup_interface = None
+
         for idx, interface in enumerate(all):
             if interface.interface_id == selected.interface_id:
                 continue
             if idx == 0 or interface.requires_activation:
                 rv.append(interface)
+                if interface.can_validate_otp:
+                    can_validate_otp = True
+            if backup_interface is None and \
+               interface.can_validate_otp and \
+               interface.is_backup_interface:
+                backup_interface = interface
+
+        if not can_validate_otp and backup_interface is not None:
+            rv.append(backup_interface)
+
         return rv
 
     def validate_otp(self, otp, selected_interface, all_interfaces=None):
@@ -120,7 +134,7 @@ class TwoFactorAuthView(BaseView):
                                    interface.interface_id,
                                    'sentry/twofactor.html'], {
             'form': form,
-            'interface': interface.interface_id,
+            'interface': interface,
             'other_interfaces': self.get_other_interfaces(interface, interfaces),
             'activation': activation,
         }, request, status=200)

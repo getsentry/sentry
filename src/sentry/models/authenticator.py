@@ -44,7 +44,8 @@ class ActivationMessageResult(ActivationResult):
 class ActivationChallengeResult(ActivationResult):
     type = 'challenge'
 
-    def __init__(self, challenge):
+    def __init__(self, challenge, message=None):
+        self.message = message
         self.challenge = challenge
 
 
@@ -162,6 +163,14 @@ class AuthenticatorInterface(object):
         """
         return self.activate.im_func is not \
             AuthenticatorInterface.activate.im_func
+
+    @property
+    def can_validate_otp(self):
+        """If the interface is able to validate OTP codes then this returns
+        `True`.
+        """
+        return self.validate_otp.im_func is not \
+            AuthenticatorInterface.validate_otp.im_func
 
     @property
     def config(self):
@@ -428,6 +437,8 @@ class U2fInterface(AuthenticatorInterface):
     def activate(self, request):
         return ActivationChallengeResult(
             challenge=dict(u2f.start_authenticate([self.get_u2f_device()])),
+            message=_('Insert your U2F device or the button on your U2F '
+                      'device to confirm the sign-in.')
         )
 
     def validate_response(self, request, challenge, response):
