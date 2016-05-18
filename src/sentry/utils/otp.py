@@ -8,31 +8,10 @@ import qrcode
 import urllib
 import hashlib
 from datetime import datetime
-from itertools import izip
 
 from sentry.utils.dates import to_timestamp
 
-
-_builtin_constant_time_compare = getattr(hmac, 'compare_digest', None)
-
-
-def constant_time_compare(val1, val2):
-    if isinstance(val1, unicode):
-        val1 = val1.encode('utf-8')
-    if isinstance(val2, unicode):
-        val2 = val2.encode('utf-8')
-    if _builtin_constant_time_compare is not None:
-        return _builtin_constant_time_compare(val1, val2)
-    len_eq = len(val1) == len(val2)
-    if len_eq:
-        result = 0
-        left = val1
-    else:
-        result = 1
-        left = val2
-    for x, y in izip(bytearray(left), bytearray(val2)):
-        result |= x ^ y
-    return result == 0
+from django.utils.crypto import constant_time_compare
 
 
 def generate_secret_key(length=32):
