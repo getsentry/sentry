@@ -13,6 +13,10 @@ from sentry.utils import auth, json
 from sentry.models import Authenticator
 
 
+COOKIE_NAME = 's2fai'
+COOKIE_MAX_AGE = 60 * 60 * 24 * 31
+
+
 class TwoFactorAuthView(BaseView):
     auth_required = False
 
@@ -22,8 +26,8 @@ class TwoFactorAuthView(BaseView):
         if interface is not None:
             interface.authenticator.mark_used()
             if not interface.is_backup_interface:
-                rv.set_cookie('s2fai', str(interface.type),
-                              max_age=60 * 60 * 24 * 31, path='/')
+                rv.set_cookie(COOKIE_NAME, str(interface.type),
+                              max_age=COOKIE_MAX_AGE, path='/')
         return rv
 
     def fail_signin(self, request, user, form):
@@ -48,7 +52,7 @@ class TwoFactorAuthView(BaseView):
 
         # Fallback case an interface was remembered in a cookie, go with that
         # one first.
-        interface_type = request.COOKIES.get('s2fai')
+        interface_type = request.COOKIES.get(COOKIE_NAME)
         if interface_type:
             for interface in interfaces:
                 if str(interface.type) == interface_type:
