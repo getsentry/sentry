@@ -404,7 +404,7 @@ class U2fInterface(AuthenticatorInterface):
     @property
     def u2f_facets(self):
         app_id = self.u2f_app_id
-        return app_id and [self.app_id] or []
+        return app_id and [app_id] or []
 
     @property
     def is_available(self):
