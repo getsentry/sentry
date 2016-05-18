@@ -46,8 +46,6 @@ class TwoFactorSettingsView(BaseView):
         context = csrf(request)
         context['auth'] = interface
         context['page'] = 'settings'
-        context['is_missing_backup_interfaces'] = \
-            Authenticator.objects.is_missing_backup_interfaces(request.user)
         return context
 
     def delete_authenticator(self, interface):
@@ -59,14 +57,14 @@ class TwoFactorSettingsView(BaseView):
 
         # If this was an authenticator that was a backup interface we just
         # deleted, then nothing happens.
-        if interface.backup_interface:
+        if interface.is_backup_interface:
             return
 
         # If however if we delete an actual authenticator and all that
         # remainds are backup interfaces, then we kill them in the
         # process.
         interfaces = Authenticator.objects.all_interfaces_for_user(user)
-        backup_interfaces = [x for x in interfaces if x.backup_interface]
+        backup_interfaces = [x for x in interfaces if x.is_backup_interface]
         if len(backup_interfaces) == len(interfaces):
             for iface in backup_interfaces:
                 iface.authenticator.delete()
@@ -83,7 +81,7 @@ class TwoFactorSettingsView(BaseView):
             request.user)
         other_interfaces = [x for x in all_interfaces
                             if x.interface_id != interface.interface_id]
-        backup_interfaces = [x for x in other_interfaces if x.backup_interface]
+        backup_interfaces = [x for x in other_interfaces if x.is_backup_interface]
         removes_backups = backup_interfaces and \
             len(backup_interfaces) == len(other_interfaces)
 
@@ -96,10 +94,11 @@ class TwoFactorSettingsView(BaseView):
         # Only enroll if it's either not an insecure enrollment or we are
         # enrolling a backup interface when we already had a primary one.
         if not insecure \
-           or (interface.backup_interface and
+           or (interface.is_backup_interface and
                Authenticator.objects.user_has_2fa(request.user,
                                                   ignore_backup=True)):
             interface.enroll(request.user)
+            Authenticator.objects.auto_enroll_backup_interface(request.user)
         return HttpResponseRedirect(request.path)
 
     def configure(self, request, interface):

@@ -32,7 +32,11 @@
           </form>
         {% endif %}
       {% else %}
-        <a href="{{ auth.interface_id }}/" class="btn btn-primary btn-sm">Add</a>
+        {% if not has_2fa and auth.is_backup_interface %}
+          <em>Backup methods can only be managed if an authenticator has been added</em>
+        {% else %}
+          <a href="{{ auth.interface_id }}/" class="btn btn-primary btn-sm">Add</a>
+        {% endif %}
       {% endif %}
       </div>
       <h4>{{ auth.name }}</h4>
