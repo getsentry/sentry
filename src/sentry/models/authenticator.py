@@ -44,8 +44,7 @@ class ActivationMessageResult(ActivationResult):
 class ActivationChallengeResult(ActivationResult):
     type = 'challenge'
 
-    def __init__(self, challenge, message=None):
-        self.message = message
+    def __init__(self, challenge):
         self.challenge = challenge
 
 
@@ -446,8 +445,6 @@ class U2fInterface(AuthenticatorInterface):
     def activate(self, request):
         return ActivationChallengeResult(
             challenge=dict(u2f.start_authenticate([self.get_u2f_device()])),
-            message=_('Insert your U2F device or the button on your U2F '
-                      'device to confirm the sign-in.')
         )
 
     def validate_response(self, request, challenge, response):
