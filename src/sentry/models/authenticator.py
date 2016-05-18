@@ -398,10 +398,17 @@ class U2fInterface(AuthenticatorInterface):
                     'a browser which supports this system (like Google '
                     'Chrome).')
 
-    u2f_app_id = options.get('system.url-prefix')
-    u2f_facets = [u2f_app_id]
+    @property
+    def u2f_app_id(self):
+        return options.get('system.url-prefix')
 
-    is_available = u2f_app_id.startswith('https://')
+    @property
+    def u2f_facets(self):
+        return [self.u2f_app_id]
+
+    @property
+    def is_available(self):
+        return self.u2f_app_id.startswith('https://')
 
     def generate_new_config(self):
         return {
