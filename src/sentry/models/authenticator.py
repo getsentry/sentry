@@ -71,19 +71,22 @@ class AuthenticatorManager(BaseManager):
 
         return _sort(rv)
 
-    def is_missing_backup_interfaces(self, user):
-        """This checks if the user provided should add a backup interface
-        to his account.  This returns `true` essentially if at least one
-        non backup interface was added but not a single backup interface.
+    def auto_enroll_backup_interface(self, user, force=False):
+        """This automatically enrolls the recovery code backup interface
+        in case no backup interface is currently set for the user.
+        Returns the interface that was added.
         """
         has_authenticators = False
         for authenticator in Authenticator.objects.filter(user=user):
             if not authenticator.interface.is_available:
                 continue
-            if authenticator.interface.backup_interface:
-                return False
+            if authenticator.interface.is_backup_interface:
+                return
             has_authenticators = True
-        return has_authenticators
+        if has_authenticators or force:
+            interface = RecoveryCodeInterface()
+            interface.enroll(user)
+            return interface
 
     def get_interface(self, user, interface_id):
         """Looks up an interface by interface ID for a user.  If the
@@ -110,7 +113,7 @@ class AuthenticatorManager(BaseManager):
             for authenticator in Authenticator.objects.filter(user=user):
                 if not authenticator.interface.is_available:
                     continue
-                if not authenticator.interface.backup_interface:
+                if not authenticator.interface.is_backup_interface:
                     return True
             return False
         return Authenticator.objects.filter(user=user).first() is not None
@@ -143,7 +146,7 @@ class AuthenticatorInterface(object):
     interface_id = None
     name = None
     description = None
-    backup_interface = False
+    is_backup_interface = False
     enroll_button = _('Enroll')
     configure_button = _('Info')
     remove_button = _('Remove')
@@ -242,7 +245,8 @@ class RecoveryCodeInterface(AuthenticatorInterface):
                     'receive two-factor authentication codes.')
     enroll_button = _('Activate')
     configure_button = _('View Codes')
-    backup_interface = True
+    remove_button = None
+    is_backup_interface = True
 
     def __init__(self, authenticator=None):
         AuthenticatorInterface.__init__(self, authenticator)

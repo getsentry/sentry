@@ -155,8 +155,6 @@ def twofactor_settings(request):
         'page': 'settings',
         'has_2fa': any(x.is_enrolled for x in interfaces),
         'interfaces': interfaces,
-        'is_missing_backup_interfaces':
-            Authenticator.objects.is_missing_backup_interfaces(request.user)
     })
     return render_to_response('sentry/account/twofactor.html', context, request)
 
