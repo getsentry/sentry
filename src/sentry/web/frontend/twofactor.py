@@ -16,9 +16,15 @@ from sentry.models import Authenticator
 class TwoFactorAuthView(BaseView):
     auth_required = False
 
-    def perform_signin(self, request, user):
+    def perform_signin(self, request, user, interface=None):
         auth.login(request, user, passed_2fa=True)
-        return HttpResponseRedirect(auth.get_login_redirect(request))
+        rv = HttpResponseRedirect(auth.get_login_redirect(request))
+        if interface is not None:
+            interface.authenticator.mark_used()
+            if not interface.is_backup_interface:
+                rv.set_cookie('s2fai', str(interface.type),
+                              max_age=60 * 60 * 24 * 31, path='/')
+        return rv
 
     def fail_signin(self, request, user, form):
         # Ladies and gentlemen: he world's shittiest bruteforce
@@ -28,13 +34,28 @@ class TwoFactorAuthView(BaseView):
             _('Invalid confirmation code. Try again.')]
 
     def negotiate_interface(self, request, interfaces):
+        # If there is only one interface, just pick that one.
         if len(interfaces) == 1:
             return interfaces[0]
+
+        # In case an interface was remembered in a cookie, go with that
+        # one first.
+        interface_type = request.COOKIES.get('s2fai')
+        if interface_type:
+            for interface in interfaces:
+                if str(interface.type) == interface_type:
+                    return interface
+
+        # Next option is to go with the interface that was selected in the
+        # URL.
         interface_id = request.GET.get('interface')
         if interface_id:
             for interface in interfaces:
                 if interface.interface_id == interface_id:
                     return interface
+
+        # Fallback is to go the highest ranked as default.  This will be
+        # the most common path for first time users.
         return interfaces[0]
 
     def get_other_interfaces(self, selected, all):
@@ -45,6 +66,15 @@ class TwoFactorAuthView(BaseView):
             if idx == 0 or interface.requires_activation:
                 rv.append(interface)
         return rv
+
+    def validate_otp(self, otp, selected_interface, all_interfaces=None):
+        if selected_interface.validate_otp(otp):
+            return selected_interface
+        for interface in all_interfaces or ():
+            if interface.interface_id != selected_interface.interface_id and \
+               interface.is_backup_interface and \
+               interface.validate_otp(otp):
+                return interface
 
     def handle(self, request):
         user = auth.get_pending_2fa_user(request)
@@ -72,8 +102,9 @@ class TwoFactorAuthView(BaseView):
         # If an OTP response was supplied, we try to make it pass.
         otp = request.POST.get('otp')
         if otp:
-            if Authenticator.objects.validate_otp(user, otp):
-                return self.perform_signin(request, user)
+            used_interface = self.validate_otp(otp, interface, interfaces)
+            if used_interface is not None:
+                return self.perform_signin(request, user, used_interface)
             self.fail_signin(request, user, form)
 
         # If a challenge and response exists, validate
@@ -82,7 +113,7 @@ class TwoFactorAuthView(BaseView):
             if response:
                 response = json.loads(response)
                 if interface.validate_response(request, challenge, response):
-                    return self.perform_signin(request, user)
+                    return self.perform_signin(request, user, interface)
                 self.fail_signin(request, user, form)
 
         return render_to_response(['sentry/twofactor_%s.html' %

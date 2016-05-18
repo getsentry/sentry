@@ -118,16 +118,6 @@ class AuthenticatorManager(BaseManager):
             return False
         return Authenticator.objects.filter(user=user).first() is not None
 
-    def validate_otp(self, user, otp):
-        """Validates an OTP response against all interfaces.  If any accepts
-        it the success is logged and `True` is returned, `False` otherwise.
-        """
-        for interface in self.all_interfaces_for_user(user):
-            if interface.validate_otp(otp):
-                interface.authenticator.mark_used()
-                return True
-        return False
-
 
 AUTHENTICATOR_INTERFACES = {}
 AUTHENTICATOR_INTERFACES_BY_TYPE = {}
@@ -225,12 +215,6 @@ class AuthenticatorInterface(object):
         is only ever called for challenges emitted by the activation of this
         activation interface.
         """
-        if self.validate_response_impl(request, challenge, response):
-            self.authenticator.mark_used()
-            return True
-        return False
-
-    def validate_response_impl(self, request, challenge, response):
         return False
 
 
