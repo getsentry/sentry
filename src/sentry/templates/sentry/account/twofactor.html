@@ -33,7 +33,7 @@
         {% endif %}
       {% else %}
         {% if not has_2fa and auth.is_backup_interface %}
-          <em>Backup methods can only be managed if an authenticator has been added</em>
+          <em><small>this can only be managed if 2FA is enabled</small></em>
         {% else %}
           <a href="{{ auth.interface_id }}/" class="btn btn-primary btn-sm">Add</a>
         {% endif %}
