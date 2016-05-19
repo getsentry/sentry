@@ -4,10 +4,12 @@
 {% load sentry_helpers %}
 
 {% block twofactor_body %}
-  {% if auth.is_enrolled %}
-    <p><strong>Method is enabled</strong></p>
-  {% else %}
-    <p><em>Method is currently not enabled</em></p>
+  {% if auth.remove_button %}
+    {% if auth.is_enrolled %}
+      <p><strong>Method is enabled</strong></p>
+    {% else %}
+      <p><em>Method is currently not enabled</em></p>
+    {% endif %}
   {% endif %}
 
   {% block twofactor_info %}
