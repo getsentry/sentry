@@ -1,6 +1,7 @@
 from django.core import signing
 from django.core.urlresolvers import reverse
 
+from sentry import options
 from sentry.models import User
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base36_encode, base32_decode
@@ -25,7 +26,7 @@ def generate_signed_link(user, viewname, args=None, kwargs=None):
         user_id = user
 
     path = reverse(viewname, args=args, kwargs=kwargs)
-    item = '%s|%s' % (path, user_id)
+    item = '%s|%s|%s' % (options.get('system.url-prefix'), path, user_id)
     signature = ':'.join(get_signer().sign(item).rsplit(':', 2)[1:])
 
     return '%s?_=%s:%s' % (
@@ -43,13 +44,15 @@ def process_signature(request, max_age=60 * 60 * 24 * 2):
     if not sig or sig.count(':') < 2:
         return None
 
-    signed_data = '%s|%s' % (request.path, sig)
+    signed_data = '%s|%s|%s' % (request.build_absolute_uri('/').rstrip('/'),
+                                request.path, sig)
+    print signed_data
     try:
         data = get_signer().unsign(signed_data, max_age=max_age)
     except signing.BadSignature:
         return None
 
-    signed_path, user_id = data.rsplit('|', 1)
+    _, signed_path, user_id = data.rsplit('|', 2)
     if signed_path != request.path:
         return None
 
