@@ -25,6 +25,7 @@ from django.utils.functional import cached_property
 from sentry import options
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, \
     FlexibleForeignKey, BoundedPositiveIntegerField, UnicodePickledObjectField
+from sentry.utils.decorators import classproperty
 from sentry.utils.otp import generate_secret_key, TOTP
 from sentry.utils.sms import send_sms, sms_available
 
@@ -56,20 +57,24 @@ class AuthenticatorManager(BaseManager):
         interfaces are returned even if not enabled.
         """
         _sort = lambda x: sorted(x, key=lambda x: (x.type == 0, x.type))
-        rv = [x.interface for x in Authenticator.objects.filter(user=user)
-              if x.interface.is_available]
-        if not return_missing:
-            return _sort(rv)
 
-        rvm = dict(AUTHENTICATOR_INTERFACES)
-        for iface_cls in rv:
-            rvm.pop(iface_cls.interface_id, None)
-        for iface_cls in rvm.itervalues():
-            iface = iface_cls()
-            if iface.is_available:
-                rv.append(iface)
+        # Collect interfaces user is enrolled in
+        ifaces = [x.interface for x in Authenticator.objects.filter(
+            user=user,
+            type__in=[a.type for a in available_authenticators()],
+        )]
 
-        return _sort(rv)
+        if return_missing:
+            # Collect additional interfaces that the user
+            # is not enrolled in
+            rvm = dict(AUTHENTICATOR_INTERFACES)
+            for iface in ifaces:
+                rvm.pop(iface.interface_id, None)
+            for iface_cls in rvm.itervalues():
+                if iface_cls.is_available:
+                    ifaces.append(iface_cls())
+
+        return _sort(ifaces)
 
     def auto_add_recovery_codes(self, user, force=False):
         """This automatically adds the recovery code backup interface in
@@ -77,12 +82,19 @@ class AuthenticatorManager(BaseManager):
         the interface that was added.
         """
         has_authenticators = False
-        for authenticator in Authenticator.objects.filter(user=user):
-            if not authenticator.interface.is_available:
-                continue
-            if authenticator.interface.is_backup_interface:
-                return
-            has_authenticators = True
+
+        # If we're not forcing, check for a backup interface already setup
+        # or if it's missing, we'll need to set it.
+        if not force:
+            for authenticator in Authenticator.objects.filter(
+                user=user,
+                type__in=[a.type for a in available_authenticators()]
+            ):
+                iface = authenticator.interface
+                if iface.is_backup_interface:
+                    return iface
+                has_authenticators = True
+
         if has_authenticators or force:
             interface = RecoveryCodeInterface()
             interface.enroll(user)
@@ -105,17 +117,13 @@ class AuthenticatorManager(BaseManager):
         except Authenticator.DoesNotExist:
             return interface()
 
-    def user_has_2fa(self, user, ignore_backup=False):
-        """Checks if the user has any 2FA configured.  Optionally backup
-        interfaces can be ignored.
+    def user_has_2fa(self, user):
+        """Checks if the user has any 2FA configured.
         """
-        for authenticator in Authenticator.objects.filter(user=user):
-            if not authenticator.interface.is_available:
-                continue
-            if ignore_backup and authenticator.interface.is_backup_interface:
-                continue
-            return True
-        return False
+        return Authenticator.objects.filter(
+            user=user,
+            type__in=[a.type for a in available_authenticators(ignore_backup=True)],
+        ).exists()
 
 
 AUTHENTICATOR_INTERFACES = {}
@@ -128,6 +136,13 @@ def register_authenticator(cls):
     AUTHENTICATOR_INTERFACES_BY_TYPE[cls.type] = cls
     AUTHENTICATOR_CHOICES.append((cls.type, cls.name))
     return cls
+
+
+def available_authenticators(ignore_backup=False):
+    interfaces = AUTHENTICATOR_INTERFACES.itervalues()
+    if not ignore_backup:
+        return [v for v in interfaces if v.is_available]
+    return [v for v in interfaces if not v.is_backup_interface and v.is_available]
 
 
 class AuthenticatorInterface(object):
@@ -336,8 +351,8 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
                     'an authenticator application.')
     code_ttl = 45
 
-    @property
-    def is_available(self):
+    @classproperty
+    def is_available(cls):
         return sms_available()
 
     def generate_new_config(self):
@@ -396,19 +411,20 @@ class U2fInterface(AuthenticatorInterface):
                     'a browser which supports this system (like Google '
                     'Chrome).')
 
-    @property
-    def u2f_app_id(self):
+    @classproperty
+    def u2f_app_id(cls):
         return options.get('system.url-prefix')
 
-    @property
-    def u2f_facets(self):
-        app_id = self.u2f_app_id
+    @classproperty
+    def u2f_facets(cls):
+        app_id = cls.u2f_app_id
         return app_id and [app_id] or []
 
-    @property
-    def is_available(self):
-        return self.u2f_app_id is not None and \
-            self.u2f_app_id.startswith('https://')
+    @classproperty
+    def is_available(cls):
+        app_id = cls.u2f_app_id
+        return app_id is not None and \
+            app_id.startswith('https://')
 
     def generate_new_config(self):
         return {
