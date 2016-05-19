@@ -123,6 +123,12 @@ class MailPlugin(NotificationPlugin):
 
         return send_to_list
 
+    def add_unsubscribe_link(self, context, user_id, project):
+        context['unsubscribe_link'] = generate_signed_link(user_id,
+            'sentry-account-email-unsubscribe-project', kwargs={
+                'project_id': project.id,
+            })
+
     def notify(self, notification):
         event = notification.event
         group = event.group
@@ -181,10 +187,7 @@ class MailPlugin(NotificationPlugin):
         }
 
         for user_id in self.get_send_to(project):
-            context['unsubscribe_link'] = generate_signed_link(user_id,
-                'sentry-account-email-unsubscribe-project', kwargs={
-                    'project_id': project.id,
-                })
+            self.add_unsubscribe_link(context, user_id, project)
             self._send_mail(
                 subject=subject,
                 template=template,
@@ -222,13 +225,16 @@ class MailPlugin(NotificationPlugin):
             'counts': counts,
         }
 
-        self._send_mail(
-            subject=render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
-            template='sentry/emails/digests/body.txt',
-            html_template='sentry/emails/digests/body.html',
-            project=project,
-            context=context,
-        )
+        for user_id in self.get_send_to(project):
+            self.add_unsubscribe_link(context, user_id, project)
+            self._send_mail(
+                subject=render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
+                template='sentry/emails/digests/body.txt',
+                html_template='sentry/emails/digests/body.html',
+                project=project,
+                context=context,
+                send_to=[user_id],
+            )
 
     def notify_about_activity(self, activity):
         if activity.type not in (Activity.NOTE, Activity.ASSIGNED, Activity.RELEASE):
@@ -311,17 +317,19 @@ class MailPlugin(NotificationPlugin):
         else:
             raise NotImplementedError
 
-        self._send_mail(
-            project=project,
-            send_to=recipient_ids,
-            subject=subject,
-            context=context,
-            template='sentry/emails/activity/{}.txt'.format(template_name),
-            html_template='sentry/emails/activity/{}.html'.format(template_name),
-            headers=headers,
-            reference=activity,
-            reply_reference=group,
-        )
+        for user_id in recipient_ids:
+            self.add_unsubscribe_link(context, user_id, project)
+            self._send_mail(
+                project=project,
+                send_to=[user_id],
+                subject=subject,
+                context=context,
+                template='sentry/emails/activity/{}.txt'.format(template_name),
+                html_template='sentry/emails/activity/{}.html'.format(template_name),
+                headers=headers,
+                reference=activity,
+                reply_reference=group,
+            )
 
 
 # Legacy compatibility
