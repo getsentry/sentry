@@ -30,6 +30,7 @@ from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils.cache import cache
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.http import absolute_uri
+from sentry.utils.linksign import generate_signed_link
 
 NOTSET = object()
 
@@ -55,7 +56,8 @@ class MailPlugin(NotificationPlugin):
 
     def _build_message(self, project, subject, template=None, html_template=None, body=None,
                    reference=None, reply_reference=None, headers=None, context=None, send_to=None):
-        send_to = send_to or self.get_send_to(project)
+        if send_to is None:
+            send_to = self.get_send_to(project)
         if not send_to:
             logger.debug('Skipping message rendering, no users to send to.')
             return
@@ -178,15 +180,21 @@ class MailPlugin(NotificationPlugin):
             'X-Sentry-Reply-To': group_id_to_email(group.id),
         }
 
-        self._send_mail(
-            subject=subject,
-            template=template,
-            html_template=html_template,
-            project=project,
-            reference=group,
-            headers=headers,
-            context=context,
-        )
+        for user_id in self.get_send_to(project):
+            context['unsubscribe_link'] = generate_signed_link(user_id,
+                'sentry-account-email-unsubscribe-project', kwargs={
+                    'project_id': project.id,
+                })
+            self._send_mail(
+                subject=subject,
+                template=template,
+                html_template=html_template,
+                project=project,
+                reference=group,
+                headers=headers,
+                context=context,
+                send_to=[user_id],
+            )
 
     def notify_digest(self, project, digest):
         start, end, counts = get_digest_metadata(digest)

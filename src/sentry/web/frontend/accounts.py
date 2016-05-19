@@ -14,7 +14,7 @@ from django.contrib.auth import login as login_user, authenticate
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, Http404
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
@@ -23,7 +23,7 @@ from sudo.decorators import sudo_required
 from sentry.models import (
     LostPasswordHash, Project, ProjectStatus, UserOption, Authenticator)
 from sentry.plugins import plugins
-from sentry.web.decorators import login_required
+from sentry.web.decorators import login_required, signed_auth_required
 from sentry.web.forms.accounts import (
     AccountSettingsForm, NotificationSettingsForm, AppearanceSettingsForm,
     RecoverPasswordForm, ChangePasswordRecoverForm,
@@ -254,6 +254,31 @@ def notification_settings(request):
         'AUTH_PROVIDERS': get_auth_providers(),
     })
     return render_to_response('sentry/account/notifications.html', context, request)
+
+
+@csrf_protect
+@never_cache
+@signed_auth_required
+@transaction.atomic
+def email_unsubscribe_project(request, project_id):
+    # For now we only support getting here from the signed link.
+    if not request.user_from_signed_request:
+        raise Http404()
+    try:
+        project = Project.objects.get(pk=project_id)
+    except Project.DoesNotExist:
+        raise Http404()
+
+    if request.method == 'POST':
+        if 'cancel' not in request.POST:
+            UserOption.objects.set_value(
+                request.user, project, 'mail:alert', 0)
+        return HttpResponseRedirect(reverse('sentry'))
+
+    context = csrf(request)
+    context['project'] = project
+    return render_to_response('sentry/account/email_unsubscribe_project.html',
+                              context, request)
 
 
 @csrf_protect
