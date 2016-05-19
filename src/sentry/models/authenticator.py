@@ -109,14 +109,13 @@ class AuthenticatorManager(BaseManager):
         """Checks if the user has any 2FA configured.  Optionally backup
         interfaces can be ignored.
         """
-        if ignore_backup:
-            for authenticator in Authenticator.objects.filter(user=user):
-                if not authenticator.interface.is_available:
-                    continue
-                if not authenticator.interface.is_backup_interface:
-                    return True
-            return False
-        return Authenticator.objects.filter(user=user).first() is not None
+        for authenticator in Authenticator.objects.filter(user=user):
+            if not authenticator.interface.is_available:
+                continue
+            if ignore_backup and authenticator.interface.is_backup_interface:
+                continue
+            return True
+        return False
 
 
 AUTHENTICATOR_INTERFACES = {}
