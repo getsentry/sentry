@@ -13,7 +13,7 @@ Some basic prerequisites which you'll need in order to run Sentry:
   assumes an ubuntu based system.
 * Python 2.7
 * ``python-setuptools``, ``python-pip``, ``python-dev``, ``libxslt1-dev``,
-  ``libxml2-dev``, ``libz-dev``, ``libffi-dev``, ``libssl-dev``, ``libpq-dev``,
+  ``gcc``, ``libffi-dev``, ``libjpeg-dev``, ``libxml2-dev``, ``libxslt-dev``,
   ``libyaml-dev``
 * `PostgreSQL <http://www.postgresql.org/>`_
 * `Redis <http://redis.io>`_ (the minimum version requirement is 2.8.9, but 2.8.18, 3.0, or newer are recommended)
