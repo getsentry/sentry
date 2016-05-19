@@ -22,6 +22,7 @@ class TagValueSerializerTest(TestCase):
         )
 
         result = serialize(tagvalue, user)
+        assert result['id'] == str(tagvalue.id)
         assert result['key'] == 'user'
         assert result['value'] == tagvalue.value
         assert result['name'] == euser.get_label()
@@ -36,6 +37,7 @@ class TagValueSerializerTest(TestCase):
         )
 
         result = serialize(tagvalue, user)
+        assert result['id'] == str(tagvalue.id)
         assert result['key'] == 'user'
         assert result['value'] == tagvalue.value
         assert result['name'] == tagvalue.get_label()
