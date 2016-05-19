@@ -30,7 +30,11 @@ const AvatarCropper = React.createClass({
   MAX_DIMENSION: 1024,
 
   onChange(ev) {
+    /*eslint consistent-return:0*/
     let file = ev.target.files[0];
+
+    if (!file)
+      return; // No file selected (e.g. user clicked "cancel")
 
     if (!/^image\//.test(file.type))
       return void this.handleError('That is not a supported file type.');
