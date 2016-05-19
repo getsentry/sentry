@@ -335,6 +335,14 @@ def apply_legacy_settings(settings):
     settings.DEFAULT_FROM_EMAIL = settings.SENTRY_OPTIONS.get(
         'mail.from', settings.SENTRY_DEFAULT_OPTIONS.get('mail.from'))
 
+    # HACK(mattrobenolt): This is a one-off assertion for a system.secret-key value.
+    # If this becomes a pattern, we could add another flag to the OptionsManager to cover this, but for now
+    # this is the only value that should prevent the app from booting up. Currently FLAG_REQUIRED is used to
+    # trigger the Installation Wizard, not abort startup.
+    if not settings.SENTRY_OPTIONS.get('system.secret-key'):
+        from .importer import ConfigurationError
+        raise ConfigurationError("`system.secret-key` MUST be set. Use 'sentry config generate-secret-key' to get one.")
+
 
 def skip_migration_if_applied(settings, app_name, table_name,
                               name='0001_initial'):
