@@ -1,5 +1,4 @@
 .coverage
-.tox
 .DS_Store
 *.egg-info
 *.pyc
