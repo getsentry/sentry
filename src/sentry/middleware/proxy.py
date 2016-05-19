@@ -11,6 +11,8 @@ class SetRemoteAddrFromForwardedFor(object):
             # HTTP_X_FORWARDED_FOR can be a comma-separated list of IPs.
             # Take just the first one.
             real_ip = real_ip.split(",")[0]
+            if ':' in real_ip:
+                real_ip = real_ip.split(':', 1)[0]
             request.META['REMOTE_ADDR'] = real_ip
 
 
