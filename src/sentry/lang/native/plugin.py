@@ -92,8 +92,6 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
     stacktrace = {'frames': converted_frames}
 
     if error or diagnosis:
-        if diagnosis is not None:
-            data['culprit'] = diagnosis
         error = error or {}
         exc = exception_from_apple_error_or_diagnosis(error, diagnosis)
         if exc is not None:
