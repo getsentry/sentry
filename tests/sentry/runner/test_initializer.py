@@ -170,6 +170,7 @@ def test_apply_legacy_settings(settings):
     settings.SENTRY_SMTP_HOSTNAME = 'reply-hostname'
     settings.MAILGUN_API_KEY = 'mailgun-api-key'
     settings.SENTRY_OPTIONS = {
+        'system.secret-key': 'secret-key',
         'mail.from': 'mail-from',
     }
     apply_legacy_settings(settings)
@@ -179,6 +180,7 @@ def test_apply_legacy_settings(settings):
         'system.admin-email': 'admin-email',
         'system.url-prefix': 'http://url-prefix',
         'system.rate-limit': 10,
+        'system.secret-key': 'secret-key',
         'redis.clusters': {'default': {'foo': 'bar'}},
         'mail.from': 'mail-from',
         'mail.enable-replies': True,
@@ -191,5 +193,12 @@ def test_apply_legacy_settings(settings):
 
 def test_initialize_app(settings):
     "Just a sanity check of the full initialization process"
+    settings.SENTRY_OPTIONS = {'system.secret-key': 'secret-key'}
     bootstrap_options(settings)
     apply_legacy_settings(settings)
+
+
+def test_require_secret_key(settings):
+    assert 'system.secret-key' not in settings.SENTRY_OPTIONS
+    with pytest.raises(ConfigurationError):
+        apply_legacy_settings(settings)
