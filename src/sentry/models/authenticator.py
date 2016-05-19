@@ -373,9 +373,9 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
         ctx = {'code': self.make_otp().generate_otp()}
 
         if for_enrollment:
-            text = _('You are about to set up two-factor authentication '
-                     'through text messages. Your confirmation code is '
-                     '%(code)s.')
+            text = _('%(code)s is your Sentry two-factor enrollment code. '
+                     'You are about to set up text message based two-factor '
+                     'authentication.')
         else:
             text = _('%(code)s is your Sentry authentication code.')
 
