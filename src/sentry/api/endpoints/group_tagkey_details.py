@@ -66,6 +66,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         top_values = GroupTagValue.get_top_values(group.id, lookup_key, limit=3)
 
         data = {
+            'id': str(tag_key.id),
             'key': key,
             'name': tag_key.get_label(),
             'uniqueValues': group_tag_key.values_seen,
