@@ -46,7 +46,6 @@ def process_signature(request, max_age=60 * 60 * 24 * 2):
 
     signed_data = '%s|%s|%s' % (request.build_absolute_uri('/').rstrip('/'),
                                 request.path, sig)
-    print signed_data
     try:
         data = get_signer().unsign(signed_data, max_age=max_age)
     except signing.BadSignature:
