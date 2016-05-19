@@ -49,6 +49,7 @@ class TagValueSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
+            'id': str(obj.id),
             'key': TagKey.get_standardized_key(obj.key),
             'name': attrs['name'],
             'value': obj.value,
