@@ -437,6 +437,11 @@ class Frame(Interface):
         }).strip('\n')
 
     def get_culprit_string(self, platform=None):
+        if platform in ('objc', 'cocoa'):
+            return '%s (%s)' % (
+                self.function or '?',
+                self.package or '?',
+            )
         fileloc = self.module or self.filename
         if not fileloc:
             return ''
