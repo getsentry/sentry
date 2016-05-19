@@ -32,6 +32,11 @@
           {% block main %}
           <p>This is the body of an email</p>
           {% endblock %}
+          {% if unsubscribe_link %}
+            <p>
+              <a href="{{ unsubscribe_link }}">Click to unsubscribe</a>
+            </p>
+          {% endif %}
         </div>
         <div class="footer">
           {% block footer %}
