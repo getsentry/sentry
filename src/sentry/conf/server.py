@@ -13,7 +13,6 @@ from django.conf.global_settings import *  # NOQA
 
 from datetime import timedelta
 
-import hashlib
 import os
 import os.path
 import socket
@@ -935,10 +934,7 @@ SENTRY_ROLES = (
 
 # See sentry/options/__init__.py for more information
 SENTRY_OPTIONS = {}
-SENTRY_DEFAULT_OPTIONS = {
-    # Make this unique, and don't share it with anybody.
-    'system.secret-key': hashlib.md5(socket.gethostname() + ')*)&8a36)6%74e@-ne5(-!8a(vv#tkv)(eyg&@0=zd^pl!7=y@').hexdigest(),
-}
+SENTRY_DEFAULT_OPTIONS = {}
 
 # You should not change this setting after your database has been created
 # unless you have altered all schemas first
