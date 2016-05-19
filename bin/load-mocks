@@ -200,6 +200,7 @@ def get_sample_breadcrumbs(prior_event_id=None):
 
     return sample_breadcrumbs
 
+
 def main(num_events=1):
     user = User.objects.filter(is_superuser=True)[0]
 
