@@ -260,7 +260,7 @@ urlpatterns += patterns(
         RedirectView.as_view(url='https://docs.getsentry.com/hosted/api/', permanent=False),
         name='sentry-api-docs-redirect'),
 
-    url(r'^api/?$', react_page_view, name='sentry-api'),
+    url(r'^api/$', react_page_view, name='sentry-api'),
     url(r'^api/new-token/$', react_page_view),
 
     # Organizations
@@ -419,5 +419,5 @@ urlpatterns += patterns(
         name='sentry-group-plugin-action'),
 
     # Legacy
-    url(r'', react_page_view),
+    url(r'/$', react_page_view),
 )
