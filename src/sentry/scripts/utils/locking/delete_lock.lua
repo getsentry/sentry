@@ -8,5 +8,5 @@ elseif value ~= uuid then
     return redis.error_reply(string.format("Lock at %s was set by %s, and cannot be released by %s.", key, value, uuid))
 else
     redis.call('DEL', key)
-    return redis.status_reply("Lock released.")
+    return redis.status_reply("OK")
 end
