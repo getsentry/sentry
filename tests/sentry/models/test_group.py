@@ -147,3 +147,7 @@ class GroupTest(TestCase):
 
         with pytest.raises(Group.DoesNotExist):
             get_group_with_redirect(duplicate_id)
+
+    def test_invalid_shared_id(self):
+        with pytest.raises(Group.DoesNotExist):
+            Group.from_share_id('adc7a5b902184ce3818046302e94f8ec')
