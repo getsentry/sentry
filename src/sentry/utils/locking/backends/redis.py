@@ -29,7 +29,7 @@ class RedisLockBackend(LockBackend):
         return self.cluster.get_local_client_for_key(key)
 
     def __prefix_key(self, key):
-        return self.prefix + str(key)
+        return u'{}{}'.format(self.prefix, key)
 
     def acquire(self, key, duration, routing_key=None):
         client = self.get_client(key, routing_key)
