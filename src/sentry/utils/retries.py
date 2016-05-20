@@ -30,8 +30,9 @@ class TimedRetryPolicy(RetryPolicy):
                 return function()
             except self.exceptions as error:
                 delay = self.delay(i)
-                if (time.time() + delay) > (start + self.timeout):
-                    raise Exception('Could not successfully execute %r within %.3f seconds (%s attempts.)' % (function, time.time() - start, i))
+                now = time.time()
+                if (now + delay) > (start + self.timeout):
+                    raise Exception('Could not successfully execute %r within %.3f seconds (%s attempts.)' % (function, now - start, i))
                 else:
                     logger.debug(
                         'Failed to execute %r due to %r on attempt #%s, retrying in %s seconds...',
