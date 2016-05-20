@@ -276,6 +276,8 @@ class Group(Model):
             project_id, group_id = b16decode(share_id.upper()).split('.')
         except ValueError:
             raise cls.DoesNotExist
+        if not (project_id.isdigit() and group_id.isdigit()):
+            raise cls.DoesNotExist
         return cls.objects.get(project=project_id, id=group_id)
 
     def get_score(self):
