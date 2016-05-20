@@ -103,6 +103,7 @@ if settings.DEBUG:
     from sentry.web.frontend.debug.debug_trigger_error import DebugTriggerErrorView
     from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
     from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
+    from sentry.web.frontend.debug.debug_icons import DebugIconsView
     from sentry.web.frontend.debug import debug_auth_views
 
     urlpatterns += patterns(
@@ -131,6 +132,8 @@ if settings.DEBUG:
             debug_auth_views.DebugAuthConfirmIdentity.as_view()),
         url(r'^debug/auth-confirm-link/$',
             debug_auth_views.DebugAuthConfirmLink.as_view()),
+        url(r'^debug/icons/$',
+            DebugIconsView.as_view()),
     )
 
 urlpatterns += patterns(
