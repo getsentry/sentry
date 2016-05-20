@@ -128,7 +128,7 @@ def from_member(member, scopes=None):
         team_access = team_memberships
 
     if scopes is not None:
-        scopes = scopes & member.get_scopes()
+        scopes = set(scopes) & member.get_scopes()
     else:
         scopes = member.get_scopes()
 
