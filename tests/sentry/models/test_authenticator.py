@@ -12,12 +12,10 @@ class AuthenticatorTest(TestCase):
 
         RecoveryCodeInterface().enroll(user)
 
-        assert Authenticator.objects.user_has_2fa(user) is True
-        assert Authenticator.objects.user_has_2fa(user, ignore_backup=True) is False
+        assert Authenticator.objects.user_has_2fa(user) is False
         assert Authenticator.objects.filter(user=user).count() == 1
 
         TotpInterface().enroll(user)
 
         assert Authenticator.objects.user_has_2fa(user) is True
-        assert Authenticator.objects.user_has_2fa(user, ignore_backup=True) is True
         assert Authenticator.objects.filter(user=user).count() == 2

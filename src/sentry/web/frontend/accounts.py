@@ -153,7 +153,7 @@ def twofactor_settings(request):
     context = csrf(request)
     context.update({
         'page': 'settings',
-        'has_2fa': any(x.is_enrolled for x in interfaces),
+        'has_2fa': any(x.is_enrolled and not x.is_backup_interface for x in interfaces),
         'interfaces': interfaces,
     })
     return render_to_response('sentry/account/twofactor.html', context, request)
