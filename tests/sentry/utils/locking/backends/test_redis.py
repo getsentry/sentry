@@ -38,11 +38,8 @@ class RedisLockBackendTestCase(TestCase):
             self.backend.acquire(key, duration)
 
     def test_release_fail_on_missing(self):
-        key = 'lock'
-        duration = 60
-
         with pytest.raises(Exception):
-            self.backend.release(key)
+            self.backend.release('missing-key')
 
     def test_release_fail_on_conflict(self):
         key = 'lock'
