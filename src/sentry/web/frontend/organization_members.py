@@ -4,7 +4,7 @@ from django.db.models import Q
 
 from sentry import roles
 from sentry.models import (
-    AuthProvider, OrganizationAccessRequest, OrganizationMember
+    AuthProvider, Authenticator, OrganizationAccessRequest, OrganizationMember
 )
 from sentry.web.frontend.base import OrganizationView
 
@@ -23,14 +23,18 @@ class OrganizationMembersView(OrganizationView):
         except AuthProvider.DoesNotExist:
             auth_provider = None
 
+        oms = list(queryset)
+
+        authenticators = Authenticator.objects.bulk_users_have_2fa([om.user_id for om in oms])
+
         member_list = []
-        for om in queryset:
+        for om in oms:
             needs_sso = bool(auth_provider and not getattr(om.flags, 'sso:linked'))
-            member_list.append((om, needs_sso))
+            member_list.append((om, needs_sso, authenticators[om.user_id]))
 
         # if the member is not the only owner we allow them to leave the org
         member_can_leave = any(
-            1 for om, _ in member_list
+            1 for om, _, _ in member_list
             if (om.role == roles.get_top_dog().id
                 and om.user != request.user
                 and om.user is not None)

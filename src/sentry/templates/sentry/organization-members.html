@@ -3,6 +3,7 @@
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
+{% load sentry_features %}
 
 {% block title %}{% trans "Members" %} | {{ block.super }}{% endblock %}
 
@@ -54,24 +55,31 @@
 
   <table class="table member-list">
     <colgroup>
-      <col width="30%"/>
-      <col width="25%" />
-      <col width="20%"/>
-      <col width="20%"/>
+      <col width="15%"/>
+      {% feature auth:twofactor %}
+        <col width="1%"/>
+      {% endfeature %}
       <col width="5%"/>
+      <col width="5%"/>
+      {% if can_remove_members or member_can_leave %}
+        <col width="10%"/>
+      {% endif %}
     </colgroup>
     <thead>
       <tr>
         <th>{% trans "Member" %}</th>
+        {% feature auth:twofactor %}
+          <th class="squash">&nbsp;</th>
+        {% endfeature %}
         <th>&nbsp;</th>
-        <th>{% trans "Role" %}</th>
+        <th class="squash">{% trans "Role" %}</th>
         {% if can_remove_members or member_can_leave %}
           <th class="squash">&nbsp;</th>
         {% endif %}
       </tr>
     </thead>
     <tbody>
-      {% for member, needs_sso in member_list %}
+      {% for member, needs_sso, has_2fa in member_list %}
         <tr>
           <td class="table-user-info">
             <span class="avatar">
@@ -88,6 +96,9 @@
             {{ member.get_email }}
             <br />
           </td>
+          {% feature auth:twofactor %}
+            <td class="squash">{% if not has_2fa %}<span style="color: #B64236" class="icon-exclamation tip pull-right" title="{% trans "Two-factor auth not enabled" %}"></span>{% endif %}</td>
+          {% endfeature %}
           <td class="status">
             {% if needs_sso or member.is_pending %}
               {% if member.is_pending %}
@@ -101,7 +112,7 @@
               {% endif %}
             {% endif %}
           </td>
-          <td>{{ member.get_role_display }}</td>
+          <td class="squash">{{ member.get_role_display }}</td>
           {% if can_remove_members or member_can_leave %}
           <td class="align-right squash">
             <a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}"
