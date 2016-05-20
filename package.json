@@ -59,7 +59,7 @@
     "babel-gettext-extractor": "^1.0.2",
     "babel-loader": "5.3.3",
     "chai": "3.4.1",
-    "enzyme": "^1.1.0",
+    "enzyme": "2.1.0",
     "eslint": "1.9.0",
     "eslint-plugin-getsentry": "1.0.0",
     "eslint-plugin-react": "3.11.2",
