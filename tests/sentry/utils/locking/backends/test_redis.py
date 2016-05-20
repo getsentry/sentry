@@ -1,9 +1,9 @@
 import pytest
 from exam import fixture
 
-from sentry.utils.redis import clusters
-from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.testutils import TestCase
+from sentry.utils.locking.backends.redis import RedisLockBackend
+from sentry.utils.redis import clusters
 
 
 class RedisLockBackendTestCase(TestCase):

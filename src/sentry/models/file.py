@@ -8,21 +8,22 @@ sentry.models.file
 
 from __future__ import absolute_import
 
+from hashlib import sha1
+from uuid import uuid4
+
 from django.conf import settings
-from django.core.files.base import ContentFile, File as FileObj
+from django.core.files.base import File as FileObj
+from django.core.files.base import ContentFile
 from django.core.files.storage import get_storage_class
 from django.db import models
 from django.utils import timezone
-from hashlib import sha1
 from jsonfield import JSONField
-from uuid import uuid4
 
 from sentry.app import locks
 from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, Model
 )
 from sentry.utils import metrics
-
 
 ONE_DAY = 60 * 60 * 24
 

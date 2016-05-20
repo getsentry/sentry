@@ -1,7 +1,8 @@
 import mock
+
 from sentry.testutils import TestCase
-from sentry.utils.locking.lock import Lock
 from sentry.utils.locking.backends import LockBackend
+from sentry.utils.locking.lock import Lock
 
 
 class LockTestCase(TestCase):

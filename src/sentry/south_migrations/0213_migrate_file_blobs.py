@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from collections import defaultdict
-from south.utils import datetime_utils as datetime
-from south.db import db
-from south.v2 import DataMigration
-from django.db import models
 
+from django.db import models
+from south.db import db
+from south.utils import datetime_utils as datetime
+from south.v2 import DataMigration
 
 
 class Migration(DataMigration):

@@ -3,7 +3,6 @@ from uuid import uuid4
 from sentry.utils import redis
 from sentry.utils.locking.backends import LockBackend
 
-
 delete_lock = redis.load_script('utils/locking/delete_lock.lua')
 
 
