@@ -229,7 +229,7 @@ def main(num_events=1):
     else:
         print('Mocking org {}'.format('Default'))
         org, _ = Organization.objects.get_or_create(
-            name='Default',
+            slug='default',
         )
 
     OrganizationMember.objects.get_or_create(
