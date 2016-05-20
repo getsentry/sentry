@@ -52,6 +52,7 @@ export default {
     BarChart: require('./components/barChart'),
     i18n: require('./locale'),
     ConfigStore: require('./stores/configStore'),
+    Count: require('./components/count'),
     DateTime: require('./components/dateTime'),
     DropdownLink: require('./components/dropdownLink'),
     FlotChart: require('./components/flotChart'),
