@@ -96,8 +96,7 @@ class TwoFactorSettingsView(BaseView):
         # enrolling a backup interface when we already had a primary one.
         if not insecure \
            or (interface.is_backup_interface and
-               Authenticator.objects.user_has_2fa(request.user,
-                                                  ignore_backup=True)):
+               Authenticator.objects.user_has_2fa(request.user)):
             interface.enroll(request.user)
             if Authenticator.objects.auto_add_recovery_codes(request.user):
                 next = reverse('sentry-account-settings-2fa-recovery')
