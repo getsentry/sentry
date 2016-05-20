@@ -32,7 +32,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                                           which the projects should be listed.
         :auth: required
         """
-        if request.auth:
+        if request.auth and not request.user.is_authenticated():
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, 'project'):
                 team_list = [request.auth.project.team]
