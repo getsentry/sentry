@@ -3,10 +3,6 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# Alex Nordlund <deep.alexander@gmail.com>, 2014-2015
-# Filip Körling <filip@stickybit.se>, 2013-2014
-# Mattias Jansson <mattias@colourandcode.se>, 2012
-# Staffan Einarsson <staffan.einarsson@gmail.com>, 2015
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
@@ -14,59 +10,59 @@ msgstr ""
 "POT-Creation-Date: 2016-05-20 00:40+0000\n"
 "PO-Revision-Date: 2016-05-20 00:41+0000\n"
 "Last-Translator: mattrobenolt <m@robenolt.com>\n"
-"Language-Team: Swedish (Sweden) (http://www.transifex.com/getsentry/sentry/language/sv_SE/)\n"
+"Language-Team: Polish (Poland) (http://www.transifex.com/getsentry/sentry/language/pl_PL/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.2.0\n"
-"Language: sv_SE\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: pl_PL\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: admin.py:189
 msgid "Personal info"
-msgstr "Personlig information"
+msgstr ""
 
 #: admin.py:190
 msgid "Permissions"
-msgstr "Rättigheter"
+msgstr ""
 
 #: admin.py:191
 msgid "Important dates"
-msgstr "Viktiga datum"
+msgstr ""
 
 #: admin.py:279
 msgid "Password changed successfully."
-msgstr "Lösenordet har ändrats."
+msgstr ""
 
 #: admin.py:289
 #, python-format
 msgid "Change password: %s"
-msgstr "Ändra lösenord: %s"
+msgstr ""
 
 #: constants.py:37 static/sentry/app/views/stream/sortOptions.jsx:47
 msgid "Priority"
-msgstr "Prioritet"
+msgstr ""
 
 #: constants.py:38 constants.py:45
 #: templates/sentry/plugins/bases/tag/index.html:24
 #: templates/sentry/users/list.html:35
 #: static/sentry/app/views/stream/sortOptions.jsx:52
 msgid "Last Seen"
-msgstr "Sågs senast"
+msgstr ""
 
 #: constants.py:39 constants.py:46
 #: templates/sentry/plugins/bases/tag/index.html:23
 #: static/sentry/app/views/stream/sortOptions.jsx:45
 msgid "First Seen"
-msgstr "Sågs först"
+msgstr ""
 
 #: constants.py:40 static/sentry/app/views/stream/sortOptions.jsx:49
 msgid "Frequency"
-msgstr "Frekvens"
+msgstr ""
 
 #: constants.py:44
 msgid "Score"
-msgstr "Poäng"
+msgstr ""
 
 #: constants.py:186
 #, python-brace-format
@@ -107,7 +103,7 @@ msgstr ""
 
 #: conf/server.py:97
 msgid "Arabic"
-msgstr "Arabiska"
+msgstr ""
 
 #: conf/server.py:98
 msgid "Azerbaijani"
@@ -115,11 +111,11 @@ msgstr ""
 
 #: conf/server.py:99
 msgid "Bulgarian"
-msgstr "Bulgariska"
+msgstr ""
 
 #: conf/server.py:100
 msgid "Belarusian"
-msgstr "Vitryska"
+msgstr ""
 
 #: conf/server.py:101
 msgid "Bengali"
@@ -131,15 +127,15 @@ msgstr ""
 
 #: conf/server.py:103
 msgid "Bosnian"
-msgstr "Bosniska"
+msgstr ""
 
 #: conf/server.py:104
 msgid "Catalan"
-msgstr "Katalanska"
+msgstr ""
 
 #: conf/server.py:105
 msgid "Czech"
-msgstr "Tjeckiska"
+msgstr ""
 
 #: conf/server.py:106
 msgid "Welsh"
@@ -147,59 +143,59 @@ msgstr ""
 
 #: conf/server.py:107
 msgid "Danish"
-msgstr "Danska"
+msgstr ""
 
 #: conf/server.py:108
 msgid "German"
-msgstr "Tyska"
+msgstr ""
 
 #: conf/server.py:109
 msgid "Greek"
-msgstr "Grekiska"
+msgstr ""
 
 #: conf/server.py:110
 msgid "English"
-msgstr "Engelska"
+msgstr ""
 
 #: conf/server.py:111
 msgid "Esperanto"
-msgstr "Esperanto"
+msgstr ""
 
 #: conf/server.py:112
 msgid "Spanish"
-msgstr "Spanska"
+msgstr ""
 
 #: conf/server.py:113
 msgid "Estonian"
-msgstr "Estniska"
+msgstr ""
 
 #: conf/server.py:114
 msgid "Basque"
-msgstr "Baskiska"
+msgstr ""
 
 #: conf/server.py:115
 msgid "Persian"
-msgstr "Persiska"
+msgstr ""
 
 #: conf/server.py:116
 msgid "Finnish"
-msgstr "Finska"
+msgstr ""
 
 #: conf/server.py:117
 msgid "French"
-msgstr "Franska"
+msgstr ""
 
 #: conf/server.py:118
 msgid "Irish"
-msgstr "Irländska"
+msgstr ""
 
 #: conf/server.py:119
 msgid "Galician"
-msgstr "Galiciska"
+msgstr ""
 
 #: conf/server.py:120
 msgid "Hebrew"
-msgstr "Hebreiska"
+msgstr ""
 
 #: conf/server.py:121
 msgid "Hindi"
@@ -211,7 +207,7 @@ msgstr ""
 
 #: conf/server.py:123
 msgid "Hungarian"
-msgstr "Ungerska"
+msgstr ""
 
 #: conf/server.py:124
 msgid "Interlingua"
@@ -219,23 +215,23 @@ msgstr ""
 
 #: conf/server.py:125
 msgid "Indonesian"
-msgstr "Indonesiska"
+msgstr ""
 
 #: conf/server.py:126
 msgid "Icelandic"
-msgstr "Isländska"
+msgstr ""
 
 #: conf/server.py:127
 msgid "Italian"
-msgstr "Italienska"
+msgstr ""
 
 #: conf/server.py:128
 msgid "Japanese"
-msgstr "Japanska"
+msgstr ""
 
 #: conf/server.py:129
 msgid "Georgian"
-msgstr "Georgiska"
+msgstr ""
 
 #: conf/server.py:130
 msgid "Kazakh"
@@ -251,23 +247,23 @@ msgstr ""
 
 #: conf/server.py:133
 msgid "Korean"
-msgstr "Koreanska"
+msgstr ""
 
 #: conf/server.py:134
 msgid "Luxembourgish"
-msgstr "Luxemburgska"
+msgstr ""
 
 #: conf/server.py:135
 msgid "Lithuanian"
-msgstr "Litauiska"
+msgstr ""
 
 #: conf/server.py:136
 msgid "Latvian"
-msgstr "Lettiska"
+msgstr ""
 
 #: conf/server.py:137
 msgid "Macedonian"
-msgstr "Makedonska"
+msgstr ""
 
 #: conf/server.py:138
 msgid "Malayalam"
@@ -283,7 +279,7 @@ msgstr ""
 
 #: conf/server.py:141
 msgid "Norwegian Bokmal"
-msgstr "Norskt Bokmål"
+msgstr ""
 
 #: conf/server.py:142
 msgid "Nepali"
@@ -291,11 +287,11 @@ msgstr ""
 
 #: conf/server.py:143
 msgid "Dutch"
-msgstr "Holländska"
+msgstr ""
 
 #: conf/server.py:144
 msgid "Norwegian Nynorsk"
-msgstr "Nynorska"
+msgstr ""
 
 #: conf/server.py:145
 msgid "Ossetic"
@@ -307,27 +303,27 @@ msgstr ""
 
 #: conf/server.py:147
 msgid "Polish"
-msgstr "Polska"
+msgstr ""
 
 #: conf/server.py:148
 msgid "Portuguese"
-msgstr "Portugisiska"
+msgstr ""
 
 #: conf/server.py:149
 msgid "Brazilian Portuguese"
-msgstr "Brasiliansk Portugisiska"
+msgstr ""
 
 #: conf/server.py:150
 msgid "Romanian"
-msgstr "Rumänska"
+msgstr ""
 
 #: conf/server.py:151
 msgid "Russian"
-msgstr "Ryska"
+msgstr ""
 
 #: conf/server.py:152
 msgid "Slovak"
-msgstr "Slovakiska"
+msgstr ""
 
 #: conf/server.py:153
 msgid "Slovenian"
@@ -343,11 +339,11 @@ msgstr ""
 
 #: conf/server.py:156
 msgid "Swedish"
-msgstr "Svenska"
+msgstr ""
 
 #: conf/server.py:157
 msgid "Swahili"
-msgstr "Swahili"
+msgstr ""
 
 #: conf/server.py:158
 msgid "Tamil"
@@ -359,11 +355,11 @@ msgstr ""
 
 #: conf/server.py:160
 msgid "Thai"
-msgstr "Thailändska"
+msgstr ""
 
 #: conf/server.py:161
 msgid "Turkish"
-msgstr "Turkiska"
+msgstr ""
 
 #: conf/server.py:162
 msgid "Tatar"
@@ -395,7 +391,7 @@ msgstr ""
 
 #: db/models/fields/bounded.py:54 db/models/fields/bounded.py:68
 msgid "Big Integer"
-msgstr "Stort Heltal"
+msgstr ""
 
 #: debug/panels/base.py:41
 #, python-format
@@ -403,6 +399,7 @@ msgid "%(calls)d call in %(duration).2fms"
 msgid_plural "%(calls)d calls in %(duration).2fms"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: debug/panels/redis.py:79
 msgid "Redis"
@@ -410,24 +407,24 @@ msgstr ""
 
 #: interfaces/http.py:213
 msgid "Request"
-msgstr "Begäran"
+msgstr ""
 
 #: interfaces/stacktrace.py:683
 msgid "Stacktrace (most recent call first):"
-msgstr "Stacktrace (senaste anrop först):"
+msgstr ""
 
 #: interfaces/stacktrace.py:685
 msgid "Stacktrace (most recent call last):"
-msgstr "Stacktrace (senaste anrop sist):"
+msgstr ""
 
 #: models/apikey.py:52 models/project.py:84 models/projectkey.py:49
 #: models/team.py:93
 msgid "Active"
-msgstr "Aktiv"
+msgstr ""
 
 #: models/apikey.py:53 models/projectkey.py:50
 msgid "Inactive"
-msgstr "Inaktiv"
+msgstr ""
 
 #: models/authenticator.py:154
 msgid "Enroll"
@@ -441,7 +438,7 @@ msgstr ""
 #: templates/sentry/organization-members.html:120
 #: static/sentry/app/components/activity/note.jsx:41
 msgid "Remove"
-msgstr "Ta bort"
+msgstr ""
 
 #: models/authenticator.py:248
 msgid "Recovery Codes"
@@ -541,36 +538,36 @@ msgstr ""
 
 #: models/event.py:52
 msgid "message"
-msgstr "meddelande"
+msgstr ""
 
 #: models/event.py:53
 msgid "messages"
-msgstr "meddelanden"
+msgstr ""
 
 #: models/event.py:92 models/group.py:374
 msgid "error"
-msgstr "fel"
+msgstr ""
 
 #: models/group.py:166
 #: static/sentry/app/components/organizationIssueList.jsx:49
 msgid "Unresolved"
-msgstr "Ej löst"
+msgstr ""
 
 #: models/group.py:167 models/groupresolution.py:37
 msgid "Resolved"
-msgstr "Löst"
+msgstr ""
 
 #: models/group.py:168
 msgid "Muted"
-msgstr "Tystad"
+msgstr ""
 
 #: models/group.py:190
 msgid "grouped messages"
-msgstr "grupperade meddelanden"
+msgstr ""
 
 #: models/group.py:191
 msgid "grouped message"
-msgstr "grupperat meddelande"
+msgstr ""
 
 #: models/groupresolution.py:36
 msgid "Pending"
@@ -578,21 +575,21 @@ msgstr ""
 
 #: models/organization.py:70 models/tagkey.py:67
 msgid "Visible"
-msgstr "Synlig"
+msgstr ""
 
 #: models/organization.py:71 models/project.py:85 models/tagkey.py:68
 #: models/team.py:94
 msgid "Pending Deletion"
-msgstr "Avvaktar Borttagning"
+msgstr ""
 
 #: models/organization.py:72 models/project.py:86 models/tagkey.py:69
 #: models/team.py:95
 msgid "Deletion in Progress"
-msgstr "Borttagning Pågår"
+msgstr ""
 
 #: models/user.py:26
 msgid "username"
-msgstr "användarnamn"
+msgstr ""
 
 #: models/user.py:29
 msgid "name"
@@ -600,57 +597,57 @@ msgstr ""
 
 #: models/user.py:31
 msgid "email address"
-msgstr "mailadress"
+msgstr ""
 
 #: models/user.py:33
 msgid "staff status"
-msgstr "personalstatus"
+msgstr ""
 
 #: models/user.py:34
 msgid "Designates whether the user can log into this admin site."
-msgstr "Avgör om användaren kan logga in på denna admin-sajt."
+msgstr ""
 
 #: models/user.py:37
 msgid "active"
-msgstr "aktiv"
+msgstr ""
 
 #: models/user.py:38
 msgid ""
 "Designates whether this user should be treated as active. Unselect this "
 "instead of deleting accounts."
-msgstr "Avgör om denna användare ska betraktas som aktiv. Avmarkera detta istället för att ta bort konton."
+msgstr ""
 
 #: models/user.py:41
 msgid "superuser status"
-msgstr "superuser-status"
+msgstr ""
 
 #: models/user.py:42
 msgid ""
 "Designates that this user has all permissions without explicitly assigning "
 "them."
-msgstr "Avgör om denna användare ska ha samtliga rättigheter utan att explicit ha blivit tilldelad dem."
+msgstr ""
 
 #: models/user.py:45
 msgid "managed"
-msgstr "administrerad"
+msgstr ""
 
 #: models/user.py:46
 msgid ""
 "Designates whether this user should be treated as managed. Select this to "
 "disallow the user from modifying their account (username, password, etc)."
-msgstr "Avgör om denna användare ska betraktas som administrerad. Välj detta för att inte tillåta att användaren gör ändringar i sitt konto (användarnamn, lösenord, etc)."
+msgstr ""
 
 #: models/user.py:50
 msgid "date joined"
-msgstr "registreringsdatum"
+msgstr ""
 
 #: models/user.py:60
 msgid "user"
-msgstr "användare"
+msgstr ""
 
 #: models/user.py:61 static/sentry/app/components/groupListHeader.jsx:16
 msgid "users"
-msgstr "användare"
+msgstr ""
 
 #: plugins/base/configuration.py:64 web/frontend/project_notifications.py:19
 #: web/frontend/project_plugins.py:24 web/frontend/project_quotas.py:35
@@ -693,11 +690,11 @@ msgstr ""
 #: templates/sentry/404.html:5
 #: static/sentry/app/components/errors/notFound.jsx:10
 msgid "Page Not Found"
-msgstr "Sidan hittades inte"
+msgstr ""
 
 #: templates/sentry/404.html:14
 msgid "The page you are looking for was not found."
-msgstr "Sidan du letar efter kunde inte hittas"
+msgstr ""
 
 #: templates/sentry/404.html:15
 msgid "You may wish to try the following:"
@@ -705,11 +702,11 @@ msgstr ""
 
 #: templates/sentry/404.html:21
 msgid "Return to the dashboard"
-msgstr "Återvänd till instrumentpanelen"
+msgstr ""
 
 #: templates/sentry/500.html:5
 msgid "Internal Server Error"
-msgstr "Internt serverfel"
+msgstr ""
 
 #: templates/sentry/accept-organization-invite.html:5
 #: templates/sentry/accept-organization-invite.html:15
@@ -740,7 +737,7 @@ msgstr ""
 
 #: templates/sentry/accept-organization-invite.html:38
 msgid "Create a new account"
-msgstr "Skapa ett nytt konto"
+msgstr ""
 
 #: templates/sentry/accept-organization-invite.html:45
 #, python-format
@@ -749,7 +746,7 @@ msgstr ""
 
 #: templates/sentry/admin-queue.html:8 templates/sentry/bases/admin.html:14
 msgid "Queue"
-msgstr "Kö"
+msgstr ""
 
 #: templates/sentry/auth-confirm-identity.html:7
 #: templates/sentry/auth-confirm-link.html:7
@@ -764,7 +761,7 @@ msgstr ""
 #: templates/sentry/organization-login.html:31
 #: templates/sentry/organization-login.html:54
 msgid "Login"
-msgstr "Logga in"
+msgstr ""
 
 #: templates/sentry/auth-confirm-identity.html:44
 #: templates/sentry/auth-link-login.html:31 templates/sentry/login.html:37
@@ -819,11 +816,11 @@ msgstr ""
 #: templates/sentry/projects/cannot_create_teams.html:5
 #: static/sentry/app/components/organizations/homeContainer.jsx:37
 msgid "New Project"
-msgstr "Nytt projekt"
+msgstr ""
 
 #: templates/sentry/create-project.html:12
 msgid "Create a New Project"
-msgstr "Skapa ett nytt projekt"
+msgstr ""
 
 #: templates/sentry/create-project.html:15
 msgid ""
@@ -839,7 +836,7 @@ msgstr ""
 #: templates/sentry/organization-settings.html:17
 #: templates/sentry/partial/form_base.html:5
 msgid "Please correct the errors below."
-msgstr "Var vänlig rätta till felen nedan."
+msgstr ""
 
 #: templates/sentry/create-project.html:30
 msgid "Create Project"
@@ -863,13 +860,13 @@ msgstr ""
 #: templates/sentry/layout.html:90 templates/sentry/bases/account.html:21
 #: web/forms/accounts.py:73 static/sentry/app/components/header/userNav.jsx:31
 msgid "Account"
-msgstr "Konto"
+msgstr ""
 
 #: templates/sentry/layout.html:92 templates/sentry/layout.html.py:187
 #: templates/sentry/bases/admin.html:7 web/forms/__init__.py:54
 #: static/sentry/app/components/header/userNav.jsx:34
 msgid "Admin"
-msgstr "Admin"
+msgstr ""
 
 #: templates/sentry/layout.html:94
 #: static/sentry/app/components/header/userNav.jsx:36
@@ -904,11 +901,11 @@ msgstr ""
 #: templates/sentry/missing_permissions.html:5
 #: templates/sentry/missing_permissions.html:8
 msgid "Forbidden"
-msgstr "Förbjudet"
+msgstr ""
 
 #: templates/sentry/missing_permissions.html:13
 msgid "You do not have access to this page with your current permissions."
-msgstr "Du har inte tillgång till denna sida med dina nuvarande rättigheter."
+msgstr ""
 
 #: templates/sentry/no-organization-access.html:5
 #: templates/sentry/no-organization-access.html:12
@@ -945,7 +942,7 @@ msgstr ""
 #: templates/sentry/projects/quotas.html:38
 #: static/sentry/app/components/forms/form.jsx:14
 msgid "Save Changes"
-msgstr "Spara ändringar"
+msgstr ""
 
 #: templates/sentry/organization-api-keys.html:7
 #: templates/sentry/organization-api-keys.html:19
@@ -984,13 +981,13 @@ msgstr ""
 #: templates/sentry/organization-member-settings.html:36
 #: web/forms/accounts.py:144 web/forms/accounts.py:254
 msgid "Email"
-msgstr "Mail"
+msgstr ""
 
 #: templates/sentry/organization-member-details.html:36
 #: templates/sentry/organization-member-settings.html:44
 #: static/sentry/app/views/stream/searchBar.jsx:75
 msgid "Status"
-msgstr "Status"
+msgstr ""
 
 #: templates/sentry/organization-member-details.html:48
 #: templates/sentry/organization-member-settings.html:56
@@ -1024,7 +1021,7 @@ msgstr ""
 #: templates/sentry/bases/organization.html:48
 #: static/sentry/app/components/organizations/homeSidebar.jsx:66
 msgid "Members"
-msgstr "Medlemmar"
+msgstr ""
 
 #: templates/sentry/organization-members.html:14
 #: templates/sentry/organization-members.html:19
@@ -1048,13 +1045,13 @@ msgstr ""
 #: templates/sentry/organization-members.html:65
 #: static/sentry/app/views/teamMembers.jsx:91
 msgid "Member"
-msgstr "Medlem"
+msgstr ""
 
 #: templates/sentry/organization-members.html:109
 #: templates/sentry/projects/keys.html:25
 #: static/sentry/app/views/groupDetails/header.jsx:210
 msgid "Details"
-msgstr "Detaljer"
+msgstr ""
 
 #: templates/sentry/organization-settings.html:52
 #: templates/sentry/organization-settings.html:58
@@ -1118,7 +1115,7 @@ msgstr ""
 #: templates/sentry/projects/manage.html:169
 #: static/sentry/app/views/projectSettings/index.jsx:88
 msgid "General"
-msgstr "Allmänna inställningar"
+msgstr ""
 
 #: templates/sentry/project-notifications.html:42
 msgid "Digests"
@@ -1176,7 +1173,7 @@ msgstr ""
 #: templates/sentry/teams/remove.html:40
 #: static/sentry/app/views/stream/actionLink.jsx:115
 msgid "Cancel"
-msgstr "Avbryt"
+msgstr ""
 
 #: templates/sentry/remove-organization.html:16
 msgid "Removing this organization is permanent and cannot be undone!"
@@ -1193,7 +1190,7 @@ msgstr ""
 #: templates/sentry/twofactor.html:36 templates/sentry/account/sudo.html:52
 #: static/sentry/app/views/installWizard.jsx:86
 msgid "Continue"
-msgstr "Fortsätt"
+msgstr ""
 
 #: templates/sentry/account/appearance.html:7
 #: templates/sentry/bases/account.html:23
@@ -1203,16 +1200,16 @@ msgstr ""
 #: templates/sentry/account/appearance.html:15
 #: static/sentry/app/components/projectHeader/index.jsx:42
 msgid "Events"
-msgstr "Händelser"
+msgstr ""
 
 #: templates/sentry/account/appearance.html:22
 msgid "Localization"
-msgstr "Lokalisering"
+msgstr ""
 
 #: templates/sentry/account/avatar.html:7
 #: templates/sentry/account/settings.html:8
 msgid "Account Settings"
-msgstr "Kontoinställningar"
+msgstr ""
 
 #: templates/sentry/account/identities.html:7
 #: templates/sentry/bases/account.html:26
@@ -1245,7 +1242,7 @@ msgstr ""
 #: templates/sentry/account/notifications.html:41
 #: templates/sentry/bases/admin.html:17
 msgid "Mail"
-msgstr "Mail"
+msgstr ""
 
 #: templates/sentry/account/notifications.html:42
 msgid ""
@@ -1266,7 +1263,7 @@ msgstr ""
 
 #: templates/sentry/account/notifications.html:63
 msgid "Email Address"
-msgstr "Mailadress"
+msgstr ""
 
 #: templates/sentry/account/settings.html:49
 msgid "Optional"
@@ -1280,7 +1277,7 @@ msgstr ""
 #: templates/sentry/bases/admin.html:22
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:210
 msgid "Manage"
-msgstr "Hantera"
+msgstr ""
 
 #: templates/sentry/account/settings.html:60
 #: templates/sentry/account/twofactor.html:11
@@ -1335,7 +1332,7 @@ msgstr ""
 
 #: templates/sentry/account/recover/confirm.html:21
 msgid "Change Password"
-msgstr "Ändra lösenord"
+msgstr ""
 
 #: templates/sentry/account/recover/failure.html:11
 #, python-format
@@ -1351,7 +1348,7 @@ msgstr ""
 
 #: templates/sentry/account/recover/index.html:22
 msgid "Send Email"
-msgstr "Skicka Mail"
+msgstr ""
 
 #: templates/sentry/account/recover/sent.html:11
 msgid ""
@@ -1363,7 +1360,7 @@ msgstr ""
 #: templates/sentry/account/twofactor/configure.html:24
 #: templatetags/sentry_helpers.py:183
 msgid "never"
-msgstr "aldrig"
+msgstr ""
 
 #: templates/sentry/account/twofactor/enroll_sms.html:7
 #: templates/sentry/account/twofactor/enroll_totp.html:7
@@ -1380,7 +1377,7 @@ msgstr ""
 #: templates/sentry/admin/users/remove.html:17
 #: static/sentry/app/components/linkWithConfirmation.jsx:55
 msgid "Confirm"
-msgstr "Bekräfta"
+msgstr ""
 
 #: templates/sentry/account/twofactor/remove.html:6
 msgid "Remove Method:"
@@ -1389,16 +1386,16 @@ msgstr ""
 #: templates/sentry/account/twofactor/remove.html:26
 #: templates/sentry/admin/status/mail.html:37
 msgid "Yes"
-msgstr "Ja"
+msgstr ""
 
 #: templates/sentry/account/twofactor/remove.html:27
 #: templates/sentry/admin/status/mail.html:37
 msgid "No"
-msgstr "Nej"
+msgstr ""
 
 #: templates/sentry/admin/projects/list.html:7
 msgid "Manage Projects"
-msgstr "Hantera projekt"
+msgstr ""
 
 #: templates/sentry/admin/projects/list.html:18
 #: templates/sentry/admin/teams/list.html:31
@@ -1407,7 +1404,7 @@ msgstr "Hantera projekt"
 #: templates/sentry/bases/admin.html:26
 #: static/sentry/app/views/adminOrganizations.jsx:147
 msgid "Projects"
-msgstr "Projekt"
+msgstr ""
 
 #: templates/sentry/admin/projects/list.html:21
 msgid ""
@@ -1420,7 +1417,7 @@ msgstr ""
 #: templates/sentry/admin/users/list_projects.html:24
 #: static/sentry/app/views/organizationStats/projectTable.jsx:46
 msgid "Project"
-msgstr "Projekt"
+msgstr ""
 
 #: templates/sentry/admin/projects/list.html:37
 msgid "Events (24h)"
@@ -1429,47 +1426,47 @@ msgstr ""
 #: templates/sentry/admin/projects/list.html:38
 #: templates/sentry/admin/teams/list.html:32
 msgid "Date Added"
-msgstr "Datum tillagt"
+msgstr ""
 
 #: templates/sentry/admin/projects/list.html:64
 msgid "There are no active projects in Sentry."
-msgstr "Det finns inga aktiva projekt i Sentry."
+msgstr ""
 
 #: templates/sentry/admin/status/env.html:9
 msgid "Server Status"
-msgstr "Serverstatus"
+msgstr ""
 
 #: templates/sentry/admin/status/env.html:12
 #: templates/sentry/bases/admin.html:15
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:99
 msgid "Environment"
-msgstr "Omgivning"
+msgstr ""
 
 #: templates/sentry/admin/status/env.html:17
 msgid "Server Version"
-msgstr "Serverversion"
+msgstr ""
 
 #: templates/sentry/admin/status/env.html:22
 msgid "Python Version"
-msgstr "Pythonversion"
+msgstr ""
 
 #: templates/sentry/admin/status/env.html:26
 msgid "Configuration File"
-msgstr "Konfigurationsfil"
+msgstr ""
 
 #: templates/sentry/admin/status/env.html:30
 msgid "Uptime"
-msgstr "Drifttid"
+msgstr ""
 
 #: templates/sentry/admin/status/env.html:37
 msgid "Environment not found (are you using the builtin Sentry webserver?)."
-msgstr "Omgivningen hittades inte (använder du Sentrys inbyggda webbserver?)."
+msgstr ""
 
 #: templates/sentry/admin/status/env.html:40
 #: templates/sentry/projects/manage.html:166
 #: static/sentry/app/views/projectSettings/index.jsx:86
 msgid "Configuration"
-msgstr "Konfiguration"
+msgstr ""
 
 #: templates/sentry/admin/status/mail.html:9
 msgid "Mail Configuration"
@@ -1477,7 +1474,7 @@ msgstr ""
 
 #: templates/sentry/admin/status/mail.html:12
 msgid "SMTP Settings"
-msgstr "SMTP Inställningar"
+msgstr ""
 
 #: templates/sentry/admin/status/mail.html:15
 msgid "From Address"
@@ -1489,7 +1486,7 @@ msgstr ""
 
 #: templates/sentry/admin/status/mail.html:25 web/forms/accounts.py:253
 msgid "Username"
-msgstr "Användarnamn"
+msgstr ""
 
 #: templates/sentry/admin/status/mail.html:27
 #: templates/sentry/admin/status/mail.html:32
@@ -1498,11 +1495,11 @@ msgstr ""
 
 #: templates/sentry/admin/status/mail.html:30 web/forms/accounts.py:78
 msgid "Password"
-msgstr "Lösenord"
+msgstr ""
 
 #: templates/sentry/admin/status/mail.html:35
 msgid "TLS?"
-msgstr "TLS?"
+msgstr ""
 
 #: templates/sentry/admin/status/mail.html:40
 msgid "Mailing List Namespace"
@@ -1510,36 +1507,36 @@ msgstr ""
 
 #: templates/sentry/admin/status/mail.html:46
 msgid "Test Settings"
-msgstr "Testa inställningar"
+msgstr ""
 
 #: templates/sentry/admin/status/mail.html:51
 msgid ""
 "Send an email to your account's email address to confirm that everything is "
 "configured correctly."
-msgstr "Skicka ett mail till ditt kontos mailadress för att bekräfta att inställningarna är korrekta."
+msgstr ""
 
 #: templates/sentry/admin/status/mail.html:59
 #, python-format
 msgid "Send a test email to %(email)s"
-msgstr "Skicka ett testmail till %(email)s"
+msgstr ""
 
 #: templates/sentry/admin/status/packages.html:8
 #: templates/sentry/bases/admin.html:16
 #: static/sentry/app/components/events/packageData.jsx:28
 msgid "Packages"
-msgstr "Paket"
+msgstr ""
 
 #: templates/sentry/admin/status/packages.html:11
 msgid "Extensions"
-msgstr "Tillägg"
+msgstr ""
 
 #: templates/sentry/admin/status/packages.html:23
 msgid "No extensions registered."
-msgstr "Inga tillägg registrerade."
+msgstr ""
 
 #: templates/sentry/admin/status/packages.html:26
 msgid "Modules"
-msgstr "Moduler"
+msgstr ""
 
 #: templates/sentry/admin/teams/list.html:7
 msgid "Manage Teams"
@@ -1555,68 +1552,68 @@ msgstr ""
 
 #: templates/sentry/admin/users/edit.html:8
 msgid "Change User"
-msgstr "Ändra användare"
+msgstr ""
 
 #: templates/sentry/admin/users/edit.html:21
 #: templates/sentry/admin/users/remove.html:6
 msgid "Remove User"
-msgstr "Ta bort användare"
+msgstr ""
 
 #: templates/sentry/admin/users/edit.html:23
 msgid "Cannot remove yourself"
-msgstr "Kan inte ta bort användare"
+msgstr ""
 
 #: templates/sentry/admin/users/edit.html:39
 #: templates/sentry/admin/users/list_projects.html:25
 msgid "Daily Events"
-msgstr "Dagliga händelser"
+msgstr ""
 
 #: templates/sentry/admin/users/list.html:6
 msgid "Manage Users"
-msgstr "Handera användare"
+msgstr ""
 
 #: templates/sentry/admin/users/list.html:17
 #: templates/sentry/bases/admin.html:27
 #: static/sentry/app/views/stream/actions.jsx:389
 msgid "Users"
-msgstr "Användare"
+msgstr ""
 
 #: templates/sentry/admin/users/list.html:30 web/forms/__init__.py:41
 #: web/forms/accounts.py:255 web/forms/add_project.py:15
 #: web/forms/add_team.py:13
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:120
 msgid "Name"
-msgstr "Namn"
+msgstr ""
 
 #: templates/sentry/admin/users/list.html:31
 msgid "Joined"
-msgstr "Anslöt"
+msgstr ""
 
 #: templates/sentry/admin/users/list.html:32
 msgid "Last Login"
-msgstr "Senast inloggad"
+msgstr ""
 
 #: templates/sentry/admin/users/list.html:66
 msgid "There are no users matching your query in Sentry."
-msgstr "Det finns inga användare som matchar din förfrågan i Sentry."
+msgstr ""
 
 #: templates/sentry/admin/users/list.html:70
 msgid "Create a new user"
-msgstr "Skapa ny användare"
+msgstr ""
 
 #: templates/sentry/admin/users/list_projects.html:45
 msgid "There are no active projects for this user."
-msgstr "Det finns inga aktiva projekt för denna användare."
+msgstr ""
 
 #: templates/sentry/admin/users/new.html:6
 msgid "New User"
-msgstr "Ny användare"
+msgstr ""
 
 #: templates/sentry/bases/account.html:6 templates/sentry/bases/admin.html:18
 #: templates/sentry/bases/organization.html:79
 #: static/sentry/app/components/organizations/homeSidebar.jsx:86
 msgid "Settings"
-msgstr "Inställningar"
+msgstr ""
 
 #: templates/sentry/bases/account.html:22
 msgid "Avatar"
@@ -1629,7 +1626,7 @@ msgstr ""
 #: templates/sentry/bases/admin.html:12
 #: static/sentry/app/views/projectDashboard.jsx:147
 msgid "Overview"
-msgstr "Översikt"
+msgstr ""
 
 #: templates/sentry/bases/admin.html:13
 msgid "Buffer"
@@ -1642,7 +1639,7 @@ msgstr ""
 
 #: templates/sentry/bases/admin.html:32
 msgid "Plugins"
-msgstr "Insticksprogram"
+msgstr ""
 
 #: templates/sentry/bases/organization.html:8
 msgid "Organization Settings"
@@ -1651,7 +1648,7 @@ msgstr ""
 #: templates/sentry/bases/organization.html:20
 #: static/sentry/app/components/organizations/homeSidebar.jsx:42
 msgid "Dashboard"
-msgstr "Instrumentpanel"
+msgstr ""
 
 #: templates/sentry/bases/organization.html:25
 #: static/sentry/app/components/organizations/homeSidebar.jsx:46
@@ -1661,7 +1658,7 @@ msgstr ""
 #: templates/sentry/bases/organization.html:31
 #: static/sentry/app/components/organizations/homeSidebar.jsx:48
 msgid "Stats"
-msgstr "Statistik"
+msgstr ""
 
 #: templates/sentry/bases/organization.html:36
 #: static/sentry/app/components/organizations/homeSidebar.jsx:52
@@ -1676,7 +1673,7 @@ msgstr ""
 #: templates/sentry/bases/organization.html:39
 #: static/sentry/app/components/organizations/homeSidebar.jsx:55
 msgid "Bookmarks"
-msgstr "Bokmärken"
+msgstr ""
 
 #: templates/sentry/bases/organization.html:40
 #: static/sentry/app/components/organizations/homeSidebar.jsx:56
@@ -1693,20 +1690,20 @@ msgstr ""
 
 #: templates/sentry/bases/twofactor_settings.html:9
 msgid "Method:"
-msgstr "Metod:"
+msgstr ""
 
 #: templates/sentry/events/replay_request.html:6
 #: static/sentry/app/components/events/interfaces/requestActions.jsx:26
 msgid "Replay Request"
-msgstr "Spela upp förfrågan igen"
+msgstr ""
 
 #: templates/sentry/events/replay_request.html:24
 msgid "Please fill out all fields."
-msgstr "Var vänlig fyll i alla fälten."
+msgstr ""
 
 #: templates/sentry/events/replay_request.html:34
 msgid "Submit"
-msgstr "Skicka"
+msgstr ""
 
 #: templates/sentry/groups/public_details.html:31
 msgid "Newer Event"
@@ -1736,7 +1733,7 @@ msgstr ""
 #: templates/sentry/users/list.html:52
 #: static/sentry/app/components/pagination.jsx:42
 msgid "Previous"
-msgstr "Föregående"
+msgstr ""
 
 #: templates/sentry/partial/_pager.html:6
 #: templates/sentry/users/details.html:43
@@ -1744,11 +1741,11 @@ msgstr "Föregående"
 #: templates/sentry/users/list.html:53
 #: static/sentry/app/components/pagination.jsx:48
 msgid "Next"
-msgstr "Nästa"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/http_email.html:8
 msgid "URL"
-msgstr "URL"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/http_email.html:13
 msgid "Method"
@@ -1757,7 +1754,7 @@ msgstr ""
 #: templates/sentry/partial/interfaces/http_email.html:19
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:126
 msgid "Query"
-msgstr "Förfrågan"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/http_email.html:27
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:77
@@ -1766,23 +1763,23 @@ msgstr ""
 
 #: templates/sentry/partial/interfaces/user_email.html:13
 msgid "ID:"
-msgstr "ID:"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/user_email.html:19
 msgid "IP Address:"
-msgstr "IP Adress:"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/user_email.html:25
 msgid "Username:"
-msgstr "Användarnamn:"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/user_email.html:31
 msgid "Email:"
-msgstr "Mail:"
+msgstr ""
 
 #: templates/sentry/plugins/site_configuration.html:5
 msgid "Changes to your configuration were saved successfully."
-msgstr "Din konfiguration sparades."
+msgstr ""
 
 #: templates/sentry/plugins/bases/issue/create_issue.html:23
 msgid "Create Issue"
@@ -1811,11 +1808,11 @@ msgstr ""
 
 #: templates/sentry/plugins/bases/tag/index.html:22
 msgid "Times Seen"
-msgstr "Sedd antal gånger"
+msgstr ""
 
 #: templates/sentry/plugins/bases/tag/index.html:41
 msgid "There are no records recorded for this event."
-msgstr "Det finns inga lagrade uppgifter för denna händelse"
+msgstr ""
 
 #: templates/sentry/projects/cannot_create_teams.html:9
 msgid ""
@@ -1861,11 +1858,11 @@ msgstr ""
 
 #: templates/sentry/projects/edit_key.html:53
 msgid "Public Key"
-msgstr "Publik nyckel"
+msgstr ""
 
 #: templates/sentry/projects/edit_key.html:59
 msgid "Secret Key"
-msgstr "Hemlig nyckel"
+msgstr ""
 
 #: templates/sentry/projects/edit_key.html:65
 msgid "Project ID"
@@ -1887,7 +1884,7 @@ msgstr ""
 
 #: templates/sentry/projects/keys.html:42
 msgid "Revoke"
-msgstr "Upphäv"
+msgstr ""
 
 #: templates/sentry/projects/keys.html:65
 msgid "CSP Endpoint"
@@ -1905,7 +1902,7 @@ msgstr ""
 
 #: templates/sentry/projects/manage.html:37
 msgid "Project Details"
-msgstr "Projektdetaljer"
+msgstr ""
 
 #: templates/sentry/projects/manage.html:48
 msgid "Event Settings"
@@ -1934,7 +1931,7 @@ msgstr ""
 #: templates/sentry/projects/remove.html:11
 #: templates/sentry/projects/remove.html:29
 msgid "Remove Project"
-msgstr "Ta bort projektet"
+msgstr ""
 
 #: templates/sentry/projects/manage.html:82
 msgid "You do not have the required permission to remove this project."
@@ -1996,7 +1993,7 @@ msgstr ""
 #: templates/sentry/projects/plugins/list.html:10
 #: static/sentry/app/views/projectSettings/index.jsx:116
 msgid "Integrations"
-msgstr "Integrationer"
+msgstr ""
 
 #: templates/sentry/projects/manage.html:221
 #: static/sentry/app/views/projectSettings/index.jsx:118
@@ -2073,15 +2070,15 @@ msgstr ""
 
 #: templates/sentry/projects/plugins/configure.html:38
 msgid "Changes to your project were saved successfully."
-msgstr "Dina projektändringar sparades."
+msgstr ""
 
 #: templates/sentry/projects/plugins/list.html:7
 msgid "Manage Integrations"
-msgstr "Hantera integrationer"
+msgstr ""
 
 #: templates/sentry/projects/plugins/list.html:24
 msgid "n/a"
-msgstr "inte tillgänglig"
+msgstr ""
 
 #: templates/sentry/projects/rules/list.html:8
 msgid "New Rule"
@@ -2108,7 +2105,7 @@ msgstr ""
 #: templates/sentry/users/list.html:15
 #, python-format
 msgid "Sort by: %(label)s"
-msgstr "Sortera efter: %(label)s"
+msgstr ""
 
 #: templates/sentry/users/list.html:29
 msgid ""
@@ -2119,7 +2116,7 @@ msgstr ""
 #: templates/sentry/users/list.html:34
 #: static/sentry/app/components/events/user.jsx:37
 msgid "User"
-msgstr "Användare"
+msgstr ""
 
 #: templates/sentry/users/list.html:36
 msgid "Events Seen"
@@ -2139,29 +2136,29 @@ msgstr ""
 
 #: templatetags/sentry_helpers.py:187
 msgid "0 minutes"
-msgstr "0 minuter"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:188
 msgid "just now"
-msgstr "just nu"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:189
 #: static/sentry/app/views/projectDashboard.jsx:135
 msgid "1 day"
-msgstr "1 dag"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:190
 msgid "yesterday"
-msgstr "igår"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:191
 msgid " ago"
-msgstr " sedan"
+msgstr ""
 
 #: web/forms/__init__.py:46
 msgid ""
 "Send this user a welcome email which will contain their generated password."
-msgstr "Skicka ett välkomstmail till denna användare som innehåller dennes genererade lösenord."
+msgstr ""
 
 #: web/forms/__init__.py:55
 msgid "Designates whether this user can perform administrative functions."
@@ -2179,11 +2176,11 @@ msgstr ""
 
 #: web/forms/__init__.py:79
 msgid "Disable the account."
-msgstr "Avaktivera kontot."
+msgstr ""
 
 #: web/forms/__init__.py:80
 msgid "Permanently remove the user and their data."
-msgstr "Ta bort användaren och dess data permanent."
+msgstr ""
 
 #: web/forms/accounts.py:74
 msgid "username or email"
@@ -2216,7 +2213,7 @@ msgstr ""
 
 #: web/forms/accounts.py:171
 msgid "Username or email"
-msgstr "Användarnamn eller mail"
+msgstr ""
 
 #: web/forms/accounts.py:179
 msgid "We were unable to find a matching user."
@@ -2256,7 +2253,7 @@ msgstr ""
 
 #: web/forms/accounts.py:256
 msgid "New password"
-msgstr "Nytt lösenord"
+msgstr ""
 
 #: web/forms/accounts.py:295
 msgid "That username is already in use."
@@ -2264,7 +2261,7 @@ msgstr ""
 
 #: web/forms/accounts.py:323
 msgid "Language"
-msgstr "Språk"
+msgstr ""
 
 #: web/forms/accounts.py:326
 msgid "Stacktrace order"
@@ -2288,7 +2285,7 @@ msgstr ""
 
 #: web/forms/accounts.py:334
 msgid "Time zone"
-msgstr "Tidszon"
+msgstr ""
 
 #: web/forms/accounts.py:337
 msgid "Use a 24-hour clock"
@@ -2316,7 +2313,7 @@ msgstr ""
 
 #: web/forms/fields.py:83
 msgid "Invalid username"
-msgstr "Ogiltigt användarnamn"
+msgstr ""
 
 #: web/forms/fields.py:105
 msgid "Not set"
@@ -2324,7 +2321,7 @@ msgstr ""
 
 #: web/forms/fields.py:129
 msgid "e.g. example.com or https://example.com"
-msgstr "t.ex. example.com eller https://example.com"
+msgstr ""
 
 #: web/forms/fields.py:158
 msgid "e.g. 127.0.0.1 or 10.0.0.0/8"
@@ -2606,7 +2603,7 @@ msgstr ""
 
 #: web/frontend/project_settings.py:25
 msgid "Production"
-msgstr "Produktion"
+msgstr ""
 
 #: web/frontend/project_settings.py:28
 msgid "A unique ID used to identify this project."
@@ -2995,6 +2992,7 @@ msgid "%2$d unique historical value"
 msgid_plural "%2$d unique historical values"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/groupTagValues.jsx:132
 msgid "Data is based on events seen in the last 7 days."
@@ -3126,7 +3124,7 @@ msgstr ""
 
 #: static/sentry/app/views/projectInstall/overview.jsx:87
 msgid "Frameworks"
-msgstr "Ramverk"
+msgstr ""
 
 #: static/sentry/app/views/projectInstall/overview.jsx:95
 msgid "Languages"
@@ -3167,7 +3165,7 @@ msgstr ""
 
 #: static/sentry/app/views/projectCspSettings.jsx:263
 msgid "Integration"
-msgstr "Integration"
+msgstr ""
 
 #: static/sentry/app/views/projectDebugSymbols.jsx:72
 msgid "There are no debug symbols for this project."
@@ -3264,7 +3262,7 @@ msgstr ""
 
 #: static/sentry/app/components/group/seenInfo.jsx:27
 msgid "Release"
-msgstr "Utgåva"
+msgstr ""
 
 #: static/sentry/app/views/releaseDetails.jsx:115
 msgid "First Event"
@@ -3272,7 +3270,7 @@ msgstr ""
 
 #: static/sentry/app/views/projectReleases/index.jsx:177
 msgid "Last Event"
-msgstr "Senaste händelsen"
+msgstr ""
 
 #: static/sentry/app/components/organizationIssueList.jsx:54
 msgid "All Issues"
@@ -3444,6 +3442,7 @@ msgid "%2$s merged %1$d issue into this issue"
 msgid_plural "%2$s merged %1$d issues into this issue"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/groupActivity/index.jsx:121
 msgid "Removing comment.."
@@ -3503,11 +3502,11 @@ msgstr ""
 
 #: static/sentry/app/views/projectReleases/index.jsx:172
 msgid "Version"
-msgstr "Version"
+msgstr ""
 
 #: static/sentry/app/views/projectReleases/index.jsx:174
 msgid "New Events"
-msgstr "Nya händelser"
+msgstr ""
 
 #: static/sentry/app/views/groupDetails/eventToolbar.jsx:65
 msgid "Oldest"
@@ -3780,7 +3779,7 @@ msgstr ""
 
 #: static/sentry/app/components/compactIssue.jsx:67
 msgid "24 hours"
-msgstr "24 timmar"
+msgstr ""
 
 #: static/sentry/app/components/compactIssue.jsx:68
 msgid "Forever"
@@ -3829,6 +3828,7 @@ msgid "Are you sure you want to resolve this %d issue?"
 msgid_plural "Are you sure you want to resolve these %d issues?"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/stream/actions.jsx:184
 msgid "Resolve all issues"
@@ -3840,6 +3840,7 @@ msgid "Resolve %d selected issue"
 msgid_plural "Resolve %d selected issues"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/stream/actions.jsx:190
 msgid "Set Status to Resolved"
@@ -3847,7 +3848,7 @@ msgstr ""
 
 #: static/sentry/app/views/groupDetails/actions.jsx:181
 msgid "Bookmark"
-msgstr "Bokmärke"
+msgstr ""
 
 #: static/sentry/app/views/stream/actions.jsx:203
 msgid ""
@@ -3860,6 +3861,7 @@ msgid "Are you sure you want to bookmark this %d issue?"
 msgid_plural "Are you sure you want to bookmark these %d issues?"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/stream/actions.jsx:211
 msgid "Bookmark all issues"
@@ -3871,6 +3873,7 @@ msgid "Bookmark %d selected issue"
 msgid_plural "Bookmark %d selected issues"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/stream/actions.jsx:217
 msgid "Add to Bookmarks"
@@ -3886,6 +3889,7 @@ msgid "Are you sure you want to merge %d issue?"
 msgid_plural "Are you sure you want to merge %d issues?"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/stream/actions.jsx:245
 msgid "Merge all issues"
@@ -3897,6 +3901,7 @@ msgid "Merge %d selected issue"
 msgid_plural "Merge %d selected issues"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/stream/actions.jsx:252
 msgid "Merge Events"
@@ -3915,6 +3920,7 @@ msgid_plural ""
 "Are you sure you want to remove these %d issues from your bookmarks?"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/stream/actions.jsx:271
 msgid "Remove all issues from bookmarks"
@@ -3926,6 +3932,7 @@ msgid "Remove %d selected issue from bookmarks"
 msgid_plural "Remove %d selected issues from bookmarks"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/stream/actions.jsx:279
 msgid "Remove from Bookmarks"
@@ -3942,6 +3949,7 @@ msgid "Are you sure you want to unresolve this %d issue?"
 msgid_plural "Are you sure you want to unresolve these %d issues?"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/stream/actions.jsx:299
 msgid "Unresolve all issues"
@@ -3953,6 +3961,7 @@ msgid "Unresolve %d selected issue"
 msgid_plural "Unresolve %d selected issues"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/stream/actions.jsx:308
 msgid "Set status to: Unresolved"
@@ -3968,6 +3977,7 @@ msgid "Are you sure you want to mute this %d issue?"
 msgid_plural "Are you sure you want to mute these %d issues?"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/stream/actions.jsx:327
 msgid "Mute all issues"
@@ -3979,6 +3989,7 @@ msgid "Mute %d selected issue"
 msgid_plural "Mute %d selected issues"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/stream/actions.jsx:335
 msgid "Set status to: Muted"
@@ -3990,6 +4001,7 @@ msgid "Are you sure you want to delete %d issue?"
 msgid_plural "Are you sure you want to delete %d issues?"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/stream/actions.jsx:353
 #, python-format
@@ -3997,6 +4009,7 @@ msgid "Delete %d selected issue"
 msgid_plural "Delete %d selected issues"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/stream/actions.jsx:358
 msgid "Delete Events"
@@ -4024,6 +4037,7 @@ msgid "%d issue on this page selected."
 msgid_plural "%d issues on this page selected."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/views/stream/actions.jsx:400
 msgid "Select all issues matching this search query."
@@ -4149,14 +4163,15 @@ msgid "There was %d error encountered while processing this event"
 msgid_plural "There were %d errors encountered while processing this event"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/sentry/app/components/events/extraData.jsx:27
 msgid "Additional Data"
-msgstr "Ytterligare data"
+msgstr ""
 
 #: static/sentry/app/components/events/message.jsx:18
 msgid "Message"
-msgstr "Meddelande"
+msgstr ""
 
 #: static/sentry/app/components/events/sdk.jsx:22
 msgid "SDK"
@@ -4180,7 +4195,7 @@ msgstr ""
 
 #: static/sentry/app/components/events/interfaces/exception.jsx:64
 msgid "Exception"
-msgstr "Exception"
+msgstr ""
 
 #: static/sentry/app/components/events/interfaces/stacktrace.jsx:70
 msgid "most recent call first"
@@ -4469,15 +4484,15 @@ msgstr ""
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:83
 msgid "Body"
-msgstr "Body"
+msgstr ""
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:89
 msgid "Cookies"
-msgstr "Cookies"
+msgstr ""
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:94
 msgid "Headers"
-msgstr "Sidhuvuden"
+msgstr ""
 
 #: static/sentry/app/components/events/interfaces/stacktraceContent.jsx:29
 #, python-format
@@ -4490,15 +4505,15 @@ msgstr ""
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:70
 msgid "Line Number"
-msgstr "Radnummer"
+msgstr ""
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:71
 msgid "Column Number"
-msgstr "Kolumnnummer"
+msgstr ""
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:72
 msgid "Function"
-msgstr "Funktion"
+msgstr ""
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:73
 msgid "Source Map"
