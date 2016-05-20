@@ -24,18 +24,18 @@ class RedisLockBackend(LockBackend):
         if routing_key is not None:
             key = routing_key
         else:
-            key = self.__prefix_key(key)
+            key = self.prefix_key(key)
 
         return self.cluster.get_local_client_for_key(key)
 
-    def __prefix_key(self, key):
+    def prefix_key(self, key):
         return u'{}{}'.format(self.prefix, key)
 
     def acquire(self, key, duration, routing_key=None):
         client = self.get_client(key, routing_key)
-        if client.set(self.__prefix_key(key), self.uuid, ex=duration, nx=True) is not True:
+        if client.set(self.prefix_key(key), self.uuid, ex=duration, nx=True) is not True:
             raise Exception('Could not acquire lock!')
 
     def release(self, key, routing_key=None):
         client = self.get_client(key, routing_key)
-        delete_lock(client, (self.__prefix_key(key),), (self.uuid,))
+        delete_lock(client, (self.prefix_key(key),), (self.uuid,))
