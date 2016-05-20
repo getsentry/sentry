@@ -49,7 +49,7 @@ class ProjectIndexEndpoint(Endpoint):
         elif status:
             queryset = queryset.none()
 
-        if request.auth:
+        if request.auth and not request.user.is_authenticated():
             if hasattr(request.auth, 'project'):
                 queryset = queryset.filter(
                     id=request.auth.project_id,
