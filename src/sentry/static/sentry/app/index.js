@@ -50,10 +50,9 @@ export default {
       ApiMixin: require('./mixins/apiMixin'),
     },
     BarChart: require('./components/barChart'),
-    U2fEnrollment: require('./components/u2fenrollment'),
-    U2fSign: require('./components/u2fsign'),
     i18n: require('./locale'),
     ConfigStore: require('./stores/configStore'),
+    DateTime: require('./components/dateTime'),
     DropdownLink: require('./components/dropdownLink'),
     FlotChart: require('./components/flotChart'),
     HookStore: require('./stores/hookStore'),
@@ -67,6 +66,8 @@ export default {
     RuleEditor: require('./views/ruleEditor'),
     StackedBarChart: require('./components/stackedBarChart'),
     TimeSince: require('./components/timeSince'),
-    TodoList: require('./components/todos')
+    TodoList: require('./components/todos'),
+    U2fEnrollment: require('./components/u2fenrollment'),
+    U2fSign: require('./components/u2fsign')
   }
 };
