@@ -28,7 +28,25 @@ def devserver(reload, watchers, workers, bind):
 
     import os
     from django.conf import settings
+    from sentry import options
     from sentry.services.http import SentryHTTPServer
+
+    url_prefix = options.get('system.url-prefix', '')
+    needs_https = url_prefix.startswith('https://')
+    has_https = False
+
+    if needs_https:
+        from subprocess import check_output
+        try:
+            check_output(['which', 'https'])
+            has_https = True
+        except Exception:
+            has_https = False
+            from sentry.runner.initializer import show_big_error
+            show_big_error([
+                'missing `https` on your `$PATH`, but https is needed',
+                '`$ brew install mattrobenolt/stuff/https`',
+            ])
 
     uwsgi_overrides = {
         # Make sure we don't try and use uwsgi protocol
@@ -53,6 +71,15 @@ def devserver(reload, watchers, workers, bind):
         daemons += [
             ('worker', ['sentry', 'run', 'worker', '-c', '1', '-l', 'INFO', '--autoreload']),
             ('cron', ['sentry', 'run', 'cron', '-l', 'INFO', '--autoreload']),
+        ]
+
+    if needs_https and has_https:
+        from urlparse import urlparse
+        parsed_url = urlparse(url_prefix)
+        https_port = str(parsed_url.port or 443)
+        https_host = parsed_url.hostname
+        daemons += [
+            ('https', ['https', '-host', https_host, '-listen', host + ':' + https_port, bind]),
         ]
 
     # A better log-format for local dev when running through honcho,
