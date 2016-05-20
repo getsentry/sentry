@@ -19,3 +19,15 @@ class AuthenticatorTest(TestCase):
 
         assert Authenticator.objects.user_has_2fa(user) is True
         assert Authenticator.objects.filter(user=user).count() == 2
+
+    def test_bulk_users_have_2fa(self):
+        user1 = self.create_user('foo1@example.com')
+        user2 = self.create_user('foo2@example.com')
+
+        TotpInterface().enroll(user1)
+
+        assert Authenticator.objects.bulk_users_have_2fa([user1.id, user2.id, 9999]) == {
+            user1.id: True,
+            user2.id: False,
+            9999: False,
+        }

@@ -125,6 +125,16 @@ class AuthenticatorManager(BaseManager):
             type__in=[a.type for a in available_authenticators(ignore_backup=True)],
         ).exists()
 
+    def bulk_users_have_2fa(self, user_ids):
+        """Checks if a list of user ids have 2FA configured.
+        Returns a dict of {<id>: <has_2fa>}
+        """
+        authenticators = set(Authenticator.objects.filter(
+            user__in=user_ids,
+            type__in=[a.type for a in available_authenticators(ignore_backup=True)],
+        ).distinct().values_list('user_id', flat=True))
+        return {id: id in authenticators for id in user_ids}
+
 
 AUTHENTICATOR_INTERFACES = {}
 AUTHENTICATOR_INTERFACES_BY_TYPE = {}
