@@ -26,7 +26,7 @@ const HttpRenderer = React.createClass({
           <code>
             {method && <strong>{method} </strong>}
             {url && this.renderUrl(url)}
-            {status_code && (' [' + status_code + ']')}
+            {status_code !== undefined ? <span>{' [' + status_code + ']'}</span> : ''}
           </code>
         </pre>
       </SummaryLine>
