@@ -7,3 +7,5 @@
   {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}{% absolute_uri group_link %}
 
 {% endfor %}{% endfor %}
+
+Unsubscribe: {{ unsubscribe_link }}
