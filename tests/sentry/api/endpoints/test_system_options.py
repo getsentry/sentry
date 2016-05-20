@@ -32,9 +32,9 @@ class SystemOptionsTest(APITestCase):
 
     def test_not_logged_in(self):
         response = self.client.get(self.url)
-        assert response.status_code == 403
+        assert response.status_code == 401
         response = self.client.put(self.url)
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_disabled_smtp(self):
         self.login_as(user=self.user)

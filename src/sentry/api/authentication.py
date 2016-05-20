@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
 from rest_framework.authentication import (
-    BaseAuthentication, BasicAuthentication, get_authorization_header
+    BasicAuthentication, get_authorization_header
 )
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -43,7 +43,7 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
         return (AnonymousUser(), key)
 
 
-class TokenAuthentication(BaseAuthentication):
+class TokenAuthentication(QuietBasicAuthentication):
     def authenticate(self, request):
         auth = get_authorization_header(request).split()
 
