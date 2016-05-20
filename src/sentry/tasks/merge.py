@@ -65,10 +65,14 @@ def merge_group(from_object_id=None, to_object_id=None, **kwargs):
 
     group.delete()
 
-    GroupRedirect.objects.create(
-        group_id=new_group.id,
-        previous_group_id=previous_group_id,
-    )
+    try:
+        with transaction.atomic():
+            GroupRedirect.objects.create(
+                group_id=new_group.id,
+                previous_group_id=previous_group_id,
+            )
+    except IntegrityError:
+        pass
 
     new_group.update(
         # TODO(dcramer): ideally these would be SQL clauses
