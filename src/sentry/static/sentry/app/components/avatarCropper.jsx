@@ -25,6 +25,10 @@ const AvatarCropper = React.createClass({
     };
   },
 
+  componentWillUnmount() {
+    this.revokeObjectUrl();
+  },
+
   MIN_DIMENSION: 256,
 
   MAX_DIMENSION: 1024,
@@ -39,7 +43,7 @@ const AvatarCropper = React.createClass({
     if (!/^image\//.test(file.type))
       return void this.handleError('That is not a supported file type.');
 
-    this.state.objectURL && window.URL.revokeObjectURL(this.state.objectURL);
+    this.revokeObjectUrl();
     this.setState({
       file: file,
       objectURL: window.URL.createObjectURL(file)
@@ -48,7 +52,7 @@ const AvatarCropper = React.createClass({
     });
   },
 
-  componentWIllUnmount() {
+  revokeObjectUrl() {
     this.state.objectURL && window.URL.revokeObjectURL(this.state.objectURL);
   },
 
