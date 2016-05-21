@@ -1,4 +1,6 @@
 import React from 'react';
+import $ from 'jquery';
+
 import ApiMixin from '../mixins/apiMixin';
 import Alerts from '../components/alerts';
 import AlertActions from '../actions/alertActions.jsx';
@@ -71,6 +73,16 @@ const App = React.createClass({
         message: msg.message,
         type: msg.level
       });
+    });
+
+    $(document).ajaxError(function (evt, jqXHR) {
+      if (jqXHR && jqXHR.status === 401) {
+        // User has become unauthenticated; reload URL, and let Django
+        // redirect to login page
+        // NOTE: This presumes that React application is ONLY for
+        //       authenticated users.
+        window.location.reload();
+      }
     });
   },
 
