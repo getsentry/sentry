@@ -68,9 +68,13 @@ def py_lint(file_list):
 
 
 def js_lint(file_list=None):
-    if not os.path.exists('node_modules/.bin/eslint'):
+    eslint_path = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
+                               os.pardir, 'node_modules', '.bin', 'eslint')
+
+    if not os.path.exists(eslint_path):
         print '!! Skipping JavaScript linting because eslint is not installed.'
         return False
+
     if file_list is None:
         file_list = ['tests/js', 'src/sentry/static/sentry/app']
     file_list = get_files_for_list(file_list)
@@ -78,7 +82,7 @@ def js_lint(file_list=None):
     has_errors = False
     file_list = filter(lambda x: x.endswith(('.js', '.jsx')), file_list)
     if file_list:
-        status = Popen(['node_modules/.bin/eslint', '--ext', '.jsx']
+        status = Popen([eslint_path, '--ext', '.jsx']
                        + list(file_list)).wait()
         has_errors = status != 0
 
