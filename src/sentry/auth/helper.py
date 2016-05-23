@@ -12,8 +12,9 @@ from django.utils.translation import ugettext_lazy as _
 from hashlib import md5
 from uuid import uuid4
 
+from sentry.logging import audit
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
+    AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
     OrganizationMember, OrganizationMemberTeam, User
 )
 from sentry.tasks.auth import email_missing_links
@@ -237,7 +238,7 @@ class AuthHelper(object):
                         organizationmember=member,
                     )
 
-                AuditLogEntry.objects.create(
+                audit.log(
                     organization=organization,
                     actor=user,
                     ip_address=request.META['REMOTE_ADDR'],
@@ -252,7 +253,7 @@ class AuthHelper(object):
             member.save()
 
         if auth_is_new:
-            AuditLogEntry.objects.create(
+            audit.log(
                 organization=organization,
                 actor=user,
                 ip_address=request.META['REMOTE_ADDR'],
@@ -309,7 +310,7 @@ class AuthHelper(object):
                 organizationmember=om,
             )
 
-        AuditLogEntry.objects.create(
+        audit.log(
             organization=organization,
             actor=user,
             ip_address=request.META['REMOTE_ADDR'],
@@ -501,7 +502,7 @@ class AuthHelper(object):
 
         self._handle_attach_identity(identity, om)
 
-        AuditLogEntry.objects.create(
+        audit.log(
             organization=self.organization,
             actor=request.user,
             ip_address=request.META['REMOTE_ADDR'],
