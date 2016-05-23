@@ -12,10 +12,9 @@ from django.utils.translation import ugettext_lazy as _
 from hashlib import md5
 from uuid import uuid4
 
-from sentry.logging import audit
 from sentry.models import (
-    AuthIdentity, AuthProvider, Organization, OrganizationMember,
-    OrganizationMemberTeam, User
+    AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
+    OrganizationMember, OrganizationMemberTeam, User
 )
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth
@@ -238,13 +237,13 @@ class AuthHelper(object):
                         organizationmember=member,
                     )
 
-                audit.log(
+                AuditLogEntry.objects.create(
                     organization=organization,
                     actor=user,
                     ip_address=request.META['REMOTE_ADDR'],
                     target_object=member.id,
                     target_user=user,
-                    event=audit.events.MEMBER_ADD,
+                    event=AuditLogEntryEvent.MEMBER_ADD,
                     data=member.get_audit_log_data(),
                 )
         if getattr(member.flags, 'sso:invalid') or not getattr(member.flags, 'sso:linked'):
@@ -253,12 +252,12 @@ class AuthHelper(object):
             member.save()
 
         if auth_is_new:
-            audit.log(
+            AuditLogEntry.objects.create(
                 organization=organization,
                 actor=user,
                 ip_address=request.META['REMOTE_ADDR'],
                 target_object=auth_identity.id,
-                event=audit.events.SSO_IDENTITY_LINK,
+                event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
                 data=auth_identity.get_audit_log_data(),
             )
 
@@ -310,13 +309,13 @@ class AuthHelper(object):
                 organizationmember=om,
             )
 
-        audit.log(
+        AuditLogEntry.objects.create(
             organization=organization,
             actor=user,
             ip_address=request.META['REMOTE_ADDR'],
             target_object=om.id,
             target_user=om.user,
-            event=audit.events.MEMBER_ADD,
+            event=AuditLogEntryEvent.MEMBER_ADD,
             data=om.get_audit_log_data(),
         )
 
@@ -502,12 +501,12 @@ class AuthHelper(object):
 
         self._handle_attach_identity(identity, om)
 
-        audit.log(
+        AuditLogEntry.objects.create(
             organization=self.organization,
             actor=request.user,
             ip_address=request.META['REMOTE_ADDR'],
             target_object=self.auth_provider.id,
-            event=audit.events.SSO_ENABLE,
+            event=AuditLogEntryEvent.SSO_ENABLE,
             data=self.auth_provider.get_audit_log_data(),
         )
 

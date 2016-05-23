@@ -9,15 +9,22 @@ from __future__ import absolute_import
 
 import logging
 
-from sentry.models import AuditLogEntry
-from sentry.models import AuditLogEntryEvents as events  # flake8: noqa
+from django.utils.encoding import force_bytes
 
 logger = logging.getLogger('sentry.audit')
 
 
 def log(**kwargs):
+    logger.info(encode(**kwargs))
+
+
+def encode(**kwargs):
     """
-    Logs all AuditLogEntry kwargs to disk and creates the entry.
+    Force complex objects into strings so log formatters don't
+    error out when serializing.
     """
-    logger.info(kwargs)
-    return AuditLogEntry.objects.create(**kwargs)
+    return dict(
+        (key, force_bytes(value, strings_only=True, errors='replace'))
+        for (key, value)
+        in kwargs.items()
+    )
