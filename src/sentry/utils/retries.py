@@ -8,6 +8,12 @@ import time
 logger = logging.getLogger(__name__)
 
 
+class RetryException(Exception):
+    def __init__(self, message, exception):
+        self.message = message
+        self.exception = exception
+
+
 class RetryPolicy(object):
     def __call__(self, function):
         raise NotImplementedError
@@ -39,7 +45,10 @@ class TimedRetryPolicy(RetryPolicy):
                 delay = self.delay(i)
                 now = time.time()
                 if (now + delay) > (start + self.timeout):
-                    raise Exception('Could not successfully execute %r within %.3f seconds (%s attempts.)' % (function, now - start, i))
+                    raise RetryException(
+                        'Could not successfully execute %r within %.3f seconds (%s attempts.)' % (function, now - start, i),
+                        error,
+                    )
                 else:
                     logger.debug(
                         'Failed to execute %r due to %r on attempt #%s, retrying in %s seconds...',
