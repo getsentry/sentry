@@ -7,10 +7,15 @@ sentry.app
 """
 from __future__ import absolute_import
 
-from django.conf import settings
-from sentry.utils.imports import import_string
 from threading import local
+
+from django.conf import settings
 from raven.contrib.django.models import client
+
+from sentry.utils import redis
+from sentry.utils.imports import import_string
+from sentry.utils.locking.backends.redis import RedisLockBackend
+from sentry.utils.locking.manager import LockManager
 
 
 class State(local):
@@ -37,3 +42,4 @@ ratelimiter = get_instance(
 search = get_instance(settings.SENTRY_SEARCH, settings.SENTRY_SEARCH_OPTIONS)
 tsdb = get_instance(settings.SENTRY_TSDB, settings.SENTRY_TSDB_OPTIONS)
 raven = client
+locks = LockManager(RedisLockBackend(redis.clusters.get('default')))
