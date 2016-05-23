@@ -55,11 +55,17 @@
 
   <table class="table member-list">
     <colgroup>
+      {% if can_remove_members or members_can_leave %}
+      <!-- 4 column -->
+      <col width="45%"/>
       <col width="15%"/>
-      <col width="5%"/>
-      <col width="5%"/>
-      {% if can_remove_members or member_can_leave %}
-        <col width="10%"/>
+      <col width="15%"/>
+      <col width="25%"/>
+      {% else %}
+      <!-- 3 column -->
+      <col width="60%"/>
+      <col width="20%"/>
+      <col width="20%"/>
       {% endif %}
     </colgroup>
     <thead>
