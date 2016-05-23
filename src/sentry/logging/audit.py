@@ -23,12 +23,12 @@ def encode(**kwargs):
     Force complex objects into strings so log formatters don't
     error out when serializing.
     """
-    return dict(
-        (key, force_bytes(value, strings_only=True, errors='replace'))
-        for (key, value)
-        in kwargs.items()
+    return {
+        key: force_bytes(value, strings_only=True, errors='replace')
+        for key, value
+        in kwargs.iteritems()
         if value is not None
-    )
+    }
 
 
 def log_entry(entry):
