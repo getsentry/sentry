@@ -36,11 +36,11 @@ def log_entry(entry):
     Give an AuditLogEntry object to the audit logger.
     """
     log(
-        organization=entry.organization.name,
-        actor=entry.actor_label,
+        organization=entry.organization_id,
+        actor=entry.actor_id,
         actor_key=entry.actor_key,
         target_object=entry.target_object,
-        target_user=entry.target_user,
+        target_user=entry.target_user_id,
         event=entry.get_event_display(),
         ip_address=entry.ip_address,
         data=entry.data,
