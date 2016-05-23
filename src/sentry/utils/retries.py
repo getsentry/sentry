@@ -35,15 +35,16 @@ class TimedRetryPolicy(RetryPolicy):
         self.timeout = timeout
         self.delay = delay
         self.exceptions = exceptions
+        self.clock = time
 
     def __call__(self, function):
-        start = time.time()
+        start = self.clock.time()
         for i in itertools.count(1):
             try:
                 return function()
             except self.exceptions as error:
                 delay = self.delay(i)
-                now = time.time()
+                now = self.clock.time()
                 if (now + delay) > (start + self.timeout):
                     raise RetryException(
                         'Could not successfully execute %r within %.3f seconds (%s attempts.)' % (function, now - start, i),
@@ -57,4 +58,4 @@ class TimedRetryPolicy(RetryPolicy):
                         i,
                         delay,
                     )
-                    time.sleep(delay)
+                    self.clock.sleep(delay)
