@@ -15,6 +15,13 @@ class Lock(object):
         return '<Lock: {!r}>'.format(self.key)
 
     def acquire(self):
+        """
+        Attempt to acquire the lock.
+
+        If the lock is successfully acquired, this method returns a context
+        manager that will automatically release the lock when exited. If the
+        lock cannot be acquired, an exception will be raised.
+        """
         self.backend.acquire(self.key, self.duration, self.routing_key)
 
         @contextmanager
@@ -27,6 +34,12 @@ class Lock(object):
         return releaser()
 
     def release(self):
+        """
+        Attempt to release the lock.
+
+        Any exceptions raised when attempting to release the lock are logged
+        and supressed.
+        """
         try:
             self.backend.release(self.key, self.routing_key)
         except Exception as error:

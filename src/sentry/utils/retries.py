@@ -14,8 +14,16 @@ class RetryPolicy(object):
 
 
 class TimedRetryPolicy(RetryPolicy):
+    """
+    A time-based policy that can be used to retry a callable in the case of
+    failure as many times as possible up to the ``timeout`` value (in seconds.)
+
+    The ``delay`` function accepts one argument, a number which represents the
+    number of this attempt (starting at 1.)
+    """
     def __init__(self, timeout, delay=None, exceptions=(Exception,)):
         if delay is None:
+            # 100ms +/- 50ms of randomized jitter
             delay = lambda i: 0.1 + ((random.random() - 0.5) / 10)
 
         self.timeout = timeout

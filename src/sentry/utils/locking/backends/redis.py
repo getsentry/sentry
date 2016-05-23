@@ -16,6 +16,16 @@ class RedisLockBackend(LockBackend):
         self.uuid = uuid
 
     def get_client(self, key, routing_key=None):
+        # This is a bit of an abstraction leak, but if an integer is provided
+        # we use that value to determine placement rather than the cluster
+        # router. This leaking allows us us to have more fine-grained control
+        # when data is already placed within partitions where the router
+        # wouldn't have placed it based on the key hash, and maintain data
+        # locality and failure isolation within those partitions. (For example,
+        # the entirety of a digest is bound to a specific partition by the
+        # *digest* key, even though a digest is composed of multiple values at
+        # different keys that would otherwise be placed on different
+        # partitions.)
         if isinstance(routing_key, int):
             index = routing_key % len(self.cluster.hosts)
             return self.cluster.get_local_client(index)
