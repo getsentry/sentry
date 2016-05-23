@@ -1,6 +1,4 @@
-import itertools
 import mock
-import pytest
 
 from sentry.utils.retries import TimedRetryPolicy, RetryException
 from sentry.testutils import TestCase
