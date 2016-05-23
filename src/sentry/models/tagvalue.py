@@ -14,7 +14,7 @@ from django.utils import timezone
 from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
     Model, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField,
-    BaseManager, sane_repr
+    BaseManager
 )
 from sentry.utils.http import absolute_uri
 
@@ -42,7 +42,7 @@ class TagValue(Model):
         db_table = 'sentry_filtervalue'
         unique_together = (('project', 'key', 'value'),)
 
-    __repr__ = sane_repr('project_id', 'key', 'value')
+    __loggingattrs__ = ('project_id', 'key', 'value')
 
     @classmethod
     def is_valid_value(cls, value):

@@ -18,8 +18,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
-    sane_repr
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.cache import Lock
@@ -99,7 +98,7 @@ class Project(Model):
         db_table = 'sentry_project'
         unique_together = (('team', 'slug'), ('organization', 'slug'))
 
-    __repr__ = sane_repr('team_id', 'slug')
+    __loggingattrs__ = ('team_id', 'slug')
 
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)

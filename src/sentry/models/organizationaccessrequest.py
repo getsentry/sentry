@@ -11,7 +11,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 
 from sentry import roles
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model
 from sentry.utils.http import absolute_uri
 
 
@@ -24,7 +24,7 @@ class OrganizationAccessRequest(Model):
         db_table = 'sentry_organizationaccessrequest'
         unique_together = (('team', 'member'),)
 
-    __repr__ = sane_repr('team_id', 'member_id')
+    __loggingattrs__ = ('team_id', 'member_id')
 
     def send_request_email(self):
         from sentry.models import OrganizationMember

@@ -17,8 +17,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import roles
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, Model,
-    sane_repr
+    BaseManager, BoundedPositiveIntegerField, Model
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.cache import Lock
@@ -95,7 +94,7 @@ class Organization(Model):
         app_label = 'sentry'
         db_table = 'sentry_organization'
 
-    __repr__ = sane_repr('owner_id', 'name', 'slug')
+    __loggingattrs__ = ('owner_id', 'name', 'slug')
 
     @classmethod
     def get_default(cls):

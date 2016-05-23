@@ -4,7 +4,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from sentry.db.models import (
-    BoundedPositiveIntegerField, Model, FlexibleForeignKey, sane_repr
+    BoundedPositiveIntegerField, Model, FlexibleForeignKey
 )
 
 
@@ -42,4 +42,4 @@ class GroupResolution(Model):
         db_table = 'sentry_groupresolution'
         app_label = 'sentry'
 
-    __repr__ = sane_repr('group_id', 'release_id')
+    __loggingattrs__ = ('group_id', 'release_id')

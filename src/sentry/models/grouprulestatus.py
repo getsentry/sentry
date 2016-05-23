@@ -10,7 +10,7 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model
 
 
 class GroupRuleStatus(Model):
@@ -31,4 +31,4 @@ class GroupRuleStatus(Model):
         app_label = 'sentry'
         unique_together = (('rule', 'group'),)
 
-    __repr__ = sane_repr('rule_id', 'group_id', 'status')
+    __loggingattrs__ = ('rule_id', 'group_id', 'status')

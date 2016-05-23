@@ -6,7 +6,7 @@ from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.db.models import (
-    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model
 )
 
 
@@ -34,7 +34,7 @@ class AuthProvider(Model):
         app_label = 'sentry'
         db_table = 'sentry_authprovider'
 
-    __repr__ = sane_repr('organization_id', 'provider')
+    __loggingattrs__ = ('organization_id', 'provider')
 
     def __unicode__(self):
         return self.provider

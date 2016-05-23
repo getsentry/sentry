@@ -17,25 +17,42 @@ from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager
 from .query import update
 
-__all__ = ('BaseModel', 'Model', 'sane_repr')
+__all__ = ('BaseModel', 'Model', 'logging_repr', 'logging_dict')
 
 UNSAVED = object()
 
 
-def sane_repr(*attrs):
+def logging_repr(*attrs):
     if 'id' not in attrs and 'pk' not in attrs:
         attrs = ('id',) + attrs
 
     def _repr(self):
-        cls = type(self).__name__
+        cls = type(self)
+        logging_attrs = attrs + getattr(cls, '__loggingattrs__', ())
 
         pairs = (
             '%s=%s' % (a, repr(getattr(self, a, None)))
-            for a in attrs)
+            for a in logging_attrs)
 
-        return u'<%s at 0x%x: %s>' % (cls, id(self), ', '.join(pairs))
+        return u'<%s at 0x%x: %s>' % (cls.__name__, id(self), ', '.join(pairs))
 
     return _repr
+
+
+def logging_dict(*attrs):
+    if 'id' not in attrs and 'pk' not in attrs:
+        attrs = ('id',) + attrs
+
+    def _dict(self):
+        cls = type(self)
+        logging_attrs = attrs + getattr(cls, '__loggingattrs__', ())
+
+        return {
+            '%s.%s' % (cls.__name__.lower(), a): str(getattr(self, a, None))
+            for a in logging_attrs
+        }
+
+    return _dict
 
 
 class BaseModel(models.Model):
@@ -109,7 +126,9 @@ class Model(BaseModel):
     class Meta:
         abstract = True
 
-    __repr__ = sane_repr('id')
+    __repr__ = logging_repr('id')
+
+    __ldict__ = logging_dict('id')
 
 
 signals.post_save.connect(__model_post_save)

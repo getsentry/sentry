@@ -10,7 +10,7 @@ from __future__ import absolute_import, print_function
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import Model, sane_repr
+from sentry.db.models import Model
 from sentry.db.models.fields import UnicodePickledObjectField
 
 
@@ -30,4 +30,4 @@ class Option(Model):
         app_label = 'sentry'
         db_table = 'sentry_option'
 
-    __repr__ = sane_repr('key', 'value')
+    __loggingattrs__ = ('key', 'value')

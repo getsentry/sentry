@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model
 
 
 class GroupRedirect(Model):
@@ -17,4 +17,4 @@ class GroupRedirect(Model):
         db_table = 'sentry_groupredirect'
         app_label = 'sentry'
 
-    __repr__ = sane_repr('group_id', 'previous_group_id')
+    __loggingattrs__ = ('group_id', 'previous_group_id')

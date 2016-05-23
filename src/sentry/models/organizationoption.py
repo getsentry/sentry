@@ -11,7 +11,7 @@ from celery.signals import task_postrun
 from django.core.signals import request_finished
 from django.db import models
 
-from sentry.db.models import Model, FlexibleForeignKey, sane_repr
+from sentry.db.models import Model, FlexibleForeignKey
 from sentry.db.models.fields import UnicodePickledObjectField
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
@@ -126,4 +126,4 @@ class OrganizationOption(Model):
         db_table = 'sentry_organizationoptions'
         unique_together = (('organization', 'key',),)
 
-    __repr__ = sane_repr('organization_id', 'key', 'value')
+    __loggingattrs__ = ('organization_id', 'key', 'value')

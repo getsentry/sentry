@@ -11,7 +11,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, BaseManager, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, BaseManager
 
 
 class GroupBookmark(Model):
@@ -35,4 +35,4 @@ class GroupBookmark(Model):
         # composite index includes project for efficient queries
         unique_together = (('project', 'user', 'group'),)
 
-    __repr__ = sane_repr('project_id', 'group_id', 'user_id')
+    __loggingattrs__ = ('project_id', 'group_id', 'user_id')

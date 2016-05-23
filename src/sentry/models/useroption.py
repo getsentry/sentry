@@ -12,7 +12,7 @@ from django.core.signals import request_finished
 from django.conf import settings
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model
 from sentry.db.models.fields import UnicodePickledObjectField
 from sentry.db.models.manager import BaseManager
 
@@ -118,4 +118,4 @@ class UserOption(Model):
         db_table = 'sentry_useroption'
         unique_together = (('user', 'project', 'key',),)
 
-    __repr__ = sane_repr('user_id', 'project_id', 'key', 'value')
+    __loggingattrs__ = ('user_id', 'project_id', 'key', 'value')

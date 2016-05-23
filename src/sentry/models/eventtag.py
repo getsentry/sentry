@@ -4,7 +4,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    Model, BoundedBigIntegerField, sane_repr
+    Model, BoundedBigIntegerField
 )
 
 
@@ -30,4 +30,4 @@ class EventTag(Model):
             ('group_id', 'key_id', 'value_id'),
         )
 
-    __repr__ = sane_repr('event_id', 'key_id', 'value_id')
+    __loggingattrs__ = ('event_id', 'key_id', 'value_id')

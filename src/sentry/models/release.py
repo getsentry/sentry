@@ -14,7 +14,7 @@ from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.db.models import (
-    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model
 )
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5
@@ -48,7 +48,7 @@ class Release(Model):
         db_table = 'sentry_release'
         unique_together = (('project', 'version'),)
 
-    __repr__ = sane_repr('project_id', 'version')
+    __loggingattrs__ = ('project_id', 'version')
 
     @classmethod
     def get_cache_key(cls, project_id, version):

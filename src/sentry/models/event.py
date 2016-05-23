@@ -16,7 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField,
-    Model, NodeField, sane_repr
+    Model, NodeField
 )
 from sentry.interfaces.base import get_interface
 from sentry.utils.cache import memoize
@@ -54,7 +54,7 @@ class Event(Model):
         unique_together = (('project_id', 'event_id'),)
         index_together = (('group_id', 'datetime'),)
 
-    __repr__ = sane_repr('project_id', 'group_id')
+    __loggingattrs__ = ('project_id', 'group_id')
 
     # Implement a ForeignKey-like accessor for backwards compat
     def _set_group(self, group):

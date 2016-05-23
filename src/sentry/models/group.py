@@ -27,8 +27,7 @@ from sentry.constants import (
 )
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField,
-    BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model,
-    sane_repr
+    BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model
 )
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
@@ -199,7 +198,7 @@ class Group(Model):
             ('project', 'short_id'),
         )
 
-    __repr__ = sane_repr('project_id')
+    __loggingattrs__ = ('project_id')
 
     def __unicode__(self):
         return "(%s) %s" % (self.times_seen, self.error())

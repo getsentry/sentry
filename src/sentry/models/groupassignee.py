@@ -11,8 +11,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr, \
-    BaseManager
+from sentry.db.models import FlexibleForeignKey, Model, BaseManager
 from sentry.models.activity import Activity
 
 
@@ -90,4 +89,4 @@ class GroupAssignee(Model):
         app_label = 'sentry'
         db_table = 'sentry_groupasignee'
 
-    __repr__ = sane_repr('group_id', 'user_id')
+    __loggingattrs__ = ('group_id', 'user_id')

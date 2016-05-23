@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model
 from sentry.utils.hashlib import sha1
 
 
@@ -28,7 +28,7 @@ class ReleaseFile(Model):
     ident = models.CharField(max_length=40)
     name = models.TextField()
 
-    __repr__ = sane_repr('release', 'ident')
+    __loggingattrs__ = ('release', 'ident')
 
     class Meta:
         unique_together = (('release', 'ident'),)

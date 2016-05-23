@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from django.db import connection
 
 from sentry.db.models import (
-    FlexibleForeignKey, Model, sane_repr, BoundedBigIntegerField
+    FlexibleForeignKey, Model, BoundedBigIntegerField
 )
 from sentry.utils import db
 
@@ -27,7 +27,7 @@ class Counter(Model):
     project = FlexibleForeignKey('sentry.Project', unique=True)
     value = BoundedBigIntegerField()
 
-    __repr__ = sane_repr('project')
+    __loggingattrs__ = ('project')
 
     class Meta:
         app_label = 'sentry'

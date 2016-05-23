@@ -16,8 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import env
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
-    sane_repr
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.cache import Lock
@@ -106,7 +105,7 @@ class Team(Model):
         db_table = 'sentry_team'
         unique_together = (('organization', 'slug'),)
 
-    __repr__ = sane_repr('slug', 'name')
+    __loggingattrs__ = ('slug', 'name')
 
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)

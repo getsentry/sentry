@@ -14,8 +14,7 @@ from django.utils import timezone
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BaseManager, FlexibleForeignKey,
-    sane_repr
+    Model, BoundedPositiveIntegerField, BaseManager, FlexibleForeignKey
 )
 from sentry.utils import db
 
@@ -44,7 +43,7 @@ class GroupTagValue(Model):
         db_table = 'sentry_messagefiltervalue'
         unique_together = (('project', 'key', 'value', 'group'),)
 
-    __repr__ = sane_repr('project_id', 'group_id', 'key', 'value')
+    __loggingattrs__ = ('project_id', 'group_id', 'key', 'value')
 
     def save(self, *args, **kwargs):
         if not self.first_seen:

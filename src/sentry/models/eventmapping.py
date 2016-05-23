@@ -11,7 +11,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    BoundedBigIntegerField, Model, sane_repr
+    BoundedBigIntegerField, Model
 )
 
 
@@ -28,7 +28,7 @@ class EventMapping(Model):
         db_table = 'sentry_eventmapping'
         unique_together = (('project_id', 'event_id'),)
 
-    __repr__ = sane_repr('project_id', 'group_id', 'event_id')
+    __loggingattrs__ = ('project_id', 'group_id', 'event_id')
 
     @property
     def team(self):

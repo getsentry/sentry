@@ -20,7 +20,7 @@ from hashlib import md5
 from sentry import roles
 from sentry.db.models import (
     BaseModel, BoundedAutoField, BoundedPositiveIntegerField,
-    FlexibleForeignKey, Model, sane_repr
+    FlexibleForeignKey, Model
 )
 from sentry.utils.http import absolute_uri
 
@@ -38,7 +38,7 @@ class OrganizationMemberTeam(BaseModel):
         db_table = 'sentry_organizationmember_teams'
         unique_together = (('team', 'organizationmember'),)
 
-    __repr__ = sane_repr('team_id', 'organizationmember_id')
+    __loggingattrs__ = ('team_id', 'organizationmember_id')
 
     def get_audit_log_data(self):
         return {
@@ -88,7 +88,7 @@ class OrganizationMember(Model):
             ('organization', 'email'),
         )
 
-    __repr__ = sane_repr('organization_id', 'user_id', 'role',)
+    __loggingattrs__ = ('organization_id', 'user_id', 'role',)
 
     @transaction.atomic
     def save(self, *args, **kwargs):
