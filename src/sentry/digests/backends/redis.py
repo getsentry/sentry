@@ -10,7 +10,8 @@ from redis.exceptions import ResponseError, WatchError
 
 from sentry.digests import Record, ScheduleEntry
 from sentry.digests.backends.base import Backend, InvalidState
-from sentry.utils.cache import Lock
+from sentry.utils.locking.backends.redis import RedisLockBackend
+from sentry.utils.locking.manager import LockManager
 from sentry.utils.redis import (
     check_cluster_versions, get_cluster_from_options, load_script
 )
@@ -110,6 +111,7 @@ class RedisBackend(Backend):
     """
     def __init__(self, **options):
         self.cluster, options = get_cluster_from_options('SENTRY_DIGESTS_OPTIONS', options)
+        self.locks = LockManager(RedisLockBackend(self.cluster))
 
         self.namespace = options.pop('namespace', 'd')
 
@@ -191,7 +193,13 @@ class RedisBackend(Backend):
     def __schedule_partition(self, host, deadline, chunk):
         connection = self.cluster.get_local_client(host)
 
-        with Lock('{0}:s:{1}'.format(self.namespace, host), nowait=True, timeout=30):
+        lock = self.locks.get(
+            '{0}:s:{1}'.format(self.namespace, host),
+            duration=30,
+            routing_key=host,
+        )
+
+        with lock.acquire():
             # Prevent a runaway loop by setting a maximum number of
             # iterations. Note that this limits the total number of
             # expected items in any specific scheduling interval to chunk *
@@ -281,8 +289,17 @@ class RedisBackend(Backend):
                 returning ``None``.
                 """
                 key, timestamp = item
-                lock = Lock(make_timeline_key(self.namespace, key), timeout=5, nowait=True)
-                return lock if lock.acquire() else None, item
+                timeline_key = make_timeline_key(self.namespace, key),
+                lock = self.locks.get(
+                    timeline_key,
+                    duration=5,
+                    routing_key=timeline_key,
+                )
+                try:
+                    lock.acquire()
+                except Exception:
+                    lock = None
+                return lock, item
 
             # Try to take out a lock on each item. If we can't acquire the
             # lock, that means this is currently being digested and cannot
@@ -397,7 +414,8 @@ class RedisBackend(Backend):
 
         connection = self.cluster.get_local_client_for_key(timeline_key)
 
-        with Lock(timeline_key, nowait=True, timeout=30):
+        lock = self.locks.get(timeline_key, duration=30, routing_key=timeline_key)
+        with lock.acquire():
             # Check to ensure the timeline is in the correct state ("ready")
             # before sending. This acts as a throttling mechanism to prevent
             # sending a digest before it's next scheduled delivery time in a
@@ -495,8 +513,9 @@ class RedisBackend(Backend):
         timeline_key = make_timeline_key(self.namespace, key)
 
         connection = self.cluster.get_local_client_for_key(timeline_key)
-        with Lock(timeline_key, nowait=True, timeout=30), \
-                connection.pipeline() as pipeline:
+
+        lock = self.locks.get(timeline_key, duration=30, routing_key=timeline_key)
+        with lock.acquire(), connection.pipeline() as pipeline:
             truncate_timeline(pipeline, (timeline_key,), (0, timeline_key))
             truncate_timeline(pipeline, (make_digest_key(timeline_key),), (0, timeline_key))
             pipeline.delete(make_last_processed_timestamp_key(timeline_key))

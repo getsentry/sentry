@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
 from collections import defaultdict
-from south.utils import datetime_utils as datetime
-from south.db import db
-from south.v2 import DataMigration
+
 from django.db import models
+from south.db import db
+from south.utils import datetime_utils as datetime
+from south.v2 import DataMigration
 
 
 class Migration(DataMigration):
     def _ensure_blob(self, orm, file):
-        from sentry.utils.cache import Lock
+        from sentry.app import locks
+        from sentry.utils.retries import TimedRetryPolicy
 
         File = orm['sentry.File']
         FileBlob = orm['sentry.FileBlob']
 
-        lock_key = 'fileblob:convert:{}'.format(file.checksum)
-        with Lock(lock_key, timeout=60):
+        lock = locks.get('fileblob:convert:{}'.format(file.checksum), duration=60)
+        with TimedRetryPolicy(60 * 5)(lock.acquire):
             if not file.storage:
                 return
 

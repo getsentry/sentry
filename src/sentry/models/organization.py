@@ -15,13 +15,13 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import roles
+from sentry.app import locks
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, Model,
-    sane_repr
+    BaseManager, BoundedPositiveIntegerField, Model, sane_repr
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.utils.cache import Lock
+from sentry.utils.retries import TimedRetryPolicy
 
 
 # TODO(dcramer): pull in enum library
@@ -111,8 +111,8 @@ class Organization(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock_key = 'slug:organization'
-            with Lock(lock_key):
+            lock = locks.get('slug:organization', duration=5)
+            with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name,
                                  reserved=RESERVED_ORGANIZATION_SLUGS)
             super(Organization, self).save(*args, **kwargs)

@@ -1,25 +1,26 @@
 from __future__ import absolute_import, print_function
 
 import logging
+from hashlib import md5
+from uuid import uuid4
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.contrib import messages
+from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from hashlib import md5
-from uuid import uuid4
 
+from sentry.app import locks
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
     OrganizationMember, OrganizationMemberTeam, User
 )
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth
-from sentry.utils.cache import Lock
 from sentry.utils.http import absolute_uri
+from sentry.utils.retries import TimedRetryPolicy
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
 
@@ -455,11 +456,14 @@ class AuthHelper(object):
         their account.
         """
         auth_provider = self.auth_provider
-        lock_key = 'sso:auth:{}:{}'.format(
-            auth_provider.id,
-            md5(unicode(identity['id'])).hexdigest(),
+        lock = locks.get(
+            'sso:auth:{}:{}'.format(
+                auth_provider.id,
+                md5(unicode(identity['id'])).hexdigest(),
+            ),
+            duration=5,
         )
-        with Lock(lock_key, timeout=5):
+        with TimedRetryPolicy(5)(lock.acquire):
             try:
                 auth_identity = AuthIdentity.objects.get(
                     auth_provider=auth_provider,

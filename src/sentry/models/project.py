@@ -17,14 +17,15 @@ from django.db.models import F
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.app import locks
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.utils.cache import Lock
-from sentry.utils.http import absolute_uri
 from sentry.utils.colors import get_hashed_color
+from sentry.utils.http import absolute_uri
+from sentry.utils.retries import TimedRetryPolicy
 
 
 # TODO(dcramer): pull in enum library
@@ -110,8 +111,8 @@ class Project(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock_key = 'slug:project'
-            with Lock(lock_key):
+            lock = locks.get('slug:project', duration=5)
+            with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
             super(Project, self).save(*args, **kwargs)
         else:
