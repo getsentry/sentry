@@ -47,7 +47,7 @@ class MailPluginTest(TestCase):
 
         notification = Notification(event=event, rule=rule)
 
-        with self.options({'system.url-prefix': 'http://example.com'}):
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
             self.plugin.notify(notification)
 
         msg = mail.outbox[0]
@@ -225,15 +225,15 @@ class MailPluginTest(TestCase):
 
         notification = Notification(event=event)
 
-        with self.options({'system.url-prefix': 'http://example.com'}):
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
             self.plugin.notify(notification)
 
         msg = mail.outbox[0]
         assert msg.subject == u'[Sentry] [foo Bar] ERROR: רונית מגן'
 
     @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
-    @mock.patch.object(MessageBuilder, 'send', autospec=True)
-    def test_notify_digest(self, send, notify):
+    @mock.patch.object(MessageBuilder, 'send_async', autospec=True)
+    def test_notify_digest(self, send_async, notify):
         project = self.event.project
         rule = project.rule_set.all()[0]
         digest = build_digest(
@@ -244,12 +244,12 @@ class MailPluginTest(TestCase):
             ),
         )
         self.plugin.notify_digest(project, digest)
-        assert send.call_count is 1
+        assert send_async.call_count is 1
         assert notify.call_count is 0
 
     @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
-    @mock.patch.object(MessageBuilder, 'send', autospec=True)
-    def test_notify_digest_single_record(self, send, notify):
+    @mock.patch.object(MessageBuilder, 'send_async', autospec=True)
+    def test_notify_digest_single_record(self, send_async, notify):
         project = self.event.project
         rule = project.rule_set.all()[0]
         digest = build_digest(
@@ -259,7 +259,7 @@ class MailPluginTest(TestCase):
             ),
         )
         self.plugin.notify_digest(project, digest)
-        assert send.call_count is 1
+        assert send_async.call_count is 1
         assert notify.call_count is 1
 
     @mock.patch(
@@ -276,7 +276,9 @@ class MailPluginTest(TestCase):
                 event_to_record(self.event, (rule,)),
             ),
         )
-        self.plugin.notify_digest(project, digest)
+
+        with self.tasks():
+            self.plugin.notify_digest(project, digest)
 
         assert len(mail.outbox) == 1
 
@@ -299,7 +301,8 @@ class MailPluginTest(TestCase):
             },
         )
 
-        self.plugin.notify_about_activity(activity)
+        with self.tasks():
+            self.plugin.notify_about_activity(activity)
 
         assert len(mail.outbox) == 1
 
@@ -323,7 +326,8 @@ class MailPluginTest(TestCase):
 
         self.project.team.organization.member_set.create(user=user_foo)
 
-        self.plugin.notify_about_activity(activity)
+        with self.tasks():
+            self.plugin.notify_about_activity(activity)
 
         assert len(mail.outbox) == 1
 
@@ -351,7 +355,8 @@ class MailPluginTest(TestCase):
 
         self.project.team.organization.member_set.create(user=user_foo)
 
-        self.plugin.notify_about_activity(activity)
+        with self.tasks():
+            self.plugin.notify_about_activity(activity)
 
         assert len(mail.outbox) == 1
 
