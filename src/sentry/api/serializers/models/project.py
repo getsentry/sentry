@@ -33,7 +33,9 @@ class ProjectSerializer(Serializer):
                     Q(user=user, key='subscribe_by_default', project__isnull=True)
                 )
             }
-            default_subscribe = int(user_options.get('subscribe_by_default', 1))
+            default_subscribe = (
+                user_options.get('subscribe_by_default', '1') == '1'
+            )
         else:
             bookmarks = set()
             user_options = {}
