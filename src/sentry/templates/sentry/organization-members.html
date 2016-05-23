@@ -56,9 +56,6 @@
   <table class="table member-list">
     <colgroup>
       <col width="15%"/>
-      {% feature auth:twofactor %}
-        <col width="1%"/>
-      {% endfeature %}
       <col width="5%"/>
       <col width="5%"/>
       {% if can_remove_members or member_can_leave %}
@@ -68,9 +65,6 @@
     <thead>
       <tr>
         <th>{% trans "Member" %}</th>
-        {% feature auth:twofactor %}
-          <th class="squash">&nbsp;</th>
-        {% endfeature %}
         <th>&nbsp;</th>
         <th class="squash">{% trans "Role" %}</th>
         {% if can_remove_members or member_can_leave %}
@@ -96,9 +90,6 @@
             {{ member.get_email }}
             <br />
           </td>
-          {% feature auth:twofactor %}
-            <td class="squash">{% if not has_2fa %}<span style="color: #B64236" class="icon-exclamation tip pull-right" title="{% trans "Two-factor auth not enabled" %}"></span>{% endif %}</td>
-          {% endfeature %}
           <td class="status">
             {% if needs_sso or member.is_pending %}
               {% if member.is_pending %}
@@ -110,6 +101,10 @@
               {% if can_add_members %}
               <a href="javascript:void(0)" class="resend-invite btn btn-sm btn-primary" data-member-id="{{ member.id }}" style="padding: 0 4px; margin-top: 2px">Resend invite</a>
               {% endif %}
+            {% elif not has_2fa %}
+              {% feature auth:twofactor %}
+              <span style="color:#B64236;" class="icon-exclamation tip" title="{% trans "Two-factor auth not enabled" %}"></span>
+              {% endfeature %}
             {% endif %}
           </td>
           <td class="squash">{{ member.get_role_display }}</td>
