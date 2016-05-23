@@ -5,7 +5,7 @@ class LockBackend(object):
     """
     def acquire(self, key, duration, routing_key=None):
         """
-        Aquire a lock, represented by the given key for the given duration (in
+        Acquire a lock, represented by the given key for the given duration (in
         seconds.) This method should attempt to acquire the lock once, in a
         non-blocking fashion, allowing attempt retry policies to be defined
         separately. A routing key may also be provided to control placement,
