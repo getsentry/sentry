@@ -14,8 +14,8 @@ from uuid import uuid4
 
 from sentry.logging import audit
 from sentry.models import (
-    AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
-    OrganizationMember, OrganizationMemberTeam, User
+    AuthIdentity, AuthProvider, Organization, OrganizationMember,
+    OrganizationMemberTeam, User
 )
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth
@@ -244,7 +244,7 @@ class AuthHelper(object):
                     ip_address=request.META['REMOTE_ADDR'],
                     target_object=member.id,
                     target_user=user,
-                    event=AuditLogEntryEvent.MEMBER_ADD,
+                    event=audit.events.MEMBER_ADD,
                     data=member.get_audit_log_data(),
                 )
         if getattr(member.flags, 'sso:invalid') or not getattr(member.flags, 'sso:linked'):
@@ -258,7 +258,7 @@ class AuthHelper(object):
                 actor=user,
                 ip_address=request.META['REMOTE_ADDR'],
                 target_object=auth_identity.id,
-                event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
+                event=audit.events.SSO_IDENTITY_LINK,
                 data=auth_identity.get_audit_log_data(),
             )
 
@@ -316,7 +316,7 @@ class AuthHelper(object):
             ip_address=request.META['REMOTE_ADDR'],
             target_object=om.id,
             target_user=om.user,
-            event=AuditLogEntryEvent.MEMBER_ADD,
+            event=audit.events.MEMBER_ADD,
             data=om.get_audit_log_data(),
         )
 
@@ -507,7 +507,7 @@ class AuthHelper(object):
             actor=request.user,
             ip_address=request.META['REMOTE_ADDR'],
             target_object=self.auth_provider.id,
-            event=AuditLogEntryEvent.SSO_ENABLE,
+            event=audit.events.SSO_ENABLE,
             data=self.auth_provider.get_audit_log_data(),
         )
 

@@ -10,6 +10,7 @@ from __future__ import absolute_import
 import logging
 
 from sentry.models import AuditLogEntry
+from sentry.models import AuditLogEntryEvents as events  # flake8: noqa
 
 logger = logging.getLogger('sentry.audit')
 
