@@ -1,6 +1,8 @@
 import mock
+import pytest
 
 from sentry.testutils import TestCase
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.lock import Lock
 
@@ -26,6 +28,10 @@ class LockTestCase(TestCase):
             key,
             routing_key,
         )
+
+        backend.acquire.side_effect = Exception('Boom!')
+        with pytest.raises(UnableToAcquireLock):
+            lock.acquire()
 
     def test_context_manager_interface(self):
         backend = mock.Mock(spec=LockBackend)

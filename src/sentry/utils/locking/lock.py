@@ -1,6 +1,9 @@
 import logging
 from contextlib import contextmanager
 
+from sentry.utils.locking import UnableToAcquireLock
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,9 +23,13 @@ class Lock(object):
 
         If the lock is successfully acquired, this method returns a context
         manager that will automatically release the lock when exited. If the
-        lock cannot be acquired, an exception will be raised.
+        lock cannot be acquired, an ``UnableToAcquireLock`` error will be
+        raised.
         """
-        self.backend.acquire(self.key, self.duration, self.routing_key)
+        try:
+            self.backend.acquire(self.key, self.duration, self.routing_key)
+        except Exception as error:
+            raise UnableToAcquireLock('Unable to acquire {!r} due to error: {}'.format(self, error))
 
         @contextmanager
         def releaser():
