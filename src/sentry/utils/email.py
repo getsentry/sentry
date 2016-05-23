@@ -352,7 +352,8 @@ class MessageBuilder(object):
         from sentry.tasks.email import send_email
         messages = self.get_built_messages(to, bcc=bcc)
         for message in messages:
-            safe_execute(send_email.delay, message=message)
+            safe_execute(send_email.delay, message=message,
+                         _with_transaction=False)
 
 
 def send_messages(messages, fail_silently=False):
