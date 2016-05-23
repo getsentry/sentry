@@ -10,6 +10,39 @@ describe('GroupStore', function () {
     this.sandbox.restore();
   });
 
+  describe('add()', function () {
+    it('should add new entries', function () {
+      GroupStore.items = [];
+      GroupStore.add([
+        {id: 1},
+        {id: 2},
+      ]);
+
+      expect(GroupStore.items).to.eql([
+        {id: 1},
+        {id: 2},
+      ]);
+    });
+
+    it('should update matching existing entries', function () {
+      GroupStore.items = [
+        {id: 1},
+        {id: 2},
+      ];
+
+      GroupStore.add([
+        {id: 1, foo: 'bar'},
+        {id: 3},
+      ]);
+
+      expect(GroupStore.items).to.eql([
+        {id: 1, foo: 'bar'},
+        {id: 2},
+        {id: 3},
+      ]);
+    });
+  });
+
   describe('onMergeSuccess()', function () {
     it('should remove the non-parent merged ids', function () {
       GroupStore.items = [
