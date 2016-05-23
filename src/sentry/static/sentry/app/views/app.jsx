@@ -1,5 +1,6 @@
 import React from 'react';
 import $ from 'jquery';
+import Cookies from 'js-cookie';
 
 import ApiMixin from '../mixins/apiMixin';
 import Alerts from '../components/alerts';
@@ -77,6 +78,7 @@ const App = React.createClass({
 
     $(document).ajaxError(function (evt, jqXHR) {
       if (jqXHR && jqXHR.status === 401) {
+        Cookies.set('session_expired', 1);
         // User has become unauthenticated; reload URL, and let Django
         // redirect to login page
         // NOTE: This presumes that React application is ONLY for

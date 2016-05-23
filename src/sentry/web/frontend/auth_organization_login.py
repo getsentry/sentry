@@ -4,7 +4,9 @@ from __future__ import absolute_import, print_function
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import transaction
+from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
+from django.contrib import messages
 
 from sentry import features
 from sentry.auth.helper import AuthHelper
@@ -12,6 +14,8 @@ from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.utils import auth
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
+
+ERR_EXPIRED = _('Your session has expired.')
 
 
 class AuthOrganizationLoginView(BaseView):
@@ -136,6 +140,13 @@ class AuthOrganizationLoginView(BaseView):
         except AuthProvider.DoesNotExist:
             auth_provider = None
 
+        if request.COOKIES.get('session_expired'):
+            messages.add_message(request, messages.WARNING, ERR_EXPIRED)
+
         if not auth_provider:
-            return self.handle_basic_auth(request, organization)
-        return self.handle_sso(request, organization, auth_provider)
+            response = self.handle_basic_auth(request, organization)
+        else:
+            response = self.handle_sso(request, organization, auth_provider)
+
+        response.delete_cookie('session_expired')
+        return response
