@@ -26,7 +26,7 @@ class RedisLockBackend(LockBackend):
         # *digest* key, even though a digest is composed of multiple values at
         # different keys that would otherwise be placed on different
         # partitions.)
-        if isinstance(routing_key, int):
+        if isinstance(routing_key, (int, long)):
             index = routing_key % len(self.cluster.hosts)
             return self.cluster.get_local_client(index)
 
