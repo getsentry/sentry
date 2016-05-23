@@ -379,9 +379,11 @@ CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
 CELERY_IMPORTS = (
     'sentry.tasks.auth',
+    'sentry.tasks.auto_resolve_issues',
     'sentry.tasks.beacon',
     'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.check_auth',
+    'sentry.tasks.collect_project_platforms',
     'sentry.tasks.deletion',
     'sentry.tasks.digests',
     'sentry.tasks.dsymcache',
@@ -392,7 +394,6 @@ CELERY_IMPORTS = (
     'sentry.tasks.ping',
     'sentry.tasks.post_process',
     'sentry.tasks.process_buffer',
-    'sentry.tasks.collect_project_platforms',
 )
 CELERY_QUEUES = [
     Queue('default', routing_key='default'),
@@ -494,6 +495,13 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(days=1),
         'options': {
             'expires': 3600 * 24,
+        },
+    },
+    'schedule-auto-resolution': {
+        'task': 'sentry.tasks.schedule_auto_resolution',
+        'schedule': timedelta(minutes=15),
+        'options': {
+            'expires': 60 * 25,
         },
     },
 }
