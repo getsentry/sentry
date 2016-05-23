@@ -21,6 +21,7 @@ from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, Model, sane_repr
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.utils.retries import TimedRetryPolicy
 
 
 # TODO(dcramer): pull in enum library
@@ -111,7 +112,7 @@ class Organization(Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             lock = locks.get('slug:organization', duration=5)
-            with lock.acquire():
+            with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name,
                                  reserved=RESERVED_ORGANIZATION_SLUGS)
             super(Organization, self).save(*args, **kwargs)

@@ -20,6 +20,7 @@ from sentry.db.models import (
     sane_repr
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.utils.retries import TimedRetryPolicy
 
 
 class TeamManager(BaseManager):
@@ -113,7 +114,7 @@ class Team(Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             lock = locks.get('slug:team', duration=5)
-            with lock.acquire():
+            with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
             super(Team, self).save(*args, **kwargs)
         else:

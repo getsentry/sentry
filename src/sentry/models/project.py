@@ -25,6 +25,7 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
+from sentry.utils.retries import TimedRetryPolicy
 
 
 # TODO(dcramer): pull in enum library
@@ -111,7 +112,7 @@ class Project(Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             lock = locks.get('slug:project', duration=5)
-            with lock.acquire():
+            with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
             super(Project, self).save(*args, **kwargs)
         else:
