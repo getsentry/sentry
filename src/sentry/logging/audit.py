@@ -27,4 +27,22 @@ def encode(**kwargs):
         (key, force_bytes(value, strings_only=True, errors='replace'))
         for (key, value)
         in kwargs.items()
+        if value is not None
+    )
+
+
+def log_entry(entry):
+    """
+    Give an AuditLogEntry object to the audit logger.
+    """
+    log(
+        organization=entry.organization.name,
+        actor=entry.actor_label,
+        actor_key=entry.actor_key,
+        target_object=entry.target_object,
+        target_user=entry.target_user,
+        event=entry.get_event_display(),
+        ip_address=entry.ip_address,
+        data=entry.data,
+        datetime=entry.datetime,
     )

@@ -96,12 +96,16 @@ class Endpoint(APIView):
             return Response(context, status=500)
 
     def create_audit_entry(self, request, **kwargs):
-        kwargs['actor'] = request.user if request.user.is_authenticated() else None
-        kwargs['actor_key'] = request.auth if isinstance(request.auth, ApiKey) else None
-        kwargs['ip_address'] = request.META['REMOTE_ADDR']
+        user = request.user if request.user.is_authenticated() else None
+        api_key = request.auth if isinstance(request.auth, ApiKey) else None
 
-        audit.log(**kwargs)
-        AuditLogEntry.objects.create(**kwargs)
+        entry = AuditLogEntry.objects.create(
+            actor=user,
+            actor_key=api_key,
+            ip_address=request.META['REMOTE_ADDR'],
+            **kwargs
+        )
+        audit.log_entry(entry)
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
