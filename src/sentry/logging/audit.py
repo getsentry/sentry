@@ -20,7 +20,7 @@ def log(log_obj):
     """
     Will either log an encoded dictionary or just a line.
     """
-    if isinstance(dict, log_obj):
+    if isinstance(log_obj, dict):
         logger.info(encode(**log_obj))
     else:
         logger.info(force_bytes(
