@@ -602,6 +602,9 @@ class ClientApiHelper(object):
 
         return data
 
+    def wants_public_ip(self, data):
+        return data.get('platform') in ('javascript', 'cocoa', 'objc')
+
     def ensure_does_not_have_ip(self, data):
         if 'sentry.interfaces.Http' in data:
             if 'env' in data['sentry.interfaces.Http']:
