@@ -38,7 +38,7 @@ class CreateOrganizationMemberTest(TestCase):
         path = reverse('sentry-create-organization-member', args=[organization.slug])
         self.login_as(self.user)
 
-        with self.settings(SENTRY_ENABLE_INVITES=True):
+        with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
             resp = self.client.post(path, {
                 'email': 'foo@example.com',
             })

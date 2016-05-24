@@ -82,7 +82,7 @@ class MailPlugin(NotificationPlugin):
     def _send_mail(self, *args, **kwargs):
         message = self._build_message(*args, **kwargs)
         if message is not None:
-            return message.send()
+            return message.send_async()
 
     def get_notification_settings_url(self):
         return absolute_uri(reverse('sentry-account-settings-notifications'))

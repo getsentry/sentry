@@ -145,9 +145,10 @@ class OrganizationMemberSettingsTest(TestCase):
 
         self.login_as(self.user)
 
-        resp = self.client.post(path, {
-            'op': 'reinvite',
-        })
+        with self.tasks():
+            resp = self.client.post(path, {
+                'op': 'reinvite',
+            })
 
         assert resp.status_code == 302
 
