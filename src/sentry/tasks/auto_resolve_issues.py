@@ -14,8 +14,8 @@ ONE_HOUR = 3600
 
 
 @instrumented_task(name='sentry.tasks.schedule_auto_resolution',
-                   time_limit=15,
-                   soft_time_limit=10)
+                   time_limit=75,
+                   soft_time_limit=60)
 def schedule_auto_resolution():
     options = ProjectOption.objects.filter(
         key__in=['sentry:resolve_age', 'sentry:_last_auto_resolve'],
@@ -44,8 +44,8 @@ def schedule_auto_resolution():
 
 
 @instrumented_task(name='sentry.tasks.auto_resolve_project_issues',
-                   time_limit=15,
-                   soft_time_limit=10)
+                   time_limit=75,
+                   soft_time_limit=60)
 def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000,
                                 **kwargs):
     project = Project.objects.get_from_cache(id=project_id)
@@ -57,7 +57,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000,
     project.update_option('sentry:_last_auto_resolve', int(time()))
 
     if cutoff:
-        cutoff = datetime.utcfromtimestamp(cutoff, tzinfo=timezone.utc)
+        cutoff = datetime.utcfromtimestamp(cutoff).replace(tzinfo=timezone.utc)
     else:
         cutoff = timezone.now() - timedelta(hours=int(age))
 
