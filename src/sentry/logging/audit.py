@@ -49,22 +49,26 @@ def log_entry(entry, logger=logger):
     """
     fmt = options.get('system.logging-format')
     if fmt == 'human':
-        logger.info(
+        log(
             "[Audit Log] [{org}] {user} {note}".format(
                 org=entry.organization_id,
                 user=entry.actor_label,
                 note=entry.get_note(),
-            )
+            ),
+            logger=logger,
         )
     elif fmt == 'machine':
-        logger.info(encode(
-            organization_id=entry.organization_id,
-            actor_id=entry.actor_id,
-            actor_key=entry.actor_key,
-            target_object=entry.target_object,
-            target_user_id=entry.target_user_id,
-            event=entry.get_event_display(),
-            ip_address=entry.ip_address,
-            data=entry.data,
-            datetime=entry.datetime,
-        ))
+        log(
+            dict(
+                organization_id=entry.organization_id,
+                actor_id=entry.actor_id,
+                actor_key=entry.actor_key,
+                target_object=entry.target_object,
+                target_user_id=entry.target_user_id,
+                event=entry.get_event_display(),
+                ip_address=entry.ip_address,
+                data=entry.data,
+                datetime=entry.datetime,
+            ),
+            logger=logger,
+        )
