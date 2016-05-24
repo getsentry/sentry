@@ -155,7 +155,7 @@ class OrganizationMember(Model):
         )
 
         try:
-            msg.send([self.get_email()])
+            msg.send_async([self.get_email()])
         except Exception as e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)

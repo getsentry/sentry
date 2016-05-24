@@ -153,7 +153,7 @@ class Backend(object):
             with timelines.digest('project:1') as records:
                 message = build_digest_email(records)
 
-            message.send()
+            message.send_async()
 
         """
         raise NotImplementedError
