@@ -16,7 +16,7 @@ from sentry import options
 logger = logging.getLogger('sentry.audit')
 
 
-def log(log_obj):
+def log(log_obj, logger=logger):
     """
     Will either log an encoded dictionary or just a line.
     """
@@ -43,7 +43,7 @@ def encode(**kwargs):
     }
 
 
-def log_entry(entry):
+def log_entry(entry, logger=logger):
     """
     Give an AuditLogEntry object to the audit logger.
     """
