@@ -192,10 +192,19 @@ class AuthHelper(object):
         organization = self.organization
 
         try:
-            auth_identity = AuthIdentity.objects.get(
-                auth_provider=auth_provider,
-                ident=identity['id'],
-            )
+            try:
+                # prioritize identifying by the SSO provider's user ID
+                auth_identity = AuthIdentity.objects.get(
+                    auth_provider=auth_provider,
+                    ident=identity['id'],
+                )
+            except AuthIdentity.DoesNotExist:
+                # otherwise look for an already attached identity
+                # this can happen if the SSO provider's internal ID changes
+                auth_identity = AuthIdentity.objects.get(
+                    auth_provider=auth_provider,
+                    user=user,
+                )
         except AuthIdentity.DoesNotExist:
             auth_identity = AuthIdentity.objects.create(
                 auth_provider=auth_provider,
@@ -208,6 +217,7 @@ class AuthHelper(object):
             now = timezone.now()
             auth_identity.update(
                 user=user,
+                ident=identity['id'],
                 data=self.provider.update_identity(
                     new_data=identity.get('data', {}),
                     current_data=auth_identity.data,
