@@ -99,11 +99,11 @@ react_page_view = ReactPageView.as_view()
 urlpatterns = patterns('')
 
 if settings.DEBUG:
+    from django.views.generic import TemplateView
     import sentry.web.frontend.debug.mail
     from sentry.web.frontend.debug.debug_trigger_error import DebugTriggerErrorView
     from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
     from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
-    from sentry.web.frontend.debug.debug_icons import DebugIconsView
     from sentry.web.frontend.debug import debug_auth_views
 
     urlpatterns += patterns(
@@ -133,7 +133,7 @@ if settings.DEBUG:
         url(r'^debug/auth-confirm-link/$',
             debug_auth_views.DebugAuthConfirmLink.as_view()),
         url(r'^debug/icons/$',
-            DebugIconsView.as_view()),
+            TemplateView.as_view(template_name='sentry/debug/icons.html')),
     )
 
 urlpatterns += patterns(
