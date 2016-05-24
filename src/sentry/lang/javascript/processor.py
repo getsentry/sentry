@@ -501,6 +501,7 @@ class SourceProcessor(object):
         self.ensure_module_names(frames)
         self.fix_culprit(data, stacktraces)
         self.update_stacktraces(stacktraces)
+        self.add_raw_stacktraces(data)
 
         return data
 
@@ -521,6 +522,27 @@ class SourceProcessor(object):
     def update_stacktraces(self, stacktraces):
         for raw, interface in stacktraces:
             raw.update(interface.to_json())
+
+    def add_raw_stacktraces(self, data):
+        try:
+            values = data['sentry.interfaces.Exception']['values']
+        except KeyError:
+            return
+
+        for exc in values:
+            if not exc.get('stacktrace'):
+                continue
+
+            raw_frames = []
+            for frame in exc['stacktrace']['frames']:
+                try:
+                    # TODO(dcramer): we should refactor this to avoid this
+                    # push/pop process
+                    raw_frames.append(frame['data'].pop('raw'))
+                except KeyError:
+                    raw_frames.append(frame.copy())
+
+            exc['raw_stacktrace'] = {'frames': raw_frames}
 
     def ensure_module_names(self, frames):
         # TODO(dcramer): this doesn't really fit well with generic URLs so we
@@ -578,12 +600,10 @@ class SourceProcessor(object):
                     })
 
                 # Store original data in annotation
+                # HACK(dcramer): we stuff things into raw which gets popped off
+                # later when adding the raw_stacktrace attribute.
                 frame.data = {
-                    'orig_lineno': frame.lineno,
-                    'orig_colno': frame.colno,
-                    'orig_function': frame.function,
-                    'orig_abs_path': frame.abs_path,
-                    'orig_filename': frame.filename,
+                    'raw': frame.to_json(),
                     'sourcemap': sourcemap_label,
                 }
 
