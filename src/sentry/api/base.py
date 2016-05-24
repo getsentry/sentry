@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from sentry.app import raven, tsdb
+from sentry.logging import audit
 from sentry.models import ApiKey, AuditLogEntry
 from sentry.utils.cursors import Cursor
 from sentry.utils.http import absolute_uri, is_valid_origin
@@ -98,12 +99,13 @@ class Endpoint(APIView):
         user = request.user if request.user.is_authenticated() else None
         api_key = request.auth if isinstance(request.auth, ApiKey) else None
 
-        AuditLogEntry.objects.create(
+        entry = AuditLogEntry.objects.create(
             actor=user,
             actor_key=api_key,
             ip_address=request.META['REMOTE_ADDR'],
             **kwargs
         )
+        audit.log_entry(entry)
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):

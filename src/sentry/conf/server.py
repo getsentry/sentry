@@ -554,6 +554,9 @@ LOGGING = {
         'sentry': {
             'level': 'ERROR',
         },
+        'sentry.audit': {
+            'handlers': ['audit'],
+        },
         'sentry.auth': {
             'handlers': ['audit'],
         },
