@@ -48,15 +48,15 @@ def log_entry(entry):
     Give an AuditLogEntry object to the audit logger.
     """
     fmt = options.get('system.logging-format')
-    if fmt is 'human':
+    if fmt == 'human':
         logger.info(
             "[Audit Log] [{org}] {user} {note}".format(
-                org=entry.organization.name,
-                user=entry.actor.username,
+                org=entry.organization_id,
+                user=entry.actor_label,
                 note=entry.get_note(),
             )
         )
-    elif fmt is 'machine':
+    elif fmt == 'machine':
         logger.info(encode(
             organization_id=entry.organization_id,
             actor_id=entry.actor_id,
