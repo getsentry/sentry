@@ -99,6 +99,8 @@ const U2fInterface = React.createClass({
 
   render() {
     let {isSupported} = this.state;
+    // if we are still waiting for the browser to tell us if we can do u2f
+    // this will be null.
     if (isSupported === null) {
       return null;
     } else if (!isSupported) {
