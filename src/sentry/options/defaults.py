@@ -26,7 +26,7 @@ register('system.secret-key', flags=FLAG_NOSTORE)
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 register('system.url-prefix', ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register('system.root-api-key', flags=FLAG_PRIORITIZE_DISK)
-register('system.logging-format', default='human')
+register('system.logging-format', default='human', flags=FLAG_PRIORITIZE_DISK)
 
 # Redis
 register(
