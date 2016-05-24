@@ -68,3 +68,6 @@ class ApiToken(Model):
 
     def has_scope(self, scope):
         return scope in self.scopes
+
+    def get_allowed_origins(self):
+        return ()
