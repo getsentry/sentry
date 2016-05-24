@@ -174,6 +174,7 @@ class SingleExceptionTest(TestCase):
             'value': self.interface.value,
             'module': self.interface.module,
             'stacktrace': None,
+            'raw_stacktrace': None,
         }
 
     def test_get_hash(self):
