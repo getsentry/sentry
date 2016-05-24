@@ -74,6 +74,7 @@ from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.remove_project_key import RemoveProjectKeyView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.replay_event import ReplayEventView
+from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 
 __all__ = ('urlpatterns',)
@@ -177,9 +178,7 @@ urlpatterns += patterns(
         name='sentry-login-redirect'),
     url(r'^register/$', AuthLoginView.as_view(),
         name='sentry-register'),
-    url(r'^account/sudo/$', 'sudo.views.sudo',
-        {'template_name': 'sentry/account/sudo.html'},
-        name='sentry-sudo'),
+    url(r'^account/sudo/$', SudoView.as_view(), name='sentry-sudo'),
     url(r'^account/recover/$', accounts.recover,
         name='sentry-account-recover'),
     url(r'^account/recover/confirm/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$', accounts.recover_confirm,
