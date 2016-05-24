@@ -14,7 +14,6 @@ from django.utils.encoding import force_bytes
 from sentry import options
 
 logger = logging.getLogger('sentry.audit')
-fmt = options.get('system.logging-format')
 
 
 def log(**kwargs):
@@ -38,6 +37,7 @@ def log_entry(entry):
     """
     Give an AuditLogEntry object to the audit logger.
     """
+    fmt = options.get('system.logging-format')
     if fmt is 'human':
         logger.info(
             "[Audit Log] [{org}] {user} {note}".format(
