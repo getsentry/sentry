@@ -26,7 +26,7 @@ def get_activity_notifiers(project):
             results.append(plugin)
 
     for plugin in plugins.for_project(project, version=2):
-        for notifier in (safe_execute(plugin.get_notifiers) or ()):
+        for notifier in (safe_execute(plugin.get_notifiers, _with_transaction=False) or ()):
             results.append(notifier)
 
     return results

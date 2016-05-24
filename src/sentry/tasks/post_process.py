@@ -85,7 +85,7 @@ def record_additional_tags(event):
 
     added_tags = []
     for plugin in plugins.for_project(event.project, version=2):
-        added_tags.extend(safe_execute(plugin.get_tags, event) or ())
+        added_tags.extend(safe_execute(plugin.get_tags, event, _with_transaction=False) or ())
     if added_tags:
         Group.objects.add_tags(event.group, added_tags)
 
