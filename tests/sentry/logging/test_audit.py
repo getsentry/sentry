@@ -12,7 +12,7 @@ class AuditLogTestCase(TestCase):
     def test_log_line(self, mock_logger):
         log_obj = 'A Human Line.'
         audit.log(log_obj, logger=mock_logger)
-        self.assertTrue(mock_logger.info.called)
+        assert mock_logger.info.called
         mock_logger.info.assert_called_with(log_obj)
 
     def test_log_encoded_dict(self, mock_logger):
@@ -22,8 +22,8 @@ class AuditLogTestCase(TestCase):
         call_arg = mock_logger.info.call_args
         while isinstance(call_arg, tuple):
             call_arg = call_arg[0]
-        self.assertTrue(mock_logger.info.called)
-        self.assertDictEqual(call_arg, {'encode_me': '1'})
+        assert mock_logger.info.called
+        assert call_arg == {'encode_me': '1'}
 
 
 @patch('sentry.logging.audit.logger')
@@ -64,13 +64,10 @@ class AuditLogTestEntryCase(TestCase):
             call_arg = mock_logger.info.call_args
             while isinstance(call_arg, tuple):
                 call_arg = call_arg[0]
-            self.assertDictEqual(
-                call_arg,
-                {
-                    'actor_id': entry.actor_id,
-                    'data': '{}',
-                    'datetime': str(entry.datetime),
-                    'event': 'org.edit',
-                    'organization_id': entry.organization_id,
-                }
-            )
+            assert call_arg == {
+                'actor_id': entry.actor_id,
+                'data': '{}',
+                'datetime': str(entry.datetime),
+                'event': 'org.edit',
+                'organization_id': entry.organization_id,
+            }
