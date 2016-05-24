@@ -2,6 +2,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_helpers %}
 
 {% block title %}{% trans "Confirm Password" %} | {{ block.super }}{% endblock %}
 
@@ -48,6 +49,17 @@
                         <a href="{% url 'sentry-account-recover' %}">Forgot your password?</a>
                     </p>
                 </div>
+
+                {% if u2f_challenge %}
+                    <div id="u2f-challenge"></div>
+                    <script>
+                      ReactDOM.render(React.createElement(Sentry.U2fSign, {
+                        challengeData: {{ u2f_challenge|to_json|safe }},
+                        displayMode: 'sudo'
+                      }), document.getElementById('u2f-challenge'));
+                    </script>
+                {% endif %}
+
                 <p>
                     <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
                 </p>
