@@ -92,7 +92,7 @@ class AuthenticatorManager(BaseManager):
             ):
                 iface = authenticator.interface
                 if iface.is_backup_interface:
-                    return iface
+                    return
                 has_authenticators = True
 
         if has_authenticators or force:
