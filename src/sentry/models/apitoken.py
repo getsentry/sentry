@@ -70,4 +70,6 @@ class ApiToken(Model):
         return scope in self.scopes
 
     def get_allowed_origins(self):
+        if self.key:
+            return self.key.get_allowed_origins()
         return ()
