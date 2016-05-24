@@ -14,6 +14,7 @@ from django.utils.encoding import force_bytes
 from sentry import options
 
 logger = logging.getLogger('sentry.audit')
+human_log_line = '[Audit Log] [{org}] {user} {note}'
 
 
 def log(log_obj, logger=logger):
@@ -43,6 +44,44 @@ def encode(**kwargs):
     }
 
 
+def log_messages(messages, logger=logger):
+    """
+    Give a list of MessageBuilder objects to the audit logger.
+    """
+    fmt = options.get('system.logging-format')
+    for message in messages:
+        org = message.context.get('organization', None)
+        organization_id = org.id if org else 'not provided'
+        for user in message._send_to:
+            if fmt == 'human':
+                log(
+                    human_log_line.format(
+                        org=organization_id,
+                        user=user.id,
+                        # TODO: jtcunning
+                        # Change to message.type once implemented
+                        note='was sent email: ' + message.subject,
+                    ),
+                    logger=logger,
+                )
+            elif fmt == 'machine':
+                # Find as many ids as we can from a generic mail.
+                log_dict = {
+                    key + '_id': getattr(value, 'id', None)
+                    for key, value
+                    in message.context.iteritems()
+                    if getattr(value, 'id', None)
+                }
+                log_dict.update(
+                    dict(
+                        user_id=user.id,
+                        event='mail.sent',
+                    )
+                )
+
+                log(log_dict, logger=logger)
+
+
 def log_entry(entry, logger=logger):
     """
     Give an AuditLogEntry object to the audit logger.
@@ -50,7 +89,7 @@ def log_entry(entry, logger=logger):
     fmt = options.get('system.logging-format')
     if fmt == 'human':
         log(
-            "[Audit Log] [{org}] {user} {note}".format(
+            human_log_line.format(
                 org=entry.organization_id,
                 user=entry.actor_label,
                 note=entry.get_note(),

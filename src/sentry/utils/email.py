@@ -27,6 +27,7 @@ from django.utils.encoding import force_bytes, force_str, force_text
 from toronado import from_string as inline_css
 
 from sentry import options
+from sentry.logging.audit import log_messages
 from sentry.models import (
     Activity, Event, Group, GroupEmailThread, Project, User, UserOption
 )
@@ -359,7 +360,9 @@ class MessageBuilder(object):
 def send_messages(messages, fail_silently=False):
     connection = get_connection(fail_silently=fail_silently)
     metrics.incr('email.sent', len(messages))
-    return connection.send_messages(messages)
+    response = connection.send_messages(messages)
+    log_messages(messages)
+    return response
 
 
 def get_mail_backend():
