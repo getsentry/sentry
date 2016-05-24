@@ -21,7 +21,8 @@ def get_actions(group, request):
 
     action_list = []
     for plugin in plugins.for_project(project, version=1):
-        results = safe_execute(plugin.actions, request, group, action_list)
+        results = safe_execute(plugin.actions, request, group, action_list,
+                               _with_transaction=False)
 
         if not results:
             continue
@@ -29,7 +30,8 @@ def get_actions(group, request):
         action_list = results
 
     for plugin in plugins.for_project(project, version=2):
-        for action in (safe_execute(plugin.get_actions, request, group) or ()):
+        for action in (safe_execute(plugin.get_actions, request, group,
+                                    _with_transaction=False) or ()):
             action_list.append(action)
 
     return [(a[0], a[1], request.path == a[1]) for a in action_list]
@@ -41,7 +43,8 @@ def get_panels(group, request):
 
     panel_list = []
     for plugin in plugins.for_project(project):
-        results = safe_execute(plugin.panels, request, group, panel_list)
+        results = safe_execute(plugin.panels, request, group, panel_list,
+                               _with_transaction=False)
 
         if not results:
             continue
@@ -56,7 +59,8 @@ def get_widgets(group, request):
     project = group.project
 
     for plugin in plugins.for_project(project):
-        resp = safe_execute(plugin.widget, request, group)
+        resp = safe_execute(plugin.widget, request, group,
+                            _with_transaction=False)
 
         if resp:
             yield resp.render(request)
@@ -68,7 +72,8 @@ def get_legacy_annotations(group, request=None):
 
     annotation_list = []
     for plugin in plugins.for_project(project, version=1):
-        results = safe_execute(plugin.tags, request, group, annotation_list)
+        results = safe_execute(plugin.tags, request, group, annotation_list,
+                               _with_transaction=False)
 
         if not results:
             continue
@@ -84,8 +89,8 @@ def get_annotations(group, request=None):
 
     annotation_list = []
     for plugin in plugins.for_project(project, version=2):
-        for value in (safe_execute(plugin.get_annotations, group=group) or ()):
-            annotation = safe_execute(Annotation, **value)
+        for value in (safe_execute(plugin.get_annotations, group=group, _with_transaction=False) or ()):
+            annotation = safe_execute(Annotation, _with_transaction=False, **value)
             if annotation:
                 annotation_list.append(annotation)
 
@@ -125,6 +130,6 @@ def get_plugins(project):
 @register.filter
 def get_plugins_with_status(project):
     return [
-        (plugin, safe_execute(plugin.is_enabled, project))
+        (plugin, safe_execute(plugin.is_enabled, project, _with_transaction=False))
         for plugin in plugins.configurable_for_project(project, version=None)
     ]

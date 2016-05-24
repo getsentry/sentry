@@ -56,7 +56,8 @@ class RuleProcessor(object):
             return
 
         condition_inst = condition_cls(self.project, data=condition, rule=rule)
-        return safe_execute(condition_inst.passes, self.event, state)
+        return safe_execute(condition_inst.passes, self.event, state,
+                            _with_transaction=False)
 
     def get_state(self, rule_status):
         return EventState(
@@ -131,7 +132,8 @@ class RuleProcessor(object):
                 continue
 
             action_inst = action_cls(self.project, data=action, rule=rule)
-            results = safe_execute(action_inst.after, event=self.event, state=state)
+            results = safe_execute(action_inst.after, event=self.event, state=state,
+                                   _with_transaction=False)
             if results is None:
                 self.logger.warn('Action %s did not return any futures', action['id'])
                 continue
