@@ -16,8 +16,18 @@ from sentry import options
 logger = logging.getLogger('sentry.audit')
 
 
-def log(**kwargs):
-    logger.info(encode(**kwargs))
+def log(log_obj):
+    """
+    Will either log an encoded dictionary or just a line.
+    """
+    if isinstance(dict, log_obj):
+        logger.info(encode(**log_obj))
+    else:
+        logger.info(force_bytes(
+            log_obj,
+            strings_only=True,
+            errors='replace'
+        ))
 
 
 def encode(**kwargs):
