@@ -64,6 +64,11 @@ const ActivityItem = React.createClass({
           author: author,
           link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
+      case 'set_resolved_by_age':
+        return tct('[author] marked [link:an issue] as resolved due to age', {
+          author: author,
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
       case 'set_resolved_in_release':
         if (data.version) {
           return tct('[author] marked [link:an issue] as resolved in [version]', {

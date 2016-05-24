@@ -34,7 +34,7 @@ class EditProjectForm(forms.ModelForm):
         help_text=_('Outbound requests matching Allowed Domains will have the header "X-Sentry-Token: {token}" appended.'))
     resolve_age = RangeField(label=_('Auto resolve'), required=False,
         min_value=0, max_value=168, step_value=1,
-        help_text=_('Treat an event as resolved if it hasn\'t been seen for this amount of time.'))
+        help_text=_('Automatically resolve an issue if it hasn\'t been seen for this amount of time.'))
     scrub_data = forms.BooleanField(
         label=_('Data Scrubber'),
         help_text=_('Enable server-side data scrubbing.'),

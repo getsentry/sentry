@@ -37,6 +37,10 @@ const GroupActivity = React.createClass({
         return t('%s left a comment', author);
       case 'set_resolved':
         return t('%s marked this issue as resolved', author);
+      case 'set_resolved_by_age':
+        return t('%(author)s marked this issue as resolved due to inactivity', {
+          author: author,
+        });
       case 'set_resolved_in_release':
         return (data.version ?
           t('%(author)s marked this issue as resolved in %(version)s', {
