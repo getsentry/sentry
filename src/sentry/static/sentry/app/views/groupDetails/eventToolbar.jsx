@@ -145,7 +145,7 @@ let GroupEventToolbar  = React.createClass({
         <span>
           <span className="tip" data-title={this.getDateTooltip()}>
             <DateTime date={evt.dateCreated} style={style} />
-            {isOverLatencyThreshold ? <span className="icon-alert" /> : ''}
+            {isOverLatencyThreshold && <span className="icon-alert" />}
           </span>
           <a href={jsonUrl} target="_blank" className="json-link">{'JSON'} &#40;<FileSize bytes={evt.size} />&#41;</a>
         </span>
