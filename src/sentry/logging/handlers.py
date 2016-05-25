@@ -11,7 +11,6 @@ import logging
 
 from django.utils.encoding import force_bytes
 
-from sentry import options
 
 logger = logging.getLogger('sentry.audit')
 
@@ -24,7 +23,8 @@ class TuringHandler(logging.StreamHandler):
         context = record.args
         # Check to make sure someone is following the rules.
         if isinstance(context, dict):
-            _emit = getattr(self, 'emit_' + options.get('system.logging-format'))
+            from sentry.options import get
+            _emit = getattr(self, 'emit_' + get('system.logging-format'))
             _emit(record, context)
         else:
             super(TuringHandler, self).emit(record)
