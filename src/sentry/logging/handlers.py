@@ -22,6 +22,8 @@ class TuringHandler(logging.StreamHandler):
     def emit(self, record):
         context = record.args
         # Check to make sure someone is following the rules.
+        if not context:
+            context = record.msg
         if isinstance(context, dict):
             from sentry.options import get
             _emit = getattr(self, 'emit_' + get('system.logging-format'))
@@ -30,27 +32,23 @@ class TuringHandler(logging.StreamHandler):
             super(TuringHandler, self).emit(record)
 
     def emit_human(self, record, context):
-        context = record.args
-        # Check to make sure someone is following the rules.
-        if isinstance(context, dict):
-            # If you're reading this in a KeyError, you didn't provide
-            # a kv pair in your context that your format is expecting.
-            record.msg = record.msg.format(**context)
+        # If you're reading this in a KeyError, you didn't provide
+        # a kv pair in your context that your format is expecting.
+        record.msg = record.msg.format(**context)
 
         super(TuringHandler, self).emit(record)
 
     def emit_machine(self, record, context):
-
         context.update({
             'levelname': record.levelname,
-            'name': record.name,
+            'loggername': record.name,
         })
 
         record.msg = self.encode(context)
 
         super(TuringHandler, self).emit(record)
 
-    def encode(self, kwargs):
+    def encode(self, context):
         """
         Force complex objects into strings so log formatters don't
         error out when serializing.
@@ -58,6 +56,6 @@ class TuringHandler(logging.StreamHandler):
         return {
             key: force_bytes(value, strings_only=True, errors='replace')
             for key, value
-            in kwargs.iteritems()
+            in context.iteritems()
             if value is not None
         }
