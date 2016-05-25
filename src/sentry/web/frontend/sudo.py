@@ -13,20 +13,23 @@ class SudoView(BaseSudoView):
         if BaseSudoView.handle_sudo(self, request, redirect_to, context):
             return True
 
-        interface = Authenticator.objects.get_interface(request.user, 'u2f')
+        try:
+            interface = Authenticator.objects.get_interface(request.user, 'u2f')
+            if not interface.is_enrolled:
+                raise LookupError()
+        except LookupError:
+            return False
 
-        if interface.is_available and interface.is_enrolled:
-            challenge = interface.activate(request).challenge
-            if request.method == 'POST':
-                if 'challenge' in request.POST and 'response' in request.POST:
-                    try:
-                        challenge = json.loads(request.POST['challenge'])
-                        response = json.loads(request.POST['response'])
-                    except ValueError:
-                        pass
-                    else:
-                        if interface.validate_response(request, challenge, response):
-                            return True
-            context['u2f_challenge'] = challenge
-
+        challenge = interface.activate(request).challenge
+        if request.method == 'POST':
+            if 'challenge' in request.POST and 'response' in request.POST:
+                try:
+                    challenge = json.loads(request.POST['challenge'])
+                    response = json.loads(request.POST['response'])
+                except ValueError:
+                    pass
+                else:
+                    if interface.validate_response(request, challenge, response):
+                        return True
+        context['u2f_challenge'] = challenge
         return False
