@@ -189,6 +189,8 @@ OK_PLUGIN_DISABLED = _("The {name} integration has been disabled.")
 
 OK_PLUGIN_SAVED = _('Configuration for the {name} integration has been saved.')
 
+WARN_SESSION_EXPIRED = 'Your session has expired.'  # TODO: translate this
+
 # Key to use when ordering a list of events manually
 EVENT_ORDERING_KEY = attrgetter('datetime', 'id')
 
