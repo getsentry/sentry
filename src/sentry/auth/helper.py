@@ -380,7 +380,17 @@ class AuthHelper(object):
             # confirm authentication, login
             op = None
             if login_form.is_valid():
-                auth.login(request, login_form.get_user())
+                # This flow is special.  If we are going through a 2FA
+                # flow here (login returns False) we want to instruct the
+                # system to return upon completion of the 2fa flow to the
+                # current URL and continue with the dialog.
+                #
+                # If there is no 2fa we don't need to do this and can just
+                # go on.
+                if not auth.login(request, login_form.get_user(),
+                                  after_2fa=request.build_absolute_uri()):
+                    return HttpResponseRedirect(auth.get_login_redirect(
+                        self.request))
                 request.session.pop('needs_captcha', None)
             else:
                 auth.log_auth_failure(request, request.POST.get('username'))

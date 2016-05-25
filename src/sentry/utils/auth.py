@@ -67,6 +67,12 @@ def get_login_redirect(request, default=None):
     if has_pending_2fa(request):
         return reverse('sentry-2fa-dialog')
 
+    # If we have a different URL to go after the 2fa flow we want to go to
+    # that now here.
+    after_2fa = request.session.pop('_after_2fa', None)
+    if after_2fa is not None:
+        return after_2fa
+
     login_url = request.session.pop('_next', None) or default
     if login_url.startswith(('http://', 'https://')):
         login_url = default
@@ -96,19 +102,33 @@ def find_users(username, with_valid_password=True):
     return []
 
 
-def login(request, user, passed_2fa=False):
+def login(request, user, passed_2fa=False, after_2fa=None):
+    """This logs a user in for the sesion and current request.  If 2FA is
+    enabled this method will start the 2FA flow and return False, otherwise
+    it will return True.  If `passed_2fa` is set to `True` then the 2FA flow
+    is set to be finalized (user passed the flow).
+
+    Optionally `after_2fa` can be set to a URL which will be used to override
+    the regular session redirect target directly after the 2fa flow.
+    """
     has_2fa = Authenticator.objects.user_has_2fa(user)
     if has_2fa and not passed_2fa:
         request.session['_pending_2fa'] = [user.id, time.time()]
-    else:
-        # If there is no authentication backend, just attach the first
-        # one and hope it goes through.  This apparently is a thing we
-        # have been doing for a long time, just moved it to a more
-        # reasonable place.
-        if not hasattr(user, 'backend'):
-            user.backend = settings.AUTHENTICATION_BACKENDS[0]
-        _login(request, user)
-        log_auth_success(request, user.username)
+        if after_2fa is not None:
+            request.session['_after_2fa'] = after_2fa
+        return False
+
+    request.session.pop('_pending_2fa', None)
+
+    # If there is no authentication backend, just attach the first
+    # one and hope it goes through.  This apparently is a thing we
+    # have been doing for a long time, just moved it to a more
+    # reasonable place.
+    if not hasattr(user, 'backend'):
+        user.backend = settings.AUTHENTICATION_BACKENDS[0]
+    _login(request, user)
+    log_auth_success(request, user.username)
+    return True
 
 
 def log_auth_success(request, username):
