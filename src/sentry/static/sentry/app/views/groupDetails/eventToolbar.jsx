@@ -1,7 +1,6 @@
 import {Link} from 'react-router';
 import moment from 'moment';
 import React from 'react';
-import {sprintf} from 'sprintf-js';
 
 import ConfigStore from '../../stores/configStore';
 import PropTypes from '../../proptypes';
@@ -9,6 +8,26 @@ import DateTime from '../../components/dateTime';
 import FileSize from '../../components/fileSize';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
+
+let formatDuration = (duration) => {
+  let hours = Math.floor(+duration / (60 * 60 * 1000)),
+      minutes = duration.minutes(),
+      results = [];
+
+  if (hours) {
+    results.push(`${hours} hour${hours != 1 ? 's' : ''}`);
+  }
+
+  if (minutes) {
+    results.push(`${minutes} minute${minutes != 1 ? 's' : ''}`);
+  }
+
+  if (results.length == 0) {
+    results.push('a few seconds');
+  }
+
+  return results.join(', ');
+}
 
 let GroupEventToolbar  = React.createClass({
   propTypes: {
@@ -40,21 +59,13 @@ let GroupEventToolbar  = React.createClass({
           dateCreated.format(format) + '</dd>'
     );
     if (evt.dateReceived) {
-      let dateReceived = moment(evt.dateReceived),
-          latency = moment.duration(dateReceived.diff(dateCreated));
-
+      let dateReceived = moment(evt.dateReceived);
       resp += (
         '<dt>Received</dt>' +
         '<dd>' + dateReceived.format('ll') + '<br />' +
           dateReceived.format(format) + '</dd>' +
         '<dt>Latency</dt>' +
-        '<dd>' + sprintf(
-          '%u:%02u:%02u',
-          Math.floor(+latency / (60 * 60 * 1000)),
-          latency.minutes(),
-          latency.seconds()
-        ) +
-        '</dd>'
+        '<dd>' + formatDuration(moment.duration(dateReceived.diff(dateCreated))) + '</dd>'
       );
     }
     return resp + '</dl>';
