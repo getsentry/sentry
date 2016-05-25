@@ -367,7 +367,7 @@ class AuthHelper(object):
         op = request.POST.get('op')
         if not request.user.is_authenticated():
             try:
-                existing_user = auth.find_users(identity['email'])[0]
+                existing_user = auth.find_users(identity['email'], is_active=True)[0]
             except IndexError:
                 existing_user = None
             login_form = self._get_login_form(existing_user)
