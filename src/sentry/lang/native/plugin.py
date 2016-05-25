@@ -96,7 +96,11 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
         exc = exception_from_apple_error_or_diagnosis(error, diagnosis)
         if exc is not None:
             exc['stacktrace'] = stacktrace
-            data['sentry.interfaces.Exception'] = exc
+            data['sentry.interfaces.Exception'] = {'values': [exc]}
+            # Since we inject the exception late we need to make sure that
+            # we set the event type to error as it would be set to
+            # 'default' otherwise.
+            data['type'] = 'error'
             return
 
     data['sentry.interfaces.Stacktrace'] = stacktrace
