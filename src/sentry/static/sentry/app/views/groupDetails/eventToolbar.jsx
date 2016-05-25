@@ -9,6 +9,27 @@ import FileSize from '../../components/fileSize';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
 
+let formatDateDelta = (reference, observed) => {
+  let duration = moment.duration(Math.abs(+observed - +reference));
+  let hours = Math.floor(+duration / (60 * 60 * 1000));
+  let minutes = duration.minutes();
+  let results = [];
+
+  if (hours) {
+    results.push(`${hours} hour${hours != 1 ? 's' : ''}`);
+  }
+
+  if (minutes) {
+    results.push(`${minutes} minute${minutes != 1 ? 's' : ''}`);
+  }
+
+  if (results.length == 0) {
+    results.push('a few seconds');
+  }
+
+  return results.join(', ');
+};
+
 let GroupEventToolbar  = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
@@ -40,11 +61,12 @@ let GroupEventToolbar  = React.createClass({
     );
     if (evt.dateReceived) {
       let dateReceived = moment(evt.dateReceived);
-
       resp += (
         '<dt>Received</dt>' +
         '<dd>' + dateReceived.format('ll') + '<br />' +
-          dateReceived.format(format) + '</dd>'
+          dateReceived.format(format) + '</dd>' +
+        '<dt>Latency</dt>' +
+        '<dd>' + formatDateDelta(dateCreated, dateReceived) + '</dd>'
       );
     }
     return resp + '</dl>';
@@ -109,6 +131,9 @@ let GroupEventToolbar  = React.createClass({
       paddingBottom: '5px'
     };
 
+    let latencyThreshold = 30 * 60 * 1000;  // 30 minutes
+    let isOverLatencyThreshold = evt.dateReceived && Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
+
     return (
       <div className="event-toolbar">
         <div className="pull-right">
@@ -118,8 +143,10 @@ let GroupEventToolbar  = React.createClass({
         </div>
         <h4>{t('Event %s', evt.eventID)}</h4>
         <span>
-          <DateTime date={evt.dateCreated} className="tip" data-title={this.getDateTooltip()}
-                    style={style} />
+          <span className="tip" data-title={this.getDateTooltip()}>
+            <DateTime date={evt.dateCreated} style={style} />
+            {isOverLatencyThreshold && <span className="icon-alert" />}
+          </span>
           <a href={jsonUrl} target="_blank" className="json-link">{'JSON'} &#40;<FileSize bytes={evt.size} />&#41;</a>
         </span>
       </div>
