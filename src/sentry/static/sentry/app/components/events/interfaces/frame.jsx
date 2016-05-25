@@ -8,9 +8,6 @@ import FrameVariables from './frameVariables';
 import {t} from '../../../locale';
 
 function trimPackage(pkg) {
-  if (!pkg) {
-    return '';
-  }
   let pieces = pkg.split(/\//g);
   let rv = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
   let match = rv.match(/^(.*?)\.(dylib|so|a)$/);
@@ -240,9 +237,15 @@ const Frame = React.createClass({
     let className = 'stacktrace-table';
     return (
       <div className={className}>
-        <div className="trace-col package" title={data.package || ''}>
-          {trimPackage(data.package)}
-        </div>
+        {defined(data.package)
+          ? (
+            <div className="trace-col package" title={data.package}>
+              {trimPackage(data.package)}
+            </div>
+          ) : (
+            <div className="trace-col package"/>
+          )
+        }
         <div className="trace-col address">
           {data.instructionAddr}
         </div>
