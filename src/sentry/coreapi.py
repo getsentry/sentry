@@ -614,21 +614,22 @@ class ClientApiHelper(object):
         if 'sentry.interfaces.User' in data:
             data['sentry.interfaces.User'].pop('ip_address', None)
 
-    def ensure_has_ip(self, data, ip_address, is_public=False):
+    def ensure_has_ip(self, data, ip_address, set_if_missing=True):
+        got_ip = False
         ip = data.get('sentry.interfaces.Http', {}) \
             .get('env', {}).get('REMOTE_ADDR')
         if ip:
             if ip == '{{auto}}':
                 data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = ip_address
-            return
+            got_ip = True
 
         ip = data.get('sentry.interfaces.User', {}).get('ip_address')
         if ip:
             if ip == '{{auto}}':
                 data['sentry.interfaces.User']['ip_address'] = ip_address
-            return
+            got_ip = True
 
-        if is_public or data.get('platform') in ('javascript', 'cocoa', 'objc'):
+        if not got_ip and set_if_missing:
             data.setdefault('sentry.interfaces.User', {})['ip_address'] = ip_address
 
     def insert_data_to_database(self, data):
