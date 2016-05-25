@@ -23,6 +23,7 @@ from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
+from sentry.constants import VALID_PLATFORMS
 
 
 _ruby_anon_func = re.compile(r'_\d{2,}')
@@ -437,6 +438,8 @@ class Frame(Interface):
         }).strip('\n')
 
     def get_culprit_string(self, platform=None):
+        if self.platform is not None:
+            platform = self.platform
         if platform in ('objc', 'cocoa'):
             return '%s (%s)' % (
                 self.function or '?',
@@ -580,8 +583,13 @@ class Stacktrace(Interface):
             elif frame.in_app is None:
                 frame.in_app = False
 
+        platform = data.get('platform')
+        if platform is not None and platform not in VALID_PLATFORMS:
+            platform = 'other'
+
         kwargs = {
             'frames': frame_list,
+            'platform': platform,
         }
 
         if data.get('frames_omitted'):
@@ -729,6 +737,8 @@ class Stacktrace(Interface):
         return '\n'.join(result)
 
     def get_culprit_string(self, platform=None):
+        if self.platform is not None:
+            platform = self.platform
         default = None
         for frame in reversed(self.frames):
             if frame.in_app:
