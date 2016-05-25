@@ -131,6 +131,9 @@ let GroupEventToolbar  = React.createClass({
       paddingBottom: '5px'
     };
 
+    let latencyThreshold = 30 * 60 * 1000;  // 30 minutes
+    let isOverLatencyThreshold = evt.dateReceived && Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
+
     return (
       <div className="event-toolbar">
         <div className="pull-right">
@@ -140,8 +143,10 @@ let GroupEventToolbar  = React.createClass({
         </div>
         <h4>{t('Event %s', evt.eventID)}</h4>
         <span>
-          <DateTime date={evt.dateCreated} className="tip" data-title={this.getDateTooltip()}
-                    style={style} />
+          <span className="tip" data-title={this.getDateTooltip()}>
+            <DateTime date={evt.dateCreated} style={style} />
+            {isOverLatencyThreshold ? <span className="icon-alert" /> : ''}
+          </span>
           <a href={jsonUrl} target="_blank" className="json-link">{'JSON'} &#40;<FileSize bytes={evt.size} />&#41;</a>
         </span>
       </div>
