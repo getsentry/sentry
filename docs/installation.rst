@@ -394,7 +394,7 @@ We recommend using whatever software you are most familiar with for
 managing Sentry processes. For us, that software of choice is `Supervisor
 <http://supervisord.org/>`_.
 
-For Debian, Ubuntu and other operating systems relying on ``SystemD``, see that section.
+For Debian, Ubuntu and other operating systems relying on ``systemd``, see that section.
 
 Configure ``supervisord``
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -438,7 +438,7 @@ go.
 Configure ``systemd``
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Configuring SystemD requires three files, one for each service. On Ubuntu 16.04, the files are located in ``/etc/systemd/system``. Create three files named ``sentry-web.service``, ``sentry-worker.service`` and ``sentry-cron.service`` with the contents listed below.
+Configuring systemd requires three files, one for each service. On Ubuntu 16.04, the files are located in ``/etc/systemd/system``. Create three files named ``sentry-web.service``, ``sentry-worker.service`` and ``sentry-cron.service`` with the contents listed below.
 
 **sentry-web.service**
 ::
