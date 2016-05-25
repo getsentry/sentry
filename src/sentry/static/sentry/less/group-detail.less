@@ -1176,10 +1176,10 @@ ol.context-line {
 }
 
 .stacktrace-table {
+  display: flex;
 
   .trace-col {
-    display: inline-block;
-    padding: 0 5px;
+    padding: 0 6px;
   }
 
   .package {
@@ -1187,34 +1187,37 @@ ol.context-line {
     font-size: 13px;
     font-weight: bold;
   }
+
   .address {
-    width: 10%;
     font-family: @font-family-code;
     font-size: 11px;
     color: @gray-dark;
     letter-spacing: -0.25px;
   }
+
   .symbol {
-    width: 75%;
     code {
       font-size: 12px;
       background: transparent;
       color: @blue-dark;
     }
+
     span.offset {
       font-size: 12px;
       font-weight: bold;
     }
+
     span.filename {
+      font-size: 12px;
+      color: @purple;
+      padding-left: 10px;
+
       &:before {
         content: "(";
       }
       &:after {
         content: ")";
       }
-      font-size: 12px;
-      color: @purple;
-      padding-left: 10px;
     }
   }
 }
