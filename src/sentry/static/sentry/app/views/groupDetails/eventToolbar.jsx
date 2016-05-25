@@ -9,10 +9,11 @@ import FileSize from '../../components/fileSize';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
 
-let formatDuration = (duration) => {
-  let hours = Math.floor(+duration / (60 * 60 * 1000)),
-      minutes = duration.minutes(),
-      results = [];
+let formatDateDelta = (reference, observed) => {
+  let duration = moment.duration(Math.abs(+observed - +reference));
+  let hours = Math.floor(+duration / (60 * 60 * 1000));
+  let minutes = duration.minutes();
+  let results = [];
 
   if (hours) {
     results.push(`${hours} hour${hours != 1 ? 's' : ''}`);
@@ -65,7 +66,7 @@ let GroupEventToolbar  = React.createClass({
         '<dd>' + dateReceived.format('ll') + '<br />' +
           dateReceived.format(format) + '</dd>' +
         '<dt>Latency</dt>' +
-        '<dd>' + formatDuration(moment.duration(dateReceived.diff(dateCreated))) + '</dd>'
+        '<dd>' + formatDateDelta(dateCreated, dateReceived) + '</dd>'
       );
     }
     return resp + '</dl>';
