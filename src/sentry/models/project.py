@@ -256,3 +256,14 @@ class Project(Model):
         if self.team.name not in self.name:
             return '%s %s' % (self.team.name, self.name)
         return self.name
+
+    def is_user_subscribed_to_mail_alerts(self, user):
+        from sentry.models import UserOption
+        is_enabled = UserOption.objects.get_value(
+            user, self, 'mail:alert', None)
+        if is_enabled is None:
+            is_enabled = UserOption.objects.get_value(
+                user, None, 'subscribe_by_default', '1') == '1'
+        else:
+            is_enabled = bool(is_enabled)
+        return is_enabled

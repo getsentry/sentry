@@ -139,12 +139,15 @@ class ProjectNotificationsView(ProjectView):
             elif plugin.can_configure_for_project(project):
                 other_plugins.append(plugin)
 
+        is_user_subbed = project.is_user_subscribed_to_mail_alerts(request.user)
+
         context = {
             'page': 'notifications',
             'enabled_plugins': enabled_plugins,
             'other_plugins': other_plugins,
             'general_form': general_form,
             'digests_form': digests_form,
+            'is_user_subbed': is_user_subbed
         }
 
         return self.respond('sentry/project-notifications.html', context)
