@@ -375,13 +375,25 @@ class AuthHelper(object):
             # the email matches we go ahead and let them merge it. This is the
             # only way to prevent them having duplicate accounts, and because
             # we trust identity providers, its considered safe.
-            if not existing_user.password and existing_user.is_managed:
-                if not auth.login(request, existing_user,
-                                  after_2fa=request.build_absolute_uri()):
-                    return HttpResponseRedirect(auth.get_login_redirect(
-                        self.request))
-                # assume they've confirmed they want to attach the identity
-                op = 'confirm'
+            if not existing_user.password:
+                # we only allow this flow to happen if the existing user has
+                # membership, otherwise we short circuit because it might be
+                # an attempt to hijack membership of another organization
+                has_membership = OrganizationMember.objects.filter(
+                    user=existing_user,
+                    organization=self.organization,
+                ).exists()
+                if has_membership:
+                    if not auth.login(request, existing_user,
+                                      after_2fa=request.build_absolute_uri()):
+                        return HttpResponseRedirect(auth.get_login_redirect(
+                            self.request))
+                    # assume they've confirmed they want to attach the identity
+                    op = 'confirm'
+                else:
+                    # force them to create a new account
+                    existing_user = None
+
             login_form = self._get_login_form(existing_user)
 
         if op == 'confirm' and request.user.is_authenticated():
