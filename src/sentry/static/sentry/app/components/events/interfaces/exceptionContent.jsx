@@ -5,6 +5,7 @@ import StacktraceContent from './stacktraceContent';
 
 const ExceptionContent = React.createClass({
   propTypes: {
+    type: React.PropTypes.string,
     values: React.PropTypes.array.isRequired,
     view: React.PropTypes.string.isRequired,
     platform: React.PropTypes.string,
@@ -24,7 +25,7 @@ const ExceptionContent = React.createClass({
           }
           {defined(exc.stacktrace) &&
             <StacktraceContent
-                data={exc.stacktrace}
+                data={this.props.type === 'original' ? exc.stacktrace : exc.rawStacktrace}
                 includeSystemFrames={stackView === 'full'}
                 platform={this.props.platform}
                 newestFirst={this.props.newestFirst} />

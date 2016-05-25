@@ -501,8 +501,7 @@ class SourceProcessor(object):
         self.ensure_module_names(frames)
         self.fix_culprit(data, stacktraces)
         self.update_stacktraces(stacktraces)
-        self.add_raw_stacktraces(data)
-
+        self.add_raw_stacktraces(data, release)
         return data
 
     def fix_culprit(self, data, stacktraces):
@@ -523,7 +522,7 @@ class SourceProcessor(object):
         for raw, interface in stacktraces:
             raw.update(interface.to_json())
 
-    def add_raw_stacktraces(self, data):
+    def add_raw_stacktraces(self, data, release):
         try:
             values = data['sentry.interfaces.Exception']['values']
         except KeyError:
@@ -534,6 +533,18 @@ class SourceProcessor(object):
                 continue
 
             raw_frames = []
+            for frame in exc['stacktrace']['frames']:
+                frame = frame['data']['raw']
+
+                if frame['lineno'] is not None:
+                    source = self.get_source(frame['abs_path'], release)
+                    if source is None:
+                        logger.debug('No source found for %s', frame['abs_path'])
+                        continue
+
+                    frame['pre_context'], frame['context_line'], frame['post_context'] = get_source_context(
+                        source=source, lineno=frame['lineno'], colno=frame['colno'] or 0)
+
             for frame in exc['stacktrace']['frames']:
                 try:
                     # TODO(dcramer): we should refactor this to avoid this
