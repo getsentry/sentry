@@ -19,7 +19,12 @@
       </div>
       <div class="box-content with-padding">
         {% url 'sentry-project-rules' organization.slug project.slug as link %}
-        <p>{% blocktrans %}Sentry will notify you based on the <a href="{{ link }}">rules configured for this project</a>.{% endblocktrans %}</p>
+        <p>{% blocktrans %}Sentry will notify users subscribed to this project based on the <a href="{{ link }}">rules configured for this project</a>.{% endblocktrans %}</p>
+
+        {% if not is_user_subbed %}
+        {% url 'sentry-account-settings-notifications' as account_notification_url %}
+        <p style="font-style:italic">You are currently not subscribed to this project. To subscribe, go to <a href="{{ account_notification_url }}">Account Notifications</a>.</p>
+        {% endif %}
       </div>
     </div>
 
