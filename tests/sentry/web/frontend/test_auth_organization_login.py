@@ -25,6 +25,17 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert 'provider_key' not in resp.context
         assert resp.context['CAN_REGISTER']
 
+    def test_renders_session_expire_message(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+        path = reverse('sentry-auth-organization', args=[organization.slug])
+
+        self.client.cookies['session_expired'] = '1'
+        resp = self.client.get(path)
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/organization-login.html')
+        assert len(resp.context['messages']) == 1
+
     def test_flow_as_anonymous(self):
         organization = self.create_organization(name='foo', owner=self.user)
         auth_provider = AuthProvider.objects.create(

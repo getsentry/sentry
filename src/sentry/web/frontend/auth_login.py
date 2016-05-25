@@ -9,6 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
 from sentry import features
+from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
@@ -150,4 +151,14 @@ class AuthLoginView(BaseView):
                 messages.add_message(request, messages.ERROR, ERR_NO_SSO)
 
             return HttpResponseRedirect(next_uri)
-        return self.handle_basic_auth(request)
+
+        session_expired = 'session_expired' in request.COOKIES
+        if session_expired:
+            messages.add_message(request, messages.WARNING, WARN_SESSION_EXPIRED)
+
+        response = self.handle_basic_auth(request)
+
+        if session_expired:
+            response.delete_cookie('session_expired')
+
+        return response
