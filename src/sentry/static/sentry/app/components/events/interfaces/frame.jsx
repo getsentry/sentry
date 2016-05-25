@@ -7,6 +7,13 @@ import TooltipMixin from '../../../mixins/tooltip';
 import FrameVariables from './frameVariables';
 import {t} from '../../../locale';
 
+function trimPackage(pkg) {
+  let pieces = pkg.split(/\//g);
+  let rv = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
+  let match = rv.match(/^(.*?)\.(dylib|so|a)$/);
+  return match && match[1] || rv;
+}
+
 
 const Frame = React.createClass({
   propTypes: {
@@ -131,7 +138,7 @@ const Frame = React.createClass({
 
     if (defined(data.package)) {
       title.push(<span className="within" key="within"> {t('within')} </span>);
-      title.push(<code>{data.package}</code>);
+      title.push(<code title={data.package}>{trimPackage(data.package)}</code>);
     }
 
     if (defined(data.origAbsPath)) {
@@ -230,8 +237,8 @@ const Frame = React.createClass({
     let className = 'stacktrace-table';
     return (
       <div className={className}>
-        <div className="trace-col package">
-          {data.package}
+        <div className="trace-col package" title={data.package}>
+          {trimPackage(data.package)}
         </div>
         <div className="trace-col address">
           {data.instructionAddr}
