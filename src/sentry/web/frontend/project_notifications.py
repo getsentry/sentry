@@ -8,7 +8,6 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import constants
 from sentry import options
 from sentry.app import digests
-from sentry.models import UserOption
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.plugins import plugins, NotificationPlugin
 from sentry.web.forms.projects import (
@@ -140,7 +139,7 @@ class ProjectNotificationsView(ProjectView):
             elif plugin.can_configure_for_project(project):
                 other_plugins.append(plugin)
 
-        is_user_subbed = UserOption.is_user_subscribed_to_mail_alerts(request.user, project)
+        is_user_subbed = project.is_user_subscribed_to_mail_alerts(request.user)
 
         context = {
             'page': 'notifications',

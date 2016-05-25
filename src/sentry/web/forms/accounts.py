@@ -388,7 +388,7 @@ class ProjectEmailOptionsForm(forms.Form):
 
         super(ProjectEmailOptionsForm, self).__init__(*args, **kwargs)
 
-        is_enabled = UserOption.is_user_subscribed_to_mail_alerts(user, project)
+        is_enabled = project.is_user_subscribed_to_mail_alerts(user)
 
         self.fields['alert'].initial = is_enabled
         self.fields['email'].initial = UserOption.objects.get_value(
