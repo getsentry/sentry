@@ -91,9 +91,6 @@ class AuthLoginView(BaseView):
 
             request.session.pop('needs_captcha', None)
 
-            if not user.is_active:
-                return self.redirect(reverse('sentry-reactivate-account'))
-
             return self.redirect(auth.get_login_redirect(request))
 
         elif request.POST and not request.session.get('needs_captcha'):
