@@ -34,11 +34,12 @@ const ExceptionInterface = React.createClass({
 
     return {
       stackView: (this.props.data.hasSystemFrames ? 'app' : 'full'),
+      stackType: 'original',
       newestFirst: newestFirst
     };
   },
 
-  toggleStack(value) {
+  toggleStackView(value) {
     this.setState({
       stackView: value
     });
@@ -49,16 +50,21 @@ const ExceptionInterface = React.createClass({
     let evt = this.props.event;
     let data = this.props.data;
     let stackView = this.state.stackView;
+    let stackType = this.state.stackType;
     let newestFirst = this.state.newestFirst;
 
     let title = (
       <div>
-        <div className="btn-group">
+        <div className="btn-group" style={{marginLeft:'10px'}}>
           {data.hasSystemFrames &&
-            <a className={(stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'app')}>{t('App Only')}</a>
+            <a className={(stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStackView.bind(this, 'app')}>{t('App Only')}</a>
           }
-          <a className={(stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'full')}>{t('Full')}</a>
-          <a className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'raw')}>{t('Raw')}</a>
+          <a className={(stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStackView.bind(this, 'full')}>{t('Full')}</a>
+          <a className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStackView.bind(this, 'raw')}>{t('Text')}</a>
+        </div>
+        <div className="btn-group">
+          <a className={(stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.setState.bind(this, {stackType: 'minified'})}>{t('Minified')}</a>
+          <a className={(stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.setState.bind(this, {stackType: 'original'})}>{t('Original')}</a>
         </div>
         <h3>
           {t('Exception')}
@@ -80,12 +86,15 @@ const ExceptionInterface = React.createClass({
           type={this.props.type}
           title={title}
           wrapTitle={false}>
+        {/*stackType === 'original' ?
+        */}
         {stackView === 'raw' ?
           <RawExceptionContent
             values={data.values}
             platform={evt.platform}/> :
 
           <ExceptionContent
+            type={this.state.stackType}
             view={stackView}
             values={data.values}
             platform={evt.platform}
