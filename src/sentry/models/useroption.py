@@ -119,3 +119,14 @@ class UserOption(Model):
         unique_together = (('user', 'project', 'key',),)
 
     __repr__ = sane_repr('user_id', 'project_id', 'key', 'value')
+
+    @classmethod
+    def is_user_subscribed_to_mail_alerts(cls, user, project):
+        is_enabled = cls.objects.get_value(
+            user, project, 'mail:alert', None)
+        if is_enabled is None:
+            is_enabled = cls.objects.get_value(
+                user, None, 'subscribe_by_default', '1') == '1'
+        else:
+            is_enabled = bool(is_enabled)
+        return is_enabled
