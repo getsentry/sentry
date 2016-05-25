@@ -81,12 +81,16 @@ def get_login_redirect(request, default=None):
     return login_url
 
 
-def find_users(username, with_valid_password=True):
+def find_users(username, with_valid_password=True, is_active=None):
     """
     Return a list of users that match a username
     and falling back to email
     """
     qs = User.objects
+
+    if is_active is not None:
+        qs = qs.filter(is_active=is_active)
+
     if with_valid_password:
         qs = qs.exclude(password='!')
 
