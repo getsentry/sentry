@@ -370,6 +370,18 @@ class AuthHelper(object):
                 existing_user = auth.find_users(identity['email'], is_active=True)[0]
             except IndexError:
                 existing_user = None
+
+            # If they already have an SSO account and the identity provider says
+            # the email matches we go ahead and let them merge it. This is the
+            # only way to prevent them having duplicate accounts, and because
+            # we trust identity providers, its considered safe.
+            if not existing_user.password and existing_user.is_managed:
+                if not auth.login(request, existing_user,
+                                  after_2fa=request.build_absolute_uri()):
+                    return HttpResponseRedirect(auth.get_login_redirect(
+                        self.request))
+                # assume they've confirmed they want to attach the identity
+                op = 'confirm'
             login_form = self._get_login_form(existing_user)
 
         if op == 'confirm' and request.user.is_authenticated():
