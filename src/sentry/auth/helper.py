@@ -184,7 +184,7 @@ class AuthHelper(object):
     @transaction.atomic
     def _handle_attach_identity(self, identity, member=None):
         """
-        Given an already authenticated user, attach or re-attach and identity.
+        Given an already authenticated user, attach or re-attach an identity.
         """
         auth_provider = self.auth_provider
         request = self.request
@@ -509,12 +509,19 @@ class AuthHelper(object):
         )
         with TimedRetryPolicy(5)(lock.acquire):
             try:
-                auth_identity = AuthIdentity.objects.get(
+                auth_identity = AuthIdentity.objects.select_related('user').get(
                     auth_provider=auth_provider,
                     ident=identity['id'],
                 )
             except AuthIdentity.DoesNotExist:
                 return self._handle_unknown_identity(identity)
+
+            # If the User attached to this AuthIdentity is not active,
+            # we want to clobber the old account and take it over, rather
+            # than prompting to merge, which may be confusing.
+            if not auth_identity.user.is_active:
+                auth_identity = self._handle_attach_identity(identity)
+
             return self._handle_existing_identity(auth_identity, identity)
 
     @transaction.atomic
