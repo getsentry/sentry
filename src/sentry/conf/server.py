@@ -515,7 +515,7 @@ LOGGING = {
         },
         'console': {
             'level': 'WARNING',
-            'class': 'logging.StreamHandler',
+            'class': 'sentry.logging.handlers.TuringHandler',
             'formatter': 'simple',
         },
         'sentry': {
@@ -525,12 +525,12 @@ LOGGING = {
         },
         'audit': {
             'level': 'INFO',
-            'class': 'logging.StreamHandler',
+            'class': 'sentry.logging.handlers.TuringHandler',
             'formatter': 'simple',
         },
         'console:api': {
             'level': 'WARNING',
-            'class': 'logging.StreamHandler',
+            'class': 'sentry.logging.handlers.TuringHandler',
             'formatter': 'client_info',
         },
     },
@@ -541,10 +541,10 @@ LOGGING = {
     },
     'formatters': {
         'simple': {
-            'format': '[%(levelname)s] %(message)s',
+            'format': '[%(levelname)s] %(name)s: %(message)s',
         },
         'client_info': {
-            'format': '[%(levelname)s] [%(project)s] [%(agent)s] %(message)s',
+            'format': '[%(levelname)s] %(name)s: [%(project)s] [%(agent)s] %(message)s',
         },
     },
     'root': {
