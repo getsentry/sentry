@@ -51,3 +51,9 @@ class GetLoginRedirectTest(TestCase):
     def test_no_value_uses_default(self):
         result = get_login_redirect(self.make_request())
         assert result == reverse('sentry')
+
+    def test_reactivate(self):
+        request = self.make_request()
+        request.user.is_active = False
+        result = get_login_redirect(request)
+        assert result == reverse('sentry-reactivate-account')
