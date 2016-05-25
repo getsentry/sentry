@@ -39,6 +39,10 @@ from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float
 
 LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
+IP_INTERFACE_PATHS = [
+    ('sentry.interfaces.Http', 'env', 'REMOTE_ADDR'),
+    ('sentry.interfaces.User', 'ip_address'),
+]
 
 
 class APIError(Exception):
@@ -602,9 +606,6 @@ class ClientApiHelper(object):
 
         return data
 
-    def wants_public_ip(self, data):
-        return data.get('platform') in ('javascript', 'cocoa', 'objc')
-
     def ensure_does_not_have_ip(self, data):
         if 'sentry.interfaces.Http' in data:
             if 'env' in data['sentry.interfaces.Http']:
@@ -613,14 +614,22 @@ class ClientApiHelper(object):
         if 'sentry.interfaces.User' in data:
             data['sentry.interfaces.User'].pop('ip_address', None)
 
-    def ensure_has_ip(self, data, ip_address):
-        if data.get('sentry.interfaces.Http', {}).get('env', {}).get('REMOTE_ADDR'):
+    def ensure_has_ip(self, data, ip_address, is_public=False):
+        ip = data.get('sentry.interfaces.Http', {}) \
+            .get('env', {}).get('REMOTE_ADDR')
+        if ip:
+            if ip == '{{auto}}':
+                data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = ip_address
             return
 
-        if data.get('sentry.interfaces.User', {}).get('ip_address'):
+        ip = data.get('sentry.interfaces.User', {}).get('ip_address')
+        if ip:
+            if ip == '{{auto}}':
+                data['sentry.interfaces.User']['ip_address'] = ip_address
             return
 
-        data.setdefault('sentry.interfaces.User', {})['ip_address'] = ip_address
+        if is_public or data.get('platform') in ('javascript', 'cocoa', 'objc'):
+            data.setdefault('sentry.interfaces.User', {})['ip_address'] = ip_address
 
     def insert_data_to_database(self, data):
         cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
