@@ -237,9 +237,15 @@ const Frame = React.createClass({
     let className = 'stacktrace-table';
     return (
       <div className={className}>
-        <div className="trace-col package" title={data.package}>
-          {trimPackage(data.package)}
-        </div>
+        {defined(data.package)
+          ? (
+            <div className="trace-col package" title={data.package}>
+              {trimPackage(data.package)}
+            </div>
+          ) : (
+            <div className="trace-col package"/>
+          )
+        }
         <div className="trace-col address">
           {data.instructionAddr}
         </div>
