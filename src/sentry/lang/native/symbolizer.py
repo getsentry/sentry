@@ -75,26 +75,33 @@ class Symbolizer(object):
     def __exit__(self, *args):
         return self.symsynd_symbolizer.driver.__exit__(*args)
 
+    def _process_frame(self, frame, img):
+        rv = trim_frame(frame)
+        if img is not None:
+            rv['object_name'] = img['name']
+            rv['uuid'] = img['uuid']
+        return rv
+
     def symbolize_frame(self, frame, system_info=None):
+        img = self.images.get(frame['object_addr'])
+
         # Step one: try to symbolize with cached dsym files.
         new_frame = self.symsynd_symbolizer.symbolize_frame(frame)
         if new_frame is not None:
-            return trim_frame(new_frame)
+            return self._process_frame(new_frame, img)
 
         # If that does not work, look up system symbols.
-        img = self.images.get(frame['object_addr'])
         if img is not None:
             symbol = find_system_symbol(img, frame['instruction_addr'],
                                         system_info)
             if symbol is not None:
                 symbol = demangle_symbol(symbol) or symbol
                 rv = dict(frame, symbol_name=symbol, filename=None,
-                          line=0, column=0, uuid=img['uuid'])
-                return trim_frame(rv)
+                          line=0, column=0, uuid=img['uuid'],
+                          object_name=img['object_name'])
+                return self._process_frame(rv, img)
+
+        return self._process_frame(frame, img)
 
     def symbolize_backtrace(self, backtrace, system_info=None):
-        rv = []
-        for frame in backtrace:
-            new_frame = self.symbolize_frame(frame, system_info)
-            rv.append(new_frame or frame)
-        return rv
+        return [self.symbolize_frame(frm, system_info) for frm in backtrace]

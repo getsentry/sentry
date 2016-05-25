@@ -11,6 +11,15 @@ from sentry.models.dsymfile import SDK_MAPPING
 
 logger = logging.getLogger(__name__)
 
+APP_BUNDLE_PATHS = (
+    '/var/containers/Bundle/Application/',
+    '/private/var/containers/Bundle/Application/',
+)
+
+NON_APP_FRAMEWORKS = (
+    '/Frameworks/libswiftCore.dylib',
+)
+
 
 def append_error(data, err):
     data.setdefault('errors', []).append(err)
@@ -34,6 +43,19 @@ def exception_from_apple_error_or_diagnosis(error, diagnosis=None):
         }
 
 
+def is_in_app(frame, app_uuid=None):
+    if app_uuid is not None:
+        frame_uuid = frame.get('uuid')
+        if frame_uuid == app_uuid:
+            return True
+    object_name = frame.get('object_name', '')
+    if not object_name.startswith(APP_BUNDLE_PATHS):
+        return False
+    if object_name.endswith(NON_APP_FRAMEWORKS):
+        return False
+    return True
+
+
 def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
                            system=None):
     # TODO:
@@ -49,12 +71,6 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
     longest_addr = 0
     for frame in reversed(frames):
         fn = frame.get('filename')
-        in_app = False
-
-        if app_uuid is not None:
-            frame_uuid = frame.get('uuid')
-            if frame_uuid == app_uuid:
-                in_app = True
 
         # We only record the offset if we found a symbol but we did not
         # find a line number.  In that case it's the offset in bytes from
@@ -66,7 +82,7 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
             offset = frame['instruction_addr'] - frame['symbol_addr']
 
         cframe = {
-            'in_app': in_app,
+            'in_app': is_in_app(frame, app_uuid),
             'abs_path': fn,
             'filename': fn and posixpath.basename(fn) or None,
             # This can come back as `None` from the symbolizer, in which
