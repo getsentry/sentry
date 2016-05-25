@@ -62,9 +62,6 @@ def get_login_redirect(request, default=None):
     if default is None:
         default = reverse('sentry')
 
-    if not request.user.is_active:
-        return reverse('sentry-reactivate-account')
-
     # If there is a pending 2fa authentication bound to the session then
     # we need to go to the 2fa dialog.
     if has_pending_2fa(request):
