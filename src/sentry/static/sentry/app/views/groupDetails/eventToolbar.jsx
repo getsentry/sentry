@@ -28,7 +28,7 @@ let formatDateDelta = (reference, observed) => {
   }
 
   return results.join(', ');
-}
+};
 
 let GroupEventToolbar  = React.createClass({
   propTypes: {
