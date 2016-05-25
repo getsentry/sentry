@@ -630,6 +630,7 @@ class Stacktrace(Interface):
             'frames': frame_list,
             'framesOmitted': self.frames_omitted,
             'hasSystemFrames': self.has_system_frames,
+            'platform': self.platform,
         }
 
     def to_json(self):
@@ -637,6 +638,7 @@ class Stacktrace(Interface):
             'frames': [f.to_json() for f in self.frames],
             'frames_omitted': self.frames_omitted,
             'has_system_frames': self.has_system_frames,
+            'platform': self.platform,
         }
 
     def get_path(self):
