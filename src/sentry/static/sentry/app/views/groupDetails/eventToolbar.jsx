@@ -1,6 +1,7 @@
 import {Link} from 'react-router';
 import moment from 'moment';
 import React from 'react';
+import {sprintf} from 'sprintf-js';
 
 import ConfigStore from '../../stores/configStore';
 import PropTypes from '../../proptypes';
@@ -39,12 +40,21 @@ let GroupEventToolbar  = React.createClass({
           dateCreated.format(format) + '</dd>'
     );
     if (evt.dateReceived) {
-      let dateReceived = moment(evt.dateReceived);
+      let dateReceived = moment(evt.dateReceived),
+          latency = moment.duration(dateReceived.diff(dateCreated));
 
       resp += (
         '<dt>Received</dt>' +
         '<dd>' + dateReceived.format('ll') + '<br />' +
-          dateReceived.format(format) + '</dd>'
+          dateReceived.format(format) + '</dd>' +
+        '<dt>Latency</dt>' +
+        '<dd>' + sprintf(
+          '%u:%02u:%02u',
+          Math.floor(+latency / (60 * 60 * 1000)),
+          latency.minutes(),
+          latency.seconds()
+        ) +
+        '</dd>'
       );
     }
     return resp + '</dl>';
