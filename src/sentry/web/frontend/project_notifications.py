@@ -47,14 +47,6 @@ class ProjectNotificationsView(ProjectView):
         )
 
     def handle(self, request, organization, team, project):
-        is_user_subbed = UserOption.objects.get_value(
-            request.user, project, 'mail:alert', None)
-        if is_user_subbed is None:
-            is_user_subbed = UserOption.objects.get_value(
-                request.user, None, 'subscribe_by_default', '1') == '1'
-        else:
-            is_user_subbed = bool(is_user_subbed)
-
         op = request.POST.get('op')
         if op == 'enable':
             self._handle_enable_plugin(request, project)
@@ -147,6 +139,8 @@ class ProjectNotificationsView(ProjectView):
                     enabled_plugins.append((plugin, mark_safe(content)))
             elif plugin.can_configure_for_project(project):
                 other_plugins.append(plugin)
+
+        is_user_subbed = UserOption.is_user_subscribed_to_mail_alerts(request.user, project)
 
         context = {
             'page': 'notifications',
