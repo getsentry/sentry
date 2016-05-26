@@ -133,9 +133,9 @@ def worker(**options):
 
     from sentry.celery import app
     worker = app.Worker(
-        without_gossip=True,
-        without_mingle=True,
-        without_heartbeat=True,
+        # without_gossip=True,
+        # without_mingle=True,
+        # without_heartbeat=True,
         pool_cls='processes',
         **options
     )
@@ -170,8 +170,8 @@ def cron(**options):
 
     from sentry.celery import app
     app.Beat(
-        without_gossip=True,
-        without_mingle=True,
-        without_heartbeat=True,
+        # without_gossip=True,
+        # without_mingle=True,
+        # without_heartbeat=True,
         **options
     ).run()
