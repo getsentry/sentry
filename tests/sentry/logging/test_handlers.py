@@ -47,3 +47,12 @@ class TuringHandlerTestCase(TestCase):
                 'loggername': 'sentry.audit',
             }
             assert record.msg == encoded_record
+
+            logger.info('I do not follow rules.')
+            assert mock_emit.called
+            record = mock_emit.call_args[0][0]
+            assert record.msg == {
+                'event': 'I do not follow rules.',
+                'levelname': 'INFO',
+                'loggername': 'sentry.audit',
+            }

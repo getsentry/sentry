@@ -10,6 +10,7 @@ from __future__ import absolute_import
 import logging
 
 from django.utils.encoding import force_bytes
+from raven.contrib.django.models import client as Raven
 
 
 logger = logging.getLogger('sentry.audit')
@@ -27,10 +28,12 @@ class TuringHandler(logging.StreamHandler):
         # Check to make sure someone is following the rules.
         if not context:
             context = record.msg
-        if isinstance(context, dict):
-            _emit = getattr(self, self.fmt)
+        try:
+            _emit = getattr(self, TuringHandler.fmt)
             _emit(record, context)
-        else:
+        except:
+            # Pretty much never fail silently.
+            Raven.captureException()
             super(TuringHandler, self).emit(record)
 
     def human(self, record, context):
@@ -41,6 +44,8 @@ class TuringHandler(logging.StreamHandler):
         super(TuringHandler, self).emit(record)
 
     def machine(self, record, context):
+        if isinstance(context, str):
+            context = {'event': context}
         context.update({
             'levelname': record.levelname,
             'loggername': record.name,
