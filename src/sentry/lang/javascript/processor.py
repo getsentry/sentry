@@ -497,11 +497,13 @@ class SourceProcessor(object):
         # all of these methods assume mutation on the original
         # objects rather than re-creation
         self.populate_source_cache(frames, release)
-        errors.extend(self.expand_frames(frames, release) or [])
+        expand_errors, sourcemap_applied = self.expand_frames(frames, release)
+        errors.extend(expand_errors or [])
         self.ensure_module_names(frames)
         self.fix_culprit(data, stacktraces)
         self.update_stacktraces(stacktraces)
-        self.add_raw_stacktraces(data, release)
+        if sourcemap_applied:
+            self.add_raw_stacktraces(data, release)
         return data
 
     def fix_culprit(self, data, stacktraces):
@@ -569,6 +571,7 @@ class SourceProcessor(object):
         cache = self.cache
         sourcemaps = self.sourcemaps
         all_errors = []
+        sourcemap_applied = False
 
         for frame in frames:
             errors = cache.get_errors(frame.abs_path)
@@ -617,6 +620,8 @@ class SourceProcessor(object):
                     'raw': frame.to_json(),
                     'sourcemap': sourcemap_label,
                 }
+
+                sourcemap_applied = True
 
                 if state is not None:
                     abs_path = urljoin(sourcemap_url, state.src)
@@ -691,7 +696,7 @@ class SourceProcessor(object):
                     'row': frame.lineno,
                     'source': frame.abs_path,
                 })
-        return all_errors
+        return all_errors, sourcemap_applied
 
     def get_source(self, filename, release):
         if filename not in self.cache:
