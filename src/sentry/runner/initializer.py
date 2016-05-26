@@ -151,6 +151,11 @@ def bootstrap_options(settings, config=None):
 
 
 def bootstrap_logging():
+    # This function is responsible for updating the root logging handler
+    # with the correct format to choose. This function is idempotent
+    # but you should only be calling it when necessary.
+    # This should only ever be called during runtime if you are in the
+    # developmental process and in a shell or ipdb.
     from sentry import options
     from sentry.logging.handlers import TuringHandler
 
