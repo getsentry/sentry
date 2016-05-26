@@ -63,7 +63,7 @@ Riak.
 The Sentry Cassandra backend only operates over the native CQL interface,
 so requires Cassandra 1.2+.
 
-.. code-block:: python
+.. code-block:: sql
 
     CREATE KEYSPACE sentry WITH replication = {
       'class': 'SimpleStrategy',

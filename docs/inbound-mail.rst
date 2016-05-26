@@ -49,8 +49,6 @@ That's it! You'll now be able to respond to activity notifications on
 errors via your email client.
 
 
-.. _nginx-mail:
-
 Inbound Email via Nginx
 -----------------------
 

@@ -19,8 +19,6 @@ configurations:
 - Set ``maxmemory 1gb`` to a reasonable allowance.
 
 
-.. _performance-web-server:
-
 Web Server
 ----------
 
@@ -101,17 +99,17 @@ this will alleviate lock contention and improve overall throughput.
 
 e.g. if you had something like:
 
-```
-numprocs=1
-command=sentry celery worker -c 64
-```
+::
+
+    numprocs=1
+    command=sentry celery worker -c 64
 
 change it to:
 
-```
-numprocs=16
-command=sentry celery worker -c 4
-```
+::
+
+    numprocs=16
+    command=sentry celery worker -c 4
 
 
 Monitoring Memory

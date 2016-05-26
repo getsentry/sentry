@@ -35,9 +35,9 @@ different cluster, provide the ``cluster`` option, as such:
 
 You can also configure the system-wide maximum per-minute rate limit:
 
-.. code-block:: python
+.. code-block:: yaml
 
-   system.rate-limit = 500
+   system.rate-limit: 500
 
 If you have additional needs, you're freely available to extend the base
 Quota class just as the Redis implementation does.
