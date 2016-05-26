@@ -45,6 +45,7 @@ const ExceptionInterface = React.createClass({
     });
   },
 
+
   render() {
     let group = this.props.group;
     let evt = this.props.event;
@@ -52,6 +53,8 @@ const ExceptionInterface = React.createClass({
     let stackView = this.state.stackView;
     let stackType = this.state.stackType;
     let newestFirst = this.state.newestFirst;
+
+    let hasMinified = data.values.find(x => !!x.rawStacktrace);
 
     let title = (
       <div>
@@ -63,8 +66,12 @@ const ExceptionInterface = React.createClass({
           <a className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStackView.bind(this, 'raw')}>{t('Text')}</a>
         </div>
         <div className="btn-group">
-          <a className={(stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.setState.bind(this, {stackType: 'minified'})}>{t('Minified')}</a>
-          <a className={(stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.setState.bind(this, {stackType: 'original'})}>{t('Original')}</a>
+          {hasMinified &&
+            <span>
+              <a className={(stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.setState.bind(this, {stackType: 'original'})}>{t('Original')}</a>
+              <a className={(stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.setState.bind(this, {stackType: 'minified'})}>{t('Minified')}</a>
+            </span>
+          }
         </div>
         <h3>
           {t('Exception')}
