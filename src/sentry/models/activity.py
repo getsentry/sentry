@@ -36,7 +36,7 @@ class Activity(Model):
     UNASSIGNED = 12
     SET_RESOLVED_IN_RELEASE = 13
     MERGE = 14
-    SET_RESOLVED_BY_AGE = 13
+    SET_RESOLVED_BY_AGE = 15
 
     TYPE = (
         # (TYPE, verb-slug)
