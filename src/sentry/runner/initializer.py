@@ -150,10 +150,19 @@ def bootstrap_options(settings, config=None):
                 setattr(settings, options_mapper[k], v)
 
 
+def bootstrap_logging():
+    from sentry import options
+    from sentry.logging.handlers import TuringHandler
+
+    TuringHandler.fmt = options.get('system.logging-format')
+
+
 def initialize_app(config, skip_backend_validation=False):
     settings = config['settings']
 
     bootstrap_options(settings, config['options'])
+
+    bootstrap_logging()
 
     fix_south(settings)
 

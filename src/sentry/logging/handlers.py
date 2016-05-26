@@ -19,26 +19,28 @@ class TuringHandler(logging.StreamHandler):
     """
     Decides between logging human or machine readable lines.
     """
+    # Overridden by system.logging-format
+    fmt = 'human'
+
     def emit(self, record):
         context = record.args
         # Check to make sure someone is following the rules.
         if not context:
             context = record.msg
         if isinstance(context, dict):
-            from sentry.options import get
-            _emit = getattr(self, 'emit_' + get('system.logging-format'))
+            _emit = getattr(self, self.fmt)
             _emit(record, context)
         else:
             super(TuringHandler, self).emit(record)
 
-    def emit_human(self, record, context):
+    def human(self, record, context):
         # If you're reading this in a KeyError, you didn't provide
         # a kv pair in your context that your format is expecting.
         record.msg = record.msg.format(**context)
 
         super(TuringHandler, self).emit(record)
 
-    def emit_machine(self, record, context):
+    def machine(self, record, context):
         context.update({
             'levelname': record.levelname,
             'loggername': record.name,
