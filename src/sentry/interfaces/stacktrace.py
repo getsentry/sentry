@@ -438,8 +438,6 @@ class Frame(Interface):
         }).strip('\n')
 
     def get_culprit_string(self, platform=None):
-        if self.platform is not None:
-            platform = self.platform
         if platform in ('objc', 'cocoa'):
             return '%s (%s)' % (
                 self.function or '?',
