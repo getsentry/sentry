@@ -4,6 +4,7 @@ import logging
 
 from mock import patch
 
+from sentry.runner.initializer import bootstrap_logging
 from sentry.testutils import TestCase
 
 
@@ -11,6 +12,7 @@ from sentry.testutils import TestCase
 class TuringHandlerTestCase(TestCase):
     def test_human_formatting(self, mock_emit):
         with self.options({'system.logging-format': 'human'}):
+            bootstrap_logging()
             logger = logging.getLogger('sentry.audit')
             logger.setLevel(logging.INFO)
             logger.info(
@@ -23,6 +25,7 @@ class TuringHandlerTestCase(TestCase):
 
     def test_machine_formatting(self, mock_emit):
         with self.options({'system.logging-format': 'machine'}):
+            bootstrap_logging()
             logger = logging.getLogger('sentry.audit')
             logger.setLevel(logging.INFO)
             logger.info({
