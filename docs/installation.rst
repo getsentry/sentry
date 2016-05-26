@@ -436,18 +436,20 @@ go.
   stderr_logfile=syslog
 
 Configure ``systemd``
-~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 Configuring systemd requires three files, one for each service. On Ubuntu 16.04, the files are located in ``/etc/systemd/system``. Create three files named ``sentry-web.service``, ``sentry-worker.service`` and ``sentry-cron.service`` with the contents listed below.
 
 **sentry-web.service**
+
 ::
+
   [Unit]
   Description=Sentry Main Service
   After=network.target
   Requires=sentry-worker.service
   Requires=sentry-cron.service
-  
+
   [Service]
   Type=simple
   User=sentry
@@ -457,11 +459,13 @@ Configuring systemd requires three files, one for each service. On Ubuntu 16.04,
   ExecStart=/www/sentry/bin/sentry run web
 
 **sentry-worker.service**
+
 ::
+
   [Unit]
   Description=Sentry Background Worker
   After=network.target
-  
+
   [Service]
   Type=simple
   User=sentry
@@ -471,11 +475,13 @@ Configuring systemd requires three files, one for each service. On Ubuntu 16.04,
   ExecStart=/www/sentry/bin/sentry celery worker
 
 **sentry-cron.service**
+
 ::
+
   [Unit]
   Description=Sentry Beat Service
   After=network.target
-  
+
   [Service]
   Type=simple
   User=sentry
