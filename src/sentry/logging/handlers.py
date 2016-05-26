@@ -31,7 +31,7 @@ class TuringHandler(logging.StreamHandler):
         try:
             _emit = getattr(self, TuringHandler.fmt)
             _emit(record, context)
-        except:
+        except Exception:
             # Pretty much never fail silently.
             Raven.captureException()
             super(TuringHandler, self).emit(record)
