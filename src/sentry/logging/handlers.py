@@ -44,7 +44,7 @@ class TuringHandler(logging.StreamHandler):
         super(TuringHandler, self).emit(record)
 
     def machine(self, record, context):
-        if isinstance(context, str):
+        if isinstance(context, basestring):
             context = {'event': context}
         context.update({
             'levelname': record.levelname,
