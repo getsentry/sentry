@@ -517,9 +517,15 @@ class AuthHelper(object):
                 return self._handle_unknown_identity(identity)
 
             # If the User attached to this AuthIdentity is not active,
-            # we want to clobber the old account and take it over, rather
-            # than prompting to merge, which may be confusing.
+            # we want to clobber the old account and take it over, rather than
+            # getting logged into the inactive account.
             if not auth_identity.user.is_active:
+
+                # Current user is also not logged in, so we have to
+                # assume unknown.
+                if not self.request.user.is_authenticated():
+                    return self._handle_unknown_identity(identity)
+
                 auth_identity = self._handle_attach_identity(identity)
 
             return self._handle_existing_identity(auth_identity, identity)
