@@ -1206,9 +1206,14 @@ ol.context-line {
     font-size: 11px;
     color: @gray-dark;
     letter-spacing: -0.25px;
+    width: 85px;
+    flex-grow: 0;
+    flex-shrink: 0;
   }
 
   .symbol {
+    word-break: break-word;
+
     code {
       background: transparent;
       color: @blue-dark;
