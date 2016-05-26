@@ -9,6 +9,7 @@ import {loadStats} from '../actionCreators/projects';
 import GroupStore from '../stores/groupStore';
 import TeamStore from '../stores/teamStore';
 
+import Button from '../components/button';
 import ActivityFeed from '../components/activity/feed';
 import EventsPerHour from '../components/events/eventsPerHour';
 import IssueList from '../components/issueList';
@@ -263,6 +264,11 @@ const OrganizationDashboard = React.createClass({
   render() {
     return (
       <OrganizationHomeContainer>
+        <Button className="btn-primary btn-lg" progressBar={true}>Click here</Button>&nbsp;&nbsp;
+        <Button className="btn-default" progressBar={true}>Click here</Button>&nbsp;&nbsp;
+        <Button className="btn-primary" progressBar={true}>Click here</Button>&nbsp;&nbsp;
+        <Button className="btn-default btn-sm" progressBar={true}>Click here</Button>&nbsp;&nbsp;
+        <hr/>
         <div className="row">
           <div className="col-md-8">
             <AssignedIssues {...this.props} />
