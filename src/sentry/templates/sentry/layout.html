@@ -183,9 +183,6 @@
       <div class="container">
         {% block footer %}
         <div class="pull-right">
-          {% if request.is_superuser %}
-          <a href="{% url 'sentry-admin-status' %}">{% trans "Admin" %}</a>
-          {% endif %}
           {% block support_link %}{% endblock %}
           <a href="https://docs.getsentry.com/hosted/api/">{% trans "API" %}</a>
           <a href="https://docs.getsentry.com">{% trans "Docs" %}</a>
