@@ -123,6 +123,7 @@ def get_react_config(context):
             'message': msg.message,
             'level': msg.tags,
         } for msg in messages],
+        'isOnPremise': settings.SENTRY_ONPREMISE,
     }
     if user and user.is_authenticated():
         context.update({
