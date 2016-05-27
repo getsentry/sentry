@@ -54,6 +54,7 @@ const ExceptionInterface = React.createClass({
     let stackType = this.state.stackType;
     let newestFirst = this.state.newestFirst;
 
+    // at least one stack trace contains raw/minified code
     let hasMinified = data.values.find(x => !!x.rawStacktrace);
 
     let title = (
@@ -67,10 +68,10 @@ const ExceptionInterface = React.createClass({
         </div>
         <div className="btn-group">
           {hasMinified &&
-            <span>
-              <a className={(stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.setState.bind(this, {stackType: 'original'})}>{t('Original')}</a>
-              <a className={(stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.setState.bind(this, {stackType: 'minified'})}>{t('Minified')}</a>
-            </span>
+            [
+              <a key="original" className={(stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.setState.bind(this, {stackType: 'original'})}>{t('Original')}</a>,
+              <a key="minified" className={(stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.setState.bind(this, {stackType: 'minified'})}>{t('Minified')}</a>
+            ]
           }
         </div>
         <h3>
