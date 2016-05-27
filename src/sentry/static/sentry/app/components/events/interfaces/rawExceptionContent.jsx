@@ -3,7 +3,7 @@ import rawStacktraceContent from './rawStacktraceContent';
 
 const RawExceptionContent = React.createClass({
   propTypes: {
-    type: React.PropTypes.string,
+    type: React.PropTypes.oneOf(['original', 'minified']),
     platform: React.PropTypes.string,
     values: React.PropTypes.array.isRequired,
   },
