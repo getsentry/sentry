@@ -5,6 +5,7 @@ import {defined, objectIsEmpty, isUrl} from '../../../utils';
 
 import TooltipMixin from '../../../mixins/tooltip';
 import FrameVariables from './frameVariables';
+import ContextLine from './contextLine';
 import {t} from '../../../locale';
 
 function trimPackage(pkg) {
@@ -158,15 +159,20 @@ const Frame = React.createClass({
   renderContext() {
     let data = this.props.data;
     let context = '';
+    let {isExpanded} = this.state;
 
     let outerClassName = 'context';
-    if (this.state.isExpanded) {
+    if (isExpanded) {
       outerClassName += ' expanded';
     }
 
     let hasContextSource = this.hasContextSource();
     let hasContextVars = this.hasContextVars();
     let expandable = this.isExpandable();
+
+    let contextLines = isExpanded
+      ? data.context
+      : data.context && data.context.filter(l => l[0] === data.lineNo);
 
     if (hasContextSource || hasContextVars) {
       let startLineNo = hasContextSource ? data.context[0][0] : '';
@@ -177,27 +183,8 @@ const Frame = React.createClass({
           <li className={expandable ? 'expandable error' : 'error'}
               key="errors">{data.errors.join(', ')}</li>
           }
-          {(data.context || []).map((line) => {
-            let liClassName = 'expandable';
-            if (line[0] === data.lineNo) {
-              liClassName += ' active';
-            }
-
-            let lineWs;
-            let lineCode;
-            if (defined(line[1]) && line[1].match) {
-              [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m);
-            } else {
-              lineWs = '';
-              lineCode = '';
-            }
-            return (
-              <li className={liClassName} key={line[0]}>
-                <span className="ws">{
-                lineWs}</span><span className="contextline">{lineCode
-                }</span>
-              </li>
-            );
+          {data.context && contextLines.map((line, index) => {
+            return <ContextLine key={index} line={line} isActive={data.lineNo === line[0]}/>;
           })}
 
           {hasContextVars &&
