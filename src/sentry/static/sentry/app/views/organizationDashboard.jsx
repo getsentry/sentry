@@ -264,10 +264,10 @@ const OrganizationDashboard = React.createClass({
   render() {
     return (
       <OrganizationHomeContainer>
-        <Button className="btn-primary btn-lg" progressBar={true}>Click here</Button>&nbsp;&nbsp;
-        <Button className="btn-default" progressBar={true}>Click here</Button>&nbsp;&nbsp;
-        <Button className="btn-primary" progressBar={true}>Click here</Button>&nbsp;&nbsp;
-        <Button className="btn-default btn-sm" progressBar={true}>Click here</Button>&nbsp;&nbsp;
+        <Button className="btn-primary btn-lg" progress={true}>Click here</Button>&nbsp;&nbsp;
+        <Button className="btn-default" progress={true}>Click here</Button>&nbsp;&nbsp;
+        <Button className="btn-primary" progress={true}>Click here</Button>&nbsp;&nbsp;
+        <Button className="btn-default btn-sm" progress={true}>Click here</Button>&nbsp;&nbsp;
         <hr/>
         <div className="row">
           <div className="col-md-8">
