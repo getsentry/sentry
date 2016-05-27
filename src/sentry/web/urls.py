@@ -46,6 +46,7 @@ from sentry.web.frontend.organization_auth_settings import \
     OrganizationAuthSettingsView
 from sentry.web.frontend.organization_member_settings import \
     OrganizationMemberSettingsView
+from sentry.web.frontend.out import OutView
 from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.organization_settings import OrganizationSettingsView
 from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
@@ -267,6 +268,8 @@ urlpatterns += patterns(
 
     url(r'^api/$', react_page_view, name='sentry-api'),
     url(r'^api/new-token/$', react_page_view),
+
+    url(r'^out/$', OutView.as_view()),
 
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$', react_page_view,
