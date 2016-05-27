@@ -616,8 +616,9 @@ class SourceProcessor(object):
                 # Store original data in annotation
                 # HACK(dcramer): we stuff things into raw which gets popped off
                 # later when adding the raw_stacktrace attribute.
+                raw_frame = frame.to_json()
                 frame.data = {
-                    'raw': frame.to_json(),
+                    'raw': raw_frame,
                     'sourcemap': sourcemap_label,
                 }
 
@@ -671,6 +672,9 @@ class SourceProcessor(object):
                         # And conversely, local dependencies start with './'
                         elif filename.startswith('./'):
                             frame.in_app = True
+
+                        # Update 'raw' copy to have same in_app status
+                        raw_frame['in_app'] = frame.in_app
 
                         # We want to explicitly generate a webpack module name
                         frame.module = generate_module(filename)
