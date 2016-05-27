@@ -64,7 +64,7 @@ const ExceptionInterface = React.createClass({
             <a className={(stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStackView.bind(this, 'app')}>{t('App Only')}</a>
           }
           <a className={(stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStackView.bind(this, 'full')}>{t('Full')}</a>
-          <a className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStackView.bind(this, 'raw')}>{t('Text')}</a>
+          <a className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStackView.bind(this, 'raw')}>{t('Raw')}</a>
         </div>
         <div className="btn-group">
           {hasMinified &&
@@ -94,15 +94,14 @@ const ExceptionInterface = React.createClass({
           type={this.props.type}
           title={title}
           wrapTitle={false}>
-        {/*stackType === 'original' ?
-        */}
         {stackView === 'raw' ?
           <RawExceptionContent
+            type={stackType}
             values={data.values}
             platform={evt.platform}/> :
 
           <ExceptionContent
-            type={this.state.stackType}
+            type={stackType}
             view={stackView}
             values={data.values}
             platform={evt.platform}
