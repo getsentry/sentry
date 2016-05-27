@@ -75,7 +75,7 @@ MAX_CULPRIT_LENGTH = 200
 RESERVED_ORGANIZATION_SLUGS = (
     'admin', 'manage', 'login', 'account', 'register', 'api',
     'accept', 'organizations', 'teams', 'projects', 'help',
-    'docs', 'logout', '404', '500', '_static',
+    'docs', 'logout', '404', '500', '_static', 'out',
 )
 
 RESERVED_TEAM_SLUGS = RESERVED_ORGANIZATION_SLUGS

@@ -54,6 +54,7 @@ def get_default_context(request, existing_context=None, team=None):
         'SINGLE_ORGANIZATION': settings.SENTRY_SINGLE_ORGANIZATION,
         'PLUGINS': plugins,
         'ALLOWED_HOSTS': list(settings.ALLOWED_HOSTS),
+        'ONPREMISE': settings.SENTRY_ONPREMISE,
     }
 
     if existing_context:

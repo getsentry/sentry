@@ -969,6 +969,8 @@ SENTRY_MAX_AVATAR_SIZE = 5000000
 STATUS_PAGE_ID = None
 STATUS_PAGE_API_HOST = 'statuspage.io'
 
+SENTRY_ONPREMISE = True
+
 
 def get_raven_config():
     return {
