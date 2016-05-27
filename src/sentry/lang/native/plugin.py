@@ -57,7 +57,7 @@ def is_in_app(frame, app_uuid=None):
 
 
 def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
-                           system=None):
+                           runtime_exception=None, system=None):
     # TODO:
     #   user report stacktraces from unity
 
@@ -112,7 +112,10 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
         exc = exception_from_apple_error_or_diagnosis(error, diagnosis)
         if exc is not None:
             exc['stacktrace'] = stacktrace
-            data['sentry.interfaces.Exception'] = {'values': [exc]}
+            exceptions = [exc]
+            if runtime_exception:
+                exceptions.append(runtime_exception)
+            data['sentry.interfaces.Exception'] = {'values': exceptions}
             # Since we inject the exception late we need to make sure that
             # we set the event type to error as it would be set to
             # 'default' otherwise.
@@ -173,7 +176,9 @@ def preprocess_apple_crash_event(data):
                 bt = sym.symbolize_backtrace(
                     crashed_thread['backtrace']['contents'], system)
                 inject_apple_backtrace(data, bt, crash.get('diagnosis'),
-                                       crash.get('error'), system)
+                                       crash.get('error'),
+                                       crash.get('runtime_exception'),
+                                       system)
         except Exception as e:
             logger.exception('Failed to symbolicate')
             append_error(data, {
