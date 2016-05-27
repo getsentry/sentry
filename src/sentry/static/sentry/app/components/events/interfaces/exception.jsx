@@ -45,7 +45,6 @@ const ExceptionInterface = React.createClass({
     });
   },
 
-
   render() {
     let group = this.props.group;
     let evt = this.props.event;
@@ -69,8 +68,8 @@ const ExceptionInterface = React.createClass({
         <div className="btn-group">
           {hasMinified &&
             [
-              <a key="original" className={(stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.setState.bind(this, {stackType: 'original'})}>{t('Original')}</a>,
-              <a key="minified" className={(stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.setState.bind(this, {stackType: 'minified'})}>{t('Minified')}</a>
+              <a key="original" className={(stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={() => this.setState({stackType: 'original'})}>{t('Original')}</a>,
+              <a key="minified" className={(stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={() => this.setState({stackType: 'minified'})}>{t('Minified')}</a>
             ]
           }
         </div>

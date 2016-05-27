@@ -5,7 +5,7 @@ import StacktraceContent from './stacktraceContent';
 
 const ExceptionContent = React.createClass({
   propTypes: {
-    type: React.PropTypes.string,
+    type: React.PropTypes.oneOf(['original', 'minified']),
     values: React.PropTypes.array.isRequired,
     view: React.PropTypes.string.isRequired,
     platform: React.PropTypes.string,
