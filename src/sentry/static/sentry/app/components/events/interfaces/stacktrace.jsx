@@ -20,7 +20,7 @@ const StacktraceInterface = React.createClass({
     let user = ConfigStore.get('user');
     // user may not be authenticated
     let options = user ? user.options : {};
-    let platform = this.props.event.platform;
+    let platform = this.getPlatform();
     let newestFirst;
     switch (options.stacktraceOrder) {
       case 'newestFirst':
@@ -36,8 +36,16 @@ const StacktraceInterface = React.createClass({
 
     return {
       stackView: (this.props.data.hasSystemFrames ? 'app' : 'full'),
+      // if our stacktrace has a platform information itself we can use it,
+      // otherwise we call back to the platform that we were told we're
+      // using (the one from the props).
       newestFirst: newestFirst
     };
+  },
+
+  getPlatform() {
+    return this.props.data.platform ||
+      this.props.platform || this.props.event.platform;
   },
 
   toggleStack(value) {
@@ -82,13 +90,13 @@ const StacktraceInterface = React.createClass({
           wrapTitle={false}>
         {stackView === 'raw' ?
           <pre className="traceback plain">
-            {rawStacktraceContent(data, this.props.platform)}
+            {rawStacktraceContent(data, this.getPlatform())}
           </pre>
         :
           <StacktraceContent
               data={data}
               includeSystemFrames={stackView === 'full'}
-              platform={evt.platform}
+              platform={this.getPlatform()}
               newestFirst={newestFirst} />
         }
       </GroupEventDataSection>

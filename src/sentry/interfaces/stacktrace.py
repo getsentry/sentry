@@ -23,6 +23,7 @@ from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
+from sentry.constants import VALID_PLATFORMS
 
 
 _ruby_anon_func = re.compile(r'_\d{2,}')
@@ -580,8 +581,13 @@ class Stacktrace(Interface):
             elif frame.in_app is None:
                 frame.in_app = False
 
+        platform = data.get('platform')
+        if platform is not None and platform not in VALID_PLATFORMS:
+            platform = 'other'
+
         kwargs = {
             'frames': frame_list,
+            'platform': platform,
         }
 
         if data.get('frames_omitted'):
@@ -622,6 +628,7 @@ class Stacktrace(Interface):
             'frames': frame_list,
             'framesOmitted': self.frames_omitted,
             'hasSystemFrames': self.has_system_frames,
+            'platform': self.platform,
         }
 
     def to_json(self):
@@ -629,6 +636,7 @@ class Stacktrace(Interface):
             'frames': [f.to_json() for f in self.frames],
             'frames_omitted': self.frames_omitted,
             'has_system_frames': self.has_system_frames,
+            'platform': self.platform,
         }
 
     def get_path(self):
@@ -729,6 +737,8 @@ class Stacktrace(Interface):
         return '\n'.join(result)
 
     def get_culprit_string(self, platform=None):
+        if self.platform is not None:
+            platform = self.platform
         default = None
         for frame in reversed(self.frames):
             if frame.in_app:

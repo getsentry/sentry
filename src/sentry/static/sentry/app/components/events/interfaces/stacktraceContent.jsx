@@ -17,8 +17,13 @@ const StacktraceContent = React.createClass({
     };
   },
 
+  getPlatform() {
+    return this.props.data.platform || this.props.platform;
+  },
+
   shouldRenderAsTable() {
-    return this.props.platform === 'cocoa';
+    const platform = this.getPlatform();
+    return platform === 'cocoa' || platform === 'objc';
   },
 
   renderOmittedFrames(firstFrameOmitted, lastFrameOmitted) {
@@ -60,7 +65,7 @@ const StacktraceContent = React.createClass({
             key={frameIdx}
             data={frame}
             nextFrameInApp={nextFrame && nextFrame.inApp}
-            platform={this.props.platform} />
+            platform={this.getPlatform()} />
         );
       }
       if (frameIdx === firstFrameOmitted) {
