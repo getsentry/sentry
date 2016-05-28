@@ -1,6 +1,6 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import HttpRenderer from 'app/components/events/interfaces/breadcrumbComponents/httpRenderer';
+import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/httpRenderer';
 
 describe('HttpRenderer', function() {
   describe('render()', function() {

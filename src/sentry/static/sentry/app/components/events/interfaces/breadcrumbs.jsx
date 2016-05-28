@@ -3,7 +3,7 @@ import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 
-import CrumbComponent from './breadcrumbComponents/crumb';
+import Breadcrumb from './breadcrumbs/breadcrumb';
 
 function Collapsed(props) {
   return (
@@ -66,7 +66,7 @@ const BreadcrumbsInterface = React.createClass({
     // reverse array to get consistent idx between collapsed/expanded state
     // (indexes begin and increment from last breadcrumb)
     return crumbs.reverse().map((item, idx) => {
-      return <CrumbComponent key={idx} crumb={item} />;
+      return <Breadcrumb key={idx} crumb={item} />;
     }).reverse(); // un-reverse rendered result
   },
 
