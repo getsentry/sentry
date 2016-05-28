@@ -18,7 +18,7 @@ with a feature switch in your ``sentry.conf.py``::
     from sentry.conf.server import *
 
     # turn SSO on our off
-    SENTRY_FEATURES['organizations:sso'] = True
+    SENTRY_FEATURES['organizations:sso'] = False
 
 You should see an **Auth** subheading under your organization's dashboard when SSO is enabled.
 
