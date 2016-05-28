@@ -11,7 +11,7 @@ const CUSTOM_RENDERERS = {
 };
 
 
-const CrumbComponent = React.createClass({
+const Breadcrumb = React.createClass({
   propTypes: {
     crumb: React.PropTypes.object.isRequired,
   },
@@ -53,4 +53,4 @@ const CrumbComponent = React.createClass({
   }
 });
 
-export default CrumbComponent;
+export default Breadcrumb;
