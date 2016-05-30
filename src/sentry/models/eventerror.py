@@ -20,6 +20,7 @@ class EventError(object):
 
     NATIVE_NO_CRASHED_THREAD = 'native_no_crashed_thread'
     NATIVE_INTERNAL_FAILURE = 'native_internal_failure'
+    NATIVE_NO_SYMSYND = 'native_no_symsynd'
 
     _messages = {
         INVALID_DATA: 'Discarded invalid value for parameter \'{name}\'',
@@ -38,6 +39,7 @@ class EventError(object):
         JS_INVALID_SOURCEMAP_LOCATION: 'Invalid location in sourcemap: ({column}, {row})',
         NATIVE_NO_CRASHED_THREAD: 'No crashed thread found in crash report',
         NATIVE_INTERNAL_FAILURE: 'Internal failure when attempting to symbolicate: {error}',
+        NATIVE_NO_SYMSYND: 'The symbolizer is not configured for this system.',
     }
 
     @classmethod

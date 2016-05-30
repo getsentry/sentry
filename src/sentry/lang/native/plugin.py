@@ -145,6 +145,13 @@ def inject_apple_device_data(data, system):
         extra['kernel_version'] = system['kernel_version']
 
 
+def record_no_symsynd(data):
+    append_error(data, {
+        'type': EventError.NATIVE_NO_SYMSYND,
+    })
+    return data
+
+
 def preprocess_apple_crash_event(data):
     crash_report = data.get('sentry.interfaces.AppleCrashReport')
     if crash_report is None:
@@ -154,6 +161,8 @@ def preprocess_apple_crash_event(data):
         id=data['project'],
     )
 
+    system = None
+    errors = []
     crash = crash_report['crash']
     crashed_thread = None
     for thread in crash['threads']:
@@ -170,7 +179,7 @@ def preprocess_apple_crash_event(data):
             sym = Symbolizer(project, crash_report['binary_images'],
                              threads=[crashed_thread])
             with sym:
-                bt = sym.symbolize_backtrace(
+                bt, errors = sym.symbolize_backtrace(
                     crashed_thread['backtrace']['contents'], system)
                 inject_apple_backtrace(data, bt, crash.get('diagnosis'),
                                        crash.get('error'), system)
@@ -180,7 +189,9 @@ def preprocess_apple_crash_event(data):
                 'type': EventError.NATIVE_INTERNAL_FAILURE,
                 'error': '%s: %s' % (e.__class__.__name__, str(e)),
             })
-            return
+
+    for error in errors:
+        append_error(data, error)
 
     if system:
         inject_apple_device_data(data, system)
@@ -193,5 +204,5 @@ class NativePlugin(Plugin2):
 
     def get_event_preprocessors(self, **kwargs):
         if not have_symsynd:
-            return []
+            return [record_no_symsynd]
         return [preprocess_apple_crash_event]
