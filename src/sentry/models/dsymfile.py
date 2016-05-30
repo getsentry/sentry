@@ -197,14 +197,18 @@ class DSymSymbolManager(BaseManager):
         cur.close()
 
     def lookup_symbol(self, instruction_addr, image_addr, uuid,
-                      cpu_name=None, object_path=None, system_info=None):
+                      cpu_name=None, object_path=None, system_info=None,
+                      image_vmaddr=None):
         """Finds a system symbol."""
-        addr = instruction_addr - image_addr
+        addr_abs = None
+        if image_vmaddr is not None:
+            addr_abs = image_vmaddr + instruction_addr - image_addr
+        addr_rel = instruction_addr - image_addr
 
         uuid = str(uuid).lower()
         cur = connection.cursor()
         try:
-            # First try: exact match on uuid
+            # First try: exact match on uuid (addr_rel)
             cur.execute('''
                 select s.symbol
                   from sentry_dsymsymbol s,
@@ -215,12 +219,29 @@ class DSymSymbolManager(BaseManager):
                        s.address >= o.vmaddr
               order by address desc
                  limit 1;
-            ''', [uuid, addr])
+            ''', [uuid, addr_rel])
             rv = cur.fetchone()
             if rv:
                 return rv[0]
 
-            # Second try: exact match on path and arch
+            # Second try: exact match on uuid (addr_abs)
+            if addr_abs is not None:
+                cur.execute('''
+                    select s.symbol
+                      from sentry_dsymsymbol s,
+                           sentry_dsymobject o
+                     where o.uuid = %s and
+                           s.object_id = o.id and
+                           s.address <= %s and
+                           s.address >= %s
+                  order by address desc
+                     limit 1;
+                ''', [uuid, addr_abs, image_vmaddr])
+                rv = cur.fetchone()
+                if rv:
+                    return rv[0]
+
+            # Third try: exact match on path and arch (addr_rel)
             sdk_info = get_sdk_from_system_info(system_info)
             if sdk_info is None or \
                cpu_name is None or \
@@ -249,10 +270,41 @@ class DSymSymbolManager(BaseManager):
                  limit 1;
             ''', [sdk_info['sdk_name'], sdk_info['dsym_type'],
                   sdk_info['version_major'], sdk_info['version_minor'],
-                  sdk_info['version_patchlevel'], cpu_name, object_path, addr])
+                  sdk_info['version_patchlevel'], cpu_name, object_path,
+                  addr_rel])
             rv = cur.fetchone()
             if rv:
                 return rv[0]
+
+            # Fourth try: exact match on path and arch (addr_abs)
+            if addr_abs is not None:
+                cur.execute('''
+                    select s.symbol
+                      from sentry_dsymsymbol s,
+                           sentry_dsymobject o,
+                           sentry_dsymsdk k,
+                           sentry_dsymbundle b
+                     where b.sdk_id = k.id and
+                           b.object_id = o.id and
+                           s.object_id = o.id and
+                           k.sdk_name = %s and
+                           k.dsym_type = %s and
+                           k.version_major = %s and
+                           k.version_minor = %s and
+                           k.version_patchlevel = %s and
+                           o.cpu_name = %s and
+                           o.object_path = %s and
+                           s.address <= %s and
+                           s.address >= %s
+                  order by address desc
+                     limit 1;
+                ''', [sdk_info['sdk_name'], sdk_info['dsym_type'],
+                      sdk_info['version_major'], sdk_info['version_minor'],
+                      sdk_info['version_patchlevel'], cpu_name, object_path,
+                      addr_abs, image_vmaddr])
+                rv = cur.fetchone()
+                if rv:
+                    return rv[0]
         finally:
             cur.close()
 
