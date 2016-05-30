@@ -1,5 +1,5 @@
 try:
-    from symsynd.driver import Driver
+    from symsynd.driver import Driver, SymbolicationError
     from symsynd.report import ReportSymbolizer
     from symsynd.macho.arch import get_cpu_name
     from symsynd.demangle import demangle_symbol
@@ -10,7 +10,7 @@ except ImportError:
 from sentry import options
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
-from sentry.models import DSymSymbol
+from sentry.models import DSymSymbol, EventError
 from sentry.models.dsymfile import MAX_SYM
 
 
@@ -82,13 +82,19 @@ class Symbolizer(object):
             rv['uuid'] = img['uuid']
         return rv
 
-    def symbolize_frame(self, frame, system_info=None):
+    def symbolize_frame(self, frame, system_info=None,
+                        report_error=None):
+        error = None
         img = self.images.get(frame['object_addr'])
 
         # Step one: try to symbolize with cached dsym files.
-        new_frame = self.symsynd_symbolizer.symbolize_frame(frame)
-        if new_frame is not None:
-            return self._process_frame(new_frame, img)
+        try:
+            new_frame = self.symsynd_symbolizer.symbolize_frame(
+                frame, silent=False)
+            if new_frame is not None:
+                return self._process_frame(new_frame, img)
+        except SymbolicationError as e:
+            error = e
 
         # If that does not work, look up system symbols.
         if img is not None:
@@ -101,7 +107,27 @@ class Symbolizer(object):
                           object_name=img['object_name'])
                 return self._process_frame(rv, img)
 
+        if report_error is not None and error is not None:
+            report_error(error)
         return self._process_frame(frame, img)
 
     def symbolize_backtrace(self, backtrace, system_info=None):
-        return [self.symbolize_frame(frm, system_info) for frm in backtrace]
+        rv = []
+        errors = []
+        idx = -1
+
+        def report_error(e):
+            errors.append({
+                'type': EventError.NATIVE_INTERNAL_FAILURE,
+                'frame': frm,
+                'error': 'frame #%d: %s: %s' % (
+                    idx,
+                    e.__class__.__name__,
+                    str(e),
+                )
+            })
+
+        for idx, frm in enumerate(backtrace):
+            rv.append(self.symbolize_frame(
+                frm, system_info, report_error=report_error))
+        return rv, errors
