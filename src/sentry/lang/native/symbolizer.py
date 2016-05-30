@@ -26,6 +26,7 @@ def find_system_symbol(img, instruction_addr, system_info=None):
     return DSymSymbol.objects.lookup_symbol(
         instruction_addr=instruction_addr,
         image_addr=img['image_addr'],
+        image_vmaddr=img['image_vmaddr'],
         uuid=img['uuid'],
         cpu_name=get_cpu_name(img['cpu_type'],
                               img['cpu_subtype']),
@@ -104,7 +105,7 @@ class Symbolizer(object):
                 symbol = demangle_symbol(symbol) or symbol
                 rv = dict(frame, symbol_name=symbol, filename=None,
                           line=0, column=0, uuid=img['uuid'],
-                          object_name=img['object_name'])
+                          object_name=img['name'])
                 return self._process_frame(rv, img)
 
         if report_error is not None and error is not None:
