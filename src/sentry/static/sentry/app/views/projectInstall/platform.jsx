@@ -143,9 +143,9 @@ const ProjectInstallPlatform = React.createClass({
           )}
 
           {queryParams.hasOwnProperty('signup') ?
+            // Using <a /> instead of <Link /> as hashchange events are not
+            // triggered when switching views within React Router
             <p>
-              // Using <a /> instead of <Link /> as hashchange events are not
-              // triggered when switching views within React Router
               <a
                 href={`/${orgId}/${projectId}/#welcome`}
                 className="btn btn-primary btn-lg">
