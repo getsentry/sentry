@@ -188,3 +188,35 @@ section.org-login {
     }
   }
 }
+
+div.u2f-box {
+  border: 1px solid @gray;
+  background: @gray-lightest;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 20px;
+
+  div.device-animation {
+    margin: 0 auto;
+    background: url(../images/auth/u2f-large.gif);
+    background-size: 381px 138px;
+    border: 1px solid @gray;
+    width: 381px;
+    height: 138px;
+  }
+
+  div.inner {
+    margin: 0 auto;
+    padding-top: 20px;
+    max-width: 360px;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  &.tapped {
+    background: @green-light;
+    color: @green-dark;
+  }
+}
