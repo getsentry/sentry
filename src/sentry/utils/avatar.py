@@ -23,6 +23,8 @@ from sentry.http import safe_urlopen
 
 
 def get_gravatar_url(email, size=None, default='mm'):
+    if email is None:
+        email = ''
     gravatar_url = "%s/avatar/%s" % (settings.SENTRY_GRAVATAR_BASE_URL,
                                      md5(email.lower()).hexdigest())
 
