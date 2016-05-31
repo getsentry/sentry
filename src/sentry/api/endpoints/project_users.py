@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import EventUser
 
@@ -44,6 +45,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-id',
+            order_by='hash',
+            paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
