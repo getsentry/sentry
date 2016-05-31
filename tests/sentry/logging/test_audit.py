@@ -44,11 +44,9 @@ class AuditLogTestEntryCase(TestCase):
                 audit.log_entry(entry, logger=mock_logger)
             mock_logger.info.assert_called_with(
                 '[Audit Log] [{org_id}] {actor_label} {note}'.format(
-                    **audit.encode(
-                        org_id=entry.organization_id,
-                        actor_label=u'\u0420',  # Make sure we encode correctly.
-                        note=entry.get_note()
-                    )
+                    org_id=entry.organization_id,
+                    actor_label='\xd0\xa0',  # Make sure we encode correctly.
+                    note=entry.get_note()
                 )
             )
 
