@@ -46,6 +46,11 @@ class SentryInternalClient(DjangoClient):
         return super(SentryInternalClient, self).capture(*args, **kwargs)
 
     def send(self, **kwargs):
+        # If we're running migrations with safety we do not want to report
+        # to internal sentry as this might fail.
+        if south_migrations.MIGRATION_SAFETY:
+            return
+
         # TODO(dcramer): this should respect rate limits/etc and use the normal
         # pipeline
 
@@ -121,3 +126,6 @@ class SentryInternalFilter(logging.Filter):
         # TODO(mattrobenolt): handle an upstream Sentry
         metrics.incr('internal.uncaptured.logs')
         return is_current_event_safe()
+
+
+import sentry.south_migrations as south_migrations

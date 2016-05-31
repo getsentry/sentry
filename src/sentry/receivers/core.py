@@ -10,6 +10,7 @@ from functools import wraps
 from pkg_resources import parse_version as Version
 
 from sentry import options
+from sentry import south_migrations
 from sentry.models import (
     Organization, OrganizationMember, Project, User,
     Team, ProjectKey, TagKey, TagValue, GroupTagValue, GroupTagKey
@@ -36,6 +37,11 @@ def handle_db_failure(func):
 
 
 def create_default_projects(created_models, verbosity=2, **kwargs):
+    # If we're running migrations with safety we do not want to create the
+    # default projects because that might not work
+    if south_migrations.MIGRATION_SAFETY:
+        return
+
     if Project not in created_models:
         return
 

@@ -1,0 +1,1 @@
+MIGRATION_SAFETY = False
