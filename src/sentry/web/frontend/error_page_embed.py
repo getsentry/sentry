@@ -92,6 +92,7 @@ class ErrorPageEmbedView(View):
         form = UserReportForm(request.POST if request.method == 'POST' else None,
                               initial=initial)
         if form.is_valid():
+            # TODO(dcramer): move this to post to the internal API
             report = form.save(commit=False)
             report.project = key.project
             report.event_id = event_id
