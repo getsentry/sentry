@@ -16,8 +16,8 @@ from exam import fixture
 from uuid import uuid4
 
 from sentry.models import (
-    Activity, Event, EventError, Group, Organization, OrganizationMember,
-    OrganizationMemberTeam, Project, Team, User
+    Activity, Event, EventError, EventMapping, Group, Organization,
+    OrganizationMember, OrganizationMemberTeam, Project, Team, User
 )
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress
@@ -177,6 +177,11 @@ class Fixtures(object):
         event = Event(
             event_id=event_id,
             **kwargs
+        )
+        EventMapping.objects.create(
+            project_id=event.project.id,
+            event_id=event_id,
+            group=event.group,
         )
         # emulate EventManager refs
         event.data.bind_ref(event)
