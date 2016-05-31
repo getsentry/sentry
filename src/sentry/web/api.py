@@ -355,9 +355,11 @@ class StoreView(APIView):
         else:
             scrub_ip_address = project.get_option('sentry:scrub_ip_address', False)
 
-        # insert IP address if not available
-        if auth.is_public and not scrub_ip_address:
-            helper.ensure_has_ip(data, remote_addr)
+        # insert IP address if not available and wanted
+        if not scrub_ip_address:
+            helper.ensure_has_ip(
+                data, remote_addr, set_if_missing=auth.is_public or
+                data.get('platform') in ('javascript', 'cocoa', 'objc'))
 
         event_id = data['event_id']
 
