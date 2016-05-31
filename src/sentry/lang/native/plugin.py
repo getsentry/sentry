@@ -146,10 +146,11 @@ def inject_apple_device_data(data, system):
 
 
 def record_no_symsynd(data):
-    append_error(data, {
-        'type': EventError.NATIVE_NO_SYMSYND,
-    })
-    return data
+    if data.get('sentry.interfaces.AppleCrashReport'):
+        append_error(data, {
+            'type': EventError.NATIVE_NO_SYMSYND,
+        })
+        return data
 
 
 def preprocess_apple_crash_event(data):
