@@ -51,9 +51,11 @@ def log_entry(entry, logger=logger):
     if fmt == 'human':
         log(
             "[Audit Log] [{org}] {user} {note}".format(
-                org=entry.organization_id,
-                user=entry.actor_label,
-                note=entry.get_note(),
+                **encode(
+                    org=entry.organization_id,
+                    user=entry.actor_label,
+                    note=entry.get_note(),
+                )
             ),
             logger=logger,
         )

@@ -31,6 +31,8 @@ class AuditLogTestEntryCase(TestCase):
     def test_log_entry_human(self, mock_logger):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name='sentry')
+        self.user.username = u'\u0420'
+        self.user.save()
         entry = AuditLogEntry.objects.create(
             organization=org,
             event=AuditLogEntryEvent.ORG_EDIT,
@@ -42,9 +44,11 @@ class AuditLogTestEntryCase(TestCase):
                 audit.log_entry(entry, logger=mock_logger)
             mock_logger.info.assert_called_with(
                 '[Audit Log] [{org_id}] {actor_label} {note}'.format(
-                    org_id=entry.organization_id,
-                    actor_label=entry.actor_label,
-                    note=entry.get_note()
+                    **audit.encode(
+                        org_id=entry.organization_id,
+                        actor_label=u'\u0420',  # Make sure we encode correctly.
+                        note=entry.get_note()
+                    )
                 )
             )
 
