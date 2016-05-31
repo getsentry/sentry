@@ -18,12 +18,8 @@ class Migration(SchemaMigration):
 
         # Deleting field 'Event.checksum'
         db.delete_column('sentry_message', 'checksum')
-        pass
-
 
     def backwards(self, orm):
-        return
-
         # User chose to not deal with backwards NULL issues for 'Group.checksum'
         raise RuntimeError("Cannot reverse this migration. 'Group.checksum' and its values cannot be restored.")
         
