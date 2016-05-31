@@ -7,6 +7,7 @@ sentry.runner.commands.dsym
 """
 from __future__ import absolute_import
 
+import sys
 import uuid
 import json
 import click
@@ -136,6 +137,10 @@ def import_system_symbols(bundles, threads, trim_symbols, no_demangle):
     preprocessed.
     """
     import zipfile
+    from sentry.utils.db import is_mysql
+    if threads != 1 and is_mysql():
+        print >> sys.stderr, 'warning: disable threading for mysql'
+        threads = 1
     for path in bundles:
         with zipfile.ZipFile(path) as f:
             sdk_info = json.load(f.open('sdk_info'))
