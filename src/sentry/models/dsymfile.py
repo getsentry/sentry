@@ -79,7 +79,7 @@ class DSymSDKManager(BaseManager):
             args.append(sdk)
         cur = connection.cursor()
         cur.execute('''
-   select distinct k.*, count(b.*) as bundle_count, o.cpu_name
+   select distinct k.*, count(*) as bundle_count, o.cpu_name
               from sentry_dsymsdk k,
                    sentry_dsymbundle b,
                    sentry_dsymobject o

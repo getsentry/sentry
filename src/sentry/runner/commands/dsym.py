@@ -10,6 +10,7 @@ from __future__ import absolute_import
 import uuid
 import json
 import click
+import warnings
 import threading
 
 from sentry.runner.decorators import configuration
@@ -136,6 +137,10 @@ def import_system_symbols(bundles, threads, trim_symbols, no_demangle):
     preprocessed.
     """
     import zipfile
+    from sentry.utils.db import is_mysql
+    if threads != 1 and is_mysql():
+        warnings.warn(Warning('disabled threading for mysql'))
+        threads = 1
     for path in bundles:
         with zipfile.ZipFile(path) as f:
             sdk_info = json.load(f.open('sdk_info'))
