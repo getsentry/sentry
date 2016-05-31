@@ -39,10 +39,6 @@ from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float
 
 LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
-IP_INTERFACE_PATHS = [
-    ('sentry.interfaces.Http', 'env', 'REMOTE_ADDR'),
-    ('sentry.interfaces.User', 'ip_address'),
-]
 
 
 class APIError(Exception):
