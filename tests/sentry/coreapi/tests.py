@@ -408,6 +408,15 @@ class EnsureHasIpTest(BaseAPITest):
         self.helper.ensure_has_ip(out, '127.0.0.1')
         assert inp == out
 
+    def test_with_user_auto_ip(self):
+        out = {
+            'sentry.interfaces.User': {
+                'ip_address': '{{auto}}',
+            },
+        }
+        self.helper.ensure_has_ip(out, '127.0.0.1')
+        assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
+
     def test_without_ip_values(self):
         out = {
             'sentry.interfaces.User': {
@@ -422,6 +431,32 @@ class EnsureHasIpTest(BaseAPITest):
     def test_without_any_values(self):
         out = {}
         self.helper.ensure_has_ip(out, '127.0.0.1')
+        assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
+
+    def test_with_http_auto_ip(self):
+        out = {
+            'sentry.interfaces.Http': {
+                'env': {
+                    'REMOTE_ADDR': '{{auto}}',
+                },
+            },
+        }
+        self.helper.ensure_has_ip(out, '127.0.0.1')
+        assert out['sentry.interfaces.Http']['env']['REMOTE_ADDR'] == '127.0.0.1'
+
+    def test_with_all_auto_ip(self):
+        out = {
+            'sentry.interfaces.User': {
+                'ip_address': '{{auto}}',
+            },
+            'sentry.interfaces.Http': {
+                'env': {
+                    'REMOTE_ADDR': '{{auto}}',
+                },
+            },
+        }
+        self.helper.ensure_has_ip(out, '127.0.0.1')
+        assert out['sentry.interfaces.Http']['env']['REMOTE_ADDR'] == '127.0.0.1'
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 
 

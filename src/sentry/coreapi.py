@@ -610,14 +610,23 @@ class ClientApiHelper(object):
         if 'sentry.interfaces.User' in data:
             data['sentry.interfaces.User'].pop('ip_address', None)
 
-    def ensure_has_ip(self, data, ip_address):
-        if data.get('sentry.interfaces.Http', {}).get('env', {}).get('REMOTE_ADDR'):
-            return
+    def ensure_has_ip(self, data, ip_address, set_if_missing=True):
+        got_ip = False
+        ip = data.get('sentry.interfaces.Http', {}) \
+            .get('env', {}).get('REMOTE_ADDR')
+        if ip:
+            if ip == '{{auto}}':
+                data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = ip_address
+            got_ip = True
 
-        if data.get('sentry.interfaces.User', {}).get('ip_address'):
-            return
+        ip = data.get('sentry.interfaces.User', {}).get('ip_address')
+        if ip:
+            if ip == '{{auto}}':
+                data['sentry.interfaces.User']['ip_address'] = ip_address
+            got_ip = True
 
-        data.setdefault('sentry.interfaces.User', {})['ip_address'] = ip_address
+        if not got_ip and set_if_missing:
+            data.setdefault('sentry.interfaces.User', {})['ip_address'] = ip_address
 
     def insert_data_to_database(self, data):
         cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
