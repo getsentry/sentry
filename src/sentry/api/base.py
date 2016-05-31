@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 __all__ = ['DocSection', 'Endpoint', 'StatsMixin']
 
+import logging
 import time
 
 from datetime import datetime, timedelta
@@ -17,7 +18,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from sentry.app import raven, tsdb
-from sentry.logging import audit
 from sentry.models import ApiKey, AuditLogEntry
 from sentry.utils.cursors import Cursor
 from sentry.utils.http import absolute_uri, is_valid_origin
@@ -38,6 +38,8 @@ DEFAULT_AUTHENTICATION = (
     ApiKeyAuthentication,
     SessionAuthentication,
 )
+
+logger = logging.getLogger('sentry.audit')
 
 
 class DocSection(Enum):
@@ -105,7 +107,19 @@ class Endpoint(APIView):
             ip_address=request.META['REMOTE_ADDR'],
             **kwargs
         )
-        audit.log_entry(entry)
+        logger.info(
+            '[{organization_id}] {actor_id} {event}',
+            {
+                'organization_id': entry.organization_id,
+                'actor_id': entry.actor_id,
+                'actor_key': entry.actor_key,
+                'target_object': entry.target_object,
+                'target_user_id': entry.target_user_id,
+                'event': entry.get_event_display(),
+                'ip_address': entry.ip_address,
+                'data': entry.data,
+                'datetime': entry.datetime,
+            })
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):

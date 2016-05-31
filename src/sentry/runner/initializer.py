@@ -150,10 +150,24 @@ def bootstrap_options(settings, config=None):
                 setattr(settings, options_mapper[k], v)
 
 
+def bootstrap_logging():
+    # This function is responsible for updating the root logging handler
+    # with the correct format to choose. This function is idempotent
+    # but you should only be calling it when necessary.
+    # This should only ever be called during runtime if you are in the
+    # developmental process and in a shell or ipdb.
+    from sentry import options
+    from sentry.logging.handlers import TuringHandler
+
+    TuringHandler.fmt = options.get('system.logging-format')
+
+
 def initialize_app(config, skip_backend_validation=False):
     settings = config['settings']
 
     bootstrap_options(settings, config['options'])
+
+    bootstrap_logging()
 
     fix_south(settings)
 
