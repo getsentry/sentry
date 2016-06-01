@@ -377,10 +377,16 @@ class RedisBackend(Backend):
                         False: [],
                     }
 
-                    deadline = time.time() - self.ttl
+                    timeout = time.time() - self.ttl
                     for item in can_reschedule[True]:
                         _, (key, timestamp) = item
-                        should_reschedule[timestamp > deadline].append(item)
+                        should_reschedule[timestamp > timeout].append(item)
+
+                    logger.debug(
+                        'Identified %s items that should be rescheduled, and %s that will be removed.',
+                        len(should_reschedule[True]),
+                        len(should_reschedule[False]),
+                    )
 
                     # Move items that should be rescheduled to the waiting state.
                     if should_reschedule[True]:
@@ -390,6 +396,11 @@ class RedisBackend(Backend):
                         )
 
                     # Clear out timelines that should not be rescheduled.
+                    # Ideally this path is never actually hit, but this can
+                    # happen if the queue is **extremely** backlogged, or if a
+                    # cluster size change caused partition ownership to change
+                    # and timelines are now stuck within partitions that they
+                    # no longer should be. (For more details, see GH-2479.)
                     for _, (key, timestamp) in should_reschedule[False]:
                         logger.warning(
                             'Clearing expired timeline %r from host %s, schedule timestamp was %s.',
@@ -424,8 +435,6 @@ class RedisBackend(Backend):
             raise RuntimeError('loop exceeded maximum iterations (%s)' % (maximum_iterations,))
 
     def maintenance(self, deadline, chunk=1000):
-        # TODO: This needs tests!
-
         # TODO: Ideally, this would also return the number of items that were
         # rescheduled (and possibly even how late they were at the point of
         # rescheduling) but that causes a bit of an API issue since in the case
