@@ -97,7 +97,14 @@ const U2fInterface = React.createClass({
   renderPrompt() {
     return (
       <div className={'u2f-box' + (this.state.hasBeenTapped ? ' tapped' : '')}>
-        <div className="device-animation"/>
+        <div className="device-animation-frame">
+          <div className="device-animation"/>
+          <div className="loading-dots">
+            <span className="dot" />
+            <span className="dot" />
+            <span className="dot" />
+          </div>
+        </div>
         <input type="hidden" name="challenge" ref={this.bindChallengeElement}/>
         <input type="hidden" name="response" ref={this.bindResponseElement}/>
         <div className="inner">
