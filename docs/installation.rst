@@ -440,6 +440,8 @@ Configure ``systemd``
 
 Configuring systemd requires three files, one for each service. On Ubuntu 16.04, the files are located in ``/etc/systemd/system``. Create three files named ``sentry-web.service``, ``sentry-worker.service`` and ``sentry-cron.service`` with the contents listed below.
 
+To ensure that the services start up on reboots, run the following command: ``systemctl enable sentry-web.service``.
+
 **sentry-web.service**
 
 ::
@@ -458,6 +460,9 @@ Configuring systemd requires three files, one for each service. On Ubuntu 16.04,
   Environment=SENTRY_CONF=/etc/sentry
   ExecStart=/www/sentry/bin/sentry run web
 
+  [Install]
+  WantedBy=multi-user.target
+
 **sentry-worker.service**
 
 ::
@@ -474,6 +479,9 @@ Configuring systemd requires three files, one for each service. On Ubuntu 16.04,
   Environment=SENTRY_CONF=/etc/sentry
   ExecStart=/www/sentry/bin/sentry celery worker
 
+  [Install]
+  WantedBy=multi-user.target
+
 **sentry-cron.service**
 
 ::
@@ -489,6 +497,9 @@ Configuring systemd requires three files, one for each service. On Ubuntu 16.04,
   WorkingDirectory=/www/sentry
   Environment=SENTRY_CONF=/etc/sentry
   ExecStart=/www/sentry/bin/sentry celery beat
+
+  [Install]
+  WantedBy=multi-user.target
 
 Removing Old Data
 -----------------
