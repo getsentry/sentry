@@ -5,6 +5,9 @@ import logging
 import random
 import time
 
+from django.utils.encoding import force_bytes
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -14,10 +17,10 @@ class RetryException(Exception):
         self.exception = exception
 
     def __str__(self):
-        return '{}'.format(self.message)
+        return force_bytes(self.message, errors='replace')
 
     def __repr__(self):
-        return '<{}: {!r}>'.format(
+        return u'<{}: {!r}>'.format(
             type(self).__name__,
             self.message,
         )
