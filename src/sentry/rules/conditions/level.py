@@ -58,7 +58,7 @@ class LevelCondition(EventCondition):
             return False
 
         desired_level = int(desired_level)
-        level = int(event.level)
+        level = int(event.group.level)
 
         if desired_match == LevelMatchType.EQUAL:
             return level == desired_level
