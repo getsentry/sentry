@@ -60,6 +60,18 @@ ensure_timeline_scheduled = load_script('digests/ensure_timeline_scheduled.lua')
 truncate_timeline = load_script('digests/truncate_timeline.lua')
 
 
+def clear_timeline_contents(pipeline, timeline_key):
+    """
+    Removes all keys associated with a timeline key. This does not remove the
+    timeline from schedules.
+
+    This assumes the timeline lock has already been acquired.
+    """
+    truncate_timeline(pipeline, (timeline_key,), (0, timeline_key))
+    truncate_timeline(pipeline, (make_digest_key(timeline_key),), (0, timeline_key))
+    pipeline.delete(make_last_processed_timestamp_key(timeline_key))
+
+
 class RedisBackend(Backend):
     """
     Implements the digest backend API, backed by Redis.
@@ -360,10 +372,33 @@ class RedisBackend(Backend):
                         *[key for (lock, (key, timestamp)) in can_reschedule[True]]
                     )
 
-                    pipeline.zadd(
-                        make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
-                        *itertools.chain.from_iterable([(timestamp, key) for (lock, (key, timestamp)) in can_reschedule[True]])
-                    )
+                    should_reschedule = {
+                        True: [],
+                        False: [],
+                    }
+
+                    deadline = time.time() - self.ttl
+                    for item in can_reschedule[True]:
+                        _, (key, timestamp) = item
+                        should_reschedule[timestamp > deadline].append(item)
+
+                    for _, (key, timestamp) in should_reschedule[False]:
+                        logger.warning(
+                            'Clearing expired timeline %r from partition %s. (Schedule timestamp was %s.)',
+                            key,
+                            partition,
+                            timestamp,
+                        )
+                        clear_timeline_contents(
+                            pipeline,
+                            make_timeline_key(self.namespace, key),
+                        )
+
+                    if should_reschedule[True]:
+                        pipeline.zadd(
+                            make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
+                            *itertools.chain.from_iterable([(timestamp, key) for (lock, (key, timestamp)) in should_reschedule[True]])
+                        )
 
                     pipeline.execute()
             finally:
@@ -516,9 +551,7 @@ class RedisBackend(Backend):
 
         lock = self.locks.get(timeline_key, duration=30, routing_key=timeline_key)
         with lock.acquire(), connection.pipeline() as pipeline:
-            truncate_timeline(pipeline, (timeline_key,), (0, timeline_key))
-            truncate_timeline(pipeline, (make_digest_key(timeline_key),), (0, timeline_key))
-            pipeline.delete(make_last_processed_timestamp_key(timeline_key))
+            clear_timeline_contents(pipeline, timeline_key)
             pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
             pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), key)
             pipeline.execute()
