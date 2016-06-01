@@ -13,6 +13,15 @@ class RetryException(Exception):
         self.message = message
         self.exception = exception
 
+    def __str__(self):
+        return '{}'.format(self.message)
+
+    def __repr__(self):
+        return '<{}: {!r}>'.format(
+            type(self).__name__,
+            self.message,
+        )
+
 
 class RetryPolicy(object):
     def __call__(self, function):
