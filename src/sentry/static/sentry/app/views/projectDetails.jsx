@@ -125,7 +125,7 @@ const ProjectDetails = React.createClass({
       // TODO(dcramer): move member list to organization level
       this.api.request(this.getMemberListEndpoint(), {
         success: (data) => {
-          MemberListStore.loadInitialData(data);
+          MemberListStore.loadInitialData(data.filter((m) => m.user).map((m) => m.user));
         }
       });
 
