@@ -382,11 +382,19 @@ class RedisBackend(Backend):
                         _, (key, timestamp) = item
                         should_reschedule[timestamp > deadline].append(item)
 
+                    # Move items that should be rescheduled to the waiting state.
+                    if should_reschedule[True]:
+                        pipeline.zadd(
+                            make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
+                            *itertools.chain.from_iterable([(timestamp, key) for (lock, (key, timestamp)) in should_reschedule[True]])
+                        )
+
+                    # Clear out timelines that should not be rescheduled.
                     for _, (key, timestamp) in should_reschedule[False]:
                         logger.warning(
-                            'Clearing expired timeline %r from partition %s. (Schedule timestamp was %s.)',
+                            'Clearing expired timeline %r from host %s, schedule timestamp was %s.',
                             key,
-                            partition,
+                            host,
                             timestamp,
                         )
                         clear_timeline_contents(
@@ -394,11 +402,6 @@ class RedisBackend(Backend):
                             make_timeline_key(self.namespace, key),
                         )
 
-                    if should_reschedule[True]:
-                        pipeline.zadd(
-                            make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
-                            *itertools.chain.from_iterable([(timestamp, key) for (lock, (key, timestamp)) in should_reschedule[True]])
-                        )
 
                     pipeline.execute()
             finally:
