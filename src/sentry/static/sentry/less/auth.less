@@ -190,19 +190,64 @@ section.org-login {
 }
 
 div.u2f-box {
-  border: 1px solid @gray;
-  background: @gray-lightest;
+  background: @white-dark;
   padding: 20px;
   text-align: center;
   margin-bottom: 20px;
 
-  div.device-animation {
+  div.device-animation-frame {
     margin: 0 auto;
-    background: url(../images/auth/u2f-large.gif);
-    background-size: 381px 138px;
-    border: 1px solid @gray;
-    width: 381px;
-    height: 138px;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0,0,0, .08);
+    border: 1px solid darken(@trim, 5);
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  div.loading-dots {
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    margin-left: -25px;
+    margin-top: -9px;
+    opacity: 0;
+    .transition(all ease-in .4s);
+
+    .dot {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      background: @purple;
+      border-radius: 50%;
+      margin-right: 4px;
+
+      //Animate
+      animation-name: blink;
+      animation-duration: 1.6s;
+      animation-iteration-count: infinite;
+      animation-fill-mode: both;
+
+      &:nth-child(2) {
+        animation-delay: .4s;
+      }
+
+      &:nth-child(3) {
+        animation-delay: .8s;
+      }
+
+      &:last-child {
+        margin-right: 0;
+      }
+    }
+  }
+
+  div.device-animation {
+    background: url(../images/auth/u2f-small.gif);
+    background-size: 100px 100px;
+    width: 100px;
+    height: 100px;
   }
 
   div.inner {
@@ -216,7 +261,28 @@ div.u2f-box {
   }
 
   &.tapped {
-    background: @green-light;
-    color: @green-dark;
+    .loading-dots {
+      opacity: 1;
+      top: 50%;
+    }
+    .device-animation {
+      -webkit-filter: blur(4px);
+      filter: blur(4px);
+    }
+    .loading-dots {
+      display: block;
+    }
   }
+}
+
+@keyframes blink {
+    0% {
+      opacity: .1;
+    }
+    30% {
+      opacity: 1;
+    }
+    100% {
+      opacity: .1;
+    }
 }
