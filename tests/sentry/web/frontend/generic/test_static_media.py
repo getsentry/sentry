@@ -82,3 +82,17 @@ class StaticMediaTest(TestCase):
                 os.unlink('src/sentry/static/sentry/app/index.js.gz')
             except Exception:
                 pass
+
+    def test_file_not_found(self):
+        url = '/_static/sentry/app/xxxxxxxxxxxxxxxxxxxxxxxx.js'
+        response = self.client.get(url)
+        assert response.status_code == 404, response
+
+    def test_directory(self):
+        url = '/_static/sentry/images/'
+        response = self.client.get(url)
+        assert response.status_code == 404, response
+
+        url = '/_static/sentry/images'
+        response = self.client.get(url)
+        assert response.status_code == 404, response
