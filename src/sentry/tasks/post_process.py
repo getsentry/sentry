@@ -45,15 +45,24 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     """
     Fires post processing hooks for a group.
     """
-    from sentry.models import Project
+    # NOTE: we must pass through the full Event object, and not an
+    # event_id since the Event object may not actually have been stored
+    # in the database due to sampling.
+    from sentry.models import Project, Group
     from sentry.rules.processor import RuleProcessor
+
+    # Re-bind Group since we're pickling the whole Event object
+    # which may contain a stale Group.
+    event.group = Group.objects.get_from_cache(id=event.group_id)
 
     project_id = event.group.project_id
     Raven.tags_context({
         'project': project_id,
     })
 
-    project = Project.objects.get_from_cache(id=project_id)
+    # Re-bind Project since we're pickling the whole Event object
+    # which may contain a stale Project.
+    event.project = Project.objects.get_from_cache(id=project_id)
 
     _capture_stats(event, is_new)
 
@@ -63,7 +72,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     for callback, futures in rp.apply():
         safe_execute(callback, event, futures)
 
-    for plugin in plugins.for_project(project):
+    for plugin in plugins.for_project(event.project):
         plugin_post_process_group(
             plugin_slug=plugin.slug,
             event=event,
@@ -74,7 +83,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
 
     event_processed.send_robust(
         sender=post_process_group,
-        project=project,
+        project=event.project,
         group=event.group,
         event=event,
     )
