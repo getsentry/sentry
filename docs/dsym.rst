@@ -8,7 +8,7 @@ This process is currently quite involved due to the nature of the apple
 platform.
 
 This here is meant as a general guide to how system symbols are processed
-and how you can add your own ones.
+and how you can extract and add symbols from Apple SDKs.
 
 Apple Symbol Extraction
 -----------------------
