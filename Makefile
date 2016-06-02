@@ -113,7 +113,7 @@ test-acceptance:
 
 test-python-coverage:
 	@echo "--> Running Python tests"
-	coverage run --source=src/sentry,tests -m py.test tests
+	coverage run --source=src/sentry -m py.test tests/integration tests/sentry
 	@echo ""
 
 
