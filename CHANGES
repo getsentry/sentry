@@ -1,7 +1,7 @@
 Version 8.5 (Unreleased)
 ------------------------
-- Added option to upload a profile image as an alternative to Gravatar
 
+- Added option to upload a profile image as an alternative to Gravatar
 - Deprecated ``sentry celery`` subcommand in favor of ``sentry run {worker|cron}``
 - Breadcrumb interface now rendered in event UI
 - Project notification settings page now indicates if current user is subscribed to active project
