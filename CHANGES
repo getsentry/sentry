@@ -1,5 +1,8 @@
-Version 8.5 (Unreleased)
-------------------------
+Version 8.6 (Unreleased)
+-----------------------
+
+Version 8.5
+-----------
 
 - Added option to upload a profile image as an alternative to Gravatar.
 - Deprecated ``sentry celery`` subcommand in favor of ``sentry run {worker|cron}``.
