@@ -15,6 +15,7 @@ __all__ = (
 
 import base64
 import os.path
+import signal
 import urllib
 from contextlib import contextmanager
 
@@ -255,6 +256,9 @@ class LiveServerTestCase(BaseTestCase, LiveServerTestCase):
     @after
     def teardown_browser(self):
         self.browser.close()
+        # TODO: remove this when fixed in: https://github.com/seleniumhq/selenium/issues/767
+        self.browser.service.process.send_signal(signal.SIGTERM)
+        self.browser.quit()
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
