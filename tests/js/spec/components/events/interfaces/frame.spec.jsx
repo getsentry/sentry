@@ -28,38 +28,11 @@ describe('Frame', function () {
       };
     });
 
-    it('should render the original source information as a HTML string', function () {
+    it('should render the source map information as a HTML string', function () {
       let frame = TestUtils.renderIntoDocument(<Frame data={this.data} />);
 
       // NOTE: indentation/whitespace intentional to match output string
-      expect(frame.renderOriginalSourceInfo()).to.eql(`
-    <div>
-      <strong>Original Filename</strong><br/>
-      <a href="https://beta.getsentry.com/_static/sentry/dist/vendor.js">https://beta.getsentry.com/_static/sentry/dist/vendor.js</a><br/>
-      <strong>Line Number</strong><br/>
-      419<br/>
-      <strong>Column Number</strong><br/>
-      2503<br/>
-      <strong>Function</strong><br/>
-      T._updateRenderedComponent<br/>
-      <strong>Source Map</strong><br/><a href="https://beta.getsentry.com/_static/sentry/dist/vendor.js.map">vendor.js.map<br/></div>`);
-    });
-
-    it('should omit a source map <a> tag if no mapUrl is provided', function () {
-      delete this.data.mapUrl;
-
-      let frame = TestUtils.renderIntoDocument(<Frame data={this.data} />);
-      expect(frame.renderOriginalSourceInfo()).to.eql(`
-    <div>
-      <strong>Original Filename</strong><br/>
-      <a href="https://beta.getsentry.com/_static/sentry/dist/vendor.js">https://beta.getsentry.com/_static/sentry/dist/vendor.js</a><br/>
-      <strong>Line Number</strong><br/>
-      419<br/>
-      <strong>Column Number</strong><br/>
-      2503<br/>
-      <strong>Function</strong><br/>
-      T._updateRenderedComponent<br/>
-      <strong>Source Map</strong><br/>vendor.js.map<br/></div>`);
+      expect(frame.renderOriginalSourceInfo()).to.eql(`\n    <div>\n      <strong>Source Map</strong><br/>https://beta.getsentry.com/_static/sentry/dist/vendor.js.map<br/></div>`);
     });
   });
 });
