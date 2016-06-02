@@ -1,6 +1,18 @@
 Version 8.5 (Unreleased)
 ------------------------
 
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``ProjectPlatform`` model.
+- Added index on``EventTag`` index.
+- Added unique index on ``UserReport`` model.
+- Added ``UserAvatar`` model.
+- Added ``EventTag.group_id`` column.
+- Added ``ApiToken`` model.
+- Added ``Authenticator`` model.
+
+
 Version 8.4.1
 -------------
 - Fixed issue in running 8.4 migrations on MySQL only.
