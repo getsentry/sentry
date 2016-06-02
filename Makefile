@@ -102,7 +102,12 @@ test-js:
 
 test-python:
 	@echo "--> Running Python tests"
-	py.test tests || exit 1
+	py.test tests/integration tests/sentry || exit 1
+	@echo ""
+
+test-acceptance:
+	@echo "--> Running acceptance tests"
+	py.test tests/acceptance || exit 1
 	@echo ""
 
 

@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'AuthProviderTestCase',
-    'RuleTestCase', 'PermissionTestCase', 'PluginTestCase', 'CliTestCase',
+    'RuleTestCase', 'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'LiveServerTestCase',
 )
 
 import base64
@@ -24,10 +24,11 @@ from django.contrib.auth import login
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.http import HttpRequest
-from django.test import TestCase, TransactionTestCase
+from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.utils.importlib import import_module
-from exam import before, fixture, Exam
+from exam import before, after, fixture, Exam
 from rest_framework.test import APITestCase as BaseAPITestCase
+from selenium import webdriver
 
 from sentry import auth
 from sentry.auth.providers.dummy import DummyProvider
@@ -237,6 +238,16 @@ class TestCase(BaseTestCase, TestCase):
 
 class TransactionTestCase(BaseTestCase, TransactionTestCase):
     pass
+
+
+class LiveServerTestCase(BaseTestCase, LiveServerTestCase):
+    @before
+    def setup_browser(self):
+        self.browser = webdriver.PhantomJS()
+
+    @after
+    def teardown_browser(self):
+        self.browser.close()
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
