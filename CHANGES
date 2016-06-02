@@ -1,11 +1,12 @@
 Version 8.5 (Unreleased)
 ------------------------
 
-- Added option to upload a profile image as an alternative to Gravatar
-- Deprecated ``sentry celery`` subcommand in favor of ``sentry run {worker|cron}``
-- Breadcrumb interface now rendered in event UI
-- Project notification settings page now indicates if current user is subscribed to active project
-- User is now automatically redirected to login page if their session expires inside React client application
+- Added option to upload a profile image as an alternative to Gravatar.
+- Deprecated ``sentry celery`` subcommand in favor of ``sentry run {worker|cron}``.
+- Breadcrumb interface now rendered in event UI.
+- Project notification settings page now indicates if current user is subscribed to active project.
+- User is now automatically redirected to login page if their session expires inside React client application.
+- Added new auth tokens to deprecate the usage of the older API keys.
 
 Schema Changes
 ~~~~~~~~~~~~~~
