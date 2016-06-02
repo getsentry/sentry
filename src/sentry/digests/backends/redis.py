@@ -285,23 +285,25 @@ class RedisBackend(Backend):
         maximum_iterations = 1000
         for i in xrange(maximum_iterations):
             fetch_size = chunk + extra
-            items = connection.zrangebyscore(
-                make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
-                min=start,
-                max=deadline,
-                withscores=True,
-                start=0,
-                num=fetch_size,
+            entries = map(
+                lambda (key, timestamp): ScheduleEntry(key, timestamp),
+                connection.zrangebyscore(
+                    make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
+                    min=start,
+                    max=deadline,
+                    withscores=True,
+                    start=0,
+                    num=fetch_size,
+                )
             )
 
-            def try_lock(item):
+            def try_lock(entry):
                 """
                 Attempt to immedately acquire a lock on the timeline at
                 key, returning the lock if it can be acquired, otherwise
                 returning ``None``.
                 """
-                key, timestamp = item
-                timeline_key = make_timeline_key(self.namespace, key),
+                timeline_key = make_timeline_key(self.namespace, entry.key),
                 lock = self.locks.get(
                     timeline_key,
                     duration=5,
@@ -311,20 +313,20 @@ class RedisBackend(Backend):
                     lock.acquire()
                 except Exception:
                     lock = None
-                return lock, item
+                return lock, entry
 
-            # Try to take out a lock on each item. If we can't acquire the
-            # lock, that means this is currently being digested and cannot
-            # be rescheduled.
+            # Try to take out a lock on each entry. If we can't acquire the
+            # lock, that means this is currently being digested and cannot be
+            # rescheduled.
             can_reschedule = {
                 True: [],
                 False: [],
             }
 
-            for result in map(try_lock, items):
+            for result in map(try_lock, entries):
                 can_reschedule[result[0] is not None].append(result)
 
-            logger.debug('Fetched %s items, able to reschedule %s.', len(items), len(can_reschedule[True]))
+            logger.debug('Fetched %s items, able to reschedule %s.', len(entries), len(can_reschedule[True]))
 
             # Set the start position for the next query. (If there are no
             # items, we don't need to worry about this, since there won't
@@ -338,12 +340,12 @@ class RedisBackend(Backend):
             # couldn't acquire the lock this iteration) and add that count
             # to the next query limit. (This unfortunately could also
             # lead to unbounded growth too, so we have to limit it as well.)
-            if items:
-                start = items[-1][0]  # (This value is (key, timestamp).)
+            if entries:
+                start = entries[-1].key
                 extra = min(
                     ilen(
                         itertools.takewhile(
-                            lambda (lock, (key, timestamp)): timestamp == start,
+                            lambda (lock, entry): entry.timestamp == start,
                             can_reschedule[False][::-1],
                         ),
                     ),
@@ -355,7 +357,7 @@ class RedisBackend(Backend):
             # need to perform a similar check after the completion of the
             # transaction as well.)
             if not can_reschedule[True]:
-                if len(items) == fetch_size:
+                if len(entries) == fetch_size:
                     # There is nothing to reschedule in this chunk, but we
                     # need check if there are others after this chunk.
                     continue
@@ -369,7 +371,7 @@ class RedisBackend(Backend):
 
                     pipeline.zrem(
                         make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
-                        *[key for (lock, (key, timestamp)) in can_reschedule[True]]
+                        *[entry.key for (lock, entry) in can_reschedule[True]]
                     )
 
                     should_reschedule = {
@@ -378,9 +380,8 @@ class RedisBackend(Backend):
                     }
 
                     timeout = time.time() - self.ttl
-                    for item in can_reschedule[True]:
-                        _, (key, timestamp) = item
-                        should_reschedule[timestamp > timeout].append(item)
+                    for lock, entry in can_reschedule[True]:
+                        should_reschedule[entry.timestamp > timeout].append(entry)
 
                     logger.debug(
                         'Identified %s items that should be rescheduled, and %s that will be removed.',
@@ -392,7 +393,7 @@ class RedisBackend(Backend):
                     if should_reschedule[True]:
                         pipeline.zadd(
                             make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
-                            *itertools.chain.from_iterable([(timestamp, key) for (lock, (key, timestamp)) in should_reschedule[True]])
+                            *itertools.chain.from_iterable([(entry.timestamp, entry.key) for entry in should_reschedule[True]])
                         )
 
                     # Clear out timelines that should not be rescheduled.
@@ -401,34 +402,34 @@ class RedisBackend(Backend):
                     # cluster size change caused partition ownership to change
                     # and timelines are now stuck within partitions that they
                     # no longer should be. (For more details, see GH-2479.)
-                    for _, (key, timestamp) in should_reschedule[False]:
+                    for entry in should_reschedule[False]:
                         logger.warning(
                             'Clearing expired timeline %r from host %s, schedule timestamp was %s.',
-                            key,
+                            entry.key,
                             host,
-                            timestamp,
+                            entry.timestamp,
                         )
                         clear_timeline_contents(
                             pipeline,
-                            make_timeline_key(self.namespace, key),
+                            make_timeline_key(self.namespace, entry.key),
                         )
 
                     pipeline.execute()
             finally:
                 # Regardless of the outcome of the transaction, we should
                 # try to unlock the items for processing.
-                for lock, item in can_reschedule[True]:
+                for lock, entry in can_reschedule[True]:
                     try:
                         lock.release()
                     except Exception as error:
                         # XXX: This shouldn't be hit (the ``Lock`` code
                         # should swallow the exception) but this is here
                         # for safety anyway.
-                        logger.warning('Could not unlock %r: %s', item, error)
+                        logger.warning('Could not unlock %r: %s', entry, error)
 
             # If we retrieved less than the chunk size of items, we don't
             # need try to retrieve more items.
-            if len(items) < fetch_size:
+            if len(entries) < fetch_size:
                 break
         else:
             raise RuntimeError('loop exceeded maximum iterations (%s)' % (maximum_iterations,))
