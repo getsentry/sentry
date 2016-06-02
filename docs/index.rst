@@ -28,6 +28,7 @@ running on your own infrastructure.
    beacon
    plugins
    warnings
+   dsym
    faq
 
 .. sentry:edition:: self, on-premise
