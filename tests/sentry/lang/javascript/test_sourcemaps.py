@@ -34,8 +34,23 @@ class FindSourceTest(TestCase):
         indexed_sourcemap = sourcemap_to_index(sourcemap)
 
         result = find_source(indexed_sourcemap, 1, 56)
-
         assert result == SourceMap(dst_line=0, dst_col=50, src='foo/file2.js', src_line=0, src_col=9, name='multiply')
+
+        # Start of minified file (exact match first line/col tuple)
+        result = find_source(indexed_sourcemap, 1, 0)
+        assert result == SourceMap(dst_line=0, dst_col=0, src='foo/file1.js', src_line=0, src_col=0, name=None)
+
+        # Last character in mapping
+        result = find_source(indexed_sourcemap, 1, 36)
+        assert result == SourceMap(dst_line=0, dst_col=30, src='foo/file1.js', src_line=2, src_col=1, name=None)
+
+        # First character in mapping (exact match line/col tuple)
+        result = find_source(indexed_sourcemap, 1, 37)
+        assert result == SourceMap(dst_line=0, dst_col=37, src='foo/file1.js', src_line=2, src_col=8, name='a')
+
+        # End of minified file (character *beyond* last line/col tuple)
+        result = find_source(indexed_sourcemap, 1, 192)
+        assert result == SourceMap(dst_line=0, dst_col=191, src='foo/file2.js', src_line=9, src_col=25, name='e')
 
 
 class ParseSourcemapTest(TestCase):
