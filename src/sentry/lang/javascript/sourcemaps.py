@@ -19,6 +19,7 @@ from sentry.utils import json
 
 SourceMap = namedtuple('SourceMap', ['dst_line', 'dst_col', 'src', 'src_line', 'src_col', 'name'])
 SourceMapIndex = namedtuple('SourceMapIndex', ['states', 'keys', 'sources', 'content'])
+IndexedSourceMapIndex = namedtuple('IndexedSourceMapIndex', ['offsets', 'maps'])
 
 # Mapping of base64 letter -> integer value.
 B64 = dict(
@@ -110,9 +111,7 @@ def parse_sourcemap(smap):
             yield SourceMap(dst_line, dst_col, src, src_line, src_col, name)
 
 
-def sourcemap_to_index(sourcemap):
-    smap = json.loads(sourcemap)
-
+def _sourcemap_to_index(smap):
     state_list = []
     key_list = []
     src_list = set()
@@ -152,8 +151,36 @@ def sourcemap_to_index(sourcemap):
     return SourceMapIndex(state_list, key_list, src_list, content)
 
 
+def sourcemap_to_index(sourcemap):
+    smap = json.loads(sourcemap)
+
+    if smap.get('sections'):
+        # indexed source map has "sections"
+        offsets = []
+        maps = []
+        for section in smap.get('sections'):
+            offset = section.get('offset')
+
+            offsets.append((offset.get('line'), offset.get('column')))
+            maps.append(_sourcemap_to_index(section.get('map')))
+
+        return IndexedSourceMapIndex(offsets, maps)
+    else:
+        # standard source map
+        return _sourcemap_to_index(smap)
+
+
 def find_source(indexed_sourcemap, lineno, colno):
     # error says "line no 1, column no 56"
     assert lineno > 0, 'line numbers are 1-indexed'
 
-    return indexed_sourcemap.states[bisect.bisect_right(indexed_sourcemap.keys, (lineno - 1, colno)) - 1]
+    if isinstance(indexed_sourcemap, IndexedSourceMapIndex):
+        map_index = bisect.bisect_right(indexed_sourcemap.offsets, (lineno - 1, colno)) - 1
+        offset = indexed_sourcemap.offsets[map_index]
+        return find_source(
+            indexed_sourcemap.maps[map_index],
+            lineno - offset[0],
+            colno - (0 if lineno != offset[0] else offset[0]),
+        )
+    else:
+        return indexed_sourcemap.states[bisect.bisect_right(indexed_sourcemap.keys, (lineno - 1, colno)) - 1]
