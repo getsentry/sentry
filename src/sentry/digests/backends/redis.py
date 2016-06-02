@@ -413,7 +413,6 @@ class RedisBackend(Backend):
                             make_timeline_key(self.namespace, key),
                         )
 
-
                     pipeline.execute()
             finally:
                 # Regardless of the outcome of the transaction, we should
