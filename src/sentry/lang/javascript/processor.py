@@ -497,11 +497,13 @@ class SourceProcessor(object):
         # all of these methods assume mutation on the original
         # objects rather than re-creation
         self.populate_source_cache(frames, release)
-        errors.extend(self.expand_frames(frames, release) or [])
+        expand_errors, sourcemap_applied = self.expand_frames(frames, release)
+        errors.extend(expand_errors or [])
         self.ensure_module_names(frames)
         self.fix_culprit(data, stacktraces)
         self.update_stacktraces(stacktraces)
-
+        if sourcemap_applied:
+            self.add_raw_stacktraces(data, release)
         return data
 
     def fix_culprit(self, data, stacktraces):
@@ -522,6 +524,39 @@ class SourceProcessor(object):
         for raw, interface in stacktraces:
             raw.update(interface.to_json())
 
+    def add_raw_stacktraces(self, data, release):
+        try:
+            values = data['sentry.interfaces.Exception']['values']
+        except KeyError:
+            return
+
+        for exc in values:
+            if not exc.get('stacktrace'):
+                continue
+
+            raw_frames = []
+            for frame in exc['stacktrace']['frames']:
+                frame = frame['data']['raw']
+
+                if frame['lineno'] is not None:
+                    source = self.get_source(frame['abs_path'], release)
+                    if source is None:
+                        logger.debug('No source found for %s', frame['abs_path'])
+                        continue
+
+                    frame['pre_context'], frame['context_line'], frame['post_context'] = get_source_context(
+                        source=source, lineno=frame['lineno'], colno=frame['colno'] or 0)
+
+            for frame in exc['stacktrace']['frames']:
+                try:
+                    # TODO(dcramer): we should refactor this to avoid this
+                    # push/pop process
+                    raw_frames.append(frame['data'].pop('raw'))
+                except KeyError:
+                    raw_frames.append(frame.copy())
+
+            exc['raw_stacktrace'] = {'frames': raw_frames}
+
     def ensure_module_names(self, frames):
         # TODO(dcramer): this doesn't really fit well with generic URLs so we
         # whitelist it to http/https
@@ -536,6 +571,7 @@ class SourceProcessor(object):
         cache = self.cache
         sourcemaps = self.sourcemaps
         all_errors = []
+        sourcemap_applied = False
 
         for frame in frames:
             errors = cache.get_errors(frame.abs_path)
@@ -578,14 +614,15 @@ class SourceProcessor(object):
                     })
 
                 # Store original data in annotation
+                # HACK(dcramer): we stuff things into raw which gets popped off
+                # later when adding the raw_stacktrace attribute.
+                raw_frame = frame.to_json()
                 frame.data = {
-                    'orig_lineno': frame.lineno,
-                    'orig_colno': frame.colno,
-                    'orig_function': frame.function,
-                    'orig_abs_path': frame.abs_path,
-                    'orig_filename': frame.filename,
+                    'raw': raw_frame,
                     'sourcemap': sourcemap_label,
                 }
+
+                sourcemap_applied = True
 
                 if state is not None:
                     abs_path = urljoin(sourcemap_url, state.src)
@@ -636,6 +673,9 @@ class SourceProcessor(object):
                         elif filename.startswith('./'):
                             frame.in_app = True
 
+                        # Update 'raw' copy to have same in_app status
+                        raw_frame['in_app'] = frame.in_app
+
                         # We want to explicitly generate a webpack module name
                         frame.module = generate_module(filename)
 
@@ -660,7 +700,7 @@ class SourceProcessor(object):
                     'row': frame.lineno,
                     'source': frame.abs_path,
                 })
-        return all_errors
+        return all_errors, sourcemap_applied
 
     def get_source(self, filename, release):
         if filename not in self.cache:

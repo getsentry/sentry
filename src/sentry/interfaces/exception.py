@@ -53,6 +53,15 @@ class SingleException(Interface):
         else:
             stacktrace = None
 
+        if data.get('raw_stacktrace') and data['raw_stacktrace'].get('frames'):
+            raw_stacktrace = Stacktrace.to_python(
+                data['raw_stacktrace'],
+                has_system_frames=has_system_frames,
+                slim_frames=slim_frames,
+            )
+        else:
+            raw_stacktrace = None
+
         type = data.get('type')
         value = data.get('value')
         if not type and ':' in value.split(' ', 1)[0]:
@@ -69,6 +78,7 @@ class SingleException(Interface):
             'value': value,
             'module': trim(data.get('module'), 128),
             'stacktrace': stacktrace,
+            'raw_stacktrace': raw_stacktrace,
         }
 
         return cls(**kwargs)
@@ -79,11 +89,17 @@ class SingleException(Interface):
         else:
             stacktrace = None
 
+        if self.raw_stacktrace:
+            raw_stacktrace = self.raw_stacktrace.to_json()
+        else:
+            raw_stacktrace = None
+
         return {
             'type': self.type,
             'value': self.value,
             'module': self.module,
             'stacktrace': stacktrace,
+            'raw_stacktrace': raw_stacktrace,
         }
 
     def get_api_context(self, is_public=False):
@@ -92,11 +108,17 @@ class SingleException(Interface):
         else:
             stacktrace = None
 
+        if self.raw_stacktrace:
+            raw_stacktrace = self.raw_stacktrace.get_api_context(is_public=is_public)
+        else:
+            raw_stacktrace = None
+
         return {
             'type': self.type,
             'value': unicode(self.value) if self.value else None,
             'module': self.module,
             'stacktrace': stacktrace,
+            'rawStacktrace': raw_stacktrace,
         }
 
     def get_alias(self):
