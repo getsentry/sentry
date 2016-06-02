@@ -75,6 +75,9 @@ class JavascriptIntegrationTest(TestCase):
         assert frame.context_line == 'h'
         assert frame.post_context == ['e', 'l', 'l', 'o', ' ']
 
+        # no source map means no raw_stacktrace
+        assert exception.values[0].raw_stacktrace is None
+
     @patch('sentry.lang.javascript.processor.fetch_file')
     @patch('sentry.lang.javascript.processor.discover_sourcemap')
     def test_inlined_sources(self, mock_discover_sourcemap, mock_fetch_file):
@@ -170,6 +173,13 @@ class JavascriptIntegrationTest(TestCase):
         ]
         assert frame.context_line == '\treturn a + b;'
         assert frame.post_context == ['}']
+
+        raw_frame_list = exception.values[0].raw_stacktrace.frames
+        raw_frame = raw_frame_list[0]
+        assert raw_frame.pre_context == []
+        assert raw_frame.context_line == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multip {snip}'
+        assert raw_frame.post_context == ['//@ sourceMappingURL=file.sourcemap.js']
+        assert raw_frame.lineno == 1
 
     @responses.activate
     def test_expansion_via_release_artifacts(self):
