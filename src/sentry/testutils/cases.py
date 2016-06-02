@@ -243,7 +243,14 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 class LiveServerTestCase(BaseTestCase, LiveServerTestCase):
     @before
     def setup_browser(self):
-        self.browser = webdriver.PhantomJS()
+        # NOTE: this relies on the phantomjs-prebuilt dependency in package.json.
+        phantomjs_path = os.path.join(
+            settings.NODE_MODULES_ROOT,
+            'phantomjs-prebuilt',
+            'bin',
+            'phantomjs',
+        )
+        self.browser = webdriver.PhantomJS(executable_path=phantomjs_path)
 
     @after
     def teardown_browser(self):
