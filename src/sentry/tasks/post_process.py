@@ -48,12 +48,14 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     # NOTE: we must pass through the full Event object, and not an
     # event_id since the Event object may not actually have been stored
     # in the database due to sampling.
-    from sentry.models import Project, Group
+    from sentry.models import Project
+    from sentry.models.group import get_group_with_redirect
     from sentry.rules.processor import RuleProcessor
 
     # Re-bind Group since we're pickling the whole Event object
     # which may contain a stale Group.
-    event.group = Group.objects.get_from_cache(id=event.group_id)
+    event.group, _ = get_group_with_redirect(event.group_id)
+    event.group_id = event.group.id
 
     project_id = event.group.project_id
     Raven.tags_context({

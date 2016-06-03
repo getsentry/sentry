@@ -58,23 +58,21 @@ def get_group_with_redirect(id, queryset=None):
     Retrieve a group by ID, checking the redirect table if the requested group
     does not exist. Returns a two-tuple of ``(object, redirected)``.
     """
-    from sentry.models import GroupRedirect
-
     if queryset is None:
         queryset = Group.objects.all()
+        # When not passing a queryset, we want to read from cache
+        getter = Group.objects.get_from_cache
+    else:
+        getter = queryset.get
 
     try:
-        return queryset.get(id=id), False
+        return getter(id=id), False
     except Group.DoesNotExist as error:
+        from sentry.models import GroupRedirect
+        qs = GroupRedirect.objects.filter(previous_group_id=id).values_list('group_id', flat=True)
         try:
-            redirect = GroupRedirect.objects.get(previous_group_id=id)
-        except GroupRedirect.DoesNotExist:
-            raise error  # raise original `DoesNotExist`
-
-        try:
-            return queryset.get(id=redirect.group_id), True
+            return queryset.get(id=qs), True
         except Group.DoesNotExist:
-            logger.warning('%r redirected to group that does not exist!', redirect, exc_info=True)
             raise error  # raise original `DoesNotExist`
 
 
