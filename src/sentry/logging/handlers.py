@@ -5,14 +5,23 @@ sentry.logging.handlers
 :license: BSD, see LICENSE for more details.
 """
 
-from logging import StreamHandler
+import logging
 
 
-class StructLogHandler(StreamHandler):
-    def __init__(self):
+class StructLogHandler(logging.StreamHandler):
+    def __init__(self, *args, **kwargs):
         from structlog import get_logger
-        self.logger = get_logger()
-        super(StructLogHandler, self).__init__()
+        from sentry.runner.initializer import configure_structlog
+        super(StructLogHandler, self).__init__(*args, **kwargs)
+        configure_structlog()
+        self._structlog = get_logger()
 
     def emit(self, record):
-        self.logger.log(record.levelno, record.msg, name=record.name)
+        kwargs = {
+            'name': record.name,
+        }
+        if record.exc_info:
+            kwargs['exc_info'] = record.exc_info
+        log = getattr(self._structlog, logging.getLevelName(logging.INFO).lower(), None)
+        if log:
+            log(record.msg, **kwargs)
