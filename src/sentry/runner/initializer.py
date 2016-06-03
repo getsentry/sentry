@@ -150,10 +150,37 @@ def bootstrap_options(settings, config=None):
                 setattr(settings, options_mapper[k], v)
 
 
+def configure_structlog():
+    """
+    Make structlog comply with all of our options.
+    """
+    import structlog
+    structlog.configure(
+        processors=[
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.KeyValueRenderer(key_order=[
+                'timestamp',
+                'name',
+                'level',
+                'event',
+            ])
+        ],
+        context_class=dict,
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=True,
+    )
+
+
 def initialize_app(config, skip_backend_validation=False):
     settings = config['settings']
 
     bootstrap_options(settings, config['options'])
+
+    configure_structlog()
 
     fix_south(settings)
 
