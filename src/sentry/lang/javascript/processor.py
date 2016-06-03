@@ -536,7 +536,7 @@ class SourceProcessor(object):
 
             raw_frames = []
             for frame in exc['stacktrace']['frames']:
-                if 'data' not in frame:
+                if 'data' not in frame or 'raw' not in frame['data']:
                     continue
 
                 frame = frame['data']['raw']
