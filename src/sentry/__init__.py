@@ -48,6 +48,14 @@ def get_version():
         return '%s.%s' % (__version__, __build__)
     return __version__
 
+
+def is_docker():
+    # One of these environment variables are guaranteed to exist
+    # from our official docker images.
+    # SENTRY_VERSION is from a tagged release, and SENTRY_BUILD is from a
+    # a git based image.
+    return 'SENTRY_VERSION' in os.environ or 'SENTRY_BUILD' in os.environ
+
 __version__ = VERSION
 __build__ = get_revision()
 __docformat__ = 'restructuredtext en'
