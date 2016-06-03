@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
 from sentry.models import Activity, Release
@@ -46,6 +46,7 @@ class ReleaseSerializer(serializers.Serializer):
 
 class ProjectReleasesEndpoint(ProjectEndpoint):
     doc_section = DocSection.RELEASES
+    permission_classes = (ProjectReleasePermission,)
 
     @attach_scenarios([list_releases_scenario])
     def get(self, request, project):

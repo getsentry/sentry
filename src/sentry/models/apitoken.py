@@ -21,6 +21,7 @@ class ApiToken(Model):
         ('project:read', 'project:read'),
         ('project:write', 'project:write'),
         ('project:delete', 'project:delete'),
+        ('project:releases', 'project:releases'),
         ('team:read', 'team:read'),
         ('team:write', 'team:write'),
         ('team:delete', 'team:delete'),
