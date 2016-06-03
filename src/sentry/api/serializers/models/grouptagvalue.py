@@ -14,6 +14,8 @@ def parse_user_tag(value):
         lookup = 'ident'
     elif lookup == 'ip':
         lookup = 'ip_address'
+    elif lookup not in ('email', 'ip_address', 'username'):
+        raise ValueError('{} is not a valid user attribute'.format(lookup))
     return {lookup: value}
 
 
@@ -22,12 +24,16 @@ class GroupTagValueSerializer(Serializer):
     def get_attrs(self, item_list, user):
         project = item_list[0].project
 
-        user_lookups = [
-            Q(**parse_user_tag(i.value))
-            for i in item_list
-            if i.key == 'sentry:user'
-            and ':' in i.value
-        ]
+        user_lookups = []
+        for item in item_list:
+            if item.key != 'sentry:user':
+                continue
+            if ':' not in item.value:
+                continue
+            try:
+                user_lookups.append(Q(**parse_user_tag(item.value)))
+            except ValueError:
+                continue
 
         tag_labels = {}
         if user_lookups:
