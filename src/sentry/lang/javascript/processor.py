@@ -536,6 +536,9 @@ class SourceProcessor(object):
 
             raw_frames = []
             for frame in exc['stacktrace']['frames']:
+                if 'data' not in frame:
+                    continue
+
                 frame = frame['data']['raw']
 
                 if frame['lineno'] is not None:

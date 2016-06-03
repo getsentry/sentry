@@ -136,6 +136,8 @@ class JavascriptIntegrationTest(TestCase):
                       body=load_fixture('file2.js'))
         responses.add(responses.GET, 'http://example.com/file.sourcemap.js',
                       body=load_fixture('file.sourcemap.js'))
+        responses.add(responses.GET, 'http://example.com/index.html',
+                      body='Not Found', status=404)
 
         data = {
             'message': 'hello',
@@ -151,6 +153,16 @@ class JavascriptIntegrationTest(TestCase):
                                 'lineno': 1,
                                 'colno': 39,
                             },
+
+                            # NOTE: Intentionally source is not retrieved from this HTML file
+                            {
+                                'function': 'function: "HTMLDocument.<anonymous>"',
+                                'abs_path': "http//example.com/index.html",
+                                'filename': 'index.html',
+                                'lineno': 283,
+                                'colno': 17,
+                                'in_app': False,
+                            }
                         ],
                     },
                 }],
@@ -161,7 +173,7 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert event.data['errors'] == [{'type': 'js_no_source', 'url': 'http//example.com/index.html'}]
 
         exception = event.interfaces['sentry.interfaces.Exception']
         frame_list = exception.values[0].stacktrace.frames
@@ -180,6 +192,10 @@ class JavascriptIntegrationTest(TestCase):
         assert raw_frame.context_line == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multip {snip}'
         assert raw_frame.post_context == ['//@ sourceMappingURL=file.sourcemap.js']
         assert raw_frame.lineno == 1
+
+        # Since we couldn't expand source for the 2nd frame, both
+        # its raw and original form should be identical
+        assert raw_frame_list[1] == frame_list[1]
 
     @responses.activate
     def test_expansion_via_release_artifacts(self):
