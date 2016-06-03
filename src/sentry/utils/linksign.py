@@ -36,7 +36,7 @@ def generate_signed_link(user, viewname, args=None, kwargs=None):
     )
 
 
-def process_signature(request, max_age=60 * 60 * 24 * 2):
+def process_signature(request, max_age=60 * 60 * 24 * 10):
     """Given a request object this validates the signature from the
     current request and returns the user.
     """
