@@ -22,6 +22,6 @@ class StructLogHandler(logging.StreamHandler):
         }
         if record.exc_info:
             kwargs['exc_info'] = record.exc_info
-        log = getattr(self._structlog, logging.getLevelName(logging.INFO).lower(), None)
+        log = getattr(self._structlog, logging.getLevelName(record.levelno).lower(), None)
         if log:
             log(record.msg, **kwargs)
