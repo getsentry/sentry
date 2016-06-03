@@ -318,11 +318,7 @@ class RedisBackend(Backend):
             # Try to take out a lock on each entry. If we can't acquire the
             # lock, that means this is currently being digested and cannot be
             # rescheduled.
-            can_reschedule = {
-                True: [],
-                False: [],
-            }
-
+            can_reschedule = ([], [])  # indexed by True and False
             for result in map(try_lock, entries):
                 can_reschedule[result[0] is not None].append(result)
 
@@ -374,11 +370,7 @@ class RedisBackend(Backend):
                         *[entry.key for (lock, entry) in can_reschedule[True]]
                     )
 
-                    should_reschedule = {
-                        True: [],
-                        False: [],
-                    }
-
+                    should_reschedule = ([], [])  # indexed by True and False
                     timeout = time.time() - self.ttl
                     for lock, entry in can_reschedule[True]:
                         should_reschedule[entry.timestamp > timeout].append(entry)
