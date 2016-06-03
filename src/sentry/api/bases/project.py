@@ -37,6 +37,15 @@ class ProjectPermission(ScopedPermission):
         )
 
 
+class ProjectReleasePermission(ProjectPermission):
+    scope_map = {
+        'GET': ['project:read', 'project:write', 'project:delete', 'project:releases'],
+        'POST': ['project:write', 'project:delete', 'project:releases'],
+        'PUT': ['project:write', 'project:delete', 'project:releases'],
+        'DELETE': ['project:delete', 'project:releases'],
+    }
+
+
 class ProjectEventPermission(ProjectPermission):
     scope_map = {
         'GET': ['event:read', 'event:write', 'event:delete'],
