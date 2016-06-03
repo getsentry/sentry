@@ -61,6 +61,7 @@ class ProjectKey(Model):
         'project:read',
         'project:write',
         'project:delete',
+        'project:releases',
         'event:read',
         'event:write',
         'event:delete',

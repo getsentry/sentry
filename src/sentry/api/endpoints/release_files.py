@@ -8,7 +8,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -65,8 +65,8 @@ class ConditionalContentNegotiation(DefaultContentNegotiation):
 
 class ReleaseFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.RELEASES
-
     content_negotiation_class = ConditionalContentNegotiation
+    permission_classes = (ProjectReleasePermission,)
 
     @attach_scenarios([list_files_scenario])
     def get(self, request, project, version):
