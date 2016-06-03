@@ -15,9 +15,9 @@ from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from structlog import get_logger
 
 from sentry.app import raven, tsdb
-from sentry.logging import audit
 from sentry.models import ApiKey, AuditLogEntry
 from sentry.utils.cursors import Cursor
 from sentry.utils.http import absolute_uri, is_valid_origin
@@ -38,6 +38,8 @@ DEFAULT_AUTHENTICATION = (
     ApiKeyAuthentication,
     SessionAuthentication,
 )
+
+logger = get_logger()
 
 
 class DocSection(Enum):
@@ -105,7 +107,12 @@ class Endpoint(APIView):
             ip_address=request.META['REMOTE_ADDR'],
             **kwargs
         )
-        audit.log_entry(entry)
+
+        logger.info(
+            name='sentry.audit.entry',
+            event=entry.get_event_display(),
+            actor_label=entry.actor_label,
+        )
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
