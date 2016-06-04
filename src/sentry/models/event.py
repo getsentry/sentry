@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 import warnings
 
+import six
 from collections import OrderedDict
 from django.db import models
 from django.utils import timezone
@@ -233,3 +234,10 @@ class Event(Model):
     def checksum(self):
         warnings.warn('Event.checksum is no longer used', DeprecationWarning)
         return ''
+
+    def get_email_subject(self):
+        return '[%s] %s: %s' % (
+            self.project.get_full_name().encode('utf-8'),
+            six.text_type(self.get_tag('level')).upper().encode('utf-8'),
+            self.message_short.encode('utf-8')
+        )
