@@ -177,10 +177,19 @@ def find_source(indexed_sourcemap, lineno, colno):
     if isinstance(indexed_sourcemap, IndexedSourceMapIndex):
         map_index = bisect.bisect_right(indexed_sourcemap.offsets, (lineno - 1, colno)) - 1
         offset = indexed_sourcemap.offsets[map_index]
-        return find_source(
+        col_offset = 0 if lineno != offset[0] else offset[1]
+        state = find_source(
             indexed_sourcemap.maps[map_index],
             lineno - offset[0],
-            colno - (0 if lineno != offset[0] else offset[0]),
+            colno - col_offset,
+        )
+        return SourceMap(
+            state.dst_line + offset[0],
+            state.dst_col + col_offset,
+            state.src,
+            state.src_line,
+            state.src_col,
+            state.name
         )
     else:
         return indexed_sourcemap.states[bisect.bisect_right(indexed_sourcemap.keys, (lineno - 1, colno)) - 1]
