@@ -23,3 +23,5 @@ class StructLogHandler(logging.StreamHandler):
         log = getattr(self._structlog, logging.getLevelName(record.levelno).lower(), None)
         if log:
             log(record.msg, **kwargs)
+        else:
+            super(StructLogHandler, self).emit(record)
