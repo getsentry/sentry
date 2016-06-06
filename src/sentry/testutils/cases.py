@@ -52,6 +52,11 @@ class BaseTestCase(Fixtures, Exam):
         assert resp['Location'].startswith('http://testserver' + reverse('sentry-login'))
 
     @before
+    def setup_dummy_auth_provider(self):
+        auth.register('dummy', DummyProvider)
+        self.addCleanup(auth.unregister, 'dummy', DummyProvider)
+
+    @before
     def setup_session(self):
         engine = import_module(settings.SESSION_ENGINE)
 
@@ -271,8 +276,10 @@ class AuthProviderTestCase(TestCase):
 
     def setUp(self):
         super(AuthProviderTestCase, self).setUp()
-        auth.register(self.provider_name, self.provider)
-        self.addCleanup(auth.unregister, self.provider_name, self.provider)
+        # TestCase automatically sets up dummy provider
+        if self.provider_name != 'dummy' or self.provider != DummyProvider:
+            auth.register(self.provider_name, self.provider)
+            self.addCleanup(auth.unregister, self.provider_name, self.provider)
 
 
 class RuleTestCase(TestCase):
