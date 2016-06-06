@@ -77,12 +77,13 @@ const App = React.createClass({
     });
 
     $(document).ajaxError(function (evt, jqXHR) {
-      if (jqXHR && jqXHR.status === 401) {
+      // TODO: Need better way of identifying anonymous pages
+      //       that don't trigger redirect
+      let pageAllowsAnon = /^\/share\//.test(this.props.location.pathname);
+      if (jqXHR && jqXHR.status === 401 && !pageAllowsAnon) {
         Cookies.set('session_expired', 1);
         // User has become unauthenticated; reload URL, and let Django
         // redirect to login page
-        // NOTE: This presumes that React application is ONLY for
-        //       authenticated users.
         window.location.reload();
       }
     });
