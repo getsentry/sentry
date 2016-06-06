@@ -194,6 +194,48 @@ class RedisBackendTestCase(BaseRedisBackendTestCase):
                 assert entry.key == 'timelines:{0}'.format(i)
                 assert entry.timestamp == float(i)
 
+    def test_maintenance(self):
+        timeline = 'timeline'
+        backend = RedisBackend(ttl=3600)
+
+        timeline_key = make_timeline_key(backend.namespace, timeline)
+        digest_key = make_digest_key(timeline_key)
+        waiting_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_WAITING)
+        ready_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_READY)
+
+        now = time.time()
+
+        connection = backend.cluster.get_local_client_for_key(timeline_key)
+        schedule_time = now - 60
+        connection.zadd(ready_set_key, schedule_time, timeline)
+        connection.zadd(timeline_key, 0, '1')
+        connection.set(make_record_key(timeline_key, '1'), 'data')
+        connection.zadd(digest_key, 0, '2')
+        connection.set(make_record_key(timeline_key, '2'), 'data')
+
+        # Move the digest from the ready set to the waiting set.
+        backend.maintenance(now)
+        assert connection.zcard(ready_set_key) == 0
+        assert connection.zrange(waiting_set_key, 0, -1, withscores=True) == [(timeline, schedule_time)]
+
+        connection.zrem(waiting_set_key, timeline)
+        connection.zadd(ready_set_key, schedule_time, timeline)
+
+        # Delete the digest from the ready set.
+        with mock.patch('time.time', return_value=now + (backend.ttl + 1)):
+            backend.maintenance(now)
+
+        keys = (
+            ready_set_key,
+            waiting_set_key,
+            timeline_key,
+            digest_key,
+            make_record_key(timeline_key, '1'),
+            make_record_key(timeline_key, '2'),
+        )
+        for key in keys:
+            assert connection.exists(key) is False
+
     def test_delete(self):
         timeline = 'timeline'
         backend = RedisBackend()
