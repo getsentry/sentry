@@ -4,6 +4,14 @@ sentry.utils.sourcemaps
 
 Originally based on https://github.com/martine/python-sourcemap
 
+Sentry implements the Source Map Revision 3 protocol. Specification:
+https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit
+
+Sentry supports both "standard" source maps, and has partial support for "indexed" source
+maps. Specifically, it supports indexed source maps with the "map" section property as
+output by the React Native bundler. It does NOT support indexed source maps with the "url"
+section property.
+
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
