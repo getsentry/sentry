@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import json
 import responses
 
 from exam import fixture
@@ -22,7 +23,7 @@ class WebHooksPluginTest(TestCase):
         responses.add(responses.POST, 'http://example.com')
 
         group = self.create_group(message='Hello world')
-        event = self.create_event(group=group, message='Hello world')
+        event = self.create_event(group=group, message='Hello world', tags={'level': 'warning'})
 
         rule = Rule.objects.create(project=self.project, label='my rule')
 
@@ -33,3 +34,8 @@ class WebHooksPluginTest(TestCase):
         self.plugin.notify(notification)
 
         assert len(responses.calls) == 1
+
+        payload = json.loads(responses.calls[0].request.body)
+
+        assert payload['level'] == 'warning'
+        assert payload['message'] == 'Hello world'
