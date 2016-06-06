@@ -2,13 +2,27 @@ from __future__ import absolute_import
 
 from django.conf import settings
 
+from sentry.app import env
 from sentry.api.serializers import Serializer, register
-from sentry.models import User, UserAvatar, UserOption
+from sentry.models import AuthIdentity, User, UserAvatar, UserOption
 from sentry.utils.avatar import get_gravatar_url
 
 
 @register(User)
 class UserSerializer(Serializer):
+    def _get_identities(self, item_list, user):
+        if not (env.request and env.request.is_superuser()):
+            item_list = filter(lambda x: x == user, item_list)
+
+        queryset = AuthIdentity.objects.filter(
+            user__in=item_list,
+        ).select_related('auth_provider', 'auth_provider__organization')
+
+        results = {i.id: [] for i in item_list}
+        for item in queryset:
+            results[item.user_id].append(item)
+        return results
+
     def get_attrs(self, item_list, user):
         avatars = {
             a.user_id: a
@@ -16,7 +30,15 @@ class UserSerializer(Serializer):
                 user__in=item_list
             )
         }
-        return {u: {'avatar': avatars.get(u.id)} for u in item_list if u}
+        identities = self._get_identities(item_list, user)
+
+        data = {}
+        for item in item_list:
+            data[item] = {
+                'avatar': avatars.get(item.id),
+                'identities': identities.get(item.id),
+            }
+        return data
 
     def serialize(self, obj, attrs, user):
         d = {
@@ -59,5 +81,19 @@ class UserSerializer(Serializer):
         else:
             avatar = {'avatarType': 'letter_avatar', 'avatarUuid': None}
         d['avatar'] = avatar
+
+        if attrs['identities'] is not None:
+            d['identities'] = [{
+                'id': i.ident,
+                'organization': {
+                    'slug': i.auth_provider.organization.slug,
+                },
+                'provider': {
+                    'id': i.auth_provider.provider,
+                    'name': i.auth_provider.get_provider().name,
+                },
+                'dateSynced': i.last_synced,
+                'dateVerified': i.last_verified,
+            } for i in attrs['identities']]
 
         return d
