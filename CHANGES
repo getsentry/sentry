@@ -1,6 +1,13 @@
 Version 8.6 (Unreleased)
 ------------------------
 
+Version 8.5.1
+-------------
+
+- Fixed issue with new Unsubscribe links in emails not working.
+- Fixed bug with raven-js compatibility with IE8.
+- Fixed bug handling IPv6 addresses.
+
 Version 8.5
 -----------
 
