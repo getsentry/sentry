@@ -152,10 +152,14 @@ def _sourcemap_to_index(smap):
 
 
 def sourcemap_to_index(sourcemap):
+    """
+    Converts a raw sourcemap string to either a SourceMapIndex (basic source map)
+    or IndexedSourceMapIndex (indexed source map w/ "sections")
+    """
     smap = json.loads(sourcemap)
 
     if smap.get('sections'):
-        # indexed source map has "sections"
+        # indexed source map
         offsets = []
         maps = []
         for section in smap.get('sections'):
@@ -170,16 +174,22 @@ def sourcemap_to_index(sourcemap):
         return _sourcemap_to_index(smap)
 
 
-def find_source(indexed_sourcemap, lineno, colno):
+def find_source(sourcemap_index, lineno, colno):
+    """
+    Given a SourceMapIndex and a transformed lineno/colno position,
+    return the SourceMap object (which contains original file, line,
+    column, and token name)
+    """
+
     # error says "line no 1, column no 56"
     assert lineno > 0, 'line numbers are 1-indexed'
 
-    if isinstance(indexed_sourcemap, IndexedSourceMapIndex):
-        map_index = bisect.bisect_right(indexed_sourcemap.offsets, (lineno - 1, colno)) - 1
-        offset = indexed_sourcemap.offsets[map_index]
+    if isinstance(sourcemap_index, IndexedSourceMapIndex):
+        map_index = bisect.bisect_right(sourcemap_index.offsets, (lineno - 1, colno)) - 1
+        offset = sourcemap_index.offsets[map_index]
         col_offset = 0 if lineno != offset[0] else offset[1]
         state = find_source(
-            indexed_sourcemap.maps[map_index],
+            sourcemap_index.maps[map_index],
             lineno - offset[0],
             colno - col_offset,
         )
@@ -192,4 +202,4 @@ def find_source(indexed_sourcemap, lineno, colno):
             state.name
         )
     else:
-        return indexed_sourcemap.states[bisect.bisect_right(indexed_sourcemap.keys, (lineno - 1, colno)) - 1]
+        return sourcemap_index.states[bisect.bisect_right(sourcemap_index.keys, (lineno - 1, colno)) - 1]
