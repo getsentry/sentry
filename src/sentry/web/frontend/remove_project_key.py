@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, ProjectKey
+from sentry.models import AuditLogEntryEvent, ProjectKey
 from sentry.web.frontend.base import ProjectView
 
 
@@ -24,10 +24,9 @@ class RemoveProjectKeyView(ProjectView):
 
         key.delete()
 
-        AuditLogEntry.objects.create(
+        self.create_audit_entry(
+            request,
             organization=organization,
-            actor=request.user,
-            ip_address=request.META['REMOTE_ADDR'],
             target_object=key.id,
             event=AuditLogEntryEvent.PROJECTKEY_REMOVE,
             data=data,
