@@ -102,13 +102,18 @@ test-js:
 
 test-python:
 	@echo "--> Running Python tests"
-	py.test tests || exit 1
+	py.test tests/integration tests/sentry || exit 1
+	@echo ""
+
+test-acceptance:
+	@echo "--> Running acceptance tests"
+	py.test tests/acceptance || exit 1
 	@echo ""
 
 
 test-python-coverage:
 	@echo "--> Running Python tests"
-	coverage run --source=src/sentry,tests -m py.test tests
+	coverage run --source=src/sentry -m py.test tests/integration tests/sentry
 	@echo ""
 
 
@@ -136,7 +141,7 @@ extract-api-docs:
 	cd api-docs; python generator.py
 
 
-.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python test-python-coverage lint lint-python lint-js coverage publish
+.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python test-acceptance test-python-coverage lint lint-python lint-js coverage publish
 
 
 ############################
