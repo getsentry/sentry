@@ -39,7 +39,7 @@ Counts on events aren't increasing.
 
     Counts are incremented in bulk asynchronously utilizing the buffer and
     queue subsystems. Check your configuration on those.  Also make sure
-    that you have the celery workers and celery beat running.
+    that you have the workers and cron running.
 
 .. class:: qa
 
