@@ -11,9 +11,7 @@ import logging
 class StructLogHandler(logging.StreamHandler):
     def __init__(self, *args, **kwargs):
         from structlog import get_logger
-        from sentry.runner.initializer import configure_structlog
         super(StructLogHandler, self).__init__(*args, **kwargs)
-        configure_structlog()
         self._structlog = get_logger()
 
     def emit(self, record):
