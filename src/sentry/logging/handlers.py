@@ -20,6 +20,8 @@ class StructLogHandler(logging.StreamHandler):
         }
         if record.exc_info:
             kwargs['exc_info'] = record.exc_info
+        # HACK(JTCunning): Calling structlog.log instead of the corresponding level
+        # methods steps on the toes of django client loggers and their testing components.
         log = getattr(self._structlog, logging.getLevelName(record.levelno).lower(), None)
         if log:
             log(record.msg, **kwargs)
