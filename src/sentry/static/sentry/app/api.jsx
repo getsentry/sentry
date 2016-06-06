@@ -56,7 +56,7 @@ export class Client {
       if (cleanup === true) {
         delete this.activeRequests[id];
       }
-      if (req.alive) {
+      if (req && req.alive) {
         return func.apply(req, args);
       }
     };
