@@ -14,12 +14,14 @@ from sudo.views import redirect_to_sudo
 
 from sentry.auth import access
 from sentry.models import (
-    Organization, OrganizationMember, OrganizationStatus, Project, ProjectStatus,
-    Team, TeamStatus
+    AuditLogEntry, Organization, OrganizationMember, OrganizationStatus, Project,
+    ProjectStatus, Team, TeamStatus
 )
 from sentry.web.helpers import get_login_url, render_to_response
 
 ERR_MISSING_SSO_LINK = _('You need to link your account with the SSO provider to continue.')
+
+logger = logging.getLogger('sentry.audit')
 
 
 class OrganizationMixin(object):
@@ -232,6 +234,15 @@ class BaseView(View, OrganizationMixin):
             user=user,
             with_projects=True,
         )
+
+    def create_audit_entry(self, request, **kwargs):
+        entry = AuditLogEntry.objects.create(
+            actor=request.user,
+            ip_address=request.META['REMOTE_ADDR'],
+            **kwargs
+        )
+
+        logger.info('%s: %s' % (entry.actor_label, entry.get_event_display()))
 
 
 class OrganizationView(BaseView):
