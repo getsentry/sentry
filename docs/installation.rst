@@ -111,25 +111,35 @@ via ``sentry``, and get something like the following:
 
     Sentry is cross-platform crash reporting built with love.
 
+    The configuration file is looked up in the `~/.sentry` config directory but this can
+    be overridden with the `SENTRY_CONF` environment variable or be explicitly provided
+    through the `--config` parameter.
+
   Options:
     --config PATH  Path to configuration files.
     --version      Show the version and exit.
     --help         Show this message and exit.
 
   Commands:
-    celery      Start background workers.
+    celery      DEPRECATED see `sentry run` instead.
     cleanup     Delete a portion of trailing data based on...
     config      Manage runtime config options.
     createuser  Create a new user.
-    devserver   Start a light Web server for development.
+    devserver   Starts a lightweight web server for...
     django      Execute Django subcommands.
+    dsym        Manage system symbols in Sentry.
     export      Exports core metadata for the Sentry...
+    files       Manage files from filestore.
     help        Show this message and exit.
     import      Imports data from a Sentry export.
     init        Initialize new configuration directory.
+    plugins     Manage Sentry plugins.
+    queues      Manage Sentry queues.
     repair      Attempt to repair any invalid data.
+    run         Run a service.
     shell       Run a Python interactive interpreter.
-    start       Start running a service.
+    start       DEPRECATED see `sentry run` instead.
+    tsdb        Tools for interacting with the time series...
     upgrade     Perform any pending database migrations and...
 
 
@@ -316,7 +326,7 @@ in addition to the web service workers:
 
 ::
 
-  SENTRY_CONF=/etc/sentry sentry celery worker
+  SENTRY_CONF=/etc/sentry sentry run worker
 
 See :doc:`queue` for more details on configuring workers.
 
@@ -326,11 +336,11 @@ See :doc:`queue` for more details on configuring workers.
 Starting the Cron Process
 -------------------------
 
-Sentry also needs a cron process which is called "celery beat":
+Sentry also needs a cron process:
 
 ::
 
-  SENTRY_CONF=/etc/sentry sentry celery beat
+  SENTRY_CONF=/etc/sentry sentry run cron
 
 It's recommended to only run one of them at the time or you will see
 unnecessary extra tasks being pushed onto the queues but the system will
@@ -418,7 +428,7 @@ go.
   [program:sentry-worker]
   directory=/www/sentry/
   environment=SENTRY_CONF="/etc/sentry"
-  command=/www/sentry/bin/sentry celery worker
+  command=/www/sentry/bin/sentry run worker
   autostart=true
   autorestart=true
   redirect_stderr=true
@@ -428,7 +438,7 @@ go.
   [program:sentry-cron]
   directory=/www/sentry/
   environment=SENTRY_CONF="/etc/sentry"
-  command=/www/sentry/bin/sentry celery beat
+  command=/www/sentry/bin/sentry run cron
   autostart=true
   autorestart=true
   redirect_stderr=true
@@ -477,7 +487,7 @@ To ensure that the services start up on reboots, run the following command: ``sy
   Group=sentry
   WorkingDirectory=/www/sentry
   Environment=SENTRY_CONF=/etc/sentry
-  ExecStart=/www/sentry/bin/sentry celery worker
+  ExecStart=/www/sentry/bin/sentry run worker
 
   [Install]
   WantedBy=multi-user.target
@@ -496,7 +506,7 @@ To ensure that the services start up on reboots, run the following command: ``sy
   Group=sentry
   WorkingDirectory=/www/sentry
   Environment=SENTRY_CONF=/etc/sentry
-  ExecStart=/www/sentry/bin/sentry celery beat
+  ExecStart=/www/sentry/bin/sentry run cron
 
   [Install]
   WantedBy=multi-user.target
