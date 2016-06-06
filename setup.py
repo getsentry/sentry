@@ -82,7 +82,6 @@ tests_require = [
     'pytest-xdist>=1.11.0,<1.12.0',
     'python-coveralls',
     'responses',
-    'selenium',
 ]
 
 
@@ -125,6 +124,7 @@ install_requires = [
     'raven>=5.3.0',
     'redis>=2.10.3,<2.11.0',
     'requests%s>=2.9.1,<2.10.0' % (not IS_LIGHT_BUILD and '[security]' or ''),
+    'selenium>=2.53,<2.60',
     'simplejson>=3.2.0,<3.9.0',
     'six>=1.6.0,<2.0.0',
     'setproctitle>=1.1.7,<1.2.0',
