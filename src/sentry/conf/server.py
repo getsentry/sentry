@@ -515,8 +515,7 @@ LOGGING = {
         },
         'console': {
             'level': 'WARNING',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
+            'class': 'sentry.logging.handlers.StructLogHandler',
         },
         'sentry': {
             'level': 'ERROR',
@@ -525,26 +524,12 @@ LOGGING = {
         },
         'audit': {
             'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
-        'console:api': {
-            'level': 'WARNING',
-            'class': 'logging.StreamHandler',
-            'formatter': 'client_info',
+            'class': 'sentry.logging.handlers.StructLogHandler',
         },
     },
     'filters': {
         'sentry:internal': {
             '()': 'sentry.utils.raven.SentryInternalFilter',
-        },
-    },
-    'formatters': {
-        'simple': {
-            'format': '[%(levelname)s] %(message)s',
-        },
-        'client_info': {
-            'format': '[%(levelname)s] [%(project)s] [%(agent)s] %(message)s',
         },
     },
     'root': {
@@ -561,7 +546,7 @@ LOGGING = {
             'handlers': ['audit'],
         },
         'sentry.api': {
-            'handlers': ['console:api', 'sentry'],
+            'handlers': ['console', 'sentry'],
             'propagate': False,
         },
         'sentry.deletions': {
