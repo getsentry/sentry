@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
+from collections import defaultdict
 from datetime import timedelta
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -15,7 +16,7 @@ from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, EventMapping, Group, GroupBookmark, GroupResolution, GroupSeen,
-    GroupSnooze, GroupStatus, Release, TagKey
+    GroupSnooze, GroupStatus, Release, TagKey, GroupTagValue,
 )
 from sentry.models.group import looks_like_short_id
 from sentry.search.utils import parse_query
@@ -135,6 +136,33 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             query_kwargs.update(parse_query(project, query, request.user))
 
         return query_kwargs
+
+    def _resolve_in_release(self, actor, group_list, release):
+        for group in group_list:
+            try:
+                with transaction.atomic():
+                    resolution, created = GroupResolution.objects.create(
+                        group=group,
+                        release=release,
+                    ), True
+            except IntegrityError:
+                resolution, created = GroupResolution.objects.get(
+                    group=group,
+                ), False
+
+            if created:
+                activity = Activity.objects.create(
+                    project=group.project,
+                    group=group,
+                    type=Activity.SET_RESOLVED_IN_RELEASE,
+                    user=actor,
+                    ident=resolution.id,
+                    data={
+                        # no version yet
+                        'version': '',
+                    }
+                )
+                activity.send_notification()
 
     # bookmarks=0/1
     # status=<x>
@@ -298,11 +326,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                      the bookmark flag.
         :auth: required
         """
-        group_ids = request.GET.getlist('id')
+        group_ids = set(request.GET.getlist('id'))
         if group_ids:
             group_list = Group.objects.filter(project=project, id__in=group_ids)
             # filter down group ids to only valid matches
-            group_ids = [g.id for g in group_list]
+            group_ids = {g.id for g in group_list}
             if not group_ids:
                 return Response(status=204)
         else:
@@ -330,13 +358,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             cursor_result = search.query(**query_kwargs)
 
             group_list = list(cursor_result)
-            group_ids = [g.id for g in group_list]
+            group_ids = {g.id for g in group_list}
 
         queryset = Group.objects.filter(
             id__in=group_ids,
         )
 
-        if result.get('status') == 'resolvedInNextRelease':
+        status = result.get('status')
+
+        if status == 'resolvedInNextRelease':
             try:
                 release = Release.objects.filter(
                     project=project,
@@ -346,74 +376,112 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
             now = timezone.now()
 
-            for group in group_list:
-                try:
-                    with transaction.atomic():
-                        resolution, created = GroupResolution.objects.create(
-                            group=group,
-                            release=release,
-                        ), True
-                except IntegrityError:
-                    resolution, created = GroupResolution.objects.get(
-                        group=group,
-                    ), False
-
-                if created:
-                    activity = Activity.objects.create(
-                        project=group.project,
-                        group=group,
-                        type=Activity.SET_RESOLVED_IN_RELEASE,
-                        user=acting_user,
-                        ident=resolution.id,
-                        data={
-                            # no version yet
-                            'version': '',
-                        }
-                    )
-                    activity.send_notification()
+            self._resolve_in_release(
+                actor=acting_user,
+                group_list=group_list,
+                release=release,
+            )
 
             queryset.update(
                 status=GroupStatus.RESOLVED,
                 resolved_at=now,
             )
 
-            result.update({
-                'status': 'resolved',
-                'statusDetails': {
-                    'inNextRelease': True,
-                },
-            })
+            result['status'] = 'resolved'
+            if status == 'resolvedInNextRelease':
+                result['statusDetails'] = {'inNextRelease': True}
+            else:
+                result['statusDetails'] = {'inThisRelease': True}
 
-        elif result.get('status') == 'resolved':
+        elif status == 'resolved':
+            # This resolve path has to handle three cases, and they're done
+            # in slightly odd ways since it's handling items in bulk.
+            #   1) All Groups have releases attached to them.
+            #   2) Some Groups have releases attached.
+            #   3) No Groups have releases attached.
+
+            # Fetch the latest release tags for the set of groups
+            tags = list(GroupTagValue.objects.filter(
+                group__in=group_ids,
+                key__in=('sentry:release', 'release'),
+            ).order_by('-last_seen'))
+
+            if tags:
+                # If we have tags, find corresponding
+                # Release objects and put together reverse
+                # lookup tables so we can use later.
+                releases = list(Release.objects.filter(
+                    project=project,
+                    version__in={t.value for t in tags},
+                ))
+                releases_by_version = {r.version: r for r in releases}
+                releases_by_group = {t.group_id: releases_by_version[t.value] for t in tags}
+                groups_by_release = defaultdict(set)
+                for tag in tags:
+                    groups_by_release[tag.value].add(tag.group_id)
+
+                # Determine the set of groups that DO have releases
+                groups_with_releases = set(releases_by_group.iterkeys())
+                # Determine which groups DO NOT have releases
+                to_resolve_normally = group_ids - groups_with_releases
+            else:
+                groups_with_releases = None
+                to_resolve_normally = group_ids
+
             now = timezone.now()
 
-            happened = queryset.exclude(
-                status=GroupStatus.RESOLVED,
-            ).update(
-                status=GroupStatus.RESOLVED,
-                resolved_at=now,
-            )
+            # First, handle the groups that DO NOT have release data
+            if to_resolve_normally:
+                happened = Group.objects.filter(
+                    id__in=to_resolve_normally,
+                ).exclude(
+                    status=GroupStatus.RESOLVED,
+                ).update(
+                    status=GroupStatus.RESOLVED,
+                    resolved_at=now,
+                )
 
-            GroupResolution.objects.filter(
-                group__in=group_ids,
-            ).delete()
+                GroupResolution.objects.filter(
+                    group__in=to_resolve_normally,
+                ).delete()
 
-            if group_list and happened:
-                for group in group_list:
-                    group.status = GroupStatus.RESOLVED
-                    group.resolved_at = now
-                    activity = Activity.objects.create(
-                        project=group.project,
-                        group=group,
-                        type=Activity.SET_RESOLVED,
-                        user=acting_user,
+                if happened:
+                    for group in group_list:
+                        # ignore the groups that we're not resolving
+                        if group.id not in to_resolve_normally:
+                            continue
+                        group.status = GroupStatus.RESOLVED
+                        group.resolved_at = now
+                        activity = Activity.objects.create(
+                            project=group.project,
+                            group=group,
+                            type=Activity.SET_RESOLVED,
+                            user=acting_user,
+                        )
+                        activity.send_notification()
+
+            # Next, handle groups that DO have release data
+            if groups_with_releases:
+                Group.objects.filter(
+                    id__in=groups_with_releases,
+                ).update(
+                    status=GroupStatus.RESOLVED,
+                    resolved_at=now,
+                )
+
+                for release in releases:
+                    self._resolve_in_release(
+                        actor=acting_user,
+                        group_list=[g for g in group_list if g.id in groups_with_releases and g.id in groups_by_release[release.version]],
+                        release=release,
                     )
-                    activity.send_notification()
 
-            result['statusDetails'] = {}
+                result['statusDetails'] = {'inThisRelease': True}
+            else:
+                result['statusDetails'] = {}
 
-        elif result.get('status'):
-            new_status = STATUS_CHOICES[result['status']]
+        elif status:
+            new_status = STATUS_CHOICES[status]
 
             happened = queryset.exclude(
                 status=new_status,
@@ -582,11 +650,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                      belong to.
         :auth: required
         """
-        group_ids = request.GET.getlist('id')
+        group_ids = set(request.GET.getlist('id'))
         if group_ids:
             group_list = Group.objects.filter(project=project, id__in=group_ids)
             # filter down group ids to only valid matches
-            group_ids = [g.id for g in group_list]
+            group_ids = {g.id for g in group_list}
         else:
             # missing any kind of filter
             return Response('{"detail": "You must specify a list of IDs for this operation"}', status=400)

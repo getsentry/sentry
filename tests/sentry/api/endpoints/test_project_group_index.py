@@ -7,7 +7,7 @@ from mock import patch
 
 from sentry.models import (
     Activity, EventMapping, Group, GroupBookmark, GroupResolution, GroupSeen,
-    GroupSnooze, GroupStatus, Release
+    GroupSnooze, GroupStatus, Release, GroupTagValue,
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import parse_link_header
@@ -343,6 +343,131 @@ class GroupUpdateTest(APITestCase):
             type=Activity.SET_RESOLVED_IN_RELEASE,
         )
         assert activity.data['version'] == ''
+
+    def test_resolved_in_this_release(self):
+        release = Release.objects.create(project=self.project, version='a')
+
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        GroupTagValue.objects.create(
+            group=group,
+            key='sentry:release',
+            value='a',
+        )
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'status': 'resolved',
+        }, format='json')
+        assert response.status_code == 200
+        assert response.data == {
+            'status': 'resolved',
+            'statusDetails': {
+                'inThisRelease': True,
+            },
+        }
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        assert GroupResolution.objects.filter(
+            group=group,
+            release=release,
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+        )
+        assert activity.data['version'] == ''
+
+    def test_resolved_in_this_release_mixed(self):
+        release1 = Release.objects.create(project=self.project, version='a')
+        release2 = Release.objects.create(project=self.project, version='b')
+
+        group1 = self.create_group(checksum='a' * 32, status=GroupStatus.UNRESOLVED)
+        group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
+        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.UNRESOLVED)
+
+        GroupTagValue.objects.create(
+            group=group1,
+            key='sentry:release',
+            value=release1.version,
+        )
+
+        GroupTagValue.objects.create(
+            group=group2,
+            key='sentry:release',
+            value=release2.version,
+        )
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group1.id}&id={group2.id}&id={group3.id}'.format(
+            url=self.path,
+            group1=group1,
+            group2=group2,
+            group3=group3,
+        )
+        response = self.client.put(url, data={
+            'status': 'resolved',
+        }, format='json')
+        assert response.status_code == 200
+        assert response.data == {
+            'status': 'resolved',
+            'statusDetails': {
+                'inThisRelease': True,
+            },
+        }
+
+        new_group1 = Group.objects.get(id=group1.id)
+        assert new_group1.status == GroupStatus.RESOLVED
+
+        assert GroupResolution.objects.filter(
+            group=group1,
+            release=release1,
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group1,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+        )
+        assert activity.data['version'] == ''
+
+        new_group2 = Group.objects.get(id=group2.id)
+        assert new_group2.status == GroupStatus.RESOLVED
+
+        assert GroupResolution.objects.filter(
+            group=group2,
+            release=release2,
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group2,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+        )
+        assert activity.data['version'] == ''
+
+        new_group3 = Group.objects.get(id=group2.id)
+        assert new_group3.resolved_at is not None
+        assert new_group3.status == GroupStatus.RESOLVED
+
+        assert not GroupResolution.objects.filter(
+            group=group3,
+        ).exists()
+
+        assert not Activity.objects.filter(
+            group=group3,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+        ).exists()
 
     def test_set_unresolved(self):
         group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)

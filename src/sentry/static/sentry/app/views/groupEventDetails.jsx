@@ -98,6 +98,13 @@ const GroupEventDetails = React.createClass({
                   occurrences.`)}</span>
               </div>
             }
+            {group.status === 'resolved' && group.statusDetails.inThisRelease &&
+              <div className="alert alert-info alert-block">
+                <span>{t(`This issue has been marked as being resolved in the most
+                  recent release. You will not get notified about new occurrences
+                  until a new release.`)}</span>
+              </div>
+            }
             {group.status === 'resolved' && group.statusDetails.autoResolved &&
               <div className="alert alert-info alert-block">
                 <span>{t(`This issue was automatically marked as resolved due to
