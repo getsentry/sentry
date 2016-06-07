@@ -108,6 +108,11 @@ class Endpoint(APIView):
             **kwargs
         )
 
+        if entry.actor_id:
+            logger.bind(actor_id=entry.actor_id)
+        if entry.actor_key_id:
+            logger.bind(actor_key_id=entry.actor_key_id)
+
         logger.info(
             name='sentry.audit.entry',
             event=entry.get_event_display(),
