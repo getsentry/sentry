@@ -194,6 +194,15 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['name'] == 'event_id'
         assert data['errors'][0]['value'] == 'a' * 33
 
+        data = self.helper.validate_data(self.project, {
+            'event_id': 'xyz',
+        })
+        assert data['event_id'] == '031667ea1758441f92c7995a428d2d14'
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'event_id'
+        assert data['errors'][0]['value'] == 'xyz'
+
     def test_invalid_event_id_raises(self):
         self.assertRaises(APIError, self.helper.validate_data, self.project, {
             'event_id': 1
