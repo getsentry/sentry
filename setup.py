@@ -129,6 +129,7 @@ install_requires = [
     'six>=1.6.0,<2.0.0',
     'setproctitle>=1.1.7,<1.2.0',
     'statsd>=3.1.0,<3.2.0',
+    'structlog==16.1.0',
     'South==1.0.1',
     'toronado>=0.0.4,<0.1.0',
     'ua-parser>=0.6.1,<0.8.0',
