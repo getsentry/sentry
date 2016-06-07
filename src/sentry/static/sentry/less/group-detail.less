@@ -569,7 +569,7 @@
           top: 13px;
         }
 
-        h1, h2, h3, h4, p, ul:not(.nav), ol, pre, hr {
+        h1, h2, h3, h4, p, ul:not(.nav), ol, pre, hr, blockquote {
           margin-bottom: 15px;
         }
         ul:not(.nav), ol {
@@ -583,6 +583,15 @@
         p {
           a {
             word-wrap: break-word;
+          }
+        }
+
+        blockquote {
+          font-size: 15px;
+          background: @white-darker;
+
+          p:last-child {
+            margin-bottom: 0;
           }
         }
 
@@ -951,7 +960,7 @@
     position: relative;
     top: 1px;
   }
-  
+
   .in-at {
     opacity: .8;
     margin: 0 2px;
