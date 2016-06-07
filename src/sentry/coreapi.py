@@ -12,6 +12,7 @@ from __future__ import absolute_import, print_function
 
 import base64
 import logging
+import re
 import six
 import uuid
 import zlib
@@ -39,6 +40,7 @@ from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float
 
 LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
+EVENT_ID_RE = re.compile(r'^[a-fA-F0-9]{32}$')
 
 
 class APIError(Exception):
@@ -369,6 +371,16 @@ class ClientApiHelper(object):
                 len(data['event_id']))
             data['errors'].append({
                 'type': EventError.VALUE_TOO_LONG,
+                'name': 'event_id',
+                'value': data['event_id'],
+            })
+            data['event_id'] = uuid.uuid4().hex
+        elif not EVENT_ID_RE.match(data['event_id']):
+            self.log.info(
+                'Discarded invalid value for event_id: %r',
+                data['event_id'], exc_info=True)
+            data['errors'].append({
+                'type': EventError.INVALID_DATA,
                 'name': 'event_id',
                 'value': data['event_id'],
             })
