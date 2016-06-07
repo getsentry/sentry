@@ -32,6 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc \
         git \
         libffi-dev \
+        libjpeg-dev \
         libpq-dev \
         libxml2-dev \
         libxslt-dev \
