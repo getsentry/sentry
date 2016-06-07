@@ -6,6 +6,7 @@ service postgresql start
 service redis-server start
 service memcached start
 service postfix start
+service ntp start
 
 if [ "$1" = 'bootstrap' ]; then
   SENTRY_LIGHT_BUILD=1 pip install -vvv -e .[dev,tests]
