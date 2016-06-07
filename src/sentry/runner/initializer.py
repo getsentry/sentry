@@ -162,6 +162,7 @@ def configure_structlog():
             structlog.processors.TimeStamper(fmt="iso"),
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
+            structlog.processors.ExceptionPrettyPrinter(),
             structlog.processors.KeyValueRenderer(key_order=[
                 'timestamp',
                 'name',
