@@ -10,6 +10,7 @@ from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic import View
+from structlog import get_logger
 from sudo.views import redirect_to_sudo
 
 from sentry.auth import access
@@ -21,7 +22,7 @@ from sentry.web.helpers import get_login_url, render_to_response
 
 ERR_MISSING_SSO_LINK = _('You need to link your account with the SSO provider to continue.')
 
-logger = logging.getLogger('sentry.audit')
+logger = get_logger()
 
 
 class OrganizationMixin(object):
@@ -242,12 +243,17 @@ class BaseView(View, OrganizationMixin):
                 ip_address=request.META['REMOTE_ADDR'],
                 **kwargs
             )
+            logger.info(
+                name='sentry.audit.entry',
+                event=entry.get_event_display(),
+                actor_id=request.user.id,
+                actor_label=entry.actor_label,
+            )
+
         else:
             logger.warn('Attempted to audit event for an AnonymousUser at %s' %
                 request.META['REMOTE_ADDR']
             )
-
-        logger.info('%s: %s' % (entry.actor_label, entry.get_event_display()))
 
 
 class OrganizationView(BaseView):
