@@ -155,6 +155,7 @@ def configure_structlog():
     Make structlog comply with all of our options.
     """
     import structlog
+    WrappedDictClass = structlog.threadlocal.wrap_dict(dict)
     structlog.configure(
         processors=[
             structlog.stdlib.add_log_level,
@@ -168,7 +169,7 @@ def configure_structlog():
                 'event',
             ])
         ],
-        context_class=dict,
+        context_class=WrappedDictClass,
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
     )
