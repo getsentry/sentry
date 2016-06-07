@@ -7,13 +7,12 @@ sentry.logging.handlers
 
 import logging
 
+from structlog import get_logger
+
+logger = get_logger()
+
 
 class StructLogHandler(logging.StreamHandler):
-    def __init__(self, *args, **kwargs):
-        from structlog import get_logger
-        super(StructLogHandler, self).__init__(*args, **kwargs)
-        self._structlog = get_logger()
-
     def emit(self, record):
         kwargs = {
             'name': record.name,
@@ -22,7 +21,7 @@ class StructLogHandler(logging.StreamHandler):
             kwargs['exc_info'] = record.exc_info
         # HACK(JTCunning): Calling structlog.log instead of the corresponding level
         # methods steps on the toes of django client loggers and their testing components.
-        log = getattr(self._structlog, logging.getLevelName(record.levelno).lower(), None)
+        log = getattr(logger, logging.getLevelName(record.levelno).lower(), None)
         if log:
             log(record.msg, **kwargs)
         else:
