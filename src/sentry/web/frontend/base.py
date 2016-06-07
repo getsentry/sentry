@@ -237,23 +237,17 @@ class BaseView(View, OrganizationMixin):
         )
 
     def create_audit_entry(self, request, **kwargs):
-        if request.user.is_authenticated():
-            entry = AuditLogEntry.objects.create(
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
-                **kwargs
-            )
-            logger.info(
-                name='sentry.audit.entry',
-                event=entry.get_event_display(),
-                actor_id=request.user.id,
-                actor_label=entry.actor_label,
-            )
-
-        else:
-            logger.warn('Attempted to audit event for an AnonymousUser at %s' %
-                request.META['REMOTE_ADDR']
-            )
+        entry = AuditLogEntry.objects.create(
+            actor=request.user if request.user.is_authenticated() else None,
+            ip_address=request.META['REMOTE_ADDR'],
+            **kwargs
+        )
+        logger.info(
+            name='sentry.audit.entry',
+            event=entry.get_event_display(),
+            actor_id=entry.actor_id,
+            actor_label=entry.actor_label,
+        )
 
 
 class OrganizationView(BaseView):
