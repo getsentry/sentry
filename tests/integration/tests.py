@@ -111,6 +111,8 @@ class RavenIntegrationTest(TransactionTestCase):
     def sendRemote(self, url, data, headers={}):
         content_type = headers.pop('Content-Type', None)
         headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in six.iteritems(headers))
+        if isinstance(data, six.text_type):
+            data = data.encode('utf-8')
         resp = self.client.post(
             reverse('sentry-api-store', args=[self.pk.project_id]),
             data=data,
