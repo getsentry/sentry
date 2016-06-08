@@ -87,6 +87,7 @@ class UserSerializer(Serializer):
                 'id': i.ident,
                 'organization': {
                     'slug': i.auth_provider.organization.slug,
+                    'name': i.auth_provider.organization.name,
                 },
                 'provider': {
                     'id': i.auth_provider.provider,
