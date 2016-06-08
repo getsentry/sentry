@@ -37,15 +37,15 @@ def exception_from_apple_error_or_diagnosis(error, diagnosis=None):
             if 'value' in nsexception:
                 rv['value'] = nsexception['value']
 
-    if 'reason' in error and 'value' in rv:
+    if 'reason' in error and 'value' not in rv:
         rv['value'] = error['reason']
-    if 'diagnosis' in error and 'value' in rv:
+    if 'diagnosis' in error and 'value' not in rv:
         rv['value'] = error['diagnosis']
 
-    if 'mach' in rv:
-        rv['mach_exception'] = rv['mach']
-    if 'signal' in rv:
-        rv['posix_signal'] = rv['signal']
+    if 'mach' in error:
+        mechanism['mach_exception'] = error['mach']
+    if 'signal' in error:
+        mechanism['posix_signal'] = error['signal']
 
     if mechanism:
         mechanism.setdefault('type', 'cocoa')
