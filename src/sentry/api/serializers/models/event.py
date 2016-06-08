@@ -106,7 +106,10 @@ class EventSerializer(Serializer):
             'eventID': str(obj.event_id),
             'size': obj.size,
             'entries': attrs['entries'],
-            'message': obj.message,
+            # See GH-3248
+            'message': obj.data.get('sentry.interfaces.Message', {
+                'message': obj.message,
+            })['message'],
             'user': attrs['user'],
             'sdk': attrs['sdk'],
             'device': attrs['device'],
