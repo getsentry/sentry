@@ -10,16 +10,19 @@ from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic import View
+from structlog import get_logger
 from sudo.views import redirect_to_sudo
 
 from sentry.auth import access
 from sentry.models import (
-    Organization, OrganizationMember, OrganizationStatus, Project, ProjectStatus,
-    Team, TeamStatus
+    AuditLogEntry, Organization, OrganizationMember, OrganizationStatus, Project,
+    ProjectStatus, Team, TeamStatus
 )
 from sentry.web.helpers import get_login_url, render_to_response
 
 ERR_MISSING_SSO_LINK = _('You need to link your account with the SSO provider to continue.')
+
+logger = get_logger()
 
 
 class OrganizationMixin(object):
@@ -231,6 +234,20 @@ class BaseView(View, OrganizationMixin):
             organization=organization,
             user=user,
             with_projects=True,
+        )
+
+    def create_audit_entry(self, request, **kwargs):
+        entry = AuditLogEntry.objects.create(
+            actor=request.user if request.user.is_authenticated() else None,
+            # TODO(jtcunning): assert that REMOTE_ADDR is a real IP.
+            ip_address=request.META['REMOTE_ADDR'],
+            **kwargs
+        )
+        logger.info(
+            name='sentry.audit.entry',
+            event=entry.get_event_display(),
+            actor_id=entry.actor_id,
+            actor_label=entry.actor_label,
         )
 
 

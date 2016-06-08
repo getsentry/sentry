@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from operator import or_
 
-from sentry.models import ApiKey, AuditLogEntry, AuditLogEntryEvent
+from sentry.models import ApiKey, AuditLogEntryEvent
 from sentry.web.frontend.base import OrganizationView
 
 DEFAULT_SCOPES = [
@@ -26,10 +26,9 @@ class OrganizationApiKeysView(OrganizationView):
                 scopes=reduce(or_, [getattr(ApiKey.scopes, s) for s in DEFAULT_SCOPES])
             )
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request,
                 organization=organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=key.id,
                 event=AuditLogEntryEvent.APIKEY_ADD,
                 data=key.get_audit_log_data(),
@@ -50,10 +49,9 @@ class OrganizationApiKeysView(OrganizationView):
 
             key.delete()
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request,
                 organization=organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=key.id,
                 event=AuditLogEntryEvent.APIKEY_REMOVE,
                 data=audit_data,
