@@ -101,9 +101,10 @@ class User(BaseModel, AbstractBaseUser):
 
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
+        from sentry import roles
         from sentry.models import (
             AuditLogEntry, Activity, AuthIdentity, GroupBookmark,
-            OrganizationMember, UserOption
+            OrganizationMember, OrganizationMemberTeam, UserOption
         )
 
         for obj in OrganizationMember.objects.filter(user=from_user):
@@ -112,6 +113,22 @@ class User(BaseModel, AbstractBaseUser):
                     obj.update(user=to_user)
             except IntegrityError:
                 pass
+
+            # identify the highest priority membership
+            to_member = OrganizationMember.objects.get(user=to_user)
+            if roles.get(obj.role).priority > roles.get(to_member.role).priority:
+                to_member.update(role=obj.role)
+
+            for team in obj.teams.all():
+                try:
+                    with transaction.atomic():
+                        OrganizationMemberTeam.objects.create(
+                            organizationmember=to_member,
+                            team=team,
+                        )
+                except IntegrityError:
+                    pass
+
         for obj in GroupBookmark.objects.filter(user=from_user):
             try:
                 with transaction.atomic():
