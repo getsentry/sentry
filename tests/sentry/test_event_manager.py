@@ -584,6 +584,19 @@ class EventManagerTest(TransactionTestCase):
             'version': '1.0',
         }
 
+    def test_no_message(self):
+        # test that the message is handled gracefully
+        manager = EventManager(self.make_event(**{
+            'message': '',
+            'sentry.interfaces.Message': {
+                'message': 'hello world',
+            },
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert event.message == 'hello world'
+
 
 class GetHashesFromEventTest(TestCase):
     @patch('sentry.interfaces.stacktrace.Stacktrace.compute_hashes')
