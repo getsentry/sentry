@@ -19,7 +19,7 @@ class ProjectPluginConfigureView(ProjectView):
         if not plugin.can_configure_for_project(project):
             return self.redirect(reverse('sentry-manage-project', args=[project.organization.slug, project.slug]))
 
-        view = plugin.configure(request, project=project)
+        view = plugin.configure(request=request, project=project)
         if isinstance(view, HttpResponse):
             return view
 

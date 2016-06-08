@@ -42,7 +42,7 @@ def configure_plugin(request, slug):
     if not plugin.has_site_conf():
         return HttpResponseRedirect(reverse('sentry'))
 
-    view = plugin.configure(request)
+    view = plugin.configure(request=request)
     if isinstance(view, HttpResponse):
         return view
 
