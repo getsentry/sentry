@@ -41,7 +41,7 @@ class MailPluginTest(TestCase):
 
     def test_simple_notification(self):
         group = self.create_group(message='Hello world')
-        event = self.create_event(group=group, message='Hello world')
+        event = self.create_event(group=group, message='Hello world', tags={'level': 'error'})
 
         rule = Rule.objects.create(project=self.project, label='my rule')
 
@@ -124,6 +124,11 @@ class MailPluginTest(TestCase):
             message=group.message,
             project=self.project,
             datetime=group.last_seen,
+            data={
+                'tags': [
+                    ('level', 'error'),
+                ]
+            },
         )
 
         notification = Notification(event=event)
@@ -154,6 +159,11 @@ class MailPluginTest(TestCase):
             message=group.message,
             project=self.project,
             datetime=group.last_seen,
+            data={
+                'tags': [
+                    ('level', 'error'),
+                ]
+            },
         )
 
         notification = Notification(event=event)
@@ -220,8 +230,8 @@ class MailPluginTest(TestCase):
         assert user4.pk not in self.plugin.get_sendable_users(project)
 
     def test_notify_users_with_utf8_subject(self):
-        group = self.create_group(message=u'רונית מגן')
-        event = self.create_event(group=group, message='Hello world')
+        group = self.create_group(message='Hello world')
+        event = self.create_event(group=group, message=u'רונית מגן', tags={'level': 'error'})
 
         notification = Notification(event=event)
 
