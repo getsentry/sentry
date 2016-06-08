@@ -6,3 +6,8 @@ sentry.logging
 """
 
 from __future__ import absolute_import
+
+
+class LoggingFormat(object):
+    HUMAN = 'human'
+    MACHINE = 'machine'
