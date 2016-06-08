@@ -365,6 +365,7 @@ class AuthHelper(object):
         """
         request = self.request
         op = request.POST.get('op')
+
         if not request.user.is_authenticated():
             try:
                 existing_user = auth.find_users(identity['email'], is_active=True)[0]
@@ -375,7 +376,7 @@ class AuthHelper(object):
             # the email matches we go ahead and let them merge it. This is the
             # only way to prevent them having duplicate accounts, and because
             # we trust identity providers, its considered safe.
-            if existing_user and not existing_user.password:
+            if existing_user and existing_user.is_managed:
                 # we only allow this flow to happen if the existing user has
                 # membership, otherwise we short circuit because it might be
                 # an attempt to hijack membership of another organization
@@ -395,6 +396,16 @@ class AuthHelper(object):
                     existing_user = None
 
             login_form = self._get_login_form(existing_user)
+        elif request.user.is_managed:
+            # per the above, try to auto merge if the user was originally an
+            # SSO account but is still logged in
+            has_membership = OrganizationMember.objects.filter(
+                user=existing_user,
+                organization=self.organization,
+            ).exists()
+            if has_membership:
+                # assume they've confirmed they want to attach the identity
+                op = 'confirm'
 
         if op == 'confirm' and request.user.is_authenticated():
             auth_identity = self._handle_attach_identity(identity)
