@@ -125,6 +125,15 @@ class User(BaseModel, AbstractBaseUser):
             except IntegrityError:
                 pass
 
+        # remove any duplicate identities that exist on the current user that
+        # might conflict w/ the new users existing SSO
+        AuthIdentity.objects.filter(
+            user=from_user,
+            auth_provider__organization__in=AuthIdentity.objects.filter(
+                user=to_user,
+            ).values('auth_provider__organization')
+        ).delete()
+
         Activity.objects.filter(
             user=from_user,
         ).update(user=to_user)
