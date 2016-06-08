@@ -1,4 +1,5 @@
 import React from 'react';
+import KeyValueList from '../interfaces/keyValueList';
 
 const ExceptionMechanism = React.createClass({
   propTypes: {
@@ -7,19 +8,11 @@ const ExceptionMechanism = React.createClass({
   },
 
   renderMachException(data) {
-    return (
-      <p>
-        <strong>Mach Exception</strong>: <code>{data.exception_name} ({data.exception})</code>
-      </p>
-    );
+    return ['Mach Exception', data.exception_name];
   },
 
   renderPosixSignal(data) {
-    return (
-      <p>
-        <strong>Posix Signal</strong>: <code>{data.name} ({data.signal})</code>
-      </p>
-    );
+    return ['Signal', data.name + ' (' + data.signal + ')'];
   },
 
   render() {
@@ -38,9 +31,7 @@ const ExceptionMechanism = React.createClass({
 
     return (
       <div className="exception-mechanism">
-        <ul>{elements.map((item, idx) => {
-          return <li key={idx}>{item}</li>;
-        })}</ul>
+        <KeyValueList data={elements} />
       </div>
     );
   }
