@@ -348,6 +348,8 @@ class MessageBuilder(object):
         return results
 
     def format_to(self, to):
+        if not to:
+            return to
         trunc = to[:MAX_RECIPIENTS + 1]
         if len(trunc) > MAX_RECIPIENTS:
             trunc[-1] = 'and {} more.'.format(len(to) - len(trunc) - 1)
