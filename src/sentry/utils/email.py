@@ -12,6 +12,7 @@ import subprocess
 import tempfile
 import time
 from email.utils import parseaddr
+from functools import partial
 from operator import attrgetter
 from random import randrange
 from structlog import get_logger
@@ -34,6 +35,9 @@ from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import is_valid_dot_atom
 from sentry.web.helpers import render_to_string
+
+# The maximum amount of recipients to display in human format.
+MAX_RECIPIENTS = 5
 
 logger = get_logger()
 
@@ -343,6 +347,13 @@ class MessageBuilder(object):
             logger.debug('Did not build any messages, no users to send to.')
         return results
 
+    def format_to(self, to):
+        trunc = to[:MAX_RECIPIENTS + 1]
+        if len(trunc) > MAX_RECIPIENTS:
+            trunc[-1] = 'and {} more.'.format(len(to) - len(trunc) - 1)
+
+        return ', '.join(trunc)
+
     def send(self, to=None, bcc=None, fail_silently=False):
         return send_messages(
             self.get_built_messages(to, bcc=bcc),
@@ -351,21 +362,27 @@ class MessageBuilder(object):
 
     def send_async(self, to=None, bcc=None):
         from sentry.tasks.email import send_email
-        # from sentry/emails/send-invite.txt to send-invite
+        from sentry import options
+        fmt = options.get('system.logging-format')
         messages = self.get_built_messages(to, bcc=bcc)
+        log_mail_queued = partial(
+            logger.info,
+            name='sentry.mail',
+            event='mail.queued',
+            type=self.type,
+        )
         for message in messages:
             safe_execute(
                 send_email.delay,
                 message=message,
                 _with_transaction=False,
             )
-            logger.info(
-                name='sentry.mail',
-                event='mail.queued',
-                to=to,  # WIP: truncating on human fmt and multi-line for machine.
-                message_id=message.extra_headers['Message-Id'],
-                type=self.type,
-            )
+            logger.bind(message_id=message.extra_headers['Message-Id'])
+            if fmt == 'human':
+                log_mail_queued(to=self.format_to(to))
+            elif fmt == 'machine':
+                for recipient in to:
+                    log_mail_queued(to=recipient)
 
 
 def send_messages(messages, fail_silently=False):
