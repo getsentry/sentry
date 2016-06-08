@@ -253,7 +253,7 @@ class MessageBuilder(object):
         self.reply_reference = reply_reference  # The object this message is replying about
         self.from_email = from_email or options.get('mail.from')
         self._send_to = set()
-        self.type = type
+        self.type = type if type else 'generic'
 
         if reference is not None and 'List-Id' not in headers:
             try:
