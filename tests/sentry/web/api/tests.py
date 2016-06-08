@@ -79,7 +79,7 @@ class StoreViewTest(TestCase):
             'sentry_version': '2.0',
         }
         resp = self.client.options(self.path)
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 200, (resp.status_code, resp.content)
         self.assertIn('Allow', resp)
         self.assertEquals(resp['Allow'], 'GET, POST, HEAD, OPTIONS')
         self.assertIn('Content-Length', resp)
@@ -88,7 +88,7 @@ class StoreViewTest(TestCase):
     @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=False))
     def test_options_response_with_invalid_origin(self):
         resp = self.client.options(self.path, HTTP_ORIGIN='http://foo.com')
-        assert resp.status_code == 403, resp.content
+        assert resp.status_code == 403, (resp.status_code, resp.content)
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], '*')
         self.assertIn('X-Sentry-Error', resp)
@@ -98,7 +98,7 @@ class StoreViewTest(TestCase):
     @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=False))
     def test_options_response_with_invalid_referrer(self):
         resp = self.client.options(self.path, HTTP_REFERER='http://foo.com')
-        assert resp.status_code == 403, resp.content
+        assert resp.status_code == 403, (resp.status_code, resp.content)
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], '*')
         self.assertIn('X-Sentry-Error', resp)
@@ -108,21 +108,21 @@ class StoreViewTest(TestCase):
     @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
     def test_options_response_with_valid_origin(self):
         resp = self.client.options(self.path, HTTP_ORIGIN='http://foo.com')
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 200, (resp.status_code, resp.content)
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')
 
     @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
     def test_options_response_with_valid_referrer(self):
         resp = self.client.options(self.path, HTTP_REFERER='http://foo.com')
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 200, (resp.status_code, resp.content)
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')
 
-    @mock.patch('sentry.web.api.is_valid_ip', mock.Mock(return_value=False))
+    @mock.patch('sentry.coreapi.is_valid_ip', mock.Mock(return_value=False))
     def test_request_with_backlisted_ip(self):
         resp = self._postWithHeader({})
-        assert resp.status_code == 403, resp.content
+        assert resp.status_code == 403, (resp.status_code, resp.content)
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrubs_ip_address(self, mock_insert_data_to_database):
@@ -137,7 +137,7 @@ class StoreViewTest(TestCase):
             },
         }
         resp = self._postWithHeader(body)
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert not call_data['sentry.interfaces.User'].get('ip_address')
@@ -157,7 +157,7 @@ class StoreViewTest(TestCase):
             },
         }
         resp = self._postWithHeader(body)
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert not call_data['sentry.interfaces.User'].get('ip_address')
@@ -177,7 +177,7 @@ class StoreViewTest(TestCase):
             },
         }
         resp = self._postWithHeader(body)
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['sentry.interfaces.Http']['data'] == 'password=lol&foo=1&bar=2&baz=3'
@@ -196,7 +196,7 @@ class StoreViewTest(TestCase):
             },
         }
         resp = self._postWithHeader(body)
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['sentry.interfaces.Http']['data'] == 'password=lol&foo=1&bar=2&baz=3'
@@ -215,7 +215,7 @@ class StoreViewTest(TestCase):
             },
         }
         resp = self._postWithHeader(body)
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['sentry.interfaces.Http']['data'] == 'password=[Filtered]&foo=1&bar=2&baz=3'
@@ -235,7 +235,7 @@ class StoreViewTest(TestCase):
             },
         }
         resp = self._postWithHeader(body)
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['sentry.interfaces.Http']['data'] == 'password=[Filtered]&foo=[Filtered]&bar=[Filtered]&baz=3'
@@ -256,7 +256,7 @@ class StoreViewTest(TestCase):
             },
         }
         resp = self._postWithHeader(body)
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['sentry.interfaces.Http']['data'] == 'password=[Filtered]&foo=1&bar=2&baz=3'
@@ -277,7 +277,7 @@ class StoreViewTest(TestCase):
             },
         }
         resp = self._postWithHeader(body)
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['sentry.interfaces.Http']['data'] == 'password=[Filtered]&foo=[Filtered]&bar=[Filtered]&baz=[Filtered]'
@@ -288,7 +288,7 @@ class StoreViewTest(TestCase):
             "message": "foo bar",
         }
         resp = self._postWithHeader(body)
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['sdk'] == {
