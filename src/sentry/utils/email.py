@@ -28,6 +28,7 @@ from django.utils.encoding import force_bytes, force_str, force_text
 from toronado import from_string as inline_css
 
 from sentry import options
+from sentry.logging import LoggingFormat
 from sentry.models import (
     Activity, Event, Group, GroupEmailThread, Project, User, UserOption
 )
@@ -375,10 +376,9 @@ class MessageBuilder(object):
                 _with_transaction=False,
             )
             logger.bind(message_id=message.extra_headers['Message-Id'])
-            # TODO(jtcunning): GH-3443
-            if fmt == 'human':
+            if fmt == LoggingFormat.HUMAN:
                 log_mail_queued(to=self.format_to(to))
-            elif fmt == 'machine':
+            elif fmt == LoggingFormat.MACHINE:
                 for recipient in to:
                     log_mail_queued(to=recipient)
 
