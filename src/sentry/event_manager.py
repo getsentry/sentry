@@ -478,6 +478,8 @@ class EventManager(object):
                     data['sentry.interfaces.Message']['message'],
                 )
 
+        if not message:
+            message = ''
         for value in event_metadata.itervalues():
             value_u = unicode(value)
             if value_u not in message:
