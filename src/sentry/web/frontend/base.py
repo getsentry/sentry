@@ -239,6 +239,7 @@ class BaseView(View, OrganizationMixin):
     def create_audit_entry(self, request, **kwargs):
         entry = AuditLogEntry.objects.create(
             actor=request.user if request.user.is_authenticated() else None,
+            # TODO(jtcunning): assert that REMOTE_ADDR is a real IP.
             ip_address=request.META['REMOTE_ADDR'],
             **kwargs
         )
