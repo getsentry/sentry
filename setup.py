@@ -384,8 +384,8 @@ class BuildJavascriptCommand(Command):
             check_output(['git', 'submodule', 'init'], cwd=work_path)
             check_output(['git', 'submodule', 'update'], cwd=work_path)
 
-        log.info("running [npm install --quiet]")
-        check_output(['npm', 'install', '--quiet'], cwd=work_path)
+        log.info("running [npm install --production --quiet]")
+        check_output(['npm', 'install', '--production', '--quiet'], cwd=work_path)
 
         # By setting NODE_ENV=production, a few things happen
         #   * React optimizes out certain code paths
