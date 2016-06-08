@@ -17,7 +17,8 @@ from raven.contrib.django.models import client as Raven
 
 from sentry import app
 from sentry.coreapi import (
-    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper
+    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper,
+    LazyData
 )
 from sentry.event_manager import EventManager
 from sentry.models import Project, OrganizationOption
@@ -283,6 +284,12 @@ class StoreView(APIView):
     def process(self, request, project, auth, helper, data, **kwargs):
         metrics.incr('events.total')
 
+        data = LazyData(
+            data=data,
+            content_encoding=request.META.get('HTTP_CONTENT_ENCODING', ''),
+            helper=helper,
+        )
+
         remote_addr = request.META['REMOTE_ADDR']
         event_received.send_robust(
             ip=remote_addr,
@@ -298,6 +305,16 @@ class StoreView(APIView):
             ])
             metrics.incr('events.blacklisted')
             raise APIForbidden('Blacklisted IP address: %s' % (remote_addr,))
+
+        if helper.should_filter(data, project):
+            app.tsdb.incr_multi([
+                (app.tsdb.models.project_total_received, project.id),
+                (app.tsdb.models.project_total_blacklisted, project.id),
+                (app.tsdb.models.organization_total_received, project.organization_id),
+                (app.tsdb.models.organization_total_blacklisted, project.organization_id),
+            ])
+            metrics.incr('events.blacklisted')
+            raise APIForbidden('Event dropped due to filter')
 
         # TODO: improve this API (e.g. make RateLimit act on __ne__)
         rate_limit = safe_execute(app.quotas.is_rate_limited, project=project,
@@ -324,17 +341,6 @@ class StoreView(APIView):
                 (app.tsdb.models.project_total_received, project.id),
                 (app.tsdb.models.organization_total_received, project.organization_id),
             ])
-
-        content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')
-
-        if isinstance(data, basestring):
-            if content_encoding == 'gzip':
-                data = helper.decompress_gzip(data)
-            elif content_encoding == 'deflate':
-                data = helper.decompress_deflate(data)
-            elif not data.startswith('{'):
-                data = helper.decode_and_decompress_data(data)
-            data = helper.safely_load_json_string(data)
 
         # mutates data
         data = helper.validate_data(project, data)
