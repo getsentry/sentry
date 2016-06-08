@@ -2,6 +2,7 @@ import React from 'react';
 import {defined} from '../../../utils';
 
 import StacktraceContent from './stacktraceContent';
+import ExceptionMechanism from './exceptionMechanism';
 
 const ExceptionContent = React.createClass({
   propTypes: {
@@ -22,6 +23,11 @@ const ExceptionContent = React.createClass({
           </h4>
           {exc.value &&
             <pre className="exc-message">{exc.value}</pre>
+          }
+          {exc.mechanism &&
+            <ExceptionMechanism
+              data={exc.mechanism}
+              platform={this.props.platform}/>
           }
           {defined(exc.stacktrace) &&
             <StacktraceContent

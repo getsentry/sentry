@@ -106,6 +106,7 @@ class SingleException(Interface):
         return {
             'type': self.type,
             'value': self.value,
+            'mechanism': self.mechanism or None,
             'module': self.module,
             'stacktrace': stacktrace,
             'raw_stacktrace': raw_stacktrace,
@@ -125,6 +126,7 @@ class SingleException(Interface):
         return {
             'type': self.type,
             'value': unicode(self.value) if self.value else None,
+            'mechanism': self.mechanism or None,
             'module': self.module,
             'stacktrace': stacktrace,
             'rawStacktrace': raw_stacktrace,
