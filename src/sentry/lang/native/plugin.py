@@ -26,21 +26,39 @@ def append_error(data, err):
 
 
 def exception_from_apple_error_or_diagnosis(error, diagnosis=None):
+    rv = {}
     error = error or {}
+    mechanism = {}
 
     if error:
         nsexception = error.get('nsexception')
         if nsexception:
-            return {
-                'type': nsexception['name'],
-                'value': error['reason'],
-            }
+            rv['type'] = nsexception['name']
+            if 'value' in nsexception:
+                rv['value'] = nsexception['value']
 
-    if diagnosis:
-        return {
-            'type': 'Error',
-            'value': diagnosis
-        }
+    if 'reason' in error and 'value' not in rv:
+        rv['value'] = error['reason']
+    if 'diagnosis' in error and 'value' not in rv:
+        rv['value'] = error['diagnosis']
+
+    if 'mach' in error:
+        mechanism['mach_exception'] = error['mach']
+    if 'signal' in error:
+        mechanism['posix_signal'] = error['signal']
+
+    if mechanism:
+        mechanism.setdefault('type', 'cocoa')
+        rv['mechanism'] = mechanism
+
+    if 'value' in rv and 'type' not in rv:
+        rv['type'] = \
+            error.get('mach', {}).get('exception_name') or \
+            error.get('signal', {}).get('name') or \
+            'Error'
+
+    if rv:
+        return rv
 
 
 def is_in_app(frame, app_uuid=None):
