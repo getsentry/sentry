@@ -135,7 +135,7 @@ class MailPlugin(NotificationPlugin):
         project = group.project
         org = group.organization
 
-        subject = group.get_email_subject()
+        subject = event.get_email_subject()
 
         link = group.get_absolute_url()
 
