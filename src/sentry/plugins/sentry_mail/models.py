@@ -56,7 +56,7 @@ class MailPlugin(NotificationPlugin):
 
     def _build_message(self, project, subject, template=None, html_template=None,
                    body=None, reference=None, reply_reference=None, headers=None,
-                   context=None, send_to=None, type=None):
+                   context=None, send_to=None, type='generic'):
         if send_to is None:
             send_to = self.get_send_to(project)
         if not send_to:

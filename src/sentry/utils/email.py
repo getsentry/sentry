@@ -348,13 +348,9 @@ class MessageBuilder(object):
         return results
 
     def format_to(self, to):
-        if not to:
-            return to
-        trunc = to[:MAX_RECIPIENTS + 1]
-        if len(trunc) > MAX_RECIPIENTS:
-            trunc[-1] = 'and {} more.'.format(len(to) - len(trunc) - 1)
-
-        return ', '.join(trunc)
+        if to and len(to) > MAX_RECIPIENTS:
+            to = to[:MAX_RECIPIENTS] + ['and {} more.'.format(len(to[MAX_RECIPIENTS:]))]
+        return ', '.join(to) if isinstance(to, list) else to
 
     def send(self, to=None, bcc=None, fail_silently=False):
         return send_messages(
@@ -364,7 +360,6 @@ class MessageBuilder(object):
 
     def send_async(self, to=None, bcc=None):
         from sentry.tasks.email import send_email
-        from sentry import options
         fmt = options.get('system.logging-format')
         messages = self.get_built_messages(to, bcc=bcc)
         log_mail_queued = partial(
@@ -380,6 +375,7 @@ class MessageBuilder(object):
                 _with_transaction=False,
             )
             logger.bind(message_id=message.extra_headers['Message-Id'])
+            # TODO(jtcunning): GH-3443
             if fmt == 'human':
                 log_mail_queued(to=self.format_to(to))
             elif fmt == 'machine':
