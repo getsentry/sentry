@@ -327,7 +327,7 @@ class MailPlugin(NotificationPlugin):
                 project=project,
                 send_to=[user_id],
                 subject=subject,
-                type='notify.activity.%s' % activity.get_type_display(),
+                type='notify.activity.{}'.format(template_name),
                 context=context,
                 template='sentry/emails/activity/{}.txt'.format(template_name),
                 html_template='sentry/emails/activity/{}.html'.format(template_name),

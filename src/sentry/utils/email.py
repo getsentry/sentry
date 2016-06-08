@@ -39,7 +39,7 @@ from sentry.web.helpers import render_to_string
 # The maximum amount of recipients to display in human format.
 MAX_RECIPIENTS = 5
 
-logger = get_logger()
+logger = get_logger(name=__name__)
 
 
 class _CaseInsensitiveSigner(Signer):
