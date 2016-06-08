@@ -7,7 +7,6 @@ sentry.utils.email
 """
 from __future__ import absolute_import
 
-import logging
 import os
 import subprocess
 import tempfile
@@ -15,6 +14,7 @@ import time
 from email.utils import parseaddr
 from operator import attrgetter
 from random import randrange
+from structlog import get_logger
 
 from django.conf import settings
 from django.core.mail import get_connection as _get_connection
@@ -35,7 +35,7 @@ from sentry.utils.safe import safe_execute
 from sentry.utils.strings import is_valid_dot_atom
 from sentry.web.helpers import render_to_string
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 class _CaseInsensitiveSigner(Signer):
@@ -229,7 +229,7 @@ make_listid_from_instance = ListResolver(
 class MessageBuilder(object):
     def __init__(self, subject, context=None, template=None, html_template=None,
                  body=None, html_body=None, headers=None, reference=None,
-                 reply_reference=None, from_email=None):
+                 reply_reference=None, from_email=None, type=None):
         assert not (body and template)
         assert not (html_body and html_template)
         assert context or not (template or html_template)
@@ -248,6 +248,7 @@ class MessageBuilder(object):
         self.reply_reference = reply_reference  # The object this message is replying about
         self.from_email = from_email or options.get('mail.from')
         self._send_to = set()
+        self.type = type
 
         if reference is not None and 'List-Id' not in headers:
             try:
@@ -350,16 +351,34 @@ class MessageBuilder(object):
 
     def send_async(self, to=None, bcc=None):
         from sentry.tasks.email import send_email
+        # from sentry/emails/send-invite.txt to send-invite
         messages = self.get_built_messages(to, bcc=bcc)
         for message in messages:
-            safe_execute(send_email.delay, message=message,
-                         _with_transaction=False)
+            safe_execute(
+                send_email.delay,
+                message=message,
+                _with_transaction=False,
+            )
+            logger.info(
+                name='sentry.mail',
+                event='mail.queued',
+                to=to,  # WIP: truncating on human fmt and multi-line for machine.
+                message_id=message.extra_headers['Message-Id'],
+                type=self.type,
+            )
 
 
 def send_messages(messages, fail_silently=False):
     connection = get_connection(fail_silently=fail_silently)
+    sent = connection.send_messages(messages)
     metrics.incr('email.sent', len(messages))
-    return connection.send_messages(messages)
+    for message in messages:
+        logger.info(
+            name='sentry.mail',
+            event='mail.sent',
+            message_id=message.extra_headers['Message-Id'],
+        )
+    return sent
 
 
 def get_mail_backend():

@@ -54,8 +54,9 @@ class MailPlugin(NotificationPlugin):
             return self.subject_prefix
         return options.get('mail.subject-prefix')
 
-    def _build_message(self, project, subject, template=None, html_template=None, body=None,
-                   reference=None, reply_reference=None, headers=None, context=None, send_to=None):
+    def _build_message(self, project, subject, template=None, html_template=None,
+                   body=None, reference=None, reply_reference=None, headers=None,
+                   context=None, send_to=None, type=None):
         if send_to is None:
             send_to = self.get_send_to(project)
         if not send_to:
@@ -72,6 +73,7 @@ class MailPlugin(NotificationPlugin):
             html_template=html_template,
             body=body,
             headers=headers,
+            type=type,
             context=context,
             reference=reference,
             reply_reference=reply_reference,
@@ -195,6 +197,7 @@ class MailPlugin(NotificationPlugin):
                 project=project,
                 reference=group,
                 headers=headers,
+                type='notify.error',
                 context=context,
                 send_to=[user_id],
             )
@@ -232,6 +235,7 @@ class MailPlugin(NotificationPlugin):
                 template='sentry/emails/digests/body.txt',
                 html_template='sentry/emails/digests/body.html',
                 project=project,
+                type='notify.digest',
                 context=context,
                 send_to=[user_id],
             )
@@ -323,6 +327,7 @@ class MailPlugin(NotificationPlugin):
                 project=project,
                 send_to=[user_id],
                 subject=subject,
+                type='notify.activity.%s' % activity.get_type_display(),
                 context=context,
                 template='sentry/emails/activity/{}.txt'.format(template_name),
                 html_template='sentry/emails/activity/{}.html'.format(template_name),
