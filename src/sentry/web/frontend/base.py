@@ -245,6 +245,7 @@ class BaseView(View, OrganizationMixin):
         )
         logger.info(
             name='sentry.audit.entry',
+            entry_id=entry.id,
             event=entry.get_event_display(),
             actor_id=entry.actor_id,
             actor_label=entry.actor_label,
