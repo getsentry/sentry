@@ -6,7 +6,6 @@ import EventErrors from './errors';
 import EventExtraData from './extraData';
 import EventPackageData from './packageData';
 import EventTags from './eventTags';
-import EventMessage from './message';
 import EventSdk from './sdk';
 import EventDevice from './device';
 import EventUser from './user';
@@ -39,6 +38,7 @@ const EventEntries = React.createClass({
   // TODO(dcramer): make this extensible
   interfaces: {
     exception: require('./interfaces/exception'),
+    message: require('./interfaces/message'),
     request: require('./interfaces/request'),
     stacktrace: require('./interfaces/stacktrace'),
     template: require('./interfaces/template'),
@@ -99,9 +99,6 @@ const EventEntries = React.createClass({
             group={group}
             event={evt} />
         }
-        <EventMessage
-          group={group}
-          event={evt} />
         <EventTags
           group={group}
           event={evt}

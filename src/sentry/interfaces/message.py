@@ -10,6 +10,8 @@ from __future__ import absolute_import
 
 __all__ = ('Message',)
 
+from django.conf import settings
+
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim
 
@@ -29,13 +31,16 @@ class Message(Interface):
     >>>     "params": ["this"]
     >>> }
     """
+    score = 0
+    display_score = 1050
+
     @classmethod
     def to_python(cls, data):
         if not data.get('message'):
             raise InterfaceValidationError("No 'message' present")
 
         kwargs = {
-            'message': trim(data['message'], 2048)
+            'message': trim(data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH)
         }
 
         if data.get('params'):
