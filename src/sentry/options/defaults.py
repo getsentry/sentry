@@ -7,6 +7,7 @@ sentry.options.defaults
 """
 from __future__ import absolute_import, print_function
 
+from sentry.logging import LoggingFormat
 from sentry.options import (
     FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_PRIORITIZE_DISK, FLAG_REQUIRED, FLAG_ALLOW_EMPTY,
     register,
@@ -26,7 +27,7 @@ register('system.secret-key', flags=FLAG_NOSTORE)
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 register('system.url-prefix', ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register('system.root-api-key', flags=FLAG_PRIORITIZE_DISK)
-register('system.logging-format', default='human', flags=FLAG_PRIORITIZE_DISK)
+register('system.logging-format', default=LoggingFormat.HUMAN, flags=FLAG_PRIORITIZE_DISK)
 
 # Redis
 register(
