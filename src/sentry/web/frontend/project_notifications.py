@@ -130,7 +130,7 @@ class ProjectNotificationsView(ProjectView):
 
                 form = plugin.project_conf_form
                 if form is not None:
-                    view = plugin.configure(request, project=project)
+                    view = plugin.configure(request=request, project=project)
                     if isinstance(view, HttpResponse):
                         return view
                     enabled_plugins.append((plugin, mark_safe(content + view)))
