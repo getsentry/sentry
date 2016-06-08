@@ -115,6 +115,7 @@ class Endpoint(APIView):
 
         logger.info(
             name='sentry.audit.entry',
+            entry_id=entry.id,
             event=entry.get_event_display(),
             actor_label=entry.actor_label,
         )
