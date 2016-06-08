@@ -8,9 +8,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import roles
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Organization
-)
+from sentry.models import AuditLogEntryEvent, Organization
 from sentry.web.frontend.base import OrganizationView
 
 
@@ -125,10 +123,9 @@ class OrganizationSettingsView(OrganizationView):
                 else:
                     organization.update_option('sentry:%s' % (opt,), value)
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request,
                 organization=organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=organization.id,
                 event=AuditLogEntryEvent.ORG_EDIT,
                 data=organization.get_audit_log_data(),
