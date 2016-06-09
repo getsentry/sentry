@@ -378,6 +378,8 @@ class AuthHelper(object):
         op = request.POST.get('op')
 
         if not request.user.is_authenticated():
+            # TODO(dcramer): its possible they have multiple accounts and at
+            # least one is managed (per the check below)
             try:
                 existing_user = auth.find_users(identity['email'], is_active=True)[0]
             except IndexError:
