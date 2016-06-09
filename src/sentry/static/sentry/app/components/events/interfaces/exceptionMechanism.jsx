@@ -7,22 +7,21 @@ const ExceptionMechanism = React.createClass({
     platform: React.PropTypes.string,
   },
 
-  renderMachException(data) {
-    return ['Mach Exception', data.exception_name];
-  },
-
-  renderPosixSignal(data) {
-    return ['Signal', data.name + ' (' + data.signal + ')'];
-  },
-
   render() {
     let elements = [];
 
     if (this.props.data.mach_exception) {
-      elements.push(this.renderMachException(this.props.data.mach_exception));
+      const {mach_exception} = this.props.data;
+      if (mach_exception.exception_name) {
+        elements.push(['Mach Exception', mach_exception.exception_name]);
+      }
+      if (mach_exception.code_name) {
+        elements.push(['Mach Code', mach_exception.code_name]);
+      }
     }
     if (this.props.data.posix_signal) {
-      elements.push(this.renderPosixSignal(this.props.data.posix_signal));
+      const {posix_signal} = this.props.data;
+      elements.push(['Signal', posix_signal.name + ' (' + posix_signal.signal + ')']);
     }
 
     if (elements.length === 0) {
