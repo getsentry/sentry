@@ -411,7 +411,7 @@ class AuthHelper(object):
             # per the above, try to auto merge if the user was originally an
             # SSO account but is still logged in
             has_membership = OrganizationMember.objects.filter(
-                user=existing_user,
+                user=request.user,
                 organization=self.organization,
             ).exists()
             if has_membership:
