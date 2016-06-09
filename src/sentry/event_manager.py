@@ -468,6 +468,9 @@ class EventManager(object):
         # TODO(dcramer): temp workaround for complexity
         del data['message']
 
+        data['type'] = event_type.key
+        data['metadata'] = event_metadata
+
         # index components into ``Event.message``
         # See GH-3248
         if event_type.key != 'default':

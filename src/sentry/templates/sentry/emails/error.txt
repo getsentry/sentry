@@ -9,10 +9,6 @@ Details
 
 {{ link }}
 {% else %}
-A new issue has been recorded in Sentry:
-
-    {{ event.message }}
-
 Details
 -------
 
