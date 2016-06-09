@@ -1196,7 +1196,7 @@ ol.context-line {
   }
 
   .package {
-    width: 15%;
+    width: 125px;
     font-size: 13px;
     font-weight: bold;
     .truncate;
@@ -1237,6 +1237,26 @@ ol.context-line {
       &:after {
         content: ")";
       }
+    }
+  }
+
+  &.is-expandable {
+    padding: 4px 22px 0 0;
+    position: relative;
+    margin-bottom: 8px;
+
+    .btn-toggle {
+      position: absolute;
+      top: 8px;
+      right: 0;
+    }
+  }
+
+  &+ol.context {
+    margin-bottom: 10px;
+
+    li {
+      padding-left: 6px;
     }
   }
 }

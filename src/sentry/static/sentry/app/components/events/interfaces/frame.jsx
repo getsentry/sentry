@@ -229,6 +229,11 @@ const Frame = React.createClass({
   renderCocoaLine() {
     let data = this.props.data;
     let className = 'stacktrace-table';
+
+    if (this.isExpandable()) {
+      className +=" is-expandable";
+    }
+
     return (
       <div className={className}>
         {defined(data.package)
@@ -240,9 +245,11 @@ const Frame = React.createClass({
             <div className="trace-col package"/>
           )
         }
-        <div className="trace-col address">
-          {data.instructionAddr}
-        </div>
+        {data.instructionAddr &&
+          <div className="trace-col address">
+            {data.instructionAddr}
+          </div>
+        }
         <div className="trace-col symbol">
           <code>{data.function || '<unknown>'}</code>
           {data.instructionOffset &&
