@@ -132,7 +132,7 @@ def is_in_app(frame, app_uuid=None):
 
 
 def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
-                           system=None):
+                           system=None, notable_addresses=None):
     # TODO:
     #   user report stacktraces from unity
 
@@ -179,6 +179,9 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
     for frame in converted_frames:
         for key in 'symbol_addr', 'instruction_addr':
             frame[key] = '0x' + frame[key][2:].rjust(longest_addr, '0')
+
+    if converted_frames and notable_addresses:
+        converted_frames[-1]['vars'] = notable_addresses
 
     stacktrace = {'frames': converted_frames}
 
@@ -258,7 +261,8 @@ def preprocess_apple_crash_event(data):
                 bt, errors = sym.symbolize_backtrace(
                     crashed_thread['backtrace']['contents'], system)
                 inject_apple_backtrace(data, bt, crash.get('diagnosis'),
-                                       crash.get('error'), system)
+                                       crash.get('error'), system,
+                                       crashed_thread.get('notable_addresses'))
         except Exception as e:
             logger.exception('Failed to symbolicate')
             append_error(data, {
