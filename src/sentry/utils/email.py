@@ -349,9 +349,11 @@ class MessageBuilder(object):
         return results
 
     def format_to(self, to):
-        if to and len(to) > MAX_RECIPIENTS:
+        if not to:
+            return ''
+        if len(to) > MAX_RECIPIENTS:
             to = to[:MAX_RECIPIENTS] + ['and {} more.'.format(len(to[MAX_RECIPIENTS:]))]
-        return ', '.join(to) if isinstance(to, list) else to
+        return ', '.join(to)
 
     def send(self, to=None, bcc=None, fail_silently=False):
         return send_messages(
