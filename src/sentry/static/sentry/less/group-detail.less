@@ -1051,6 +1051,14 @@
     }
   }
 
+  &:first-child {
+    .stacktrace-table {
+      box-shadow: none;
+      padding-top: 0;
+      margin-top: -10px;
+    }
+  }
+
   &:last-child {
     .context {
       margin-bottom: 0;
@@ -1257,6 +1265,12 @@ ol.context-line {
 
     li {
       padding-left: 6px;
+    }
+
+    table.key-value {
+      border-top: 1px solid #E6EEF4;
+      margin-top: 6px;
+      padding-top: 5px;
     }
   }
 }
