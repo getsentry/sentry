@@ -100,7 +100,7 @@ const GroupEvents = React.createClass({
       case 'default':
         return event.metadata.title;
       default:
-        return event.message.split('\n')[0].substr(0, 100);
+        return event.message.split('\n')[0];
     }
   },
 
@@ -151,7 +151,7 @@ const GroupEvents = React.createClass({
               <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/${event.id}/`}>
                 <DateTime date={event.dateCreated} />
               </Link>
-              <small>{this.getEventTitle(event)}</small>
+              <small>{this.getEventTitle(event).substr(0, 100)}</small>
             </h5>
           </td>
           {tagList.map((tag) => {
