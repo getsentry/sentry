@@ -83,8 +83,14 @@ class Event(Model):
 
     project = property(_get_project, _set_project)
 
+    def get_legacy_message(self):
+        msg_interface = self.data.get('sentry.interfaces.Message', {
+            'message': self.message,
+        })
+        return msg_interface.get('formatted', msg_interface['message'])
+
     def error(self):
-        message = strip(self.message)
+        message = strip(self.get_legacy_message())
         if not message:
             message = '<unlabeled message>'
         else:
@@ -93,12 +99,12 @@ class Event(Model):
     error.short_description = _('error')
 
     def has_two_part_message(self):
-        message = strip(self.message)
+        message = strip(self.get_legacy_message())
         return '\n' in message or len(message) > 100
 
     @property
     def message_short(self):
-        message = strip(self.message)
+        message = strip(self.get_legacy_message())
         if not message:
             message = '<unlabeled message>'
         else:
@@ -181,7 +187,7 @@ class Event(Model):
         data['release'] = self.get_tag('sentry:release')
         data['platform'] = self.platform
         data['culprit'] = self.group.culprit
-        data['message'] = self.message
+        data['message'] = self.get_legacy_message()
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
         data['tags'] = self.get_tags()
@@ -191,7 +197,7 @@ class Event(Model):
 
     @property
     def size(self):
-        data_len = len(self.message)
+        data_len = len(self.get_legacy_message())
         for value in self.data.itervalues():
             data_len += len(repr(value))
         return data_len

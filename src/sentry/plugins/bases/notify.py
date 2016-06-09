@@ -85,7 +85,10 @@ class NotificationPlugin(Plugin):
                 deliver_digest.delay(digest_key)
 
         else:
-            notification = Notification(event=event, rules=rules)
+            notification = Notification(
+                event=event,
+                rules=rules,
+            )
             self.notify(notification)
 
     def notify_users(self, group, event, fail_silently=False):

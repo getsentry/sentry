@@ -238,6 +238,7 @@ class MailPluginTest(TestCase):
         with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
             self.plugin.notify(notification)
 
+        assert len(mail.outbox) == 1
         msg = mail.outbox[0]
         assert msg.subject == u'[Sentry] [foo Bar] ERROR: רונית מגן'
 

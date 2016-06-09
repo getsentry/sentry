@@ -36,3 +36,6 @@ class DefaultEvent(BaseEvent):
         return {
             'title': title,
         }
+
+    def to_string(self, data):
+        return data['title']
