@@ -115,7 +115,10 @@ class User(BaseModel, AbstractBaseUser):
                 pass
 
             # identify the highest priority membership
-            to_member = OrganizationMember.objects.get(user=to_user)
+            to_member = OrganizationMember.objects.get(
+                organization=obj.organization_id,
+                user=to_user,
+            )
             if roles.get(obj.role).priority > roles.get(to_member.role).priority:
                 to_member.update(role=obj.role)
 
