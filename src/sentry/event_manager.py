@@ -17,7 +17,7 @@ from django.conf import settings
 from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
-from django.utils.encoding import force_bytes
+from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
 from uuid import uuid4
 
@@ -480,8 +480,11 @@ class EventManager(object):
 
         if not message:
             message = ''
+        elif not isinstance(message, basestring):
+            message = force_text(message)
+
         for value in event_metadata.itervalues():
-            value_u = unicode(value)
+            value_u = force_text(value, errors='replace')
             if value_u not in message:
                 message = u'{} {}'.format(message, value_u)
 

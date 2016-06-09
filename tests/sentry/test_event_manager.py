@@ -605,7 +605,7 @@ class EventManagerTest(TransactionTestCase):
     def test_no_message(self):
         # test that the message is handled gracefully
         manager = EventManager(self.make_event(**{
-            'message': '',
+            'message': None,
             'sentry.interfaces.Message': {
                 'message': 'hello world',
             },
@@ -614,6 +614,19 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
 
         assert event.message == 'hello world'
+
+    def test_bad_message(self):
+        # test that the message is handled gracefully
+        manager = EventManager(self.make_event(**{
+            'message': 1234,
+            'sentry.interfaces.Message': {
+                'message': 'hello world',
+            },
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert event.message == '1234 hello world'
 
 
 class GetHashesFromEventTest(TestCase):
