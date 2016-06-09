@@ -7,7 +7,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.contrib import messages
 from django.core.urlresolvers import reverse
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -289,12 +289,22 @@ class AuthHelper(object):
             is_managed=True,
         )
 
-        auth_identity = AuthIdentity.objects.create(
-            auth_provider=auth_provider,
-            user=user,
-            ident=identity['id'],
-            data=identity.get('data', {}),
-        )
+        try:
+            with transaction.atomic():
+                auth_identity = AuthIdentity.objects.create(
+                    auth_provider=auth_provider,
+                    user=user,
+                    ident=identity['id'],
+                    data=identity.get('data', {}),
+                )
+        except IntegrityError:
+            AuthIdentity.objects.get(
+                auth_provider=auth_provider,
+                ident=identity['id'],
+            ).update(
+                user=user,
+                data=identity.get('data', {}),
+            )
 
         self._handle_new_membership(auth_identity)
 
