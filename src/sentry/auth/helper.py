@@ -298,10 +298,11 @@ class AuthHelper(object):
                     data=identity.get('data', {}),
                 )
         except IntegrityError:
-            AuthIdentity.objects.get(
+            auth_identity = AuthIdentity.objects.get(
                 auth_provider=auth_provider,
                 ident=identity['id'],
-            ).update(
+            )
+            auth_identity.update(
                 user=user,
                 data=identity.get('data', {}),
             )
