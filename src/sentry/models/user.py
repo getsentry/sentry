@@ -104,7 +104,7 @@ class User(BaseModel, AbstractBaseUser):
         from sentry import roles
         from sentry.models import (
             AuditLogEntry, Activity, AuthIdentity, GroupAssignee, GroupBookmark,
-            OrganizationMember, OrganizationMemberTeam, UserOption
+            GroupSeen, OrganizationMember, OrganizationMemberTeam, UserOption
         )
 
         for obj in OrganizationMember.objects.filter(user=from_user):
@@ -132,7 +132,7 @@ class User(BaseModel, AbstractBaseUser):
                 except IntegrityError:
                     pass
 
-        for model in (GroupAssignee, GroupBookmark, UserOption):
+        for model in (GroupAssignee, GroupBookmark, GroupSeen, UserOption):
             for obj in model.objects.filter(user=from_user):
                 try:
                     with transaction.atomic():
