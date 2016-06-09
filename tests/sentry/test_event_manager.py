@@ -532,6 +532,24 @@ class EventManagerTest(TransactionTestCase):
             'title': 'foo bar',
         }
 
+    def test_message_event_type(self):
+        manager = EventManager(self.make_event(**{
+            'message': '',
+            'sentry.interfaces.Message': {
+                'formatted': 'foo bar',
+                'message': 'foo %s',
+                'params': ['bar'],
+            }
+        }))
+        data = manager.normalize()
+        assert data['type'] == 'default'
+        event = manager.save(self.project.id)
+        group = event.group
+        assert group.data.get('type') == 'default'
+        assert group.data.get('metadata') == {
+            'title': 'foo bar',
+        }
+
     def test_error_event_type(self):
         manager = EventManager(self.make_event(**{
             'sentry.interfaces.Exception': {

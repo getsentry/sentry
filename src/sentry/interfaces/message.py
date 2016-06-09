@@ -18,8 +18,9 @@ from sentry.utils.safe import trim
 
 class Message(Interface):
     """
-    A standard message consisting of a ``message`` arg, and an optional
-    ``params`` arg for formatting.
+    A standard message consisting of a ``message`` arg, an an optional
+    ``params`` arg for formatting, and an optional ``formatted`` message which
+    is the result of ``message`` combined with ``params``.
 
     If your message cannot be parameterized, then the message interface
     will serve no benefit.
@@ -28,6 +29,7 @@ class Message(Interface):
 
     >>> {
     >>>     "message": "My raw message with interpreted strings like %s",
+    >>>     "formatted": "My raw message with interpreted strings like this",
     >>>     "params": ["this"]
     >>> }
     """
@@ -40,13 +42,26 @@ class Message(Interface):
             raise InterfaceValidationError("No 'message' present")
 
         kwargs = {
-            'message': trim(data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH)
+            'message': trim(data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH),
+            'formatted': None,
         }
 
         if data.get('params'):
             kwargs['params'] = trim(data['params'], 1024)
         else:
             kwargs['params'] = ()
+
+        if '%' in kwargs['message'] and kwargs['params']:
+            if isinstance(kwargs['params'], list):
+                kwargs['params'] = tuple(kwargs['params'])
+
+            try:
+                kwargs['formatted'] = trim(
+                    kwargs['message'] % kwargs['params'],
+                    settings.SENTRY_MAX_MESSAGE_LENGTH,
+                )
+            except Exception:
+                pass
 
         return cls(**kwargs)
 

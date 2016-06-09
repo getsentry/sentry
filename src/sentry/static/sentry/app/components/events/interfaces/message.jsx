@@ -22,11 +22,11 @@ const MessageInterface = React.createClass({
           type="message"
           title={t('Message')}>
         <pre className="plain" dangerouslySetInnerHTML={{
-          __html: utils.nl2br(utils.urlize(utils.escape(data.message)))
+          __html: utils.nl2br(utils.urlize(utils.escape(data.formatted || data.message)))
         }} />
         {data.params &&
           <div>
-            <h3>{t('Params')}</h3>
+            <h5>{t('Params')}</h5>
             <pre className="plain">{JSON.stringify(data.params, null, 2)}</pre>
           </div>
         }
