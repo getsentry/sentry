@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from sentry.models import Rule
 from sentry.plugins import plugins
 from sentry.testutils import TestCase
-from sentry.rules.processor import RuleProcessor
+from sentry.rules.processor import EventCompatibilityProxy, RuleProcessor
 
 
 class RuleProcessorTest(TestCase):
@@ -37,3 +37,20 @@ class RuleProcessorTest(TestCase):
         assert len(futures) == 1
         assert futures[0].rule == rule
         assert futures[0].kwargs == {}
+
+
+class EventCompatibilityProxyTest(TestCase):
+    def test_simple(self):
+        event = self.create_event(
+            message='biz baz',
+            data={
+                'sentry.interfaces.Message': {
+                    'message': 'foo %s',
+                    'formatted': 'foo bar',
+                    'params': ['bar'],
+                }
+            },
+        )
+
+        event_proxy = EventCompatibilityProxy(event)
+        assert event_proxy.message == 'foo bar'

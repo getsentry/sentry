@@ -21,3 +21,6 @@ class CspEvent(BaseEvent):
             'uri': csp._normalized_blocked_uri,
             'message': csp.get_message(),
         }
+
+    def to_string(self, data):
+        return u'{}: {}'.format(data['directive'], data['uri'])
