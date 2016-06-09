@@ -103,7 +103,7 @@ class User(BaseModel, AbstractBaseUser):
         # TODO: we could discover relations automatically and make this useful
         from sentry import roles
         from sentry.models import (
-            AuditLogEntry, Activity, AuthIdentity, GroupBookmark,
+            AuditLogEntry, Activity, AuthIdentity, GroupAssignee, GroupBookmark,
             OrganizationMember, OrganizationMemberTeam, UserOption
         )
 
@@ -132,18 +132,13 @@ class User(BaseModel, AbstractBaseUser):
                 except IntegrityError:
                     pass
 
-        for obj in GroupBookmark.objects.filter(user=from_user):
-            try:
-                with transaction.atomic():
-                    obj.update(user=to_user)
-            except IntegrityError:
-                pass
-        for obj in UserOption.objects.filter(user=from_user):
-            try:
-                with transaction.atomic():
-                    obj.update(user=to_user)
-            except IntegrityError:
-                pass
+        for model in (GroupAssignee, GroupBookmark, UserOption):
+            for obj in model.objects.filter(user=from_user):
+                try:
+                    with transaction.atomic():
+                        obj.update(user=to_user)
+                except IntegrityError:
+                    pass
 
         # remove any duplicate identities that exist on the current user that
         # might conflict w/ the new users existing SSO
