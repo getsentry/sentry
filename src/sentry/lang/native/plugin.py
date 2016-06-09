@@ -20,16 +20,70 @@ NON_APP_FRAMEWORKS = (
     '/Frameworks/libswiftCore.dylib',
 )
 
+SIGNAL_NAMES = {
+    1: 'SIGHUP',
+    2: 'SIGINT',
+    3: 'SIGQUIT',
+    4: 'SIGILL',
+    5: 'SIGTRAP',
+    6: 'SIGABRT',
+    7: 'SIGEMT',
+    8: 'SIGFPE',
+    9: 'SIGKILL',
+    10: 'SIGBUS',
+    11: 'SIGSEGV',
+    12: 'SIGSYS',
+    13: 'SIGPIPE',
+    14: 'SIGALRM',
+    15: 'SIGTERM',
+    16: 'SIGURG',
+    17: 'SIGSTOP',
+    18: 'SIGTSTP',
+    19: 'SIGCONT',
+    20: 'SIGCHLD',
+    21: 'SIGTTIN',
+    22: 'SIGTTOU',
+    24: 'SIGXCPU',
+    25: 'SIGXFSZ',
+    26: 'SIGVTALRM',
+    27: 'SIGPROF',
+    28: 'SIGWINCH',
+    29: 'SIGINFO',
+    31: 'SIGUSR2',
+}
+
 
 def append_error(data, err):
     data.setdefault('errors', []).append(err)
 
 
+def process_posix_signal(data):
+    signal = data.get('signal', -1)
+    signal_name = data.get('name')
+    if signal_name is None:
+        signal_name = SIGNAL_NAMES.get(signal)
+    return {
+        'signal': signal,
+        'name': signal_name,
+        'code': data.get('code'),
+        'code_name': data.get('code_name'),
+    }
+
+
 def exception_from_apple_error_or_diagnosis(error, diagnosis=None):
     rv = {}
     error = error or {}
-    mechanism = {}
 
+    mechanism = {}
+    if 'mach' in error:
+        mechanism['mach_exception'] = error['mach']
+    if 'signal' in error:
+        mechanism['posix_signal'] = process_posix_signal(error['signal'])
+    if mechanism:
+        mechanism.setdefault('type', 'cocoa')
+        rv['mechanism'] = mechanism
+
+    # Start by getting the error from nsexception
     if error:
         nsexception = error.get('nsexception')
         if nsexception:
@@ -37,25 +91,28 @@ def exception_from_apple_error_or_diagnosis(error, diagnosis=None):
             if 'value' in nsexception:
                 rv['value'] = nsexception['value']
 
-    if 'reason' in error and 'value' not in rv:
-        rv['value'] = error['reason']
-    if 'diagnosis' in error and 'value' not in rv:
-        rv['value'] = error['diagnosis']
+    # If we don't have an error yet, try to build one from reason and
+    # diagnosis
+    if 'value' not in rv:
+        if 'reason' in error:
+            rv['value'] = error['reason']
+        elif 'diagnosis' in error:
+            rv['value'] = error['diagnosis']
+        elif 'mach_exception' in mechanism:
+            rv['value'] = mechanism['mach_exception']['exception_name']
+        elif 'posix_signal' in mechanism:
+            rv['value'] = mechanism['posix_signal']['name']
+        else:
+            rv['value'] = 'Unknown'
 
-    if 'mach' in error:
-        mechanism['mach_exception'] = error['mach']
-    if 'signal' in error:
-        mechanism['posix_signal'] = error['signal']
-
-    if mechanism:
-        mechanism.setdefault('type', 'cocoa')
-        rv['mechanism'] = mechanism
-
-    if 'value' in rv and 'type' not in rv:
-        rv['type'] = \
-            error.get('mach', {}).get('exception_name') or \
-            error.get('signal', {}).get('name') or \
-            'Error'
+    # Figure out a reasonable type
+    if 'type' not in rv:
+        if 'mach_exception' in mechanism:
+            rv['type'] = 'MachException'
+        elif 'posix_signal' in mechanism:
+            rv['type'] = 'Signal'
+        else:
+            rv['type'] = 'Unknown'
 
     if rv:
         return rv
