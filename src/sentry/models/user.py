@@ -104,7 +104,8 @@ class User(BaseModel, AbstractBaseUser):
         from sentry import roles
         from sentry.models import (
             AuditLogEntry, Activity, AuthIdentity, GroupAssignee, GroupBookmark,
-            GroupSeen, OrganizationMember, OrganizationMemberTeam, UserOption
+            GroupSeen, OrganizationMember, OrganizationMemberTeam, UserAvatar,
+            UserOption
         )
 
         for obj in OrganizationMember.objects.filter(user=from_user):
@@ -132,22 +133,21 @@ class User(BaseModel, AbstractBaseUser):
                 except IntegrityError:
                     pass
 
-        for model in (GroupAssignee, GroupBookmark, GroupSeen, UserOption):
+        model_list = (
+            GroupAssignee,
+            GroupBookmark,
+            GroupSeen,
+            UserAvatar,
+            UserOption
+        )
+
+        for model in model_list:
             for obj in model.objects.filter(user=from_user):
                 try:
                     with transaction.atomic():
                         obj.update(user=to_user)
                 except IntegrityError:
                     pass
-
-        # remove any duplicate identities that exist on the current user that
-        # might conflict w/ the new users existing SSO
-        AuthIdentity.objects.filter(
-            user=from_user,
-            auth_provider__organization__in=AuthIdentity.objects.filter(
-                user=to_user,
-            ).values('auth_provider__organization')
-        ).delete()
 
         Activity.objects.filter(
             user=from_user,
@@ -158,6 +158,15 @@ class User(BaseModel, AbstractBaseUser):
         AuditLogEntry.objects.filter(
             target_user=from_user,
         ).update(target_user=to_user)
+
+        # remove any duplicate identities that exist on the current user that
+        # might conflict w/ the new users existing SSO
+        AuthIdentity.objects.filter(
+            user=from_user,
+            auth_provider__organization__in=AuthIdentity.objects.filter(
+                user=to_user,
+            ).values('auth_provider__organization')
+        ).delete()
         AuthIdentity.objects.filter(
             user=from_user,
         ).update(user=to_user)
