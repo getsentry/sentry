@@ -20,6 +20,7 @@ class MessageTest(TestCase):
         assert self.interface.to_json() == {
             'message': self.interface.message,
             'params': self.interface.params,
+            'formatted': 'Hello there world!'
         }
 
     def test_get_hash_uses_message(self):
