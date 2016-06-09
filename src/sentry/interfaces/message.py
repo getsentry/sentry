@@ -80,3 +80,6 @@ class Message(Interface):
 
     def get_hash(self):
         return [self.message]
+
+    def to_string(self, event, is_public=False, **kwargs):
+        return self.formatted or self.message

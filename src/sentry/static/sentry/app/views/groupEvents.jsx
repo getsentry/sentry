@@ -92,7 +92,16 @@ const GroupEvents = React.createClass({
   },
 
   getEventTitle(event) {
-    return event.message.split('\n')[0].substr(0, 100);
+    switch (event.type) {
+      case 'error':
+        return `${event.metadata.type}: ${event.metadata.value}`;
+      case 'csp':
+        return `${event.metadata.directive}: ${event.metadata.uri}`;
+      case 'default':
+        return event.metadata.title;
+      default:
+        return event.message.split('\n')[0].substr(0, 100);
+    }
   },
 
   renderNoQueryResults() {
