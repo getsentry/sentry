@@ -417,3 +417,109 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert getattr(member.flags, 'sso:linked')
         assert not getattr(member.flags, 'sso:invalid')
+
+    def test_flow_managed_duplicate_users_with_membership(self):
+        """
+        Given an existing authenticated user, and an updated identity (e.g.
+        the ident changed from the SSO provider), we should be re-linking
+        the identity automatically (without prompt) assuming the user is
+        a member of the org.
+        """
+        organization = self.create_organization(name='foo', owner=self.user)
+        auth_provider = AuthProvider.objects.create(
+            organization=organization,
+            provider='dummy',
+        )
+
+        # setup a 'previous' identity, such as when we migrated Google from
+        # the old idents to the new
+        user = self.create_user('bar@example.com', is_active=False, is_managed=True)
+        auth_identity = AuthIdentity.objects.create(
+            auth_provider=auth_provider,
+            user=user,
+            ident='bar@example.com'
+        )
+
+        # they must be a member for the auto merge to happen
+        self.create_member(
+            organization=organization,
+            user=user,
+        )
+
+        # user needs to be logged in
+        self.login_as(user)
+
+        path = reverse('sentry-auth-organization', args=[organization.slug])
+
+        resp = self.client.post(path)
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content
+
+        path = reverse('sentry-auth-sso')
+
+        # we're suggesting the identity changed (as if the Google ident was
+        # updated to be something else)
+        resp = self.client.post(path, {'email': 'adfadsf@example.com'})
+
+        # there should be no prompt as we auto merge the identity
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver/'
+
+        auth_identity = AuthIdentity.objects.get(
+            id=auth_identity.id,
+        )
+
+        assert auth_identity.ident == 'adfadsf@example.com'
+
+        new_user = auth_identity.user
+        assert new_user == user
+
+        member = OrganizationMember.objects.get(
+            organization=organization,
+            user=new_user,
+        )
+
+        assert getattr(member.flags, 'sso:linked')
+        assert not getattr(member.flags, 'sso:invalid')
+
+    def test_flow_managed_duplicate_users_without_membership(self):
+        """
+        Given an existing authenticated user, and an updated identity (e.g.
+        the ident changed from the SSO provider), we should be prompting to
+        confirm their identity as they dont have membership.
+        """
+        organization = self.create_organization(name='foo', owner=self.user)
+        auth_provider = AuthProvider.objects.create(
+            organization=organization,
+            provider='dummy',
+        )
+
+        # setup a 'previous' identity, such as when we migrated Google from
+        # the old idents to the new
+        user = self.create_user('bar@example.com', is_active=False, is_managed=True)
+        AuthIdentity.objects.create(
+            auth_provider=auth_provider,
+            user=user,
+            ident='bar@example.com'
+        )
+
+        # user needs to be logged in
+        self.login_as(user)
+
+        path = reverse('sentry-auth-organization', args=[organization.slug])
+
+        resp = self.client.post(path)
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content
+
+        path = reverse('sentry-auth-sso')
+
+        # we're suggesting the identity changed (as if the Google ident was
+        # updated to be something else)
+        resp = self.client.post(path, {'email': 'adfadsf@example.com'})
+
+        self.assertTemplateUsed(resp, 'sentry/auth-confirm-link.html')
+        assert resp.status_code == 200
+        assert resp.context['existing_user'] == user
