@@ -13,6 +13,7 @@ __all__ = ('Message',)
 from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.utils import json
 from sentry.utils.safe import trim
 
 
@@ -41,6 +42,11 @@ class Message(Interface):
         if not data.get('message'):
             raise InterfaceValidationError("No 'message' present")
 
+        # TODO(dcramer): some day we should stop people from sending arbitrary
+        # crap to the server
+        if not isinstance(data['message'], basestring):
+            data['message'] = json.dumps(data['message'])
+
         kwargs = {
             'message': trim(data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH),
             'formatted': None,
@@ -51,7 +57,11 @@ class Message(Interface):
         else:
             kwargs['params'] = ()
 
-        if '%' in kwargs['message'] and kwargs['params']:
+        if kwargs['formatted']:
+            if not isinstance(kwargs['formatted'], basestring):
+                data['formatted'] = json.dumps(data['formatted'])
+
+        elif '%' in kwargs['message'] and kwargs['params']:
             if isinstance(kwargs['params'], list):
                 kwargs['params'] = tuple(kwargs['params'])
 
