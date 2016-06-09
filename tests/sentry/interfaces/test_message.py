@@ -29,3 +29,9 @@ class MessageTest(TestCase):
     def test_serialize_unserialize_behavior(self):
         result = type(self.interface).to_python(self.interface.to_json())
         assert result.to_json() == self.interface.to_json()
+
+    def test_serialize_non_string_for_message(self):
+        result = type(self.interface).to_python({
+            'message': {'foo': 'bar'},
+        })
+        assert result.message == '{"foo":"bar"}'
