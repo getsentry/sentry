@@ -198,6 +198,75 @@ class JavascriptIntegrationTest(TestCase):
         assert raw_frame_list[1] == frame_list[1]
 
     @responses.activate
+    def test_indexed_sourcemap_source_expansion(self):
+        responses.add(responses.GET, 'http://example.com/indexed.min.js',
+                      body=load_fixture('indexed.min.js'))
+        responses.add(responses.GET, 'http://example.com/file1.js',
+                      body=load_fixture('file1.js'))
+        responses.add(responses.GET, 'http://example.com/file2.js',
+                      body=load_fixture('file2.js'))
+        responses.add(responses.GET, 'http://example.com/indexed.sourcemap.js',
+                      body=load_fixture('indexed.sourcemap.js'))
+
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'type': 'Error',
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'abs_path': 'http://example.com/indexed.min.js',
+                                'filename': 'indexed.min.js',
+                                'lineno': 1,
+                                'colno': 39,
+                            },
+
+                            # NOTE: Intentionally source is not retrieved from this HTML file
+                            {
+                                'function': 'function: "HTMLDocument.<anonymous>"',
+                                'abs_path': "http//example.com/index.html",
+                                'filename': 'index.html',
+                                'lineno': 283,
+                                'colno': 17,
+                                'in_app': False,
+                            }
+                        ],
+                    },
+                }],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        assert event.data['errors'] == [{'type': 'js_no_source', 'url': 'http//example.com/index.html'}]
+
+        exception = event.interfaces['sentry.interfaces.Exception']
+        frame_list = exception.values[0].stacktrace.frames
+
+        frame = frame_list[0]
+        assert frame.pre_context == [
+            'function add(a, b) {',
+            '\t"use strict";',
+        ]
+        assert frame.context_line == '\treturn a + b;'
+        assert frame.post_context == ['}']
+
+        raw_frame_list = exception.values[0].raw_stacktrace.frames
+        raw_frame = raw_frame_list[0]
+        assert raw_frame.pre_context == []
+        assert raw_frame.context_line == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multip {snip}'
+        assert raw_frame.post_context == ['//@ sourceMappingURL=file.sourcemap.js']
+        assert raw_frame.lineno == 1
+
+        # Since we couldn't expand source for the 2nd frame, both
+        # its raw and original form should be identical
+        assert raw_frame_list[1] == frame_list[1]
+
+    @responses.activate
     def test_expansion_via_release_artifacts(self):
         project = self.project
         release = Release.objects.create(
