@@ -768,7 +768,7 @@ class SourceProcessor(object):
             for source in sourcemap_idx.sources:
                 next_filename = urljoin(sourcemap_url, source)
                 if source in sourcemap_idx.content:
-                    cache.add(next_filename, sourcemap_idx.content[source])
+                    self.cache.add(next_filename, sourcemap_idx.content[source])
 
     def populate_source_cache(self, frames, release):
         """
