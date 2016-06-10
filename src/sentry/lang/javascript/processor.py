@@ -758,12 +758,12 @@ class SourceProcessor(object):
         sourcemaps.add(sourcemap_url, sourcemap_idx)
 
         # cache any inlined sources
-        self.cache_sources(sourcemap_url, sourcemap_idx)
+        self.cache_sourcemap_sources(sourcemap_url, sourcemap_idx)
 
-    def cache_sources(self, sourcemap_url, sourcemap_idx):
+    def cache_sourcemap_sources(self, sourcemap_url, sourcemap_idx):
         if isinstance(sourcemap_idx, IndexedSourceMapIndex):
             for map in sourcemap_idx.maps:
-                self.cache_sources(sourcemap_url, map)
+                self.cache_sourcemap_sources(sourcemap_url, map)
         else:
             for source in sourcemap_idx.sources:
                 next_filename = urljoin(sourcemap_url, source)
