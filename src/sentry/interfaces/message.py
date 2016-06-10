@@ -60,7 +60,7 @@ class Message(Interface):
         if kwargs['formatted']:
             if not isinstance(kwargs['formatted'], basestring):
                 data['formatted'] = json.dumps(data['formatted'])
-
+        # support python-esque formatting (e.g. %s)
         elif '%' in kwargs['message'] and kwargs['params']:
             if isinstance(kwargs['params'], list):
                 kwargs['params'] = tuple(kwargs['params'])
@@ -68,6 +68,15 @@ class Message(Interface):
             try:
                 kwargs['formatted'] = trim(
                     kwargs['message'] % kwargs['params'],
+                    settings.SENTRY_MAX_MESSAGE_LENGTH,
+                )
+            except Exception:
+                pass
+        # support very basic placeholder formatters (non-typed)
+        elif '{}' in kwargs['message'] and kwargs['params']:
+            try:
+                kwargs['formatted'] = trim(
+                    kwargs['message'].format(kwargs['params']),
                     settings.SENTRY_MAX_MESSAGE_LENGTH,
                 )
             except Exception:
