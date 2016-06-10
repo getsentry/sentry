@@ -18,11 +18,11 @@ const ExceptionContent = React.createClass({
     let children = this.props.values.map((exc, excIdx) => {
       return (
         <div key={excIdx}>
-          <h4>
+          <h5 style={{marginBottom: 5}}>
             <span>{exc.type}</span>
-          </h4>
+          </h5>
           {exc.value &&
-            <pre className="exc-message">{exc.value}</pre>
+            <pre className="exc-message" style={{marginTop: 0}}>{exc.value}</pre>
           }
           {exc.mechanism &&
             <ExceptionMechanism
