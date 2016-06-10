@@ -852,7 +852,7 @@ SENTRY_DISALLOWED_IPS = ()
 # Fields which managed users cannot change via Sentry UI. Username and password
 # cannot be changed by managed users. Optionally include 'email' and
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
-SENTRY_MANAGED_USER_FIELDS = ('email',)
+SENTRY_MANAGED_USER_FIELDS = ()
 
 SENTRY_SCOPES = set([
     'org:read',
