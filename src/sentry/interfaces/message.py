@@ -35,7 +35,7 @@ class Message(Interface):
     >>> }
     """
     score = 0
-    display_score = 1050
+    display_score = 2050
 
     @classmethod
     def to_python(cls, data):

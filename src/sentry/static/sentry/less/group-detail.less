@@ -831,51 +831,19 @@
 .traceback {
   list-style-type: none;
   padding-left: 0;
+  margin: 0 -20px;
 }
 
-.traceback > h3 {
-  margin-top: 0;
-  font-weight: normal;
-
-  span {
-    font-weight: 600;
-  }
+// TODO(dcramer): we probably shouldnt overload these
+pre.traceback {
+  margin: 0 0 20px;
 }
 
-.traceback > pre {
-  color: @gray-dark;
-  font-size: 12px;
+div.traceback > ul {
   padding: 0;
-  background: inherit;
-  margin: -10px 0 20px;
-}
 
-.traceback ul {
-  padding: 0;
-}
-
-.traceback > .traceback {
-  padding-bottom: 5px;
-}
-
-.subtraceback {
-  padding-left: 15px;
-  padding-right: 15px;
-  position: relative;
-
-  > h3 {
-    line-height: 26px;
-  }
-
-  > h3:before {
-    display: block;
-    content: "";
-    width: 20px;
-    height: 0;
-    border-bottom: 1px solid #E9EBEC;
-    position: absolute;
-    left: -15px;
-    top: 11px;
+  &:last-child {
+    margin-bottom: 0;
   }
 }
 
@@ -918,11 +886,12 @@
 .frame {
   list-style-type: none;
   position: relative;
-  margin-bottom: 0;
+  margin: 0;
+  border-top: 1px solid lighten(@trim, 4);
 
   &.frame-errors {}
 
-  &.system-frame {}
+  &.system-frame { }
 
   &.leads-to-app {}
 
@@ -930,10 +899,24 @@
     font-size: 22px;
   }
 
+  &.is-expandable p {
+    cursor: pointer;
+    &:hover {
+      background: lighten(@blue-light, 25);
+    }
+  }
+
+  &.system-frame.is-expandable p:hover {
+    background: darken(@white-dark, 5);
+  }
+
   p {
+    padding: 8px 20px;
     font-size: 12px;
-    margin-bottom: 12px;
+    margin: 0;
     line-height: 1.4;
+    color: @gray-darkest;
+    background: lighten(@blue-light, 30);
 
     a.annotation {
       &.trigger-popover {
@@ -944,6 +927,10 @@
       border-bottom: 1px dotted #666;
       &:hover { text-decoration: none; }
     }
+  }
+
+  &.system-frame p {
+    background: @white-dark;
   }
 
   .original-src {
@@ -962,7 +949,7 @@
   }
 
   .in-at {
-    opacity: .8;
+    opacity: .6;
     margin: 0 2px;
   }
 
@@ -997,17 +984,57 @@
 
   code {
     padding: 0;
-    background: #fff;
+    background: inherit;
     font-size: inherit;
     color: inherit;
   }
 
   .context {
-    margin-top: -5px;
-    margin-bottom: 15px;
+    display: none;
+    background: #fff;
+    margin: 0;
+    padding: 8px 0;
+
+    > li {
+      padding: 0 20px;
+      background: inherit;
+    }
 
     table.key-value {
-      margin-top: 20px;
+      border-top: 1px solid lighten(@trim, 4);
+      padding: 0 20px;
+      margin: 0 0 -8px;
+
+      td {
+        border-bottom: 1px solid lighten(@trim, 4) !important;
+
+        &.key {
+          width: 125px;
+          max-width: 125px;
+        }
+
+        &.value pre {
+          background: inherit;
+        }
+      }
+
+      tr:last-child {
+        td {
+          border-bottom: 0 !important;
+        }
+      }
+    }
+
+    &.expanded {
+      display: block;
+    }
+  }
+
+  .box-clippable {
+    margin-left: 0;
+    margin-right: 0;
+    &:first-of-type {
+      margin-top: 0;
     }
   }
 
@@ -1029,9 +1056,9 @@
   .btn-toggle {
     display: block;
     float: right;
-    .square(18px);
+    .square(16px);
     padding: 0;
-    line-height: 18px;
+    line-height: 16px;
     font-size: 9px;
     text-align: center;
   }
@@ -1041,7 +1068,6 @@
   }
 
   &.expanded {
-
     > p {
       color: #000;
     }
@@ -1116,7 +1142,6 @@ ol.context {
   }
 
   > li {
-    cursor: pointer;
     padding-left: 15px;
     font-family: @font-family-code;
     color: #222;
@@ -1126,12 +1151,19 @@ ol.context {
     white-space: pre;
     white-space: pre-wrap;
     word-wrap: break-word;
+    min-height: 24px;
   }
+
   > li.active {
     background-color: #f6f7f8;
-    min-height: 24px;
     list-style-type: none;
     border-radius: 2px;
+
+    &:first-child:last-child {
+      background-color: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
 
     pre {
       color: @gray-dark;
@@ -1168,18 +1200,6 @@ ol.context-line {
   > li {
     > span {
       float: right;
-    }
-  }
-}
-
-.expanded {
-  ol.context {
-    > li {
-      min-height: 22px;
-    }
-    > li.active {
-      background-color: @blue;
-      color: #fff;
     }
   }
 }

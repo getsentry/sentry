@@ -35,7 +35,9 @@ const ClippedBox = React.createClass({
     }
   },
 
-  reveal() {
+  reveal(e) {
+    e.stopPropagation();
+
     this.setState({
       clipped: false
     });

@@ -3295,6 +3295,28 @@ div.qrcode {
 }
 
 /**
+ * Truncate component.
+ */
+.truncated {
+  position: relative;
+  .full-value {
+    display: none;
+    position: absolute;
+    background: @white;
+    left: -5px;
+    top: -5px;
+    padding: 4px;
+    border: 1px solid @trim;
+    white-space: nowrap;
+    border-radius: 4px;
+  }
+  &.expanded .full-value {
+    z-index: 10;
+    display: block;
+  }
+}
+
+/**
 * Responsive small screens
 * ============================================================================
 */

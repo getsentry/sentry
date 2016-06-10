@@ -51,6 +51,14 @@ const StacktraceContent = React.createClass({
       lastFrameOmitted = null;
     }
 
+    let lastFrameIdx = null;
+    data.frames.forEach((frame, frameIdx) => {
+      if (frame.inApp) lastFrameIdx = frameIdx;
+    });
+    if (lastFrameIdx === null) {
+      lastFrameIdx = data.frames.length - 1;
+    }
+
     let frames = [];
     data.frames.forEach((frame, frameIdx) => {
       let nextFrame = data.frames[frameIdx + 1];
@@ -59,6 +67,7 @@ const StacktraceContent = React.createClass({
           <Frame
             key={frameIdx}
             data={frame}
+            isExpanded={lastFrameIdx === frameIdx}
             nextFrameInApp={nextFrame && nextFrame.inApp}
             platform={this.props.platform} />
         );
