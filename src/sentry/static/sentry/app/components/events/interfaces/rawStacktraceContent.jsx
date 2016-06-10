@@ -43,6 +43,11 @@ function getRubyFrame(frame) {
   return result;
 }
 
+export function getPHPFrame(frame, idx) {
+  let funcName = (frame.function === 'null' ? '{main}' : frame.function);
+  return `#${idx} ${frame.filename || frame.module}(${frame.lineNo}): ${funcName}`;
+}
+
 export function getPythonFrame(frame) {
   let result = '';
   if (defined(frame.filename)) {
@@ -132,21 +137,23 @@ function getPreamble(exception, platform) {
   }
 }
 
-function getFrame(frame, platform) {
+function getFrame(frame, frameIdx, platform) {
   switch (platform) {
     case 'javascript':
-      return getJavaScriptFrame(frame);
+      return getJavaScriptFrame(frame, frameIdx);
     case 'ruby':
-      return getRubyFrame(frame);
+      return getRubyFrame(frame, frameIdx);
+    case 'php':
+      return getPHPFrame(frame, frameIdx);
     case 'python':
-      return getPythonFrame(frame);
+      return getPythonFrame(frame, frameIdx);
     case 'java':
-      return getJavaFrame(frame);
+      return getJavaFrame(frame, frameIdx);
     case 'objc':
     case 'cocoa':
-      return getCocoaFrame(frame);
+      return getCocoaFrame(frame, frameIdx);
     default:
-      return getPythonFrame(frame);
+      return getPythonFrame(frame, frameIdx);
   }
 }
 
@@ -163,7 +170,7 @@ export default function render (data, platform, exception) {
   }
 
   data.frames.forEach((frame, frameIdx) => {
-    frames.push(getFrame(frame, platform));
+    frames.push(getFrame(frame, frameIdx, platform));
     if (frameIdx === firstFrameOmitted) {
       frames.push((
         '.. frames ' + firstFrameOmitted + ' until ' + lastFrameOmitted + ' were omitted and not available ..'

@@ -1,16 +1,15 @@
 import React from 'react';
 import _ from 'underscore';
 import classNames from 'classnames';
-
-import ClippedBox from '../../../components/clippedBox';
-import TooltipMixin from '../../../mixins/tooltip';
-import StrictClick from '../../strictClick';
-import Truncate from '../../../components/truncate';
-import {t} from '../../../locale';
+import PureRenderMixin from 'react-addons-pure-render-mixin';
 import {defined, objectIsEmpty, isUrl} from '../../../utils';
 
-import ContextLine from './contextLine';
+import StrictClick from '../../strictClick';
+import TooltipMixin from '../../../mixins/tooltip';
 import FrameVariables from './frameVariables';
+import ContextLine from './contextLine';
+import {t} from '../../../locale';
+
 
 function trimPackage(pkg) {
   let pieces = pkg.split(/\//g);
@@ -20,7 +19,7 @@ function trimPackage(pkg) {
 }
 
 
-const Frame = React.createClass({
+const OldFrame = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
     nextFrameInApp: React.PropTypes.bool,
@@ -36,27 +35,17 @@ const Frame = React.createClass({
     })
   ],
 
-  getDefaultProps() {
-    return {
-      isExpanded: false
-    };
-  },
-
   getInitialState() {
     // isExpanded can be initialized to true via parent component;
     // data synchronization is not important
     // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
     return {
-      isExpanded: this.props.isExpanded
+      isExpanded: defined(this.props.isExpanded) ? this.props.isExpanded : false
     };
   },
 
   toggleContext(evt) {
     evt && evt.preventDefault();
-    if (!this.isExpandable()) {
-      return null;
-    }
-
     this.setState({
       isExpanded: !this.state.isExpanded
     });
@@ -66,13 +55,18 @@ const Frame = React.createClass({
     return defined(this.props.data.context) && this.props.data.context.length;
   },
 
+  hasExtendedSource() {
+    return this.hasContextSource() && this.props.data.context.length > 1;
+  },
+
   hasContextVars() {
     return !objectIsEmpty(this.props.data.vars);
   },
 
   isExpandable() {
-    return this.hasContextSource() || this.hasContextVars();
+    return this.hasExtendedSource() || this.hasContextVars();
   },
+
 
   renderOriginalSourceInfo() {
     let data = this.props.data;
@@ -102,11 +96,7 @@ const Frame = React.createClass({
     // lazy to change this up right now.  This should be a format string
 
     if (defined(data.filename || data.module)) {
-      title.push((
-        <code key="filename" className="filename">
-          <Truncate value={data.filename || data.module} maxLength={100} leftTrim={true} />
-        </code>
-      ));
+      title.push(<code key="filename">{data.filename || data.module}</code>);
       if (isUrl(data.absPath)) {
         title.push(<a href={data.absPath} className="icon-open" key="share" target="_blank" />);
       }
@@ -116,26 +106,26 @@ const Frame = React.createClass({
     }
 
     if (defined(data.function)) {
-      title.push(<code key="function" className="function">{data.function}</code>);
+      title.push(<code key="function">{data.function}</code>);
     }
 
     // we don't want to render out zero line numbers which are used to
     // indicate lack of source information for native setups.  We could
     // TODO(mitsuhiko): only do this for events from native platforms?
-    else if (defined(data.lineNo) && data.lineNo != 0) {
+    if (defined(data.lineNo) && data.lineNo != 0) {
       // TODO(dcramer): we need to implement source mappings
       // title.push(<span className="pull-right blame"><a><span className="icon-mark-github"></span> View Code</a></span>);
       title.push(<span className="in-at" key="at"> {t('at line')} </span>);
       if (defined(data.colNo)) {
-        title.push(<code key="line" className="lineno">{data.lineNo}:{data.colNo}</code>);
+        title.push(<code key="line">{data.lineNo}:{data.colNo}</code>);
       } else {
-        title.push(<code key="line" className="lineno">{data.lineNo}</code>);
+        title.push(<code key="line">{data.lineNo}</code>);
       }
     }
 
     if (defined(data.package)) {
       title.push(<span className="within" key="within"> {t('within')} </span>);
-      title.push(<code title={data.package} className="package">{trimPackage(data.package)}</code>);
+      title.push(<code title={data.package}>{trimPackage(data.package)}</code>);
     }
 
     if (defined(data.origAbsPath)) {
@@ -146,7 +136,33 @@ const Frame = React.createClass({
       );
     }
 
+    if (data.inApp) {
+      title.push(<span key="in-app"><span className="divider"/>{t('application')}</span>);
+    }
     return title;
+  },
+
+  renderContextLine(line, activeLineNo) {
+    let liClassName = 'expandable';
+    if (line[0] === activeLineNo) {
+      liClassName += ' active';
+    }
+
+    let lineWs;
+    let lineCode;
+    if (defined(line[1]) && line[1].match) {
+      [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m);
+    } else {
+      lineWs = '';
+      lineCode = '';
+    }
+    return (
+      <li className={liClassName} key={line[0]}>
+        <span className="ws">{
+        lineWs}</span><span className="contextline">{lineCode
+        }</span>
+      </li>
+    );
   },
 
   renderContext() {
@@ -178,11 +194,11 @@ const Frame = React.createClass({
             }
 
             {data.context && contextLines.map((line, index) => {
-              return <ContextLine key={index} line={line} isActive={data.lineNo === line[0]} />;
+              return <ContextLine key={index} line={line} isActive={data.lineNo === line[0]}/>;
             })}
 
             {hasContextVars &&
-              <ClippedBox clipHeight={100}><FrameVariables data={data.vars} key="vars" /></ClippedBox>
+              <FrameVariables data={data.vars} key="vars" />
             }
           </ol>
         </StrictClick>
@@ -207,7 +223,7 @@ const Frame = React.createClass({
 
   renderDefaultLine() {
     return (
-      <p onClick={this.toggleContext}>
+      <p>
         {this.renderDefaultTitle()}
         {this.renderExpander()}
       </p>
@@ -259,8 +275,6 @@ const Frame = React.createClass({
 
     let className = classNames({
       'frame': true,
-      'is-expandable': this.isExpandable(),
-      'expanded': this.state.isExpanded,
       'system-frame': !data.inApp,
       'frame-errors': data.errors,
       'leads-to-app': !data.inApp && this.props.nextFrameInApp
@@ -278,4 +292,4 @@ const Frame = React.createClass({
   }
 });
 
-export default Frame;
+export default OldFrame;
