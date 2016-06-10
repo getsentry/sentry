@@ -1,6 +1,8 @@
 Version 8.6 (Unreleased)
 ------------------------
 
+- ``SENTRY_MANAGED_USER_FIELDS`` now defaults to an empty list.
+
 Version 8.5.1
 -------------
 
