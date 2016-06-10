@@ -1,6 +1,8 @@
 Version 8.6 (Unreleased)
 ------------------------
 
+- The ``message`` attribute on Event/Group is now purely used for search storage.
+- The ``sentry.interfaces.Message`` interface now contains a ``formatted`` attribute.
 - ``SENTRY_MANAGED_USER_FIELDS`` now defaults to an empty list.
 
 Version 8.5.1
