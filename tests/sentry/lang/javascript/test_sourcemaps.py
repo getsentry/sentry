@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 from sentry.lang.javascript.sourcemaps import (
-    SourceMap, parse_vlq, parse_sourcemap, sourcemap_to_index, find_source
+    SourceMap, parse_vlq, parse_sourcemap, sourcemap_to_index, find_source, get_inline_content_sources
 )
 from sentry.testutils import TestCase
 
@@ -105,6 +105,24 @@ class FindSourceTest(TestCase):
         # End of minified file (character *beyond* last line/col tuple)
         result = find_source(indexed_sourcemap, 1, 192)
         assert result == SourceMap(dst_line=0, dst_col=191, src='foo/file2.js', src_line=9, src_col=25, name='e')
+
+
+class GetInlineContentSourcesTest(TestCase):
+    def test_no_inline(self):
+        # basic sourcemap fixture has no inlined sources, so expect an empty list
+        indexed_sourcemap = sourcemap_to_index(sourcemap)
+
+        sources = get_inline_content_sources(indexed_sourcemap, 'https://example.com/static/')
+        assert sources == []
+
+    def test_indexed_inline(self):
+        indexed_sourcemap = sourcemap_to_index(indexed_sourcemap_example)
+
+        sources = get_inline_content_sources(indexed_sourcemap, 'https://example.com/static/')
+        assert sources == [
+            ('https://example.com/the/root/one.js', [' ONE.foo = function (bar) {', '   return baz(bar);', ' };']),
+            ('https://example.com/the/root/two.js', [' TWO.inc = function (n) {', '   return n + 1;', ' };'])
+        ]
 
 
 class ParseSourcemapTest(TestCase):

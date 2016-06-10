@@ -182,6 +182,24 @@ def sourcemap_to_index(sourcemap):
         return _sourcemap_to_index(smap)
 
 
+def get_inline_content_sources(sourcemap_index, sourcemap_url):
+    """
+    Returns a list of tuples of (filename, content) for each inline
+    content found in the given source map index. Note that `content`
+    itself is a list of code lines.
+    """
+    out = []
+    if isinstance(sourcemap_index, IndexedSourceMapIndex):
+        for map in sourcemap_index.maps:
+            out = out + get_inline_content_sources(map, sourcemap_url)
+    else:
+        for source in sourcemap_index.sources:
+            next_filename = urljoin(sourcemap_url, source)
+            if source in sourcemap_index.content:
+                out.append((next_filename, sourcemap_index.content[source]))
+    return out
+
+
 def find_source(sourcemap_index, lineno, colno):
     """
     Given a SourceMapIndex and a transformed lineno/colno position,

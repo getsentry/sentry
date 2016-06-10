@@ -34,7 +34,7 @@ from sentry.utils.http import is_valid_origin
 from sentry.utils.strings import truncatechars
 
 from .cache import SourceCache, SourceMapCache
-from .sourcemaps import sourcemap_to_index, find_source, IndexedSourceMapIndex
+from .sourcemaps import sourcemap_to_index, find_source, get_inline_content_sources
 
 
 # number of surrounding lines (on each side) to fetch
@@ -758,17 +758,9 @@ class SourceProcessor(object):
         sourcemaps.add(sourcemap_url, sourcemap_idx)
 
         # cache any inlined sources
-        self.cache_sourcemap_sources(sourcemap_url, sourcemap_idx)
-
-    def cache_sourcemap_sources(self, sourcemap_url, sourcemap_idx):
-        if isinstance(sourcemap_idx, IndexedSourceMapIndex):
-            for map in sourcemap_idx.maps:
-                self.cache_sourcemap_sources(sourcemap_url, map)
-        else:
-            for source in sourcemap_idx.sources:
-                next_filename = urljoin(sourcemap_url, source)
-                if source in sourcemap_idx.content:
-                    self.cache.add(next_filename, sourcemap_idx.content[source])
+        inline_sources = get_inline_content_sources(sourcemap_idx, sourcemap_url)
+        for source in inline_sources:
+            self.cache.add(*source)
 
     def populate_source_cache(self, frames, release):
         """
