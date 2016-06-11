@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
-from sentry.models import UserReport
+from sentry.models import Event, UserReport
 from sentry.testutils import APITestCase
 
 
@@ -243,3 +243,32 @@ class EventDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data['id'] == str(cur_event.id)
         assert response.data['userReport']['id'] == str(user_report.id)
+
+    def test_delete(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        event = self.create_event(
+            event_id='a',
+            group=group,
+            datetime=datetime(2013, 8, 13, 3, 8, 24),
+        )
+
+        user_report = UserReport.objects.create(
+            event_id=event.event_id,
+            project=group.project,
+            email='foo@example.com',
+            name='Jane Doe',
+            comments='Hello world!',
+        )
+
+        url = reverse('sentry-api-0-event-details', kwargs={
+            'event_id': event.id,
+        })
+
+        response = self.client.delete(url, format='json')
+
+        assert response.status_code == 202, response.content
+
+        assert not Event.objects.filter(id=event.id).exists()
+        assert not UserReport.objects.filter(id=user_report.id).exists()

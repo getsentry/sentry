@@ -26,7 +26,20 @@ class EventDetailsEndpoint(Endpoint):
             return {'version': version}
         return serialize(release, request.user)
 
-    def get(self, request, event_id):
+    def convert_args(self, request, event_id, *args, **kwargs):
+        try:
+            event = Event.objects.get(
+                id=event_id,
+            )
+        except Event.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        self.check_object_permissions(request, event.group)
+        Event.objects.bind_nodes([event], 'data')
+        kwargs['event'] = event
+        return args, kwargs
+
+    def get(self, request, event):
         """
         Retrieve an Event
         `````````````````
@@ -35,17 +48,6 @@ class EventDetailsEndpoint(Endpoint):
         is the event as it appears in the Sentry database and not the event
         ID that is reported by the client upon submission.
         """
-        try:
-            event = Event.objects.get(
-                id=event_id
-            )
-        except Event.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        self.check_object_permissions(request, event.group)
-
-        Event.objects.bind_nodes([event], 'data')
-
         # HACK(dcramer): work around lack of unique sorting on datetime
         base_qs = Event.objects.filter(
             group_id=event.group_id,
@@ -116,3 +118,23 @@ class EventDetailsEndpoint(Endpoint):
             data['previousEventID'] = None
 
         return Response(data)
+
+    def delete(self, request, event):
+        """
+        Remove an Event
+        ```````````````
+
+        Removes an individual Event.
+
+        :pparam string event_id: the ID of the event to delete.
+        :auth: required
+        """
+        from sentry.tasks.deletion import delete_events
+        delete_events(relation={'id': event.id}, limit=1)
+
+        UserReport.objects.filter(
+            project_id=event.project_id,
+            event_id=event.event_id,
+        ).delete()
+
+        return Response(status=202)
