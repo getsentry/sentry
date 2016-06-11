@@ -42,7 +42,7 @@ def record_task_signal(signal, name, **options):
     )
 
 # TODO: https://github.com/getsentry/sentry/issues/2495
-# https://celery.readthedocs.org/en/latest/userguide/signals.html#task-revoked
+# https://celery.readthedocs.io/en/latest/userguide/signals.html#task-revoked
 # def task_revoked_handler(sender, expired=False, **kwargs):
 #     if expired:
 #         metrics.incr('jobs.expired', instance=sender)

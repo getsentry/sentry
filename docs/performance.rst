@@ -66,7 +66,7 @@ or can be passed through the command line as::
 
 	$ sentry run web -w 16
 
-See `uWSGI's official documentation <https://uwsgi-docs.readthedocs.org/en/latest/Options.html>`_
+See `uWSGI's official documentation <https://uwsgi-docs.readthedocs.io/en/latest/Options.html>`_
 for more options that can be configured in ``SENTRY_WEB_OPTIONS``.
 
 
@@ -124,7 +124,7 @@ nodes are using a lot of memory, you'll want to ensure you have some
 mechanisms for monitoring and resolving this.
 
 If you're using supervisord, we recommend taking a look at `superlance
-<http://superlance.readthedocs.org>`_ which aids in this situation::
+<https://superlance.readthedocs.io>`_ which aids in this situation::
 
 	[eventlistener:memmon]
 	command=memmon -a 400MB -m ops@example.com
