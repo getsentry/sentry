@@ -181,3 +181,4 @@ class User(BaseModel, AbstractBaseUser):
     def set_password(self, raw_password):
         super(User, self).set_password(raw_password)
         self.last_password_change = timezone.now()
+        self.is_password_expired = False

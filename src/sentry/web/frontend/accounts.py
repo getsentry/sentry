@@ -53,9 +53,8 @@ def login_redirect(request):
 
 def expired(request, user):
     password_hash = send_password_recovery_mail(user)
-    return render_to_response('sentry/account/recover/sent.html', {
+    return render_to_response('sentry/account/recover/expired.html', {
         'email': password_hash.user.email,
-        'expired': True,
     }, request)
 
 
@@ -68,7 +67,6 @@ def recover(request):
 
         return render_to_response('sentry/account/recover/sent.html', {
             'email': password_hash.user.email,
-            'expired': False,
         }, request)
 
     elif request.POST and not request.session.get('needs_captcha'):
