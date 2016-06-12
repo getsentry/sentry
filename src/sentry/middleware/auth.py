@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.contrib.auth import middleware
 
 from sentry.utils.linksign import process_signature
+from sentry.utils import auth
 
 
 class AuthenticationMiddleware(middleware.AuthenticationMiddleware):
@@ -17,3 +18,8 @@ class AuthenticationMiddleware(middleware.AuthenticationMiddleware):
         if user is not None:
             request.user = user
             request.user_from_signed_request = True
+
+    def process_exception(self, request, exception):
+        if isinstance(exception, auth.AuthUserPasswordExpired):
+            from sentry.web.frontend.accounts import expired
+            return expired(request, exception.user)
