@@ -33,30 +33,42 @@ from sentry.utils.auth import get_auth_providers, get_login_redirect
 from sentry.utils.safe import safe_execute
 
 
+def send_password_recovery_mail(user):
+    password_hash, created = LostPasswordHash.objects.get_or_create(
+        user=user
+    )
+    if not password_hash.is_valid():
+        password_hash.date_added = timezone.now()
+        password_hash.set_hash()
+        password_hash.save()
+    password_hash.send_recover_mail()
+    return password_hash
+
+
 @login_required
 def login_redirect(request):
     login_url = get_login_redirect(request)
     return HttpResponseRedirect(login_url)
 
 
+def expired(request, user):
+    password_hash = send_password_recovery_mail(user)
+    return render_to_response('sentry/account/recover/sent.html', {
+        'email': password_hash.user.email,
+        'expired': True,
+    }, request)
+
+
 def recover(request):
     form = RecoverPasswordForm(request.POST or None,
                                captcha=bool(request.session.get('needs_captcha')))
     if form.is_valid():
-        password_hash, created = LostPasswordHash.objects.get_or_create(
-            user=form.cleaned_data['user']
-        )
-        if not password_hash.is_valid():
-            password_hash.date_added = timezone.now()
-            password_hash.set_hash()
-            password_hash.save()
-
-        password_hash.send_recover_mail()
-
+        password_hash = send_password_recovery_mail(form.cleaned_data['user'])
         request.session.pop('needs_captcha', None)
 
         return render_to_response('sentry/account/recover/sent.html', {
             'email': password_hash.user.email,
+            'expired': False,
         }, request)
 
     elif request.POST and not request.session.get('needs_captcha'):

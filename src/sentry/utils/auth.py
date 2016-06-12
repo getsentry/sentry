@@ -20,6 +20,12 @@ from sentry.models import User, Authenticator
 logger = logging.getLogger('sentry.auth')
 
 
+class AuthUserPasswordExpired(Exception):
+
+    def __init__(self, user):
+        self.user = user
+
+
 def _make_key_value(val):
     return val.strip().split('=', 1)
 
@@ -115,6 +121,9 @@ def login(request, user, passed_2fa=False, after_2fa=None):
     Optionally `after_2fa` can be set to a URL which will be used to override
     the regular session redirect target directly after the 2fa flow.
     """
+    if user.is_password_expired:
+        raise AuthUserPasswordExpired(user)
+
     has_2fa = Authenticator.objects.user_has_2fa(user)
     if has_2fa and not passed_2fa:
         request.session['_pending_2fa'] = [user.id, time.time()]
