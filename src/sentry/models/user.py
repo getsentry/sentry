@@ -46,6 +46,13 @@ class User(BaseModel, AbstractBaseUser):
         help_text=_('Designates whether this user should be treated as '
                     'managed. Select this to disallow the user from '
                     'modifying their account (username, password, etc).'))
+    is_password_expired = models.BooleanField(
+        _('password expired'), default=False,
+        help_text=_('If set to true then the user needs to change the '
+                    'password on next sign in.'))
+    last_password_change = models.DateTimeField(
+        _('date of last password change'), null=True,
+        help_text=_('The date the password was changed last.'))
 
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
 
@@ -170,3 +177,7 @@ class User(BaseModel, AbstractBaseUser):
         AuthIdentity.objects.filter(
             user=from_user,
         ).update(user=to_user)
+
+    def set_password(self, raw_password):
+        super(User, self).set_password(raw_password)
+        self.last_password_change = timezone.now()
