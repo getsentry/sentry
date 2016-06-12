@@ -11,6 +11,8 @@ from sentry.db.models import (
 
 
 class AuthProvider(Model):
+    __core__ = True
+
     organization = FlexibleForeignKey('sentry.Organization', unique=True)
     provider = models.CharField(max_length=128)
     config = JSONField()
