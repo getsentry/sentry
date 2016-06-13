@@ -286,9 +286,7 @@ class MessageBuilder(object):
         if options.get('mail.enable-replies') and 'X-Sentry-Reply-To' in headers:
             reply_to = headers['X-Sentry-Reply-To']
         else:
-            reply_to = set(reply_to or ())
-            reply_to.remove(to)
-            reply_to = ', '.join(reply_to)
+            reply_to = reply_to or self.from_email
 
         if reply_to:
             headers.setdefault('Reply-To', reply_to)
@@ -337,7 +335,7 @@ class MessageBuilder(object):
     def get_built_messages(self, to=None, bcc=None):
         send_to = set(to or ())
         send_to.update(self._send_to)
-        results = [self.build(to=email, reply_to=send_to, bcc=bcc) for email in send_to]
+        results = [self.build(to=email, reply_to=self.from_email, bcc=bcc) for email in send_to]
         if not results:
             logger.debug('Did not build any messages, no users to send to.')
         return results
