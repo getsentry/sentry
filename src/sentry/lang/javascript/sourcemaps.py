@@ -173,13 +173,8 @@ def sourcemap_to_index(sourcemap):
         for section in smap.get('sections'):
             offset = section.get('offset')
 
-            # Variant 1: map property (supported)
-            if section.get('map'):
-                offsets.append((offset.get('line'), offset.get('column')))
-                maps.append(_sourcemap_to_index(section.get('map')))
-            else:
-                # Variant 2: url property (unsupported)
-                raise Exception('indexed source maps with `url` property are unsupported')
+            offsets.append((offset.get('line'), offset.get('column')))
+            maps.append(_sourcemap_to_index(section.get('map')))
 
         return IndexedSourceMapIndex(offsets, maps)
     else:

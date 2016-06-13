@@ -2,8 +2,6 @@
 
 from __future__ import absolute_import
 
-import pytest
-
 from sentry.lang.javascript.sourcemaps import (
     SourceMap, parse_vlq, parse_sourcemap, sourcemap_to_index, find_source, get_inline_content_sources
 )
@@ -71,27 +69,6 @@ indexed_sourcemap_example = json.dumps({
                 'file': "min.js",
                 'sourceRoot': "/the/root"
             }
-        }
-    ]
-})
-
-indexed_sourcemap_example_with_url = json.dumps({
-    'version': 3,
-    'file': 'min.js',
-    'sections': [
-        {
-            'offset': {
-                'line': 0,
-                'column': 0
-            },
-            'url': 'https://example.org/static/1.map'
-        },
-        {
-            'offset': {
-                'line': 1,
-                'column': 0
-            },
-            'url': 'https://example.org/static/2.map'
         }
     ]
 })
@@ -226,6 +203,3 @@ class ParseIndexedSourcemapTest(TestCase):
             SourceMap(dst_line=0, dst_col=28, src='/the/root/one.js', src_line=1, src_col=10, name='baz')
         assert find_source(indexed_sourcemap, 2, 12) == \
             SourceMap(dst_line=1, dst_col=9, src='/the/root/two.js', src_line=0, src_col=11, name=None)
-
-    def test_fails_on_unsupported_format(self):
-        pytest.raises(Exception, sourcemap_to_index, *(indexed_sourcemap_example_with_url))
