@@ -1,0 +1,17 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Confirm Email" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+  <h2>{% trans "Oops, something happened" %}</h2>
+
+  <p>
+    {% url 'sentry-account-settings' as settings_url %}
+    {% blocktrans %}
+    There was an error confirming your email. Please try again or visit your <a href={{ settings_url }}>Account Settings</a> to resend the verification email.
+    {% endblocktrans %}
+  </p>
+{% endblock %}
