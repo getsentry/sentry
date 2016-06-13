@@ -4,6 +4,14 @@ sentry.utils.sourcemaps
 
 Originally based on https://github.com/martine/python-sourcemap
 
+Sentry implements the Source Map Revision 3 protocol. Specification:
+https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit
+
+Sentry supports both "standard" source maps, and has partial support for "indexed" source
+maps. Specifically, it supports indexed source maps with the "map" section property as
+output by the React Native bundler. It does NOT support indexed source maps with the "url"
+section property.
+
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
@@ -19,6 +27,7 @@ from sentry.utils import json
 
 SourceMap = namedtuple('SourceMap', ['dst_line', 'dst_col', 'src', 'src_line', 'src_col', 'name'])
 SourceMapIndex = namedtuple('SourceMapIndex', ['states', 'keys', 'sources', 'content'])
+IndexedSourceMapIndex = namedtuple('IndexedSourceMapIndex', ['offsets', 'maps'])
 
 # Mapping of base64 letter -> integer value.
 B64 = dict(
@@ -110,9 +119,7 @@ def parse_sourcemap(smap):
             yield SourceMap(dst_line, dst_col, src, src_line, src_col, name)
 
 
-def sourcemap_to_index(sourcemap):
-    smap = json.loads(sourcemap)
-
+def _sourcemap_to_index(smap):
     state_list = []
     key_list = []
     src_list = set()
@@ -152,8 +159,73 @@ def sourcemap_to_index(sourcemap):
     return SourceMapIndex(state_list, key_list, src_list, content)
 
 
-def find_source(indexed_sourcemap, lineno, colno):
+def sourcemap_to_index(sourcemap):
+    """
+    Converts a raw sourcemap string to either a SourceMapIndex (basic source map)
+    or IndexedSourceMapIndex (indexed source map w/ "sections")
+    """
+    smap = json.loads(sourcemap)
+
+    if smap.get('sections'):
+        # indexed source map
+        offsets = []
+        maps = []
+        for section in smap.get('sections'):
+            offset = section.get('offset')
+
+            offsets.append((offset.get('line'), offset.get('column')))
+            maps.append(_sourcemap_to_index(section.get('map')))
+
+        return IndexedSourceMapIndex(offsets, maps)
+    else:
+        # standard source map
+        return _sourcemap_to_index(smap)
+
+
+def get_inline_content_sources(sourcemap_index, sourcemap_url):
+    """
+    Returns a list of tuples of (filename, content) for each inline
+    content found in the given source map index. Note that `content`
+    itself is a list of code lines.
+    """
+    out = []
+    if isinstance(sourcemap_index, IndexedSourceMapIndex):
+        for smap in sourcemap_index.maps:
+            out += get_inline_content_sources(smap, sourcemap_url)
+    else:
+        for source in sourcemap_index.sources:
+            next_filename = urljoin(sourcemap_url, source)
+            if source in sourcemap_index.content:
+                out.append((next_filename, sourcemap_index.content[source]))
+    return out
+
+
+def find_source(sourcemap_index, lineno, colno):
+    """
+    Given a SourceMapIndex and a transformed lineno/colno position,
+    return the SourceMap object (which contains original file, line,
+    column, and token name)
+    """
+
     # error says "line no 1, column no 56"
     assert lineno > 0, 'line numbers are 1-indexed'
 
-    return indexed_sourcemap.states[bisect.bisect_right(indexed_sourcemap.keys, (lineno - 1, colno)) - 1]
+    if isinstance(sourcemap_index, IndexedSourceMapIndex):
+        map_index = bisect.bisect_right(sourcemap_index.offsets, (lineno - 1, colno)) - 1
+        offset = sourcemap_index.offsets[map_index]
+        col_offset = 0 if lineno != offset[0] else offset[1]
+        state = find_source(
+            sourcemap_index.maps[map_index],
+            lineno - offset[0],
+            colno - col_offset,
+        )
+        return SourceMap(
+            state.dst_line + offset[0],
+            state.dst_col + col_offset,
+            state.src,
+            state.src_line,
+            state.src_col,
+            state.name
+        )
+    else:
+        return sourcemap_index.states[bisect.bisect_right(sourcemap_index.keys, (lineno - 1, colno)) - 1]
