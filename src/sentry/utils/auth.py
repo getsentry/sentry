@@ -121,9 +121,6 @@ def login(request, user, passed_2fa=False, after_2fa=None):
     Optionally `after_2fa` can be set to a URL which will be used to override
     the regular session redirect target directly after the 2fa flow.
     """
-    if user.is_password_expired:
-        raise AuthUserPasswordExpired(user)
-
     has_2fa = Authenticator.objects.user_has_2fa(user)
     if has_2fa and not passed_2fa:
         request.session['_pending_2fa'] = [user.id, time.time()]
@@ -132,6 +129,16 @@ def login(request, user, passed_2fa=False, after_2fa=None):
         return False
 
     request.session.pop('_pending_2fa', None)
+
+    # Check for expired passwords here after we cleared the 2fa flow.
+    # While this means that users will have to pass 2fa before they can
+    # figure out that their passwords are expired this is still the more
+    # reasonable behavior.
+    #
+    # We also rememebr _after_2fa here so that we can continue the flow if
+    # someone does it in the same browser.
+    if user.is_password_expired:
+        raise AuthUserPasswordExpired(user)
 
     # If there is no authentication backend, just attach the first
     # one and hope it goes through.  This apparently is a thing we
