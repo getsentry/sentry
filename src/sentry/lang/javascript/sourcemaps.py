@@ -191,7 +191,7 @@ def get_inline_content_sources(sourcemap_index, sourcemap_url):
     out = []
     if isinstance(sourcemap_index, IndexedSourceMapIndex):
         for map in sourcemap_index.maps:
-            out = out + get_inline_content_sources(map, sourcemap_url)
+            out += get_inline_content_sources(map, sourcemap_url)
     else:
         for source in sourcemap_index.sources:
             next_filename = urljoin(sourcemap_url, source)
