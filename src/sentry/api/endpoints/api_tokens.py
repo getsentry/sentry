@@ -51,7 +51,6 @@ class ApiTokensEndpoint(Endpoint):
 
     def delete(self, request):
         token = request.DATA.get('token')
-        print(request.DATA)
         if not token:
             return Response({'token': ''}, status=400)
 
@@ -59,5 +58,9 @@ class ApiTokensEndpoint(Endpoint):
             user=request.user,
             token=token,
         ).delete()
+        print(ApiToken.objects.filter(
+            user=request.user,
+            token=token,
+        ).query)
 
         return Response(status=204)

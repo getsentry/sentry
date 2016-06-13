@@ -40,6 +40,7 @@ class ApiTokensCreateTest(APITestCase):
 class ApiTokensDeleteTest(APITestCase):
     def test_simple(self):
         token = ApiToken.objects.create(user=self.user)
+
         self.login_as(self.user)
         url = reverse('sentry-api-0-api-tokens')
         response = self.client.delete(url, data={'token': token.token})

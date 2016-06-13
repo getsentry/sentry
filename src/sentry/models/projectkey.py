@@ -22,8 +22,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import options
 from sentry.db.models import (
-    Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey,
-    sane_repr
+    Model, BaseManager, BoundedPositiveIntegerField, EncryptedCharField,
+    FlexibleForeignKey, sane_repr
 )
 
 
@@ -36,8 +36,8 @@ class ProjectKeyStatus(object):
 class ProjectKey(Model):
     project = FlexibleForeignKey('sentry.Project', related_name='key_set')
     label = models.CharField(max_length=64, blank=True, null=True)
-    public_key = models.CharField(max_length=32, unique=True, null=True)
-    secret_key = models.CharField(max_length=32, unique=True, null=True)
+    public_key = EncryptedCharField(max_length=32, unique=True, null=True)
+    secret_key = EncryptedCharField(max_length=32, unique=True, null=True)
     roles = BitField(flags=(
         # access to post events to the store endpoint
         ('store', 'Event API access'),

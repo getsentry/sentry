@@ -86,6 +86,11 @@ def pytest_configure(config):
     settings.CELERY_ALWAYS_EAGER = False
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
+    from cryptography.fernet import Fernet
+    settings.SENTRY_ENCRYPTION_SCHEMES = (
+        ('test', Fernet(Fernet.generate_key())),
+    )
+
     settings.DISABLE_RAVEN = True
 
     settings.CACHES = {

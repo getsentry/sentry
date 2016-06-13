@@ -110,3 +110,6 @@ add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedInteg
 add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedBigIntegerField"])
 add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedPositiveIntegerField"])
 add_introspection_rules([], ["^sentry\.db\.models\.fields\.pickle\.UnicodePickledObjectField"])
+add_introspection_rules([], ["^sentry\.db\.models\.fields\.encrypted\.EncryptedPickledObjectField"])
+add_introspection_rules([], ["^sentry\.db\.models\.fields\.encrypted\.EncryptedCharField"])
+add_introspection_rules([], ["^sentry\.db\.models\.fields\.encrypted\.EncryptedJsonField"])

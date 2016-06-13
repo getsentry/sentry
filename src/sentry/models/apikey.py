@@ -16,8 +16,8 @@ from django.utils.translation import ugettext_lazy as _
 from uuid import uuid4
 
 from sentry.db.models import (
-    Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey,
-    sane_repr
+    Model, BaseManager, BoundedPositiveIntegerField, EncryptedCharField,
+    FlexibleForeignKey, sane_repr
 )
 
 
@@ -30,7 +30,7 @@ class ApiKeyStatus(object):
 class ApiKey(Model):
     organization = FlexibleForeignKey('sentry.Organization', related_name='key_set')
     label = models.CharField(max_length=64, blank=True, default='Default')
-    key = models.CharField(max_length=32, unique=True)
+    key = EncryptedCharField(max_length=32, unique=True)
     scopes = BitField(flags=(
         ('project:read', 'project:read'),
         ('project:write', 'project:write'),

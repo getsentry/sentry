@@ -8,7 +8,7 @@ from django.utils import timezone
 from uuid import uuid4
 
 from sentry.db.models import (
-    Model, BaseManager, FlexibleForeignKey, sane_repr
+    Model, BaseManager, EncryptedCharField, FlexibleForeignKey, sane_repr
 )
 
 
@@ -16,7 +16,7 @@ class ApiToken(Model):
     # users can generate tokens without being key-bound
     key = FlexibleForeignKey('sentry.ApiKey', null=True)
     user = FlexibleForeignKey('sentry.User')
-    token = models.CharField(max_length=64, unique=True)
+    token = EncryptedCharField(max_length=64, unique=True)
     scopes = BitField(flags=(
         ('project:read', 'project:read'),
         ('project:write', 'project:write'),
