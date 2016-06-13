@@ -14,6 +14,8 @@ DATABASES = {
         'PASSWORD': '',
         'HOST': '',
         'PORT': '',
+        'AUTOCOMMIT': True,
+        'ATOMIC_REQUESTS': False,
     }
 }
 
