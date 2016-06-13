@@ -1,45 +1,57 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2015 THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
-# 
+# Bulgarian translation of sentry django.po file.
+# Copyright (C) 2015 Sentry team.
+# Copyright (C) 2016 Alexander Shopov <ash@kambanaria.org>.
+# This file is distributed under the same license as the sentry package.
 # Translators:
-# Haralan Dobrev <hkdobrev@gmail.com>, 2013
-# masarliev <mitko@masarliev.net>, 2014
+# Haralan Dobrev <hkdobrev@gmail.com>, 2013.
+# masarliev <mitko@masarliev.net>, 2014.
+# Alexander Shopov <ash@kambanaria.org>, 2016.
+#
+#
+# issue проблем, грешка?
+# event събитие
+# resolved решен
+# unresolved нерешен
+# snoozed отложен
+# dashboard (контролен) панел
+# DSN - data source name - име за данни
+# call sign - позивна
+# member - потребител
 msgid ""
 msgstr ""
-"Project-Id-Version: sentry\n"
+"Project-Id-Version: sentry master\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2016-06-02 19:00+0000\n"
-"PO-Revision-Date: 2016-06-02 19:01+0000\n"
-"Last-Translator: mattrobenolt <m@robenolt.com>\n"
-"Language-Team: Bulgarian (http://www.transifex.com/getsentry/sentry/language/bg/)\n"
+"PO-Revision-Date: 2016-06-13 15:50+0300\n"
+"Last-Translator: Alexander Shopov <ash@kambanaria.org>\n"
+"Language-Team: dict@fsa-bg.org\n"
+"Language: bg\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.2.0\n"
-"Language: bg\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: admin.py:189
 msgid "Personal info"
-msgstr ""
+msgstr "Лична информация"
 
 #: admin.py:190
 msgid "Permissions"
-msgstr ""
+msgstr "Права̀"
 
 #: admin.py:191
 msgid "Important dates"
-msgstr ""
+msgstr "Важни данни"
 
 #: admin.py:279
 msgid "Password changed successfully."
-msgstr ""
+msgstr "Успешно сменена парола."
 
 #: admin.py:289
 #, python-format
 msgid "Change password: %s"
-msgstr ""
+msgstr "Смяна на паролата: %s"
 
 #: constants.py:37 static/sentry/app/views/stream/sortOptions.jsx:47
 msgid "Priority"
@@ -56,7 +68,7 @@ msgstr "Последно видяни"
 #: templates/sentry/plugins/bases/tag/index.html:23
 #: static/sentry/app/views/stream/sortOptions.jsx:45
 msgid "First Seen"
-msgstr ""
+msgstr "Първо видяни"
 
 #: constants.py:40 static/sentry/app/views/stream/sortOptions.jsx:49
 msgid "Frequency"
@@ -69,399 +81,405 @@ msgstr "Резултат"
 #: constants.py:186
 #, python-brace-format
 msgid "The {name} integration has been enabled."
-msgstr ""
+msgstr "Интеграцията с „{name}“ е включена."
 
 #: constants.py:188
 #, python-brace-format
 msgid "The {name} integration has been disabled."
-msgstr ""
+msgstr "Интеграцията с „{name}“ е изключена."
 
 #: constants.py:190
 #, python-brace-format
 msgid "Configuration for the {name} integration has been saved."
-msgstr ""
+msgstr "Настройките за интеграцията с „{name}“ са запазени."
 
 #: auth/helper.py:29
 msgid "You have successully linked your account to your SSO provider."
 msgstr ""
+"Доставчикът ви за интегрирана идентификация успешно свърза регистрациите."
 
 #: auth/helper.py:31
 msgid ""
 "SSO has been configured for your organization and any existing members have "
 "been sent an email to link their accounts."
 msgstr ""
+"Организацията ви ползва SSO — пратено е е-писмо до всички, за да свържат "
+"регистрациите си."
 
 #: auth/helper.py:33
 msgid "There was an error encountered during authentication."
-msgstr ""
+msgstr "При идентификацията възникна грешка."
 
 #: auth/helper.py:35
 msgid "You must be authenticated to link accounts."
-msgstr ""
+msgstr "Необходимо е се идентифицирате, за да свързвате регистрации."
 
 #: conf/server.py:96
 msgid "Afrikaans"
-msgstr ""
+msgstr "африканс"
 
 #: conf/server.py:97
 msgid "Arabic"
-msgstr ""
+msgstr "арабски"
 
 #: conf/server.py:98
 msgid "Azerbaijani"
-msgstr ""
+msgstr "азербайджански"
 
 #: conf/server.py:99
 msgid "Bulgarian"
-msgstr ""
+msgstr "български"
 
 #: conf/server.py:100
 msgid "Belarusian"
-msgstr ""
+msgstr "белоруски"
 
 #: conf/server.py:101
 msgid "Bengali"
-msgstr ""
+msgstr "бенгалски"
 
 #: conf/server.py:102
 msgid "Breton"
-msgstr ""
+msgstr "бретонски"
 
 #: conf/server.py:103
 msgid "Bosnian"
-msgstr ""
+msgstr "босненски"
 
 #: conf/server.py:104
 msgid "Catalan"
-msgstr ""
+msgstr "каталунски"
 
 #: conf/server.py:105
 msgid "Czech"
-msgstr ""
+msgstr "чешки"
 
 #: conf/server.py:106
 msgid "Welsh"
-msgstr ""
+msgstr "уелски"
 
 #: conf/server.py:107
 msgid "Danish"
-msgstr ""
+msgstr "датски"
 
 #: conf/server.py:108
 msgid "German"
-msgstr ""
+msgstr "немски"
 
 #: conf/server.py:109
 msgid "Greek"
-msgstr ""
+msgstr "гръцки"
 
 #: conf/server.py:110
 msgid "English"
-msgstr ""
+msgstr "английски"
 
 #: conf/server.py:111
 msgid "Esperanto"
-msgstr ""
+msgstr "есперанто"
 
 #: conf/server.py:112
 msgid "Spanish"
-msgstr ""
+msgstr "испански"
 
 #: conf/server.py:113
 msgid "Estonian"
-msgstr ""
+msgstr "естонски"
 
 #: conf/server.py:114
 msgid "Basque"
-msgstr ""
+msgstr "баски"
 
 #: conf/server.py:115
 msgid "Persian"
-msgstr ""
+msgstr "фарси"
 
 #: conf/server.py:116
 msgid "Finnish"
-msgstr ""
+msgstr "фински"
 
 #: conf/server.py:117
 msgid "French"
-msgstr ""
+msgstr "френски"
 
 #: conf/server.py:118
 msgid "Irish"
-msgstr ""
+msgstr "ирландски"
 
 #: conf/server.py:119
 msgid "Galician"
-msgstr ""
+msgstr "галисийски"
 
 #: conf/server.py:120
 msgid "Hebrew"
-msgstr ""
+msgstr "иврит"
 
 #: conf/server.py:121
 msgid "Hindi"
-msgstr ""
+msgstr "хинди"
 
 #: conf/server.py:122
 msgid "Croatian"
-msgstr ""
+msgstr "хърватски"
 
 #: conf/server.py:123
 msgid "Hungarian"
-msgstr ""
+msgstr "унгарски"
 
 #: conf/server.py:124
 msgid "Interlingua"
-msgstr ""
+msgstr "интерлингуа"
 
 #: conf/server.py:125
 msgid "Indonesian"
-msgstr ""
+msgstr "индонезийски"
 
 #: conf/server.py:126
 msgid "Icelandic"
-msgstr ""
+msgstr "исландски"
 
 #: conf/server.py:127
 msgid "Italian"
-msgstr ""
+msgstr "италиански"
 
 #: conf/server.py:128
 msgid "Japanese"
-msgstr ""
+msgstr "японски"
 
 #: conf/server.py:129
 msgid "Georgian"
-msgstr ""
+msgstr "грузински"
 
 #: conf/server.py:130
 msgid "Kazakh"
-msgstr ""
+msgstr "казашки"
 
 #: conf/server.py:131
 msgid "Khmer"
-msgstr ""
+msgstr "кхмерски"
 
 #: conf/server.py:132
 msgid "Kannada"
-msgstr ""
+msgstr "канарески"
 
 #: conf/server.py:133
 msgid "Korean"
-msgstr ""
+msgstr "корейски"
 
 #: conf/server.py:134
 msgid "Luxembourgish"
-msgstr ""
+msgstr "люксембургски"
 
 #: conf/server.py:135
 msgid "Lithuanian"
-msgstr ""
+msgstr "литовски"
 
 #: conf/server.py:136
 msgid "Latvian"
-msgstr ""
+msgstr "латвийски"
 
 #: conf/server.py:137
 msgid "Macedonian"
-msgstr ""
+msgstr "македонски"
 
 #: conf/server.py:138
 msgid "Malayalam"
-msgstr ""
+msgstr "малаялам"
 
 #: conf/server.py:139
 msgid "Mongolian"
-msgstr ""
+msgstr "монголски"
 
 #: conf/server.py:140
 msgid "Burmese"
-msgstr ""
+msgstr "бурмански"
 
 #: conf/server.py:141
 msgid "Norwegian Bokmal"
-msgstr ""
+msgstr "норвежки букмол"
 
 #: conf/server.py:142
 msgid "Nepali"
-msgstr ""
+msgstr "непалски"
 
 #: conf/server.py:143
 msgid "Dutch"
-msgstr ""
+msgstr "холандски"
 
 #: conf/server.py:144
 msgid "Norwegian Nynorsk"
-msgstr ""
+msgstr "норвежки ниношк"
 
 #: conf/server.py:145
 msgid "Ossetic"
-msgstr ""
+msgstr "осетински"
 
 #: conf/server.py:146
 msgid "Punjabi"
-msgstr ""
+msgstr "пунджаби"
 
 #: conf/server.py:147
 msgid "Polish"
-msgstr ""
+msgstr "полски"
 
 #: conf/server.py:148
 msgid "Portuguese"
-msgstr ""
+msgstr "португалски"
 
 #: conf/server.py:149
 msgid "Brazilian Portuguese"
-msgstr ""
+msgstr "бразилски португалски"
 
 #: conf/server.py:150
 msgid "Romanian"
-msgstr ""
+msgstr "румънски"
 
 #: conf/server.py:151
 msgid "Russian"
-msgstr ""
+msgstr "руски"
 
 #: conf/server.py:152
 msgid "Slovak"
-msgstr ""
+msgstr "словашки"
 
 #: conf/server.py:153
 msgid "Slovenian"
-msgstr ""
+msgstr "словенски"
 
 #: conf/server.py:154
 msgid "Albanian"
-msgstr ""
+msgstr "албански"
 
 #: conf/server.py:155
 msgid "Serbian"
-msgstr ""
+msgstr "сръбски"
 
 #: conf/server.py:156
 msgid "Swedish"
-msgstr ""
+msgstr "шведски"
 
 #: conf/server.py:157
 msgid "Swahili"
-msgstr ""
+msgstr "суахили"
 
 #: conf/server.py:158
 msgid "Tamil"
-msgstr ""
+msgstr "тамилски"
 
 #: conf/server.py:159
 msgid "Telugu"
-msgstr ""
+msgstr "телугу"
 
 #: conf/server.py:160
 msgid "Thai"
-msgstr ""
+msgstr "тайски"
 
 #: conf/server.py:161
 msgid "Turkish"
-msgstr ""
+msgstr "турски"
 
 #: conf/server.py:162
 msgid "Tatar"
-msgstr ""
+msgstr "татарски"
 
 #: conf/server.py:163
 msgid "Udmurt"
-msgstr ""
+msgstr "удмурт"
 
 #: conf/server.py:164
 msgid "Ukrainian"
-msgstr ""
+msgstr "украински"
 
 #: conf/server.py:165
 msgid "Urdu"
-msgstr ""
+msgstr "урду"
 
 #: conf/server.py:166
 msgid "Vietnamese"
-msgstr ""
+msgstr "виетнамски"
 
 #: conf/server.py:167
 msgid "Simplified Chinese"
-msgstr ""
+msgstr "опростен китайски"
 
 #: conf/server.py:168
 msgid "Traditional Chinese"
-msgstr ""
+msgstr "традиционен китайски"
 
 #: db/models/fields/bounded.py:54 db/models/fields/bounded.py:68
 msgid "Big Integer"
-msgstr ""
+msgstr "Голямо цяло число"
 
 #: debug/panels/base.py:41
 #, python-format
 msgid "%(calls)d call in %(duration).2fms"
 msgid_plural "%(calls)d calls in %(duration).2fms"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%(calls)d извикване за %(duration).2f ms"
+msgstr[1] "%(calls)d извиквания за %(duration).2f ms"
 
 #: debug/panels/redis.py:79
 msgid "Redis"
-msgstr ""
+msgstr "Redis"
 
 #: interfaces/http.py:213
 msgid "Request"
-msgstr ""
+msgstr "Заявка"
 
 #: interfaces/stacktrace.py:683
 msgid "Stacktrace (most recent call first):"
-msgstr ""
+msgstr "Стек с извикванията (последното извикване е най-горе):"
 
 #: interfaces/stacktrace.py:685
 msgid "Stacktrace (most recent call last):"
-msgstr ""
+msgstr "Стек с извикванията (последното извикване е най-отдолу):"
 
 #: models/apikey.py:52 models/project.py:85 models/projectkey.py:49
 #: models/team.py:93
 msgid "Active"
-msgstr ""
+msgstr "Включен"
 
 #: models/apikey.py:53 models/projectkey.py:50
 msgid "Inactive"
-msgstr ""
+msgstr "Изключен"
 
 #: models/authenticator.py:164
 msgid "Enroll"
-msgstr ""
+msgstr "Включване"
 
 #: models/authenticator.py:165
 msgid "Info"
-msgstr ""
+msgstr "Информация"
 
 #: models/authenticator.py:166 templates/sentry/organization-members.html:127
 #: templates/sentry/organization-members.html:132
 #: static/sentry/app/components/activity/note.jsx:41
 msgid "Remove"
-msgstr ""
+msgstr "Изтриване"
 
 #: models/authenticator.py:258
 msgid "Recovery Codes"
-msgstr ""
+msgstr "Кодове за възстановяване"
 
 #: models/authenticator.py:259
 msgid ""
 "Recovery codes can be used to access your account in the event you lose "
 "access to your device and cannot receive two-factor authentication codes."
 msgstr ""
+"Кодовете за възстановяване служат да си върнете достъпа до регистрацията си "
+"в случаите, когато си загубите устройството и не можете да получите кодовете "
+"си за двойна идентификация."
 
 #: models/authenticator.py:262
 msgid "Activate"
-msgstr ""
+msgstr "Включване"
 
 #: models/authenticator.py:263
 msgid "View Codes"
-msgstr ""
+msgstr "Преглед на кодовете"
 
 #: models/authenticator.py:341
 msgid "Authenticator App"
-msgstr ""
+msgstr "Приложение за идентификация"
 
 #: models/authenticator.py:342
 msgid ""
@@ -469,29 +487,39 @@ msgid ""
 "or 1Password) can be used to conveniently secure your account.  A new token "
 "is generated every 30 seconds."
 msgstr ""
+"За висока и удобна на сигурност на вписването може да ползвате приложение за "
+"идентификация с поддръжка на еднокранти пароли по време „TOTP“ — напр. "
+"„Google Authenticator“ или „1Password“. На всеки 30 секунди се генерира нов "
+"жетон."
 
 #: models/authenticator.py:357
 msgid "Text Message"
-msgstr ""
+msgstr "Текстово съобщение"
 
 #: models/authenticator.py:358
 msgid ""
-"This authenticator sends you text messages for verification.  It's useful as"
-" a backup method or when you do not have a phone that supports an "
+"This authenticator sends you text messages for verification.  It's useful as "
+"a backup method or when you do not have a phone that supports an "
 "authenticator application."
 msgstr ""
+"Приложението за идентификация ви прати текстово съобщение за потвърждение. "
+"Това е удобно в случаите, когато телефоннът ви не поддържа приложението за "
+"идентификация."
 
 #: models/authenticator.py:389
 #, python-format
-msgid ""
-"A confirmation code was sent to your phone. It is valid for %d seconds."
+msgid "A confirmation code was sent to your phone. It is valid for %d seconds."
 msgstr ""
+"До телефона ви е пратен код за потвърждение, който ще е валиден в следващите "
+"%d секунди."
 
 #: models/authenticator.py:392
 msgid ""
 "Error: we failed to send a text message to you. You can try again later or "
 "sign in with a different method."
 msgstr ""
+"ГРЕШКА: Не може да се прати кратко съобщение до вас. Пробвайте по-късно или "
+"се идентифицирайте по друг начин."
 
 #: models/authenticator.py:400
 #, python-format
@@ -499,20 +527,23 @@ msgid ""
 "%(code)s is your Sentry two-factor enrollment code. You are about to set up "
 "text message based two-factor authentication."
 msgstr ""
+"„%(code)s“ е кодът ви за вписване с в Sentry при двойна идентификация. "
+"Предстои да настроите кратките съобщения по телефона като начина за двойна "
+"идентификация."
 
 #: models/authenticator.py:404
 #, python-format
 msgid "%(code)s is your Sentry authentication code."
-msgstr ""
+msgstr "„%(code)s“ е кодът ви за идентификация за Sentry."
 
 #: models/authenticator.py:407
 #, python-format
 msgid "Requested from %(ip)s"
-msgstr ""
+msgstr "Заявката е от адрес: %(ip)s"
 
 #: models/authenticator.py:417
 msgid "U2F (Universal 2nd Factor)"
-msgstr ""
+msgstr "Универсална двойна идентификация (U2F)"
 
 #: models/authenticator.py:418
 msgid ""
@@ -520,22 +551,25 @@ msgid ""
 "something similar which supports FIDO's U2F specification. This also "
 "requires a browser which supports this system (like Google Chrome)."
 msgstr ""
+"Идентификация с устройство за универсална двойна идентификация (U2F). Такива "
+"устройства поддържат спецификацията U2F на FIDO — например Yubikey. Това "
+"изисква и браузър с такава поддръжка."
 
 #: models/authenticator.py:490
 msgid "created at"
-msgstr ""
+msgstr "създадено на"
 
 #: models/authenticator.py:491
 msgid "last used at"
-msgstr ""
+msgstr "последно ползвано на"
 
 #: models/authenticator.py:500
 msgid "authenticator"
-msgstr ""
+msgstr "идентификация"
 
 #: models/authenticator.py:501
 msgid "authenticators"
-msgstr ""
+msgstr "идентификации"
 
 #: models/event.py:52
 msgid "message"
@@ -552,15 +586,15 @@ msgstr "грешка"
 #: models/group.py:166
 #: static/sentry/app/components/organizationIssueList.jsx:49
 msgid "Unresolved"
-msgstr ""
+msgstr "Нерешени"
 
 #: models/group.py:167 models/groupresolution.py:37
 msgid "Resolved"
-msgstr ""
+msgstr "Решени"
 
 #: models/group.py:168
 msgid "Muted"
-msgstr ""
+msgstr "Заглушени"
 
 #: models/group.py:190
 msgid "grouped messages"
@@ -572,121 +606,129 @@ msgstr "групирани съобщения"
 
 #: models/groupresolution.py:36
 msgid "Pending"
-msgstr ""
+msgstr "Предстоящи"
 
 #: models/organization.py:70 models/tagkey.py:67
 msgid "Visible"
-msgstr ""
+msgstr "Видими"
 
 #: models/organization.py:71 models/project.py:86 models/tagkey.py:68
 #: models/team.py:94
 msgid "Pending Deletion"
-msgstr ""
+msgstr "Предстои изтриване"
 
 #: models/organization.py:72 models/project.py:87 models/tagkey.py:69
 #: models/team.py:95
 msgid "Deletion in Progress"
-msgstr ""
+msgstr "В момента тече изтриване"
 
 #: models/user.py:26
 msgid "username"
-msgstr ""
+msgstr "потребителско име"
 
 #: models/user.py:29
 msgid "name"
-msgstr ""
+msgstr "име"
 
 #: models/user.py:31
 msgid "email address"
-msgstr ""
+msgstr "адрес на е-поща"
 
 #: models/user.py:33
 msgid "staff status"
-msgstr ""
+msgstr "състояние на потребителя"
 
 #: models/user.py:34
 msgid "Designates whether the user can log into this admin site."
-msgstr ""
+msgstr "Дали потребителя може да се впише в частта на сайта за администрация."
 
 #: models/user.py:37
 msgid "active"
-msgstr ""
+msgstr "включен"
 
 #: models/user.py:38
 msgid ""
 "Designates whether this user should be treated as active. Unselect this "
 "instead of deleting accounts."
 msgstr ""
+"Указва дали регистрацията е включена. Вместо да я триете, може да я означите "
+"като изключена."
 
 #: models/user.py:41
 msgid "superuser status"
-msgstr ""
+msgstr "администратор"
 
 #: models/user.py:42
 msgid ""
 "Designates that this user has all permissions without explicitly assigning "
 "them."
 msgstr ""
+"Указва, че регистрацията рацполага с всички права, без изрично да са ѝ "
+"давани."
 
 #: models/user.py:45
 msgid "managed"
-msgstr ""
+msgstr "управляван"
 
 #: models/user.py:46
 msgid ""
 "Designates whether this user should be treated as managed. Select this to "
 "disallow the user from modifying their account (username, password, etc)."
 msgstr ""
+"Указва регистрацията като управлявана. Така потребителят няма да може да я "
+"променя (име, парола и т.н.)."
 
 #: models/user.py:50
 msgid "date joined"
-msgstr ""
+msgstr "дата на създаване"
 
 #: models/user.py:60
 msgid "user"
-msgstr ""
+msgstr "потребител"
 
 #: models/user.py:61 static/sentry/app/components/groupListHeader.jsx:16
 msgid "users"
-msgstr ""
+msgstr "потребители"
 
 #: plugins/base/configuration.py:64 web/frontend/project_notifications.py:19
 #: web/frontend/project_plugins.py:24 web/frontend/project_quotas.py:35
 msgid "Your settings were saved successfully."
-msgstr ""
+msgstr "Настройките са успешно запазени."
 
 #: plugins/sentry_webhooks/plugin.py:17
 msgid "Callback URLs"
-msgstr ""
+msgstr "Адреси за известяване"
 
 #: plugins/sentry_webhooks/plugin.py:20
 msgid "Enter callback URLs to POST new events to (one per line)."
 msgstr ""
+"Въведете адресите (URL), към които да се пращат новите събития с POST (по "
+"един адрес на ред)."
 
 #: templates/sentry/403-csrf-failure.html:5
 #: templates/sentry/403-csrf-failure.html:10
 msgid "CSRF Verification Failed"
-msgstr ""
+msgstr "Неуспешна проверка за CSRF"
 
 #: templates/sentry/403-csrf-failure.html:13
 msgid "A required security token was not found or was invalid."
-msgstr ""
+msgstr "Задъл§жителният жетон за сигурност липсва или е грешен."
 
 #: templates/sentry/403-csrf-failure.html:15
 msgid "If you're continually seeing this issue, try the following:"
-msgstr ""
+msgstr "Ако това съобщение излиза много често, пробвайте:"
 
 #: templates/sentry/403-csrf-failure.html:18
 msgid "Clear cookies (at least for Sentry's domain)."
-msgstr ""
+msgstr "Да изчистите бисквиткитите (поне за домейна на Sentry)."
 
 #: templates/sentry/403-csrf-failure.html:19
 msgid "Reload the page you're trying to submit (don't re-submit data)."
-msgstr ""
+msgstr "Да презаредите страницата без подаване на формуляра."
 
 #: templates/sentry/403-csrf-failure.html:20
 msgid "Re-enter the information, and submit the form again."
-msgstr ""
+msgstr "Наново да въведете информацията и подадете формуляра."
 
 #: templates/sentry/404.html:5
 #: static/sentry/app/components/errors/notFound.jsx:10
@@ -695,64 +737,69 @@ msgstr "Страницата не е намерена"
 
 #: templates/sentry/404.html:14
 msgid "The page you are looking for was not found."
-msgstr ""
+msgstr "Такава страница няма."
 
 #: templates/sentry/404.html:15
 msgid "You may wish to try the following:"
-msgstr ""
+msgstr "Пробвайте с:"
 
 #: templates/sentry/404.html:21
 msgid "Return to the dashboard"
-msgstr ""
+msgstr "Към панела"
 
 #: templates/sentry/500.html:5
 msgid "Internal Server Error"
-msgstr ""
+msgstr "Вътрешна грешка на сървъра"
 
 #: templates/sentry/accept-organization-invite.html:5
 #: templates/sentry/accept-organization-invite.html:15
 msgid "Organization Invite"
-msgstr ""
+msgstr "Покана към организация"
 
 #: templates/sentry/accept-organization-invite.html:19
 #, python-format
 msgid "<strong>%(org_name)s</strong> is using Sentry to aggregate errors."
 msgstr ""
+"<strong>%(org_name)s</strong> използва Sentry за наблюдение на грешките."
 
 #: templates/sentry/accept-organization-invite.html:22
 #, python-format
 msgid ""
-"You have been invited to join this organization, which manages "
-"<strong>%(project_count)s</strong> project(s), including:"
+"You have been invited to join this organization, which manages <strong>"
+"%(project_count)s</strong> project(s), including:"
 msgstr ""
+"Поканени сте да се присъедините към организацията, която управлява <strong>"
+"%(project_count)s</strong> проекта, в това число:"
 
 #: templates/sentry/accept-organization-invite.html:32
 msgid ""
-"To continue, you must either login to your existing account, or create a new"
-" one."
+"To continue, you must either login to your existing account, or create a new "
+"one."
 msgstr ""
+"За да продължите, трябва да ползвате съществуващата си регистрация или да "
+"създадете нова."
 
 #: templates/sentry/accept-organization-invite.html:36
 msgid "Login as an existing user"
-msgstr ""
+msgstr "Влизане като вече съществуващ потребител."
 
 #: templates/sentry/accept-organization-invite.html:38
 msgid "Create a new account"
-msgstr ""
+msgstr "Създаване на нова регистрация"
 
 #: templates/sentry/accept-organization-invite.html:45
 #, python-format
 msgid "Join the %(org_name)s organization"
-msgstr ""
+msgstr "Присъединяване към организацията %(org_name)s"
 
 #: templates/sentry/admin-queue.html:8 templates/sentry/bases/admin.html:14
 msgid "Queue"
-msgstr ""
+msgstr "Опашка"
 
 #: templates/sentry/auth-confirm-identity.html:7
 #: templates/sentry/auth-confirm-link.html:7
 msgid "Confirm Identity"
-msgstr ""
+msgstr "Потвърждаване на самоличността"
 
 #: templates/sentry/auth-confirm-identity.html:43
 #: templates/sentry/auth-link-login.html:7
@@ -768,39 +815,42 @@ msgstr "Вход"
 #: templates/sentry/auth-link-login.html:31 templates/sentry/login.html:37
 #: templates/sentry/organization-login.html:54
 msgid "Lost your password?"
-msgstr ""
+msgstr "Загубена парола"
 
 #: templates/sentry/auth-link-identity.html:7
 msgid "Link Identity"
-msgstr ""
+msgstr "Свързване на самоличността"
 
 #: templates/sentry/create-organization-member.html:6
 #: templates/sentry/create-organization-member.html:11
 msgid "Add Member to Organization"
-msgstr ""
+msgstr "Добавяне на потребител към организация"
 
 #: templates/sentry/create-organization-member.html:15
 msgid ""
 "Invite a member to join this organization via their email address. If they "
 "do not already have an account, they will first be asked to create one."
 msgstr ""
+"Поканете потребител да се присъедини към организацията чрез е-поща. Ако "
+"потребителят няма регистрация, ще бъде инструктиран да си създаде."
 
 #: templates/sentry/create-organization-member.html:17
 msgid "You may add a user by their username if they already have an account."
 msgstr ""
+"Регистрирани потребители могат да се добавят просто с потребителско име."
 
 #: templates/sentry/create-organization-member.html:28
 msgid "Add Member"
-msgstr ""
+msgstr "Добавяне на потребител"
 
 #: templates/sentry/create-organization.html:6
 #: static/sentry/app/components/header/organizationSelector.jsx:51
 msgid "New Organization"
-msgstr ""
+msgstr "Нова организация"
 
 #: templates/sentry/create-organization.html:11
 msgid "Create a New Organization"
-msgstr ""
+msgstr "Създаване на нова организация"
 
 #: templates/sentry/create-organization.html:14
 msgid ""
@@ -808,20 +858,23 @@ msgid ""
 "bundle a collection of teams within an organization as well as give "
 "organization-wide permissions to users."
 msgstr ""
+"Организациите са най-горното ниво в йерархията. Ще можете да създавате екипи "
+"в организациите, както и са давате права за целите организации на "
+"потребителите."
 
 #: templates/sentry/create-organization.html:25
 msgid "Create Organization"
-msgstr ""
+msgstr "Създаване на организация"
 
 #: templates/sentry/create-project.html:7
 #: templates/sentry/projects/cannot_create_teams.html:5
 #: static/sentry/app/components/organizations/homeContainer.jsx:37
 msgid "New Project"
-msgstr ""
+msgstr "Нов проект"
 
 #: templates/sentry/create-project.html:12
 msgid "Create a New Project"
-msgstr ""
+msgstr "Създаване на нов проект"
 
 #: templates/sentry/create-project.html:15
 msgid ""
@@ -830,6 +883,10 @@ msgid ""
 "vs development instances, or separate projects for your web app and mobile "
 "app."
 msgstr ""
+"Проектите позволяват да задавате събития за определено приложение в рамките "
+"на организацията. Примерно може да има отделни проекти за сървърите за "
+"реална работа и тези за разработка или да ги разделите по предназначение — "
+"сървъри за уеб и сървъри за мобилния сайт."
 
 #: templates/sentry/create-project.html:20
 #: templates/sentry/organization-api-key-settings.html:19
@@ -837,31 +894,33 @@ msgstr ""
 #: templates/sentry/organization-settings.html:17
 #: templates/sentry/partial/form_base.html:5
 msgid "Please correct the errors below."
-msgstr ""
+msgstr "Поправете грешките по-долу."
 
 #: templates/sentry/create-project.html:30
 msgid "Create Project"
-msgstr ""
+msgstr "Създаване на проект"
 
 #: templates/sentry/create-team.html:5
 #: static/sentry/app/components/organizations/homeContainer.jsx:47
 msgid "New Team"
-msgstr ""
+msgstr "Нов екип"
 
 #: templates/sentry/create-team.html:10
 msgid "Create a New Team"
-msgstr ""
+msgstr "Създаване на нов екип"
 
 #: templates/sentry/create-team.html:13
 msgid ""
 "Teams group members' access to a specific focus, e.g. a major product or "
 "application that may have sub-projects."
 msgstr ""
+"Достъпът на членовете на екипа до проект или приложение, които могат да имат "
+"подпроекти."
 
 #: templates/sentry/layout.html:90 templates/sentry/bases/account.html:21
 #: web/forms/accounts.py:73 static/sentry/app/components/header/userNav.jsx:31
 msgid "Account"
-msgstr ""
+msgstr "Регистрация"
 
 #: templates/sentry/layout.html:92 templates/sentry/bases/admin.html:7
 #: web/forms/__init__.py:54 static/sentry/app/components/header/userNav.jsx:34
@@ -871,36 +930,36 @@ msgstr "Администратор"
 #: templates/sentry/layout.html:94
 #: static/sentry/app/components/header/userNav.jsx:36
 msgid "Sign out"
-msgstr ""
+msgstr "Изход"
 
 #: templates/sentry/layout.html:107 templates/sentry/layout.html.py:188
 #: static/sentry/app/components/footer.jsx:26
 msgid "Docs"
-msgstr ""
+msgstr "Документация"
 
 #: templates/sentry/layout.html:187
 #: templates/sentry/project-release-tracking.html:117
 #: static/sentry/app/components/header/userNav.jsx:32
 msgid "API"
-msgstr ""
+msgstr "API"
 
 #: templates/sentry/layout.html:189 static/sentry/app/components/footer.jsx:27
 msgid "Contribute"
-msgstr ""
+msgstr "Как да помогните"
 
 #: templates/sentry/layout.html:190 static/sentry/app/components/footer.jsx:29
 msgid "Migrate to SaaS"
-msgstr ""
+msgstr "Мигриране към софтуер като услуга (SaaS)"
 
 #: templates/sentry/login.html:15 templates/sentry/login.html.py:54
 #: templates/sentry/organization-login.html:35
 #: templates/sentry/organization-login.html:71
 msgid "Register"
-msgstr ""
+msgstr "Регистриране"
 
 #: templates/sentry/login.html:19
 msgid "Single Sign-On"
-msgstr ""
+msgstr "Еднократно влизане SSN"
 
 #: templates/sentry/missing_permissions.html:5
 #: templates/sentry/missing_permissions.html:8
@@ -909,27 +968,29 @@ msgstr "Нямате достъп"
 
 #: templates/sentry/missing_permissions.html:13
 msgid "You do not have access to this page with your current permissions."
-msgstr ""
+msgstr "Нямате достъп до тази страница с текущите си права."
 
 #: templates/sentry/no-organization-access.html:5
 #: templates/sentry/no-organization-access.html:12
 msgid "No Organization Access"
-msgstr ""
+msgstr "Нямате достъп до организация"
 
 #: templates/sentry/no-organization-access.html:14
 msgid ""
 "You don't have access to any organizations within Sentry. Talk to a Sentry "
 "administrator about getting access."
 msgstr ""
+"Нямате достъп до никоя организация в Sentry. Говорете с администратор на "
+"Sentry, за да получите достъп."
 
 #: templates/sentry/organization-api-key-settings.html:7
 #: templates/sentry/organization-api-key-settings.html:12
 msgid "API Key Settings"
-msgstr ""
+msgstr "Настройки на ключа за API"
 
 #: templates/sentry/organization-api-key-settings.html:33
 msgid "Key"
-msgstr ""
+msgstr "Ключ"
 
 #: templates/sentry/organization-api-key-settings.html:50
 #: templates/sentry/organization-member-settings.html:111
@@ -946,155 +1007,155 @@ msgstr ""
 #: templates/sentry/projects/quotas.html:38
 #: static/sentry/app/components/forms/form.jsx:14
 msgid "Save Changes"
-msgstr "Запази промените"
+msgstr "Запазване на промените"
 
 #: templates/sentry/organization-api-keys.html:7
 #: templates/sentry/organization-api-keys.html:19
 #: templates/sentry/bases/organization.html:69
 #: static/sentry/app/components/organizations/homeSidebar.jsx:77
 msgid "API Keys"
-msgstr ""
+msgstr "Ключове за API"
 
 #: templates/sentry/organization-audit-log.html:6
 #: templates/sentry/bases/organization.html:75
 #: static/sentry/app/components/organizations/homeSidebar.jsx:80
 msgid "Audit Log"
-msgstr ""
+msgstr "Журнал на събитията"
 
 #: templates/sentry/organization-audit-log.html:17
 #: static/sentry/app/views/organizationAuditLog.jsx:175
 msgid "Sentry keeps track of important events within your organization."
-msgstr ""
+msgstr "Sentry пази всички важни събития в организацията ви."
 
 #: templates/sentry/organization-auth-settings.html:5
 #: templates/sentry/bases/organization.html:60
 #: static/sentry/app/components/organizations/homeSidebar.jsx:74
 msgid "Auth"
-msgstr ""
+msgstr "Упълномощаване"
 
 #: templates/sentry/organization-member-details.html:7
 msgid "Member Details"
-msgstr ""
+msgstr "Данни за потребителя"
 
 #: templates/sentry/organization-member-details.html:21
 #: templates/sentry/organization-member-settings.html:29
 msgid "Basics"
-msgstr ""
+msgstr "Основни"
 
 #: templates/sentry/organization-member-details.html:28
 #: templates/sentry/organization-member-settings.html:36
 #: web/forms/accounts.py:144 web/forms/accounts.py:254
 msgid "Email"
-msgstr ""
+msgstr "Е-поща"
 
 #: templates/sentry/organization-member-details.html:36
 #: templates/sentry/organization-member-settings.html:44
 #: static/sentry/app/views/stream/searchBar.jsx:75
 msgid "Status"
-msgstr ""
+msgstr "Състояние"
 
 #: templates/sentry/organization-member-details.html:48
 #: templates/sentry/organization-member-settings.html:56
 msgid "Added"
-msgstr ""
+msgstr "Добавен"
 
 #: templates/sentry/organization-member-details.html:60
 #: templates/sentry/organization-member-settings.html:68
 #: templates/sentry/organization-members.html:75
 #: static/sentry/app/views/teamMembers.jsx:92
 msgid "Role"
-msgstr ""
+msgstr "Роля"
 
 #: templates/sentry/organization-member-details.html:80
 #: templates/sentry/organization-member-settings.html:88
 #: templates/sentry/admin/teams/list.html:16
 #: templates/sentry/bases/admin.html:25
 msgid "Teams"
-msgstr ""
+msgstr "Екипи"
 
 #: templates/sentry/organization-member-settings.html:7
 msgid "Member Settings"
-msgstr ""
+msgstr "Настройки"
 
 #: templates/sentry/organization-member-settings.html:109
 msgid "Resend Invite"
-msgstr ""
+msgstr "Нова покана"
 
 #: templates/sentry/organization-members.html:8
 #: templates/sentry/organization-members.html:24
 #: templates/sentry/bases/organization.html:48
 #: static/sentry/app/components/organizations/homeSidebar.jsx:66
 msgid "Members"
-msgstr ""
+msgstr "Потребители"
 
 #: templates/sentry/organization-members.html:15
 #: templates/sentry/organization-members.html:20
 #: static/sentry/app/views/teamMembers.jsx:79
 msgid "Invite Member"
-msgstr ""
+msgstr "Поканване на потребител"
 
 #: templates/sentry/organization-members.html:19
 #: static/sentry/app/views/teamMembers.jsx:78
 msgid "You do not have enough permission to add new members"
-msgstr ""
+msgstr "Нямате права да добавяте нови потребители."
 
 #: templates/sentry/organization-members.html:30
 msgid "Pending Access Requests"
-msgstr ""
+msgstr "Висящи заявки за достъп"
 
 #: templates/sentry/organization-members.html:52
 msgid "All pending access requests have been taken care of."
-msgstr ""
+msgstr "Всички заявки за достъп са обработени."
 
 #: templates/sentry/organization-members.html:73
 #: static/sentry/app/views/teamMembers.jsx:91
 msgid "Member"
-msgstr ""
+msgstr "Потребител"
 
 #: templates/sentry/organization-members.html:112
 msgid "Two-factor auth not enabled"
-msgstr ""
+msgstr "Двойната идентификация на е включена"
 
 #: templates/sentry/organization-members.html:121
 #: templates/sentry/projects/keys.html:25
 #: static/sentry/app/views/groupDetails/header.jsx:210
 msgid "Details"
-msgstr ""
+msgstr "Подробности"
 
 #: templates/sentry/organization-settings.html:52
 #: templates/sentry/organization-settings.html:58
 #: templates/sentry/remove-organization.html:35
 msgid "Remove Organization"
-msgstr ""
+msgstr "Изтриване на организация"
 
 #: templates/sentry/post-remove-account.html:5
 msgid "Remove Account"
-msgstr ""
+msgstr "Изтриване на регистрация"
 
 #: templates/sentry/post-remove-account.html:10
 msgid "Scheduled for Removal"
-msgstr ""
+msgstr "Предстои изтриване"
 
 #: templates/sentry/post-remove-account.html:13
 msgid "Your account has been deactivated and scheduled for removal."
-msgstr ""
+msgstr "Регистрацията ви е изключена и предстои да бъде изтрита."
 
 #: templates/sentry/post-remove-account.html:14
 msgid "Thanks for using Sentry! We hope to see you again soon!"
-msgstr ""
+msgstr "Благодарим, че ползвате Sentry! Надяваме се пак да се срещнем!"
 
 #: templates/sentry/project-issue-tracking.html:7
 #: templates/sentry/project-issue-tracking.html:10
 #: templates/sentry/projects/manage.html:187
 #: static/sentry/app/views/projectSettings/index.jsx:95
 msgid "Issue Tracking"
-msgstr ""
+msgstr "Следене на грешки"
 
 #: templates/sentry/project-issue-tracking.html:39
 #: templates/sentry/project-notifications.html:129
 #: templates/sentry/project-release-tracking.html:95
 msgid "Inactive Integrations"
-msgstr ""
+msgstr "Изключени интеграции"
 
 #: templates/sentry/project-notifications.html:8
 #: templates/sentry/project-notifications.html:11
@@ -1102,74 +1163,77 @@ msgstr ""
 #: templates/sentry/projects/manage.html:173
 #: static/sentry/app/views/projectSettings/index.jsx:89
 msgid "Notifications"
-msgstr ""
+msgstr "Известия"
 
 #: templates/sentry/project-notifications.html:27
 #: templates/sentry/projects/manage.html:181
 #: templates/sentry/projects/rules/list.html:10
 #: static/sentry/app/views/projectSettings/index.jsx:93
 msgid "Rules"
-msgstr ""
+msgstr "Правила"
 
 #: templates/sentry/project-notifications.html:31
-#, python-format
+#, fuzzy, python-format
 msgid ""
-"Sentry will notify users subscribed to this project based on the <a "
-"href=\"%(link)s\">rules configured for this project</a>."
+"Sentry will notify users subscribed to this project based on the <a href="
+"\"%(link)s\">rules configured for this project</a>."
 msgstr ""
+"Sentry ще ви известява на базата на <a href='%(link)s'>правилата за проекта</"
+"a>."
 
 #: templates/sentry/project-notifications.html:38
 #: templates/sentry/account/notifications.html:34
 #: templates/sentry/projects/manage.html:170
 #: static/sentry/app/views/projectSettings/index.jsx:88
 msgid "General"
-msgstr ""
+msgstr "Общи"
 
 #: templates/sentry/project-notifications.html:52
 msgid "Digests"
-msgstr ""
+msgstr "Обобщена информация"
 
 #: templates/sentry/project-release-tracking.html:7
 #: templates/sentry/project-release-tracking.html:10
 #: templates/sentry/projects/manage.html:190
 #: static/sentry/app/views/projectSettings/index.jsx:96
 msgid "Release Tracking"
-msgstr ""
+msgstr "Следене на версиите"
 
 #: templates/sentry/project-release-tracking.html:16
 msgid "Client Configuration"
-msgstr ""
+msgstr "Настройки на клиента"
 
 #: templates/sentry/project-release-tracking.html:36
 msgid "Token"
-msgstr ""
+msgstr "Жетон"
 
 #: templates/sentry/project-release-tracking.html:53
 msgid "Webhook"
-msgstr ""
+msgstr "Уеб кука"
 
 #: templates/sentry/reactivate-account.html:5
 #: templates/sentry/reactivate-account.html:18
+#, fuzzy
 msgid "Reactivate Account"
-msgstr ""
+msgstr "Възстановяване на регистрация"
 
 #: templates/sentry/remove-account.html:7
 #: templates/sentry/remove-account.html:49
 #: templates/sentry/bases/account.html:17
 msgid "Close Account"
-msgstr ""
+msgstr "Изтриване на регистрация"
 
 #: templates/sentry/remove-account.html:15
 msgid "This will permanently remove all associated data for your user."
-msgstr ""
+msgstr "Това ще изтрие всички данни за вашия потребител необратимо."
 
 #: templates/sentry/remove-account.html:17
 msgid "Closing your account is permanent and cannot be undone!"
-msgstr ""
+msgstr "Затварянето на регистрацията е окончателно — не може да бъде отменено!"
 
 #: templates/sentry/remove-account.html:20
 msgid "If you continue, the following organizations will be removed:"
-msgstr ""
+msgstr "Следните организации ще бъдат изтрити, ако продължите:"
 
 #: templates/sentry/remove-account.html:50
 #: templates/sentry/remove-organization.html:36
@@ -1182,79 +1246,79 @@ msgstr ""
 #: templates/sentry/teams/remove.html:40
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:142
 msgid "Cancel"
-msgstr ""
+msgstr "Отказ"
 
 #: templates/sentry/remove-organization.html:16
 msgid "Removing this organization is permanent and cannot be undone!"
-msgstr ""
+msgstr "Изтриването на организация е окончателно — не може да бъде отменено!"
 
 #: templates/sentry/remove-organization.html:19
 msgid "This will also remove the following teams and all associated projects:"
-msgstr ""
+msgstr "С нея ще бъдат изтрите следните екипи и всички техни проекти:"
 
 #: templates/sentry/twofactor.html:6 templates/sentry/account/twofactor.html:6
 msgid "Two-Factor Authentication"
-msgstr ""
+msgstr "Двойна идентификация"
 
 #: templates/sentry/twofactor.html:36 templates/sentry/account/sudo.html:64
 #: static/sentry/app/views/installWizard.jsx:86
 msgid "Continue"
-msgstr ""
+msgstr "Продължаване"
 
 #: templates/sentry/account/appearance.html:7
 #: templates/sentry/bases/account.html:23
 msgid "Appearance"
-msgstr ""
+msgstr "Изглед"
 
 #: templates/sentry/account/appearance.html:15
 #: static/sentry/app/components/projectHeader/index.jsx:42
 msgid "Events"
-msgstr ""
+msgstr "Събития"
 
 #: templates/sentry/account/appearance.html:22
 msgid "Localization"
-msgstr ""
+msgstr "Превод"
 
 #: templates/sentry/account/avatar.html:7
 #: templates/sentry/account/settings.html:8
 msgid "Account Settings"
-msgstr ""
+msgstr "Настройки на регистрацията"
 
 #: templates/sentry/account/email_unsubscribe_project.html:7
 #: templates/sentry/account/email_unsubscribe_project.html:22
 msgid "Unsubscribe"
-msgstr ""
+msgstr "Прекратяване на абонамент"
 
 #: templates/sentry/account/email_unsubscribe_project.html:14
 msgid ""
 "You are about to unsubscribe from project notifications for the following "
 "project:"
-msgstr ""
+msgstr "Ще прекретите абонамента си за известия от следния проект:"
 
 #: templates/sentry/account/email_unsubscribe_project.html:18
 msgid "You can subscribe to it again by going to your account settings."
-msgstr ""
+msgstr "Може отново да се абонирате от настройките на регистрацията си."
 
 #: templates/sentry/account/identities.html:7
 #: templates/sentry/bases/account.html:26
 msgid "Identities"
-msgstr ""
+msgstr "Самоличности"
 
 #: templates/sentry/account/identities.html:11
 msgid "Current Identities"
-msgstr ""
+msgstr "Текущи самоличности"
 
 #: templates/sentry/account/identities.html:14
 msgid "There are no identities associated with this account."
-msgstr ""
+msgstr "Няма самоличности свързани с тази регистрация."
 
 #: templates/sentry/account/identities.html:19
 msgid "Identity"
-msgstr ""
+msgstr "Самоличност"
 
 #: templates/sentry/account/notifications.html:7
 msgid "Notification Settings"
-msgstr ""
+msgstr "Настройки на известяването"
 
 #: templates/sentry/account/notifications.html:28
 msgid ""
@@ -1262,82 +1326,88 @@ msgid ""
 "            seen, an already resolved event has changed to unresolved, or a\n"
 "            system-wide spike in events is detected."
 msgstr ""
+"Като цяло известия се пращат при ново събитие, при промяна или решаване на "
+"събитие или рязко завишаване на скоростта на поява на събития."
 
 #: templates/sentry/account/notifications.html:41
 #: templates/sentry/bases/admin.html:17
 msgid "Mail"
-msgstr ""
+msgstr "Е-поща"
 
 #: templates/sentry/account/notifications.html:42
 msgid ""
 "Choose which projects you wish to receive email notifications for, as well "
 "as an alternative email address to send to."
 msgstr ""
+"Изберете проектите, които да получават известия по е-поща, както и "
+"допълнителни адреси, на които да се пращат е-писма."
 
 #: templates/sentry/account/notifications.html:43
 msgid ""
 "Note: You will never receive notifications if a project has them disabled "
 "(via the Project settings)"
 msgstr ""
+"Бележка: Няма да получавате извистия от проект, който ги е изключил (чрез "
+"настройките на проекта)"
 
 #: templates/sentry/account/notifications.html:61
 #: web/frontend/project_settings.py:24
 msgid "Project Name"
-msgstr ""
+msgstr "Име на проект"
 
 #: templates/sentry/account/notifications.html:63
 msgid "Email Address"
-msgstr ""
+msgstr "Адрес на е-поща"
 
 #: templates/sentry/account/settings.html:49
 msgid "Optional"
-msgstr ""
+msgstr "По избор"
 
 #: templates/sentry/account/settings.html:56
 msgid "Two-factor authenticaton"
-msgstr ""
+msgstr "Двойна идентификация"
 
 #: templates/sentry/account/settings.html:59
 #: templates/sentry/bases/admin.html:22
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:210
 msgid "Manage"
-msgstr ""
+msgstr "Управление"
 
 #: templates/sentry/account/settings.html:60
 #: templates/sentry/account/twofactor.html:11
 msgid "Two-factor authentication is <strong>enabled</strong>."
-msgstr ""
+msgstr "Двойната идентификация е <strong>включена</strong>."
 
 #: templates/sentry/account/settings.html:64
 #: templates/sentry/projects/keys.html:35
 msgid "Enable"
-msgstr ""
+msgstr "Включване"
 
 #: templates/sentry/account/settings.html:65
 #: templates/sentry/account/twofactor.html:13
 msgid "Two-factor authentication is currently <strong>disabled</strong>."
-msgstr ""
+msgstr "Двойната идентификация е <strong>изключена</strong>."
 
 #: templates/sentry/account/sudo.html:7
 msgid "Confirm Password"
-msgstr ""
+msgstr "Потвърждаване на паролата"
 
 #: templates/sentry/account/sudo.html:32
 msgid "Help us keep your account safe by confirming your password."
-msgstr ""
+msgstr "Потвърдете паролата си и помогнете за сигурността на регистрацията си."
 
 #: templates/sentry/account/sudo.html:40
 msgid "Your password was not valid."
-msgstr ""
+msgstr "Неправилна парола."
 
 #: templates/sentry/account/twofactor.html:8
 msgid "Two-factor Authentication"
-msgstr ""
+msgstr "Двойна идентификация"
 
 #: templates/sentry/account/twofactor.html:55
 #: templates/sentry/account/twofactor/configure.html:41
 msgid "Back"
-msgstr ""
+msgstr "Назад"
 
 #: templates/sentry/account/recover/confirm.html:6
 #: templates/sentry/account/recover/confirm.html:9
@@ -1348,78 +1418,88 @@ msgstr ""
 #: templates/sentry/account/recover/sent.html:6
 #: templates/sentry/account/recover/sent.html:9
 msgid "Recover Account"
-msgstr ""
+msgstr "Възстановяване на регистрация"
 
 #: templates/sentry/account/recover/confirm.html:11
 msgid "You have confirmed your email, and may now update your password below."
 msgstr ""
+"Потвърдили сте адреса си на е-поща и можете да обновите паролата си отдолу."
 
 #: templates/sentry/account/recover/confirm.html:21
 msgid "Change Password"
-msgstr ""
+msgstr "Смяна на парола"
 
 #: templates/sentry/account/recover/failure.html:11
 #, python-format
 msgid ""
 "We were unable to confirm your identity. Either the link you followed is "
-"invalid, or it has expired. You can always <a href=\"%(link)s\">try "
-"again</a>."
+"invalid, or it has expired. You can always <a href=\"%(link)s\">try again</"
+"a>."
 msgstr ""
+"Самоличността ви не може да бъде потвърдена. Връзката, на която сте "
+"натиснати е неправилна или с изминал срок. Можете да <a "
+"href='%(link)s'>пробвате отново</a>."
 
 #: templates/sentry/account/recover/index.html:10
 msgid "We will send a confirmation email to this address:"
 msgstr ""
+"Ще изпратим писмо с инструкции за потвърждаване на този адрес за е-поща:"
 
 #: templates/sentry/account/recover/index.html:22
 msgid "Send Email"
-msgstr ""
+msgstr "Изпращане на е-писмо"
 
 #: templates/sentry/account/recover/sent.html:11
 msgid ""
-"We have sent an email to the address registered with this account containing"
-" further instructions to reset your password."
+"We have sent an email to the address registered with this account containing "
+"further instructions to reset your password."
 msgstr ""
+"На адреса за е-поща, свързан с тази регистрация, е пратено е-писмо с "
+"инструкции, как да смените паролата си."
 
 #: templates/sentry/account/twofactor/configure.html:22
 #: templates/sentry/account/twofactor/configure.html:24
 #: templatetags/sentry_helpers.py:183
 msgid "never"
-msgstr ""
+msgstr "никога"
 
 #: templates/sentry/account/twofactor/enroll_sms.html:7
 #: templates/sentry/account/twofactor/enroll_totp.html:7
 #: templates/sentry/account/twofactor/enroll_u2f.html:7
+#, fuzzy
 msgid "Enrollment: "
-msgstr ""
+msgstr "Среда"
 
 #: templates/sentry/account/twofactor/enroll_sms.html:41
+#, fuzzy
 msgid "Send Confirmation Code"
-msgstr ""
+msgstr "Настройки на клиента"
 
 #: templates/sentry/account/twofactor/enroll_sms.html:43
 #: templates/sentry/account/twofactor/enroll_totp.html:38
 #: templates/sentry/admin/users/remove.html:17
 #: static/sentry/app/components/linkWithConfirmation.jsx:55
 msgid "Confirm"
-msgstr ""
+msgstr "Потвърждаване"
 
 #: templates/sentry/account/twofactor/remove.html:6
+#, fuzzy
 msgid "Remove Method:"
-msgstr ""
+msgstr "Изтриване на проект"
 
 #: templates/sentry/account/twofactor/remove.html:26
 #: templates/sentry/admin/status/mail.html:37
 msgid "Yes"
-msgstr ""
+msgstr "Да"
 
 #: templates/sentry/account/twofactor/remove.html:27
 #: templates/sentry/admin/status/mail.html:37
 msgid "No"
-msgstr ""
+msgstr "Не"
 
 #: templates/sentry/admin/projects/list.html:7
 msgid "Manage Projects"
-msgstr ""
+msgstr "Управление на проекти"
 
 #: templates/sentry/admin/projects/list.html:18
 #: templates/sentry/admin/teams/list.html:31
@@ -1435,6 +1515,8 @@ msgid ""
 "You are viewing projects sorted by the number of events created in the last "
 "24 hours. Projects that have not sent any data are not shown in this view."
 msgstr ""
+"Проектите са подредени по броя на събитията от последните 24 часа. Проектите "
+"без изпратени данни в този период са скрити."
 
 #: templates/sentry/admin/projects/list.html:36
 #: templates/sentry/admin/users/edit.html:38
@@ -1445,118 +1527,120 @@ msgstr "Проект"
 
 #: templates/sentry/admin/projects/list.html:37
 msgid "Events (24h)"
-msgstr ""
+msgstr "Събития (24 ч.)"
 
 #: templates/sentry/admin/projects/list.html:38
 #: templates/sentry/admin/teams/list.html:32
 msgid "Date Added"
-msgstr ""
+msgstr "Дата на добавяне"
 
 #: templates/sentry/admin/projects/list.html:64
 msgid "There are no active projects in Sentry."
-msgstr ""
+msgstr "В Sentry няма действащи проекти."
 
 #: templates/sentry/admin/status/env.html:9
 msgid "Server Status"
-msgstr ""
+msgstr "Състояние на сървъра"
 
 #: templates/sentry/admin/status/env.html:12
 #: templates/sentry/bases/admin.html:15
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:99
 msgid "Environment"
-msgstr ""
+msgstr "Среда"
 
 #: templates/sentry/admin/status/env.html:17
 msgid "Server Version"
-msgstr ""
+msgstr "Версия на сървъра"
 
 #: templates/sentry/admin/status/env.html:22
 msgid "Python Version"
-msgstr ""
+msgstr "Версия на Python"
 
 #: templates/sentry/admin/status/env.html:26
 msgid "Configuration File"
-msgstr ""
+msgstr "Файл с настройки"
 
 #: templates/sentry/admin/status/env.html:30
 msgid "Uptime"
-msgstr ""
+msgstr "Работа без прекъсване"
 
 #: templates/sentry/admin/status/env.html:37
 msgid "Environment not found (are you using the builtin Sentry webserver?)."
-msgstr ""
+msgstr "Средата не е открита (използвате ли вградения в Sentry уеб сървър?)."
 
 #: templates/sentry/admin/status/env.html:40
 #: templates/sentry/projects/manage.html:167
 #: static/sentry/app/views/projectSettings/index.jsx:86
 msgid "Configuration"
-msgstr ""
+msgstr "Настройки"
 
 #: templates/sentry/admin/status/mail.html:9
 msgid "Mail Configuration"
-msgstr ""
+msgstr "Настройки за е-поща"
 
 #: templates/sentry/admin/status/mail.html:12
 msgid "SMTP Settings"
-msgstr ""
+msgstr "Настройки за SMTP"
 
 #: templates/sentry/admin/status/mail.html:15
 msgid "From Address"
-msgstr ""
+msgstr "Адрес на подателя"
 
 #: templates/sentry/admin/status/mail.html:20
 msgid "Host"
-msgstr ""
+msgstr "Сървър"
 
 #: templates/sentry/admin/status/mail.html:25 web/forms/accounts.py:253
 msgid "Username"
-msgstr ""
+msgstr "Потребителско име"
 
 #: templates/sentry/admin/status/mail.html:27
 #: templates/sentry/admin/status/mail.html:32
 msgid "not set"
-msgstr ""
+msgstr "без стойност"
 
 #: templates/sentry/admin/status/mail.html:30 web/forms/accounts.py:78
 msgid "Password"
-msgstr ""
+msgstr "Парола"
 
 #: templates/sentry/admin/status/mail.html:35
 msgid "TLS?"
-msgstr ""
+msgstr "Шифриране с TLS?"
 
 #: templates/sentry/admin/status/mail.html:40
 msgid "Mailing List Namespace"
-msgstr ""
+msgstr "Пространство от имена на пощенски списъци"
 
 #: templates/sentry/admin/status/mail.html:46
 msgid "Test Settings"
-msgstr ""
+msgstr "Тестване на настройките"
 
 #: templates/sentry/admin/status/mail.html:51
 msgid ""
 "Send an email to your account's email address to confirm that everything is "
 "configured correctly."
 msgstr ""
+"Изпращане на писмо до адреса за е-поща към регистрацията ви, за да "
+"потвърдите, че всичко работи както трябва."
 
 #: templates/sentry/admin/status/mail.html:59
 #, python-format
 msgid "Send a test email to %(email)s"
-msgstr ""
+msgstr "Изпращане на е-писмо до „%(email)s“"
 
 #: templates/sentry/admin/status/packages.html:8
 #: templates/sentry/bases/admin.html:16
 #: static/sentry/app/components/events/packageData.jsx:28
 msgid "Packages"
-msgstr ""
+msgstr "Пакети"
 
 #: templates/sentry/admin/status/packages.html:11
 msgid "Extensions"
-msgstr ""
+msgstr "Разширения"
 
 #: templates/sentry/admin/status/packages.html:23
 msgid "No extensions registered."
-msgstr ""
+msgstr "Не са регистрирани разширения."
 
 #: templates/sentry/admin/status/packages.html:26
 msgid "Modules"
@@ -1564,37 +1648,37 @@ msgstr "Модули"
 
 #: templates/sentry/admin/teams/list.html:7
 msgid "Manage Teams"
-msgstr ""
+msgstr "Управление на екипите"
 
 #: templates/sentry/admin/teams/list.html:30
 msgid "Team"
-msgstr ""
+msgstr "Екип"
 
 #: templates/sentry/admin/teams/list.html:55
 msgid "There are no active teams in Sentry."
-msgstr ""
+msgstr "Няма действащи екипи в Sentry."
 
 #: templates/sentry/admin/users/edit.html:8
 msgid "Change User"
-msgstr ""
+msgstr "Смяна на потребител"
 
 #: templates/sentry/admin/users/edit.html:21
 #: templates/sentry/admin/users/remove.html:6
 msgid "Remove User"
-msgstr ""
+msgstr "Изтриване на потребител"
 
 #: templates/sentry/admin/users/edit.html:23
 msgid "Cannot remove yourself"
-msgstr ""
+msgstr "Не можете да изтриете собствената си регистрация"
 
 #: templates/sentry/admin/users/edit.html:39
 #: templates/sentry/admin/users/list_projects.html:25
 msgid "Daily Events"
-msgstr ""
+msgstr "Събития от деня"
 
 #: templates/sentry/admin/users/list.html:6
 msgid "Manage Users"
-msgstr ""
+msgstr "Управление на потребители"
 
 #: templates/sentry/admin/users/list.html:17
 #: templates/sentry/bases/admin.html:27
@@ -1607,31 +1691,31 @@ msgstr "Потребители"
 #: web/forms/add_team.py:13
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:120
 msgid "Name"
-msgstr ""
+msgstr "Име"
 
 #: templates/sentry/admin/users/list.html:31
 msgid "Joined"
-msgstr ""
+msgstr "Дата на регистриране"
 
 #: templates/sentry/admin/users/list.html:32
 msgid "Last Login"
-msgstr ""
+msgstr "Последно вписване"
 
 #: templates/sentry/admin/users/list.html:66
 msgid "There are no users matching your query in Sentry."
-msgstr ""
+msgstr "Никой потребител не отговаря на търсенето в Sentry."
 
 #: templates/sentry/admin/users/list.html:70
 msgid "Create a new user"
-msgstr ""
+msgstr "Създаване на нов потребител"
 
 #: templates/sentry/admin/users/list_projects.html:45
 msgid "There are no active projects for this user."
-msgstr ""
+msgstr "Потребителят няма действащи проекти."
 
 #: templates/sentry/admin/users/new.html:6
 msgid "New User"
-msgstr ""
+msgstr "Нов потребител"
 
 #: templates/sentry/bases/account.html:6 templates/sentry/bases/admin.html:18
 #: templates/sentry/bases/organization.html:79
@@ -1640,12 +1724,13 @@ msgid "Settings"
 msgstr "Настройки"
 
 #: templates/sentry/bases/account.html:22
+#, fuzzy
 msgid "Avatar"
-msgstr ""
+msgstr "татарски"
 
 #: templates/sentry/bases/admin.html:10
 msgid "System"
-msgstr ""
+msgstr "Системни"
 
 #: templates/sentry/bases/admin.html:12
 #: static/sentry/app/views/projectDashboard.jsx:147
@@ -1654,20 +1739,20 @@ msgstr "Преглед"
 
 #: templates/sentry/bases/admin.html:13
 msgid "Buffer"
-msgstr ""
+msgstr "Буфер"
 
 #: templates/sentry/bases/admin.html:24
 #: static/sentry/app/views/adminOrganizations.jsx:131
 msgid "Organizations"
-msgstr ""
+msgstr "Организации"
 
 #: templates/sentry/bases/admin.html:32
 msgid "Plugins"
-msgstr ""
+msgstr "Преставки"
 
 #: templates/sentry/bases/organization.html:8
 msgid "Organization Settings"
-msgstr ""
+msgstr "Настройки на организация"
 
 #: templates/sentry/bases/organization.html:20
 #: static/sentry/app/components/organizations/homeSidebar.jsx:42
@@ -1677,32 +1762,33 @@ msgstr "Контролен панел"
 #: templates/sentry/bases/organization.html:25
 #: static/sentry/app/components/organizations/homeSidebar.jsx:46
 msgid "Projects & Teams"
-msgstr ""
+msgstr "Проекти и екипи"
 
 #: templates/sentry/bases/organization.html:31
 #: static/sentry/app/components/organizations/homeSidebar.jsx:48
 msgid "Stats"
-msgstr ""
+msgstr "Статистика"
 
 #: templates/sentry/bases/organization.html:36
 #: static/sentry/app/components/organizations/homeSidebar.jsx:52
 msgid "Issues"
-msgstr ""
+msgstr "Грешки"
 
 #: templates/sentry/bases/organization.html:38
 #: static/sentry/app/components/organizations/homeSidebar.jsx:54
+#, fuzzy
 msgid "Assigned to Me"
-msgstr ""
+msgstr "Към мен"
 
 #: templates/sentry/bases/organization.html:39
 #: static/sentry/app/components/organizations/homeSidebar.jsx:55
 msgid "Bookmarks"
-msgstr ""
+msgstr "Отметки"
 
 #: templates/sentry/bases/organization.html:40
 #: static/sentry/app/components/organizations/homeSidebar.jsx:56
 msgid "History"
-msgstr ""
+msgstr "История"
 
 #: templates/sentry/bases/organization.html:76
 #: templates/sentry/projects/manage.html:177
@@ -1710,46 +1796,49 @@ msgstr ""
 #: templates/sentry/projects/quotas.html:10
 #: static/sentry/app/components/organizations/homeSidebar.jsx:83
 msgid "Rate Limits"
-msgstr ""
+msgstr "Ограничаване на потока"
 
 #: templates/sentry/bases/twofactor_settings.html:9
+#, fuzzy
 msgid "Method:"
-msgstr ""
+msgstr "Метод"
 
 #: templates/sentry/events/replay_request.html:6
 #: static/sentry/app/components/events/interfaces/requestActions.jsx:26
 msgid "Replay Request"
-msgstr ""
+msgstr "Ново изпълнение на заявката"
 
 #: templates/sentry/events/replay_request.html:24
 msgid "Please fill out all fields."
-msgstr ""
+msgstr "Попълнете всички полета."
 
 #: templates/sentry/events/replay_request.html:34
 msgid "Submit"
-msgstr ""
+msgstr "Подаване"
 
 #: templates/sentry/groups/public_details.html:31
 msgid "Newer Event"
-msgstr ""
+msgstr "По-ново събитие"
 
 #: templates/sentry/groups/public_details.html:32
 msgid "Older Event"
-msgstr ""
+msgstr "По-старо събитие"
 
 #: templates/sentry/groups/public_details.html:37
 msgid ""
 "You are viewing a publicly available version of this event's data. Some "
 "information may not be available."
 msgstr ""
+"Това е публично достъпната информация за това събитие. Поради това тя може "
+"да не е пълна."
 
 #: templates/sentry/groups/public_details.html:43
 msgid "Full message"
-msgstr ""
+msgstr "Пълно съобщение"
 
 #: templates/sentry/partial/_form.html:14
 msgid "Test Configuration"
-msgstr ""
+msgstr "Тестване на настройките"
 
 #: templates/sentry/partial/_pager.html:5
 #: templates/sentry/users/details.html:42
@@ -1757,7 +1846,7 @@ msgstr ""
 #: templates/sentry/users/list.html:52
 #: static/sentry/app/components/pagination.jsx:42
 msgid "Previous"
-msgstr ""
+msgstr "Назад"
 
 #: templates/sentry/partial/_pager.html:6
 #: templates/sentry/users/details.html:43
@@ -1765,63 +1854,69 @@ msgstr ""
 #: templates/sentry/users/list.html:53
 #: static/sentry/app/components/pagination.jsx:48
 msgid "Next"
-msgstr ""
+msgstr "Напред"
 
 #: templates/sentry/partial/interfaces/http_email.html:8
 msgid "URL"
-msgstr ""
+msgstr "Адрес"
 
 #: templates/sentry/partial/interfaces/http_email.html:13
 msgid "Method"
-msgstr ""
+msgstr "Метод"
 
 #: templates/sentry/partial/interfaces/http_email.html:19
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:126
 msgid "Query"
-msgstr ""
+msgstr "Заявка"
 
 #: templates/sentry/partial/interfaces/http_email.html:27
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:77
 msgid "Fragment"
-msgstr ""
+msgstr "Фрагмент"
 
 #: templates/sentry/partial/interfaces/user_email.html:13
 msgid "ID:"
-msgstr ""
+msgstr "Идентификатор:"
 
 #: templates/sentry/partial/interfaces/user_email.html:19
 msgid "IP Address:"
-msgstr ""
+msgstr "IP адрес:"
 
 #: templates/sentry/partial/interfaces/user_email.html:25
 msgid "Username:"
-msgstr ""
+msgstr "Име на потребител:"
 
 #: templates/sentry/partial/interfaces/user_email.html:31
 msgid "Email:"
-msgstr ""
+msgstr "Е-поща:"
 
 #: templates/sentry/plugins/site_configuration.html:5
 msgid "Changes to your configuration were saved successfully."
-msgstr ""
+msgstr "Промените на настройките са запазени."
 
 #: templates/sentry/plugins/bases/issue/create_issue.html:23
 msgid "Create Issue"
-msgstr ""
+msgstr "Създаване на проблем"
 
 #: templates/sentry/plugins/bases/issue/needs_auth.html:13
 #, python-format
 msgid ""
-"You still need to <a href=\"%(link)s\">associate an identity</a> with %(title)s before you can\n"
+"You still need to <a href=\"%(link)s\">associate an identity</a> with "
+"%(title)s before you can\n"
 "        create issues with this service."
 msgstr ""
+"Ще трябва да <a href='%(link)s'>свържете самоличност</a> към „%(title)s“, за "
+"да докладвате грешки за тази услуга."
 
 #: templates/sentry/plugins/bases/issue/not_configured.html:13
 #, python-format
 msgid ""
 "Your server administrator will need to configure authentication with\n"
-"            <strong>%(auth_provider)s</strong> before you can use this plugin."
+"            <strong>%(auth_provider)s</strong> before you can use this "
+"plugin."
 msgstr ""
+"Администраторът на сървъра ще ще трябва да настрои идентификация чрез "
+"<strong>%(auth_provider)s</strong>, за да използвате тази приставка."
 
 #: templates/sentry/plugins/bases/issue/not_configured.html:23
 #, python-format
@@ -1829,6 +1924,8 @@ msgid ""
 "You still need to <a href=\"%(link)s\">configure this plugin</a> before you "
 "can use it."
 msgstr ""
+"Ще трябва да <a href='%(link)s'>настроите тази приставка</a>, за да може да "
+"я изполвате."
 
 #: templates/sentry/plugins/bases/tag/index.html:22
 msgid "Times Seen"
@@ -1836,41 +1933,47 @@ msgstr "Последно видяни"
 
 #: templates/sentry/plugins/bases/tag/index.html:41
 msgid "There are no records recorded for this event."
-msgstr ""
+msgstr "Няма записи за това събитие."
 
 #: templates/sentry/projects/cannot_create_teams.html:9
 msgid ""
-"You are not able to create a new project because you are not a member of any"
-" teams. Ask an administrator to add you to a team."
+"You are not able to create a new project because you are not a member of any "
+"teams. Ask an administrator to add you to a team."
 msgstr ""
+"Не може да създадете нов проект, защото не сте член на никой екип. Помолете "
+"някой от администраторите да ви добави някъде."
 
 #: templates/sentry/projects/edit_key.html:7
 #: templates/sentry/projects/edit_key.html:11
 msgid "Edit API Key"
-msgstr ""
+msgstr "Редактиране ключа за API"
 
 #: templates/sentry/projects/edit_key.html:25
 msgid "Created"
-msgstr ""
+msgstr "Създадено"
 
 #: templates/sentry/projects/edit_key.html:38
 msgid ""
 "Your credentials are bound to public and secret key (though both should be "
 "considered semi-secret). Different clients will require different "
-"credentials, so make sure you check the documentation before plugging things"
-" in."
+"credentials, so make sure you check the documentation before plugging things "
+"in."
 msgstr ""
+"Идентификацията ви е обвързата с публичния и частния ви ключ, но и към двата "
+"трябва да се отнасяте внимателно. Различните клиенти трябва да са с отделни "
+"ключове, прегледайте документацията ПРЕДИ ДА преизползвате една и съща "
+"идентификация навсякъде."
 
 #: templates/sentry/projects/edit_key.html:40
 #: templates/sentry/projects/keys.html:53
 #: static/sentry/app/views/projectInstall/overview.jsx:59
 msgid "DSN"
-msgstr ""
+msgstr "Име за данни"
 
 #: templates/sentry/projects/edit_key.html:46
 #: templates/sentry/projects/keys.html:58
 msgid "DSN (Public)"
-msgstr ""
+msgstr "Име за данни (публично)"
 
 #: templates/sentry/projects/edit_key.html:50
 #: templates/sentry/projects/keys.html:60
@@ -1879,62 +1982,66 @@ msgid ""
 "Use your public DSN with browser-based clients such as <a href=\"%(link)s"
 "\">raven-js</a>."
 msgstr ""
+"Използвайте публичното име за данни (DSN) за клиенти като браузър, напр. <a "
+"href='%(link)s'>raven-js</a>."
 
 #: templates/sentry/projects/edit_key.html:53
 msgid "Public Key"
-msgstr ""
+msgstr "Публичен ключ"
 
 #: templates/sentry/projects/edit_key.html:59
 msgid "Secret Key"
-msgstr ""
+msgstr "Частен ключ"
 
 #: templates/sentry/projects/edit_key.html:65
 msgid "Project ID"
-msgstr ""
+msgstr "Идентификатор на проект"
 
-#: templates/sentry/projects/keys.html:6
-#: templates/sentry/projects/keys.html:15
+#: templates/sentry/projects/keys.html:6 templates/sentry/projects/keys.html:15
 #: static/sentry/app/views/projectSettings/index.jsx:114
 msgid "Client Keys"
-msgstr ""
+msgstr "Клиентски ключове"
 
 #: templates/sentry/projects/keys.html:12
 msgid "Generate New Key"
-msgstr ""
+msgstr "Създаване на нов ключ"
 
 #: templates/sentry/projects/keys.html:30
 msgid "Disable"
-msgstr ""
+msgstr "Изключване"
 
 #: templates/sentry/projects/keys.html:42
 msgid "Revoke"
-msgstr ""
+msgstr "Отхвърляне"
 
 #: templates/sentry/projects/keys.html:65
 msgid "CSP Endpoint"
-msgstr ""
+msgstr "Пполитика за сигурност на съдържанието (CSP)"
 
 #: templates/sentry/projects/keys.html:67
 msgid ""
-"Use your CSP endpoint in the <code>report-uri</code> directive in your <code"
-">Content-Security-Policy</code> header."
+"Use your CSP endpoint in the <code>report-uri</code> directive in your "
+"<code>Content-Security-Policy</code> header."
 msgstr ""
+"Може да ползване точката за политиката за сигурност на съдържанието (CSP) в "
+"директивата <code>report-uri</code> в заглавната част<code>Content-Security-"
+"Policy</code>."
 
 #: templates/sentry/projects/manage.html:29
 msgid "Project Settings"
-msgstr ""
+msgstr "Настройки на проект"
 
 #: templates/sentry/projects/manage.html:37
 msgid "Project Details"
-msgstr ""
+msgstr "Подробна информация за проект"
 
 #: templates/sentry/projects/manage.html:48
 msgid "Event Settings"
-msgstr ""
+msgstr "Настройки на събитие"
 
 #: templates/sentry/projects/manage.html:62
 msgid "Client Security"
-msgstr ""
+msgstr "Сигурност на клиента"
 
 #: templates/sentry/projects/manage.html:66
 #, python-format
@@ -1942,12 +2049,16 @@ msgid ""
 "Configure origin URLs which Sentry should accept events from. This is used "
 "for communication with clients like <a href=\"%(link)s\">raven-js</a>."
 msgstr ""
+"Настройване на адресите, от които Sentry ще приема събития. Това се полза от "
+"клиентите като <a href='%(link)s'>raven-js</a>."
 
 #: templates/sentry/projects/manage.html:68
 msgid ""
 "This will restrict requests based on the <code>Origin</code> and "
 "<code>Referer</code> headers."
 msgstr ""
+"Това ограничава заявките на база на заглавните части <code>Origin</code> и "
+"<code>Referer</code>."
 
 #: templates/sentry/projects/manage.html:79
 #: templates/sentry/projects/manage.html:88
@@ -1955,74 +2066,76 @@ msgstr ""
 #: templates/sentry/projects/remove.html:11
 #: templates/sentry/projects/remove.html:29
 msgid "Remove Project"
-msgstr ""
+msgstr "Изтриване на проект"
 
 #: templates/sentry/projects/manage.html:83
 msgid "You do not have the required permission to remove this project."
-msgstr ""
+msgstr "Нямате необходимите права за идтриването на този проект."
 
 #: templates/sentry/projects/manage.html:85
 msgid ""
 "This project cannot be removed. It is used internally by the Sentry server."
-msgstr ""
+msgstr "Проектът не може да бъде изтрит, защото се ползва вътрешно от Sentry."
 
 #: templates/sentry/projects/manage.html:154
 msgid ""
 "This option is enforced by your organization's settings and cannot be "
 "customized per-project."
 msgstr ""
+"Настройката е зададена на ниво организация и не може да се променя за "
+"отделните проекти."
 
 #: templates/sentry/projects/manage.html:184
 #: templates/sentry/projects/manage_tags.html:7
 #: templates/sentry/projects/manage_tags.html:10
 #: static/sentry/app/components/events/eventTags.jsx:29
 msgid "Tags"
-msgstr ""
+msgstr "Етикети"
 
 #: templates/sentry/projects/manage.html:193
 #: static/sentry/app/views/projectSettings/index.jsx:97
 msgid "Saved Searches"
-msgstr ""
+msgstr "Запазени търсения"
 
 #: templates/sentry/projects/manage.html:197
 #: static/sentry/app/views/projectSettings/index.jsx:99
 msgid "Debug Symbols"
-msgstr ""
+msgstr "Символи за изчистване на грешки"
 
 #: templates/sentry/projects/manage.html:201
 #: static/sentry/app/views/projectSettings/index.jsx:102
 msgid "Data"
-msgstr ""
+msgstr "Данни"
 
 #: templates/sentry/projects/manage.html:204
 #: static/sentry/app/views/projectSettings/index.jsx:109
 msgid "Error Tracking"
-msgstr ""
+msgstr "Следене на грешки"
 
 #: templates/sentry/projects/manage.html:208
 #: static/sentry/app/views/projectSettings/index.jsx:111
 msgid "CSP Reports"
-msgstr ""
+msgstr "Доклад за сигурността на съдържанието (CSP)"
 
 #: templates/sentry/projects/manage.html:212
 #: static/sentry/app/components/projectHeader/index.jsx:48
 msgid "User Feedback"
-msgstr ""
+msgstr "Обратна връзка от потребителите"
 
 #: templates/sentry/projects/manage.html:215
 msgid "Client Keys (DSN)"
-msgstr ""
+msgstr "Клиентски ключове (DSN)"
 
 #: templates/sentry/projects/manage.html:219
 #: templates/sentry/projects/plugins/list.html:10
 #: static/sentry/app/views/projectSettings/index.jsx:116
 msgid "Integrations"
-msgstr ""
+msgstr "Интеграции"
 
 #: templates/sentry/projects/manage.html:222
 #: static/sentry/app/views/projectSettings/index.jsx:118
 msgid "All Integrations"
-msgstr ""
+msgstr "Всички интеграции"
 
 #: templates/sentry/projects/manage_tags.html:13
 #, python-format
@@ -2030,10 +2143,12 @@ msgid ""
 "Each event in Sentry may be annotated with various tags (key and value "
 "pairs). Learn how to <a href=\"%(link)s\">add custom tags</a>."
 msgstr ""
+"На всяко събитие в Sentry може да се дадат етикети (двойки ключ със "
+"стойност). Вижте как да <a href='%(link)s'>създавате ваши етикети</a>."
 
 #: templates/sentry/projects/manage_tags.html:46
 msgid "We have not yet recorded any tags for this project."
-msgstr ""
+msgstr "Този проект няма етикети."
 
 #: templates/sentry/projects/quotas.html:13
 msgid ""
@@ -2041,18 +2156,27 @@ msgid ""
 "overwhelming. You can set rate limits per-project to ensure that a single "
 "flood of errors won't affect any other projects utilizing Sentry."
 msgstr ""
+"Поради естеството на Sentry идващите данни може да са прекалено много. "
+"Можете да ги ограничавате по проекти, така че порой от грешки от някой от "
+"тях няма да засяга другите проекти в Sentry."
 
 #: templates/sentry/projects/quotas.html:15
 msgid ""
 "Rate limits apply on a per-minute basis, which means that they rollover at "
-"the start of a new minute. When you attempt to send an event and the project"
-" is over its quota, the client will receive an HTTP 429 (Too Many Requests) "
+"the start of a new minute. When you attempt to send an event and the project "
+"is over its quota, the client will receive an HTTP 429 (Too Many Requests) "
 "response."
 msgstr ""
+"Ограничаването работи на периоди от по 1 минута. Със започването на нов "
+"период отново ще получавате събития докато лимитът не се изчепрпи. Клиент, "
+"който прати заявка към проект, който е изчерпил квотата си за събития в "
+"определен период, ще получи отговор HTTP 429 (прекалено много заявки)."
 
 #: templates/sentry/projects/quotas.html:18
 msgid "Note: The Sentry application is not configured to manage rate limits."
 msgstr ""
+"Тази инсталация на Sentry не е настроена за управление на ограничаване на "
+"потока на събития."
 
 #: templates/sentry/projects/quotas.html:20
 #, python-format
@@ -2102,21 +2226,21 @@ msgstr ""
 
 #: templates/sentry/projects/plugins/list.html:24
 msgid "n/a"
-msgstr ""
+msgstr "липсва"
 
 #: templates/sentry/projects/rules/list.html:8
 msgid "New Rule"
-msgstr ""
+msgstr "Ново правило"
 
 #: templates/sentry/teams/base.html:5
 msgid "Team List"
-msgstr ""
+msgstr "Хора в екипа"
 
 #: templates/sentry/teams/remove.html:7 templates/sentry/teams/remove.html:12
 #: templates/sentry/teams/remove.html:39
 #: static/sentry/app/views/teamDetails.jsx:97
 msgid "Remove Team"
-msgstr ""
+msgstr "Изтриване на екип"
 
 #: templates/sentry/teams/remove.html:19
 msgid "Removing this team is permanent and cannot be undone!"
@@ -2133,51 +2257,52 @@ msgstr ""
 
 #: templates/sentry/users/list.html:29
 msgid ""
-"You dont seem to have any user data recorded. For more information on how to"
-" send this information consult your client's documentation."
+"You dont seem to have any user data recorded. For more information on how to "
+"send this information consult your client's documentation."
 msgstr ""
 
 #: templates/sentry/users/list.html:34
 #: static/sentry/app/components/events/user.jsx:37
 msgid "User"
-msgstr ""
+msgstr "Потребител"
 
 #: templates/sentry/users/list.html:36
 msgid "Events Seen"
-msgstr ""
+msgstr "Наблюдавани събития"
 
 #: templatetags/sentry_helpers.py:125
 msgid "b"
-msgstr ""
+msgstr " G"
 
 #: templatetags/sentry_helpers.py:126
 msgid "m"
-msgstr ""
+msgstr " M"
 
 #: templatetags/sentry_helpers.py:127
 msgid "k"
-msgstr ""
+msgstr " k"
 
 #: templatetags/sentry_helpers.py:187
 msgid "0 minutes"
-msgstr ""
+msgstr "0 минути"
 
 #: templatetags/sentry_helpers.py:188
 msgid "just now"
-msgstr ""
+msgstr "току що"
 
 #: templatetags/sentry_helpers.py:189
 #: static/sentry/app/views/projectDashboard.jsx:135
 msgid "1 day"
-msgstr ""
+msgstr "1 ден"
 
 #: templatetags/sentry_helpers.py:190
 msgid "yesterday"
-msgstr ""
+msgstr "вчера"
 
 #: templatetags/sentry_helpers.py:191
+#, fuzzy
 msgid " ago"
-msgstr ""
+msgstr " преди"
 
 #: web/decorators.py:11
 msgid "The link you followed is invalid or expired."
@@ -2190,11 +2315,11 @@ msgstr ""
 
 #: web/forms/__init__.py:55
 msgid "Designates whether this user can perform administrative functions."
-msgstr ""
+msgstr "Указване дали потребителят има права на администратор."
 
 #: web/forms/__init__.py:56
 msgid "Superuser"
-msgstr ""
+msgstr "Администратор"
 
 #: web/forms/__init__.py:57
 msgid ""
@@ -2212,11 +2337,11 @@ msgstr ""
 
 #: web/forms/accounts.py:74
 msgid "username or email"
-msgstr ""
+msgstr "име или е-поща"
 
 #: web/forms/accounts.py:79
 msgid "password"
-msgstr ""
+msgstr "парола"
 
 #: web/forms/accounts.py:84
 #, python-format
@@ -2320,8 +2445,9 @@ msgid "Use a 24-hour clock"
 msgstr ""
 
 #: web/forms/accounts.py:414
+#, fuzzy
 msgid "One-time password"
-msgstr ""
+msgstr "Потвърждаване на паролата"
 
 #: web/forms/accounts.py:415
 msgid "Code from authenticator"
@@ -2392,8 +2518,8 @@ msgstr ""
 #: web/forms/projects.py:49
 msgid ""
 "This cannot be higher than the team (or system) allotted maximum. The value "
-"can be either a fixed number, or a percentage that is relative to the team's"
-" overall quota."
+"can be either a fixed number, or a percentage that is relative to the team's "
+"overall quota."
 msgstr ""
 
 #: web/forms/projects.py:86
@@ -2415,8 +2541,9 @@ msgid "You have been added to the %r organization."
 msgstr ""
 
 #: web/frontend/accounts_twofactor.py:25
+#, fuzzy
 msgid "Phone number"
-msgstr ""
+msgstr "Номер на ред"
 
 #: web/frontend/auth_login.py:18
 msgid ""
@@ -2499,8 +2626,7 @@ msgstr ""
 
 #: web/frontend/organization_auth_settings.py:39
 msgid ""
-"The default role new members will receive when logging in for the first "
-"time."
+"The default role new members will receive when logging in for the first time."
 msgstr ""
 
 #: web/frontend/organization_member_settings.py:30
@@ -2516,8 +2642,7 @@ msgstr ""
 msgid "The name of your organization. i.e. My Company"
 msgstr ""
 
-#: web/frontend/organization_settings.py:20
-#: web/frontend/project_settings.py:27
+#: web/frontend/organization_settings.py:20 web/frontend/project_settings.py:27
 #: static/sentry/app/views/teamSettings.jsx:88
 msgid "Short name"
 msgstr ""
@@ -2581,12 +2706,11 @@ msgstr ""
 #: web/frontend/organization_settings.py:55
 msgid ""
 "Additional field names to match against when scrubbing data for all "
-"projects. Separate multiple entries with a newline.<br /><strong>Note: These"
-" fields will be used in addition to project specific fields.</strong>"
+"projects. Separate multiple entries with a newline.<br /><strong>Note: These "
+"fields will be used in addition to project specific fields.</strong>"
 msgstr ""
 
-#: web/frontend/organization_settings.py:58
-#: web/frontend/project_settings.py:52
+#: web/frontend/organization_settings.py:58 web/frontend/project_settings.py:52
 msgid "e.g. email"
 msgstr ""
 
@@ -2699,8 +2823,7 @@ msgid "Enable JavaScript source fetching"
 msgstr ""
 
 #: web/frontend/project_settings.py:65
-msgid ""
-"Allow Sentry to scrape missing JavaScript source context when possible."
+msgid "Allow Sentry to scrape missing JavaScript source context when possible."
 msgstr ""
 
 #: web/frontend/project_settings.py:68
@@ -2923,7 +3046,7 @@ msgstr ""
 
 #: static/sentry/app/views/ruleEditor/index.jsx:164
 msgid "Save Rule"
-msgstr ""
+msgstr "Запазване на правило"
 
 #: static/sentry/app/components/avatarRadio.jsx:39
 msgid "Avatar Type"
@@ -2931,7 +3054,7 @@ msgstr ""
 
 #: static/sentry/app/components/alertMessage.jsx:35
 msgid "Close"
-msgstr ""
+msgstr "Затваряне"
 
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:82
 msgid "Saving changes.."
@@ -2946,53 +3069,55 @@ msgid "Sentry Web API"
 msgstr ""
 
 #: static/sentry/app/views/apiDashboard.jsx:153
+#, fuzzy
 msgid "Auth Tokens"
-msgstr ""
+msgstr "Жетон"
 
 #: static/sentry/app/views/apiNewToken.jsx:160
 msgid ""
-"Authentication tokens allow you to perform actions against the Sentry API on"
-" behalf of your account. They're the easiest way to get started using the "
-"API."
+"Authentication tokens allow you to perform actions against the Sentry API on "
+"behalf of your account. They're the easiest way to get started using the API."
 msgstr ""
 
 #: static/sentry/app/views/apiNewToken.jsx:161
 msgid ""
-"For more information on how to use the web API, see our "
-"[link:documentation]."
+"For more information on how to use the web API, see our [link:documentation]."
 msgstr ""
 
 #: static/sentry/app/views/apiNewToken.jsx:156
+#, fuzzy
 msgid "Create New Token"
-msgstr ""
+msgstr "Създаване на нов екип"
 
 #: static/sentry/app/components/avatarCropper.jsx:353
+#, fuzzy
 msgid "Upload a photo"
-msgstr ""
+msgstr "Качване на данни"
 
 #: static/sentry/app/components/avatarCropper.jsx:353
 msgid " to get started."
 msgstr ""
 
 #: static/sentry/app/components/avatarCropper.jsx:358
+#, fuzzy
 msgid "Change Photo"
-msgstr ""
+msgstr "Смяна на парола"
 
 #: static/sentry/app/views/adminOrganizations.jsx:103
 msgid "Sorry, no results match your filters."
-msgstr ""
+msgstr "Нищо не отговаря на филтрите"
 
 #: static/sentry/app/views/adminOrganizations.jsx:135
 msgid "Search for an organization."
-msgstr ""
+msgstr "Търсене на организация."
 
 #: static/sentry/app/components/organizations/homeSidebar.jsx:37
 msgid "Organization"
-msgstr ""
+msgstr "Организация"
 
 #: static/sentry/app/views/app.jsx:115
 msgid "Getting a list of all of your organizations."
-msgstr ""
+msgstr "Извличане на списък с организациите ви."
 
 #: static/sentry/app/views/teamSettings.jsx:74
 msgid ""
@@ -3006,7 +3131,7 @@ msgstr ""
 
 #: static/sentry/app/views/groupTags.jsx:100
 msgid "More Details"
-msgstr ""
+msgstr "Подробности"
 
 #: static/sentry/app/views/groupUserReports.jsx:110
 msgid "No user reports have been collected for this event."
@@ -3019,8 +3144,8 @@ msgstr ""
 #: static/sentry/app/views/groupTagValues.jsx:124
 msgid "%2$d unique historical value"
 msgid_plural "%2$d unique historical values"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%2$d уникална историческа стойност"
+msgstr[1] "%2$d уникални исторически стойности"
 
 #: static/sentry/app/views/groupTagValues.jsx:132
 msgid "Data is based on events seen in the last 7 days."
@@ -3028,7 +3153,7 @@ msgstr ""
 
 #: static/sentry/app/views/groupTagValues.jsx:138
 msgid "Value"
-msgstr ""
+msgstr "Стойност"
 
 #: static/sentry/app/views/groupHashes.jsx:83
 msgid "There don't seem to be any hashes for this issue."
@@ -3036,15 +3161,15 @@ msgstr ""
 
 #: static/sentry/app/views/groupEvents.jsx:177
 msgid "ID"
-msgstr ""
+msgstr "Идентификатор"
 
 #: static/sentry/app/views/groupEvents.jsx:102
 msgid "Sorry, no events match your search query."
-msgstr ""
+msgstr "Никое събитие не отговаря на търсенето."
 
 #: static/sentry/app/views/groupEvents.jsx:111
 msgid "There don't seem to be any events yet."
-msgstr ""
+msgstr "Все още няма никакви събития."
 
 #: static/sentry/app/views/organizationAuditLog.jsx:128
 msgid "No results found."
@@ -3055,8 +3180,9 @@ msgid "Any"
 msgstr ""
 
 #: static/sentry/app/views/organizationAuditLog.jsx:181
+#, fuzzy
 msgid "Action"
-msgstr ""
+msgstr "Функция"
 
 #: static/sentry/app/views/organizationAuditLog.jsx:182
 msgid "IP"
@@ -3096,21 +3222,23 @@ msgstr ""
 
 #: static/sentry/app/views/organizationDetails.jsx:134
 msgid "Loading data for your organization."
-msgstr ""
+msgstr "Зареждане на данните за вашата организацията"
 
 #: static/sentry/app/views/organizationDetails.jsx:143
 msgid "The organization you were looking for was not found."
-msgstr ""
+msgstr "Търсената организация не е намерена."
 
 #: static/sentry/app/views/organizationTeams/allTeamsList.jsx:41
 msgid ""
-"You don't have any teams for this organization yet. Get started by "
-"[link:creating your first team]."
+"You don't have any teams for this organization yet. Get started by [link:"
+"creating your first team]."
 msgstr ""
+"В тази организация още няма екипи. Започнете като [link:creating създадете "
+"първия екип]."
 
 #: static/sentry/app/views/projectChooser.jsx:60
 msgid "Choose a project"
-msgstr ""
+msgstr "Избор на проект"
 
 #: static/sentry/app/views/organizationDashboard.jsx:37
 msgid "No issues have been assigned to you."
@@ -3118,49 +3246,52 @@ msgstr ""
 
 #: static/sentry/app/views/organizationDashboard.jsx:48
 msgid "View more"
-msgstr ""
+msgstr "Още"
 
 #: static/sentry/app/views/organizationDashboard.jsx:77
+#, fuzzy
 msgid "No new issues have been seen in the last week."
-msgstr ""
+msgstr "Няма нови грешки в последните 24 часа."
 
 #: static/sentry/app/views/projectDashboard.jsx:126
 msgid "1 hour"
-msgstr ""
+msgstr "1 час"
 
 #: static/sentry/app/views/projectDashboard.jsx:143
 msgid "1 week"
-msgstr ""
+msgstr "1 седмица"
 
 #: static/sentry/app/views/projectDashboard.jsx:155
 msgid "Trending Issues"
-msgstr ""
+msgstr "Текущи грешки"
 
 #: static/sentry/app/views/releaseDetails.jsx:139
 msgid "New Issues"
-msgstr ""
+msgstr "Нови грешки"
 
 #: static/sentry/app/views/projectDetails.jsx:178
 msgid "The project you were looking for was not found."
-msgstr ""
+msgstr "Търсеният проект липсва."
 
 #: static/sentry/app/views/projectInstall/overview.jsx:50
 msgid "Configure your application"
-msgstr ""
+msgstr "Настройване на вашата програма"
 
 #: static/sentry/app/views/projectInstall/overview.jsx:52
 msgid ""
 "Get started by selecting the platform or language that powers your "
 "application."
-msgstr ""
+msgstr "Първо изберете платформата или езика на програмата ви."
 
 #: static/sentry/app/views/projectInstall/overview.jsx:64
 msgid "Public DSN"
-msgstr ""
+msgstr "Публично име за данни DSN"
 
 #: static/sentry/app/views/projectInstall/overview.jsx:66
 msgid "Your public DSN should be used with JavaScript and ActionScript."
 msgstr ""
+"За JavaScript и ActionScript трябва да използвате публичното си име за данни "
+"DSN."
 
 #: static/sentry/app/views/projectInstall/overview.jsx:70
 msgid "Already have things setup? [link:Get your DSN]."
@@ -3168,7 +3299,7 @@ msgstr ""
 
 #: static/sentry/app/views/projectInstall/overview.jsx:75
 msgid "Popular"
-msgstr ""
+msgstr "Известни"
 
 #: static/sentry/app/views/projectInstall/overview.jsx:87
 msgid "Frameworks"
@@ -3176,15 +3307,14 @@ msgstr ""
 
 #: static/sentry/app/views/projectInstall/overview.jsx:95
 msgid "Languages"
-msgstr ""
+msgstr "Езици"
 
 #: static/sentry/app/views/projectCspSettings.jsx:93
 msgid "Use Default Ignored Sources"
 msgstr ""
 
 #: static/sentry/app/views/projectCspSettings.jsx:94
-msgid ""
-"Our default list will attempt to ignore common issues and reduce noise."
+msgid "Our default list will attempt to ignore common issues and reduce noise."
 msgstr ""
 
 #: static/sentry/app/views/projectCspSettings.jsx:102
@@ -3192,49 +3322,50 @@ msgid "Additional Ignored Sources"
 msgstr ""
 
 #: static/sentry/app/views/projectCspSettings.jsx:263
+#, fuzzy
 msgid "Integration"
-msgstr ""
+msgstr "Интеграции"
 
 #: static/sentry/app/views/projectDebugSymbols.jsx:72
 msgid "There are no debug symbols for this project."
-msgstr ""
+msgstr "Проект без данни за символи за изчистване на грешки"
 
 #: static/sentry/app/views/projectDebugSymbols.jsx:82
 msgid "UUID"
-msgstr ""
+msgstr "UUID"
 
 #: static/sentry/app/views/projectDebugSymbols.jsx:83
 msgid "Object Name"
-msgstr ""
+msgstr "Име на обект"
 
 #: static/sentry/app/views/projectDebugSymbols.jsx:84
 msgid "Type"
-msgstr ""
+msgstr "Тип"
 
 #: static/sentry/app/views/projectDebugSymbols.jsx:85
 msgid "Upload Date"
-msgstr ""
+msgstr "Качване на данни"
 
 #: static/sentry/app/views/projectDebugSymbols.jsx:86
 msgid "Size"
-msgstr ""
+msgstr "Размер"
 
 #: static/sentry/app/views/releaseAllEvents.jsx:20
 msgid "View all events seen in this release in the stream"
-msgstr ""
+msgstr "Преглед на всички събития в потока на тази версия"
 
 #: static/sentry/app/views/projectInstall/platform.jsx:98
 msgid "Generic"
-msgstr ""
+msgstr "Общи"
 
 #: static/sentry/app/views/projectInstall/platform.jsx:120
 msgid "Full Documentation"
-msgstr ""
+msgstr "Пълна документация"
 
 #: static/sentry/app/views/projectInstall/platform.jsx:123
 #, python-format
 msgid "Configure %(integration)s"
-msgstr ""
+msgstr "Настройване на %(integration)s"
 
 #: static/sentry/app/views/projectInstall/platform.jsx:152
 msgid "Got it! Take me to the Issue Stream."
@@ -3266,23 +3397,23 @@ msgstr ""
 
 #: static/sentry/app/views/releaseNewEvents.jsx:20
 msgid "View new events seen in this release in the stream"
-msgstr ""
+msgstr "Преглед на новите събития в потока на тази версия"
 
 #: static/sentry/app/views/projectSavedSearches.jsx:210
 msgid "There are no saved searches for this project."
-msgstr ""
+msgstr "Няма запазени търсения за проекта."
 
 #: static/sentry/app/views/teamSettings.jsx:81
 msgid "e.g. API Team"
-msgstr ""
+msgstr "напр. „Екип API“"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:199
 msgid "More"
-msgstr ""
+msgstr "Още"
 
 #: static/sentry/app/views/projectUserReports.jsx:136
 msgid "Sorry, no results match your search query."
-msgstr ""
+msgstr "Нищо не е намерено."
 
 #: static/sentry/app/views/projectUserReports.jsx:145
 msgid "No user reports have been collected for this project."
@@ -3294,14 +3425,14 @@ msgstr ""
 
 #: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:206
 msgid "Review Call Signs for Projects"
-msgstr ""
+msgstr "Преглед на позивните на проектите"
 
 #: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:148
 #, python-format
 msgid ""
-"Sentry now requires you to specify a call sign (short name) for each project"
-" in the organization “%s”. These short names are used to identify the "
-"project in the issue IDs.  Ideally they are two or three letter long."
+"Sentry now requires you to specify a call sign (short name) for each project "
+"in the organization “%s”. These short names are used to identify the project "
+"in the issue IDs.  Ideally they are two or three letter long."
 msgstr ""
 
 #: static/sentry/app/views/requiredAdminActions/setCallsigns.jsx:150
@@ -3318,19 +3449,19 @@ msgstr ""
 
 #: static/sentry/app/components/group/seenInfo.jsx:27
 msgid "Release"
-msgstr ""
+msgstr "Версия"
 
 #: static/sentry/app/views/releaseDetails.jsx:115
 msgid "First Event"
-msgstr ""
+msgstr "Първо събитие"
 
 #: static/sentry/app/views/projectReleases/index.jsx:177
 msgid "Last Event"
-msgstr ""
+msgstr "Последно събитие"
 
 #: static/sentry/app/components/organizationIssueList.jsx:54
 msgid "All Issues"
-msgstr ""
+msgstr "Всички събития"
 
 #: static/sentry/app/views/releaseDetails.jsx:141
 msgid "Artifacts"
@@ -3374,15 +3505,15 @@ msgstr ""
 
 #: static/sentry/app/views/organizationTeams/index.jsx:74
 msgid "Your Teams"
-msgstr ""
+msgstr "Вашите екипи"
 
 #: static/sentry/app/views/organizationTeams/index.jsx:75
 msgid "All Teams"
-msgstr ""
+msgstr "Всички екипи"
 
 #: static/sentry/app/views/projectEvents/index.jsx:142
 msgid "There don't seem to be any events."
-msgstr ""
+msgstr "Изглежда няма събития."
 
 #: static/sentry/app/views/projectReleases/index.jsx:138
 msgid "Sorry, no releases match your filters."
@@ -3410,7 +3541,7 @@ msgstr ""
 
 #: static/sentry/app/views/projectReleases/index.jsx:174
 msgid "New Events"
-msgstr ""
+msgstr "Нови събития"
 
 #: static/sentry/app/views/groupActivity/index.jsx:37
 #, python-format
@@ -3423,9 +3554,9 @@ msgid "%s marked this issue as resolved"
 msgstr ""
 
 #: static/sentry/app/views/groupActivity/index.jsx:41
-#, python-format
+#, fuzzy, python-format
 msgid "%(author)s marked this issue as resolved due to inactivity"
-msgstr ""
+msgstr "[author] заглуши [link:an issue]"
 
 #: static/sentry/app/views/groupActivity/index.jsx:46
 #, python-format
@@ -3445,22 +3576,22 @@ msgstr ""
 #: static/sentry/app/views/groupActivity/index.jsx:57
 #, python-format
 msgid "%(author)s snoozed this issue for %(duration)s"
-msgstr ""
+msgstr "%(author)s отложи този проблем за %(duration)s"
 
 #: static/sentry/app/views/groupActivity/index.jsx:62
 #, python-format
 msgid "%s muted this issue"
-msgstr ""
+msgstr "%s заглуши този проблем"
 
 #: static/sentry/app/views/groupActivity/index.jsx:64
 #, python-format
 msgid "%s made this issue public"
-msgstr ""
+msgstr "%s направи проблема публичен"
 
 #: static/sentry/app/views/groupActivity/index.jsx:66
 #, python-format
 msgid "%s made this issue private"
-msgstr ""
+msgstr "%s направи проблема частен"
 
 #: static/sentry/app/views/groupActivity/index.jsx:69
 #, python-format
@@ -3505,12 +3636,12 @@ msgstr ""
 #: static/sentry/app/views/groupActivity/index.jsx:106
 msgid "%2$s merged %1$d issue into this issue"
 msgid_plural "%2$s merged %1$d issues into this issue"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%2$s сля %1$d проблем с този"
+msgstr[1] "%2$s сля %1$d проблема с този"
 
 #: static/sentry/app/views/groupActivity/index.jsx:125
 msgid "Removing comment.."
-msgstr ""
+msgstr "Изтриване на коментар…"
 
 #: static/sentry/app/views/organizationRateLimits/index.jsx:102
 msgid "Saving.."
@@ -3528,8 +3659,7 @@ msgid "You may set a limit to the maximum amount a single project may send:"
 msgstr ""
 
 #: static/sentry/app/views/organizationRateLimits/index.jsx:152
-msgid ""
-"The maximum percentage of your quota an individual project can consume."
+msgid "The maximum percentage of your quota an individual project can consume."
 msgstr ""
 
 #: static/sentry/app/views/organizationRateLimits/index.jsx:158
@@ -3542,15 +3672,15 @@ msgstr ""
 
 #: static/sentry/app/components/events/eventEntries.jsx:84
 msgid "There was an error rendering this data."
-msgstr ""
+msgstr "Грешка при изобразяването на данните."
 
 #: static/sentry/app/components/group/sidebar.jsx:19
 msgid "Last 24 Hours"
-msgstr ""
+msgstr "Последните 24 часа"
 
 #: static/sentry/app/components/group/sidebar.jsx:23
 msgid "Last 30 Days"
-msgstr ""
+msgstr "Последните 30 дни"
 
 #: static/sentry/app/components/group/chart.jsx:33
 msgid "First seen"
@@ -3563,11 +3693,11 @@ msgstr ""
 #: static/sentry/app/components/mutedBox.jsx:19
 #, python-format
 msgid "This issue has been snoozed until %s"
-msgstr ""
+msgstr "Проблемът е отложен до %s"
 
 #: static/sentry/app/components/mutedBox.jsx:24
 msgid "This issue has been muted"
-msgstr ""
+msgstr "Проблемът е заглушен"
 
 #: static/sentry/app/components/mutedBox.jsx:26
 msgid ""
@@ -3594,8 +3724,8 @@ msgstr ""
 #: static/sentry/app/views/installWizard.jsx:183
 #, python-format
 msgid ""
-"An invalid option (%s) was passed to the server. Please report this issue to"
-" the Sentry team."
+"An invalid option (%s) was passed to the server. Please report this issue to "
+"the Sentry team."
 msgstr ""
 
 #: static/sentry/app/views/installWizard.jsx:187
@@ -3671,8 +3801,8 @@ msgstr ""
 
 #: static/sentry/app/options.jsx:40
 msgid ""
-"The maximum number of events the system should accept per minute. A value of"
-" 0 will disable the default rate limit."
+"The maximum number of events the system should accept per minute. A value of "
+"0 will disable the default rate limit."
 msgstr ""
 
 #: static/sentry/app/options.jsx:44
@@ -3732,12 +3862,14 @@ msgid "Nothing to show here, move along."
 msgstr ""
 
 #: static/sentry/app/components/events/eventsPerHour.jsx:124
+#, fuzzy
 msgid "View Stats"
-msgstr ""
+msgstr "Статистика"
 
 #: static/sentry/app/components/events/eventsPerHour.jsx:125
+#, fuzzy
 msgid "Events Per Hour"
-msgstr ""
+msgstr "Наблюдавани събития"
 
 #: static/sentry/app/views/projectDashboard/eventList.jsx:108
 msgid "No data available."
@@ -3807,11 +3939,11 @@ msgstr ""
 
 #: static/sentry/app/views/stream/actions.jsx:93
 msgid "Removing events.."
-msgstr ""
+msgstr "Изтриване на събития…"
 
 #: static/sentry/app/views/stream/actions.jsx:110
 msgid "Merging events.."
-msgstr ""
+msgstr "Сливане на събития…"
 
 #: static/sentry/app/views/stream/actions.jsx:150
 msgid "This will apply to the current search query:"
@@ -3823,11 +3955,10 @@ msgstr ""
 
 #: static/sentry/app/views/groupDetails/actions.jsx:124
 msgid "Resolve"
-msgstr ""
+msgstr "Решаване"
 
 #: static/sentry/app/views/stream/actions.jsx:176
-msgid ""
-"Are you sure you want to resolve all issues matching this search query?"
+msgid "Are you sure you want to resolve all issues matching this search query?"
 msgstr ""
 
 #: static/sentry/app/views/stream/actions.jsx:178
@@ -3854,34 +3985,34 @@ msgstr ""
 
 #: static/sentry/app/views/groupDetails/actions.jsx:181
 msgid "Bookmark"
-msgstr ""
+msgstr "Отметка"
 
 #: static/sentry/app/views/stream/actions.jsx:203
 msgid ""
 "Are you sure you want to bookmark all issues matching this search query?"
-msgstr ""
+msgstr "Искате ли отметка за всички проблеми, които отговарят на търсеното?"
 
 #: static/sentry/app/views/stream/actions.jsx:205
 #, python-format
 msgid "Are you sure you want to bookmark this %d issue?"
 msgid_plural "Are you sure you want to bookmark these %d issues?"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Сигурни ли сте, че искате отметка за %d проблем?"
+msgstr[1] "Сигурни ли сте, че искате отметка за %d проблема?"
 
 #: static/sentry/app/views/stream/actions.jsx:211
 msgid "Bookmark all issues"
-msgstr ""
+msgstr "Отметка за всички проблеми"
 
 #: static/sentry/app/views/stream/actions.jsx:213
 #, python-format
 msgid "Bookmark %d selected issue"
 msgid_plural "Bookmark %d selected issues"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Отметка за %d избран проблем"
+msgstr[1] "Отметка за %d избрани проблеми"
 
 #: static/sentry/app/views/stream/actions.jsx:217
 msgid "Add to Bookmarks"
-msgstr ""
+msgstr "Добавяне към отметките"
 
 #: static/sentry/app/views/stream/actions.jsx:237
 msgid "Are you sure you want to merge all issues matching this search query?"
@@ -3891,23 +4022,23 @@ msgstr ""
 #, python-format
 msgid "Are you sure you want to merge %d issue?"
 msgid_plural "Are you sure you want to merge %d issues?"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Сигурни ли сте, че искате да слеете %d проблем?"
+msgstr[1] "Сигурни ли сте, че искате да слеете %d проблема?"
 
 #: static/sentry/app/views/stream/actions.jsx:245
 msgid "Merge all issues"
-msgstr ""
+msgstr "Сливане на всички проблеми"
 
 #: static/sentry/app/views/stream/actions.jsx:247
 #, python-format
 msgid "Merge %d selected issue"
 msgid_plural "Merge %d selected issues"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Сливане на %d избран проблем"
+msgstr[1] "Сливане на %d избрани проблема"
 
 #: static/sentry/app/views/stream/actions.jsx:252
 msgid "Merge Events"
-msgstr ""
+msgstr "Сливане на събития"
 
 #: static/sentry/app/views/stream/actions.jsx:263
 msgid ""
@@ -3920,23 +4051,23 @@ msgstr ""
 msgid "Are you sure you want to remove this %d issue from your bookmarks?"
 msgid_plural ""
 "Are you sure you want to remove these %d issues from your bookmarks?"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Сигурни ли сте, че искате да махнете отметката за този %d проблем?"
+msgstr[1] "Сигурни ли сте, че искате да махнете отметките за тези %d проблема?"
 
 #: static/sentry/app/views/stream/actions.jsx:271
 msgid "Remove all issues from bookmarks"
-msgstr ""
+msgstr "Премахване на всички отметки за проблеми"
 
 #: static/sentry/app/views/stream/actions.jsx:273
 #, python-format
 msgid "Remove %d selected issue from bookmarks"
 msgid_plural "Remove %d selected issues from bookmarks"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Премахване на отметката за този %d избран проблем"
+msgstr[1] "Премахване на отметките за тези %d избрани проблема"
 
 #: static/sentry/app/views/stream/actions.jsx:279
 msgid "Remove from Bookmarks"
-msgstr ""
+msgstr "Премахване на отметка"
 
 #: static/sentry/app/views/stream/actions.jsx:291
 msgid ""
@@ -3963,7 +4094,7 @@ msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:308
 msgid "Set status to: Unresolved"
-msgstr ""
+msgstr "Състоянието да е: Нерешен"
 
 #: static/sentry/app/views/stream/actions.jsx:319
 msgid "Are you sure you want to mute all issues matching this search query?"
@@ -3973,53 +4104,53 @@ msgstr ""
 #, python-format
 msgid "Are you sure you want to mute this %d issue?"
 msgid_plural "Are you sure you want to mute these %d issues?"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Сигурни ли сте, че искате да заглушите този %d проблем?"
+msgstr[1] "Сигурни ли сте, че искате да заглушите тези %d проблема?"
 
 #: static/sentry/app/views/stream/actions.jsx:327
 msgid "Mute all issues"
-msgstr ""
+msgstr "Заглушаване на всички проблеми"
 
 #: static/sentry/app/views/stream/actions.jsx:329
 #, python-format
 msgid "Mute %d selected issue"
 msgid_plural "Mute %d selected issues"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Заглушаване на %d избран проблем"
+msgstr[1] "Заглушаване на %d избрани проблема"
 
 #: static/sentry/app/views/stream/actions.jsx:335
 msgid "Set status to: Muted"
-msgstr ""
+msgstr "Състоянието да е: Заглушено"
 
 #: static/sentry/app/views/stream/actions.jsx:347
 #, python-format
 msgid "Are you sure you want to delete %d issue?"
 msgid_plural "Are you sure you want to delete %d issues?"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Сигурни ли сте, че искате да изтриете този %d проблем?"
+msgstr[1] "Сигурни ли сте, че искате да изтриете тези %d проблема?"
 
 #: static/sentry/app/views/stream/actions.jsx:353
 #, python-format
 msgid "Delete %d selected issue"
 msgid_plural "Delete %d selected issues"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Изтриване на %d избран проблем"
+msgstr[1] "Изтриване на %d избрани проблема"
 
 #: static/sentry/app/views/stream/actions.jsx:358
 msgid "Delete Events"
-msgstr ""
+msgstr "Изтриване на събития"
 
 #: static/sentry/app/views/stream/actions.jsx:378
 msgid "Graph:"
-msgstr ""
+msgstr "Извеждане:"
 
 #: static/sentry/app/views/stream/actions.jsx:381
 msgid "24h"
-msgstr ""
+msgstr "24 ч"
 
 #: static/sentry/app/views/stream/actions.jsx:384
 msgid "14d"
-msgstr ""
+msgstr "14 д"
 
 #: static/sentry/app/views/stream/actions.jsx:395
 msgid "All issues matching this search query selected."
@@ -4029,8 +4160,8 @@ msgstr ""
 #, python-format
 msgid "%d issue on this page selected."
 msgid_plural "%d issues on this page selected."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d проблем на страницата е избран."
+msgstr[1] "%d проблема на страницата са избрани."
 
 #: static/sentry/app/views/stream/actions.jsx:400
 msgid "Select all issues matching this search query."
@@ -4070,8 +4201,8 @@ msgstr ""
 
 #: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:66
 msgid ""
-"There are no projects in this team. Get started by [link:creating your first"
-" project]."
+"There are no projects in this team. Get started by [link:creating your first "
+"project]."
 msgstr ""
 
 #: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:149
@@ -4082,8 +4213,8 @@ msgstr ""
 
 #: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:159
 msgid ""
-"You dont have any teams for this organization yet. Get started by "
-"[link:creating your first team]."
+"You dont have any teams for this organization yet. Get started by [link:"
+"creating your first team]."
 msgstr ""
 
 #: static/sentry/app/components/activity/noteInput.jsx:15
@@ -4092,35 +4223,35 @@ msgstr ""
 
 #: static/sentry/app/components/activity/noteInput.jsx:106
 msgid "Posting comment.."
-msgstr ""
+msgstr "Подаване на коментар…"
 
 #: static/sentry/app/components/activity/noteInput.jsx:140
 msgid "Updating comment.."
-msgstr ""
+msgstr "Обновяване на коментар…"
 
 #: static/sentry/app/components/activity/noteInput.jsx:219
 msgid "Save Comment"
-msgstr ""
+msgstr "Запазване на коментар"
 
 #: static/sentry/app/components/activity/noteInput.jsx:219
 msgid "Post Comment"
-msgstr ""
+msgstr "Подаване на коментар"
 
 #: static/sentry/app/components/activity/note.jsx:37
 msgid "Edit"
-msgstr ""
+msgstr "Редактиране"
 
 #: static/sentry/app/components/activity/noteInput.jsx:226
 msgid "Write"
-msgstr ""
+msgstr "Писане"
 
 #: static/sentry/app/components/activity/noteInput.jsx:229
 msgid "Preview"
-msgstr ""
+msgstr "Преглед"
 
 #: static/sentry/app/components/activity/noteInput.jsx:233
 msgid "Markdown supported"
-msgstr ""
+msgstr "Може и „markdown“"
 
 #: static/sentry/app/components/activity/noteInput.jsx:241
 msgid "Add details or updates to this event"
@@ -4128,26 +4259,26 @@ msgstr ""
 
 #: static/sentry/app/components/events/extraData.jsx:27
 msgid "Additional Data"
-msgstr ""
+msgstr "Допълнителни данни"
 
 #: static/sentry/app/components/events/errors.jsx:42
 msgid "Hide"
-msgstr ""
+msgstr "Скриване"
 
 #: static/sentry/app/components/events/errors.jsx:42
 msgid "Show"
-msgstr ""
+msgstr "Показване"
 
 #: static/sentry/app/components/events/errors.jsx:44
 #, python-format
 msgid "There was %d error encountered while processing this event"
 msgid_plural "There were %d errors encountered while processing this event"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d грешка при обработката на това събитие"
+msgstr[1] "%d грешки при обработката на това събитие"
 
 #: static/sentry/app/components/events/message.jsx:18
 msgid "Message"
-msgstr ""
+msgstr "Съобщение"
 
 #: static/sentry/app/components/events/device.jsx:35
 msgid "Device"
@@ -4163,81 +4294,80 @@ msgstr ""
 
 #: static/sentry/app/components/events/interfaces/stacktrace.jsx:62
 msgid "Full"
-msgstr ""
+msgstr "Пълно"
 
 #: static/sentry/app/components/events/interfaces/csp.jsx:55
 msgid "Raw"
-msgstr ""
+msgstr "Необработено"
 
 #: static/sentry/app/components/events/interfaces/exception.jsx:64
 msgid "Exception"
-msgstr ""
+msgstr "Изключение"
 
 #: static/sentry/app/components/events/interfaces/stacktrace.jsx:70
 msgid "most recent call first"
-msgstr ""
+msgstr "последното извикване е първо"
 
 #: static/sentry/app/components/events/interfaces/stacktrace.jsx:68
 msgid "most recent call last"
-msgstr ""
+msgstr "последното извикване е последно"
 
 # this means "rich" rendering (fancy tables)
 #: static/sentry/app/components/events/interfaces/request.jsx:77
 msgid "Rich"
-msgstr ""
+msgstr "Форматирано"
 
 #: static/sentry/app/components/events/interfaces/template.jsx:25
 msgid "Template"
-msgstr ""
+msgstr "Шаблон"
 
 #: static/sentry/app/components/events/interfaces/csp.jsx:54
 msgid "Report"
-msgstr ""
+msgstr "Доклад"
 
 #: static/sentry/app/components/events/interfaces/csp.jsx:56
 msgid "Help"
-msgstr ""
+msgstr "Помощ"
 
 #: static/sentry/app/components/events/interfaces/csp.jsx:58
 msgid "CSP Report"
-msgstr ""
+msgstr "Доклад за сигурността CSP"
 
 #: static/sentry/app/components/group/seenInfo.jsx:22
 msgid "When"
-msgstr ""
+msgstr "Кога"
 
 #: static/sentry/app/components/group/seenInfo.jsx:24
 msgid "Date"
-msgstr ""
+msgstr "Дата"
 
 #: static/sentry/app/components/group/tagDistributionMeter.jsx:112
 msgid "Other"
-msgstr ""
+msgstr "Друго"
 
 #: static/sentry/app/components/group/tagDistributionMeter.jsx:125
 msgid "No recent data."
-msgstr ""
+msgstr "Няма скорошни данни."
 
 #: static/sentry/app/components/assigneeSelector.jsx:202
 msgid "No matching users found."
-msgstr ""
+msgstr "Няма подобни потребители."
 
 #: static/sentry/app/components/assigneeSelector.jsx:229
 msgid "Filter people"
-msgstr ""
+msgstr "Филтриране на хора."
 
 #: static/sentry/app/components/assigneeSelector.jsx:238
 msgid "Clear Assignee"
-msgstr ""
+msgstr "Изчистване на отговорника"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:34
 msgid "Delete event.."
-msgstr ""
+msgstr "Изтриване на събитие…"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:107
 msgid ""
-"This event is resolved due to the Auto Resolve configuration for this "
-"project"
+"This event is resolved due to the Auto Resolve configuration for this project"
 msgstr ""
 
 #: static/sentry/app/views/groupDetails/actions.jsx:112
@@ -4262,47 +4392,50 @@ msgstr ""
 
 #: static/sentry/app/views/groupDetails/actions.jsx:152
 msgid "Remove Snooze"
-msgstr ""
+msgstr "Премахване на отлагането"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:161
 msgid "Snooze"
-msgstr ""
+msgstr "Отлагане"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:165
 msgid "for 30 minutes"
-msgstr ""
+msgstr "за 30 минути"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:168
 msgid "for 2 hours"
-msgstr ""
+msgstr "за 2 часа"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:171
 msgid "for 24 hours"
-msgstr ""
+msgstr "за 24 часа"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:174
 msgid "forever"
-msgstr ""
+msgstr "завинаги"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:189
 msgid "Delete"
-msgstr ""
+msgstr "Изтриване"
 
 #: static/sentry/app/views/groupDetails/actions.jsx:190
 msgid "Deleting this event is permanent. Are you sure you wish to continue?"
-msgstr ""
+msgstr "Изтриването е необратимо. Искате ли да продължите?"
 
 #: static/sentry/app/components/activity/item.jsx:58
+#, fuzzy
 msgid "[author] commented on [link:an issue]"
-msgstr ""
+msgstr "[author] заглуши [link:an issue]"
 
 #: static/sentry/app/components/activity/item.jsx:63
+#, fuzzy
 msgid "[author] marked [link:an issue] as resolved"
-msgstr ""
+msgstr "[author] заглуши [link:an issue]"
 
 #: static/sentry/app/components/activity/item.jsx:68
+#, fuzzy
 msgid "[author] marked [link:an issue] as resolved due to age"
-msgstr ""
+msgstr "[author] заглуши [link:an issue]"
 
 #: static/sentry/app/components/activity/item.jsx:74
 msgid "[author] marked [link:an issue] as resolved in [version]"
@@ -4313,8 +4446,9 @@ msgid "[author] marked [link:an issue] as resolved in the upcoming release"
 msgstr ""
 
 #: static/sentry/app/components/activity/item.jsx:85
+#, fuzzy
 msgid "[author] marked [link:an issue] as unresolved"
-msgstr ""
+msgstr "[author] заглуши [link:an issue]"
 
 #: static/sentry/app/components/activity/item.jsx:91
 msgid "[author] snoozed [link:an issue] for [duration]"
@@ -4322,7 +4456,7 @@ msgstr ""
 
 #: static/sentry/app/components/activity/item.jsx:97
 msgid "[author] muted [link:an issue]"
-msgstr ""
+msgstr "[author] заглуши [link:an issue]"
 
 #: static/sentry/app/components/activity/item.jsx:102
 msgid "[author] made an [link:an issue] public"
@@ -4337,8 +4471,9 @@ msgid "[author] marked [link:an issue] as a regression in [version]"
 msgstr ""
 
 #: static/sentry/app/components/activity/item.jsx:119
+#, fuzzy
 msgid "[author] marked [link:an issue] as a regression"
-msgstr ""
+msgstr "[author] заглуши [link:an issue]"
 
 #: static/sentry/app/components/activity/item.jsx:124
 msgid "[author] linked [link:an issue] on [provider]"
@@ -4374,15 +4509,15 @@ msgstr ""
 
 #: static/sentry/app/components/groupListHeader.jsx:10
 msgid "Event"
-msgstr ""
+msgstr "Събитие"
 
 #: static/sentry/app/components/groupListHeader.jsx:13
 msgid "Last 24 hours"
-msgstr ""
+msgstr "Последни 24 часа"
 
 #: static/sentry/app/components/groupListHeader.jsx:15
 msgid "events"
-msgstr ""
+msgstr "събития"
 
 #: static/sentry/app/components/issues/snoozeAction.jsx:49
 msgid "zZz"
@@ -4390,171 +4525,183 @@ msgstr ""
 
 #: static/sentry/app/components/issues/snoozeAction.jsx:54
 msgid "How long should we snooze this issue?"
-msgstr ""
+msgstr "Колко време да се отлага проблемът?"
 
 #: static/sentry/app/components/issues/snoozeAction.jsx:56
 msgid "30 minutes"
-msgstr ""
+msgstr "30 минути"
 
 #: static/sentry/app/components/issues/snoozeAction.jsx:57
 msgid "2 hours"
-msgstr ""
+msgstr "2 часа"
 
 #: static/sentry/app/components/issues/snoozeAction.jsx:58
 msgid "24 hours"
-msgstr ""
+msgstr "24 часа"
 
 #: static/sentry/app/components/issues/snoozeAction.jsx:60
 msgid "Forever"
-msgstr ""
+msgstr "Завинаги"
 
 #: static/sentry/app/views/stream/sortOptions.jsx:59
 msgid "Sort by"
-msgstr ""
+msgstr "Подредба по"
 
 #: static/sentry/app/views/stream/actionLink.jsx:111
 msgid "This action cannot be undone."
-msgstr ""
+msgstr "Това действие е необратимо."
 
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:205
 msgid "Save Current Search"
-msgstr ""
+msgstr "Запазване на текущото търсене"
 
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:117
 msgid ""
 "Saving this search will give you and your team quick access to it in the "
 "future."
-msgstr ""
+msgstr "Запазването на търсенето дава бърз достъп на екипа ви до него."
 
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:132
 msgid "Make this the default view for myself."
-msgstr ""
+msgstr "Това да е стандартният ми личен изглед."
 
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:136
 msgid "Make this the default view for my team."
-msgstr ""
+msgstr "Това да е стандартният изглед за екипа ми."
 
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:144
 msgid "Save"
-msgstr ""
+msgstr "Запазване"
 
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:171
 msgid "Custom Search"
-msgstr ""
+msgstr "Друго търсене"
 
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:193
 msgid "There don't seem to be any saved searches yet."
-msgstr ""
+msgstr "Няма запазени търсения."
 
 #: static/sentry/app/views/stream/searchBar.jsx:68
 msgid "Tag"
-msgstr ""
+msgstr "Етикет"
 
 #: static/sentry/app/views/stream/searchBar.jsx:69
 msgid "key/value pair associated to an issue"
-msgstr ""
+msgstr "двойка ключ / стойност за проблем"
 
 #: static/sentry/app/views/stream/searchBar.jsx:76
 msgid "State of an issue"
-msgstr ""
+msgstr "Състояние на проблем"
 
 #: static/sentry/app/views/stream/searchBar.jsx:83
 msgid "team member assigned to an issue"
-msgstr ""
+msgstr "кой ще рааботи по проблема"
 
 #: static/sentry/app/views/stream/searchBar.jsx:89
 msgid "Bookmarked By"
-msgstr ""
+msgstr "Отметнато от"
 
 #: static/sentry/app/views/stream/searchBar.jsx:90
 msgid "team member who bookmarked an issue"
-msgstr ""
+msgstr "кой е създал отметка за проблема"
 
 #: static/sentry/app/views/stream/searchBar.jsx:96
 msgid "or paste an event id to jump straight to it"
-msgstr ""
+msgstr "или преминете направо към проблема чрез идентификатора му"
 
 #: static/sentry/app/components/header/statuspage.jsx:125
 msgid "Read more …"
-msgstr ""
+msgstr "Още информация…"
 
 #: static/sentry/app/components/header/broadcasts.jsx:118
 msgid "No recent broadcasts from the Sentry team."
-msgstr ""
+msgstr "Няма скорошни известия от екипа на Sentry."
 
 #: static/sentry/app/components/header/broadcasts.jsx:128
 msgid "Read more"
-msgstr ""
+msgstr "Още информация"
 
 #: static/sentry/app/components/activity/note.jsx:40
 msgid "Are you sure you wish to delete this comment?"
-msgstr ""
+msgstr "Сигурни ли сте, че искате да изтриете този коментар?"
 
 #: static/sentry/app/components/events/errorItem.jsx:29
 msgid "Collapse"
-msgstr ""
+msgstr "Свиване"
 
 #: static/sentry/app/components/events/errorItem.jsx:29
 msgid "Expand"
-msgstr ""
+msgstr "Разширяване"
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:72
 msgid "Query String"
-msgstr ""
+msgstr "Низ за търсене"
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:83
 msgid "Body"
-msgstr ""
+msgstr "Тяло"
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:89
 msgid "Cookies"
-msgstr ""
+msgstr "Бисквитки"
 
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:94
 msgid "Headers"
-msgstr ""
+msgstr "Заглавни части"
 
 #: static/sentry/app/components/events/interfaces/stacktraceContent.jsx:29
 #, python-format
 msgid "Frames %d until %d were omitted and not available."
-msgstr ""
+msgstr "Кадрите за изпълнение от %d до %d не са налични."
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:77
 msgid "Original Filename"
-msgstr ""
+msgstr "Първоначално име на файл"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:78
 msgid "Line Number"
-msgstr ""
+msgstr "Номер на ред"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:79
 msgid "Column Number"
-msgstr ""
+msgstr "Номер на колона"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:80
 msgid "Function"
-msgstr ""
+msgstr "Функция"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:81
 msgid "Source Map"
-msgstr ""
+msgstr "Карта на кода"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:118
 msgid "in"
-msgstr ""
+msgstr "в"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:132
 msgid "at line"
-msgstr ""
+msgstr "на ред"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:141
 msgid "within"
-msgstr ""
+msgstr "от"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:154
 msgid "application"
-msgstr ""
+msgstr "програма"
 
 #: static/sentry/app/components/events/interfaces/frame.jsx:205
 msgid "Toggle context"
-msgstr ""
+msgstr "Превключване на контекста"
+
+#~ msgid "You may also optionally change your password."
+#~ msgstr "Можете, също, да смените паролата."
+
+#~ msgid "User Reports"
+#~ msgstr "Доклади от потребители"
+
+#~ msgid "Setup"
+#~ msgstr "Настройки"
+
+#~ msgid "Instructions"
+#~ msgstr "Инструкции"
