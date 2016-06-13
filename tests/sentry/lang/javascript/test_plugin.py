@@ -385,3 +385,41 @@ class JavascriptIntegrationTest(TestCase):
         ]
         assert frame.context_line == '\treturn a + b;'
         assert frame.post_context == ['}']
+
+    @responses.activate
+    def test_failed_sourcemap_expansion(self):
+        """
+        Tests attempting to parse an indexed source map where each section has a "url"
+        property - this is unsupported and should fail.
+        """
+        responses.add(responses.GET, 'http://example.com/unsupported.min.js',
+                      body=load_fixture('unsupported.min.js'))
+
+        responses.add(responses.GET, 'http://example.com/unsupported.sourcemap.js',
+                      body=load_fixture('unsupported.sourcemap.js'))
+
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'type': 'Error',
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'abs_path': 'http://example.com/unsupported.min.js',
+                                'filename': 'indexed.min.js',
+                                'lineno': 1,
+                                'colno': 39,
+                            },
+                        ],
+                    },
+                }],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        assert event.data['errors'] == [{'url': u'http://example.com/unsupported.sourcemap.js', 'type': 'js_invalid_source'}]
