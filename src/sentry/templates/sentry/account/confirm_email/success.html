@@ -1,0 +1,12 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Confirm Email" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+    <h2>{% trans "Confirmation successful" %}</h2>
+    <p>{% trans "Thanks for confirming your email." %}</p>
+    <a class="btn btn-primary" href="{% url 'sentry-login' %}">{% trans "Sign in" %}</a>
+{% endblock %}
