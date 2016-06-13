@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 from sentry.lang.javascript.sourcemaps import (
-    SourceMap, parse_vlq, parse_sourcemap, sourcemap_to_index, find_source
+    SourceMap, parse_vlq, parse_sourcemap, sourcemap_to_index, find_source, get_inline_content_sources
 )
 from sentry.testutils import TestCase
 
@@ -18,6 +18,60 @@ sourcemap = """{
     "mappings":"AAAA,QAASA,KAAIC,EAAGC,GACf,YACA,OAAOD,GAAIC,ECFZ,QAASC,UAASF,EAAGC,GACpB,YACA,OAAOD,GAAIC,EAEZ,QAASE,QAAOH,EAAGC,GAClB,YACA,KACC,MAAOC,UAASH,IAAIC,EAAGC,GAAID,EAAGC,GAAKG,EAClC,MAAOC,GACRC,MAAMC,iBAAiBF",
     "sourceRoot": "foo"
 }"""
+
+indexed_sourcemap_example = json.dumps({
+    'version': 3,
+    'file': 'min.js',
+    'sections': [
+        {
+            'offset': {
+                'line': 0,
+                'column': 0
+            },
+            'map': {
+                'version': 3,
+                'sources': [
+                    "one.js"
+                ],
+                'sourcesContent': [
+                    ' ONE.foo = function (bar) {\n' +
+                    '   return baz(bar);\n' +
+                    ' };',
+                ],
+                'names': [
+                    "bar",
+                    "baz"
+                ],
+                'mappings': "CAAC,IAAI,IAAM,SAAUA,GAClB,OAAOC,IAAID",
+                'file': "min.js",
+                'sourceRoot': "/the/root"
+            }
+        },
+        {
+            'offset': {
+                'line': 1,
+                'column': 0
+            },
+            'map': {
+                'version': 3,
+                'sources': [
+                    "two.js"
+                ],
+                'sourcesContent': [
+                    ' TWO.inc = function (n) {\n' +
+                    '   return n + 1;\n' +
+                    ' };'
+                ],
+                'names': [
+                    "n"
+                ],
+                'mappings': "CAAC,IAAI,IAAM,SAAUA,GAClB,OAAOA",
+                'file': "min.js",
+                'sourceRoot': "/the/root"
+            }
+        }
+    ]
+})
 
 
 class ParseVlqTest(TestCase):
@@ -51,6 +105,24 @@ class FindSourceTest(TestCase):
         # End of minified file (character *beyond* last line/col tuple)
         result = find_source(indexed_sourcemap, 1, 192)
         assert result == SourceMap(dst_line=0, dst_col=191, src='foo/file2.js', src_line=9, src_col=25, name='e')
+
+
+class GetInlineContentSourcesTest(TestCase):
+    def test_no_inline(self):
+        # basic sourcemap fixture has no inlined sources, so expect an empty list
+        indexed_sourcemap = sourcemap_to_index(sourcemap)
+
+        sources = get_inline_content_sources(indexed_sourcemap, 'https://example.com/static/')
+        assert sources == []
+
+    def test_indexed_inline(self):
+        indexed_sourcemap = sourcemap_to_index(indexed_sourcemap_example)
+
+        sources = get_inline_content_sources(indexed_sourcemap, 'https://example.com/static/')
+        assert sources == [
+            ('https://example.com/the/root/one.js', [' ONE.foo = function (bar) {', '   return baz(bar);', ' };']),
+            ('https://example.com/the/root/two.js', [' TWO.inc = function (n) {', '   return n + 1;', ' };'])
+        ]
 
 
 class ParseSourcemapTest(TestCase):
@@ -95,3 +167,39 @@ class ParseSourcemapTest(TestCase):
             SourceMap(dst_line=0, dst_col=174, src='foo/file2.js', src_line=9, src_col=8, name='captureException'),
             SourceMap(dst_line=0, dst_col=191, src='foo/file2.js', src_line=9, src_col=25, name='e'),
         ]
+
+
+class ParseIndexedSourcemapTest(TestCase):
+    # Tests lookups that fall exactly on source map token boundaries
+    # https://github.com/mozilla/source-map/blob/master/test/test-source-map-consumer.js#138
+    def test_exact_mappings(self):
+        indexed_sourcemap = sourcemap_to_index(indexed_sourcemap_example)
+
+        # one.js
+        assert find_source(indexed_sourcemap, 1, 1) == \
+            SourceMap(dst_line=0, dst_col=1, src='/the/root/one.js', src_line=0, src_col=1, name=None)
+        assert find_source(indexed_sourcemap, 1, 18) == \
+            SourceMap(dst_line=0, dst_col=18, src='/the/root/one.js', src_line=0, src_col=21, name='bar')
+        assert find_source(indexed_sourcemap, 1, 28) == \
+            SourceMap(dst_line=0, dst_col=28, src='/the/root/one.js', src_line=1, src_col=10, name='baz')
+
+        # two.js
+        assert find_source(indexed_sourcemap, 2, 18) == \
+            SourceMap(dst_line=1, dst_col=18, src='/the/root/two.js', src_line=0, src_col=21, name='n')
+        assert find_source(indexed_sourcemap, 2, 21) == \
+            SourceMap(dst_line=1, dst_col=21, src='/the/root/two.js', src_line=1, src_col=3, name=None)
+        assert find_source(indexed_sourcemap, 2, 21) == \
+            SourceMap(dst_line=1, dst_col=21, src='/the/root/two.js', src_line=1, src_col=3, name=None)
+
+    # Tests lookups that fall inside source map token boundaries
+    # https://github.com/mozilla/source-map/blob/master/test/test-source-map-consumer.js#181
+    def test_fuzzy_mapping(self):
+        indexed_sourcemap = sourcemap_to_index(indexed_sourcemap_example)
+
+        # one.js
+        assert find_source(indexed_sourcemap, 1, 20) == \
+            SourceMap(dst_line=0, dst_col=18, src='/the/root/one.js', src_line=0, src_col=21, name='bar')
+        assert find_source(indexed_sourcemap, 1, 30) == \
+            SourceMap(dst_line=0, dst_col=28, src='/the/root/one.js', src_line=1, src_col=10, name='baz')
+        assert find_source(indexed_sourcemap, 2, 12) == \
+            SourceMap(dst_line=1, dst_col=9, src='/the/root/two.js', src_line=0, src_col=11, name=None)
