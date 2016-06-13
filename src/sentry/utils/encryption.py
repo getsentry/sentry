@@ -2,9 +2,14 @@ from __future__ import absolute_import
 
 import six
 
+from base64 import b64encode, b64decode
 from collections import OrderedDict
 from django.conf import settings
 from django.utils.encoding import smart_bytes
+
+MARKER = u'\xef\xbb\xbf'
+
+_marker_length = len(MARKER)
 
 
 class EncryptionManager(object):
@@ -25,21 +30,31 @@ class EncryptionManager(object):
             return value
         value = smart_bytes(value)
         scheme = self.schemes[self.default_scheme]
-        return b'{}${}'.format(self.default_scheme, scheme.encrypt(value))
+        return u'{}{}${}'.format(
+            MARKER,
+            self.default_scheme,
+            b64encode(scheme.encrypt(value)),
+        )
 
     def decrypt(self, value):
+        # we assume that if encryption is not configured, it was never
+        # configured
+        if not self.schemes:
+            return value
+        if not value.startswith(MARKER):
+            return value
         try:
-            enc_method, enc_data = value.split('$', 1)
+            enc_method, enc_data = value[_marker_length:].split('$', 1)
         except (ValueError, IndexError):
-            pass
-        else:
-            enc_data = smart_bytes(enc_data)
-            try:
-                scheme = self.schemes[enc_method]
-            except KeyError:
-                raise ValueError('Unknown encryption scheme: %s'.format(enc_method))
-            value = scheme.decrypt(enc_data)
-        return value
+            return value
+        if not enc_method:
+            return value
+        enc_data = b64decode(enc_data)
+        try:
+            scheme = self.schemes[enc_method]
+        except KeyError:
+            raise ValueError('Unknown encryption scheme: {!r}'.format(enc_method))
+        return scheme.decrypt(enc_data)
 
 default_manager = EncryptionManager(settings.SENTRY_ENCRYPTION_SCHEMES)
 

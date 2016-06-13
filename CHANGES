@@ -18,6 +18,17 @@ Schema Changes
 
 - Added ``Deploy`` model
 
+Security
+~~~~~~~~
+
+- Added encryption to the following fields:
+  - AuthIdentity.data
+  - AuthProvider.config
+  - Option.value
+  - OrganizationOption.value
+  - ProjectOption.value
+  - UserOption.value
+
 Version 8.14.1
 --------------
 

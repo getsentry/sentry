@@ -88,19 +88,21 @@ class GroupSubscriptionManager(BaseManager):
 
         # Find users which by default do not subscribe.
         participating_only = set(
-            UserOption.objects.filter(
+            uo.user_id for uo in UserOption.objects.filter(
                 Q(project__isnull=True) | Q(project=group.project),
                 user__in=users,
                 key='workflow:notifications',
-                value=UserOptionValue.participating_only,
             ).exclude(
-                user__in=UserOption.objects.filter(
-                    user__in=users,
-                    key='workflow:notifications',
-                    project=group.project,
-                    value=UserOptionValue.all_conversations,
-                )
-            ).values_list('user', flat=True)
+                user__in=[
+                    uo.user_id for uo in UserOption.objects.filter(
+                        project=group.project,
+                        user__in=users,
+                        key='workflow:notifications',
+                    )
+                    if uo.value == UserOptionValue.all_conversations
+                ]
+            )
+            if uo.value == UserOptionValue.participating_only
         )
 
         if participating_only:
