@@ -61,10 +61,15 @@ class AuthIndexEndpoint(Endpoint):
             return Response({
                 '2fa_required': True,
                 'message': 'Cannot sign-in with basic auth when 2fa is enabled.'
-            }, status=400)
+            }, status=403)
 
-        # Must use the real request object that Django knows about
-        auth.login(request._request, request.user)
+        try:
+            # Must use the real request object that Django knows about
+            auth.login(request._request, request.user)
+        except auth.AuthUserPasswordExpired:
+            return Response({
+                'message': 'Cannot sign-in with basic auth because password has expired.',
+            }, status=403)
 
         return self.get(request)
 
