@@ -21,6 +21,41 @@ from sentry.utils.db import get_db_engine
 
 
 class DjangoSearchBackend(SearchBackend):
+    def _tags_to_filter(self, project, tags):
+        # Django doesnt support union, so we limit results and try to find
+        # reasonable matches
+        from sentry.models import GroupTagValue
+
+        # ANY matches should come last since they're the least specific and
+        # will provide the largest range of matches
+        tag_lookups = sorted(tags.iteritems(), key=lambda x: x != ANY)
+
+        # get initial matches to start the filter
+        matches = None
+
+        # for each remaining tag, find matches contained in our
+        # existing set, pruning it down each iteration
+        for k, v in tag_lookups:
+            if v != ANY:
+                base_qs = GroupTagValue.objects.filter(
+                    key=k,
+                    value=v,
+                    project=project,
+                )
+            else:
+                base_qs = GroupTagValue.objects.filter(
+                    key=k,
+                    project=project,
+                ).distinct()
+
+            if matches:
+                base_qs = base_qs.filter(group_id__in=matches)
+
+            matches = list(base_qs.values_list('group_id', flat=True)[:1000])
+            if not matches:
+                return None
+        return matches
+
     def query(self, project, query=None, status=None, tags=None,
               bookmarked_by=None, assigned_to=None, first_release=None,
               sort_by='date', unassigned=None,
@@ -78,19 +113,13 @@ class DjangoSearchBackend(SearchBackend):
             )
 
         if tags:
-            for k, v in tags.iteritems():
-                if v == ANY:
-                    queryset = queryset.filter(
-                        grouptag__project=project,
-                        grouptag__key=k,
-                    )
-                else:
-                    queryset = queryset.filter(
-                        grouptag__project=project,
-                        grouptag__key=k,
-                        grouptag__value=v,
-                    )
-            queryset = queryset.distinct()
+            matches = self._tags_to_filter(project, tags)
+            if matches:
+                queryset = queryset.filter(
+                    id__in=matches,
+                )
+            else:
+                queryset = queryset.none()
 
         if age_from or age_to:
             params = {}
