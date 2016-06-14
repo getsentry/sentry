@@ -9,7 +9,7 @@ import PureRenderMixin from 'react-addons-pure-render-mixin';
  */
 const StrictClick = React.createClass({
   propTypes: {
-    onClick: React.PropTypes.func.isRequired
+    onClick: React.PropTypes.func
   },
 
   mixins: [
@@ -41,8 +41,8 @@ const StrictClick = React.createClass({
     // not fire if either initial mouse down OR final ouse up occurs in
     // different element
     let {startCoords} = this.state;
-    let deltaX = evt.screenX - startCoords.x;
-    let deltaY = evt.screenY - startCoords.y;
+    let deltaX = Math.abs(evt.screenX - startCoords.x);
+    let deltaY = Math.abs(evt.screenY - startCoords.y);
 
     // If mouse hasn't moved more than 10 pixels in either Y
     // or X direction, fire onClick
@@ -55,6 +55,9 @@ const StrictClick = React.createClass({
   },
 
   render() {
+    // Bail out early if there is no onClick handler
+    if (!this.props.onClick) return this.props.children;
+
     return React.cloneElement(this.props.children, {
       onMouseDown: this.handleMouseDown,
       onClick: this.handleMouseClick
