@@ -10,7 +10,6 @@ import FrameVariables from './frameVariables';
 import ContextLine from './contextLine';
 import {t} from '../../../locale';
 
-
 function trimPackage(pkg) {
   let pieces = pkg.split(/\//g);
   let rv = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
