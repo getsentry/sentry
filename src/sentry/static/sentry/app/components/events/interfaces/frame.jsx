@@ -216,22 +216,21 @@ const Frame = React.createClass({
 
   renderCocoaLine() {
     let data = this.props.data;
-    let className = 'stacktrace-table';
     return (
-      <div className={className}>
+      <p className="as-table" onClick={this.toggleContext}>
         {defined(data.package)
           ? (
-            <div className="trace-col package" title={data.package}>
+            <span className="package" title={data.package}>
               {trimPackage(data.package)}
-            </div>
+            </span>
           ) : (
-            <div className="trace-col package"/>
+            <span className="package"/>
           )
         }
-        <div className="trace-col address">
+        <span className="address">
           {data.instructionAddr}
-        </div>
-        <div className="trace-col symbol">
+        </span>
+        <span className="symbol">
           <code>{data.function || '<unknown>'}</code>
           {data.instructionOffset &&
             <span className="offset">{' + ' + data.instructionOffset}</span>}
@@ -239,8 +238,8 @@ const Frame = React.createClass({
             <span className="filename">{data.filename}
               {data.lineNo ? ':' + data.lineNo : ''}</span>}
           {this.renderExpander()}
-        </div>
-      </div>
+        </span>
+      </p>
     );
   },
 

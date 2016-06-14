@@ -914,7 +914,8 @@ div.traceback > ul {
     padding: 8px 20px;
     font-size: 12px;
     margin: 0;
-    line-height: 1.4;
+    // line-height: 1.4;
+    line-height: 16px;
     color: @gray-darkest;
     background: lighten(@blue-light, 30);
 
@@ -931,6 +932,63 @@ div.traceback > ul {
 
   &.system-frame p {
     background: @white-dark;
+  }
+
+  p.as-table {
+    display: flex;
+    align-items: baseline;
+    width: 100%;
+
+    > span {
+      display: block;
+      padding: 0 5px;
+    }
+
+    .package {
+      width: 15%;
+      font-size: 13px;
+      font-weight: bold;
+      .truncate;
+      flex-grow: 0;
+      flex-shrink: 0;
+    }
+
+    .address {
+      font-family: @font-family-code;
+      font-size: 11px;
+      color: @gray-dark;
+      letter-spacing: -0.25px;
+      width: 85px;
+      flex-grow: 0;
+      flex-shrink: 0;
+    }
+
+    .symbol {
+      word-break: break-word;
+      flex: 1;
+
+      code {
+        background: transparent;
+        color: @blue-dark;
+        padding-right: 5px;
+      }
+
+      span.offset {
+        font-weight: bold;
+        padding-right: 10px;
+      }
+
+      span.filename {
+        color: @purple;
+
+        &:before {
+          content: "(";
+        }
+        &:after {
+          content: ")";
+        }
+      }
+    }
   }
 
   .original-src {
@@ -1202,71 +1260,6 @@ ol.context-line {
       float: right;
     }
   }
-}
-
-.stacktrace-table {
-  display: flex;
-  align-items: baseline;
-  line-height: 16px;
-  box-shadow: inset 0 1px 0 #E6EEF4;
-
-  .trace-col {
-    padding: 6px 5px 3px;
-    font-size: 12px;
-  }
-
-  .package {
-    width: 15%;
-    font-size: 13px;
-    font-weight: bold;
-    .truncate;
-    flex-grow: 0;
-    flex-shrink: 0;
-  }
-
-  .address {
-    font-family: @font-family-code;
-    font-size: 11px;
-    color: @gray-dark;
-    letter-spacing: -0.25px;
-    width: 85px;
-    flex-grow: 0;
-    flex-shrink: 0;
-  }
-
-  .symbol {
-    word-break: break-word;
-
-    code {
-      background: transparent;
-      color: @blue-dark;
-      padding-right: 5px;
-    }
-
-    span.offset {
-      font-weight: bold;
-      padding-right: 10px;
-    }
-
-    span.filename {
-      color: @purple;
-
-      &:before {
-        content: "(";
-      }
-      &:after {
-        content: ")";
-      }
-    }
-  }
-}
-
-.system-frame .stacktrace-table {
-  background-color: @white-dark;
-}
-
-.leads-to-app .stacktrace-table {
-  background: lighten(@blue-light, 30);
 }
 
 .exception-mechanism {
