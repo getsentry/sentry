@@ -696,7 +696,7 @@ class SourceProcessor(object):
             frame.pre_context, frame.context_line, frame.post_context = get_source_context(
                 source=source, lineno=frame.lineno, colno=frame.colno or 0)
 
-            if not frame.context_line:
+            if not frame.context_line and source:
                 all_errors.append({
                     'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
                     'column': frame.colno,
