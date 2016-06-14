@@ -195,6 +195,7 @@ TEMPLATE_LOADERS = (
 
 MIDDLEWARE_CLASSES = (
     'sentry.middleware.proxy.ContentLengthHeaderMiddleware',
+    'sentry.middleware.security.SecurityHeadersMiddleware',
     'sentry.middleware.maintenance.ServicesUnavailableMiddleware',
     'sentry.middleware.env.SentryEnvMiddleware',
     'sentry.middleware.proxy.SetRemoteAddrFromForwardedFor',
