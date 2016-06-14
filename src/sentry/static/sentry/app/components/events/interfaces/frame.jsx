@@ -6,6 +6,7 @@ import {defined, objectIsEmpty, isUrl} from '../../../utils';
 import TooltipMixin from '../../../mixins/tooltip';
 import FrameVariables from './frameVariables';
 import ContextLine from './contextLine';
+import StrictClick from '../../strictClick';
 import {t} from '../../../locale';
 
 function trimPackage(pkg) {
@@ -183,21 +184,22 @@ const Frame = React.createClass({
     if (hasContextSource || hasContextVars) {
       let startLineNo = hasContextSource ? data.context[0][0] : '';
       context = (
-        <ol start={startLineNo} className={outerClassName}
-            onClick={expandable ? this.toggleContext : null}>
-          {defined(data.errors) &&
-          <li className={expandable ? 'expandable error' : 'error'}
-              key="errors">{data.errors.join(', ')}</li>
-          }
+        <StrictClick onClick={expandable ? this.toggleContext : null}>
+          <ol start={startLineNo} className={outerClassName}>
+            {defined(data.errors) &&
+            <li className={expandable ? 'expandable error' : 'error'}
+                key="errors">{data.errors.join(', ')}</li>
+            }
 
-          {data.context && contextLines.map((line, index) => {
-            return <ContextLine key={index} line={line} isActive={data.lineNo === line[0]}/>;
-          })}
+            {data.context && contextLines.map((line, index) => {
+              return <ContextLine key={index} line={line} isActive={data.lineNo === line[0]}/>;
+            })}
 
-          {hasContextVars &&
-            <FrameVariables data={data.vars} key="vars" />
-          }
-        </ol>
+            {hasContextVars &&
+              <FrameVariables data={data.vars} key="vars" />
+            }
+          </ol>
+        </StrictClick>
       );
     }
     return context;
