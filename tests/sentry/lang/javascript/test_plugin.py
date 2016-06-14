@@ -387,6 +387,59 @@ class JavascriptIntegrationTest(TestCase):
         assert frame.post_context == ['}']
 
     @responses.activate
+    def test_sourcemap_expansion_with_missing_source(self):
+        """
+        Tests a successful sourcemap expansion that points to source files
+        that are not found.
+        """
+        responses.add(responses.GET, 'http://example.com/file.min.js',
+                      body=load_fixture('file.min.js'))
+        responses.add(responses.GET, 'http://example.com/file.sourcemap.js',
+                      body=load_fixture('file.sourcemap.js'))
+        responses.add(responses.GET, 'http://example.com/file1.js',
+                      body='Not Found', status=404)
+
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'type': 'Error',
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'abs_path': 'http://example.com/file.min.js',
+                                'filename': 'file.min.js',
+                                'lineno': 1,
+                                'colno': 39,
+                            },
+                        ],
+                    },
+                }],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        assert event.data['errors'] == [{'url': u'http://example.com/file1.js', 'type': 'js_invalid_http_code', 'value': 404}]
+
+        exception = event.interfaces['sentry.interfaces.Exception']
+        frame_list = exception.values[0].stacktrace.frames
+
+        frame = frame_list[0]
+
+        # no context information ...
+        assert frame.pre_context is None
+        assert frame.context_line is None
+        assert frame.post_context is None
+
+        # ... but line, column numbers are still correctly mapped
+        assert frame.lineno == 3
+        assert frame.colno == 8
+
+    @responses.activate
     def test_failed_sourcemap_expansion(self):
         """
         Tests attempting to parse an indexed source map where each section has a "url"
