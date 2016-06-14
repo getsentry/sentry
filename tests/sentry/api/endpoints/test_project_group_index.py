@@ -650,10 +650,10 @@ class GroupUpdateTest(APITestCase):
         }, format='json')
         assert response.status_code == 200
         assert response.data['merge']['parent'] == str(group2.id)
-        assert sorted(response.data['merge']['children']) == [
+        assert sorted(response.data['merge']['children']) == sorted([
             str(group1.id),
             str(group3.id),
-        ]
+        ])
 
         assert len(merge_group.mock_calls) == 2
         merge_group.delay.assert_any_call(from_object_id=group1.id, to_object_id=group2.id)
