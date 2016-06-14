@@ -140,6 +140,17 @@ class DjangoSearchBackendTest(TestCase):
         results = self.backend.query(self.project1, tags={'env': ANY})
         assert len(results) == 2
 
+        results = self.backend.query(self.project1, tags={'env': 'staging', 'server': 'example.com'})
+        assert len(results) == 1
+        assert results[0] == self.group2
+
+        results = self.backend.query(self.project1, tags={'env': 'staging', 'server': ANY})
+        assert len(results) == 1
+        assert results[0] == self.group2
+
+        results = self.backend.query(self.project1, tags={'env': 'staging', 'server': 'bar.example.com'})
+        assert len(results) == 0
+
     def test_bookmarked_by(self):
         results = self.backend.query(self.project1, bookmarked_by=self.user)
         assert len(results) == 1
