@@ -184,29 +184,22 @@ def discover_sourcemap(result):
 
 
 def fetch_release_file(filename, release):
-    cache_keys = [
-        'releasefile:v1:%s:%s' % (
-            release.id,
-            md5(filename).hexdigest(),
-        ),
-    ]
+    cache_key = 'releasefile:v1:%s:%s' % (
+        release.id,
+        md5(filename).hexdigest(),
+    ),
 
     filename_path = None
     try:
+        # Can we guarantee filename is always parsable?
         parsed_url = urlparse(filename)
         filename_path = parsed_url.path
-        cache_keys.append(
-            'releasefile:v1:%s:%s' % (
-                release.id,
-                md5(filename_path).hexdigest(),
-            )
-        )
     except Exception:
         pass
 
     logger.debug('Checking cache for release artifact %r (release_id=%s)',
                  filename, release.id)
-    result = cache.get_many(cache_keys)
+    result = cache.get(cache_key)
 
     if result is None or len(result) is 0:
         logger.debug('Checking database for release artifact %r (release_id=%s)',
@@ -224,8 +217,7 @@ def fetch_release_file(filename, release):
         except ReleaseFile.DoesNotExist:
             logger.debug('Release artifact %r not found in database (release_id=%s)',
                          filename, release.id)
-            cache_values = {key: -1 for key in cache_keys}
-            cache.set_many(cache_values, 60)
+            cache.set(cache_key, -1, 60)
             return None
 
         logger.debug('Found release artifact %r (id=%s, release_id=%s)',
@@ -235,24 +227,17 @@ def fetch_release_file(filename, release):
                 z_body, body = compress_file(fp)
         except Exception as e:
             logger.exception(unicode(e))
-            cache_values = {key: -1 for key in cache_keys}
-            cache.set_many(cache_values, 3600)
+            cache.set(cache_key, -1, 3600)
             result = None
         else:
             # Write the compressed version to cache, but return the deflated version
-            cache_values = {key: (releasefile.file.headers, z_body, 200) for key in cache_keys}
-            cache.set_many(cache_values, 3600)
+            cache.set(cache_key, (releasefile.file.headers, z_body, 200), 3600)
             result = (releasefile.file.headers, body, 200)
     elif result == -1:
         # We cached an error, so normalize
         # it down to None
         result = None
     else:
-        if result[cache_keys[0]]:
-            result = result[cache_keys[0]]
-        else:
-            result = result[cache_keys[1]]
-
         # We got a cache hit, but the body is compressed, so we
         # need to decompress it before handing it off
         body = zlib.decompress(result[1])
