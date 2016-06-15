@@ -379,9 +379,9 @@ class MessageBuilder(object):
             )
             logger.bind(message_id=message.extra_headers['Message-Id'])
             if fmt == LoggingFormat.HUMAN:
-                log_mail_queued(to=self.format_to(to))
+                log_mail_queued(to=self.format_to(message.to))
             elif fmt == LoggingFormat.MACHINE:
-                for recipient in to:
+                for recipient in message.to:
                     log_mail_queued(to=recipient)
 
 
