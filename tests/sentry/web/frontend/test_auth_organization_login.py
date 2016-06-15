@@ -523,3 +523,79 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, 'sentry/auth-confirm-link.html')
         assert resp.status_code == 200
         assert resp.context['existing_user'] == user
+
+    def test_swapped_identities(self):
+        """
+        Given two existing user accounts with mismatched identities, such as:
+
+        - foo SSO'd as bar@example.com
+        - bar SSO'd as foo@example.com
+
+        If bar is authenticating via SSO as bar@example.com, we should remove
+        the existing entry attached to bar, and re-bind the entry owned by foo.
+        """
+        organization = self.create_organization(name='foo', owner=self.user)
+        auth_provider = AuthProvider.objects.create(
+            organization=organization,
+            provider='dummy',
+        )
+
+        # setup a 'previous' identity, such as when we migrated Google from
+        # the old idents to the new
+        user = self.create_user('bar@example.com', is_active=False, is_managed=True)
+        identity1 = AuthIdentity.objects.create(
+            auth_provider=auth_provider,
+            user=user,
+            ident='bar@example.com'
+        )
+
+        # create another identity which is used, but not by the authenticating
+        # user
+        user2 = self.create_user('adfadsf@example.com', is_active=False, is_managed=True)
+        identity2 = AuthIdentity.objects.create(
+            auth_provider=auth_provider,
+            user=user2,
+            ident='adfadsf@example.com'
+        )
+        member2 = self.create_member(user=user2, organization=organization)
+
+        # user needs to be logged in
+        self.login_as(user)
+
+        path = reverse('sentry-auth-organization', args=[organization.slug])
+
+        resp = self.client.post(path)
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content
+
+        path = reverse('sentry-auth-sso')
+
+        # we're suggesting the identity changed (as if the Google ident was
+        # updated to be something else)
+        resp = self.client.post(path, {'email': 'adfadsf@example.com'})
+
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver/'
+
+        assert not AuthIdentity.objects.filter(
+            id=identity1.id,
+        ).exists()
+
+        identity2 = AuthIdentity.objects.get(
+            id=identity2.id,
+        )
+
+        assert identity2.ident == 'adfadsf@example.com'
+        assert identity2.user == user
+
+        member1 = OrganizationMember.objects.get(
+            user=user,
+            organization=organization,
+        )
+        assert getattr(member1.flags, 'sso:linked')
+        assert not getattr(member1.flags, 'sso:invalid')
+
+        member2 = OrganizationMember.objects.get(id=member2.id)
+        assert not getattr(member2.flags, 'sso:linked')
+        assert getattr(member2.flags, 'sso:invalid')

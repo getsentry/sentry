@@ -215,6 +215,37 @@ class AuthHelper(object):
             auth_is_new = True
         else:
             now = timezone.now()
+
+            # TODO(dcramer): this might leave the user with duplicate accounts,
+            # and in that kind of situation its very reasonable that we could
+            # test email addresses + is_managed to determine if we can auto
+            # merge
+            if auth_identity.user != user:
+                # it's possible the user has an existing identity, let's wipe it out
+                # so that the new identifier gets used (other we'll hit a constraint)
+                # violation since one might exist for (provider, user) as well as
+                # (provider, ident)
+                AuthIdentity.objects.exclude(
+                    id=auth_identity.id,
+                ).filter(
+                    auth_provider=auth_provider,
+                    user=user,
+                ).delete()
+
+                # since we've identify an identity which is no longer valid
+                # lets preemptively mark it as such
+                try:
+                    other_member = OrganizationMember.objects.get(
+                        user=auth_identity.user_id,
+                        organization=organization,
+                    )
+                except OrganizationMember.DoesNotExist:
+                    pass
+                else:
+                    setattr(other_member.flags, 'sso:invalid', True)
+                    setattr(other_member.flags, 'sso:linked', False)
+                    other_member.save()
+
             auth_identity.update(
                 user=user,
                 ident=identity['id'],
