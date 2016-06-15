@@ -134,6 +134,10 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             )
             report = existing_report
 
+        else:
+            if report.group:
+                report.notify()
+
         user_feedback_received.send(project=report.project, group=report.group, sender=self)
 
         return Response(serialize(report, request.user, ProjectUserReportSerializer(
