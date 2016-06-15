@@ -315,8 +315,11 @@ class JavascriptIntegrationTest(TestCase):
             headers={'Content-Type': 'application/json'},
         )
         f2.putfile(open(get_fixture_path('file1.js'), 'rb'))
+
+        # Intentionally omit hostname - use alternate artifact path lookup instead
+        # /file1.js vs http://example.com/file1.js
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f2.name),
+            name='/{}'.format(f2.name),
             release=release,
             project=project,
             file=f2,
