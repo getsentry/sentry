@@ -201,7 +201,7 @@ def fetch_release_file(filename, release):
                  filename, release.id)
     result = cache.get(cache_key)
 
-    if result is None or len(result) is 0:
+    if result is None:
         logger.debug('Checking database for release artifact %r (release_id=%s)',
                      filename, release.id)
 
