@@ -377,13 +377,12 @@ class MessageBuilder(object):
                 message=message,
                 _with_transaction=False,
             )
-            if to:
-                logger.bind(message_id=message.extra_headers['Message-Id'])
-                if fmt == LoggingFormat.HUMAN:
-                    log_mail_queued(to=self.format_to(to))
-                elif fmt == LoggingFormat.MACHINE:
-                    for recipient in to:
-                        log_mail_queued(to=recipient)
+            logger.bind(message_id=message.extra_headers['Message-Id'])
+            if fmt == LoggingFormat.HUMAN:
+                log_mail_queued(to=self.format_to(message.to))
+            elif fmt == LoggingFormat.MACHINE:
+                for recipient in message.to:
+                    log_mail_queued(to=recipient)
 
 
 def send_messages(messages, fail_silently=False):
@@ -391,12 +390,11 @@ def send_messages(messages, fail_silently=False):
     sent = connection.send_messages(messages)
     metrics.incr('email.sent', len(messages))
     for message in messages:
-        if message.to:
-            logger.info(
-                name='sentry.mail',
-                event='mail.sent',
-                message_id=message.extra_headers['Message-Id'],
-            )
+        logger.info(
+            name='sentry.mail',
+            event='mail.sent',
+            message_id=message.extra_headers['Message-Id'],
+        )
     return sent
 
 
