@@ -22,6 +22,7 @@ const U2fInterface = React.createClass({
       isSupported: null,
       formElement: null,
       challengeElement: null,
+      hasBeenTapped: false,
       responseElement: null
     };
   },
@@ -49,10 +50,14 @@ const U2fInterface = React.createClass({
       throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
     }
     promise.then((data) => {
-      this.state.responseElement.value = JSON.stringify(data);
-      if (!this.props.onTap || this.props.onTap()) {
-        this.state.formElement.submit();
-      }
+      this.setState({
+        hasBeenTapped: true
+      }, () => {
+        this.state.responseElement.value = JSON.stringify(data);
+        if (!this.props.onTap || this.props.onTap()) {
+          this.state.formElement.submit();
+        }
+      });
     });
   },
 
@@ -76,23 +81,35 @@ const U2fInterface = React.createClass({
     }
     return (
       <div className="u2f-box">
-        <p className="error">
-          {t(`
-           Unfortunately your browser does not support U2F. You need to use
-           a different two-factor method or switch to a browser that supports
-           it (Google Chrome or Microsoft Edge).
-          `)}
-        </p>
+        <div className="inner">
+          <p className="error">
+            {t(`
+             Unfortunately your browser does not support U2F. You need to use
+             a different two-factor method or switch to a browser that supports
+             it (Google Chrome or Microsoft Edge).
+            `)}
+          </p>
+        </div>
       </div>
     );
   },
 
   renderPrompt() {
     return (
-      <div className="u2f-box">
+      <div className={'u2f-box' + (this.state.hasBeenTapped ? ' tapped' : '')}>
+        <div className="device-animation-frame">
+          <div className="device-animation"/>
+          <div className="loading-dots">
+            <span className="dot" />
+            <span className="dot" />
+            <span className="dot" />
+          </div>
+        </div>
         <input type="hidden" name="challenge" ref={this.bindChallengeElement}/>
         <input type="hidden" name="response" ref={this.bindResponseElement}/>
-        {this.props.children}
+        <div className="inner">
+          {this.props.children}
+        </div>
       </div>
     );
   },
