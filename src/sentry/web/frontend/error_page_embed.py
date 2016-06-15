@@ -142,6 +142,10 @@ class ErrorPageEmbedView(View):
                     date_added=timezone.now(),
                 )
 
+            else:
+                if report.group:
+                    report.notify()
+
             user_feedback_received.send(project=report.project, group=report.group, sender=self)
 
             return self._json_response(request)
