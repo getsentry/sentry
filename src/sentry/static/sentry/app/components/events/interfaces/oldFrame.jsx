@@ -1,7 +1,6 @@
 import React from 'react';
 import _ from 'underscore';
 import classNames from 'classnames';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 import {defined, objectIsEmpty, isUrl} from '../../../utils';
 
 import StrictClick from '../../strictClick';
