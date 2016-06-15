@@ -210,15 +210,22 @@ def fetch_release_file(filename, release):
             filename_idents.append(ReleaseFile.get_ident(filename_path))
 
         try:
-            releasefile = ReleaseFile.objects.filter(
+            possible_files = ReleaseFile.objects.filter(
                 release=release,
                 ident__in=filename_idents,
-            ).select_related('file').get()
+            ).select_related('file')
         except ReleaseFile.DoesNotExist:
             logger.debug('Release artifact %r not found in database (release_id=%s)',
                          filename, release.id)
             cache.set(cache_key, -1, 60)
             return None
+
+        if len(possible_files) == 1:
+            releasefile = possible_files[0]
+        else:
+            # Prioritize releasefile that matches full url (w/ host)
+            # over hostless releasefile
+            releasefile = {f.ident: f for f in possible_files}[filename_idents[0]]
 
         logger.debug('Found release artifact %r (id=%s, release_id=%s)',
                      filename, releasefile.id, release.id)

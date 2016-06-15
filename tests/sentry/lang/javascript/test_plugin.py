@@ -295,60 +295,90 @@ class JavascriptIntegrationTest(TestCase):
             version='abc',
         )
 
-        f1 = File.objects.create(
+        # file.min.js
+        # ------------
+
+        f_minified = File.objects.create(
             name='file.min.js',
             type='release.file',
             headers={'Content-Type': 'application/json'},
         )
-        f1.putfile(open(get_fixture_path('file.min.js'), 'rb'))
+        f_minified.putfile(open(get_fixture_path('file.min.js'), 'rb'))
 
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f1.name),
+            name='http://example.com/{}'.format(f_minified.name),
+            release=release,
+            project=project,
+            file=f_minified,
+        )
+
+        # file1.js
+        # ---------
+
+        f1 = File.objects.create(
+            name='file1.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json'},
+        )
+        f1.putfile(open(get_fixture_path('file1.js'), 'rb'))
+
+        # Intentionally omit hostname - use alternate artifact path lookup instead
+        # /file1.js vs http://example.com/file1.js
+        ReleaseFile.objects.create(
+            name='/{}'.format(f1.name),
             release=release,
             project=project,
             file=f1,
         )
 
+        # file2.js
+        # ----------
+
         f2 = File.objects.create(
-            name='file1.js',
+            name='file2.js',
             type='release.file',
             headers={'Content-Type': 'application/json'},
         )
-        f2.putfile(open(get_fixture_path('file1.js'), 'rb'))
-
-        # Intentionally omit hostname - use alternate artifact path lookup instead
-        # /file1.js vs http://example.com/file1.js
+        f2.putfile(open(get_fixture_path('file2.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='/{}'.format(f2.name),
+            name='http://example.com/{}'.format(f2.name),
             release=release,
             project=project,
             file=f2,
         )
 
-        f3 = File.objects.create(
-            name='file2.js',
+        # To verify that the full url has priority over the relative url,
+        # we will also add a second ReleaseFile alias for file2.js (f3) w/o
+        # hostname that points to an empty file. If the processor chooses
+        # this empty file over the correct file2.js, it will not locate
+        # context for the 2nd frame.
+        f2_empty = File.objects.create(
+            name='empty.js',
             type='release.file',
             headers={'Content-Type': 'application/json'},
         )
-        f3.putfile(open(get_fixture_path('file2.js'), 'rb'))
+        f2_empty.putfile(open(get_fixture_path('empty.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f3.name),
+            name='/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
             release=release,
             project=project,
-            file=f3,
+            file=f2_empty,
         )
 
-        f4 = File.objects.create(
+        # sourcemap
+        # ----------
+
+        f_sourcemap = File.objects.create(
             name='file.sourcemap.js',
             type='release.file',
             headers={'Content-Type': 'application/json'},
         )
-        f4.putfile(open(get_fixture_path('file.sourcemap.js'), 'rb'))
+        f_sourcemap.putfile(open(get_fixture_path('file.sourcemap.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f4.name),
+            name='http://example.com/{}'.format(f_sourcemap.name),
             release=release,
             project=project,
-            file=f4,
+            file=f_sourcemap,
         )
 
         data = {
@@ -366,6 +396,12 @@ class JavascriptIntegrationTest(TestCase):
                                 'lineno': 1,
                                 'colno': 39,
                             },
+                            {
+                                'abs_path': 'http://example.com/file.min.js',
+                                'filename': 'file.min.js',
+                                'lineno': 1,
+                                'colno': 79,
+                            }
                         ],
                     },
                 }],
@@ -388,6 +424,19 @@ class JavascriptIntegrationTest(TestCase):
         ]
         assert frame.context_line == '\treturn a + b;'
         assert frame.post_context == ['}']
+
+        frame = frame_list[1]
+        assert frame.pre_context == [
+            'function multiply(a, b) {',
+            '\t"use strict";',
+        ]
+        assert frame.context_line == '\treturn a * b;'
+        assert frame.post_context == [
+            '}',
+            'function divide(a, b) {',
+            '\t"use strict";', u'\ttry {',
+            '\t\treturn multiply(add(a, b), a, b) / c;'
+        ]
 
     @responses.activate
     def test_sourcemap_expansion_with_missing_source(self):
