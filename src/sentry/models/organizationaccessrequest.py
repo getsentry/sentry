@@ -48,6 +48,7 @@ class OrganizationAccessRequest(Model):
             subject='Sentry Access Request',
             template='sentry/emails/request-team-access.txt',
             html_template='sentry/emails/request-team-access.html',
+            type='team.access.request',
             context=context,
         )
 
@@ -87,6 +88,7 @@ class OrganizationAccessRequest(Model):
             subject='Sentry Access Request',
             template='sentry/emails/access-approved.txt',
             html_template='sentry/emails/access-approved.html',
+            type='team.access.approved',
             context=context,
         )
 

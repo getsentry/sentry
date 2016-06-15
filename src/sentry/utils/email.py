@@ -7,14 +7,15 @@ sentry.utils.email
 """
 from __future__ import absolute_import
 
-import logging
 import os
 import subprocess
 import tempfile
 import time
 from email.utils import parseaddr
+from functools import partial
 from operator import attrgetter
 from random import randrange
+from structlog import get_logger
 
 from django.conf import settings
 from django.core.mail import get_connection as _get_connection
@@ -27,6 +28,7 @@ from django.utils.encoding import force_bytes, force_str, force_text
 from toronado import from_string as inline_css
 
 from sentry import options
+from sentry.logging import LoggingFormat
 from sentry.models import (
     Activity, Event, Group, GroupEmailThread, Project, User, UserOption
 )
@@ -35,7 +37,10 @@ from sentry.utils.safe import safe_execute
 from sentry.utils.strings import is_valid_dot_atom
 from sentry.web.helpers import render_to_string
 
-logger = logging.getLogger(__name__)
+# The maximum amount of recipients to display in human format.
+MAX_RECIPIENTS = 5
+
+logger = get_logger(name=__name__)
 
 
 class _CaseInsensitiveSigner(Signer):
@@ -229,7 +234,7 @@ make_listid_from_instance = ListResolver(
 class MessageBuilder(object):
     def __init__(self, subject, context=None, template=None, html_template=None,
                  body=None, html_body=None, headers=None, reference=None,
-                 reply_reference=None, from_email=None):
+                 reply_reference=None, from_email=None, type=None):
         assert not (body and template)
         assert not (html_body and html_template)
         assert context or not (template or html_template)
@@ -248,6 +253,7 @@ class MessageBuilder(object):
         self.reply_reference = reply_reference  # The object this message is replying about
         self.from_email = from_email or options.get('mail.from')
         self._send_to = set()
+        self.type = type if type else 'generic'
 
         if reference is not None and 'List-Id' not in headers:
             try:
@@ -342,6 +348,13 @@ class MessageBuilder(object):
             logger.debug('Did not build any messages, no users to send to.')
         return results
 
+    def format_to(self, to):
+        if not to:
+            return ''
+        if len(to) > MAX_RECIPIENTS:
+            to = to[:MAX_RECIPIENTS] + ['and {} more.'.format(len(to[MAX_RECIPIENTS:]))]
+        return ', '.join(to)
+
     def send(self, to=None, bcc=None, fail_silently=False):
         return send_messages(
             self.get_built_messages(to, bcc=bcc),
@@ -350,16 +363,39 @@ class MessageBuilder(object):
 
     def send_async(self, to=None, bcc=None):
         from sentry.tasks.email import send_email
+        fmt = options.get('system.logging-format')
         messages = self.get_built_messages(to, bcc=bcc)
+        log_mail_queued = partial(
+            logger.info,
+            name='sentry.mail',
+            event='mail.queued',
+            type=self.type,
+        )
         for message in messages:
-            safe_execute(send_email.delay, message=message,
-                         _with_transaction=False)
+            safe_execute(
+                send_email.delay,
+                message=message,
+                _with_transaction=False,
+            )
+            logger.bind(message_id=message.extra_headers['Message-Id'])
+            if fmt == LoggingFormat.HUMAN:
+                log_mail_queued(to=self.format_to(to))
+            elif fmt == LoggingFormat.MACHINE:
+                for recipient in to:
+                    log_mail_queued(to=recipient)
 
 
 def send_messages(messages, fail_silently=False):
     connection = get_connection(fail_silently=fail_silently)
+    sent = connection.send_messages(messages)
     metrics.incr('email.sent', len(messages))
-    return connection.send_messages(messages)
+    for message in messages:
+        logger.info(
+            name='sentry.mail',
+            event='mail.sent',
+            message_id=message.extra_headers['Message-Id'],
+        )
+    return sent
 
 
 def get_mail_backend():

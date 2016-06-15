@@ -7,8 +7,6 @@ sentry.models.organizationmember
 """
 from __future__ import absolute_import, print_function
 
-import logging
-
 from bitfield import BitField
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -16,6 +14,7 @@ from django.db import models, transaction
 from django.db.models import F
 from django.utils import timezone
 from hashlib import md5
+from structlog import get_logger
 
 from sentry import roles
 from sentry.db.models import (
@@ -151,13 +150,14 @@ class OrganizationMember(Model):
             subject='Join %s in using Sentry' % self.organization.name,
             template='sentry/emails/member-invite.txt',
             html_template='sentry/emails/member-invite.html',
+            type='organization.invite',
             context=context,
         )
 
         try:
             msg.send_async([self.get_email()])
         except Exception as e:
-            logger = logging.getLogger('sentry.mail.errors')
+            logger = get_logger(name='sentry.mail')
             logger.exception(e)
 
     def send_sso_link_email(self):
@@ -175,6 +175,7 @@ class OrganizationMember(Model):
             subject='Action Required for %s' % (self.organization.name,),
             template='sentry/emails/auth-link-identity.txt',
             html_template='sentry/emails/auth-link-identity.html',
+            type='organization.auth_link',
             context=context,
         )
         msg.send_async([self.get_email()])
