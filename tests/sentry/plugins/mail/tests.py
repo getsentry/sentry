@@ -7,16 +7,20 @@ from datetime import datetime
 import mock
 import pytz
 import six
+from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.utils import timezone
 from exam import fixture
 from mock import Mock
 
+from sentry.api.serializers import (
+    serialize, ProjectUserReportSerializer
+)
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
     Activity, Event, Group, GroupSubscription, OrganizationMember, OrganizationMemberTeam, Rule,
-    UserOption
+    UserOption, UserReport
 )
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.activity.base import ActivityEmail
@@ -348,6 +352,42 @@ class MailPluginTest(TestCase):
         msg = mail.outbox[0]
 
         assert msg.subject == 'Re: [Sentry] [foo Bar] error: \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
+        assert msg.to == [self.user.email]
+
+
+class MailPluginSignalsTest(TestCase):
+    @fixture
+    def plugin(self):
+        return MailPlugin()
+
+    def test_user_feedback(self):
+        user_foo = self.create_user('foo@example.com')
+
+        report = UserReport.objects.create(
+            project=self.project,
+            group=self.group,
+            name='Homer Simpson',
+            email='homer.simpson@example.com'
+        )
+
+        self.project.team.organization.member_set.create(user=user_foo)
+
+        with self.tasks():
+            self.plugin.handle_signal(
+                name='user-reports.created',
+                project=self.project,
+                payload={
+                    'report': serialize(report, AnonymousUser(), ProjectUserReportSerializer()),
+                },
+            )
+
+        assert len(mail.outbox) == 1
+
+        msg = mail.outbox[0]
+
+        assert msg.subject == '[Sentry] {} - New Feedback from Homer Simpson'.format(
+            self.group.qualified_short_id,
+        )
         assert msg.to == [self.user.email]
 
 
