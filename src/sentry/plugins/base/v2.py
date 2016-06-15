@@ -396,6 +396,9 @@ class IPlugin2(local):
     def get_url_module(self):
         """Allows a plugin to return the import path to a URL module."""
 
+    def handle_signal(self, name, payload, **kwargs):
+        pass
+
 
 class Plugin2(IPlugin2):
     """

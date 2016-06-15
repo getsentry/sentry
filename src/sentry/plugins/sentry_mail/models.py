@@ -247,6 +247,41 @@ class MailPlugin(NotificationPlugin):
         email = email_cls(activity)
         email.send()
 
+    def handle_user_report(self, payload, project, **kwargs):
+        recipient_ids = set(self.get_send_to(project))
+        if not recipient_ids:
+            return
+
+        context = {
+            'project': project,
+            'project_link': absolute_uri('/{}/{}/'.format(
+                project.organization.slug,
+                project.slug,
+            )),
+            'issue_link': absolute_uri('/{}/{}/issues/{}/'.format(
+                project.organization.slug,
+                project.slug,
+                payload['report']['issue']['id'],
+            ))
+        }
+
+        subject = 'New Feedback from {}'.format(payload['report']['name'])
+
+        for user_id in recipient_ids:
+            self.add_unsubscribe_link(context, user_id, project)
+            self._send_mail(
+                project=project,
+                send_to=[user_id],
+                subject=subject,
+                context=context,
+                template='sentry/emails/new-user-feedback.txt',
+                html_template='sentry/emails/activity/new-user-feedback.html',
+            )
+
+    def handle_signal(self, name, payload, **kwargs):
+        if name == 'user-reports.created':
+            self.handle_user_report(payload, **kwargs)
+
 
 # Legacy compatibility
 MailProcessor = MailPlugin

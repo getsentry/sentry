@@ -132,6 +132,10 @@ class ErrorPageEmbedView(View):
                     comments=report.comments,
                     date_added=timezone.now(),
                 )
+            else:
+                if report.group:
+                    report.notify()
+
             return self._json_response(request)
         elif request.method == 'POST':
             return self._json_response(request, {
