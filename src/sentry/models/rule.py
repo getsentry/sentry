@@ -17,6 +17,8 @@ from sentry.db.models.manager import BaseManager
 
 
 class Rule(Model):
+    __core__ = True
+
     project = FlexibleForeignKey('sentry.Project')
     label = models.CharField(max_length=64)
     data = GzippedDictField()

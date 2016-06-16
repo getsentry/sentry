@@ -110,6 +110,8 @@ class UserOption(Model):
     key: "feature:assignment"
     value: { updated: datetime, state: bool }
     """
+    __core__ = True
+
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     project = FlexibleForeignKey('sentry.Project', null=True)
     key = models.CharField(max_length=64)

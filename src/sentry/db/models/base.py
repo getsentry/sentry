@@ -97,12 +97,6 @@ class BaseModel(models.Model):
         return self.__data.get(field_name)
 
 
-def __model_post_save(instance, **kwargs):
-    if not isinstance(instance, BaseModel):
-        return
-    instance._update_tracked_data()
-
-
 class Model(BaseModel):
     id = BoundedBigAutoField(primary_key=True)
 
@@ -112,4 +106,19 @@ class Model(BaseModel):
     __repr__ = sane_repr('id')
 
 
+def __model_post_save(instance, **kwargs):
+    if not isinstance(instance, BaseModel):
+        return
+    instance._update_tracked_data()
+
+
+def __model_class_prepared(sender, **kwargs):
+    if not issubclass(sender, BaseModel):
+        return
+
+    if not hasattr(sender, '__core__'):
+        raise ValueError('{!r} model has not defined __core__'.format(sender))
+
+
 signals.post_save.connect(__model_post_save)
+signals.class_prepared.connect(__model_class_prepared)

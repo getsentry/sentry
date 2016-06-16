@@ -74,6 +74,8 @@ class Project(Model):
     Projects are permission based namespaces which generally
     are the top level entry point for all data.
     """
+    __core__ = True
+
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)

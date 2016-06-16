@@ -34,6 +34,8 @@ class ProjectKeyStatus(object):
 
 
 class ProjectKey(Model):
+    __core__ = True
+
     project = FlexibleForeignKey('sentry.Project', related_name='key_set')
     label = models.CharField(max_length=64, blank=True, null=True)
     public_key = models.CharField(max_length=32, unique=True, null=True)

@@ -16,6 +16,8 @@ from sentry.utils.http import absolute_uri
 
 
 class OrganizationAccessRequest(Model):
+    __core__ = True
+
     team = FlexibleForeignKey('sentry.Team')
     member = FlexibleForeignKey('sentry.OrganizationMember')
 
