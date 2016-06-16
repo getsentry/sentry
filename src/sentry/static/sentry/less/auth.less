@@ -190,6 +190,7 @@ section.org-login {
 }
 
 div.u2f-box {
+  position: relative;
   background: @white-dark;
   padding: 20px;
   text-align: center;
@@ -219,7 +220,7 @@ div.u2f-box {
       display: inline-block;
       width: 14px;
       height: 14px;
-      background: @purple;
+      background: @blue;
       border-radius: 50%;
       margin-right: 4px;
 
@@ -251,6 +252,22 @@ div.u2f-box {
     .transition(opacity .3s);
   }
 
+  div.device-failed {
+    display: none;
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    width: 100px;
+    text-align: center;
+    margin-left: -50px;
+    &:after {
+      content: ":-(";
+    }
+    font-size: 46px;
+    font-weight: bold;
+    color: @red;
+  }
+
   div.inner {
     margin: 0 auto;
     padding-top: 20px;
@@ -261,17 +278,29 @@ div.u2f-box {
     }
   }
 
+  div.failure-message {
+    p {
+      margin: 0 0 10px 0;
+    }
+  }
+
   &.tapped {
     .loading-dots {
       opacity: 1;
       top: 50%;
+      display: block;
     }
     .device-animation {
       -webkit-filter: blur(4px);
       filter: blur(4px);
-      opacity: .4;
     }
-    .loading-dots {
+  }
+
+  &.device-failure {
+    .device-animation {
+      visibility: hidden;
+    }
+    .device-failed {
       display: block;
     }
   }
