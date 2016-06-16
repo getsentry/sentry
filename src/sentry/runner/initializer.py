@@ -155,7 +155,23 @@ def configure_structlog():
     Make structlog comply with all of our options.
     """
     import structlog
+    from sentry import options
+    from sentry.logging import LoggingFormat
+
     WrappedDictClass = structlog.threadlocal.wrap_dict(dict)
+    fmt = options.get('system.logging-format')
+    if fmt == LoggingFormat.HUMAN:
+        last_processor = structlog.processors.KeyValueRenderer(
+            key_order=[
+                'name',
+                'level',
+                'event',
+            ]
+        )
+    elif fmt == LoggingFormat.MACHINE:
+        from sentry.logging.renderers import MessagePackRenderer
+        last_processor = MessagePackRenderer()
+
     structlog.configure(
         processors=[
             structlog.stdlib.add_log_level,
@@ -163,11 +179,7 @@ def configure_structlog():
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
             structlog.processors.ExceptionPrettyPrinter(),
-            structlog.processors.KeyValueRenderer(key_order=[
-                'name',
-                'level',
-                'event',
-            ])
+            last_processor,
         ],
         context_class=WrappedDictClass,
         wrapper_class=structlog.stdlib.BoundLogger,
