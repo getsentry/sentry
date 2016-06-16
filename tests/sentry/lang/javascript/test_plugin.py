@@ -305,8 +305,10 @@ class JavascriptIntegrationTest(TestCase):
         )
         f_minified.putfile(open(get_fixture_path('file.min.js'), 'rb'))
 
+        # Intentionally omit hostname - use alternate artifact path lookup instead
+        # /file1.js vs http://example.com/file1.js
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f_minified.name),
+            name='~/{}?foo=bar'.format(f_minified.name),
             release=release,
             project=project,
             file=f_minified,
@@ -322,10 +324,8 @@ class JavascriptIntegrationTest(TestCase):
         )
         f1.putfile(open(get_fixture_path('file1.js'), 'rb'))
 
-        # Intentionally omit hostname - use alternate artifact path lookup instead
-        # /file1.js vs http://example.com/file1.js
         ReleaseFile.objects.create(
-            name='/{}'.format(f1.name),
+            name='http://example.com/{}'.format(f1.name),
             release=release,
             project=project,
             file=f1,
@@ -359,7 +359,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f2_empty.putfile(open(get_fixture_path('empty.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
+            name='~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
             release=release,
             project=project,
             file=f2_empty,
@@ -391,13 +391,13 @@ class JavascriptIntegrationTest(TestCase):
                     'stacktrace': {
                         'frames': [
                             {
-                                'abs_path': 'http://example.com/file.min.js',
+                                'abs_path': 'http://example.com/file.min.js?foo=bar',
                                 'filename': 'file.min.js',
                                 'lineno': 1,
                                 'colno': 39,
                             },
                             {
-                                'abs_path': 'http://example.com/file.min.js',
+                                'abs_path': 'http://example.com/file.min.js?foo=bar',
                                 'filename': 'file.min.js',
                                 'lineno': 1,
                                 'colno': 79,

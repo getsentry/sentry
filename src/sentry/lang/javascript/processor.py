@@ -191,9 +191,12 @@ def fetch_release_file(filename, release):
 
     filename_path = None
     try:
-        # Can we guarantee filename is always parsable?
+        # Reconstruct url without protocol + host
+        # e.g. http://example.com/foo?bar => ~/foo?bar
         parsed_url = urlparse(filename)
-        filename_path = parsed_url.path
+        filename_path = '~' + parsed_url.path
+        if parsed_url.query:
+            filename_path += '?' + parsed_url.query
     except Exception:
         pass
 
@@ -224,7 +227,8 @@ def fetch_release_file(filename, release):
         else:
             # Prioritize releasefile that matches full url (w/ host)
             # over hostless releasefile
-            releasefile = {f.ident: f for f in possible_files}[filename_idents[0]]
+            target_ident = filename_idents[0]
+            releasefile = next((f for f in possible_files if f.ident == target_ident))
 
         logger.debug('Found release artifact %r (id=%s, release_id=%s)',
                      filename, releasefile.id, release.id)
