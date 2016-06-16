@@ -190,15 +190,13 @@ def fetch_release_file(filename, release):
     ),
 
     filename_path = None
-    try:
+    if filename is not None:
         # Reconstruct url without protocol + host
         # e.g. http://example.com/foo?bar => ~/foo?bar
         parsed_url = urlparse(filename)
         filename_path = '~' + parsed_url.path
         if parsed_url.query:
             filename_path += '?' + parsed_url.query
-    except Exception:
-        pass
 
     logger.debug('Checking cache for release artifact %r (release_id=%s)',
                  filename, release.id)
