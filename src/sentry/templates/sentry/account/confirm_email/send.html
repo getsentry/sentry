@@ -1,0 +1,21 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Confirm Email" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+
+  {% if has_unverified_emails %}
+    <h2>{% trans "Confirmation sent" %}</h2>
+    <p>{% trans "A verification email has been sent to " %}<strong>{{ request.user.email }}</strong>.</p>
+  {% else %}
+    <h2>{% trans "Already confirmed" %}</h2>
+    <p>
+      {% blocktrans with user_email=request.user.email %}
+      Your email <strong>{{ user_email }}</strong> has already been verified.
+      {% endblocktrans %}
+    </p>
+  {% endif %}
+{% endblock %}

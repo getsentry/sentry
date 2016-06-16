@@ -8,7 +8,7 @@ from django.core.urlresolvers import reverse
 from exam import fixture
 from social_auth.models import UserSocialAuth
 
-from sentry.models import UserOption, LostPasswordHash, User, ProjectStatus
+from sentry.models import UserEmail, LostPasswordHash, ProjectStatus, User, UserOption
 from sentry.testutils import TestCase
 
 
@@ -230,3 +230,37 @@ class RecoverPasswordConfirmTest(TestCase):
         assert resp.status_code == 302
         user = User.objects.get(id=self.user.id)
         assert user.check_password('bar')
+
+
+class ConfirmEmailSendTest(TestCase):
+    @mock.patch('sentry.models.User.send_confirm_emails')
+    def test_valid(self, send_confirm_email):
+        self.login_as(self.user)
+        resp = self.client.get(reverse('sentry-account-confirm-email-send'))
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/account/confirm_email/send.html')
+        send_confirm_email.assert_called_once_with()
+
+
+class ConfirmEmailTest(TestCase):
+
+    def test_invalid(self):
+        self.user.save()
+        resp = self.client.get(reverse('sentry-account-confirm-email',
+                                       args=[self.user.id, '5b1f2f266efa03b721cc9ea0d4742c5e']))
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/account/confirm_email/failure.html')
+        email = UserEmail.objects.get(email=self.user.email)
+        assert not email.is_verified
+
+    def test_valid(self):
+        self.user.save()
+        self.login_as(self.user)
+        self.client.get(reverse('sentry-account-confirm-email-send'))
+        email = self.user.emails.first()
+        resp = self.client.get(reverse('sentry-account-confirm-email',
+                                       args=[self.user.id, email.validation_hash]))
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/account/confirm_email/success.html')
+        email = self.user.emails.first()
+        assert email.is_verified
