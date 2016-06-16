@@ -159,28 +159,30 @@ def configure_structlog():
     from sentry.logging import LoggingFormat
 
     WrappedDictClass = structlog.threadlocal.wrap_dict(dict)
+    processors = [
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.format_exc_info,
+        structlog.processors.StackInfoRenderer(),
+    ]
     fmt = options.get('system.logging-format')
     if fmt == LoggingFormat.HUMAN:
-        last_processor = structlog.processors.KeyValueRenderer(
-            key_order=[
-                'name',
-                'level',
-                'event',
-            ]
-        )
+        processors.update([
+            structlog.processors.ExceptionPrettyPrinter(),
+            structlog.processors.KeyValueRenderer(
+                key_order=[
+                    'name',
+                    'level',
+                    'event',
+                ]
+            )
+        ])
     elif fmt == LoggingFormat.MACHINE:
         from sentry.logging.renderers import MessagePackRenderer
-        last_processor = MessagePackRenderer()
+        processors.append(MessagePackRenderer())
 
     structlog.configure(
-        processors=[
-            structlog.stdlib.add_log_level,
-            structlog.stdlib.PositionalArgumentsFormatter(),
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            structlog.processors.ExceptionPrettyPrinter(),
-            last_processor,
-        ],
+        processors,
         context_class=WrappedDictClass,
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
