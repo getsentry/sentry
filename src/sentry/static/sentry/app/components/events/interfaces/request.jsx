@@ -84,12 +84,12 @@ const RequestInterface = React.createClass({
     children.push(
       <h3 key="title">
         <a href={fullUrl}>
-          <strong>{data.method || 'GET'} {parsedUrl.pathname}</strong>
+          <div className="path"><strong>{data.method || 'GET'}</strong> {parsedUrl.pathname}</div>
           <span className="external-icon">
             <em className="icon-open" />
           </span>
         </a>
-        <small style={{marginLeft: 20}}>{parsedUrl.hostname}</small>
+        <small style={{marginLeft: 10}} className="host">{parsedUrl.hostname}</small>
       </h3>
     );
 
@@ -103,7 +103,8 @@ const RequestInterface = React.createClass({
           event={evt}
           type={this.props.type}
           title={title}
-          wrapTitle={false}>
+          wrapTitle={false}
+          className="request">
         {view === 'curl' ?
           <pre>{getCurlCommand(data)}</pre>
         :
