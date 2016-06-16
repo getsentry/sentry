@@ -17,7 +17,7 @@ class MessagePackRenderer(object):
     If you are doing bad things and pass in a native object, it won't fail.
     """
     def __call__(self, logger, name, event_dict):
-        for k, v in event_dict.items():
+        for k, v in event_dict.iteritems():
             # While this looks gross, json.dumps does it.
             if isinstance(v, basestring):
                 event_dict[k] = event_dict[k].replace('\n', '\\n')
