@@ -63,7 +63,9 @@ const StacktraceContent = React.createClass({
       lastFrameIdx = data.frames.length - 1;
     }
 
-    let oldFrames = !this.getFeatures().has('new-tracebacks');
+    // use old frames if we do not have an org (share view) or
+    // we don't have the feature
+    let oldFrames = !this.context.organization || !this.getFeatures().has('new-tracebacks');
     let FrameComponent = Frame;
     if (oldFrames) {
       FrameComponent = OldFrame;
