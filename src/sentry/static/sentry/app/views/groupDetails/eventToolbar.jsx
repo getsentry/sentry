@@ -41,7 +41,8 @@ let GroupEventToolbar  = React.createClass({
   mixins: [
     TooltipMixin({
       html: true,
-      selector: '.tip'
+      selector: '.tip',
+      placement: 'bottom'
     }),
   ],
 
