@@ -13,6 +13,8 @@ from sentry.db.models import (
 
 
 class ApiToken(Model):
+    __core__ = True
+
     # users can generate tokens without being key-bound
     key = FlexibleForeignKey('sentry.ApiKey', null=True)
     user = FlexibleForeignKey('sentry.User')

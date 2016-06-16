@@ -514,6 +514,8 @@ class U2fInterface(AuthenticatorInterface):
 
 
 class Authenticator(BaseModel):
+    __core__ = True
+
     id = BoundedAutoField(primary_key=True)
     user = FlexibleForeignKey('sentry.User', db_index=True)
     created_at = models.DateTimeField(_('created at'), default=timezone.now)
