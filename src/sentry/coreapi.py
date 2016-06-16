@@ -581,30 +581,42 @@ class ClientApiHelper(object):
                     'value': value,
                 })
 
+        # TODO(dcramer): ideally this logic would happen in normalize, but today
+        # we don't do "validation" there (create errors)
+
         # message is coerced to an interface, as its used for pure
         # index of searchable strings
         # See GH-3248
-        if 'sentry.interfaces.Message' not in data and data.get('message'):
-            k = 'sentry.interfaces.Message'
-            value = {
-                'message': data.pop('message'),
-            }
-            interface = get_interface(k)
-            try:
-                inst = interface.to_python(value)
-                data[inst.get_path()] = inst.to_json()
-            except Exception as e:
-                if isinstance(e, InterfaceValidationError):
-                    log = self.log.info
-                else:
-                    log = self.log.error
-                log('Discarded invalid value for interface: %s (%r)', k, value,
-                    exc_info=True)
-                data['errors'].append({
-                    'type': EventError.INVALID_DATA,
-                    'name': k,
-                    'value': value,
-                })
+        message = data.pop('message', None)
+        if message:
+            if 'sentry.interfaces.Message' not in data:
+                value = {
+                    'message': message,
+                }
+            elif not data['sentry.interfaces.Message'].get('formatted'):
+                value = data['sentry.interfaces.Message']
+                value['formatted'] = message
+            else:
+                value = None
+
+            if value is not None:
+                k = 'sentry.interfaces.Message'
+                interface = get_interface(k)
+                try:
+                    inst = interface.to_python(value)
+                    data[inst.get_path()] = inst.to_json()
+                except Exception as e:
+                    if isinstance(e, InterfaceValidationError):
+                        log = self.log.info
+                    else:
+                        log = self.log.error
+                    log('Discarded invalid value for interface: %s (%r)', k, value,
+                        exc_info=True)
+                    data['errors'].append({
+                        'type': EventError.INVALID_DATA,
+                        'name': k,
+                        'value': value,
+                    })
 
         level = data.get('level') or DEFAULT_LOG_LEVEL
         if isinstance(level, six.string_types) and not level.isdigit():
