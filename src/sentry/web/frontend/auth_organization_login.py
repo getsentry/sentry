@@ -45,6 +45,7 @@ class AuthOrganizationLoginView(BaseView):
 
         if can_register and register_form.is_valid():
             user = register_form.save()
+            user.send_confirm_emails(is_new_user=True)
 
             defaults = {
                 'role': 'member',

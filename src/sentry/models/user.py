@@ -10,11 +10,13 @@ from __future__ import absolute_import
 import warnings
 
 from django.contrib.auth.models import AbstractBaseUser, UserManager
+from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField
+from sentry.utils.http import absolute_uri
 
 
 class UserManager(BaseManager, UserManager):
@@ -88,6 +90,9 @@ class User(BaseModel, AbstractBaseUser):
         warnings.warn('User.has_module_perms is deprecated', DeprecationWarning)
         return self.is_superuser
 
+    def has_unverified_emails(self):
+        return self.emails.filter(is_verified=False).exists()
+
     def get_label(self):
         return self.email or self.username or self.id
 
@@ -105,6 +110,31 @@ class User(BaseModel, AbstractBaseUser):
         if avatar:
             return avatar.get_avatar_type_display()
         return 'letter_avatar'
+
+    def send_confirm_emails(self, is_new_user=False):
+        from sentry import options
+        from sentry.utils.email import MessageBuilder
+
+        for email in self.emails.filter(is_verified=False):
+            if not email.hash_is_valid():
+                email.set_hash()
+                email.save()
+
+            context = {
+                'user': self,
+                'url': absolute_uri(reverse(
+                    'sentry-account-confirm-email',
+                    args=[self.id, email.validation_hash]
+                )),
+                'is_new_user': is_new_user,
+            }
+            msg = MessageBuilder(
+                subject='%sConfirm Email' % (options.get('mail.subject-prefix'),),
+                template='sentry/emails/confirm_email.txt',
+                type='user.confirm_email',
+                context=context,
+            )
+            msg.send_async([email.email])
 
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
