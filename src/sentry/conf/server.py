@@ -596,6 +596,10 @@ NOCAPTCHA = True
 
 CAPTCHA_WIDGET_TEMPLATE = "sentry/partial/form_captcha.html"
 
+# Percy config for visual regression testing.
+
+PERCY_DEFAULT_TESTING_WIDTHS = (1280, 375)
+
 # Debugger
 
 DEBUG_TOOLBAR_PANELS = (
