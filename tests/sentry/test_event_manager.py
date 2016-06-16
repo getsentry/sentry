@@ -619,14 +619,38 @@ class EventManagerTest(TransactionTestCase):
         # test that the message is handled gracefully
         manager = EventManager(self.make_event(**{
             'message': 1234,
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert event.message == '1234'
+        assert event.data['sentry.interfaces.Message'] == {
+            'message': '1234',
+        }
+
+    def test_message_attribute_goes_to_interface(self):
+        manager = EventManager(self.make_event(**{
+            'message': 'hello world',
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+        assert event.data['sentry.interfaces.Message'] == {
+            'message': 'hello world',
+        }
+
+    def test_message_attribute_goes_to_formatted(self):
+        manager = EventManager(self.make_event(**{
+            'message': 'world hello',
             'sentry.interfaces.Message': {
                 'message': 'hello world',
             },
         }))
         manager.normalize()
         event = manager.save(self.project.id)
-
-        assert event.message == '1234 hello world'
+        assert event.data['sentry.interfaces.Message'] == {
+            'message': 'hello world',
+            'formatted': 'world hello',
+        }
 
 
 class GetHashesFromEventTest(TestCase):
