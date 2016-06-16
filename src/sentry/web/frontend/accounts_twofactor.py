@@ -26,6 +26,13 @@ class SmsForm(forms.Form):
     )
 
 
+class U2fForm(forms.Form):
+    device_name = forms.CharField(
+        label=_('Device name'), max_length=60, required=False,
+        initial='Security Key',
+    )
+
+
 class TwoFactorSettingsView(BaseView):
     interface_id = None
 
@@ -40,8 +47,6 @@ class TwoFactorSettingsView(BaseView):
                 request.user, self.interface_id)
         except LookupError:
             raise Http404
-        if 'remove' in request.POST:
-            return self.remove(request, interface)
         return self.configure(request, interface)
 
     def make_context(self, request, interface):
@@ -105,6 +110,8 @@ class TwoFactorSettingsView(BaseView):
         return HttpResponseRedirect(next)
 
     def configure(self, request, interface):
+        if 'remove' in request.POST:
+            return self.remove(request, interface)
         if 'enroll' in request.POST or \
            request.GET.get('enroll') == 'yes':
             return self.enroll(request, interface,
@@ -193,16 +200,39 @@ class SmsSettingsView(TwoFactorSettingsView):
 class U2fSettingsView(TwoFactorSettingsView):
     interface_id = 'u2f'
 
+    def configure(self, request, interface):
+        # Try to remove a key handle.  If this returns `False` it means we
+        # are about to remove the last key handle.  In that case just
+        # bubble through to the configure page which will pick up the
+        # 'remove' in the form and bring up the remove screen for the
+        # entire authentication method.
+        key_handle = request.POST.get('key_handle')
+        if key_handle and 'remove' in request.POST and \
+           interface.remove_u2f_device(key_handle):
+            interface.authenticator.save()
+            return HttpResponseRedirect(request.path)
+
+        return TwoFactorSettingsView.configure(self, request, interface)
+
     def enroll(self, request, interface, insecure=False):
+        u2f_form = U2fForm()
+
         challenge = request.POST.get('challenge')
         if challenge:
-            interface.enrollment_data = json.loads(challenge)
+            enrollment_data = json.loads(challenge)
+        else:
+            enrollment_data = interface.start_enrollment()
 
         response = request.POST.get('response')
         if response:
-            interface.try_enroll(json.loads(response))
-            return TwoFactorSettingsView.enroll(self, request, interface)
+            u2f_form = U2fForm(request.POST)
+            if u2f_form.is_valid():
+                interface.try_enroll(enrollment_data, json.loads(response),
+                                     u2f_form.cleaned_data['device_name'])
+                return TwoFactorSettingsView.enroll(self, request, interface)
 
         context = self.make_context(request, interface)
+        context['enrollment_data'] = enrollment_data
+        context['u2f_form'] = u2f_form
         return render_to_response('sentry/account/twofactor/enroll_u2f.html',
                                   context, request)

@@ -7,6 +7,9 @@
 {% block twofactor_title %}{% trans "Enrollment: " %} {{ auth.name }}{% endblock %}
 {% block twofactor_body %}
   <form action="" method="post">
+    {% for field in u2f_form %}
+      {{ field|as_crispy_field }}
+    {% endfor %}
     <div id="u2f-enrollment"></div>
     {% csrf_token %}
     <fieldset class="form-actions">
@@ -18,7 +21,7 @@
   </form>
   <script>
     ReactDOM.render(React.createElement(Sentry.U2fEnrollment, {
-      enrollmentData: {{ auth.enrollment_data|to_json|safe }}
+      enrollmentData: {{ enrollment_data|to_json|safe }}
     }), document.getElementById('u2f-enrollment'));
   </script>
 {% endblock %}
