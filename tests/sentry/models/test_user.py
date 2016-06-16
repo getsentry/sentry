@@ -41,4 +41,4 @@ class UserMergeToTest(TestCase):
         )
 
         assert member.role == 'owner'
-        assert list(member.teams.all()) == [team_1, team_2, team_3]
+        assert list(member.teams.all().order_by('pk')) == [team_1, team_2, team_3]
