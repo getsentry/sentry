@@ -13,7 +13,8 @@ class MessageTest(TestCase):
     def interface(self):
         return Message.to_python(dict(
             message='Hello there %s!',
-            params=('world',)
+            params=('world',),
+            formatted='Hello there world!',
         ))
 
     def test_serialize_behavior(self):
@@ -35,3 +36,20 @@ class MessageTest(TestCase):
             'message': {'foo': 'bar'},
         })
         assert result.message == '{"foo":"bar"}'
+
+    # we had a regression which was throwing this data away
+    def test_retains_formatted(self):
+        result = type(self.interface).to_python({
+            'message': 'foo bar',
+            'formatted': 'foo bar baz'
+        })
+        assert result.message == 'foo bar'
+        assert result.formatted == 'foo bar baz'
+
+    def test_discards_dupe_formatted(self):
+        result = type(self.interface).to_python({
+            'message': 'foo bar',
+            'formatted': 'foo bar'
+        })
+        assert result.message == 'foo bar'
+        assert result.formatted is None

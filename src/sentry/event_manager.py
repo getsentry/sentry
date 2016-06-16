@@ -326,18 +326,33 @@ class EventManager(object):
             except Exception:
                 pass
 
+        # TODO(dcramer): this logic is duplicated in ``validate_data`` from
+        # coreapi
+
         # message is coerced to an interface, as its used for pure
         # index of searchable strings
         # See GH-3248
-        if 'sentry.interfaces.Message' not in data and data.get('message'):
-            interface = get_interface('sentry.interfaces.Message')
-            try:
-                inst = interface.to_python({
-                    'message': data.pop('message').strip(),
-                })
-                data[inst.get_path()] = inst.to_json()
-            except Exception:
-                pass
+        message = data.pop('message', None)
+        if message:
+            if 'sentry.interfaces.Message' not in data:
+                interface = get_interface('sentry.interfaces.Message')
+                try:
+                    inst = interface.to_python({
+                        'message': message,
+                    })
+                    data[inst.get_path()] = inst.to_json()
+                except Exception:
+                    pass
+            elif not data['sentry.interfaces.Message'].get('formatted'):
+                interface = get_interface('sentry.interfaces.Message')
+                try:
+                    inst = interface.to_python(dict(
+                        data['sentry.interfaces.Message'],
+                        formatted=message,
+                    ))
+                    data[inst.get_path()] = inst.to_json()
+                except Exception:
+                    pass
 
         # the SDKs currently do not describe event types, and we must infer
         # them from available attributes

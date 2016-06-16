@@ -49,7 +49,7 @@ class Message(Interface):
 
         kwargs = {
             'message': trim(data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH),
-            'formatted': None,
+            'formatted': data.get('formatted'),
         }
 
         if data.get('params'):
@@ -81,6 +81,10 @@ class Message(Interface):
                 )
             except Exception:
                 pass
+
+        # don't wastefully store formatted message twice
+        if kwargs['formatted'] == kwargs['message']:
+            kwargs['formatted'] = None
 
         return cls(**kwargs)
 
