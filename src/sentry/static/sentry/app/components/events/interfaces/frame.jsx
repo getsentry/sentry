@@ -53,9 +53,6 @@ const Frame = React.createClass({
 
   toggleContext(evt) {
     evt && evt.preventDefault();
-    if (!this.isExpandable()) {
-      return null;
-    }
 
     this.setState({
       isExpanded: !this.state.isExpanded
@@ -170,22 +167,20 @@ const Frame = React.createClass({
     if (hasContextSource || hasContextVars) {
       let startLineNo = hasContextSource ? data.context[0][0] : '';
       context = (
-        <StrictClick onClick={expandable ? this.toggleContext : null}>
-          <ol start={startLineNo} className={outerClassName}>
-            {defined(data.errors) &&
-            <li className={expandable ? 'expandable error' : 'error'}
-                key="errors">{data.errors.join(', ')}</li>
-            }
+        <ol start={startLineNo} className={outerClassName}>
+          {defined(data.errors) &&
+          <li className={expandable ? 'expandable error' : 'error'}
+              key="errors">{data.errors.join(', ')}</li>
+          }
 
-            {data.context && contextLines.map((line, index) => {
-              return <ContextLine key={index} line={line} isActive={data.lineNo === line[0]} />;
-            })}
+          {data.context && contextLines.map((line, index) => {
+            return <ContextLine key={index} line={line} isActive={data.lineNo === line[0]} />;
+          })}
 
-            {hasContextVars &&
-              <ClippedBox clipHeight={100}><FrameVariables data={data.vars} key="vars" /></ClippedBox>
-            }
-          </ol>
-        </StrictClick>
+          {hasContextVars &&
+            <ClippedBox clipHeight={100}><FrameVariables data={data.vars} key="vars" /></ClippedBox>
+          }
+        </ol>
       );
     }
     return context;
@@ -207,39 +202,43 @@ const Frame = React.createClass({
 
   renderDefaultLine() {
     return (
-      <p onClick={this.toggleContext}>
-        {this.renderDefaultTitle()}
-        {this.renderExpander()}
-      </p>
+      <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
+        <p>
+          {this.renderDefaultTitle()}
+          {this.renderExpander()}
+        </p>
+      </StrictClick>
     );
   },
 
   renderCocoaLine() {
     let data = this.props.data;
     return (
-      <p className="as-table" onClick={this.toggleContext}>
-        {defined(data.package)
-          ? (
-            <span className="package" title={data.package}>
-              {trimPackage(data.package)}
-            </span>
-          ) : (
-            <span className="package"/>
-          )
-        }
-        <span className="address">
-          {data.instructionAddr}
-        </span>
-        <span className="symbol">
-          <code>{data.function || '<unknown>'}</code>
-          {data.instructionOffset &&
-            <span className="offset">{' + ' + data.instructionOffset}</span>}
-          {data.filename &&
-            <span className="filename">{data.filename}
-              {data.lineNo ? ':' + data.lineNo : ''}</span>}
-          {this.renderExpander()}
-        </span>
-      </p>
+      <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
+        <p className="as-table">
+          {defined(data.package)
+            ? (
+              <span className="package" title={data.package}>
+                {trimPackage(data.package)}
+              </span>
+            ) : (
+              <span className="package"/>
+            )
+          }
+          <span className="address">
+            {data.instructionAddr}
+          </span>
+          <span className="symbol">
+            <code>{data.function || '<unknown>'}</code>
+            {data.instructionOffset &&
+              <span className="offset">{' + ' + data.instructionOffset}</span>}
+            {data.filename &&
+              <span className="filename">{data.filename}
+                {data.lineNo ? ':' + data.lineNo : ''}</span>}
+            {this.renderExpander()}
+          </span>
+        </p>
+      </StrictClick>
     );
   },
 
