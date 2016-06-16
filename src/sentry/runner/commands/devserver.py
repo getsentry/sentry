@@ -78,6 +78,16 @@ def devserver(reload, watchers, workers, bind):
         parsed_url = urlparse(url_prefix)
         https_port = str(parsed_url.port or 443)
         https_host = parsed_url.hostname
+
+        # Determine a random port for the backend http server
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind((host, 0))
+        port = s.getsockname()[1]
+        s.close()
+        bind = '%s:%d' % (host, port)
+
         daemons += [
             ('https', ['https', '-host', https_host, '-listen', host + ':' + https_port, bind]),
         ]
