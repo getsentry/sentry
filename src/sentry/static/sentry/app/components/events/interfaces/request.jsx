@@ -6,6 +6,7 @@ import {getCurlCommand} from './utils';
 import {t} from '../../../locale';
 
 import RequestActions from './requestActions';
+import Truncate from '../../../components/truncate';
 
 const RequestInterface = React.createClass({
   propTypes: {
@@ -84,7 +85,7 @@ const RequestInterface = React.createClass({
     children.push(
       <h3 key="title">
         <a href={fullUrl} title={fullUrl}>
-          <div className="path"><strong>{data.method || 'GET'}</strong> {parsedUrl.pathname}</div>
+          <div className="path"><strong>{data.method || 'GET'}</strong> <Truncate value={parsedUrl.pathname} maxLength={36} leftTrim={true} /></div>
           <span className="external-icon">
             <em className="icon-open" />
           </span>
