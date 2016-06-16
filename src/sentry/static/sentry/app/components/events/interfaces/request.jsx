@@ -85,7 +85,9 @@ const RequestInterface = React.createClass({
     children.push(
       <h3 key="title">
         <a href={fullUrl} title={fullUrl}>
-          <div className="path"><strong>{data.method || 'GET'}</strong> <Truncate value={parsedUrl.pathname} maxLength={36} leftTrim={true} /></div>
+          <span className="path"><strong>{data.method || 'GET'}</strong>
+            <Truncate value={parsedUrl.pathname} maxLength={36} leftTrim={true} />
+          </span>
           <span className="external-icon">
             <em className="icon-open" />
           </span>
