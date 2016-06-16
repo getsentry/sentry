@@ -35,15 +35,10 @@ class Device(Interface):
         if not isinstance(extra_data, dict):
             extra_data = {}
 
-        try:
-            model = trim(data['model'], 64)
-        except KeyError:
-            raise InterfaceValidationError("Missing or invalid value for 'model'")
-
-        try:
-            os = trim(data['os'], 64)
-        except KeyError:
-            raise InterfaceValidationError("Missing or invalid value for 'os'")
+        model = trim(data.get('model'), 64)
+        os = trim(data.get('os'), 64)
+        if not (model or os):
+            raise InterfaceValidationError("One of 'model' or 'os' is required.")
 
         kwargs = {
             'model': model,
