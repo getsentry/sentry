@@ -24,3 +24,9 @@ class FlatLogger(PrintLogger):
         with self._lock:
             until_not_interrupted(self._write, message)
             until_not_interrupted(self._flush)
+
+    log = debug = info = warn = warning = msg
+    failure = err = error = critical = exception = msg
+
+    def __repr__(self):
+        return '<FlatLogger(file={0!r})>'.format(self._file)
