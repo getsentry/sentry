@@ -861,7 +861,7 @@ div.traceback > ul {
 */
 
 .exc-message {
-  margin: 15px 0;
+  margin: 15px 0 0;
   word-wrap: break-word;
   white-space: pre-wrap;
   color: @gray-darker;
@@ -881,6 +881,21 @@ div.traceback > ul {
   margin-bottom: 10px !important;
   margin-left: -21px;
   margin-right: -21px;
+}
+
+.exception {
+  border-top: 1px solid @trim;
+  margin: 0 -20px;
+  padding: 15px 20px 0;
+
+  &:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .traceback {
+    margin-top: 15px;
+  }
 }
 
 .traceback {
@@ -909,18 +924,18 @@ div.traceback > ul {
       font-size: 22px;
     }
 
-    &.is-expandable p {
+    &.is-expandable .title {
       cursor: pointer;
       &:hover {
         background: lighten(@blue-light, 25);
       }
     }
 
-    &.system-frame.is-expandable p:hover {
+    &.system-frame.is-expandable .title:hover {
       background: darken(@white-dark, 5);
     }
 
-    p {
+    .title {
       padding: 8px 20px;
       font-size: 13px;
       margin: 0;
@@ -944,11 +959,11 @@ div.traceback > ul {
       }
     }
 
-    &.system-frame p {
+    &.system-frame .title {
       background: @white-dark;
     }
 
-    p.as-table {
+    .title.as-table {
       display: flex;
       align-items: baseline;
       width: 100%;
@@ -1059,6 +1074,22 @@ div.traceback > ul {
       background: inherit;
       font-size: inherit;
       color: inherit;
+    }
+
+    .empty-context {
+      padding: 20px;
+      color: @gray;
+
+      p {
+        display: inline-block;
+        margin-bottom: 0;
+      }
+
+      .icon {
+        opacity: .45;
+        margin-right: 10px;
+        font-size: 0.85em;
+      }
     }
 
     .context {
@@ -1306,7 +1337,7 @@ div.traceback > ul {
       font-size: 22px;
     }
 
-    p {
+    .title {
       font-size: 12px;
       margin-bottom: 12px;
       line-height: 1.4;
@@ -1418,7 +1449,7 @@ div.traceback > ul {
 
     &.expanded {
 
-      > p {
+      > .title {
         color: #000;
       }
 

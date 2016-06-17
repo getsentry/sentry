@@ -26,6 +26,7 @@ const Frame = React.createClass({
     nextFrameInApp: React.PropTypes.bool,
     platform: React.PropTypes.string,
     isExpanded: React.PropTypes.bool,
+    emptySourceNotation: React.PropTypes.bool,
   },
 
   mixins: [
@@ -38,7 +39,8 @@ const Frame = React.createClass({
 
   getDefaultProps() {
     return {
-      isExpanded: false
+      isExpanded: false,
+      emptySourceNotation: false
     };
   },
 
@@ -68,7 +70,11 @@ const Frame = React.createClass({
   },
 
   isExpandable() {
-    return this.hasContextSource() || this.hasContextVars();
+    return (
+      this.props.emptySourceNotation
+      || this.hasContextSource()
+      || this.hasContextVars()
+    );
   },
 
   renderOriginalSourceInfo() {
@@ -182,6 +188,13 @@ const Frame = React.createClass({
           }
         </ol>
       );
+    } else if (this.props.emptySourceNotation) {
+      context = (
+        <div className="empty-context">
+          <span className="icon icon-exclamation" />
+          <p>{t('No additional details are available for this frame.')}</p>
+        </div>
+      );
     }
     return context;
   },
@@ -203,7 +216,7 @@ const Frame = React.createClass({
   renderDefaultLine() {
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
-        <p>{this.renderDefaultTitle()}</p>
+        <div className="title">{this.renderDefaultTitle()}</div>
       </StrictClick>
     );
   },
@@ -212,7 +225,7 @@ const Frame = React.createClass({
     let data = this.props.data;
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
-        <p className="as-table">
+        <div className="title as-table">
           {defined(data.package)
             ? (
               <span className="package" title={data.package}>
@@ -234,7 +247,7 @@ const Frame = React.createClass({
                 {data.lineNo ? ':' + data.lineNo : ''}</span>}
             {this.renderExpander()}
           </span>
-        </p>
+        </div>
       </StrictClick>
     );
   },
