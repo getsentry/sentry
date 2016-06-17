@@ -396,75 +396,9 @@ pre.plain {
   color: @gray;
 }
 
-table.vars {
-  margin-bottom: 0;
-  border: 0;
-
-  th, td {
-    border: none;
-    padding: 5px 8px;
-    word-break: break-all;
-    border: 1px solid #E9EBEC !important;
-  }
-
-  td .btn, th .btn {
-    white-space: nowrap
-  }
-
-  td.values, td.code {
-    overflow: hidden;
-
-    > pre {
-      background-color: inherit;
-      padding: 0;
-      border: 0;
-      margin-bottom: 0;
-    }
-  }
-}
-
-table.table.vars {
-  margin-top: -5px;
-  border-radius: 0;
-
-  tr:first-child > td, tr:first-child > th {
-    border-top: 0 !important;
-  }
-
-  td, th {
-    padding: 12px 0 !important;
-    border: 0;
-    vertical-align: top !important;
-    border: 0 !important;
-    border-top: 1px solid #f1f2f3 !important;
-    border-radius: 0 !important;
-  }
-  td table {
-    border-top: 0;
-    margin-top: -12px;
-    margin-bottom: -10px;
-  }
-  thead th,
-  thead td {
-    background-color: #fff !important;
-  }
-  tbody > tr:nth-child(odd) > td,
-  tbody > tr:nth-child(odd) > th {
-    background-color: #fff;
-  }
-  tbody > tr:nth-child(even) > td,
-  tbody > tr:nth-child(even) > th {
-    background-color: #fff;
-  }
-}
-
-table.vars .toggle-expand {
-  border-top: 0 !important;
-  padding-top: 2px !important;
-
-  .btn {
-    background: rgba(0,0,0, .02);
-  }
+pre.val {
+  background: inherit;
+  padding: 0;
 }
 
 table.table.key-value {
@@ -475,6 +409,7 @@ table.table.key-value {
     max-width: 500px;
     border: 0 !important;
     vertical-align: top !important;
+    border-bottom: 1px solid lighten(@trim, 4) !important;
 
     pre {
       box-sizing: border-box;
@@ -484,14 +419,19 @@ table.table.key-value {
       word-break: break-word;
       padding: 8px 10px;
       font-size: 12px;
+      background: inherit;
     }
+  }
+
+  tr:last-child td {
+    border-bottom: 0 !important;
   }
 
   td.key {
     font-weight: 600;
     font-size: 13px;
-    width: 175px;
-    max-width: 175px;
+    width: 125px;
+    max-width: 125px;
     word-wrap: break-word;
     padding: 10px 15px 10px 0 !important;
     line-height: 1.4 !important;
