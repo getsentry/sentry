@@ -324,9 +324,10 @@ class EventManager(object):
                 inst = interface.to_python(value)
                 data[inst.get_path()] = inst.to_json()
             except Exception:
+                # XXX: we should consider logging this.
                 pass
-
-            data['tags'].extend(inst.iter_tags())
+            else:
+                data['tags'].extend(inst.iter_tags())
 
         # TODO(dcramer): this logic is duplicated in ``validate_data`` from
         # coreapi
