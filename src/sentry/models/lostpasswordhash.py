@@ -60,6 +60,7 @@ class LostPasswordHash(Model):
         msg = MessageBuilder(
             subject='%sPassword Recovery' % (options.get('mail.subject-prefix'),),
             template='sentry/emails/recover_account.txt',
+            html_template='sentry/emails/recover_account.html',
             type='user.password_recovery',
             context=context,
         )

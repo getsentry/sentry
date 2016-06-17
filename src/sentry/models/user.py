@@ -126,11 +126,13 @@ class User(BaseModel, AbstractBaseUser):
                     'sentry-account-confirm-email',
                     args=[self.id, email.validation_hash]
                 )),
+                'confirm_email': email.email,
                 'is_new_user': is_new_user,
             }
             msg = MessageBuilder(
                 subject='%sConfirm Email' % (options.get('mail.subject-prefix'),),
                 template='sentry/emails/confirm_email.txt',
+                html_template='sentry/emails/confirm_email.html',
                 type='user.confirm_email',
                 context=context,
             )
