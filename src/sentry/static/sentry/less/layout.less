@@ -1,3 +1,5 @@
+@sidebar-width: 60px;
+
 html {
   height: 100%;
 }
@@ -11,7 +13,7 @@ body {
   -webkit-font-smoothing: antialiased;
   .transition(.1s padding ease-in-out);
   overflow-x: hidden;
-  // padding-left: @sidebar-width;
+  padding-left: @sidebar-width;
 }
 
 /**
@@ -55,8 +57,9 @@ body.auth {
 
 .container {
   position: relative;
-  padding-left: 15px;
-  padding-right: 15px;
+  padding-left: 40px;
+  padding-right: 40px;
+  width: 100% !important;
 }
 
 /**
@@ -69,10 +72,16 @@ header {
   color: #fff;
   .clearfix();
   font-size: 15px;
-  margin-bottom: 30px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: @sidebar-width;
 
   .container {
-    padding-right: 0;
+    padding-left: 14px;
+    padding-right: 14px;
+    position: static;
   }
 
   .admin-action-message {
@@ -89,7 +98,7 @@ header {
   }
 
   a {
-    color: #CBD4E1;
+    color: #C5C1D2;
 
     &:hover, &:focus, &:active {
       color: #fff;
@@ -125,9 +134,69 @@ header {
     line-height: 40px;
   }
 
+  .org-switcher {
+    padding: 15px 0;
+    .active-org {
+      display: block;
+      .square(32px);
+
+      img {
+        border-radius: 3px;
+        box-shadow: 0 1px 1px rgba(0,0,0, .3);
+      }
+    }
+  }
+
+  .my-nav {
+    .list-unstyled;
+    padding: 20px 0 10px;
+
+    li {
+      text-align: center;
+      line-height: 36px;
+
+      a {
+        text-shadow: 0 1px 1px rgba(0,0,0, .15);
+      }
+    }
+
+    .icon-user, .icon-star-solid {
+      font-size: 18px;
+    }
+
+    .icon-av_timer {
+      padding-top: 2px;
+      font-size: 24px;
+    }
+  }
+
+  .divider-top {
+    border-top: 1px solid #756F8C;
+  }
+
+  .divider-bottom {
+    border-bottom: 1px solid #756F8C;
+  }
+
   .org-selector {
     .dropdown-menu {
       top: 38px;
+    }
+  }
+
+  .user-nav {
+    position: absolute;
+    bottom: 15px;
+    width: 32px;
+
+    .user-settings {
+      .avatar {
+        .square(32px);
+      }
+    }
+
+    .onboarding-progress-bar {
+      margin: 0 8px 20px;
     }
   }
 
@@ -140,12 +209,6 @@ header {
   }
 
   .dropdown-toggle {
-    display: block;
-    float: left;
-    height: 40px;
-    line-height: 42px;
-    padding: 0 15px;
-
     .icon-arrow-down {
       color: #83899D;
       font-size: 12px !important;
@@ -176,7 +239,7 @@ header {
   position: relative;
   height: 56px;
   padding: 20px 0 0;
-  margin: -30px 0 20px;
+  margin: 0 0 20px;
   line-height: 1;
   font-size: 16px;
   .clearfix;
@@ -369,9 +432,7 @@ footer {
 }
 
 @media (min-width: 1300px) {
-  .container {
-    width: 1250px !important;
-  }
+
 }
 
 /**

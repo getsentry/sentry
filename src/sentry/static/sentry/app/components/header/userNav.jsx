@@ -27,7 +27,9 @@ const UserNav = React.createClass({
       <DropdownLink
           topLevelClasses={this.props.className}
           menuClasses="dropdown-menu-right"
-          title={title}>
+          title={title}
+          caret={false}
+          >
         <MenuItem href={urlPrefix + '/account/settings/'}>{t('Account')}</MenuItem>
         <MenuItem to="/api/">{t('API')}</MenuItem>
         {user.isSuperuser &&

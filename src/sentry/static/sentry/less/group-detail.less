@@ -6,7 +6,6 @@
 .group-detail {
   position: relative;
   margin: 0 0 20px;
-  border-bottom: 1px solid @trim;
   clear: both;
 
   h3 {
@@ -203,6 +202,17 @@
         right: 0!important;
       }
     }
+  }
+
+  &:before {
+    position: absolute;
+    display: block;
+    content: "";
+    bottom: -1px;
+    left: -40px;
+    right: -40px;
+    height: 1px;
+    background: @trim;
   }
 }
 
@@ -1660,7 +1670,7 @@ div.commands {
   .path {
     font-weight: normal;
     float: left;
-    
+
     strong {
       margin-right: 4px;
     }

@@ -33,7 +33,7 @@ const OnboardingStatus = React.createClass({
       ).length) / TodoList.TASKS.length * 100
     ).toString();
     let style = {
-      width: percentage + '%',
+      height: percentage + '%',
     };
 
     return (
@@ -117,25 +117,40 @@ const Header = React.createClass({
     return (
       <header>
         <div className="container">
-          <UserNav className="pull-right" />
-          <Broadcasts className="pull-right" />
-          {this.props.orgId ?
+          <div className="org-switcher divider-bottom">
+            <a className="active-org">
+              <img src="https://pbs.twimg.com/profile_images/497432038492733440/eW6tXeq3_400x400.png" />
+            </a>
+          </div>
+          <ul className="my-nav divider-bottom">
+            <li><a><span className="icon-user"/></a></li>
+            <li><a><span className="icon-star-solid"/></a></li>
+            <li><a><span className="icon-av_timer"/></a></li>
+          </ul>
+          { /* <Broadcasts /> */ }
+          { /* {this.props.orgId ?
             <Link to={`/${this.props.orgId}/`} className="logo">{logo}</Link>
             :
             <a href="/" className="logo">{logo}</a>
-          }
-          <OrganizationSelector organization={org} className="pull-right" />
+          */}
+          { /* <OrganizationSelector organization={org} /> */ }
 
-          <StatusPage className="pull-right" />
-          {org &&
-            <OnboardingStatus org={org} showTodos={this.state.showTodos}
-                              onShowTodos={this.setState.bind(this, {showTodos: false})}
-                              onToggleTodos={this.toggleTodos}
-                              onHideTodos={this.setState.bind(this, {showTodos: false})} />
-          }
-          {actionMessage ?
-            <span className="admin-action-message">{actionMessage}</span>
-            : null}
+          { /* <StatusPage className="pull-right" /> */}
+          { /*  {actionMessage ?
+          <span className="admin-action-message">{actionMessage}</span>
+          : null}
+          */ }
+          <div className="user-nav">
+            {org &&
+              <OnboardingStatus org={org} showTodos={this.state.showTodos}
+                                onShowTodos={this.setState.bind(this, {showTodos: false})}
+                                onToggleTodos={this.toggleTodos}
+                                onHideTodos={this.setState.bind(this, {showTodos: false})} />
+            }
+            <div class="notification-hub-dropdown"></div>
+            <div class="support"></div>
+            <UserNav className="user-settings" />
+          </div>
         </div>
       </header>
     );
