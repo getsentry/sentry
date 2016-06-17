@@ -94,8 +94,11 @@ const StacktraceContent = React.createClass({
       frames.reverse();
     }
 
+    let className = this.props.className || '';
+    className += (oldFrames ? ' old-traceback' : ' traceback');
+
     return (
-      <div className={oldFrames ? 'old-traceback' : 'traceback'}>
+      <div className={className}>
         <ul>{frames}</ul>
       </div>
     );
