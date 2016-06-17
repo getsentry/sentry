@@ -167,7 +167,7 @@ def configure_structlog():
     ]
     fmt = options.get('system.logging-format')
     if fmt == LoggingFormat.HUMAN:
-        processors.update([
+        processors.extend([
             structlog.processors.ExceptionPrettyPrinter(),
             structlog.processors.KeyValueRenderer(
                 key_order=[
