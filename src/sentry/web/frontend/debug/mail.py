@@ -27,6 +27,7 @@ from sentry.digests.notifications import (
     build_digest,
 )
 from sentry.digests.utilities import get_digest_metadata
+from sentry.http import get_server_hostname
 from sentry.models import (
     Activity,
     Event,
@@ -428,5 +429,41 @@ def access_approved(request):
             'name': 'George Bush',
             'organization': org,
             'team': team,
+        },
+    ).render()
+
+
+@login_required
+def confirm_email(request):
+    email = request.user.emails.first()
+    email.set_hash()
+    email.save()
+    return MailPreview(
+        html_template='sentry/emails/confirm_email.html',
+        text_template='sentry/emails/confirm_email.txt',
+        context={
+            'confirm_email': 'foo@example.com',
+            'user': request.user,
+            'url': absolute_uri(reverse(
+                'sentry-account-confirm-email',
+                args=[request.user.id, email.validation_hash]
+            )),
+            'is_new_user': True,
+        },
+    ).render()
+
+
+@login_required
+def recover_account(request):
+    return MailPreview(
+        html_template='sentry/emails/recover_account.html',
+        text_template='sentry/emails/recover_account.txt',
+        context={
+            'user': request.user,
+            'url': absolute_uri(reverse(
+                'sentry-account-confirm-email',
+                args=[request.user.id, 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX']
+            )),
+            'domain': get_server_hostname(),
         },
     ).render()
