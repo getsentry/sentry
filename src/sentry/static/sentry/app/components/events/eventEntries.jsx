@@ -44,6 +44,7 @@ const EventEntries = React.createClass({
     template: require('./interfaces/template'),
     csp: require('./interfaces/csp'),
     breadcrumbs: require('./interfaces/breadcrumbs'),
+    contexts: require('./interfaces/contexts'),
   },
 
   render() {
