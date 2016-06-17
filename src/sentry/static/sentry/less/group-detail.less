@@ -884,11 +884,20 @@ div.traceback > ul {
 }
 
 .traceback {
+  &.no-exception {
+    margin-top: -20px;
+  }
+
+  &.no-exception .frame:first-child {
+    border-top: 0;
+  }
+
+
   .frame {
     list-style-type: none;
     position: relative;
     margin: 0;
-    border-top: 1px solid lighten(@trim, 4);
+    border-top: 1px solid @trim;
 
     &.frame-errors {}
 
@@ -913,12 +922,16 @@ div.traceback > ul {
 
     p {
       padding: 8px 20px;
-      font-size: 12px;
+      font-size: 13px;
       margin: 0;
       // line-height: 1.4;
       line-height: 16px;
-      color: @gray-darkest;
       background: lighten(@blue-light, 30);
+
+      code {
+        font-family: inherit;
+        font-weight: bold;
+      }
 
       a.annotation {
         &.trigger-popover {
@@ -1060,12 +1073,12 @@ div.traceback > ul {
       }
 
       table.key-value {
-        border-top: 1px solid lighten(@trim, 4);
+        border-top: 1px solid @trim;
         padding: 0;
         margin: 0 0 -8px;
 
         td {
-          border-bottom: 1px solid lighten(@trim, 4) !important;
+          border-bottom: 1px solid @trim !important;
 
           &.key {
             width: 125px;
@@ -1117,6 +1130,7 @@ div.traceback > ul {
       float: right;
       .square(16px);
       padding: 0;
+      margin-left: 10px;
       line-height: 16px;
       font-size: 9px;
       text-align: center;
@@ -1127,10 +1141,6 @@ div.traceback > ul {
     }
 
     &.expanded {
-      > p {
-        color: #000;
-      }
-
       .expandable {
         height: auto;
       }
