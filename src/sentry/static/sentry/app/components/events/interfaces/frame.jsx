@@ -95,8 +95,8 @@ const Frame = React.createClass({
     let data = this.props.data;
     let title = [];
 
-    // TODO(mitsuhiko): this is terrible for translators but i'm too
-    // lazy to change this up right now.  This should be a format string
+    // TODO(dcramer): this needs to use a formatted string so it can be
+    // localized correctly
 
     if (defined(data.filename || data.module)) {
       title.push((
@@ -108,7 +108,7 @@ const Frame = React.createClass({
         title.push(<a href={data.absPath} className="icon-open" key="share" target="_blank" />);
       }
       if (defined(data.function)) {
-        title.push(<span className="in-at" key="in"> {t('in')} </span>);
+        title.push(<span className="in-at" key="in"> in </span>);
       }
     }
 
@@ -119,19 +119,17 @@ const Frame = React.createClass({
     // we don't want to render out zero line numbers which are used to
     // indicate lack of source information for native setups.  We could
     // TODO(mitsuhiko): only do this for events from native platforms?
-    else if (defined(data.lineNo) && data.lineNo != 0) {
-      // TODO(dcramer): we need to implement source mappings
-      // title.push(<span className="pull-right blame"><a><span className="icon-mark-github"></span> View Code</a></span>);
-      title.push(<span className="in-at" key="at"> {t('at line')} </span>);
-      if (defined(data.colNo)) {
-        title.push(<code key="line" className="lineno">{data.lineNo}:{data.colNo}</code>);
-      } else {
-        title.push(<code key="line" className="lineno">{data.lineNo}</code>);
-      }
+    if (defined(data.lineNo) && data.lineNo != 0) {
+      title.push(<span className="in-at" key="no"> at line </span>);
+      title.push((
+        <code key="line" className="lineno">
+          {defined(data.colNo) ? `${data.lineNo}:${data.colNo}` : data.lineNo}
+        </code>
+      ));
     }
 
     if (defined(data.package)) {
-      title.push(<span className="within" key="within"> {t('within')} </span>);
+      title.push(<span className="within" key="within"> within </span>);
       title.push(<code title={data.package} className="package">{trimPackage(data.package)}</code>);
     }
 
@@ -142,6 +140,8 @@ const Frame = React.createClass({
         </a>
       );
     }
+
+    title.push(this.renderExpander());
 
     return title;
   },
@@ -203,10 +203,7 @@ const Frame = React.createClass({
   renderDefaultLine() {
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
-        <p>
-          {this.renderDefaultTitle()}
-          {this.renderExpander()}
-        </p>
+        <p>{this.renderDefaultTitle()}</p>
       </StrictClick>
     );
   },
