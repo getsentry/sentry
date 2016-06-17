@@ -14,12 +14,14 @@
       <ul class="registered-devices">
         {% for device in devices %}
           <li><strong>{{ device.name }}</strong>, added on {{ device.timestamp|date:"N j, Y, P e" }}
+            {% if devices|length > 1 %}
             <form action="" method=post style="display: inline">
               {% csrf_token %}
               <input type=hidden name="key_handle" value="{{ device.key_handle }}">
-              <button type="submit" name="remove"
-                class="btn btn-default btn-sm"><span class="icon-trash"></span></button>
+              <button type="submit" onclick="return confirm('Are you sure you want to remove this key?');" name="remove"
+                class="btn btn-danger btn-sm"><span class="icon-trash"></span></button>
             </form>
+            {% endif %}
         {% endfor %}
       </ul>
     {% endif %}

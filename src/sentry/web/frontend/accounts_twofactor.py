@@ -10,6 +10,7 @@ from django.utils.decorators import method_decorator
 from django.core.context_processors import csrf
 from django.utils.translation import ugettext_lazy as _
 
+import petname
 from sudo.decorators import sudo_required
 
 from sentry.models import Authenticator
@@ -29,7 +30,7 @@ class SmsForm(forms.Form):
 class U2fForm(forms.Form):
     device_name = forms.CharField(
         label=_('Device name'), max_length=60, required=False,
-        initial='Security Key',
+        initial=lambda: petname.Generate(2, ' ').title(),
     )
 
 
