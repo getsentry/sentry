@@ -159,15 +159,20 @@ def configure_structlog():
     from sentry.logging import LoggingFormat
 
     WrappedDictClass = structlog.threadlocal.wrap_dict(dict)
-    processors = [
-        structlog.stdlib.add_log_level,
-        structlog.stdlib.PositionalArgumentsFormatter(),
-        structlog.processors.format_exc_info,
-        structlog.processors.StackInfoRenderer(),
-    ]
+    kwargs = {
+        'context_class': WrappedDictClass,
+        'wrapper_class': structlog.stdlib.BoundLogger,
+        'cache_logger_on_first_use': True,
+        'processors': [
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.format_exc_info,
+            structlog.processors.StackInfoRenderer(),
+        ]
+    }
     fmt = options.get('system.logging-format')
     if fmt == LoggingFormat.HUMAN:
-        processors.extend([
+        kwargs['processors'].extend([
             structlog.processors.ExceptionPrettyPrinter(),
             structlog.processors.KeyValueRenderer(
                 key_order=[
@@ -179,14 +184,11 @@ def configure_structlog():
         ])
     elif fmt == LoggingFormat.MACHINE:
         from sentry.logging.renderers import MessagePackRenderer
-        processors.append(MessagePackRenderer())
+        from sentry.logging.loggers import FlatLoggerFactory
+        kwargs['logger_factory'] = FlatLoggerFactory()
+        kwargs['processors'].append(MessagePackRenderer())
 
-    structlog.configure(
-        processors=processors,
-        context_class=WrappedDictClass,
-        wrapper_class=structlog.stdlib.BoundLogger,
-        cache_logger_on_first_use=True,
-    )
+    structlog.configure(**kwargs)
 
 
 def initialize_app(config, skip_backend_validation=False):
