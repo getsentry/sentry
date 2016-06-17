@@ -182,7 +182,7 @@ def configure_structlog():
         processors.append(MessagePackRenderer())
 
     structlog.configure(
-        processors,
+        processors=processors,
         context_class=WrappedDictClass,
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
