@@ -52,6 +52,14 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         return event
 
+    def test_render_label(self):
+        rule = self.get_rule({
+            'match': MatchType.EQUAL,
+            'attribute': u'\xc3',
+            'value': u'\xc4',
+        })
+        assert rule.render_label() == u'An events \xc3 value equals \xc4'
+
     def test_equals(self):
         event = self.get_event()
         rule = self.get_rule({
