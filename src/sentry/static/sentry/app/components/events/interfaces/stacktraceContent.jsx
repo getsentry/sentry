@@ -80,6 +80,7 @@ const StacktraceContent = React.createClass({
             key={frameIdx}
             data={frame}
             isExpanded={lastFrameIdx === frameIdx}
+            emptySourceNotation={lastFrameIdx === frameIdx && frameIdx === 0}
             nextFrameInApp={nextFrame && nextFrame.inApp}
             platform={this.props.platform} />
         );

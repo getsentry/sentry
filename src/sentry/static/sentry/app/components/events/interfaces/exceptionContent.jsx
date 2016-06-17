@@ -17,7 +17,7 @@ const ExceptionContent = React.createClass({
     let stackView = this.props.view;
     let children = this.props.values.map((exc, excIdx) => {
       return (
-        <div key={excIdx}>
+        <div key={excIdx} className="exception">
           <h5 style={{marginBottom: 5}}>
             <span>{exc.type}</span>
           </h5>
