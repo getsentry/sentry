@@ -201,26 +201,29 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
 
 
 def inject_apple_device_data(data, system):
-    container = data.setdefault('device', {})
+    contexts = data.setdefault('sentry.interfaces.Contexts', {})
+
+    device = contexts.setdefault('device', {})
+    os = contexts.setdefault('os', {})
+
     try:
-        container['name'] = SDK_MAPPING[system['system_name']]
+        os['name'] = SDK_MAPPING[system['system_name']]
     except LookupError:
-        container['name'] = system.get('system_name') or 'Generic Apple'
+        os['name'] = system.get('system_name') or 'Generic Apple'
 
     if 'system_version' in system:
-        container['version'] = system['system_version']
+        os['version'] = system['system_version']
     if 'os_version' in system:
-        container['build'] = system['os_version']
-
-    extra = container.setdefault('data', {})
-    if 'cpu_arch' in system:
-        extra['cpu_arch'] = system['cpu_arch']
-    if 'model' in system:
-        extra['device_model_id'] = system['model']
-    if 'machine' in system:
-        extra['device_model'] = system['machine']
+        os['build'] = system['os_version']
     if 'kernel_version' in system:
-        extra['kernel_version'] = system['kernel_version']
+        os['kernel_version'] = system['kernel_version']
+
+    if 'cpu_arch' in system:
+        device['arch'] = system['cpu_arch']
+    if 'model' in system:
+        device['model_id'] = system['model']
+    if 'machine' in system:
+        device['model'] = system['machine']
 
 
 def record_no_symsynd(data):
