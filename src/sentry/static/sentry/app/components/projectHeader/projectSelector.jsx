@@ -195,9 +195,6 @@ const ProjectSelector = React.createClass({
     let className = 'bookmark tip ' + (project.isBookmarked ? 'icon-star-solid' : 'icon-star-outline');
     return (
       <span>
-        <a className={className}
-           onClick={this.handleBookmarkClick.bind(this, project)}
-           data-isbookmarked={project.isBookmarked} />
         <Link to={`/${orgId}/${projectId}/`}>
           {label}
         </Link>
@@ -250,7 +247,7 @@ const ProjectSelector = React.createClass({
 
     return (
       <div className="project-select" ref="container">
-        {activeProject ?
+        <h3>{activeProject ?
           this.getLinkNode(activeTeam, activeProject)
         :
           t('Select a project')
@@ -269,6 +266,7 @@ const ProjectSelector = React.createClass({
           </li>
           {children}
         </DropdownLink>
+        </h3>
       </div>
     );
   }

@@ -24,13 +24,32 @@ const ProjectHeader = React.createClass({
       <div>
         <div className="sub-header">
           <div className="container">
+            {/* <div className="org-name">
+              <Link to={`/${org.slug}/`}>
+                {org.name}
+              </Link>
+            </div>
+            */}
+            <ProjectSelector
+                organization={org}
+                projectId={project.slug}/>
+
             <div className="pull-right">
+              <ul className="nav nav-tabs nav-tabs-divided anchor-right">
+                <li><a><span className="icon-star-solid" /> Star</a></li>
+                <li><a><span className="icon-signal" /> Subscribe</a></li>
+                {access.has('project:write') &&
+                  <li className={navSection == 'settings' ? 'active' : ''}>
+                    <a href={urlPrefix + `/${org.slug}/${project.slug}/settings/`}>
+                      <span className="icon-settings" /> {t('Settings')}
+                    </a>
+                  </li>
+                }
+              </ul>
+            </div>
+
+            <div>
               <ul className="nav nav-tabs">
-                <li className={navSection == 'dashboard' ? 'active' : ''}>
-                  <Link to={`/${org.slug}/${project.slug}/dashboard/`}>
-                    {t('Dashboard')}
-                  </Link>
-                </li>
                 <li className={navSection == 'stream' ? 'active' : ''}>
                   <Link to={`/${org.slug}/${project.slug}/`}>
                     {t('Issues')}
@@ -43,6 +62,11 @@ const ProjectHeader = React.createClass({
                     </Link>
                   </li>
                 }
+                <li className={navSection == 'dashboard' ? 'active' : ''}>
+                  <Link to={`/${org.slug}/${project.slug}/dashboard/`}>
+                    {t('Overview')}
+                  </Link>
+                </li>
                 <li className={navSection == 'user-feedback' ? 'active' : ''}>
                   <Link to={`/${org.slug}/${project.slug}/user-feedback/`}>
                     {t('User Feedback')}
@@ -53,24 +77,9 @@ const ProjectHeader = React.createClass({
                     {t('Releases')}
                   </Link>
                 </li>
-                {access.has('project:write') &&
-                  <li className={navSection == 'settings' ? 'active' : ''}>
-                    <a href={urlPrefix + `/${org.slug}/${project.slug}/settings/`}>
-                      {t('Settings')}
-                    </a>
-                  </li>
-                }
               </ul>
             </div>
-            <div className="org-name">
-              <Link to={`/${org.slug}/`}>
-                {org.name}
-              </Link>
-            </div>
-            <ProjectSelector
-                organization={org}
-                projectId={project.slug}/>
-           </div>
+          </div>
         </div>
       </div>
     );
