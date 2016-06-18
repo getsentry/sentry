@@ -15,6 +15,24 @@ dl.flat dd {
 }
 
 /**
+ * Flex
+ * ============================================================================
+ */
+
+ .flex {
+   display: flex;
+   &.flex-justify-center {
+     justify-content: center;
+   }
+   &.flex-justify-right {
+     justify-content: flex-end;
+   }
+   > * {
+     flex-grow: 1;
+   }
+ }
+
+/**
 * Buttons
 * ============================================================================
 */
@@ -60,6 +78,8 @@ dl.flat dd {
   color: @gray-dark;
   background: #fff;
   border-color: @gray-lighter;
+  #gradient > .vertical(#fff, #F6F7F9);
+  box-shadow: 0 1px 1px rgba(0,0,0, .08);
 
   &:hover, &:focus, &:active {
     color: @gray-darker;
@@ -1103,15 +1123,15 @@ table.integrations {
   .dropdown-toggle {
     border: 1px solid @gray-lighter;
     box-shadow: 0 1px 1px rgba(0, 0, 0, .08);
-    border-radius: 3px;
-    height: 20px;
-    width: 21px;
+    border-radius: 50%;
+    height: 22px;
+    width: 22px;
     line-height: 21px;
     // text-align: center;
     position: relative;
     top: -2px;
 
-    margin-left: 8px;
+    margin-left: 10px;
     display: inline-block;
     vertical-align: middle;
 
@@ -1122,8 +1142,8 @@ table.integrations {
 
     .icon-arrow-down {
       position: relative;
-      top: 0px;
-      left: 2px;
+      top: -1px;
+      left: 3px;
       font-size: 15px !important;
       color: @gray;
     }
@@ -2275,18 +2295,19 @@ table.integrations {
   margin: 0 0 20px;
 
   > li {
-    margin-right: 20px;
+    margin-right: 30px;
+    text-transform: uppercase;
 
     > li.pull-right {
       float: right;
     }
 
     > a {
-      font-size: 16px;
+      font-size: 13px;
       padding: 0 0 10px;
       border: 0;
       background: none;
-      color: @gray;
+      color: @gray-light;
       min-width: 30px;
       text-align: center;
 
@@ -2332,6 +2353,12 @@ table.integrations {
 
   &.border-bottom {
     border-bottom: 1px solid lighten(@trim, 2);
+  }
+
+  &.anchor-right {
+    li {
+      margin: 0 0 0 30px;
+    }
   }
 }
 
