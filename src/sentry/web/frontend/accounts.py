@@ -18,6 +18,7 @@ from django.http import HttpResponseRedirect, Http404
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
+from django.utils.translation import ugettext as _
 from sudo.decorators import sudo_required
 
 from sentry.models import (
@@ -127,27 +128,31 @@ def start_confirm_email(request):
     has_unverified_emails = request.user.has_unverified_emails()
     if has_unverified_emails:
         request.user.send_confirm_emails()
-    return render_to_response('sentry/account/confirm_email/send.html',
-                              {'has_unverified_emails': has_unverified_emails},
-                              request)
+        msg = _('A verification email has been sent to %s.') % request.user.email
+    else:
+        msg = _('Your email (%s) has already been verified.') % request.user.email
+    messages.add_message(request, messages.SUCCESS, msg)
+    return HttpResponseRedirect(reverse('sentry-account-settings'))
 
 
 def confirm_email(request, user_id, hash):
+    msg = _('Thanks for confirming your email')
+    level = messages.SUCCESS
     try:
         email = UserEmail.objects.get(user=user_id, validation_hash=hash)
         if not email.hash_is_valid():
             raise UserEmail.DoesNotExist
     except UserEmail.DoesNotExist:
-        if request.user.is_authenticated() and not request.user.has_unverified_emails():
-            tpl = 'sentry/account/confirm_email/success.html'
-        else:
-            tpl = 'sentry/account/confirm_email/failure.html'
+        if request.user.is_anonymous() or request.user.has_unverified_emails():
+            msg = _('There was an error confirming your email. Please try again or '
+                    'visit your Account Settings to resend the verification email.')
+            level = messages.ERROR
     else:
-        tpl = 'sentry/account/confirm_email/success.html'
         email.is_verified = True
         email.validation_hash = ''
         email.save()
-    return render_to_response(tpl, {}, request)
+    messages.add_message(request, level, msg)
+    return HttpResponseRedirect(reverse('sentry-account-settings'))
 
 
 @csrf_protect

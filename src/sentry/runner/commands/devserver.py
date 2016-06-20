@@ -54,6 +54,8 @@ def devserver(reload, watchers, workers, bind):
         # Make sure we reload really quickly for local dev in case it
         # doesn't want to shut down nicely on it's own, NO MERCY
         'worker-reload-mercy': 2,
+        # We need stdin to support pdb in devserver
+        'honour-stdin': True,
     }
 
     if reload:

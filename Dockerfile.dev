@@ -120,4 +120,4 @@ ADD scripts/docker-entrypoint.sh /entrypoint.sh
 ENTRYPOINT [ "/entrypoint.sh" ]
 
 EXPOSE 8000
-CMD [ "bootstrap" ]
+CMD [ "bash" ]

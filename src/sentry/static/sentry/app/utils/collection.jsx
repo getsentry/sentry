@@ -1,3 +1,5 @@
+import _ from 'underscore';
+
 let defaults = {
   limit: null,
   key: function(item) {
@@ -10,19 +12,19 @@ function Collection(collection, options) {
 
   Array.call(this);
 
-  if (typeof options === 'undefined') {
+  if (_.isUndefined(options)) {
     options = {};
   }
 
   for (i in defaults) {
-    if (typeof options[i] === 'undefined') {
+    if (_.isUndefined(options[i])) {
       options[i] = defaults[i];
     }
   }
 
   this.options = options;
 
-  if (typeof collection !== 'undefined') {
+  if (!_.isUndefined(collection)) {
     this.push(collection);
   }
 
@@ -40,7 +42,7 @@ Collection.prototype._refresh = function _refresh() {
 };
 
 Collection.prototype.push = function push(items) {
-  if (!items instanceof Array) {
+  if (!_.isArray(items)) {
     items = [items];
   }
 
@@ -57,7 +59,7 @@ Collection.prototype.push = function push(items) {
 };
 
 Collection.prototype.unshift = function unshift(items) {
-  if (!items instanceof Array) {
+  if (!_.isArray(items)) {
     items = [items];
   }
   items.reverse().forEach(function(item){

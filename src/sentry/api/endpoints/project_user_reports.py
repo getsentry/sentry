@@ -10,7 +10,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize, ProjectUserReportSerializer
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import EventMapping, Group, UserReport
+from sentry.models import EventMapping, Group, GroupStatus, UserReport
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -53,6 +53,14 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
             project=project,
             group__isnull=False,
         ).select_related('group')
+
+        status = request.GET.get('status', 'unresolved')
+        if status == 'unresolved':
+            queryset = queryset.filter(
+                group__status=GroupStatus.UNRESOLVED,
+            )
+        elif status:
+            return Response({'status': 'Invalid status choice'}, status=400)
 
         return self.paginate(
             request=request,
