@@ -10,15 +10,17 @@ from __future__ import absolute_import
 
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'AuthProviderTestCase',
-    'RuleTestCase', 'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'LiveServerTestCase',
+    'RuleTestCase', 'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'LiveServerTestCase', 'AcceptanceTestCase',
 )
 
 import base64
+import os
 import os.path
+import pytest
 import urllib
-from contextlib import contextmanager
 
 from click.testing import CliRunner
+from contextlib import contextmanager
 from django.conf import settings
 from django.contrib.auth import login
 from django.core.cache import cache
@@ -438,3 +440,19 @@ class CliTestCase(TestCase):
     def invoke(self, *args):
         args += tuple(self.default_args)
         return self.runner.invoke(self.command, args, obj={})
+
+
+@pytest.mark.usefixtures('browser_class', 'percy_class')
+class AcceptanceTestCase(LiveServerTestCase):
+    # Use class setup/teardown to hold Selenium and Percy state across all acceptance tests.
+    # For Selenium, this is done for performance to re-use the same browser across tests.
+    # For Percy, this is done to call initialize and then finalize at the very end after all tests.
+
+    # Login helper.
+    def login(self, username, password, browser=None):
+        if browser is None:
+            browser = self.browser
+        browser.get(self.live_server_url)
+        browser.find_element_by_id('id_username').send_keys(username)
+        browser.find_element_by_id('id_password').send_keys(password)
+        browser.find_element_by_xpath("//button[contains(text(), 'Login')]").click()
