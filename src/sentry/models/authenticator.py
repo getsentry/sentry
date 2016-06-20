@@ -437,9 +437,6 @@ class U2fInterface(AuthenticatorInterface):
 
     @classproperty
     def u2f_app_id(cls):
-        facets = options.get('u2f.facets')
-        if not facets:
-            return options.get('system.url-prefix')
         return absolute_uri(reverse('sentry-u2f-app-id'))
 
     @classproperty
