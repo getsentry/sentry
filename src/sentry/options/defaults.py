@@ -12,7 +12,7 @@ from sentry.options import (
     FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_PRIORITIZE_DISK, FLAG_REQUIRED, FLAG_ALLOW_EMPTY,
     register,
 )
-from sentry.utils.types import Dict, String
+from sentry.utils.types import Dict, String, Sequence
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -69,3 +69,8 @@ register('mail.mailgun-api-key', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIOR
 register('sms.twilio-account', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('sms.twilio-token', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('sms.twilio-number', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+
+# U2F
+register('u2f.app-id', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register('u2f.facets', default=(), type=Sequence,
+         flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
