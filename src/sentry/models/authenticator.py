@@ -437,7 +437,8 @@ class U2fInterface(AuthenticatorInterface):
 
     @classproperty
     def u2f_app_id(cls):
-        return absolute_uri(reverse('sentry-u2f-app-id'))
+        rv = options.get('u2f.app-id')
+        return rv or absolute_uri(reverse('sentry-u2f-app-id'))
 
     @classproperty
     def u2f_facets(cls):

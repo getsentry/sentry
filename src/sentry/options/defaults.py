@@ -71,5 +71,6 @@ register('sms.twilio-token', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZ
 register('sms.twilio-number', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 
 # U2F
+register('u2f.app-id', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('u2f.facets', default=(), type=Sequence,
          flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
