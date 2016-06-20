@@ -4,6 +4,7 @@ import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 import ExceptionContent from './exceptionContent';
 import RawExceptionContent from './rawExceptionContent';
+import TooltipMixin from '../../../mixins/tooltip';
 import {t} from '../../../locale';
 
 const ExceptionInterface = React.createClass({
@@ -13,6 +14,12 @@ const ExceptionInterface = React.createClass({
     type: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired,
   },
+
+  mixins: [TooltipMixin({
+    html: false,
+    selector: '.tip',
+    trigger: 'hover'
+  })],
 
   getInitialState() {
     let user = ConfigStore.get('user');
@@ -45,6 +52,10 @@ const ExceptionInterface = React.createClass({
     });
   },
 
+  toggleOrder() {
+    this.setState({newestFirst: !this.state.newestFirst});
+  },
+
   render() {
     let group = this.props.group;
     let evt = this.props.event;
@@ -58,7 +69,7 @@ const ExceptionInterface = React.createClass({
 
     let title = (
       <div>
-        <div className="btn-group" style={{marginLeft:'10px'}}>
+        <div className="btn-group" style={{marginLeft:10}}>
           {data.hasSystemFrames &&
             <a className={(stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStackView.bind(this, 'app')}>{t('App Only')}</a>
           }
@@ -76,11 +87,13 @@ const ExceptionInterface = React.createClass({
         <h3>
           {t('Exception')}
           <small style={{marginLeft: 5}}>
-            {newestFirst ?
-              t('most recent call first')
-            :
-              t('most recent call last')
-            }
+            (<a onClick={this.toggleOrder} className="tip" title={t('Toggle stacktrace order')} style={{borderBottom: '1px dotted #aaa'}}>
+              {newestFirst ?
+                t('most recent call first')
+              :
+                t('most recent call last')
+              }
+            </a>)
           </small>
         </h3>
       </div>
