@@ -4,6 +4,7 @@ import React from 'react';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
+import _ from 'underscore';
 
 // TODO(mitsuhiko): very unclear how to translate this
 const ActionLink = React.createClass({
@@ -89,7 +90,7 @@ const ActionLink = React.createClass({
     let numEvents = SelectedGroupStore.getSelectedIds().size;
 
     function resolveLabel(obj) {
-      if (typeof obj === 'function') {
+      if (_.isFunction(obj)) {
         return obj(numEvents);
       }
       return obj;

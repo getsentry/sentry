@@ -3,6 +3,7 @@ import moment from 'moment';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import ConfigStore from '../stores/configStore.jsx';
 import {t} from '../locale';
+import _ from 'underscore';
 
 const TimeSince = React.createClass({
   propTypes: {
@@ -16,7 +17,7 @@ const TimeSince = React.createClass({
 
   statics: {
     getDateObj(date) {
-      if (typeof date === 'string' || typeof date === 'number') {
+      if (_.isString(date) || _.isNumber(date)) {
         date = new Date(date);
       }
       return date;
