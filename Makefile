@@ -95,8 +95,9 @@ test-cli:
 	@echo ""
 
 test-js:
-	@echo "--> Running JavaScript tests"
+	@echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack
+	@echo "--> Running JavaScript tests"
 	@npm run test
 	@echo ""
 
@@ -106,16 +107,16 @@ test-python:
 	@echo ""
 
 test-acceptance:
+	@echo "--> Building static assets"
+	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running acceptance tests"
 	py.test tests/acceptance || exit 1
 	@echo ""
-
 
 test-python-coverage:
 	@echo "--> Running Python tests"
 	coverage run --source=src/sentry -m py.test tests/integration tests/sentry
 	@echo ""
-
 
 lint: lint-python lint-js
 
