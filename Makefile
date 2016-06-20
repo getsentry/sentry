@@ -168,6 +168,7 @@ travis-install-postgres: travis-install-python dev-postgres
 travis-install-mysql: travis-install-python
 	pip install mysqlclient
 	echo 'create database sentry;' | mysql -uroot
+travis-install-acceptance: travis-install-python
 travis-install-js: install-npm
 travis-install-cli: travis-install-python
 travis-install-dist: travis-noop
@@ -178,6 +179,7 @@ travis-install-dist: travis-noop
 travis-lint-sqlite: lint-python
 travis-lint-postgres: lint-python
 travis-lint-mysql: lint-python
+travis-lint-acceptance: travis-noop
 travis-lint-js: lint-js
 travis-lint-cli: travis-noop
 travis-lint-dist: travis-noop
@@ -188,6 +190,7 @@ travis-lint-dist: travis-noop
 travis-test-sqlite: test-python-coverage
 travis-test-postgres: test-python-coverage
 travis-test-mysql: test-python-coverage
+travis-test-acceptance: test-acceptance
 travis-test-js: test-js
 travis-test-ci: test-ci
 travis-test-dist:
