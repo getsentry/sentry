@@ -112,7 +112,7 @@ class MergeGroupTest(TestCase):
         event1 = self.create_event('a' * 32, group=group1, data={'foo': 'bar'})
         project2 = self.create_project()
         group2 = self.create_group(project2)
-        self.create_event('b' * 32, group=group2, data={'foo': 'baz'})
+        event2 = self.create_event('b' * 32, group=group2, data={'foo': 'baz'})
 
         GroupMeta.objects.create(
             group=event1.group,
@@ -120,10 +120,24 @@ class MergeGroupTest(TestCase):
             value='134',
         )
 
+        GroupMeta.objects.create(
+            group=event1.group,
+            key='other:tid',
+            value='567',
+        )
+
+        GroupMeta.objects.create(
+            group=event2.group,
+            key='other:tid',
+            value='abc',
+        )
+
         GroupMeta.objects.populate_cache([group1, group2])
 
         assert GroupMeta.objects.get_value(group1, 'github:tid') == '134'
+        assert GroupMeta.objects.get_value(group2, 'other:tid') == 'abc'
         assert not GroupMeta.objects.get_value(group2, 'github:tid')
+        assert GroupMeta.objects.get_value(group1, 'other:tid') == '567'
 
         with self.tasks():
             merge_group(group1.id, group2.id)
@@ -134,7 +148,9 @@ class MergeGroupTest(TestCase):
         GroupMeta.objects.populate_cache([group1, group2])
 
         assert not GroupMeta.objects.get_value(group1, 'github:tid')
+        assert not GroupMeta.objects.get_value(group1, 'other:tid')
         assert GroupMeta.objects.get_value(group2, 'github:tid') == '134'
+        assert GroupMeta.objects.get_value(group2, 'other:tid') == 'abc'
 
 
 class RehashGroupEventsTest(TestCase):
