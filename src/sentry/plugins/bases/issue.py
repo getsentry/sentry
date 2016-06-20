@@ -105,6 +105,13 @@ class IssueTrackingPlugin(Plugin):
         """
         return self.new_issue_form(request.POST or None, initial=self.get_initial_form_data(request, group, event))
 
+    def get_new_issue_read_only_fields(self, *args, **kwargs):
+        """
+        Return a list of additional read only fields that are helpful to
+        know when filing the issue.
+        """
+        return []
+
     def get_issue_url(self, group, issue_id, **kwargs):
         """
         Given an issue_id (string) return an absolute URL to the issue's details
@@ -200,6 +207,7 @@ class IssueTrackingPlugin(Plugin):
         context = {
             'form': form,
             'title': self.get_new_issue_title(),
+            'read_only_fields': self.get_new_issue_read_only_fields(group=group),
         }
 
         return self.render(self.create_issue_template, context)
