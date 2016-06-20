@@ -22,7 +22,12 @@ class AcceptanceTest(LiveServerTestCase):
         # Initialize Selenium.
         # NOTE: this relies on the phantomjs binary packaged from npm to be in the right
         # location in node_modules.
-        phantomjs_path = os.path.join(settings.NODE_MODULES_ROOT, 'phantomjs', 'bin', 'phantomjs')
+        phantomjs_path = os.path.join(
+            settings.NODE_MODULES_ROOT,
+            'phantomjs-prebuilt',
+            'bin',
+            'phantomjs',
+        )
         cls.browser = webdriver.PhantomJS(executable_path=phantomjs_path)
 
         # Initialize Percy.
