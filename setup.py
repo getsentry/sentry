@@ -82,6 +82,7 @@ tests_require = [
     'pytest-xdist>=1.11.0,<1.12.0',
     'python-coveralls',
     'responses',
+    'percy>=0.2.5',
 ]
 
 
