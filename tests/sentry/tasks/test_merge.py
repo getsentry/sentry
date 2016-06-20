@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.tasks.merge import merge_group, rehash_group_events
-from sentry.models import Event, Group, GroupRedirect, GroupTagKey, GroupTagValue
+from sentry.models import Event, Group, GroupMeta, GroupRedirect, GroupTagKey, GroupTagValue
 from sentry.testutils import TestCase
 
 
@@ -105,6 +105,52 @@ class MergeGroupTest(TestCase):
             group_id=groups[1].id,
             key='key2',
         ).times_seen == 10
+
+    def test_merge_with_group_meta(self):
+        project1 = self.create_project()
+        group1 = self.create_group(project1)
+        event1 = self.create_event('a' * 32, group=group1, data={'foo': 'bar'})
+        project2 = self.create_project()
+        group2 = self.create_group(project2)
+        event2 = self.create_event('b' * 32, group=group2, data={'foo': 'baz'})
+
+        GroupMeta.objects.create(
+            group=event1.group,
+            key='github:tid',
+            value='134',
+        )
+
+        GroupMeta.objects.create(
+            group=event1.group,
+            key='other:tid',
+            value='567',
+        )
+
+        GroupMeta.objects.create(
+            group=event2.group,
+            key='other:tid',
+            value='abc',
+        )
+
+        GroupMeta.objects.populate_cache([group1, group2])
+
+        assert GroupMeta.objects.get_value(group1, 'github:tid') == '134'
+        assert GroupMeta.objects.get_value(group2, 'other:tid') == 'abc'
+        assert not GroupMeta.objects.get_value(group2, 'github:tid')
+        assert GroupMeta.objects.get_value(group1, 'other:tid') == '567'
+
+        with self.tasks():
+            merge_group(group1.id, group2.id)
+
+        assert not Group.objects.filter(id=group1.id).exists()
+
+        GroupMeta.objects.clear_local_cache()
+        GroupMeta.objects.populate_cache([group1, group2])
+
+        assert not GroupMeta.objects.get_value(group1, 'github:tid')
+        assert not GroupMeta.objects.get_value(group1, 'other:tid')
+        assert GroupMeta.objects.get_value(group2, 'github:tid') == '134'
+        assert GroupMeta.objects.get_value(group2, 'other:tid') == 'abc'
 
 
 class RehashGroupEventsTest(TestCase):
