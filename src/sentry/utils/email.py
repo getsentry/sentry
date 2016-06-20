@@ -343,7 +343,7 @@ class MessageBuilder(object):
     def get_built_messages(self, to=None, bcc=None):
         send_to = set(to or ())
         send_to.update(self._send_to)
-        results = [self.build(to=email, reply_to=send_to, bcc=bcc) for email in send_to]
+        results = [self.build(to=email, reply_to=send_to, bcc=bcc) for email in send_to if email]
         if not results:
             logger.debug('Did not build any messages, no users to send to.')
         return results
