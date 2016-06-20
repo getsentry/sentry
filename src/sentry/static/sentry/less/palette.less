@@ -3,45 +3,45 @@
  * ============================================================================
  */
 
-@blue:                #25A6F7;
-@blue-light:          #5BBCF9;
-@blue-dark:           #1D87CE;
+@blue:                #2EA2F5;
+@blue-light:          lighten(@blue, 10%);
+@blue-dark:           darken(@blue, 10%);
 
-@green:               #6FBA57;
-@green-light:         #93CB81;
-@green-dark:          #599748;
+@green:               #86C760;
+@green-light:         lighten(@green, 10%);
+@green-dark:          darken(@green, 10%);
 
 @yellow:              #F6D846;
-@yellow-light:        #F8E174;
-@yellow-dark:         #C5B03A;
+@yellow-light:        lighten(@yellow, 10%);
+@yellow-dark:         darken(@yellow-light, 10%);
 
-@yellow-orange:       #F8A509;
-@yellow-orange-light: #F9BB46;
-@yellow-orange-dark:  #C78607;
+@yellow-orange:       #f8a466;
+@yellow-orange-light: lighten(@yellow-orange, 10%);
+@yellow-orange-dark:  darken(@yellow-orange, 10%);
 
-@orange:              #EC5B33;
-@orange-light:        #F08466;
-@orange-dark:         #BD4A2A;
+@orange:              #f26e4e;
+@orange-light:        lighten(@orange, 10%);
+@orange-dark:         darken(@orange, 10%);
 
-@red:                 #E35141;
-@red-light:           #EA7C70;
-@red-dark:            #B64236;
+@red:                 #e25140;
+@red-light:           lighten(@red, 10%);
+@red-dark:            darken(@red, 10%);
 
-@pink:                #E56AA6;
-@pink-light:          #EB8FBC;
-@pink-dark:           #B8568A;
+@pink:                #F868BC;
+@pink-light:          lighten(@pink, 10%);
+@pink-dark:           darken(@pink, 10%);
 
-@purple:              #836CC2;
-@purple-light:        #A290D1;
-@purple-dark:         #6958A2;
+@purple:              #6C5FC7;
+@purple-light:        lighten(@purple, 10%);
+@purple-dark:         darken(@purple, 10%);
 
-@gray:                #6F7E94;
-@gray-light:          #94A0B3;
-@gray-lighter:        #BAC2D3;
-@gray-lightest:       #dbd6e4;
-@gray-dark:           #546076;
-@gray-darker:         #394359;
-@gray-darkest:        #1E263C;
+@gray:                @70;
+@gray-light:          desaturate(@50, 5%);
+@gray-lighter:        @30;
+@gray-lightest:       @20;
+@gray-dark:           @80;
+@gray-darker:         @90;
+@gray-darkest:        @100;
 
 @white:               #FFFFFF;
 @white-dark:          #FBFBFC;
@@ -55,5 +55,23 @@
 
 @link-color:          @blue;
 @link-color-hover:    @blue-dark;
-@header-bg-color:     #4C475E;
+@header-bg-color:     @gray-dark;
 @trim:                @gray-lightest;
+
+
+
+/**
+ * Playing around
+ * ============================================================================
+ */
+
+@100: desaturate(#15101c, 16%);
+@90: lighten(@100, 10%);
+@80: lighten(@100, 20%);
+@70: lighten(@100, 30%);
+@60: lighten(@100, 40%);
+@50: lighten(@100, 50%);
+@40: lighten(@100, 60%);
+@30: lighten(@100, 70%);
+@20: lighten(@100, 80%);
+@10: lighten(@100, 90%);
