@@ -23,7 +23,7 @@ class StructLogHandler(logging.StreamHandler):
         if '%' in record.msg and record.args:
             try:
                 populated = record.msg % record.args
-            except TypeError:
+            except (TypeError, KeyError):
                 if isinstance(record.args, dict):
                     kwargs.update(record.args)
                 else:
