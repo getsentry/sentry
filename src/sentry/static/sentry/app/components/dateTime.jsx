@@ -1,6 +1,7 @@
 import React from 'react';
 import moment from 'moment';
 import ConfigStore from '../stores/configStore.jsx';
+import _ from 'underscore';
 
 const DateTime = React.createClass({
   propTypes: {
@@ -26,7 +27,7 @@ const DateTime = React.createClass({
       options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : this.getDefaultFormat()
     );
 
-    if (typeof date === 'string' || typeof date === 'number') {
+    if (_.isString(date) || _.isNumber(date)) {
       date = new Date(date);
     }
 
