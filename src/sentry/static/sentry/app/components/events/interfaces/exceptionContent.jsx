@@ -15,6 +15,7 @@ const ExceptionContent = React.createClass({
 
   render() {
     let stackView = this.props.view;
+    let newestFirst = this.props.newestFirst;
     let children = this.props.values.map((exc, excIdx) => {
       return (
         <div key={excIdx} className="exception">
@@ -34,12 +35,12 @@ const ExceptionContent = React.createClass({
                 data={this.props.type === 'original' ? exc.stacktrace : exc.rawStacktrace}
                 includeSystemFrames={stackView === 'full'}
                 platform={this.props.platform}
-                newestFirst={this.props.newestFirst} />
+                newestFirst={newestFirst} />
           }
         </div>
       );
     });
-    if (this.props.newestFirst) {
+    if (newestFirst) {
       children.reverse();
     }
 
