@@ -18,7 +18,7 @@ from sentry.web.frontend.accept_organization_invite import \
     AcceptOrganizationInviteView
 from sentry.web.frontend.admin_queue import AdminQueueView
 from sentry.web.frontend.auth_login import AuthLoginView
-from sentry.web.frontend.twofactor import TwoFactorAuthView
+from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import \
     AuthOrganizationLoginView
@@ -174,6 +174,8 @@ urlpatterns += patterns(
         name='sentry-auth-organization'),
     url(r'^auth/2fa/$', TwoFactorAuthView.as_view(),
         name='sentry-2fa-dialog'),
+    url(r'^auth/2fa/u2fappid\.json$', u2f_appid,
+        name='sentry-u2f-app-id'),
     url(r'^auth/sso/$', AuthProviderLoginView.as_view(),
         name='sentry-auth-sso'),
     url(r'^auth/logout/$', AuthLogoutView.as_view(),
