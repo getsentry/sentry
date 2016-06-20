@@ -23,6 +23,7 @@ const U2fInterface = React.createClass({
       formElement: null,
       challengeElement: null,
       hasBeenTapped: false,
+      deviceFailure: null,
       responseElement: null
     };
   },
@@ -35,6 +36,15 @@ const U2fInterface = React.createClass({
       if (!supported) {
         return;
       }
+      this.invokeU2fFlow();
+    });
+  },
+
+  onTryAgain() {
+    this.setState({
+      hasBeenTapped: false,
+      deviceFailure: null,
+    }, () => {
       this.invokeU2fFlow();
     });
   },
@@ -57,6 +67,22 @@ const U2fInterface = React.createClass({
         if (!this.props.onTap || this.props.onTap()) {
           this.state.formElement.submit();
         }
+      });
+    })
+    .catch((err) => {
+      let failure = 'DEVICE_ERROR';
+      if (err.metaData.type === 'DEVICE_INELIGIBLE') {
+        if (this.props.flowMode === 'enroll') {
+          failure = 'DUPLICATE_DEVICE';
+        } else {
+          failure = 'UNKNOWN_DEVICE';
+        }
+      } else if (err.metaData.type === 'BAD_REQUEST') {
+        failure = 'BAD_APPID';
+      }
+      this.setState({
+        deviceFailure: failure,
+        hasBeenTapped: false,
       });
     });
   },
@@ -94,10 +120,37 @@ const U2fInterface = React.createClass({
     );
   },
 
+  renderFailure() {
+    let {deviceFailure} = this.state;
+    return (
+      <div className="failure-message">
+        <p><strong>{t('Error: ')}</strong> {{
+          'DEVICE_ERROR': t('Your U2F device reported an error.'),
+          'DUPLICATE_DEVICE': t('This device is already in use.'),
+          'UNKNOWN_DEVICE': t('The device you used for sign-in is unknown.'),
+          'BAD_APPID': t('The Sentry server administrator modified the ' +
+                         'device registrations. You need to remove and ' +
+                         're-add the device to continue.'),
+        }[deviceFailure]}</p>
+        <p><a onClick={this.onTryAgain} className="btn btn-primary">{t('Try Again')}</a></p>
+      </div>
+    );
+  },
+
+  renderBody() {
+    if (this.state.deviceFailure) {
+      return this.renderFailure();
+    } else {
+      return this.props.children;
+    }
+  },
+
   renderPrompt() {
     return (
-      <div className={'u2f-box' + (this.state.hasBeenTapped ? ' tapped' : '')}>
+      <div className={'u2f-box' + (this.state.hasBeenTapped ? ' tapped' : '')
+          + (this.state.deviceFailure ? ' device-failure' : '')}>
         <div className="device-animation-frame">
+          <div className="device-failed"/>
           <div className="device-animation"/>
           <div className="loading-dots">
             <span className="dot" />
@@ -108,7 +161,7 @@ const U2fInterface = React.createClass({
         <input type="hidden" name="challenge" ref={this.bindChallengeElement}/>
         <input type="hidden" name="response" ref={this.bindResponseElement}/>
         <div className="inner">
-          {this.props.children}
+          {this.renderBody()}
         </div>
       </div>
     );
