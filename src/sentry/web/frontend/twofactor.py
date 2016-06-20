@@ -2,10 +2,11 @@ from __future__ import absolute_import
 
 import time
 
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
+from sentry import options
 from sentry.web.frontend.base import BaseView
 from sentry.web.forms.accounts import TwoFactorForm
 from sentry.web.helpers import render_to_response
@@ -142,3 +143,18 @@ class TwoFactorAuthView(BaseView):
             'other_interfaces': self.get_other_interfaces(interface, interfaces),
             'activation': activation,
         }, request, status=200)
+
+
+def u2f_appid(request):
+    facets = options.get('u2f.facets')
+    if not facets:
+        facets = [options.get('system.url-prefix')]
+    return HttpResponse(json.dumps({
+        'trustedFacets': [{
+            'version': {
+                'major': 1,
+                'minor': 0
+            },
+            'ids': [x.rstrip('/') for x in facets]
+        }]
+    }), content_type='application/fido.trusted-apps+json')

@@ -82,6 +82,7 @@ tests_require = [
     'pytest-xdist>=1.11.0,<1.12.0',
     'python-coveralls',
     'responses',
+    'percy>=0.2.5',
 ]
 
 
@@ -121,9 +122,9 @@ install_requires = [
     'python-dateutil>=2.0.0,<3.0.0',
     'python-memcached>=1.53,<2.0.0',
     'PyYAML>=3.11,<4.0',
-    'raven>=5.3.0',
+    'raven>=5.21.0,<6.0.0',
     'redis>=2.10.3,<2.11.0',
-    'requests%s>=2.9.1,<2.10.0' % (not IS_LIGHT_BUILD and '[security]' or ''),
+    'requests%s>=2.9.1,<2.11.0' % (not IS_LIGHT_BUILD and '[security]' or ''),
     'selenium>=2.53,<2.60',
     'simplejson>=3.2.0,<3.9.0',
     'six>=1.6.0,<2.0.0',

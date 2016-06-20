@@ -27,7 +27,7 @@
   {% endblock %}
 
   <fieldset class="form-actions">
-    <form action="" method="post" style="display: inline">
+    <form action="" method="post" id="twofactor-form" style="display: inline">
       {% csrf_token %}
       {% block twofactor_buttons %}
         {% if not auth.is_enrolled %}

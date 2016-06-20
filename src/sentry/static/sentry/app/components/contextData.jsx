@@ -1,6 +1,7 @@
 import React from 'react';
 import jQuery from 'jquery';
 import {isUrl} from '../utils';
+import _ from 'underscore';
 
 function looksLikeObjectRepr(value) {
   let a = value[0];
@@ -107,7 +108,7 @@ const ContextData = React.createClass({
         return <span className="val-null">{'None'}</span>;
       } else if (value === true || value === false) {
         return <span className="val-bool">{value ? 'True' : 'False'}</span>;
-      } else if (typeof value === 'string' || value instanceof String) {
+      } else if (_.isString(value)) {
         let valueInfo = analyzeStringForRepr(value);
 
         let out = [<span key="value" className={
@@ -125,9 +126,9 @@ const ContextData = React.createClass({
         }
 
         return out;
-      } else if (typeof value === 'number' || value instanceof Number) {
+      } else if (_.isNumber(value)) {
         return <span className="val-number">{value}</span>;
-      } else if (value instanceof Array) {
+      } else if (_.isArray(value)) {
         for (i = 0; i < value.length; i++) {
           children.push(
             <span className="val-array-item" key={i}>
@@ -176,7 +177,7 @@ const ContextData = React.createClass({
   },
 
   renderKeyPosValue(value) {
-    if (typeof value === 'string' || value instanceof String) {
+    if (_.isString(value)) {
       return <span className="val-string">{value}</span>;
     }
     return this.renderValue(value);

@@ -30,7 +30,7 @@ const SettingsList = React.createClass({
     for (let key of optionsAvailable) {
       // TODO(dcramer): we should not be mutating options
       let option = options[key] || {field: {}};
-      if (typeof option.value === 'undefined' || option.value === '') {
+      if (_.isUndefined(option.value) || option.value === '') {
         let defn = getOption(key);
         formData[key] = defn.defaultValue ? defn.defaultValue() : '';
       } else {

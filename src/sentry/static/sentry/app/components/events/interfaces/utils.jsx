@@ -1,4 +1,5 @@
 import {defined} from '../../../utils';
+import _ from 'underscore';
 
 export function escapeQuotes(v) {
   return v.replace(/"/g, '\\"');
@@ -28,7 +29,7 @@ export function getCurlCommand(data) {
     result += ' \\\n -H "' + header[0] + ': ' + escapeQuotes(header[1] + '') + '"';
   }
 
-  if (typeof data.data === 'string') {
+  if (_.isString(data.data)) {
     result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
   } else if (defined(data.data)) {
     result += ' \\\n --data "' + escapeQuotes(jQuery.param(data.data)) + '"';

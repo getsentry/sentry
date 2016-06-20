@@ -34,11 +34,11 @@ const arrayIsEqual = function(arr, other, deep) {
 const valueIsEqual = function(value, other, deep) {
   if (value === other) {
     return true;
-  } else if (value instanceof Array || other instanceof Array) {
+  } else if (_.isArray(value) || _.isArray(other)) {
     if (arrayIsEqual(value, other, deep)) {
       return true;
     }
-  } else if (value instanceof Object || other instanceof Object) {
+  } else if (_.isObject(value) || _.isObject(other)) {
     if (objectMatchesSubset(value, other, deep)) {
       return true;
     }
@@ -163,7 +163,7 @@ export default {
   },
 
   defined(item) {
-    return typeof item !== 'undefined' && item !== null;
+    return !_.isUndefined(item) && item !== null;
   },
 
   nl2br(str) {

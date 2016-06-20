@@ -26,6 +26,7 @@ const Frame = React.createClass({
     nextFrameInApp: React.PropTypes.bool,
     platform: React.PropTypes.string,
     isExpanded: React.PropTypes.bool,
+    emptySourceNotation: React.PropTypes.bool,
   },
 
   mixins: [
@@ -38,7 +39,8 @@ const Frame = React.createClass({
 
   getDefaultProps() {
     return {
-      isExpanded: false
+      isExpanded: false,
+      emptySourceNotation: false
     };
   },
 
@@ -53,9 +55,6 @@ const Frame = React.createClass({
 
   toggleContext(evt) {
     evt && evt.preventDefault();
-    if (!this.isExpandable()) {
-      return null;
-    }
 
     this.setState({
       isExpanded: !this.state.isExpanded
@@ -71,7 +70,11 @@ const Frame = React.createClass({
   },
 
   isExpandable() {
-    return this.hasContextSource() || this.hasContextVars();
+    return (
+      this.props.emptySourceNotation
+      || this.hasContextSource()
+      || this.hasContextVars()
+    );
   },
 
   renderOriginalSourceInfo() {
@@ -98,8 +101,8 @@ const Frame = React.createClass({
     let data = this.props.data;
     let title = [];
 
-    // TODO(mitsuhiko): this is terrible for translators but i'm too
-    // lazy to change this up right now.  This should be a format string
+    // TODO(dcramer): this needs to use a formatted string so it can be
+    // localized correctly
 
     if (defined(data.filename || data.module)) {
       title.push((
@@ -111,7 +114,7 @@ const Frame = React.createClass({
         title.push(<a href={data.absPath} className="icon-open" key="share" target="_blank" />);
       }
       if (defined(data.function)) {
-        title.push(<span className="in-at" key="in"> {t('in')} </span>);
+        title.push(<span className="in-at" key="in"> in </span>);
       }
     }
 
@@ -122,19 +125,17 @@ const Frame = React.createClass({
     // we don't want to render out zero line numbers which are used to
     // indicate lack of source information for native setups.  We could
     // TODO(mitsuhiko): only do this for events from native platforms?
-    else if (defined(data.lineNo) && data.lineNo != 0) {
-      // TODO(dcramer): we need to implement source mappings
-      // title.push(<span className="pull-right blame"><a><span className="icon-mark-github"></span> View Code</a></span>);
-      title.push(<span className="in-at" key="at"> {t('at line')} </span>);
-      if (defined(data.colNo)) {
-        title.push(<code key="line" className="lineno">{data.lineNo}:{data.colNo}</code>);
-      } else {
-        title.push(<code key="line" className="lineno">{data.lineNo}</code>);
-      }
+    if (defined(data.lineNo) && data.lineNo != 0) {
+      title.push(<span className="in-at" key="no"> at line </span>);
+      title.push((
+        <code key="line" className="lineno">
+          {defined(data.colNo) ? `${data.lineNo}:${data.colNo}` : data.lineNo}
+        </code>
+      ));
     }
 
     if (defined(data.package)) {
-      title.push(<span className="within" key="within"> {t('within')} </span>);
+      title.push(<span className="within" key="within"> within </span>);
       title.push(<code title={data.package} className="package">{trimPackage(data.package)}</code>);
     }
 
@@ -145,6 +146,8 @@ const Frame = React.createClass({
         </a>
       );
     }
+
+    title.push(this.renderExpander());
 
     return title;
   },
@@ -170,22 +173,27 @@ const Frame = React.createClass({
     if (hasContextSource || hasContextVars) {
       let startLineNo = hasContextSource ? data.context[0][0] : '';
       context = (
-        <StrictClick onClick={expandable ? this.toggleContext : null}>
-          <ol start={startLineNo} className={outerClassName}>
-            {defined(data.errors) &&
-            <li className={expandable ? 'expandable error' : 'error'}
-                key="errors">{data.errors.join(', ')}</li>
-            }
+        <ol start={startLineNo} className={outerClassName}>
+          {defined(data.errors) &&
+          <li className={expandable ? 'expandable error' : 'error'}
+              key="errors">{data.errors.join(', ')}</li>
+          }
 
-            {data.context && contextLines.map((line, index) => {
-              return <ContextLine key={index} line={line} isActive={data.lineNo === line[0]} />;
-            })}
+          {data.context && contextLines.map((line, index) => {
+            return <ContextLine key={index} line={line} isActive={data.lineNo === line[0]} />;
+          })}
 
-            {hasContextVars &&
-              <ClippedBox clipHeight={100}><FrameVariables data={data.vars} key="vars" /></ClippedBox>
-            }
-          </ol>
-        </StrictClick>
+          {hasContextVars &&
+            <ClippedBox clipHeight={100}><FrameVariables data={data.vars} key="vars" /></ClippedBox>
+          }
+        </ol>
+      );
+    } else if (this.props.emptySourceNotation) {
+      context = (
+        <div className="empty-context">
+          <span className="icon icon-exclamation" />
+          <p>{t('No additional details are available for this frame.')}</p>
+        </div>
       );
     }
     return context;
@@ -207,39 +215,40 @@ const Frame = React.createClass({
 
   renderDefaultLine() {
     return (
-      <p onClick={this.toggleContext}>
-        {this.renderDefaultTitle()}
-        {this.renderExpander()}
-      </p>
+      <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
+        <div className="title">{this.renderDefaultTitle()}</div>
+      </StrictClick>
     );
   },
 
   renderCocoaLine() {
     let data = this.props.data;
     return (
-      <p className="as-table" onClick={this.toggleContext}>
-        {defined(data.package)
-          ? (
-            <span className="package" title={data.package}>
-              {trimPackage(data.package)}
-            </span>
-          ) : (
-            <span className="package"/>
-          )
-        }
-        <span className="address">
-          {data.instructionAddr}
-        </span>
-        <span className="symbol">
-          <code>{data.function || '<unknown>'}</code>
-          {data.instructionOffset &&
-            <span className="offset">{' + ' + data.instructionOffset}</span>}
-          {data.filename &&
-            <span className="filename">{data.filename}
-              {data.lineNo ? ':' + data.lineNo : ''}</span>}
-          {this.renderExpander()}
-        </span>
-      </p>
+      <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
+        <div className="title as-table">
+          {defined(data.package)
+            ? (
+              <span className="package" title={data.package}>
+                {trimPackage(data.package)}
+              </span>
+            ) : (
+              <span className="package"/>
+            )
+          }
+          <span className="address">
+            {data.instructionAddr}
+          </span>
+          <span className="symbol">
+            <code>{data.function || '<unknown>'}</code>
+            {data.instructionOffset &&
+              <span className="offset">{' + ' + data.instructionOffset}</span>}
+            {data.filename &&
+              <span className="filename">{data.filename}
+                {data.lineNo ? ':' + data.lineNo : ''}</span>}
+            {this.renderExpander()}
+          </span>
+        </div>
+      </StrictClick>
     );
   },
 
