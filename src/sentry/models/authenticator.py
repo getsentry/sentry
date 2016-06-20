@@ -444,7 +444,7 @@ class U2fInterface(AuthenticatorInterface):
     def u2f_facets(cls):
         facets = options.get('u2f.facets')
         if not facets:
-            return [cls.u2f_app_id]
+            return [options.get('system.url-prefix')]
         return [x.rstrip('/') for x in facets]
 
     @classproperty
