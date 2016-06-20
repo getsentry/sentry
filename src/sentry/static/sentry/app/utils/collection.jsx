@@ -40,7 +40,7 @@ Collection.prototype._refresh = function _refresh() {
 };
 
 Collection.prototype.push = function push(items) {
-  if (!items instanceof Array) {
+  if (!(items instanceof Array)) {
     items = [items];
   }
 
@@ -57,7 +57,7 @@ Collection.prototype.push = function push(items) {
 };
 
 Collection.prototype.unshift = function unshift(items) {
-  if (!items instanceof Array) {
+  if (!(items instanceof Array)) {
     items = [items];
   }
   items.reverse().forEach(function(item){

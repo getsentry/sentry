@@ -41,7 +41,7 @@ const GroupStore = Reflux.createStore({
   },
 
   add(items) {
-    if (!items instanceof Array) {
+    if (!(items instanceof Array)) {
       items = [items];
     }
 
