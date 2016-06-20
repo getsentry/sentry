@@ -58,7 +58,8 @@ const AvatarSettings = React.createClass({
     this.setState({user: user});
     AlertActions.addAlert({
       message: t('Successfully saved avatar preferences'),
-      type: 'success'
+      type: 'success',
+      expireAfrer: 3000
     });
   },
 
