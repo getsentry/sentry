@@ -22,6 +22,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
+from django.core.urlresolvers import reverse
 
 from sentry import options
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, \
@@ -30,6 +31,7 @@ from sentry.utils.decorators import classproperty
 from sentry.utils.otp import generate_secret_key, TOTP
 from sentry.utils.sms import send_sms, sms_available
 from sentry.utils.dates import to_datetime
+from sentry.utils.http import absolute_uri
 
 
 class ActivationResult(object):
@@ -435,18 +437,22 @@ class U2fInterface(AuthenticatorInterface):
 
     @classproperty
     def u2f_app_id(cls):
-        return options.get('system.url-prefix')
+        facets = options.get('u2f.facets')
+        if not facets:
+            return options.get('system.url-prefix')
+        return absolute_uri(reverse('sentry-u2f-app-id'))
 
     @classproperty
     def u2f_facets(cls):
-        app_id = cls.u2f_app_id
-        return app_id and [app_id] or []
+        facets = options.get('u2f.facets')
+        if not facets:
+            return [cls.u2f_app_id]
+        return [x.rstrip('/') for x in facets]
 
     @classproperty
     def is_available(cls):
-        app_id = cls.u2f_app_id
-        return app_id is not None and \
-            app_id.startswith('https://')
+        url_prefix = options.get('system.url-prefix')
+        return url_prefix and url_prefix.startswith('https://')
 
     def generate_new_config(self):
         return {}
