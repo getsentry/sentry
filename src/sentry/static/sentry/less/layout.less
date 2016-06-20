@@ -55,6 +55,12 @@ body.auth {
 * ============================================================================
 */
 
+.app {
+  display: flex;
+  flex-direction: column;
+}
+
+
 .container {
   position: relative;
   padding-left: 40px;
@@ -234,7 +240,6 @@ header {
 }
 
 .sub-header {
-  background: #fff;
   color: @gray-dark;
   border-bottom: 1px solid @trim;
   position: relative;
@@ -424,8 +429,33 @@ footer {
   }
 }
 
-@media (min-width: 1300px) {
+@media (min-width: 1700px) {
+  body {
+    background: @header-bg-color;
+  }
 
+  .app {
+    background: #fff;
+    width: 1700px - @sidebar-width !important;
+    position: relative;
+    min-height: 100vh;
+    margin: 0 auto;
+  }
+
+  header {
+    position: absolute;
+    margin-left: -@sidebar-width;
+    background: none;
+
+    .container {
+      height: 1vh;
+      position: relative;
+
+      .user-nav, .anchor-top {
+        position: fixed;
+      }
+    }
+  }
 }
 
 /**

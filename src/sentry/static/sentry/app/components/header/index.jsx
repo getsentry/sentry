@@ -117,16 +117,18 @@ const Header = React.createClass({
     return (
       <header>
         <div className="container">
-          <div className="org-switcher divider-bottom">
-            <a className="active-org">
-              <img src="https://pbs.twimg.com/profile_images/497432038492733440/eW6tXeq3_400x400.png" />
-            </a>
+          <div className="anchor-top">
+            <div className="org-switcher divider-bottom">
+              <a className="active-org">
+                <img src="https://pbs.twimg.com/profile_images/497432038492733440/eW6tXeq3_400x400.png" />
+              </a>
+            </div>
+            <ul className="my-nav divider-bottom">
+              <li><a><span className="icon-user"/></a></li>
+              <li><a><span className="icon-star-solid"/></a></li>
+              <li><a><span className="icon-av_timer"/></a></li>
+            </ul>
           </div>
-          <ul className="my-nav divider-bottom">
-            <li><a><span className="icon-user"/></a></li>
-            <li><a><span className="icon-star-solid"/></a></li>
-            <li><a><span className="icon-av_timer"/></a></li>
-          </ul>
           { /* <Broadcasts /> */ }
           { /* {this.props.orgId ?
             <Link to={`/${this.props.orgId}/`} className="logo">{logo}</Link>
