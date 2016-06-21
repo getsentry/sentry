@@ -571,6 +571,11 @@ LOGGING = {
         'celery': {
             'level': 'WARN',
         },
+        'celery.worker.job': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
         'static_compiler': {
             'level': 'INFO',
         },
