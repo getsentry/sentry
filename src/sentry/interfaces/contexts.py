@@ -108,7 +108,4 @@ class Contexts(Interface):
                 yield tag
 
     def get_path(self):
-        return 'sentry.interfaces.Contexts'
-
-    def get_alias(self):
         return 'contexts'

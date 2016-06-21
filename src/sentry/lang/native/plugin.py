@@ -201,7 +201,7 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
 
 
 def inject_apple_device_data(data, system):
-    contexts = data.setdefault('sentry.interfaces.Contexts', {})
+    contexts = data.setdefault('contexts', {})
 
     device = contexts.setdefault('device', {})
     os = contexts.setdefault('os', {})
