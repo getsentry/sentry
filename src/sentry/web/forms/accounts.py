@@ -24,35 +24,6 @@ from sentry.utils.auth import find_users
 from sentry.web.forms.fields import ReadOnlyTextField
 
 
-# at runtime we decide whether we should support recaptcha
-# TODO(dcramer): there **must** be a better way to do this
-if settings.RECAPTCHA_PUBLIC_KEY:
-    class CaptchaForm(forms.Form):
-        def __init__(self, *args, **kwargs):
-            captcha = kwargs.pop('captcha', True)
-            super(CaptchaForm, self).__init__(*args, **kwargs)
-            if captcha:
-                self.fields['captcha'] = ReCaptchaField()
-
-    class CaptchaModelForm(forms.ModelForm):
-        def __init__(self, *args, **kwargs):
-            captcha = kwargs.pop('captcha', True)
-            super(CaptchaModelForm, self).__init__(*args, **kwargs)
-            if captcha:
-                self.fields['captcha'] = ReCaptchaField()
-
-else:
-    class CaptchaForm(forms.Form):
-        def __init__(self, *args, **kwargs):
-            kwargs.pop('captcha', None)
-            super(CaptchaForm, self).__init__(*args, **kwargs)
-
-    class CaptchaModelForm(forms.ModelForm):
-        def __init__(self, *args, **kwargs):
-            kwargs.pop('captcha', None)
-            super(CaptchaModelForm, self).__init__(*args, **kwargs)
-
-
 def _get_timezone_choices():
     results = []
     for tz in pytz.common_timezones:
@@ -66,6 +37,30 @@ def _get_timezone_choices():
     return results
 
 TIMEZONE_CHOICES = _get_timezone_choices()
+
+
+class CaptchaForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        has_captcha = bool(settings.RECAPTCHA_PUBLIC_KEY)
+        if has_captcha:
+            captcha = kwargs.pop('captcha', True)
+        else:
+            captcha = kwargs.pop('captcha', None)
+        super(CaptchaForm, self).__init__(*args, **kwargs)
+        if has_captcha and captcha:
+            self.fields['captcha'] = ReCaptchaField()
+
+
+class CaptchaModelForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        has_captcha = bool(settings.RECAPTCHA_PUBLIC_KEY)
+        if has_captcha:
+            captcha = kwargs.pop('captcha', True)
+        else:
+            captcha = kwargs.pop('captcha', None)
+        super(CaptchaModelForm, self).__init__(*args, **kwargs)
+        if has_captcha and captcha:
+            self.fields['captcha'] = ReCaptchaField()
 
 
 class AuthenticationForm(CaptchaForm):

@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import copy
 import json
+import petname
 import six
 import warnings
 
@@ -149,11 +150,12 @@ class Fixtures(object):
         )
 
     def create_organization(self, **kwargs):
+        if not kwargs.get('name'):
+            kwargs['name'] = petname.Generate(2, ' ').title()
+
         owner = kwargs.pop('owner', None)
         if not owner:
             owner = self.user
-
-        kwargs.setdefault('name', uuid4().hex)
 
         org = Organization.objects.create(**kwargs)
         self.create_member(
@@ -177,7 +179,8 @@ class Fixtures(object):
         return om
 
     def create_team(self, **kwargs):
-        kwargs.setdefault('name', uuid4().hex)
+        if not kwargs.get('name'):
+            kwargs['name'] = petname.Generate(2, ' ').title()
         if not kwargs.get('slug'):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
         if not kwargs.get('organization'):
@@ -186,7 +189,8 @@ class Fixtures(object):
         return Team.objects.create(**kwargs)
 
     def create_project(self, **kwargs):
-        kwargs.setdefault('name', uuid4().hex)
+        if not kwargs.get('name'):
+            kwargs['name'] = petname.Generate(2, ' ').title()
         if not kwargs.get('slug'):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
         if not kwargs.get('team'):
