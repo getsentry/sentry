@@ -567,7 +567,7 @@ LOGGING = {
             'handlers': ['console'],
         },
         'celery': {
-            'level': 'INFO',
+            'level': 'WARN',
         },
         'static_compiler': {
             'level': 'INFO',
