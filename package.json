@@ -28,6 +28,7 @@
     "moment": "2.10.6",
     "moment-timezone": "0.4.1",
     "node-libs-browser": "0.5.3",
+    "phantomjs-prebuilt": "2.1.7",
     "platformicons": "0.0.14",
     "po-catalog-loader": "^1.2.0",
     "query-string": "2.4.2",
