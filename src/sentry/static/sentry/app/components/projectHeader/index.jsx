@@ -35,50 +35,44 @@ const ProjectHeader = React.createClass({
                 projectId={project.slug}/>
 
             <div className="pull-right">
-              <ul className="nav nav-tabs nav-tabs-divided anchor-right">
-                <li><a><span className="icon-star-solid" /> Star</a></li>
-                <li><a><span className="icon-signal" /> Subscribe</a></li>
+              <a className="btn btn-sm btn-default"><span className="icon-star-solid" /> Star</a>
+              <a className="btn btn-sm btn-default"><span className="icon-signal" /> Subscribe</a>
                 {access.has('project:write') &&
-                  <li className={navSection == 'settings' ? 'active' : ''}>
-                    <a href={urlPrefix + `/${org.slug}/${project.slug}/settings/`}>
-                      <span className="icon-settings" /> {t('Settings')}
-                    </a>
-                  </li>
+                  <a className="btn btn-sm btn-default {navSection == 'settings' ? 'active' : ''}" href={urlPrefix + `/${org.slug}/${project.slug}/settings/`}>
+                    <span className="icon-settings" /> {t('Settings')}
+                  </a>
                 }
-              </ul>
             </div>
-
-            <div>
-              <ul className="nav nav-tabs">
-                <li className={navSection == 'stream' ? 'active' : ''}>
-                  <Link to={`/${org.slug}/${project.slug}/`}>
-                    {t('Issues')}
+            
+            <ul className="nav nav-tabs">
+              <li className={navSection == 'stream' ? 'active' : ''}>
+                <Link to={`/${org.slug}/${project.slug}/`}>
+                  {t('Issues')}
+                </Link>
+              </li>
+              {features.has('global-events') &&
+                <li className={navSection == 'events' ? 'active' : ''}>
+                  <Link to={`/${org.slug}/${project.slug}/events/`}>
+                    {t('Events')}
                   </Link>
                 </li>
-                {features.has('global-events') &&
-                  <li className={navSection == 'events' ? 'active' : ''}>
-                    <Link to={`/${org.slug}/${project.slug}/events/`}>
-                      {t('Events')}
-                    </Link>
-                  </li>
-                }
-                <li className={navSection == 'dashboard' ? 'active' : ''}>
-                  <Link to={`/${org.slug}/${project.slug}/dashboard/`}>
-                    {t('Overview')}
-                  </Link>
-                </li>
-                <li className={navSection == 'user-feedback' ? 'active' : ''}>
-                  <Link to={`/${org.slug}/${project.slug}/user-feedback/`}>
-                    {t('User Feedback')}
-                  </Link>
-                </li>
-                <li className={navSection == 'releases' ? 'active' : ''}>
-                  <Link to={`/${org.slug}/${project.slug}/releases/`}>
-                    {t('Releases')}
-                  </Link>
-                </li>
-              </ul>
-            </div>
+              }
+              <li className={navSection == 'dashboard' ? 'active' : ''}>
+                <Link to={`/${org.slug}/${project.slug}/dashboard/`}>
+                  {t('Overview')}
+                </Link>
+              </li>
+              <li className={navSection == 'user-feedback' ? 'active' : ''}>
+                <Link to={`/${org.slug}/${project.slug}/user-feedback/`}>
+                  {t('User Feedback')}
+                </Link>
+              </li>
+              <li className={navSection == 'releases' ? 'active' : ''}>
+                <Link to={`/${org.slug}/${project.slug}/releases/`}>
+                  {t('Releases')}
+                </Link>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
