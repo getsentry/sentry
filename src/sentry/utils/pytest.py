@@ -6,6 +6,7 @@ import pytest
 import signal
 import urllib
 
+from datetime import datetime
 from django.conf import settings
 from selenium import webdriver
 
@@ -156,6 +157,8 @@ def pytest_runtest_teardown(item):
     discard_all()
 
 
+# TODO(dcramer): ideally we could bundle up more of the browser logic here
+# rather than splitting it between the fixtures and AcceptanceTestCase
 @pytest.fixture(scope='session')
 def percy(request, browser):
     import percy
@@ -199,6 +202,18 @@ def browser(request):
 
 
 @pytest.fixture(scope='class')
+def screenshots_path_class(request, browser):
+    date = datetime.utcnow()
+    # AcceptanceTestCase.snapshot saves local screenshots here
+    path = os.path.normpath(os.path.join(
+        os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, 'tmp', 'selenium-screenshots', date.strftime('%s'))
+    )
+    print('Screenshots will be stored in {}'.format(path))
+    os.makedirs(path)
+    request.cls.screenshots_path = path
+
+
+@pytest.fixture(scope='class')
 def browser_class(request, browser):
     request.cls.browser = browser
 
@@ -209,7 +224,9 @@ def percy_class(request, percy):
 
 
 @pytest.fixture(scope='function')
-def clear_cookies(request):
-    # Clear cookies before every test. This helps avoid problems with login captchas.
-    if hasattr(request, 'browser'):
-        browser.delete_all_cookies()
+def reset_browser_session(request):
+    if not hasattr(request, 'browser'):
+        return
+
+    browser.delete_all_cookies()
+    browser.get('about:blank')
