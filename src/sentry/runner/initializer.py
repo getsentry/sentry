@@ -182,12 +182,8 @@ def configure_structlog():
             )
         ])
     elif fmt == LoggingFormat.MACHINE:
-        from sentry.utils.json import dumps
-        kwargs['processors'].append(
-            structlog.processors.JSONRenderer(
-                serializer=dumps
-            )
-        )
+        from sentry.logging.handlers import JSONRenderer
+        kwargs['processors'].append(JSONRenderer())
 
     structlog.configure(**kwargs)
 
