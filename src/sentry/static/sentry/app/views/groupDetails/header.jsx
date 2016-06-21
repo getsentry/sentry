@@ -138,7 +138,7 @@ const GroupHeader = React.createClass({
     return (
       <div className={className}>
         <div className="row">
-          <div className="col-sm-7">
+          <div className="col-sm-6">
             <h3>
               {this.getTitle()}
             </h3>
@@ -160,8 +160,12 @@ const GroupHeader = React.createClass({
               })}
             </div>
           </div>
-          <div className="col-sm-5 stats">
+          <div className="col-sm-6 stats">
             <div className="flex flex-justify-right">
+              <div className="status count align-right">
+                <h6 className="nav-header">{t('Status')}</h6>
+                <span>Unresolved</span>
+              </div>
               {group.shortId &&
                 <div className="count align-right">
                   <h6 className="nav-header">{t('Issue #')}</h6>

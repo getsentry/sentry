@@ -120,7 +120,7 @@ const Header = React.createClass({
           <div className="anchor-top">
             <div className="org-switcher divider-bottom">
               <a className="active-org">
-                <img src="https://pbs.twimg.com/profile_images/497432038492733440/eW6tXeq3_400x400.png" />
+                <img src="https://s3.amazonaws.com/f.cl.ly/items/0z1b103b2K2e3A0y3E0H/sentry-avatar.png" />
               </a>
             </div>
             <ul className="my-nav divider-bottom">

@@ -127,8 +127,7 @@ let GroupEventToolbar  = React.createClass({
     //       React component?
     let jsonUrl = `/${orgId}/${projectId}/issues/${groupId}/events/${evt.id}/json/`;
     let style = {
-      borderBottom: '1px dotted #dfe3ea',
-      paddingBottom: '5px'
+      borderBottom: '1px dotted #dfe3ea'
     };
 
     let latencyThreshold = 30 * 60 * 1000;  // 30 minutes
