@@ -378,6 +378,8 @@ CELERY_DEFAULT_EXCHANGE = "default"
 CELERY_DEFAULT_EXCHANGE_TYPE = "direct"
 CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
+CELERY_REDIRECT_STDOUTS = False
+CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_IMPORTS = (
     'sentry.tasks.auth',
     'sentry.tasks.auto_resolve_issues',
@@ -515,7 +517,7 @@ LOGGING = {
             'class': 'django.utils.log.NullHandler',
         },
         'console': {
-            'level': 'WARNING',
+            'level': 'INFO',
             'class': 'sentry.logging.handlers.StructLogHandler',
         },
         'sentry': {
@@ -560,6 +562,12 @@ LOGGING = {
         'sentry.rules': {
             'handlers': ['console'],
             'propagate': False,
+        },
+        'multiprocessing': {
+            'handlers': ['console'],
+        },
+        'celery': {
+            'level': 'INFO',
         },
         'static_compiler': {
             'level': 'INFO',
