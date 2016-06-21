@@ -220,6 +220,7 @@ class StatsMixin(object):
         start = request.GET.get('since')
         if start:
             start = datetime.fromtimestamp(float(start)).replace(tzinfo=utc)
+            assert start <= end, 'start must be before or equal to end'
         else:
             start = end - timedelta(days=1, seconds=-1)
 
