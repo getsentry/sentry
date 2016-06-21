@@ -13,6 +13,7 @@ from sentry.models import EventMapping, Group, ProjectKey, UserReport
 from sentry.web.helpers import render_to_response
 from sentry.utils import json
 from sentry.utils.http import is_valid_origin
+from sentry.utils.validators import is_event_id
 
 
 class UserReportForm(forms.ModelForm):
@@ -66,6 +67,9 @@ class ErrorPageEmbedView(View):
         try:
             event_id = request.GET['eventId']
         except KeyError:
+            return self._json_response(request, status=400)
+
+        if not is_event_id(event_id):
             return self._json_response(request, status=400)
 
         key = self._get_project_key(request)
