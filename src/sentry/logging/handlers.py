@@ -5,11 +5,30 @@ sentry.logging.handlers
 :license: BSD, see LICENSE for more details.
 """
 
+from simplejson import JSONEncoder
 import logging
 
 from structlog import get_logger
+from structlog.processors import _json_fallback_handler
 
 logger = get_logger()
+
+_default_encoder = JSONEncoder(
+    separators=(',', ':'),
+    ignore_nan=True,
+    skipkeys=False,
+    ensure_ascii=True,
+    check_circular=True,
+    allow_nan=True,
+    indent=None,
+    encoding='utf-8',
+    default=_json_fallback_handler,
+).encode
+
+
+class JSONRenderer(object):
+    def __call__(self, logger, name, event_dict):
+        return _default_encoder(event_dict)
 
 
 class StructLogHandler(logging.StreamHandler):
