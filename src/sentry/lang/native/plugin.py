@@ -20,27 +20,102 @@ NON_APP_FRAMEWORKS = (
     '/Frameworks/libswiftCore.dylib',
 )
 
+SIGNAL_NAMES = {
+    1: 'SIGHUP',
+    2: 'SIGINT',
+    3: 'SIGQUIT',
+    4: 'SIGILL',
+    5: 'SIGTRAP',
+    6: 'SIGABRT',
+    7: 'SIGEMT',
+    8: 'SIGFPE',
+    9: 'SIGKILL',
+    10: 'SIGBUS',
+    11: 'SIGSEGV',
+    12: 'SIGSYS',
+    13: 'SIGPIPE',
+    14: 'SIGALRM',
+    15: 'SIGTERM',
+    16: 'SIGURG',
+    17: 'SIGSTOP',
+    18: 'SIGTSTP',
+    19: 'SIGCONT',
+    20: 'SIGCHLD',
+    21: 'SIGTTIN',
+    22: 'SIGTTOU',
+    24: 'SIGXCPU',
+    25: 'SIGXFSZ',
+    26: 'SIGVTALRM',
+    27: 'SIGPROF',
+    28: 'SIGWINCH',
+    29: 'SIGINFO',
+    31: 'SIGUSR2',
+}
+
 
 def append_error(data, err):
     data.setdefault('errors', []).append(err)
 
 
+def process_posix_signal(data):
+    signal = data.get('signal', -1)
+    signal_name = data.get('name')
+    if signal_name is None:
+        signal_name = SIGNAL_NAMES.get(signal)
+    return {
+        'signal': signal,
+        'name': signal_name,
+        'code': data.get('code'),
+        'code_name': data.get('code_name'),
+    }
+
+
 def exception_from_apple_error_or_diagnosis(error, diagnosis=None):
+    rv = {}
     error = error or {}
 
+    mechanism = {}
+    if 'mach' in error:
+        mechanism['mach_exception'] = error['mach']
+    if 'signal' in error:
+        mechanism['posix_signal'] = process_posix_signal(error['signal'])
+    if mechanism:
+        mechanism.setdefault('type', 'cocoa')
+        rv['mechanism'] = mechanism
+
+    # Start by getting the error from nsexception
     if error:
         nsexception = error.get('nsexception')
         if nsexception:
-            return {
-                'type': nsexception['name'],
-                'value': error['reason'],
-            }
+            rv['type'] = nsexception['name']
+            if 'value' in nsexception:
+                rv['value'] = nsexception['value']
 
-    if diagnosis:
-        return {
-            'type': 'Error',
-            'value': diagnosis
-        }
+    # If we don't have an error yet, try to build one from reason and
+    # diagnosis
+    if 'value' not in rv:
+        if 'reason' in error:
+            rv['value'] = error['reason']
+        elif 'diagnosis' in error:
+            rv['value'] = error['diagnosis']
+        elif 'mach_exception' in mechanism:
+            rv['value'] = mechanism['mach_exception']['exception_name']
+        elif 'posix_signal' in mechanism:
+            rv['value'] = mechanism['posix_signal']['name']
+        else:
+            rv['value'] = 'Unknown'
+
+    # Figure out a reasonable type
+    if 'type' not in rv:
+        if 'mach_exception' in mechanism:
+            rv['type'] = 'MachException'
+        elif 'posix_signal' in mechanism:
+            rv['type'] = 'Signal'
+        else:
+            rv['type'] = 'Unknown'
+
+    if rv:
+        return rv
 
 
 def is_in_app(frame, app_uuid=None):
@@ -57,7 +132,7 @@ def is_in_app(frame, app_uuid=None):
 
 
 def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
-                           system=None):
+                           system=None, notable_addresses=None):
     # TODO:
     #   user report stacktraces from unity
 
@@ -104,6 +179,9 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
     for frame in converted_frames:
         for key in 'symbol_addr', 'instruction_addr':
             frame[key] = '0x' + frame[key][2:].rjust(longest_addr, '0')
+
+    if converted_frames and notable_addresses:
+        converted_frames[-1]['vars'] = notable_addresses
 
     stacktrace = {'frames': converted_frames}
 
@@ -183,7 +261,8 @@ def preprocess_apple_crash_event(data):
                 bt, errors = sym.symbolize_backtrace(
                     crashed_thread['backtrace']['contents'], system)
                 inject_apple_backtrace(data, bt, crash.get('diagnosis'),
-                                       crash.get('error'), system)
+                                       crash.get('error'), system,
+                                       crashed_thread.get('notable_addresses'))
         except Exception as e:
             logger.exception('Failed to symbolicate')
             append_error(data, {

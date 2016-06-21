@@ -95,8 +95,9 @@ test-cli:
 	@echo ""
 
 test-js:
-	@echo "--> Running JavaScript tests"
+	@echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack
+	@echo "--> Running JavaScript tests"
 	@npm run test
 	@echo ""
 
@@ -106,16 +107,16 @@ test-python:
 	@echo ""
 
 test-acceptance:
+	@echo "--> Building static assets"
+	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running acceptance tests"
 	py.test tests/acceptance || exit 1
 	@echo ""
-
 
 test-python-coverage:
 	@echo "--> Running Python tests"
 	coverage run --source=src/sentry -m py.test tests/integration tests/sentry
 	@echo ""
-
 
 lint: lint-python lint-js
 
@@ -168,6 +169,7 @@ travis-install-postgres: travis-install-python dev-postgres
 travis-install-mysql: travis-install-python
 	pip install mysqlclient
 	echo 'create database sentry;' | mysql -uroot
+travis-install-acceptance: install-npm travis-install-python
 travis-install-js: install-npm
 travis-install-cli: travis-install-python
 travis-install-dist: travis-noop
@@ -178,6 +180,7 @@ travis-install-dist: travis-noop
 travis-lint-sqlite: lint-python
 travis-lint-postgres: lint-python
 travis-lint-mysql: lint-python
+travis-lint-acceptance: travis-noop
 travis-lint-js: lint-js
 travis-lint-cli: travis-noop
 travis-lint-dist: travis-noop
@@ -188,6 +191,7 @@ travis-lint-dist: travis-noop
 travis-test-sqlite: test-python-coverage
 travis-test-postgres: test-python-coverage
 travis-test-mysql: test-python-coverage
+travis-test-acceptance: test-acceptance
 travis-test-js: test-js
 travis-test-ci: test-ci
 travis-test-dist:

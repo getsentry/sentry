@@ -41,7 +41,7 @@ class StacktraceTest(TestCase):
         # objects
         event = self.event
         interface = Stacktrace.to_python(event.data['sentry.interfaces.Stacktrace'])
-        assert len(interface.frames) == 5
+        assert len(interface.frames) == 1
         assert interface == event.interfaces['sentry.interfaces.Stacktrace']
 
     def test_requires_filename(self):
@@ -329,6 +329,18 @@ class StacktraceTest(TestCase):
         })
         result = interface.get_hash()
         assert result != []
+
+    def test_cocoa_culprit(self):
+        stacktrace = Stacktrace.to_python(dict(frames=[
+            {
+                'filename': 'foo/baz.c',
+                'package': '/foo/bar/baz.dylib',
+                'lineno': 1,
+                'in_app': True,
+                'function': 'fooBar',
+            }
+        ]))
+        assert stacktrace.get_culprit_string(platform='cocoa') == 'fooBar (baz)'
 
     def test_get_hash_does_not_group_different_js_errors(self):
         interface = Stacktrace.to_python({

@@ -40,6 +40,15 @@ _java_enhancer_re = re.compile(r'''
 ''', re.X)
 
 
+def trim_package(pkg):
+    if not pkg:
+        return '?'
+    pkg = pkg.split('/')[-1]
+    if pkg.endswith(('.dylib', '.so', '.a')):
+        pkg = pkg.rsplit('.', 1)[0]
+    return pkg
+
+
 def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None):
     if lineno is None:
         return []
@@ -440,7 +449,7 @@ class Frame(Interface):
         if platform in ('objc', 'cocoa'):
             return '%s (%s)' % (
                 self.function or '?',
-                self.package or '?',
+                trim_package(self.package),
             )
         fileloc = self.module or self.filename
         if not fileloc:

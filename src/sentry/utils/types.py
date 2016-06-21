@@ -134,7 +134,7 @@ class SequenceType(Type):
     """Coerce a tuple out of a json/yaml string or a list"""
     name = 'sequence'
     default = ()
-    expected_types = (tuple,)
+    expected_types = (tuple, list)
     compatible_types = (basestring, tuple, list)
 
     def convert(self, value):

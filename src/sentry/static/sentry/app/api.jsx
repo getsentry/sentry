@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import GroupActions from './actions/groupActions';
 import TeamActions from './actions/teamActions';
+import _ from 'underscore';
 
 export class Request {
   constructor(xhr) {
@@ -28,7 +29,7 @@ export function paramsToQueryArgs(params) {
 
 export class Client {
   constructor(options) {
-    if (typeof options === 'undefined') {
+    if (_.isUndefined(options)) {
       options = {};
     }
     this.baseUrl = options.baseUrl || '/api/0';
@@ -47,7 +48,7 @@ export class Client {
 
   wrapCallback(id, func, cleanup) {
     /*eslint consistent-return:0*/
-    if (typeof func === 'undefined') {
+    if (_.isUndefined(func)) {
       return;
     }
 
@@ -74,7 +75,7 @@ export class Client {
     let data = options.data;
     let id = this.uniqueId();
 
-    if (typeof data !== 'undefined' && method !== 'GET') {
+    if (!_.isUndefined(data) && method !== 'GET') {
       data = JSON.stringify(data);
     }
 
@@ -109,7 +110,7 @@ export class Client {
   }
 
   _chain(...funcs) {
-    funcs = funcs.filter((f) => typeof f !== 'undefined' && f);
+    funcs = funcs.filter((f) => !_.isUndefined(f) && f);
     return (...args) => {
       funcs.forEach((func) => {
         func.apply(funcs, args);
@@ -118,7 +119,7 @@ export class Client {
   }
 
   _wrapRequest(path, options, extraParams) {
-    if (typeof extraParams === 'undefined') {
+    if (_.isUndefined(extraParams)) {
       extraParams = {};
     }
 

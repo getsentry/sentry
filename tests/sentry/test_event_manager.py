@@ -40,9 +40,11 @@ class EventManagerTest(TransactionTestCase):
         # 'event.message' instead of '[event.message]' which caused it to
         # generate a hash per letter
         manager = EventManager(self.make_event(message='foo bar'))
+        manager.normalize()
         event1 = manager.save(1)
 
         manager = EventManager(self.make_event(message='foo baz'))
+        manager.normalize()
         event2 = manager.save(1)
 
         assert event1.group_id != event2.group_id
@@ -213,6 +215,7 @@ class EventManagerTest(TransactionTestCase):
             fingerprint=['{{ default }}', 'a' * 32],
         ))
         with self.tasks():
+            manager.normalize()
             event = manager.save(1)
 
         manager = EventManager(self.make_event(
@@ -220,6 +223,7 @@ class EventManagerTest(TransactionTestCase):
             fingerprint=['a' * 32],
         ))
         with self.tasks():
+            manager.normalize()
             event2 = manager.save(1)
 
         assert event.group_id != event2.group_id
@@ -384,7 +388,8 @@ class EventManagerTest(TransactionTestCase):
             message='x' * (settings.SENTRY_MAX_MESSAGE_LENGTH + 1),
         ))
         data = manager.normalize()
-        assert len(data['message']) == settings.SENTRY_MAX_MESSAGE_LENGTH
+        assert len(data['sentry.interfaces.Message']['message']) == \
+            settings.SENTRY_MAX_MESSAGE_LENGTH
 
     def test_default_version(self):
         manager = EventManager(self.make_event())
@@ -527,6 +532,24 @@ class EventManagerTest(TransactionTestCase):
             'title': 'foo bar',
         }
 
+    def test_message_event_type(self):
+        manager = EventManager(self.make_event(**{
+            'message': '',
+            'sentry.interfaces.Message': {
+                'formatted': 'foo bar',
+                'message': 'foo %s',
+                'params': ['bar'],
+            }
+        }))
+        data = manager.normalize()
+        assert data['type'] == 'default'
+        event = manager.save(self.project.id)
+        group = event.group
+        assert group.data.get('type') == 'default'
+        assert group.data.get('metadata') == {
+            'title': 'foo bar',
+        }
+
     def test_error_event_type(self):
         manager = EventManager(self.make_event(**{
             'sentry.interfaces.Exception': {
@@ -577,6 +600,56 @@ class EventManagerTest(TransactionTestCase):
         assert event.data['sdk'] == {
             'name': 'sentry-unity',
             'version': '1.0',
+        }
+
+    def test_no_message(self):
+        # test that the message is handled gracefully
+        manager = EventManager(self.make_event(**{
+            'message': None,
+            'sentry.interfaces.Message': {
+                'message': 'hello world',
+            },
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert event.message == 'hello world'
+
+    def test_bad_message(self):
+        # test that the message is handled gracefully
+        manager = EventManager(self.make_event(**{
+            'message': 1234,
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert event.message == '1234'
+        assert event.data['sentry.interfaces.Message'] == {
+            'message': '1234',
+        }
+
+    def test_message_attribute_goes_to_interface(self):
+        manager = EventManager(self.make_event(**{
+            'message': 'hello world',
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+        assert event.data['sentry.interfaces.Message'] == {
+            'message': 'hello world',
+        }
+
+    def test_message_attribute_goes_to_formatted(self):
+        manager = EventManager(self.make_event(**{
+            'message': 'world hello',
+            'sentry.interfaces.Message': {
+                'message': 'hello world',
+            },
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+        assert event.data['sentry.interfaces.Message'] == {
+            'message': 'hello world',
+            'formatted': 'world hello',
         }
 
 

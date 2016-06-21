@@ -34,7 +34,7 @@ from sentry.utils.http import is_valid_origin
 from sentry.utils.strings import truncatechars
 
 from .cache import SourceCache, SourceMapCache
-from .sourcemaps import sourcemap_to_index, find_source
+from .sourcemaps import sourcemap_to_index, find_source, get_inline_content_sources
 
 
 # number of surrounding lines (on each side) to fetch
@@ -187,24 +187,46 @@ def fetch_release_file(filename, release):
     cache_key = 'releasefile:v1:%s:%s' % (
         release.id,
         md5(filename).hexdigest(),
-    )
+    ),
+
+    filename_path = None
+    if filename is not None:
+        # Reconstruct url without protocol + host
+        # e.g. http://example.com/foo?bar => ~/foo?bar
+        parsed_url = urlparse(filename)
+        filename_path = '~' + parsed_url.path
+        if parsed_url.query:
+            filename_path += '?' + parsed_url.query
+
     logger.debug('Checking cache for release artifact %r (release_id=%s)',
                  filename, release.id)
     result = cache.get(cache_key)
+
     if result is None:
         logger.debug('Checking database for release artifact %r (release_id=%s)',
                      filename, release.id)
-        ident = ReleaseFile.get_ident(filename)
-        try:
-            releasefile = ReleaseFile.objects.filter(
-                release=release,
-                ident=ident,
-            ).select_related('file').get()
-        except ReleaseFile.DoesNotExist:
+
+        filename_idents = [ReleaseFile.get_ident(filename)]
+        if filename_path is not None and filename_path != filename:
+            filename_idents.append(ReleaseFile.get_ident(filename_path))
+
+        possible_files = list(ReleaseFile.objects.filter(
+            release=release,
+            ident__in=filename_idents,
+        ).select_related('file'))
+
+        if len(possible_files) == 0:
             logger.debug('Release artifact %r not found in database (release_id=%s)',
                          filename, release.id)
             cache.set(cache_key, -1, 60)
             return None
+        elif len(possible_files) == 1:
+            releasefile = possible_files[0]
+        else:
+            # Prioritize releasefile that matches full url (w/ host)
+            # over hostless releasefile
+            target_ident = filename_idents[0]
+            releasefile = next((f for f in possible_files if f.ident == target_ident))
 
         logger.debug('Found release artifact %r (id=%s, release_id=%s)',
                      filename, releasefile.id, release.id)
@@ -696,7 +718,7 @@ class SourceProcessor(object):
             frame.pre_context, frame.context_line, frame.post_context = get_source_context(
                 source=source, lineno=frame.lineno, colno=frame.colno or 0)
 
-            if not frame.context_line:
+            if not frame.context_line and source:
                 all_errors.append({
                     'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
                     'column': frame.colno,
@@ -758,10 +780,9 @@ class SourceProcessor(object):
         sourcemaps.add(sourcemap_url, sourcemap_idx)
 
         # cache any inlined sources
-        for source in sourcemap_idx.sources:
-            next_filename = urljoin(sourcemap_url, source)
-            if source in sourcemap_idx.content:
-                cache.add(next_filename, sourcemap_idx.content[source])
+        inline_sources = get_inline_content_sources(sourcemap_idx, sourcemap_url)
+        for source in inline_sources:
+            self.cache.add(*source)
 
     def populate_source_cache(self, frames, release):
         """

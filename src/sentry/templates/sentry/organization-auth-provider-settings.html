@@ -42,11 +42,13 @@
         {{ form|as_crispy_errors }}
 
         {% for field in form %}
-          {% if forloop.last %}
-            <button class="btn btn-primary pull-right" name="op"
-              value="settings" style="margin-left: 20px">Save Settings</button>
-          {% endif %}
           {{ field|as_crispy_field }}
+          {% if forloop.last %}
+            <fieldset class="form-actions">
+              <button class="btn btn-primary pull-right" name="op"
+                value="settings" style="margin-left: 20px">Save Settings</button>
+            </fieldset>
+          {% endif %}
         {% endfor %}
 
         <hr>

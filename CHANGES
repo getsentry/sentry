@@ -1,6 +1,10 @@
 Version 8.6 (Unreleased)
 ------------------------
 
+- The ``message`` attribute on Event/Group is now purely used for search storage.
+- The ``sentry.interfaces.Message`` interface now contains a ``formatted`` attribute.
+- ``SENTRY_MANAGED_USER_FIELDS`` now defaults to an empty list.
+
 Version 8.5.1
 -------------
 
@@ -171,7 +175,7 @@ Version 8.1.1
 Version 8.1.0
 -------------
 
-- Default web server is now uWSGI (https://uwsgi-docs.readthedocs.org/en/latest/) to replace gunicorn.
+- Default web server is now uWSGI (https://uwsgi-docs.readthedocs.io/en/latest/) to replace gunicorn.
 - New "Saved Searches". See: http://blog.getsentry.com/2016/01/19/introducing-saved-searches.html
 
 Schema Changes

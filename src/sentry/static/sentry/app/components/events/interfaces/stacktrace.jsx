@@ -87,6 +87,7 @@ const StacktraceInterface = React.createClass({
         :
           <StacktraceContent
               data={data}
+              className="no-exception"
               includeSystemFrames={stackView === 'full'}
               platform={evt.platform}
               newestFirst={newestFirst} />

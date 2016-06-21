@@ -30,7 +30,8 @@ class SingleException(Interface):
     >>>  {
     >>>     "type": "ValueError",
     >>>     "value": "My exception value",
-    >>>     "module": "__builtins__"
+    >>>     "module": "__builtins__",
+    >>>     "mechanism": {},
     >>>     "stacktrace": {
     >>>         # see sentry.interfaces.Stacktrace
     >>>     }
@@ -73,10 +74,18 @@ class SingleException(Interface):
             value = json.dumps(value)
         value = trim(value, 4096)
 
+        mechanism = data.get('mechanism')
+        if mechanism is not None:
+            if not isinstance(mechanism, dict):
+                raise InterfaceValidationError('Bad value for mechanism')
+            mechanism = trim(data.get('mechanism'), 4096)
+            mechanism.setdefault('type', 'generic')
+
         kwargs = {
             'type': trim(type, 128),
             'value': value,
             'module': trim(data.get('module'), 128),
+            'mechanism': mechanism,
             'stacktrace': stacktrace,
             'raw_stacktrace': raw_stacktrace,
         }
@@ -97,6 +106,7 @@ class SingleException(Interface):
         return {
             'type': self.type,
             'value': self.value,
+            'mechanism': self.mechanism or None,
             'module': self.module,
             'stacktrace': stacktrace,
             'raw_stacktrace': raw_stacktrace,
@@ -116,6 +126,7 @@ class SingleException(Interface):
         return {
             'type': self.type,
             'value': unicode(self.value) if self.value else None,
+            'mechanism': self.mechanism or None,
             'module': self.module,
             'stacktrace': stacktrace,
             'rawStacktrace': raw_stacktrace,
@@ -154,7 +165,8 @@ class Exception(Interface):
     >>>     "values": [{
     >>>         "type": "ValueError",
     >>>         "value": "My exception value",
-    >>>         "module": "__builtins__"
+    >>>         "module": "__builtins__",
+    >>>         "mechanism": {},
     >>>         "stacktrace": {
     >>>             # see sentry.interfaces.Stacktrace
     >>>         }

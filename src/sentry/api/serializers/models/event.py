@@ -99,6 +99,11 @@ class EventSerializer(Serializer):
             except TypeError:
                 received = None
 
+        event_type = obj.data.get('type', 'default')
+        metadata = obj.data.get('metadata') or {
+            'title': obj.message_short,
+        }
+
         # TODO(dcramer): move release serialization here
         d = {
             'id': str(obj.id),
@@ -106,12 +111,15 @@ class EventSerializer(Serializer):
             'eventID': str(obj.event_id),
             'size': obj.size,
             'entries': attrs['entries'],
-            'message': obj.message,
+            # See GH-3248
+            'message': obj.get_legacy_message(),
             'user': attrs['user'],
             'sdk': attrs['sdk'],
             'device': attrs['device'],
             'context': obj.data.get('extra', {}),
             'packages': obj.data.get('modules', {}),
+            'type': event_type,
+            'metadata': metadata,
             'tags': tags,
             'platform': obj.platform,
             'dateCreated': obj.datetime,

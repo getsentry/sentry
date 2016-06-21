@@ -48,6 +48,7 @@ class UserSerializer(Serializer):
             'email': obj.email,
             'avatarUrl': get_gravatar_url(obj.email, size=32),
             'isActive': obj.is_active,
+            'isManaged': obj.is_managed,
             'dateJoined': obj.date_joined,
         }
         if obj == user:
@@ -87,6 +88,7 @@ class UserSerializer(Serializer):
                 'id': i.ident,
                 'organization': {
                     'slug': i.auth_provider.organization.slug,
+                    'name': i.auth_provider.organization.name,
                 },
                 'provider': {
                     'id': i.auth_provider.provider,

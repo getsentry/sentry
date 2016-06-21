@@ -20,6 +20,12 @@ from sentry.models import User, Authenticator
 logger = logging.getLogger('sentry.auth')
 
 
+class AuthUserPasswordExpired(Exception):
+
+    def __init__(self, user):
+        self.user = user
+
+
 def _make_key_value(val):
     return val.strip().split('=', 1)
 
@@ -123,6 +129,16 @@ def login(request, user, passed_2fa=False, after_2fa=None):
         return False
 
     request.session.pop('_pending_2fa', None)
+
+    # Check for expired passwords here after we cleared the 2fa flow.
+    # While this means that users will have to pass 2fa before they can
+    # figure out that their passwords are expired this is still the more
+    # reasonable behavior.
+    #
+    # We also rememebr _after_2fa here so that we can continue the flow if
+    # someone does it in the same browser.
+    if user.is_password_expired:
+        raise AuthUserPasswordExpired(user)
 
     # If there is no authentication backend, just attach the first
     # one and hope it goes through.  This apparently is a thing we

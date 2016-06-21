@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 import warnings
 
+import six
 from collections import OrderedDict
 from django.db import models
 from django.utils import timezone
@@ -82,8 +83,14 @@ class Event(Model):
 
     project = property(_get_project, _set_project)
 
+    def get_legacy_message(self):
+        msg_interface = self.data.get('sentry.interfaces.Message', {
+            'message': self.message,
+        })
+        return msg_interface.get('formatted', msg_interface['message'])
+
     def error(self):
-        message = strip(self.message)
+        message = strip(self.get_legacy_message())
         if not message:
             message = '<unlabeled message>'
         else:
@@ -92,12 +99,12 @@ class Event(Model):
     error.short_description = _('error')
 
     def has_two_part_message(self):
-        message = strip(self.message)
+        message = strip(self.get_legacy_message())
         return '\n' in message or len(message) > 100
 
     @property
     def message_short(self):
-        message = strip(self.message)
+        message = strip(self.get_legacy_message())
         if not message:
             message = '<unlabeled message>'
         else:
@@ -180,7 +187,7 @@ class Event(Model):
         data['release'] = self.get_tag('sentry:release')
         data['platform'] = self.platform
         data['culprit'] = self.group.culprit
-        data['message'] = self.message
+        data['message'] = self.get_legacy_message()
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
         data['tags'] = self.get_tags()
@@ -190,7 +197,7 @@ class Event(Model):
 
     @property
     def size(self):
-        data_len = len(self.message)
+        data_len = len(self.get_legacy_message())
         for value in self.data.itervalues():
             data_len += len(repr(value))
         return data_len
@@ -233,3 +240,10 @@ class Event(Model):
     def checksum(self):
         warnings.warn('Event.checksum is no longer used', DeprecationWarning)
         return ''
+
+    def get_email_subject(self):
+        return '[%s] %s: %s' % (
+            self.project.get_full_name().encode('utf-8'),
+            six.text_type(self.get_tag('level')).upper().encode('utf-8'),
+            self.message_short.encode('utf-8')
+        )

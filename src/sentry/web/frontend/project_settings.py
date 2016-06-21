@@ -8,9 +8,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from uuid import uuid1
 
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Project, Team
-)
+from sentry.models import AuditLogEntryEvent, Project, Team
 from sentry.web.forms.fields import (
     CustomTypedChoiceField, RangeField, OriginsField, IPNetworksField,
 )
@@ -220,10 +218,9 @@ class ProjectSettingsView(ProjectView):
 
             project.update_option('sentry:reviewed-callsign', True)
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request,
                 organization=organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=project.id,
                 event=AuditLogEntryEvent.PROJECT_EDIT,
                 data=project.get_audit_log_data(),

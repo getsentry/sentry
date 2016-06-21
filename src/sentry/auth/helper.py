@@ -7,7 +7,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.contrib import messages
 from django.core.urlresolvers import reverse
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -26,7 +26,7 @@ from sentry.web.helpers import render_to_response
 
 from . import manager
 
-OK_LINK_IDENTITY = _('You have successully linked your account to your SSO provider.')
+OK_LINK_IDENTITY = _('You have successfully linked your account to your SSO provider.')
 
 OK_SETUP_SSO = _('SSO has been configured for your organization and any existing members have been sent an email to link their accounts.')
 
@@ -215,6 +215,37 @@ class AuthHelper(object):
             auth_is_new = True
         else:
             now = timezone.now()
+
+            # TODO(dcramer): this might leave the user with duplicate accounts,
+            # and in that kind of situation its very reasonable that we could
+            # test email addresses + is_managed to determine if we can auto
+            # merge
+            if auth_identity.user != user:
+                # it's possible the user has an existing identity, let's wipe it out
+                # so that the new identifier gets used (other we'll hit a constraint)
+                # violation since one might exist for (provider, user) as well as
+                # (provider, ident)
+                AuthIdentity.objects.exclude(
+                    id=auth_identity.id,
+                ).filter(
+                    auth_provider=auth_provider,
+                    user=user,
+                ).delete()
+
+                # since we've identify an identity which is no longer valid
+                # lets preemptively mark it as such
+                try:
+                    other_member = OrganizationMember.objects.get(
+                        user=auth_identity.user_id,
+                        organization=organization,
+                    )
+                except OrganizationMember.DoesNotExist:
+                    pass
+                else:
+                    setattr(other_member.flags, 'sso:invalid', True)
+                    setattr(other_member.flags, 'sso:linked', False)
+                    other_member.save()
+
             auth_identity.update(
                 user=user,
                 ident=identity['id'],
@@ -289,12 +320,23 @@ class AuthHelper(object):
             is_managed=True,
         )
 
-        auth_identity = AuthIdentity.objects.create(
-            auth_provider=auth_provider,
-            user=user,
-            ident=identity['id'],
-            data=identity.get('data', {}),
-        )
+        try:
+            with transaction.atomic():
+                auth_identity = AuthIdentity.objects.create(
+                    auth_provider=auth_provider,
+                    user=user,
+                    ident=identity['id'],
+                    data=identity.get('data', {}),
+                )
+        except IntegrityError:
+            auth_identity = AuthIdentity.objects.get(
+                auth_provider=auth_provider,
+                ident=identity['id'],
+            )
+            auth_identity.update(
+                user=user,
+                data=identity.get('data', {}),
+            )
 
         self._handle_new_membership(auth_identity)
 
@@ -365,7 +407,10 @@ class AuthHelper(object):
         """
         request = self.request
         op = request.POST.get('op')
+
         if not request.user.is_authenticated():
+            # TODO(dcramer): its possible they have multiple accounts and at
+            # least one is managed (per the check below)
             try:
                 existing_user = auth.find_users(identity['email'], is_active=True)[0]
             except IndexError:
@@ -375,7 +420,7 @@ class AuthHelper(object):
             # the email matches we go ahead and let them merge it. This is the
             # only way to prevent them having duplicate accounts, and because
             # we trust identity providers, its considered safe.
-            if existing_user and not existing_user.password:
+            if existing_user and existing_user.is_managed:
                 # we only allow this flow to happen if the existing user has
                 # membership, otherwise we short circuit because it might be
                 # an attempt to hijack membership of another organization
@@ -395,6 +440,16 @@ class AuthHelper(object):
                     existing_user = None
 
             login_form = self._get_login_form(existing_user)
+        elif request.user.is_managed:
+            # per the above, try to auto merge if the user was originally an
+            # SSO account but is still logged in
+            has_membership = OrganizationMember.objects.filter(
+                user=request.user,
+                organization=self.organization,
+            ).exists()
+            if has_membership:
+                # assume they've confirmed they want to attach the identity
+                op = 'confirm'
 
         if op == 'confirm' and request.user.is_authenticated():
             auth_identity = self._handle_attach_identity(identity)

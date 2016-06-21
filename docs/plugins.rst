@@ -52,7 +52,9 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-phabricator <https://github.com/getsentry/sentry-phabricator>`_
 * `sentry-pivotal <https://github.com/getsentry/sentry-pivotal>`_
 * `sentry-pushover <https://github.com/getsentry/sentry-pushover>`_
+* `sentry-redmine <https://github.com/getsentry/sentry-redmine>`_
 * `sentry-searchbutton <https://github.com/timmyomahony/sentry-searchbutton>`_
+* `sentry-slack <https://github.com/getsentry/sentry-slack>`_
 * `sentry-sprintly <https://github.com/mattrobenolt/sentry-sprintly>`_
 * `sentry-statsd <https://github.com/dreadatour/sentry-statsd>`_
 * `sentry-teamwork <https://github.com/getsentry/sentry-teamwork>`_
@@ -62,7 +64,6 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-whatsapp <https://github.com/ecarreras/sentry-whatsapp>`_
 * `sentry-xmpp <https://github.com/chroto/sentry-xmpp>`_
 * `sentry-youtrack <https://github.com/bogdal/sentry-youtrack>`_
-* `sentry-slack <https://github.com/getsentry/sentry-slack>`_
 * `sentry-zabbix <https://github.com/m0n5t3r/sentry-zabbix>`_
 
 Have an extension that should be listed here? Submit a `pull request

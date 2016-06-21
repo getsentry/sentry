@@ -13,15 +13,16 @@ from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import HttpResponseRedirect, Http404
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
+from django.utils.translation import ugettext as _
 from sudo.decorators import sudo_required
 
 from sentry.models import (
-    LostPasswordHash, Project, ProjectStatus, UserOption, Authenticator)
+    UserEmail, LostPasswordHash, Project, ProjectStatus, UserOption, Authenticator)
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, signed_auth_required
 from sentry.web.forms.accounts import (
@@ -33,26 +34,36 @@ from sentry.utils.auth import get_auth_providers, get_login_redirect
 from sentry.utils.safe import safe_execute
 
 
+def send_password_recovery_mail(user):
+    password_hash, created = LostPasswordHash.objects.get_or_create(
+        user=user
+    )
+    if not password_hash.is_valid():
+        password_hash.date_added = timezone.now()
+        password_hash.set_hash()
+        password_hash.save()
+    password_hash.send_recover_mail()
+    return password_hash
+
+
 @login_required
 def login_redirect(request):
     login_url = get_login_redirect(request)
     return HttpResponseRedirect(login_url)
 
 
+def expired(request, user):
+    password_hash = send_password_recovery_mail(user)
+    return render_to_response('sentry/account/recover/expired.html', {
+        'email': password_hash.user.email,
+    }, request)
+
+
 def recover(request):
     form = RecoverPasswordForm(request.POST or None,
                                captcha=bool(request.session.get('needs_captcha')))
     if form.is_valid():
-        password_hash, created = LostPasswordHash.objects.get_or_create(
-            user=form.cleaned_data['user']
-        )
-        if not password_hash.is_valid():
-            password_hash.date_added = timezone.now()
-            password_hash.set_hash()
-            password_hash.save()
-
-        password_hash.send_recover_mail()
-
+        password_hash = send_password_recovery_mail(form.cleaned_data['user'])
         request.session.pop('needs_captcha', None)
 
         return render_to_response('sentry/account/recover/sent.html', {
@@ -112,6 +123,38 @@ def recover_confirm(request, user_id, hash):
     return render_to_response(tpl, context, request)
 
 
+@login_required
+def start_confirm_email(request):
+    has_unverified_emails = request.user.has_unverified_emails()
+    if has_unverified_emails:
+        request.user.send_confirm_emails()
+        msg = _('A verification email has been sent to %s.') % request.user.email
+    else:
+        msg = _('Your email (%s) has already been verified.') % request.user.email
+    messages.add_message(request, messages.SUCCESS, msg)
+    return HttpResponseRedirect(reverse('sentry-account-settings'))
+
+
+def confirm_email(request, user_id, hash):
+    msg = _('Thanks for confirming your email')
+    level = messages.SUCCESS
+    try:
+        email = UserEmail.objects.get(user=user_id, validation_hash=hash)
+        if not email.hash_is_valid():
+            raise UserEmail.DoesNotExist
+    except UserEmail.DoesNotExist:
+        if request.user.is_anonymous() or request.user.has_unverified_emails():
+            msg = _('There was an error confirming your email. Please try again or '
+                    'visit your Account Settings to resend the verification email.')
+            level = messages.ERROR
+    else:
+        email.is_verified = True
+        email.validation_hash = ''
+        email.save()
+    messages.add_message(request, level, msg)
+    return HttpResponseRedirect(reverse('sentry-account-settings'))
+
+
 @csrf_protect
 @never_cache
 @login_required
@@ -124,7 +167,19 @@ def settings(request):
         'name': request.user.name,
     })
     if form.is_valid():
-        form.save()
+        old_email = request.user.email
+        user = form.save()
+        if user.email != old_email:
+            UserEmail.objects.get(user=request.user, email=old_email).delete()
+            try:
+                with transaction.atomic():
+                    user_email = UserEmail.objects.create(user=user, email=user.email)
+            except IntegrityError:
+                pass
+            else:
+                user_email.set_hash()
+                user_email.save()
+            user.send_confirm_emails()
         messages.add_message(request, messages.SUCCESS, 'Your settings were saved.')
         return HttpResponseRedirect(request.path)
 

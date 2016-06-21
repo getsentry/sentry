@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 import os
 import hmac
+import time
 import base64
 import hashlib
 
@@ -21,6 +22,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
+from django.core.urlresolvers import reverse
 
 from sentry import options
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, \
@@ -28,6 +30,8 @@ from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, \
 from sentry.utils.decorators import classproperty
 from sentry.utils.otp import generate_secret_key, TOTP
 from sentry.utils.sms import send_sms, sms_available
+from sentry.utils.dates import to_datetime
+from sentry.utils.http import absolute_uri
 
 
 class ActivationResult(object):
@@ -165,6 +169,7 @@ class AuthenticatorInterface(object):
     configure_button = _('Info')
     remove_button = _('Remove')
     is_available = True
+    allow_multi_enrollment = False
 
     def __init__(self, authenticator=None):
         if authenticator is None:
@@ -206,6 +211,9 @@ class AuthenticatorInterface(object):
             return self.authenticator.config
         rv = getattr(self, '_unbound_config', None)
         if rv is None:
+            # Prevent bad recursion if stuff wants to access the default
+            # config
+            self._unbound_config = {}
             rv = self._unbound_config = self.generate_new_config()
         return rv
 
@@ -226,13 +234,17 @@ class AuthenticatorInterface(object):
         """Invoked to enroll a user for this interface.  If already enrolled
         an error is raised.
         """
-        if self.authenticator is not None:
-            raise RuntimeError('Already enrolled')
-        self.authenticator = Authenticator.objects.create(
-            user=user,
-            type=self.type,
-            config=self.config,
-        )
+        if self.authenticator is None:
+            self.authenticator = Authenticator.objects.create(
+                user=user,
+                type=self.type,
+                config=self.config,
+            )
+        else:
+            if not self.allow_multi_enrollment:
+                raise RuntimeError('Already enrolled')
+            self.authenticator.config = self.config
+            self.authenticator.save()
 
     def validate_otp(self, otp):
         """This method is invoked for an OTP response and has to return
@@ -414,69 +426,86 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
 class U2fInterface(AuthenticatorInterface):
     type = 3
     interface_id = 'u2f'
+    configure_button = _('Configure')
     name = _('U2F (Universal 2nd Factor)')
     description = _('Authenticate with a U2F hardware device. This is a '
                     'device like a Yubikey or something similar which '
                     'supports FIDO\'s U2F specification. This also requires '
                     'a browser which supports this system (like Google '
                     'Chrome).')
+    allow_multi_enrollment = True
 
     @classproperty
     def u2f_app_id(cls):
-        return options.get('system.url-prefix')
+        rv = options.get('u2f.app-id')
+        return rv or absolute_uri(reverse('sentry-u2f-app-id'))
 
     @classproperty
     def u2f_facets(cls):
-        app_id = cls.u2f_app_id
-        return app_id and [app_id] or []
+        facets = options.get('u2f.facets')
+        if not facets:
+            return [options.get('system.url-prefix')]
+        return [x.rstrip('/') for x in facets]
 
     @classproperty
     def is_available(cls):
-        app_id = cls.u2f_app_id
-        return app_id is not None and \
-            app_id.startswith('https://')
+        url_prefix = options.get('system.url-prefix')
+        return url_prefix and url_prefix.startswith('https://')
 
     def generate_new_config(self):
-        return {
-            'enrollment': dict(u2f.start_register(self.u2f_app_id, [])),
-        }
+        return {}
 
-    def _get_enrollment_data(self):
-        return self.config.get('enrollment')
+    def start_enrollment(self):
+        return dict(u2f.start_register(self.u2f_app_id,
+                                       self.get_u2f_devices()))
 
-    def _set_enrollment_data(self, value):
-        if 'device' in self.config:
-            raise RuntimeError('Cannot set enrollment data if interface is '
-                               'already enrolled.')
-        self.config['enrollment'] = value
+    def get_u2f_devices(self):
+        rv = []
+        for data in self.config.get('devices') or ():
+            rv.append(u2f_jsapi.DeviceRegistration(data['binding']))
+        return rv
 
-    enrollment_data = property(_get_enrollment_data, _set_enrollment_data)
-    del _get_enrollment_data, _set_enrollment_data
+    def remove_u2f_device(self, key):
+        """Removes a U2F device but never removes the last one.  This returns
+        False if the last device would be removed.
+        """
+        devices = [x for x in self.config.get('devices') or ()
+                   if x['binding']['keyHandle'] != key]
+        if devices:
+            self.config['devices'] = devices
+            return True
+        return False
 
-    def get_u2f_device(self):
-        device = self.config.get('device')
-        if device is None:
-            raise RuntimeError('This authenticator is not enrolled.')
-        return u2f_jsapi.DeviceRegistration(device)
+    def get_registered_devices(self):
+        rv = []
+        for device in self.config.get('devices') or ():
+            rv.append({
+                'timestamp': to_datetime(device['ts']),
+                'name': device['name'],
+                'key_handle': device['binding']['keyHandle'],
+                'app_id': device['binding']['appId'],
+            })
+        rv.sort(key=lambda x: x['name'])
+        return rv
 
-    def try_enroll(self, response_data):
-        # XXX: handle error
-        enrollment_data = self.config.get('enrollment')
-        if enrollment_data is None:
-            raise RuntimeError('This authenticator is not in a state that '
-                               'permits user enrollment.')
+    def try_enroll(self, enrollment_data, response_data, device_name=None):
         binding, cert = u2f.complete_register(enrollment_data, response_data,
                                               self.u2f_facets)
-        self.config['device'] = dict(binding)
+        devices = self.config.setdefault('devices', [])
+        devices.append({
+            'name': device_name or 'Security Key',
+            'ts': int(time.time()),
+            'binding': dict(binding),
+        })
 
     def activate(self, request):
         return ActivationChallengeResult(
-            challenge=dict(u2f.start_authenticate([self.get_u2f_device()])),
+            challenge=dict(u2f.start_authenticate(self.get_u2f_devices())),
         )
 
     def validate_response(self, request, challenge, response):
         try:
-            counter, touch = u2f.verify_authenticate([self.get_u2f_device()],
+            counter, touch = u2f.verify_authenticate(self.get_u2f_devices(),
                                                      challenge, response,
                                                      self.u2f_facets)
         except (InvalidSignature, InvalidKey, StopIteration):

@@ -12,6 +12,7 @@ from __future__ import absolute_import, print_function
 
 import base64
 import logging
+import re
 import six
 import uuid
 import zlib
@@ -39,6 +40,7 @@ from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float
 
 LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
+EVENT_ID_RE = re.compile(r'^[a-fA-F0-9]{32}$')
 
 
 class APIError(Exception):
@@ -349,11 +351,6 @@ class ClientApiHelper(object):
 
         data['errors'] = []
 
-        if not data.get('message'):
-            data['message'] = '<no message value>'
-        elif not isinstance(data['message'], six.string_types):
-            raise APIForbidden('Invalid value for message')
-
         if data.get('culprit'):
             if not isinstance(data['culprit'], six.string_types):
                 raise APIForbidden('Invalid value for culprit')
@@ -369,6 +366,16 @@ class ClientApiHelper(object):
                 len(data['event_id']))
             data['errors'].append({
                 'type': EventError.VALUE_TOO_LONG,
+                'name': 'event_id',
+                'value': data['event_id'],
+            })
+            data['event_id'] = uuid.uuid4().hex
+        elif not EVENT_ID_RE.match(data['event_id']):
+            self.log.info(
+                'Discarded invalid value for event_id: %r',
+                data['event_id'], exc_info=True)
+            data['errors'].append({
+                'type': EventError.INVALID_DATA,
                 'name': 'event_id',
                 'value': data['event_id'],
             })
@@ -573,6 +580,43 @@ class ClientApiHelper(object):
                     'name': k,
                     'value': value,
                 })
+
+        # TODO(dcramer): ideally this logic would happen in normalize, but today
+        # we don't do "validation" there (create errors)
+
+        # message is coerced to an interface, as its used for pure
+        # index of searchable strings
+        # See GH-3248
+        message = data.pop('message', None)
+        if message:
+            if 'sentry.interfaces.Message' not in data:
+                value = {
+                    'message': message,
+                }
+            elif not data['sentry.interfaces.Message'].get('formatted'):
+                value = data['sentry.interfaces.Message']
+                value['formatted'] = message
+            else:
+                value = None
+
+            if value is not None:
+                k = 'sentry.interfaces.Message'
+                interface = get_interface(k)
+                try:
+                    inst = interface.to_python(value)
+                    data[inst.get_path()] = inst.to_json()
+                except Exception as e:
+                    if isinstance(e, InterfaceValidationError):
+                        log = self.log.info
+                    else:
+                        log = self.log.error
+                    log('Discarded invalid value for interface: %s (%r)', k, value,
+                        exc_info=True)
+                    data['errors'].append({
+                        'type': EventError.INVALID_DATA,
+                        'name': k,
+                        'value': value,
+                    })
 
         level = data.get('level') or DEFAULT_LOG_LEVEL
         if isinstance(level, six.string_types) and not level.isdigit():

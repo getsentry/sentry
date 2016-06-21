@@ -74,7 +74,7 @@ class Command(BaseCommand):
 
         if not unique_users:
             sys.stdout.write("No users with duplicate accounts found for merging.\n")
-            sys.exit(0)
+            return
 
         sys.stdout.write("Found {} unique account(s) with duplicate identities.\n".format(len(unique_users)))
 

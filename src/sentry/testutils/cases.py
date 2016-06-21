@@ -10,16 +10,17 @@ from __future__ import absolute_import
 
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'AuthProviderTestCase',
-    'RuleTestCase', 'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'LiveServerTestCase',
+    'RuleTestCase', 'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'LiveServerTestCase', 'AcceptanceTestCase',
 )
 
 import base64
+import os
 import os.path
-import signal
+import pytest
 import urllib
-from contextlib import contextmanager
 
 from click.testing import CliRunner
+from contextlib import contextmanager
 from django.conf import settings
 from django.contrib.auth import login
 from django.core.cache import cache
@@ -27,9 +28,8 @@ from django.core.urlresolvers import reverse
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.utils.importlib import import_module
-from exam import before, after, fixture, Exam
+from exam import before, fixture, Exam
 from rest_framework.test import APITestCase as BaseAPITestCase
-from selenium import webdriver
 
 from sentry import auth
 from sentry.auth.providers.dummy import DummyProvider
@@ -247,23 +247,7 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 
 class LiveServerTestCase(BaseTestCase, LiveServerTestCase):
-    @before
-    def setup_browser(self):
-        # NOTE: this relies on the phantomjs-prebuilt dependency in package.json.
-        phantomjs_path = os.path.join(
-            settings.NODE_MODULES_ROOT,
-            'phantomjs-prebuilt',
-            'bin',
-            'phantomjs',
-        )
-        self.browser = webdriver.PhantomJS(executable_path=phantomjs_path)
-
-    @after
-    def teardown_browser(self):
-        self.browser.close()
-        # TODO: remove this when fixed in: https://github.com/seleniumhq/selenium/issues/767
-        self.browser.service.process.send_signal(signal.SIGTERM)
-        self.browser.quit()
+    pass
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
@@ -456,3 +440,19 @@ class CliTestCase(TestCase):
     def invoke(self, *args):
         args += tuple(self.default_args)
         return self.runner.invoke(self.command, args, obj={})
+
+
+@pytest.mark.usefixtures('browser_class', 'percy_class')
+class AcceptanceTestCase(LiveServerTestCase):
+    # Use class setup/teardown to hold Selenium and Percy state across all acceptance tests.
+    # For Selenium, this is done for performance to re-use the same browser across tests.
+    # For Percy, this is done to call initialize and then finalize at the very end after all tests.
+
+    # Login helper.
+    def login(self, username, password, browser=None):
+        if browser is None:
+            browser = self.browser
+        browser.get(self.live_server_url)
+        browser.find_element_by_id('id_username').send_keys(username)
+        browser.find_element_by_id('id_password').send_keys(password)
+        browser.find_element_by_xpath("//button[contains(text(), 'Login')]").click()

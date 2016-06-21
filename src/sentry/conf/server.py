@@ -195,6 +195,7 @@ TEMPLATE_LOADERS = (
 
 MIDDLEWARE_CLASSES = (
     'sentry.middleware.proxy.ContentLengthHeaderMiddleware',
+    'sentry.middleware.security.SecurityHeadersMiddleware',
     'sentry.middleware.maintenance.ServicesUnavailableMiddleware',
     'sentry.middleware.env.SentryEnvMiddleware',
     'sentry.middleware.proxy.SetRemoteAddrFromForwardedFor',
@@ -377,6 +378,8 @@ CELERY_DEFAULT_EXCHANGE = "default"
 CELERY_DEFAULT_EXCHANGE_TYPE = "direct"
 CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
+CELERY_REDIRECT_STDOUTS = False
+CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_IMPORTS = (
     'sentry.tasks.auth',
     'sentry.tasks.auto_resolve_issues',
@@ -514,9 +517,8 @@ LOGGING = {
             'class': 'django.utils.log.NullHandler',
         },
         'console': {
-            'level': 'WARNING',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
+            'level': 'INFO',
+            'class': 'sentry.logging.handlers.StructLogHandler',
         },
         'sentry': {
             'level': 'ERROR',
@@ -525,26 +527,12 @@ LOGGING = {
         },
         'audit': {
             'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
-        'console:api': {
-            'level': 'WARNING',
-            'class': 'logging.StreamHandler',
-            'formatter': 'client_info',
+            'class': 'sentry.logging.handlers.StructLogHandler',
         },
     },
     'filters': {
         'sentry:internal': {
             '()': 'sentry.utils.raven.SentryInternalFilter',
-        },
-    },
-    'formatters': {
-        'simple': {
-            'format': '[%(levelname)s] %(message)s',
-        },
-        'client_info': {
-            'format': '[%(levelname)s] [%(project)s] [%(agent)s] %(message)s',
         },
     },
     'root': {
@@ -561,7 +549,7 @@ LOGGING = {
             'handlers': ['audit'],
         },
         'sentry.api': {
-            'handlers': ['console:api', 'sentry'],
+            'handlers': ['console', 'sentry'],
             'propagate': False,
         },
         'sentry.deletions': {
@@ -574,6 +562,12 @@ LOGGING = {
         'sentry.rules': {
             'handlers': ['console'],
             'propagate': False,
+        },
+        'multiprocessing': {
+            'handlers': ['console'],
+        },
+        'celery': {
+            'level': 'WARN',
         },
         'static_compiler': {
             'level': 'INFO',
@@ -610,6 +604,10 @@ NOCAPTCHA = True
 
 CAPTCHA_WIDGET_TEMPLATE = "sentry/partial/form_captcha.html"
 
+# Percy config for visual regression testing.
+
+PERCY_DEFAULT_TESTING_WIDTHS = (1280, 375)
+
 # Debugger
 
 DEBUG_TOOLBAR_PANELS = (
@@ -635,11 +633,11 @@ SENTRY_FEATURES = {
     'organizations:create': True,
     'organizations:sso': True,
     'organizations:callsigns': False,
+    'organizations:new-tracebacks': False,
     'projects:global-events': False,
     'projects:quotas': True,
     'projects:plugins': True,
     'projects:dsym': False,
-    'projects:breadcrumbs': True,
 }
 
 # Default time zone for localization in the UI.
@@ -868,7 +866,7 @@ SENTRY_DISALLOWED_IPS = ()
 # Fields which managed users cannot change via Sentry UI. Username and password
 # cannot be changed by managed users. Optionally include 'email' and
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
-SENTRY_MANAGED_USER_FIELDS = ('email',)
+SENTRY_MANAGED_USER_FIELDS = ()
 
 SENTRY_SCOPES = set([
     'org:read',

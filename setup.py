@@ -82,6 +82,7 @@ tests_require = [
     'pytest-xdist>=1.11.0,<1.12.0',
     'python-coveralls',
     'responses',
+    'percy>=0.2.5',
 ]
 
 
@@ -110,7 +111,6 @@ install_requires = [
     'ipaddr>=2.1.11,<2.2.0',
     'kombu==3.0.30',
     'lxml>=3.4.1',
-    'msgpack-python>=0.4,<0.5',
     'mock>=0.8.0,<1.1',
     'petname>=1.7,<1.8',
     'Pillow>=3.2.0,<3.3.0',
@@ -121,18 +121,19 @@ install_requires = [
     'python-dateutil>=2.0.0,<3.0.0',
     'python-memcached>=1.53,<2.0.0',
     'PyYAML>=3.11,<4.0',
-    'raven>=5.3.0',
+    'raven>=5.21.0,<6.0.0',
     'redis>=2.10.3,<2.11.0',
-    'requests%s>=2.9.1,<2.10.0' % (not IS_LIGHT_BUILD and '[security]' or ''),
+    'requests%s>=2.9.1,<2.11.0' % (not IS_LIGHT_BUILD and '[security]' or ''),
     'selenium>=2.53,<2.60',
     'simplejson>=3.2.0,<3.9.0',
     'six>=1.6.0,<2.0.0',
     'setproctitle>=1.1.7,<1.2.0',
     'statsd>=3.1.0,<3.2.0',
+    'structlog==16.1.0',
     'South==1.0.1',
     'toronado>=0.0.4,<0.1.0',
     'ua-parser>=0.6.1,<0.8.0',
-    'urllib3>=1.14,<1.15',
+    'urllib3>=1.14,<1.17',
     'uwsgi>2.0.0,<2.1.0',
     'rb>=1.4.0,<2.0.0',
     'qrcode>=5.2.2,<6.0.0',
@@ -383,8 +384,8 @@ class BuildJavascriptCommand(Command):
             check_output(['git', 'submodule', 'init'], cwd=work_path)
             check_output(['git', 'submodule', 'update'], cwd=work_path)
 
-        log.info("running [npm install --quiet]")
-        check_output(['npm', 'install', '--quiet'], cwd=work_path)
+        log.info("running [npm install --production --quiet]")
+        check_output(['npm', 'install', '--production', '--quiet'], cwd=work_path)
 
         # By setting NODE_ENV=production, a few things happen
         #   * React optimizes out certain code paths
