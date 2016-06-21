@@ -19,13 +19,15 @@ running on your own infrastructure.
    sso
    throttling
    tsdb
+   digests
    inbound-mail
    internal-metrics
    performance
    cli/index
-   health-checks
+   monitoring
    beacon
    plugins
+   warnings
    faq
 
 .. sentry:edition:: self, on-premise

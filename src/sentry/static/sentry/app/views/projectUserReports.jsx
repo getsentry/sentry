@@ -2,7 +2,7 @@ import jQuery from 'jquery';
 import React from 'react';
 import {History, Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
-import Gravatar from '../components/gravatar';
+import Avatar from '../components/avatar';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
@@ -13,6 +13,7 @@ import {t} from '../locale';
 
 const ProjectUserReports = React.createClass({
   propTypes: {
+    defaultQuery: React.PropTypes.string,
     setProjectNavSection: React.PropTypes.func
   },
 
@@ -40,7 +41,7 @@ const ProjectUserReports = React.createClass({
   },
 
   componentWillMount() {
-    this.props.setProjectNavSection('user-reports');
+    this.props.setProjectNavSection('user-feedback');
     this.fetchData();
   },
 
@@ -59,7 +60,7 @@ const ProjectUserReports = React.createClass({
       targetQueryParams.query = query;
 
     let {orgId, projectId} = this.props.params;
-    this.history.pushState(null, `/${orgId}/${projectId}/user-reports/`, targetQueryParams);
+    this.history.pushState(null, `/${orgId}/${projectId}/user-feedback/`, targetQueryParams);
   },
 
   fetchData() {
@@ -100,7 +101,7 @@ const ProjectUserReports = React.createClass({
   getUserReportsUrl() {
     let params = this.props.params;
 
-    return `/${params.orgId}/${params.projectId}/settings/user-reports/`;
+    return `/${params.orgId}/${params.projectId}/settings/user-feedback/`;
   },
 
   renderStreamBody() {
@@ -142,7 +143,7 @@ const ProjectUserReports = React.createClass({
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
         <p>{t('No user reports have been collected for this project.')}</p>
-        <p><Link to={this.getUserReportsUrl()}>{t('Learn how to integrate User Crash Reports')}</Link></p>
+        <p><Link to={this.getUserReportsUrl()}>{t('Learn how to integrate User Feedback')}</Link></p>
       </div>
     );
   },
@@ -163,7 +164,7 @@ const ProjectUserReports = React.createClass({
           <div className="activity-container" style={{margin: '10px 0 5px'}}>
             <ul className="activity">
               <li className="activity-note" style={{paddingBottom: 0}}>
-                <Gravatar email={item.email} size={64} className="avatar" />
+                <Avatar user={item} size={64} className="avatar" />
                 <div className="activity-bubble">
                   <TimeSince date={item.dateCreated} />
                   <div className="activity-author">{item.name} <small>{item.email}</small></div>
@@ -188,7 +189,7 @@ const ProjectUserReports = React.createClass({
       <div>
         <div className="row release-list-header">
           <div className="col-sm-7">
-            <h3>{t('User Reports')}</h3>
+            <h3>{t('User Feedback')}</h3>
           </div>
         </div>
         <div className="alert alert-block alert-info">Psst! This feature is still a work-in-progress. Thanks for being an early adopter!</div>

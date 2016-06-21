@@ -1,6 +1,19 @@
 @import url('components/broadcasts.less');
 @import url('components/statuspage.less');
 
+dl.flat {
+  margin-bottom: 1em;
+}
+dl.flat dt {
+  float: left;
+  clear: left;
+  width: 70px;
+  padding-bottom: 5px;
+}
+dl.flat dd {
+  padding-bottom: 5px;
+}
+
 /**
 * Buttons
 * ============================================================================
@@ -19,6 +32,8 @@
   &.btn-disabled {
     color: #CED3D6;
     border-color: #E3E5E6;
+    box-shadow: none;
+    cursor: default;
   }
 }
 
@@ -111,12 +126,24 @@
   text-shadow: none;
 }
 
+/* Icons */
+.icon-star-solid.bookmark,
+.icon-star-outline.bookmark {
+  margin-right: 6px;
+}
+.icon-star-solid.bookmark {
+  color: @yellow-orange;
+  &:hover {
+    color: @yellow-orange;
+  }
+}
+
 /* Button icons */
 
 .btn {
-  .icon-bookmark {
+  .icon-star-solid {
     position: relative;
-    top: 2px;
+    top: 1px;
     margin-right: -1px;
     margin-left: -1px;
   }
@@ -145,7 +172,8 @@
 /* Small button icons */
 
 .btn-sm {
-  .icon-arrow-down, .icon-arrow-right, .icon-arrow-left {
+  .icon-arrow-down, .icon-arrow-right, .icon-arrow-left, .icon-refresh {
+    position: relative;
     font-size: 14px !important;
     top: 2px;
   }
@@ -320,7 +348,7 @@ table.table {
       .square(36px);
       position: absolute;
       left: 20px;
-      top: 18px;
+      top: 14px;
     }
   }
 
@@ -351,7 +379,8 @@ pre.plain {
   word-break: break-all;
 }
 
-a.external-icon {
+.external-icon {
+  .transition(.1s linear color);
   color: inherit;
   font-size: 11px;
   padding: 0 5px;
@@ -361,6 +390,10 @@ a.external-icon {
   &:hover {
     color: @gray;
   }
+}
+
+.box-header a:hover .external-icon {
+  color: @gray;
 }
 
 table.vars {
@@ -582,6 +615,71 @@ table.integrations {
   height: 20px;
   vertical-align: middle;
   border-radius: 2px;
+  position: relative;
+  display: inline-block;
+
+    svg, img {
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      border-radius: 3px;
+    }
+}
+
+/**
+* Avatar Cropping
+* ============================================================================
+*/
+
+#avatar-settings {
+  input[type="file"] {
+    display: inline-block;
+    opacity: 0;
+  }
+}
+
+.image-cropper {
+  text-align: center;
+  background-image: url(../images/avatars/cropper-bg.gif);
+  margin-bottom: 20px;
+
+  .crop-container {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+  }
+  .cropper {
+    position: absolute;
+    border: 2px dashed @gray-light;
+    .resizer {
+      border-radius: 5px;
+      width: 10px;
+      height: 10px;
+      position: absolute;
+      background-color: @gray-light;
+    }
+    .resizer.nw {
+      top: -5px;
+      left: -5px;
+    }
+    .resizer.ne {
+      top: -5px;
+      right: -5px;
+    }
+    .resizer.se {
+      bottom: -5px;
+      right: -5px;
+    }
+    .resizer.sw {
+      bottom: -5px;
+      left: -5px;
+    }
+  }
+}
+.canvas-container {
+  canvas {
+    display: none;
+  }
 }
 
 /**
@@ -1036,7 +1134,6 @@ table.integrations {
 */
 
 .project-select > a {
-  font-weight: 600;
   color: @gray-darker;
 }
 
@@ -1427,19 +1524,19 @@ table.integrations {
       border-bottom-right-radius: 3px;
     }
 
-    &:nth-child(1) {
+    &:nth-child(4) {
       background-color: rgba(135, 146, 163, 0.2);
     }
 
-    &:nth-child(2) {
+    &:nth-child(3) {
       background-color: rgba(135, 146, 163, 0.4);
     }
 
-    &:nth-child(3) {
+    &:nth-child(2) {
       background-color: rgba(135, 146, 163, 0.6);
     }
 
-    &:nth-child(4) {
+    &:nth-child(1) {
       background-color: rgba(135, 146, 163, 0.8);
     }
   }
@@ -1472,7 +1569,6 @@ table.integrations {
     display: inline-block;
     width: 24px;
     height: 24px;
-    border-radius: 4px;
     position: relative;
     left: -2px;
     top: -1px;
@@ -1544,7 +1640,7 @@ table.integrations {
         text-overflow: ellipsis;
         text-align: left;
 
-        img {
+        span.avatar {
           margin-right: 5px;
           position: absolute;
           left: 8px;
@@ -1827,6 +1923,19 @@ table.integrations {
       padding: 10px 10px 0;
     }
   }
+
+  .box-collapse-margins {
+    border-radius: 2px 2px 0 0;
+
+    + .box-collapse-margins {
+      margin-top: -21px;
+      border-radius: 0;
+    }
+
+    &:last-of-type {
+      border-radius: 0 0 2px 2px;
+    }
+  }
 }
 
 /**
@@ -1838,15 +1947,21 @@ table.integrations {
    .alert {
      color: #fff;
      font-weight: bold;
-     background: @yellow-light;
+     background: darken(@yellow-orange, 2);
      border: 0;
 
      .close {
-       color: rgba(255,255,255, .5);
+       color: rgba(255,255,255, .7);
 
        &:hover {
-         color: rgba(255,255,255, .8);
+         color: rgba(255,255,255, .9);
        }
+     }
+   }
+
+   .alert-warning {
+     .icon:before {
+       content: "\e615";
      }
    }
 
@@ -1983,6 +2098,13 @@ table.integrations {
   }
 }
 
+.early-adopter-banner {
+  .box;
+  font-size: 13px;
+  padding: 8px 15px;
+  background: @white-dark;
+}
+
 /**
 * Dropdowns
 * ============================================================================
@@ -2026,9 +2148,16 @@ table.integrations {
     z-index: -2;
   }
 
-  &.dropdown-menu-right:after {
-    right: 13px;
-    left: auto;
+  &.dropdown-menu-right {
+    &:before {
+      right: 12px;
+      left: auto;
+    }
+
+    &:after {
+      right: 13px;
+      left: auto;
+    }
   }
 
   li a {
@@ -2235,6 +2364,7 @@ table.integrations {
       position: relative;
       top: -4px;
       left: 5px;
+      font-size: 14px;
     }
   }
 
@@ -2366,6 +2496,28 @@ table.integrations {
     line-height: 18px;
     border: 1px solid @gray-lighter;
     background: inherit;
+  }
+}
+
+/**
+* Circle indicators
+* ============================================================================
+*/
+
+.circle-indicator {
+  display: inline-block;
+  .square(14px);
+  border-radius: 14px;
+  margin-right: 8px;
+  position: relative;
+  top: 1px;
+
+  &.enabled {
+    background: @green;
+  }
+
+  &.disabled {
+      background: @red;
   }
 }
 
@@ -2811,12 +2963,22 @@ ul.radio-inputs {
   margin-bottom: 20px;
   border-radius: 3px;
 
+  p {
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
   &.important {
     background: @yellow;
     border: 0;
     a, a:active {
       color: @gray-dark;
     }
+  }
+
+  &.image-well {
+    padding: 80px 30px;
   }
 }
 
@@ -2963,13 +3125,11 @@ ul.tag-list {
 
   li {
     float: left;
-    margin: 0 10px 10px 0;
-    background: lighten(@gray, 20);
-    .square(100px);
-    border-radius: 4px;
+    margin: 0 20px 20px 0;
     text-align: center;
     position: relative;
-    color: #fff;
+    min-width: 80px;
+    font-size: 16px;
 
     a {
       color: inherit;
@@ -2995,60 +3155,115 @@ ul.tag-list {
 
   .platformicon {
     display: block;
-    .square(48px);
-    font-size: 48px;
-    margin: 15px auto 2px;
+    .square(56px);
+    font-size: 42px;
+    line-height: 58px;
+    text-align: center;
+    margin: 15px auto 15px;
+    border-radius: 5px;
+    color: #fff;
+    text-shadow: 0 2px 0 rgba(0,0,0, .06);
   }
 
   // Colors
 
   li {
-    &.python {
+    &.python .platformicon {
       background: darken(@blue, 6);
     }
 
-    &.javascript {
+    &.javascript .platformicon {
       background: @yellow;
       color: #111;
+      text-shadow: none;
     }
 
-    &.ruby,
-    &.rails {
+    &.ruby .platformicon,
+    &.rails .platformicon,
+    &.javascript-angular .platformicon {
       background: @red;
+      color: #fff;
     }
 
-    &.java {
+    &.java .platformicon {
       background: @orange;
     }
 
-    &.php {
+    &.php .platformicon {
       background: @purple;
     }
 
-    &.python-django {
+    &.python-django .platformicon {
       background: @green;
     }
 
-    &.node {
+    &.node .platformicon {
       background: #90C541;
     }
 
-    &.objc {
+    &.objc .platformicon {
       background: @gray;
+      line-height: 54px;
+      font-size: 38px;
     }
 
-    &.app-engine {
+    &.app-engine .platformicon {
       background: @orange;
     }
 
-    &.csharp {
+    &.csharp .platformicon {
       background: @blue-light;
     }
 
-    &.go {
+    &.go .platformicon {
       border: 2px solid @gray;
       color: @gray-dark;
       background: #fff;
+      line-height: 52px;
+      text-shadow: none;
+    }
+
+    &.javascript-react .platformicon {
+      background: #2d2d2d;
+      color: #00d8ff;
+    }
+
+    &.javascript-ember .platformicon {
+      background: #ed573e;
+      color: #fff;
+    }
+  }
+}
+
+/**
+ * Reusable project label
+ * ============================================================================
+ */
+.project-label {
+  .callsign-addon {
+    color: @blue;
+    font-weight: bold;
+    padding-left: 7px;
+    font-size: 80%;
+    vertical-align: top;
+  }
+}
+
+/**
+* QR Code
+* ============================================================================
+*/
+div.qrcode {
+  table {
+    border-spacing: 0;
+    margin: 40px auto;
+    td {
+      width: 5px;
+      height: 5px;
+
+      &.black {
+        background: black;
+      }
     }
   }
 }
@@ -3058,22 +3273,26 @@ ul.tag-list {
  * ============================================================================
  */
 
- .error-level {
-   background: @gray-light;
- }
+.event-type {
+  background: @gray-light;
+}
 
- &.level-info .error-level {
-   background: @blue;
- }
- &.level-warning .error-level {
-   background: @yellow;
- }
- &.level-error .error-level {
-   background: @orange;
- }
- &.level-fatal .error-level {
-   background: @red;
- }
+.type-error .event-type,
+.level-error .error-level {
+  background: @orange;
+}
+&.level-info .error-level {
+  background: @blue;
+}
+&.level-warning .error-level {
+  background: @yellow;
+}
+&.level-error .error-level {
+  background: @orange;
+}
+&.level-fatal .error-level {
+  background: @red;
+}
 
 /**
 * Responsive small screens

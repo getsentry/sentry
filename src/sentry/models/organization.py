@@ -9,19 +9,19 @@ from __future__ import absolute_import, print_function
 
 from bitfield import BitField
 from django.conf import settings
-from django.db import models
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import roles
+from sentry.app import locks
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, Model,
-    sane_repr
+    BaseManager, BoundedPositiveIntegerField, Model, sane_repr
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.utils.cache import Lock
+from sentry.utils.retries import TimedRetryPolicy
 
 
 # TODO(dcramer): pull in enum library
@@ -82,6 +82,8 @@ class Organization(Model):
     flags = BitField(flags=(
         ('allow_joinleave', 'Allow members to join and leave teams without requiring approval.'),
         ('enhanced_privacy', 'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.'),
+        ('disable_shared_issues', 'Disable sharing of limited details on issues to anonymous users.'),
+        ('early_adopter', 'Enable early adopter status, gaining access to features prior to public release.'),
     ), default=1)
 
     objects = OrganizationManager(cache_fields=(
@@ -109,8 +111,8 @@ class Organization(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock_key = 'slug:organization'
-            with Lock(lock_key):
+            lock = locks.get('slug:organization', duration=5)
+            with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name,
                                  reserved=RESERVED_ORGANIZATION_SLUGS)
             super(Organization, self).save(*args, **kwargs)
@@ -193,7 +195,46 @@ class Organization(Model):
                             'is_active': True,
                         },
                     )
-        for model in (Team, Project, ApiKey, AuditLogEntry):
+
+        for team in Team.objects.filter(organization=from_org):
+            try:
+                with transaction.atomic():
+                    team.update(organization=to_org)
+            except IntegrityError:
+                slugify_instance(team, team.name, organization=to_org)
+                team.update(
+                    organization=to_org,
+                    slug=team.slug,
+                )
+
+        for project in Project.objects.filter(organization=from_org):
+            try:
+                with transaction.atomic():
+                    project.update(organization=to_org)
+            except IntegrityError:
+                slugify_instance(project, project.name, organization=to_org)
+                project.update(
+                    organization=to_org,
+                    slug=project.slug,
+                )
+
+        for model in (ApiKey, AuditLogEntry):
             model.objects.filter(
                 organization=from_org,
             ).update(organization=to_org)
+
+    # TODO: Make these a mixin
+    def update_option(self, *args, **kwargs):
+        from sentry.models import OrganizationOption
+
+        return OrganizationOption.objects.set_value(self, *args, **kwargs)
+
+    def get_option(self, *args, **kwargs):
+        from sentry.models import OrganizationOption
+
+        return OrganizationOption.objects.get_value(self, *args, **kwargs)
+
+    def delete_option(self, *args, **kwargs):
+        from sentry.models import OrganizationOption
+
+        return OrganizationOption.objects.unset_value(self, *args, **kwargs)

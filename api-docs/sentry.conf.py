@@ -5,23 +5,10 @@ import os
 import getpass
 
 
-# for this api docs only.  We
 SENTRY_APIDOCS_REDIS_PORT = 12355
 SENTRY_APIDOCS_WEB_PORT = 12356
-SENTRY_APIDOCS_REDIS_CONF = {
-    'host': '127.0.0.1',
-    'port': SENTRY_APIDOCS_REDIS_PORT,
-}
-SENTRY_APIDOCS_REDIS_OPTIONS = {
-    'hosts': {
-        0: SENTRY_APIDOCS_REDIS_CONF,
-        1: SENTRY_APIDOCS_REDIS_CONF,
-        2: SENTRY_APIDOCS_REDIS_CONF,
-        3: SENTRY_APIDOCS_REDIS_CONF,
-    }
-}
 
-SENTRY_URL_PREFIX = 'https://app.getsentry.com/'
+SENTRY_URL_PREFIX = 'https://app.getsentry.com'
 
 # Unsupported here
 SENTRY_SINGLE_ORGANIZATION = False
@@ -37,12 +24,6 @@ DATABASES = {
     }
 }
 SENTRY_USE_BIG_INTS = True
-
-SENTRY_BUFFER_OPTIONS = SENTRY_APIDOCS_REDIS_OPTIONS
-SENTRY_CACHE_OPTIONS = SENTRY_APIDOCS_REDIS_OPTIONS
-SENTRY_QUOTA_OPTIONS = SENTRY_APIDOCS_REDIS_OPTIONS
-SENTRY_RATELIMITER_OPTIONS = SENTRY_APIDOCS_REDIS_OPTIONS
-SENTRY_TSDB_OPTIONS = SENTRY_APIDOCS_REDIS_OPTIONS
 
 SENTRY_CACHE = 'sentry.cache.redis.RedisCache'
 
@@ -68,17 +49,20 @@ SENTRY_WEB_OPTIONS = {
     'secure_scheme_headers': {'X-FORWARDED-PROTO': 'https'},
 }
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-
-EMAIL_HOST = 'localhost'
-EMAIL_HOST_PASSWORD = ''
-EMAIL_HOST_USER = ''
-EMAIL_PORT = 25
-EMAIL_USE_TLS = False
-
-SERVER_EMAIL = 'sentry@getsentry.com'
-
-SECRET_KEY = 'super secret secret key'
-
-SENTRY_OPTIONS['system.admin-email'] = 'admin@getsentry.com'
-SENTRY_OPTIONS['system.url-prefix'] = SENTRY_URL_PREFIX
+SENTRY_OPTIONS.update({
+    'redis.clusters': {
+        'default': {
+            'hosts': {i: {'port': SENTRY_APIDOCS_REDIS_PORT} for i in xrange(0, 4)},
+        },
+    },
+    'system.secret-key': 'super secret secret key',
+    'system.admin-email': 'admin@getsentry.com',
+    'system.url-prefix': SENTRY_URL_PREFIX,
+    'mail.backend': 'django.core.mail.backends.smtp.EmailBackend',
+    'mail.host': 'localhost',
+    'mail.password': '',
+    'mail.username': '',
+    'mail.port': 25,
+    'mail.use-tls': False,
+    'mail.from': 'sentry@getsentry.com',
+})

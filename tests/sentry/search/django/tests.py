@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 
 from sentry.models import GroupAssignee, GroupBookmark, GroupStatus, GroupTagValue
+from sentry.search.base import ANY
 from sentry.search.django.backend import DjangoSearchBackend
 from sentry.testutils import TestCase
 
@@ -69,12 +70,14 @@ class DjangoSearchBackendTest(TestCase):
 
         for key, value in self.event1.data['tags']:
             GroupTagValue.objects.create(
+                project=self.group1.project,
                 group=self.group1,
                 key=key,
                 value=value,
             )
         for key, value in self.event2.data['tags']:
             GroupTagValue.objects.create(
+                project=self.group2.project,
                 group=self.group2,
                 key=key,
                 value=value,
@@ -133,6 +136,9 @@ class DjangoSearchBackendTest(TestCase):
 
         results = self.backend.query(self.project1, tags={'env': 'example.com'})
         assert len(results) == 0
+
+        results = self.backend.query(self.project1, tags={'env': ANY})
+        assert len(results) == 2
 
     def test_bookmarked_by(self):
         results = self.backend.query(self.project1, bookmarked_by=self.user)

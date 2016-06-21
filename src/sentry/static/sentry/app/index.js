@@ -17,8 +17,6 @@ function getCookie(name) {
   return cookieValue;
 }
 
-let csrftoken = getCookie('csrf');
-
 function csrfSafeMethod(method) {
   // these HTTP methods do not require CSRF protection
   return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
@@ -26,7 +24,7 @@ function csrfSafeMethod(method) {
 jQuery.ajaxSetup({
   beforeSend: function(xhr, settings) {
     if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-      xhr.setRequestHeader('X-CSRFToken', csrftoken);
+      xhr.setRequestHeader('X-CSRFToken', getCookie('csrf'));
     }
   }
 });
@@ -46,12 +44,16 @@ export default {
     routes: require('./routes'),
     createHistory: require('history/lib/createBrowserHistory'),
     Alerts: require('./components/alerts'),
+    AlertActions: require('./actions/alertActions'),
+    AvatarSettings: require('./components/avatarSettings'),
     mixins: {
       ApiMixin: require('./mixins/apiMixin'),
     },
     BarChart: require('./components/barChart'),
     i18n: require('./locale'),
     ConfigStore: require('./stores/configStore'),
+    Count: require('./components/count'),
+    DateTime: require('./components/dateTime'),
     DropdownLink: require('./components/dropdownLink'),
     FlotChart: require('./components/flotChart'),
     HookStore: require('./stores/hookStore'),
@@ -63,6 +65,10 @@ export default {
     Pagination: require('./components/pagination'),
     ProjectSelector: require('./components/projectHeader/projectSelector'),
     RuleEditor: require('./views/ruleEditor'),
-    TimeSince: require('./components/timeSince')
+    StackedBarChart: require('./components/stackedBarChart'),
+    TimeSince: require('./components/timeSince'),
+    TodoList: require('./components/todos'),
+    U2fEnrollment: require('./components/u2fenrollment'),
+    U2fSign: require('./components/u2fsign')
   }
 };

@@ -59,6 +59,14 @@
             <div class="form-control disabled auto-select">{{ key.dsn_public }}</div>
             <div class="help-block">{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}Use your public DSN with browser-based clients such as <a href="{{ link }}">raven-js</a>.{% endblocktrans %}</div>
           </div>
+
+          {% if organization.flags.early_adopter %}
+          <div class="form-group">
+            <label>{% trans "CSP Endpoint" %}</label>
+            <div class="form-control disabled auto-select">{{ key.csp_endpoint }}</div>
+            <div class="help-block">{% blocktrans %}Use your CSP endpoint in the <code>report-uri</code> directive in your <code>Content-Security-Policy</code> header.{% endblocktrans %}</div>
+          </div>
+          {% endif %}
         </div>
       {% endfor %}
     </div>

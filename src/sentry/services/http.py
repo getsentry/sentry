@@ -34,17 +34,19 @@ class SentryHTTPServer(Service):
     name = 'http'
 
     def __init__(self, host=None, port=None, debug=False, workers=None,
-                 validate=True):
+                 validate=True, extra_options=None):
         from django.conf import settings
 
         if validate:
             self.validate_settings()
 
-        self.host = host or settings.SENTRY_WEB_HOST
-        self.port = port or settings.SENTRY_WEB_PORT
-        self.workers = workers
+        host = host or settings.SENTRY_WEB_HOST
+        port = port or settings.SENTRY_WEB_PORT
 
         options = (settings.SENTRY_WEB_OPTIONS or {}).copy()
+        if extra_options is not None:
+            for k, v in extra_options.iteritems():
+                options[k] = v
         options.setdefault('module', 'sentry.wsgi:application')
         options.setdefault('protocol', 'http')
         options.setdefault('auto-procname', True)
@@ -66,9 +68,10 @@ class SentryHTTPServer(Service):
         options.setdefault('ignore-write-errors', True)
         options.setdefault('disable-write-exception', True)
         options.setdefault('virtualenv', sys.prefix)
+        options.setdefault('die-on-term', True)
         options.setdefault('log-format', '%(addr) - %(user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"')
 
-        options.setdefault('%s-socket' % options['protocol'], '%s:%s' % (self.host, self.port))
+        options.setdefault('%s-socket' % options['protocol'], '%s:%s' % (host, port))
 
         # We only need to set uid/gid when stepping down from root, but if
         # we are trying to run as root, then ignore it entirely.
@@ -116,13 +119,19 @@ class SentryHTTPServer(Service):
 
         validate_settings(django_settings)
 
-    def run(self):
+    def prepare_environment(self, env=None):
+        if env is None:
+            env = os.environ
+
         # Move all of the options into UWSGI_ env vars
         for k, v in convert_options_to_env(self.options):
-            os.environ.setdefault(k, v)
+            env.setdefault(k, v)
+
+        # Signal that we're running within uwsgi
+        env['SENTRY_RUNNING_UWSGI'] = '1'
 
         # This has already been validated inside __init__
-        os.environ['SENTRY_SKIP_BACKEND_VALIDATION'] = '1'
+        env['SENTRY_SKIP_BACKEND_VALIDATION'] = '1'
 
         # Look up the bin directory where `sentry` exists, which should be
         # sys.argv[0], then inject that to the front of our PATH so we can reliably
@@ -130,8 +139,10 @@ class SentryHTTPServer(Service):
         # This is so the virtualenv doesn't need to be sourced in, which effectively
         # does exactly this.
         virtualenv_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-        current_path = os.environ.get('PATH', '')
+        current_path = env.get('PATH', '')
         if virtualenv_path not in current_path:
-            os.environ['PATH'] = '%s:%s' % (virtualenv_path, current_path)
+            env['PATH'] = '%s:%s' % (virtualenv_path, current_path)
 
+    def run(self):
+        self.prepare_environment()
         os.execvp('uwsgi', ('uwsgi',))

@@ -8,7 +8,8 @@ sentry.tasks.post_process
 
 from __future__ import absolute_import, print_function
 
-from celery.utils.log import get_task_logger
+import logging
+
 from django.db import IntegrityError, router, transaction
 from raven.contrib.django.models import client as Raven
 
@@ -18,7 +19,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
-logger = get_task_logger(__name__)
+logger = logging.getLogger('sentry')
 
 
 def _capture_stats(event, is_new):
@@ -84,7 +85,7 @@ def record_additional_tags(event):
 
     added_tags = []
     for plugin in plugins.for_project(event.project, version=2):
-        added_tags.extend(safe_execute(plugin.get_tags, event) or ())
+        added_tags.extend(safe_execute(plugin.get_tags, event, _with_transaction=False) or ())
     if added_tags:
         Group.objects.add_tags(event.group, added_tags)
 
@@ -133,3 +134,35 @@ def record_affected_user(event, **kwargs):
     Group.objects.add_tags(event.group, [
         ('sentry:user', euser.tag_value)
     ])
+
+
+@instrumented_task(
+    name='sentry.tasks.index_event_tags',
+    default_retry_delay=60 * 5, max_retries=None)
+def index_event_tags(project_id, event_id, tags, group_id=None, **kwargs):
+    from sentry.models import EventTag, Project, TagKey, TagValue
+
+    for key, value in tags:
+        tagkey, _ = TagKey.objects.get_or_create(
+            project=Project(id=project_id),
+            key=key,
+        )
+
+        tagvalue, _ = TagValue.objects.get_or_create(
+            project=Project(id=project_id),
+            key=key,
+            value=value,
+        )
+
+        try:
+            # handle replaying of this task
+            with transaction.atomic():
+                EventTag.objects.create(
+                    project_id=project_id,
+                    group_id=group_id,
+                    event_id=event_id,
+                    key_id=tagkey.id,
+                    value_id=tagvalue.id,
+                )
+        except IntegrityError:
+            pass

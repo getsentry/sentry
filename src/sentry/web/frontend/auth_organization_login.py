@@ -5,10 +5,12 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.views.decorators.cache import never_cache
+from django.contrib import messages
 
 from sentry import features
 from sentry.auth.helper import AuthHelper
-from sentry.models import AuthProvider, Organization
+from sentry.constants import WARN_SESSION_EXPIRED
+from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.utils import auth
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
@@ -124,6 +126,9 @@ class AuthOrganizationLoginView(BaseView):
         except Organization.DoesNotExist:
             return self.redirect(reverse('sentry-login'))
 
+        if organization.status != OrganizationStatus.VISIBLE:
+            return self.redirect(reverse('sentry-login'))
+
         request.session.set_test_cookie()
 
         try:
@@ -133,6 +138,16 @@ class AuthOrganizationLoginView(BaseView):
         except AuthProvider.DoesNotExist:
             auth_provider = None
 
+        session_expired = 'session_expired' in request.COOKIES
+        if session_expired:
+            messages.add_message(request, messages.WARNING, WARN_SESSION_EXPIRED)
+
         if not auth_provider:
-            return self.handle_basic_auth(request, organization)
-        return self.handle_sso(request, organization, auth_provider)
+            response = self.handle_basic_auth(request, organization)
+        else:
+            response = self.handle_sso(request, organization, auth_provider)
+
+        if session_expired:
+            response.delete_cookie('session_expired')
+
+        return response

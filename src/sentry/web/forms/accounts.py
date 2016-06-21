@@ -123,8 +123,6 @@ class AuthenticationForm(CaptchaForm):
                     self.error_messages['invalid_login'] % {
                         'username': self.username_field.verbose_name
                     })
-            elif not self.user_cache.is_active:
-                raise forms.ValidationError(self.error_messages['inactive'])
         self.check_for_test_cookie()
         return self.cleaned_data
 
@@ -390,13 +388,7 @@ class ProjectEmailOptionsForm(forms.Form):
 
         super(ProjectEmailOptionsForm, self).__init__(*args, **kwargs)
 
-        is_enabled = UserOption.objects.get_value(
-            user, project, 'mail:alert', None)
-        if is_enabled is None:
-            is_enabled = UserOption.objects.get_value(
-                user, None, 'subscribe_by_default', '1') == '1'
-        else:
-            is_enabled = bool(is_enabled)
+        is_enabled = project.is_user_subscribed_to_mail_alerts(user)
 
         self.fields['alert'].initial = is_enabled
         self.fields['email'].initial = UserOption.objects.get_value(
@@ -415,3 +407,11 @@ class ProjectEmailOptionsForm(forms.Form):
         else:
             UserOption.objects.unset_value(
                 self.user, self.project, 'mail:email')
+
+
+class TwoFactorForm(forms.Form):
+    otp = forms.CharField(
+        label=_('One-time password'), max_length=20, widget=forms.TextInput(
+            attrs={'placeholder': _('Code from authenticator'),
+        }),
+    )

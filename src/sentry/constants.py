@@ -38,8 +38,6 @@ SORT_OPTIONS = OrderedDict((
     ('date', _('Last Seen')),
     ('new', _('First Seen')),
     ('freq', _('Frequency')),
-    ('tottime', _('Total Time Spent')),
-    ('avgtime', _('Average Time Spent')),
 ))
 
 SEARCH_SORT_OPTIONS = OrderedDict((
@@ -77,7 +75,7 @@ MAX_CULPRIT_LENGTH = 200
 RESERVED_ORGANIZATION_SLUGS = (
     'admin', 'manage', 'login', 'account', 'register', 'api',
     'accept', 'organizations', 'teams', 'projects', 'help',
-    'docs', 'logout', '404', '500', '_static',
+    'docs', 'logout', '404', '500', '_static', 'out',
 )
 
 RESERVED_TEAM_SLUGS = RESERVED_ORGANIZATION_SLUGS
@@ -147,6 +145,7 @@ CLIENT_RESERVED_ATTRS = (
     'logger',
     'server_name',
     'site',
+    'received',
     'timestamp',
     'extra',
     'modules',
@@ -170,6 +169,7 @@ VALID_PLATFORMS = set([
     'as3',
     'c',
     'cfml',
+    'cocoa',
     'csharp',
     'go',
     'java',
@@ -188,6 +188,8 @@ OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
 OK_PLUGIN_DISABLED = _("The {name} integration has been disabled.")
 
 OK_PLUGIN_SAVED = _('Configuration for the {name} integration has been saved.')
+
+WARN_SESSION_EXPIRED = 'Your session has expired.'  # TODO: translate this
 
 # Key to use when ordering a list of events manually
 EVENT_ORDERING_KEY = attrgetter('datetime', 'id')

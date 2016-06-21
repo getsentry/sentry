@@ -1,12 +1,18 @@
-import _ from 'underscore';
 import React from 'react';
-import Gravatar from '../../components/gravatar';
+import _ from 'underscore';
+
+import Avatar from '../../components/avatar';
 import KeyValueList from './interfaces/keyValueList';
 import EventDataSection from './eventDataSection';
 import {t} from '../../locale';
 
 
 const EventUser = React.createClass({
+  propTypes: {
+    event: React.PropTypes.object.isRequired,
+    group: React.PropTypes.object.isRequired
+  },
+
   render() {
     let user = this.props.event.user;
     let builtins = [];
@@ -30,7 +36,9 @@ const EventUser = React.createClass({
           type="user"
           title={t('User')}>
         <div className="user-widget">
-          <div className="pull-left"><Gravatar email={user.email} size={96} /></div>
+          <div className="pull-left">
+            <Avatar user={user} size={96} />
+          </div>
           <KeyValueList data={builtins} isContextData={false} />
           {children &&
             <KeyValueList data={children} isContextData={true} />

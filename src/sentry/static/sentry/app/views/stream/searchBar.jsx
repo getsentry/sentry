@@ -17,7 +17,16 @@ import SearchDropdown from './searchDropdown';
 const SearchBar = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    projectId: React.PropTypes.string.isRequired,
+
+    defaultQuery: React.PropTypes.string,
+    query: React.PropTypes.string,
+    defaultSearchItems: React.PropTypes.array.isRequired,
+    disabled: React.PropTypes.bool,
+    placeholder: React.PropTypes.string,
+
+    onQueryChange: React.PropTypes.func,
+    onSearch: React.PropTypes.func
   },
 
   mixins: [
@@ -58,7 +67,7 @@ const SearchBar = React.createClass({
         {
           title: t('Tag'),
           desc: t('key/value pair associated to an issue'),
-          example: 'browser:"Chrome 34"',
+          example: 'browser:"Chrome 34", has:browser',
           className: 'icon-tag',
           value: 'browser:'
         },

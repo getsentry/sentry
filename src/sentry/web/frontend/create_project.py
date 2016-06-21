@@ -23,8 +23,8 @@ class AddProjectWithTeamForm(AddProjectForm):
         fields = ('name', 'team')
         model = Project
 
-    def __init__(self, user, team_list, *args, **kwargs):
-        super(AddProjectWithTeamForm, self).__init__(*args, **kwargs)
+    def __init__(self, user, organization, team_list, *args, **kwargs):
+        super(AddProjectWithTeamForm, self).__init__(organization, *args, **kwargs)
 
         self.team_list = team_list
 
@@ -56,9 +56,11 @@ class CreateProjectView(OrganizationView):
     required_scope = 'team:write'
 
     def get_form(self, request, organization, team_list):
-        return AddProjectWithTeamForm(request.user, team_list, request.POST or None, initial={
+        data = {
             'team': request.GET.get('team'),
-        })
+        }
+        return AddProjectWithTeamForm(request.user, organization, team_list,
+                                      request.POST or None, initial=data)
 
     def handle(self, request, organization):
         team_list = [
@@ -76,10 +78,15 @@ class CreateProjectView(OrganizationView):
         if form.is_valid():
             project = form.save(request.user, request.META['REMOTE_ADDR'])
 
-            return self.redirect(absolute_uri('/{}/{}/settings/install/'.format(
+            install_uri = absolute_uri('/{}/{}/settings/install/'.format(
                 organization.slug,
                 project.slug,
-            )))
+            ))
+
+            if 'signup' in request.GET:
+                install_uri += '?signup'
+
+            return self.redirect(install_uri)
 
         context = {
             'form': form,

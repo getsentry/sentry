@@ -16,7 +16,7 @@ class CspReportViewTest(TestCase):
     @fixture
     def path(self):
         path = reverse('sentry-api-csp-report', kwargs={'project_id': self.project.id})
-        return path + '?sentry_key=%s&sentry_version=5' % self.projectkey.public_key
+        return path + '?sentry_key=%s' % self.projectkey.public_key
 
     def test_get_response(self):
         resp = self.client.get(self.path)
@@ -56,7 +56,11 @@ class CspReportViewTest(TestCase):
     @mock.patch('sentry.web.api.CspReportView.process')
     def test_post_success(self, process):
         process.return_value = 'ok'
-        resp = self._postCspWithHeader({'csp-report': {'document-uri': 'http://example.com'}})
+        resp = self._postCspWithHeader({
+            'document-uri': 'http://example.com',
+            'source-file': 'http://example.com',
+            'effective-directive': 'style-src',
+        })
         assert resp.status_code == 201, resp.content
 
 
@@ -138,6 +142,159 @@ class StoreViewTest(TestCase):
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert not call_data['sentry.interfaces.User'].get('ip_address')
         assert not call_data['sentry.interfaces.Http']['env'].get('REMOTE_ADDR')
+
+    @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
+    def test_scrubs_org_ip_address_override(self, mock_insert_data_to_database):
+        self.organization.update_option('sentry:require_scrub_ip_address', True)
+        self.project.update_option('sentry:scrub_ip_address', False)
+        body = {
+            "message": "foo bar",
+            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "env": {"REMOTE_ADDR": "127.0.0.1"}
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 200, resp.content
+
+        call_data = mock_insert_data_to_database.call_args[0][0]
+        assert not call_data['sentry.interfaces.User'].get('ip_address')
+        assert not call_data['sentry.interfaces.Http']['env'].get('REMOTE_ADDR')
+
+    @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
+    def test_scrub_data_off(self, mock_insert_data_to_database):
+        self.project.update_option('sentry:scrub_data', False)
+        self.project.update_option('sentry:scrub_defaults', False)
+        body = {
+            "message": "foo bar",
+            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "data": "password=lol&foo=1&bar=2&baz=3"
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 200, resp.content
+
+        call_data = mock_insert_data_to_database.call_args[0][0]
+        assert call_data['sentry.interfaces.Http']['data'] == 'password=lol&foo=1&bar=2&baz=3'
+
+    @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
+    def test_scrub_data_on(self, mock_insert_data_to_database):
+        self.project.update_option('sentry:scrub_data', True)
+        self.project.update_option('sentry:scrub_defaults', False)
+        body = {
+            "message": "foo bar",
+            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "data": "password=lol&foo=1&bar=2&baz=3"
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 200, resp.content
+
+        call_data = mock_insert_data_to_database.call_args[0][0]
+        assert call_data['sentry.interfaces.Http']['data'] == 'password=lol&foo=1&bar=2&baz=3'
+
+    @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
+    def test_scrub_data_defaults(self, mock_insert_data_to_database):
+        self.project.update_option('sentry:scrub_data', True)
+        self.project.update_option('sentry:scrub_defaults', True)
+        body = {
+            "message": "foo bar",
+            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "data": "password=lol&foo=1&bar=2&baz=3"
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 200, resp.content
+
+        call_data = mock_insert_data_to_database.call_args[0][0]
+        assert call_data['sentry.interfaces.Http']['data'] == 'password=[Filtered]&foo=1&bar=2&baz=3'
+
+    @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
+    def test_scrub_data_sensitive_fields(self, mock_insert_data_to_database):
+        self.project.update_option('sentry:scrub_data', True)
+        self.project.update_option('sentry:scrub_defaults', True)
+        self.project.update_option('sentry:sensitive_fields', ['foo', 'bar'])
+        body = {
+            "message": "foo bar",
+            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "data": "password=lol&foo=1&bar=2&baz=3"
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 200, resp.content
+
+        call_data = mock_insert_data_to_database.call_args[0][0]
+        assert call_data['sentry.interfaces.Http']['data'] == 'password=[Filtered]&foo=[Filtered]&bar=[Filtered]&baz=3'
+
+    @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
+    def test_scrub_data_org_override(self, mock_insert_data_to_database):
+        self.organization.update_option('sentry:require_scrub_data', True)
+        self.project.update_option('sentry:scrub_data', False)
+        self.organization.update_option('sentry:require_scrub_defaults', True)
+        self.project.update_option('sentry:scrub_defaults', False)
+        body = {
+            "message": "foo bar",
+            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "data": "password=lol&foo=1&bar=2&baz=3"
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 200, resp.content
+
+        call_data = mock_insert_data_to_database.call_args[0][0]
+        assert call_data['sentry.interfaces.Http']['data'] == 'password=[Filtered]&foo=1&bar=2&baz=3'
+
+    @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
+    def test_scrub_data_org_override_sensitive_fields(self, mock_insert_data_to_database):
+        self.organization.update_option('sentry:require_scrub_data', True)
+        self.organization.update_option('sentry:require_scrub_defaults', True)
+        self.organization.update_option('sentry:sensitive_fields', ['baz'])
+        self.project.update_option('sentry:sensitive_fields', ['foo', 'bar'])
+        body = {
+            "message": "foo bar",
+            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "data": "password=lol&foo=1&bar=2&baz=3"
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 200, resp.content
+
+        call_data = mock_insert_data_to_database.call_args[0][0]
+        assert call_data['sentry.interfaces.Http']['data'] == 'password=[Filtered]&foo=[Filtered]&bar=[Filtered]&baz=[Filtered]'
+
+    @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
+    def test_uses_client_as_sdk(self, mock_insert_data_to_database):
+        body = {
+            "message": "foo bar",
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 200, resp.content
+
+        call_data = mock_insert_data_to_database.call_args[0][0]
+        assert call_data['sdk'] == {
+            'name': '_postWithHeader',
+            'version': '0.0.0',
+        }
 
 
 class CrossDomainXmlTest(TestCase):

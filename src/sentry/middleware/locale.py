@@ -22,8 +22,9 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         # This avoids touching user session, which means we avoid
         # setting `Vary: Cookie` as a response header which will
         # break HTTP caching entirely.
-        self.__is_static = request.path_info[:9] == '/_static/'
-        if self.__is_static:
+        self.__skip_caching = (request.path_info[:9] == '/_static/' or
+                               request.path_info[:8] == '/avatar/')
+        if self.__skip_caching:
             return
 
         safe_execute(self.load_user_conf, request,
@@ -50,10 +51,10 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         # adds an extra `Vary: Accept-Language`. Static files don't need this and is
         # less effective for caching.
         try:
-            if self.__is_static:
+            if self.__skip_caching:
                 return response
         except AttributeError:
-            # catch ourselves in case __is_static never got set.
+            # catch ourselves in case __skip_caching never got set.
             # It's possible that process_request never ran.
             pass
         return super(SentryLocaleMiddleware, self).process_response(request, response)

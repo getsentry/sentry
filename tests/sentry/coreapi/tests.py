@@ -32,6 +32,18 @@ class AuthFromRequestTest(BaseAPITest):
         result = self.helper.auth_from_request(request)
         assert result.public_key == 'value'
 
+    def test_valid_missing_space(self):
+        request = mock.Mock()
+        request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value,biz=baz'}
+        result = self.helper.auth_from_request(request)
+        assert result.public_key == 'value'
+
+    def test_valid_ignore_case(self):
+        request = mock.Mock()
+        request.META = {'HTTP_X_SENTRY_AUTH': 'SeNtRy sentry_key=value, biz=baz'}
+        result = self.helper.auth_from_request(request)
+        assert result.public_key == 'value'
+
     def test_invalid_header_defers_to_GET(self):
         request = mock.Mock()
         request.META = {'HTTP_X_SENTRY_AUTH': 'foobar'}
@@ -45,6 +57,25 @@ class AuthFromRequestTest(BaseAPITest):
         request.GET = {'sentry_version': '1', 'foo': 'bar'}
         result = self.helper.auth_from_request(request)
         assert result.version == '1'
+
+    def test_invalid_header_bad_token(self):
+        request = mock.Mock()
+        request.META = {'HTTP_X_SENTRY_AUTH': 'Sentryfoo'}
+        request.GET = {}
+        with self.assertRaises(APIUnauthorized):
+            self.helper.auth_from_request(request)
+
+    def test_invalid_header_missing_pair(self):
+        request = mock.Mock()
+        request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry foo'}
+        with self.assertRaises(APIUnauthorized):
+            self.helper.auth_from_request(request)
+
+    def test_invalid_malformed_value(self):
+        request = mock.Mock()
+        request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value,,biz=baz'}
+        with self.assertRaises(APIUnauthorized):
+            self.helper.auth_from_request(request)
 
 
 class ProjectFromAuthTest(BaseAPITest):
@@ -260,6 +291,28 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['name'] == 'tags'
         assert data['errors'][0]['value'] == ('biz', 'baz', 'boz')
 
+    def test_reserved_tags(self):
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo',
+            'tags': [('foo', 'bar'), ('release', 'abc123')],
+        })
+        assert data['tags'] == [('foo', 'bar')]
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'tags'
+        assert data['errors'][0]['value'] == ('release', 'abc123')
+
+    def test_tag_value(self):
+        data = self.helper.validate_data(self.project, {
+            'message': 'foo',
+            'tags': [('foo', 'bar\n'), ('biz', 'baz')],
+        })
+        assert data['tags'] == [('biz', 'baz')]
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'tags'
+        assert data['errors'][0]['value'] == ('foo', 'bar\n')
+
     def test_extra_as_string(self):
         data = self.helper.validate_data(self.project, {
             'message': 'foo',
@@ -355,6 +408,15 @@ class EnsureHasIpTest(BaseAPITest):
         self.helper.ensure_has_ip(out, '127.0.0.1')
         assert inp == out
 
+    def test_with_user_auto_ip(self):
+        out = {
+            'sentry.interfaces.User': {
+                'ip_address': '{{auto}}',
+            },
+        }
+        self.helper.ensure_has_ip(out, '127.0.0.1')
+        assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
+
     def test_without_ip_values(self):
         out = {
             'sentry.interfaces.User': {
@@ -369,6 +431,32 @@ class EnsureHasIpTest(BaseAPITest):
     def test_without_any_values(self):
         out = {}
         self.helper.ensure_has_ip(out, '127.0.0.1')
+        assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
+
+    def test_with_http_auto_ip(self):
+        out = {
+            'sentry.interfaces.Http': {
+                'env': {
+                    'REMOTE_ADDR': '{{auto}}',
+                },
+            },
+        }
+        self.helper.ensure_has_ip(out, '127.0.0.1')
+        assert out['sentry.interfaces.Http']['env']['REMOTE_ADDR'] == '127.0.0.1'
+
+    def test_with_all_auto_ip(self):
+        out = {
+            'sentry.interfaces.User': {
+                'ip_address': '{{auto}}',
+            },
+            'sentry.interfaces.Http': {
+                'env': {
+                    'REMOTE_ADDR': '{{auto}}',
+                },
+            },
+        }
+        self.helper.ensure_has_ip(out, '127.0.0.1')
+        assert out['sentry.interfaces.Http']['env']['REMOTE_ADDR'] == '127.0.0.1'
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 
 

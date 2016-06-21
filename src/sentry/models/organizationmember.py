@@ -95,6 +95,7 @@ class OrganizationMember(Model):
         assert self.user_id or self.email, \
             'Must set user or email'
         super(OrganizationMember, self).save(*args, **kwargs)
+
         if not self.counter:
             self._set_counter()
 
@@ -154,7 +155,7 @@ class OrganizationMember(Model):
         )
 
         try:
-            msg.send([self.get_email()])
+            msg.send_async([self.get_email()])
         except Exception as e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
@@ -183,10 +184,19 @@ class OrganizationMember(Model):
             return self.user.get_display_name()
         return self.email
 
+    def get_label(self):
+        if self.user_id:
+            return self.user.get_label()
+        return self.email or self.id
+
     def get_email(self):
         if self.user_id:
             return self.user.email
         return self.email
+
+    def get_avatar_type(self):
+        if self.user_id:
+            return self.user.get_avatar_type()
 
     def get_audit_log_data(self):
         from sentry.models import Team

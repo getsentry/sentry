@@ -77,7 +77,7 @@ class Backend(object):
 
         # The ``capacity`` option defines the maximum number of items that
         # should be contained within a timeline. (Whether this is a hard or
-        # soft limit is backend dependent -- see the ``trim_chance`` option.)
+        # soft limit is backend dependent -- see the ``truncation_chance`` option.)
         self.capacity = options.pop('capacity', None)
         if self.capacity is not None and self.capacity < 1:
             raise ValueError('Timeline capacity must be at least 1 if used.')
@@ -153,7 +153,7 @@ class Backend(object):
             with timelines.digest('project:1') as records:
                 message = build_digest_email(records)
 
-            message.send()
+            message.send_async()
 
         """
         raise NotImplementedError

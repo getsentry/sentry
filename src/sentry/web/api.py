@@ -17,13 +17,14 @@ from raven.contrib.django.models import client as Raven
 
 from sentry import app
 from sentry.coreapi import (
-    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper,
+    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper
 )
 from sentry.event_manager import EventManager
-from sentry.models import Project
-from sentry.signals import event_received
+from sentry.models import Project, OrganizationOption
+from sentry.signals import event_accepted, event_received
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
+from sentry.utils.csp import is_valid_csp_report
 from sentry.utils.data_scrubber import SensitiveDataFilter
 from sentry.utils.http import (
     is_valid_origin, get_origins, is_same_domain, is_valid_ip,
@@ -283,7 +284,10 @@ class StoreView(APIView):
         metrics.incr('events.total')
 
         remote_addr = request.META['REMOTE_ADDR']
-        event_received.send_robust(ip=remote_addr, sender=type(self))
+        event_received.send_robust(
+            ip=remote_addr,
+            sender=type(self),
+        )
 
         if not is_valid_ip(remote_addr, project):
             app.tsdb.incr_multi([
@@ -335,15 +339,27 @@ class StoreView(APIView):
         # mutates data
         data = helper.validate_data(project, data)
 
+        if 'sdk' not in data:
+            sdk = helper.parse_client_as_sdk(auth.client)
+            if sdk:
+                data['sdk'] = sdk
+
         # mutates data
         manager = EventManager(data, version=auth.version)
         data = manager.normalize()
 
-        scrub_ip_address = project.get_option('sentry:scrub_ip_address', False)
+        org_options = OrganizationOption.objects.get_all_values(project.organization_id)
 
-        # insert IP address if not available
-        if auth.is_public and not scrub_ip_address:
-            helper.ensure_has_ip(data, remote_addr)
+        if org_options.get('sentry:require_scrub_ip_address', False):
+            scrub_ip_address = True
+        else:
+            scrub_ip_address = project.get_option('sentry:scrub_ip_address', False)
+
+        # insert IP address if not available and wanted
+        if not scrub_ip_address:
+            helper.ensure_has_ip(
+                data, remote_addr, set_if_missing=auth.is_public or
+                data.get('platform') in ('javascript', 'cocoa', 'objc'))
 
         event_id = data['event_id']
 
@@ -354,11 +370,27 @@ class StoreView(APIView):
         if cache.get(cache_key) is not None:
             raise APIForbidden('An event with the same ID already exists (%s)' % (event_id,))
 
-        if project.get_option('sentry:scrub_data', True):
+        if org_options.get('sentry:require_scrub_data', False):
+            scrub_data = True
+        else:
+            scrub_data = project.get_option('sentry:scrub_data', True)
+
+        if scrub_data:
             # We filter data immediately before it ever gets into the queue
+            sensitive_fields_key = 'sentry:sensitive_fields'
+            sensitive_fields = (
+                org_options.get(sensitive_fields_key, []) +
+                project.get_option(sensitive_fields_key, [])
+            )
+
+            if org_options.get('sentry:require_scrub_defaults', False):
+                scrub_defaults = True
+            else:
+                scrub_defaults = project.get_option('sentry:scrub_defaults', True)
+
             inst = SensitiveDataFilter(
-                fields=project.get_option('sentry:sensitive_fields', None),
-                include_defaults=project.get_option('sentry:scrub_defaults', True),
+                fields=sensitive_fields,
+                include_defaults=scrub_defaults,
             )
             inst.apply(data)
 
@@ -373,6 +405,13 @@ class StoreView(APIView):
 
         helper.log.debug('New event received (%s)', event_id)
 
+        event_accepted.send_robust(
+            ip=remote_addr,
+            data=data,
+            project=project,
+            sender=type(self),
+        )
+
         return event_id
 
 
@@ -382,7 +421,6 @@ class CspReportView(StoreView):
 
     def _dispatch(self, request, helper, project_id=None, origin=None,
                   *args, **kwargs):
-        # NOTE: We need to override the auth flow for a CSP report!
         # A CSP report is sent as a POST request with no Origin or Referer
         # header. What we're left with is a 'document-uri' key which is
         # inside of the JSON body of the request. This 'document-uri' value
@@ -404,7 +442,7 @@ class CspReportView(StoreView):
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
         # `sentry_version` to be set in querystring
-        auth = self._parse_header(request, helper, project)
+        auth = helper.auth_from_request(request)
 
         project_ = helper.project_from_auth(auth)
         if project_ != project:
@@ -439,6 +477,17 @@ class CspReportView(StoreView):
 
         if not is_valid_origin(origin, project):
             raise APIForbidden('Invalid document-uri')
+
+        # An invalid CSP report must go against quota
+        if not is_valid_csp_report(report, project):
+            app.tsdb.incr_multi([
+                (app.tsdb.models.project_total_received, project.id),
+                (app.tsdb.models.project_total_blacklisted, project.id),
+                (app.tsdb.models.organization_total_received, project.organization_id),
+                (app.tsdb.models.organization_total_blacklisted, project.organization_id),
+            ])
+            metrics.incr('events.blacklisted')
+            raise APIForbidden('Rejected CSP report')
 
         response_or_event_id = self.process(
             request,

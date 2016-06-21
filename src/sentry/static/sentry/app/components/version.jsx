@@ -3,6 +3,7 @@ import {Link} from 'react-router';
 
 const Version = React.createClass({
   propTypes: {
+    anchor: React.PropTypes.bool,
     version: React.PropTypes.string.isRequired,
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired
@@ -16,7 +17,7 @@ const Version = React.createClass({
 
   render() {
     let {orgId, projectId, version} = this.props;
-    let shortVersion = version.length === 40 ? version.substr(0, 12) : version;
+    let shortVersion = version.match(/^[a-f0-9]{40}$/) ? version.substr(0, 12) : version;
 
     if (this.props.anchor) {
       return (

@@ -1,7 +1,7 @@
 `sentry start [SERVICE]`
 ------------------------
 
-Start running a service.
+DEPRECATED see `sentry run` instead.
 
 Options
 ```````

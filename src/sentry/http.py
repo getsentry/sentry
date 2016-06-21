@@ -44,6 +44,12 @@ def is_valid_url(url):
     """
     Tests a URL to ensure it doesn't appear to be a blacklisted IP range.
     """
+    # If we have no disallowed ips, we can skip any further validation
+    # and there's no point in doing a DNS lookup to validate against
+    # an empty list.
+    if not DISALLOWED_IPS:
+        return True
+
     parsed = urlparse(url)
     if not parsed.hostname:
         return False

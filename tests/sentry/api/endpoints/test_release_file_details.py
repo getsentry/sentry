@@ -21,7 +21,6 @@ class ReleaseFileDetailsTest(APITestCase):
             project=project,
             release=release,
             file=File.objects.create(
-                path='http://example.com',
                 name='application.js',
                 type='release.file',
             ),
@@ -56,7 +55,6 @@ class ReleaseFileUpdateTest(APITestCase):
             project=project,
             release=release,
             file=File.objects.create(
-                path='http://example.com',
                 name='application.js',
                 type='release.file',
             ),
@@ -79,6 +77,7 @@ class ReleaseFileUpdateTest(APITestCase):
 
         releasefile = ReleaseFile.objects.get(id=releasefile.id)
         assert releasefile.name == 'foobar'
+        assert releasefile.ident == ReleaseFile.get_ident('foobar')
 
 
 class ReleaseFileDeleteTest(APITestCase):
@@ -96,7 +95,6 @@ class ReleaseFileDeleteTest(APITestCase):
             project=project,
             release=release,
             file=File.objects.create(
-                path='http://example.com',
                 name='application.js',
                 type='release.file',
             ),

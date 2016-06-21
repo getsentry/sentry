@@ -23,7 +23,7 @@ else:
 @click.group()
 @click.option(
     '--config',
-    default='~/.sentry',
+    default='',
     envvar='SENTRY_CONF',
     help='Path to configuration files.',
     metavar='PATH')
@@ -39,23 +39,31 @@ def cli(ctx, config):
     """
     # Elevate --config option to SENTRY_CONF env var, and just assume this
     # always will exist down the line
-    os.environ.setdefault('SENTRY_CONF', config)
+    if config:
+        os.environ['SENTRY_CONF'] = config
+    os.environ.setdefault('SENTRY_CONF', '~/.sentry')
 
 
 # TODO(mattrobenolt): Autodiscover commands?
 map(lambda cmd: cli.add_command(import_string(cmd)), (
+    'sentry.runner.commands.backup.export',
+    'sentry.runner.commands.backup.import_',
     'sentry.runner.commands.cleanup.cleanup',
     'sentry.runner.commands.config.config',
     'sentry.runner.commands.createuser.createuser',
+    'sentry.runner.commands.devserver.devserver',
     'sentry.runner.commands.django.django',
-    'sentry.runner.commands.backup.export',
+    'sentry.runner.commands.files.files',
     'sentry.runner.commands.help.help',
-    'sentry.runner.commands.backup.import_',
     'sentry.runner.commands.init.init',
     'sentry.runner.commands.plugins.plugins',
+    'sentry.runner.commands.queues.queues',
     'sentry.runner.commands.repair.repair',
+    'sentry.runner.commands.run.run',
     'sentry.runner.commands.start.start',
+    'sentry.runner.commands.tsdb.tsdb',
     'sentry.runner.commands.upgrade.upgrade',
+    'sentry.runner.commands.dsym.dsym',
 ))
 
 
@@ -82,9 +90,8 @@ def make_django_command(name, django_command=None, help=None):
 
 
 map(cli.add_command, (
-    make_django_command('devserver', 'runserver', help='Start a light Web server for development.'),
     make_django_command('shell', help='Run a Python interactive interpreter.'),
-    make_django_command('celery', help='Start background workers.'),
+    make_django_command('celery', help='DEPRECATED see `sentry run` instead.'),
 ))
 
 

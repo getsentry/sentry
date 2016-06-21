@@ -17,13 +17,15 @@ from django.db.models import F
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.app import locks
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.utils.cache import Lock
+from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
+from sentry.utils.retries import TimedRetryPolicy
 
 
 # TODO(dcramer): pull in enum library
@@ -74,6 +76,7 @@ class Project(Model):
     """
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
+    forced_color = models.CharField(max_length=6, null=True, blank=True)
     organization = FlexibleForeignKey('sentry.Organization')
     team = FlexibleForeignKey('sentry.Team')
     public = models.BooleanField(default=False)
@@ -102,10 +105,14 @@ class Project(Model):
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)
 
+    def next_short_id(self):
+        from sentry.models import Counter
+        return Counter.increment(self)
+
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock_key = 'slug:project'
-            with Lock(lock_key):
+            lock = locks.get('slug:project', duration=5)
+            with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
             super(Project, self).save(*args, **kwargs)
         else:
@@ -191,6 +198,16 @@ class Project(Model):
         return ProjectOption.objects.unset_value(self, *args, **kwargs)
 
     @property
+    def callsign(self):
+        return self.slug.upper()
+
+    @property
+    def color(self):
+        if self.forced_color is not None:
+            return '#%s' % self.forced_color
+        return get_hashed_color(self.callsign or self.slug)
+
+    @property
     def member_set(self):
         from sentry.models import OrganizationMember
         return self.organization.member_set.filter(
@@ -239,3 +256,14 @@ class Project(Model):
         if self.team.name not in self.name:
             return '%s %s' % (self.team.name, self.name)
         return self.name
+
+    def is_user_subscribed_to_mail_alerts(self, user):
+        from sentry.models import UserOption
+        is_enabled = UserOption.objects.get_value(
+            user, self, 'mail:alert', None)
+        if is_enabled is None:
+            is_enabled = UserOption.objects.get_value(
+                user, None, 'subscribe_by_default', '1') == '1'
+        else:
+            is_enabled = bool(is_enabled)
+        return is_enabled

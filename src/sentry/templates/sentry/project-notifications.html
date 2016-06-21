@@ -13,13 +13,23 @@
     {% csrf_token %}
     <input type="hidden" name="op" value="save-settings" />
 
+    {% if not is_user_subbed %}
+    <div class="box" style="border:0">
+      <div class="alert">
+        {% url 'sentry-account-settings-notifications' as account_notification_url %}
+        <p>You are currently not subscribed to this project. To subscribe, go to <a href="{{ account_notification_url }}">Account Notifications</a>.</p>
+      </div>
+    </div>
+    {% endif %}
+
     <div class="box">
       <div class="box-header">
         <h3>{% trans "Rules" %}</h3>
       </div>
       <div class="box-content with-padding">
         {% url 'sentry-project-rules' organization.slug project.slug as link %}
-        <p>{% blocktrans %}Sentry will notify you based on the <a href="{{ link }}">rules configured for this project</a>.{% endblocktrans %}</p>
+        <p>{% blocktrans %}Sentry will notify users subscribed to this project based on the <a href="{{ link }}">rules configured for this project</a>.{% endblocktrans %}</p>
+
       </div>
     </div>
 

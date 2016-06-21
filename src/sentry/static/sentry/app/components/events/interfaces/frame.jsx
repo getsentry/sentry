@@ -5,12 +5,23 @@ import {defined, objectIsEmpty, isUrl} from '../../../utils';
 
 import TooltipMixin from '../../../mixins/tooltip';
 import FrameVariables from './frameVariables';
+import ContextLine from './contextLine';
 import {t} from '../../../locale';
+
+function trimPackage(pkg) {
+  let pieces = pkg.split(/\//g);
+  let rv = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
+  let match = rv.match(/^(.*?)\.(dylib|so|a)$/);
+  return match && match[1] || rv;
+}
 
 
 const Frame = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired
+    data: React.PropTypes.object.isRequired,
+    nextFrameInApp: React.PropTypes.bool,
+    platform: React.PropTypes.string,
+    isExpanded: React.PropTypes.bool,
   },
 
   mixins: [
@@ -36,6 +47,23 @@ const Frame = React.createClass({
       isExpanded: !this.state.isExpanded
     });
   },
+
+  hasContextSource() {
+    return defined(this.props.data.context) && this.props.data.context.length;
+  },
+
+  hasExtendedSource() {
+    return this.hasContextSource() && this.props.data.context.length > 1;
+  },
+
+  hasContextVars() {
+    return !objectIsEmpty(this.props.data.vars);
+  },
+
+  isExpandable() {
+    return this.hasExtendedSource() || this.hasContextVars();
+  },
+
 
   renderOriginalSourceInfo() {
     let data = this.props.data;
@@ -74,7 +102,7 @@ const Frame = React.createClass({
     return out;
   },
 
-  renderTitle() {
+  renderDefaultTitle() {
     let data = this.props.data;
     let title = [];
 
@@ -95,7 +123,10 @@ const Frame = React.createClass({
       title.push(<code key="function">{data.function}</code>);
     }
 
-    if (defined(data.lineNo)) {
+    // we don't want to render out zero line numbers which are used to
+    // indicate lack of source information for native setups.  We could
+    // TODO(mitsuhiko): only do this for events from native platforms?
+    if (defined(data.lineNo) && data.lineNo != 0) {
       // TODO(dcramer): we need to implement source mappings
       // title.push(<span className="pull-right blame"><a><span className="icon-mark-github"></span> View Code</a></span>);
       title.push(<span className="in-at" key="at"> {t('at line')} </span>);
@@ -104,6 +135,11 @@ const Frame = React.createClass({
       } else {
         title.push(<code key="line">{data.lineNo}</code>);
       }
+    }
+
+    if (defined(data.package)) {
+      title.push(<span className="within" key="within"> {t('within')} </span>);
+      title.push(<code title={data.package}>{trimPackage(data.package)}</code>);
     }
 
     if (defined(data.origAbsPath)) {
@@ -123,47 +159,32 @@ const Frame = React.createClass({
   renderContext() {
     let data = this.props.data;
     let context = '';
+    let {isExpanded} = this.state;
 
     let outerClassName = 'context';
-    if (this.state.isExpanded) {
+    if (isExpanded) {
       outerClassName += ' expanded';
     }
 
-    let hasContextSource = defined(data.context) && data.context.length;
-    let hasExtendedSource = hasContextSource && data.context.length > 1;
-    let hasContextVars = !objectIsEmpty(data.vars);
-    let expandable = hasExtendedSource || hasContextVars;
+    let hasContextSource = this.hasContextSource();
+    let hasContextVars = this.hasContextVars();
+    let expandable = this.isExpandable();
+
+    let contextLines = isExpanded
+      ? data.context
+      : data.context && data.context.filter(l => l[0] === data.lineNo);
 
     if (hasContextSource || hasContextVars) {
       let startLineNo = hasContextSource ? data.context[0][0] : '';
       context = (
         <ol start={startLineNo} className={outerClassName}
-            onClick={this.toggleContext}>
+            onClick={expandable ? this.toggleContext : null}>
           {defined(data.errors) &&
           <li className={expandable ? 'expandable error' : 'error'}
               key="errors">{data.errors.join(', ')}</li>
           }
-          {(data.context || []).map((line) => {
-            let liClassName = 'expandable';
-            if (line[0] === data.lineNo) {
-              liClassName += ' active';
-            }
-
-            let lineWs;
-            let lineCode;
-            if (defined(line[1])) {
-              [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m);
-            } else {
-              lineWs = '';
-              lineCode = '';
-            }
-            return (
-              <li className={liClassName} key={line[0]}>
-                <span className="ws">{
-                lineWs}</span><span className="contextline">{lineCode
-                }</span>
-              </li>
-            );
+          {data.context && contextLines.map((line, index) => {
+            return <ContextLine key={index} line={line} isActive={data.lineNo === line[0]}/>;
           })}
 
           {hasContextVars &&
@@ -175,6 +196,69 @@ const Frame = React.createClass({
     return context;
   },
 
+  renderExpander() {
+    if (!this.isExpandable()) {
+      return null;
+    }
+    return (
+      <a
+        title={t('Toggle context')}
+        onClick={this.toggleContext}
+        className="btn btn-sm btn-default btn-toggle">
+        <span className={this.state.isExpanded ? 'icon-minus' : 'icon-plus'}/>
+      </a>
+    );
+  },
+
+  renderDefaultLine() {
+    return (
+      <p>
+        {this.renderDefaultTitle()}
+        {this.renderExpander()}
+      </p>
+    );
+  },
+
+  renderCocoaLine() {
+    let data = this.props.data;
+    let className = 'stacktrace-table';
+    return (
+      <div className={className}>
+        {defined(data.package)
+          ? (
+            <div className="trace-col package" title={data.package}>
+              {trimPackage(data.package)}
+            </div>
+          ) : (
+            <div className="trace-col package"/>
+          )
+        }
+        <div className="trace-col address">
+          {data.instructionAddr}
+        </div>
+        <div className="trace-col symbol">
+          <code>{data.function || '<unknown>'}</code>
+          {data.instructionOffset &&
+            <span className="offset">{' + ' + data.instructionOffset}</span>}
+          {data.filename &&
+            <span className="filename">{data.filename}
+              {data.lineNo ? ':' + data.lineNo : ''}</span>}
+          {this.renderExpander()}
+        </div>
+      </div>
+    );
+  },
+
+  renderLine() {
+    switch (this.props.platform) {
+      case 'objc':
+      case 'cocoa':
+        return this.renderCocoaLine();
+      default:
+        return this.renderDefaultLine();
+    }
+  },
+
   render() {
     let data = this.props.data;
 
@@ -182,23 +266,15 @@ const Frame = React.createClass({
       'frame': true,
       'system-frame': !data.inApp,
       'frame-errors': data.errors,
+      'leads-to-app': !data.inApp && this.props.nextFrameInApp
     });
+    let props = {className: className};
 
     let context = this.renderContext();
 
     return (
-      <li className={className}>
-        <p>{this.renderTitle()}
-          {context ?
-            <a
-              title={t('Toggle context')}
-              onClick={this.toggleContext}
-              className="btn btn-sm btn-default btn-toggle">
-              <span className={this.state.isExpanded ? 'icon-minus' : 'icon-plus'}/>
-            </a>
-            : ''
-          }
-        </p>
+      <li {...props}>
+        {this.renderLine()}
         {context}
       </li>
     );

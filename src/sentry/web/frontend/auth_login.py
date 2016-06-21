@@ -9,7 +9,8 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
 from sentry import features
-from sentry.models import AuthProvider, Organization
+from sentry.constants import WARN_SESSION_EXPIRED
+from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
 from sentry.utils import auth
@@ -23,7 +24,8 @@ class AuthLoginView(BaseView):
     def get_auth_provider(self, organization_slug):
         try:
             organization = Organization.objects.get(
-                slug=organization_slug
+                slug=organization_slug,
+                status=OrganizationStatus.VISIBLE,
             )
         except Organization.DoesNotExist:
             return None
@@ -83,9 +85,14 @@ class AuthLoginView(BaseView):
             return self.redirect(auth.get_login_redirect(request))
 
         elif login_form.is_valid():
-            auth.login(request, login_form.get_user())
+            user = login_form.get_user()
+
+            auth.login(request, user)
 
             request.session.pop('needs_captcha', None)
+
+            if not user.is_active:
+                return self.redirect(reverse('sentry-reactivate-account'))
 
             return self.redirect(auth.get_login_redirect(request))
 
@@ -144,4 +151,14 @@ class AuthLoginView(BaseView):
                 messages.add_message(request, messages.ERROR, ERR_NO_SSO)
 
             return HttpResponseRedirect(next_uri)
-        return self.handle_basic_auth(request)
+
+        session_expired = 'session_expired' in request.COOKIES
+        if session_expired:
+            messages.add_message(request, messages.WARNING, WARN_SESSION_EXPIRED)
+
+        response = self.handle_basic_auth(request)
+
+        if session_expired:
+            response.delete_cookie('session_expired')
+
+        return response

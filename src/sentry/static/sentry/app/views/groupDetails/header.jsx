@@ -8,12 +8,14 @@ import GroupActions from './actions';
 import GroupSeenBy from './seenBy';
 import IndicatorStore from '../../stores/indicatorStore';
 import ListLink from '../../components/listLink';
+import ShortId from '../../components/shortId';
 import ProjectState from '../../mixins/projectState';
 import {t} from '../../locale';
 
 const GroupHeader = React.createClass({
   propTypes: {
-    memberList: React.PropTypes.instanceOf(Array).isRequired
+    group: React.PropTypes.object.isRequired,
+    memberList: React.PropTypes.array.isRequired
   },
 
   contextTypes: {
@@ -71,12 +73,54 @@ const GroupHeader = React.createClass({
     });
   },
 
+  getTitle() {
+    let data = this.props.group;
+    let metadata = data.metadata;
+    switch (data.type) {
+      case 'error':
+        return (
+          <span>
+            <span style={{marginRight: 10}}>{metadata.type}</span>
+            <em style={{fontSize: '80%', color: '#6F7E94', fontWeight: 'normal'}}>{data.culprit}</em><br/>
+          </span>
+        );
+      case 'csp':
+        return (
+          <span>
+            <span style={{marginRight: 10}}>{metadata.directive}</span>
+            <em style={{fontSize: '80%', color: '#6F7E94', fontWeight: 'normal'}}>{metadata.uri}</em><br/>
+          </span>
+        );
+      case 'default':
+        return <span>{metadata.title}</span>;
+      default:
+        return <span>{data.title}</span>;
+    }
+  },
+
+  getMessage() {
+    let data = this.props.group;
+    let metadata = data.metadata;
+    switch (data.type) {
+      case 'error':
+        return metadata.value;
+      case 'csp':
+        return metadata.message;
+      default:
+        return '';
+    }
+  },
+
   render() {
     let group = this.props.group,
-        userCount = group.userCount,
-        features = this.getProjectFeatures();
+        orgFeatures = new Set(this.getOrganization().features),
+        userCount = group.userCount;
 
-    let className = 'group-detail level-' + group.level;
+    let className = 'group-detail';
+
+    className += ' type-' + group.type;
+    className += ' level-' + group.level;
+
     if (group.isBookmarked) {
       className += ' isBookmarked';
     }
@@ -96,11 +140,14 @@ const GroupHeader = React.createClass({
         <div className="row">
           <div className="col-sm-8">
             <h3>
-              {group.title}
+              {this.getTitle()}
             </h3>
             <div className="event-message">
               <span className="error-level">{group.level}</span>
-              <span className="message">{group.culprit}</span>
+              {group.shortId &&
+                <ShortId shortId={group.shortId} />
+              }
+              <span className="message">{this.getMessage()}</span>
               {group.logger &&
                 <span className="event-annotation">
                   <Link to={`/${orgId}/${projectId}/`} query={{query: 'logger:' + group.logger}}>
@@ -143,13 +190,15 @@ const GroupHeader = React.createClass({
         </div>
         <GroupSeenBy />
         <GroupActions />
-        <div className="pull-right">
-          <div className="group-privacy">
-            <a onClick={this.onShare}>
-              <span className="icon" /> {t('Share this event')}
-            </a>
+        {orgFeatures.has('shared-issues') &&
+          <div className="pull-right">
+            <div className="group-privacy">
+              <a onClick={this.onShare}>
+                <span className="icon" /> {t('Share this event')}
+              </a>
+            </div>
           </div>
-        </div>
+        }
         <ul className="nav nav-tabs">
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/`} isActive={function (to) {
             let rootGroupPath = `/${orgId}/${projectId}/issues/${groupId}/`;
@@ -163,11 +212,9 @@ const GroupHeader = React.createClass({
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}>
             {t('Comments')} <span className="badge animated">{group.numComments}</span>
           </ListLink>
-          {features.has('user-reports') &&
-            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/reports/`}>
-              {t('User Reports')} <span className="badge animated">{group.userReportCount}</span>
-            </ListLink>
-          }
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/feedback/`}>
+            {t('User Feedback')} <span className="badge animated">{group.userReportCount}</span>
+          </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/tags/`}>
             {t('Tags')}
           </ListLink>

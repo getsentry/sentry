@@ -4,10 +4,10 @@ import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
 
 const ReleaseList = React.createClass({
-
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
+    releaseList: React.PropTypes.array.isRequired
   },
 
   render() {

@@ -385,9 +385,14 @@
   .inner .note-body a {
     word-break: break-all;
   }
+
+  .avatar-column img,
+  .avatar-column span {
+    width: 48px;
+    height: 48px;
+  }
   .avatar-column {
-    width: 60px;
-    vertical-align: top;
+    width: 64px;
   }
   .notch-column {
     width: 7px;
@@ -397,8 +402,23 @@
   .notch-column img {
     display: block;
   }
-  .avatar {
+  .avatar-container {
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+    position: relative;
+    display: inline-block;
+    vertical-align: bottom;
+  }
+  .avatar,
+  .html-avatar {
     border-radius: 3px;
+  }
+  .html-avatar {
+    display: inline-block;
+    text-align: center;
+    vertical-align: middle;
+    color: #fff;
   }
 
   .inner table.reset {

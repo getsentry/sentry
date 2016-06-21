@@ -129,6 +129,18 @@ class EventManagerTest(TransactionTestCase):
         assert 'sentry.interfaces.User' not in data
 
     def test_platform_is_saved(self):
+        manager = EventManager(self.make_event(**{
+            'sentry.interfaces.AppleCrashReport': {
+                'crash': {},
+                'binary_images': []
+            }
+        }))
+        manager.normalize()
+        event = manager.save(1)
+
+        assert 'sentry.interfacse.AppleCrashReport' not in event.interfaces
+
+    def test_ephemral_interfaces_removed_on_save(self):
         manager = EventManager(self.make_event(platform='python'))
         event = manager.save(1)
 
@@ -169,6 +181,10 @@ class EventManagerTest(TransactionTestCase):
         assert group.times_seen == 2
         assert group.last_seen.replace(microsecond=0) == event.datetime.replace(microsecond=0)
         assert group.message == event2.message
+        assert group.data.get('type') == 'default'
+        assert group.data.get('metadata') == {
+            'title': 'foo bar',
+        }
 
     def test_updates_group_with_fingerprint(self):
         manager = EventManager(self.make_event(
@@ -398,6 +414,31 @@ class EventManagerTest(TransactionTestCase):
         data = manager.normalize()
         assert data['logger'] == DEFAULT_LOGGER_NAME
 
+    def test_record_frequencies(self):
+        project = self.project
+        manager = EventManager(self.make_event())
+        event = manager.save(project)
+
+        assert tsdb.get_most_frequent(
+            tsdb.models.frequent_issues_by_project,
+            (event.project.id,),
+            event.datetime,
+        ) == {
+            event.project.id: [
+                (event.group_id, 1.0),
+            ],
+        }
+
+        assert tsdb.get_most_frequent(
+            tsdb.models.frequent_projects_by_organization,
+            (event.project.organization_id,),
+            event.datetime,
+        ) == {
+            event.project.organization_id: [
+                (event.project_id, 1.0),
+            ],
+        }
+
     def test_event_user(self):
         manager = EventManager(self.make_event(**{
             'sentry.interfaces.User': {
@@ -474,6 +515,69 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
 
         assert event.data.get('fingerprint') == ['{{ default }}']
+
+    def test_default_event_type(self):
+        manager = EventManager(self.make_event(message='foo bar'))
+        data = manager.normalize()
+        assert data['type'] == 'default'
+        event = manager.save(self.project.id)
+        group = event.group
+        assert group.data.get('type') == 'default'
+        assert group.data.get('metadata') == {
+            'title': 'foo bar',
+        }
+
+    def test_error_event_type(self):
+        manager = EventManager(self.make_event(**{
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'type': 'Foo',
+                    'value': 'bar',
+                }],
+            },
+        }))
+        data = manager.normalize()
+        assert data['type'] == 'error'
+        event = manager.save(self.project.id)
+        group = event.group
+        assert group.data.get('type') == 'error'
+        assert group.data.get('metadata') == {
+            'type': 'Foo',
+            'value': 'bar',
+        }
+
+    def test_csp_event_type(self):
+        manager = EventManager(self.make_event(**{
+            'sentry.interfaces.Csp': {
+                'effective_directive': 'script-src',
+                'blocked_uri': 'http://example.com',
+            },
+        }))
+        data = manager.normalize()
+        assert data['type'] == 'csp'
+        event = manager.save(self.project.id)
+        group = event.group
+        assert group.data.get('type') == 'csp'
+        assert group.data.get('metadata') == {
+            'directive': 'script-src',
+            'uri': 'example.com',
+            'message': "Blocked 'script' from 'example.com'",
+        }
+
+    def test_sdk(self):
+        manager = EventManager(self.make_event(**{
+            'sdk': {
+                'name': 'sentry-unity',
+                'version': '1.0',
+            },
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert event.data['sdk'] == {
+            'name': 'sentry-unity',
+            'version': '1.0',
+        }
 
 
 class GetHashesFromEventTest(TestCase):

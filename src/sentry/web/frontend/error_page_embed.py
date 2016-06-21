@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
 from django import forms
+from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from django.views.generic import View
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 
@@ -32,7 +34,11 @@ class UserReportForm(forms.ModelForm):
 
 class ErrorPageEmbedView(View):
     def _get_project_key(self, request):
-        dsn = request.GET.get('dsn')
+        try:
+            dsn = request.GET['dsn']
+        except KeyError:
+            return
+
         try:
             key = ProjectKey.from_dsn(dsn)
         except ProjectKey.DoesNotExist:
@@ -86,6 +92,7 @@ class ErrorPageEmbedView(View):
         form = UserReportForm(request.POST if request.method == 'POST' else None,
                               initial=initial)
         if form.is_valid():
+            # TODO(dcramer): move this to post to the internal API
             report = form.save(commit=False)
             report.project = key.project
             report.event_id = event_id
@@ -99,8 +106,27 @@ class ErrorPageEmbedView(View):
                 pass
             else:
                 report.group = Group.objects.get(id=mapping.group_id)
-            report.save()
-            return HttpResponse(status=200)
+
+            try:
+                with transaction.atomic():
+                    report.save()
+            except IntegrityError:
+                # There was a duplicate, so just overwrite the existing
+                # row with the new one. The only way this ever happens is
+                # if someone is messing around with the API, or doing
+                # something wrong with the SDK, but this behavior is
+                # more reasonable than just hard erroring and is more
+                # expected.
+                UserReport.objects.filter(
+                    project=report.project,
+                    event_id=report.event_id,
+                ).update(
+                    name=report.name,
+                    email=report.email,
+                    comments=report.comments,
+                    date_added=timezone.now(),
+                )
+            return self._json_response(request)
         elif request.method == 'POST':
             return self._json_response(request, {
                 "errors": dict(form.errors),
@@ -111,8 +137,8 @@ class ErrorPageEmbedView(View):
         })
 
         context = {
-            'endpoint': mark_safe(json.dumps(request.get_full_path())),
-            'template': mark_safe(json.dumps(template)),
+            'endpoint': mark_safe('*/' + json.dumps(request.build_absolute_uri()) + ';/*'),
+            'template': mark_safe('*/' + json.dumps(template) + ';/*'),
         }
 
         return render_to_response('sentry/error-page-embed.js', context, request,

@@ -28,6 +28,23 @@ from sentry.utils.http import absolute_uri
 transformers = {}
 
 
+def has_sourcemap(event):
+    if event.platform != 'javascript':
+        return False
+    data = event.data
+
+    if 'sentry.interfaces.Exception' not in data:
+        return False
+    exception = data['sentry.interfaces.Exception']
+    for value in exception['values']:
+        stacktrace = value.get('stacktrace', {})
+        for frame in stacktrace.get('frames', []):
+            if 'sourcemap' in frame.get('data', {}):
+                return True
+
+    return False
+
+
 def transform(objects, request=None):
     if request is None:
         request = getattr(env, 'request', None)
@@ -173,7 +190,6 @@ class GroupTransformer(Transformer):
             'permalink': absolute_uri(reverse('sentry-group', args=[obj.organization.slug, obj.project.slug, obj.id])),
             'firstSeen': self.localize_datetime(obj.first_seen, request=request),
             'lastSeen': self.localize_datetime(obj.last_seen, request=request),
-            'timeSpent': obj.avg_time_spent,
             'canResolve': request and request.user.is_authenticated(),
             'status': status_label,
             'isResolved': obj.get_status() == GroupStatus.RESOLVED,

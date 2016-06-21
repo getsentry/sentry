@@ -1,8 +1,9 @@
 import React from 'react';
 import moment from 'moment';
+import _ from 'underscore';
 
 import ConfigStore from '../../stores/configStore';
-import Gravatar from '../../components/gravatar';
+import Avatar from '../../components/avatar';
 import GroupState from '../../mixins/groupState';
 import {userDisplayName} from '../../utils/formatters';
 import TooltipMixin from '../../mixins/tooltip';
@@ -35,10 +36,10 @@ const GroupSeenBy = React.createClass({
     let seenByNodes = seenBy.filter((user, userIdx) => {
       return activeUser.id !== user.id;
     }).map((user, userIdx) => {
-      let title = userDisplayName(user) + '<br/>' + moment(user.lastSeen).format('LL');
+      let title = _.escape(userDisplayName(user)) + '<br/>' + _.escape(moment(user.lastSeen).format('LL'));
       return (
         <li key={userIdx} className="tip" data-title={title}>
-          <Gravatar size={52} email={user.email} />
+          <Avatar size={52} user={user} />
         </li>
       );
     });

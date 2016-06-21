@@ -54,12 +54,12 @@ class OrganizationIndexEndpoint(Endpoint):
             status=OrganizationStatus.VISIBLE,
         )
 
-        if request.auth:
+        if request.auth and not request.user.is_authenticated():
             if hasattr(request.auth, 'project'):
                 queryset = queryset.filter(
                     id=request.auth.project.organization_id
                 )
-            else:
+            elif request.auth.organization is not None:
                 queryset = queryset.filter(
                     id=request.auth.organization.id
                 )

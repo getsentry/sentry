@@ -4,8 +4,9 @@ import responses
 import pytest
 
 from django.core.exceptions import SuspiciousOperation
+from ipaddr import IPNetwork
 
-from sentry.http import safe_urlopen, safe_urlread
+from sentry import http
 from sentry.testutils import TestCase
 
 
@@ -14,8 +15,8 @@ class HttpTest(TestCase):
     def test_simple(self):
         responses.add(responses.GET, 'http://example.com', body='foo bar')
 
-        resp = safe_urlopen('http://example.com')
-        data = safe_urlread(resp)
+        resp = http.safe_urlopen('http://example.com')
+        data = http.safe_urlread(resp)
         assert data == 'foo bar'
 
         request = responses.calls[0].request
@@ -25,5 +26,6 @@ class HttpTest(TestCase):
     # XXX(dcramer): we can't use responses here as it hooks Session.send
     # @responses.activate
     def test_ip_blacklist(self):
+        http.DISALLOWED_IPS = set([IPNetwork('127.0.0.1')])
         with pytest.raises(SuspiciousOperation):
-            safe_urlopen('http://127.0.0.1')
+            http.safe_urlopen('http://127.0.0.1')

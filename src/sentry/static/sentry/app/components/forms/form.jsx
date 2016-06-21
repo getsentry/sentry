@@ -3,6 +3,12 @@ import React from 'react';
 import {t} from '../../locale';
 
 const Form = React.createClass({
+  propTypes: {
+    onSubmit: React.PropTypes.func.isRequired,
+    submitDisabled: React.PropTypes.bool,
+    submitLabel: React.PropTypes.string.isRequired
+  },
+
   getDefaultProps() {
     return {
       submitLabel: t('Save Changes'),

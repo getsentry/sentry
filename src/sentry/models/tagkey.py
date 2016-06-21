@@ -22,6 +22,10 @@ from sentry.utils.cache import cache
 # Valid pattern for tag key names
 TAG_KEY_RE = re.compile(r'^[a-zA-Z0-9_\.:-]+$')
 
+# These tags are special and are used in pairing with `sentry:{}`
+# they should not be allowed to be set via data ingest due to abiguity
+INTERNAL_TAG_KEYS = frozenset(('release', 'user', 'filename', 'function'))
+
 
 # TODO(dcramer): pull in enum library
 class TagKeyStatus(object):
@@ -75,8 +79,12 @@ class TagKey(Model):
     __repr__ = sane_repr('project_id', 'key')
 
     @classmethod
-    def is_valid_key(self, key):
-        return TAG_KEY_RE.match(key)
+    def is_valid_key(cls, key):
+        return bool(TAG_KEY_RE.match(key))
+
+    @classmethod
+    def is_reserved_key(cls, key):
+        return key in INTERNAL_TAG_KEYS
 
     @classmethod
     def get_standardized_key(cls, key):

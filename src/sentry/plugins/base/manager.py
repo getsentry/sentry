@@ -39,7 +39,8 @@ class PluginManager(InstanceManager):
 
     def for_project(self, project, version=1):
         for plugin in self.all(version=version):
-            if not safe_execute(plugin.is_enabled, project):
+            if not safe_execute(plugin.is_enabled, project,
+                                _with_transaction=False):
                 continue
             yield plugin
 

@@ -7,8 +7,10 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Release, ReleaseFile
+from sentry.models import Group, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
+
+ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
 
 
 @scenario('RetrieveRelease')
@@ -36,17 +38,18 @@ def update_release_scenario(runner):
         }
     )
 
-
-@scenario('DeleteRelease')
-def delete_release_scenario(runner):
-    release = runner.utils.create_release(runner.default_project,
-                                          runner.me, version='4000')
-    runner.request(
-        method='DELETE',
-        path='/projects/%s/%s/releases/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            release.version)
-    )
+# TODO(dcramer): this can't work with the current fixtures
+# as an existing Group references the Release
+# @scenario('DeleteRelease')
+# def delete_release_scenario(runner):
+#     release = runner.utils.create_release(runner.default_project,
+#                                           runner.me, version='4000')
+#     runner.request(
+#         method='DELETE',
+#         path='/projects/%s/%s/releases/%s/' % (
+#             runner.org.slug, runner.default_project.slug,
+#             release.version)
+#     )
 
 
 class ReleaseSerializer(serializers.Serializer):
@@ -141,7 +144,7 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
 
         return Response(serialize(release, request.user))
 
-    @attach_scenarios([delete_release_scenario])
+    # @attach_scenarios([delete_release_scenario])
     def delete(self, request, project, version):
         """
         Delete a Release
@@ -163,6 +166,12 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+
+        # we don't want to remove the first_release metadata on the Group, and
+        # while people might want to kill a release (maybe to remove files),
+        # removing the release is prevented
+        if Group.objects.filter(first_release=release).exists():
+            return Response({"detail": ERR_RELEASE_REFERENCED}, status=400)
 
         # TODO(dcramer): this needs to happen in the queue as it could be a long
         # and expensive operation

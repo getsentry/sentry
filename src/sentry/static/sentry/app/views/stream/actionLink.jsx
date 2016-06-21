@@ -14,7 +14,9 @@ const ActionLink = React.createClass({
     disabled: React.PropTypes.bool,
     onAction: React.PropTypes.func.isRequired,
     onlyIfBulk: React.PropTypes.bool,
-    selectAllActive: React.PropTypes.bool.isRequired // "select all" checkbox
+    selectAllActive: React.PropTypes.bool.isRequired, // "select all" checkbox
+    tooltip: React.PropTypes.string,
+    extraDescription: React.PropTypes.string
   },
 
   mixins: [
@@ -29,7 +31,8 @@ const ActionLink = React.createClass({
     return {
       buttonTitle: null, // title="..." (optional)
       onlyIfBulk: false,
-      disabled: false
+      disabled: false,
+      extraDescription: null,
     };
   },
 
@@ -104,9 +107,7 @@ const ActionLink = React.createClass({
         <Modal show={this.state.isModalOpen} title={t('Please confirm')} animation={false} onHide={this.handleToggle}>
           <div className="modal-body">
             <p><strong>{confirmationQuestion}</strong></p>
-            {this.props.extraDescription &&
-              <p>{this.props.extraDescription}</p>
-            }
+            {this.props.extraDescription}
             <p>{t('This action cannot be undone.')}</p>
           </div>
           <div className="modal-footer">

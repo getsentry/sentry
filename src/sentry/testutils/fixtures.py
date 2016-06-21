@@ -7,6 +7,7 @@ sentry.testutils.fixtures
 """
 from __future__ import absolute_import, print_function, unicode_literals
 
+import json
 import six
 import warnings
 
@@ -15,8 +16,8 @@ from exam import fixture
 from uuid import uuid4
 
 from sentry.models import (
-    Activity, Event, Group, Organization, OrganizationMember,
-    OrganizationMemberTeam, Project, Team, User
+    Activity, Event, EventError, EventMapping, Group, Organization,
+    OrganizationMember, OrganizationMemberTeam, Project, Team, User
 )
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress
@@ -168,14 +169,100 @@ class Fixtures(object):
                 tags = tags.items()
             kwargs['data']['tags'] = tags
 
+        kwargs['data'].setdefault('errors', [{
+            'type': EventError.INVALID_DATA,
+            'name': 'foobar',
+        }])
+
         event = Event(
             event_id=event_id,
             **kwargs
+        )
+        EventMapping.objects.create(
+            project_id=event.project.id,
+            event_id=event_id,
+            group=event.group,
         )
         # emulate EventManager refs
         event.data.bind_ref(event)
         event.save()
         return event
+
+    def create_full_event(self, event_id='a', **kwargs):
+        payload = """
+            {
+                "id": "f5dd88e612bc406ba89dfebd09120769",
+                "project": 11276,
+                "release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
+                "platform": "javascript",
+                "culprit": "app/components/events/eventEntries in map",
+                "message": "TypeError: Cannot read property '1' of null",
+                "tags": [
+                    ["environment", "prod"],
+                    ["sentry_version", "e1b5d1900526feaf20fe2bc9cad83d392136030a"],
+                    ["level", "error"],
+                    ["logger", "javascript"],
+                    ["sentry:release", "e1b5d1900526feaf20fe2bc9cad83d392136030a"],
+                    ["browser", "Chrome 48.0"],
+                    ["device", "Other"],
+                    ["os", "Windows 10"],
+                    ["url", "https://app.getsentry.com/katon-direct/localhost/issues/112734598/"],
+                    ["sentry:user", "id:41656"]
+                ],
+                "errors": [{
+                    "url": "<anonymous>",
+                    "type": "js_no_source"
+                }],
+                "extra": {
+                    "session:duration": 40364
+                },
+                "sentry.interfaces.Exception": {
+                    "exc_omitted": null,
+                    "values": [{
+                        "stacktrace": {
+                            "has_system_frames": false,
+                            "frames": [{
+                                "function": "batchedUpdates",
+                                "abs_path": "webpack:////usr/src/getsentry/src/sentry/~/react/lib/ReactUpdates.js",
+                                "pre_context": ["  // verify that that's the case. (This is called by each top-level update", "  // function, like setProps, setState, forceUpdate, etc.; creation and", "  // destruction of top-level components is guarded in ReactMount.)", "", "  if (!batchingStrategy.isBatchingUpdates) {"],
+                                "post_context": ["    return;", "  }", "", "  dirtyComponents.push(component);", "}"],
+                                "filename": "~/react/lib/ReactUpdates.js",
+                                "module": "react/lib/ReactUpdates",
+                                "colno": 0,
+                                "in_app": false,
+                                "data": {
+                                    "orig_filename": "/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
+                                    "orig_abs_path": "https://media.getsentry.com/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
+                                    "sourcemap": "https://media.getsentry.com/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map",
+                                    "orig_lineno": 37,
+                                    "orig_function": "Object.s [as enqueueUpdate]",
+                                    "orig_colno": 16101
+                                },
+                                "context_line": "    batchingStrategy.batchedUpdates(enqueueUpdate, component);",
+                                "lineno": 176
+                            }],
+                            "frames_omitted": null
+                        },
+                        "type": "TypeError",
+                        "value": "Cannot read property '1' of null",
+                        "module": null
+                    }]
+                },
+                "sentry.interfaces.Http": {
+                    "url": "https://app.getsentry.com/katon-direct/localhost/issues/112734598/",
+                    "headers": [
+                        ["Referer", "https://getsentry.com/welcome/"],
+                        ["User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"]
+                    ]
+                },
+                "sentry.interfaces.User": {
+                    "ip_address": "0.0.0.0",
+                    "id": "41656",
+                    "email": "test@example.com"
+                },
+                "version": "7"
+            }"""
+        return self.create_event(event_id=event_id, platform='javascript', data=json.loads(payload))
 
     def create_group(self, project=None, checksum=None, **kwargs):
         if checksum:

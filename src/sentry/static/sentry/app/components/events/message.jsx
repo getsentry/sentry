@@ -4,6 +4,11 @@ import utils from '../../utils';
 import {t} from '../../locale';
 
 const Message = React.createClass({
+  propTypes: {
+    group: React.PropTypes.object.isRequired,
+    event: React.PropTypes.object.isRequired
+  },
+
   render() {
     return (
       <EventDataSection

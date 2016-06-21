@@ -21,9 +21,12 @@ Subcommands
 .. toctree::
  :maxdepth: 1
 
+ files <files/index>
  repair <repair/index>
  upgrade <upgrade/index>
+ run <run/index>
  help <help/index>
+ queues <queues/index>
  plugins <plugins/index>
  devserver <devserver/index>
  django <django/index>
@@ -36,4 +39,6 @@ Subcommands
  import <import/index>
  shell <shell/index>
  config <config/index>
+ tsdb <tsdb/index>
+ dsym <dsym/index>
 

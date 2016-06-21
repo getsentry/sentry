@@ -55,6 +55,8 @@ class NotificationPlugin(Plugin):
     project_conf_form = NotificationConfigurationForm
 
     def notify(self, notification):
+        self.logger.info('Notification dispatched [event=%s] [plugin=%s]',
+                         notification.event.id, self.slug)
         event = notification.event
         return self.notify_users(event.group, event)
 
@@ -93,6 +95,10 @@ class NotificationPlugin(Plugin):
         pass
 
     def get_sendable_users(self, project):
+        """
+        Return a collection of user IDs that are eligible to receive
+        notifications for the provided project.
+        """
         conf_key = self.get_conf_key()
 
         alert_settings = dict(

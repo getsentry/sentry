@@ -8,15 +8,17 @@ sentry.rules.conditions.minimum_level
 
 from __future__ import absolute_import
 
+from collections import OrderedDict
+
 from django import forms
 from sentry.constants import LOG_LEVELS
 
 from sentry.rules.conditions.base import EventCondition
 
-LEVEL_CHOICES = [
+LEVEL_CHOICES = OrderedDict([
     ("{0}".format(k), "{0}".format(v.capitalize()))
     for k, v in sorted(LOG_LEVELS.items(), key=lambda x: x[0], reverse=True)
-]
+])
 
 
 class LevelMatchType(object):
@@ -27,7 +29,7 @@ class LevelMatchType(object):
 
 class LevelEventForm(forms.Form):
     level = forms.ChoiceField(
-        choices=LEVEL_CHOICES,
+        choices=LEVEL_CHOICES.items(),
         initial=30)
     match = forms.ChoiceField(
         choices=(
@@ -40,6 +42,13 @@ class LevelEventForm(forms.Form):
 class LevelCondition(EventCondition):
     form_cls = LevelEventForm
     label = 'An event\'s level is {match} {level}'
+
+    def render_label(self):
+        data = {
+            'match': self.data['match'],
+            'level': LEVEL_CHOICES[self.data['level']],
+        }
+        return self.label.format(**data)
 
     def passes(self, event, state, **kwargs):
         desired_level = self.get_option('level')

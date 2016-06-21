@@ -4,7 +4,9 @@ from rest_framework.response import Response
 
 from sentry.api.serializers import serialize, StreamGroupSerializer
 from sentry.api.paginator import OffsetPaginator
-from sentry.models import Group, GroupStatus, OrganizationMemberTeam, Project
+from sentry.models import (
+    Group, GroupStatus, OrganizationMemberTeam, Project, ProjectStatus
+)
 
 from .organizationmember import OrganizationMemberEndpoint
 
@@ -34,7 +36,6 @@ class OrganizationIssuesEndpoint(OrganizationMemberEndpoint):
             organization=organization,
             team__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=member,
-                is_active=True,
             ).values('team')
         )
 
@@ -46,6 +47,11 @@ class OrganizationIssuesEndpoint(OrganizationMemberEndpoint):
             )
         elif status:
             return Response({'status': 'Invalid status choice'}, status=400)
+
+        # hide issues if the project is pending removal
+        queryset = queryset.filter(
+            project__status=ProjectStatus.VISIBLE,
+        )
 
         return self.paginate(
             request=request,

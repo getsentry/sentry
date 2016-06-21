@@ -32,12 +32,12 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                                           which the projects should be listed.
         :auth: required
         """
-        if request.auth:
+        if request.auth and not request.user.is_authenticated():
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, 'project'):
                 team_list = [request.auth.project.team]
                 project_list = [request.auth.project]
-            else:
+            elif request.auth.organization is not None:
                 org = request.auth.organization
                 team_list = list(Team.objects.filter(
                     organization=org,
@@ -45,19 +45,24 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                 project_list = list(Project.objects.filter(
                     team__in=team_list,
                 ).order_by('name'))
+            else:
+                return Response({'detail': 'Current access does not point to '
+                                 'organization.'}, status=400)
         else:
             team_list = list(request.access.teams)
             project_list = list(Project.objects.filter(
                 team__in=team_list,
             ).order_by('name'))
 
-        team_map = dict(
-            (t.id, c) for (t, c) in zip(team_list, serialize(team_list, request.user)),
-        )
+        team_map = {
+            d['id']: d
+            for d in serialize(team_list, request.user)
+        }
 
         context = []
         for project, pdata in zip(project_list, serialize(project_list, request.user)):
-            pdata['team'] = team_map[project.team_id]
+            assert str(project.id) == pdata['id']
+            pdata['team'] = team_map[str(project.team_id)]
             context.append(pdata)
 
         return Response(context)

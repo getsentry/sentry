@@ -15,6 +15,7 @@ class ProjectKeySerializer(Serializer):
             'dsn': {
                 'secret': obj.dsn_private,
                 'public': obj.dsn_public,
+                'csp': obj.csp_endpoint,
             },
             'dateCreated': obj.date_added,
         }

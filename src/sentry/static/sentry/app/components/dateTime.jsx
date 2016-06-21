@@ -5,6 +5,7 @@ import ConfigStore from '../stores/configStore.jsx';
 const DateTime = React.createClass({
   propTypes: {
     date: React.PropTypes.any.isRequired,
+    seconds: React.PropTypes.bool
   },
 
   getDefaultProps() {
@@ -30,7 +31,7 @@ const DateTime = React.createClass({
     }
 
     return (
-      <time>{moment(date).format(format)}</time>
+      <time {...this.props}>{moment(date).format(format)}</time>
     );
   }
 });

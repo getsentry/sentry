@@ -9,7 +9,7 @@ sentry.utils.json
 # Avoid shadowing the standard library json module
 from __future__ import absolute_import
 
-import simplejson
+from simplejson import JSONEncoder, JSONEncoderForHTML, _default_decoder
 import datetime
 import uuid
 import decimal
@@ -17,36 +17,62 @@ import decimal
 from django.utils.timezone import is_aware
 
 
-class BetterJSONEncoder(simplejson.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, uuid.UUID):
-            return o.hex
-        elif isinstance(o, datetime.datetime):
-            return o.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-        elif isinstance(o, datetime.date):
-            return o.isoformat()
-        elif isinstance(o, datetime.time):
-            if is_aware(o):
-                raise ValueError("JSON can't represent timezone-aware times.")
-            r = o.isoformat()
-            if o.microsecond:
-                r = r[:12]
-            return r
-        elif isinstance(o, (set, frozenset)):
-            return list(o)
-        elif isinstance(o, decimal.Decimal):
-            return str(o)
-        return super(BetterJSONEncoder, self).default(o)
+def better_default_encoder(o):
+    if isinstance(o, uuid.UUID):
+        return o.hex
+    elif isinstance(o, datetime.datetime):
+        return o.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    elif isinstance(o, datetime.date):
+        return o.isoformat()
+    elif isinstance(o, datetime.time):
+        if is_aware(o):
+            raise ValueError("JSON can't represent timezone-aware times.")
+        r = o.isoformat()
+        if o.microsecond:
+            r = r[:12]
+        return r
+    elif isinstance(o, (set, frozenset)):
+        return list(o)
+    elif isinstance(o, decimal.Decimal):
+        return str(o)
+    raise TypeError(repr(o) + ' is not JSON serializable')
+
+
+_default_encoder = JSONEncoder(
+    separators=(',', ':'),
+    ignore_nan=True,
+    skipkeys=False,
+    ensure_ascii=True,
+    check_circular=True,
+    allow_nan=True,
+    indent=None,
+    encoding='utf-8',
+    default=better_default_encoder,
+)
+
+_default_escaped_encoder = JSONEncoderForHTML(
+    separators=(',', ':'),
+    ignore_nan=True,
+    skipkeys=False,
+    ensure_ascii=True,
+    check_circular=True,
+    allow_nan=True,
+    indent=None,
+    encoding='utf-8',
+    default=better_default_encoder,
+)
+
+
+def dump(value, fp, **kwargs):
+    for chunk in _default_encoder.iterencode(value):
+        fp.write(chunk)
 
 
 def dumps(value, escape=False, **kwargs):
-    kwargs.setdefault('separators', (',', ':'))
-    kwargs.setdefault('ignore_nan', True)
-    rv = simplejson.dumps(value, cls=BetterJSONEncoder, **kwargs)
     if escape:
-        rv = rv.replace('</', '<\/')
-    return rv
+        return _default_escaped_encoder.encode(value)
+    return _default_encoder.encode(value)
 
 
 def loads(value, **kwargs):
-    return simplejson.loads(value)
+    return _default_decoder.decode(value)

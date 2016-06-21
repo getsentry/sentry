@@ -10,5 +10,7 @@ Details
 
 {{ link }}
 
+Unsubscribe: {{ unsubscribe_link }}
+
 {% endautoescape %}
 {% endspaceless %}

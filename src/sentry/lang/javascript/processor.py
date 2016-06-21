@@ -13,7 +13,6 @@ from django.utils.encoding import force_bytes, force_text
 from collections import namedtuple
 from os.path import splitext
 from requests.exceptions import RequestException
-from simplejson import JSONDecodeError
 from urlparse import urlparse, urljoin, urlsplit
 
 # In case SSL is unavailable (light builds) we can't import this here.
@@ -200,7 +199,7 @@ def fetch_release_file(filename, release):
             releasefile = ReleaseFile.objects.filter(
                 release=release,
                 ident=ident,
-            ).select_related('file', 'file__blob').get()
+            ).select_related('file').get()
         except ReleaseFile.DoesNotExist:
             logger.debug('Release artifact %r not found in database (release_id=%s)',
                          filename, release.id)
@@ -379,7 +378,7 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
 
     try:
         return sourcemap_to_index(body)
-    except (JSONDecodeError, ValueError, AssertionError) as exc:
+    except Exception as exc:
         logger.warn(unicode(exc))
         raise UnparseableSourcemap({
             'url': url,
@@ -560,29 +559,23 @@ class SourceProcessor(object):
                 })
             elif sourcemap_idx:
                 last_state = state
-                state = find_source(sourcemap_idx, frame.lineno, frame.colno)
 
                 if is_data_uri(sourcemap_url):
                     sourcemap_label = frame.abs_path
                 else:
                     sourcemap_label = sourcemap_url
 
-                abs_path = urljoin(sourcemap_url, state.src)
-
-                logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
-                source = self.get_source(abs_path, release)
-                if not source:
-                    frame.data = {
+                try:
+                    state = find_source(sourcemap_idx, frame.lineno, frame.colno)
+                except Exception:
+                    state = None
+                    all_errors.append({
+                        'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
+                        'column': frame.colno,
+                        'row': frame.lineno,
+                        'source': frame.abs_path,
                         'sourcemap': sourcemap_label,
-                    }
-                    errors = cache.get_errors(abs_path)
-                    if errors:
-                        all_errors.extend(errors)
-                    else:
-                        all_errors.append({
-                            'type': EventError.JS_MISSING_SOURCE,
-                            'url': force_bytes(abs_path, errors='replace'),
-                        })
+                    })
 
                 # Store original data in annotation
                 frame.data = {
@@ -594,45 +587,62 @@ class SourceProcessor(object):
                     'sourcemap': sourcemap_label,
                 }
 
-                # SourceMap's return zero-indexed lineno's
-                frame.lineno = state.src_line + 1
-                frame.colno = state.src_col
-                # The offending function is always the previous function in the stack
-                # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
-                if last_state:
-                    frame.function = last_state.name or frame.function
-                else:
-                    frame.function = state.name or frame.function
+                if state is not None:
+                    abs_path = urljoin(sourcemap_url, state.src)
 
-                filename = state.src
-                # special case webpack support
-                # abs_path will always be the full path with webpack:/// prefix.
-                # filename will be relative to that
-                if abs_path.startswith('webpack:'):
-                    filename = abs_path
-                    # webpack seems to use ~ to imply "relative to resolver root"
-                    # which is generally seen for third party deps
-                    # (i.e. node_modules)
-                    if '/~/' in filename:
-                        filename = '~/' + abs_path.split('/~/', 1)[-1]
+                    logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
+                    source = self.get_source(abs_path, release)
+
+                if not source:
+                    errors = cache.get_errors(abs_path)
+                    if errors:
+                        all_errors.extend(errors)
                     else:
-                        filename = filename.split('webpack:///', 1)[-1]
+                        all_errors.append({
+                            'type': EventError.JS_MISSING_SOURCE,
+                            'url': force_bytes(abs_path, errors='replace'),
+                        })
 
-                    # As noted above, '~/' means they're coming from node_modules,
-                    # so these are not app dependencies
-                    if filename.startswith('~/'):
-                        frame.in_app = False
-                    # And conversely, local dependencies start with './'
-                    elif filename.startswith('./'):
-                        frame.in_app = True
+                if state is not None:
+                    # SourceMap's return zero-indexed lineno's
+                    frame.lineno = state.src_line + 1
+                    frame.colno = state.src_col
+                    # The offending function is always the previous function in the stack
+                    # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
+                    if last_state:
+                        frame.function = last_state.name or frame.function
+                    else:
+                        frame.function = state.name or frame.function
 
-                    # We want to explicitly generate a webpack module name
-                    frame.module = generate_module(filename)
+                    filename = state.src
+                    # special case webpack support
+                    # abs_path will always be the full path with webpack:/// prefix.
+                    # filename will be relative to that
+                    if abs_path.startswith('webpack:'):
+                        filename = abs_path
+                        # webpack seems to use ~ to imply "relative to resolver root"
+                        # which is generally seen for third party deps
+                        # (i.e. node_modules)
+                        if '/~/' in filename:
+                            filename = '~/' + abs_path.split('/~/', 1)[-1]
+                        else:
+                            filename = filename.split('webpack:///', 1)[-1]
 
-                frame.abs_path = abs_path
-                frame.filename = filename
-                if not frame.module and abs_path.startswith(('http:', 'https:', 'webpack:')):
-                    frame.module = generate_module(abs_path)
+                        # As noted above, '~/' means they're coming from node_modules,
+                        # so these are not app dependencies
+                        if filename.startswith('~/'):
+                            frame.in_app = False
+                        # And conversely, local dependencies start with './'
+                        elif filename.startswith('./'):
+                            frame.in_app = True
+
+                        # We want to explicitly generate a webpack module name
+                        frame.module = generate_module(filename)
+
+                    frame.abs_path = abs_path
+                    frame.filename = filename
+                    if not frame.module and abs_path.startswith(('http:', 'https:', 'webpack:')):
+                        frame.module = generate_module(abs_path)
 
             elif sourcemap_url:
                 frame.data = {
@@ -642,6 +652,14 @@ class SourceProcessor(object):
             # TODO: theoretically a minified source could point to another mapped, minified source
             frame.pre_context, frame.context_line, frame.post_context = get_source_context(
                 source=source, lineno=frame.lineno, colno=frame.colno or 0)
+
+            if not frame.context_line:
+                all_errors.append({
+                    'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
+                    'column': frame.colno,
+                    'row': frame.lineno,
+                    'source': frame.abs_path,
+                })
         return all_errors
 
     def get_source(self, filename, release):

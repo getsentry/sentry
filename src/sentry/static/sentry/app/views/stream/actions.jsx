@@ -18,7 +18,8 @@ const StreamActions = React.createClass({
     onRealtimeChange: React.PropTypes.func.isRequired,
     onSelectStatsPeriod: React.PropTypes.func.isRequired,
     realtimeActive: React.PropTypes.bool.isRequired,
-    statsPeriod: React.PropTypes.string.isRequired
+    statsPeriod: React.PropTypes.string.isRequired,
+    query: React.PropTypes.string.isRequired
   },
 
   mixins: [
@@ -216,7 +217,7 @@ const StreamActions = React.createClass({
                  tooltip={t('Add to Bookmarks')}
                  onlyIfBulk={true}
                  selectAllActive={this.state.pageSelected}>
-                <i aria-hidden="true" className="icon-bookmark"></i>
+                <i aria-hidden="true" className="icon-star-solid"></i>
               </ActionLink>
 
               <DropdownLink

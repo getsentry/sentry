@@ -7,30 +7,34 @@ sentry.web.frontend.admin
 """
 from __future__ import absolute_import, print_function
 
+import functools
 import logging
-import pkg_resources
-import six
 import sys
 import uuid
+from collections import defaultdict
 
+import pkg_resources
+import six
 from django.conf import settings
 from django.core.context_processors import csrf
-from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.db.models import Count
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
+from sentry import options
 from sentry.app import env
-from sentry.models import Team, Project, User
+from sentry.models import Project, Team, User
 from sentry.plugins import plugins
+from sentry.utils.email import send_mail
 from sentry.utils.http import absolute_uri
-from sentry.web.forms import (
-    NewUserForm, ChangeUserForm, RemoveUserForm, TestEmailForm)
+from sentry.utils.warnings import DeprecatedSettingWarning, seen_warnings
 from sentry.web.decorators import requires_admin
-from sentry.web.helpers import (
-    render_to_response, render_to_string)
+from sentry.web.forms import (
+    ChangeUserForm, NewUserForm, RemoveUserForm, TestEmailForm
+)
+from sentry.web.helpers import render_to_response, render_to_string
 
 
 def configure_plugin(request, slug):
@@ -139,8 +143,8 @@ def create_new_user(request):
 
             try:
                 send_mail(
-                    '%s Welcome to Sentry' % (settings.EMAIL_SUBJECT_PREFIX,),
-                    body, settings.SERVER_EMAIL, [user.email],
+                    '%s Welcome to Sentry' % (options.get('mail.subject-prefix'),),
+                    body, options.get('mail.from'), [user.email],
                     fail_silently=False
                 )
             except Exception as e:
@@ -312,6 +316,33 @@ def status_packages(request):
 
 
 @requires_admin
+def status_warnings(request):
+    groupings = {
+        DeprecatedSettingWarning: 'Deprecated Settings',
+    }
+
+    groups = defaultdict(list)
+    warnings = []
+    for warning in seen_warnings:
+        cls = type(warning)
+        if cls in groupings:
+            groups[cls].append(warning)
+        else:
+            warnings.append(warning)
+
+    sort_by_message = functools.partial(sorted, key=str)
+
+    return render_to_response(
+        'sentry/admin/status/warnings.html',
+        {
+            'groups': [(groupings[key], sort_by_message(values)) for key, values in groups.items()],
+            'warnings': sort_by_message(warnings),
+        },
+        request,
+    )
+
+
+@requires_admin
 @csrf_protect
 def status_mail(request):
     form = TestEmailForm(request.POST or None)
@@ -320,8 +351,8 @@ def status_mail(request):
         body = """This email was sent as a request to test the Sentry outbound email configuration."""
         try:
             send_mail(
-                '%s Test Email' % (settings.EMAIL_SUBJECT_PREFIX,),
-                body, settings.SERVER_EMAIL, [request.user.email],
+                '%s Test Email' % (options.get('mail.subject-prefix'),),
+                body, options.get('mail.from'), [request.user.email],
                 fail_silently=False
             )
         except Exception as e:
@@ -329,10 +360,11 @@ def status_mail(request):
 
     return render_to_response('sentry/admin/status/mail.html', {
         'form': form,
-        'EMAIL_HOST': settings.EMAIL_HOST,
-        'EMAIL_HOST_PASSWORD': bool(settings.EMAIL_HOST_PASSWORD),
-        'EMAIL_HOST_USER': settings.EMAIL_HOST_USER,
-        'EMAIL_PORT': settings.EMAIL_PORT,
-        'EMAIL_USE_TLS': settings.EMAIL_USE_TLS,
-        'SERVER_EMAIL': settings.SERVER_EMAIL,
+        'mail_host': options.get('mail.host'),
+        'mail_password': bool(options.get('mail.password')),
+        'mail_username': options.get('mail.username'),
+        'mail_port': options.get('mail.port'),
+        'mail_use_tls': options.get('mail.use-tls'),
+        'mail_from': options.get('mail.from'),
+        'mail_list_namespace': options.get('mail.list-namespace'),
     }, request)

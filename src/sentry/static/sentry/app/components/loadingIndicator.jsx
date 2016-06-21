@@ -1,5 +1,5 @@
-import classNames from 'classnames';
 import React from 'react';
+import classNames from 'classnames';
 
 function LoadingIndicator(props) {
   let {mini, triangle} = props;
@@ -16,6 +16,11 @@ function LoadingIndicator(props) {
     </div>
   );
 }
+
+LoadingIndicator.propTypes = {
+  mini: React.PropTypes.bool,
+  triangle: React.PropTypes.bool
+};
 
 export default LoadingIndicator;
 

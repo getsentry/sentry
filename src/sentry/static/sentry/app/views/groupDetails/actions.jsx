@@ -180,7 +180,7 @@ const GroupActions = React.createClass({
           <a className={bookmarkClassName}
              title={t('Bookmark')}
              onClick={this.onToggleBookmark}>
-            <span className="icon-bookmark" />
+            <span className="icon-star-solid" />
           </a>
         </div>
         <div className="btn-group">
@@ -192,7 +192,7 @@ const GroupActions = React.createClass({
             <span className="icon-trash"></span>
           </LinkWithConfirmation>
         </div>
-        {group.pluginActions.length !== 0 &&
+        {group.pluginActions.length > 1 ?
           <div className="btn-group more">
             <DropdownLink
                 className="btn btn-default btn-sm"
@@ -206,6 +206,17 @@ const GroupActions = React.createClass({
               })}
             </DropdownLink>
           </div>
+        : group.pluginActions.length !== 0 &&
+          group.pluginActions.map((action, actionIdx) => {
+            return (
+              <div className="btn-group" key={actionIdx}>
+                <a className="btn btn-default btn-sm"
+                   href={action[1]}>
+                  {action[0]}
+                </a>
+              </div>
+            );
+          })
         }
       </div>
     );

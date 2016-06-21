@@ -3,7 +3,7 @@ import React from 'react';
 import {Link, History} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import DateTime from '../../components/dateTime';
-import Gravatar from '../../components/gravatar';
+import Avatar from '../../components/avatar';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import Pagination from '../../components/pagination';
@@ -12,6 +12,7 @@ import {t} from '../../locale';
 
 const ProjectEvents = React.createClass({
   propTypes: {
+    defaultQuery: React.PropTypes.string,
     setProjectNavSection: React.PropTypes.func
   },
 
@@ -161,7 +162,7 @@ const ProjectEvents = React.createClass({
           <td className="event-user table-user-info" style={{textAlign: 'right'}}>
             {event.user ?
               <div>
-                <Gravatar email={event.user.email} size={64} className="avatar" />
+                <Avatar user={event.user} size={64} className="avatar" />
                 {event.user.email}
               </div>
             :

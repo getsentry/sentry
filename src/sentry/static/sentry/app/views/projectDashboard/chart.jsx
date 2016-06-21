@@ -7,6 +7,11 @@ import LoadingIndicator from '../../components/loadingIndicator';
 import ProjectState from '../../mixins/projectState';
 
 const ProjectChart = React.createClass({
+  propTypes: {
+    dateSince: React.PropTypes.number.isRequired,
+    resolution: React.PropTypes.string.isRequired
+  },
+
   mixins: [
     ApiMixin,
     ProjectState
@@ -35,7 +40,7 @@ const ProjectChart = React.createClass({
   getStatsEndpoint() {
     let org = this.getOrganization();
     let project = this.getProject();
-    return '/projects/' + org.slug + '/' + project.slug + '/stats/?resolution=' + this.props.resolution;
+    return '/projects/' + org.slug + '/' + project.slug + '/stats/';
   },
 
   getProjectReleasesEndpoint() {
@@ -47,7 +52,9 @@ const ProjectChart = React.createClass({
   fetchData() {
     this.api.request(this.getStatsEndpoint(), {
       query: {
-        since: this.props.dateSince
+        since: this.props.dateSince,
+        resolution: this.props.resolution,
+        stat: 'generated',
       },
       success: (data) => {
         this.setState({

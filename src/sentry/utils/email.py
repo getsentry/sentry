@@ -9,28 +9,33 @@ from __future__ import absolute_import
 
 import logging
 import os
+import subprocess
+import tempfile
 import time
-import toronado
+from email.utils import parseaddr
+from operator import attrgetter
 from random import randrange
 
 from django.conf import settings
-from django.core.mail import get_connection, EmailMultiAlternatives
-from django.core.signing import Signer, BadSignature
+from django.core.mail import get_connection as _get_connection
+from django.core.mail import send_mail as _send_mail
+from django.core.mail import EmailMultiAlternatives
+from django.core.mail.backends.base import BaseEmailBackend
+from django.core.signing import BadSignature, Signer
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_bytes, force_str, force_text
-from django.utils.functional import cached_property
-from email.utils import parseaddr
+from toronado import from_string as inline_css
 
-from sentry.models import GroupEmailThread, Group
-from sentry.web.helpers import render_to_string
+from sentry import options
+from sentry.models import (
+    Activity, Event, Group, GroupEmailThread, Project, User, UserOption
+)
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
-
+from sentry.utils.strings import is_valid_dot_atom
+from sentry.web.helpers import render_to_string
 
 logger = logging.getLogger(__name__)
-
-SMTP_HOSTNAME = getattr(settings, 'SENTRY_SMTP_HOSTNAME', 'localhost')
-ENABLE_EMAIL_REPLIES = getattr(settings, 'SENTRY_ENABLE_EMAIL_REPLIES', False)
 
 
 class _CaseInsensitiveSigner(Signer):
@@ -77,7 +82,10 @@ def email_to_group_id(address):
 
 def group_id_to_email(group_id):
     signed_data = signer.sign(str(group_id))
-    return '@'.join((signed_data.replace(':', '+'), SMTP_HOSTNAME))
+    return '@'.join((
+        signed_data.replace(':', '+'),
+        options.get('mail.reply-hostname') or get_from_email_domain(),
+    ))
 
 
 def domain_from_email(email):
@@ -109,7 +117,113 @@ def make_msgid(domain):
     return msgid
 
 
-FROM_EMAIL_DOMAIN = domain_from_email(settings.DEFAULT_FROM_EMAIL)
+# cache the domain_from_email calculation
+# This is just a tuple of (email, email-domain)
+_from_email_domain_cache = (None, None)
+
+
+def get_from_email_domain():
+    global _from_email_domain_cache
+    from_ = options.get('mail.from')
+    if not _from_email_domain_cache[0] == from_:
+        _from_email_domain_cache = (from_, domain_from_email(from_))
+    return _from_email_domain_cache[1]
+
+
+def get_email_addresses(user_ids, project=None):
+    pending = set(user_ids)
+    results = {}
+
+    if project:
+        queryset = UserOption.objects.filter(
+            project=project,
+            user__in=pending,
+            key='mail:email',
+        )
+        for option in (o for o in queryset if o.value):
+            results[option.user_id] = option.value
+            pending.discard(option.user_id)
+
+    if pending:
+        queryset = UserOption.objects.filter(
+            user__in=pending,
+            key='alert_email',
+        )
+        for option in (o for o in queryset if o.value):
+            results[option.user_id] = option.value
+            pending.discard(option.user_id)
+
+    if pending:
+        queryset = User.objects.filter(pk__in=pending, is_active=True)
+        for (user_id, email) in queryset.values_list('id', 'email'):
+            if email:
+                results[user_id] = email
+                pending.discard(user_id)
+
+    if pending:
+        logger.warning('Could not resolve email addresses for user IDs in %r, discarding...', pending)
+
+    return results
+
+
+class ListResolver(object):
+    """
+    Manages the generation of RFC 2919 compliant list-id strings from varying
+    objects types.
+    """
+
+    class UnregisteredTypeError(Exception):
+        """
+        Error raised when attempting to build a list-id from an unregisted object type.
+        """
+
+    def __init__(self, namespace, type_handlers):
+        assert is_valid_dot_atom(namespace)
+
+        # The list-id-namespace that will be used when generating the list-id
+        # string. This should be a domain name under the control of the
+        # generator (see RFC 2919.)
+        self.__namespace = namespace
+
+        # A mapping of classes to functions that accept an instance of that
+        # class, returning a tuple of values that will be used to generate the
+        # list label. Returned values must be valid RFC 2822 dot-atom-text
+        # values.
+        self.__type_handlers = type_handlers
+
+    def __call__(self, instance):
+        """
+        Build a list-id string from an instance.
+
+        Raises ``UnregisteredTypeError`` if there is no registered handler for
+        the instance type. Raises ``AssertionError`` if a valid list-id string
+        cannot be generated from the values returned by the type handler.
+        """
+        try:
+            handler = self.__type_handlers[type(instance)]
+        except KeyError:
+            raise self.UnregisteredTypeError(
+                'Cannot generate mailing list identifier for {!r}'.format(instance)
+            )
+
+        label = '.'.join(map(str, handler(instance)))
+        assert is_valid_dot_atom(label)
+
+        return '{}.{}'.format(label, self.__namespace)
+
+
+default_list_type_handlers = {
+    Activity: attrgetter('project.slug', 'project.organization.slug'),
+    Project: attrgetter('slug', 'organization.slug'),
+    Group: attrgetter('project.slug', 'organization.slug'),
+    Event: attrgetter('project.slug', 'organization.slug'),
+}
+
+
+make_listid_from_instance = ListResolver(
+    options.get('mail.list-namespace'),
+    default_list_type_handlers,
+)
 
 
 class MessageBuilder(object):
@@ -120,6 +234,9 @@ class MessageBuilder(object):
         assert not (html_body and html_template)
         assert context or not (template or html_template)
 
+        if headers is None:
+            headers = {}
+
         self.subject = subject
         self.context = context or {}
         self.template = template
@@ -129,11 +246,18 @@ class MessageBuilder(object):
         self.headers = headers
         self.reference = reference  # The object that generated this message
         self.reply_reference = reply_reference  # The object this message is replying about
-        self.from_email = from_email or settings.SERVER_EMAIL
+        self.from_email = from_email or options.get('mail.from')
         self._send_to = set()
 
-    @cached_property
-    def html_body(self):
+        if reference is not None and 'List-Id' not in headers:
+            try:
+                headers['List-Id'] = make_listid_from_instance(reference)
+            except ListResolver.UnregisteredTypeError as error:
+                logger.debug(str(error))
+            except AssertionError as error:
+                logger.warning(str(error))
+
+    def __render_html_body(self):
         html_body = None
         if self.html_template:
             html_body = render_to_string(self.html_template, self.context)
@@ -143,48 +267,15 @@ class MessageBuilder(object):
         if html_body is not None:
             return inline_css(html_body)
 
-    @cached_property
-    def txt_body(self):
+    def __render_text_body(self):
         if self.template:
             return render_to_string(self.template, self.context)
         return self._txt_body
 
     def add_users(self, user_ids, project=None):
-        from sentry.models import User, UserOption
-
-        email_list = set()
-        user_ids = set(user_ids)
-
-        # XXX: It's possible that options have been set to an empty value
-        if project:
-            queryset = UserOption.objects.filter(
-                project=project,
-                user__in=user_ids,
-                key='mail:email',
-            )
-            for option in (o for o in queryset if o.value):
-                user_ids.remove(option.user_id)
-                email_list.add(option.value)
-
-        if user_ids:
-            queryset = UserOption.objects.filter(
-                user__in=user_ids,
-                key='alert_email',
-            )
-            for option in (o for o in queryset if o.value):
-                try:
-                    user_ids.remove(option.user_id)
-                    email_list.add(option.value)
-                except KeyError:
-                    # options.user_id might not exist in user_ids set
-                    pass
-
-        if user_ids:
-            email_list |= set(filter(bool, User.objects.filter(
-                pk__in=user_ids, is_active=True,
-            ).values_list('email', flat=True)))
-
-        self._send_to.update(email_list)
+        self._send_to.update(
+            get_email_addresses(user_ids, project).values()
+        )
 
     def build(self, to, reply_to=None, cc=None, bcc=None):
         if self.headers is None:
@@ -192,7 +283,7 @@ class MessageBuilder(object):
         else:
             headers = self.headers.copy()
 
-        if ENABLE_EMAIL_REPLIES and 'X-Sentry-Reply-To' in headers:
+        if options.get('mail.enable-replies') and 'X-Sentry-Reply-To' in headers:
             reply_to = headers['X-Sentry-Reply-To']
         else:
             reply_to = set(reply_to or ())
@@ -203,7 +294,7 @@ class MessageBuilder(object):
             headers.setdefault('Reply-To', reply_to)
 
         # Every message sent needs a unique message id
-        message_id = make_msgid(FROM_EMAIL_DOMAIN)
+        message_id = make_msgid(get_from_email_domain())
         headers.setdefault('Message-Id', message_id)
 
         subject = self.subject
@@ -229,15 +320,17 @@ class MessageBuilder(object):
 
         msg = EmailMultiAlternatives(
             subject=subject,
-            body=self.txt_body,
+            body=self.__render_text_body(),
             from_email=self.from_email,
             to=(to,),
             cc=cc or (),
             bcc=bcc or (),
             headers=headers,
         )
-        if self.html_body:
-            msg.attach_alternative(self.html_body, 'text/html')
+
+        html_body = self.__render_html_body()
+        if html_body:
+            msg.attach_alternative(html_body, 'text/html')
 
         return msg
 
@@ -250,20 +343,88 @@ class MessageBuilder(object):
         return results
 
     def send(self, to=None, bcc=None, fail_silently=False):
-        messages = self.get_built_messages(to, bcc=bcc)
-        self.send_all(messages, fail_silently=fail_silently)
-
-    def send_all(self, messages, fail_silently=False):
-        connection = get_connection(fail_silently=fail_silently)
-        metrics.incr('email.sent', len(messages))
-        return connection.send_messages(messages)
+        return send_messages(
+            self.get_built_messages(to, bcc=bcc),
+            fail_silently=fail_silently,
+        )
 
     def send_async(self, to=None, bcc=None):
         from sentry.tasks.email import send_email
         messages = self.get_built_messages(to, bcc=bcc)
         for message in messages:
-            safe_execute(send_email.delay, message=message)
+            safe_execute(send_email.delay, message=message,
+                         _with_transaction=False)
 
 
-def inline_css(html):
-    return toronado.from_string(html)
+def send_messages(messages, fail_silently=False):
+    connection = get_connection(fail_silently=fail_silently)
+    metrics.incr('email.sent', len(messages))
+    return connection.send_messages(messages)
+
+
+def get_mail_backend():
+    backend = options.get('mail.backend')
+    try:
+        return settings.SENTRY_EMAIL_BACKEND_ALIASES[backend]
+    except KeyError:
+        return backend
+
+
+def get_connection(fail_silently=False):
+    """
+    Gets an SMTP connection using our OptionsStore
+    """
+    return _get_connection(
+        backend=get_mail_backend(),
+        host=options.get('mail.host'),
+        port=options.get('mail.port'),
+        username=options.get('mail.username'),
+        password=options.get('mail.password'),
+        use_tls=options.get('mail.use-tls'),
+        fail_silently=fail_silently,
+    )
+
+
+def send_mail(subject, message, from_email, recipient_list, fail_silently=False):
+    """
+    Wrapper that forces sending mail through our connection.
+    """
+    return _send_mail(
+        subject, message, from_email, recipient_list,
+        connection=get_connection(fail_silently=fail_silently),
+    )
+
+
+def is_smtp_enabled(backend=None):
+    """
+    Check if the current backend is SMTP based.
+    """
+    if backend is None:
+        backend = get_mail_backend()
+    return backend not in settings.SENTRY_SMTP_DISABLED_BACKENDS
+
+
+class PreviewBackend(BaseEmailBackend):
+    """
+    Email backend that can be used in local development to open messages in the
+    local mail client as they are sent.
+
+    Probably only works on OS X.
+    """
+    def send_messages(self, email_messages):
+        for message in email_messages:
+            content = str(message.message())
+            preview = tempfile.NamedTemporaryFile(
+                delete=False,
+                prefix='sentry-email-preview-',
+                suffix='.eml',
+            )
+            try:
+                preview.write(content)
+                preview.flush()
+            finally:
+                preview.close()
+
+            subprocess.check_call(('open', preview.name))
+
+        return len(email_messages)

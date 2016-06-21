@@ -26,6 +26,10 @@ import {t, tct} from '../locale';
 
 const Stream = React.createClass({
   propTypes: {
+    defaultSort: React.PropTypes.string,
+    defaultStatsPeriod: React.PropTypes.string,
+    defaultQuery: React.PropTypes.string,
+    maxItems: React.PropTypes.number,
     setProjectNavSection: React.PropTypes.func
   },
 
@@ -50,6 +54,7 @@ const Stream = React.createClass({
     let searchId = this.props.params.searchId || null;
     return {
       groupIds: [],
+      isDefaultSearch: null,
       searchId: searchId,
       // if we have no query then we can go ahead and fetch data
       loading: (searchId || !this.hasQuery() ? true : false),
@@ -95,8 +100,10 @@ const Stream = React.createClass({
       return;
     }
 
-    if (nextProps.params.searchId !== this.state.searchId
-          || nextProps.location.search !== this.props.location.search) {
+    let searchIdChanged = this.state.isDefaultSearch ?
+      nextProps.params.searchId : nextProps.params.searchId !== this.state.searchId;
+
+    if (searchIdChanged || nextProps.location.search !== this.props.location.search) {
       // TODO(dcramer): handle 404 from popState on searchId
       this.setState(this.getQueryState(nextProps), this.fetchData);
     }
@@ -131,6 +138,7 @@ const Stream = React.createClass({
     this.api.request(`/projects/${orgId}/${projectId}/searches/`, {
       success: (data) => {
         let newState = {
+          isDefaultSearch: false,
           savedSearchLoading: false,
           savedSearchList: data,
           loading: false,
@@ -148,6 +156,7 @@ const Stream = React.createClass({
               savedSearchLoading: false,
               savedSearchList: data,
               searchId: null,
+              isDefaultSearch: true,
             }, this.transitionTo);
           }
         } else if (!this.hasQuery()) {
@@ -162,6 +171,7 @@ const Stream = React.createClass({
           if (defaultResults.length) {
             newState.searchId = defaultResults[0].id;
             newState.query = defaultResults[0].query;
+            newState.isDefaultSearch = true;
           }
         }
         this.setState(newState, needsData ? this.fetchData : null);
@@ -171,10 +181,11 @@ const Stream = React.createClass({
         logAjaxError(error);
         this.setState({
           loading: false,
+          isDefaultSearch: null,
           searchId: null,
           savedSearchList: [],
           savedSearchLoading: false,
-          query: '',
+          query: ''
         });
       }
     });
@@ -244,6 +255,7 @@ const Stream = React.createClass({
       statsPeriod: statsPeriod,
       query: hasQuery ? currentQuery.query : '',
       searchId: searchId,
+      isDefaultSearch: false
     };
 
     // state is not yet defined
@@ -264,6 +276,7 @@ const Stream = React.createClass({
         return search.isDefault;
       });
       if (defaultResult.length) {
+        newState.isDefaultSearch = true;
         newState.searchId = defaultResult[0].id;
         newState.query = defaultResult[0].query;
       } else {
@@ -291,10 +304,11 @@ const Stream = React.createClass({
     let url = this.getGroupListEndpoint();
 
     let requestParams = {
-      query: this.state.query,
+      query: this.state.query.replace(/^\s+|\s+$/g, ''),
       limit: this.props.maxItems,
       sort: this.state.sort,
-      statsPeriod: this.state.statsPeriod
+      statsPeriod: this.state.statsPeriod,
+      shortIdLookup: '1',
     };
 
     let currentQuery = this.props.location.query || {};
@@ -312,13 +326,13 @@ const Stream = React.createClass({
       method: 'GET',
       data: requestParams,
       success: (data, ignore, jqXHR) => {
-        // Was this the result of an event SHA search? If so, redirect
-        // to corresponding group details
-        if (data.length === 1 && /^[a-zA-Z0-9]{32}$/.test(requestParams.query.trim())) {
-          let params = this.props.params;
-          let groupId = data[0].id;
-
-          return void this.history.pushState(null, `/${params.orgId}/${params.projectId}/issues/${groupId}/`);
+        // if this is a direct hit, we redirect to the intended result directly.
+        // we have to use the project slug from the result data instead of the
+        // the current props one as the shortIdLookup can return results for
+        // different projects.
+        if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+          return void this.history.pushState(null,
+            `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`);
         }
 
         this._streamManager.push(data);
@@ -326,7 +340,7 @@ const Stream = React.createClass({
         this.setState({
           error: false,
           dataLoading: false,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
@@ -494,7 +508,7 @@ const Stream = React.createClass({
           <div className="robot"><span className="eye" /></div>
           <h3>{t('Waiting for events…')}</h3>
           <p>{tct('Our error robot is waiting to [cross:devour] receive your first event.', {cross: <span className="strikethrough"/>})}</p>
-          <p><Link to={`/${org.slug}/${project.slug}/settings/install/`} className="btn btn-primary btn-lg">{t('Installation Instructions')}</Link></p>
+          <p><Link to={`/${org.slug}/${project.slug}/settings/install/?onboarding=1`} className="btn btn-primary btn-lg">{t('Installation Instructions')}</Link></p>
         </div>
       </div>
     );

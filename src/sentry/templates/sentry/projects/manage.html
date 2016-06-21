@@ -49,6 +49,7 @@
       </div>
       <div class="box-content with-padding">
         {{ form.resolve_age|as_crispy_field }}
+        <p><small><strong>Note: Enabling auto resolve will immediately resolve anything that has not been seen within this period of time. There is no undo!</strong></small></p>
         {{ form.scrub_data|as_crispy_field }}
         {{ form.scrub_defaults|as_crispy_field }}
         {{ form.sensitive_fields|as_crispy_field }}
@@ -146,6 +147,18 @@
         snap: true
       });
     });
+
+    $.each({{ form.org_overrides|to_json|safe }}, function(n, value) {
+      if ($('#id_' + value).attr('disabled')) {
+        $('<span/>').addClass('disabled-indicator tip')
+          .attr('title', {% filter to_json %}{% trans "This option is enforced by your organization's settings and cannot be customized per-project." %}{% endfilter %})
+          .append(
+            $('<span/>').addClass('icon-question')
+          ).insertBefore('#hint_id_' + value);
+      }
+    });
+
+    $('.tip').tooltip();
   }());
   </script>
 {% endblock %}
@@ -154,7 +167,7 @@
   <h6 class="nav-header">{% trans "Configuration" %}</h6>
   <ul class="nav nav-stacked">
     <li{% if page == 'details' %} class="active"{% endif %}>
-        <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}">{% trans "Project Settings" %}</a>
+        <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}">{% trans "General" %}</a>
     </li>
     <li{% if page == 'notifications' %} class="active"{% endif %}>
         <a href="{% url 'sentry-project-notifications' project.organization.slug project.slug %}">{% trans "Notifications" %}</a>
@@ -176,19 +189,27 @@
     <li{% if page == 'release-tracking' %} class="active"{% endif %}>
         <a href="{% url 'sentry-project-release-tracking' project.organization.slug project.slug %}">{% trans "Release Tracking" %}</a>
     </li>
-    <li{% if page == 'quotas' %} class="active"{% endif %}>
+    <li>
         <a href="{% absolute_uri '/{}/{}/settings/saved-searches/' project.organization.slug project.slug %}">{% trans "Saved Searches" %}</a>
     </li>
-    {% feature projects:user-reports project %}
-    <li{% if page == 'quotas' %} class="active"{% endif %}>
-        <a href="{% absolute_uri '/{}/{}/settings/user-reports/' project.organization.slug project.slug %}">{% trans "User Reports" %}</a>
+    {% if organization.flags.early_adopter %}
+    <li>
+        <a href="{% absolute_uri '/{}/{}/settings/debug-symbols/' project.organization.slug project.slug %}">{% trans "Debug Symbols" %}</a>
     </li>
-    {% endfeature %}
+    {% endif %}
   </ul>
-  <h6 class="nav-header">{% trans "Setup" %}</h6>
+  <h6 class="nav-header">{% trans "Data" %}</h6>
   <ul class="nav nav-stacked">
     <li>
-        <a href="{% absolute_uri '/{}/{}/settings/install/' project.organization.slug project.slug %}">{% trans "Instructions" %}</a>
+        <a href="{% absolute_uri '/{}/{}/settings/install/' project.organization.slug project.slug %}">{% trans "Error Tracking" %}</a>
+    </li>
+    {% if organization.flags.early_adopter %}
+    <li>
+        <a href="{% absolute_uri '/{}/{}/settings/csp/' project.organization.slug project.slug %}">{% trans "CSP Reports" %}</a>
+    </li>
+    {% endif %}
+    <li>
+        <a href="{% absolute_uri '/{}/{}/settings/user-feedback/' project.organization.slug project.slug %}">{% trans "User Feedback" %}</a>
     </li>
     <li{% if page == 'keys' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "Client Keys (DSN)" %}</a>

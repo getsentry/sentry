@@ -106,7 +106,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                     OrganizationMemberTeam.objects.create(
                         team=team,
                         organizationmember=member,
-                        is_active=True,
                     )
 
             self.create_audit_entry(

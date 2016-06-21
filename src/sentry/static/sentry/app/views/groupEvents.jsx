@@ -3,7 +3,7 @@ import {History, Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import DateTime from '../components/dateTime';
-import Gravatar from '../components/gravatar';
+import Avatar from '../components/avatar';
 import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -129,14 +129,14 @@ const GroupEvents = React.createClass({
 
     let {orgId, projectId, groupId} = this.props.params;
 
-    let children = this.state.eventList.map((event, eventIdx) => {
+    let children = this.state.eventList.map((event) => {
       let tagMap = {};
       event.tags.forEach((tag) => {
         tagMap[tag.key] = tag.value;
       });
 
       return (
-        <tr key={eventIdx}>
+        <tr key={event.id}>
           <td>
             <h5>
               <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/${event.id}/`}>
@@ -156,7 +156,7 @@ const GroupEvents = React.createClass({
             <td className="event-user table-user-info">
               {event.user ?
                 <div>
-                  <Gravatar email={event.user.email} size={64} className="avatar" />
+                  <Avatar user={event.user} size={64} className="avatar" />
                   {event.user.email}
                 </div>
               :
@@ -219,7 +219,7 @@ const GroupEvents = React.createClass({
       <div>
         <div style={{marginBottom: 20}}>
           <SearchBar defaultQuery=""
-            placeholder="search event message"
+            placeholder="search event message or tags"
             query={this.state.query}
             onSearch={this.onSearch} />
         </div>

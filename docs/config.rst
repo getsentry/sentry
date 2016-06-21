@@ -68,6 +68,105 @@ General
 
         $ sentry config generate-secret-key
 
+Redis
+-----
+
+.. describe:: redis.clusters
+
+    Declared in ``config.yml``.
+
+    Describes the Redis clusters avaialble to the Sentry server. These clusters
+    may then be referenced by name by other internal services such as the
+    cache, digests, and TSDB backends, among others.
+
+    For example,
+
+    ::
+
+        redis.clusters:
+          default:  # cluster name
+            hosts:  # connection options, passed to `rb.Cluster`
+              0:
+                host: redis-1.example.com
+                port: 6379
+              1:
+                host: redis-2.example.com
+                port: 6379
+          other:
+            hosts:
+              0:
+                host: redis-3.example.com
+                port: 6379
+
+Mail
+----
+
+.. describe:: mail.from
+
+    Declared in ``config.yml``.
+
+    The email address used for outbound email in the ``From`` header.
+
+    Defaults to ``root@localhost``. It's highly recommended to change this
+    value to ensure reliable email delivery.
+
+.. describe:: mail.host
+
+    Declared in ``config.yml``.
+
+    The hostname to connect to for SMTP connections.
+
+    Defaults to ``localhost``.
+
+.. describe:: mail.port
+
+    Declared in ``config.yml``.
+
+    The port to connect to for SMTP connections.
+
+    Defaults to ``25``.
+
+.. describe:: mail.username
+
+    Declared in ``config.yml``.
+
+    The username to use when authenticating with the SMTP server.
+
+    Defaults to ``(empty)``.
+
+.. describe:: mail.password
+
+    Declared in ``config.yml``.
+
+    The password to use when authenticating with the SMTP server.
+
+    Defaults to ``(empty)``.
+
+.. describe:: mail.use-tls
+
+    Declared in ``config.yml``.
+
+    Should Sentry use TLS when connecting to the SMTP server?
+
+    Defaults to ``false``.
+
+.. describe:: mail.list-namespace
+
+    Declared in ``config.yml``.
+
+    The mailing list namespace for emails sent by this Sentry server. This
+    should be a domain you own (often the same domain as the domain part of the
+    ``mail.from`` configuration parameter value) or ``localhost``.
+
+.. describe:: mail.backend
+
+    Declared in ``config.yml``.
+
+    The backend to be used for email delivery. Options are ``smtp``,
+    ``console``, and ``dummy``.
+
+    Defaults to ``smtp``. Use ``dummy`` if you'd like to disable email delivery.
+
 
 Authentication
 --------------

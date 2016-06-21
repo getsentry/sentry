@@ -1,9 +1,9 @@
 from __future__ import absolute_import, division
 
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 
-from sentry.models import Group, GroupMeta, Event
+from sentry.models import Event, Group, GroupMeta, get_group_with_redirect
 from sentry.utils import json
 from sentry.web.frontend.base import ProjectView
 
@@ -12,7 +12,15 @@ class GroupEventJsonView(ProjectView):
     required_scope = 'event:read'
 
     def get(self, request, organization, project, team, group_id, event_id_or_latest):
-        group = get_object_or_404(Group, pk=group_id, project=project)
+        try:
+            # TODO(tkaemming): This should *actually* redirect, see similar
+            # comment in ``GroupEndpoint.convert_args``.
+            group, _ = get_group_with_redirect(
+                group_id,
+                queryset=Group.objects.filter(project=project),
+            )
+        except Group.DoesNotExist:
+            raise Http404
 
         if event_id_or_latest == 'latest':
             # It's possible that a message would not be created under certain

@@ -11,10 +11,20 @@
     {% csrf_token %}
 
     <div class="sso-link">
-      <img src="{% gravatar_url existing_user.email size 36 %}" class="merge-avatar avatar">
+      <span class="avatar">
+        {% letter_avatar_svg existing_user.get_display_name existing_user.get_label %}
+        {% if existing_user.get_avatar_type == 'upload' %}
+          <img src="{% profile_photo_url existing_user.id size 36 %}">
+        {% elif existing_user.get_avatar_type == 'gravatar' %}
+          <img src="{% gravatar_url existing_user.email size 36 default 'blank' %}">
+        {% endif %}
+      </span>
       <span class="icon-arrow-right"></span>
       <span class="icon-arrow-left"></span>
-      <img src="{% gravatar_url identity.email size 36 %}" class="merge-avatar avatar">
+      <span class="avatar">
+        {% letter_avatar_svg identity_display_name identity_identifier %}
+        <img src="{% gravatar_url identity.email size 36 default 'blank' %}">
+      </span>
     </div>
 
     <div class="align-center">

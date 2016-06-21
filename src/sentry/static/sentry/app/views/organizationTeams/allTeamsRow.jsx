@@ -1,4 +1,5 @@
 import React from 'react';
+import {Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 import AlertActions from '../../actions/alertActions';
@@ -7,6 +8,13 @@ import {t} from '../../locale';
 // TODO(dcramer): this isnt great UX
 
 const AllTeamsRow = React.createClass({
+  propTypes: {
+    access: React.PropTypes.object.isRequired,
+    organization: React.PropTypes.object.isRequired,
+    team: React.PropTypes.object.isRequired,
+    openMembership: React.PropTypes.bool.isRequired
+  },
+
   mixins: [
     ApiMixin
   ],
@@ -38,10 +46,10 @@ const AllTeamsRow = React.createClass({
           loading: false,
           error: true
         });
-        AlertActions.addAlert(
-          t('There was an error while trying to join the team.'),
-          'error'
-        );
+        AlertActions.addAlert({
+          message: t('There was an error while trying to join the team.'),
+          type: 'error'
+        });
       }
     });
   },
@@ -66,16 +74,17 @@ const AllTeamsRow = React.createClass({
           loading: false,
           error: true
         });
-        AlertActions.addAlert(
-          t('There was an error while trying to leave the team.'),
-          'error'
-        );
+        AlertActions.addAlert({
+          message: t('There was an error while trying to leave the team.'),
+          type: 'error'
+        });
       }
     });
   },
 
   render() {
-    let {access, team, openMembership, urlPrefix} = this.props;
+    let {access, team, openMembership} = this.props;
+    let orgId = this.props.organization.slug;
     return (
      <tr>
         <td>
@@ -97,10 +106,10 @@ const AllTeamsRow = React.createClass({
                onClick={this.joinTeam}>{t('Request Access')}</a>
           )))}
           {access.has('team:write') &&
-            <a className="btn btn-default btn-sm" href={`${urlPrefix}/teams/${team.slug}/settings/`}
+            <Link className="btn btn-default btn-sm" to={`/organizations/${orgId}/teams/${team.slug}/settings/`}
                style={{marginLeft: 5}}>
               {t('Team Settings')}
-            </a>
+            </Link>
           }
         </td>
       </tr>

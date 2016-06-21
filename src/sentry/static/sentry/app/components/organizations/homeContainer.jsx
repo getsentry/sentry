@@ -4,6 +4,7 @@ import OrganizationState from '../../mixins/organizationState';
 import ProjectSelector from '../projectHeader/projectSelector';
 import TooltipMixin from '../../mixins/tooltip';
 import ConfigStore from '../../stores/configStore';
+import {Link} from 'react-router';
 import {t} from '../../locale';
 
 const HomeContainer = React.createClass({
@@ -47,7 +48,11 @@ const HomeContainer = React.createClass({
                 </a>
               }
             </div>
-            <div className="org-name">{org.name}</div>
+            <div className="org-name">
+              <Link to={`/${org.slug}/`}>
+                {org.name}
+              </Link>
+            </div>
             <ProjectSelector
                 organization={org} />
           </div>

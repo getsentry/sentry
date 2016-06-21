@@ -10,16 +10,20 @@ from __future__ import absolute_import
 
 __all__ = ('Http',)
 
+import re
 from django.conf import settings
 from django.utils.translation import ugettext as _
 from urllib import urlencode
 from urlparse import parse_qsl, urlsplit, urlunsplit
 
-from sentry.constants import HTTP_METHODS
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils import json
 from sentry.utils.safe import trim, trim_dict, trim_pairs
 from sentry.web.helpers import render_to_string
+
+# Instead of relying on a list of hardcoded methods, just loosly match
+# against a pattern.
+http_method_re = re.compile(r'^[A-Z\-_]{3,32}$')
 
 
 def to_bytes(value):
@@ -126,7 +130,9 @@ class Http(Interface):
 
         if data.get('method'):
             method = data['method'].upper()
-            if method not in HTTP_METHODS:
+            # Optimize for the common path here, where it's a GET/POST, falling
+            # back to a regular expresion test
+            if method not in ('GET', 'POST') and not http_method_re.match(method):
                 raise InterfaceValidationError("Invalid value for 'method'")
             kwargs['method'] = method
         else:
@@ -207,6 +213,9 @@ class Http(Interface):
         return _('Request')
 
     def get_api_context(self, is_public=False):
+        if is_public:
+            return {}
+
         data = self.data
         if isinstance(data, dict):
             data = json.dumps(data)
@@ -226,10 +235,7 @@ class Http(Interface):
             'fragment': self.fragment,
             'data': data,
             'headers': headers,
+            'cookies': cookies,
+            'env': self.env or None,
         }
-        if not is_public:
-            data.update({
-                'cookies': cookies,
-                'env': self.env or None,
-            })
         return data

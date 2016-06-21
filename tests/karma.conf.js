@@ -32,7 +32,8 @@ module.exports = function(config) {
       resolve: {
         alias: {
           'app': appPrefix,
-          sinon: 'sinon/pkg/sinon' // see [1] above
+          sinon: 'sinon/pkg/sinon', // see [1] above
+          'sentry-locale': path.join(__dirname, '..', 'src', 'sentry', 'locale')
         },
         modulesDirectories: ['node_modules'],
         extensions: ['', '.jsx', '.js', '.json']

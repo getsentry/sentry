@@ -32,6 +32,7 @@
 
   {% block scripts %}
   <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
+  {% locale_js_include %}
   <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
 
   <script>
@@ -75,8 +76,13 @@
         <div class="pull-right">
           <div class="dropdown">
             <a class="dropdown-toggle" data-toggle="dropdown">
-              <span>
-                <img src="{% gravatar_url user.email size 72 %}" class="avatar">
+              <span class="avatar">
+                {% letter_avatar_svg request.user.get_display_name request.user.get_label %}
+                {% if request.user.get_avatar_type == 'upload' %}
+                  <img src="{% profile_photo_url request.user.id size 72 %}">
+                {% elif request.user.get_avatar_type == 'gravatar' %}
+                  <img src="{% gravatar_url user.email size 72 default 'blank' %}">
+                {% endif %}
               </span>
               <i class="icon-arrow-down"></i>
             </a>
@@ -127,19 +133,22 @@
     </header>
     {% endblock %}
 
-    {% if organization and request.user.is_authenticated and project %}
+    {% if organization and request.user.is_authenticated %}
     {% block sub-header %}
     <div class="sub-header">
       <div class="container">
         <div class="pull-right">
           {% block header_action %}{% endblock %}
         </div>
+        <div class="org-name">
+            <a href="{% url 'sentry-organization-home' organization.slug %}">{{ organization.name }}</a>
+        </div>
         <div id="blk_projectselect"></div>
         <script>
         $(function(){
           React.render(React.createFactory(Sentry.ProjectSelector)({
             organization: {% serialize_detailed_org organization %},
-            projectId: '{{ project.slug }}'
+            projectId: {% if project %}'{{ project.slug }}'{% else %}null{% endif %},
           }), document.getElementById('blk_projectselect'));
         });
         </script>
@@ -174,13 +183,11 @@
       <div class="container">
         {% block footer %}
         <div class="pull-right">
-          {% if request.is_superuser %}
-          <a href="{% url 'sentry-admin-status' %}">{% trans "Admin" %}</a>
-          {% endif %}
           {% block support_link %}{% endblock %}
           <a href="https://docs.getsentry.com/hosted/api/">{% trans "API" %}</a>
           <a href="https://docs.getsentry.com">{% trans "Docs" %}</a>
           <a href="https://github.com/getsentry/sentry">{% trans "Contribute" %}</a>
+          {% if ONPREMISE %}<a href="/out/">{% trans "Migrate to SaaS" %}</a>{% endif %}
         </div>
         <div class="version pull-left">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>
         <a href="/" class="icon-sentry-logo"></a>

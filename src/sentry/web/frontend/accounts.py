@@ -12,18 +12,18 @@ import itertools
 from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate
 from django.core.context_processors import csrf
+from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, Http404
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
 from sudo.decorators import sudo_required
 
 from sentry.models import (
-    LostPasswordHash, Project, UserOption
-)
+    LostPasswordHash, Project, ProjectStatus, UserOption, Authenticator)
 from sentry.plugins import plugins
-from sentry.web.decorators import login_required
+from sentry.web.decorators import login_required, signed_auth_required
 from sentry.web.forms.accounts import (
     AccountSettingsForm, NotificationSettingsForm, AppearanceSettingsForm,
     RecoverPasswordForm, ChangePasswordRecoverForm,
@@ -132,9 +132,45 @@ def settings(request):
     context.update({
         'form': form,
         'page': 'settings',
+        'has_2fa': Authenticator.objects.user_has_2fa(request.user),
         'AUTH_PROVIDERS': get_auth_providers(),
     })
     return render_to_response('sentry/account/settings.html', context, request)
+
+
+@csrf_protect
+@never_cache
+@login_required
+@sudo_required
+@transaction.atomic
+def twofactor_settings(request):
+    interfaces = Authenticator.objects.all_interfaces_for_user(
+        request.user, return_missing=True)
+
+    if request.method == 'POST' and 'back' in request.POST:
+        return HttpResponseRedirect(reverse('sentry-account-settings'))
+
+    context = csrf(request)
+    context.update({
+        'page': 'settings',
+        'has_2fa': any(x.is_enrolled and not x.is_backup_interface for x in interfaces),
+        'interfaces': interfaces,
+    })
+    return render_to_response('sentry/account/twofactor.html', context, request)
+
+
+@csrf_protect
+@never_cache
+@login_required
+@sudo_required
+@transaction.atomic
+def avatar_settings(request):
+    context = csrf(request)
+    context.update({
+        'page': 'avatar',
+        'AUTH_PROVIDERS': get_auth_providers(),
+    })
+    return render_to_response('sentry/account/avatar.html', context, request)
 
 
 @csrf_protect
@@ -178,6 +214,7 @@ def notification_settings(request):
     project_list = list(Project.objects.filter(
         team__organizationmemberteam__organizationmember__user=request.user,
         team__organizationmemberteam__is_active=True,
+        status=ProjectStatus.VISIBLE,
     ).distinct())
 
     project_forms = [
@@ -192,8 +229,9 @@ def notification_settings(request):
 
     ext_forms = []
     for plugin in plugins.all():
-        for form in safe_execute(plugin.get_notification_forms) or ():
-            form = safe_execute(form, plugin, request.user, request.POST or None, prefix=plugin.slug)
+        for form in safe_execute(plugin.get_notification_forms, _with_transaction=False) or ():
+            form = safe_execute(form, plugin, request.user, request.POST or None, prefix=plugin.slug,
+                                _with_transaction=False)
             if not form:
                 continue
             ext_forms.append(form)
@@ -217,6 +255,31 @@ def notification_settings(request):
         'AUTH_PROVIDERS': get_auth_providers(),
     })
     return render_to_response('sentry/account/notifications.html', context, request)
+
+
+@csrf_protect
+@never_cache
+@signed_auth_required
+@transaction.atomic
+def email_unsubscribe_project(request, project_id):
+    # For now we only support getting here from the signed link.
+    if not request.user_from_signed_request:
+        raise Http404()
+    try:
+        project = Project.objects.get(pk=project_id)
+    except Project.DoesNotExist:
+        raise Http404()
+
+    if request.method == 'POST':
+        if 'cancel' not in request.POST:
+            UserOption.objects.set_value(
+                request.user, project, 'mail:alert', 0)
+        return HttpResponseRedirect(reverse('sentry'))
+
+    context = csrf(request)
+    context['project'] = project
+    return render_to_response('sentry/account/email_unsubscribe_project.html',
+                              context, request)
 
 
 @csrf_protect

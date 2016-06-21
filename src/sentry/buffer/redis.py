@@ -7,10 +7,10 @@ sentry.buffer.redis
 """
 from __future__ import absolute_import
 
-from django.conf import settings
+from time import time
+
 from django.db import models
 from django.utils.encoding import force_bytes
-from time import time
 
 from sentry.buffer import Buffer
 from sentry.exceptions import InvalidConfiguration
@@ -19,7 +19,7 @@ from sentry.utils import metrics
 from sentry.utils.compat import pickle
 from sentry.utils.hashlib import md5
 from sentry.utils.imports import import_string
-from sentry.utils.redis import make_rb_cluster
+from sentry.utils.redis import get_cluster_from_options
 
 
 class RedisBuffer(Buffer):
@@ -27,14 +27,7 @@ class RedisBuffer(Buffer):
     pending_key = 'b:p'
 
     def __init__(self, **options):
-        if not options:
-            # inherit default options from REDIS_OPTIONS
-            options = settings.SENTRY_REDIS_OPTIONS
-
-        options.setdefault('hosts', {
-            0: {},
-        })
-        self.cluster = make_rb_cluster(options['hosts'])
+        self.cluster, options = get_cluster_from_options('SENTRY_BUFFER_OPTIONS', options)
 
     def validate(self):
         try:
@@ -126,26 +119,29 @@ class RedisBuffer(Buffer):
             self.logger.info('Skipped process on %s; unable to get lock', key)
             return
 
-        conn = self.cluster.get_local_client_for_key(key)
-        pipe = conn.pipeline()
-        pipe.hgetall(key)
-        pipe.zrem(self.pending_key, key)
-        pipe.delete(key)
-        values = pipe.execute()[0]
+        try:
+            conn = self.cluster.get_local_client_for_key(key)
+            pipe = conn.pipeline()
+            pipe.hgetall(key)
+            pipe.zrem(self.pending_key, key)
+            pipe.delete(key)
+            values = pipe.execute()[0]
 
-        if not values:
-            metrics.incr('buffer.revoked', tags={'reason': 'empty'})
-            self.logger.info('Skipped process on %s; no values found', key)
-            return
+            if not values:
+                metrics.incr('buffer.revoked', tags={'reason': 'empty'})
+                self.logger.info('Skipped process on %s; no values found', key)
+                return
 
-        model = import_string(values['m'])
-        filters = pickle.loads(values['f'])
-        incr_values = {}
-        extra_values = {}
-        for k, v in values.iteritems():
-            if k.startswith('i+'):
-                incr_values[k[2:]] = int(v)
-            elif k.startswith('e+'):
-                extra_values[k[2:]] = pickle.loads(v)
+            model = import_string(values['m'])
+            filters = pickle.loads(values['f'])
+            incr_values = {}
+            extra_values = {}
+            for k, v in values.iteritems():
+                if k.startswith('i+'):
+                    incr_values[k[2:]] = int(v)
+                elif k.startswith('e+'):
+                    extra_values[k[2:]] = pickle.loads(v)
 
-        super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
+            super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
+        finally:
+            client.delete(lock_key)

@@ -4,7 +4,8 @@ from sentry.auth import access
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import ScopedPermission
-from sentry.models import Project
+from sentry.models import Project, ProjectStatus
+from sentry.models.apikey import ROOT_KEY
 
 
 class ProjectPermission(ScopedPermission):
@@ -16,17 +17,24 @@ class ProjectPermission(ScopedPermission):
     }
 
     def has_object_permission(self, request, view, project):
-        if request.auth:
-            if self.is_project_key(request):
-                return request.auth.project_id == project.id
+        if request.user and request.user.is_authenticated() and request.auth:
+            request.access = access.from_request(
+                request, project.organization, scopes=request.auth.get_scopes(),
+            )
+
+        elif request.auth:
+            if request.auth is ROOT_KEY:
+                return True
             return request.auth.organization_id == project.organization_id
 
-        request.access = access.from_request(request, project.organization)
+        else:
+            request.access = access.from_request(request, project.organization)
 
-        for scope in self.scope_map.get(request.method, []):
-            if request.access.has_team_scope(project.team, scope):
-                return True
-        return False
+        allowed_scopes = set(self.scope_map.get(request.method, []))
+        return any(
+            request.access.has_team_scope(project.team, s)
+            for s in allowed_scopes
+        )
 
 
 class ProjectEventPermission(ProjectPermission):
@@ -48,6 +56,9 @@ class ProjectEndpoint(Endpoint):
                 slug=project_slug,
             )
         except Project.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        if project.status != ProjectStatus.VISIBLE:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)

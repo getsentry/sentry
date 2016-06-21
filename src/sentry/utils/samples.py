@@ -15,6 +15,15 @@ from sentry.utils import json
 
 
 def load_data(platform, default=None):
+    # NOTE: Before editing this data, make sure you understand the context
+    # in which its being used. It is NOT only used for local development and
+    # has production consequences.
+    #   * bin/load-mocks to generate fake data for local testing
+    #   * When a new project is created, a fake event is generated as a "starter"
+    #     event so it's not an empty project.
+    #   * When a user clicks Test Configuration from notification plugin settings page,
+    #     a fake event is generated to go through the pipeline.
+
     data = None
     for platform in (platform, default):
         if platform is None:

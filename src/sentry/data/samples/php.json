@@ -1,5 +1,4 @@
 {
-  "culprit": "",
   "sentry.interfaces.Exception": {
     "exc_omitted": null,
     "values": [

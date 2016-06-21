@@ -3,21 +3,35 @@ import {Link} from 'react-router';
 import LazyLoad from 'react-lazy-load';
 
 import ApiMixin from '../../mixins/apiMixin';
+import {update as projectUpdate} from '../../actionCreators/projects';
 import BarChart from '../../components/barChart';
+import ProjectLabel from '../../components/projectLabel';
 import ConfigStore from '../../stores/configStore';
 import PropTypes from '../../proptypes';
+import TooltipMixin from '../../mixins/tooltip';
 import {sortArray} from '../../utils';
 import {t, tct} from '../../locale';
 
 const ExpandedTeamList = React.createClass({
   propTypes: {
+    access: React.PropTypes.object.isRequired,
     organization: PropTypes.Organization.isRequired,
     teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
-    projectStats: React.PropTypes.object
+    projectStats: React.PropTypes.object,
+    hasTeams: React.PropTypes.bool
   },
 
   mixins: [
-    ApiMixin
+    ApiMixin,
+    TooltipMixin(function () {
+      return {
+        selector: '.tip',
+        title: function (instance) {
+          return (this.getAttribute('data-isbookmarked') === 'true' ?
+            'Remove from bookmarks' : 'Add to bookmarks');
+        }
+      };
+    })
   ],
 
   leaveTeam(team) {
@@ -62,6 +76,7 @@ const ExpandedTeamList = React.createClass({
   renderTeamNode(team, urlPrefix) {
     // TODO: make this cleaner
     let access = this.props.access;
+    let orgId = this.props.organization.slug;
     return (
       <div className="box" key={team.slug}>
         <div className="box-header">
@@ -70,9 +85,9 @@ const ExpandedTeamList = React.createClass({
               {t('Leave Team')}
             </a>
             {access.has('team:write') &&
-              <a className="team-settings" href={`${urlPrefix}/teams/${team.slug}/settings/`}>
+              <Link className="team-settings" to={`/organizations/${orgId}/teams/${team.slug}/settings/`}>
                 {t('Team Settings')}
-              </a>
+              </Link>
             }
           </div>
           <h3>{team.name}</h3>
@@ -90,22 +105,33 @@ const ExpandedTeamList = React.createClass({
     );
   },
 
+  toggleBookmark(project) {
+    projectUpdate(this.api, {
+      orgId: this.props.organization.slug,
+      projectId: project.slug,
+      data: {
+        isBookmarked: !project.isBookmarked
+      }
+    });
+  },
+
   renderProject(project) {
     let org = this.props.organization;
-    let projectStats = this.props.projectStats;
-    let chartData = null;
-    if (projectStats[project.id]) {
-      chartData = projectStats[project.id].map((point) => {
-        return {x: point[0], y: point[1]};
-      });
-    }
+    let chartData = project.stats && project.stats.map(point => {
+      return {x: point[0], y: point[1]};
+    });
 
     return (
-      <tr key={project.id}>
+      <tr key={project.id} className={project.isBookmarked ? 'isBookmarked' : null}>
         <td>
           <h5>
+            <a onClick={this.toggleBookmark.bind(this, project)}
+               className="tip"
+               data-isbookmarked={project.isBookmarked}>
+              {project.isBookmarked ? <span className="icon-star-solid bookmark" /> : <span className="icon-star-outline bookmark" />}
+            </a>
             <Link to={`/${org.slug}/${project.slug}/`}>
-              {project.name}
+              <ProjectLabel project={project} organization={this.props.organization}/>
             </Link>
           </h5>
         </td>
@@ -116,17 +142,12 @@ const ExpandedTeamList = React.createClass({
     );
   },
 
-  showAllTeams(e) {
-    e.preventDefault();
-    this.props.showAllTeams();
-  },
-
   renderEmpty() {
     if (this.props.hasTeams) {
       return (
         <p>
           {tct('You are not a member of any teams. [joinLink:Join an existing team] or [createLink:create a new one].', {
-            joinLink: <a onClick={this.showAllTeams} />,
+            joinLink: <Link to={`/organizations/${this.props.organization.slug}/all-teams/`}/>,
             createLink: <a href={this.urlPrefix() + '/teams/new/'} />
           })}
         </p>
@@ -143,9 +164,8 @@ const ExpandedTeamList = React.createClass({
   },
 
   renderTeamNodes() {
-    let urlPrefix = this.urlPrefix();
     return this.props.teamList.map((team) => {
-      return this.renderTeamNode(team, urlPrefix);
+      return this.renderTeamNode(team);
     });
   },
 

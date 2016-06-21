@@ -5,6 +5,10 @@ import AutoSelectText from '../../components/autoSelectText';
 import {t, tct} from '../../locale';
 
 const ProjectInstallOverview = React.createClass({
+  propTypes: {
+    platformData: React.PropTypes.object
+  },
+
   getInitialState() {
     return {
       data: this.props.platformData
@@ -13,10 +17,11 @@ const ProjectInstallOverview = React.createClass({
 
   getIntegrationLink(root, platform, display) {
     let {orgId, projectId} = this.props.params;
+    let signup = this.props.location.query.hasOwnProperty('signup') ? '?signup' : '';
     return (
       <li className={`${root} ${platform}`} key={platform}>
         <span className={`platformicon platformicon-${platform}`}/>
-        <Link to={`/${orgId}/${projectId}/settings/install/${platform}/`}>
+        <Link to={`/${orgId}/${projectId}/settings/install/${platform}/${signup}`}>
           {display}
         </Link>
       </li>
@@ -97,10 +102,9 @@ const ProjectInstallOverview = React.createClass({
 
         <p>
           {tct(`
-             [em:Don\'t see your platform listed here?] For a complete list of
+             For a complete list of
              client integrations, please visit see [docLink:our in-depth documentation].
           `, {
-            em: <em />,
             docLink: <a href="https://docs.getsentry.com" />
           })}
         </p>

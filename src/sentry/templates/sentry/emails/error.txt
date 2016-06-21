@@ -30,5 +30,7 @@ Tags
 
 {% endfor %}
 {% endif %}{% endif %}
+
+Unsubscribe: {{ unsubscribe_link }}
 {% endautoescape %}
 {% endspaceless %}

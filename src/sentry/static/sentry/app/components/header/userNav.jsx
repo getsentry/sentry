@@ -1,7 +1,7 @@
 import React from 'react';
 import ConfigStore from '../../stores/configStore';
 import DropdownLink from '../dropdownLink';
-import Gravatar from '../gravatar';
+import Avatar from '../avatar';
 import MenuItem from '../menuItem';
 import {t} from '../../locale';
 
@@ -20,7 +20,7 @@ const UserNav = React.createClass({
     }
 
     let title = (
-      <Gravatar email={user.email} className="avatar" />
+      <Avatar user={user} className="avatar" />
     );
 
     return (
@@ -29,6 +29,7 @@ const UserNav = React.createClass({
           menuClasses="dropdown-menu-right"
           title={title}>
         <MenuItem href={urlPrefix + '/account/settings/'}>{t('Account')}</MenuItem>
+        <MenuItem to="/api/">{t('API')}</MenuItem>
         {user.isSuperuser &&
           <MenuItem to="/manage/">{t('Admin')}</MenuItem>
         }

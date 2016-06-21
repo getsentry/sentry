@@ -1,23 +1,17 @@
 from __future__ import absolute_import
 
-from django.conf import settings
 from time import time
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.ratelimits.base import RateLimiter
-from sentry.utils.redis import make_rb_cluster
+from sentry.utils.redis import get_cluster_from_options
 
 
 class RedisRateLimiter(RateLimiter):
     ttl = 60
 
     def __init__(self, **options):
-        if not options:
-            # inherit default options from REDIS_OPTIONS
-            options = settings.SENTRY_REDIS_OPTIONS
-        options.setdefault('hosts', {0: {}})
-
-        self.cluster = make_rb_cluster(options['hosts'])
+        self.cluster, options = get_cluster_from_options('SENTRY_RATELIMITER_OPTIONS', options)
 
     def validate(self):
         try:

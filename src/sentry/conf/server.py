@@ -13,7 +13,6 @@ from django.conf.global_settings import *  # NOQA
 
 from datetime import timedelta
 
-import hashlib
 import os
 import os.path
 import socket
@@ -47,6 +46,8 @@ if 'site-packages' in __file__:
     NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, 'node_modules')
 else:
     NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'node_modules')
+
+NODE_MODULES_ROOT = os.path.normpath(NODE_MODULES_ROOT)
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
@@ -83,8 +84,6 @@ if 'DATABASE_URL' in os.environ:
 
     if url.scheme == 'mysql':
         DATABASES['default']['ENGINE'] = 'django.db.backends.mysql'
-
-EMAIL_SUBJECT_PREFIX = '[Sentry] '
 
 # This should always be UTC.
 TIME_ZONE = 'UTC'
@@ -173,6 +172,8 @@ from .locale import CATALOGS
 LANGUAGES = tuple((code, name) for code, name in LANGUAGES
                   if code in CATALOGS)
 
+SUPPORTED_LANGUAGES = frozenset(CATALOGS)
+
 SITE_ID = 1
 
 # If you set this to False, Django will make some optimizations so as not
@@ -185,8 +186,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-# Make this unique, and don't share it with anybody.
-SECRET_KEY = hashlib.md5(socket.gethostname() + ')*)&8a36)6%74e@-ne5(-!8a(vv#tkv)(eyg&@0=zd^pl!7=y@').hexdigest()
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -195,6 +194,7 @@ TEMPLATE_LOADERS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'sentry.middleware.proxy.ContentLengthHeaderMiddleware',
     'sentry.middleware.maintenance.ServicesUnavailableMiddleware',
     'sentry.middleware.env.SentryEnvMiddleware',
     'sentry.middleware.proxy.SetRemoteAddrFromForwardedFor',
@@ -252,6 +252,7 @@ INSTALLED_APPS = (
     'sentry.nodestore',
     'sentry.search',
     'sentry.lang.javascript',
+    'sentry.lang.native',
     'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail',
     'sentry.plugins.sentry_urls',
@@ -329,8 +330,6 @@ TRELLO_API_SECRET = ''
 BITBUCKET_CONSUMER_KEY = ''
 BITBUCKET_CONSUMER_SECRET = ''
 
-MAILGUN_API_KEY = ''
-
 SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.user.get_username',
     'social_auth.backends.pipeline.social.social_auth_user',
@@ -379,11 +378,15 @@ CELERY_DEFAULT_EXCHANGE_TYPE = "direct"
 CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
 CELERY_IMPORTS = (
+    'sentry.tasks.auth',
+    'sentry.tasks.auto_resolve_issues',
     'sentry.tasks.beacon',
     'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.check_auth',
+    'sentry.tasks.collect_project_platforms',
     'sentry.tasks.deletion',
     'sentry.tasks.digests',
+    'sentry.tasks.dsymcache',
     'sentry.tasks.email',
     'sentry.tasks.merge',
     'sentry.tasks.store',
@@ -405,6 +408,7 @@ CELERY_QUEUES = [
     Queue('options', routing_key='options'),
     Queue('digests.delivery', routing_key='digests.delivery'),
     Queue('digests.scheduling', routing_key='digests.scheduling'),
+    Queue('stats', routing_key='stats'),
 ]
 
 for queue in CELERY_QUEUES:
@@ -478,12 +482,37 @@ CELERYBEAT_SCHEDULE = {
             'expires': 300,
         },
     },
+    # Disabled for the time being:
+    # 'clear-old-cached-dsyms': {
+    #     'task': 'sentry.tasks.clear_old_cached_dsyms',
+    #     'schedule': timedelta(minutes=60),
+    #     'options': {
+    #         'expires': 3600,
+    #     },
+    # },
+    'collect-project-platforms': {
+        'task': 'sentry.tasks.collect_project_platforms',
+        'schedule': timedelta(days=1),
+        'options': {
+            'expires': 3600 * 24,
+        },
+    },
+    'schedule-auto-resolution': {
+        'task': 'sentry.tasks.schedule_auto_resolution',
+        'schedule': timedelta(minutes=15),
+        'options': {
+            'expires': 60 * 25,
+        },
+    },
 }
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
     'handlers': {
+        'null': {
+            'class': 'django.utils.log.NullHandler',
+        },
         'console': {
             'level': 'WARNING',
             'class': 'logging.StreamHandler',
@@ -525,6 +554,9 @@ LOGGING = {
         'sentry': {
             'level': 'ERROR',
         },
+        'sentry.audit': {
+            'handlers': ['audit'],
+        },
         'sentry.auth': {
             'handlers': ['audit'],
         },
@@ -553,6 +585,7 @@ LOGGING = {
         },
         'toronado.cssutils': {
             'level': 'ERROR',
+            'handlers': ['null'],
             'propagate': False,
         },
     }
@@ -597,12 +630,16 @@ SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 
 SENTRY_FEATURES = {
     'auth:register': True,
+    'auth:twofactor': False,
+    'organizations:api-keys': True,
     'organizations:create': True,
     'organizations:sso': True,
+    'organizations:callsigns': False,
     'projects:global-events': False,
     'projects:quotas': True,
-    'projects:user-reports': False,
     'projects:plugins': True,
+    'projects:dsym': False,
+    'projects:breadcrumbs': True,
 }
 
 # Default time zone for localization in the UI.
@@ -662,21 +699,22 @@ SENTRY_WEB_PORT = 9000
 SENTRY_WEB_OPTIONS = {}
 
 # SMTP Service
-SENTRY_ENABLE_EMAIL_REPLIES = False
-SENTRY_SMTP_HOSTNAME = 'localhost'
 SENTRY_SMTP_HOST = 'localhost'
 SENTRY_SMTP_PORT = 1025
 
 SENTRY_INTERFACES = {
+    'csp': 'sentry.interfaces.csp.Csp',
+    'device': 'sentry.interfaces.device.Device',
     'exception': 'sentry.interfaces.exception.Exception',
     'logentry': 'sentry.interfaces.message.Message',
+    'query': 'sentry.interfaces.query.Query',
     'request': 'sentry.interfaces.http.Http',
+    'sdk': 'sentry.interfaces.sdk.Sdk',
     'stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
     'template': 'sentry.interfaces.template.Template',
-    'query': 'sentry.interfaces.query.Query',
     'user': 'sentry.interfaces.user.User',
-    'csp': 'sentry.interfaces.csp.Csp',
-
+    'applecrashreport': 'sentry.interfaces.applecrash.AppleCrashReport',
+    'breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
     'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
     'sentry.interfaces.Message': 'sentry.interfaces.message.Message',
     'sentry.interfaces.Stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
@@ -685,7 +723,27 @@ SENTRY_INTERFACES = {
     'sentry.interfaces.Http': 'sentry.interfaces.http.Http',
     'sentry.interfaces.User': 'sentry.interfaces.user.User',
     'sentry.interfaces.Csp': 'sentry.interfaces.csp.Csp',
+    'sentry.interfaces.AppleCrashReport': 'sentry.interfaces.applecrash.AppleCrashReport',
+    'sentry.interfaces.Breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
 }
+
+SENTRY_EMAIL_BACKEND_ALIASES = {
+    'smtp': 'django.core.mail.backends.smtp.EmailBackend',
+    'dummy': 'django.core.mail.backends.dummy.EmailBackend',
+    'console': 'django.core.mail.backends.console.EmailBackend',
+}
+
+# set of backends that do not support needing SMTP mail.* settings
+# This list is a bit fragile and hardcoded, but it's unlikely that
+# a user will be using a different backend that also mandates SMTP
+# credentials.
+SENTRY_SMTP_DISABLED_BACKENDS = frozenset((
+    'django.core.mail.backends.dummy.EmailBackend',
+    'django.core.mail.backends.console.EmailBackend',
+    'django.core.mail.backends.locmem.EmailBackend',
+    'django.core.mail.backends.filebased.EmailBackend',
+    'sentry.utils.email.PreviewBackend',
+))
 
 # Should users without superuser permissions be allowed to
 # make projects public
@@ -699,9 +757,6 @@ SENTRY_ALLOW_ORIGIN = None
 
 # Enable scraping of javascript context for source code
 SENTRY_SCRAPE_JAVASCRIPT_CONTEXT = True
-
-# Redis connection information (see Nydus documentation)
-SENTRY_REDIS_OPTIONS = {}
 
 # Buffer backend
 SENTRY_BUFFER = 'sentry.buffer.Buffer'
@@ -807,24 +862,8 @@ SENTRY_GRAVATAR_BASE_URL = 'https://secure.gravatar.com'
 # Timeout (in seconds) for fetching remote source files (e.g. JS)
 SENTRY_SOURCE_FETCH_TIMEOUT = 5
 
-# http://en.wikipedia.org/wiki/Reserved_IP_addresses
-SENTRY_DISALLOWED_IPS = (
-    '0.0.0.0/8',
-    '10.0.0.0/8',
-    '100.64.0.0/10',
-    '127.0.0.0/8',
-    '169.254.0.0/16',
-    '172.16.0.0/12',
-    '192.0.0.0/29',
-    '192.0.2.0/24',
-    '192.88.99.0/24',
-    '192.168.0.0/16',
-    '198.18.0.0/15',
-    '198.51.100.0/24',
-    '224.0.0.0/4',
-    '240.0.0.0/4',
-    '255.255.255.255/32',
-)
+# List of IP subnets which should not be accessible
+SENTRY_DISALLOWED_IPS = ()
 
 # Fields which managed users cannot change via Sentry UI. Username and password
 # cannot be changed by managed users. Optionally include 'email' and
@@ -906,6 +945,7 @@ SENTRY_ROLES = (
 
 # See sentry/options/__init__.py for more information
 SENTRY_OPTIONS = {}
+SENTRY_DEFAULT_OPTIONS = {}
 
 # You should not change this setting after your database has been created
 # unless you have altered all schemas first
@@ -918,13 +958,18 @@ SENTRY_API_RESPONSE_DELAY = 0
 # XXX(dcramer): this doesn't work outside of a source distribution as the
 # webpack.config.js is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
-    [os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '-d', '--watch',
-     "--config={}".format(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))],
+    ('webpack', [os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '--output-pathinfo', '--watch',
+     "--config={}".format(os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")))]),
 )
+
+# Max file size for avatar photo uploads
+SENTRY_MAX_AVATAR_SIZE = 5000000
 
 # statuspage.io support
 STATUS_PAGE_ID = None
 STATUS_PAGE_API_HOST = 'statuspage.io'
+
+SENTRY_ONPREMISE = True
 
 
 def get_raven_config():
@@ -937,3 +982,20 @@ def get_raven_config():
     }
 
 RAVEN_CONFIG = get_raven_config()
+
+# Config options that are explicitly disabled from Django
+DEAD = object()
+
+# This will eventually get set from values in SENTRY_OPTIONS during
+# sentry.runner.initializer:bootstrap_options
+SECRET_KEY = DEAD
+EMAIL_BACKEND = DEAD
+EMAIL_HOST = DEAD
+EMAIL_PORT = DEAD
+EMAIL_HOST_USER = DEAD
+EMAIL_HOST_PASSWORD = DEAD
+EMAIL_USE_TLS = DEAD
+SERVER_EMAIL = DEAD
+EMAIL_SUBJECT_PREFIX = DEAD
+
+SUDO_URL = 'sentry-sudo'

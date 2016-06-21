@@ -6,6 +6,12 @@ import ProjectSelector from './projectSelector';
 import {t} from '../../locale';
 
 const ProjectHeader = React.createClass({
+  propTypes: {
+    project: React.PropTypes.object.isRequired,
+    organization: React.PropTypes.object.isRequired,
+    activeSection: React.PropTypes.string
+  },
+
   render() {
     let navSection = this.props.activeSection;
     let urlPrefix = ConfigStore.get('urlPrefix');
@@ -37,13 +43,11 @@ const ProjectHeader = React.createClass({
                     </Link>
                   </li>
                 }
-                {features.has('user-reports') &&
-                  <li className={navSection == 'user-reports' ? 'active' : ''}>
-                    <Link to={`/${org.slug}/${project.slug}/user-reports/`}>
-                      {t('User Reports')}
-                    </Link>
-                  </li>
-                }
+                <li className={navSection == 'user-feedback' ? 'active' : ''}>
+                  <Link to={`/${org.slug}/${project.slug}/user-feedback/`}>
+                    {t('User Feedback')}
+                  </Link>
+                </li>
                 <li className={navSection == 'releases' ? 'active' : ''}>
                   <Link to={`/${org.slug}/${project.slug}/releases/`}>
                     {t('Releases')}
@@ -57,6 +61,11 @@ const ProjectHeader = React.createClass({
                   </li>
                 }
               </ul>
+            </div>
+            <div className="org-name">
+              <Link to={`/${org.slug}/`}>
+                {org.name}
+              </Link>
             </div>
             <ProjectSelector
                 organization={org}

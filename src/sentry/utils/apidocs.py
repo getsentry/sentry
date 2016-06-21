@@ -19,9 +19,11 @@ from django.conf import settings
 # Do not import from sentry here!  Bad things will happen
 
 
-optional_group_matcher = re.compile(r'\(\?\:(.+)\)')
+optional_group_matcher = re.compile(r'\(\?\:([^\)]+)\)')
 named_group_matcher = re.compile(r'\(\?P<(\w+)>[^\)]+\)')
-non_named_group_matcher = re.compile(r'\(.*?\)')
+non_named_group_matcher = re.compile(r'\([^\)]+\)')
+# [foo|bar|baz]
+either_option_matcher = re.compile(r'\[([^\]]+)\|([^\]]+)\]')
 camel_re = re.compile(r'([A-Z]+)([a-z])')
 
 
@@ -44,6 +46,9 @@ def simplify_regex(pattern):
 
     # handle non-named groups
     pattern = non_named_group_matcher.sub("{var}", pattern)
+
+    # handle optional params
+    pattern = either_option_matcher.sub(lambda m: m.group(1), pattern)
 
     # clean up any outstanding regex-y characters.
     pattern = pattern.replace('^', '').replace('$', '') \
@@ -388,6 +393,8 @@ class Runner(object):
 
     @contextmanager
     def isolated_project(self, project_name):
+        from sentry.models import Group, Event
+
         project = self.utils.create_project(project_name,
                                             team=self.default_team,
                                             org=self.org)
@@ -399,14 +406,30 @@ class Runner(object):
         try:
             yield project
         finally:
+            # Enforce safe cascades into Group/Event
+            Group.objects.filter(
+                project=project,
+            ).delete()
+            Event.objects.filter(
+                project_id=project.id,
+            ).delete()
             project.delete()
 
     @contextmanager
     def isolated_org(self, org_name):
+        from sentry.models import Group, Event
+
         org = self.utils.create_org(org_name, owner=self.me)
         try:
             yield org
         finally:
+            # Enforce safe cascades into Group/Event
+            Group.objects.filter(
+                project__organization=org,
+            ).delete()
+            Event.objects.filter(
+                project_id__in=org.project_set.values('id'),
+            ).delete()
             org.delete()
 
     def request(self, method, path, headers=None, data=None, api_key=None,

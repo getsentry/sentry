@@ -10,8 +10,11 @@ import RuleNodeList from './ruleNodeList';
 
 const RuleEditor = React.createClass({
   propTypes: {
-    actions: React.PropTypes.instanceOf(Array).isRequired,
-    conditions: React.PropTypes.instanceOf(Array).isRequired
+    actions: React.PropTypes.array.isRequired,
+    conditions: React.PropTypes.array.isRequired,
+    rule: React.PropTypes.object.isRequired,
+    project: React.PropTypes.object.isRequired,
+    organization: React.PropTypes.object.isRequired
   },
 
   mixins: [
@@ -126,6 +129,7 @@ const RuleEditor = React.createClass({
                   <SelectInput ref="actionMatch"
                         className={(this.hasError('actionMatch') ? ' error' : '')}
                         value={actionMatch}
+                        style={{width:80}}
                         required={true}>
                     <option value="all">{t('all')}</option>
                     <option value="any">{t('any')}</option>

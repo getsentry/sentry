@@ -1,12 +1,10 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
-
 from sentry.testutils import APITestCase
 from sentry.models import UserReport
 
 
-class ProjectUserReportsTest(APITestCase):
+class ProjectUserReportListTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
@@ -30,10 +28,11 @@ class ProjectUserReportsTest(APITestCase):
             comments='Hello world',
         )
 
-        url = reverse('sentry-api-0-project-user-reports', kwargs={
-            'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
-        })
+        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+            project.organization.slug,
+            project.slug,
+        )
+
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -41,3 +40,35 @@ class ProjectUserReportsTest(APITestCase):
         assert sorted(map(lambda x: x['id'], response.data)) == sorted([
             str(report_1.id),
         ])
+
+
+class CreateProjectUserReportTest(APITestCase):
+    def test_simple(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        group = self.create_group(project=project)
+        event = self.create_event(group=group)
+
+        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+            project.organization.slug,
+            project.slug,
+        )
+
+        response = self.client.post(url, data={
+            'event_id': event.event_id,
+            'email': 'foo@example.com',
+            'name': 'Foo Bar',
+            'comments': 'It broke!',
+        })
+
+        assert response.status_code == 200, response.content
+
+        report = UserReport.objects.get(
+            id=response.data['id'],
+        )
+        assert report.project == project
+        assert report.group == group
+        assert report.email == 'foo@example.com'
+        assert report.name == 'Foo Bar'
+        assert report.comments == 'It broke!'

@@ -1,5 +1,4 @@
 {
-    "culprit": "raven.scripts.runner in main",
     "sentry.interfaces.Stacktrace": {
         "frames": [
             {

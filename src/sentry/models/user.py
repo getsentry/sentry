@@ -63,6 +63,9 @@ class User(BaseModel, AbstractBaseUser):
     def delete(self):
         if self.username == 'sentry':
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
+        avatar = self.avatar.first()
+        if avatar:
+            avatar.delete()
         return super(User, self).delete()
 
     def save(self, *args, **kwargs):
@@ -78,6 +81,9 @@ class User(BaseModel, AbstractBaseUser):
         warnings.warn('User.has_module_perms is deprecated', DeprecationWarning)
         return self.is_superuser
 
+    def get_label(self):
+        return self.email or self.username or self.id
+
     def get_display_name(self):
         return self.name or self.email or self.username
 
@@ -87,6 +93,12 @@ class User(BaseModel, AbstractBaseUser):
     def get_short_name(self):
         return self.username
 
+    def get_avatar_type(self):
+        avatar = self.avatar.first()
+        if avatar:
+            return avatar.get_avatar_type_display()
+        return 'letter_avatar'
+
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
         from sentry.models import (
@@ -95,23 +107,23 @@ class User(BaseModel, AbstractBaseUser):
         )
 
         for obj in OrganizationMember.objects.filter(user=from_user):
-            with transaction.atomic():
-                try:
+            try:
+                with transaction.atomic():
                     obj.update(user=to_user)
-                except IntegrityError:
-                    pass
+            except IntegrityError:
+                pass
         for obj in GroupBookmark.objects.filter(user=from_user):
-            with transaction.atomic():
-                try:
+            try:
+                with transaction.atomic():
                     obj.update(user=to_user)
-                except IntegrityError:
-                    pass
+            except IntegrityError:
+                pass
         for obj in UserOption.objects.filter(user=from_user):
-            with transaction.atomic():
-                try:
+            try:
+                with transaction.atomic():
                     obj.update(user=to_user)
-                except IntegrityError:
-                    pass
+            except IntegrityError:
+                pass
 
         Activity.objects.filter(
             user=from_user,

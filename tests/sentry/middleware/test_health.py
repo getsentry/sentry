@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
-from mock import patch
-from exam import fixture
-
 from django.test import RequestFactory
-from sentry.testutils import TestCase
+from exam import fixture
+from mock import patch
+
 from sentry.middleware.health import HealthCheck
+from sentry.status_checks import Problem
+from sentry.testutils import TestCase
 from sentry.utils import json
 
 
@@ -29,7 +30,9 @@ class HealthCheckTest(TestCase):
 
     @patch('sentry.status_checks.check_all')
     def test_full_health_ok(self, check_all):
-        check_all.return_value = [], []
+        check_all.return_value = {
+            object(): [],
+        }
         req = self.factory.get('/_health/?full')
         resp = self.middleware.process_request(req)
         assert resp.status_code == 200, resp
@@ -40,7 +43,11 @@ class HealthCheckTest(TestCase):
 
     @patch('sentry.status_checks.check_all')
     def test_full_health_bad(self, check_all):
-        check_all.return_value = ['foo'], []
+        check_all.return_value = {
+            object(): [
+                Problem('the system is down'),
+            ],
+        }
         req = self.factory.get('/_health/?full')
         resp = self.middleware.process_request(req)
         assert resp.status_code == 500, resp

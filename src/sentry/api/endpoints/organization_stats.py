@@ -2,11 +2,11 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.app import tsdb
 from sentry.api.base import DocSection, StatsMixin
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.app import tsdb
 from sentry.models import Project, Team
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario('RetrieveEventCountsOrganization')
@@ -48,8 +48,8 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
                                    values.
         :auth: required
         """
-        group = request.GET.get('group')
-        if not group:
+        group = request.GET.get('group', 'organization')
+        if group == 'organization':
             keys = [organization.id]
         elif group == 'project':
             team_list = Team.objects.get_for_user(
@@ -67,9 +67,14 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
         else:
             raise ValueError('Invalid group: %s' % group)
 
+        if 'id' in request.GET:
+            id_filter_set = frozenset(map(int, request.GET.getlist('id')))
+            keys = [k for k in keys if k in id_filter_set]
+
         if not keys:
             return Response([])
 
+        stat_model = None
         stat = request.GET.get('stat', 'received')
         if stat == 'received':
             if group == 'project':
@@ -86,8 +91,12 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 stat_model = tsdb.models.project_total_blacklisted
             else:
                 stat_model = tsdb.models.organization_total_blacklisted
-        else:
-            raise ValueError('Invalid stat: %s' % stat)
+        elif stat == 'generated':
+            if group == 'project':
+                stat_model = tsdb.models.project
+
+        if stat_model is None:
+            raise ValueError('Invalid group: %s, stat: %s' % (group, stat))
 
         data = tsdb.get_range(
             model=stat_model,
@@ -95,7 +104,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
             **self._parse_args(request)
         )
 
-        if not group:
+        if group == 'organization':
             data = data[organization.id]
 
         return Response(data)

@@ -15,24 +15,23 @@ from sentry.utils.dates import to_timestamp
 
 class RedisTSDBTest(TestCase):
     def setUp(self):
-        self.db = RedisTSDB(hosts={
-            0: {'db': 9}
-        }, rollups=(
-            # time in seconds, samples to keep
-            (10, 30),  # 5 minutes at 10 seconds
-            (ONE_MINUTE, 120),  # 2 hours at 1 minute
-            (ONE_HOUR, 24),  # 1 days at 1 hour
-            (ONE_DAY, 30),  # 30 days at 1 day
-        ), vnodes=64)
+        self.db = RedisTSDB(
+            rollups=(
+                # time in seconds, samples to keep
+                (10, 30),  # 5 minutes at 10 seconds
+                (ONE_MINUTE, 120),  # 2 hours at 1 minute
+                (ONE_HOUR, 24),  # 1 days at 1 hour
+                (ONE_DAY, 30),  # 30 days at 1 day
+            ),
+            vnodes=64,
+            enable_frequency_sketches=True,
+        )
 
-        with self.db.cluster.all() as client:
-            client.flushdb()
-
-    def test_make_key(self):
-        result = self.db.make_key(TSDBModel.project, 1368889980, 1)
+    def test_make_counter_key(self):
+        result = self.db.make_counter_key(TSDBModel.project, 1368889980, 1)
         assert result == 'ts:1:1368889980:1'
 
-        result = self.db.make_key(TSDBModel.project, 1368889980, 'foo')
+        result = self.db.make_counter_key(TSDBModel.project, 1368889980, 'foo')
         assert result == 'ts:1:1368889980:33'
 
     def test_get_model_key(self):
@@ -127,7 +126,7 @@ class RedisTSDBTest(TestCase):
             dts[3],
         )
 
-        assert self.db.get_distinct_counts_series(model, [1], dts[0], dts[-1]) == {
+        assert self.db.get_distinct_counts_series(model, [1], dts[0], dts[-1], rollup=3600) == {
             1: [
                 (timestamp(dts[0]), 2),
                 (timestamp(dts[1]), 1),
@@ -136,7 +135,7 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
-        assert self.db.get_distinct_counts_series(model, [2], dts[0], dts[-1]) == {
+        assert self.db.get_distinct_counts_series(model, [2], dts[0], dts[-1], rollup=3600) == {
             2: [
                 (timestamp(dts[0]), 0),
                 (timestamp(dts[1]), 0),
@@ -145,8 +144,145 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
-        results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1])
+        results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1], rollup=3600)
         assert results == {
             1: 3,
             2: 2,
+        }
+
+    def test_frequency_tables(self):
+        now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        model = TSDBModel.frequent_projects_by_organization
+
+        self.db.record_frequency_multi(
+            (
+                (model, {
+                    'organization:1': {
+                        "project:1": 1,
+                        "project:2": 2,
+                        "project:3": 3,
+                    },
+                }),
+            ),
+            now
+        )
+
+        self.db.record_frequency_multi(
+            (
+                (model, {
+                    'organization:1': {
+                        "project:1": 1,
+                        "project:2": 2,
+                        "project:3": 3,
+                        "project:4": 4,
+                    },
+                    "organization:2": {
+                        "project:5": 1.5,
+                    },
+                }),
+            ),
+            now - timedelta(hours=1),
+        )
+
+        assert self.db.get_most_frequent(
+            model,
+            ('organization:1', 'organization:2'),
+            now,
+            rollup=3600,
+        ) == {
+            'organization:1': [
+                ('project:3', 3.0),
+                ('project:2', 2.0),
+                ('project:1', 1.0),
+            ],
+            'organization:2': [],
+        }
+
+        assert self.db.get_most_frequent(
+            model,
+            ('organization:1', 'organization:2'),
+            now,
+            limit=1,
+            rollup=3600,
+        ) == {
+            'organization:1': [
+                ('project:3', 3.0),
+            ],
+            'organization:2': [],
+        }
+
+        assert self.db.get_most_frequent(
+            model,
+            ('organization:1', 'organization:2'),
+            now - timedelta(hours=1),
+            now,
+            rollup=3600,
+        ) == {
+            'organization:1': [
+                ('project:3', 3.0 + 3.0),
+                ('project:2', 2.0 + 2.0),
+                ('project:4', 4.0),
+                ('project:1', 1.0 + 1.0),
+            ],
+            'organization:2': [
+                ('project:5', 1.5),
+            ],
+        }
+
+        rollup = 3600
+        timestamp = int(to_timestamp(now) // rollup) * rollup
+        assert self.db.get_frequency_series(
+            model,
+            {
+                'organization:1': ("project:1", "project:2", "project:3", "project:4"),
+                'organization:2': ("project:5",),
+            },
+            now - timedelta(hours=1),
+            now,
+            rollup=rollup,
+        ) == {
+            'organization:1': [
+                (timestamp - rollup, {
+                    "project:1": 1.0,
+                    "project:2": 2.0,
+                    "project:3": 3.0,
+                    "project:4": 4.0,
+                }),
+                (timestamp, {
+                    "project:1": 1.0,
+                    "project:2": 2.0,
+                    "project:3": 3.0,
+                    "project:4": 0.0,
+                }),
+            ],
+            'organization:2': [
+                (timestamp - rollup, {
+                    "project:5": 1.5,
+                }),
+                (timestamp, {
+                    "project:5": 0.0,
+                }),
+            ],
+        }
+
+        assert self.db.get_frequency_totals(
+            model,
+            {
+                'organization:1': ("project:1", "project:2", "project:3", "project:4", "project:5"),
+                'organization:2': ("project:1",),
+            },
+            now - timedelta(hours=1),
+            now,
+            rollup=3600,
+        ) == {
+            'organization:1': {
+                "project:1": 1.0 + 1.0,
+                "project:2": 2.0 + 2.0,
+                "project:3": 3.0 + 3.0,
+                "project:4": 4.0,
+                "project:5": 0.0,
+            },
+            'organization:2': {
+                "project:1": 0.0,
+            },
         }

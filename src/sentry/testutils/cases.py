@@ -16,6 +16,7 @@ __all__ = (
 import base64
 import os.path
 import urllib
+from contextlib import contextmanager
 
 from click.testing import CliRunner
 from django.conf import settings
@@ -138,7 +139,7 @@ class BaseTestCase(Fixtures, Exam):
                 reverse('sentry-api-store'), message,
                 content_type='application/octet-stream',
                 HTTP_X_SENTRY_AUTH=get_auth_header(
-                    '_postWithHeader',
+                    '_postWithHeader/0.0.0',
                     key,
                     secret,
                     protocol,
@@ -152,7 +153,7 @@ class BaseTestCase(Fixtures, Exam):
         elif isinstance(data, basestring):
             body = data
         path = reverse('sentry-api-csp-report', kwargs={'project_id': self.project.id})
-        path += '?sentry_key=%s&sentry_version=5' % self.projectkey.public_key
+        path += '?sentry_key=%s' % self.projectkey.public_key
         with self.tasks():
             return self.client.post(
                 path, data=body,
@@ -212,6 +213,19 @@ class BaseTestCase(Fixtures, Exam):
         back to the original value when exiting the context.
         """
         return override_options(options)
+
+    @contextmanager
+    def dsn(self, dsn):
+        """
+        A context manager that temporarily sets the internal client's DSN
+        """
+        from raven.contrib.django.models import client
+
+        try:
+            client.set_dsn(dsn)
+            yield
+        finally:
+            client.set_dsn(None)
 
     _postWithSignature = _postWithHeader
     _postWithNewSignature = _postWithHeader

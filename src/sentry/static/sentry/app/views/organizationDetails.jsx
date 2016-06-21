@@ -8,11 +8,31 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import PropTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
+import ProjectStore from '../stores/projectStore';
 import {t} from '../locale';
 
 let ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND'
 };
+
+function doProjectsNeedShortId(teams) {
+  for (let i = 0; i < teams.length; i++) {
+    for (let j = 0; j < teams[i].projects.length; j++) {
+      if (!teams[i].projects[j].callSignReviewed) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function getRequiredAdminActions(org) {
+  let rv = [];
+  if (doProjectsNeedShortId(org.teams)) {
+    rv.push('SET_SHORT_IDS');
+  }
+  return rv;
+}
 
 const OrganizationDetails = React.createClass({
   childContextTypes: {
@@ -43,7 +63,8 @@ const OrganizationDetails = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.params.orgId !== this.props.params.orgId) {
+    if (nextProps.params.orgId !== this.props.params.orgId ||
+        nextProps.location.state === 'refresh') {
       this.remountComponent();
     }
   },
@@ -65,6 +86,8 @@ const OrganizationDetails = React.createClass({
           hooks.push(cb(data));
         });
 
+        data.requiredAdminActions = getRequiredAdminActions(data);
+
         this.setState({
           organization: data,
           loading: false,
@@ -74,6 +97,9 @@ const OrganizationDetails = React.createClass({
         });
 
         TeamStore.loadInitialData(data.teams);
+        ProjectStore.loadInitialData(data.teams.reduce((out, team) => {
+          return out.concat(team.projects);
+        }, []));
       }, error: (_, textStatus, errorThrown) => {
         let errorType = null;
         switch (errorThrown) {

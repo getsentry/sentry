@@ -16,6 +16,12 @@ const optionsAvailable = [
 ];
 
 const SettingsList = React.createClass({
+  propTypes: {
+    formDisabled: React.PropTypes.bool,
+    options: React.PropTypes.object.isRequired,
+    onSubmit: React.PropTypes.func.isRequired,
+  },
+
   getInitialState() {
     let options = this.props.options;
     let formData = {};
@@ -128,7 +134,10 @@ const AdminSettings = React.createClass({
         this.setState({
           submitInProgress: false,
         });
-        AlertActions.addAlert(t('Your changes were saved, and will propagate to services shortly.'), 'success');
+        AlertActions.addAlert({
+            message: t('Your changes were saved, and will propagate to services shortly.'),
+            type: 'success'
+        });
       },
       error: () => {
         this.setState({

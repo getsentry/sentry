@@ -15,13 +15,13 @@ class GroupTagDetailsTest(APITestCase):
         tagkey = TagKey.objects.create(
             project=group.project,
             key=key,
-            values_seen=1,
+            values_seen=2,
         )
         TagValue.objects.create(
             project=group.project,
             key=key,
             value=value,
-            times_seen=1,
+            times_seen=4,
         )
         GroupTagKey.objects.create(
             project=group.project,
@@ -34,7 +34,7 @@ class GroupTagDetailsTest(APITestCase):
             group=group,
             key=key,
             value=value,
-            times_seen=1,
+            times_seen=3,
         )
 
         self.login_as(user=self.user)
@@ -42,6 +42,7 @@ class GroupTagDetailsTest(APITestCase):
         url = '/api/0/issues/{}/tags/{}/'.format(group.id, tagkey.key)
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
+        assert response.data['id'] == str(tagkey.id)
         assert response.data['key'] == str(tagkey.key)
         assert response.data['uniqueValues'] == 1
-        assert response.data['totalValues'] == 1
+        assert response.data['totalValues'] == 3

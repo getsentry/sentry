@@ -17,11 +17,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from sentry.app import raven, tsdb
+from sentry.logging import audit
 from sentry.models import ApiKey, AuditLogEntry
 from sentry.utils.cursors import Cursor
 from sentry.utils.http import absolute_uri, is_valid_origin
 
-from .authentication import ApiKeyAuthentication, ProjectKeyAuthentication
+from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import Paginator
 from .permissions import NoPermission
 
@@ -33,9 +34,9 @@ ONE_DAY = ONE_HOUR * 24
 LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
 
 DEFAULT_AUTHENTICATION = (
+    TokenAuthentication,
     ApiKeyAuthentication,
-    ProjectKeyAuthentication,
-    SessionAuthentication
+    SessionAuthentication,
 )
 
 
@@ -98,12 +99,13 @@ class Endpoint(APIView):
         user = request.user if request.user.is_authenticated() else None
         api_key = request.auth if isinstance(request.auth, ApiKey) else None
 
-        AuditLogEntry.objects.create(
+        entry = AuditLogEntry.objects.create(
             actor=user,
             actor_key=api_key,
             ip_address=request.META['REMOTE_ADDR'],
             **kwargs
         )
+        audit.log_entry(entry)
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):

@@ -18,7 +18,7 @@ class TestMailgunInboundWebhookView(TestCase):
 
     @mock.patch('sentry.web.frontend.mailgun_inbound_webhook.process_inbound_email')
     def test_invalid_signature(self, process_inbound_email):
-        with self.settings(MAILGUN_API_KEY='a' * 32):
+        with self.options({'mail.mailgun-api-key': 'a' * 32}):
             resp = self.client.post(reverse('sentry-mailgun-inbound-hook'), {
                 'To': 'Sentry <%s>' % (self.mailto,),
                 'From': 'David <%s>' % (self.user.email,),
@@ -47,7 +47,7 @@ class TestMailgunInboundWebhookView(TestCase):
         timestamp = '1422513193'
         signature = '414a4705e6c12a39905748549f9135fbe8b739a5b12b2349ee40f31d3ee12f83'
 
-        with self.settings(MAILGUN_API_KEY='a' * 32):
+        with self.options({'mail.mailgun-api-key': 'a' * 32}):
             resp = self.client.post(reverse('sentry-mailgun-inbound-hook'), {
                 'To': 'Sentry <%s>' % (self.mailto,),
                 'From': 'David <%s>' % (self.user.email,),

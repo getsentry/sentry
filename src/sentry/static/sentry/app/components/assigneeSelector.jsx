@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 import ApiMixin from '../mixins/apiMixin';
-import Gravatar from '../components/gravatar';
+import Avatar from '../components/avatar';
 import GroupStore from '../stores/groupStore';
 import ConfigStore from '../stores/configStore';
 import DropdownLink from './dropdownLink';
@@ -94,6 +94,14 @@ const AssigneeSelector = React.createClass({
     // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
     let node = jQuery(ReactDOM.findDOMNode(this.refs.container));
     node.hide().show(0);
+    let oldAssignee = prevState.assignedTo && prevState.assignedTo.id;
+    let newAssignee = this.state.assignedTo && this.state.assignedTo.id;
+    if (oldAssignee !== newAssignee) {
+      this.removeTooltips();
+      if (newAssignee) {
+        this.attachTooltips();
+      }
+    }
   },
 
   onGroupChange(itemIds) {
@@ -183,8 +191,7 @@ const AssigneeSelector = React.createClass({
         <MenuItem key={item.id}
                   disabled={loading}
                   onSelect={this.assignTo.bind(this, item)} >
-          <Gravatar email={item.email} className="avatar"
-                    size={48} />
+          <Avatar user={item} className="avatar" size={48} />
           {this.highlight(item.name || item.email, this.state.filter)}
         </MenuItem>
       );
@@ -213,8 +220,7 @@ const AssigneeSelector = React.createClass({
               onOpen={this.onDropdownOpen}
               onClose={this.onDropdownClose}
               title={assignedTo ?
-                <Gravatar email={assignedTo.email} className="avatar"
-                          size={48} />
+                <Avatar user={assignedTo} className="avatar" size={48} />
                 :
                 <span className="icon-user" />
               }>

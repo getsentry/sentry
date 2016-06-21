@@ -1,3 +1,5 @@
+/*eslint no-var:0,strict:0,block-scoped-var:0*/
+/*global sentryEmbedCallback:false*/
 (function(window, document, JSON){
   'use strict';
   // TODO(dcramer): expose API for building a new error embed so things like
@@ -17,20 +19,15 @@
   // XMLHttpRequest.DONE does not exist in all browsers
   var XHR_DONE = 4;
 
-  var template = {{ template }};
-  var endpoint = {{ endpoint }};
-  var encode = window.encodeURIComponent;
-
-  var escape = function(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  };
+  var template = /*{{ template }}*/'';
+  var endpoint = /*{{ endpoint }}*/'';
 
   var serialize = function(form) {
     var q = [];
     for (var i = 0; i < form.elements.length; i++) {
-      q.push(form.elements[i].name + "=" + encodeURIComponent(form.elements[i].value));
+      q.push(form.elements[i].name + '=' + encodeURIComponent(form.elements[i].value));
     }
-    return q.join("&");
+    return q.join('&');
   };
 
   var onReady = function(f) {
@@ -59,14 +56,15 @@
       self.submit(self.serialize());
     };
 
-    this._submitBtn = this.element.getElementsByTagName('button')[0]
+    this._submitBtn = this.element.getElementsByTagName('button')[0];
     this._submitBtn.onclick = function(e) {
       e.preventDefault();
       self.submit(self.serialize());
     };
 
     var divTags = this._form.getElementsByTagName('div');
-    for (var i = 0; i < divTags.length; i++) {
+    var i;
+    for (i = 0; i < divTags.length; i++) {
       if (divTags[i].className === 'error-wrapper') {
         this._errorWrapper = divTags[i];
       }
@@ -76,18 +74,21 @@
     }
 
     var linkTags = this.element.getElementsByTagName('a');
-    for (var i = 0; i < linkTags.length; i++) {
+
+    var onclickHandler = function(e) {
+      e.preventDefault();
+      self.close();
+    };
+
+    for (i = 0; i < linkTags.length; i++) {
       if (linkTags[i].className === 'close') {
-        linkTags[i].onclick = function(e) {
-          e.preventDefault();
-          self.close();
-        };
+        linkTags[i].onclick = onclickHandler;
       }
     }
 
     this._formMap = {};
     var node;
-    for (var i = 0; i < this._form.elements.length; i++) {
+    for (i = 0; i < this._form.elements.length; i++) {
       node = this._form.elements[i];
       this._formMap[node.name] = node.parentNode;
     }
@@ -111,32 +112,39 @@
     xhr.onreadystatechange = function() {
       if (xhr.readyState === XHR_DONE) {
         if (xhr.status === 200) {
-          self._errorWrapper.innerHTML = '';
-          self._formContent.innerHTML = '<p class="message-success">Your feedback has been sent. Thank you!</p>';
-          self._submitBtn.parentNode.removeChild(self._submitBtn);
+          self.onSuccess();
         } else if (xhr.status == 400) {
-          var data = JSON.parse(xhr.responseText);
-          var node;
-          for (var key in self._formMap) {
-            node = self._formMap[key]
-            if (data.errors[key]) {
-              if (!/form-errors/.test(node.className)) {
-                node.className += " form-errors";
-              }
-            } else if (/form-errors/.test(node.className)) {
-              node.className = node.className.replace(/form-errors/, "");
-            }
-          }
-          self._errorWrapper.innerHTML = FORM_ERROR;
+          self.onFormError(JSON.parse(xhr.responseText));
         } else {
           self._errorWrapper.innerHTML = GENERIC_ERROR;
         }
         self._submitInProgress = false;
       }
     };
-    xhr.open("POST", endpoint, true);
+    xhr.open('POST', endpoint, true);
     xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
     xhr.send(body);
+  };
+
+  SentryErrorEmbed.prototype.onSuccess = function() {
+    this._errorWrapper.innerHTML = '';
+    this._formContent.innerHTML = '<p class="message-success">Your feedback has been sent. Thank you!</p>';
+    this._submitBtn.parentNode.removeChild(this._submitBtn);
+  };
+
+  SentryErrorEmbed.prototype.onFormError = function (data) {
+    var node;
+    for (var key in this._formMap) {
+      node = this._formMap[key];
+      if (data.errors[key]) {
+        if (!/form-errors/.test(node.className)) {
+          node.className += ' form-errors';
+        }
+      } else if (/form-errors/.test(node.className)) {
+        node.className = node.className.replace(/form-errors/, '');
+      }
+    }
+    this._errorWrapper.innerHTML = FORM_ERROR;
   };
 
   SentryErrorEmbed.prototype.attach = function(parent) {
@@ -148,6 +156,9 @@
   if (options.attachOnLoad !== false) {
     onReady(function(){
       embed.attach(options.parent || document.body);
+      if (window.sentryEmbedCallback && typeof sentryEmbedCallback === 'function') {
+        sentryEmbedCallback(embed);
+      }
     });
   }
 }(window, document, JSON));

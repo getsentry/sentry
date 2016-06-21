@@ -9,7 +9,7 @@
 {% block main %}
   <h3>Close Account</h3>
 
-  <form class="form-stacked" action="" method="post">
+  <form class="form-stacked" action="" method="post" onsubmit="return confirm('Are you REALLY sure you want to go through with this?')">
     {% csrf_token %}
 
     <p>{% trans "This will permanently remove all associated data for your user." %}</p>
@@ -25,8 +25,8 @@
             <li>
               <label class="checkbox">
                 <input type="checkbox" value="{{ result.organization.slug }}"
-                  name="oID" checked="checked"
-                  {% if result.single_owner %} disabled="disabled"{% endif %}/>
+                  name="oID"
+                  {% if result.single_owner %} checked="checked" disabled="disabled"{% endif %}/>
                 {{ result.organization.name }} ({{ result.organization.slug }})
               </label>
             </li>

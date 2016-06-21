@@ -4,7 +4,9 @@ from __future__ import absolute_import
 
 from exam import fixture, around
 from mock import patch
+from django.conf import settings
 
+from sentry.cache.redis import RedisCache
 from sentry.models import Option
 from sentry.options.store import OptionsStore
 from sentry.options.manager import (
@@ -15,7 +17,11 @@ from sentry.testutils import TestCase
 
 
 class OptionsManagerTest(TestCase):
-    store = fixture(OptionsStore)
+    @fixture
+    def store(self):
+        return OptionsStore(
+            cache=RedisCache()
+        )
 
     @fixture
     def manager(self):
@@ -23,10 +29,13 @@ class OptionsManagerTest(TestCase):
 
     @around
     def register(self):
+        default_options = settings.SENTRY_DEFAULT_OPTIONS.copy()
+        settings.SENTRY_DEFAULT_OPTIONS = {}
         self.store.flush_local_cache()
         self.manager.register('foo')
         yield
         self.manager.unregister('foo')
+        settings.SENTRY_DEFAULT_OPTIONS = default_options
 
     def test_simple(self):
         assert self.manager.get('foo') == ''
@@ -100,15 +109,25 @@ class OptionsManagerTest(TestCase):
 
     def test_default(self):
         self.manager.register('awesome', default='lol')
+        assert settings.SENTRY_DEFAULT_OPTIONS['awesome'] == 'lol'
         assert self.manager.get('awesome') == 'lol'
         self.manager.set('awesome', 'bar')
         assert self.manager.get('awesome') == 'bar'
         self.manager.delete('awesome')
         assert self.manager.get('awesome') == 'lol'
         self.manager.register('callback', default=lambda: True)
+        assert settings.SENTRY_DEFAULT_OPTIONS['callback'] is True
         assert self.manager.get('callback') is True
         self.manager.register('default-type', type=Int)
+        assert settings.SENTRY_DEFAULT_OPTIONS['default-type'] == 0
         assert self.manager.get('default-type') == 0
+
+        self.manager.register('some-default')
+        with self.settings(SENTRY_OPTIONS={'some-default': 'foo'}):
+            assert self.manager.get('some-default') == 'foo'
+
+        with self.settings(SENTRY_OPTIONS={}, SENTRY_DEFAULT_OPTIONS={'some-default': 'foo'}):
+            assert self.manager.get('some-default') == 'foo'
 
     def test_flag_immutable(self):
         self.manager.register('immutable', flags=FLAG_IMMUTABLE)
@@ -265,3 +284,23 @@ class OptionsManagerTest(TestCase):
 
         keys = list(self.manager.filter(flag=FLAG_REQUIRED))
         assert {k.name for k in keys} == {'required', 'nostorerequired'}
+
+    def test_isset(self):
+        self.manager.register('basic')
+        assert self.manager.isset('basic') is False
+
+        with patch.object(self.store, 'get', side_effect='awesome'):
+            assert self.manager.isset('basic') is True
+
+        with self.settings(SENTRY_OPTIONS={'basic': 'awesome'}):
+            assert self.manager.isset('basic') is True
+
+        self.manager.register('nostore', flags=FLAG_NOSTORE)
+        assert self.manager.isset('nostore') is False
+
+        # This shouldn't be affected by the store value since it's NOSTORE
+        with patch.object(self.store, 'get', side_effect='awesome'):
+            assert self.manager.isset('nostore') is False
+
+        with self.settings(SENTRY_OPTIONS={'nostore': 'awesome'}):
+            assert self.manager.isset('nostore') is True

@@ -61,23 +61,23 @@ class Access(BaseAccess):
         self.sso_is_valid = sso_is_valid
 
 
-def from_request(request, organization):
+def from_request(request, organization, scopes=None):
     if not organization:
         return DEFAULT
 
     if request.is_superuser():
         team_list = list(organization.team_set.all())
         return Access(
-            scopes=settings.SENTRY_SCOPES,
+            scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
             is_active=True,
             teams=team_list,
             memberships=team_list,
             sso_is_valid=True,
         )
-    return from_user(request.user, organization)
+    return from_user(request.user, organization, scopes=scopes)
 
 
-def from_user(user, organization):
+def from_user(user, organization, scopes=None):
     if not organization:
         return DEFAULT
 
@@ -95,10 +95,10 @@ def from_user(user, organization):
     # ensure cached relation
     om.organization = organization
 
-    return from_member(om)
+    return from_member(om, scopes=scopes)
 
 
-def from_member(member):
+def from_member(member, scopes=None):
     # TODO(dcramer): we want to optimize this access pattern as its several
     # network hops and needed in a lot of places
     try:
@@ -127,10 +127,15 @@ def from_member(member):
     else:
         team_access = team_memberships
 
+    if scopes is not None:
+        scopes = set(scopes) & member.get_scopes()
+    else:
+        scopes = member.get_scopes()
+
     return Access(
         is_active=True,
         sso_is_valid=sso_is_valid,
-        scopes=member.get_scopes(),
+        scopes=scopes,
         memberships=team_memberships,
         teams=team_access,
     )

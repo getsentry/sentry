@@ -8,10 +8,11 @@ sentry.search.django.backend
 
 from __future__ import absolute_import
 
+from django.db import router
 from django.db.models import Q
 
 from sentry.api.paginator import DateTimePaginator, Paginator
-from sentry.search.base import SearchBackend
+from sentry.search.base import ANY, SearchBackend
 from sentry.search.django.constants import (
     SORT_CLAUSES, SQLITE_SORT_CLAUSES, MYSQL_SORT_CLAUSES, MSSQL_SORT_CLAUSES,
     MSSQL_ENGINES, ORACLE_SORT_CLAUSES
@@ -22,9 +23,12 @@ from sentry.utils.db import get_db_engine
 class DjangoSearchBackend(SearchBackend):
     def query(self, project, query=None, status=None, tags=None,
               bookmarked_by=None, assigned_to=None, first_release=None,
-              sort_by='date', age_from=None, age_to=None,
-              unassigned=None, date_from=None, date_to=None, cursor=None,
-              limit=100):
+              sort_by='date', unassigned=None,
+              age_from=None, age_from_inclusive=True,
+              age_to=None, age_to_inclusive=True,
+              date_from=None, date_from_inclusive=True,
+              date_to=None, date_to_inclusive=True,
+              cursor=None, limit=100):
         from sentry.models import Event, Group, GroupStatus
 
         queryset = Group.objects.filter(project=project)
@@ -73,43 +77,62 @@ class DjangoSearchBackend(SearchBackend):
 
         if tags:
             for k, v in tags.iteritems():
-                queryset = queryset.filter(**dict(
-                    grouptag__key=k,
-                    grouptag__value=v,
-                ))
+                if v == ANY:
+                    queryset = queryset.filter(
+                        grouptag__project=project,
+                        grouptag__key=k,
+                    )
+                else:
+                    queryset = queryset.filter(
+                        grouptag__project=project,
+                        grouptag__key=k,
+                        grouptag__value=v,
+                    )
+            queryset = queryset.distinct()
 
-        if age_from and age_to:
-            queryset = queryset.filter(
-                first_seen__gte=age_from,
-                first_seen__lte=age_to,
-            )
-        elif age_from:
-            queryset = queryset.filter(first_seen__gte=age_from)
-        elif age_to:
-            queryset = queryset.filter(first_seen__lte=age_to)
+        if age_from or age_to:
+            params = {}
+            if age_from:
+                if age_from_inclusive:
+                    params['first_seen__gte'] = age_from
+                else:
+                    params['first_seen__gt'] = age_from
+            if age_to:
+                if age_to_inclusive:
+                    params['first_seen__lte'] = age_to
+                else:
+                    params['first_seen__lt'] = age_to
+            queryset = queryset.filter(**params)
 
         if date_from or date_to:
-            if date_from and date_to:
-                event_queryset = Event.objects.filter(
-                    project_id=project.id,
-                    datetime__gte=date_from,
-                    datetime__lte=date_to,
-                )
-            elif date_from:
-                event_queryset = Event.objects.filter(
-                    project_id=project.id,
-                    datetime__gte=date_from,
-                )
-            elif date_to:
-                event_queryset = Event.objects.filter(
-                    project_id=project.id,
-                    datetime__lte=date_to,
-                )
+            params = {
+                'project_id': project.id,
+            }
+            if date_from:
+                if date_from_inclusive:
+                    params['datetime__gte'] = date_from
+                else:
+                    params['datetime__gt'] = date_from
+            if date_to:
+                if date_to_inclusive:
+                    params['datetime__lte'] = date_to
+                else:
+                    params['datetime__lt'] = date_to
+
+            event_queryset = Event.objects.filter(**params)
             # limit to the first 1000 results
             group_ids = event_queryset.distinct().values_list(
                 'group_id',
                 flat=True
             )[:1000]
+
+            # if Event is not on the primary database remove Django's
+            # implicit subquery by coercing to a list
+            base = router.db_for_read(Group)
+            using = router.db_for_read(Event)
+            if base != using:
+                group_ids = list(group_ids)
+
             queryset = queryset.filter(
                 id__in=group_ids,
             )
@@ -125,11 +148,6 @@ class DjangoSearchBackend(SearchBackend):
             score_clause = MSSQL_SORT_CLAUSES[sort_by]
         else:
             score_clause = SORT_CLAUSES[sort_by]
-
-        if sort_by == 'tottime':
-            queryset = queryset.filter(time_spent_count__gt=0)
-        elif sort_by == 'avgtime':
-            queryset = queryset.filter(time_spent_count__gt=0)
 
         queryset = queryset.extra(
             select={'sort_value': score_clause},

@@ -12,12 +12,12 @@ import logging
 
 import sentry
 
-from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.template.loader import render_to_string
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
+from sentry import options
 from sentry.digests.utilities import get_digest_metadata
 from sentry.models import (
     Activity,
@@ -30,6 +30,7 @@ from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils.cache import cache
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.http import absolute_uri
+from sentry.utils.linksign import generate_signed_link
 
 NOTSET = object()
 
@@ -46,16 +47,22 @@ class MailPlugin(NotificationPlugin):
     author_url = "https://github.com/getsentry/sentry"
     project_default_enabled = True
     project_conf_form = None
-    subject_prefix = settings.EMAIL_SUBJECT_PREFIX
+    subject_prefix = None
 
-    def _build_message(self, subject, template=None, html_template=None, body=None,
-                   project=None, group=None, headers=None, context=None):
-        send_to = self.get_send_to(project)
+    def _subject_prefix(self):
+        if self.subject_prefix is not None:
+            return self.subject_prefix
+        return options.get('mail.subject-prefix')
+
+    def _build_message(self, project, subject, template=None, html_template=None, body=None,
+                   reference=None, reply_reference=None, headers=None, context=None, send_to=None):
+        if send_to is None:
+            send_to = self.get_send_to(project)
         if not send_to:
             logger.debug('Skipping message rendering, no users to send to.')
             return
 
-        subject_prefix = self.get_option('subject_prefix', project) or self.subject_prefix
+        subject_prefix = self.get_option('subject_prefix', project) or self._subject_prefix()
         subject_prefix = force_text(subject_prefix)
         subject = force_text(subject)
 
@@ -66,7 +73,8 @@ class MailPlugin(NotificationPlugin):
             body=body,
             headers=headers,
             context=context,
-            reference=group,
+            reference=reference,
+            reply_reference=reply_reference,
         )
         msg.add_users(send_to, project=project)
         return msg
@@ -74,14 +82,7 @@ class MailPlugin(NotificationPlugin):
     def _send_mail(self, *args, **kwargs):
         message = self._build_message(*args, **kwargs)
         if message is not None:
-            return message.send()
-
-    def send_test_mail(self, project=None):
-        self._send_mail(
-            subject='Test Email',
-            body='This email was requested as a test of Sentry\'s outgoing email',
-            project=project,
-        )
+            return message.send_async()
 
     def get_notification_settings_url(self):
         return absolute_uri(reverse('sentry-account-settings-notifications'))
@@ -103,14 +104,12 @@ class MailPlugin(NotificationPlugin):
 
         return super(MailPlugin, self).should_notify(group, event)
 
-    def get_send_to(self, project=None):
+    def get_send_to(self, project):
         """
-        Returns a list of email addresses for the users that should be notified of alerts.
+        Returns a list of user IDs for the users that should receive
+        notifications for the provided project.
 
-        The logic for this is a bit complicated, but it does the following:
-
-        The results of this call can be fairly expensive to calculate, so the send_to list gets cached
-        for 60 seconds.
+        This result may come from cached data.
         """
         if not (project and project.team):
             logger.debug('Tried to send notification to invalid project: %r', project)
@@ -123,6 +122,12 @@ class MailPlugin(NotificationPlugin):
             cache.set(cache_key, send_to_list, 60)  # 1 minute cache
 
         return send_to_list
+
+    def add_unsubscribe_link(self, context, user_id, project):
+        context['unsubscribe_link'] = generate_signed_link(user_id,
+            'sentry-account-email-unsubscribe-project', kwargs={
+                'project_id': project.id,
+            })
 
     def notify(self, notification):
         event = notification.event
@@ -181,15 +186,18 @@ class MailPlugin(NotificationPlugin):
             'X-Sentry-Reply-To': group_id_to_email(group.id),
         }
 
-        self._send_mail(
-            subject=subject,
-            template=template,
-            html_template=html_template,
-            project=project,
-            group=group,
-            headers=headers,
-            context=context,
-        )
+        for user_id in self.get_send_to(project):
+            self.add_unsubscribe_link(context, user_id, project)
+            self._send_mail(
+                subject=subject,
+                template=template,
+                html_template=html_template,
+                project=project,
+                reference=group,
+                headers=headers,
+                context=context,
+                send_to=[user_id],
+            )
 
     def notify_digest(self, project, digest):
         start, end, counts = get_digest_metadata(digest)
@@ -217,21 +225,16 @@ class MailPlugin(NotificationPlugin):
             'counts': counts,
         }
 
-        # TODO: Everything below should instead use `_send_mail` for consistency.
-        subject_prefix = project.get_option('subject_prefix', settings.EMAIL_SUBJECT_PREFIX)
-        if subject_prefix:
-            subject_prefix = subject_prefix.rstrip() + ' '
-
-        message = self._build_message(
-            subject=subject_prefix + render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
-            template='sentry/emails/digests/body.txt',
-            html_template='sentry/emails/digests/body.html',
-            project=project,
-            context=context,
-        )
-
-        if message is not None:
-            message.send()
+        for user_id in self.get_send_to(project):
+            self.add_unsubscribe_link(context, user_id, project)
+            self._send_mail(
+                subject=render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
+                template='sentry/emails/digests/body.txt',
+                html_template='sentry/emails/digests/body.html',
+                project=project,
+                context=context,
+                send_to=[user_id],
+            )
 
     def notify_about_activity(self, activity):
         if activity.type not in (Activity.NOTE, Activity.ASSIGNED, Activity.RELEASE):
@@ -307,29 +310,26 @@ class MailPlugin(NotificationPlugin):
 
         template_name = activity.get_type_display()
 
-        # TODO: Everything below should instead use `_send_mail` for consistency.
-        subject_prefix = project.get_option('subject_prefix', settings.EMAIL_SUBJECT_PREFIX)
-        if subject_prefix:
-            subject_prefix = subject_prefix.rstrip() + ' '
-
         if group:
-            subject = '%s%s' % (subject_prefix, group.get_email_subject())
+            subject = group.get_email_subject()
         elif activity.type == Activity.RELEASE:
-            subject = '%sRelease %s' % (subject_prefix, activity.data['version'])
+            subject = 'Release %s' % activity.data['version']
         else:
             raise NotImplementedError
 
-        msg = MessageBuilder(
-            subject=subject,
-            context=context,
-            template='sentry/emails/activity/{}.txt'.format(template_name),
-            html_template='sentry/emails/activity/{}.html'.format(template_name),
-            headers=headers,
-            reference=activity,
-            reply_reference=group,
-        )
-        msg.add_users(recipient_ids, project=project)
-        msg.send()
+        for user_id in recipient_ids:
+            self.add_unsubscribe_link(context, user_id, project)
+            self._send_mail(
+                project=project,
+                send_to=[user_id],
+                subject=subject,
+                context=context,
+                template='sentry/emails/activity/{}.txt'.format(template_name),
+                html_template='sentry/emails/activity/{}.html'.format(template_name),
+                headers=headers,
+                reference=activity,
+                reply_reference=group,
+            )
 
 
 # Legacy compatibility

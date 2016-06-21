@@ -26,7 +26,7 @@ from __future__ import absolute_import
 
 import sys
 
-if sys.version_info[:2] < (2, 7):
+if sys.version_info[:2] != (2, 7):
     print 'Error: Sentry requires Python 2.7'
     sys.exit(1)
 
@@ -46,7 +46,7 @@ from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.develop import develop as DevelopCommand
 
 # The version of sentry
-VERSION = '8.1.2'
+VERSION = '8.5.1'
 
 # Also see sentry.utils.integrationdocs.DOC_FOLDER
 INTEGRATION_DOC_FOLDER = os.path.join(os.path.abspath(
@@ -99,22 +99,25 @@ install_requires = [
     'django-picklefield>=0.3.0,<0.4.0',
     'django-recaptcha>=1.0.4,<1.1.0',
     'django-social-auth>=0.7.28,<0.8.0',
-    'django-sudo>=1.2.0,<1.3.0',
+    'django-sudo>=2.0.1,<2.1.0',
     'django-templatetag-sugar>=0.1.0',
     'djangorestframework>=2.3.8,<2.4.0',
     'email-reply-parser>=0.2.0,<0.3.0',
-    'enum34>=0.9.18,<0.10.0',
+    'enum34>=0.9.18,<1.2.0',
     'exam>=0.5.1',
     'hiredis>=0.1.0,<0.2.0',
+    'honcho>=0.7.0,<0.8.0',
     'ipaddr>=2.1.11,<2.2.0',
     'kombu', # 3.0.27 breaks Django 1.6.x compatibility - (JLF was here, I want latest kombu, let's see if this actually breaks Sentry
     'logan>=0.7.1,<0.8.0',
     'kombu==3.0.30',
     'lxml>=3.4.1',
+    'msgpack-python>=0.4,<0.5',
     'mock>=0.8.0,<1.1',
     'petname>=1.7,<1.8',
+    'Pillow>=3.2.0,<3.3.0',
     'progressbar>=2.2,<2.4',
-    'psycopg2>=2.5.0,<2.6.0',
+    'psycopg2>=2.6.0,<2.7.0',
     'pytest>=2.6.4,<2.7.0',
     'pytest-django>=2.9.1,<2.10.0',
     'python-dateutil>=2.0.0,<3.0.0',
@@ -129,17 +132,16 @@ install_requires = [
     'statsd>=3.1.0,<3.2.0',
     'South==1.0.1',
     'toronado>=0.0.4,<0.1.0',
-    'ua-parser>=0.6.1,<0.7.0',
-    'urllib3>=1.14', # JLF - requirements conflicts
+    'ua-parser>=0.6.1,<0.8.0',
+    'urllib3>=1.14,<1.15',
     'uwsgi>2.0.0,<2.1.0',
-    'rb>=1.3.0,<2.0.0',
+    'rb>=1.4.0,<2.0.0',
+    'qrcode>=5.2.2,<6.0.0',
+    'python-u2flib-server>=4.0.1,<4.1.0',
 ]
 
-postgres_requires = [
-]
-
-postgres_pypy_requires = [
-    'psycopg2cffi',
+dsym_requires = [
+    'symsynd>=0.7.0,<1.0.0',
 ]
 
 
@@ -311,6 +313,17 @@ class BuildJavascriptCommand(Command):
                 log.fatal('Could not determine sentry version or build')
                 sys.exit(1)
 
+            node_version = []
+            for app in 'node', 'npm':
+                try:
+                    node_version.append(check_output([app, '--version']).rstrip())
+                except OSError:
+                    log.fatal('Cannot find `{0}` executable. Please install {0}`'
+                              ' and try again.'.format(app))
+                    sys.exit(1)
+
+            log.info('using node ({}) and npm ({})'.format(*node_version))
+
             try:
                 self._build_static()
             except Exception:
@@ -355,9 +368,9 @@ class BuildJavascriptCommand(Command):
         # the current folder.  This will chop off the right path for the
         # manifest.
         for root in self.sentry_static_dist_path, INTEGRATION_DOC_FOLDER:
-            for dirname, dirnames, filenames in os.walk(root):
+            for dirname, _, filenames in os.walk(root):
                 for filename in filenames:
-                    filename = os.path.join(root, filename)
+                    filename = os.path.join(dirname, filename)
                     files.append(filename[len(base):].lstrip(os.path.sep))
 
         files.append('src/sentry/sentry-package.json')
@@ -377,11 +390,11 @@ class BuildJavascriptCommand(Command):
         # By setting NODE_ENV=production, a few things happen
         #   * React optimizes out certain code paths
         #   * Webpack will add version strings to built/referenced assets
-        os.environ['NODE_ENV'] = 'production'
 
         log.info("running [webpack]")
         env = dict(os.environ)
         env['SENTRY_STATIC_DIST_PATH'] = self.sentry_static_dist_path
+        env['NODE_ENV'] = 'production'
         check_output(['node_modules/.bin/webpack', '-p', '--bail'],
                      cwd=work_path, env=env)
 
@@ -460,8 +473,8 @@ setup(
     extras_require={
         'tests': tests_require,
         'dev': dev_requires,
-        'postgres': install_requires + postgres_requires,
-        'postgres_pypy': install_requires + postgres_pypy_requires,
+        'postgres': install_requires,
+        'dsym': dsym_requires,
     },
     cmdclass=cmdclass,
     license='BSD',

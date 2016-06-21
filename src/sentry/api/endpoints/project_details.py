@@ -3,16 +3,18 @@ from __future__ import absolute_import
 import logging
 
 from datetime import timedelta
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import (
-    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectStatus
+    AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark,
+    ProjectStatus, UserOption
 )
 from sentry.plugins import plugins
 from sentry.tasks.deletion import delete_project
@@ -64,14 +66,31 @@ def clean_newline_inputs(value):
     return result
 
 
-class ProjectSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Project
-        fields = ('name', 'slug')
+class ProjectMemberSerializer(serializers.Serializer):
+    isBookmarked = serializers.BooleanField()
+    isSubscribed = serializers.BooleanField()
+
+
+class ProjectAdminSerializer(serializers.Serializer):
+    isBookmarked = serializers.BooleanField()
+    isSubscribed = serializers.BooleanField()
+    name = serializers.CharField(max_length=200)
+    slug = serializers.SlugField(max_length=200)
+
+
+class RelaxedProjectPermission(ProjectPermission):
+    scope_map = {
+        'GET': ['project:read', 'project:write', 'project:delete'],
+        'POST': ['project:write', 'project:delete'],
+        # PUT checks for permissions based on fields
+        'PUT': ['project:read', 'project:write', 'project:delete'],
+        'DELETE': ['project:delete'],
+    }
 
 
 class ProjectDetailsEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
+    permission_classes = [RelaxedProjectPermission]
 
     def _get_unresolved_count(self, project):
         queryset = Group.objects.filter(
@@ -117,6 +136,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'sentry:scrub_data': bool(project.get_option('sentry:scrub_data', True)),
             'sentry:scrub_defaults': bool(project.get_option('sentry:scrub_defaults', True)),
             'sentry:sensitive_fields': project.get_option('sentry:sensitive_fields', []),
+            'sentry:csp_ignored_sources_defaults': bool(project.get_option('sentry:csp_ignored_sources_defaults', True)),
+            'sentry:csp_ignored_sources': '\n'.join(project.get_option('sentry:csp_ignored_sources', []) or []),
         }
         data['activePlugins'] = active_plugins
         data['team'] = serialize(project.team, request.user)
@@ -131,7 +152,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         return Response(data)
 
     @attach_scenarios([update_project_scenario])
-    @sudo_required
     def put(self, request, project):
         """
         Update a Project
@@ -145,15 +165,62 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to delete.
         :param string name: the new name for the project.
         :param string slug: the new slug for the project.
+        :param boolean isBookmarked: in case this API call is invoked with a
+                                     user context this allows changing of
+                                     the bookmark flag.
         :param object options: optional options to override in the
                                project settings.
         :auth: required
         """
-        serializer = ProjectSerializer(project, data=request.DATA, partial=True)
+        has_project_write = (
+            (request.auth and request.auth.has_scope('project:write')) or
+            (request.access and request.access.has_scope('project:write'))
+        )
 
-        if serializer.is_valid():
-            project = serializer.save()
+        if has_project_write:
+            serializer_cls = ProjectAdminSerializer
+        else:
+            serializer_cls = ProjectMemberSerializer
 
+        serializer = serializer_cls(data=request.DATA, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        result = serializer.object
+
+        changed = False
+        if result.get('slug'):
+            project.slug = result['slug']
+            changed = True
+
+        if result.get('name'):
+            project.name = result['name']
+            changed = True
+
+        if changed:
+            project.save()
+
+        if result.get('isBookmarked'):
+            try:
+                with transaction.atomic():
+                    ProjectBookmark.objects.create(
+                        project_id=project.id,
+                        user=request.user,
+                    )
+            except IntegrityError:
+                pass
+        elif result.get('isBookmarked') is False:
+            ProjectBookmark.objects.filter(
+                project_id=project.id,
+                user=request.user,
+            ).delete()
+
+        if result.get('isSubscribed'):
+            UserOption.objects.set_value(request.user, project, 'mail:alert', 1)
+        elif result.get('isSubscribed') is False:
+            UserOption.objects.set_value(request.user, project, 'mail:alert', 0)
+
+        if has_project_write:
             options = request.DATA.get('options', {})
             if 'sentry:origins' in options:
                 project.update_option(
@@ -171,6 +238,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     'sentry:sensitive_fields',
                     [s.strip().lower() for s in options['sentry:sensitive_fields']]
                 )
+            if 'sentry:csp_ignored_sources_defaults' in options:
+                project.update_option('sentry:csp_ignored_sources_defaults', bool(options['sentry:csp_ignored_sources_defaults']))
+            if 'sentry:csp_ignored_sources' in options:
+                project.update_option(
+                    'sentry:csp_ignored_sources',
+                    clean_newline_inputs(options['sentry:csp_ignored_sources']))
 
             self.create_audit_entry(
                 request=request,
@@ -180,14 +253,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 data=project.get_audit_log_data(),
             )
 
-            data = serialize(project, request.user)
-            data['options'] = {
-                'sentry:origins': '\n'.join(project.get_option('sentry:origins', '*') or []),
-                'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
-            }
-            return Response(data)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        data = serialize(project, request.user)
+        data['options'] = {
+            'sentry:origins': '\n'.join(project.get_option('sentry:origins', ['*']) or []),
+            'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
+        }
+        return Response(data)
 
     @attach_scenarios([delete_project_scenario])
     @sudo_required

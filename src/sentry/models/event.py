@@ -140,7 +140,8 @@ class Event(Model):
             except ValueError:
                 continue
 
-            value = safe_execute(cls.to_python, data)
+            value = safe_execute(cls.to_python, data,
+                                 _with_transaction=False)
             if not value:
                 continue
 

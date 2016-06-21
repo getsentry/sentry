@@ -9,7 +9,7 @@ from sentry.models import Group, GroupStatus
 
 class OrganizationIssuesNewEndpoint(OrganizationIssuesEndpoint):
     def get_queryset(self, request, organization, member, project_list):
-        cutoff = timezone.now() - timedelta(days=3)
+        cutoff = timezone.now() - timedelta(days=7)
 
         return Group.objects.filter(
             status=GroupStatus.UNRESOLVED,

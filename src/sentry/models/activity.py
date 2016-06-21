@@ -36,10 +36,12 @@ class Activity(Model):
     UNASSIGNED = 12
     SET_RESOLVED_IN_RELEASE = 13
     MERGE = 14
+    SET_RESOLVED_BY_AGE = 15
 
     TYPE = (
         # (TYPE, verb-slug)
         (SET_RESOLVED, 'set_resolved'),
+        (SET_RESOLVED_BY_AGE, 'set_resolved_by_age'),
         (SET_RESOLVED_IN_RELEASE, 'set_resolved_in_release'),
         (SET_UNRESOLVED, 'set_unresolved'),
         (SET_MUTED, 'set_muted'),

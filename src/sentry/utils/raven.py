@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import copy
 import inspect
 import logging
 import raven
@@ -17,7 +18,7 @@ UNSAFE_FILES = (
 )
 
 
-def can_record_current_event():
+def is_current_event_safe():
     """
     Tests the current stack for unsafe locations that would likely cause
     recursion if an attempt to send to Sentry was made.
@@ -34,8 +35,11 @@ class SentryInternalClient(DjangoClient):
             return False
         return settings.SENTRY_PROJECT is not None
 
+    def can_record_current_event(self):
+        return self.remote.is_active() or is_current_event_safe()
+
     def capture(self, *args, **kwargs):
-        if not can_record_current_event():
+        if not self.can_record_current_event():
             metrics.incr('internal.uncaptured.events')
             self.error_logger.error('Not capturing event due to unsafe stacktrace:\n%r', kwargs)
             return
@@ -44,6 +48,21 @@ class SentryInternalClient(DjangoClient):
     def send(self, **kwargs):
         # TODO(dcramer): this should respect rate limits/etc and use the normal
         # pipeline
+
+        # Report the issue to an upstream Sentry if active
+        # NOTE: we don't want to check self.is_enabled() like normal, since
+        # is_enabled behavior is overridden in this class. We explicitly
+        # want to check if the remote is active.
+        if self.remote.is_active():
+            from sentry import options
+            # Append some extra tags that are useful for remote reporting
+            super_kwargs = copy.deepcopy(kwargs)
+            super_kwargs['tags']['install-id'] = options.get('sentry:install-id')
+            super(SentryInternalClient, self).send(**super_kwargs)
+
+        if not is_current_event_safe():
+            return
+
         from sentry.app import tsdb
         from sentry.coreapi import ClientApiHelper
         from sentry.event_manager import EventManager
@@ -77,7 +96,12 @@ class SentryInternalClient(DjangoClient):
 
         kwargs['project'] = project.id
         try:
-            manager = EventManager(kwargs)
+            # This in theory is the right way to do it because validate
+            # also normalizes currently, but we just send in data already
+            # normalised in the raven client now.
+            # data = helper.validate_data(project, kwargs)
+            data = kwargs
+            manager = EventManager(data)
             data = manager.normalize()
             tsdb.incr_multi([
                 (tsdb.models.project_total_received, project.id),
@@ -94,5 +118,6 @@ class SentryInternalClient(DjangoClient):
 
 class SentryInternalFilter(logging.Filter):
     def filter(self, record):
+        # TODO(mattrobenolt): handle an upstream Sentry
         metrics.incr('internal.uncaptured.logs')
-        return can_record_current_event()
+        return is_current_event_safe()

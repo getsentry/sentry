@@ -7,16 +7,21 @@ import ApiMixin from '../mixins/apiMixin';
 import ConfigStore from '../stores/configStore';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
-import {getOption, getOptionField} from '../options';
+import {getOption, getOptionField, getForm} from '../options';
 
 const InstallWizardSettings = React.createClass({
+  propTypes: {
+    options: React.PropTypes.object.isRequired,
+    formDisabled: React.PropTypes.bool,
+    onSubmit: React.PropTypes.func.isRequired
+  },
+
   getInitialState() {
     let options = {...this.props.options};
     let requiredOptions = Object.keys(_.pick(options, (option) => {
       return option.field.required && !option.field.disabled;
     }));
-    let missingOptions = new Set(requiredOptions.filter(option => !options[option].value));
-    let fields = [];
+    let missingOptions = new Set(requiredOptions.filter(option => !options[option].field.isSet));
     // This is to handle the initial installation case.
     // Even if all options are filled out, we want to prompt to confirm
     // them. This is a bit of a hack because we're assuming that
@@ -25,12 +30,17 @@ const InstallWizardSettings = React.createClass({
     if (missingOptions.size === 0) {
       missingOptions = new Set(requiredOptions);
     }
+
+    // A mapping of option name to Field object
+    let fields = {};
+
     for (let key of missingOptions) {
       let option = options[key];
-      if (!option.value) {
-        option.value = getOption(key).defaultValue();
+      if (!option.field.isSet) {
+        let o = getOption(key);
+        option.value = o.defaultValue ? o.defaultValue() : '';
       }
-      fields.push(getOptionField(key, this.onFieldChange.bind(this, key), option.value, option.field));
+      fields[key] = getOptionField(key, this.onFieldChange.bind(this, key), option.value, option.field);
       // options is used for submitting to the server, and we dont submit values
       // that are deleted
       if (option.field.disabled) {
@@ -60,7 +70,7 @@ const InstallWizardSettings = React.createClass({
 
   render() {
     let {fields, required, options} = this.state;
-    let formValid = !required.filter(option => !options[option].value).length;
+    let formValid = !required.filter(option => !options[option].field.allowEmpty && !options[option].value).length;
     let disabled = !formValid || this.props.formDisabled;
 
     return (
@@ -68,7 +78,7 @@ const InstallWizardSettings = React.createClass({
         <p>Welcome to Sentry, yo! Complete setup by filling out the required
           configuration.</p>
 
-        {fields}
+        {getForm(fields)}
 
         <div className="form-actions" style={{marginTop: 25}}>
           <button className="btn btn-primary"
@@ -81,6 +91,10 @@ const InstallWizardSettings = React.createClass({
 });
 
 const InstallWizard = React.createClass({
+  propTypes: {
+    onConfigured: React.PropTypes.func.isRequired
+  },
+
   mixins: [
     ApiMixin
   ],

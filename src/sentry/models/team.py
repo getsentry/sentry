@@ -14,13 +14,13 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.app import env
+from sentry.app import env, locks
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.utils.cache import Lock
+from sentry.utils.retries import TimedRetryPolicy
 
 
 class TeamManager(BaseManager):
@@ -113,8 +113,8 @@ class Team(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock_key = 'slug:team'
-            with Lock(lock_key):
+            lock = locks.get('slug:team', duration=5)
+            with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
             super(Team, self).save(*args, **kwargs)
         else:

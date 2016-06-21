@@ -93,7 +93,7 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
 
         file_list = ReleaseFile.objects.filter(
             release=release,
-        ).select_related('file', 'file__blob').order_by('name')
+        ).select_related('file').order_by('name')
 
         return self.paginate(
             request=request,
@@ -146,6 +146,8 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
         fileobj = request.FILES['file']
 
         full_name = request.DATA.get('name', fileobj.name)
+        if not full_name:
+            return Response({'detail': 'File name must be specified'}, status=400)
         name = full_name.rsplit('/', 1)[-1]
 
         headers = {

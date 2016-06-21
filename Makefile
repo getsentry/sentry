@@ -6,14 +6,14 @@ install-python:
 	pip install "setuptools>=0.9.8"
 	# order matters here, base package must install first
 	pip install -e .
-	pip install "file://`pwd`#egg=sentry[dev]"
+	pip install "file://`pwd`#egg=sentry[dev,dsym]"
 
 install-npm:
 	@echo "--> Installing Node dependencies"
 	npm install
 
 install-python-tests:
-	pip install "file://`pwd`#egg=sentry[dev,tests]"
+	pip install "file://`pwd`#egg=sentry[dev,tests,dsym]"
 
 develop-only: update-submodules install-python install-python-tests install-npm
 
@@ -21,7 +21,6 @@ develop: update-submodules setup-git develop-only install-python-tests
 	@echo ""
 
 dev-postgres: install-python
-	pip install "file://`pwd`#egg=sentry[postgres]"
 
 dev-docs:
 	pip install -r doc-requirements.txt
@@ -37,7 +36,8 @@ reset-db:
 setup-git:
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
-	cd .git/hooks && ln -sf ../../hooks/* ./
+	git config commit.template config/commit-template
+	cd .git/hooks && ln -sf ../../config/hooks/* ./
 	@echo ""
 
 build: locale
@@ -145,11 +145,11 @@ extract-api-docs:
 
 # Bases for all builds
 travis-upgrade-pip:
-	python -m pip install --upgrade pip==7.1.2
+	python -m pip install pip==8.1.1
 travis-setup-cassandra:
-	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.0.3
-	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.0.3
-travis-install-python: travis-upgrade-pip install-python-tests travis-setup-cassandra
+	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
+	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
+travis-install-python: travis-upgrade-pip install-python install-python-tests travis-setup-cassandra
 	python -m pip install codecov
 travis-noop:
 	@echo "nothing to do here."
@@ -160,23 +160,33 @@ travis-noop:
 travis-install-sqlite: travis-install-python
 travis-install-postgres: travis-install-python dev-postgres
 	psql -c 'create database sentry;' -U postgres
+travis-install-mysql: travis-install-python
+	pip install mysqlclient
+	echo 'create database sentry;' | mysql -uroot
 travis-install-js: install-npm
 travis-install-cli: travis-install-python
+travis-install-dist: travis-noop
 
-.PHONY: travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli
+.PHONY: travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
 
 # Lint steps
 travis-lint-sqlite: lint-python
 travis-lint-postgres: lint-python
+travis-lint-mysql: lint-python
 travis-lint-js: lint-js
 travis-lint-cli: travis-noop
+travis-lint-dist: travis-noop
 
-.PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-js travis-lint-cli
+.PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-js travis-lint-cli travis-lint-dist
 
 # Test steps
 travis-test-sqlite: test-python-coverage
 travis-test-postgres: test-python-coverage
+travis-test-mysql: test-python-coverage
 travis-test-js: test-js
 travis-test-ci: test-ci
+travis-test-dist:
+	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py sdist bdist_wheel
+	@ls -lh dist/
 
-.PHONY: travis-test-sqlite travis-test-postgres travis-test-js travis-test-cli
+.PHONY: travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-js travis-test-cli travis-test-dist

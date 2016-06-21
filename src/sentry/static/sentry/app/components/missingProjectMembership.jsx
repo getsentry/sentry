@@ -4,9 +4,12 @@ import AlertActions from '../actions/alertActions';
 import ApiMixin from '../mixins/apiMixin';
 import {t} from '../locale';
 
-const ERR_JOIN = 'There was an error while trying to join the team.';
-
 const MissingProjectMembership = React.createClass({
+  propTypes: {
+    organization: React.PropTypes.object.isRequired,
+    team: React.PropTypes.object.isRequired
+  },
+
   mixins: [
     ApiMixin
   ],
@@ -38,7 +41,10 @@ const MissingProjectMembership = React.createClass({
           loading: false,
           error: true
         });
-        AlertActions.addAlert(ERR_JOIN, 'error');
+        AlertActions.addAlert({
+            message: 'There was an error while trying to join the team.',
+            type: 'error'
+        });
       }
     });
   },

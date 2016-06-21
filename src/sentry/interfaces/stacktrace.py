@@ -262,11 +262,20 @@ class Frame(Interface):
         except AssertionError:
             raise InterfaceValidationError("Invalid value for 'in_app'")
 
+        instruction_offset = data.get('instruction_offset')
+        if instruction_offset is not None and \
+           not isinstance(instruction_offset, (int, long)):
+            raise InterfaceValidationError("Invalid value for 'instruction_offset'")
+
         kwargs = {
             'abs_path': trim(abs_path, 256),
             'filename': trim(filename, 256),
             'module': trim(module, 256),
             'function': trim(function, 256),
+            'package': trim(data.get('package'), 256),
+            'symbol_addr': trim(data.get('symbol_addr'), 16),
+            'instruction_addr': trim(data.get('instruction_addr'), 16),
+            'instruction_offset': instruction_offset,
             'in_app': in_app,
             'context_line': context_line,
             # TODO(dcramer): trim pre/post_context
@@ -347,6 +356,10 @@ class Frame(Interface):
             'filename': self.filename,
             'absPath': self.abs_path,
             'module': self.module,
+            'package': self.package,
+            'instructionAddr': self.instruction_addr,
+            'instructionOffset': self.instruction_offset,
+            'symbolAddr': self.symbol_addr,
             'function': self.function,
             'context': get_context(
                 lineno=self.lineno,
@@ -374,6 +387,7 @@ class Frame(Interface):
             })
             if is_url(self.data['sourcemap']):
                 data['mapUrl'] = self.data['sourcemap']
+
         return data
 
     def is_url(self):
@@ -422,10 +436,17 @@ class Frame(Interface):
             'context_line': self.context_line,
         }).strip('\n')
 
-    def get_culprit_string(self):
+    def get_culprit_string(self, platform=None):
+        if platform in ('objc', 'cocoa'):
+            return '%s (%s)' % (
+                self.function or '?',
+                self.package or '?',
+            )
         fileloc = self.module or self.filename
         if not fileloc:
             return ''
+        elif platform == 'javascript':
+            return '{}({})'.format(self.function or '?', fileloc)
         return '%s in %s' % (
             fileloc,
             self.function or '?',
@@ -488,6 +509,10 @@ class Stacktrace(Interface):
       notes below on implicity ``in_app`` behavior.
     ``vars``
       A mapping of variables which were available within this frame (usually context-locals).
+    ``package``
+      Name of the package or object file that the frame is contained in.  This
+      for instance can be the name of a DLL, .NET Assembly, jar file, object
+      file etc.
 
     >>> {
     >>>     "frames": [{
@@ -703,11 +728,11 @@ class Stacktrace(Interface):
 
         return '\n'.join(result)
 
-    def get_culprit_string(self):
+    def get_culprit_string(self, platform=None):
         default = None
         for frame in reversed(self.frames):
             if frame.in_app:
-                return frame.get_culprit_string()
+                return frame.get_culprit_string(platform=platform)
             elif default is None:
-                default = frame.get_culprit_string()
+                default = frame.get_culprit_string(platform=platform)
         return default

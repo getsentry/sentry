@@ -2,7 +2,7 @@ import $ from 'jquery';
 import React from 'react';
 import {Link, History} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
-import Gravatar from '../components/gravatar';
+import Avatar from '../components/avatar';
 import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -66,7 +66,7 @@ const GroupUserReports = React.createClass({
   getUserReportsUrl() {
     let params = this.props.params;
 
-    return `/${params.orgId}/${params.projectId}/settings/user-reports/`;
+    return `/${params.orgId}/${params.projectId}/settings/user-feedback/`;
   },
 
   render() {
@@ -81,7 +81,7 @@ const GroupUserReports = React.createClass({
 
       return (
         <li className="activity-note" key={itemIdx}>
-          <Gravatar email={item.email} size={64} className="avatar" />
+          <Avatar user={item} size={64} className="avatar" />
           <div className="activity-bubble">
             <TimeSince date={item.dateCreated} />
             <div className="activity-author">{item.name} <small>{item.email}</small></div>
@@ -108,7 +108,7 @@ const GroupUserReports = React.createClass({
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
         <p>{t('No user reports have been collected for this event.')}</p>
-        <p><Link to={this.getUserReportsUrl()}>{t('Learn how to integrate User Crash Reports')}</Link></p>
+        <p><Link to={this.getUserReportsUrl()}>{t('Learn how to integrate User Feedback')}</Link></p>
       </div>
     );
   }

@@ -2,7 +2,7 @@ import marked from 'marked';
 import React from 'react';
 
 import Duration from '../../components/duration';
-import Gravatar from '../../components/gravatar';
+import Avatar from '../../components/avatar';
 import {Link} from 'react-router';
 import MemberListStore from '../../stores/memberListStore';
 import TimeSince from '../../components/timeSince';
@@ -12,6 +12,12 @@ import {tct} from '../../locale';
 
 
 const ActivityItem = React.createClass({
+  propTypes: {
+    clipHeight: React.PropTypes.number,
+    defaultClipped: React.PropTypes.bool,
+    item: React.PropTypes.object.isRequired,
+    orgId: React.PropTypes.string.isRequired
+  },
 
   getDefaultProps() {
     return {
@@ -49,16 +55,19 @@ const ActivityItem = React.createClass({
 
     switch(item.type) {
       case 'note':
-        return tct('[author] commented on [link:an issue] in [project]', {
+        return tct('[author] commented on [link:an issue]', {
           author: author,
-          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/activity/#event_${item.id}`} />,
-          project: <Link to={`/${orgId}/${project.slug}/`}>{project.name}</Link>
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/activity/#event_${item.id}`} />
         });
       case 'set_resolved':
-        return tct('[author] marked [link:an issue] as resolved in [project]', {
+        return tct('[author] marked [link:an issue] as resolved', {
           author: author,
-          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />,
-          project: <Link to={`/${orgId}/${project.slug}/`}>{project.name}</Link>
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
+      case 'set_resolved_by_age':
+        return tct('[author] marked [link:an issue] as resolved due to age', {
+          author: author,
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
       case 'set_resolved_in_release':
         if (data.version) {
@@ -73,10 +82,9 @@ const ActivityItem = React.createClass({
           link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
       case 'set_unresolved':
-        return tct('[author] marked [link:an issue] as unresolved in [project]', {
+        return tct('[author] marked [link:an issue] as unresolved', {
           author: author,
-          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />,
-          project: <Link to={`/${orgId}/${project.slug}/`}>{project.name}</Link>
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
       case 'set_muted':
         if (data.snoozeDuration) {
@@ -108,10 +116,9 @@ const ActivityItem = React.createClass({
             link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
           });
         }
-        return tct('[author] marked [link:an issue] as a regression in [project]', {
+        return tct('[author] marked [link:an issue] as a regression', {
           author: author,
-          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />,
-          project: <Link to={`/${orgId}/${project.slug}/`}>{project.name}</Link>
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
       case 'create_issue':
         return tct('[author] linked [link:an issue] on [provider]', {
@@ -164,9 +171,8 @@ const ActivityItem = React.createClass({
           link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
       case 'release':
-        return tct('[author] released version [version] to [project]', {
+        return tct('[author] released version [version]', {
           author: author,
-          project: <Link to={`/${orgId}/${project.slug}/`}>{project.name}</Link>,
           version: <Version version={data.version} orgId={orgId} projectId={project.slug} />
         });
       default:
@@ -176,6 +182,7 @@ const ActivityItem = React.createClass({
 
   render() {
     let item = this.props.item;
+    let orgId = this.props.orgId;
 
     let bubbleClassName = 'activity-item-bubble';
     if (this.state.clipped) {
@@ -183,8 +190,8 @@ const ActivityItem = React.createClass({
     }
 
     let avatar = (item.user ?
-      <Gravatar email={item.user.email} size={64} className="avatar" /> :
-      <div className="avatar sentry"><span className="icon-sentry-logo"></span></div>);
+      <Avatar user={item.user} size={64} className="avatar" /> :
+      <div className="avatar sentry"><span className="icon-sentry-logo" /></div>);
 
     let author = {
       name: item.user ? item.user.name : 'Sentry',
@@ -203,8 +210,14 @@ const ActivityItem = React.createClass({
               </span>,
               item
             )}
-            <TimeSince date={item.dateCreated} />
             <div className={bubbleClassName} ref="activityBubble" dangerouslySetInnerHTML={{__html: noteBody}} />
+            <div className="activity-meta">
+              <Link
+                className="project"
+                to={`/${orgId}/${item.project.slug}/`}>{item.project.name}</Link>
+              <span className="bullet" />
+              <TimeSince date={item.dateCreated} />
+            </div>
           </div>
         </li>
       );
@@ -219,9 +232,15 @@ const ActivityItem = React.createClass({
               </span>,
               item
             )}
-            <TimeSince date={item.dateCreated} />
             <div className="activity-item-bubble">
               <a href={item.data.location}>{item.data.title}</a>
+            </div>
+            <div className="activity-meta">
+              <Link
+                className="project"
+                to={`/${orgId}/${item.project.slug}/`}>{item.project.name}</Link>
+              <span className="bullet" />
+              <TimeSince date={item.dateCreated} />
             </div>
           </div>
         </li>
@@ -237,7 +256,13 @@ const ActivityItem = React.createClass({
               </span>,
               item
             )}
-            <TimeSince date={item.dateCreated} />
+            <div className="activity-meta">
+              <Link
+                className="project"
+                to={`/${orgId}/${item.project.slug}/`}>{item.project.name}</Link>
+              <span className="bullet" />
+              <TimeSince date={item.dateCreated} />
+            </div>
           </div>
         </li>
       );

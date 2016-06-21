@@ -4,7 +4,6 @@ import mock
 import os
 
 from django.conf import settings
-from redis import StrictRedis
 
 
 def pytest_configure(config):
@@ -14,21 +13,29 @@ def pytest_configure(config):
     os.environ.setdefault('RECAPTCHA_TESTING', 'True')
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sentry.conf.server')
 
+    settings.SOUTH_TESTS_MIGRATE = os.environ.get('SENTRY_SOUTH_TESTS_MIGRATE', '1') == '1'
+
     if not settings.configured:
         # only configure the db if its not already done
-        test_db = os.environ.get('DB', 'sqlite')
+        test_db = os.environ.get('DB', 'postgres')
         if test_db == 'mysql':
             settings.DATABASES['default'].update({
                 'ENGINE': 'django.db.backends.mysql',
                 'NAME': 'sentry',
                 'USER': 'root',
             })
+            # mysql requires running full migration all the time
+            settings.SOUTH_TESTS_MIGRATE = True
         elif test_db == 'postgres':
             settings.DATABASES['default'].update({
                 'ENGINE': 'sentry.db.postgres',
                 'USER': 'postgres',
                 'NAME': 'sentry',
             })
+            # postgres requires running full migration all the time
+            # since it has to install stored functions which come from
+            # an actual migration.
+            settings.SOUTH_TESTS_MIGRATE = True
         elif test_db == 'sqlite':
             settings.DATABASES['default'].update({
                 'ENGINE': 'django.db.backends.sqlite3',
@@ -63,13 +70,8 @@ def pytest_configure(config):
     middleware[sudo] = 'sentry.testutils.middleware.SudoMiddleware'
     settings.MIDDLEWARE_CLASSES = tuple(middleware)
 
-    settings.SENTRY_OPTIONS['system.url-prefix'] = 'http://testserver'
-
     # enable draft features
-    settings.SENTRY_ENABLE_EMAIL_REPLIES = True
-
-    # disable error reporting by default
-    settings.SENTRY_REDIS_OPTIONS = {'hosts': {0: {'db': 9}}}
+    settings.SENTRY_OPTIONS['mail.enable-replies'] = True
 
     settings.SENTRY_ALLOW_ORIGIN = '*'
 
@@ -92,31 +94,59 @@ def pytest_configure(config):
         }
     }
 
-    settings.SOUTH_TESTS_MIGRATE = bool(os.environ.get('USE_SOUTH'))
+    if not hasattr(settings, 'SENTRY_OPTIONS'):
+        settings.SENTRY_OPTIONS = {}
+
+    settings.SENTRY_OPTIONS.update({
+        'redis.clusters': {
+            'default': {
+                'hosts': {
+                    0: {
+                        'db': 9,
+                    },
+                },
+            },
+        },
+        'mail.backend': 'django.core.mail.backends.locmem.EmailBackend',
+        'system.url-prefix': 'http://testserver',
+    })
 
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
     patcher = mock.patch('socket.getfqdn', return_value='localhost')
     patcher.start()
 
-    client = StrictRedis(db=9)
-    client.flushdb()
+    from sentry.runner.initializer import (
+        bootstrap_options, initialize_receivers, fix_south, bind_cache_to_option_store)
 
-    from sentry.runner.initializer import initialize_receivers, fix_south
+    bootstrap_options(settings)
     fix_south(settings)
+
+    bind_cache_to_option_store()
 
     initialize_receivers()
 
+    from sentry.utils.redis import clusters
+
+    with clusters.get('default').all() as client:
+        client.flushdb()
+
     # force celery registration
     from sentry.celery import app  # NOQA
+
+    # disable DISALLOWED_IPS
+    from sentry import http
+    http.DISALLOWED_IPS = set()
 
 
 def pytest_runtest_teardown(item):
     from sentry.app import tsdb
     tsdb.flush()
 
-    client = StrictRedis(db=9)
-    client.flushdb()
+    from sentry.utils.redis import clusters
+
+    with clusters.get('default').all() as client:
+        client.flushdb()
 
     from celery.task.control import discard_all
     discard_all()

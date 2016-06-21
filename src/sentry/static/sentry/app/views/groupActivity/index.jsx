@@ -4,7 +4,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
 
 import Duration from '../../components/duration';
-import Gravatar from '../../components/gravatar';
+import Avatar from '../../components/avatar';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
 import NoteContainer from '../../components/activity/noteContainer';
@@ -19,6 +19,9 @@ import {t, tn} from '../../locale';
 
 const GroupActivity = React.createClass({
   // TODO(dcramer): only re-render on group/activity change
+  propTypes: {
+    group: React.PropTypes.object
+  },
 
   mixins: [
     GroupState,
@@ -34,6 +37,10 @@ const GroupActivity = React.createClass({
         return t('%s left a comment', author);
       case 'set_resolved':
         return t('%s marked this issue as resolved', author);
+      case 'set_resolved_by_age':
+        return t('%(author)s marked this issue as resolved due to inactivity', {
+          author: author,
+        });
       case 'set_resolved_in_release':
         return (data.version ?
           t('%(author)s marked this issue as resolved in %(version)s', {
@@ -80,7 +87,7 @@ const GroupActivity = React.createClass({
           return t('%s assigned this event to themselves', author);
         } else {
           assignee = MemberListStore.getById(data.assignee);
-          if (assignee.email) {
+          if (assignee && assignee.email) {
             return t('%(author)s assigned this event to %(assignee)s', {
               author: author,
               assignee: assignee.email
@@ -136,7 +143,7 @@ const GroupActivity = React.createClass({
 
     let children = group.activity.map((item, itemIdx) => {
       let avatar = (item.user ?
-        <Gravatar email={item.user.email} size={64} className="avatar" /> :
+        <Avatar user={item.user} size={64} className="avatar" /> :
         <div className="avatar sentry"><span className="icon-sentry-logo"></span></div>);
 
       let author = {
@@ -174,7 +181,7 @@ const GroupActivity = React.createClass({
           <div className="activity-container">
             <ul className="activity">
               <li className="activity-note" key="activity-note">
-                <Gravatar email={me.email} size={64} className="avatar" />
+                <Avatar user={me} size={64} className="avatar" />
                 <div className="activity-bubble">
                   <NoteInput group={group} />
                 </div>

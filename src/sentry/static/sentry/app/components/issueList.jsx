@@ -9,6 +9,14 @@ import Pagination from './pagination';
 import {t} from '../locale';
 
 const IssueList = React.createClass({
+  propTypes: {
+    endpoint: React.PropTypes.string.isRequired,
+    query: React.PropTypes.object,
+    pagination: React.PropTypes.bool,
+    renderEmpty: React.PropTypes.func,
+    statsPeriod: React.PropTypes.string,
+  },
+
   mixins: [ApiMixin],
 
   getDefaultProps() {

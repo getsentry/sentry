@@ -30,6 +30,7 @@ class GroupTagKeySerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
+            'id': str(obj.id),
             'name': attrs['name'],
             'key': attrs['key'],
             'uniqueValues': obj.values_seen,

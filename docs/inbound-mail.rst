@@ -32,17 +32,17 @@ Create a new route in mailgun::
 
 Configure Sentry with the appropriate settings:
 
-.. code-block:: python
+.. code-block:: yaml
 
     # Your Mailgun API key (used to verify incoming webhooks)
-    MAILGUN_API_KEY = ''
+    mail.mailgun-api-key: ''
 
     # Set the SMTP hostname to your configured inbound domain
-    SENTRY_SMTP_HOSTNAME = 'inbound.sentry.example.com'
+    mail.reply-hostname: 'inbound.sentry.example.com'
 
     # Inform Sentry to send the appropriate mail headers to enable
     # incoming replies
-    SENTRY_ENABLE_EMAIL_REPLIES = True
+    mail.enable-replies: true
 
 
 That's it! You'll now be able to respond to activity notifications on
@@ -63,7 +63,7 @@ Add another supervisor config to run the Sentry ``smtp`` service::
 
     [program:sentry-inbound-mail]
     directory=/www/sentry/
-    command=/www/sentry/bin/sentry start smtp
+    command=/www/sentry/bin/sentry run smtp
     autostart=true
     autorestart=true
     stdout_logfile syslog
@@ -102,14 +102,14 @@ Configure an Nginx route as an SMTP mail proxy::
 
 And finally, update Sentry with the appropriate settings:
 
-.. code-block:: python
+.. code-block:: yaml
 
     # Set the SMTP hostname to your configured inbound domain
-    SENTRY_SMTP_HOSTNAME = 'inbound.sentry.example.com'
+    mail.reply-hostname: 'inbound.sentry.example.com'
 
     # Inform Sentry to send the appropriate mail headers to enable
     # incoming replies
-    SENTRY_ENABLE_EMAIL_REPLIES = True
+    mail.enable-replies: true
 
 That's it! You'll now be able to respond to activity notifications on
 errors via your email client.

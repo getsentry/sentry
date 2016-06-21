@@ -1,26 +1,22 @@
-import {_} from 'underscore';
-
-const catalogs = (function() {
-  let info = require('../../../locale/catalogs.json');
-  return info.supported_locales;
-})();
-
-export const translations = (function() {
-  let ctx = require.context('../../../locale/', true, /\.po$/);
-  let rv = {};
-  ctx.keys().forEach((translation) => {
-    let langCode = translation.match(/([a-zA-Z_]+)/)[1];
-    if (_.contains(catalogs, langCode)) {
-      rv[langCode] = ctx(translation);
-    }
-  });
-  return rv;
-})();
+// zh-cn => zh_CN
+function convertToDjangoLocaleFormat(language) {
+  let [left, right] = language.split('-');
+  return left + (
+    right ? '_' + right.toUpperCase() : ''
+  );
+}
 
 export function getTranslations(language) {
-  return translations[language] || translations.en;
+  language = convertToDjangoLocaleFormat(language);
+  return require('sentry-locale/' + language + '/LC_MESSAGES/django.po');
 }
 
 export function translationsExist(language) {
-  return translations[language] !== undefined;
+  language = convertToDjangoLocaleFormat(language);
+  try {
+    require('sentry-locale/' + language + '/LC_MESSAGES/django.po');
+  } catch (e) {
+    return false;
+  }
+  return true;
 }

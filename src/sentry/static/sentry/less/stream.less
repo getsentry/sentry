@@ -205,7 +205,11 @@
     background: #fff;
     .transition(all .4s ease-in-out);
 
-    .icon-bookmark, .icon-soundoff {
+    .short-id {
+      font-weight: bold;
+    }
+
+    .icon-star-solid, .icon-soundoff {
       padding-right: 5px;
       font-size: 95%;
       position: relative;
@@ -213,11 +217,10 @@
       width: auto;
     }
 
-    .icon-bookmark {
-      font-size: 14px;
-      top: 2px;
+    .icon-star-solid {
+      font-size: 15px;
       display: none;
-      color: @purple;
+      color: @yellow-orange;
       overflow: hidden;
     }
 
@@ -232,7 +235,7 @@
     }
 
     &.isBookmarked {
-      .icon-bookmark {
+      .icon-star-solid {
         display: inline-block;
       }
     }
@@ -293,6 +296,16 @@
       }
     }
 
+    &.type-default {
+      .event-assignee, .group-list, .event-graph {
+        padding-top: 20px;
+      }
+
+      .event-count, .event-users {
+        padding-top: 22px;
+      }
+    }
+
     &:first-child {
       .event-cell{
         border-top: 0;
@@ -337,6 +350,7 @@
       margin: 0 0 5px;
       font-weight: 600;
 
+      .event-type,
       .error-level {
         position: absolute;
         left: -6px;
@@ -352,6 +366,10 @@
         float: left;
         border-radius: 2px;
         margin-right: 5px;
+      }
+
+      em {
+        font-style: normal;
       }
 
       a {
@@ -667,7 +685,7 @@
     position: relative;
 
     h3 {
-      .icon-bookmark, .icon-soundoff {
+      .icon-star-solid, .icon-soundoff {
         padding-right: 5px;
         font-size: 12px;
         position: relative;
@@ -675,10 +693,11 @@
         width: auto;
       }
 
-      .icon-bookmark {
-        top: 1px;
+      .icon-star-solid {
+        font-size: 14px;
+        top: -1px;
         display: none;
-        color: @purple;
+        color: @yellow-orange;
         overflow: hidden;
       }
 
@@ -690,10 +709,14 @@
         overflow: hidden;
         padding-left: 1px;
       }
+
+      em {
+        font-style: normal;
+      }
     }
 
     &.isBookmarked {
-      h3 .icon-bookmark {
+      h3 .icon-star-solid {
         display: inline-block;
       }
     }
@@ -711,6 +734,7 @@
       }
     }
 
+    .event-type,
     .error-level {
       .square(12px);
       border-radius: 50%;
@@ -1175,6 +1199,12 @@
 @media(max-width: 767px) {
   .event-users, .event-count {
     padding-top: 33px !important;
+  }
+
+  .type-default {
+    .event-users, .event-count {
+      padding-top: 22px !important;
+    }
   }
 
   .search {

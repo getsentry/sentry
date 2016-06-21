@@ -33,6 +33,8 @@ def get_revision():
     :returns: Revision number of this branch/checkout, if available. None if
         no revision number can be determined.
     """
+    if 'SENTRY_BUILD' in os.environ:
+        return os.environ['SENTRY_BUILD']
     package_dir = os.path.dirname(__file__)
     checkout_dir = os.path.normpath(os.path.join(package_dir, os.pardir, os.pardir))
     path = os.path.join(checkout_dir, '.git')
