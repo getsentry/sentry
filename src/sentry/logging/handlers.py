@@ -19,9 +19,8 @@ class StructLogHandler(logging.StreamHandler):
         }
         if record.exc_info:
             kwargs['exc_info'] = record.exc_info
-
-        if isinstance(record.args, dict):
-            kwargs.update(record.args)
+        if record.args:
+            kwargs['args'] = record.args
 
         # HACK(JTCunning): Calling structlog.log instead of the corresponding level
         # methods steps on the toes of django client loggers and their testing components.
