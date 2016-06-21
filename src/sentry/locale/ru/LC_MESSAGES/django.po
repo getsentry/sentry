@@ -437,7 +437,7 @@ msgstr "Запрос"
 
 #: interfaces/stacktrace.py:683
 msgid "Stacktrace (most recent call first):"
-msgstr "Stacktrace (последний вызов серху):"
+msgstr "Stacktrace (последний вызов сверху):"
 
 #: interfaces/stacktrace.py:685
 msgid "Stacktrace (most recent call last):"
