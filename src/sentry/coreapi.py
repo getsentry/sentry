@@ -25,8 +25,8 @@ from time import time
 from sentry.app import env
 from sentry.cache import default_cache
 from sentry.constants import (
-    CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_TAG_VALUE_LENGTH,
-    MAX_TAG_KEY_LENGTH, VALID_PLATFORMS
+    CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS_MAP,
+    MAX_TAG_VALUE_LENGTH, MAX_TAG_KEY_LENGTH, VALID_PLATFORMS
 )
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
@@ -37,8 +37,6 @@ from sentry.utils.auth import parse_auth_header
 from sentry.utils.compat import StringIO
 from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float, is_event_id
-
-LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
 
 
 class APIError(Exception):
@@ -620,7 +618,7 @@ class ClientApiHelper(object):
         if isinstance(level, six.string_types) and not level.isdigit():
             # assume it's something like 'warning'
             try:
-                data['level'] = LOG_LEVEL_REVERSE_MAP[level]
+                data['level'] = LOG_LEVELS_MAP[level]
             except KeyError as e:
                 self.log.debug(
                     'Discarded invalid logger value: %s', level)
@@ -629,7 +627,7 @@ class ClientApiHelper(object):
                     'name': 'level',
                     'value': level,
                 })
-                data['level'] = LOG_LEVEL_REVERSE_MAP.get(
+                data['level'] = LOG_LEVELS_MAP.get(
                     DEFAULT_LOG_LEVEL, DEFAULT_LOG_LEVEL)
 
         if data.get('release'):
