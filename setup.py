@@ -111,7 +111,6 @@ install_requires = [
     'ipaddr>=2.1.11,<2.2.0',
     'kombu==3.0.30',
     'lxml>=3.4.1',
-    'msgpack-python>=0.4,<0.5',
     'mock>=0.8.0,<1.1',
     'petname>=1.7,<1.8',
     'Pillow>=3.2.0,<3.3.0',
