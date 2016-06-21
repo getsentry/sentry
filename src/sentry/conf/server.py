@@ -565,7 +565,7 @@ LOGGING = {
         },
         'multiprocessing': {
             'handlers': ['console'],
-            'level': 'CRIT',
+            'level': 'CRITICAL',
             'propagate': False,
         },
         'celery': {
