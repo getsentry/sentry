@@ -28,8 +28,12 @@ from django.core.urlresolvers import reverse
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase
 from django.utils.importlib import import_module
+from django.utils.text import slugify
 from exam import before, fixture, Exam
 from rest_framework.test import APITestCase as BaseAPITestCase
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions
+from urlparse import urlparse
 
 from sentry import auth
 from sentry.auth.providers.dummy import DummyProvider
@@ -442,17 +446,94 @@ class CliTestCase(TestCase):
         return self.runner.invoke(self.command, args, obj={})
 
 
-@pytest.mark.usefixtures('browser_class', 'percy_class')
+@pytest.mark.usefixtures('browser_class', 'percy_class', 'screenshots_path_class')
 class AcceptanceTestCase(LiveServerTestCase):
     # Use class setup/teardown to hold Selenium and Percy state across all acceptance tests.
     # For Selenium, this is done for performance to re-use the same browser across tests.
     # For Percy, this is done to call initialize and then finalize at the very end after all tests.
+    def save_session(self):
+        # XXX(dcramer): "hit a url before trying to set cookies"
+        if not hasattr(self.browser, '_has_initialized_cookie_store'):
+            self.browser.get(self.route('/'))
+            self.browser._has_initialized_cookie_store = True
 
-    # Login helper.
-    def login(self, username, password, browser=None):
-        if browser is None:
-            browser = self.browser
-        browser.get(self.live_server_url)
-        browser.find_element_by_id('id_username').send_keys(username)
-        browser.find_element_by_id('id_password').send_keys(password)
-        browser.find_element_by_xpath("//button[contains(text(), 'Login')]").click()
+        self.session.save()
+
+        # TODO(dcramer): this should be escaped, but idgaf
+        cookie_data = {
+            'name': settings.SESSION_COOKIE_NAME,
+            'path': '/',
+            'domain': urlparse(self.live_server_url).hostname,
+            'expires': 'Tue, 20 Jun 2025 19:07:44 GMT',
+            'value': self.session.session_key,
+        }
+
+        # XXX(dcramer): PhantomJS does not let us add cookies with the native
+        # selenium API because....
+        # http://stackoverflow.com/questions/37103621/adding-cookies-working-with-firefox-webdriver-but-not-in-phantomjs
+        self.browser.execute_script("document.cookie = '{name}={value}; path={path}; domain={domain}; expires={expires}';\n".format(
+            **cookie_data
+        ))
+
+    def route(self, path, *args, **kwargs):
+        """
+        Return the absolute URI for a given route in Sentry.
+        """
+        return '{}/{}'.format(self.live_server_url, path.strip('/').format(
+            *args, **kwargs
+        ))
+
+    def wait_until(self, selector, timeout=10):
+        """
+        Waits until ``selector`` is found in the browser, or until ``timeout``
+        is hit, whichever happens first.
+        """
+        from selenium.webdriver.common.by import By
+
+        try:
+            WebDriverWait(self.browser, timeout).until(
+                expected_conditions.presence_of_element_located(
+                    (By.CSS_SELECTOR, selector)
+                )
+            )
+        except Exception:
+            print(self.browser.current_url)
+            self.snapshot('wait failed'.format(selector))
+            raise
+
+        return self
+
+    def wait_until_not(self, selector, timeout=10):
+        """
+        Waits until ``selector`` is NOT found in the browser, or until
+        ``timeout`` is hit, whichever happens first.
+        """
+        from selenium.webdriver.common.by import By
+
+        try:
+            WebDriverWait(self.browser, timeout).until_not(
+                expected_conditions.presence_of_element_located(
+                    (By.CSS_SELECTOR, selector)
+                )
+            )
+        except Exception:
+            print(self.browser.current_url)
+            self.snapshot('wait failed'.format(selector))
+            raise
+
+        return self
+
+    def snapshot(self, name):
+        """
+        Capture a screenshot of the current state of the page. Screenshots
+        are captured both locally (in ``cls.screenshots_path``) as well as
+        with Percy (when enabled).
+        """
+        path = os.path.join(
+            self.screenshots_path,
+            slugify(unicode(name)) + '.png',
+        )
+        print('Saving snapshot {}'.format(path))
+        self.browser.save_screenshot(path)
+        self.percy.snapshot(name=name)
+        return self
