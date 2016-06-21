@@ -1,5 +1,7 @@
-Installation
-============
+Installation w/ Python
+======================
+
+.. Note:: This method of installation is deprecated in favor of :doc:`Docker <../docker/index>`.
 
 This guide will step you through setting up a Python-based virtualenv,
 installing the required packages, and configuring the basic web service.
@@ -15,55 +17,10 @@ Some basic prerequisites which you'll need in order to run Sentry:
 * ``python-setuptools``, ``python-pip``, ``python-dev``, ``libxslt1-dev``,
   ``gcc``, ``libffi-dev``, ``libjpeg-dev``, ``libxml2-dev``, ``libxslt-dev``,
   ``libyaml-dev``
-* `PostgreSQL <http://www.postgresql.org/>`_
-* `Redis <http://redis.io>`_ (the minimum version requirement is 2.8.9, but 2.8.18, 3.0, or newer are recommended)
-
-  * If running Ubuntu < 15.04, you'll need to install from a different PPA.
-    We recommend `chris-lea/redis-server <https://launchpad.net/~chris-lea/+archive/ubuntu/redis-server>`_
-* `Nginx <http://nginx.org>`_ (``nginx-full``)
-* A dedicated domain to host Sentry on (i.e. `sentry.yourcompany.com`).
 
 If you're building from source you'll also need:
 
 * Node.js 0.12 or newer.
-
-Hardware
---------
-
-Sentry provides a number of mechanisms to scale its capacity out
-horizontally, however there is still a primary SPOF at the database level.
-In an HA setup, the database is only utilized for event indexing and basic
-data storage, and becomes much less of a capacity concern (see also
-:doc:`nodestore`).
-
-We don't have any real numbers to tell you what kind of hardware you're
-going to need, but we'll help you make your decision based on existing
-usage from real customers.
-
-If you're looking for an HA, and high throughput setup, you're going to
-need to setup a fairly complex cluster of machines, and utilize all of
-Sentry's advanced configuration options.  This means you'll need Postgres,
-Riak, Redis, Memcached, and RabbitMQ.  It's very rare you'd need this
-complex of a cluster, and the primary usecase for this is for the
-Hosted Sentry on `getsentry.com <https://getsentry.com/>`_.
-
-For more typical, but still fairly high throughput setups, you can run off
-of a single machine as long as it has reasonable IO (ideally SSDs), and a
-good amount of memory.
-
-The main things you need to consider are:
-
-- TTL on events (how long do you need to keep historical data around)
-- Average event throughput
-- How many events get grouped together (which means they get sampled)
-
-At a point, getsentry.com was processing approximately 4 million events a
-day. A majority of this data is stored for 90 days, which accounted for
-around 1.5TB of SSDs. Web and worker nodes were commodity (8GB-12GB RAM,
-cheap SATA drives, 8 cores), the only two additional nodes were a
-dedicated RabbitMQ and Postgres instance (both on SSDs, 12GB-24GB of
-memory). In theory, given a single high-memory machine, with 16+ cores,
-and SSDs, you could handle the entirety of the given data set.
 
 Setting up an Environment
 -------------------------
@@ -243,9 +200,9 @@ arguments to the ``Cluster`` constructor. A more thorough discussion of the
 availabile configuration parameters can be found at the `rb GitHub repository
 <https://github.com/getsentry/rb>`_.
 
-See the individual documentation for :doc:`the queue <queue/>`,
-:doc:`update buffers <buffer>`, :doc:`quotas <throttling>`, and
-:doc:`time-series storage <tsdb>` for more details.
+See the individual documentation for :doc:`the queue <../../queue/>`,
+:doc:`update buffers <../../buffer>`, :doc:`quotas <../../throttling>`, and
+:doc:`time-series storage <../../tsdb>` for more details.
 
 Configure Outbound Mail
 -----------------------
@@ -328,7 +285,7 @@ in addition to the web service workers:
 
   SENTRY_CONF=/etc/sentry sentry run worker
 
-See :doc:`queue` for more details on configuring workers.
+See :doc:`../../queue` for more details on configuring workers.
 
 .. note:: `Celery <http://celeryproject.org/>`_ is an open source task
           framework for Python.
@@ -355,19 +312,6 @@ normal conditions you won't be able to bind to port 80. To get around this
 (and to avoid running Sentry as a privileged user, which you shouldn't),
 we recommend you setup a simple web proxy.
 
-Proxying with Apache
-~~~~~~~~~~~~~~~~~~~~
-
-Apache requires the use of mod_proxy for forwarding requests::
-
-    ProxyPass / http://localhost:9000/
-    ProxyPassReverse / http://localhost:9000/
-    ProxyPreserveHost On
-    RequestHeader set X-Forwarded-Proto "https" env=HTTPS
-
-You will need to enable ``headers``, ``proxy``, and ``proxy_http`` apache
-modules to use these settings.
-
 Proxying with Nginx
 ~~~~~~~~~~~~~~~~~~~
 
@@ -382,7 +326,7 @@ You'll use the builtin HttpProxyModule within Nginx to handle proxying::
       proxy_set_header   X-Forwarded-Proto $scheme;
     }
 
-See :doc:`nginx` for more details on using Nginx.
+See :doc:`../../nginx` for more details on using Nginx.
 
 Enabling SSL
 ~~~~~~~~~~~~~
@@ -532,4 +476,4 @@ What's Next?
 ------------
 
 At this point you should have a fully functional installation of Sentry. You
-may want to explore :doc:`various plugins <plugins>` available.
+may want to explore :doc:`various plugins <../../plugins>` available.
