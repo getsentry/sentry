@@ -569,6 +569,9 @@ LOGGING = {
             'propagate': False,
         },
         'celery': {
+            'level': 'WARN',
+        },
+        'celery.worker.job': {
             'handlers': ['console'],
             'level': 'ERROR',
             'propagate': False,
