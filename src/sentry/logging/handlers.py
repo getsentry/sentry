@@ -38,8 +38,9 @@ class StructLogHandler(logging.StreamHandler):
         }
         if record.exc_info:
             kwargs['exc_info'] = record.exc_info
+
         if record.args:
-            kwargs['args'] = record.args
+            kwargs.update(flatten_args(record.args))
 
         # HACK(JTCunning): Calling structlog.log instead of the corresponding level
         # methods steps on the toes of django client loggers and their testing components.
@@ -48,3 +49,30 @@ class StructLogHandler(logging.StreamHandler):
             log(record.msg, **kwargs)
         else:
             super(StructLogHandler, self).emit(record)
+
+
+_plain_types = (basestring, int, long, bool, type(None))
+
+
+def flatten_args(args):
+    out = {}
+
+    if isinstance(args, _plain_types):
+        args = [args]
+
+    if isinstance(args, dict):
+        for k, v in args.iteritems():
+            if isinstance(v, _plain_types):
+                out['args.' + k] = v
+            else:
+                out['args.' + k] = repr(v)
+    elif isinstance(args, (list, tuple)):
+        for i, v in enumerate(args):
+            if isinstance(v, _plain_types):
+                out['args.' + str(i)] = v
+            else:
+                out['args.' + str(i)] = repr(v)
+    else:
+        out['args.0'] = repr(args)
+
+    return out
