@@ -11,7 +11,7 @@ const ClippedBox = React.createClass({
 
   getDefaultProps() {
     return {
-      defaultClipped: false,
+      defaultClipped: true,
       clipHeight: 200
     };
   },
