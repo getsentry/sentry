@@ -84,7 +84,7 @@ const EventEntries = React.createClass({
     });
 
     return (
-      <div>
+      <div className="entries">
         {evt.userReport &&
           <EventUserReport
             group={group}
