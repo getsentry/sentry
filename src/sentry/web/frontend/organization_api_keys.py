@@ -40,22 +40,25 @@ class OrganizationApiKeysView(OrganizationView):
             return HttpResponseRedirect(redirect_uri)
 
         elif request.POST.get('op') == 'removekey':
-            key = ApiKey.objects.get(
-                id=request.POST.get('kid'),
-                organization=organization,
-            )
+            try:
+                key = ApiKey.objects.get(
+                    id=request.POST.get('kid'),
+                    organization=organization,
+                )
+            except ApiKey.DoesNotExist:
+                pass
+            else:
+                audit_data = key.get_audit_log_data()
 
-            audit_data = key.get_audit_log_data()
+                key.delete()
 
-            key.delete()
-
-            self.create_audit_entry(
-                request,
-                organization=organization,
-                target_object=key.id,
-                event=AuditLogEntryEvent.APIKEY_REMOVE,
-                data=audit_data,
-            )
+                self.create_audit_entry(
+                    request,
+                    organization=organization,
+                    target_object=key.id,
+                    event=AuditLogEntryEvent.APIKEY_REMOVE,
+                    data=audit_data,
+                )
 
             return HttpResponseRedirect(request.path)
 
