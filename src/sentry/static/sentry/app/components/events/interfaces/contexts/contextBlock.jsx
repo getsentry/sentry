@@ -35,7 +35,7 @@ const ContextBlock = React.createClass({
 
     let extraData = [];
     for (let key in this.props.data) {
-      if (key !== 'type') {
+      if (key !== 'type' && key !== 'title') {
         extraData.push([key, this.props.data[key]]);
       }
     }
