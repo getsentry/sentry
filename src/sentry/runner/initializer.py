@@ -154,6 +154,7 @@ def configure_structlog():
     """
     Make structlog comply with all of our options.
     """
+    import logging
     import structlog
     from sentry import options
     from sentry.logging import LoggingFormat
@@ -186,6 +187,15 @@ def configure_structlog():
         kwargs['processors'].append(JSONRenderer())
 
     structlog.configure(**kwargs)
+
+    lvl = options.get('system.logging-level')
+    if lvl in logging._levelNames:
+        from sentry.conf.server import LOGGING as base_dict
+        logging_dict = base_dict
+        for logger in logging_dict['loggers'].keys():
+            logging_dict['loggers'][logger]['level'] = lvl
+
+        logging.config.dictConfig(logging_dict)
 
 
 def initialize_app(config, skip_backend_validation=False):

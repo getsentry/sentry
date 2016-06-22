@@ -28,6 +28,7 @@ register('system.secret-key', flags=FLAG_NOSTORE)
 register('system.url-prefix', ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register('system.root-api-key', flags=FLAG_PRIORITIZE_DISK)
 register('system.logging-format', default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
+register('system.logging-level', default=None, flags=FLAG_PRIORITIZE_DISK)
 
 # Redis
 register(
