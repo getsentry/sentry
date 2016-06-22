@@ -32,6 +32,8 @@ class JSONRenderer(object):
 class StructLogHandler(logging.StreamHandler):
     def emit(self, record, logger=get_logger()):
         kwargs = {
+            'level': record.levelno,
+            'event': record.msg,
             'name': record.name,
         }
         if record.exc_info:
@@ -48,11 +50,4 @@ class StructLogHandler(logging.StreamHandler):
             else:
                 kwargs['positional_args'] = (record.args,)
 
-        # HACK(JTCunning): Calling structlog.log instead of the corresponding level
-        # methods steps on the toes of django client loggers and their testing components.
-        try:
-            log = getattr(logger, logging.getLevelName(record.levelno).lower())
-        except AttributeError:
-            super(StructLogHandler, self).emit(record)
-        else:
-            log(record.msg, **kwargs)
+        logger.log(**kwargs)

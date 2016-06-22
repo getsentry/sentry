@@ -29,31 +29,15 @@ def make_logrecord(**extra):
     return logging.LogRecord(**kwargs)
 
 
-def test_emit_basic(handler, logger):
-    record = make_logrecord()
+@pytest.mark.parametrize('record,out', (
+    ({}, {}),
+    ({'msg': '%s', 'args': (1,)}, {'event': '%s', 'positional_args': (1,)}),
+    ({'args': ({'a': 1},)}, {'positional_args': ({'a': 1},)}),
+    ({'exc_info': True}, {'exc_info': True}),
+))
+def test_emit(record, out, handler, logger):
+    record = make_logrecord(**record)
     handler.emit(record, logger=logger)
-    logger.info.assert_called_once_with('msg', name='name')
-
-
-def test_emit_with_args(handler, logger):
-    record = make_logrecord(
-        msg='%s',
-        args=(1,),
-    )
-    handler.emit(record, logger=logger)
-    logger.info.assert_called_once_with('%s', name='name', positional_args=(1,))
-
-
-def test_emit_with_dict_arg(handler, logger):
-    record = make_logrecord(
-        msg='%s',
-        args=({'a': 1},),
-    )
-    handler.emit(record, logger=logger)
-    logger.info.assert_called_once_with('%s', name='name', positional_args=({'a': 1},))
-
-
-def test_emit_with_exc_info(handler, logger):
-    record = make_logrecord(exc_info={'a': 1})
-    handler.emit(record, logger=logger)
-    logger.info.assert_called_once_with('msg', name='name', exc_info={'a': 1})
+    expected = dict(level=logging.INFO, event='msg', name='name')
+    expected.update(out)
+    logger.log.assert_called_once_with(**expected)
