@@ -1719,7 +1719,11 @@ div.commands {
   padding: 16px 20px 1px;
   border-top: 1px solid #f1f2f3;
   .transition(all 5s ease-in-out);
-  max-height: 50000px;
+
+  &.revealed {
+    /* For "Show More" animation */
+    max-height: 50000px;
+  }
 
   &:first-of-type {
     margin-top: -20px;
@@ -1731,7 +1735,6 @@ div.commands {
   }
 
   .clip-fade {
-    display: none;
     position: absolute;
     left: 0;
     right: 0;
@@ -1743,10 +1746,6 @@ div.commands {
   }
 
   &.clipped {
-    .clip-fade {
-      display: block;
-    }
-
     max-height: 200px;
     overflow: hidden;
   }
