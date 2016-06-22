@@ -129,7 +129,7 @@ install_requires = [
     'South==1.0.1',
     'toronado>=0.0.4,<0.1.0',
     'ua-parser>=0.6.1,<0.8.0',
-    'urllib3>=1.14,<1.17', # JLF - VersionConflict
+    'urllib3>=1.15.1,<1.17', # JLF - VersionConflict
     'uwsgi>2.0.0,<2.1.0',
     'rb>=1.4.0,<2.0.0',
 ]
