@@ -19,6 +19,7 @@ from u2flib_server import jsapi as u2f_jsapi
 from cryptography.exceptions import InvalidSignature, InvalidKey
 
 from django.db import models
+from django.core.cache import cache
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
@@ -340,9 +341,32 @@ class OtpMixin(object):
     def make_otp(self):
         return TOTP(self.secret)
 
+    def _get_otp_counter_cache_key(self, counter):
+        if self.authenticator is not None:
+            return 'used-otp-counters:%s:%s' % (
+                self.authenticator.user.id,
+                counter,
+            )
+
+    def check_otp_counter(self, counter):
+        cache_key = self._get_otp_counter_cache_key(counter)
+        return cache_key is None or cache.get(cache_key) != '1'
+
+    def mark_otp_counter_used(self, counter):
+        cache_key = self._get_otp_counter_cache_key(counter)
+        if cache_key is not None:
+            # Mark us used for three windows
+            cache.set(cache_key, '1', timeout=120)
+
     def validate_otp(self, otp):
         otp = otp.strip().replace('-', '').replace(' ', '')
-        return self.make_otp().verify(otp)
+        used_counter = self.make_otp().verify(
+            otp, return_counter=True,
+            check_counter_func=self.check_otp_counter)
+        if used_counter is not None:
+            self.mark_otp_counter_used(used_counter)
+            return True
+        return False
 
 
 @register_authenticator

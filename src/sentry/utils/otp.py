@@ -46,9 +46,10 @@ class TOTP(object):
         self.interval = interval
         self.default_window = default_window
 
-    def generate_otp(self, ts=None, offset=0):
-        ts = _get_ts(ts)
-        counter = int(ts) // self.interval + offset
+    def generate_otp(self, ts=None, offset=0, counter=None):
+        if counter is None:
+            ts = _get_ts(ts)
+            counter = int(ts) // self.interval + offset
         h = bytearray(hmac.HMAC(
             base64.b32decode(self.secret.encode('ascii'), casefold=True),
             _pack_int(counter),
@@ -60,13 +61,24 @@ class TOTP(object):
         str_code = str(code % 10 ** self.digits)
         return ('0' * (self.digits - len(str_code))) + str_code
 
-    def verify(self, otp, ts=None, window=None):
+    def verify(self, otp, ts=None, window=None, return_counter=False,
+               check_counter_func=None):
         ts = _get_ts(ts)
         if window is None:
             window = self.default_window
         for i in xrange(-window, window + 1):
-            if constant_time_compare(otp, self.generate_otp(ts, i)):
+            counter = int(ts) // self.interval + i
+            if constant_time_compare(otp, self.generate_otp(counter=counter)):
+                # Check for blacklisted counters after the constant time
+                # compare
+                if check_counter_func is not None \
+                   and not check_counter_func(counter):
+                    continue
+                if return_counter:
+                    return counter
                 return True
+        if return_counter:
+            return None
         return False
 
     def get_provision_url(self, user, issuer=None):
