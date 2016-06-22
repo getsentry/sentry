@@ -178,7 +178,7 @@ def percy(request, browser):
 
 
 @pytest.fixture(scope='session')
-def browser(request):
+def browser(request, live_server):
     # Initialize Selenium.
     # NOTE: this relies on the phantomjs binary packaged from npm to be in the right
     # location in node_modules.
@@ -199,6 +199,12 @@ def browser(request):
 
     request.addfinalizer(fin)
     return browser
+
+
+@pytest.fixture(scope='class')
+def live_server_class(request, live_server):
+    request.cls.live_server = live_server
+    request.cls.live_server_url = live_server.url
 
 
 @pytest.fixture(scope='class')
@@ -227,6 +233,8 @@ def percy_class(request, percy):
 def reset_browser_session(request):
     if not hasattr(request, 'browser'):
         return
+
+    browser = request.browser
 
     browser.delete_all_cookies()
     browser.get('about:blank')

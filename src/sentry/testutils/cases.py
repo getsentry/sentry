@@ -10,7 +10,8 @@ from __future__ import absolute_import
 
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'AuthProviderTestCase',
-    'RuleTestCase', 'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'LiveServerTestCase', 'AcceptanceTestCase',
+    'RuleTestCase', 'PermissionTestCase', 'PluginTestCase', 'CliTestCase',
+    'AcceptanceTestCase',
 )
 
 import base64
@@ -26,7 +27,7 @@ from django.contrib.auth import login
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.http import HttpRequest
-from django.test import TestCase, TransactionTestCase, LiveServerTestCase
+from django.test import TestCase, TransactionTestCase
 from django.utils.importlib import import_module
 from django.utils.text import slugify
 from exam import before, fixture, Exam
@@ -250,10 +251,6 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
     pass
 
 
-class LiveServerTestCase(BaseTestCase, LiveServerTestCase):
-    pass
-
-
 class APITestCase(BaseTestCase, BaseAPITestCase):
     pass
 
@@ -446,14 +443,17 @@ class CliTestCase(TestCase):
         return self.runner.invoke(self.command, args, obj={})
 
 
-@pytest.mark.usefixtures('browser_class', 'percy_class', 'screenshots_path_class')
-class AcceptanceTestCase(LiveServerTestCase):
+@pytest.mark.usefixtures(
+    'browser_class', 'live_server_class', 'percy_class',
+    'screenshots_path_class'
+)
+class AcceptanceTestCase(TransactionTestCase):
     # Use class setup/teardown to hold Selenium and Percy state across all acceptance tests.
     # For Selenium, this is done for performance to re-use the same browser across tests.
     # For Percy, this is done to call initialize and then finalize at the very end after all tests.
     def save_session(self):
         # XXX(dcramer): "hit a url before trying to set cookies"
-        if not hasattr(self.browser, '_has_initialized_cookie_store'):
+        if not getattr(self.browser, '_has_initialized_cookie_store', False):
             self.browser.get(self.route('/'))
             self.browser._has_initialized_cookie_store = True
 
