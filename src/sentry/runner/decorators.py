@@ -44,11 +44,12 @@ def log_level_option(f):
     @click.pass_context
     @click.option('--loglevel', '-l', default=None,
         help='Global logging level. Use wisely.',
+        envvar='SENTRY_LOG_LEVEL',
         type=CaseInsensitiveChoice(LOG_LEVELS))
     def inner(ctx, *args, **kwargs):
         level = kwargs.pop('loglevel', None)
         if level:
             from os import environ
-            environ['SENTRY_LOGGING_LEVEL'] = level
+            environ['SENTRY_LOG_LEVEL'] = level
         return ctx.invoke(f, *args, **kwargs)
     return update_wrapper(inner, f)

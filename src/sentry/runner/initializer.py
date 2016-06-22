@@ -188,7 +188,7 @@ def configure_structlog():
 
     structlog.configure(**kwargs)
 
-    lvl = os.environ.get('SENTRY_LOGGING_LEVEL', None)
+    lvl = os.environ.get('SENTRY_LOG_LEVEL', None)
     if lvl in logging._levelNames:
         from sentry.conf.server import LOGGING as base_dict
         logging_dict = base_dict
