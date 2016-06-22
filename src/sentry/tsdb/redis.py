@@ -316,17 +316,15 @@ class RedisTSDB(BaseTSDB):
 
         def map_key_to_host(hosts, key):
             """
-            Identify the host where each key is located, adding it to the
-            ``host`` mapping.
+            Identify the host where a key is located and add it to the host map.
             """
             hosts[router.get_host_for_key(key)].add(key)
             return hosts
 
         def get_partition_aggregate((host, keys)):
             """
-            Fetch the HyperLogLog values (in their raw byte representations)
-            that results from the union of all HyperLogLog structures at the
-            provided keys.
+            Fetch the HyperLogLog value (in its raw byte representation) that
+            results from merging all HyperLogLogs at the provided keys.
             """
             destination = make_temporary_key('p:{}'.format(host))
             client = self.cluster.get_local_client(host)
@@ -344,8 +342,8 @@ class RedisTSDB(BaseTSDB):
             aggregates = {make_temporary_key('a:{}'.format(host)): value for host, value in values}
 
             # Choose a random host to execute the reduction on. (We use a host
-            # here that's we've already accessed as part of this process --
-            # this way, we constrain the choices to only hosts that we know are
+            # here that we've already accessed as part of this process -- this
+            # way, we constrain the choices to only hosts that we know are
             # running.)
             client = self.cluster.get_local_client(random.choice(values)[0])
             with client.pipeline(transaction=False) as pipeline:
