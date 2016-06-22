@@ -9,6 +9,15 @@ from __future__ import absolute_import, print_function
 
 import os
 
+from click import Choice
+
+LOG_LEVELS = ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', 'FATAL')
+
+
+class CaseInsensitiveChoice(Choice):
+    def convert(self, value, param, ctx):
+        return super(CaseInsensitiveChoice, self).convert(value.upper(), param, ctx)
+
 
 def configuration(f):
     "Load and configure Sentry."
@@ -23,5 +32,23 @@ def configuration(f):
         if os.environ.get('_SENTRY_SKIP_CONFIGURATION') != '1':
             from sentry.runner import configure
             configure()
+        return ctx.invoke(f, *args, **kwargs)
+    return update_wrapper(inner, f)
+
+
+def log_level_option(f):
+    "Give ability to configure global logging level. Must be used before configuration."
+    import click
+    from functools import update_wrapper
+
+    @click.pass_context
+    @click.option('--loglevel', '-l', default=None,
+        help='Global logging level. Use wisely.',
+        type=CaseInsensitiveChoice(LOG_LEVELS))
+    def inner(ctx, *args, **kwargs):
+        level = kwargs.pop('loglevel', None)
+        if level:
+            from os import environ
+            environ['SENTRY_LOGGING_LEVEL'] = level
         return ctx.invoke(f, *args, **kwargs)
     return update_wrapper(inner, f)
