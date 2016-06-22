@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {logException} from '../../utils/logging';
+import EventContexts from './contexts';
 import EventDataSection from './eventDataSection';
 import EventErrors from './errors';
 import EventExtraData from './extraData';
@@ -44,7 +45,6 @@ const EventEntries = React.createClass({
     template: require('./interfaces/template'),
     csp: require('./interfaces/csp'),
     breadcrumbs: require('./interfaces/breadcrumbs'),
-    contexts: require('./interfaces/contexts'),
   },
 
   render() {
@@ -103,6 +103,11 @@ const EventEntries = React.createClass({
           projectId={project.slug} />
         {!utils.objectIsEmpty(evt.user) &&
           <EventUser
+            group={group}
+            event={evt} />
+        }
+        {!utils.objectIsEmpty(evt.contexts) &&
+          <EventContexts
             group={group}
             event={evt} />
         }

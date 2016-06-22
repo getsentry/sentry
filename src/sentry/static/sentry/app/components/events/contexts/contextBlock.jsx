@@ -1,8 +1,8 @@
 import React from 'react';
 import _ from 'underscore';
 
-import {defined} from '../../../../utils';
-import KeyValueList from '../keyValueList';
+import {defined} from '../../../utils';
+import KeyValueList from '../interfaces/keyValueList';
 
 
 const ContextBlock = React.createClass({
@@ -16,16 +16,6 @@ const ContextBlock = React.createClass({
   render() {
     let data = [];
     let className = `context-block context-block-${this.props.data.type}`;
-    let title = this.props.title || this.props.data.title;
-    let alias = null;
-
-    if (!title) {
-      title = this.props.alias;
-    } else {
-      alias = (
-        <small>{' ('}{this.props.alias})</small>
-      );
-    }
 
     (this.props.knownData || []).forEach(([key, value]) => {
       if (defined(value)) {
@@ -46,7 +36,6 @@ const ContextBlock = React.createClass({
 
     return (
       <div className={className}>
-        <h4>{title}{alias}</h4>
         <KeyValueList data={data} isSorted={false} />
       </div>
     );

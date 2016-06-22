@@ -18,8 +18,7 @@ const DeviceContextType = React.createClass({
           ['Model', model + (model_id ? ` (${model_id})` : '')],
           ['Architecture', arch]
         ]}
-        alias={this.props.alias}
-        title="Device" />
+        alias={this.props.alias} />
     );
   }
 });
