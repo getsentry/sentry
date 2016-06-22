@@ -303,7 +303,7 @@ class RedisTSDB(BaseTSDB):
 
         temporary_id = uuid.uuid1().hex
 
-        def make_key(key):
+        def make_temporary_key(key):
             return '{}{}:{}'.format(self.prefix, temporary_id, key)
 
         def expand_key(key):
@@ -328,7 +328,7 @@ class RedisTSDB(BaseTSDB):
             that results from the union of all HyperLogLog structures at the
             provided keys.
             """
-            destination = make_key('p:{}'.format(host))
+            destination = make_temporary_key('p:{}'.format(host))
             client = self.cluster.get_local_client(host)
             with client.pipeline(transaction=False) as pipeline:
                 pipeline.execute_command('PFMERGE', destination, *chain(map(expand_key, keys)))
@@ -340,8 +340,8 @@ class RedisTSDB(BaseTSDB):
             """
             Calculate the cardinality of the provided HyperLogLog values.
             """
-            destination = make_key('a')  # all values will be merged into this key
-            aggregates = {make_key('a:{}'.format(host)): value for host, value in values}
+            destination = make_temporary_key('a')  # all values will be merged into this key
+            aggregates = {make_temporary_key('a:{}'.format(host)): value for host, value in values}
 
             # Choose a random host to execute the reduction on. (We use a host
             # here that's we've already accessed as part of this process --
