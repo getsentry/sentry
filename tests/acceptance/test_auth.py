@@ -12,6 +12,9 @@ class AuthTest(AcceptanceTestCase):
             self.browser.find_element_by_id('id_username').send_keys(username)
             self.browser.find_element_by_id('id_password').send_keys(password)
             self.browser.find_element_by_xpath("//button[contains(text(), 'Login')]").click()
+            # give it one second to make sure the request goes through and we
+            # dont immediately re-set the captcha value
+            self.browser.implicitly_wait(1)
 
     def test_auth_page(self):
         self.browser.get(self.live_server_url)
