@@ -525,10 +525,6 @@ LOGGING = {
             'filters': ['sentry:internal'],
             'class': 'raven.contrib.django.handlers.SentryHandler',
         },
-        'audit': {
-            'level': 'INFO',
-            'class': 'sentry.logging.handlers.StructLogHandler',
-        },
     },
     'filters': {
         'sentry:internal': {
@@ -539,21 +535,12 @@ LOGGING = {
         'handlers': ['console', 'sentry'],
     },
     'loggers': {
+        # The two follow loggers are set in sentry.runner.initializer.
+        'celery': {
+            'level': 'NOTSET',
+        },
         'sentry': {
-            'level': 'ERROR',
-        },
-        'sentry.audit': {
-            'handlers': ['audit'],
-        },
-        'sentry.auth': {
-            'handlers': ['audit'],
-        },
-        'sentry.api': {
-            'handlers': ['console', 'sentry'],
-            'propagate': False,
-        },
-        'sentry.deletions': {
-            'handlers': ['audit'],
+            'level': 'NOTSET',
         },
         'sentry.errors': {
             'handlers': ['console'],
@@ -568,12 +555,8 @@ LOGGING = {
             'level': 'CRITICAL',
             'propagate': False,
         },
-        'celery': {
-            'level': 'WARN',
-        },
         'celery.worker.job': {
             'handlers': ['console'],
-            'level': 'ERROR',
             'propagate': False,
         },
         'static_compiler': {

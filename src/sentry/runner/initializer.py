@@ -188,14 +188,15 @@ def configure_structlog():
 
     structlog.configure(**kwargs)
 
-    lvl = os.environ.get('SENTRY_LOG_LEVEL', None)
+    lvl = os.environ.get('SENTRY_LOG_LEVEL', 'INFO')
     if lvl in logging._levelNames:
-        from sentry.conf.server import LOGGING as base_dict
-        logging_dict = base_dict
-        for logger in logging_dict['loggers'].iterkeys():
-            logging_dict['loggers'][logger]['level'] = lvl
-
-        logging.config.dictConfig(logging_dict)
+        from django.conf import settings
+        for logger in ('sentry', 'celery'):
+            settings.LOGGING['loggers'][logger]['level'] = lvl
+        settings.LOGGING['handlers']['console']['level'] = lvl
+        logging.config.dictConfig(settings.LOGGING)
+    else:
+        raise AttributeError('%s is not a valid logging level.' % lvl)
 
 
 def initialize_app(config, skip_backend_validation=False):

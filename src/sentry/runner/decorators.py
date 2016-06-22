@@ -46,10 +46,8 @@ def log_level_option(f):
         help='Global logging level. Use wisely.',
         envvar='SENTRY_LOG_LEVEL',
         type=CaseInsensitiveChoice(LOG_LEVELS))
-    def inner(ctx, *args, **kwargs):
-        level = kwargs.pop('loglevel', None)
-        if level:
-            from os import environ
-            environ['SENTRY_LOG_LEVEL'] = level
+    def inner(ctx, loglevel, *args, **kwargs):
+        if loglevel:
+            os.environ.setdefault('SENTRY_LOG_LEVEL', loglevel)
         return ctx.invoke(f, *args, **kwargs)
     return update_wrapper(inner, f)
