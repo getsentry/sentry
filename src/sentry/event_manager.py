@@ -26,7 +26,7 @@ from sentry.app import buffer, tsdb
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
 )
-from sentry.interfaces.base import get_interface, iter_interfaces
+from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Event, EventMapping, EventUser, Group, GroupHash, GroupResolution,
     GroupStatus, Project, Release, TagKey, UserReport
@@ -464,11 +464,11 @@ class EventManager(object):
 
         data['fingerprint'] = fingerprint or ['{{ default }}']
 
-        # Get rid of ephemeral interface data
-        for interface_class, _ in iter_interfaces():
-            interface = interface_class()
-            if interface.ephemeral:
-                data.pop(interface.get_path(), None)
+        for path, iface in event.interfaces.iteritems():
+            data['tags'].extend(iface.iter_tags())
+            # Get rid of ephemeral interface data
+            if iface.ephemeral:
+                data.pop(iface.get_path(), None)
 
         # prioritize fingerprint over checksum as its likely the client defaulted
         # a checksum whereas the fingerprint was explicit
