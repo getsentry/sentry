@@ -9,6 +9,8 @@ from __future__ import absolute_import
 
 import logging
 import operator
+import random
+import uuid
 from binascii import crc32
 from collections import defaultdict, namedtuple
 from datetime import timedelta
@@ -34,6 +36,11 @@ CountMinScript = Script(
     None,
     resource_string('sentry', 'scripts/tsdb/cmsketch.lua'),
 )
+
+
+def chain(iterables):
+    """Combine several iterables into a single sequence."""
+    return reduce(operator.add, iterables, [])
 
 
 class RedisTSDB(BaseTSDB):
@@ -290,6 +297,80 @@ class RedisTSDB(BaseTSDB):
                 responses[key] = client.target_key(key).execute_command('PFCOUNT', *ks)
 
         return {key: value.value for key, value in responses.iteritems()}
+
+    def get_distinct_counts_union(self, model, keys, start, end=None, rollup=None):
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+
+        temporary_id = uuid.uuid1().hex
+
+        def make_key(key):
+            return '{}{}:{}'.format(self.prefix, temporary_id, key)
+
+        def expand_key(key):
+            """
+            Return a list containing all keys for each interval in the series for a key.
+            """
+            return [self.make_key(model, rollup, timestamp, key) for timestamp in series]
+
+        router = self.cluster.get_router()
+
+        def map_key_to_host(hosts, key):
+            """
+            Identify the host where each key is located, adding it to the
+            ``host`` mapping.
+            """
+            hosts[router.get_host_for_key(key)].add(key)
+            return hosts
+
+        def get_partition_aggregate((host, keys)):
+            """
+            Fetch the HyperLogLog values (in their raw byte representations)
+            that results from the union of all HyperLogLog structures at the
+            provided keys.
+            """
+            destination = make_key('p:{}'.format(host))
+            client = self.cluster.get_local_client(host)
+            with client.pipeline(transaction=False) as pipeline:
+                pipeline.execute_command('PFMERGE', destination, *chain(map(expand_key, keys)))
+                pipeline.get(destination)
+                pipeline.delete(destination)
+                return (host, pipeline.execute()[1])
+
+        def merge_aggregates(values):
+            """
+            Calculate the cardinality of the provided HyperLogLog values.
+            """
+            destination = make_key('a')  # all values will be merged into this key
+            aggregates = {make_key('a:{}'.format(host)): value for host, value in values}
+
+            # Choose a random host to execute the reduction on. (We use a host
+            # here that's we've already accessed as part of this process --
+            # this way, we constrain the choices to only hosts that we know are
+            # running.)
+            client = self.cluster.get_local_client(random.choice(values)[0])
+            with client.pipeline(transaction=False) as pipeline:
+                pipeline.mset(aggregates)
+                pipeline.execute_command('PFMERGE', destination, *aggregates.keys())
+                pipeline.execute_command('PFCOUNT', destination)
+                pipeline.delete(destination, *aggregates.keys())
+                return pipeline.execute()[2]
+
+        # TODO: This could be optimized to skip the intermediate step for the
+        # host that has the largest number of keys if the final merge and count
+        # is performed on that host. If that host contains *all* keys, the
+        # final reduction could be performed as a single PFCOUNT, skipping the
+        # MSET and PFMERGE operations entirely.
+
+        return merge_aggregates(
+            map(
+                get_partition_aggregate,
+                reduce(
+                    map_key_to_host,
+                    keys,
+                    defaultdict(set),
+                ).items(),
+            )
+        )
 
     def make_frequency_table_keys(self, model, rollup, timestamp, key):
         prefix = self.make_key(model, rollup, timestamp, key)

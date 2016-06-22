@@ -230,6 +230,13 @@ class BaseTSDB(object):
         """
         raise NotImplementedError
 
+    def get_distinct_counts_union(self, model, keys, start, end=None, rollup=None):
+        """
+        Count the total number of distinct items across multiple counters
+        during a time range.
+        """
+        raise NotImplementedError
+
     def record_frequency_multi(self, requests, timestamp=None):
         """
         Record items in a frequency table.
