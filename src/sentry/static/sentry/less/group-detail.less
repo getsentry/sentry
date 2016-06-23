@@ -799,27 +799,80 @@
   }
 }
 
-// User widget
+// Context
 
-.user-widget {
-  position: relative;
+.context-section {
+  > .box-content.with-padding {
+    padding: 0;
+  }
+}
 
-  margin: 0 0 20px;
-
-  .avatar {
-    .square(48px);
-    position: absolute;
-    top: 0;
-    right: 0;
-    box-shadow: 0 0 0 5px #fff;
+.context-box {
+  &:first-child .context-header {
+    border-top: 0;
   }
 
-  .btn-group {
-    margin-top: -15px;
+  .context-header {
+    padding: 10px 20px;
+    font-size: 13px;
+    margin: 0;
+    line-height: 16px;
+    background: lighten(@blue-light, 30);
+    border-top: 1px solid @trim;
+    border-bottom: 1px solid @trim;
+
+    h5 {
+      font-size: inherit;
+      color: inherit;
+      margin: 0;
+    }
   }
 
-  .table {
-    margin-bottom: 0;
+  .context-content {
+    padding: 10px 20px;
+
+    table.key-value {
+      margin: 0;
+
+      td {
+        border-bottom: 1px solid @trim !important;
+
+        &.key {
+          width: 125px;
+          max-width: 125px;
+        }
+
+        &.value pre {
+          background: inherit;
+        }
+      }
+
+      tr:last-child {
+        td {
+          border-bottom: 0 !important;
+        }
+      }
+    }
+  }
+
+  .user-widget {
+    position: relative;
+
+    .avatar {
+      .square(48px);
+      position: absolute;
+      top: 0;
+      right: 0;
+      box-shadow: 0 0 0 5px #fff;
+    }
+
+    .btn-group {
+      margin-top: -15px;
+    }
+
+    .table {
+      margin-bottom: 0;
+    }
   }
 }
 
@@ -906,7 +959,6 @@ div.traceback > ul {
   &.no-exception .frame:first-child {
     border-top: 0;
   }
-
 
   .frame {
     list-style-type: none;
