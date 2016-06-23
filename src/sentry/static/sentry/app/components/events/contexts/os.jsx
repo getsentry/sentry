@@ -1,6 +1,7 @@
 import React from 'react';
 
 import ContextBlock from './contextBlock';
+import {defined} from '../../../utils';
 
 const OsContextType = React.createClass({
   propTypes: {
@@ -9,7 +10,7 @@ const OsContextType = React.createClass({
   },
 
   render() {
-    let {name, version, build, kernel_version, ...data} = this.props.data;
+    let {name, version, build, kernel_version, rooted, ...data} = this.props.data;
     return (
       <ContextBlock
         data={data}
@@ -17,6 +18,7 @@ const OsContextType = React.createClass({
           ['Name', name],
           ['Version', version + (build ? ` (${build})` : '')],
           ['Kernel Version', kernel_version],
+          ['Rooted', defined(rooted) ? (rooted ? 'yes' : 'no') : null],
         ]}
         alias={this.props.alias} />
     );
