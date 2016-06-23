@@ -36,7 +36,7 @@ def configuration(f):
     return update_wrapper(inner, f)
 
 
-def log_level_option(f):
+def log_level_option(f, default=None):
     "Give ability to configure global logging level. Must be used before configuration."
     import click
     from functools import update_wrapper
@@ -46,7 +46,7 @@ def log_level_option(f):
         help='Global logging level. Use wisely.',
         envvar='SENTRY_LOG_LEVEL',
         type=CaseInsensitiveChoice(LOG_LEVELS))
-    def inner(ctx, loglevel, *args, **kwargs):
+    def inner(ctx, loglevel=default, *args, **kwargs):
         if loglevel:
             os.environ.setdefault('SENTRY_LOG_LEVEL', loglevel)
         return ctx.invoke(f, *args, **kwargs)
