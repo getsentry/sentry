@@ -369,7 +369,7 @@ class MessageBuilder(object):
             logger.info,
             name='sentry.mail',
             event='mail.queued',
-            type=self.type,
+            message_type=self.type,
         )
         for message in messages:
             safe_execute(
