@@ -95,6 +95,18 @@ class InMemoryTSDB(BaseTSDB):
 
         return results
 
+    def get_distinct_counts_union(self, model, keys, start, end=None, rollup=None):
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+
+        values = set()
+        for key in keys:
+            source = self.sets[model][key]
+            for timestamp in series:
+                r = self.normalize_ts_to_rollup(timestamp, rollup)
+                values.update(source[r])
+
+        return len(values)
+
     def flush(self):
         # model => key => timestamp = count
         self.data = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
