@@ -584,6 +584,11 @@ LOGGING = {
             'handlers': ['null'],
             'propagate': False,
         },
+        'urllib3.connectionpool': {
+            'level': 'ERROR',
+            'handlers': ['console'],
+            'propagate': False,
+        },
     }
 }
 
