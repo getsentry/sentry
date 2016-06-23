@@ -154,6 +154,7 @@ def configure_structlog():
     """
     Make structlog comply with all of our options.
     """
+    from django.conf import settings
     import logging
     import structlog
     from sentry import options
@@ -188,15 +189,25 @@ def configure_structlog():
 
     structlog.configure(**kwargs)
 
-    lvl = os.environ.get('SENTRY_LOG_LEVEL', 'INFO')
-    if lvl in logging._levelNames:
-        from django.conf import settings
-        for logger in ('sentry', 'celery'):
-            settings.LOGGING['loggers'][logger]['level'] = lvl
-        settings.LOGGING['handlers']['console']['level'] = lvl
-        logging.config.dictConfig(settings.LOGGING)
-    else:
+    lvl = os.environ.get('SENTRY_LOG_LEVEL')
+
+    if lvl and lvl not in logging._levelNames:
         raise AttributeError('%s is not a valid logging level.' % lvl)
+
+    settings.LOGGING['root'].update({
+        'level': lvl or settings.LOGGING['default_level']
+    })
+
+    if lvl:
+        for logger in settings.LOGGING['overridable']:
+            try:
+                settings.LOGGING['loggers'][logger].update({
+                    'level': lvl
+                })
+            except KeyError:
+                raise KeyError('%s is not a defined logger.' % logger)
+
+    logging.config.dictConfig(settings.LOGGING)
 
 
 def initialize_app(config, skip_backend_validation=False):

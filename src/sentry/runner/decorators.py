@@ -49,7 +49,7 @@ def log_level_option(default=None):
             type=CaseInsensitiveChoice(LOG_LEVELS))
         def inner(ctx, loglevel=None, *args, **kwargs):
             if loglevel:
-                os.environ.setdefault('SENTRY_LOG_LEVEL', loglevel)
+                os.environ['SENTRY_LOG_LEVEL'] = loglevel
             return ctx.invoke(f, *args, **kwargs)
         return update_wrapper(inner, f)
     return decorator

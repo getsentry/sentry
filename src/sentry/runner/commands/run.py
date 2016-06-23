@@ -116,7 +116,7 @@ def smtp(bind, upgrade, noinput):
 @click.option('--quiet', '-q', is_flag=True, default=False)
 @click.option('--no-color', is_flag=True, default=False)
 @click.option('--autoreload', is_flag=True, default=False, help='Enable autoreloading.')
-@log_level_option(default='WARNING')
+@log_level_option()
 @configuration
 def worker(**options):
     "Run background worker instance."
@@ -152,7 +152,7 @@ def worker(**options):
 @click.option('--quiet', '-q', is_flag=True, default=False)
 @click.option('--no-color', is_flag=True, default=False)
 @click.option('--autoreload', is_flag=True, default=False, help='Enable autoreloading.')
-@log_level_option(default='WARNING')
+@log_level_option()
 @configuration
 def cron(**options):
     "Run periodic task dispatcher."
