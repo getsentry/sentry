@@ -7,6 +7,7 @@ sentry.tsdb.redis
 """
 from __future__ import absolute_import
 
+import itertools
 import logging
 import operator
 import random
@@ -36,11 +37,6 @@ CountMinScript = Script(
     None,
     resource_string('sentry', 'scripts/tsdb/cmsketch.lua'),
 )
-
-
-def chain(iterables):
-    """Combine several iterables into a single sequence."""
-    return reduce(operator.add, iterables, [])
 
 
 class RedisTSDB(BaseTSDB):
@@ -329,7 +325,13 @@ class RedisTSDB(BaseTSDB):
             destination = make_temporary_key('p:{}'.format(host))
             client = self.cluster.get_local_client(host)
             with client.pipeline(transaction=False) as pipeline:
-                pipeline.execute_command('PFMERGE', destination, *chain(map(expand_key, keys)))
+                pipeline.execute_command(
+                    'PFMERGE',
+                    destination,
+                    *itertools.chain.from_iterable(
+                        map(expand_key, keys)
+                    )
+                )
                 pipeline.get(destination)
                 pipeline.delete(destination)
                 return (host, pipeline.execute()[1])
