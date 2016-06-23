@@ -56,7 +56,7 @@ def run():
 @click.option('--workers', '-w', default=0, help='The number of worker processes for handling requests.')
 @click.option('--upgrade', default=False, is_flag=True, help='Upgrade before starting.')
 @click.option('--noinput', default=False, is_flag=True, help='Do not prompt the user for input of any kind.')
-@log_level_option
+@log_level_option()
 @configuration
 def web(bind, workers, upgrade, noinput):
     "Run web service."
@@ -116,7 +116,7 @@ def smtp(bind, upgrade, noinput):
 @click.option('--quiet', '-q', is_flag=True, default=False)
 @click.option('--no-color', is_flag=True, default=False)
 @click.option('--autoreload', is_flag=True, default=False, help='Enable autoreloading.')
-@log_level_option
+@log_level_option(default='WARNING')
 @configuration
 def worker(**options):
     "Run background worker instance."
@@ -152,7 +152,7 @@ def worker(**options):
 @click.option('--quiet', '-q', is_flag=True, default=False)
 @click.option('--no-color', is_flag=True, default=False)
 @click.option('--autoreload', is_flag=True, default=False, help='Enable autoreloading.')
-@log_level_option
+@log_level_option(default='WARNING')
 @configuration
 def cron(**options):
     "Run periodic task dispatcher."
