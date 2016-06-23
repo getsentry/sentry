@@ -16,6 +16,8 @@ from sentry.models import ApiKey, Project, ProjectOption
 from sentry.plugins import plugins
 from sentry.utils import json
 
+logger = logging.getLogger('sentry.webhooks')
+
 
 class ReleaseWebhookView(View):
     def verify(self, plugin_id, project_id, token, signature):
@@ -75,11 +77,11 @@ class ReleaseWebhookView(View):
 
         token = ProjectOption.objects.get_value(project, 'sentry:release-token')
 
-        logging.info('Incoming webhook for project_id=%s, plugin_id=%s',
-                     project_id, plugin_id)
+        logger.info('Incoming webhook for project_id=%s, plugin_id=%s',
+                    project_id, plugin_id)
 
         if not self.verify(plugin_id, project_id, token, signature):
-            logging.warn('Unable to verify signature for release hook')
+            logger.warn('Unable to verify signature for release hook')
             return HttpResponse(status=403)
 
         if plugin_id == 'builtin':
@@ -87,8 +89,8 @@ class ReleaseWebhookView(View):
 
         plugin = plugins.get(plugin_id)
         if not plugin.is_enabled(project):
-            logging.warn('Disabled release hook received for project_id=%s, plugin_id=%s',
-                         project_id, plugin_id)
+            logger.warn('Disabled release hook received for project_id=%s, plugin_id=%s',
+                        project_id, plugin_id)
             return HttpResponse(status=403)
 
         cls = plugin.get_release_hook()
