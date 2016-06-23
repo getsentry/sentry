@@ -514,7 +514,7 @@ CELERYBEAT_SCHEDULE = {
 # handler is 'console' and disable propagating upwards.
 # Additionally, Sentry has the ability to override logger levels by
 # providing the cli with -l/--loglevel or the SENTRY_LOG_LEVEL env var.
-# The loggers that it overrides are defined below in SENTRY_LOGGERS.
+# The loggers that it overrides are root and any in LOGGING.overridable.
 # Be very careful with this in a production system, because the celery
 # logger can be extremely verbose when given INFO or DEBUG.
 LOGGING = {
