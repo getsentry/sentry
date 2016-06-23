@@ -9,7 +9,6 @@ import EventPackageData from './packageData';
 import EventTags from './eventTags';
 import EventSdk from './sdk';
 import EventDevice from './device';
-import EventUser from './user';
 import EventUserReport from './userReport';
 import PropTypes from '../../proptypes';
 import utils from '../../utils';
@@ -101,12 +100,7 @@ const EventEntries = React.createClass({
           event={evt}
           orgId={this.props.orgId}
           projectId={project.slug} />
-        {!utils.objectIsEmpty(evt.user) &&
-          <EventUser
-            group={group}
-            event={evt} />
-        }
-        {!utils.objectIsEmpty(evt.contexts) &&
+        {(!utils.objectIsEmpty(evt.user) || !utils.objectIsEmpty(evt.contexts)) &&
           <EventContexts
             group={group}
             event={evt} />
