@@ -355,6 +355,7 @@ import random
 
 SOCIAL_AUTH_DEFAULT_USERNAME = lambda: random.choice(['Darth Vader', 'Obi-Wan Kenobi', 'R2-D2', 'C-3PO', 'Yoda'])
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ['email']
+SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
 # Queue configuration
 from kombu import Exchange, Queue
