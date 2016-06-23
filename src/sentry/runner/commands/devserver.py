@@ -8,7 +8,7 @@ sentry.runner.commands.devserver
 from __future__ import absolute_import, print_function
 
 import click
-from sentry.runner.decorators import configuration
+from sentry.runner.decorators import configuration, log_level_option
 
 
 @click.command()
@@ -16,6 +16,7 @@ from sentry.runner.decorators import configuration
 @click.option('--watchers/--no-watchers', default=True, help='Watch static files and recompile on changes.')
 @click.option('--workers/--no-workers', default=False, help='Run asynchronous workers.')
 @click.argument('bind', default='127.0.0.1:8000', metavar='ADDRESS')
+@log_level_option()
 @configuration
 def devserver(reload, watchers, workers, bind):
     "Starts a lightweight web server for development."
