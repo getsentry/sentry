@@ -157,6 +157,33 @@ def pytest_runtest_teardown(item):
     discard_all()
 
 
+@pytest.fixture(scope='session')
+def browser(request, live_server):
+    # Initialize Selenium.
+    # NOTE: this relies on the phantomjs binary packaged from npm to be in the right
+    # location in node_modules.
+    phantomjs_path = os.path.join(
+        settings.NODE_MODULES_ROOT,
+        'phantomjs-prebuilt',
+        'bin',
+        'phantomjs',
+    )
+    browser = webdriver.PhantomJS(executable_path=phantomjs_path)
+
+    def fin():
+        # Teardown Selenium.
+        try:
+            browser.close()
+        except Exception:
+            pass
+        # TODO: remove this when fixed in: https://github.com/seleniumhq/selenium/issues/767
+        browser.service.process.send_signal(signal.SIGTERM)
+        browser.quit()
+
+    request.addfinalizer(fin)
+    return browser
+
+
 # TODO(dcramer): ideally we could bundle up more of the browser logic here
 # rather than splitting it between the fixtures and AcceptanceTestCase
 @pytest.fixture(scope='session')
@@ -175,30 +202,6 @@ def percy(request, browser):
 
     request.addfinalizer(percy.finalize_build)
     return percy
-
-
-@pytest.fixture(scope='session')
-def browser(request, live_server):
-    # Initialize Selenium.
-    # NOTE: this relies on the phantomjs binary packaged from npm to be in the right
-    # location in node_modules.
-    phantomjs_path = os.path.join(
-        settings.NODE_MODULES_ROOT,
-        'phantomjs-prebuilt',
-        'bin',
-        'phantomjs',
-    )
-    browser = webdriver.PhantomJS(executable_path=phantomjs_path)
-
-    def fin():
-        # Teardown Selenium.
-        browser.close()
-        # TODO: remove this when fixed in: https://github.com/seleniumhq/selenium/issues/767
-        browser.service.process.send_signal(signal.SIGTERM)
-        browser.quit()
-
-    request.addfinalizer(fin)
-    return browser
 
 
 @pytest.fixture(scope='class')
