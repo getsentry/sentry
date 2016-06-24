@@ -716,7 +716,8 @@
       left: 15px;
       top: 15px;
       .square(48px);
-      background: @white-darker;
+      background-repeat: no-repeat;
+      background-position: center;
     }
 
     &:first-child {
@@ -735,6 +736,16 @@
       &:last-child {
         margin: 0;
       }
+    }
+
+    &.ios .icon {
+      background-image: url(../images/icons/context/ios.svg);
+      top: 13px;
+    }
+
+    &.android .icon {
+      background-image: url(../images/icons/context/android.svg);
+      top: 14px;
     }
   }
 }
