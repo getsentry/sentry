@@ -295,6 +295,9 @@ class RedisTSDB(BaseTSDB):
         return {key: value.value for key, value in responses.iteritems()}
 
     def get_distinct_counts_union(self, model, keys, start, end=None, rollup=None):
+        if not keys:
+            return 0
+
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
         temporary_id = uuid.uuid1().hex

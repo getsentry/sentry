@@ -150,6 +150,7 @@ class RedisTSDBTest(TestCase):
             2: 2,
         }
 
+        assert self.db.get_distinct_counts_union(model, [], dts[0], dts[-1], rollup=3600) == 0
         assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
 
     def test_frequency_tables(self):
