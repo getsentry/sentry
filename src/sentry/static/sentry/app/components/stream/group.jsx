@@ -32,7 +32,7 @@ const StreamGroupHeader = React.createClass({
       case 'csp':
         return metadata.message;
       default:
-        return '';
+        return this.props.data.culprit || '';
     }
   },
 

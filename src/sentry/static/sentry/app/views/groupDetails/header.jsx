@@ -83,7 +83,7 @@ const GroupHeader = React.createClass({
       case 'csp':
         return metadata.message;
       default:
-        return '';
+        return this.props.group.culprit || '';
     }
   },
 
