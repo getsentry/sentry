@@ -92,6 +92,12 @@ const StacktraceContent = React.createClass({
     let className = this.props.className || '';
     className += ' traceback';
 
+    if (this.props.includeSystemFrames) {
+      className += ' full-traceback';
+    } else {
+      className += ' in-app-traceback';
+    }
+
     return (
       <div className={className}>
         <ul>{frames}</ul>

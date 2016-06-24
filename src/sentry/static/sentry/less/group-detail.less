@@ -969,8 +969,6 @@ div.traceback > ul {
 
     &.system-frame { }
 
-    &.leads-to-app {}
-
     h3 {
       font-size: 22px;
     }
@@ -1236,6 +1234,34 @@ div.traceback > ul {
       .toggle-expand .btn {
         margin-bottom: -13px;
       }
+    }
+  }
+
+  &.full-traceback {
+    .leads-to-app-hint {
+      display: none;
+    }
+  }
+
+  &.in-app-traceback .frame.leads-to-app {
+    .leads-to-app-hint {
+      display: none;
+    }
+
+    &.collapsed {
+      .title {
+        opacity: 0.7;
+        font-size: 12px;
+        padding: 4px 20px 4px 20px;
+        background: lighten(@blue-light, 30);
+        &:hover {
+          opacity: 1.0;
+        }
+      }
+      .in-at-line, .lineno, .btn-toggle {
+        display: none;
+      }
+      .leads-to-app-hint { display: inline; }
     }
   }
 
