@@ -8,6 +8,8 @@ sentry.interfaces.contexts
 
 from __future__ import absolute_import
 
+from django.utils.encoding import force_text
+
 from sentry.utils.safe import trim
 from sentry.interfaces.base import Interface
 
@@ -36,21 +38,14 @@ class ContextType(object):
     def to_json(self):
         return self.data
 
-    def flatten_index_value(self, value):
-        if isinstance(value, (int, long, basestring)):
-            return value
-        return unicode(value)
-
     def iter_tags(self):
-        for field in self.indexed_fields:
-            value = self.data.get(field)
-            if value is not None:
-                yield (
-                    '%s.%s' % (self.alias, field),
-                    self.flatten_index_value(value)
-                )
+        for field, f_string in self.indexed_fields.iteritems():
+            value = f_string.format(**self.data).strip()
+            if value:
+                yield ('%s.%s' % (self.alias, field), value)
 
 
+# TODO(dcramer): contexts need to document/describe expected (optional) fields
 @contexttype('default')
 class DefaultContextType(ContextType):
     pass
@@ -58,22 +53,37 @@ class DefaultContextType(ContextType):
 
 @contexttype('device')
 class DeviceContextType(ContextType):
-    indexed_fields = ['name', 'model', 'model_id', 'arch']
+    indexed_fields = {
+        'name': '{name}',
+        'model': '{model}',
+    }
+    # model_id, arch
 
 
 @contexttype('runtime')
 class RuntimeContextType(ContextType):
-    indexed_fields = ['name', 'version', 'build']
+    indexed_fields = {
+        'name': '{name}',
+        'version': '{name} {version}',
+    }
 
 
 @contexttype('browser')
 class BrowserContextType(ContextType):
-    indexed_fields = ['name', 'version']
+    indexed_fields = {
+        'name': '{name}',
+        'version': '{name} {version}',
+    }
+    # viewport
 
 
 @contexttype('os')
 class OsContextType(ContextType):
-    indexed_fields = ['name', 'version', 'build']
+    indexed_fields = {
+        'name': '{name}',
+        'version': '{name} {version}',
+    }
+    # build
 
 
 class Contexts(Interface):
@@ -92,11 +102,13 @@ class Contexts(Interface):
 
     @classmethod
     def normalize_context(cls, alias, data):
-        type = data.get('type', alias)
-        data = trim(data)
-        cls = context_types.get(type, DefaultContextType)
-        data['type'] = cls.type
-        return cls(alias, data)
+        ctx_type = data.get('type', alias)
+        ctx_cls = context_types.get(ctx_type, DefaultContextType)
+        ctx_data = {}
+        for key, value in trim(data).iteritems():
+            ctx_data[force_text(key)] = force_text(value)
+        ctx_data['type'] = ctx_cls.type
+        return ctx_cls(alias, ctx_data)
 
     def iter_contexts(self):
         return self._data.itervalues()
