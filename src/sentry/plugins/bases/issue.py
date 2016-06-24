@@ -140,6 +140,12 @@ class IssueTrackingPlugin(Plugin):
         """
         raise NotImplementedError
 
+    def get_issue_extras(self, request, group, issue_id):
+        """
+        Given an issue_id return useful details about an issue
+        """
+        return None
+
     def get_issue_label(self, group, issue_id, **kwargs):
         """
         Given an issue_id (string) return a string representing the issue.
@@ -315,6 +321,17 @@ class IssueTrackingPlugin(Plugin):
         ))
 
         return tag_list
+
+    def extras(self, request, group, extras_list, **kwargs):
+        if not self.is_configured(request=request, project=group.project):
+            return extras_list
+
+        prefix = self.get_conf_key()
+        issue_id = GroupMeta.objects.get_value(group, '%s:tid' % prefix)
+        if not issue_id:
+            return extras_list
+
+        extras_list.append(self.get_issue_extras(request, group, issue_id))
 
     def get_issue_doc_html(self, **kwargs):
         return ""

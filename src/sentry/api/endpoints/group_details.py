@@ -115,6 +115,26 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         return action_list
 
+    def _get_plugin_extras(self, request, group):
+        project = group.project
+
+        extras_list = []
+        for plugin in plugins.for_project(project, version=1):
+            results = safe_execute(plugin.extras, request, group, extras_list,
+                                   _with_transaction=False)
+
+            if not results:
+                continue
+
+            extras_list = results
+
+        for plugin in plugins.for_project(project, version=2):
+            for action in (safe_execute(plugin.get_extras, request, group,
+                                        _with_transaction=False) or ()):
+                extras_list.append(action)
+
+        return extras_list
+
     def _get_release_info(self, request, group, version):
         try:
             release = Release.objects.get(
@@ -174,6 +194,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             last_release = None
 
         action_list = self._get_actions(request, group)
+        plugin_extras_list = self._get_plugin_extras(request, group)
 
         now = timezone.now()
         hourly_stats = tsdb.rollup(tsdb.get_range(
@@ -204,6 +225,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             'activity': serialize(activity, request.user),
             'seenBy': seen_by,
             'pluginActions': action_list,
+            'pluginExtras': plugin_extras_list,
             'userReportCount': UserReport.objects.filter(group=group).count(),
             'tags': sorted(serialize(tags, request.user), key=lambda x: x['name']),
             'stats': {
