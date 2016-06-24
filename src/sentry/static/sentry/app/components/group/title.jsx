@@ -9,7 +9,7 @@ const GroupTitle = React.createClass({
     let data = this.props.data;
     let metadata = data.metadata;
     let title = data.title;
-    let subtitle = data.culprit;
+    let subtitle = null;
     if (data.type == 'error') {
       title = metadata.type;
       subtitle = data.culprit;
