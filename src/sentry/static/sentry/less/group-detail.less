@@ -695,6 +695,51 @@
 }
 
 /**
+* Context callout
+* ============================================================================
+*/
+
+.context-summary {
+  display: flex;
+  .box;
+  margin-top: 20px;
+
+  .context-item {
+    flex: 1;
+    padding: 20px;
+    border-left: 1px solid lighten(@trim, 5);
+    padding-left: 78px;
+    position: relative;
+
+    .icon, .avatar {
+      position: absolute;
+      left: 15px;
+      top: 15px;
+      .square(48px);
+      background: @white-darker;
+    }
+
+    &:first-child {
+      border: 0;
+    }
+
+    h3, p {
+      font-size: 18px;
+      line-height: 1;
+      margin: 0 0 8px;
+    }
+
+    p {
+      font-size: 13px;
+
+      &:last-child {
+        margin: 0;
+      }
+    }
+  }
+}
+
+/**
 * Event Toolbar
 * ============================================================================
 */
@@ -2031,6 +2076,17 @@ ul.crumbs {
 
     .is-assigned {
       padding-top: 0;
+    }
+  }
+
+  // Context callout
+
+  .context-summary {
+    flex-direction: column;
+
+    .context-item {
+      border: 0;
+      border-top: 1px solid @trim;
     }
   }
 
