@@ -280,6 +280,8 @@ class IssueTrackingPlugin(Plugin):
 
         context = {
             'create_form': create_form,
+            # pass in 'form' for legacy compat
+            'form': create_form,
             'title': self.get_new_issue_title(),
             'read_only_fields': self.get_new_issue_read_only_fields(group=group),
             'can_link_existing_issues': self.can_link_existing_issues,
