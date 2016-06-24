@@ -88,8 +88,9 @@ class OsContextType(ContextType):
     indexed_fields = {
         '': '{name} {version}',
         'name': '{name}',
+        'rooted': '{rooted}',
     }
-    # build
+    # build, rooted
 
 
 class Contexts(Interface):
