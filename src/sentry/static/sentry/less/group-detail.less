@@ -1254,11 +1254,14 @@ div.traceback > ul {
         font-size: 12px;
         padding: 4px 20px 4px 20px;
         background: lighten(@blue-light, 30);
-        &:hover {
+        &.is-expandable:hover {
           opacity: 1.0;
         }
+        .package {
+          width: auto;
+        }
       }
-      .in-at-line, .lineno, .btn-toggle {
+      .in-at-line, .lineno, .btn-toggle, .address {
         display: none;
       }
       .leads-to-app-hint { display: inline; }
