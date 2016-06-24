@@ -38,6 +38,7 @@ const StreamGroupHeader = React.createClass({
 
   render() {
     let {orgId, projectId, data} = this.props;
+    let message = this.getMessage();
     return (
       <div>
         <h3 className="truncate">
@@ -48,9 +49,11 @@ const StreamGroupHeader = React.createClass({
             <GroupTitle data={data} />
           </Link>
         </h3>
-        <div className="event-message truncate">
-          <span className="message">{this.getMessage()}</span>
-        </div>
+        {message &&
+          <div className="event-message truncate">
+            <span className="message">{this.getMessage()}</span>
+          </div>
+        }
       </div>
     );
   }

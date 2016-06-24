@@ -111,6 +111,8 @@ const GroupHeader = React.createClass({
       projectId = this.getProject().slug,
       orgId = this.getOrganization().slug;
 
+    let message = this.getMessage();
+
     return (
       <div className={className}>
         <div className="row">
@@ -123,7 +125,9 @@ const GroupHeader = React.createClass({
               {group.shortId &&
                 <ShortId shortId={group.shortId} />
               }
-              <span className="message">{this.getMessage()}</span>
+              {message &&
+                <span className="message">{message}</span>
+              }
               {group.logger &&
                 <span className="event-annotation">
                   <Link to={`/${orgId}/${projectId}/`} query={{query: 'logger:' + group.logger}}>
