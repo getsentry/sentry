@@ -1,7 +1,6 @@
 import React from 'react';
 //import GroupEventDataSection from "../eventDataSection";
 import Frame from './frame';
-import OldFrame from './oldFrame';
 import {t} from '../../../locale';
 import OrganizationState from '../../../mixins/organizationState';
 
@@ -65,12 +64,7 @@ const StacktraceContent = React.createClass({
 
     // use old frames if we do not have an org (share view) or
     // we don't have the feature
-    let oldFrames = !this.context.organization || !this.getFeatures().has('new-tracebacks');
     let FrameComponent = Frame;
-    if (oldFrames) {
-      FrameComponent = OldFrame;
-    }
-
     let frames = [];
     data.frames.forEach((frame, frameIdx) => {
       let nextFrame = data.frames[frameIdx + 1];
@@ -96,7 +90,7 @@ const StacktraceContent = React.createClass({
     }
 
     let className = this.props.className || '';
-    className += (oldFrames ? ' old-traceback' : ' traceback');
+    className += ' traceback';
 
     return (
       <div className={className}>
