@@ -66,6 +66,11 @@ class RuntimeContextType(ContextType):
     indexed_fields = ['name', 'version', 'build']
 
 
+@contexttype('browser')
+class BrowserContextType(ContextType):
+    indexed_fields = ['name', 'version']
+
+
 @contexttype('os')
 class OsContextType(ContextType):
     indexed_fields = ['name', 'version', 'build']

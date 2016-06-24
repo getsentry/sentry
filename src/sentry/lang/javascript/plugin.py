@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
 from django.conf import settings
+from ua_parser.user_agent_parser import Parse
 
 from sentry.models import Project
 from sentry.plugins import Plugin2
@@ -22,7 +23,68 @@ def preprocess_event(data):
         project=project,
         allow_scraping=allow_scraping,
     )
-    return processor.process(data)
+    data = processor.process(data)
+    inject_device_data(data)
+    return data
+
+
+def parse_user_agent(data):
+    http = data.get('sentry.interfaces.Http')
+    if not http:
+        return None
+
+    headers = http.get('headers')
+    if not headers:
+        return None
+
+    for key, value in headers:
+        if key != 'User-Agent':
+            continue
+        ua = Parse(value)
+        if not ua:
+            continue
+        return ua
+    return None
+
+
+def inject_browser_context(data, user_agent):
+    ua = user_agent['user_agent']
+    try:
+        data['contexts']['browser'] = {
+            'name': ua['family'],
+            'version': '.'.join(value for value in [
+                ua['major'],
+                ua['minor'],
+            ] if value),
+        }
+    except KeyError:
+        pass
+
+
+def inject_os_context(data, user_agent):
+    ua = user_agent['os']
+    try:
+        data['contexts']['os'] = {
+            'name': ua['family'],
+            'version': '.'.join(value for value in [
+                ua['major'],
+                ua['minor'],
+                ua['patch'],
+            ] if value),
+        }
+    except KeyError:
+        pass
+
+
+def inject_device_data(data):
+    user_agent = parse_user_agent(data)
+    if not user_agent:
+        return
+
+    data.setdefault('contexts', {})
+
+    inject_browser_context(data, user_agent)
+    inject_os_context(data, user_agent)
 
 
 class JavascriptPlugin(Plugin2):
