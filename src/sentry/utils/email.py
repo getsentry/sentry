@@ -377,14 +377,18 @@ class MessageBuilder(object):
                 message=message,
                 _with_transaction=False,
             )
-            logger.bind(message_id=message.extra_headers['Message-Id'])
+            message_id = message.extra_headers['Message-Id']
             if fmt == LoggingFormat.HUMAN:
-                log_mail_queued(message_to=self.format_to(message.to))
-                logger.unbind('message_id')
+                log_mail_queued(
+                    message_id=message_id,
+                    message_to=self.format_to(message.to),
+                )
             elif fmt == LoggingFormat.MACHINE:
                 for recipient in message.to:
-                    log_mail_queued(message_to=recipient)
-                    logger.unbind('message_id')
+                    log_mail_queued(
+                        message_id=message_id,
+                        message_to=recipient,
+                    )
 
 
 def send_messages(messages, fail_silently=False):
