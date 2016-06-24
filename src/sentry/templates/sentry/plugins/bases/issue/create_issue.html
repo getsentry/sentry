@@ -31,7 +31,7 @@
             </div>
         {% endfor %}
 
-        <div class="tab-pane{% if op == "create" %} active{% endif %}" id="create">
+        <div class="tab-pane{% if op == "create" or not op %} active{% endif %}" id="create">
             <form class="form-stacked" action="" method="post">
                 {% csrf_token %}
                 {{ create_form|as_crispy_errors }}
