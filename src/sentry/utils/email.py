@@ -380,9 +380,11 @@ class MessageBuilder(object):
             logger.bind(message_id=message.extra_headers['Message-Id'])
             if fmt == LoggingFormat.HUMAN:
                 log_mail_queued(message_to=self.format_to(message.to))
+                logger.unbind('message_id')
             elif fmt == LoggingFormat.MACHINE:
                 for recipient in message.to:
                     log_mail_queued(message_to=recipient)
+                    logger.unbind('message_id')
 
 
 def send_messages(messages, fail_silently=False):
