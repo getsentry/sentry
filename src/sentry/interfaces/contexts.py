@@ -40,8 +40,13 @@ class ContextType(object):
 
     def iter_tags(self):
         for field, f_string in self.indexed_fields.iteritems():
-            value = f_string.format(**self.data).strip()
+            try:
+                value = f_string.format(**self.data).strip()
+            except KeyError:
+                continue
             if value:
+                if not field:
+                    yield (self.alias, value)
                 yield ('%s.%s' % (self.alias, field), value)
 
 
@@ -54,8 +59,7 @@ class DefaultContextType(ContextType):
 @contexttype('device')
 class DeviceContextType(ContextType):
     indexed_fields = {
-        'name': '{name}',
-        'model': '{model}',
+        '': '{model}',
     }
     # model_id, arch
 
@@ -63,7 +67,7 @@ class DeviceContextType(ContextType):
 @contexttype('runtime')
 class RuntimeContextType(ContextType):
     indexed_fields = {
-        'name': '{name}',
+        '': '{name}',
         'version': '{name} {version}',
     }
 
@@ -71,7 +75,7 @@ class RuntimeContextType(ContextType):
 @contexttype('browser')
 class BrowserContextType(ContextType):
     indexed_fields = {
-        'name': '{name}',
+        '': '{name}',
         'version': '{name} {version}',
     }
     # viewport
@@ -80,7 +84,7 @@ class BrowserContextType(ContextType):
 @contexttype('os')
 class OsContextType(ContextType):
     indexed_fields = {
-        'name': '{name}',
+        '': '{name}',
         'version': '{name} {version}',
     }
     # build
