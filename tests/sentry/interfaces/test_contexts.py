@@ -86,7 +86,7 @@ class ContextsTest(TestCase):
             },
         })
         assert sorted(ctx.iter_tags()) == [
-            ('my_device', 'My iPad')
+            ('my_device', 'iPad')
         ]
         assert ctx.to_json() == {
             'my_device': {
