@@ -2,7 +2,6 @@ import React from 'react';
 
 import GroupEventDataSection from './eventDataSection';
 import {objectIsEmpty, toTitleCase} from '../../utils';
-import {t} from '../../locale';
 
 const CONTEXT_TYPES = {
   'default': require('./contexts/default'),
@@ -14,30 +13,29 @@ const CONTEXT_TYPES = {
 
 const ContextChunk = React.createClass({
   propTypes: {
+    event: React.PropTypes.object.isRequired,
+    group: React.PropTypes.object.isRequired,
     type: React.PropTypes.string.isRequired,
     alias: React.PropTypes.string.isRequired,
     value: React.PropTypes.object.isRequired,
   },
 
   render() {
+    let group = this.props.group;
+    let evt = this.props.event;
     let {type, alias, value} = this.props;
     let title = value.title || toTitleCase(alias);
     let Component = CONTEXT_TYPES[type] || CONTEXT_TYPES.default;
 
     return (
-      <div className="context-box">
-        <div className="context-header">
-          <h5>
-            <strong>{title}</strong>
-            {value.title &&
-              <small> ({name})</small>
-            }
-          </h5>
-        </div>
-        <div className="context-content">
-          <Component alias={alias} data={value} />
-        </div>
-      </div>
+      <GroupEventDataSection
+          group={group}
+          event={evt}
+          key={`context-${alias}`}
+          type={`context-${alias}`}
+          title={title}>
+        <Component alias={alias} data={value} />
+      </GroupEventDataSection>
     );
   },
 });
@@ -55,6 +53,8 @@ const ContextsInterface = React.createClass({
     if (!objectIsEmpty(evt.user)) {
       children.push((
         <ContextChunk
+          group={group}
+          event={evt}
           type="user"
           alias="user"
           value={evt.user}
@@ -67,6 +67,8 @@ const ContextsInterface = React.createClass({
       value = evt.contexts[key];
       children.push((
         <ContextChunk
+          group={group}
+          event={evt}
           type={value.type}
           alias={key}
           value={value}
@@ -74,17 +76,7 @@ const ContextsInterface = React.createClass({
       ));
     }
 
-    return (
-      <GroupEventDataSection
-          className="context-section"
-          group={group}
-          event={evt}
-          key="context"
-          type="contexts"
-          title={t('Context')}>
-        {children}
-      </GroupEventDataSection>
-    );
+    return <div>{children}</div>;
   },
 });
 
