@@ -67,16 +67,16 @@ class DeviceContextType(ContextType):
 @contexttype('runtime')
 class RuntimeContextType(ContextType):
     indexed_fields = {
-        '': '{name}',
-        'version': '{name} {version}',
+        '': '{name} {version}',
+        'name': '{name}',
     }
 
 
 @contexttype('browser')
 class BrowserContextType(ContextType):
     indexed_fields = {
-        '': '{name}',
-        'version': '{name} {version}',
+        '': '{name} {version}',
+        'name': '{name}',
     }
     # viewport
 
@@ -84,8 +84,8 @@ class BrowserContextType(ContextType):
 @contexttype('os')
 class OsContextType(ContextType):
     indexed_fields = {
-        '': '{name}',
-        'version': '{name} {version}',
+        '': '{name} {version}',
+        'name': '{name}',
     }
     # build
 
