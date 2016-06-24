@@ -104,23 +104,6 @@ const GroupEventDetails = React.createClass({
                   the Auto Resolve configuration for this project.`)}</span>
               </div>
             }
-            <div className="context-summary">
-              <div className="context-item">
-                <span className="icon" />
-                <h3>armin@getsentry.com</h3>
-                <p><strong>ID:</strong> 1088</p>
-              </div>
-              <div className="context-item">
-                <span className="icon" />
-                <h3>iPod 5 (n78ap)</h3>
-                <p><strong>Architecture:</strong> armv7f</p>
-              </div>
-              <div className="context-item">
-                <span className="icon" />
-                <h3>iOS 8.3 (12F69)</h3>
-                <p>Darwin Kernel Version 14.0.0</p>
-              </div>
-            </div>
             {this.state.loading ?
               <LoadingIndicator />
             : (this.state.error ?

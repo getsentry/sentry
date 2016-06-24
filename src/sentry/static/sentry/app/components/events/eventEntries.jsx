@@ -2,6 +2,7 @@ import React from 'react';
 
 import {logException} from '../../utils/logging';
 import EventContexts from './contexts';
+import EventContextSummary from './contextSummary';
 import EventDataSection from './eventDataSection';
 import EventErrors from './errors';
 import EventExtraData from './extraData';
@@ -83,6 +84,10 @@ const EventEntries = React.createClass({
       }
     });
 
+    let hasContext = (
+      !(utils.objectIsEmpty(evt.user) && !utils.objectIsEmpty(evt.contexts))
+    );
+
     return (
       <div className="entries">
         {evt.userReport &&
@@ -95,13 +100,18 @@ const EventEntries = React.createClass({
             group={group}
             event={evt} />
         }
+        {hasContext &&
+          <EventContextSummary
+            group={group}
+            event={evt} />
+        }
         <EventTags
           group={group}
           event={evt}
           orgId={this.props.orgId}
           projectId={project.slug} />
         {entries}
-        {(!utils.objectIsEmpty(evt.user) || !utils.objectIsEmpty(evt.contexts)) &&
+        {hasContext &&
           <EventContexts
             group={group}
             event={evt} />
