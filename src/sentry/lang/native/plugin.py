@@ -217,6 +217,8 @@ def inject_apple_device_data(data, system):
         os['build'] = system['os_version']
     if 'kernel_version' in system:
         os['kernel_version'] = system['kernel_version']
+    if 'jailbroken' in system:
+        os['rooted'] = system['jailbroken']
 
     if 'cpu_arch' in system:
         device['arch'] = system['cpu_arch']
