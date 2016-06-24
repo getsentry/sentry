@@ -75,8 +75,14 @@ const GroupActions = React.createClass({
     });
   },
 
+  onShare() {
+    let {shareId} = this.getGroup();
+    return this.history.pushState(null, `/share/issue/${shareId}/`);
+  },
+
   render() {
     let group = this.getGroup();
+    let orgFeatures = new Set(this.getOrganization().features);
 
     let resolveClassName = 'group-resolve btn btn-default btn-sm';
     if (group.status === 'resolved') {
@@ -192,32 +198,24 @@ const GroupActions = React.createClass({
             <span className="icon-trash"></span>
           </LinkWithConfirmation>
         </div>
-        {group.pluginActions.length > 1 ?
-          <div className="btn-group more">
-            <DropdownLink
-                className="btn btn-default btn-sm"
-                title={t('More')}>
-              {group.pluginActions.map((action, actionIdx) => {
-                return (
-                  <MenuItem key={actionIdx} href={action[1]}>
-                    {action[0]}
-                  </MenuItem>
-                );
-              })}
-            </DropdownLink>
-          </div>
-        : group.pluginActions.length !== 0 &&
-          group.pluginActions.map((action, actionIdx) => {
-            return (
-              <div className="btn-group" key={actionIdx}>
-                <a className="btn btn-default btn-sm"
-                   href={action[1]}>
+        <div className="btn-group more">
+          <DropdownLink
+            className="btn btn-default btn-sm"
+            title={t('More')}>
+            {orgFeatures.has('shared-issues') &&
+              <li>
+                <a onClick={this.onShare}>{t('Share this event')}</a>
+              </li>
+            }
+            {group.pluginActions.map((action, actionIdx) => {
+              return (
+                <MenuItem key={actionIdx} href={action[1]}>
                   {action[0]}
-                </a>
-              </div>
-            );
-          })
-        }
+                </MenuItem>
+              );
+            })}
+          </DropdownLink>
+        </div>
       </div>
     );
   }
