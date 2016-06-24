@@ -13,7 +13,7 @@ const NoSummary = React.createClass({
   render() {
     return (
       <div className="context-item">
-        <span className="icon" />
+        <span className="context-item-icon" />
         <h3>{this.props.title}</h3>
       </div>
     );
@@ -37,7 +37,7 @@ const GenericSummary = React.createClass({
 
     return (
       <div className={`context-item ${className}`}>
-        <span className="icon" />
+        <span className="context-item-icon" />
         <h3>{data.name}</h3>
         <p><strong>{t('Version:')}</strong> {data.version || t('Unknown Version')}</p>
       </div>
@@ -63,7 +63,7 @@ const UserSummary = React.createClass({
 
     return (
       <div className="context-item user">
-        <Avatar user={user} size={48} className="icon" />
+        <Avatar user={user} size={48} className="context-item-icon" />
         <h3>{userTitle}</h3>
         {user.id && user.id !== userTitle ?
           <p><strong>{t('ID:')}</strong> {user.id}</p>
