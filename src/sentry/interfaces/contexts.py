@@ -29,7 +29,7 @@ def contexttype(name):
 
 
 class ContextType(object):
-    indexed_fields = []
+    indexed_fields = None
 
     def __init__(self, alias, data):
         self.alias = alias
@@ -39,16 +39,17 @@ class ContextType(object):
         return self.data
 
     def iter_tags(self):
-        for field, f_string in self.indexed_fields.iteritems():
-            try:
-                value = f_string.format(**self.data).strip()
-            except KeyError:
-                continue
-            if value:
-                if not field:
-                    yield (self.alias, value)
-                else:
-                    yield ('%s.%s' % (self.alias, field), value)
+        if self.indexed_fields:
+            for field, f_string in self.indexed_fields.iteritems():
+                try:
+                    value = f_string.format(**self.data).strip()
+                except KeyError:
+                    continue
+                if value:
+                    if not field:
+                        yield (self.alias, value)
+                    else:
+                        yield ('%s.%s' % (self.alias, field), value)
 
 
 # TODO(dcramer): contexts need to document/describe expected (optional) fields

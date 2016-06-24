@@ -17,8 +17,8 @@ class ContextsTest(TestCase):
             },
         })
         assert sorted(ctx.iter_tags()) == [
+            ('os', 'Windows 95'),
             ('os.name', 'Windows'),
-            ('os.version', '95'),
         ]
         assert ctx.to_json() == {
             'os': {
@@ -37,9 +37,8 @@ class ContextsTest(TestCase):
             },
         })
         assert sorted(ctx.iter_tags()) == [
-            ('runtime.build', 'BLAH'),
+            ('runtime', 'Java 1.2.3'),
             ('runtime.name', 'Java'),
-            ('runtime.version', '1.2.3'),
         ]
         assert ctx.to_json() == {
             'runtime': {
@@ -61,10 +60,7 @@ class ContextsTest(TestCase):
             },
         })
         assert sorted(ctx.iter_tags()) == [
-            ('device.arch', 'arm64'),
             ('device.model', 'iPad'),
-            ('device.model_id', '1234AB'),
-            ('device.name', 'My iPad'),
         ]
         assert ctx.to_json() == {
             'device': {
@@ -90,10 +86,7 @@ class ContextsTest(TestCase):
             },
         })
         assert sorted(ctx.iter_tags()) == [
-            ('my_device.arch', 'arm64'),
-            ('my_device.model', 'iPad'),
-            ('my_device.model_id', '1234AB'),
-            ('my_device.name', 'My iPad')
+            ('my_device', 'My iPad')
         ]
         assert ctx.to_json() == {
             'my_device': {
