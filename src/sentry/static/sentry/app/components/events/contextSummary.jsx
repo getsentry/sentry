@@ -35,12 +35,12 @@ const EventContextSummary = React.createClass({
             <h3>Unknown User</h3>
           </div>
         }
-        <div className="context-item">
+        <div className="context-item android">
           <span className="icon" />
           <h3>iPod 5 (n78ap)</h3>
           <p><strong>Architecture:</strong> armv7f</p>
         </div>
-        <div className="context-item">
+        <div className="context-item ios">
           <span className="icon" />
           <h3>iOS 8.3 (12F69)</h3>
           <p>Darwin Kernel Version 14.0.0</p>
