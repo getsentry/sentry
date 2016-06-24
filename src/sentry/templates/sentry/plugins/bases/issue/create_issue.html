@@ -34,11 +34,11 @@
         <div class="tab-pane{% if op == "create" or not op %} active{% endif %}" id="create">
             <form class="form-stacked" action="" method="post">
                 {% csrf_token %}
-                {{ create_form|as_crispy_errors }}
+                {{ form|as_crispy_errors }}
                 <input type="hidden" name="next" value="{{ next }}" />
                 <input type="hidden" name="op" value="create" />
                 <fieldset>
-                    {% for field in create_form %}
+                    {% for field in form %}
                         {{ field|as_crispy_field }}
                     {% endfor %}
                 </fieldset>
