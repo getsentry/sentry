@@ -97,6 +97,16 @@ const Frame = React.createClass({
     return out;
   },
 
+  shouldPrioritizeModuleName() {
+    switch (this.props.platform) {
+      case 'java':
+      case 'csharp':
+        return true;
+      default:
+        return false;
+    }
+  },
+
   renderDefaultTitle() {
     let data = this.props.data;
     let title = [];
@@ -105,9 +115,15 @@ const Frame = React.createClass({
     // localized correctly
 
     if (defined(data.filename || data.module)) {
+      // prioritize module name for Java as filename is often only basename
+      let pathName = (
+        this.shouldPrioritizeModuleName() ?
+        (data.module || data.filename) :
+        (data.filename || data.module));
+
       title.push((
         <code key="filename" className="filename">
-          <Truncate value={data.filename || data.module} maxLength={100} leftTrim={true} />
+          <Truncate value={pathName} maxLength={100} leftTrim={true} />
         </code>
       ));
       if (isUrl(data.absPath)) {
