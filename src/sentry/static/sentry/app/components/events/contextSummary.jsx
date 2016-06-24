@@ -1,5 +1,6 @@
 import React from 'react';
 
+import Avatar from '../../components/avatar';
 import PropTypes from '../../proptypes';
 import {t} from '../../locale';
 import {objectIsEmpty} from '../../utils';
@@ -62,7 +63,7 @@ const UserSummary = React.createClass({
 
     return (
       <div className="context-item user">
-        <span className="icon" />
+        <Avatar user={user} size={48} className="icon" />
         <h3>{userTitle}</h3>
         {user.id && user.id !== userTitle ?
           <p><strong>{t('ID:')}</strong> {user.id}</p>
