@@ -9,6 +9,7 @@ const StacktraceContent = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
     includeSystemFrames: React.PropTypes.bool,
+    expandFirstFrame: React.PropTypes.bool,
     platform: React.PropTypes.string,
     newestFirst: React.PropTypes.bool
   },
@@ -16,7 +17,8 @@ const StacktraceContent = React.createClass({
 
   getDefaultProps() {
     return {
-      includeSystemFrames: true
+      includeSystemFrames: true,
+      expandFirstFrame: true,
     };
   },
 
@@ -62,18 +64,16 @@ const StacktraceContent = React.createClass({
       lastFrameIdx = data.frames.length - 1;
     }
 
-    // use old frames if we do not have an org (share view) or
-    // we don't have the feature
-    let FrameComponent = Frame;
+    let expandFirstFrame = this.props.expandFirstFrame;
     let frames = [];
     data.frames.forEach((frame, frameIdx) => {
       let nextFrame = data.frames[frameIdx + 1];
       if (this.frameIsVisible(frame, nextFrame)) {
         frames.push(
-          <FrameComponent
+          <Frame
             key={frameIdx}
             data={frame}
-            isExpanded={lastFrameIdx === frameIdx}
+            isExpanded={expandFirstFrame && lastFrameIdx === frameIdx}
             emptySourceNotation={lastFrameIdx === frameIdx && frameIdx === 0}
             nextFrameInApp={nextFrame && nextFrame.inApp}
             platform={this.props.platform} />
