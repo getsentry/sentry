@@ -47,7 +47,8 @@ class ContextType(object):
             if value:
                 if not field:
                     yield (self.alias, value)
-                yield ('%s.%s' % (self.alias, field), value)
+                else:
+                    yield ('%s.%s' % (self.alias, field), value)
 
 
 # TODO(dcramer): contexts need to document/describe expected (optional) fields
