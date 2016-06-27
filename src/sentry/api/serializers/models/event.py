@@ -42,6 +42,7 @@ class EventSerializer(Serializer):
         results = {}
         for item in item_list:
             user_interface = item.interfaces.get('sentry.interfaces.User')
+            # TODO(dcramer): convert to get_api_context
             if user_interface:
                 user_data = user_interface.to_json()
             else:
@@ -49,19 +50,13 @@ class EventSerializer(Serializer):
 
             contexts_interface = item.interfaces.get('contexts')
             if contexts_interface:
-                contexts_data = contexts_interface.to_json()
+                contexts_data = contexts_interface.get_api_context()
             else:
                 contexts_data = {}
 
-            device_interface = item.interfaces.get('device')
-            if device_interface:
-                device_data = device_interface.to_json()
-            else:
-                device_data = None
-
             sdk_interface = item.interfaces.get('sdk')
             if sdk_interface:
-                sdk_data = sdk_interface.to_json()
+                sdk_data = sdk_interface.get_api_context()
             else:
                 sdk_data = None
 
@@ -70,7 +65,6 @@ class EventSerializer(Serializer):
                 'user': user_data,
                 'contexts': contexts_data,
                 'sdk': sdk_data,
-                'device': device_data,
             }
         return results
 
@@ -127,7 +121,6 @@ class EventSerializer(Serializer):
             'user': attrs['user'],
             'contexts': attrs['contexts'],
             'sdk': attrs['sdk'],
-            'device': attrs['device'],
             'context': obj.data.get('extra', {}),
             'packages': obj.data.get('modules', {}),
             'type': event_type,
