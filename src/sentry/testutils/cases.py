@@ -455,6 +455,7 @@ class AcceptanceTestCase(TransactionTestCase):
         # XXX(dcramer): "hit a url before trying to set cookies"
         if not getattr(self.browser, '_has_initialized_cookie_store', False):
             self.browser.get(self.route('/'))
+            self.wait_until('html')
             self.browser._has_initialized_cookie_store = True
 
         self.session.save()
