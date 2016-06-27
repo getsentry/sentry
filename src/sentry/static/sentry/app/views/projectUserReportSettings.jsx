@@ -127,7 +127,7 @@ const ProjectUserReportSettings = React.createClass({
   handleClick() {
     Raven.showReportDialog({
       // should never make it to the Sentry API, but just in case, use throwaway id
-      eventId: 'ignoreme'
+      eventId: '00000000000000000000000000000000'
     });
   },
 
