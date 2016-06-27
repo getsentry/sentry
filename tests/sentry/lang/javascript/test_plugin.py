@@ -21,7 +21,7 @@ def load_fixture(name):
 
 
 class JavascriptIntegrationTest(TestCase):
-    def test_adds_contexts(self):
+    def test_adds_contexts_without_device(self):
         data = {
             'message': 'hello',
             'platform': 'javascript',
@@ -48,6 +48,40 @@ class JavascriptIntegrationTest(TestCase):
             'version': '28.0.1500',
         }
         assert contexts.get('device') is None
+
+    def test_adds_contexts_with_device(self):
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com',
+                'headers': [
+                    ['User-Agent', 'Mozilla/5.0 (Linux; U; Android 4.3; en-us; SCH-R530U Build/JSS15J) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30 USCC-R530U'],
+                ],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        contexts = event.interfaces['contexts'].to_json()
+        assert contexts.get('os') == {
+            'name': 'Android',
+            'type': 'os',
+            'version': '4.3',
+        }
+        assert contexts['browser'] == {
+            'name': 'Android',
+            'type': 'browser',
+            'version': '4.3',
+        }
+        assert contexts.get('device') == {
+            'family': 'Samsung SCH-R530U',
+            'type': 'device',
+            'model': 'SCH-R530U',
+            'brand': 'Samsung',
+        }
 
     @patch('sentry.lang.javascript.processor.fetch_file')
     def test_source_expansion(self, mock_fetch_file):
