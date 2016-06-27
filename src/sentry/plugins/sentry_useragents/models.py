@@ -24,7 +24,7 @@ class UserAgentPlugin(TagPlugin):
         contexts = event.interfaces.get('contexts')
         # disable tagging if contexts are present
         if contexts:
-            return
+            return []
 
         http = event.interfaces.get('sentry.interfaces.Http')
         if not http:

@@ -21,6 +21,34 @@ def load_fixture(name):
 
 
 class JavascriptIntegrationTest(TestCase):
+    def test_adds_contexts(self):
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com',
+                'headers': [
+                    ['User-Agent', 'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36'],
+                ],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        contexts = event.interfaces['contexts'].to_json()
+        assert contexts.get('os') == {
+            'name': 'Windows 8',
+            'type': 'os',
+        }
+        assert contexts['browser'] == {
+            'name': 'Chrome',
+            'type': 'browser',
+            'version': '28.0.1500',
+        }
+        assert contexts.get('device') is None
+
     @patch('sentry.lang.javascript.processor.fetch_file')
     def test_source_expansion(self, mock_fetch_file):
         data = {
