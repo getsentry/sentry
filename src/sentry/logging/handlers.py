@@ -29,6 +29,23 @@ class JSONRenderer(object):
         return _default_encoder(event_dict)
 
 
+class HumanRenderer(object):
+    def __call__(self, logger, name, event_dict):
+        level = event_dict.pop('level')
+        real_level = (level.upper()
+            if isinstance(level, basestring)
+            else logging.getLevelName(level)
+        )
+        base = '[%s] %s: %s' % (
+            real_level,
+            event_dict.pop('name', 'root'),
+            event_dict.pop('event'),
+        )
+        join = ' '.join(k + '=' + repr(v)
+               for k, v in event_dict.iteritems())
+        return '%s %s' % (base, join)
+
+
 class StructLogHandler(logging.StreamHandler):
     def emit(self, record, logger=get_logger()):
         kwargs = {
