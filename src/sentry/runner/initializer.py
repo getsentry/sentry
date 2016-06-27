@@ -173,15 +173,10 @@ def configure_structlog():
     }
     fmt = options.get('system.logging-format')
     if fmt == LoggingFormat.HUMAN:
+        from sentry.logging.handlers import HumanRenderer
         kwargs['processors'].extend([
             structlog.processors.ExceptionPrettyPrinter(),
-            structlog.processors.KeyValueRenderer(
-                key_order=[
-                    'name',
-                    'level',
-                    'event',
-                ]
-            )
+            HumanRenderer(),
         ])
     elif fmt == LoggingFormat.MACHINE:
         from sentry.logging.handlers import JSONRenderer
