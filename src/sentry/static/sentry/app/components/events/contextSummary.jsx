@@ -61,6 +61,10 @@ const UserSummary = React.createClass({
       user.email :
       user.ipAddress || user.id || user.username);
 
+    if (!userTitle) {
+      return <NoSummary title={t('Unknown User')} />;
+    }
+
     return (
       <div className="context-item user">
         <Avatar user={user} size={48} className="context-item-icon"
