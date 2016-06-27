@@ -50,6 +50,8 @@ def parse_user_agent(data):
 def inject_browser_context(data, user_agent):
     ua = user_agent['user_agent']
     try:
+        if ua['family'] == 'Other':
+            return
         data['contexts']['browser'] = {
             'name': ua['family'],
             'version': '.'.join(value for value in [
@@ -64,6 +66,8 @@ def inject_browser_context(data, user_agent):
 def inject_os_context(data, user_agent):
     ua = user_agent['os']
     try:
+        if ua['family'] == 'Other':
+            return
         data['contexts']['os'] = {
             'name': ua['family'],
             'version': '.'.join(value for value in [
@@ -71,6 +75,20 @@ def inject_os_context(data, user_agent):
                 ua['minor'],
                 ua['patch'],
             ] if value),
+        }
+    except KeyError:
+        pass
+
+
+def inject_device_context(data, user_agent):
+    ua = user_agent['device']
+    try:
+        if ua['family'] == 'Other':
+            return
+        data['contexts']['device'] = {
+            'family': ua['family'],
+            'model': ua['model'],
+            'brand': ua['brand'],
         }
     except KeyError:
         pass
@@ -85,6 +103,7 @@ def inject_device_data(data):
 
     inject_browser_context(data, user_agent)
     inject_os_context(data, user_agent)
+    inject_device_context(data, user_agent)
 
 
 class JavascriptPlugin(Plugin2):
