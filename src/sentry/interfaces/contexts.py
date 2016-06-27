@@ -16,6 +16,7 @@ from sentry.interfaces.base import Interface
 
 __all__ = ('Contexts',)
 
+EMPTY_VALUES = frozenset(('', None))
 
 context_types = {}
 
@@ -35,7 +36,8 @@ class ContextType(object):
         self.alias = alias
         ctx_data = {}
         for key, value in trim(data).iteritems():
-            ctx_data[force_text(key)] = force_text(value)
+            if value not in EMPTY_VALUES:
+                ctx_data[force_text(key)] = force_text(value)
         self.data = ctx_data
 
     def to_json(self):

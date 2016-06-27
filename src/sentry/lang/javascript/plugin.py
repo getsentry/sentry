@@ -13,18 +13,21 @@ def preprocess_event(data):
     if data.get('platform') != 'javascript':
         return
 
-    project = Project.objects.get_from_cache(
-        id=data['project'],
-    )
+    if settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT:
+        project = Project.objects.get_from_cache(
+            id=data['project'],
+        )
 
-    allow_scraping = bool(project.get_option('sentry:scrape_javascript', True))
+        allow_scraping = bool(project.get_option('sentry:scrape_javascript', True))
 
-    processor = SourceProcessor(
-        project=project,
-        allow_scraping=allow_scraping,
-    )
-    data = processor.process(data)
+        processor = SourceProcessor(
+            project=project,
+            allow_scraping=allow_scraping,
+        )
+        processor.process(data)
+
     inject_device_data(data)
+
     return data
 
 
@@ -47,6 +50,14 @@ def parse_user_agent(data):
     return None
 
 
+def _get_version(user_agent):
+    return '.'.join(value for value in [
+        user_agent['major'],
+        user_agent['minor'],
+        user_agent.get('patch'),
+    ] if value) or None
+
+
 def inject_browser_context(data, user_agent):
     ua = user_agent['user_agent']
     try:
@@ -54,10 +65,7 @@ def inject_browser_context(data, user_agent):
             return
         data['contexts']['browser'] = {
             'name': ua['family'],
-            'version': '.'.join(value for value in [
-                ua['major'],
-                ua['minor'],
-            ] if value),
+            'version': _get_version(ua),
         }
     except KeyError:
         pass
@@ -70,11 +78,7 @@ def inject_os_context(data, user_agent):
             return
         data['contexts']['os'] = {
             'name': ua['family'],
-            'version': '.'.join(value for value in [
-                ua['major'],
-                ua['minor'],
-                ua['patch'],
-            ] if value),
+            'version': _get_version(ua),
         }
     except KeyError:
         pass
@@ -113,6 +117,4 @@ class JavascriptPlugin(Plugin2):
         return False
 
     def get_event_preprocessors(self, **kwargs):
-        if not settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT:
-            return []
         return [preprocess_event]
