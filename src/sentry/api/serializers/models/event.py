@@ -9,7 +9,10 @@ from sentry.models import Event, EventError
 
 @register(Event)
 class EventSerializer(Serializer):
-    _reserved_keys = frozenset(['sentry.interfaces.User', 'sdk', 'device'])
+    _reserved_keys = frozenset([
+        'sentry.interfaces.User', 'sdk', 'device',
+        'contexts'
+    ])
 
     def _get_entries(self, event, user, is_public=False):
         # XXX(dcramer): These are called entries for future-proofing
@@ -39,27 +42,29 @@ class EventSerializer(Serializer):
         results = {}
         for item in item_list:
             user_interface = item.interfaces.get('sentry.interfaces.User')
+            # TODO(dcramer): convert to get_api_context
             if user_interface:
                 user_data = user_interface.to_json()
             else:
                 user_data = None
-            device_interface = item.interfaces.get('device')
-            if device_interface:
-                device_data = device_interface.to_json()
+
+            contexts_interface = item.interfaces.get('contexts')
+            if contexts_interface:
+                contexts_data = contexts_interface.get_api_context()
             else:
-                device_data = None
+                contexts_data = {}
 
             sdk_interface = item.interfaces.get('sdk')
             if sdk_interface:
-                sdk_data = sdk_interface.to_json()
+                sdk_data = sdk_interface.get_api_context()
             else:
                 sdk_data = None
 
             results[item] = {
                 'entries': self._get_entries(item, user, is_public=is_public),
                 'user': user_data,
+                'contexts': contexts_data,
                 'sdk': sdk_data,
-                'device': device_data,
             }
         return results
 
@@ -114,8 +119,9 @@ class EventSerializer(Serializer):
             # See GH-3248
             'message': obj.get_legacy_message(),
             'user': attrs['user'],
+            'contexts': attrs['contexts'],
             'sdk': attrs['sdk'],
-            'device': attrs['device'],
+            # TODO(dcramer): move into contexts['extra']
             'context': obj.data.get('extra', {}),
             'packages': obj.data.get('modules', {}),
             'type': event_type,
@@ -138,6 +144,7 @@ class SharedEventSerializer(EventSerializer):
     def serialize(self, obj, attrs, user):
         result = super(SharedEventSerializer, self).serialize(obj, attrs, user)
         del result['context']
+        del result['contexts']
         del result['user']
         del result['tags']
         return result

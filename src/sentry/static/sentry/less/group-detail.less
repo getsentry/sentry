@@ -695,6 +695,88 @@
 }
 
 /**
+* Context callout
+* ============================================================================
+*/
+
+.context-summary {
+  display: flex;
+  .box;
+  margin-top: 20px;
+
+  .context-item {
+    flex: 1;
+    padding: 20px;
+    border-left: 1px solid lighten(@trim, 5);
+    padding-left: 78px;
+    position: relative;
+    min-height: 76px;
+
+    .context-item-icon {
+      position: absolute;
+      left: 15px;
+      top: 15px;
+      .square(48px);
+      background-repeat: no-repeat;
+      background-position: center;
+      background-image: url(../images/icons/context/unknown.svg);
+    }
+
+    &:first-child {
+      border: 0;
+    }
+
+    h3, p {
+      font-size: 16px;
+      line-height: 1;
+      margin: 0 0 8px;
+    }
+
+    p {
+      font-size: 13px;
+
+      &:last-child {
+        margin: 0;
+      }
+    }
+
+    &.ipad .context-item-icon {
+      background-image: url(../images/icons/context/ipad.svg);
+    }
+
+    &.ipod, &.iphone {
+      .context-item-icon {
+        background-image: url(../images/icons/context/iphone.svg);
+      }
+    }
+
+    &.android-phone {
+      .context-item-icon {
+        background-image: url(../images/icons/context/android-phone.svg);
+      }
+    }
+
+    &.android-tablet {
+      .context-item-icon {
+        background-image: url(../images/icons/context/android-tablet.svg);
+      }
+    }
+
+    &.ios, &.macos, &.tvos {
+      .context-item-icon {
+        background-image: url(../images/icons/context/ios.svg);
+        top: 13px;
+      }
+    }
+
+    &.android .context-item-icon {
+      background-image: url(../images/icons/context/android.svg);
+      top: 14px;
+    }
+  }
+}
+
+/**
 * Event Toolbar
 * ============================================================================
 */
@@ -799,12 +881,9 @@
   }
 }
 
-// User widget
-
 .user-widget {
   position: relative;
-
-  margin: 0 0 20px;
+  margin-bottom: 20px;
 
   .avatar {
     .square(48px);
@@ -907,7 +986,6 @@ div.traceback > ul {
     border-top: 0;
   }
 
-
   .frame {
     list-style-type: none;
     position: relative;
@@ -917,8 +995,6 @@ div.traceback > ul {
     &.frame-errors {}
 
     &.system-frame { }
-
-    &.leads-to-app {}
 
     h3 {
       font-size: 22px;
@@ -1185,6 +1261,37 @@ div.traceback > ul {
       .toggle-expand .btn {
         margin-bottom: -13px;
       }
+    }
+  }
+
+  &.full-traceback {
+    .leads-to-app-hint {
+      display: none;
+    }
+  }
+
+  &.in-app-traceback .frame.leads-to-app {
+    .leads-to-app-hint {
+      display: none;
+    }
+
+    &.collapsed {
+      .title {
+        opacity: 0.7;
+        font-size: 12px;
+        padding: 4px 20px 4px 20px;
+        background: lighten(@blue-light, 30);
+        &.is-expandable:hover {
+          opacity: 1.0;
+        }
+        .package {
+          width: auto;
+        }
+      }
+      .in-at-line, .lineno, .btn-toggle, .address {
+        display: none;
+      }
+      .leads-to-app-hint { display: inline; }
     }
   }
 
@@ -2036,6 +2143,18 @@ ul.crumbs {
 
     .is-assigned {
       padding-top: 0;
+    }
+  }
+
+  // Context callout
+
+  .context-summary {
+    flex-direction: column;
+    margin-top: 0;
+
+    .context-item {
+      border: 0;
+      border-top: 1px solid @trim;
     }
   }
 

@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import re
 import logging
 import posixpath
 
@@ -10,6 +11,8 @@ from sentry.models.dsymfile import SDK_MAPPING
 
 
 logger = logging.getLogger(__name__)
+
+model_re = re.compile(r'^(\S+?)\d')
 
 APP_BUNDLE_PATHS = (
     '/var/containers/Bundle/Application/',
@@ -201,26 +204,34 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
 
 
 def inject_apple_device_data(data, system):
-    container = data.setdefault('device', {})
+    contexts = data.setdefault('contexts', {})
+
+    device = contexts.setdefault('device', {})
+    os = contexts.setdefault('os', {})
+
     try:
-        container['name'] = SDK_MAPPING[system['system_name']]
+        os['name'] = SDK_MAPPING[system['system_name']]
     except LookupError:
-        container['name'] = system.get('system_name') or 'Generic Apple'
+        os['name'] = system.get('system_name') or 'Generic Apple'
 
     if 'system_version' in system:
-        container['version'] = system['system_version']
+        os['version'] = system['system_version']
     if 'os_version' in system:
-        container['build'] = system['os_version']
-
-    extra = container.setdefault('data', {})
-    if 'cpu_arch' in system:
-        extra['cpu_arch'] = system['cpu_arch']
-    if 'model' in system:
-        extra['device_model_id'] = system['model']
-    if 'machine' in system:
-        extra['device_model'] = system['machine']
+        os['build'] = system['os_version']
     if 'kernel_version' in system:
-        extra['kernel_version'] = system['kernel_version']
+        os['kernel_version'] = system['kernel_version']
+    if 'jailbroken' in system:
+        os['rooted'] = system['jailbroken']
+
+    if 'cpu_arch' in system:
+        device['arch'] = system['cpu_arch']
+    if 'model' in system:
+        device['model_id'] = system['model']
+    if 'machine' in system:
+        device['model'] = system['machine']
+        match = model_re.match(system['machine'])
+        if match is not None:
+            device['family'] = match.group(1)
 
 
 def record_no_symsynd(data):

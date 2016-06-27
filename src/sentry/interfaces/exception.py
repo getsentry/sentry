@@ -37,8 +37,7 @@ class SingleException(Interface):
     >>>     }
     >>> }
     """
-    score = 900
-    display_score = 1200
+    score = 2000
 
     @classmethod
     def to_python(cls, data, has_system_frames=None, slim_frames=True):
