@@ -762,7 +762,7 @@
       }
     }
 
-    &.ios, &.macos, &.tvos {
+    &.ios, &.macos, &.tvos, &.mac-os-x {
       .context-item-icon {
         background-image: url(../images/icons/context/ios.svg);
         top: 13px;
@@ -772,6 +772,36 @@
     &.android .context-item-icon {
       background-image: url(../images/icons/context/android.svg);
       top: 14px;
+    }
+
+    &.windows .context-item-icon {
+      background-image: url(../images/icons/context/windows.png);
+      background-size: 48px 48px;
+    }
+
+    &.firefox .context-item-icon {
+      background-image: url(../images/icons/context/firefox.png);
+      background-size: 48px 48px;
+    }
+
+    &.chrome .context-item-icon {
+      background-image: url(../images/icons/context/chrome.png);
+      background-size: 48px 48px;
+    }
+
+    &.edge .context-item-icon {
+      background-image: url(../images/icons/context/edge.png);
+      background-size: 48px 48px;
+    }
+
+    &.internet-explorer .context-item-icon {
+      background-image: url(../images/icons/context/internet-explorer.png);
+      background-size: 48px 48px;
+    }
+
+    &.opera .context-item-icon {
+      background-image: url(../images/icons/context/opera.png);
+      background-size: 48px 48px;
     }
   }
 }
