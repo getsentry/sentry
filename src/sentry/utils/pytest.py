@@ -122,9 +122,11 @@ def pytest_configure(config):
     patcher.start()
 
     from sentry.runner.initializer import (
-        bootstrap_options, initialize_receivers, fix_south, bind_cache_to_option_store)
+        bootstrap_options, configure_structlog, initialize_receivers, fix_south,
+        bind_cache_to_option_store)
 
     bootstrap_options(settings)
+    configure_structlog()
     fix_south(settings)
 
     bind_cache_to_option_store()
