@@ -40,7 +40,7 @@ from sentry.web.helpers import render_to_string
 # The maximum amount of recipients to display in human format.
 MAX_RECIPIENTS = 5
 
-logger = get_logger(name=__name__)
+logger = get_logger(name='sentry.mail')
 
 
 class _CaseInsensitiveSigner(Signer):
@@ -367,7 +367,6 @@ class MessageBuilder(object):
         messages = self.get_built_messages(to, bcc=bcc)
         log_mail_queued = partial(
             logger.info,
-            name='sentry.mail',
             event='mail.queued',
             message_type=self.type,
         )
@@ -397,7 +396,6 @@ def send_messages(messages, fail_silently=False):
     metrics.incr('email.sent', len(messages))
     for message in messages:
         logger.info(
-            name='sentry.mail',
             event='mail.sent',
             message_id=message.extra_headers['Message-Id'],
         )
