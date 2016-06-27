@@ -28,7 +28,7 @@ const UserContextType = React.createClass({
     return (
       <div className="user-widget">
         <div className="pull-left">
-          <Avatar user={user} size={96} />
+          <Avatar user={user} size={96} gravatar={false} />
         </div>
         <KeyValueList data={builtins} isContextData={false} />
         {children &&

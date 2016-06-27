@@ -63,7 +63,8 @@ const UserSummary = React.createClass({
 
     return (
       <div className="context-item user">
-        <Avatar user={user} size={48} className="context-item-icon" />
+        <Avatar user={user} size={48} className="context-item-icon"
+                gravatar={false} />
         <h3>{userTitle}</h3>
         {user.id && user.id !== userTitle ?
           <p><strong>{t('ID:')}</strong> {user.id}</p>
