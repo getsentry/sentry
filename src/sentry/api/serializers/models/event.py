@@ -121,6 +121,7 @@ class EventSerializer(Serializer):
             'user': attrs['user'],
             'contexts': attrs['contexts'],
             'sdk': attrs['sdk'],
+            # TODO(dcramer): move into contexts['extra']
             'context': obj.data.get('extra', {}),
             'packages': obj.data.get('modules', {}),
             'type': event_type,
