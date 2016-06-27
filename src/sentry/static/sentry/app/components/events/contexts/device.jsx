@@ -10,13 +10,14 @@ const DeviceContextType = React.createClass({
   },
 
   render() {
-    let {name, model, model_id, arch, battery_level, orientation,
+    let {name, family, model, model_id, arch, battery_level, orientation,
       ...data} = this.props.data;
     return (
       <ContextBlock
         data={data}
         knownData={[
           ['Name', name],
+          ['Family', family],
           ['Model', model + (model_id ? ` (${model_id})` : '')],
           ['Architecture', arch],
           ['Battery Level', defined(battery_level)
