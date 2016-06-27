@@ -568,7 +568,7 @@ class ClientApiHelper(object):
                 data[inst.get_path()] = inst.to_json()
             except Exception as e:
                 if isinstance(e, InterfaceValidationError):
-                    log = self.log.info
+                    log = self.log.debug
                 else:
                     log = self.log.error
                 log('Discarded invalid value for interface: %s (%r)', k, value,
@@ -605,7 +605,7 @@ class ClientApiHelper(object):
                     data[inst.get_path()] = inst.to_json()
                 except Exception as e:
                     if isinstance(e, InterfaceValidationError):
-                        log = self.log.info
+                        log = self.log.debug
                     else:
                         log = self.log.error
                     log('Discarded invalid value for interface: %s (%r)', k, value,
