@@ -88,6 +88,10 @@ const EventEntries = React.createClass({
       !(utils.objectIsEmpty(evt.user) && !utils.objectIsEmpty(evt.contexts))
     );
 
+    let hasContextSummary = (
+      hasContext && (evt.platform === 'cocoa' || evt.platform === 'javascript')
+    );
+
     return (
       <div className="entries">
         {evt.userReport &&
@@ -100,7 +104,7 @@ const EventEntries = React.createClass({
             group={group}
             event={evt} />
         }
-        {hasContext &&
+        {hasContextSummary &&
           <EventContextSummary
             group={group}
             event={evt} />
