@@ -31,8 +31,13 @@ class JSONRenderer(object):
 
 class HumanRenderer(object):
     def __call__(self, logger, name, event_dict):
+        level = event_dict.pop('level')
+        real_level = (level.upper()
+            if isinstance(level, basestring)
+            else logging.getLevelName(level)
+        )
         base = '[%s] %s: %s' % (
-            event_dict.pop('level').upper(),
+            real_level,
             event_dict.pop('name', 'root'),
             event_dict.pop('event'),
         )
