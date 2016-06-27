@@ -112,6 +112,54 @@ class ProjectReleaseCreateTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
+    def test_version_whitespace(self):
+        self.login_as(user=self.user)
+
+        team = self.create_team()
+        project = self.create_project(team=team, name='foo')
+
+        url = reverse('sentry-api-0-project-releases', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+
+        response = self.client.post(url, data={
+            'version': '1.2.3\n',
+        })
+        assert response.status_code == 400, response.content
+
+        response = self.client.post(url, data={
+            'version': '\n1.2.3',
+        })
+        assert response.status_code == 400, response.content
+
+        response = self.client.post(url, data={
+            'version': '1.\n2.3',
+        })
+        assert response.status_code == 400, response.content
+
+        response = self.client.post(url, data={
+            'version': '1.2.3\f',
+        })
+        assert response.status_code == 400, response.content
+
+        response = self.client.post(url, data={
+            'version': '1.2.3\t',
+        })
+        assert response.status_code == 400, response.content
+
+        response = self.client.post(url, data={
+            'version': '1.2.3',
+        })
+        assert response.status_code == 201, response.content
+        assert response.data['version'] == '1.2.3'
+
+        release = Release.objects.get(
+            project=project,
+            version=response.data['version'],
+        )
+        assert not release.owner
+
     def test_features(self):
         self.login_as(user=self.user)
 
