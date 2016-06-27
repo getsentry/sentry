@@ -59,7 +59,7 @@ const UserSummary = React.createClass({
 
     let userTitle = (user.email ?
       user.email :
-      user.ipAddress || user.id || user.username);
+      user.ip_address || user.id || user.username);
 
     if (!userTitle) {
       return <NoSummary title={t('Unknown User')} />;
