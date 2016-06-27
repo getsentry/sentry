@@ -142,10 +142,16 @@ const EventContextSummary = React.createClass({
             unknownTitle={t('Unknown Browser')} />
         ));
         children.push((
-          <GenericSummary
-            key="os"
-            data={contexts.os}
-            unknownTitle={t('Unknown OS')} />
+          contexts.os ?
+            <GenericSummary
+              key="os"
+              data={contexts.os}
+              unknownTitle={t('Unknown OS')} />
+          :
+            <GenericSummary
+              key="device"
+              data={contexts.device}
+              unknownTitle={t('Unknown Device')} />
         ));
         break;
       default:
@@ -156,10 +162,16 @@ const EventContextSummary = React.createClass({
             unknownTitle={t('Unknown Runtime')} />
         ));
         children.push((
-          <GenericSummary
-            key="os"
-            data={contexts.os}
-            unknownTitle={t('Unknown OS')} />
+          contexts.os ?
+            <GenericSummary
+              key="os"
+              data={contexts.os}
+              unknownTitle={t('Unknown OS')} />
+          :
+            <GenericSummary
+              key="device"
+              data={contexts.device}
+              unknownTitle={t('Unknown Device')} />
         ));
         break;
     }
