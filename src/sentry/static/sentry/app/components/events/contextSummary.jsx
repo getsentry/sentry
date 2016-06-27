@@ -71,7 +71,7 @@ const UserSummary = React.createClass({
           <Avatar user={user} size={48} className="context-item-icon"
                   gravatar={false} />
         :
-          <span className="icon" />
+          <span className="context-item-icon" />
         }
         <h3>{userTitle}</h3>
         {user.id && user.id !== userTitle ?
@@ -97,11 +97,11 @@ const DeviceSummary = React.createClass({
     }
 
     // TODO(dcramer): we need a better way to parse it
-    let className = data.model.split(/\d/)[0].toLowerCase();
+    let className = data.model.split(/\d/)[0].toLowerCase().replace(/[^a-z0-9\-]+/, '-');
 
     return (
       <div className={`context-item ${className}`}>
-        <span className="icon" />
+        <span className="context-item-icon" />
         <h3>{data.model}</h3>
         <p>{data.arch || data.model_id || ''}</p>
       </div>
