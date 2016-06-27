@@ -762,9 +762,11 @@
       }
     }
 
-    &.ios .context-item-icon, &.mac-os .context-item-icon {
-      background-image: url(../images/icons/context/ios.svg);
-      top: 13px;
+    &.ios, &.macos, &.tvos {
+      .context-item-icon {
+        background-image: url(../images/icons/context/ios.svg);
+        top: 13px;
+      }
     }
 
     &.android .context-item-icon {
