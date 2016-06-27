@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import re
 import logging
 import posixpath
 
@@ -10,6 +11,8 @@ from sentry.models.dsymfile import SDK_MAPPING
 
 
 logger = logging.getLogger(__name__)
+
+model_re = re.compile(r'^(\S+?)\d')
 
 APP_BUNDLE_PATHS = (
     '/var/containers/Bundle/Application/',
@@ -226,6 +229,9 @@ def inject_apple_device_data(data, system):
         device['model_id'] = system['model']
     if 'machine' in system:
         device['model'] = system['machine']
+        match = model_re.match(system['machine'])
+        if match is not None:
+            device['family'] = match.group(1)
 
 
 def record_no_symsynd(data):

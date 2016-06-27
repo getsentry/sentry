@@ -33,10 +33,15 @@ class ContextType(object):
 
     def __init__(self, alias, data):
         self.alias = alias
-        self.data = data
+        ctx_data = {}
+        for key, value in trim(data).iteritems():
+            ctx_data[force_text(key)] = force_text(value)
+        self.data = ctx_data
 
     def to_json(self):
-        return self.data
+        rv = dict(self.data)
+        rv['type'] = self.type
+        return rv
 
     def iter_tags(self):
         if self.indexed_fields:
@@ -62,6 +67,7 @@ class DefaultContextType(ContextType):
 class DeviceContextType(ContextType):
     indexed_fields = {
         '': '{model}',
+        'family': '{family}',
     }
     # model_id, arch
 
@@ -111,11 +117,7 @@ class Contexts(Interface):
     def normalize_context(cls, alias, data):
         ctx_type = data.get('type', alias)
         ctx_cls = context_types.get(ctx_type, DefaultContextType)
-        ctx_data = {}
-        for key, value in trim(data).iteritems():
-            ctx_data[force_text(key)] = force_text(value)
-        ctx_data['type'] = ctx_cls.type
-        return ctx_cls(alias, ctx_data)
+        return ctx_cls(alias, data)
 
     def iter_contexts(self):
         return self._data.itervalues()
