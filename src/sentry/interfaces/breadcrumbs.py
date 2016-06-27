@@ -10,34 +10,9 @@ from __future__ import absolute_import
 
 __all__ = ('Breadcrumbs',)
 
-import pytz
-from datetime import datetime
-
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim
-from sentry.utils.dates import to_timestamp, to_datetime
-
-
-def parse_new_timestamp(value):
-    # TODO(mitsuhiko): merge this code with coreapis date parser
-    if isinstance(value, datetime):
-        return value
-    elif isinstance(value, (int, long, float)):
-        return datetime.utcfromtimestamp(value).replace(tzinfo=pytz.utc)
-    value = (value or '').rstrip('Z').encode('ascii', 'replace').split('.', 1)
-    if not value:
-        return None
-    try:
-        rv = datetime.strptime(value[0], '%Y-%m-%dT%H:%M:%S')
-    except Exception:
-        return None
-    if len(value) == 2:
-        try:
-            rv = rv.replace(microsecond=int(value[1]
-                            .ljust(6, '0')[:6]))
-        except ValueError:
-            rv = None
-    return rv.replace(tzinfo=pytz.utc)
+from sentry.utils.dates import to_timestamp, to_datetime, parse_timestamp
 
 
 def _get_implied_category(category, type):
@@ -81,7 +56,7 @@ class Breadcrumbs(Interface):
     @classmethod
     def normalize_crumb(cls, crumb):
         ty = crumb.get('type') or 'default'
-        ts = parse_new_timestamp(crumb.get('timestamp'))
+        ts = parse_timestamp(crumb.get('timestamp'))
         if ts is None:
             raise InterfaceValidationError('Unable to determine timestamp '
                                            'for crumb')

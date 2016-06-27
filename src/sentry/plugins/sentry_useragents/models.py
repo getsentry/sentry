@@ -21,6 +21,11 @@ class UserAgentPlugin(TagPlugin):
     project_default_enabled = True
 
     def get_tag_values(self, event):
+        contexts = event.interfaces.get('contexts')
+        # disable tagging if contexts are present
+        if contexts:
+            return []
+
         http = event.interfaces.get('sentry.interfaces.Http')
         if not http:
             return []

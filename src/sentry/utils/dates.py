@@ -81,3 +81,25 @@ def parse_date(datestr, timestr):
             return parse(datetimestr)
         except Exception:
             return
+
+
+def parse_timestamp(value):
+    # TODO(mitsuhiko): merge this code with coreapis date parser
+    if isinstance(value, datetime):
+        return value
+    elif isinstance(value, (int, long, float)):
+        return datetime.utcfromtimestamp(value).replace(tzinfo=pytz.utc)
+    value = (value or '').rstrip('Z').encode('ascii', 'replace').split('.', 1)
+    if not value:
+        return None
+    try:
+        rv = datetime.strptime(value[0], '%Y-%m-%dT%H:%M:%S')
+    except Exception:
+        return None
+    if len(value) == 2:
+        try:
+            rv = rv.replace(microsecond=int(value[1]
+                            .ljust(6, '0')[:6]))
+        except ValueError:
+            rv = None
+    return rv.replace(tzinfo=pytz.utc)

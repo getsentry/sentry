@@ -131,7 +131,7 @@ const TagDistributionMeter = React.createClass({
   render() {
     return (
       <div className="distribution-graph">
-        <h6><span>{this.props.name}</span></h6>
+        <h6><span>{this.props.tag}</span></h6>
         {this.renderBody()}
       </div>
     );
