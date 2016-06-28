@@ -5,6 +5,7 @@ import pytest
 
 from django.core.exceptions import SuspiciousOperation
 from ipaddr import IPNetwork
+from mock import patch
 
 from sentry import http
 from sentry.testutils import TestCase
@@ -12,7 +13,9 @@ from sentry.testutils import TestCase
 
 class HttpTest(TestCase):
     @responses.activate
-    def test_simple(self):
+    @patch('socket.gethostbyname')
+    def test_simple(self, mock_gethostbyname):
+        mock_gethostbyname.return_value = '81.0.0.1'
         responses.add(responses.GET, 'http://example.com', body='foo bar')
 
         resp = http.safe_urlopen('http://example.com')
