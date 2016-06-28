@@ -5,6 +5,10 @@ import PropTypes from '../../proptypes';
 import {t} from '../../locale';
 import {objectIsEmpty} from '../../utils';
 
+const generateClassName = function(name) {
+  return name.split(/\d/)[0].toLowerCase().replace(/[^a-z0-9\-]+/g, '-').replace(/\s+$/, '');
+};
+
 const NoSummary = React.createClass({
   propTypes: {
     title: React.PropTypes.string.isRequired,
@@ -33,7 +37,7 @@ const GenericSummary = React.createClass({
       return <NoSummary title={this.props.unknownTitle} />;
     }
 
-    let className = data.name.split(/\d/)[0].toLowerCase();
+    let className = generateClassName(data.name);
 
     return (
       <div className={`context-item ${className}`}>
@@ -71,7 +75,7 @@ const UserSummary = React.createClass({
           <Avatar user={user} size={48} className="context-item-icon"
                   gravatar={false} />
         :
-          <span className="icon" />
+          <span className="context-item-icon" />
         }
         <h3>{userTitle}</h3>
         {user.id && user.id !== userTitle ?
@@ -97,11 +101,11 @@ const DeviceSummary = React.createClass({
     }
 
     // TODO(dcramer): we need a better way to parse it
-    let className = data.model.split(/\d/)[0].toLowerCase();
+    let className = generateClassName(data.model);
 
     return (
       <div className={`context-item ${className}`}>
-        <span className="icon" />
+        <span className="context-item-icon" />
         <h3>{data.model}</h3>
         <p>{data.arch || data.model_id || ''}</p>
       </div>
@@ -148,10 +152,9 @@ const EventContextSummary = React.createClass({
               data={contexts.os}
               unknownTitle={t('Unknown OS')} />
           :
-            <GenericSummary
+            <DeviceSummary
               key="device"
-              data={contexts.device}
-              unknownTitle={t('Unknown Device')} />
+              data={contexts.device} />
         ));
         break;
       default:
@@ -168,10 +171,9 @@ const EventContextSummary = React.createClass({
               data={contexts.os}
               unknownTitle={t('Unknown OS')} />
           :
-            <GenericSummary
+            <DeviceSummary
               key="device"
-              data={contexts.device}
-              unknownTitle={t('Unknown Device')} />
+              data={contexts.device} />
         ));
         break;
     }
