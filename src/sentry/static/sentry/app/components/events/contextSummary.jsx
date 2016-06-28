@@ -5,6 +5,10 @@ import PropTypes from '../../proptypes';
 import {t} from '../../locale';
 import {objectIsEmpty} from '../../utils';
 
+const generateClassName = function(name) {
+  return name.split(/\d/)[0].toLowerCase().replace(/[^a-z0-9\-]+/, '-');
+};
+
 const NoSummary = React.createClass({
   propTypes: {
     title: React.PropTypes.string.isRequired,
@@ -33,7 +37,7 @@ const GenericSummary = React.createClass({
       return <NoSummary title={this.props.unknownTitle} />;
     }
 
-    let className = data.name.split(/\d/)[0].toLowerCase();
+    let className = generateClassName(data.name);
 
     return (
       <div className={`context-item ${className}`}>
@@ -97,7 +101,7 @@ const DeviceSummary = React.createClass({
     }
 
     // TODO(dcramer): we need a better way to parse it
-    let className = data.model.split(/\d/)[0].toLowerCase().replace(/[^a-z0-9\-]+/, '-');
+    let className = generateClassName(data.model);
 
     return (
       <div className={`context-item ${className}`}>
