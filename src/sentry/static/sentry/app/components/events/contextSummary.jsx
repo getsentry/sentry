@@ -6,7 +6,7 @@ import {t} from '../../locale';
 import {objectIsEmpty} from '../../utils';
 
 const generateClassName = function(name) {
-  return name.split(/\d/)[0].toLowerCase().replace(/[^a-z0-9\-]+/g, '-').replace(/\s+$/, '');
+  return name.split(/\d/)[0].toLowerCase().replace(/[^a-z0-9\-]+/g, '-').replace(/\-+$/, '');
 };
 
 const NoSummary = React.createClass({
