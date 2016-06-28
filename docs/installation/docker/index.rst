@@ -190,6 +190,6 @@ This can be used to achieve high availability.
 What's Next?
 ------------
 
-At this point, you should have a fully funcitonal installation of
+At this point, you should have a fully functional installation of
 Sentry. You may want to explore :doc:`various plugins <../../plugins>`
 available.
