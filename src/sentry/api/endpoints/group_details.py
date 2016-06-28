@@ -14,7 +14,8 @@ from sentry.db.models.query import create_or_update
 from sentry.constants import STATUS_CHOICES
 from sentry.models import (
     Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupSnooze,
-    GroupStatus, GroupTagKey, GroupTagValue, Release, UserReport
+    GroupSubscription, GroupStatus, GroupTagKey, GroupTagValue, Release,
+    UserReport
 )
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
@@ -55,6 +56,7 @@ class GroupSerializer(serializers.Serializer):
         STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
     ))
     isBookmarked = serializers.BooleanField()
+    isSubscribed = serializers.BooleanField()
     hasSeen = serializers.BooleanField()
     assignedTo = UserField()
     snoozeDuration = serializers.IntegerField()
@@ -236,14 +238,17 @@ class GroupDetailsEndpoint(GroupEndpoint):
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
                                      the bookmark flag.
+        :param boolean isSubscribed:
         :auth: required
         """
+        # TODO(dcramer): we should move all these mutations to the bulk endpoint
+        # and simply have this method internally call the other
         serializer = GroupSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         result = serializer.object
-
+        subscribe_user = False
         acting_user = request.user if request.user.is_authenticated() else None
 
         # TODO(dcramer): we should allow assignment to anyone who has membership
@@ -272,6 +277,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     type=Activity.SET_RESOLVED,
                     user=acting_user,
                 )
+            subscribe_user = True
+
         elif result.get('status'):
             new_status = STATUS_CHOICES[result['status']]
 
@@ -294,6 +301,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     result['snoozeUntil'] = None
 
             group.update(status=new_status)
+            subscribe_user = True
 
         if result.get('hasSeen') and group.project.member_set.filter(user=request.user).exists():
             instance, created = create_or_update(
@@ -317,18 +325,51 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 group=group,
                 user=request.user,
             )
+            subscribe_user = True
+
         elif result.get('isBookmarked') is False:
             GroupBookmark.objects.filter(
                 group=group,
                 user=request.user,
             ).delete()
 
+        if result.get('isSubscribed'):
+            GroupSubscription.objects.create_or_update(
+                project=group.project,
+                group=group,
+                user=request.user,
+                values={
+                    'is_active': True,
+                }
+            )
+        elif result.get('isSubscribed') is False:
+            GroupSubscription.objects.create_or_update(
+                project=group.project,
+                group=group,
+                user=request.user,
+                values={
+                    'is_active': False,
+                }
+            )
+
         if 'assignedTo' in result:
             if result['assignedTo']:
                 GroupAssignee.objects.assign(group, result['assignedTo'],
                                              acting_user)
+
+                if 'isSubscribed' not in result or result['assignedTo'] != request.user:
+                    GroupSubscription.objects.subscribe(
+                        group=group,
+                        user=result['assignedTo'],
+                    )
             else:
                 GroupAssignee.objects.deassign(group, acting_user)
+
+        if subscribe_user:
+            GroupSubscription.objects.subscribe(
+                group=group,
+                user=request.user,
+            )
 
         return Response(serialize(group, request.user))
 
