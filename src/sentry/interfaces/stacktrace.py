@@ -241,7 +241,9 @@ class Frame(Interface):
         if function == '?':
             function = None
 
-        platform = VALID_PLATFORMS.get(data.get('platform'))
+        platform = data.get('platform')
+        if platform not in VALID_PLATFORMS:
+            platform = None
 
         context_locals = data.get('vars') or {}
         if isinstance(context_locals, (list, tuple)):
