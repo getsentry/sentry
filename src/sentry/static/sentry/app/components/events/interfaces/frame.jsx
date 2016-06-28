@@ -97,8 +97,14 @@ const Frame = React.createClass({
     return out;
   },
 
+  getPlatform() {
+    // prioritize the frame platform but fall back to the platform
+    // of the stacktrace / exception
+    return this.props.data.platform || this.props.platform;
+  },
+
   shouldPrioritizeModuleName() {
-    switch (this.props.platform) {
+    switch (this.getPlatform()) {
       case 'java':
       case 'csharp':
         return true;
@@ -289,7 +295,7 @@ const Frame = React.createClass({
   },
 
   renderLine() {
-    switch (this.props.platform) {
+    switch (this.getPlatform()) {
       case 'objc':
       case 'cocoa':
         return this.renderCocoaLine();
