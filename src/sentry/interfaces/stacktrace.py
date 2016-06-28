@@ -370,6 +370,7 @@ class Frame(Interface):
             'absPath': self.abs_path,
             'module': self.module,
             'package': self.package,
+            'platform': self.platform,
             'instructionAddr': self.instruction_addr,
             'instructionOffset': self.instruction_offset,
             'symbolAddr': self.symbol_addr,
