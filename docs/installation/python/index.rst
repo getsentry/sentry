@@ -1,5 +1,5 @@
-Installation w/ Python
-======================
+Installation with Python
+========================
 
 .. Note:: This method of installation is deprecated in favor of :doc:`Docker <../docker/index>`.
 
