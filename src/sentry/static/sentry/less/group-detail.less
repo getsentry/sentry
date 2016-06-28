@@ -1301,12 +1301,6 @@ div.traceback > ul {
     }
   }
 
-  &.full-traceback {
-    .leads-to-app-hint {
-      display: none;
-    }
-  }
-
   &.in-app-traceback .frame.leads-to-app {
     .leads-to-app-hint {
       display: none;
@@ -1329,6 +1323,12 @@ div.traceback > ul {
         display: none;
       }
       .leads-to-app-hint { display: inline; }
+    }
+  }
+
+  &.full-traceback {
+    .leads-to-app-hint {
+      display: none!important;
     }
   }
 
@@ -1447,10 +1447,10 @@ div.traceback > ul {
       }
     }
   }
+}
 
-  .exception-mechanism {
-    margin: 15px 0;
-  }
+.exception-mechanism {
+  margin: 15px 0;
 }
 
 #full-message {
