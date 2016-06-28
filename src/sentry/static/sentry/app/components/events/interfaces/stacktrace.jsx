@@ -20,7 +20,6 @@ const StacktraceInterface = React.createClass({
     let user = ConfigStore.get('user');
     // user may not be authenticated
     let options = user ? user.options : {};
-    let platform = this.props.event.platform;
     let newestFirst;
     switch (options.stacktraceOrder) {
       case 'newestFirst':
@@ -31,7 +30,7 @@ const StacktraceInterface = React.createClass({
         break;
       case 'default': // is "default" a valid value? or bad case statement
       default:
-        newestFirst = (platform === 'python');
+        newestFirst = false;
     }
 
     return {

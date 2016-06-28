@@ -25,7 +25,6 @@ const ExceptionInterface = React.createClass({
     let user = ConfigStore.get('user');
     // user may not be authenticated
     let options = user ? user.options : {};
-    let platform = this.props.event.platform;
     let newestFirst;
     switch (options.stacktraceOrder) {
       case 'newestFirst':
@@ -36,7 +35,7 @@ const ExceptionInterface = React.createClass({
         break;
       case 'default':
       default:
-        newestFirst = (platform !== 'python');
+        newestFirst = false;
     }
 
     return {
