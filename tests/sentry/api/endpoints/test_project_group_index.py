@@ -7,7 +7,7 @@ from mock import patch
 
 from sentry.models import (
     Activity, EventMapping, Group, GroupBookmark, GroupResolution, GroupSeen,
-    GroupSnooze, GroupStatus, Release
+    GroupSnooze, GroupSubscription, GroupStatus, Release
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import parse_link_header
@@ -253,18 +253,40 @@ class GroupUpdateTest(APITestCase):
         assert new_group1.status == GroupStatus.RESOLVED
         assert new_group1.resolved_at is None
 
+        # this wont exist because it wasn't affected
+        assert not GroupSubscription.objects.filter(
+            user=self.user,
+            group=new_group1,
+        ).exists()
+
         new_group2 = Group.objects.get(id=group2.id)
         assert new_group2.status == GroupStatus.RESOLVED
         assert new_group2.resolved_at is not None
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=new_group2,
+            is_active=True,
+        ).exists()
 
         # the muted entry should not be included
         new_group3 = Group.objects.get(id=group3.id)
         assert new_group3.status == GroupStatus.MUTED
         assert new_group3.resolved_at is None
 
+        assert not GroupSubscription.objects.filter(
+            user=self.user,
+            group=new_group3,
+        )
+
         new_group4 = Group.objects.get(id=group4.id)
         assert new_group4.status == GroupStatus.UNRESOLVED
         assert new_group4.resolved_at is None
+
+        assert not GroupSubscription.objects.filter(
+            user=self.user,
+            group=new_group4,
+        )
 
     def test_selective_status_update(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
@@ -296,6 +318,12 @@ class GroupUpdateTest(APITestCase):
         new_group2 = Group.objects.get(id=group2.id)
         assert new_group2.resolved_at is not None
         assert new_group2.status == GroupStatus.RESOLVED
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=new_group2,
+            is_active=True,
+        ).exists()
 
         new_group3 = Group.objects.get(id=group3.id)
         assert new_group3.resolved_at is None
@@ -338,6 +366,12 @@ class GroupUpdateTest(APITestCase):
             release=release,
         ).exists()
 
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group,
+            is_active=True,
+        ).exists()
+
         activity = Activity.objects.get(
             group=group,
             type=Activity.SET_RESOLVED_IN_RELEASE,
@@ -364,6 +398,12 @@ class GroupUpdateTest(APITestCase):
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group,
+            is_active=True,
+        ).exists()
 
     def test_set_unresolved_on_snooze(self):
         group = self.create_group(checksum='a' * 32, status=GroupStatus.MUTED)
@@ -448,14 +488,65 @@ class GroupUpdateTest(APITestCase):
         bookmark1 = GroupBookmark.objects.filter(group=group1, user=self.user)
         assert bookmark1.exists()
 
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group1,
+            is_active=True,
+        ).exists()
+
         bookmark2 = GroupBookmark.objects.filter(group=group2, user=self.user)
         assert bookmark2.exists()
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group2,
+            is_active=True,
+        ).exists()
 
         bookmark3 = GroupBookmark.objects.filter(group=group3, user=self.user)
         assert not bookmark3.exists()
 
         bookmark4 = GroupBookmark.objects.filter(group=group4, user=self.user)
         assert not bookmark4.exists()
+
+    def test_subscription(self):
+        group1 = self.create_group(checksum='a' * 32)
+        group2 = self.create_group(checksum='b' * 32)
+        group3 = self.create_group(checksum='c' * 32)
+        group4 = self.create_group(
+            project=self.create_project(slug='foo'),
+            checksum='b' * 32)
+
+        self.login_as(user=self.user)
+        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+            url=self.path,
+            group1=group1,
+            group2=group2,
+            group4=group4,
+        )
+        response = self.client.put(url, data={
+            'isSubscribed': 'true',
+        }, format='json')
+        assert response.status_code == 200
+        assert response.data == {
+            'isSubscribed': True,
+        }
+
+        assert GroupSubscription.objects.filter(
+            group=group1, user=self.user, is_active=True,
+        ).exists()
+
+        assert GroupSubscription.objects.filter(
+            group=group2, user=self.user, is_active=True,
+        ).exists()
+
+        assert not GroupSubscription.objects.filter(
+            group=group3, user=self.user,
+        ).exists()
+
+        assert not GroupSubscription.objects.filter(
+            group=group4, user=self.user,
+        ).exists()
 
     def test_set_public(self):
         group1 = self.create_group(checksum='a' * 32, is_public=False)
