@@ -70,6 +70,36 @@ const BreadcrumbsInterface = React.createClass({
     }).reverse(); // un-reverse rendered result
   },
 
+  getVirtualCrumb() {
+    let evt = this.props.event;
+    let crumb;
+
+    let exception = evt.entries.find(entry => entry.type === 'exception');
+    if (exception) {
+      let {type, value, module} = exception.data.values[0];
+      crumb = {
+        type: 'error',
+        level: 'error',
+        category: moduleToCategory(module || null) || 'exception',
+        data: {
+          type: type,
+          value: value
+        }
+      };
+    } else if (evt.message) {
+      let levelTag = evt.tags.find(t => t.key === 'level');
+      let level = levelTag && levelTag.value;
+      crumb = {
+        type: 'message',
+        level: level,
+        category: 'message',
+        message: evt.message
+      };
+    }
+    crumb.timestamp = evt.dateCreated;
+    return crumb;
+  },
+
   render() {
     let group = this.props.group;
     let evt = this.props.event;
@@ -85,22 +115,11 @@ const BreadcrumbsInterface = React.createClass({
 
     let all = data.values;
 
-    // Add the error event as the final breadcrumb
-    // TODO: what about non-exceptions (e.g. generic messages)?
-    let exception = evt.entries.find(entry => entry.type === 'exception');
-    if (exception) {
-      let {type, value, module} = exception.data.values[0];
+    // Add the error event as the final (virtual) breadcrumb
+    let virtualCrumb = this.getVirtualCrumb();
+    if (virtualCrumb) {
       // make copy of values array / don't mutate props
-      all = all.slice(0).concat([{
-        type: 'error',
-        level: 'error',
-        category: moduleToCategory(module || null) || 'error',
-        data: {
-          type: type,
-          value: value
-        },
-        timestamp: evt.dateCreated
-      }]);
+      all = all.slice(0).concat([virtualCrumb]);
     }
 
     // cap max number of breadcrumbs to show
