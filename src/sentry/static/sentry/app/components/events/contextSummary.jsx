@@ -152,10 +152,9 @@ const EventContextSummary = React.createClass({
               data={contexts.os}
               unknownTitle={t('Unknown OS')} />
           :
-            <GenericSummary
+            <DeviceSummary
               key="device"
-              data={contexts.device}
-              unknownTitle={t('Unknown Device')} />
+              data={contexts.device} />
         ));
         break;
       default:
@@ -172,10 +171,9 @@ const EventContextSummary = React.createClass({
               data={contexts.os}
               unknownTitle={t('Unknown OS')} />
           :
-            <GenericSummary
+            <DeviceSummary
               key="device"
-              data={contexts.device}
-              unknownTitle={t('Unknown Device')} />
+              data={contexts.device} />
         ));
         break;
     }
