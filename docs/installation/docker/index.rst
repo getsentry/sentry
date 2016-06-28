@@ -1,5 +1,5 @@
-Installation w/ Docker
-======================
+Installation with Docker
+========================
 
 This guide will step you through setting up your own on-premise Sentry
 in `Docker <https://www.docker.com/>`_.
