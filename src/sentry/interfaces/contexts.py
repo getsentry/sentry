@@ -49,7 +49,7 @@ class ContextType(object):
         if self.indexed_fields:
             for field, f_string in self.indexed_fields.iteritems():
                 try:
-                    value = f_string.format(**self.data).strip()
+                    value = unicode(f_string).format(**self.data).strip()
                 except KeyError:
                     continue
                 if value:
@@ -68,8 +68,8 @@ class DefaultContextType(ContextType):
 @contexttype('device')
 class DeviceContextType(ContextType):
     indexed_fields = {
-        '': '{model}',
-        'family': '{family}',
+        '': u'{model}',
+        'family': u'{family}',
     }
     # model_id, arch
 
@@ -77,16 +77,16 @@ class DeviceContextType(ContextType):
 @contexttype('runtime')
 class RuntimeContextType(ContextType):
     indexed_fields = {
-        '': '{name} {version}',
-        'name': '{name}',
+        '': u'{name} {version}',
+        'name': u'{name}',
     }
 
 
 @contexttype('browser')
 class BrowserContextType(ContextType):
     indexed_fields = {
-        '': '{name} {version}',
-        'name': '{name}',
+        '': u'{name} {version}',
+        'name': u'{name}',
     }
     # viewport
 
@@ -94,9 +94,9 @@ class BrowserContextType(ContextType):
 @contexttype('os')
 class OsContextType(ContextType):
     indexed_fields = {
-        '': '{name} {version}',
-        'name': '{name}',
-        'rooted': '{rooted}',
+        '': u'{name} {version}',
+        'name': u'{name}',
+        'rooted': u'{rooted}',
     }
     # build, rooted
 

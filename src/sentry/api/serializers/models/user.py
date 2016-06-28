@@ -4,7 +4,7 @@ from django.conf import settings
 
 from sentry.app import env
 from sentry.api.serializers import Serializer, register
-from sentry.models import AuthIdentity, User, UserAvatar, UserOption
+from sentry.models import AuthIdentity, Authenticator, User, UserAvatar, UserOption
 from sentry.utils.avatar import get_gravatar_url
 
 
@@ -32,11 +32,14 @@ class UserSerializer(Serializer):
         }
         identities = self._get_identities(item_list, user)
 
+        authenticators = Authenticator.objects.bulk_users_have_2fa([i.id for i in item_list])
+
         data = {}
         for item in item_list:
             data[item] = {
                 'avatar': avatars.get(item.id),
                 'identities': identities.get(item.id),
+                'has2fa': authenticators[item.id],
             }
         return data
 
@@ -50,6 +53,7 @@ class UserSerializer(Serializer):
             'isActive': obj.is_active,
             'isManaged': obj.is_managed,
             'dateJoined': obj.date_joined,
+            'has2fa': attrs['has2fa'],
         }
         if obj == user:
             options = {
