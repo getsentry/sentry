@@ -85,7 +85,7 @@ const EventEntries = React.createClass({
     });
 
     let hasContext = (
-      !(utils.objectIsEmpty(evt.user) && !utils.objectIsEmpty(evt.contexts))
+      !utils.objectIsEmpty(evt.user) || !utils.objectIsEmpty(evt.contexts)
     );
 
     let hasContextSummary = (
