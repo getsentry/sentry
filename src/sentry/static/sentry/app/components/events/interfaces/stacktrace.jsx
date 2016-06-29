@@ -7,6 +7,32 @@ import StacktraceContent from './stacktraceContent';
 import {t} from '../../../locale';
 
 
+export function getStacktraceDefaultState(user, hasSystemFrames) {
+  if (!user) {
+    user = ConfigStore.get('user');
+  }
+  // user may not be authenticated
+  let options = user ? user.options : {};
+  let newestFirst;
+  switch (options.stacktraceOrder) {
+    case 'newestFirst':
+      newestFirst = true;
+      break;
+    case 'newestLast':
+      newestFirst = false;
+      break;
+    case 'default': // is "default" a valid value? or bad case statement
+    default:
+      newestFirst = false;
+  }
+
+  return {
+    stackView: hasSystemFrames ? 'app' : 'full',
+    newestFirst: newestFirst
+  };
+}
+
+
 const StacktraceInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
@@ -17,26 +43,7 @@ const StacktraceInterface = React.createClass({
   },
 
   getInitialState() {
-    let user = ConfigStore.get('user');
-    // user may not be authenticated
-    let options = user ? user.options : {};
-    let newestFirst;
-    switch (options.stacktraceOrder) {
-      case 'newestFirst':
-        newestFirst = true;
-        break;
-      case 'newestLast':
-        newestFirst = false;
-        break;
-      case 'default': // is "default" a valid value? or bad case statement
-      default:
-        newestFirst = false;
-    }
-
-    return {
-      stackView: (this.props.data.hasSystemFrames ? 'app' : 'full'),
-      newestFirst: newestFirst
-    };
+    return getStacktraceDefaultState(null, this.props.data.hasSystemFrames);
   },
 
   toggleStack(value) {

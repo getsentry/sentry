@@ -1,11 +1,11 @@
 import React from 'react';
-import ConfigStore from '../../../stores/configStore';
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 import ExceptionContent from './exceptionContent';
 import RawExceptionContent from './rawExceptionContent';
 import TooltipMixin from '../../../mixins/tooltip';
 import {t} from '../../../locale';
+import {getStacktraceDefaultState} from './stacktrace';
 
 const ExceptionInterface = React.createClass({
   propTypes: {
@@ -22,27 +22,9 @@ const ExceptionInterface = React.createClass({
   })],
 
   getInitialState() {
-    let user = ConfigStore.get('user');
-    // user may not be authenticated
-    let options = user ? user.options : {};
-    let newestFirst;
-    switch (options.stacktraceOrder) {
-      case 'newestFirst':
-        newestFirst = true;
-        break;
-      case 'newestLast':
-        newestFirst = false;
-        break;
-      case 'default':
-      default:
-        newestFirst = false;
-    }
-
-    return {
-      stackView: (this.props.data.hasSystemFrames ? 'app' : 'full'),
-      stackType: 'original',
-      newestFirst: newestFirst
-    };
+    let rv = getStacktraceDefaultState(null, this.props.data.hasSystemFrames);
+    rv.stackType = 'original';
+    return rv;
   },
 
   toggleStackView(value) {
