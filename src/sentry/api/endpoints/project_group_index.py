@@ -15,7 +15,8 @@ from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, EventMapping, Group, GroupBookmark, GroupResolution, GroupSeen,
-    GroupSubscription, GroupSnooze, GroupStatus, Release, TagKey
+    GroupSubscription, GroupSubscriptionReason, GroupSnooze, GroupStatus,
+    Release, TagKey
 )
 from sentry.models.group import looks_like_short_id
 from sentry.search.utils import parse_query
@@ -362,6 +363,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 GroupSubscription.objects.subscribe(
                     user=request.user,
                     group=group,
+                    reason=GroupSubscriptionReason.status_change,
                 )
 
                 if created:
@@ -411,6 +413,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     GroupSubscription.objects.subscribe(
                         user=request.user,
                         group=group,
+                        reason=GroupSubscriptionReason.status_change,
                     )
                     activity = Activity.objects.create(
                         project=group.project,
@@ -476,6 +479,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     GroupSubscription.objects.subscribe(
                         user=request.user,
                         group=group,
+                        reason=GroupSubscriptionReason.status_change,
                     )
                     activity = Activity.objects.create(
                         project=group.project,
@@ -513,6 +517,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 GroupSubscription.objects.subscribe(
                     user=request.user,
                     group=group,
+                    reason=GroupSubscriptionReason.bookmark,
                 )
         elif result.get('isBookmarked') is False:
             GroupBookmark.objects.filter(

@@ -13,8 +13,9 @@ from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
 from sentry.constants import STATUS_CHOICES
 from sentry.models import (
-    Activity, Group, GroupAssignee, GroupSeen, GroupSubscription, GroupStatus,
-    GroupTagKey, GroupTagValue, Release, UserReport
+    Activity, Group, GroupAssignee, GroupSeen, GroupSubscription,
+    GroupSubscriptionReason, GroupStatus, GroupTagKey, GroupTagValue, Release,
+    UserReport
 )
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
@@ -261,6 +262,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     GroupSubscription.objects.subscribe(
                         group=group,
                         user=result['assignedTo'],
+                        reason=GroupSubscriptionReason.assigned,
                     )
             else:
                 GroupAssignee.objects.deassign(group, acting_user)

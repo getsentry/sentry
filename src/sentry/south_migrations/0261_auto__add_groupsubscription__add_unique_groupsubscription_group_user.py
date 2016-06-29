@@ -15,6 +15,7 @@ class Migration(SchemaMigration):
             ('group', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(related_name='subscription_set', to=orm['sentry.Group'])),
             ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
             ('is_active', self.gf('django.db.models.fields.BooleanField')(default=True)),
+            ('reason', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True)),
         ))
         db.send_create_signal('sentry', ['GroupSubscription'])
@@ -22,8 +23,6 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'GroupSubscription', fields ['group', 'user']
         db.create_unique('sentry_groupsubscription', ['group_id', 'user_id'])
 
-        # kill duplicate index
-        # db.delete_index('sentry_groupsubscription', ['group_id'])
 
     def backwards(self, orm):
         # Removing unique constraint on 'GroupSubscription', fields ['group', 'user']
@@ -116,7 +115,7 @@ class Migration(SchemaMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 7, 5, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 7, 6, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -354,6 +353,7 @@ class Migration(SchemaMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'subscription_set'", 'to': "orm['sentry.Project']"}),
+            'reason': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']"})
         },
         'sentry.grouptagkey': {
