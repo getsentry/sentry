@@ -134,11 +134,7 @@ def is_in_app(frame, app_uuid=None):
     return True
 
 
-def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
-                           system=None, notable_addresses=None):
-    # TODO:
-    #   user report stacktraces from unity
-
+def convert_stacktrace(frames, system=None, notable_addresses=None):
     app_uuid = None
     if system:
         app_uuid = system.get('app_uuid')
@@ -153,7 +149,7 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
         # We only record the offset if we found a symbol but we did not
         # find a line number.  In that case it's the offset in bytes from
         # the beginning of the symbol.
-        function = frame['symbol_name'] or '<unknown>'
+        function = frame.get('symbol_name') or '<unknown>'
         lineno = frame.get('line')
         offset = None
         if not lineno:
@@ -168,7 +164,7 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
             # later fulfill the interface requirements which say that a
             # function needs to be provided.
             'function': function,
-            'package': frame['object_name'],
+            'package': frame.get('object_name'),
             'symbol_addr': '%x' % frame['symbol_addr'],
             'instruction_addr': '%x' % frame['instruction_addr'],
             'instruction_offset': offset,
@@ -186,21 +182,30 @@ def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
     if converted_frames and notable_addresses:
         converted_frames[-1]['vars'] = notable_addresses
 
-    stacktrace = {'frames': converted_frames}
+    if converted_frames:
+        return {'frames': converted_frames}
+
+
+def inject_apple_backtrace(data, frames, diagnosis=None, error=None,
+                           system=None, notable_addresses=None,
+                           thread_id=None):
+    stacktrace = convert_stacktrace(frames, system, notable_addresses)
 
     if error or diagnosis:
         error = error or {}
         exc = exception_from_apple_error_or_diagnosis(error, diagnosis)
         if exc is not None:
             exc['stacktrace'] = stacktrace
+            exc['thread_id'] = thread_id
             data['sentry.interfaces.Exception'] = {'values': [exc]}
             # Since we inject the exception late we need to make sure that
             # we set the event type to error as it would be set to
             # 'default' otherwise.
             data['type'] = 'error'
-            return
+            return True
 
     data['sentry.interfaces.Stacktrace'] = stacktrace
+    return False
 
 
 def inject_apple_device_data(data, system):
@@ -253,36 +258,70 @@ def preprocess_apple_crash_event(data):
 
     system = None
     errors = []
+    threads = []
     crash = crash_report['crash']
     crashed_thread = None
-    for thread in crash['threads']:
-        if thread['crashed']:
-            crashed_thread = thread
-    if crashed_thread is None:
-        append_error(data, {
-            'type': EventError.NATIVE_NO_CRASHED_THREAD,
-        })
 
-    else:
-        system = crash_report.get('system')
-        try:
-            sym = Symbolizer(project, crash_report['binary_images'],
-                             threads=[crashed_thread])
-            with sym:
+    threads = {}
+    raw_threads = {}
+    for raw_thread in crash['threads']:
+        if raw_thread['crashed']:
+            crashed_thread = raw_thread
+        raw_threads[raw_thread['index']] = raw_thread
+        threads[raw_thread['index']] = {
+            'id': raw_thread['index'],
+            'name': raw_thread.get('name'),
+            'current': raw_thread.get('current_thread', False),
+            'crashed': raw_thread.get('crashed', False),
+            'stacktrace': True,
+        }
+
+    sym = Symbolizer(project, crash_report['binary_images'],
+                     threads=raw_threads.values())
+
+    with sym:
+        if crashed_thread is None:
+            append_error(data, {
+                'type': EventError.NATIVE_NO_CRASHED_THREAD,
+            })
+        else:
+            system = crash_report.get('system')
+            try:
                 bt, errors = sym.symbolize_backtrace(
                     crashed_thread['backtrace']['contents'], system)
-                inject_apple_backtrace(data, bt, crash.get('diagnosis'),
-                                       crash.get('error'), system,
-                                       crashed_thread.get('notable_addresses'))
-        except Exception as e:
-            logger.exception('Failed to symbolicate')
-            append_error(data, {
-                'type': EventError.NATIVE_INTERNAL_FAILURE,
-                'error': '%s: %s' % (e.__class__.__name__, str(e)),
-            })
+                for error in errors:
+                    append_error(data, error)
+                if inject_apple_backtrace(data, bt, crash.get('diagnosis'),
+                                          crash.get('error'), system,
+                                          crashed_thread.get('notable_addresses'),
+                                          crashed_thread['index']):
+                    # We recorded an exception, so in this case we can
+                    # skip having the stacktrace.
+                    threads[crashed_thread['index']]['stacktrace'] = None
+            except Exception as e:
+                logger.exception('Failed to symbolicate')
+                append_error(data, {
+                    'type': EventError.NATIVE_INTERNAL_FAILURE,
+                    'error': '%s: %s' % (e.__class__.__name__, str(e)),
+                })
 
-    for error in errors:
-        append_error(data, error)
+        for thread in threads.itervalues():
+            if thread['stacktrace'] is None:
+                continue
+            raw_thread = raw_threads.get(thread['id'])
+            if raw_threads is None:
+                continue
+            bt, errors = sym.symbolize_backtrace(
+                raw_thread['backtrace']['contents'], system)
+            for error in errors:
+                append_error(data, error)
+            thread['stacktrace'] = convert_stacktrace(
+                bt, system, raw_thread.get('notable_addresses'))
+
+    if threads:
+        data['threads'] = {
+            'list': sorted(threads.values(), key=lambda x: x['id']),
+        }
 
     if system:
         inject_apple_device_data(data, system)
