@@ -320,7 +320,7 @@ def preprocess_apple_crash_event(data):
 
     if threads:
         data['threads'] = {
-            'list': sorted(threads.values(), key=lambda x: x['id']),
+            'values': sorted(threads.values(), key=lambda x: x['id']),
         }
 
     if system:

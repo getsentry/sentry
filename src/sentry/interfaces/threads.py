@@ -14,7 +14,7 @@ class Threads(Interface):
     def to_python(cls, data):
         threads = []
 
-        for thread in data.get('list') or ():
+        for thread in data.get('values') or ():
             stacktrace = thread.get('stacktrace')
             if stacktrace is not None:
                 stacktrace = Stacktrace.to_python(stacktrace,
@@ -27,7 +27,7 @@ class Threads(Interface):
                 'name': trim(thread.get('name'), 200),
             })
 
-        return cls(list=threads)
+        return cls(values=threads)
 
     def to_json(self):
         def export_thread(data):
@@ -43,7 +43,7 @@ class Threads(Interface):
             return rv
 
         return {
-            'list': [export_thread(x) for x in self.list],
+            'values': [export_thread(x) for x in self.values],
         }
 
     def get_api_context(self, is_public=False):
@@ -61,7 +61,7 @@ class Threads(Interface):
             return rv
 
         return {
-            'list': [export_thread(x) for x in self.list],
+            'values': [export_thread(x) for x in self.values],
         }
 
     def get_path(self):
