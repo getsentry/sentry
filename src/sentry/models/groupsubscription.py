@@ -72,8 +72,6 @@ class GroupSubscriptionManager(BaseManager):
                 ).values_list('user', flat=True)
             )
 
-            print excluded
-
             if excluded:
                 users = users.exclude(
                     id__in=excluded,
