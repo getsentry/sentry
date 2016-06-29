@@ -1,10 +1,11 @@
 {% spaceless %}
 {% autoescape off %}
-{{ author.get_display_name }} assigned this event to you.
+# {{ activity_name }}
+
+{{ text_description }}
 
 
-Details
--------
+## Issue Details
 
 {{ group.message_short }}
 

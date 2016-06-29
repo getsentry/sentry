@@ -19,11 +19,6 @@ from django.utils.safestring import mark_safe
 
 from sentry import options
 from sentry.digests.utilities import get_digest_metadata
-from sentry.models import (
-    Activity,
-    Release,
-    UserOption,
-)
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
@@ -32,8 +27,9 @@ from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
-NOTSET = object()
+from .activity import emails
 
+NOTSET = object()
 
 logger = logging.getLogger(__name__)
 
@@ -241,100 +237,15 @@ class MailPlugin(NotificationPlugin):
             )
 
     def notify_about_activity(self, activity):
-        if activity.type not in (Activity.NOTE, Activity.ASSIGNED, Activity.RELEASE):
-            return
-
-        candidate_ids = set(self.get_send_to(activity.project))
-
-        # Never send a notification to the user that performed the action.
-        candidate_ids.discard(activity.user_id)
-
-        if activity.type == Activity.ASSIGNED:
-            # Only notify the assignee, and only if they are in the candidate set.
-            recipient_ids = candidate_ids & set(map(int, (activity.data['assignee'],)))
-        elif activity.type == Activity.NOTE:
-            recipient_ids = candidate_ids - set(
-                UserOption.objects.filter(
-                    user__in=candidate_ids,
-                    key='subscribe_notes',
-                    value=u'0',
-                ).values_list('user', flat=True)
-            )
-        else:
-            recipient_ids = candidate_ids
-
-        if not recipient_ids:
-            return
-
-        project = activity.project
-        org = project.organization
-        group = activity.group
-
-        headers = {}
-
-        context = {
-            'data': activity.data,
-            'author': activity.user,
-            'project': project,
-            'project_link': absolute_uri(reverse('sentry-stream', kwargs={
-                'organization_slug': org.slug,
-                'project_id': project.slug,
-            })),
-        }
-
-        if group:
-            group_link = absolute_uri('/{}/{}/issues/{}/'.format(
-                org.slug, project.slug, group.id
+        email_cls = emails.get(activity.type)
+        if not email_cls:
+            logger.debug('No email associated with activity type `{}`'.format(
+                activity.get_type_display(),
             ))
-            activity_link = '{}activity/'.format(group_link)
+            return
 
-            headers.update({
-                'X-Sentry-Reply-To': group_id_to_email(group.id),
-            })
-
-            context.update({
-                'group': group,
-                'link': group_link,
-                'activity_link': activity_link,
-            })
-
-        # TODO(dcramer): abstract each activity email into its own helper class
-        if activity.type == Activity.RELEASE:
-            context.update({
-                'release': Release.objects.get(
-                    version=activity.data['version'],
-                    project=project,
-                ),
-                'release_link': absolute_uri('/{}/{}/releases/{}/'.format(
-                    org.slug,
-                    project.slug,
-                    activity.data['version'],
-                )),
-            })
-
-        template_name = activity.get_type_display()
-
-        if group:
-            subject = group.get_email_subject()
-        elif activity.type == Activity.RELEASE:
-            subject = 'Release %s' % activity.data['version']
-        else:
-            raise NotImplementedError
-
-        for user_id in recipient_ids:
-            self.add_unsubscribe_link(context, user_id, project)
-            self._send_mail(
-                project=project,
-                send_to=[user_id],
-                subject=subject,
-                type='notify.activity.{}'.format(template_name),
-                context=context,
-                template='sentry/emails/activity/{}.txt'.format(template_name),
-                html_template='sentry/emails/activity/{}.html'.format(template_name),
-                headers=headers,
-                reference=activity,
-                reply_reference=group,
-            )
+        email = email_cls(activity)
+        email.send()
 
 
 # Legacy compatibility
