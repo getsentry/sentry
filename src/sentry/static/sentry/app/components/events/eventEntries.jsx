@@ -15,6 +15,26 @@ import PropTypes from '../../proptypes';
 import utils from '../../utils';
 import {t} from '../../locale';
 
+import ExceptionInterface from './interfaces/exception';
+import MessageInterface from './interfaces/message';
+import RequestInterface from './interfaces/request';
+import StacktraceInterface from './interfaces/stacktrace';
+import TemplateInterface from './interfaces/template';
+import CspInterface from './interfaces/csp';
+import BreadcrumbsInterface from './interfaces/breadcrumbs';
+import ThreadsInterface from './interfaces/threads';
+
+export const INTERFACES = {
+  exception: ExceptionInterface,
+  message: MessageInterface,
+  request: RequestInterface,
+  stacktrace: StacktraceInterface,
+  template: TemplateInterface,
+  csp: CspInterface,
+  breadcrumbs: BreadcrumbsInterface,
+  threads: ThreadsInterface,
+};
+
 const EventEntries = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
@@ -36,17 +56,7 @@ const EventEntries = React.createClass({
     return this.props.event.id !== nextProps.event.id;
   },
 
-  // TODO(dcramer): make this extensible
-  interfaces: {
-    exception: require('./interfaces/exception'),
-    message: require('./interfaces/message'),
-    request: require('./interfaces/request'),
-    stacktrace: require('./interfaces/stacktrace'),
-    template: require('./interfaces/template'),
-    csp: require('./interfaces/csp'),
-    breadcrumbs: require('./interfaces/breadcrumbs'),
-    threads: require('./interfaces/threads'),
-  },
+  interfaces: INTERFACES,
 
   render() {
     let group = this.props.group;
