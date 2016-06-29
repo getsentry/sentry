@@ -4,11 +4,22 @@ from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, BaseManager, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model, BaseManager,
+    sane_repr
+)
+
+
+class GroupSubscriptionReason(object):
+    unknown = 0
+    comment = 1
+    assigned = 2
+    bookmark = 3
+    status_change = 4
 
 
 class GroupSubscriptionManager(BaseManager):
-    def subscribe(self, group, user):
+    def subscribe(self, group, user, reason=GroupSubscriptionReason.unknown):
         """
         Subscribe a user to an issue, but only if the user has not explicitly
         unsubscribed.
@@ -20,6 +31,7 @@ class GroupSubscriptionManager(BaseManager):
                     group=group,
                     project=group.project,
                     is_active=True,
+                    reason=reason,
                 )
         except IntegrityError:
             pass
@@ -36,6 +48,9 @@ class GroupSubscription(Model):
     # namespace related_name on User since we don't own the model
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     is_active = models.BooleanField(default=True)
+    reason = BoundedPositiveIntegerField(
+        default=GroupSubscriptionReason.unknown,
+    )
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects = GroupSubscriptionManager()
