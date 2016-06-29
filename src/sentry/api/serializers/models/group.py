@@ -10,7 +10,8 @@ from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,
-    GroupResolutionStatus, GroupSeen, GroupSnooze, GroupStatus, GroupTagKey
+    GroupResolutionStatus, GroupSeen, GroupSnooze, GroupSubscription,
+    GroupStatus, GroupTagKey
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -35,9 +36,15 @@ class GroupSerializer(Serializer):
                 user=user,
                 group__in=item_list,
             ).values_list('group_id', 'last_seen'))
+            subscriptions = set(GroupSubscription.objects.filter(
+                group__in=item_list,
+                user=user,
+                is_active=True,
+            ).values_list('group_id', flat=True))
         else:
             bookmarks = set()
             seen_groups = {}
+            subscriptions = set()
 
         assignees = dict(
             (a.group_id, a.user)
@@ -81,6 +88,7 @@ class GroupSerializer(Serializer):
             result[item] = {
                 'assigned_to': serialize(assignees.get(item.id)),
                 'is_bookmarked': item.id in bookmarks,
+                'is_subscribed': item.id in subscriptions,
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'annotations': annotations,
                 'user_count': user_counts.get(item.id, 0),
@@ -152,6 +160,7 @@ class GroupSerializer(Serializer):
             'numComments': obj.num_comments,
             'assignedTo': attrs['assigned_to'],
             'isBookmarked': attrs['is_bookmarked'],
+            'isSubscribed': attrs['is_subscribed'],
             'hasSeen': attrs['has_seen'],
             'annotations': attrs['annotations'],
         }

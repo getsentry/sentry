@@ -17,6 +17,10 @@ from sentry.db.models.fields import UnicodePickledObjectField
 from sentry.db.models.manager import BaseManager
 
 
+class UserOptionValue(object):
+    participating_only = '1'
+
+
 class UserOptionManager(BaseManager):
     def __init__(self, *args, **kwargs):
         super(UserOptionManager, self).__init__(*args, **kwargs)
