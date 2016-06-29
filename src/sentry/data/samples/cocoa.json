@@ -390,7 +390,7 @@
         ]
     },
     "threads": {
-      "list": [
+      "values": [
         {
           "current": true,
           "crashed": true,
