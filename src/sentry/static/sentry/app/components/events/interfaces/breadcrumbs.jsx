@@ -96,7 +96,11 @@ const BreadcrumbsInterface = React.createClass({
         message: evt.message
       };
     }
-    crumb.timestamp = evt.dateCreated;
+
+    if (crumb) {
+      crumb.timestamp = evt.dateCreated;
+    }
+
     return crumb;
   },
 
