@@ -40,7 +40,7 @@ class GroupSubscriptionManager(BaseManager):
         """
         Identify all users who are participating with a given issue.
         """
-        from sentry.models import User
+        from sentry.models import User, UserOption, UserOptionValue
 
         # identify all members of a project
         users = User.objects.filter(
@@ -53,8 +53,31 @@ class GroupSubscriptionManager(BaseManager):
             id__in=GroupSubscription.objects.filter(
                 group=group,
                 is_active=False,
+                user__in=users,
             ).values('user')
         )
+
+        participating_only = set(UserOption.objects.filter(
+            user__in=users,
+            key='workflow:notifications',
+            value=UserOptionValue.participating_only,
+        ).values_list('user', flat=True))
+
+        if participating_only:
+            excluded = participating_only.difference(
+                GroupSubscription.objects.filter(
+                    group=group,
+                    is_active=True,
+                    user__in=participating_only,
+                ).values_list('user', flat=True)
+            )
+
+            print excluded
+
+            if excluded:
+                users = users.exclude(
+                    id__in=excluded,
+                )
 
         return list(users)
 

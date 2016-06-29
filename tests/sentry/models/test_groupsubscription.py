@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import GroupSubscription
+from sentry.models import GroupSubscription, UserOption, UserOptionValue
 from sentry.testutils import TestCase
 
 
@@ -47,3 +47,32 @@ class GetParticipantsTest(TestCase):
         users = GroupSubscription.objects.get_participants(group=group)
 
         assert users == []
+
+        # not participating by default
+        GroupSubscription.objects.filter(
+            user=user,
+            group=group,
+        ).delete()
+
+        UserOption.objects.set_value(
+            user=user,
+            key='workflow:notifications',
+            project=None,
+            value=UserOptionValue.participating_only,
+        )
+
+        users = GroupSubscription.objects.get_participants(group=group)
+
+        assert users == []
+
+        # explicitly participating
+        GroupSubscription.objects.create(
+            user=user,
+            group=group,
+            project=project,
+            is_active=True,
+        )
+
+        users = GroupSubscription.objects.get_participants(group=group)
+
+        assert users == [user]
