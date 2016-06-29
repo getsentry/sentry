@@ -48,6 +48,10 @@ const Thread = React.createClass({
   },
 
   render() {
+    let includeSystemFrames = this.props.stackView === 'full' ||
+      (this.props.data.stacktrace &&
+       !this.props.data.stacktrace.hasSystemFrames);
+
     return (
       <div className="thread">
         {this.renderTitle()}
@@ -59,7 +63,7 @@ const Thread = React.createClass({
           :
             <StacktraceContent
                 data={this.props.data.stacktrace}
-                includeSystemFrames={this.props.stackView === 'full'}
+                includeSystemFrames={includeSystemFrames}
                 platform={this.props.event.platform}
                 newestFirst={this.props.newestFirst} />
         ) : (
@@ -81,8 +85,8 @@ const ThreadsInterface = React.createClass({
 
   getInitialState() {
     let hasSystemFrames = false;
-    for (let thread in this.props.data.list) {
-      if (thread.hasSystemFrames) {
+    for (let thread of this.props.data.list) {
+      if (thread.stacktrace && thread.stacktrace.hasSystemFrames) {
         hasSystemFrames = true;
         break;
       }
