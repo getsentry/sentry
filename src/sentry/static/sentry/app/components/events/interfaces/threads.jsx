@@ -85,7 +85,7 @@ const ThreadsInterface = React.createClass({
 
   getInitialState() {
     let hasSystemFrames = false;
-    for (let thread of this.props.data.list) {
+    for (let thread of this.props.data.values) {
       if (thread.stacktrace && thread.stacktrace.hasSystemFrames) {
         hasSystemFrames = true;
         break;
@@ -134,7 +134,7 @@ const ThreadsInterface = React.createClass({
           type={this.props.type}
           title={title}
           wrapTitle={false}>
-        {this.props.data.list.map((thread, idx) => {
+        {this.props.data.values.map((thread, idx) => {
           return (
             <Thread
               key={idx}
