@@ -186,15 +186,15 @@ class NotificationSettingsForm(forms.Form):
     subscribe_by_default = forms.ChoiceField(
         label=_('Alerts'),
         choices=(
-            ('1', _('Automatically subscribe to notifications for new projects')),
-            ('0', _('Do not subscribe to notifications for new projects')),
+            ('1', _('Automatically subscribe to alerts for new projects')),
+            ('0', _('Do not subscribe to alerts for new projects')),
         ), required=False,
         widget=forms.Select(attrs={'class': 'input-xxlarge'}))
-    subscribe_notes = forms.ChoiceField(
-        label=_('Notes'),
+    workflow_notifications = forms.ChoiceField(
+        label=_('Workflow Notifications'),
         choices=(
-            ('1', _('Get notified about new notes')),
-            ('0', _('Do not subscribe to note notifications')),
+            ('0', _('Get notified about changes for all issues')),
+            ('1', _('Only notify me when I\'m participating on an issue')),
         ), required=False,
         widget=forms.Select(attrs={'class': 'input-xxlarge'}))
 
@@ -213,11 +213,11 @@ class NotificationSettingsForm(forms.Form):
             key='subscribe_by_default',
             default='1',
         )
-        self.fields['subscribe_notes'].initial = UserOption.objects.get_value(
+        self.fields['workflow_notifications'].initial = UserOption.objects.get_value(
             user=self.user,
             project=None,
-            key='subscribe_notes',
-            default='1',
+            key='workflow:notifications',
+            default='0',
         )
 
     def get_title(self):
@@ -239,8 +239,8 @@ class NotificationSettingsForm(forms.Form):
         UserOption.objects.set_value(
             user=self.user,
             project=None,
-            key='subscribe_notes',
-            value=self.cleaned_data['subscribe_notes'],
+            key='workflow_notifications',
+            value=self.cleaned_data['workflow_notifications'],
         )
 
 

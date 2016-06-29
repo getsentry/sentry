@@ -23,7 +23,7 @@
           {% if group.avg_time_spent %}
             <span class="time-spent">{{ group.avg_time_spent|duration }}</span>
           {% endif %}
-          in <a href="{% absolute_uri project_link %}"><strong>{{ group.project.get_full_name }}</strong></a>
+          in <a href="{% absolute_uri project_link %}"><strong>{{ group.project.organization.slug }}/{{ group.project.slug }}</strong></a>
         </p>
       </td>
       <td class="group-level">

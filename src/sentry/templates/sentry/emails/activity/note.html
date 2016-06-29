@@ -3,10 +3,6 @@
 {% load sentry_helpers %}
 {% load sentry_assets %}
 
-{% block preheader %}
-  New comment by {{ author.get_display_name }} in {{ group.project.get_full_name }}.
-{% endblock %}
-
 {% block header %}
   <a href="{{ activity_link }}" class="btn">View on Sentry</a>
   {{ block.super }}
