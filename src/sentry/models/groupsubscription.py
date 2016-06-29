@@ -36,6 +36,28 @@ class GroupSubscriptionManager(BaseManager):
         except IntegrityError:
             pass
 
+    def get_participants(self, group):
+        """
+        Identify all users who are participating with a given issue.
+        """
+        from sentry.models import User
+
+        # identify all members of a project
+        users = User.objects.filter(
+            sentry_orgmember_set__teams=group.project.team,
+        )
+
+        # TODO(dcramer): allow members to change from default particpating to
+        # explicit
+        users = users.exclude(
+            id__in=GroupSubscription.objects.filter(
+                group=group,
+                is_active=False,
+            ).values('user')
+        )
+
+        return list(users)
+
 
 class GroupSubscription(Model):
     """
