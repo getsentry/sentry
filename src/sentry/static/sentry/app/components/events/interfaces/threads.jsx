@@ -5,6 +5,7 @@ import rawStacktraceContent from './rawStacktraceContent';
 import StacktraceContent from './stacktraceContent';
 import {getStacktraceDefaultState} from './stacktrace';
 import {t} from '../../../locale';
+import {defined} from '../../../utils';
 
 
 const Thread = React.createClass({
@@ -17,24 +18,40 @@ const Thread = React.createClass({
   },
 
   renderTitle() {
-    let bits = [];
-    if (this.data.index) {
-      bits.push('#' + this.data.index);
+    const {data} = this.props;
+    let bits = ['Thread'];
+    if (defined(data.name)) {
+      bits.push(`"${data.name}"`);
     }
-    if (this.data.name) {
-      bits.push(`"${this.data.name}"`);
+    if (defined(data.id)) {
+      bits.push('#' + data.id);
     }
-    if (this.data.id) {
-      bits.push('id=' + this.data.id);
-    }
-    return <h3>bits.join(' ')</h3>;
+    return <h4>{bits.join(' ')}</h4>;
+  },
+
+  renderMissingStacktrace() {
+    return (
+      <div className="traceback missing-traceback">
+        <ul>
+          <li className="frame missing-frame">
+            <div className="title">
+              <span className="informal">
+                {this.props.data.crashed
+                  ? 'Thread Crashed'
+                  : 'No or unknown stacktrace'}
+              </span>
+            </div>
+          </li>
+        </ul>
+      </div>
+    );
   },
 
   render() {
     return (
       <div className="thread">
         {this.renderTitle()}
-        {this.props.data.stacktrace && (
+        {this.props.data.stacktrace ? (
           this.props.stackView === 'raw' ?
             <pre className="traceback plain">
               {rawStacktraceContent(this.props.data.stacktrace, this.props.platform)}
@@ -42,10 +59,11 @@ const Thread = React.createClass({
           :
             <StacktraceContent
                 data={this.props.data.stacktrace}
-                className="no-exception"
                 includeSystemFrames={this.props.stackView === 'full'}
                 platform={this.props.event.platform}
                 newestFirst={this.props.newestFirst} />
+        ) : (
+          this.renderMissingStacktrace()
         )}
       </div>
     );
@@ -63,7 +81,7 @@ const ThreadsInterface = React.createClass({
 
   getInitialState() {
     let hasSystemFrames = false;
-    for (let thread in this.props.data.threads) {
+    for (let thread in this.props.data.list) {
       if (thread.hasSystemFrames) {
         hasSystemFrames = true;
         break;
@@ -95,7 +113,7 @@ const ThreadsInterface = React.createClass({
           <a className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'raw')}>{t('Raw')}</a>
         </div>
         <h3>
-          {'Threads'}
+          {'Threads '}
           {newestFirst ?
             <small>({t('most recent call last')})</small>
           :
@@ -112,7 +130,7 @@ const ThreadsInterface = React.createClass({
           type={this.props.type}
           title={title}
           wrapTitle={false}>
-        {this.state.threads.map((thread, idx) => {
+        {this.props.data.list.map((thread, idx) => {
           return (
             <Thread
               key={idx}

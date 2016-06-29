@@ -1087,6 +1087,10 @@ div.traceback > ul {
         font-weight: bold;
       }
 
+      .informal {
+        font-style: italic;
+      }
+
       a.annotation {
         &.trigger-popover {
           cursor: pointer;
@@ -1100,6 +1104,10 @@ div.traceback > ul {
 
     &.system-frame .title {
       background: @white-dark;
+    }
+
+    &.missing-frame .title {
+      background: lighten(@red-light, 30);
     }
 
     .title.as-table {
@@ -1729,6 +1737,21 @@ pre.val, span.val {
 
   &.val-toggle-open > a.val-toggle-link:hover {
     background: @gray;
+  }
+}
+
+/**
+* Threads
+* ============================================================================
+*/
+.box-content .thread {
+  margin: 0 0 20px 0;
+
+  h4 {
+    margin: 0 -20px 0 -20px;
+    padding: 7px 20px;
+    color: @gray-darker;
+    font-size: 14px;
   }
 }
 
