@@ -5,6 +5,13 @@ Version 8.6 (Unreleased)
 - The ``sentry.interfaces.Message`` interface now contains a ``formatted`` attribute.
 - ``SENTRY_MANAGED_USER_FIELDS`` now defaults to an empty list.
 
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added unique index on GroupTagValue(group_id, key, value)
+- Remove unique index on GroupTagValue(project_id, group_id, key, value)
+- Added index on GroupTagValue(project_id, key, value)
+
 Version 8.5.1
 -------------
 
