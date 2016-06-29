@@ -17,7 +17,7 @@ class RemoveProjectKeyView(ProjectView):
                 id=key_id,
                 project=project,
             )
-        except ProjectKey.DoesNotExist():
+        except ProjectKey.DoesNotExist:
             return self.redirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
         data = key.get_audit_log_data()
