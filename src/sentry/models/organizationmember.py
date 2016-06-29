@@ -25,6 +25,8 @@ from sentry.utils.http import absolute_uri
 
 
 class OrganizationMemberTeam(BaseModel):
+    __core__ = True
+
     id = BoundedAutoField(primary_key=True)
     team = FlexibleForeignKey('sentry.Team')
     organizationmember = FlexibleForeignKey('sentry.OrganizationMember')
@@ -56,6 +58,8 @@ class OrganizationMember(Model):
     and could be thought of as team owners (though their access level may not)
     be set to ownership.
     """
+    __core__ = True
+
     organization = FlexibleForeignKey('sentry.Organization', related_name="member_set")
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,

@@ -22,6 +22,8 @@ class Option(Model):
     Options which are specific to a plugin should namespace
     their key. e.g. key='myplugin:optname'
     """
+    __core__ = True
+
     key = models.CharField(max_length=64, unique=True)
     value = UnicodePickledObjectField()
     last_updated = models.DateTimeField(default=timezone.now)
