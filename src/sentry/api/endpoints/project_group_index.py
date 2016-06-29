@@ -15,7 +15,8 @@ from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, EventMapping, Group, GroupBookmark, GroupResolution, GroupSeen,
-    GroupSnooze, GroupStatus, Release, TagKey
+    GroupSubscription, GroupSubscriptionReason, GroupSnooze, GroupStatus,
+    Release, TagKey
 )
 from sentry.models.group import looks_like_short_id
 from sentry.search.utils import parse_query
@@ -79,6 +80,7 @@ class GroupSerializer(serializers.Serializer):
     hasSeen = serializers.BooleanField()
     isBookmarked = serializers.BooleanField()
     isPublic = serializers.BooleanField()
+    isSubscribed = serializers.BooleanField()
     merge = serializers.BooleanField()
     snoozeDuration = serializers.IntegerField()
 
@@ -358,6 +360,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         group=group,
                     ), False
 
+                GroupSubscription.objects.subscribe(
+                    user=request.user,
+                    group=group,
+                    reason=GroupSubscriptionReason.status_change,
+                )
+
                 if created:
                     activity = Activity.objects.create(
                         project=group.project,
@@ -402,6 +410,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 for group in group_list:
                     group.status = GroupStatus.RESOLVED
                     group.resolved_at = now
+                    GroupSubscription.objects.subscribe(
+                        user=request.user,
+                        group=group,
+                        reason=GroupSubscriptionReason.status_change,
+                    )
                     activity = Activity.objects.create(
                         project=group.project,
                         group=group,
@@ -463,6 +476,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
                 for group in group_list:
                     group.status = new_status
+                    GroupSubscription.objects.subscribe(
+                        user=request.user,
+                        group=group,
+                        reason=GroupSubscriptionReason.status_change,
+                    )
                     activity = Activity.objects.create(
                         project=group.project,
                         group=group,
@@ -496,11 +514,29 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     group=group,
                     user=request.user,
                 )
+                GroupSubscription.objects.subscribe(
+                    user=request.user,
+                    group=group,
+                    reason=GroupSubscriptionReason.bookmark,
+                )
         elif result.get('isBookmarked') is False:
             GroupBookmark.objects.filter(
                 group__in=group_ids,
                 user=request.user,
             ).delete()
+
+        # TODO(dcramer): we could make these more efficient by first
+        # querying for rich rows are present (if N > 2), flipping the flag
+        # on those rows, and then creating the missing rows
+        if result.get('isSubscribed') in (True, False):
+            is_subscribed = result['isSubscribed']
+            for group in group_list:
+                GroupSubscription.objects.create_or_update(
+                    user=request.user,
+                    group=group,
+                    project=project,
+                    values={'is_active': is_subscribed},
+                )
 
         if result.get('isPublic'):
             queryset.update(is_public=True)
