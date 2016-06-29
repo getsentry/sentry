@@ -49,5 +49,23 @@ class Threads(Interface):
             'threads': [export_thread(x) for x in self.threads],
         }
 
+    def get_api_context(self, is_public=False):
+        def export_thread(data):
+            rv = {
+                'index': data['index'],
+                'id': data['id'],
+                'current': data['current'],
+                'name': data['name'],
+                'stacktrace': None,
+            }
+            if data['stacktrace']:
+                rv['stacktrace'] = data['stacktrace'].get_api_context(
+                    is_public=is_public)
+            return data
+
+        return {
+            'threads': [export_thread(x) for x in self.threads],
+        }
+
     def get_path(self):
         return 'threads'
