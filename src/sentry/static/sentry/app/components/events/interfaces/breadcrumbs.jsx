@@ -98,7 +98,10 @@ const BreadcrumbsInterface = React.createClass({
     }
 
     if (crumb) {
-      crumb.timestamp = evt.dateCreated;
+      Object.assign(crumb, {
+        timestamp: evt.dateCreated,
+        last: true
+      });
     }
 
     return crumb;

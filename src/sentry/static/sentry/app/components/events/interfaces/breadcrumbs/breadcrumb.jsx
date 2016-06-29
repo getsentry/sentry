@@ -27,6 +27,10 @@ const Breadcrumb = React.createClass({
     if (crumb.category && crumb.category.slice(0, 3) === 'ui.') {
       rv += ' crumb-user';
     }
+
+    if (crumb.last) {
+      rv += ' crumb-last';
+    }
     return rv;
   },
 
