@@ -86,6 +86,8 @@ class Team(Model):
     """
     A team represents a group of individuals which maintain ownership of projects.
     """
+    __core__ = True
+
     organization = FlexibleForeignKey('sentry.Organization')
     slug = models.SlugField()
     name = models.CharField(max_length=64)

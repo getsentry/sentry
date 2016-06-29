@@ -115,6 +115,8 @@ class OrganizationOption(Model):
     key: onboarding:complete
     value: { updated: datetime }
     """
+    __core__ = True
+
     organization = FlexibleForeignKey('sentry.Organization')
     key = models.CharField(max_length=64)
     value = UnicodePickledObjectField()

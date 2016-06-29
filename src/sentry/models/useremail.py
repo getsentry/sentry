@@ -14,6 +14,7 @@ CHARACTERS = u'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
 
 class UserEmail(Model):
+    __core__ = True
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL,
                               related_name='emails')

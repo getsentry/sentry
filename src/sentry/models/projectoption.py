@@ -112,6 +112,8 @@ class ProjectOption(Model):
     Options which are specific to a plugin should namespace
     their key. e.g. key='myplugin:optname'
     """
+    __core__ = True
+
     project = FlexibleForeignKey('sentry.Project')
     key = models.CharField(max_length=64)
     value = UnicodePickledObjectField()
