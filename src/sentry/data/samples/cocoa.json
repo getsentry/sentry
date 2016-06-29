@@ -389,6 +389,403 @@
             }
         ]
     },
+    "threads": {
+      "list": [
+        {
+          "current": true,
+          "crashed": true,
+          "id": 0,
+          "name": null,
+          "stacktrace": null
+        },
+        {
+          "current": false,
+          "crashed": false,
+          "id": 1,
+          "name": null,
+          "stacktrace": {
+            "frames": [
+              {
+                "function": "<redacted>",
+                "abs_path": null,
+                "instruction_offset": 52,
+                "package": "/usr/lib/system/libdispatch.dylib",
+                "filename": null,
+                "symbol_addr": "0x002a93614",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002a93648"
+              },
+              {
+                "function": "<redacted>",
+                "abs_path": null,
+                "instruction_offset": 232,
+                "package": "/usr/lib/system/libdispatch.dylib",
+                "filename": null,
+                "symbol_addr": "0x002aa46f0",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002aa47d8"
+              },
+              {
+                "function": "kevent_qos",
+                "abs_path": null,
+                "instruction_offset": 8,
+                "package": "/usr/lib/system/libsystem_kernel.dylib",
+                "filename": null,
+                "symbol_addr": "0x002be14d0",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002be14d8"
+              }
+            ]
+          }
+        },
+        {
+          "current": false,
+          "crashed": false,
+          "id": 2,
+          "name": null,
+          "stacktrace": {
+            "frames": [
+              {
+                "function": "_pthread_start",
+                "abs_path": null,
+                "instruction_offset": 156,
+                "package": "/usr/lib/system/libsystem_pthread.dylib",
+                "filename": null,
+                "symbol_addr": "0x002cab9f0",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002caba8c"
+              },
+              {
+                "function": "<redacted>",
+                "abs_path": null,
+                "instruction_offset": 156,
+                "package": "/usr/lib/system/libsystem_pthread.dylib",
+                "filename": null,
+                "symbol_addr": "0x002caba8c",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002cabb28"
+              },
+              {
+                "function": "ksmachexc_i_handleExceptions",
+                "abs_path": null,
+                "instruction_offset": 168,
+                "package": "/private/var/containers/Bundle/Application/CDB578A5-7B13-44A7-88BE-4D3867D11CF7/SentryTest.app/Frameworks/KSCrash.framework/KSCrash",
+                "filename": null,
+                "symbol_addr": "0x0000f327c",
+                "lineno": null,
+                "in_app": true,
+                "instruction_addr": "0x0000f3324"
+              },
+              {
+                "function": "thread_suspend",
+                "abs_path": null,
+                "instruction_offset": 80,
+                "package": "/usr/lib/system/libsystem_kernel.dylib",
+                "filename": null,
+                "symbol_addr": "0x002bc9138",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002bc9188"
+              },
+              {
+                "function": "mach_msg",
+                "abs_path": null,
+                "instruction_offset": 72,
+                "package": "/usr/lib/system/libsystem_kernel.dylib",
+                "filename": null,
+                "symbol_addr": "0x002bc4e0c",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002bc4e54"
+              },
+              {
+                "function": "mach_msg_trap",
+                "abs_path": null,
+                "instruction_offset": 8,
+                "package": "/usr/lib/system/libsystem_kernel.dylib",
+                "filename": null,
+                "symbol_addr": "0x002bc4fd0",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002bc4fd8"
+              }
+            ]
+          }
+        },
+        {
+          "current": false,
+          "crashed": false,
+          "id": 3,
+          "name": null,
+          "stacktrace": {
+            "frames": [
+              {
+                "function": "_pthread_start",
+                "abs_path": null,
+                "instruction_offset": 156,
+                "package": "/usr/lib/system/libsystem_pthread.dylib",
+                "filename": null,
+                "symbol_addr": "0x002cab9f0",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002caba8c"
+              },
+              {
+                "function": "<redacted>",
+                "abs_path": null,
+                "instruction_offset": 156,
+                "package": "/usr/lib/system/libsystem_pthread.dylib",
+                "filename": null,
+                "symbol_addr": "0x002caba8c",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002cabb28"
+              },
+              {
+                "function": "ksmachexc_i_handleExceptions",
+                "abs_path": null,
+                "instruction_offset": 220,
+                "package": "/private/var/containers/Bundle/Application/CDB578A5-7B13-44A7-88BE-4D3867D11CF7/SentryTest.app/Frameworks/KSCrash.framework/KSCrash",
+                "filename": null,
+                "symbol_addr": "0x0000f327c",
+                "lineno": null,
+                "in_app": true,
+                "instruction_addr": "0x0000f3358"
+              },
+              {
+                "function": "mach_msg",
+                "abs_path": null,
+                "instruction_offset": 72,
+                "package": "/usr/lib/system/libsystem_kernel.dylib",
+                "filename": null,
+                "symbol_addr": "0x002bc4e0c",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002bc4e54"
+              },
+              {
+                "function": "mach_msg_trap",
+                "abs_path": null,
+                "instruction_offset": 8,
+                "package": "/usr/lib/system/libsystem_kernel.dylib",
+                "filename": null,
+                "symbol_addr": "0x002bc4fd0",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002bc4fd8"
+              }
+            ]
+          }
+        },
+        {
+          "current": false,
+          "crashed": false,
+          "id": 4,
+          "name": null,
+          "stacktrace": {
+            "frames": [
+              {
+                "function": "_pthread_start",
+                "abs_path": null,
+                "instruction_offset": 156,
+                "package": "/usr/lib/system/libsystem_pthread.dylib",
+                "filename": null,
+                "symbol_addr": "0x002cab9f0",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002caba8c"
+              },
+              {
+                "function": "<redacted>",
+                "abs_path": null,
+                "instruction_offset": 156,
+                "package": "/usr/lib/system/libsystem_pthread.dylib",
+                "filename": null,
+                "symbol_addr": "0x002caba8c",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002cabb28"
+              },
+              {
+                "function": "<redacted>",
+                "abs_path": null,
+                "instruction_offset": 1000,
+                "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+                "filename": null,
+                "symbol_addr": "0x003a1ba64",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x003a1be4c"
+              },
+              {
+                "function": "<redacted>",
+                "abs_path": null,
+                "instruction_offset": 412,
+                "package": "/System/Library/Frameworks/CFNetwork.framework/CFNetwork",
+                "filename": null,
+                "symbol_addr": "0x0036a5acc",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x0036a5c68"
+              },
+              {
+                "function": "CFRunLoopRunSpecific",
+                "abs_path": null,
+                "instruction_offset": 384,
+                "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+                "filename": null,
+                "symbol_addr": "0x002f24ad0",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002f24c50"
+              },
+              {
+                "function": "<redacted>",
+                "abs_path": null,
+                "instruction_offset": 1032,
+                "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+                "filename": null,
+                "symbol_addr": "0x002ffa55c",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002ffa964"
+              },
+              {
+                "function": "<redacted>",
+                "abs_path": null,
+                "instruction_offset": 196,
+                "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+                "filename": null,
+                "symbol_addr": "0x002ffcb9c",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002ffcc60"
+              },
+              {
+                "function": "mach_msg",
+                "abs_path": null,
+                "instruction_offset": 72,
+                "package": "/usr/lib/system/libsystem_kernel.dylib",
+                "filename": null,
+                "symbol_addr": "0x002bc4e0c",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002bc4e54"
+              },
+              {
+                "function": "mach_msg_trap",
+                "abs_path": null,
+                "instruction_offset": 8,
+                "package": "/usr/lib/system/libsystem_kernel.dylib",
+                "filename": null,
+                "symbol_addr": "0x002bc4fd0",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002bc4fd8"
+              }
+            ]
+          }
+        },
+        {
+          "current": false,
+          "crashed": false,
+          "id": 5,
+          "name": null,
+          "stacktrace": {
+            "frames": [
+              {
+                "function": "_pthread_start",
+                "abs_path": null,
+                "instruction_offset": 156,
+                "package": "/usr/lib/system/libsystem_pthread.dylib",
+                "filename": null,
+                "symbol_addr": "0x002cab9f0",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002caba8c"
+              },
+              {
+                "function": "<redacted>",
+                "abs_path": null,
+                "instruction_offset": 156,
+                "package": "/usr/lib/system/libsystem_pthread.dylib",
+                "filename": null,
+                "symbol_addr": "0x002caba8c",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002cabb28"
+              },
+              {
+                "function": "<redacted>",
+                "abs_path": null,
+                "instruction_offset": 648,
+                "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+                "filename": null,
+                "symbol_addr": "0x003002f40",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x0030031c8"
+              },
+              {
+                "function": "select$DARWIN_EXTSN",
+                "abs_path": null,
+                "instruction_offset": 8,
+                "package": "/usr/lib/system/libsystem_kernel.dylib",
+                "filename": null,
+                "symbol_addr": "0x002be033c",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002be0344"
+              }
+            ]
+          }
+        },
+        {
+          "current": false,
+          "crashed": false,
+          "id": 6,
+          "name": null,
+          "stacktrace": {
+            "frames": [
+              {
+                "function": "_pthread_wqthread",
+                "abs_path": null,
+                "instruction_offset": 1284,
+                "package": "/usr/lib/system/libsystem_pthread.dylib",
+                "filename": null,
+                "symbol_addr": "0x002ca902c",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002ca9530"
+              },
+              {
+                "function": "__workq_kernreturn",
+                "abs_path": null,
+                "instruction_offset": 8,
+                "package": "/usr/lib/system/libsystem_kernel.dylib",
+                "filename": null,
+                "symbol_addr": "0x002be0b40",
+                "lineno": null,
+                "in_app": false,
+                "instruction_addr": "0x002be0b48"
+              }
+            ]
+          }
+        },
+        {
+          "current": false,
+          "crashed": false,
+          "id": 7,
+          "name": null,
+          "stacktrace": null
+        }
+      ]
+    },
     "contexts": {
         "device": {
             "model_id": "N78AP",
