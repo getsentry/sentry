@@ -1,7 +1,7 @@
 import React from 'react';
 
 import GroupEventDataSection from './eventDataSection';
-import {objectIsEmpty, toTitleCase} from '../../utils';
+import {objectIsEmpty, toTitleCase, defined} from '../../utils';
 
 const CONTEXT_TYPES = {
   'default': require('./contexts/default'),
@@ -20,11 +20,27 @@ const ContextChunk = React.createClass({
     value: React.PropTypes.object.isRequired,
   },
 
+  renderTitle() {
+    let {value, alias, type} = this.props;
+    let title = null;
+    if (defined(value.title)) {
+      title = value.title;
+    } else {
+      let Component = CONTEXT_TYPES[type] || CONTEXT_TYPES.default;
+      if (Component.getTitle) {
+        title = Component.getTitle(value);
+      }
+      if (!defined(title)) {
+        title = toTitleCase(alias);
+      }
+    }
+    return title;
+  },
+
   render() {
     let group = this.props.group;
     let evt = this.props.event;
     let {type, alias, value} = this.props;
-    let title = value.title || toTitleCase(alias);
     let Component = CONTEXT_TYPES[type] || CONTEXT_TYPES.default;
 
     return (
@@ -33,7 +49,7 @@ const ContextChunk = React.createClass({
           event={evt}
           key={`context-${alias}`}
           type={`context-${alias}`}
-          title={title}>
+          title={this.renderTitle()}>
         <Component alias={alias} data={value} />
       </GroupEventDataSection>
     );
