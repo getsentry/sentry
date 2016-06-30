@@ -5,7 +5,7 @@ import ExceptionContent from './exceptionContent';
 import RawExceptionContent from './rawExceptionContent';
 import TooltipMixin from '../../../mixins/tooltip';
 import {t} from '../../../locale';
-import {getStacktraceDefaultState} from './stacktrace';
+import {isStacktraceNewestFirst} from './stacktrace';
 
 const ExceptionInterface = React.createClass({
   propTypes: {
@@ -22,9 +22,11 @@ const ExceptionInterface = React.createClass({
   })],
 
   getInitialState() {
-    let rv = getStacktraceDefaultState(null, this.props.data.hasSystemFrames);
-    rv.stackType = 'original';
-    return rv;
+    return {
+      stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
+      newestFirst: isStacktraceNewestFirst(),
+      stackType: 'original',
+    };
   },
 
   toggleStackView(value) {
