@@ -29,4 +29,8 @@ const DeviceContextType = React.createClass({
   }
 });
 
+DeviceContextType.getTitle = function(value) {
+  return 'Device';
+};
+
 export default DeviceContextType;

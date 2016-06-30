@@ -25,4 +25,8 @@ const OsContextType = React.createClass({
   }
 });
 
+OsContextType.getTitle = function(value) {
+  return 'Operating System';
+};
+
 export default OsContextType;
