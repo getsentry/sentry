@@ -47,3 +47,19 @@ class CreateProjectKeyTest(APITestCase):
         assert resp.status_code == 201, resp.content
         key = ProjectKey.objects.get(public_key=resp.data['public'])
         assert key.label
+
+    def test_keys(self):
+        project = self.create_project()
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-project-keys', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+        resp = self.client.post(url, data={
+            'public': 'a' * 32,
+            'secret': 'b' * 32,
+        })
+        assert resp.status_code == 201, resp.content
+        key = ProjectKey.objects.get(public_key=resp.data['public'])
+        assert key.public_key == resp.data['public'] == 'a' * 32
+        assert key.secret_key == resp.data['secret'] == 'b' * 32
