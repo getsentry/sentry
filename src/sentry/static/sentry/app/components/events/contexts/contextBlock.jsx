@@ -2,7 +2,7 @@ import React from 'react';
 import _ from 'underscore';
 
 import KeyValueList from '../interfaces/keyValueList';
-import {defined} from '../../utils';
+import {defined} from '../../../utils';
 
 const ContextBlock = React.createClass({
   propTypes: {
