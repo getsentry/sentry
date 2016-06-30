@@ -15,10 +15,10 @@ const OsContextType = React.createClass({
       <ContextBlock
         data={data}
         knownData={[
-          ['Name', name],
+          ['?Name', name],
           ['Version', version + (build ? ` (${build})` : '')],
           ['Kernel Version', kernel_version],
-          ['Rooted', defined(rooted) ? (rooted ? 'yes' : 'no') : null],
+          ['?Rooted', defined(rooted) ? (rooted ? 'yes' : 'no') : null],
         ]}
         alias={this.props.alias} />
     );
