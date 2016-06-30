@@ -2,7 +2,7 @@ import React from 'react';
 import _ from 'underscore';
 
 import KeyValueList from '../interfaces/keyValueList';
-
+import {defined} from '../../utils';
 
 const ContextBlock = React.createClass({
   propTypes: {
@@ -17,7 +17,9 @@ const ContextBlock = React.createClass({
     let className = `context-block context-block-${this.props.data.type}`;
 
     (this.props.knownData || []).forEach(([key, value]) => {
-      data.push([key, value || 'n/a']);
+      if (defined(value)) {
+        data.push([key, value]);
+      }
     });
 
     let extraData = [];
