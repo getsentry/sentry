@@ -34,7 +34,13 @@ const ContextChunk = React.createClass({
         title = toTitleCase(alias);
       }
     }
-    return title;
+
+    return (
+      <span>
+        {title + ' '}
+        {alias !== type ? <small>({alias})</small> : null}
+      </span>
+    );
   },
 
   render() {
