@@ -326,8 +326,6 @@ class EventManager(object):
             except Exception:
                 # XXX: we should consider logging this.
                 pass
-            else:
-                data['tags'].extend(inst.iter_tags())
 
         # TODO(dcramer): this logic is duplicated in ``validate_data`` from
         # coreapi
