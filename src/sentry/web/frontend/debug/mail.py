@@ -11,10 +11,7 @@ from datetime import (
     datetime,
     timedelta,
 )
-from django.contrib.webdesign.lorem_ipsum import (
-    WORDS,
-    words,
-)
+from django.contrib.webdesign.lorem_ipsum import WORDS
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -211,6 +208,28 @@ def new_event(request):
     ).render()
 
 
+def make_culprit(random):
+    def make_module_path_components(min, max):
+        for _ in xrange(random.randint(min, max)):
+            yield ''.join(random.sample(WORDS, random.randint(1, int(random.paretovariate(2.2)))))
+
+    return '{module} in {function}'.format(
+        module='.'.join(make_module_path_components(1, 4)),
+        function=random.choice(WORDS)
+    )
+
+
+def make_group_generator(random, project):
+    for id in itertools.count(1):
+        yield Group(
+            id=id,
+            project=project,
+            message=' '.join(random.choice(WORDS) for _ in xrange(int(random.weibullvariate(8, 4)))),
+            culprit=make_culprit(random),
+            level=random.choice(LOG_LEVELS.keys()),
+        )
+
+
 @login_required
 def digest(request):
     seed = request.GET.get('seed', str(time.time()))
@@ -257,25 +276,12 @@ def digest(request):
 
     records = []
 
-    group_sequence = itertools.count(1)
     event_sequence = itertools.count(1)
+    group_generator = make_group_generator(random, project)
 
     for i in xrange(random.randint(1, 30)):
-        group_id = next(group_sequence)
-
-        culprit = '{module} in {function}'.format(
-            module='.'.join(
-                ''.join(random.sample(WORDS, random.randint(1, int(random.paretovariate(2.2))))) for word in xrange(1, 4)
-            ),
-            function=random.choice(WORDS)
-        )
-        group = state['groups'][group_id] = Group(
-            id=group_id,
-            project=project,
-            message=words(int(random.weibullvariate(8, 4)), common=False),
-            culprit=culprit,
-            level=random.choice(LOG_LEVELS.keys()),
-        )
+        group = next(group_generator)
+        state['groups'][group.id] = group
 
         offset = timedelta(seconds=0)
         for i in xrange(random.randint(1, 10)):
@@ -301,8 +307,8 @@ def digest(request):
                 )
             )
 
-            state['event_counts'][group_id] = random.randint(10, 1e4)
-            state['user_counts'][group_id] = random.randint(10, 1e4)
+            state['event_counts'][group.id] = random.randint(10, 1e4)
+            state['user_counts'][group.id] = random.randint(10, 1e4)
 
     digest = build_digest(project, records, state)
     start, end, counts = get_digest_metadata(digest)
