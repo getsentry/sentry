@@ -785,6 +785,10 @@
       background-image: url(../images/icons/context/windows.png);
     }
 
+    &.linux .context-item-icon {
+      background-image: url(../images/icons/context/linux.png);
+    }
+
     &.ubuntu .context-item-icon {
       background-image: url(../images/icons/context/ubuntu.png);
     }
@@ -793,8 +797,10 @@
       background-image: url(../images/icons/context/firefox.png);
     }
 
-    &.chrome .context-item-icon {
-      background-image: url(../images/icons/context/chrome.png);
+    &.chrome, &.chrome-mobile, &.chrome-mobile-ios {
+      .context-item-icon {
+        background-image: url(../images/icons/context/chrome.png);
+      }
     }
 
     &.chromium .context-item-icon {
