@@ -18,16 +18,25 @@ const Breadcrumb = React.createClass({
 
   getClassName() {
     let {crumb} = this.props;
-    let rv = 'crumb crumb-default crumb-' + crumb.level;
+
+    // use Set to avoid duplicate crumb classes (was previously adding
+    // values like "crumb-default" as many as three times)
+    let classes = new Set(['crumb', 'crumb-default', 'crumb-' + crumb.level]);
+
     if (crumb.type !== 'default') {
-      rv += ' crumb-' + crumb.type.replace(/[\s_]+/g, '-').toLowerCase();
+      classes.add('crumb-' + crumb.type.replace(/[\s_]+/g, '-').toLowerCase());
     }
+
     // special case for 'ui.' category breadcrumbs
     // TODO: find a better way to customize UI around non-schema data
     if (crumb.category && crumb.category.slice(0, 3) === 'ui.') {
-      rv += ' crumb-user';
+      classes.add('crumb-user');
     }
-    return rv;
+
+    if (crumb.last) {
+      classes.add('crumb-last');
+    }
+    return [...classes].join(' ');
   },
 
   renderType() {
