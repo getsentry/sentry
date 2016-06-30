@@ -3,9 +3,43 @@ import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 import rawStacktraceContent from './rawStacktraceContent';
 import StacktraceContent from './stacktraceContent';
-import {getStacktraceDefaultState} from './stacktrace';
+import {isStacktraceNewestFirst} from './stacktrace';
 import {t} from '../../../locale';
 import {defined} from '../../../utils';
+import DropdownLink from '../../dropdownLink';
+import MenuItem from '../../menuItem';
+
+
+function getThreadTitle(data) {
+  let bits = ['Thread'];
+  if (defined(data.name)) {
+    bits.push(` "${data.name}"`);
+  }
+  if (defined(data.id)) {
+    bits.push(' #' + data.id);
+  }
+  // TODO: show last stack frame here
+  return bits.join('');
+}
+
+function getIntendedStackView(thread) {
+  const {stacktrace} = thread;
+  return (stacktrace && stacktrace.hasSystemFrames) ? 'app' : 'full';
+}
+
+function findBestThread(threads) {
+  for (let thread of threads) {
+    if (thread.crashed) {
+      return thread;
+    }
+  }
+  for (let thread of threads) {
+    if (thread.stacktrace) {
+      return thread.stacktrace;
+    }
+  }
+  return threads[0];
+}
 
 
 const Thread = React.createClass({
@@ -13,20 +47,8 @@ const Thread = React.createClass({
     event: PropTypes.Event.isRequired,
     data: React.PropTypes.object.isRequired,
     platform: React.PropTypes.string,
-    stackView: React.PropTypes.string.isRequired,
-    newestFirst: React.PropTypes.bool.isRequired,
-  },
-
-  renderTitle() {
-    const {data} = this.props;
-    let bits = ['Thread'];
-    if (defined(data.name)) {
-      bits.push(`"${data.name}"`);
-    }
-    if (defined(data.id)) {
-      bits.push('#' + data.id);
-    }
-    return <h4>{bits.join(' ')}</h4>;
+    stackView: React.PropTypes.string,
+    newestFirst: React.PropTypes.bool,
   },
 
   renderMissingStacktrace() {
@@ -48,22 +70,19 @@ const Thread = React.createClass({
   },
 
   render() {
-    let includeSystemFrames = this.props.stackView === 'full' ||
-      (this.props.data.stacktrace &&
-       !this.props.data.stacktrace.hasSystemFrames);
-
     return (
       <div className="thread">
-        {this.renderTitle()}
+        <h4>{getThreadTitle(this.props.data)}</h4>
         {this.props.data.stacktrace ? (
           this.props.stackView === 'raw' ?
             <pre className="traceback plain">
-              {rawStacktraceContent(this.props.data.stacktrace, this.props.platform)}
+              {rawStacktraceContent(
+                this.props.data.stacktrace, this.props.platform)}
             </pre>
           :
             <StacktraceContent
                 data={this.props.data.stacktrace}
-                includeSystemFrames={includeSystemFrames}
+                includeSystemFrames={this.props.stackView === 'full'}
                 platform={this.props.event.platform}
                 newestFirst={this.props.newestFirst} />
         ) : (
@@ -84,16 +103,12 @@ const ThreadsInterface = React.createClass({
   },
 
   getInitialState() {
-    let hasSystemFrames = false;
-    for (let thread of this.props.data.values) {
-      if (thread.stacktrace && thread.stacktrace.hasSystemFrames) {
-        hasSystemFrames = true;
-        break;
-      }
-    }
-    let rv = getStacktraceDefaultState(null, hasSystemFrames);
-    rv.hasSystemFrames = hasSystemFrames;
-    return rv;
+    let thread = findBestThread(this.props.data.values);
+    return {
+      activeThread: thread,
+      stackView: getIntendedStackView(thread),
+      newestFirst: isStacktraceNewestFirst(),
+    };
   },
 
   toggleStack(value) {
@@ -102,15 +117,43 @@ const ThreadsInterface = React.createClass({
     });
   },
 
+  onSelectNewThread(thread) {
+    let newStackView = this.state.stackView;
+    if (this.state.stackView !== 'raw') {
+      newStackView = getIntendedStackView(thread);
+    }
+    this.setState({
+      activeThread: thread,
+      stackView: newStackView,
+    });
+  },
+
   render() {
     let group = this.props.group;
     let evt = this.props.event;
-    let {stackView, newestFirst, hasSystemFrames} = this.state;
+    let {stackView, newestFirst, activeThread} = this.state;
+    let {stacktrace} = activeThread;
 
     let title = (
       <div>
+        <div className="pull-right btn-group">
+          <DropdownLink 
+            btnGroup={true}
+            caret={true}
+            className="btn btn-default btn-sm"
+            title={getThreadTitle(activeThread)}>
+            {this.props.data.values.map((thread, idx) => {
+              return (
+                <MenuItem key={idx} noAnchor={true}>
+                  <a onClick={this.onSelectNewThread.bind(this, thread)
+                    }>{getThreadTitle(thread)}</a>
+                </MenuItem>
+              );
+            })}
+          </DropdownLink>
+        </div>
         <div className="btn-group">
-          {hasSystemFrames &&
+          {(stacktrace && stacktrace.hasSystemFrames) &&
             <a className={(stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'app')}>{t('App Only')}</a>
           }
           <a className={(stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'full')}>{t('Full')}</a>
@@ -134,16 +177,11 @@ const ThreadsInterface = React.createClass({
           type={this.props.type}
           title={title}
           wrapTitle={false}>
-        {this.props.data.values.map((thread, idx) => {
-          return (
-            <Thread
-              key={idx}
-              data={thread}
-              event={evt}
-              stackView={stackView}
-              newestFirst={newestFirst} />
-          );
-        })}
+        <Thread
+          data={activeThread}
+          stackView={stackView}
+          event={evt}
+          newestFirst={newestFirst} />
       </GroupEventDataSection>
     );
   }
