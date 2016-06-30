@@ -43,7 +43,7 @@ const GenericSummary = React.createClass({
       <div className={`context-item ${className}`}>
         <span className="context-item-icon" />
         <h3>{data.name}</h3>
-        <p><strong>{t('Version:')}</strong> {data.version || t('Unknown Version')}</p>
+        <p><strong>{t('Version:')}</strong> {data.version || t('Unknown')}</p>
       </div>
     );
   },
