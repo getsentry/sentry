@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 
 from sentry.models import GroupAssignee, ProjectStatus
 from sentry.testutils import APITestCase
@@ -8,6 +11,7 @@ from sentry.testutils import APITestCase
 
 class OrganizationMemberIssuesAssignedTest(APITestCase):
     def test_simple(self):
+        now = timezone.now()
         user = self.create_user('foo@example.com')
         org = self.create_organization(name='foo')
         team = self.create_team(name='foo', organization=org)
@@ -27,17 +31,20 @@ class OrganizationMemberIssuesAssignedTest(APITestCase):
             group=group1,
             project=project1,
             user=user,
+            date_added=now,
         )
         GroupAssignee.objects.create(
             group=group2,
             project=project1,
             user=user,
+            date_added=now + timedelta(seconds=1),
         )
         # should not show up as project is pending removal
         GroupAssignee.objects.create(
             group=group3,
             project=project2,
             user=user,
+            date_added=now + timedelta(seconds=2),
         )
 
         path = reverse('sentry-api-0-organization-member-issues-assigned', args=[org.slug, 'me'])

@@ -448,9 +448,16 @@ class GroupUpdateTest(APITestCase):
         assert response.status_code == 200
 
         snooze = GroupSnooze.objects.get(group=group)
+        snooze.until = snooze.until.replace(microsecond=0)
 
-        assert snooze.until > timezone.now() + timedelta(minutes=29)
-        assert snooze.until < timezone.now() + timedelta(minutes=31)
+        # Drop microsecond value for MySQL
+        now = timezone.now().replace(microsecond=0)
+
+        assert snooze.until > now + timedelta(minutes=29)
+        assert snooze.until < now + timedelta(minutes=31)
+
+        # Drop microsecond value for MySQL
+        response.data['statusDetails']['snoozeUntil'] = response.data['statusDetails']['snoozeUntil'].replace(microsecond=0)
 
         assert response.data == {
             'status': 'muted',

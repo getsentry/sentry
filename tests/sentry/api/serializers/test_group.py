@@ -16,13 +16,15 @@ from sentry.testutils import TestCase
 
 class GroupSerializerTest(TestCase):
     def test_is_muted_with_expired_snooze(self):
+        now = timezone.now().replace(microsecond=0)
+
         user = self.create_user()
         group = self.create_group(
             status=GroupStatus.MUTED,
         )
         GroupSnooze.objects.create(
             group=group,
-            until=timezone.now() - timedelta(minutes=1),
+            until=now - timedelta(minutes=1),
         )
 
         result = serialize(group, user)
@@ -30,13 +32,15 @@ class GroupSerializerTest(TestCase):
         assert result['statusDetails'] == {}
 
     def test_is_muted_with_valid_snooze(self):
+        now = timezone.now().replace(microsecond=0)
+
         user = self.create_user()
         group = self.create_group(
             status=GroupStatus.MUTED,
         )
         snooze = GroupSnooze.objects.create(
             group=group,
-            until=timezone.now() + timedelta(minutes=1),
+            until=now + timedelta(minutes=1),
         )
 
         result = serialize(group, user)

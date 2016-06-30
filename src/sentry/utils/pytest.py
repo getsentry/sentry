@@ -26,6 +26,7 @@ def pytest_configure(config):
                 'ENGINE': 'django.db.backends.mysql',
                 'NAME': 'sentry',
                 'USER': 'root',
+                'HOST': '127.0.0.1',
             })
             # mysql requires running full migration all the time
             settings.SOUTH_TESTS_MIGRATE = True
