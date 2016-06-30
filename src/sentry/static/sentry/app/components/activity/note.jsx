@@ -5,8 +5,10 @@ import TimeSince from '../../components/timeSince';
 import ConfigStore from '../../stores/configStore';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import {t} from '../../locale';
+import Renderer from '../../utils/marked';
 
 marked.setOptions({
+  renderer: new Renderer(),
   // Disable all HTML input and only accept Markdown
   sanitize: true
 });
