@@ -7,6 +7,7 @@ from sentry.models import Project
 from sentry.plugins import Plugin2
 
 from .processor import SourceProcessor
+from .errormapping import rewrite_exception
 
 
 def preprocess_event(data):
@@ -25,6 +26,8 @@ def preprocess_event(data):
             allow_scraping=allow_scraping,
         )
         processor.process(data)
+
+    rewrite_exception(data)
 
     inject_device_data(data)
 
