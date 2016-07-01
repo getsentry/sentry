@@ -97,7 +97,6 @@ const Thread = React.createClass({
   propTypes: {
     event: PropTypes.Event.isRequired,
     data: React.PropTypes.object.isRequired,
-    platform: React.PropTypes.string,
     stackView: React.PropTypes.string,
     newestFirst: React.PropTypes.bool,
     stacktrace: React.PropTypes.object,
@@ -137,7 +136,7 @@ const Thread = React.createClass({
           this.props.stackView === 'raw' ?
             <pre className="traceback plain">
               {rawStacktraceContent(
-                this.props.stacktrace, this.props.platform)}
+                this.props.stacktrace, this.props.event.platform)}
             </pre>
           :
             <StacktraceContent
