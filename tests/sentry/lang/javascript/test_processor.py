@@ -14,6 +14,7 @@ from sentry.lang.javascript.processor import (
     SourceProcessor, trim_line, UrlResult
 )
 from sentry.lang.javascript.sourcemaps import SourceMap, SourceMapIndex
+from sentry.lang.javascript.errormapping import rewrite_exception
 from sentry.models import Release
 from sentry.testutils import TestCase
 
@@ -314,8 +315,51 @@ class SourceProcessorTest(TestCase):
                 }],
             }
         }
-
         processor = SourceProcessor(project=self.project)
         result = processor.process(data)
         exc = result['sentry.interfaces.Exception']['values'][0]
         assert exc['stacktrace']['frames'][1]['module'] == 'foo/bar'
+
+
+class ErrorMappingTest(TestCase):
+
+    def test_react_error_mapping_resolving(self):
+        data = {
+            'platform': 'javascript',
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'type': 'InvariantViolation',
+                    'value': (
+                        'Minified React error #109; visit http://facebook'
+                        '.github.io/react/docs/error-decoder.html?invariant='
+                        '109&args[]=Component for the full message or use '
+                        'the non-minified dev environment for full errors '
+                        'and additional helpful warnings.'
+                    ),
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'abs_path': 'http://example.com/foo.js',
+                                'filename': 'foo.js',
+                                'lineno': 4,
+                                'colno': 0,
+                            },
+                            {
+                                'abs_path': 'http://example.com/foo.js',
+                                'filename': 'foo.js',
+                                'lineno': 1,
+                                'colno': 0,
+                            },
+                        ],
+                    },
+                }],
+            }
+        }
+
+        assert rewrite_exception(data)
+
+        assert data['sentry.interfaces.Exception']['values'][0]['value'] == (
+            'Component.render(): A valid React element (or null) must be '
+            'returned. You may have returned undefined, an array or '
+            'some other invalid object.'
+        )
