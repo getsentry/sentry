@@ -86,7 +86,7 @@ class SingleException(Interface):
             'module': trim(data.get('module'), 128),
             'mechanism': mechanism,
             'stacktrace': stacktrace,
-            'thread_id': trim(data.get('thread_id', 40)),
+            'thread_id': trim(data.get('thread_id'), 40),
             'raw_stacktrace': raw_stacktrace,
         }
 
@@ -109,6 +109,7 @@ class SingleException(Interface):
             'mechanism': self.mechanism or None,
             'module': self.module,
             'stacktrace': stacktrace,
+            'thread_id': self.thread_id,
             'raw_stacktrace': raw_stacktrace,
         }
 
