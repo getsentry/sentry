@@ -7,6 +7,9 @@ Version 8.6 (Unreleased)
 - Issues now render based on the type of data present, which are represented by
   the type and metadata attributes in API responses.
 - Stacktrace rendering has been greatly simplified and unified across languages.
+- Client's may now pass the 'contexts' attribute, which will eventually supercede 'extra'.
+- Various named contexts are now automatically generated and summarized for Cocoa and JavaScript
+  issues.
 
 Schema Changes
 ~~~~~~~~~~~~~~
