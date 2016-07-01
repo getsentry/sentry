@@ -11,17 +11,17 @@ import {t} from '../../locale';
 
 const GroupParticipants = React.createClass({
   propTypes: {
-    group: React.PropTypes.object,
+    participants: React.PropTypes.array,
   },
 
   render() {
-    let group = this.props.group;
+    let participants = this.props.participants;
 
     return (
       <div>
-        <h6><span>{group.participants.length} Participants</span></h6>
+        <h6><span>{participants.length} Participants</span></h6>
         <ul className="faces">
-          {group.participants.map((user) => {
+          {participants.map((user) => {
             return (
               <li>
                 <Avatar size={32} user={user} />
@@ -44,6 +44,12 @@ const GroupSidebar = React.createClass({
     GroupState
   ],
 
+  getInitialState() {
+    return {
+      participants: this.props.group.participants
+    };
+  },
+
   toggleSubscription() {
     let group = this.props.group;
     let project = this.getProject();
@@ -59,7 +65,12 @@ const GroupSidebar = React.createClass({
       }
     }, {
       complete: () => {
-        IndicatorStore.remove(loadingIndicator);
+        this.api.request(`/issues/${group.id}/participants/`, {
+          success: (data) => {
+            this.setState({participants: data});
+            IndicatorStore.remove(loadingIndicator);
+          }
+        });
       }
     });
   },
@@ -68,6 +79,7 @@ const GroupSidebar = React.createClass({
     let orgId = this.getOrganization().slug;
     let projectId = this.getProject().slug;
     let group = this.getGroup();
+    let participants = this.state.participants;
 
     return (
       <div className="group-stats">
@@ -107,8 +119,8 @@ const GroupSidebar = React.createClass({
               tag={data.key} />
           );
         })}
-        {group.participants.length !== 0 &&
-          <GroupParticipants group={group} />
+        {participants.length !== 0 &&
+          <GroupParticipants participants={participants} />
         }
 
         <h6><span>{t('Notifications')}</span></h6>
