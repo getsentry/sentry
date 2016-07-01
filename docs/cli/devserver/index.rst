@@ -10,4 +10,6 @@ Options
 - ``--watchers / --no-watchers``: Watch static files and recompile on
   changes.
 - ``--workers / --no-workers``: Run asynchronous workers.
+- ``-l, --loglevel [DEBUG|INFO|WARNING|ERROR|CRITICAL|FATAL]``: Global
+  logging level. Use wisely.
 - ``--help``: print this help page.

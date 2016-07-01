@@ -14,11 +14,11 @@ Options
 
 - ``-c, --concurrency INTEGER``: Number of child processes processing the
   queue. The default is the number of CPUs available on your system.
-- ``-l, --loglevel [DEBUG|INFO|WARNING|ERROR|CRITICAL|FATAL]``: Logging
-  level.
 - ``-f, --logfile TEXT``: Path to log file. If no logfile is specified,
   stderr is used.
 
 
 - ``--autoreload``: Enable autoreloading.
+- ``-l, --loglevel [DEBUG|INFO|WARNING|ERROR|CRITICAL|FATAL]``: Global
+  logging level. Use wisely.
 - ``--help``: print this help page.
