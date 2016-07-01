@@ -35,13 +35,17 @@
                       {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
                       {% if group.data.type == "error" %}
                         <div class="event-type error">
-                          <a href="{% absolute_uri group_link %}">{{ group.data.metadata.type }}</a>
-                          <small>{{ group.title|soft_break:50 }}</small>
+                          <h3>
+                            <a href="{% absolute_uri group_link %}">{{ group.data.metadata.type }}</a>
+                            <small>{{ group.title|soft_break:50 }}</small>
+                          </h3>
                           <p>{{ group.data.metadata.value }}</p>
                         </div>
                       {% else %}
                         <div class="event-type default">
-                          <a href="{% absolute_uri group_link %}">{{ group.message_short|soft_break:40 }}</a>
+                          <h3>
+                            <a href="{% absolute_uri group_link %}">{{ group.message_short|soft_break:40 }}</a>
+                          </h3>
                           <p>{{ group.title|soft_break:50 }}</p>
                         </div>
                       {% endif %}
