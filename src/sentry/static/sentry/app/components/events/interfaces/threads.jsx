@@ -1,6 +1,7 @@
 import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
+import KeyValueList from './keyValueList';
 import rawStacktraceContent from './rawStacktraceContent';
 import StacktraceContent from './stacktraceContent';
 import {isStacktraceNewestFirst} from './stacktrace';
@@ -121,9 +122,17 @@ const Thread = React.createClass({
   },
 
   render() {
+    const {data} = this.props;
     return (
       <div className="thread">
-        <h4>{getThreadTitle(this.props.data, this.props.event)}</h4>
+        <KeyValueList
+          data={[
+            ['Thread ID', data.id],
+            ['Name', data.name || 'n/a'],
+            ['Was Active', data.current ? 'yes' : 'no'],
+            ['Crashed', data.crashed ? 'yes' : 'no'],
+          ]}
+          isSorted={false} />
         {this.props.stacktrace ? (
           this.props.stackView === 'raw' ?
             <pre className="traceback plain">
@@ -190,8 +199,16 @@ const ThreadsInterface = React.createClass({
     let stacktrace = this.getStacktrace();
 
     let title = (
-      <div>
-        <div className="pull-right btn-group">
+      <div className="thread-title">
+        <h3 className="pull-left">
+          {'Threads '}
+          {newestFirst ?
+            <small>({t('most recent call last')})</small>
+          :
+            <small>({t('most recent call first')})</small>
+          }
+        </h3>
+        <div className="pull-left btn-group">
           <DropdownLink 
             btnGroup={true}
             caret={true}
@@ -214,14 +231,6 @@ const ThreadsInterface = React.createClass({
           <a className={(stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'full')}>{t('Full')}</a>
           <a className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'raw')}>{t('Raw')}</a>
         </div>
-        <h3>
-          {'Threads '}
-          {newestFirst ?
-            <small>({t('most recent call last')})</small>
-          :
-            <small>({t('most recent call first')})</small>
-          }
-        </h3>
       </div>
     );
 
