@@ -100,7 +100,7 @@ react_page_view = ReactPageView.as_view()
 
 urlpatterns = patterns('')
 
-if settings.DEBUG:
+if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
     from django.views.generic import TemplateView
     import sentry.web.frontend.debug.mail
     from sentry.web.frontend.debug.debug_trigger_error import DebugTriggerErrorView

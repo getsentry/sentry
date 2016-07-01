@@ -23,9 +23,7 @@ class ProjectIssuesTest(AcceptanceTestCase):
             name='Bengal',
         )
         self.login_as(self.user)
-        self.path = self.route(
-            '/{}/{}/', self.org.slug, self.project.slug
-        )
+        self.path = '/{}/{}/'.format(self.org.slug, self.project.slug)
 
     # TODO(dcramer): abstract fixtures into a basic set that is present for
     # all acceptance tests
@@ -33,8 +31,8 @@ class ProjectIssuesTest(AcceptanceTestCase):
         # TODO(dcramer): we should add basic assertions around "i wanted this
         # URL but was sent somewhere else"
         self.browser.get(self.path)
-        self.wait_until('.awaiting-events')
-        self.snapshot('project issues not configured')
+        self.browser.wait_until('.awaiting-events')
+        self.browser.snapshot('project issues not configured')
 
     def test_with_issues(self):
         self.project.update(first_event=timezone.now())
@@ -43,11 +41,11 @@ class ProjectIssuesTest(AcceptanceTestCase):
             message='Foo bar',
         )
         self.browser.get(self.path)
-        self.wait_until('.group-list')
-        self.snapshot('project issues with issues')
+        self.browser.wait_until('.group-list')
+        self.browser.snapshot('project issues with issues')
 
     def test_with_no_issues(self):
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
-        self.wait_until('.empty-stream')
-        self.snapshot('project issues without issues')
+        self.browser.wait_until('.empty-stream')
+        self.browser.snapshot('project issues without issues')
