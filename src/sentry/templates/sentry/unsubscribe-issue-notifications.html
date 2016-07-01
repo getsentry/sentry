@@ -10,16 +10,10 @@
     <form action="" method="post" class="">
         {% csrf_token %}
 
-        <p>
-          {% trans "You are about to unsubscribe from project notifications for the following project:" %}
-        </p>
-        <p><strong>{{ project.organization.name }} / {{ project.name }}</strong></p>
-        <p>
-          {% trans "You can subscribe to it again by going to your account settings." %}
-        </p>
+        <p>You are about to unsubscribe from notifications for the <a href="{{ issue_link }}">selected issue</a>.</p>
 
         <fieldset class="form-actions">
-            <button type="submit" name="unsubscribe" class="btn btn-primary">{% trans "Unsubscribe" %}</button>
+            <button type="submit" class="btn btn-primary">{% trans "Unsubscribe" %}</button>
             <button type="submit" name="cancel" class="btn btn-default">{% trans "Cancel" %}</button>
         </fieldset>
     </form>

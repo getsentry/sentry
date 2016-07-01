@@ -76,6 +76,8 @@ from sentry.web.frontend.remove_project_key import RemoveProjectKeyView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.replay_event import ReplayEventView
 from sentry.web.frontend.sudo import SudoView
+from sentry.web.frontend.unsubscribe_issue_notifications import \
+    UnsubscribeIssueNotificationsView
 from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 
 __all__ = ('urlpatterns',)
@@ -257,9 +259,18 @@ urlpatterns += patterns(
         name='sentry-account-settings-identities'),
     url(r'^account/settings/notifications/$', accounts.notification_settings,
         name='sentry-account-settings-notifications'),
+
+    # compatibility
     url(r'^account/settings/notifications/unsubscribe/(?P<project_id>\d+)/$',
+        accounts.email_unsubscribe_project),
+
+    url(r'^account/notifications/unsubscribe/(?P<project_id>\d+)/$',
         accounts.email_unsubscribe_project,
         name='sentry-account-email-unsubscribe-project'),
+    url(r'^account/notifications/unsubscribe/issue/(?P<issue_id>\d+)/$',
+        UnsubscribeIssueNotificationsView.as_view(),
+        name='sentry-account-email-unsubscribe-issue'),
+
     url(r'^account/remove/$', RemoveAccountView.as_view(),
         name='sentry-remove-account'),
     url(r'^account/settings/social/', include('sentry.social_auth.urls')),

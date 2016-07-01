@@ -182,7 +182,7 @@ class ChangePasswordRecoverForm(forms.Form):
 
 
 class NotificationSettingsForm(forms.Form):
-    alert_email = forms.EmailField(help_text=_('Designate an alternative email address to send email notifications to.'), required=False)
+    alert_email = forms.EmailField(label=_('Email'), help_text=_('Designate an alternative email address to send email notifications to.'), required=False)
     subscribe_by_default = forms.ChoiceField(
         label=_('Alerts'),
         choices=(
@@ -193,8 +193,8 @@ class NotificationSettingsForm(forms.Form):
     workflow_notifications = forms.ChoiceField(
         label=_('Workflow Notifications'),
         choices=(
-            ('0', _('Get notified about changes for all issues')),
-            ('1', _('Only notify me when I\'m participating on an issue')),
+            ('0', _('Receive updates for all issues by default')),
+            ('1', _('Only notify me when I\'m participating or mentioned on an issue')),
         ), required=False,
         widget=forms.Select(attrs={'class': 'input-xxlarge'}))
 
@@ -375,6 +375,7 @@ class AppearanceSettingsForm(forms.Form):
 
 class ProjectEmailOptionsForm(forms.Form):
     alert = forms.BooleanField(required=False)
+    workflow = forms.BooleanField(required=False)
     email = forms.EmailField(required=False, widget=forms.HiddenInput())
 
     def __init__(self, project, user, *args, **kwargs):
@@ -383,9 +384,9 @@ class ProjectEmailOptionsForm(forms.Form):
 
         super(ProjectEmailOptionsForm, self).__init__(*args, **kwargs)
 
-        is_enabled = project.is_user_subscribed_to_mail_alerts(user)
+        has_alerts = project.is_user_subscribed_to_mail_alerts(user)
 
-        self.fields['alert'].initial = is_enabled
+        self.fields['alert'].initial = has_alerts
         self.fields['email'].initial = UserOption.objects.get_value(
             user, project, 'mail:email', None)
 
@@ -394,6 +395,7 @@ class ProjectEmailOptionsForm(forms.Form):
             self.user, self.project, 'mail:alert',
             int(self.cleaned_data['alert']),
         )
+
         if self.cleaned_data['email']:
             UserOption.objects.set_value(
                 self.user, self.project, 'mail:email',
