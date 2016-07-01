@@ -10,14 +10,26 @@ Version 8.6 (Unreleased)
 - Client's may now pass the 'contexts' attribute, which will eventually supercede 'extra'.
 - Various named contexts are now automatically generated and summarized for Cocoa and JavaScript
   issues.
+- Added JSON formatting for logs with ``system.logging-format``.
+- Added a ``loglevel`` command line flag to most commands.
+- Added two factor authentication support.
+- Added support for setting IP address of an event automatically on event submission for all platforms.
+- Added unsubscribe links to mails.
+- Added email verification.
+- Added ability to link/unlink Issues, support is dependent on plugins.
+- Can now toggle between minified/original code in stacktraces where sourcemaps were applied.
+- Can now upload release artifacts with tilde prefix (~) to omit protocol + host in URL lookups.
 
 Schema Changes
 ~~~~~~~~~~~~~~
 
-- Added unique index on GroupTagValue(group_id, key, value)
-- Remove unique index on GroupTagValue(project_id, group_id, key, value)
-- Added index on GroupTagValue(project_id, key, value)
-- Added GroupSubscription model.
+- Added ``User.is_password_expired`` column.
+- Added ``User.last_password_change`` column.
+- Added ``UserEmail`` model.
+- Added unique index on ``GroupTagValue(group_id, key, value)``
+- Remove unique index on ``GroupTagValue(project_id, group_id, key, value)``
+- Added index on ``GroupTagValue(project_id, key, value)``
+- Added ``GroupSubscription`` model.
 
 Version 8.5.1
 -------------
