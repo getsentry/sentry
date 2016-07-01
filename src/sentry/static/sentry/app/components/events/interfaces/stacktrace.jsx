@@ -81,7 +81,7 @@ const StacktraceInterface = React.createClass({
           wrapTitle={false}>
         {stackView === 'raw' ?
           <pre className="traceback plain">
-            {rawStacktraceContent(data, this.props.platform)}
+            {rawStacktraceContent(data, evt.platform)}
           </pre>
         :
           <StacktraceContent
