@@ -360,11 +360,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         group=group,
                     ), False
 
-                GroupSubscription.objects.subscribe(
-                    user=request.user,
-                    group=group,
-                    reason=GroupSubscriptionReason.status_change,
-                )
+                if acting_user:
+                    GroupSubscription.objects.subscribe(
+                        user=acting_user,
+                        group=group,
+                        reason=GroupSubscriptionReason.status_change,
+                    )
 
                 if created:
                     activity = Activity.objects.create(
@@ -410,11 +411,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 for group in group_list:
                     group.status = GroupStatus.RESOLVED
                     group.resolved_at = now
-                    GroupSubscription.objects.subscribe(
-                        user=request.user,
-                        group=group,
-                        reason=GroupSubscriptionReason.status_change,
-                    )
+                    if acting_user:
+                        GroupSubscription.objects.subscribe(
+                            user=acting_user,
+                            group=group,
+                            reason=GroupSubscriptionReason.status_change,
+                        )
                     activity = Activity.objects.create(
                         project=group.project,
                         group=group,
@@ -476,11 +478,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
                 for group in group_list:
                     group.status = new_status
-                    GroupSubscription.objects.subscribe(
-                        user=request.user,
-                        group=group,
-                        reason=GroupSubscriptionReason.status_change,
-                    )
+                    if acting_user:
+                        GroupSubscription.objects.subscribe(
+                            user=acting_user,
+                            group=group,
+                            reason=GroupSubscriptionReason.status_change,
+                        )
                     activity = Activity.objects.create(
                         project=group.project,
                         group=group,
@@ -490,12 +493,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     )
                     activity.send_notification()
 
-        if result.get('hasSeen') and project.member_set.filter(user=request.user).exists():
+        if result.get('hasSeen') and project.member_set.filter(user=acting_user).exists():
             for group in group_list:
                 instance, created = create_or_update(
                     GroupSeen,
                     group=group,
-                    user=request.user,
+                    user=acting_user,
                     project=group.project,
                     values={
                         'last_seen': timezone.now(),
@@ -504,7 +507,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         elif result.get('hasSeen') is False:
             GroupSeen.objects.filter(
                 group__in=group_ids,
-                user=request.user,
+                user=acting_user,
             ).delete()
 
         if result.get('isBookmarked'):
@@ -512,17 +515,17 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 GroupBookmark.objects.get_or_create(
                     project=project,
                     group=group,
-                    user=request.user,
+                    user=acting_user,
                 )
                 GroupSubscription.objects.subscribe(
-                    user=request.user,
+                    user=acting_user,
                     group=group,
                     reason=GroupSubscriptionReason.bookmark,
                 )
         elif result.get('isBookmarked') is False:
             GroupBookmark.objects.filter(
                 group__in=group_ids,
-                user=request.user,
+                user=acting_user,
             ).delete()
 
         # TODO(dcramer): we could make these more efficient by first
@@ -532,7 +535,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             is_subscribed = result['isSubscribed']
             for group in group_list:
                 GroupSubscription.objects.create_or_update(
-                    user=request.user,
+                    user=acting_user,
                     group=group,
                     project=project,
                     values={'is_active': is_subscribed},
