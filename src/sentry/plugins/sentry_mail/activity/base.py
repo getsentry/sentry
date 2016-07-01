@@ -233,11 +233,12 @@ class ActivityEmail(object):
         headers = self.get_headers()
 
         for user in users:
-            context['unsubscribe_link'] = generate_signed_link(
-                user.id,
-                'sentry-account-email-unsubscribe-project',
-                kwargs={'project_id': project.id},
-            )
+            if group:
+                context['unsubscribe_link'] = generate_signed_link(
+                    user.id,
+                    'sentry-account-email-unsubscribe-issue',
+                    kwargs={'issue_id': group.id},
+                )
 
             msg = MessageBuilder(
                 subject=subject,

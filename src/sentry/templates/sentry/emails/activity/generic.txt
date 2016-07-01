@@ -10,8 +10,9 @@
 {{ group.message_short }}
 
 {{ link }}
+{% if unsubscribe_link %}
 
-Unsubscribe: {{ unsubscribe_link }}
+Unsubscribe: {{ unsubscribe_link }}{% endif %}
 
 {% endautoescape %}
 {% endspaceless %}
