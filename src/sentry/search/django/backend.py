@@ -31,6 +31,8 @@ class DjangoSearchBackend(SearchBackend):
               cursor=None, limit=100):
         from sentry.models import Event, Group, GroupStatus
 
+        engine = get_db_engine('default')
+
         queryset = Group.objects.filter(project=project)
         if query:
             # TODO(dcramer): if we want to continue to support search on SQL
@@ -130,14 +132,14 @@ class DjangoSearchBackend(SearchBackend):
             # implicit subquery by coercing to a list
             base = router.db_for_read(Group)
             using = router.db_for_read(Event)
-            if base != using:
+            # MySQL also cannot do a LIMIT inside of a subquery
+            if base != using or engine.startswith('mysql'):
                 group_ids = list(group_ids)
 
             queryset = queryset.filter(
                 id__in=group_ids,
             )
 
-        engine = get_db_engine('default')
         if engine.startswith('sqlite'):
             score_clause = SQLITE_SORT_CLAUSES[sort_by]
         elif engine.startswith('mysql'):
