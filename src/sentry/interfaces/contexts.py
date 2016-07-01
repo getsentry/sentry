@@ -8,6 +8,8 @@ sentry.interfaces.contexts
 
 from __future__ import absolute_import
 
+import string
+
 from django.utils.encoding import force_text
 
 from sentry.utils.safe import trim
@@ -19,6 +21,19 @@ __all__ = ('Contexts',)
 EMPTY_VALUES = frozenset(('', None))
 
 context_types = {}
+
+
+class _IndexFormatter(string.Formatter):
+
+    def format_field(self, value, format_spec):
+        if not format_spec and isinstance(value, bool):
+            return value and 'yes' or 'no'
+        return string.Formatter.format_field(self, value, format_spec)
+
+
+def format_index_expr(format_string, data):
+    return unicode(_IndexFormatter().vformat(
+        unicode(format_string), (), data).strip())
 
 
 def contexttype(name):
@@ -49,7 +64,7 @@ class ContextType(object):
         if self.indexed_fields:
             for field, f_string in self.indexed_fields.iteritems():
                 try:
-                    value = unicode(f_string).format(**self.data).strip()
+                    value = format_index_expr(f_string, self.data)
                 except KeyError:
                     continue
                 if value:
