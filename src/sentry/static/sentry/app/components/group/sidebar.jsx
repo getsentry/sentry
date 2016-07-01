@@ -51,6 +51,16 @@ const GroupSidebar = React.createClass({
               tag={data.key} />
           );
         })}
+        <h6><span>3 {t('Participants')}</span></h6>
+        <ul className="faces">
+          <li><span className="avatar"><img src="https://github.com/dcramer.png" /></span></li>
+          <li><span className="avatar"><img src="https://github.com/tkaemming.png" /></span></li>
+          <li><span className="avatar"><img src="https://github.com/macqueen.png" /></span></li>
+        </ul>
+
+        <h6><span>{t('Notifications')}</span></h6>
+        <p className="help-block">You're subscribed to this issue because you are mentioned in the comments.</p>
+        <a className="btn btn-default btn-subscribe subscribed"><span className="icon-signal" /> Unsubscribe</a>
       </div>
     );
   }

@@ -167,6 +167,12 @@ dl.flat dd {
     width: 0;
     margin-right: -6px;
   }
+
+  .icon-signal {
+    font-size: 18px;
+    position: relative;
+    top: 2px;
+  }
 }
 
 /* Small button icons */
@@ -1467,6 +1473,27 @@ table.integrations {
 
     &:nth-child(1) {
       background-color: rgba(135, 146, 163, 0.8);
+    }
+  }
+}
+
+/**
+* Faces
+* -----
+* A grid of faces for seen-by and participants list
+* ============================================================================
+*/
+
+ul.faces {
+  .list-unstyled;
+  .clearfix;
+
+  li {
+    float: left;
+    margin: 0 5px 5px 0;
+
+    .avatar {
+      .square(28px);
     }
   }
 }
