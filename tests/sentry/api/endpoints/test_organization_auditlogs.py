@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 
 from sentry.models import AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase
@@ -8,6 +11,8 @@ from sentry.testutils import APITestCase
 
 class OrganizationAuditLogsTest(APITestCase):
     def test_simple(self):
+        now = timezone.now()
+
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name='baz')
@@ -17,16 +22,19 @@ class OrganizationAuditLogsTest(APITestCase):
             organization=org,
             event=AuditLogEntryEvent.ORG_EDIT,
             actor=self.user,
+            datetime=now,
         )
         entry2 = AuditLogEntry.objects.create(
             organization=org,
             event=AuditLogEntryEvent.ORG_EDIT,
             actor=self.user,
+            datetime=now + timedelta(seconds=1),
         )
         AuditLogEntry.objects.create(
             organization=org2,
             event=AuditLogEntryEvent.ORG_EDIT,
             actor=self.user,
+            datetime=now,
         )
 
         url = reverse('sentry-api-0-organization-audit-logs', args=[org.slug])

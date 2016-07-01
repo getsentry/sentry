@@ -117,8 +117,6 @@ def pytest_configure(config):
     os.environ.setdefault('RECAPTCHA_TESTING', 'True')
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sentry.conf.server')
 
-    settings.SOUTH_TESTS_MIGRATE = os.environ.get('SENTRY_SOUTH_TESTS_MIGRATE', '1') == '1'
-
     if not settings.configured:
         # only configure the db if its not already done
         test_db = os.environ.get('DB', 'postgres')
@@ -127,6 +125,7 @@ def pytest_configure(config):
                 'ENGINE': 'django.db.backends.mysql',
                 'NAME': 'sentry',
                 'USER': 'root',
+                'HOST': '127.0.0.1',
             })
             # mysql requires running full migration all the time
             settings.SOUTH_TESTS_MIGRATE = True
@@ -145,6 +144,9 @@ def pytest_configure(config):
                 'ENGINE': 'django.db.backends.sqlite3',
                 'NAME': ':memory:',
             })
+            settings.SOUTH_TESTS_MIGRATE = os.environ.get('SENTRY_SOUTH_TESTS_MIGRATE', '1') == '1'
+        else:
+            raise RuntimeError('oops, wrong database: %r' % test_db)
 
     settings.TEMPLATE_DEBUG = True
 
