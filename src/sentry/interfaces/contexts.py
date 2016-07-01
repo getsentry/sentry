@@ -52,7 +52,7 @@ class ContextType(object):
         ctx_data = {}
         for key, value in trim(data).iteritems():
             if value not in EMPTY_VALUES:
-                ctx_data[force_text(key)] = force_text(value)
+                ctx_data[force_text(key)] = value
         self.data = ctx_data
 
     def to_json(self):
