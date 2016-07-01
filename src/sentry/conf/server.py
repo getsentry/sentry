@@ -53,9 +53,9 @@ sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'sentry.db',
-        'USER': '',
+        'ENGINE': 'sentry.db.postgres',
+        'NAME': 'sentry',
+        'USER': 'postgres',
         'PASSWORD': '',
         'HOST': '',
         'PORT': '',
@@ -360,7 +360,7 @@ SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 # Queue configuration
 from kombu import Exchange, Queue
 
-BROKER_URL = "django://"
+BROKER_URL = "redis://localhost:6379"
 BROKER_TRANSPORT_OPTIONS = {}
 
 # Ensure workers run async by default
