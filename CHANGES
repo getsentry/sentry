@@ -4,6 +4,9 @@ Version 8.6 (Unreleased)
 - The ``message`` attribute on Event/Group is now purely used for search storage.
 - The ``sentry.interfaces.Message`` interface now contains a ``formatted`` attribute.
 - ``SENTRY_MANAGED_USER_FIELDS`` now defaults to an empty list.
+- Issues now render based on the type of data present, which are represented by
+  the type and metadata attributes in API responses.
+- Stacktrace rendering has been greatly simplified and unified across languages.
 
 Schema Changes
 ~~~~~~~~~~~~~~
