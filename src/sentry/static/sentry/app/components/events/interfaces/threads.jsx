@@ -8,22 +8,75 @@ import {t} from '../../../locale';
 import {defined} from '../../../utils';
 import DropdownLink from '../../dropdownLink';
 import MenuItem from '../../menuItem';
+import {trimPackage} from './frame';
 
 
-function getThreadTitle(data) {
-  let bits = ['Thread'];
-  if (defined(data.name)) {
-    bits.push(` "${data.name}"`);
-  }
-  if (defined(data.id)) {
-    bits.push(' #' + data.id);
-  }
-  // TODO: show last stack frame here
-  return bits.join('');
+function trimFilename(fn) {
+  let pieces = fn.split(/\//g);
+  return pieces[pieces.length - 1];
 }
 
-function getIntendedStackView(thread) {
-  const {stacktrace} = thread;
+function findRelevantFrame(stacktrace) {
+  if (!stacktrace.hasSystemFrames) {
+    return stacktrace.frames[stacktrace.frames.length - 1];
+  }
+  for (let i = stacktrace.frames.length - 1; i >= 0; i--) {
+    let frame = stacktrace.frames[i];
+    if (frame.inApp) {
+      return frame;
+    }
+  }
+  // this should not happen
+  return stacktrace.frames[stacktrace.frames.length - 1];
+}
+
+function findThreadStacktrace(thread, event) {
+  if (thread.stacktrace) {
+    return thread.stacktrace;
+  }
+  let stack = null;
+  for (let entry of event.entries) {
+    if (entry.type === 'stacktrace') {
+      stack = entry.data;
+    } else if (entry.type === 'exception') {
+      for (let exc of entry.data.values) {
+        if (exc.threadId === thread.id && exc.stacktrace) {
+          stack = exc.stacktrace;
+          break;
+        }
+      }
+    }
+  }
+  return stack;
+}
+
+function getThreadTitle(thread, event) {
+  let stacktrace = findThreadStacktrace(thread, event);
+  let bits = ['Thread'];
+  if (defined(thread.name)) {
+    bits.push(` "${thread.name}"`);
+  }
+  if (defined(thread.id)) {
+    bits.push(' #' + thread.id);
+  }
+
+  if (stacktrace) {
+    let frame = findRelevantFrame(stacktrace);
+    bits.push(' — ');
+    bits.push(
+      <em key="location">{frame.filename
+        ? trimFilename(frame.filename)
+        : frame.package
+          ? trimPackage(frame.package)
+          : frame.module ? frame.module : '<unknown>'}</em>
+    );
+  }
+
+  return bits;
+}
+
+function getIntendedStackView(thread, event) {
+  const stacktrace = findThreadStacktrace(thread, event);
   return (stacktrace && stacktrace.hasSystemFrames) ? 'app' : 'full';
 }
 
@@ -35,7 +88,7 @@ function findBestThread(threads) {
   }
   for (let thread of threads) {
     if (thread.stacktrace) {
-      return thread.stacktrace;
+      return thread;
     }
   }
   return threads[0];
@@ -49,6 +102,7 @@ const Thread = React.createClass({
     platform: React.PropTypes.string,
     stackView: React.PropTypes.string,
     newestFirst: React.PropTypes.bool,
+    stacktrace: React.PropTypes.object,
   },
 
   renderMissingStacktrace() {
@@ -72,16 +126,16 @@ const Thread = React.createClass({
   render() {
     return (
       <div className="thread">
-        <h4>{getThreadTitle(this.props.data)}</h4>
-        {this.props.data.stacktrace ? (
+        <h4>{getThreadTitle(this.props.data, this.props.event)}</h4>
+        {this.props.stacktrace ? (
           this.props.stackView === 'raw' ?
             <pre className="traceback plain">
               {rawStacktraceContent(
-                this.props.data.stacktrace, this.props.platform)}
+                this.props.stacktrace, this.props.platform)}
             </pre>
           :
             <StacktraceContent
-                data={this.props.data.stacktrace}
+                data={this.props.stacktrace}
                 includeSystemFrames={this.props.stackView === 'full'}
                 platform={this.props.event.platform}
                 newestFirst={this.props.newestFirst} />
@@ -106,7 +160,7 @@ const ThreadsInterface = React.createClass({
     let thread = findBestThread(this.props.data.values);
     return {
       activeThread: thread,
-      stackView: getIntendedStackView(thread),
+      stackView: getIntendedStackView(thread, this.props.event),
       newestFirst: isStacktraceNewestFirst(),
     };
   },
@@ -117,10 +171,14 @@ const ThreadsInterface = React.createClass({
     });
   },
 
+  getStacktrace() {
+    return findThreadStacktrace(this.state.activeThread, this.props.event);
+  },
+
   onSelectNewThread(thread) {
     let newStackView = this.state.stackView;
     if (this.state.stackView !== 'raw') {
-      newStackView = getIntendedStackView(thread);
+      newStackView = getIntendedStackView(thread, this.props.event);
     }
     this.setState({
       activeThread: thread,
@@ -132,7 +190,7 @@ const ThreadsInterface = React.createClass({
     let group = this.props.group;
     let evt = this.props.event;
     let {stackView, newestFirst, activeThread} = this.state;
-    let {stacktrace} = activeThread;
+    let stacktrace = this.getStacktrace();
 
     let title = (
       <div>
@@ -141,12 +199,12 @@ const ThreadsInterface = React.createClass({
             btnGroup={true}
             caret={true}
             className="btn btn-default btn-sm"
-            title={getThreadTitle(activeThread)}>
+            title={getThreadTitle(activeThread, this.props.event)}>
             {this.props.data.values.map((thread, idx) => {
               return (
                 <MenuItem key={idx} noAnchor={true}>
                   <a onClick={this.onSelectNewThread.bind(this, thread)
-                    }>{getThreadTitle(thread)}</a>
+                    }>{getThreadTitle(thread, this.props.event)}</a>
                 </MenuItem>
               );
             })}
@@ -180,6 +238,7 @@ const ThreadsInterface = React.createClass({
         <Thread
           data={activeThread}
           stackView={stackView}
+          stacktrace={stacktrace}
           event={evt}
           newestFirst={newestFirst} />
       </GroupEventDataSection>

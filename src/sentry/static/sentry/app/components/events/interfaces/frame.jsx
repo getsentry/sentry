@@ -12,7 +12,7 @@ import {defined, objectIsEmpty, isUrl} from '../../../utils';
 import ContextLine from './contextLine';
 import FrameVariables from './frameVariables';
 
-function trimPackage(pkg) {
+export function trimPackage(pkg) {
   let pieces = pkg.split(/\//g);
   let rv = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
   let match = rv.match(/^(.*?)\.(dylib|so|a)$/);
