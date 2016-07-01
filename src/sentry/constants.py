@@ -89,6 +89,8 @@ LOG_LEVELS = {
 }
 DEFAULT_LOG_LEVEL = 'error'
 DEFAULT_LOGGER_NAME = ''
+LOG_LEVELS_MAP = {v: k for k, v in LOG_LEVELS.iteritems()}
+
 
 # Default alerting threshold values
 DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
