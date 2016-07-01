@@ -8,26 +8,24 @@ class AuthTest(AcceptanceTestCase):
         # disable captcha as it makes these tests flakey (and requires waiting
         # on external resources)
         with self.settings(RECAPTCHA_PUBLIC_KEY=None):
-            self.browser.get(self.route('/auth/login/'))
+            self.browser.get('/auth/login/')
             self.browser.find_element_by_id('id_username').send_keys(username)
             self.browser.find_element_by_id('id_password').send_keys(password)
             self.browser.find_element_by_xpath("//button[contains(text(), 'Login')]").click()
-            # give it one second to make sure the request goes through and we
-            # dont immediately re-set the captcha value
-            self.browser.implicitly_wait(1)
 
-    def test_auth_page(self):
-        self.browser.get(self.live_server_url)
-        self.snapshot(name='login')
+    def test_renders(self):
+        self.browser.get('/auth/login/')
+        self.browser.snapshot(name='login')
 
-    def test_auth_failures(self):
+    def test_no_credentials(self):
         self.enter_auth('', '')
-        self.snapshot(name='login fields required')
+        self.browser.snapshot(name='login fields required')
 
+    def test_invalid_credentials(self):
         self.enter_auth('bad-username', 'bad-username')
-        self.snapshot(name='login fields invalid')
+        self.browser.snapshot(name='login fields invalid')
 
-    def test_auth_success(self):
+    def test_success(self):
         email = 'dummy@example.com'
         password = 'dummy'
         user = self.create_user(email=email)
@@ -35,4 +33,4 @@ class AuthTest(AcceptanceTestCase):
         user.save()
 
         self.enter_auth(email, password)
-        self.snapshot(name='login success')
+        self.browser.snapshot(name='login success')
