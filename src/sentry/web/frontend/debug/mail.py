@@ -208,6 +208,12 @@ def new_event(request):
     ).render()
 
 
+def make_message(random, length=None):
+    if length is None:
+        length = int(random.weibullvariate(8, 3))
+    return ' '.join(random.choice(WORDS) for _ in xrange(length))
+
+
 def make_culprit(random):
     def make_module_path_components(min, max):
         for _ in xrange(random.randint(min, max)):
@@ -219,15 +225,32 @@ def make_culprit(random):
     )
 
 
+def make_group_metadata(random, group):
+    return {
+        'type': 'error',
+        'metadata': {
+            'type': '{}Error'.format(
+                ''.join(word.title() for word in random.sample(WORDS, random.randint(1, 3))),
+            ),
+            'value': make_message(random),
+        }
+    }
+
+
 def make_group_generator(random, project):
     for id in itertools.count(1):
-        yield Group(
+        group = Group(
             id=id,
             project=project,
-            message=' '.join(random.choice(WORDS) for _ in xrange(int(random.weibullvariate(8, 4)))),
             culprit=make_culprit(random),
             level=random.choice(LOG_LEVELS.keys()),
+            message=make_message(random),
         )
+
+        if random.random() < 0.8:
+            group.data = make_group_metadata(random, group)
+
+        yield group
 
 
 @login_required
