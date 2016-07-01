@@ -33,10 +33,20 @@
                   </td>
                   <td class="event-detail">
                       {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
-                      <a href="{% absolute_uri group_link %}">{{ group.message_short|soft_break:40 }}</a>
+                      {% if group.data.type == "error" %}
+                        <div class="event-type error">
+                          <a href="{% absolute_uri group_link %}">{{ group.data.metadata.type }}</a>
+                          <small>{{ group.title|soft_break:50 }}</small>
+                          <p>{{ group.data.metadata.value }}</p>
+                        </div>
+                      {% else %}
+                        <div class="event-type default">
+                          <a href="{% absolute_uri group_link %}">{{ group.message_short|soft_break:40 }}</a>
+                          <p>{{ group.title|soft_break:50 }}</p>
+                        </div>
+                      {% endif %}
                       <p>
-                        {{ group.title|soft_break:50 }}
-                        <small>&mdash; {{ records.0.datetime|date:"N j, Y, P e" }}</small>
+                        <small>{{ records.0.datetime|date:"N j, Y, P e" }}</small>
                       </p>
                   </td>
               </tr>
