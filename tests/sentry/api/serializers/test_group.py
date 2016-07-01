@@ -121,12 +121,12 @@ class GroupSerializerTest(TestCase):
         result = serialize(group, user)
         assert not result['isSubscribed']
 
-    def test_implicit_unsubscribed(self):
+    def test_implicit_subscribed(self):
         user = self.create_user()
         group = self.create_group()
 
         result = serialize(group, user)
-        assert not result['isSubscribed']
+        assert result['isSubscribed']
 
     def test_no_user_unsubscribed(self):
         group = self.create_group()

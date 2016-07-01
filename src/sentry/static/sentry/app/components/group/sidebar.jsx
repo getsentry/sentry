@@ -1,14 +1,70 @@
 import React from 'react';
+
+import ApiMixin from '../../mixins/apiMixin';
+import Avatar from '../avatar';
 import GroupChart from './chart';
 import GroupState from '../../mixins/groupState';
+import IndicatorStore from '../../stores/indicatorStore';
 import SeenInfo from './seenInfo';
 import TagDistributionMeter from './tagDistributionMeter';
 import {t} from '../../locale';
 
-const GroupSidebar = React.createClass({
-  mixins: [GroupState],
+const GroupParticipants = React.createClass({
+  propTypes: {
+    group: React.PropTypes.object,
+  },
 
-  render(){
+  render() {
+    let group = this.props.group;
+
+    return (
+      <div>
+        <h6><span>{group.participants.length} Participants</span></h6>
+        <ul className="faces">
+          {group.participants.map((user) => {
+            return (
+              <li>
+                <Avatar size={32} user={user} />
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  },
+});
+
+const GroupSidebar = React.createClass({
+  propTypes: {
+    group: React.PropTypes.object,
+  },
+
+  mixins: [
+    ApiMixin,
+    GroupState
+  ],
+
+  toggleSubscription() {
+    let group = this.props.group;
+    let project = this.getProject();
+    let org = this.getOrganization();
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+
+    this.api.bulkUpdate({
+      orgId: org.slug,
+      projectId: project.slug,
+      itemIds: [group.id],
+      data: {
+        isSubscribed: !group.isSubscribed
+      }
+    }, {
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
+    });
+  },
+
+  render() {
     let orgId = this.getOrganization().slug;
     let projectId = this.getProject().slug;
     let group = this.getGroup();
@@ -51,16 +107,20 @@ const GroupSidebar = React.createClass({
               tag={data.key} />
           );
         })}
-        <h6><span>3 {t('Participants')}</span></h6>
-        <ul className="faces">
-          <li><span className="avatar"><img src="https://github.com/dcramer.png" /></span></li>
-          <li><span className="avatar"><img src="https://github.com/tkaemming.png" /></span></li>
-          <li><span className="avatar"><img src="https://github.com/macqueen.png" /></span></li>
-        </ul>
+        {group.participants.length !== 0 &&
+          <GroupParticipants group={group} />
+        }
 
         <h6><span>{t('Notifications')}</span></h6>
-        <p className="help-block">You're subscribed to this issue because you are mentioned in the comments.</p>
-        <a className="btn btn-default btn-subscribe subscribed"><span className="icon-signal" /> Unsubscribe</a>
+        {group.isSubscribed ?
+          <p className="help-block">{t('You\'re subscribed to this issue and will get notified when updates happen.')}</p>
+        :
+          <p className="help-block">{t('You\'re not subscribed in this issue.')}</p>
+        }
+        <a className={`btn btn-default btn-subscribe ${group.isSubscribed && 'subscribed'}`}
+           onClick={this.toggleSubscription}>
+          <span className="icon-signal" /> {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}
+        </a>
       </div>
     );
   }

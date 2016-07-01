@@ -11,7 +11,7 @@ from sentry.constants import LOG_LEVELS
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,
     GroupResolutionStatus, GroupSeen, GroupSnooze, GroupSubscription,
-    GroupStatus, GroupTagKey
+    GroupStatus, GroupTagKey, UserOption, UserOptionValue
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -20,6 +20,28 @@ from sentry.utils.safe import safe_execute
 
 @register(Group)
 class GroupSerializer(Serializer):
+    def _get_subscriptions(self, item_list, user):
+        default_subscribed = UserOption.objects.get_value(
+            user=user,
+            project=None,
+            key='workflow:notifications',
+        )
+        if default_subscribed == UserOptionValue.participating_only:
+            subscriptions = set(GroupSubscription.objects.filter(
+                group__in=item_list,
+                user=user,
+                is_active=True,
+            ).values_list('group_id', flat=True))
+        else:
+            subscriptions = set([i.id for i in item_list]).difference(
+                GroupSubscription.objects.filter(
+                    group__in=item_list,
+                    user=user,
+                    is_active=False,
+                ).values_list('group_id', flat=True),
+            )
+        return subscriptions
+
     def get_attrs(self, item_list, user):
         from sentry.plugins import plugins
 
@@ -36,11 +58,7 @@ class GroupSerializer(Serializer):
                 user=user,
                 group__in=item_list,
             ).values_list('group_id', 'last_seen'))
-            subscriptions = set(GroupSubscription.objects.filter(
-                group__in=item_list,
-                user=user,
-                is_active=True,
-            ).values_list('group_id', flat=True))
+            subscriptions = self._get_subscriptions(item_list, user)
         else:
             bookmarks = set()
             seen_groups = {}
