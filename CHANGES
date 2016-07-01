@@ -1,5 +1,8 @@
-Version 8.6 (Unreleased)
+Version 8.7 (Unreleased)
 ------------------------
+
+Version 8.6
+-----------
 
 - The ``message`` attribute on Event/Group is now purely used for search storage.
 - The ``sentry.interfaces.Message`` interface now contains a ``formatted`` attribute.
