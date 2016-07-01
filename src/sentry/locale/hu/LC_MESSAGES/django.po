@@ -10,13 +10,13 @@ msgstr ""
 "POT-Creation-Date: 2016-07-01 02:47+0000\n"
 "PO-Revision-Date: 2016-07-01 02:48+0000\n"
 "Last-Translator: mattrobenolt <m@robenolt.com>\n"
-"Language-Team: Indonesian (http://www.transifex.com/getsentry/sentry/language/id/)\n"
+"Language-Team: Hungarian (http://www.transifex.com/getsentry/sentry/language/hu/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.2.0\n"
-"Language: id\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Language: hu\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: admin.py:189
 msgid "Personal info"
@@ -398,6 +398,7 @@ msgstr ""
 msgid "%(calls)d call in %(duration).2fms"
 msgid_plural "%(calls)d calls in %(duration).2fms"
 msgstr[0] ""
+msgstr[1] ""
 
 #: debug/panels/redis.py:79
 msgid "Redis"
@@ -3138,6 +3139,7 @@ msgstr ""
 msgid "%2$d unique historical value"
 msgid_plural "%2$d unique historical values"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/groupTagValues.jsx:132
 msgid "Data is based on events seen in the last 7 days."
@@ -3639,6 +3641,7 @@ msgstr ""
 msgid "%2$s merged %1$d issue into this issue"
 msgid_plural "%2$s merged %1$d issues into this issue"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/groupActivity/index.jsx:125
 msgid "Removing comment.."
@@ -3927,6 +3930,7 @@ msgstr ""
 msgid "Are you sure you want to resolve this %d issue?"
 msgid_plural "Are you sure you want to resolve these %d issues?"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:184
 msgid "Resolve all issues"
@@ -3937,6 +3941,7 @@ msgstr ""
 msgid "Resolve %d selected issue"
 msgid_plural "Resolve %d selected issues"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:190
 msgid "Set Status to Resolved"
@@ -3956,6 +3961,7 @@ msgstr ""
 msgid "Are you sure you want to bookmark this %d issue?"
 msgid_plural "Are you sure you want to bookmark these %d issues?"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:211
 msgid "Bookmark all issues"
@@ -3966,6 +3972,7 @@ msgstr ""
 msgid "Bookmark %d selected issue"
 msgid_plural "Bookmark %d selected issues"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:217
 msgid "Add to Bookmarks"
@@ -3980,6 +3987,7 @@ msgstr ""
 msgid "Are you sure you want to merge %d issue?"
 msgid_plural "Are you sure you want to merge %d issues?"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:245
 msgid "Merge all issues"
@@ -3990,6 +3998,7 @@ msgstr ""
 msgid "Merge %d selected issue"
 msgid_plural "Merge %d selected issues"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:252
 msgid "Merge Events"
@@ -4007,6 +4016,7 @@ msgid "Are you sure you want to remove this %d issue from your bookmarks?"
 msgid_plural ""
 "Are you sure you want to remove these %d issues from your bookmarks?"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:271
 msgid "Remove all issues from bookmarks"
@@ -4017,6 +4027,7 @@ msgstr ""
 msgid "Remove %d selected issue from bookmarks"
 msgid_plural "Remove %d selected issues from bookmarks"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:279
 msgid "Remove from Bookmarks"
@@ -4032,6 +4043,7 @@ msgstr ""
 msgid "Are you sure you want to unresolve this %d issue?"
 msgid_plural "Are you sure you want to unresolve these %d issues?"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:299
 msgid "Unresolve all issues"
@@ -4042,6 +4054,7 @@ msgstr ""
 msgid "Unresolve %d selected issue"
 msgid_plural "Unresolve %d selected issues"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:308
 msgid "Set status to: Unresolved"
@@ -4056,6 +4069,7 @@ msgstr ""
 msgid "Are you sure you want to mute this %d issue?"
 msgid_plural "Are you sure you want to mute these %d issues?"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:327
 msgid "Mute all issues"
@@ -4066,6 +4080,7 @@ msgstr ""
 msgid "Mute %d selected issue"
 msgid_plural "Mute %d selected issues"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:335
 msgid "Set status to: Muted"
@@ -4076,12 +4091,14 @@ msgstr ""
 msgid "Are you sure you want to delete %d issue?"
 msgid_plural "Are you sure you want to delete %d issues?"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:353
 #, python-format
 msgid "Delete %d selected issue"
 msgid_plural "Delete %d selected issues"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:358
 msgid "Delete Events"
@@ -4108,6 +4125,7 @@ msgstr ""
 msgid "%d issue on this page selected."
 msgid_plural "%d issues on this page selected."
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:400
 msgid "Select all issues matching this search query."
@@ -4341,6 +4359,7 @@ msgstr ""
 msgid "There was %d error encountered while processing this event"
 msgid_plural "There were %d errors encountered while processing this event"
 msgstr[0] ""
+msgstr[1] ""
 
 #: static/sentry/app/components/events/interfaces/csp.jsx:54
 msgid "Report"
