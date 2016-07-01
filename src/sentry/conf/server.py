@@ -907,7 +907,7 @@ SENTRY_ROLES = (
         'name': 'Member',
         'desc': 'Members can view and act on events, as well as view most other data within the organization.',
         'scopes': set([
-            'event:read', 'event:write', 'event:delete',
+            'event:read', 'event:write', 'event:delete', 'project:releases',
             'project:read', 'org:read', 'member:read', 'team:read',
         ]),
     },
