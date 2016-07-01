@@ -34,20 +34,17 @@ function findThreadStacktrace(thread, event) {
   if (thread.stacktrace) {
     return thread.stacktrace;
   }
-  let stack = null;
   for (let entry of event.entries) {
-    if (entry.type === 'stacktrace') {
-      stack = entry.data;
-    } else if (entry.type === 'exception') {
-      for (let exc of entry.data.values) {
-        if (exc.threadId === thread.id && exc.stacktrace) {
-          stack = exc.stacktrace;
-          break;
-        }
+    if (entry.type !== 'exception') {
+      continue;
+    }
+    for (let exc of entry.data.values) {
+      if (exc.threadId === thread.id && exc.stacktrace) {
+        return exc.stacktrace;
       }
     }
   }
-  return stack;
+  return null;
 }
 
 function getThreadTitle(thread, event) {
