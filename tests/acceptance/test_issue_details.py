@@ -44,19 +44,19 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform='python',
         )
 
-        self.browser.get(self.route(
-            '/{}/{}/issues/{}/', self.org.slug, self.project.slug, event.group.id
+        self.browser.get('/{}/{}/issues/{}/'.format(
+            self.org.slug, self.project.slug, event.group.id
         ))
-        self.wait_until('.entries')
-        self.snapshot('issue details python')
+        self.browser.wait_until('.entries')
+        self.browser.snapshot('issue details python')
 
     def test_cocoa_event(self):
         event = self.create_sample_event(
             platform='cocoa',
         )
 
-        self.browser.get(self.route(
-            '/{}/{}/issues/{}/', self.org.slug, self.project.slug, event.group.id
+        self.browser.get('/{}/{}/issues/{}/'.format(
+            self.org.slug, self.project.slug, event.group.id
         ))
-        self.wait_until('.entries')
-        self.snapshot('issue details cocoa')
+        self.browser.wait_until('.entries')
+        self.browser.snapshot('issue details cocoa')
