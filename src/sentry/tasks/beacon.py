@@ -59,6 +59,7 @@ def send_beacon():
     payload = {
         'install_id': install_id,
         'version': sentry.get_version(),
+        'docker': sentry.is_docker(),
         'admin_email': options.get('system.admin-email'),
         'data': {
             # TODO(dcramer): we'd also like to get an idea about the throughput
