@@ -377,15 +377,12 @@ def resolve_frame_symbols(data):
     with sym:
         for stacktrace in stacktraces:
             for idx, frame in enumerate(stacktrace['frames']):
-                if 'package_addr' not in frame:
+                if 'image_addr' not in frame or \
+                   'instruction_addr' not in frame:
                     continue
                 try:
-                    # We need to create a symsynd compatible frame here so
-                    # that we can perform symbolication.
-                    sfrm = sym.symbolize_frame({
-                        'object_addr': frame['package_addr'],
-                        'instruction_addr': frame['instruction_addr'],
-                    }, sdk_info, report_error=report_error)
+                    sfrm = sym.symbolize_frame(frame, sdk_info,
+                                               report_error=report_error)
                     if not sfrm:
                         continue
                     frame['function'] = sfrm['symbol_name'] or '<unknown>'
