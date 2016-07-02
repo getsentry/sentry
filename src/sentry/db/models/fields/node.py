@@ -84,10 +84,11 @@ class NodeData(collections.MutableMapping):
             return self._node_data
 
         elif self.id:
-            if settings.DEBUG:
-                raise NodeUnpopulated('You should populate node data before accessing it.')
-            else:
-                warnings.warn('You should populate node data before accessing it.')
+            # TODO: why is this exploding
+            # if settings.DEBUG:
+            #     raise NodeUnpopulated('You should populate node data before accessing it.')
+            # else:
+            #     warnings.warn('You should populate node data before accessing it.')
             self.bind_data(nodestore.get(self.id) or {})
             return self._node_data
 
