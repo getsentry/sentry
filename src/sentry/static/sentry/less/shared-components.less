@@ -1499,6 +1499,59 @@ ul.faces {
 }
 
 /**
+* Key value pill / lozenge
+* ============================================================================
+*/
+
+.pills {
+  .list-unstyled;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+
+  li {
+    white-space: nowrap;
+    margin: 0 15px 15px 0;
+    border-radius: 1px;
+    display: flex;
+    border: 1px solid @trim;
+    border-radius: 3px;
+    box-shadow: 0 1px 2px rgba(0,0,0, .06);
+    line-height: 1.2;
+
+    &.true .value {
+      background: #FBFEFA;
+      border: 1px solid #C7DBBD;
+      margin: -1px;
+      color: #6A726C;
+    }
+
+    &.false .value {
+      background: #FFF9F9;
+      border: 1px solid #E5C4C4;
+      margin: -1px;
+      color: #766A6A;
+    }
+
+    &:last-child {
+      margin-right: 0;
+    }
+  }
+
+  .key {
+    padding: 5px 10px;
+  }
+
+  .value {
+    background: @white-dark;
+    padding: 5px 10px;
+    border-left: 1px solid @trim;
+    border-radius: 0 3px 3px 0;
+    font-family: Monaco, monospace;
+  }
+}
+
+/**
 * Assignee Selector
 * ============================================================================
 */
