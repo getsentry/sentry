@@ -6,6 +6,7 @@ import {t} from '../../../locale';
 const CrashHeader = React.createClass({
   propTypes: {
     title: React.PropTypes.string,
+    beforeTitle: React.PropTypes.any,
     group: PropTypes.Group.isRequired,
     thread: React.PropTypes.object,
     exception: React.PropTypes.object,
@@ -68,8 +69,9 @@ const CrashHeader = React.createClass({
 
     return (
       <div className="crash-title">
+        {this.props.beforeTitle}
         <h3 className="pull-left">
-          {this.props.title || t('Exception')}
+          {this.props.title !== undefined ? this.props.title : t('Exception')}
           <small style={{marginLeft: 5}}>
             (<a onClick={this.toggleOrder} className="tip" title={t('Toggle stacktrace order')} style={{borderBottom: '1px dotted #aaa'}}>
               {newestFirst ?
@@ -80,7 +82,6 @@ const CrashHeader = React.createClass({
             </a>)
           </small>
         </h3>
-        {this.props.children}
         <div className="btn-group" style={{marginLeft:10}}>
           {this.hasSystemFrames() &&
             <a className={(stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.setStackView.bind(this, 'app')}>{t('App Only')}</a>
