@@ -173,6 +173,7 @@ class SingleExceptionTest(TestCase):
             'type': self.interface.type,
             'value': self.interface.value,
             'module': self.interface.module,
+            'thread_id': None,
             'mechanism': None,
             'stacktrace': None,
             'raw_stacktrace': None,
