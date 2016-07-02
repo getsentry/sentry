@@ -26,37 +26,7 @@ from sentry.db.models import FlexibleForeignKey, Model, BoundedBigIntegerField, 
 from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 from sentry.utils.db import is_sqlite
-
-
-MAX_SYM = 256
-KNOWN_DSYM_TYPES = {
-    'application/x-mach-binary': 'macho'
-}
-
-SDK_MAPPING = {
-    'iPhone OS': 'iOS',
-    'tvOS': 'tvOS',
-    'Mac OS': 'macOS',
-}
-
-
-def get_sdk_from_system_info(info):
-    if not info:
-        return None
-    try:
-        sdk_name = SDK_MAPPING[info['system_name']]
-        system_version = tuple(int(x) for x in (
-            info['system_version'] + '.0' * 3).split('.')[:3])
-    except LookupError:
-        return None
-
-    return {
-        'dsym_type': 'macho',
-        'sdk_name': sdk_name,
-        'version_major': system_version[0],
-        'version_minor': system_version[1],
-        'version_patchlevel': system_version[2],
-    }
+from sentry.constants import KNOWN_DSYM_TYPES
 
 
 class DSymSDKManager(BaseManager):
@@ -197,7 +167,7 @@ class DSymSymbolManager(BaseManager):
         cur.close()
 
     def lookup_symbol(self, instruction_addr, image_addr, uuid,
-                      cpu_name=None, object_path=None, system_info=None,
+                      cpu_name=None, object_path=None, sdk_info=None,
                       image_vmaddr=None):
         """Finds a system symbol."""
         addr_abs = None
@@ -242,7 +212,6 @@ class DSymSymbolManager(BaseManager):
                     return rv[0]
 
             # Third try: exact match on path and arch (addr_rel)
-            sdk_info = get_sdk_from_system_info(system_info)
             if sdk_info is None or \
                cpu_name is None or \
                object_path is None:

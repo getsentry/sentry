@@ -11,7 +11,7 @@ from sentry import options
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
 from sentry.models import DSymSymbol, EventError
-from sentry.models.dsymfile import MAX_SYM
+from sentry.constants import MAX_SYM
 
 
 def trim_frame(frame):
@@ -21,7 +21,7 @@ def trim_frame(frame):
     return frame
 
 
-def find_system_symbol(img, instruction_addr, system_info=None):
+def find_system_symbol(img, instruction_addr, sdk_info=None):
     """Finds a system symbol."""
     return DSymSymbol.objects.lookup_symbol(
         instruction_addr=instruction_addr,
@@ -31,33 +31,23 @@ def find_system_symbol(img, instruction_addr, system_info=None):
         cpu_name=get_cpu_name(img['cpu_type'],
                               img['cpu_subtype']),
         object_path=img['name'],
-        system_info=system_info
+        sdk_info=sdk_info
     )
 
 
-def make_symbolizer(project, binary_images, threads=None):
+def make_symbolizer(project, binary_images, referenced_images=None):
     """Creates a symbolizer for the given project and binary images.  If a
-    list of threads is referenced (from an apple crash report) then only
-    images needed by those frames are loaded.
+    list of referenced images is referenced (UUIDs) then only images
+    needed by those frames are loaded.
     """
     if not have_symsynd:
         raise RuntimeError('symsynd is unavailable.  Install sentry with '
                            'the dsym feature flag.')
     driver = Driver(options.get('dsym.llvm-symbolizer-path') or None)
 
-    if threads is None:
+    to_load = referenced_images
+    if to_load is None:
         to_load = [x['uuid'] for x in binary_images]
-    else:
-        image_map = {}
-        for image in binary_images:
-            image_map[image['image_addr']] = image['uuid']
-        to_load = set()
-        for thread in threads:
-            for frame in thread['backtrace']['contents']:
-                img_uuid = image_map.get(frame['object_addr'])
-                if img_uuid is not None:
-                    to_load.add(img_uuid)
-        to_load = list(to_load)
 
     dsym_paths, loaded = dsymcache.fetch_dsyms(project, to_load)
     return ReportSymbolizer(driver, dsym_paths, binary_images)
@@ -65,9 +55,9 @@ def make_symbolizer(project, binary_images, threads=None):
 
 class Symbolizer(object):
 
-    def __init__(self, project, binary_images, threads=None):
-        self.symsynd_symbolizer = make_symbolizer(project, binary_images,
-                                                  threads=threads)
+    def __init__(self, project, binary_images, referenced_images=None):
+        self.symsynd_symbolizer = make_symbolizer(
+            project, binary_images, referenced_images=referenced_images)
         self.images = dict((img['image_addr'], img) for img in binary_images)
 
     def __enter__(self):
@@ -87,7 +77,7 @@ class Symbolizer(object):
             rv['uuid'] = img['uuid']
         return rv
 
-    def symbolize_frame(self, frame, system_info=None,
+    def symbolize_frame(self, frame, sdk_info=None,
                         report_error=None):
         error = None
         img = self.images.get(frame['object_addr'])
@@ -104,7 +94,7 @@ class Symbolizer(object):
         # If that does not work, look up system symbols.
         if img is not None:
             symbol = find_system_symbol(img, frame['instruction_addr'],
-                                        system_info)
+                                        sdk_info)
             if symbol is not None:
                 symbol = demangle_symbol(symbol) or symbol
                 rv = dict(frame, symbol_name=symbol, filename=None,
@@ -116,7 +106,7 @@ class Symbolizer(object):
             report_error(error)
         return self._process_frame(frame, img)
 
-    def symbolize_backtrace(self, backtrace, system_info=None):
+    def symbolize_backtrace(self, backtrace, sdk_info=None):
         rv = []
         errors = []
         idx = -1
@@ -134,5 +124,5 @@ class Symbolizer(object):
 
         for idx, frm in enumerate(backtrace):
             rv.append(self.symbolize_frame(
-                frm, system_info, report_error=report_error))
+                frm, sdk_info, report_error=report_error))
         return rv, errors

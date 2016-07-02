@@ -21,7 +21,7 @@ SHUTDOWN = object()
 
 def load_bundle(q, uuid, data, sdk_info, trim_symbols, demangle):
     from sentry.models import DSymBundle, DSymObject, DSymSDK
-    from sentry.models.dsymfile import MAX_SYM
+    from sentry.constants import MAX_SYM
     from symsynd.demangle import demangle_symbol
 
     def _process_symbol(sym):

@@ -7,7 +7,10 @@ import posixpath
 from sentry.models import Project, EventError
 from sentry.plugins import Plugin2
 from sentry.lang.native.symbolizer import Symbolizer, have_symsynd
-from sentry.models.dsymfile import SDK_MAPPING
+from sentry.lang.native.utils import find_all_stacktraces, \
+    find_apple_crash_report_referenced_images, \
+    find_stacktrace_referenced_images, get_sdk_from_apple_system_info, \
+    APPLE_SDK_MAPPING
 
 
 logger = logging.getLogger(__name__)
@@ -215,7 +218,7 @@ def inject_apple_device_data(data, system):
     os = contexts.setdefault('os', {})
 
     try:
-        os['name'] = SDK_MAPPING[system['system_name']]
+        os['name'] = APPLE_SDK_MAPPING[system['system_name']]
     except LookupError:
         os['name'] = system.get('system_name') or 'Generic Apple'
 
@@ -248,6 +251,7 @@ def record_no_symsynd(data):
 
 
 def preprocess_apple_crash_event(data):
+    """This processes the "legacy" AppleCrashReport."""
     crash_report = data.get('sentry.interfaces.AppleCrashReport')
     if crash_report is None:
         return
@@ -276,8 +280,11 @@ def preprocess_apple_crash_event(data):
             'stacktrace': True,
         }
 
+    sdk_info = get_sdk_from_apple_system_info(system)
+    referenced_images = find_apple_crash_report_referenced_images(
+        crash_report['binary_images'], raw_threads.values())
     sym = Symbolizer(project, crash_report['binary_images'],
-                     threads=raw_threads.values())
+                     referenced_images=referenced_images)
 
     with sym:
         if crashed_thread is None:
@@ -288,7 +295,7 @@ def preprocess_apple_crash_event(data):
             system = crash_report.get('system')
             try:
                 bt, errors = sym.symbolize_backtrace(
-                    crashed_thread['backtrace']['contents'], system)
+                    crashed_thread['backtrace']['contents'], sdk_info)
                 for error in errors:
                     append_error(data, error)
                 if inject_apple_backtrace(data, bt, crash.get('diagnosis'),
@@ -312,7 +319,7 @@ def preprocess_apple_crash_event(data):
             if raw_threads is None:
                 continue
             bt, errors = sym.symbolize_backtrace(
-                raw_thread['backtrace']['contents'], system)
+                raw_thread['backtrace']['contents'], sdk_info)
             for error in errors:
                 append_error(data, error)
             thread['stacktrace'] = convert_stacktrace(
@@ -329,10 +336,96 @@ def preprocess_apple_crash_event(data):
     return data
 
 
+def resolve_frame_symbols(data):
+    debug_image_data = data.get('debug_images')
+    if not debug_image_data:
+        return
+
+    debug_images = debug_image_data['images']
+    sdk_info = debug_image_data['sdk_info']
+
+    stacktraces = find_all_stacktraces(data)
+    if not stacktraces:
+        return
+
+    project = Project.objects.get_from_cache(
+        id=data['project'],
+    )
+
+    errors = []
+    referenced_images = find_stacktrace_referenced_images(
+        debug_images, stacktraces)
+    sym = Symbolizer(project, debug_images,
+                     referenced_images=referenced_images)
+
+    frame = None
+    idx = -1
+
+    def report_error(e):
+        errors.append({
+            'type': EventError.NATIVE_INTERNAL_FAILURE,
+            'frame': frame,
+            'error': 'frame #%d: %s: %s' % (
+                idx,
+                e.__class__.__name__,
+                str(e),
+            )
+        })
+
+    longest_addr = 0
+    processed_frames = []
+    with sym:
+        for stacktrace in stacktraces:
+            for idx, frame in enumerate(stacktrace['frames']):
+                if 'package_addr' not in frame:
+                    continue
+                try:
+                    # We need to create a symsynd compatible frame here so
+                    # that we can perform symbolication.
+                    sfrm = sym.symbolize_frame({
+                        'object_addr': frame['package_addr'],
+                        'instruction_addr': frame['instruction_addr'],
+                    }, sdk_info, report_error=report_error)
+                    if not sfrm:
+                        continue
+                    frame['function'] = sfrm['symbol_name'] or '<unknown>'
+                    frame['abs_path'] = sfrm['filename']
+                    frame['filename'] = posixpath.basename(sfrm['filename'])
+                    if sfrm.get('line') is not None:
+                        frame['lineno'] = sfrm['line']
+                    else:
+                        frame['instruction_offset'] = \
+                            sfrm['instruction_addr'] - sfrm['symbol_addr']
+                    if sfrm.get('column') is not None:
+                        frame['colno'] = sfrm['column']
+                    frame['package'] = sfrm['object_name']
+                    frame['symbol_addr'] = '%x' % sfrm['symbol_addr']
+                    frame['instruction_addr'] = '%x' % sfrm['instruction_addr']
+                    longest_addr = max(longest_addr, len(sfrm['symbol_addr']),
+                                       len(sfrm['instruction_addr']))
+                    processed_frames.append(frame)
+                except Exception as e:
+                    logger.exception('Failed to symbolicate')
+                    errors.append({
+                        'type': EventError.NATIVE_INTERNAL_FAILURE,
+                        'error': '%s: %s' % (e.__class__.__name__, str(e)),
+                    })
+
+    # Pad out addresses to be of the same length and add prefix
+    for frame in processed_frames:
+        for key in 'symbol_addr', 'instruction_addr':
+            frame[key] = '0x' + frame[key][2:].rjust(longest_addr, '0')
+
+    if errors:
+        data.setdefault('errors', []).extend(errors)
+
+    return data
+
+
 class NativePlugin(Plugin2):
     can_disable = False
 
     def get_event_preprocessors(self, **kwargs):
         if not have_symsynd:
             return [record_no_symsynd]
-        return [preprocess_apple_crash_event]
+        return [preprocess_apple_crash_event, resolve_frame_symbols]
