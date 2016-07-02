@@ -1,7 +1,6 @@
 import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
-import KeyValueList from './keyValueList';
 import {isStacktraceNewestFirst} from './stacktrace';
 import {t} from '../../../locale';
 import {defined} from '../../../utils';
@@ -10,6 +9,8 @@ import MenuItem from '../../menuItem';
 import {trimPackage} from './frame';
 import CrashHeader from './crashHeader';
 import CrashContent from './crashContent';
+import Pills from '../../pills';
+import Pill from '../../pill';
 
 function trimFilename(fn) {
   let pieces = fn.split(/\//g);
@@ -151,14 +152,12 @@ const Thread = React.createClass({
       newestFirst, exception, stacktrace} = this.props;
     return (
       <div className="thread">
-        <KeyValueList
-          data={[
-            ['Thread ID', data.id],
-            ['Name', data.name || 'n/a'],
-            ['Was Active', data.current ? 'yes' : 'no'],
-            ['Crashed', data.crashed ? 'yes' : 'no'],
-          ]}
-          isSorted={false} />
+        <Pills>
+          <Pill name="thread ID" value={data.id} />
+          <Pill name="name" value={data.name} />
+          <Pill name="was active" value={data.current} />
+          <Pill name="crashed" value={data.crashed} />
+        </Pills>
         {this.hasMissingStacktrace() ?
           this.renderMissingStacktrace() :
           <CrashContent
