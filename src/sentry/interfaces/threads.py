@@ -8,7 +8,7 @@ __all__ = ('Threads',)
 
 
 class Threads(Interface):
-    score = 1000
+    score = 1900
 
     @classmethod
     def to_python(cls, data):
