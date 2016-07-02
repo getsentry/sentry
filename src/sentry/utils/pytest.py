@@ -263,10 +263,24 @@ def pytest_runtest_teardown(item):
 
 
 @pytest.fixture(scope='session')
-def driver(request, live_server):
-    # Initialize Selenium.
-    # NOTE: this relies on the phantomjs binary packaged from npm to be in the right
-    # location in node_modules.
+def percy(request):
+    import percy
+
+    # Initialize Percy.
+    loader = percy.ResourceLoader(
+        root_dir=settings.STATIC_ROOT,
+        base_url=urllib.quote(settings.STATIC_URL),
+    )
+    percy_config = percy.Config(default_widths=settings.PERCY_DEFAULT_TESTING_WIDTHS)
+    percy = percy.Runner(loader=loader, config=percy_config)
+    percy.initialize_build()
+
+    request.addfinalizer(percy.finalize_build)
+    return percy
+
+
+@pytest.fixture(scope='function')
+def browser(request, percy, live_server):
     phantomjs_path = os.path.join(
         settings.NODE_MODULES_ROOT,
         'phantomjs-prebuilt',
@@ -285,53 +299,19 @@ def driver(request, live_server):
         driver.service.process.send_signal(signal.SIGTERM)
         driver.quit()
 
-    request.session._driver = driver
+    request.node._driver = driver
     request.addfinalizer(fin)
+
+    browser = Browser(driver, live_server, percy)
+
+    if hasattr(request, 'cls'):
+        request.cls.browser = browser
+    request.node.browser = browser
+
+    # bind webdriver to percy for snapshots
+    percy.loader.webdriver = driver
+
     return driver
-
-
-# TODO(dcramer): ideally we could bundle up more of the browser logic here
-# rather than splitting it between the fixtures and AcceptanceTestCase
-@pytest.fixture(scope='session')
-def percy(request, driver):
-    import percy
-
-    # Initialize Percy.
-    loader = percy.ResourceLoader(
-        root_dir=settings.STATIC_ROOT,
-        base_url=urllib.quote(settings.STATIC_URL),
-        webdriver=driver,
-    )
-    percy_config = percy.Config(default_widths=settings.PERCY_DEFAULT_TESTING_WIDTHS)
-    percy = percy.Runner(loader=loader, config=percy_config)
-    percy.initialize_build()
-
-    request.addfinalizer(percy.finalize_build)
-    return percy
-
-
-@pytest.fixture(scope='class')
-def live_server_class(request, live_server):
-    request.cls.live_server = live_server
-    request.cls.live_server_url = live_server.url
-
-
-@pytest.fixture(scope='class')
-def browser_class(request, driver, live_server, percy):
-    request.cls.browser = Browser(driver, live_server, percy)
-
-
-@pytest.fixture(scope='class')
-def percy_class(request, percy):
-    request.cls.percy = percy
-
-
-@pytest.fixture(scope='function')
-def setup_selenium_session(request):
-    driver = getattr(request.session, '_driver', None)
-    if not driver:
-        return
-    driver.delete_all_cookies()
 
 
 @pytest.mark.tryfirst
@@ -339,7 +319,7 @@ def pytest_runtest_makereport(item, call, __multicall__):
     report = __multicall__.execute()
     summary = []
     extra = getattr(report, 'extra', [])
-    driver = getattr(item.session, '_driver', None)
+    driver = getattr(item, '_driver', None)
     if driver is not None:
         _gather_url(item, report, driver, summary, extra)
         _gather_screenshot(item, report, driver, summary, extra)
