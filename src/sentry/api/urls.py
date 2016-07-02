@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from django.conf.urls import patterns, url
+from django.conf.urls import include, patterns, url
 
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
@@ -355,6 +355,9 @@ urlpatterns = patterns(
     url(r'^internal/stats/$',
         InternalStatsEndpoint.as_view(),
         name='sentry-api-0-internal-stats'),
+
+    # Plugin api
+    url(r'^', include('sentry.plugins.base.api_urls')),
 
     url(r'^$',
         IndexEndpoint.as_view(),

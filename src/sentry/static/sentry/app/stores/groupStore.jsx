@@ -336,6 +336,10 @@ const GroupStore = Reflux.createStore({
     });
     this.pendingChanges.remove(changeId);
     this.trigger(new Set(itemIds));
+  },
+
+  onGroupPluginChange(itemId) {
+    this.trigger(new Set([itemId]), true);
   }
 });
 

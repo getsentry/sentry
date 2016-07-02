@@ -17,7 +17,7 @@ from sentry.models import (
     GroupSubscriptionReason, GroupStatus, GroupTagKey, GroupTagValue, Release,
     User, UserReport
 )
-from sentry.plugins import plugins
+from sentry.plugins import IssueTrackingPlugin2, plugins
 from sentry.utils.safe import safe_execute
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -117,6 +117,16 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         return action_list
 
+    def _get_available_issue_plugins(self, request, group):
+        project = group.project
+
+        plugin_issues = []
+        for plugin in plugins.for_project(project, version=1):
+            if isinstance(plugin, IssueTrackingPlugin2):
+                plugin_issues = safe_execute(plugin.plugin_issues, request, group, plugin_issues,
+                                             _with_transaction=False)
+        return plugin_issues
+
     def _get_release_info(self, request, group, version):
         try:
             release = Release.objects.get(
@@ -212,6 +222,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             'seenBy': seen_by,
             'participants': serialize(participants, request.user),
             'pluginActions': action_list,
+            'pluginIssues': self._get_available_issue_plugins(request, group),
             'userReportCount': UserReport.objects.filter(group=group).count(),
             'tags': sorted(serialize(tags, request.user), key=lambda x: x['name']),
             'stats': {
