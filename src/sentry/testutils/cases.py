@@ -439,7 +439,7 @@ class CliTestCase(TestCase):
         return self.runner.invoke(self.command, args, obj={})
 
 
-@pytest.mark.usefixtures('browser_class')
+@pytest.mark.usefixtures('browser')
 class AcceptanceTestCase(TransactionTestCase):
     def save_session(self):
         self.session.save()
