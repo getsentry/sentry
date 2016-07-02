@@ -156,7 +156,8 @@ const Thread = React.createClass({
           <Pill name="thread ID" value={data.id} />
           <Pill name="name" value={data.name} />
           <Pill name="was active" value={data.current} />
-          <Pill name="crashed" value={data.crashed} />
+          <Pill name="crashed" className={data.crashed ? 'false' : 'true'
+            }>{data.crashed ? 'yes' : 'no'}</Pill>
         </Pills>
         {this.hasMissingStacktrace() ?
           this.renderMissingStacktrace() :
