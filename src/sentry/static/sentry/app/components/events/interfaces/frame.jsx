@@ -158,7 +158,7 @@ const Frame = React.createClass({
 
     if (defined(data.package)) {
       title.push(<span className="within" key="within"> within </span>);
-      title.push(<code title={data.package} className="package">{trimPackage(data.package)}</code>);
+      title.push(<code title={data.package} className="package" key="package">{trimPackage(data.package)}</code>);
     }
 
     if (defined(data.origAbsPath)) {

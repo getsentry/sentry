@@ -2,15 +2,14 @@ import React from 'react';
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 import KeyValueList from './keyValueList';
-import rawStacktraceContent from './rawStacktraceContent';
-import StacktraceContent from './stacktraceContent';
 import {isStacktraceNewestFirst} from './stacktrace';
 import {t} from '../../../locale';
 import {defined} from '../../../utils';
 import DropdownLink from '../../dropdownLink';
 import MenuItem from '../../menuItem';
 import {trimPackage} from './frame';
-
+import CrashHeader from './crashHeader';
+import CrashContent from './crashContent';
 
 function trimFilename(fn) {
   let pieces = fn.split(/\//g);
@@ -31,19 +30,33 @@ function findRelevantFrame(stacktrace) {
   return stacktrace.frames[stacktrace.frames.length - 1];
 }
 
-function findThreadStacktrace(thread, event) {
-  if (thread.stacktrace) {
-    return thread.stacktrace;
-  }
+function findThreadException(thread, event) {
   for (let entry of event.entries) {
     if (entry.type !== 'exception') {
       continue;
     }
     for (let exc of entry.data.values) {
-      if (exc.threadId === thread.id && exc.stacktrace) {
-        return exc.stacktrace;
+      if (exc.threadId === thread.id) {
+        return entry.data;
       }
     }
+  }
+  return null;
+}
+
+function findThreadStacktrace(thread, event) {
+  if (thread.stacktrace) {
+    return thread.stacktrace;
+  }
+  let exc = findThreadException(thread, event);
+  if (exc) {
+    let rv = null;
+    for (let singleExc of exc.values) {
+      if (singleExc.threadId === thread.id) {
+        rv = singleExc.stacktrace;
+      }
+    }
+    return rv;
   }
   return null;
 }
@@ -68,6 +81,11 @@ function getThreadTitle(thread, event) {
           ? trimPackage(frame.package)
           : frame.module ? frame.module : '<unknown>'}</em>
     );
+  }
+
+  if (thread.crashed) {
+    bits.push(' — ');
+    bits.push(<small key="crashed">(crashed)</small>);
   }
 
   return bits;
@@ -95,10 +113,13 @@ function findBestThread(threads) {
 
 const Thread = React.createClass({
   propTypes: {
+    group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
     data: React.PropTypes.object.isRequired,
     stackView: React.PropTypes.string,
+    stackType: React.PropTypes.string,
     newestFirst: React.PropTypes.bool,
+    exception: React.PropTypes.object,
     stacktrace: React.PropTypes.object,
   },
 
@@ -120,8 +141,14 @@ const Thread = React.createClass({
     );
   },
 
+  hasMissingStacktrace() {
+    const {exception, stacktrace} = this.props;
+    return !(exception || stacktrace);
+  },
+
   render() {
-    const {data} = this.props;
+    const {data, group, event, stackView, stackType,
+      newestFirst, exception, stacktrace} = this.props;
     return (
       <div className="thread">
         <KeyValueList
@@ -132,21 +159,16 @@ const Thread = React.createClass({
             ['Crashed', data.crashed ? 'yes' : 'no'],
           ]}
           isSorted={false} />
-        {this.props.stacktrace ? (
-          this.props.stackView === 'raw' ?
-            <pre className="traceback plain">
-              {rawStacktraceContent(
-                this.props.stacktrace, this.props.event.platform)}
-            </pre>
-          :
-            <StacktraceContent
-                data={this.props.stacktrace}
-                includeSystemFrames={this.props.stackView === 'full'}
-                platform={this.props.event.platform}
-                newestFirst={this.props.newestFirst} />
-        ) : (
-          this.renderMissingStacktrace()
-        )}
+        {this.hasMissingStacktrace() ?
+          this.renderMissingStacktrace() :
+          <CrashContent
+            group={group}
+            event={event}
+            stackType={stackType}
+            stackView={stackView}
+            newestFirst={newestFirst}
+            exception={exception}
+            stacktrace={stacktrace} />}
       </div>
     );
   }
@@ -166,6 +188,7 @@ const ThreadsInterface = React.createClass({
     return {
       activeThread: thread,
       stackView: getIntendedStackView(thread, this.props.event),
+      stackType: 'original',
       newestFirst: isStacktraceNewestFirst(),
     };
   },
@@ -180,6 +203,10 @@ const ThreadsInterface = React.createClass({
     return findThreadStacktrace(this.state.activeThread, this.props.event);
   },
 
+  getException() {
+    return findThreadException(this.state.activeThread, this.props.event);
+  },
+
   onSelectNewThread(thread) {
     let newStackView = this.state.stackView;
     if (this.state.stackView !== 'raw') {
@@ -188,25 +215,30 @@ const ThreadsInterface = React.createClass({
     this.setState({
       activeThread: thread,
       stackView: newStackView,
+      stackType: 'original',
     });
   },
 
   render() {
     let group = this.props.group;
     let evt = this.props.event;
-    let {stackView, newestFirst, activeThread} = this.state;
+    let {stackView, stackType, newestFirst, activeThread} = this.state;
+    let exception = this.getException();
     let stacktrace = this.getStacktrace();
 
     let title = (
-      <div className="thread-title">
-        <h3 className="pull-left">
-          {'Threads '}
-          {newestFirst ?
-            <small>({t('most recent call last')})</small>
-          :
-            <small>({t('most recent call first')})</small>
-          }
-        </h3>
+      <CrashHeader
+        title={t('Threads')}
+        group={group}
+        thread={activeThread}
+        stacktrace={stacktrace}
+        exception={exception}
+        stackView={stackView}
+        newestFirst={newestFirst}
+        stackType={stackType}
+        onChange={(newState) => {
+          this.setState(newState);
+        }}>
         <div className="pull-left btn-group">
           <DropdownLink 
             btnGroup={true}
@@ -223,14 +255,7 @@ const ThreadsInterface = React.createClass({
             })}
           </DropdownLink>
         </div>
-        <div className="btn-group">
-          {(stacktrace && stacktrace.hasSystemFrames) &&
-            <a className={(stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'app')}>{t('App Only')}</a>
-          }
-          <a className={(stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'full')}>{t('Full')}</a>
-          <a className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'raw')}>{t('Raw')}</a>
-        </div>
-      </div>
+      </CrashHeader>
     );
 
     return (
@@ -241,8 +266,11 @@ const ThreadsInterface = React.createClass({
           title={title}
           wrapTitle={false}>
         <Thread
+          group={group}
           data={activeThread}
+          exception={exception}
           stackView={stackView}
+          stackType={stackType}
           stacktrace={stacktrace}
           event={evt}
           newestFirst={newestFirst} />

@@ -2,9 +2,9 @@ import React from 'react';
 import ConfigStore from '../../../stores/configStore';
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
-import rawStacktraceContent from './rawStacktraceContent';
-import StacktraceContent from './stacktraceContent';
 import {t} from '../../../locale';
+import CrashHeader from './crashHeader';
+import CrashContent from './crashContent';
 
 
 export function isStacktraceNewestFirst() {
@@ -53,23 +53,16 @@ const StacktraceInterface = React.createClass({
     let newestFirst = this.state.newestFirst;
 
     let title = (
-      <div>
-        <div className="btn-group">
-          {data.hasSystemFrames &&
-            <a className={(stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'app')}>{t('App Only')}</a>
-          }
-          <a className={(stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'full')}>{t('Full')}</a>
-          <a className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={this.toggleStack.bind(this, 'raw')}>{t('Raw')}</a>
-        </div>
-        <h3>
-          {'Stacktrace '}
-          {newestFirst ?
-            <small>({t('most recent call last')})</small>
-          :
-            <small>({t('most recent call first')})</small>
-          }
-        </h3>
-      </div>
+      <CrashHeader
+        title={t('Stacktrace')}
+        group={group}
+        stacktrace={data}
+        stackView={stackView}
+        newestFirst={newestFirst}
+        onChange={(newState) => {
+          this.setState(newState);
+        }}
+      />
     );
 
     return (
@@ -79,18 +72,12 @@ const StacktraceInterface = React.createClass({
           type={this.props.type}
           title={title}
           wrapTitle={false}>
-        {stackView === 'raw' ?
-          <pre className="traceback plain">
-            {rawStacktraceContent(data, evt.platform)}
-          </pre>
-        :
-          <StacktraceContent
-              data={data}
-              className="no-exception"
-              includeSystemFrames={stackView === 'full'}
-              platform={evt.platform}
-              newestFirst={newestFirst} />
-        }
+        <CrashContent
+          group={group}
+          event={event}
+          stackView={stackView}
+          newestFirst={newestFirst}
+          stacktrace={data} />
       </GroupEventDataSection>
     );
   }
