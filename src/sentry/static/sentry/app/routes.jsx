@@ -17,6 +17,7 @@ import GroupHashes from './views/groupHashes';
 import GroupTags from './views/groupTags';
 import GroupTagValues from './views/groupTagValues';
 import GroupUserReports from './views/groupUserReports';
+import IssuePlugin from './views/issuePlugin';
 import MyIssuesAssignedToMe from './views/myIssues/assignedToMe';
 import MyIssuesBookmarked from './views/myIssues/bookmarked';
 import MyIssuesViewed from './views/myIssues/viewed';
@@ -132,6 +133,7 @@ let routes = (
           <Route path="tags/" component={errorHandler(GroupTags)} />
           <Route path="tags/:tagKey/" component={errorHandler(GroupTagValues)} />
           <Route path="feedback/" component={errorHandler(GroupUserReports)} />
+          <Route path="plugins/" component={errorHandler(IssuePlugin)} />
         </Route>
       </Route>
     </Route>
