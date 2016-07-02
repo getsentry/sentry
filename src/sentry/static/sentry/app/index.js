@@ -58,6 +58,8 @@ export default {
     FlotChart: require('./components/flotChart'),
     HookStore: require('./stores/hookStore'),
     Indicators: require('./components/indicators'),
+    IssuePluginConfigForm: require('./components/plugins/pluginConfigureForm'),
+    IssuePluginConfiguration: require('./views/projectIssueTracking'),
     LoadingError: require('./components/loadingError'),
     LoadingIndicator: require('./components/loadingIndicator'),
     ListLink: require('./components/listLink'),
