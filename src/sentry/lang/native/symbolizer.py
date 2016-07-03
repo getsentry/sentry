@@ -71,7 +71,7 @@ class Symbolizer(object):
         if img is not None:
             # Only set the object name if we "upgrade" it from a filename to
             # full path.
-            if 'object_name' not in rv or \
+            if rv.get('object_name') is None or \
                ('/' not in rv['object_name'] and '/' in img['name']):
                 rv['object_name'] = img['name']
             rv['uuid'] = img['uuid']
