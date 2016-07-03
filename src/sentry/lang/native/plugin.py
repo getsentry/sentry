@@ -1,4 +1,4 @@
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 
 import os
 import re
@@ -9,7 +9,7 @@ import posixpath
 from sentry.models import Project, EventError
 from sentry.plugins import Plugin2
 from sentry.lang.native.symbolizer import Symbolizer, have_symsynd
-from sentry.lang.native.utils import find_all_stacktraces, \
+from sentry.lang.native.utils import parse_addr, find_all_stacktraces, \
     find_apple_crash_report_referenced_images, \
     find_stacktrace_referenced_images, get_sdk_from_apple_system_info, \
     APPLE_SDK_MAPPING
@@ -131,10 +131,10 @@ def is_in_app(frame, app_uuid=None):
         frame_uuid = frame.get('uuid')
         if frame_uuid == app_uuid:
             return True
-    object_name = frame.get('object_name', '')
-    if not object_name.startswith(APP_BUNDLE_PATHS):
+    fn = frame.get('package', '')
+    if not fn.startswith(APP_BUNDLE_PATHS):
         return False
-    if object_name.endswith(NON_APP_FRAMEWORKS):
+    if fn.endswith(NON_APP_FRAMEWORKS):
         return False
     return True
 
@@ -161,7 +161,6 @@ def convert_stacktrace(frames, system=None, notable_addresses=None):
             offset = frame['instruction_addr'] - frame['symbol_addr']
 
         cframe = {
-            'in_app': is_in_app(frame, app_uuid),
             'abs_path': fn,
             'filename': fn and posixpath.basename(fn) or None,
             # This can come back as `None` from the symbolizer, in which
@@ -175,6 +174,7 @@ def convert_stacktrace(frames, system=None, notable_addresses=None):
             'instruction_offset': offset,
             'lineno': lineno,
         }
+        cframe['in_app'] = is_in_app(cframe, app_uuid)
         converted_frames.append(cframe)
         longest_addr = max(longest_addr, len(cframe['symbol_addr']),
                            len(cframe['instruction_addr']))
@@ -387,10 +387,13 @@ def resolve_frame_symbols(data):
     processed_frames = []
     with sym:
         for stacktrace in stacktraces:
+            set_in_app = False
             for idx, frame in enumerate(stacktrace['frames']):
-                if 'image_addr' not in frame or \
-                   'instruction_addr' not in frame:
+                if 'object_addr' not in frame or \
+                   'instruction_addr' not in frame or \
+                   'symbol_addr' not in frame:
                     continue
+                set_in_app = frame.get('in_app') is None
                 try:
                     sfrm = sym.symbolize_frame(frame, sdk_info,
                                                report_error=report_error)
@@ -403,14 +406,15 @@ def resolve_frame_symbols(data):
                         frame['lineno'] = sfrm['line']
                     else:
                         frame['instruction_offset'] = \
-                            sfrm['instruction_addr'] - sfrm['symbol_addr']
+                            parse_addr(sfrm['instruction_addr']) - \
+                            parse_addr(sfrm['symbol_addr'])
                     if sfrm.get('column') is not None:
                         frame['colno'] = sfrm['column']
                     frame['package'] = sfrm['object_name']
                     frame['symbol_addr'] = '%x' % sfrm['symbol_addr']
                     frame['instruction_addr'] = '%x' % sfrm['instruction_addr']
-                    longest_addr = max(longest_addr, len(sfrm['symbol_addr']),
-                                       len(sfrm['instruction_addr']))
+                    longest_addr = max(longest_addr, len(frame['symbol_addr']),
+                                       len(frame['instruction_addr']))
                     processed_frames.append(frame)
                 except Exception as e:
                     logger.exception('Failed to symbolicate')
@@ -418,6 +422,11 @@ def resolve_frame_symbols(data):
                         'type': EventError.NATIVE_INTERNAL_FAILURE,
                         'error': '%s: %s' % (e.__class__.__name__, str(e)),
                     })
+
+            if set_in_app:
+                for frame in stacktrace['frames']:
+                    if frame.get('in_app') is None:
+                        frame['in_app'] = is_in_app(frame)
 
     # Pad out addresses to be of the same length and add prefix
     for frame in processed_frames:

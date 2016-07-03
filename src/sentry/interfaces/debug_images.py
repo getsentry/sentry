@@ -61,7 +61,7 @@ class DebugImages(Interface):
             raise InterfaceValidationError('Unknown image type %r' % image)
         rv = func(image)
         assert 'uuid' in rv, 'debug image normalizer did not produce a UUID'
-        assert 'object_addr' in rv, 'debug image normalizer did not ' \
+        assert 'image_addr' in rv, 'debug image normalizer did not ' \
             'produce an object address'
         rv['type'] = ty
         return rv

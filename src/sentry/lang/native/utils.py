@@ -62,7 +62,7 @@ def find_all_stacktraces(data):
 
     threads = data.get('threads')
     if threads:
-        for thread in threads:
+        for thread in threads['values']:
             stacktrace = thread.get('stacktrace')
             if stacktrace:
                 rv.append(stacktrace)
@@ -87,3 +87,15 @@ def get_sdk_from_apple_system_info(info):
         'version_minor': system_version[1],
         'version_patchlevel': system_version[2],
     }
+
+
+def parse_addr(x):
+    if x is None:
+        return 0
+    if isinstance(x, (int, long)):
+        return x
+    if isinstance(x, basestring):
+        if x[:2] == '0x':
+            return int(x[2:], 16)
+        return int(x)
+    raise ValueError('Unsupported address format %r' % (x,))

@@ -288,7 +288,7 @@ class Frame(Interface):
             'module': trim(module, 256),
             'function': trim(function, 256),
             'package': trim(data.get('package'), 256),
-            'image_addr': trim(data.get('image_addr'), 16),
+            'object_addr': trim(data.get('object_addr'), 16),
             'symbol_addr': trim(data.get('symbol_addr'), 16),
             'instruction_addr': trim(data.get('instruction_addr'), 16),
             'instruction_offset': instruction_offset,
