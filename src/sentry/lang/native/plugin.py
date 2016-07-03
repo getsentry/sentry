@@ -387,13 +387,11 @@ def resolve_frame_symbols(data):
     processed_frames = []
     with sym:
         for stacktrace in stacktraces:
-            set_in_app = False
             for idx, frame in enumerate(stacktrace['frames']):
                 if 'object_addr' not in frame or \
                    'instruction_addr' not in frame or \
                    'symbol_addr' not in frame:
                     continue
-                set_in_app = frame.get('in_app') is None
                 try:
                     sfrm = sym.symbolize_frame(frame, sdk_info,
                                                report_error=report_error)
@@ -413,6 +411,7 @@ def resolve_frame_symbols(data):
                     frame['package'] = sfrm['object_name']
                     frame['symbol_addr'] = '%x' % sfrm['symbol_addr']
                     frame['instruction_addr'] = '%x' % sfrm['instruction_addr']
+                    frame['in_app'] = is_in_app(frame)
                     longest_addr = max(longest_addr, len(frame['symbol_addr']),
                                        len(frame['instruction_addr']))
                     processed_frames.append(frame)
@@ -422,11 +421,6 @@ def resolve_frame_symbols(data):
                         'type': EventError.NATIVE_INTERNAL_FAILURE,
                         'error': '%s: %s' % (e.__class__.__name__, str(e)),
                     })
-
-            if set_in_app:
-                for frame in stacktrace['frames']:
-                    if frame.get('in_app') is None:
-                        frame['in_app'] = is_in_app(frame)
 
     # Pad out addresses to be of the same length and add prefix
     for frame in processed_frames:
