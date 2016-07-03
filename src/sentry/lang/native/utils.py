@@ -35,8 +35,8 @@ def find_stacktrace_referenced_images(debug_images, stacktraces):
     to_load = set()
     for stacktrace in stacktraces:
         for frame in stacktrace['frames']:
-            if 'object_addr' in frame:
-                img_uuid = image_map.get(frame['object_addr'])
+            if 'image_addr' in frame:
+                img_uuid = image_map.get(frame['image_addr'])
                 if img_uuid is not None:
                     to_load.add(img_uuid)
 

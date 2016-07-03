@@ -388,18 +388,23 @@ def resolve_frame_symbols(data):
     with sym:
         for stacktrace in stacktraces:
             for idx, frame in enumerate(stacktrace['frames']):
-                if 'object_addr' not in frame or \
+                if 'image_addr' not in frame or \
                    'instruction_addr' not in frame or \
                    'symbol_addr' not in frame:
                     continue
                 try:
-                    sfrm = sym.symbolize_frame(frame, sdk_info,
-                                               report_error=report_error)
+                    sfrm = sym.symbolize_frame({
+                        'object_name': frame.get('package'),
+                        'object_addr': frame['image_addr'],
+                        'instruction_addr': parse_addr(frame['instruction_addr']),
+                        'symbol_addr': parse_addr(frame['symbol_addr']),
+                    }, sdk_info, report_error=report_error)
                     if not sfrm:
                         continue
-                    frame['function'] = sfrm['symbol_name'] or '<unknown>'
-                    frame['abs_path'] = sfrm['filename']
-                    frame['filename'] = posixpath.basename(sfrm['filename'])
+                    frame['function'] = sfrm.get('symbol_name') or '<unknown>'
+                    frame['abs_path'] = sfrm.get('filename') or None
+                    if frame['abs_path']:
+                        frame['filename'] = posixpath.basename(frame['abs_path'])
                     if sfrm.get('line') is not None:
                         frame['lineno'] = sfrm['line']
                     else:
