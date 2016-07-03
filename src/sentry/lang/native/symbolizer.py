@@ -77,8 +77,7 @@ class Symbolizer(object):
             rv['uuid'] = img['uuid']
         return rv
 
-    def symbolize_frame(self, frame, sdk_info=None,
-                        report_error=None):
+    def symbolize_frame(self, frame, sdk_info=None, report_error=None):
         error = None
         img = self.images.get(frame['object_addr'])
 

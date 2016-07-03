@@ -721,7 +721,7 @@ SENTRY_INTERFACES = {
     'breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
     'contexts': 'sentry.interfaces.contexts.Contexts',
     'threads': 'sentry.interfaces.threads.Threads',
-    'debug_images': 'sentry.interfaces.debug_images.DebugImages',
+    'debug_meta': 'sentry.interfaces.debug_meta.DebugMeta',
     'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
     'sentry.interfaces.Message': 'sentry.interfaces.message.Message',
     'sentry.interfaces.Stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
@@ -734,7 +734,7 @@ SENTRY_INTERFACES = {
     'sentry.interfaces.Breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
     'sentry.interfaces.Contexts': 'sentry.interfaces.contexts.Contexts',
     'sentry.interfaces.Threads': 'sentry.interfaces.threads.Threads',
-    'sentry.interfaces.DebugImages': 'sentry.interfaces.debug_images.DebugImages',
+    'sentry.interfaces.DebugMeta': 'sentry.interfaces.debug_meta.DebugMeta',
 }
 
 SENTRY_EMAIL_BACKEND_ALIASES = {
