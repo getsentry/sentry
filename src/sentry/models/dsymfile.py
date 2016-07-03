@@ -170,6 +170,10 @@ class DSymSymbolManager(BaseManager):
                       cpu_name=None, object_path=None, sdk_info=None,
                       image_vmaddr=None):
         """Finds a system symbol."""
+        # If we use the "none" dsym type we never return a symbol here.
+        if sdk_info is not None and sdk_info['dsym_type'] == 'none':
+            return
+
         addr_abs = None
         if image_vmaddr is not None:
             addr_abs = image_vmaddr + instruction_addr - image_addr
