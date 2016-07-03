@@ -1,6 +1,8 @@
 from __future__ import absolute_import, print_function
 
+import os
 import re
+import time
 import logging
 import posixpath
 
@@ -250,11 +252,20 @@ def record_no_symsynd(data):
         return data
 
 
+def dump_crash_report(report):
+    import json
+    with open('/tmp/sentry-apple-crash-report-%s.json' % time.time(), 'w') as f:
+        json.dump(report, f, indent=2)
+
+
 def preprocess_apple_crash_event(data):
     """This processes the "legacy" AppleCrashReport."""
     crash_report = data.get('sentry.interfaces.AppleCrashReport')
     if crash_report is None:
         return
+
+    if os.environ.get('SENTRY_DUMP_APPLE_CRASH_REPORT') == '1':
+        dump_crash_report(crash_report)
 
     project = Project.objects.get_from_cache(
         id=data['project'],
