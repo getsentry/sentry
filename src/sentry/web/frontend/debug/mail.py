@@ -2,24 +2,24 @@ from __future__ import absolute_import, print_function
 
 import itertools
 import logging
+import pytz
 import time
 import traceback
 import uuid
+
 from datetime import (
     datetime,
     timedelta,
 )
-from random import Random
-
-import pytz
-
 from django.contrib.webdesign.lorem_ipsum import (
     WORDS,
     words,
 )
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
+from random import Random
 
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
@@ -121,6 +121,8 @@ class ActivityMailDebugView(View):
             id=1,
             project=project,
             message='This is an example event.',
+            last_seen=datetime(2016, 6, 13, 3, 8, 24, tzinfo=timezone.utc),
+            first_seen=datetime(2016, 6, 13, 3, 8, 24, tzinfo=timezone.utc),
         )
 
         event = Event(
@@ -129,6 +131,7 @@ class ActivityMailDebugView(View):
             group=group,
             message=group.message,
             data=load_data('python'),
+            datetime=datetime(2016, 6, 13, 3, 8, 24, tzinfo=timezone.utc),
         )
 
         activity = Activity(
