@@ -3,6 +3,7 @@ from __future__ import absolute_import
 __all__ = ('DebugMeta',)
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.utils.native import parse_addr
 
 
 image_types = {}
@@ -18,12 +19,7 @@ def imagetype(name):
 @imagetype('apple')
 def process_apple_image(image):
     def _addr(x):
-        if isinstance(x, (int, long)):
-            return '0x%x' % x
-        if isinstance(x, basestring):
-            if x[:2] != '0x':
-                return '0x%x' % int(x)
-        return x
+        return '0x%x' % parse_addr(x)
     try:
         return {
             'cpu_type': image['cpu_type'],

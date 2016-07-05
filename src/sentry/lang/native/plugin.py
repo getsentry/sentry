@@ -9,10 +9,11 @@ import posixpath
 from sentry.models import Project, EventError
 from sentry.plugins import Plugin2
 from sentry.lang.native.symbolizer import Symbolizer, have_symsynd
-from sentry.lang.native.utils import parse_addr, find_all_stacktraces, \
+from sentry.lang.native.utils import find_all_stacktraces, \
     find_apple_crash_report_referenced_images, \
     find_stacktrace_referenced_images, get_sdk_from_apple_system_info, \
     APPLE_SDK_MAPPING
+from sentry.utils.native import parse_addr
 
 
 logger = logging.getLogger(__name__)
@@ -395,9 +396,9 @@ def resolve_frame_symbols(data):
                 try:
                     sfrm = sym.symbolize_frame({
                         'object_name': frame.get('package'),
-                        'object_addr': parse_addr(frame['image_addr']),
-                        'instruction_addr': parse_addr(frame['instruction_addr']),
-                        'symbol_addr': parse_addr(frame['symbol_addr']),
+                        'object_addr': frame['image_addr'],
+                        'instruction_addr': frame['instruction_addr'],
+                        'symbol_addr': frame['symbol_addr'],
                     }, sdk_info, report_error=report_error)
                     if not sfrm:
                         continue
@@ -416,8 +417,9 @@ def resolve_frame_symbols(data):
                     if sfrm.get('column') is not None:
                         frame['colno'] = sfrm['column']
                     frame['package'] = sfrm['object_name'] or frame.get('package')
-                    frame['symbol_addr'] = '0x%x' % sfrm['symbol_addr']
-                    frame['instruction_addr'] = '0x%x' % sfrm['instruction_addr']
+                    frame['symbol_addr'] = '0x%x' % parse_addr(sfrm['symbol_addr'])
+                    frame['instruction_addr'] = '0x%x' % parse_addr(
+                        sfrm['instruction_addr'])
                     frame['in_app'] = is_in_app(frame)
                     longest_addr = max(longest_addr, len(frame['symbol_addr']),
                                        len(frame['instruction_addr']))
