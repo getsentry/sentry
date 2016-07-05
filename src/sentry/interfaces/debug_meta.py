@@ -17,13 +17,20 @@ def imagetype(name):
 
 @imagetype('apple')
 def process_apple_image(image):
+    def _addr(x):
+        if isinstance(x, (int, long)):
+            return '0x%x' % x
+        if isinstance(x, basestring):
+            if x[:2] != '0x':
+                return '0x%x' % int(x)
+        return x
     try:
         return {
             'cpu_type': image['cpu_type'],
             'cpu_subtype': image['cpu_subtype'],
-            'image_addr': image['image_addr'],
-            'image_size': image['image_size'],
-            'image_vmaddr': image.get('image_vmaddr') or 0,
+            'image_addr': _addr(image['image_addr']),
+            'image_size': _addr(image['image_size']),
+            'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
             'name': image['name'],
             'uuid': image['uuid'],
         }
