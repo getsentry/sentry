@@ -317,11 +317,11 @@ def preprocess_apple_crash_event(data):
                     # We recorded an exception, so in this case we can
                     # skip having the stacktrace.
                     threads[crashed_thread['index']]['stacktrace'] = None
-            except Exception as e:
+            except Exception:
                 logger.exception('Failed to symbolicate')
-                append_error(data, {
+                errors.append({
                     'type': EventError.NATIVE_INTERNAL_FAILURE,
-                    'error': '%s: %s' % (e.__class__.__name__, str(e)),
+                    'error': 'The symbolicator encountered an internal failure',
                 })
 
         for thread in threads.itervalues():
@@ -424,11 +424,11 @@ def resolve_frame_symbols(data):
                     longest_addr = max(longest_addr, len(frame['symbol_addr']),
                                        len(frame['instruction_addr']))
                     processed_frames.append(frame)
-                except Exception as e:
+                except Exception:
                     logger.exception('Failed to symbolicate')
                     errors.append({
                         'type': EventError.NATIVE_INTERNAL_FAILURE,
-                        'error': '%s: %s' % (e.__class__.__name__, str(e)),
+                        'error': 'The symbolicator encountered an internal failure',
                     })
 
     # Pad out addresses to be of the same length
