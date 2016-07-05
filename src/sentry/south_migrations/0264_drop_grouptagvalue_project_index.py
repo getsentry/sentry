@@ -3,17 +3,21 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
+from sentry.utils.db import is_postgres
 
 
 class Migration(SchemaMigration):
     def forwards(self, orm):
-        try:
-            db.delete_index('sentry_messagefiltervalue', ['project_id'])
-        except Exception:
-            pass
+        # if you're not using Postgres, glhf
+        if is_postgres():
+            try:
+                with transaction.atomic():
+                    db.delete_index('sentry_messagefiltervalue', ['project_id'])
+            except Exception:
+                pass
 
     def backwards(self, orm):
-        db.create_index('sentry_messagefiltervalue', ['project_id'])
+        pass
 
     models = {
         'sentry.activity': {
