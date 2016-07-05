@@ -244,11 +244,41 @@ class NotificationSettingsForm(forms.Form):
         )
 
 
+class ChangePasswordForm(forms.Form):
+    password = forms.CharField(
+        label=_('Current password'), widget=forms.PasswordInput(
+            attrs={'placeholder': _('password'),
+        }),
+    )
+    new_password = forms.CharField(
+        label=_('New password'), widget=forms.PasswordInput(
+            attrs={'placeholder': _('password'),
+        }),
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super(ChangePasswordForm, self).__init__(*args, **kwargs)
+
+    def clean_password(self):
+        value = self.cleaned_data.get('password')
+        if not self.user.check_password(value):
+            raise forms.ValidationError('The password you entered is not correct.')
+        return value
+
+    def save(self, commit=True):
+        self.user.set_password(self.cleaned_data['new_password'])
+
+        if commit:
+            self.user.save()
+
+        return self.user
+
+
 class AccountSettingsForm(forms.Form):
     username = forms.CharField(label=_('Username'), max_length=128)
     email = forms.EmailField(label=_('Email'))
     name = forms.CharField(required=True, label=_('Name'), max_length=30)
-    new_password = forms.CharField(label=_('New password'), widget=forms.PasswordInput, required=False)
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
@@ -260,8 +290,6 @@ class AccountSettingsForm(forms.Form):
             for field in ('email', 'name', 'username'):
                 if field == 'username' or field in settings.SENTRY_MANAGED_USER_FIELDS:
                     self.fields[field] = ReadOnlyTextField(label=self.fields[field].label)
-            # don't show password field at all
-            del self.fields['new_password']
 
         # don't show username field if its the same as their email address
         if self.user.email == self.user.username:
