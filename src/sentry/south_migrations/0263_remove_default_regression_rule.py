@@ -6,9 +6,11 @@ from django.db import models
 
 class Migration(DataMigration):
 
+    # remove the old default regression rule (now covered by workflow)
     def forwards(self, orm):
-        # remove the old default regression rule (now covered by workflow)
-        label = label='Send a notification for regressions'
+        from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+
+        label = 'Send a notification for regressions'
         rule_data = {
             'match': 'all',
             'conditions': [
@@ -19,10 +21,13 @@ class Migration(DataMigration):
             ],
         }
 
-        queryset = orm['sentry.Rule'].objects.filter(label=label)
-        for row in queryset.iterator():
-            if row.data == rule_data:
-                row.delete()
+        queryset = orm['sentry.Rule'].objects.all()
+        for row in RangeQuerySetWrapperWithProgressBar(queryset):
+            if row.label != label:
+                continue
+            if row.data != rule_data:
+                continue
+            row.delete()
 
     def backwards(self, orm):
         pass
