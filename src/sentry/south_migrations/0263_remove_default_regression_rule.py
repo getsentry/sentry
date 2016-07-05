@@ -28,7 +28,11 @@ class Migration(DataMigration):
         for row in RangeQuerySetWrapperWithProgressBar(queryset):
             if row.label != label:
                 continue
-            if row.data != rule_data:
+            if row.data.get('match', 'all') != rule_data['match']:
+                continue
+            if row.data.get('conditions') != rule_data['conditions']:
+                continue
+            if row.data.get('actions') != rule_data['actions']:
                 continue
             with transaction.atomic():
                 row.delete()
