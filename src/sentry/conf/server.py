@@ -53,9 +53,9 @@ sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'sentry.db',
-        'USER': '',
+        'ENGINE': 'sentry.db.postgres',
+        'NAME': 'sentry',
+        'USER': 'postgres',
         'PASSWORD': '',
         'HOST': '',
         'PORT': '',
@@ -355,11 +355,12 @@ import random
 
 SOCIAL_AUTH_DEFAULT_USERNAME = lambda: random.choice(['Darth Vader', 'Obi-Wan Kenobi', 'R2-D2', 'C-3PO', 'Yoda'])
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ['email']
+SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
 # Queue configuration
 from kombu import Exchange, Queue
 
-BROKER_URL = "django://"
+BROKER_URL = "redis://localhost:6379"
 BROKER_TRANSPORT_OPTIONS = {}
 
 # Ensure workers run async by default
@@ -509,7 +510,16 @@ CELERYBEAT_SCHEDULE = {
     },
 }
 
+# Sentry logs to two major places: stdout, and it's internal project.
+# To disable logging to the internal project, add a logger who's only
+# handler is 'console' and disable propagating upwards.
+# Additionally, Sentry has the ability to override logger levels by
+# providing the cli with -l/--loglevel or the SENTRY_LOG_LEVEL env var.
+# The loggers that it overrides are root and any in LOGGING.overridable.
+# Be very careful with this in a production system, because the celery
+# logger can be extremely verbose when given INFO or DEBUG.
 LOGGING = {
+    'default_level': 'INFO',
     'version': 1,
     'disable_existing_loggers': True,
     'handlers': {
@@ -517,17 +527,12 @@ LOGGING = {
             'class': 'django.utils.log.NullHandler',
         },
         'console': {
-            'level': 'INFO',
             'class': 'sentry.logging.handlers.StructLogHandler',
         },
-        'sentry': {
+        'internal': {
             'level': 'ERROR',
             'filters': ['sentry:internal'],
             'class': 'raven.contrib.django.handlers.SentryHandler',
-        },
-        'audit': {
-            'level': 'INFO',
-            'class': 'sentry.logging.handlers.StructLogHandler',
         },
     },
     'filters': {
@@ -536,24 +541,15 @@ LOGGING = {
         },
     },
     'root': {
-        'handlers': ['console', 'sentry'],
+        'level': 'NOTSET',
+        'handlers': ['console', 'internal'],
     },
+    # LOGGING.overridable is a list of loggers including root that will change
+    # based on the overridden level defined above.
+    'overridable': ['celery'],
     'loggers': {
-        'sentry': {
-            'level': 'ERROR',
-        },
-        'sentry.audit': {
-            'handlers': ['audit'],
-        },
-        'sentry.auth': {
-            'handlers': ['audit'],
-        },
-        'sentry.api': {
-            'handlers': ['console', 'sentry'],
-            'propagate': False,
-        },
-        'sentry.deletions': {
-            'handlers': ['audit'],
+        'celery': {
+            'level': 'WARN',
         },
         'sentry.errors': {
             'handlers': ['console'],
@@ -565,9 +561,15 @@ LOGGING = {
         },
         'multiprocessing': {
             'handlers': ['console'],
+            # https://github.com/celery/celery/commit/597a6b1f3359065ff6dbabce7237f86b866313df
+            # This commit has not been rolled into any release and leads to a
+            # large amount of errors when working with postgres.
+            'level': 'CRITICAL',
+            'propagate': False,
         },
-        'celery': {
-            'level': 'WARN',
+        'celery.worker.job': {
+            'handlers': ['console'],
+            'propagate': False,
         },
         'static_compiler': {
             'level': 'INFO',
@@ -580,6 +582,11 @@ LOGGING = {
         'toronado.cssutils': {
             'level': 'ERROR',
             'handlers': ['null'],
+            'propagate': False,
+        },
+        'urllib3.connectionpool': {
+            'level': 'ERROR',
+            'handlers': ['console'],
             'propagate': False,
         },
     }
@@ -628,12 +635,11 @@ SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 
 SENTRY_FEATURES = {
     'auth:register': True,
-    'auth:twofactor': False,
+    'auth:twofactor': True,
     'organizations:api-keys': True,
     'organizations:create': True,
     'organizations:sso': True,
     'organizations:callsigns': False,
-    'organizations:new-tracebacks': False,
     'projects:global-events': False,
     'projects:quotas': True,
     'projects:plugins': True,
@@ -713,6 +719,7 @@ SENTRY_INTERFACES = {
     'user': 'sentry.interfaces.user.User',
     'applecrashreport': 'sentry.interfaces.applecrash.AppleCrashReport',
     'breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
+    'contexts': 'sentry.interfaces.contexts.Contexts',
     'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
     'sentry.interfaces.Message': 'sentry.interfaces.message.Message',
     'sentry.interfaces.Stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
@@ -723,6 +730,7 @@ SENTRY_INTERFACES = {
     'sentry.interfaces.Csp': 'sentry.interfaces.csp.Csp',
     'sentry.interfaces.AppleCrashReport': 'sentry.interfaces.applecrash.AppleCrashReport',
     'sentry.interfaces.Breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
+    'sentry.interfaces.Contexts': 'sentry.interfaces.contexts.Contexts',
 }
 
 SENTRY_EMAIL_BACKEND_ALIASES = {
@@ -899,7 +907,7 @@ SENTRY_ROLES = (
         'name': 'Member',
         'desc': 'Members can view and act on events, as well as view most other data within the organization.',
         'scopes': set([
-            'event:read', 'event:write', 'event:delete',
+            'event:read', 'event:write', 'event:delete', 'project:releases',
             'project:read', 'org:read', 'member:read', 'team:read',
         ]),
     },

@@ -63,7 +63,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
 
         total_values = GroupTagValue.get_value_count(group.id, lookup_key)
 
-        top_values = GroupTagValue.get_top_values(group.id, lookup_key, limit=3)
+        top_values = GroupTagValue.get_top_values(group.id, lookup_key, limit=9)
 
         data = {
             'id': str(tag_key.id),

@@ -16,6 +16,7 @@ sentry-package.json
 /build
 /dist
 /env
+/tmp
 /node_modules/
 /docs/_build
 example/db.sqlite

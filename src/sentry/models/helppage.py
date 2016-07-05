@@ -16,6 +16,8 @@ from sentry.db.models.manager import BaseManager
 
 
 class HelpPage(Model):
+    __core__ = True
+
     # key is used internally for auto-generated/versioned pages
     key = models.CharField(max_length=64, null=True, unique=True)
     title = models.CharField(max_length=64)

@@ -12,9 +12,7 @@ from multiprocessing import cpu_count
 
 import click
 
-from sentry.runner.decorators import configuration
-
-CELERY_LOG_LEVELS = ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', 'FATAL')
+from sentry.runner.decorators import configuration, log_level_option
 
 
 class AddressParamType(click.ParamType):
@@ -35,11 +33,6 @@ class AddressParamType(click.ParamType):
         return host, port
 
 Address = AddressParamType()
-
-
-class CaseInsensitiveChoice(click.Choice):
-    def convert(self, value, param, ctx):
-        return super(CaseInsensitiveChoice, self).convert(value.upper(), param, ctx)
 
 
 class SetType(click.ParamType):
@@ -63,6 +56,7 @@ def run():
 @click.option('--workers', '-w', default=0, help='The number of worker processes for handling requests.')
 @click.option('--upgrade', default=False, is_flag=True, help='Upgrade before starting.')
 @click.option('--noinput', default=False, is_flag=True, help='Do not prompt the user for input of any kind.')
+@log_level_option()
 @configuration
 def web(bind, workers, upgrade, noinput):
     "Run web service."
@@ -117,13 +111,12 @@ def smtp(bind, upgrade, noinput):
     'Number of child processes processing the queue. The '
     'default is the number of CPUs available on your '
     'system.'))
-@click.option('--loglevel', '-l', default='WARNING', help='Logging level.',
-    type=CaseInsensitiveChoice(CELERY_LOG_LEVELS))
 @click.option('--logfile', '-f', help=(
     'Path to log file. If no logfile is specified, stderr is used.'))
 @click.option('--quiet', '-q', is_flag=True, default=False)
 @click.option('--no-color', is_flag=True, default=False)
 @click.option('--autoreload', is_flag=True, default=False, help='Enable autoreloading.')
+@log_level_option()
 @configuration
 def worker(**options):
     "Run background worker instance."
@@ -154,13 +147,12 @@ def worker(**options):
     'Optional file used to store the process pid. The '
     'program will not start if this file already exists and '
     'the pid is still alive.'))
-@click.option('--loglevel', '-l', default='WARNING', help='Logging level.',
-    type=CaseInsensitiveChoice(CELERY_LOG_LEVELS))
 @click.option('--logfile', '-f', help=(
     'Path to log file. If no logfile is specified, stderr is used.'))
 @click.option('--quiet', '-q', is_flag=True, default=False)
 @click.option('--no-color', is_flag=True, default=False)
 @click.option('--autoreload', is_flag=True, default=False, help='Enable autoreloading.')
+@log_level_option()
 @configuration
 def cron(**options):
     "Run periodic task dispatcher."

@@ -1,0 +1,20 @@
+{% extends "sentry/bases/forceauth_modal.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Unsubscribe" %}{% endblock %}
+
+{% block main %}
+    <form action="" method="post" class="">
+        {% csrf_token %}
+
+        <p>You are about to unsubscribe from notifications for the <a href="{{ issue_link }}">selected issue</a>.</p>
+
+        <fieldset class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Unsubscribe" %}</button>
+            <button type="submit" name="cancel" class="btn btn-default">{% trans "Cancel" %}</button>
+        </fieldset>
+    </form>
+{% endblock %}

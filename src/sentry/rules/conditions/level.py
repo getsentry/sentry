@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from collections import OrderedDict
 
 from django import forms
-from sentry.constants import LOG_LEVELS
+from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
 
 from sentry.rules.conditions.base import EventCondition
 
@@ -19,7 +19,6 @@ LEVEL_CHOICES = OrderedDict([
     ("{0}".format(k), "{0}".format(v.capitalize()))
     for k, v in sorted(LOG_LEVELS.items(), key=lambda x: x[0], reverse=True)
 ])
-LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
 
 
 class LevelMatchType(object):
@@ -62,7 +61,7 @@ class LevelCondition(EventCondition):
         # Fetch the event level from the tags since event.level is
         # event.group.level which may have changed
         try:
-            level = LOG_LEVEL_REVERSE_MAP[event.get_tag('level')]
+            level = LOG_LEVELS_MAP[event.get_tag('level')]
         except KeyError:
             return False
 

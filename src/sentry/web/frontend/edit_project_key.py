@@ -18,7 +18,7 @@ class EditProjectKeyView(ProjectView):
                 id=key_id,
                 project=project,
             )
-        except ProjectKey.DoesNotExist():
+        except ProjectKey.DoesNotExist:
             return self.redirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
         form = EditProjectKeyForm(request.POST or None, instance=key)

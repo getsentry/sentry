@@ -5,12 +5,13 @@ import json
 from django.http import HttpResponse
 from functools import wraps
 
-from sentry.models import ApiKey
+from sentry.models import ApiKey, ApiToken
 
 
 def is_considered_sudo(request):
     return request.is_sudo() or \
-        isinstance(request.auth, ApiKey)
+        isinstance(request.auth, ApiKey) or \
+        isinstance(request.auth, ApiToken)
 
 
 def sudo_required(func):

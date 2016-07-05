@@ -21,6 +21,94 @@ def load_fixture(name):
 
 
 class JavascriptIntegrationTest(TestCase):
+    def test_adds_contexts_without_device(self):
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com',
+                'headers': [
+                    ['User-Agent', 'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36'],
+                ],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        contexts = event.interfaces['contexts'].to_json()
+        assert contexts.get('os') == {
+            'name': 'Windows 8',
+            'type': 'os',
+        }
+        assert contexts.get('browser') == {
+            'name': 'Chrome',
+            'type': 'browser',
+            'version': '28.0.1500',
+        }
+        assert contexts.get('device') is None
+
+    def test_adds_contexts_with_device(self):
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com',
+                'headers': [
+                    ['User-Agent', 'Mozilla/5.0 (Linux; U; Android 4.3; en-us; SCH-R530U Build/JSS15J) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30 USCC-R530U'],
+                ],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        contexts = event.interfaces['contexts'].to_json()
+        assert contexts.get('os') == {
+            'name': 'Android',
+            'type': 'os',
+            'version': '4.3',
+        }
+        assert contexts.get('browser') == {
+            'name': 'Android',
+            'type': 'browser',
+            'version': '4.3',
+        }
+        assert contexts.get('device') == {
+            'family': 'Samsung SCH-R530U',
+            'type': 'device',
+            'model': 'SCH-R530U',
+            'brand': 'Samsung',
+        }
+
+    def test_adds_contexts_with_ps4_device(self):
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com',
+                'headers': [
+                    ['User-Agent', 'Mozilla/5.0 (PlayStation 4 3.55) AppleWebKit/537.78 (KHTML, like Gecko)'],
+                ],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        contexts = event.interfaces['contexts'].to_json()
+        assert contexts.get('os') is None
+        assert contexts.get('browser') is None
+        assert contexts.get('device') == {
+            'family': 'PlayStation 4',
+            'type': 'device',
+            'model': 'PlayStation 4',
+            'brand': 'Sony',
+        }
+
     @patch('sentry.lang.javascript.processor.fetch_file')
     def test_source_expansion(self, mock_fetch_file):
         data = {

@@ -31,7 +31,7 @@ const AlertStore = Reflux.createStore({
         }
       }
     } else {
-      if (defined(alert.expireAfter)) {
+      if (!defined(alert.expireAfter)) {
         alert.expireAfter = 5000;
       }
     }

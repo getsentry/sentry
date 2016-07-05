@@ -58,6 +58,8 @@ class OrganizationOnboardingTask(Model):
         ISSUE_ASSIGNMENT: { 'assigned_member': user.id }
         SECOND_PLATFORM: { 'platform': 'javascript' }
     """
+    __core__ = False
+
     TASK_CHOICES = (
         (OnboardingTask.FIRST_EVENT, 'First event'),  # Send an organization's first event to Sentry
         (OnboardingTask.INVITE_MEMBER, 'Invite member'),  # Add a second member to your Sentry org.

@@ -187,6 +187,12 @@ dl.flat dd {
     width: 0;
     margin-right: -6px;
   }
+
+  .icon-signal {
+    font-size: 18px;
+    position: relative;
+    top: 2px;
+  }
 }
 
 /* Small button icons */
@@ -414,77 +420,6 @@ pre.plain {
 
 .box-header a:hover .external-icon {
   color: @gray;
-}
-
-table.vars {
-  margin-bottom: 0;
-  border: 0;
-
-  th, td {
-    border: none;
-    padding: 5px 8px;
-    word-break: break-all;
-    border: 1px solid #E9EBEC !important;
-  }
-
-  td .btn, th .btn {
-    white-space: nowrap
-  }
-
-  td.values, td.code {
-    overflow: hidden;
-
-    > pre {
-      background-color: inherit;
-      padding: 0;
-      border: 0;
-      margin-bottom: 0;
-    }
-  }
-}
-
-table.table.vars {
-  margin-top: -5px;
-  border-radius: 0;
-
-  tr:first-child > td, tr:first-child > th {
-    border-top: 0 !important;
-  }
-
-  td, th {
-    padding: 12px 0 !important;
-    border: 0;
-    vertical-align: top !important;
-    border: 0 !important;
-    border-top: 1px solid #f1f2f3 !important;
-    border-radius: 0 !important;
-  }
-  td table {
-    border-top: 0;
-    margin-top: -12px;
-    margin-bottom: -10px;
-  }
-  thead th,
-  thead td {
-    background-color: #fff !important;
-  }
-  tbody > tr:nth-child(odd) > td,
-  tbody > tr:nth-child(odd) > th {
-    background-color: #fff;
-  }
-  tbody > tr:nth-child(even) > td,
-  tbody > tr:nth-child(even) > th {
-    background-color: #fff;
-  }
-}
-
-table.vars .toggle-expand {
-  border-top: 0 !important;
-  padding-top: 2px !important;
-
-  .btn {
-    background: rgba(0,0,0, .02);
-  }
 }
 
 table.table.key-value {
@@ -1520,6 +1455,27 @@ table.integrations {
 
     &:nth-child(1) {
       background-color: @50;
+    }
+  }
+}
+
+/**
+* Faces
+* -----
+* A grid of faces for seen-by and participants list
+* ============================================================================
+*/
+
+ul.faces {
+  .list-unstyled;
+  .clearfix;
+
+  li {
+    float: left;
+    margin: 0 5px 5px 0;
+
+    .avatar {
+      .square(28px);
     }
   }
 }
@@ -3166,6 +3122,14 @@ ul.tag-list {
     &.javascript-angular .platformicon {
       background: @red;
       color: #fff;
+    }
+
+    &.javascript-angular2 .platformicon {
+      background: @blue;
+      color: #fff;
+      &:before {
+        content: "\e900";
+      }
     }
 
     &.java .platformicon {

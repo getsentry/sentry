@@ -389,6 +389,19 @@
             }
         ]
     },
+    "contexts": {
+        "device": {
+            "model_id": "N78AP",
+            "model": "iPod5,1",
+            "arch": "armv7f"
+        },
+        "os": {
+            "kernel_version": "Darwin Kernel Version 14.0.0: Sun Mar 29 19:46:45 PDT 2015; root:xnu-2784.20.34~2/RELEASE_ARM_S5L8942X",
+            "version": "8.3",
+            "name": "iOS",
+            "build": "12F69"
+        }
+    },
     "sdk": {
         "version": "1",
         "name": "raven-swift"

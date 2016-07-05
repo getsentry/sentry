@@ -42,7 +42,8 @@ class GroupTagValue(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_messagefiltervalue'
-        unique_together = (('project', 'key', 'value', 'group'),)
+        unique_together = (('group', 'key', 'value'),)
+        index_together = (('project', 'key', 'value'),)
 
     __repr__ = sane_repr('project_id', 'group_id', 'key', 'value')
 

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="34px" height="48px" viewBox="0 0 34 48" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 3.8.3 (29802) - http://www.bohemiancoding.com/sketch -->
+    <title>ipad</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <rect id="path-1" x="16" y="44" width="2" height="2" rx="1"></rect>
+        <mask id="mask-2" maskContentUnits="userSpaceOnUse" maskUnits="objectBoundingBox" x="-1" y="-1" width="4" height="4">
+            <rect x="15" y="43" width="4" height="4" fill="white"></rect>
+            <use xlink:href="#path-1" fill="black"></use>
+        </mask>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="ipad" transform="translate(-7.000000, 0.000000)">
+            <rect id="Rectangle-51" fill-opacity="0" fill="#FFFFFF" x="0" y="0" width="48" height="48"></rect>
+            <g id="Group-5" transform="translate(7.000000, 0.000000)">
+                <rect id="Rectangle-200" fill="#6F7E94" x="0" y="0" width="34" height="48" rx="4"></rect>
+                <rect id="Rectangle-201" fill="#FFFFFF" x="1" y="6" width="32" height="36"></rect>
+                <g id="iOS" transform="translate(13.000000, 20.000000)">
+                    <rect id="Rectangle-49-Copy" fill-opacity="0" fill="#FFFFFF" x="0" y="0" width="8" height="8"></rect>
+                    <path d="M4.41973724,0.696179117 C4.94361116,0.00339067472 5.67193421,0 5.67193421,0 C5.67193421,0 5.78024287,0.651351243 5.25982688,1.27881006 C4.70412444,1.94879687 4.07247889,1.83916505 4.07247889,1.83916505 C4.07247889,1.83916505 3.95388817,1.31224369 4.41973724,0.696179117 Z M4.13911184,2.29543948 C4.40863263,2.29543948 4.90881197,1.9237269 5.55988209,1.9237269 C6.68058665,1.9237269 7.12145754,2.72386043 7.12145754,2.72386043 C7.12145754,2.72386043 6.25916653,3.16619892 6.25916653,4.2395446 C6.25916653,5.45037031 7.33333333,5.86765986 7.33333333,5.86765986 C7.33333333,5.86765986 6.58244215,7.98825092 5.56821252,7.98825092 C5.10236344,7.98825092 4.74022558,7.67325986 4.24938523,7.67325986 C3.74920588,7.67325986 3.252825,8 2.92954938,8 C2.00339175,8 0.833333333,5.98842308 0.833333333,4.3714655 C0.833333333,2.78056881 1.82372432,1.94601599 2.75265876,1.94601599 C3.35653622,1.94601599 3.8251621,2.29543948 4.13911184,2.29543948 Z" id="Apple" fill="#6F7E94"></path>
+                </g>
+                <use id="Rectangle-202" stroke="#FFFFFF" mask="url(#mask-2)" stroke-width="2" xlink:href="#path-1"></use>
+                <rect id="Rectangle-203" fill="#FFFFFF" x="15" y="3" width="7" height="1"></rect>
+                <rect id="Rectangle-203-Copy" fill="#FFFFFF" x="12" y="3" width="1" height="1" rx="0.5"></rect>
+            </g>
+        </g>
+    </g>
+</svg>

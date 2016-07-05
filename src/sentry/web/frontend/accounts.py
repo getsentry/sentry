@@ -28,7 +28,7 @@ from sentry.web.decorators import login_required, signed_auth_required
 from sentry.web.forms.accounts import (
     AccountSettingsForm, NotificationSettingsForm, AppearanceSettingsForm,
     RecoverPasswordForm, ChangePasswordRecoverForm,
-    ProjectEmailOptionsForm)
+    ProjectEmailOptionsForm, ChangePasswordForm)
 from sentry.web.helpers import render_to_response
 from sentry.utils.auth import get_auth_providers, get_login_redirect
 from sentry.utils.safe import safe_execute
@@ -158,34 +158,63 @@ def confirm_email(request, user_id, hash):
 @csrf_protect
 @never_cache
 @login_required
-@sudo_required
 @transaction.atomic
 def settings(request):
-    form = AccountSettingsForm(request.user, request.POST or None, initial={
-        'email': request.user.email,
-        'username': request.user.username,
-        'name': request.user.name,
-    })
-    if form.is_valid():
-        old_email = request.user.email
-        user = form.save()
-        if user.email != old_email:
-            UserEmail.objects.get(user=request.user, email=old_email).delete()
+    user = request.user
+
+    settings_form = AccountSettingsForm(
+        user, request.POST or None,
+        initial={
+            'email': user.email,
+            'username': user.username,
+            'name': user.name,
+        },
+    )
+
+    if user.is_managed:
+        is_changing_password = False
+        password_form = None
+    else:
+        is_changing_password = request.POST.get('new_password')
+        password_form = ChangePasswordForm(
+            user, request.POST if is_changing_password else None)
+
+    if settings_form.is_valid() and (
+        not is_changing_password or password_form.is_valid()
+    ):
+        if is_changing_password:
+            password_form.save(commit=False)
+
+        old_email = user.email
+
+        settings_form.save()
+
+        # remove previously valid email address
+        # TODO(dcramer): we should maintain validation here when we support
+        # multiple email addresses
+        if request.user.email != old_email:
+            UserEmail.objects.get(user=user, email=old_email).delete()
             try:
                 with transaction.atomic():
-                    user_email = UserEmail.objects.create(user=user, email=user.email)
+                    user_email = UserEmail.objects.create(
+                        user=user,
+                        email=user.email,
+                    )
             except IntegrityError:
                 pass
             else:
                 user_email.set_hash()
                 user_email.save()
             user.send_confirm_emails()
-        messages.add_message(request, messages.SUCCESS, 'Your settings were saved.')
+
+        messages.add_message(
+            request, messages.SUCCESS, 'Your settings were saved.')
         return HttpResponseRedirect(request.path)
 
     context = csrf(request)
     context.update({
-        'form': form,
+        'settings_form': settings_form,
+        'password_form': password_form,
         'page': 'settings',
         'has_2fa': Authenticator.objects.user_has_2fa(request.user),
         'AUTH_PROVIDERS': get_auth_providers(),

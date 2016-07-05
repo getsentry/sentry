@@ -44,3 +44,16 @@ class OrganizationApiKeySettingsTest(TestCase):
 
         assert resp.context['organization'] == organization
         assert resp.context['key'] == key
+
+    def test_not_found(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+
+        path = reverse('sentry-organization-api-key-settings', args=[
+            organization.slug, 99999,
+        ])
+
+        self.login_as(self.user)
+
+        resp = self.client.get(path)
+
+        assert resp.status_code == 404

@@ -10,6 +10,8 @@ from sentry.testutils import TestCase
 # There's a good chance this model wont get created in the db, so avoid
 # assuming it exists in these tests.
 class DummyModel(Model):
+    __core__ = False  # needs defined for Sentry to not yell at you
+
     foo = models.CharField(max_length=32)
     normint = BoundedIntegerField(null=True)
     bigint = BoundedBigIntegerField(null=True)

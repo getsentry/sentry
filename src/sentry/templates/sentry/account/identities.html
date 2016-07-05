@@ -25,7 +25,10 @@
                     <tr>
                         <td>{{ identity.provider|title }}</td>
                         <td style="text-align: center;">
-                            <a href="{% url 'socialauth_disconnect_individual' identity.provider identity.id %}?next={% filter urlencode %}{% absolute_uri request.path %}{% endfilter %}">Disconnect</a>
+                            <form method="post" action="{% url 'socialauth_disconnect_individual' identity.provider identity.id %}?next={% filter urlencode %}{% absolute_uri request.path %}{% endfilter %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-link">Disconnect</button>
+                            </form>
                         </td>
                     </tr>
                 {% endfor %}

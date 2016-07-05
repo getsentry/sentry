@@ -11,6 +11,9 @@ class GroupTagExportTest(TestCase):
     def test_simple(self):
         key, value = 'foo', 'bar'
 
+        # Drop microsecond value for MySQL
+        now = timezone.now().replace(microsecond=0)
+
         project = self.create_project()
         group = self.create_group(project=project)
         TagKey.objects.create(project=project, key=key)
@@ -25,8 +28,8 @@ class GroupTagExportTest(TestCase):
             key=key,
             value=value,
             times_seen=1,
-            first_seen=timezone.now() - timedelta(hours=1),
-            last_seen=timezone.now(),
+            first_seen=now - timedelta(hours=1),
+            last_seen=now,
         )
 
         self.login_as(user=self.user)

@@ -10,7 +10,8 @@ from __future__ import absolute_import
 
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'AuthProviderTestCase',
-    'RuleTestCase', 'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'LiveServerTestCase', 'AcceptanceTestCase',
+    'RuleTestCase', 'PermissionTestCase', 'PluginTestCase', 'CliTestCase',
+    'AcceptanceTestCase',
 )
 
 import base64
@@ -26,7 +27,7 @@ from django.contrib.auth import login
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.http import HttpRequest
-from django.test import TestCase, TransactionTestCase, LiveServerTestCase
+from django.test import TestCase, TransactionTestCase
 from django.utils.importlib import import_module
 from exam import before, fixture, Exam
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -246,10 +247,6 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
     pass
 
 
-class LiveServerTestCase(BaseTestCase, LiveServerTestCase):
-    pass
-
-
 class APITestCase(BaseTestCase, BaseAPITestCase):
     pass
 
@@ -442,17 +439,11 @@ class CliTestCase(TestCase):
         return self.runner.invoke(self.command, args, obj={})
 
 
-@pytest.mark.usefixtures('browser_class', 'percy_class')
-class AcceptanceTestCase(LiveServerTestCase):
-    # Use class setup/teardown to hold Selenium and Percy state across all acceptance tests.
-    # For Selenium, this is done for performance to re-use the same browser across tests.
-    # For Percy, this is done to call initialize and then finalize at the very end after all tests.
-
-    # Login helper.
-    def login(self, username, password, browser=None):
-        if browser is None:
-            browser = self.browser
-        browser.get(self.live_server_url)
-        browser.find_element_by_id('id_username').send_keys(username)
-        browser.find_element_by_id('id_password').send_keys(password)
-        browser.find_element_by_xpath("//button[contains(text(), 'Login')]").click()
+@pytest.mark.usefixtures('browser')
+class AcceptanceTestCase(TransactionTestCase):
+    def save_session(self):
+        self.session.save()
+        self.browser.save_cookie(
+            name=settings.SESSION_COOKIE_NAME,
+            value=self.session.session_key,
+        )

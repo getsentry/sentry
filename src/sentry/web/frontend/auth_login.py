@@ -106,6 +106,13 @@ class AuthLoginView(BaseView):
                 register_form = self.get_register_form(request)
                 register_form.errors.pop('captcha', None)
 
+        # When the captcha fails, hide any other errors
+        # to prevent brute force attempts.
+        if 'captcha' in login_form.errors:
+            for k in login_form.errors.keys():
+                if k != 'captcha':
+                    login_form.errors.pop(k)
+
         request.session.set_test_cookie()
 
         context = {

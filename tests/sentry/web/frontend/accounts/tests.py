@@ -68,6 +68,7 @@ class SettingsTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/account/settings.html')
         assert 'form' in resp.context
+        assert 'password_form' in resp.context
 
     def test_requires_email(self):
         self.login_as(self.user)
@@ -102,12 +103,56 @@ class SettingsTest(TestCase):
         self.login_as(self.user)
 
         params = self.params()
+        params['password'] = 'admin'
         params['new_password'] = 'foobar'
 
         resp = self.client.post(self.path, params)
         assert resp.status_code == 302
         user = User.objects.get(id=self.user.id)
         assert user.check_password('foobar')
+
+    def test_cannot_change_password_with_invalid_password(self):
+        self.login_as(self.user)
+
+        params = self.params()
+        params['password'] = 'bizbaz'
+        params['new_password'] = 'foobar'
+
+        resp = self.client.post(self.path, params)
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/account/settings.html')
+        assert 'password_form' in resp.context
+        assert 'password' in resp.context['password_form'].errors
+        user = User.objects.get(id=self.user.id)
+        assert not user.check_password('foobar')
+
+    def test_password_form_not_available_with_managed_user(self):
+        user = self.create_user('foo@example.com', is_managed=True)
+
+        self.login_as(user)
+
+        params = self.params()
+        params['password'] = 'admin'
+        params['new_password'] = 'foobar'
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/account/settings.html')
+        assert resp.context['password_form'] is None
+
+    def test_cannot_change_password_with_managed_user(self):
+        user = self.create_user('foo@example.com', is_managed=True)
+
+        self.login_as(user)
+
+        params = self.params()
+        params['password'] = 'admin'
+        params['new_password'] = 'foobar'
+
+        resp = self.client.post(self.path, params)
+        assert resp.status_code == 302
+        user = User.objects.get(id=self.user.id)
+        assert not user.check_password('foobar')
 
 
 class NotificationSettingsTest(TestCase):
@@ -151,6 +196,34 @@ class NotificationSettingsTest(TestCase):
         options = UserOption.objects.get_all_values(user=self.user, project=None)
 
         assert options.get('alert_email') == 'foo@example.com'
+
+    def test_can_change_workflow(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path, {
+            'workflow_notifications': '1',
+        })
+        assert resp.status_code == 302
+
+        options = UserOption.objects.get_all_values(
+            user=self.user, project=None
+        )
+
+        assert options.get('workflow:notifications') == '1'
+
+    def test_can_change_subscribe_by_default(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path, {
+            'subscribe_by_default': '1',
+        })
+        assert resp.status_code == 302
+
+        options = UserOption.objects.get_all_values(
+            user=self.user, project=None
+        )
+
+        assert options.get('subscribe_by_default') == '1'
 
 
 class ListIdentitiesTest(TestCase):
