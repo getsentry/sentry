@@ -50,7 +50,20 @@ def trim_package(pkg):
     return pkg
 
 
-def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None):
+def to_hex_addr(addr):
+    if addr is None:
+        return None
+    elif isinstance(addr, (int, long)):
+        return '0x%x' % addr
+    elif isinstance(addr, basestring):
+        if addr[:2] == '0x':
+            return addr
+        return '0x%x' % int(addr)
+    raise ValueError('Unsupported address format %r' % (addr,))
+
+
+def get_context(lineno, context_line, pre_context=None, post_context=None,
+                filename=None):
     if lineno is None:
         return []
 
@@ -288,9 +301,9 @@ class Frame(Interface):
             'module': trim(module, 256),
             'function': trim(function, 256),
             'package': trim(data.get('package'), 256),
-            'image_addr': trim(data.get('image_addr'), 16),
-            'symbol_addr': trim(data.get('symbol_addr'), 16),
-            'instruction_addr': trim(data.get('instruction_addr'), 16),
+            'image_addr': to_hex_addr(trim(data.get('image_addr'), 16)),
+            'symbol_addr': to_hex_addr(trim(data.get('symbol_addr'), 16)),
+            'instruction_addr': to_hex_addr(trim(data.get('instruction_addr'), 16)),
             'instruction_offset': instruction_offset,
             'in_app': in_app,
             'context_line': context_line,
