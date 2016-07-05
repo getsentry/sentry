@@ -348,12 +348,12 @@ def preprocess_apple_crash_event(data):
 
 
 def resolve_frame_symbols(data):
-    debug_image_data = data.get('debug_images')
-    if not debug_image_data:
+    debug_meta = data.get('debug_meta')
+    if not debug_meta:
         return
 
-    debug_images = debug_image_data['images']
-    sdk_info = debug_image_data['sdk_info']
+    debug_images = debug_meta['images']
+    sdk_info = debug_meta['sdk_info']
 
     stacktraces = find_all_stacktraces(data)
     if not stacktraces:
