@@ -395,13 +395,15 @@ def resolve_frame_symbols(data):
                 try:
                     sfrm = sym.symbolize_frame({
                         'object_name': frame.get('package'),
-                        'object_addr': frame['image_addr'],
+                        'object_addr': parse_addr(frame['image_addr']),
                         'instruction_addr': parse_addr(frame['instruction_addr']),
                         'symbol_addr': parse_addr(frame['symbol_addr']),
                     }, sdk_info, report_error=report_error)
                     if not sfrm:
                         continue
-                    frame['function'] = sfrm.get('symbol_name') or '<unknown>'
+                    # XXX: log here if symbol could not be found?
+                    frame['function'] = sfrm.get('symbol_name') or \
+                        frame.get('function') or '<unknown>'
                     frame['abs_path'] = sfrm.get('filename') or None
                     if frame['abs_path']:
                         frame['filename'] = posixpath.basename(frame['abs_path'])
@@ -413,9 +415,9 @@ def resolve_frame_symbols(data):
                             parse_addr(sfrm['symbol_addr'])
                     if sfrm.get('column') is not None:
                         frame['colno'] = sfrm['column']
-                    frame['package'] = sfrm['object_name']
-                    frame['symbol_addr'] = '%x' % sfrm['symbol_addr']
-                    frame['instruction_addr'] = '%x' % sfrm['instruction_addr']
+                    frame['package'] = sfrm['object_name'] or frame.get('package')
+                    frame['symbol_addr'] = '0x%x' % sfrm['symbol_addr']
+                    frame['instruction_addr'] = '0x%x' % sfrm['instruction_addr']
                     frame['in_app'] = is_in_app(frame)
                     longest_addr = max(longest_addr, len(frame['symbol_addr']),
                                        len(frame['instruction_addr']))
@@ -427,10 +429,10 @@ def resolve_frame_symbols(data):
                         'error': '%s: %s' % (e.__class__.__name__, str(e)),
                     })
 
-    # Pad out addresses to be of the same length and add prefix
+    # Pad out addresses to be of the same length
     for frame in processed_frames:
         for key in 'symbol_addr', 'instruction_addr':
-            frame[key] = '0x' + frame[key][2:].rjust(longest_addr, '0')
+            frame[key] = frame[key].rjust(longest_addr, '0')
 
     if errors:
         data.setdefault('errors', []).extend(errors)
