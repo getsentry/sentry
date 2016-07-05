@@ -152,6 +152,34 @@ class NotificationSettingsTest(TestCase):
 
         assert options.get('alert_email') == 'foo@example.com'
 
+    def test_can_change_workflow(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path, {
+            'workflow_notifications': '1',
+        })
+        assert resp.status_code == 302
+
+        options = UserOption.objects.get_all_values(
+            user=self.user, project=None
+        )
+
+        assert options.get('workflow:notifications') == '1'
+
+    def test_can_change_subscribe_by_default(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path, {
+            'subscribe_by_default': '1',
+        })
+        assert resp.status_code == 302
+
+        options = UserOption.objects.get_all_values(
+            user=self.user, project=None
+        )
+
+        assert options.get('subscribe_by_default') == '1'
+
 
 class ListIdentitiesTest(TestCase):
     @fixture
