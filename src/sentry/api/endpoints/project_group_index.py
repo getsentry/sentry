@@ -334,6 +334,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             group_list = list(cursor_result)
             group_ids = [g.id for g in group_list]
 
+        is_bulk = len(group_ids) > 1
+
         queryset = Group.objects.filter(
             id__in=group_ids,
         )
@@ -379,7 +381,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                             'version': '',
                         }
                     )
-                    activity.send_notification()
+                    # TODO(dcramer): we need a solution for activity rollups
+                    # before sending notifications on bulk changes
+                    if not is_bulk:
+                        activity.send_notification()
 
             queryset.update(
                 status=GroupStatus.RESOLVED,
@@ -423,7 +428,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         type=Activity.SET_RESOLVED,
                         user=acting_user,
                     )
-                    activity.send_notification()
+                    # TODO(dcramer): we need a solution for activity rollups
+                    # before sending notifications on bulk changes
+                    if not is_bulk:
+                        activity.send_notification()
 
             result['statusDetails'] = {}
 
@@ -478,12 +486,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
                 for group in group_list:
                     group.status = new_status
-                    if acting_user:
-                        GroupSubscription.objects.subscribe(
-                            user=acting_user,
-                            group=group,
-                            reason=GroupSubscriptionReason.status_change,
-                        )
+
                     activity = Activity.objects.create(
                         project=group.project,
                         group=group,
@@ -491,7 +494,16 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         user=acting_user,
                         data=activity_data,
                     )
-                    activity.send_notification()
+                    # TODO(dcramer): we need a solution for activity rollups
+                    # before sending notifications on bulk changes
+                    if not is_bulk:
+                        if acting_user:
+                            GroupSubscription.objects.subscribe(
+                                user=acting_user,
+                                group=group,
+                                reason=GroupSubscriptionReason.status_change,
+                            )
+                        activity.send_notification()
 
         if result.get('hasSeen') and project.member_set.filter(user=acting_user).exists():
             for group in group_list:
