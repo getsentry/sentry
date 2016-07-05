@@ -10,7 +10,10 @@
 {% block main %}
     <form action="" method="post">
         {% csrf_token %}
-        {{ form|as_crispy_errors }}
+        {{ settings_form|as_crispy_errors }}
+        {% if password_form %}
+          {{ password_form|as_crispy_errors }}
+        {% endif %}
 
         {% if request.user.has_unverified_emails %}
           <div class="alert alert-warning alert-block">
@@ -39,28 +42,32 @@
             </div>
           </div>
           <div class="account-settings-body">
-            {% with form.name as field %}
+            {% with settings_form.name as field %}
                 {{ field|as_crispy_field }}
             {% endwith %}
-            {% if form.username %}
-                {% with form.username as field %}
+            {% if settings_form.username %}
+                {% with settings_form.username as field %}
                     {{ field|as_crispy_field }}
                 {% endwith %}
             {% endif %}
-            {% with form.email as field %}
+            {% with settings_form.email as field %}
                 {{ field|as_crispy_field }}
             {% endwith %}
-            {% if form.new_password %}
           </div>
         </div>
-        <p class="help-block pull-right" style="margin-top: 0">({% trans "Optional" %})</p>
-        {% with form.new_password as field %}
-            {{ field|as_crispy_field }}
-        {% endwith %}
+
+        {% if password_form %}
+          <legend>{% trans "Change Password"  %}</legend>
+          {% with password_form.password as field %}
+              {{ field|as_crispy_field }}
+          {% endwith %}
+          {% with password_form.new_password as field %}
+              {{ field|as_crispy_field }}
+          {% endwith %}
         {% endif %}
 
         {% feature auth:twofactor %}
-        <legend>{% trans "Two-factor authenticaton"  %}</legend>
+          <legend>{% trans "Two-factor authenticaton"  %}</legend>
           {% if has_2fa %}
             <p class="well">
               <a class="btn btn-default pull-right" style="margin-top: -7px; margin-right: -10px" href="{% url "sentry-account-settings-2fa" %}">{% trans "Manage" %}</a>
