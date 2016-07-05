@@ -8,6 +8,30 @@ from sentry.models import TagKey, TagKeyStatus
 from sentry.testutils import APITestCase
 
 
+class ProjectTagKeyDetailsTest(APITestCase):
+    def test_simple(self):
+        project = self.create_project()
+        tagkey = TagKey.objects.create(
+            project=project,
+            key='foo',
+            values_seen=16,
+        )
+
+        self.login_as(user=self.user)
+
+        url = reverse('sentry-api-0-project-tagkey-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+            'key': tagkey.key,
+        })
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert response.data['id'] == str(tagkey.id)
+        assert response.data['uniqueValues'] == tagkey.values_seen
+
+
 class ProjectTagKeyDeleteTest(APITestCase):
     @mock.patch('sentry.api.endpoints.project_tagkey_details.delete_tag_key')
     def test_simple(self, mock_delete_tag_key):
