@@ -182,19 +182,19 @@ class ChangePasswordRecoverForm(forms.Form):
 
 
 class NotificationSettingsForm(forms.Form):
-    alert_email = forms.EmailField(help_text=_('Designate an alternative email address to send email notifications to.'), required=False)
+    alert_email = forms.EmailField(label=_('Email'), help_text=_('Designate an alternative email address to send email notifications to.'), required=False)
     subscribe_by_default = forms.ChoiceField(
         label=_('Alerts'),
         choices=(
-            ('1', _('Automatically subscribe to notifications for new projects')),
-            ('0', _('Do not subscribe to notifications for new projects')),
+            ('1', _('Automatically subscribe to alerts for new projects')),
+            ('0', _('Do not subscribe to alerts for new projects')),
         ), required=False,
         widget=forms.Select(attrs={'class': 'input-xxlarge'}))
-    subscribe_notes = forms.ChoiceField(
-        label=_('Notes'),
+    workflow_notifications = forms.ChoiceField(
+        label=_('Workflow Notifications'),
         choices=(
-            ('1', _('Get notified about new notes')),
-            ('0', _('Do not subscribe to note notifications')),
+            ('0', _('Receive updates for all issues by default')),
+            ('1', _('Only notify me when I\'m participating or mentioned on an issue')),
         ), required=False,
         widget=forms.Select(attrs={'class': 'input-xxlarge'}))
 
@@ -213,11 +213,11 @@ class NotificationSettingsForm(forms.Form):
             key='subscribe_by_default',
             default='1',
         )
-        self.fields['subscribe_notes'].initial = UserOption.objects.get_value(
+        self.fields['workflow_notifications'].initial = UserOption.objects.get_value(
             user=self.user,
             project=None,
-            key='subscribe_notes',
-            default='1',
+            key='workflow:notifications',
+            default='0',
         )
 
     def get_title(self):
@@ -239,8 +239,8 @@ class NotificationSettingsForm(forms.Form):
         UserOption.objects.set_value(
             user=self.user,
             project=None,
-            key='subscribe_notes',
-            value=self.cleaned_data['subscribe_notes'],
+            key='workflow_notifications',
+            value=self.cleaned_data['workflow_notifications'],
         )
 
 
@@ -375,6 +375,7 @@ class AppearanceSettingsForm(forms.Form):
 
 class ProjectEmailOptionsForm(forms.Form):
     alert = forms.BooleanField(required=False)
+    workflow = forms.BooleanField(required=False)
     email = forms.EmailField(required=False, widget=forms.HiddenInput())
 
     def __init__(self, project, user, *args, **kwargs):
@@ -383,9 +384,9 @@ class ProjectEmailOptionsForm(forms.Form):
 
         super(ProjectEmailOptionsForm, self).__init__(*args, **kwargs)
 
-        is_enabled = project.is_user_subscribed_to_mail_alerts(user)
+        has_alerts = project.is_user_subscribed_to_mail_alerts(user)
 
-        self.fields['alert'].initial = is_enabled
+        self.fields['alert'].initial = has_alerts
         self.fields['email'].initial = UserOption.objects.get_value(
             user, project, 'mail:email', None)
 
@@ -394,6 +395,7 @@ class ProjectEmailOptionsForm(forms.Form):
             self.user, self.project, 'mail:alert',
             int(self.cleaned_data['alert']),
         )
+
         if self.cleaned_data['email']:
             UserOption.objects.set_value(
                 self.user, self.project, 'mail:email',
