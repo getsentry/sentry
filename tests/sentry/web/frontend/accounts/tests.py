@@ -52,8 +52,7 @@ class SettingsTest(TestCase):
 
     def params(self, without=()):
         params = {
-            'username': 'foobar',
-            'email': 'foo@example.com',
+            'email': 'admin@localhost',
             'name': 'Foo bar',
         }
         return dict((k, v) for k, v in params.iteritems() if k not in without)
@@ -68,7 +67,6 @@ class SettingsTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/account/settings.html')
         assert 'form' in resp.context
-        assert 'password_form' in resp.context
 
     def test_requires_email(self):
         self.login_as(self.user)
@@ -97,9 +95,8 @@ class SettingsTest(TestCase):
         assert resp.status_code == 302
         user = User.objects.get(id=self.user.id)
         assert user.name == params['name']
-        assert user.email == params['email']
 
-    def test_can_change_password(self):
+    def test_can_change_password_with_password(self):
         self.login_as(self.user)
 
         params = self.params()
@@ -115,30 +112,14 @@ class SettingsTest(TestCase):
         self.login_as(self.user)
 
         params = self.params()
-        params['password'] = 'bizbaz'
         params['new_password'] = 'foobar'
 
         resp = self.client.post(self.path, params)
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/account/settings.html')
-        assert 'password_form' in resp.context
-        assert 'password' in resp.context['password_form'].errors
+        assert resp.context['form'].errors
         user = User.objects.get(id=self.user.id)
         assert not user.check_password('foobar')
-
-    def test_password_form_not_available_with_managed_user(self):
-        user = self.create_user('foo@example.com', is_managed=True)
-
-        self.login_as(user)
-
-        params = self.params()
-        params['password'] = 'admin'
-        params['new_password'] = 'foobar'
-
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        self.assertTemplateUsed('sentry/account/settings.html')
-        assert resp.context['password_form'] is None
 
     def test_cannot_change_password_with_managed_user(self):
         user = self.create_user('foo@example.com', is_managed=True)
@@ -146,6 +127,7 @@ class SettingsTest(TestCase):
         self.login_as(user)
 
         params = self.params()
+        params['email'] = user.email
         params['password'] = 'admin'
         params['new_password'] = 'foobar'
 
@@ -153,6 +135,31 @@ class SettingsTest(TestCase):
         assert resp.status_code == 302
         user = User.objects.get(id=self.user.id)
         assert not user.check_password('foobar')
+
+    def test_can_change_email_with_password(self):
+        self.login_as(self.user)
+
+        params = self.params()
+        params['password'] = 'admin'
+        params['email'] = 'bizbaz@example.com'
+
+        resp = self.client.post(self.path, params)
+        assert resp.status_code == 302
+        user = User.objects.get(id=self.user.id)
+        assert user.email == 'bizbaz@example.com'
+
+    def test_cannot_change_email_with_invalid_password(self):
+        self.login_as(self.user)
+
+        params = self.params()
+        params['email'] = 'bizbaz@example.com'
+
+        resp = self.client.post(self.path, params)
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/account/settings.html')
+        assert resp.context['form'].errors
+        user = User.objects.get(id=self.user.id)
+        assert user.email == 'admin@localhost'
 
 
 class NotificationSettingsTest(TestCase):
