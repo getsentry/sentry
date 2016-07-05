@@ -16,6 +16,7 @@ from sentry.digests.notifications import (
     sort_group_contents,
     sort_rule_groups,
 )
+from sentry.models import Rule
 from sentry.testutils import TestCase
 
 
@@ -91,6 +92,20 @@ class GroupRecordsTestCase(TestCase):
 
 class SortRecordsTestCase(TestCase):
     def test_success(self):
+        Rule.objects.create(
+            project=self.project,
+            label='Send a notification for regressions',
+            data={
+                'match': 'all',
+                'conditions': [
+                    {'id': 'sentry.rules.conditions.regression_event.RegressionEventCondition'},
+                ],
+                'actions': [
+                    {'id': 'sentry.rules.actions.notify_event.NotifyEventAction'},
+                ],
+            }
+        )
+
         rules = list(self.project.rule_set.all())
         groups = [self.create_group() for _ in xrange(3)]
 
