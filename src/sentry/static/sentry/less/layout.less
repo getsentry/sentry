@@ -429,35 +429,6 @@ footer {
   }
 }
 
-@media (min-width: 1700px) {
-  body {
-    background: @header-bg-color;
-  }
-
-  .app {
-    background: #fff;
-    width: 1700px - @sidebar-width !important;
-    position: relative;
-    min-height: 100vh;
-    margin: 0 auto;
-  }
-
-  header {
-    position: absolute;
-    margin-left: -@sidebar-width;
-    background: none;
-
-    .container {
-      height: 1vh;
-      position: relative;
-
-      .user-nav, .anchor-top {
-        position: fixed;
-      }
-    }
-  }
-}
-
 /**
 * Responsive small screens
 * ============================================================================
