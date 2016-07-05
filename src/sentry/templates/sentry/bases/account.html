@@ -1,6 +1,7 @@
 {% extends "sentry/bases/modal.html" %}
 
 {% load i18n %}
+{% load sentry_features %}
 {% load sentry_helpers %}
 
 {% block title %}{% trans "Settings" %} | {{ block.super }}{% endblock %}
@@ -22,9 +23,10 @@
           <li{% if page == 'avatar' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-avatar' %}">{% trans "Avatar" %}</a></li>
           <li{% if page == 'appearance' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-appearance' %}">{% trans "Appearance" %}</a></li>
           <li{% if page == 'notifications' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-notifications' %}">{% trans "Notifications" %}</a></li>
-      {% if AUTH_PROVIDERS %}
-          <li{% if page == 'identities' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-identities' %}">{% trans "Identities" %}</a></li>
-        {% endif %}
+          {% if AUTH_PROVIDERS %}
+            <li{% if page == 'identities' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-identities' %}">{% trans "Identities" %}</a></li>
+          {% endif %}
+          <li{% if page == 'security' %} class="active"{% endif %}><a href="{% url 'sentry-account-security' %}">{% trans "Security" %}</a></li>
         </ul>
       {% endblock %}
 

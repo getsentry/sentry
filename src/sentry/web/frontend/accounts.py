@@ -22,13 +22,15 @@ from django.utils.translation import ugettext as _
 from sudo.decorators import sudo_required
 
 from sentry.models import (
-    UserEmail, LostPasswordHash, Project, ProjectStatus, UserOption, Authenticator)
+    UserEmail, LostPasswordHash, Project, ProjectStatus, UserOption, Authenticator
+)
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, signed_auth_required
 from sentry.web.forms.accounts import (
     AccountSettingsForm, NotificationSettingsForm, AppearanceSettingsForm,
     RecoverPasswordForm, ChangePasswordRecoverForm,
-    ProjectEmailOptionsForm, ChangePasswordForm)
+    ProjectEmailOptionsForm
+)
 from sentry.web.helpers import render_to_response
 from sentry.utils.auth import get_auth_providers, get_login_redirect
 from sentry.utils.safe import safe_execute
@@ -162,7 +164,7 @@ def confirm_email(request, user_id, hash):
 def settings(request):
     user = request.user
 
-    settings_form = AccountSettingsForm(
+    form = AccountSettingsForm(
         user, request.POST or None,
         initial={
             'email': user.email,
@@ -171,23 +173,10 @@ def settings(request):
         },
     )
 
-    if user.is_managed:
-        is_changing_password = False
-        password_form = None
-    else:
-        is_changing_password = request.POST.get('new_password')
-        password_form = ChangePasswordForm(
-            user, request.POST if is_changing_password else None)
-
-    if settings_form.is_valid() and (
-        not is_changing_password or password_form.is_valid()
-    ):
-        if is_changing_password:
-            password_form.save(commit=False)
-
+    if form.is_valid():
         old_email = user.email
 
-        settings_form.save()
+        form.save()
 
         # remove previously valid email address
         # TODO(dcramer): we should maintain validation here when we support
@@ -213,8 +202,7 @@ def settings(request):
 
     context = csrf(request)
     context.update({
-        'settings_form': settings_form,
-        'password_form': password_form,
+        'form': form,
         'page': 'settings',
         'has_2fa': Authenticator.objects.user_has_2fa(request.user),
         'AUTH_PROVIDERS': get_auth_providers(),
@@ -236,7 +224,7 @@ def twofactor_settings(request):
 
     context = csrf(request)
     context.update({
-        'page': 'settings',
+        'page': 'security',
         'has_2fa': any(x.is_enrolled and not x.is_backup_interface for x in interfaces),
         'interfaces': interfaces,
     })
@@ -246,7 +234,6 @@ def twofactor_settings(request):
 @csrf_protect
 @never_cache
 @login_required
-@sudo_required
 @transaction.atomic
 def avatar_settings(request):
     context = csrf(request)
@@ -260,7 +247,6 @@ def avatar_settings(request):
 @csrf_protect
 @never_cache
 @login_required
-@sudo_required
 @transaction.atomic
 def appearance_settings(request):
     from django.conf import settings
