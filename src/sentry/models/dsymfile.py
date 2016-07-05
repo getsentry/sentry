@@ -26,6 +26,7 @@ from sentry.db.models import FlexibleForeignKey, Model, BoundedBigIntegerField, 
 from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 from sentry.utils.db import is_sqlite
+from sentry.utils.native import parse_addr
 from sentry.constants import KNOWN_DSYM_TYPES
 
 
@@ -174,8 +175,12 @@ class DSymSymbolManager(BaseManager):
         if sdk_info is not None and sdk_info['dsym_type'] == 'none':
             return
 
+        instruction_addr = parse_addr(instruction_addr)
+        image_addr = parse_addr(image_addr)
+
         addr_abs = None
         if image_vmaddr is not None:
+            image_vmaddr = parse_addr(image_vmaddr)
             addr_abs = image_vmaddr + instruction_addr - image_addr
         addr_rel = instruction_addr - image_addr
 
