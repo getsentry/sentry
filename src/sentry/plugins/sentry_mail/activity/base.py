@@ -92,10 +92,10 @@ class ActivityEmail(object):
     def get_subject(self):
         group = self.group
 
-        return '[%s] %s: %s' % (
-            self.project.get_full_name().encode('utf-8'),
-            group.get_level_display().upper().encode('utf-8'),
-            group.message_short.encode('utf-8')
+        return u'[%s] %s: %s' % (
+            self.project.get_full_name(),
+            group.get_level_display().upper(),
+            group.message_short
         )
 
     def get_context(self):
@@ -223,10 +223,10 @@ class ActivityEmail(object):
 
         subject_prefix = self._get_subject_prefix()
 
-        subject = u'{}{}'.format(
+        subject = (u'{}{}'.format(
             subject_prefix,
             self.get_subject(),
-        )
+        )).encode('utf-8')
         template = self.get_template()
         html_template = self.get_html_template()
         email_type = self.get_email_type()
