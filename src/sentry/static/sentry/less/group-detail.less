@@ -756,7 +756,6 @@
     width: 365px;
     padding: 30px 40px 30px 30px;
     border-left: 1px solid @trim;
-    background: #FDFDFD;
   }
 }
 
@@ -767,22 +766,21 @@
 
 .context-summary {
   display: flex;
-  .box;
-  margin-top: 20px;
+  padding: 25px 30px 25px 40px;
+  border-top: 1px solid lighten(@trim, 4);
 
   .context-item {
     flex: 1;
-    padding: 20px 20px 17px;
-    border-left: 1px solid lighten(@trim, 5);
-    padding-left: 78px;
+    padding-top: 4px;
+    padding-left: 64px;
     position: relative;
-    min-height: 76px;
+    min-height: 48px;
     max-width: 33.3%;
 
     .context-item-icon {
       position: absolute;
-      left: 15px;
-      top: 15px;
+      left: 0;
+      top: 0;
       .square(48px);
       background-repeat: no-repeat;
       background-position: center;
