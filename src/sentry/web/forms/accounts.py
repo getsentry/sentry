@@ -239,7 +239,7 @@ class NotificationSettingsForm(forms.Form):
         UserOption.objects.set_value(
             user=self.user,
             project=None,
-            key='workflow_notifications',
+            key='workflow:notifications',
             value=self.cleaned_data['workflow_notifications'],
         )
 
@@ -375,7 +375,6 @@ class AppearanceSettingsForm(forms.Form):
 
 class ProjectEmailOptionsForm(forms.Form):
     alert = forms.BooleanField(required=False)
-    workflow = forms.BooleanField(required=False)
     email = forms.EmailField(required=False, widget=forms.HiddenInput())
 
     def __init__(self, project, user, *args, **kwargs):
