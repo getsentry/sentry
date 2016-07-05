@@ -76,6 +76,8 @@ from sentry.web.frontend.remove_project_key import RemoveProjectKeyView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.replay_event import ReplayEventView
 from sentry.web.frontend.sudo import SudoView
+from sentry.web.frontend.unsubscribe_issue_notifications import \
+    UnsubscribeIssueNotificationsView
 from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 
 __all__ = ('urlpatterns',)
@@ -103,23 +105,57 @@ urlpatterns = patterns('')
 if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
     from django.views.generic import TemplateView
     import sentry.web.frontend.debug.mail
-    from sentry.web.frontend.debug.debug_trigger_error import DebugTriggerErrorView
-    from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
-    from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
+    from sentry.web.frontend.debug.debug_assigned_email import (
+        DebugAssignedEmailView, DebugSelfAssignedEmailView
+    )
+    from sentry.web.frontend.debug.debug_trigger_error import (
+        DebugTriggerErrorView
+    )
+    from sentry.web.frontend.debug.debug_error_embed import (
+        DebugErrorPageEmbedView
+    )
+    from sentry.web.frontend.debug.debug_new_release_email import (
+        DebugNewReleaseEmailView
+    )
+    from sentry.web.frontend.debug.debug_note_email import DebugNoteEmailView
+    from sentry.web.frontend.debug.debug_regression_email import (
+        DebugRegressionEmailView, DebugRegressionReleaseEmailView
+    )
+    from sentry.web.frontend.debug.debug_resolved_email import (
+        DebugResolvedEmailView
+    )
+    from sentry.web.frontend.debug.debug_resolved_in_release_email import (
+        DebugResolvedInReleaseEmailView, DebugResolvedInReleaseUpcomingEmailView
+    )
+    from sentry.web.frontend.debug.debug_unassigned_email import (
+        DebugUnassignedEmailView
+    )
     from sentry.web.frontend.debug import debug_auth_views
 
     urlpatterns += patterns(
         '',
         url(r'^debug/mail/new-event/$',
             sentry.web.frontend.debug.mail.new_event),
-        url(r'^debug/mail/new-note/$',
-            sentry.web.frontend.debug.mail.new_note),
+        url(r'^debug/mail/note/$',
+            DebugNoteEmailView.as_view()),
         url(r'^debug/mail/new-release/$',
             DebugNewReleaseEmailView.as_view()),
         url(r'^debug/mail/assigned/$',
-            sentry.web.frontend.debug.mail.assigned),
+            DebugAssignedEmailView.as_view()),
+        url(r'^debug/mail/assigned/self/$',
+            DebugSelfAssignedEmailView.as_view()),
         url(r'^debug/mail/digest/$',
             sentry.web.frontend.debug.mail.digest),
+        url(r'^debug/mail/regression/$',
+            DebugRegressionEmailView.as_view()),
+        url(r'^debug/mail/regression/release/$',
+            DebugRegressionReleaseEmailView.as_view()),
+        url(r'^debug/mail/resolved/$',
+            DebugResolvedEmailView.as_view()),
+        url(r'^debug/mail/resolved-in-release/$',
+            DebugResolvedInReleaseEmailView.as_view()),
+        url(r'^debug/mail/resolved-in-release/upcoming/$',
+            DebugResolvedInReleaseUpcomingEmailView.as_view()),
         url(r'^debug/mail/request-access/$',
             sentry.web.frontend.debug.mail.request_access),
         url(r'^debug/mail/access-approved/$',
@@ -130,6 +166,8 @@ if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
             sentry.web.frontend.debug.mail.confirm_email),
         url(r'^debug/mail/recover-account/$',
             sentry.web.frontend.debug.mail.recover_account),
+        url(r'^debug/mail/unassigned/$',
+            DebugUnassignedEmailView.as_view()),
         url(r'^debug/embed/error-page/$',
             DebugErrorPageEmbedView.as_view()),
         url(r'^debug/trigger-error/$',
@@ -221,9 +259,18 @@ urlpatterns += patterns(
         name='sentry-account-settings-identities'),
     url(r'^account/settings/notifications/$', accounts.notification_settings,
         name='sentry-account-settings-notifications'),
+
+    # compatibility
     url(r'^account/settings/notifications/unsubscribe/(?P<project_id>\d+)/$',
+        accounts.email_unsubscribe_project),
+
+    url(r'^account/notifications/unsubscribe/(?P<project_id>\d+)/$',
         accounts.email_unsubscribe_project,
         name='sentry-account-email-unsubscribe-project'),
+    url(r'^account/notifications/unsubscribe/issue/(?P<issue_id>\d+)/$',
+        UnsubscribeIssueNotificationsView.as_view(),
+        name='sentry-account-email-unsubscribe-issue'),
+
     url(r'^account/remove/$', RemoveAccountView.as_view(),
         name='sentry-remove-account'),
     url(r'^account/settings/social/', include('sentry.social_auth.urls')),

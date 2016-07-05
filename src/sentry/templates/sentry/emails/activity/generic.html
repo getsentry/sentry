@@ -1,0 +1,17 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block header %}
+  <a href="{{ link }}" class="btn">View on Sentry</a>
+  {{ block.super }}
+{% endblock %}
+
+{% block main %}
+  <h2>{{ activity_name }}</h2>
+
+  <p>{{ html_description }}</p>
+
+  {% include "sentry/emails/group_header.html" %}
+{% endblock %}

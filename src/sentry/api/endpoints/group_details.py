@@ -15,7 +15,7 @@ from sentry.constants import STATUS_CHOICES
 from sentry.models import (
     Activity, Group, GroupAssignee, GroupSeen, GroupSubscription,
     GroupSubscriptionReason, GroupStatus, GroupTagKey, GroupTagValue, Release,
-    UserReport
+    User, UserReport
 )
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
@@ -200,11 +200,17 @@ class GroupDetailsEndpoint(GroupEndpoint):
             group=group,
         )[:100])
 
+        participants = list(User.objects.filter(
+            groupsubscription__is_active=True,
+            groupsubscription__group=group,
+        ))
+
         data.update({
             'firstRelease': first_release,
             'lastRelease': last_release,
             'activity': serialize(activity, request.user),
             'seenBy': seen_by,
+            'participants': serialize(participants, request.user),
             'pluginActions': action_list,
             'userReportCount': UserReport.objects.filter(group=group).count(),
             'tags': sorted(serialize(tags, request.user), key=lambda x: x['name']),

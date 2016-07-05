@@ -20,7 +20,6 @@ from sentry.models import (
     Group,
     OrganizationMember,
     OrganizationMemberTeam,
-    Release,
     Rule,
 )
 from sentry.plugins import Notification
@@ -297,10 +296,6 @@ class MailPluginTest(TestCase):
 
         assert msg.subject.startswith('[Example prefix] [foo Bar]')
 
-    @mock.patch(
-        'sentry.models.ProjectOption.objects.get_value',
-        Mock(side_effect=lambda p, k, d: "[Example prefix] " if k == "mail:subject_prefix" else d)
-    )
     def test_assignment(self):
         activity = Activity.objects.create(
             project=self.project,
@@ -319,7 +314,7 @@ class MailPluginTest(TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject == 'Re: [Example prefix] [foo Bar] ERROR: Foo bar'
+        assert msg.subject == 'Re: [Sentry] [foo Bar] ERROR: Foo bar'
         assert msg.to == [self.user.email]
 
     def test_note(self):
@@ -345,33 +340,4 @@ class MailPluginTest(TestCase):
         msg = mail.outbox[0]
 
         assert msg.subject == 'Re: [Sentry] [foo Bar] ERROR: Foo bar'
-        assert msg.to == [self.user.email]
-
-    def test_release(self):
-        user_foo = self.create_user('foo@example.com')
-
-        release = Release.objects.create(
-            project=self.project,
-            version='a' * 40,
-        )
-
-        activity = Activity.objects.create(
-            project=self.project,
-            type=Activity.RELEASE,
-            user=user_foo,
-            data={
-                'version': release.version,
-            },
-        )
-
-        self.project.team.organization.member_set.create(user=user_foo)
-
-        with self.tasks():
-            self.plugin.notify_about_activity(activity)
-
-        assert len(mail.outbox) == 1
-
-        msg = mail.outbox[0]
-
-        assert msg.subject == '[Sentry] Release %s' % (release.version,)
         assert msg.to == [self.user.email]

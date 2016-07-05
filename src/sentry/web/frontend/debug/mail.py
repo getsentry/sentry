@@ -19,6 +19,7 @@ from django.contrib.webdesign.lorem_ipsum import (
 )
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
+from django.views.generic import View
 
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
@@ -38,6 +39,7 @@ from sentry.models import (
     Rule,
     Team,
 )
+from sentry.plugins.sentry_mail.activity import emails
 from sentry.utils.dates import to_timestamp
 from sentry.utils.samples import load_data
 from sentry.utils.email import inline_css
@@ -69,6 +71,74 @@ class MailPreview(object):
     def render(self):
         return render_to_response('sentry/debug/mail/preview.html', {
             'preview': self,
+        })
+
+
+class ActivityMailPreview(object):
+    def __init__(self, activity):
+        self.email = emails.get(activity.type)(activity)
+
+    def get_context(self):
+        context = self.email.get_base_context()
+        context.update(self.email.get_context())
+        return context
+
+    def text_body(self):
+        return render_to_string(self.email.get_template(), self.get_context())
+
+    def html_body(self):
+        try:
+            return inline_css(render_to_string(
+                self.email.get_html_template(), self.get_context()))
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            raise
+
+
+class ActivityMailDebugView(View):
+    def get(self, request):
+        org = Organization(
+            id=1,
+            slug='organization',
+            name='My Company',
+        )
+        team = Team(
+            id=1,
+            slug='team',
+            name='My Team',
+            organization=org,
+        )
+        project = Project(
+            id=1,
+            organization=org,
+            team=team,
+            slug='project',
+            name='My Project',
+        )
+
+        group = Group(
+            id=1,
+            project=project,
+            message='This is an example event.',
+        )
+
+        event = Event(
+            id=1,
+            project=project,
+            group=group,
+            message=group.message,
+            data=load_data('python'),
+        )
+
+        activity = Activity(
+            group=event.group, project=event.project,
+            **self.get_activity(request, event)
+        )
+
+        return render_to_response('sentry/debug/mail/preview.html', {
+            'preview': ActivityMailPreview(activity),
+            'format': request.GET.get('format'),
         })
 
 
@@ -134,110 +204,6 @@ def new_event(request):
                 ('level', 'error'),
                 ('device', 'Other')
             ]
-        },
-    ).render()
-
-
-@login_required
-def new_note(request):
-
-    org = Organization(
-        id=1,
-        slug='example',
-        name='Example',
-    )
-    team = Team(
-        id=1,
-        slug='example',
-        name='Example',
-        organization=org,
-    )
-    project = Project(
-        id=1,
-        slug='example',
-        name='Example',
-        team=team,
-        organization=org,
-    )
-    group = Group(
-        id=1,
-        project=project,
-        message='This is an example event.',
-    )
-    event = Event(
-        id=1,
-        project=project,
-        group=group,
-        message=group.message,
-        data=load_data('python'),
-    )
-    note = Activity(
-        group=event.group, project=event.project,
-        type=Activity.NOTE, user=request.user,
-        data={'text': 'This is an example note!'},
-    )
-
-    return MailPreview(
-        html_template='sentry/emails/activity/note.html',
-        text_template='sentry/emails/activity/note.txt',
-        context={
-            'data': note.data,
-            'author': note.user,
-            'date': note.datetime,
-            'group': group,
-            'link': group.get_absolute_url(),
-        },
-    ).render()
-
-
-@login_required
-def assigned(request):
-
-    org = Organization(
-        id=1,
-        slug='example',
-        name='Example',
-    )
-    team = Team(
-        id=1,
-        slug='example',
-        name='Example',
-        organization=org,
-    )
-    project = Project(
-        id=1,
-        slug='example',
-        name='Example',
-        team=team,
-        organization=org,
-    )
-    group = Group(
-        id=1,
-        project=project,
-        message='This is an example event.',
-    )
-    event = Event(
-        id=1,
-        project=project,
-        group=group,
-        message=group.message,
-        data=load_data('python'),
-    )
-    assigned = Activity(
-        group=event.group, project=event.project,
-        type=Activity.ASSIGNED, user=request.user,
-        data={'text': 'This is an example note!', 'assignee': 'foo@example.com'},
-    )
-
-    return MailPreview(
-        html_template='sentry/emails/activity/assigned.html',
-        text_template='sentry/emails/activity/assigned.txt',
-        context={
-            'data': assigned.data,
-            'author': assigned.user,
-            'date': assigned.datetime,
-            'group': group,
-            'link': group.get_absolute_url(),
         },
     ).render()
 
