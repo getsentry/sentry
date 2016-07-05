@@ -131,7 +131,7 @@ def is_in_app(frame, app_uuid=None):
         frame_uuid = frame.get('uuid')
         if frame_uuid == app_uuid:
             return True
-    fn = frame.get('package', '')
+    fn = frame.get('package') or ''
     if not fn.startswith(APP_BUNDLE_PATHS):
         return False
     if fn.endswith(NON_APP_FRAMEWORKS):
