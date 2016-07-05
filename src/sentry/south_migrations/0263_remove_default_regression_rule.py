@@ -10,6 +10,9 @@ class Migration(DataMigration):
     def forwards(self, orm):
         from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
+        if connection.vendor == 'sqlite':
+            transaction.set_autocommit(True)
+
         label = 'Send a notification for regressions'
         rule_data = {
             'match': 'all',
