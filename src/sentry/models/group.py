@@ -270,9 +270,11 @@ class Group(Model):
 
     @classmethod
     def from_share_id(cls, share_id):
+        if not share_id:
+            raise cls.DoesNotExist
         try:
             project_id, group_id = b16decode(share_id.upper()).split('.')
-        except ValueError:
+        except (ValueError, TypeError):
             raise cls.DoesNotExist
         if not (project_id.isdigit() and group_id.isdigit()):
             raise cls.DoesNotExist

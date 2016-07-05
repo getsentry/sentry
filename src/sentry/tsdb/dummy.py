@@ -29,6 +29,9 @@ class DummyTSDB(BaseTSDB):
     def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
         return {k: 0 for k in keys}
 
+    def get_distinct_counts_union(self, model, keys, start, end=None, rollup=None):
+        return 0
+
     def record_frequency_multi(self, requests, timestamp=None):
         pass
 

@@ -44,11 +44,17 @@ class UserAvatarEndpoint(UserEndpoint):
         if photo_string:
             photo_string = photo_string.decode('base64')
             if len(photo_string) > settings.SENTRY_MAX_AVATAR_SIZE:
-                return Response(status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
-            with Image.open(StringIO(photo_string)) as img:
-                width, height = img.size
-                if not self.is_valid_size(width, height):
-                    return Response(status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'Image too large.'},
+                                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
+            try:
+                with Image.open(StringIO(photo_string)) as img:
+                    width, height = img.size
+                    if not self.is_valid_size(width, height):
+                        return Response({'error': 'Image invalid size.'},
+                                        status=status.HTTP_400_BAD_REQUEST)
+            except IOError:
+                return Response({'error': 'Invalid image format.'},
+                                status=status.HTTP_400_BAD_REQUEST)
             file_name = '%s.png' % user.id
             photo = File.objects.create(name=file_name, type=self.FILE_TYPE)
             photo.putfile(StringIO(photo_string))

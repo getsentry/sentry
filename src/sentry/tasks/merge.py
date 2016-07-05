@@ -27,8 +27,9 @@ logger = logging.getLogger('sentry.deletions')
 def merge_group(from_object_id=None, to_object_id=None, **kwargs):
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models import (
-        Activity, Group, GroupAssignee, GroupHash, GroupRuleStatus, GroupTagKey,
-        GroupTagValue, EventMapping, Event, UserReport, GroupRedirect, GroupMeta,
+        Activity, Group, GroupAssignee, GroupHash, GroupRuleStatus,
+        GroupSubscription, GroupTagKey, GroupTagValue, EventMapping, Event,
+        UserReport, GroupRedirect, GroupMeta,
     )
 
     if not (from_object_id and to_object_id):
@@ -48,8 +49,9 @@ def merge_group(from_object_id=None, to_object_id=None, **kwargs):
         return
 
     model_list = (
-        Activity, GroupAssignee, GroupHash, GroupRuleStatus, GroupTagValue,
-        GroupTagKey, EventMapping, Event, UserReport, GroupRedirect, GroupMeta,
+        Activity, GroupAssignee, GroupHash, GroupRuleStatus, GroupSubscription,
+        GroupTagValue, GroupTagKey, EventMapping, Event, UserReport,
+        GroupRedirect, GroupMeta,
     )
 
     has_more = merge_objects(model_list, group, new_group, logger=logger)

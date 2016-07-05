@@ -9,6 +9,7 @@ import GroupChart from './groupChart';
 import GroupCheckBox from './groupCheckBox';
 import ProjectState from '../../mixins/projectState';
 import TimeSince from '../timeSince';
+import GroupTitle from '../group/title';
 import GroupStore from '../../stores/groupStore';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import ShortId from '../shortId';
@@ -22,31 +23,6 @@ const StreamGroupHeader = React.createClass({
     projectId: React.PropTypes.string.isRequired,
   },
 
-  getTitle() {
-    let data = this.props.data;
-    let metadata = data.metadata;
-    switch (data.type) {
-      case 'error':
-        return (
-          <span>
-            <span style={{marginRight: 10}}>{metadata.type}</span>
-            <em style={{fontSize: '80%', color: '#6F7E94', fontWeight: 'normal'}}>{data.culprit}</em><br/>
-          </span>
-        );
-      case 'csp':
-        return (
-          <span>
-            <span style={{marginRight: 10}}>{metadata.directive}</span>
-            <em style={{fontSize: '80%', color: '#6F7E94', fontWeight: 'normal'}}>{metadata.uri}</em><br/>
-          </span>
-        );
-      case 'default':
-        return <span>{metadata.title}</span>;
-      default:
-        return <span>{data.title}</span>;
-    }
-  },
-
   getMessage() {
     let data = this.props.data;
     let metadata = data.metadata;
@@ -56,12 +32,13 @@ const StreamGroupHeader = React.createClass({
       case 'csp':
         return metadata.message;
       default:
-        return '';
+        return this.props.data.culprit || '';
     }
   },
 
   render() {
     let {orgId, projectId, data} = this.props;
+    let message = this.getMessage();
     return (
       <div>
         <h3 className="truncate">
@@ -69,12 +46,14 @@ const StreamGroupHeader = React.createClass({
             <span className="error-level truncate">{data.level}</span>
             <span className="icon icon-soundoff" />
             <span className="icon icon-star-solid" />
-            {this.getTitle()}
+            <GroupTitle data={data} />
           </Link>
         </h3>
-        <div className="event-message truncate">
-          <span className="message">{this.getMessage()}</span>
-        </div>
+        {message &&
+          <div className="event-message truncate">
+            <span className="message">{this.getMessage()}</span>
+          </div>
+        }
       </div>
     );
   }

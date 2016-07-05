@@ -4,11 +4,29 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntryEvent, TagKey, TagKeyStatus
 from sentry.tasks.deletion import delete_tag_key
 
 
 class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
+    def get(self, request, project, key):
+        if TagKey.is_reserved_key(key):
+            lookup_key = 'sentry:{0}'.format(key)
+        else:
+            lookup_key = key
+
+        try:
+            tagkey = TagKey.objects.get(
+                project=project,
+                key=lookup_key,
+                status=TagKeyStatus.VISIBLE,
+            )
+        except TagKey.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        return Response(serialize(tagkey, request.user))
+
     def delete(self, request, project, key):
         """
         Remove all occurrences of the given tag key.

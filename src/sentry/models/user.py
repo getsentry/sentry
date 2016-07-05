@@ -24,6 +24,8 @@ class UserManager(BaseManager, UserManager):
 
 
 class User(BaseModel, AbstractBaseUser):
+    __core__ = True
+
     id = BoundedAutoField(primary_key=True)
     username = models.CharField(_('username'), max_length=128, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire

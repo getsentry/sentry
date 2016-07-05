@@ -8,13 +8,15 @@ const Avatar = React.createClass({
     user: React.PropTypes.object,
     size: React.PropTypes.number,
     default: React.PropTypes.string,
-    title: React.PropTypes.string
+    title: React.PropTypes.string,
+    gravatar: React.PropTypes.bool,
   },
 
   getDefaultProps() {
     return {
       className: 'avatar',
-      size: 64
+      size: 64,
+      gravatar: true,
     };
   },
 
@@ -65,7 +67,11 @@ const Avatar = React.createClass({
     if (user.avatar) {
       avatarType = user.avatar.avatarType;
     } else {
-      avatarType = user.email ? 'gravatar' : 'letter_avatar';
+      avatarType = (
+        (user.email && this.props.gravatar) ?
+          'gravatar' :
+          'letter_avatar'
+      );
     }
     let props = {title: this.props.title, onError: this.onError, onLoad: this.onLoad};
     if (user.options && user.options.avatarType) {

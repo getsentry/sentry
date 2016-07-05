@@ -36,6 +36,8 @@ class SentryHTTPServer(Service):
     def __init__(self, host=None, port=None, debug=False, workers=None,
                  validate=True, extra_options=None):
         from django.conf import settings
+        from sentry import options as sentry_options
+        from sentry.logging import LoggingFormat
 
         if validate:
             self.validate_settings()
@@ -110,6 +112,15 @@ class SentryHTTPServer(Service):
             del options['secure_scheme_headers']
         if 'loglevel' in options:
             del options['loglevel']
+
+        # For machine logging, we are choosing to 100% disable logging
+        # from uwsgi since it's currently not possible to get a nice json
+        # logging out of uwsgi, so it's better to just opt out. There's
+        # also an assumption that anyone operating at the scale of needing
+        # machine formatted logs, they are also using nginx in front which
+        # has it's own logs that can be formatted correctly.
+        if sentry_options.get('system.logging-format') == LoggingFormat.MACHINE:
+            options['disable-logging'] = True
 
         self.options = options
 

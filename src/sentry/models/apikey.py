@@ -28,6 +28,8 @@ class ApiKeyStatus(object):
 
 
 class ApiKey(Model):
+    __core__ = True
+
     organization = FlexibleForeignKey('sentry.Organization', related_name='key_set')
     label = models.CharField(max_length=64, blank=True, default='Default')
     key = models.CharField(max_length=32, unique=True)

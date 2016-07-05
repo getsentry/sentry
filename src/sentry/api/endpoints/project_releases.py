@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import string
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -42,6 +43,12 @@ class ReleaseSerializer(serializers.Serializer):
     owner = UserField(required=False)
     dateStarted = serializers.DateTimeField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
+
+    def validate_version(self, attrs, source):
+        value = attrs[source]
+        if not set(value).isdisjoint(set(string.whitespace)):
+            raise serializers.ValidationError('Enter a valid value')
+        return attrs
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint):

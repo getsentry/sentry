@@ -1,6 +1,8 @@
 import React from 'react';
 
 import {logException} from '../../utils/logging';
+import EventContexts from './contexts';
+import EventContextSummary from './contextSummary';
 import EventDataSection from './eventDataSection';
 import EventErrors from './errors';
 import EventExtraData from './extraData';
@@ -8,7 +10,6 @@ import EventPackageData from './packageData';
 import EventTags from './eventTags';
 import EventSdk from './sdk';
 import EventDevice from './device';
-import EventUser from './user';
 import EventUserReport from './userReport';
 import PropTypes from '../../proptypes';
 import utils from '../../utils';
@@ -83,8 +84,16 @@ const EventEntries = React.createClass({
       }
     });
 
+    let hasContext = (
+      !utils.objectIsEmpty(evt.user) || !utils.objectIsEmpty(evt.contexts)
+    );
+
+    let hasContextSummary = (
+      hasContext && (evt.platform === 'cocoa' || evt.platform === 'javascript')
+    );
+
     return (
-      <div>
+      <div className="entries">
         {evt.userReport &&
           <EventUserReport
             group={group}
@@ -95,17 +104,22 @@ const EventEntries = React.createClass({
             group={group}
             event={evt} />
         }
+        {hasContextSummary &&
+          <EventContextSummary
+            group={group}
+            event={evt} />
+        }
         <EventTags
           group={group}
           event={evt}
           orgId={this.props.orgId}
           projectId={project.slug} />
-        {!utils.objectIsEmpty(evt.user) &&
-          <EventUser
+        {entries}
+        {hasContext &&
+          <EventContexts
             group={group}
             event={evt} />
         }
-        {entries}
         {!utils.objectIsEmpty(evt.context) &&
           <EventExtraData
             group={group}

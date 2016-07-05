@@ -17,6 +17,10 @@ from sentry.db.models.fields import UnicodePickledObjectField
 from sentry.db.models.manager import BaseManager
 
 
+class UserOptionValue(object):
+    participating_only = '1'
+
+
 class UserOptionManager(BaseManager):
     def __init__(self, *args, **kwargs):
         super(UserOptionManager, self).__init__(*args, **kwargs)
@@ -106,6 +110,8 @@ class UserOption(Model):
     key: "feature:assignment"
     value: { updated: datetime, state: bool }
     """
+    __core__ = True
+
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     project = FlexibleForeignKey('sentry.Project', null=True)
     key = models.CharField(max_length=64)

@@ -63,3 +63,18 @@ class ErrorPageEmbedTest(TestCase):
         assert report.event_id == self.event_id
         assert report.project == self.project
         assert report.group is None
+
+    def test_submission_invalid_event_id(self):
+        self.event_id = 'x' * 100
+        self.path = '%s?eventId=%s&dsn=%s' % (
+            reverse('sentry-error-page-embed'),
+            quote(self.event_id),
+            quote(self.key.dsn_public),
+        )
+
+        resp = self.client.post(self.path, {
+            'name': 'Jane Doe',
+            'email': 'jane@example.com',
+            'comments': 'This is an example!',
+        }, HTTP_REFERER='http://example.com')
+        assert resp.status_code == 400

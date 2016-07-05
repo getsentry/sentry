@@ -97,6 +97,16 @@ const Frame = React.createClass({
     return out;
   },
 
+  shouldPrioritizeModuleName() {
+    switch (this.props.platform) {
+      case 'java':
+      case 'csharp':
+        return true;
+      default:
+        return false;
+    }
+  },
+
   renderDefaultTitle() {
     let data = this.props.data;
     let title = [];
@@ -105,9 +115,15 @@ const Frame = React.createClass({
     // localized correctly
 
     if (defined(data.filename || data.module)) {
+      // prioritize module name for Java as filename is often only basename
+      let pathName = (
+        this.shouldPrioritizeModuleName() ?
+        (data.module || data.filename) :
+        (data.filename || data.module));
+
       title.push((
         <code key="filename" className="filename">
-          <Truncate value={data.filename || data.module} maxLength={100} leftTrim={true} />
+          <Truncate value={pathName} maxLength={100} leftTrim={true} />
         </code>
       ));
       if (isUrl(data.absPath)) {
@@ -126,7 +142,7 @@ const Frame = React.createClass({
     // indicate lack of source information for native setups.  We could
     // TODO(mitsuhiko): only do this for events from native platforms?
     if (defined(data.lineNo) && data.lineNo != 0) {
-      title.push(<span className="in-at" key="no"> at line </span>);
+      title.push(<span className="in-at in-at-line" key="no"> at line </span>);
       title.push((
         <code key="line" className="lineno">
           {defined(data.colNo) ? `${data.lineNo}:${data.colNo}` : data.lineNo}
@@ -213,10 +229,29 @@ const Frame = React.createClass({
     );
   },
 
+  leadsToApp() {
+    return !this.props.data.inApp && this.props.nextFrameInApp;
+  },
+
+  renderLeadHint() {
+    if (this.leadsToApp() && !this.state.isExpanded) {
+      return (
+        <span className="leads-to-app-hint">
+          {'Called from: '}
+        </span>
+      );
+    } else {
+      return null;
+    }
+  },
+
   renderDefaultLine() {
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
-        <div className="title">{this.renderDefaultTitle()}</div>
+        <div className="title">
+          {this.renderLeadHint()}
+          {this.renderDefaultTitle()}
+        </div>
       </StrictClick>
     );
   },
@@ -226,6 +261,7 @@ const Frame = React.createClass({
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
         <div className="title as-table">
+          {this.renderLeadHint()}
           {defined(data.package)
             ? (
               <span className="package" title={data.package}>
@@ -269,9 +305,10 @@ const Frame = React.createClass({
       'frame': true,
       'is-expandable': this.isExpandable(),
       'expanded': this.state.isExpanded,
+      'collapsed': !this.state.isExpanded,
       'system-frame': !data.inApp,
       'frame-errors': data.errors,
-      'leads-to-app': !data.inApp && this.props.nextFrameInApp
+      'leads-to-app': this.leadsToApp(),
     });
     let props = {className: className};
 

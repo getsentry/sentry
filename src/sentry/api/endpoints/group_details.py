@@ -6,15 +6,16 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.app import tsdb
+from sentry.api import client
 from sentry.api.base import DocSection
 from sentry.api.bases import GroupEndpoint
 from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
-from sentry.db.models.query import create_or_update
 from sentry.constants import STATUS_CHOICES
 from sentry.models import (
-    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupSnooze,
-    GroupStatus, GroupTagKey, GroupTagValue, Release, UserReport
+    Activity, Group, GroupAssignee, GroupSeen, GroupSubscription,
+    GroupSubscriptionReason, GroupStatus, GroupTagKey, GroupTagValue, Release,
+    User, UserReport
 )
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
@@ -55,6 +56,7 @@ class GroupSerializer(serializers.Serializer):
         STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
     ))
     isBookmarked = serializers.BooleanField()
+    isSubscribed = serializers.BooleanField()
     hasSeen = serializers.BooleanField()
     assignedTo = UserField()
     snoozeDuration = serializers.IntegerField()
@@ -198,11 +200,17 @@ class GroupDetailsEndpoint(GroupEndpoint):
             group=group,
         )[:100])
 
+        participants = list(User.objects.filter(
+            groupsubscription__is_active=True,
+            groupsubscription__group=group,
+        ))
+
         data.update({
             'firstRelease': first_release,
             'lastRelease': last_release,
             'activity': serialize(activity, request.user),
             'seenBy': seen_by,
+            'participants': serialize(participants, request.user),
             'pluginActions': action_list,
             'userReportCount': UserReport.objects.filter(group=group).count(),
             'tags': sorted(serialize(tags, request.user), key=lambda x: x['name']),
@@ -236,101 +244,57 @@ class GroupDetailsEndpoint(GroupEndpoint):
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
                                      the bookmark flag.
+        :param boolean isSubscribed:
         :auth: required
         """
+        # TODO(dcramer): we need to implement assignedTo in the bulk mutation
+        # endpoint
         serializer = GroupSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         result = serializer.object
-
         acting_user = request.user if request.user.is_authenticated() else None
 
-        # TODO(dcramer): we should allow assignment to anyone who has membership
-        # even if that membership is not SSO linked
         if result.get('assignedTo') and not group.project.member_set.filter(user=result['assignedTo']).exists():
             return Response({'detail': 'Cannot assign to non-team member'}, status=400)
-
-        if result.get('status') == 'resolved':
-            now = timezone.now()
-
-            group.resolved_at = now
-            group.status = GroupStatus.RESOLVED
-
-            happened = Group.objects.filter(
-                id=group.id,
-            ).exclude(status=GroupStatus.RESOLVED).update(
-                status=GroupStatus.RESOLVED,
-                resolved_at=now,
-            )
-
-            if happened:
-                create_or_update(
-                    Activity,
-                    project=group.project,
-                    group=group,
-                    type=Activity.SET_RESOLVED,
-                    user=acting_user,
-                )
-        elif result.get('status'):
-            new_status = STATUS_CHOICES[result['status']]
-
-            if new_status == GroupStatus.MUTED:
-                if result.get('snoozeDuration'):
-                    snooze_until = timezone.now() + timedelta(
-                        minutes=int(result['snoozeDuration']),
-                    )
-                    GroupSnooze.objects.create_or_update(
-                        group=group,
-                        values={
-                            'until': snooze_until,
-                        }
-                    )
-                    result['snoozeUntil'] = snooze_until
-                else:
-                    GroupSnooze.objects.filter(
-                        group=group,
-                    ).delete()
-                    result['snoozeUntil'] = None
-
-            group.update(status=new_status)
-
-        if result.get('hasSeen') and group.project.member_set.filter(user=request.user).exists():
-            instance, created = create_or_update(
-                GroupSeen,
-                group=group,
-                user=request.user,
-                project=group.project,
-                values={
-                    'last_seen': timezone.now(),
-                }
-            )
-        elif result.get('hasSeen') is False:
-            GroupSeen.objects.filter(
-                group=group,
-                user=request.user,
-            ).delete()
-
-        if result.get('isBookmarked'):
-            GroupBookmark.objects.get_or_create(
-                project=group.project,
-                group=group,
-                user=request.user,
-            )
-        elif result.get('isBookmarked') is False:
-            GroupBookmark.objects.filter(
-                group=group,
-                user=request.user,
-            ).delete()
 
         if 'assignedTo' in result:
             if result['assignedTo']:
                 GroupAssignee.objects.assign(group, result['assignedTo'],
                                              acting_user)
+
+                if 'isSubscribed' not in result or result['assignedTo'] != request.user:
+                    GroupSubscription.objects.subscribe(
+                        group=group,
+                        user=result['assignedTo'],
+                        reason=GroupSubscriptionReason.assigned,
+                    )
             else:
                 GroupAssignee.objects.deassign(group, acting_user)
 
-        return Response(serialize(group, request.user))
+        response = client.put(
+            path='/projects/{}/{}/issues/'.format(
+                group.project.organization.slug,
+                group.project.slug,
+            ),
+            params={
+                'id': group.id,
+            },
+            data=request.DATA,
+            request=request,
+        )
+
+        # we need to fetch the object against as the bulk mutation endpoint
+        # only returns a delta, and object mutation returns a complete updated
+        # entity.
+        # TODO(dcramer): we should update the API and have this be an explicit
+        # flag (or remove it entirely) so that delta's are the primary response
+        # for mutation.
+        group = Group.objects.get(id=group.id)
+
+        return Response(serialize(group, request.user),
+                        status=response.status_code)
 
     @attach_scenarios([delete_aggregate_scenario])
     def delete(self, request, group):

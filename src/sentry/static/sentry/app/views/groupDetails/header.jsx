@@ -9,6 +9,7 @@ import GroupSeenBy from './seenBy';
 import IndicatorStore from '../../stores/indicatorStore';
 import ListLink from '../../components/listLink';
 import ShortId from '../../components/shortId';
+import GroupTitle from '../../components/group/title';
 import ProjectState from '../../mixins/projectState';
 import {t} from '../../locale';
 
@@ -73,31 +74,6 @@ const GroupHeader = React.createClass({
     });
   },
 
-  getTitle() {
-    let data = this.props.group;
-    let metadata = data.metadata;
-    switch (data.type) {
-      case 'error':
-        return (
-          <span>
-            <span style={{marginRight: 10}}>{metadata.type}</span>
-            <em style={{fontSize: '80%', color: '#6F7E94', fontWeight: 'normal'}}>{data.culprit}</em><br/>
-          </span>
-        );
-      case 'csp':
-        return (
-          <span>
-            <span style={{marginRight: 10}}>{metadata.directive}</span>
-            <em style={{fontSize: '80%', color: '#6F7E94', fontWeight: 'normal'}}>{metadata.uri}</em><br/>
-          </span>
-        );
-      case 'default':
-        return <span>{metadata.title}</span>;
-      default:
-        return <span>{data.title}</span>;
-    }
-  },
-
   getMessage() {
     let data = this.props.group;
     let metadata = data.metadata;
@@ -107,7 +83,7 @@ const GroupHeader = React.createClass({
       case 'csp':
         return metadata.message;
       default:
-        return '';
+        return this.props.group.culprit || '';
     }
   },
 
@@ -135,16 +111,20 @@ const GroupHeader = React.createClass({
       projectId = this.getProject().slug,
       orgId = this.getOrganization().slug;
 
+    let message = this.getMessage();
+
     return (
       <div className={className}>
         <div className="row">
           <div className="col-sm-6">
             <h3>
-              {this.getTitle()}
+              <GroupTitle data={group} />
             </h3>
             <div className="event-message">
               <span className="error-level">{group.level}</span>
-              <span className="message">{this.getMessage()}</span>
+              {message &&
+                <span className="message">{message}</span>
+              }
               {group.logger &&
                 <span className="event-annotation">
                   <Link to={`/${orgId}/${projectId}/`} query={{query: 'logger:' + group.logger}}>

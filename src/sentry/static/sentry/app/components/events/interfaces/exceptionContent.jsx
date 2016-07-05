@@ -33,6 +33,7 @@ const ExceptionContent = React.createClass({
           {defined(exc.stacktrace) &&
             <StacktraceContent
                 data={this.props.type === 'original' ? exc.stacktrace : exc.rawStacktrace}
+                expandFirstFrame={excIdx === 0}
                 includeSystemFrames={stackView === 'full'}
                 platform={this.props.platform}
                 newestFirst={newestFirst} />
