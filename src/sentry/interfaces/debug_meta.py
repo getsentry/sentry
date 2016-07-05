@@ -25,7 +25,7 @@ def process_apple_image(image):
             'cpu_type': image['cpu_type'],
             'cpu_subtype': image['cpu_subtype'],
             'image_addr': _addr(image['image_addr']),
-            'image_size': _addr(image['image_size']),
+            'image_size': image['image_size'],
             'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
             'name': image['name'],
             'uuid': image['uuid'],
