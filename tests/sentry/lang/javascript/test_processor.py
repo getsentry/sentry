@@ -14,7 +14,9 @@ from sentry.lang.javascript.processor import (
     SourceProcessor, trim_line, UrlResult
 )
 from sentry.lang.javascript.sourcemaps import SourceMap, SourceMapIndex
-from sentry.lang.javascript.errormapping import rewrite_exception
+from sentry.lang.javascript.errormapping import (
+    rewrite_exception, REACT_MAPPING_URL
+)
 from sentry.models import Release
 from sentry.testutils import TestCase
 
@@ -291,7 +293,16 @@ class SourceProcessorTest(TestCase):
 
 class ErrorMappingTest(TestCase):
 
+    @responses.activate
     def test_react_error_mapping_resolving(self):
+        responses.add(responses.GET, REACT_MAPPING_URL, body=r'''
+        {
+          "108": "%s.getChildContext(): key \"%s\" is not defined in childContextTypes.",
+          "109": "%s.render(): A valid React element (or null) must be returned. You may have returned undefined, an array or some other invalid object.",
+          "110": "Stateless function components cannot have refs."
+        }
+        ''', content_type='application/json')
+
         data = {
             'platform': 'javascript',
             'sentry.interfaces.Exception': {
