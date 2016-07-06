@@ -754,7 +754,7 @@ class EventManager(object):
             (tsdb.models.project, project.id),
         ], timestamp=event.datetime)
 
-        tsdb.record_frequency_multi([
+        frequencies = [
             (tsdb.models.frequent_projects_by_organization, {
                 project.organization_id: {
                     project.id: 1,
@@ -764,8 +764,18 @@ class EventManager(object):
                 project.id: {
                     group.id: 1,
                 },
-            }),
-        ], timestamp=event.datetime)
+            })
+        ]
+        if release:
+            frequencies.append(
+                (tsdb.models.frequent_events_by_release, {
+                    group.id: {
+                        release.id: 1,
+                    },
+                })
+            )
+
+        tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
 
         return group, is_new, is_regression, is_sample
 
