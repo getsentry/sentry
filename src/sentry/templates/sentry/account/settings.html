@@ -42,44 +42,32 @@
             </div>
           </div>
           <div class="account-settings-body">
-            {% with settings_form.name as field %}
-                {{ field|as_crispy_field }}
+            {% with form.name as field %}
+              {{ field|as_crispy_field }}
             {% endwith %}
-            {% if settings_form.username %}
-                {% with settings_form.username as field %}
-                    {{ field|as_crispy_field }}
-                {% endwith %}
+            {% if form.username %}
+              {% with form.username as field %}
+                {{ field|as_crispy_field }}
+              {% endwith %}
             {% endif %}
-            {% with settings_form.email as field %}
-                {{ field|as_crispy_field }}
+            {% with form.email as field %}
+              {{ field|as_crispy_field }}
             {% endwith %}
+            {% if form.new_password %}
+              <p class="help-block pull-right" style="margin-top: 0">({% trans "Optional" %})</p>
+              {% with form.new_password as field %}
+                {{ field|as_crispy_field }}
+              {% endwith %}
+            {% endif %}
           </div>
         </div>
 
-        {% if password_form %}
-          <legend>{% trans "Change Password"  %}</legend>
-          {% with password_form.password as field %}
-              {{ field|as_crispy_field }}
-          {% endwith %}
-          {% with password_form.new_password as field %}
+        {% if form.password %}
+          <legend>{% trans "Verification"  %}</legend>
+          {% with form.password as field %}
               {{ field|as_crispy_field }}
           {% endwith %}
         {% endif %}
-
-        {% feature auth:twofactor %}
-          <legend>{% trans "Two-factor authenticaton"  %}</legend>
-          {% if has_2fa %}
-            <p class="well">
-              <a class="btn btn-default pull-right" style="margin-top: -7px; margin-right: -10px" href="{% url "sentry-account-settings-2fa" %}">{% trans "Manage" %}</a>
-              <span class="circle-indicator enabled"></span>{% blocktrans  %}Two-factor authentication is <strong>enabled</strong>.{% endblocktrans  %}
-            </p>
-          {% else %}
-            <p class="well">
-              <a class="btn btn-default pull-right" style="margin-top: -7px; margin-right: -10px" href="{% url "sentry-account-settings-2fa" %}">{% trans "Enable" %}</a>
-              <span class="circle-indicator disabled"></span>{% blocktrans  %}Two-factor authentication is currently <strong>disabled</strong>.{% endblocktrans  %}</p>
-            <p></p>
-          {% endif %}
-        {% endfeature %}
 
         {% if not form.is_readonly %}
           <fieldset class="form-actions">
