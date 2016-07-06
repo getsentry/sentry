@@ -1,4 +1,8 @@
+import pytest
+
 from mock import patch
+
+from symsynd.driver import find_llvm_symbolizer
 
 from sentry.testutils import TestCase
 from sentry.lang.native.plugin import resolve_frame_symbols
@@ -42,6 +46,8 @@ def patched_symbolize_system_frame(self, frame, sdk_info):
         }
 
 
+@pytest.mark.skipif(find_llvm_symbolizer() is None,
+                    reason='llvm-symbolizer is not installed')
 class BasicResolvingFileTest(TestCase):
 
     @patch('sentry.lang.native.symbolizer.Symbolizer.symbolize_app_frame',
