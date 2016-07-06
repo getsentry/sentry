@@ -286,3 +286,36 @@ class SourceProcessorTest(TestCase):
         processor = SourceProcessor(project=self.project)
         result = processor.process(data)
         assert result['culprit'] == 'bar in oops'
+
+    def test_ensure_module_names(self):
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'type': 'Error',
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'filename': 'foo.js',
+                                'lineno': 4,
+                                'colno': 0,
+                                'function': 'thing',
+                            },
+                            {
+                                'abs_path': 'http://example.com/foo/bar.js',
+                                'filename': 'bar.js',
+                                'lineno': 1,
+                                'colno': 0,
+                                'function': 'oops',
+                            },
+                        ],
+                    },
+                }],
+            }
+        }
+
+        processor = SourceProcessor(project=self.project)
+        result = processor.process(data)
+        exc = result['sentry.interfaces.Exception']['values'][0]
+        assert exc['stacktrace']['frames'][1]['module'] == 'foo/bar'
