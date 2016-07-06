@@ -7,7 +7,6 @@ from .manager import *  # NOQA
 
 default_manager = FeatureManager()
 default_manager.add('auth:register')
-default_manager.add('auth:twofactor')
 default_manager.add('organizations:api-keys', OrganizationFeature)
 default_manager.add('organizations:create')
 default_manager.add('organizations:sso', OrganizationFeature)
