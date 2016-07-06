@@ -39,4 +39,8 @@ const UserContextType = React.createClass({
   }
 });
 
+UserContextType.getTitle = function(value) {
+  return 'User';
+};
+
 export default UserContextType;
