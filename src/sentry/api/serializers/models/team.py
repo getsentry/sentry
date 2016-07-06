@@ -36,7 +36,9 @@ class TeamSerializer(Serializer):
         else:
             access_requests = frozenset()
 
-        is_superuser = request.is_superuser() and request.user == user
+        is_superuser = (
+            request and request.is_superuser() and request.user == user
+        )
         result = {}
         for team in item_list:
             is_member = team.id in memberships
