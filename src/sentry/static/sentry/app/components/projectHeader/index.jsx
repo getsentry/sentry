@@ -34,16 +34,16 @@ const ProjectHeader = React.createClass({
                 organization={org}
                 projectId={project.slug}/>
 
-            <div className="pull-right">
-              <a className="btn btn-sm btn-default"><span className="icon-star-solid" /> Star</a>
-              <a className="btn btn-sm btn-default"><span className="icon-signal" /> Subscribe</a>
+              <div className="pull-right project-actions">
+              <a className=""><span className="icon icon-star-solid" /> Star</a>
+              <a className=""><span className="icon icon-signal" /> Subscribe</a>
                 {access.has('project:write') &&
-                  <a className="btn btn-sm btn-default {navSection == 'settings' ? 'active' : ''}" href={urlPrefix + `/${org.slug}/${project.slug}/settings/`}>
-                    <span className="icon-settings" /> {t('Settings')}
+                  <a className="  {navSection == 'settings' ? 'active' : ''}" href={urlPrefix + `/${org.slug}/${project.slug}/settings/`}>
+                    <span className="icon icon-settings" /> {t('Settings')}
                   </a>
                 }
             </div>
-            
+
             <ul className="nav nav-tabs">
               <li className={navSection == 'stream' ? 'active' : ''}>
                 <Link to={`/${org.slug}/${project.slug}/`}>
