@@ -349,6 +349,11 @@ class OtpMixin(object):
             )
 
     def check_otp_counter(self, counter):
+        # OTP uses an internal counter that increments every 30 seconds.
+        # A hash function generates a six digit code based on the counter
+        # and a secret key.  If the generated PIN was used it is marked in
+        # redis as used by remembering which counter it was generated
+        # from.  This is what we check for here.
         cache_key = self._get_otp_counter_cache_key(counter)
         return cache_key is None or cache.get(cache_key) != '1'
 
