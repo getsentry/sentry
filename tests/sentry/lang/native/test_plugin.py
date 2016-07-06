@@ -6,7 +6,7 @@ from sentry.testutils import TestCase
 
 class BasicResolvingIntegrationTest(TestCase):
 
-    @patch('sentry.lang.native.symbolizer.Symbolizer.symbolize_frame')
+    @patch('sentry.lang.native.symbolizer.Symbolizer.symbolize_app_frame')
     def test_frame_resolution(self, symbolize_frame):
         object_name = (
             "/var/containers/Bundle/Application/"
