@@ -77,33 +77,43 @@ class Symbolizer(object):
             rv['uuid'] = img['uuid']
         return rv
 
-    def symbolize_frame(self, frame, sdk_info=None, report_error=None):
-        error = None
+    def symbolize_app_frame(self, frame):
         img = self.images.get(frame['object_addr'])
+        new_frame = self.symsynd_symbolizer.symbolize_frame(
+            frame, silent=False)
+        if new_frame is not None:
+            return self._process_frame(new_frame, img)
 
+    def symbolize_system_frame(self, frame, sdk_info):
+        img = self.images.get(frame['object_addr'])
+        if img is None:
+            return
+
+        symbol = find_system_symbol(img, frame['instruction_addr'],
+                                    sdk_info)
+        if symbol is None:
+            return
+
+        symbol = demangle_symbol(symbol) or symbol
+        rv = dict(frame, symbol_name=symbol, filename=None,
+                  line=0, column=0, uuid=img['uuid'],
+                  object_name=img['name'])
+        return self._process_frame(rv, img)
+
+    def symbolize_frame(self, frame, sdk_info=None, report_error=None):
         # Step one: try to symbolize with cached dsym files.
         try:
-            new_frame = self.symsynd_symbolizer.symbolize_frame(
-                frame, silent=False)
-            if new_frame is not None:
-                return self._process_frame(new_frame, img)
+            rv = self.symbolize_app_frame(frame)
+            if rv is not None:
+                return rv
         except SymbolicationError as e:
-            error = e
+            if report_error is not None:
+                report_error(e)
 
         # If that does not work, look up system symbols.
-        if img is not None:
-            symbol = find_system_symbol(img, frame['instruction_addr'],
-                                        sdk_info)
-            if symbol is not None:
-                symbol = demangle_symbol(symbol) or symbol
-                rv = dict(frame, symbol_name=symbol, filename=None,
-                          line=0, column=0, uuid=img['uuid'],
-                          object_name=img['name'])
-                return self._process_frame(rv, img)
-
-        if report_error is not None and error is not None:
-            report_error(error)
-        return self._process_frame(frame, img)
+        rv = self.symbolize_system_frame(frame, sdk_info)
+        if rv is not None:
+            return rv
 
     def symbolize_backtrace(self, backtrace, sdk_info=None):
         rv = []
