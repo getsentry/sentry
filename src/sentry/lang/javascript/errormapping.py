@@ -12,6 +12,10 @@ from sentry import http
 logger = logging.getLogger(__name__)
 
 
+REACT_MAPPING_URL = ('https://raw.githubusercontent.com/facebook/'
+                     'react/master/scripts/error-codes/codes.json')
+
+
 error_processors = {}
 
 
@@ -55,8 +59,7 @@ def minified_error(vendor, mapping_url, regex):
 
 @minified_error(
     vendor='react',
-    mapping_url=('https://raw.githubusercontent.com/facebook/'
-                 'react/master/scripts/error-codes/codes.json'),
+    mapping_url=REACT_MAPPING_URL,
     regex=r'Minified React error #(\d+); visit https?://[^?]+\?(\S+)'
 )
 def process_react_exception(exc, match, mapping):
