@@ -61,6 +61,8 @@ class TSDBModel(Enum):
     frequent_projects_by_organization = 403
     # number of issues seen for a project, by project
     frequent_issues_by_project = 404
+    # number of events seen for a release, by issue
+    frequent_releases_by_groups = 406
 
 
 class BaseTSDB(object):
