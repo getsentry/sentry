@@ -18,7 +18,7 @@ export function isStacktraceNewestFirst() {
       return false;
     case 'default': // is "default" a valid value? or bad case statement
     default:
-      return false;
+      return true;
   }
 }
 
