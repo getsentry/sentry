@@ -7,7 +7,6 @@ import {defined} from '../../../utils';
 const ContextBlock = React.createClass({
   propTypes: {
     alias: React.PropTypes.string.isRequired,
-    title: React.PropTypes.string,
     data: React.PropTypes.object.isRequired,
     knownData: React.PropTypes.array,
   },
@@ -17,9 +16,18 @@ const ContextBlock = React.createClass({
     let className = `context-block context-block-${this.props.data.type}`;
 
     (this.props.knownData || []).forEach(([key, value]) => {
-      if (defined(value)) {
-        data.push([key, value]);
+      let allowSkip = false;
+      if (key[0] === '?') {
+        allowSkip = true;
+        key = key.substr(1);
       }
+      if (!defined(value)) {
+        if (allowSkip) {
+          return;
+        }
+        value = 'n/a';
+      }
+      data.push([key, value]);
     });
 
     let extraData = [];

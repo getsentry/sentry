@@ -79,7 +79,11 @@ class Symbolizer(object):
     def _process_frame(self, frame, img):
         rv = trim_frame(frame)
         if img is not None:
-            rv['object_name'] = img['name']
+            # Only set the object name if we "upgrade" it from a filename to
+            # full path.
+            if 'object_name' not in rv or \
+               ('/' not in rv['object_name'] and '/' in img['name']):
+                rv['object_name'] = img['name']
             rv['uuid'] = img['uuid']
         return rv
 

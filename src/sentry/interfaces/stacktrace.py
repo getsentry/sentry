@@ -23,6 +23,7 @@ from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
+from sentry.constants import VALID_PLATFORMS
 
 
 _ruby_anon_func = re.compile(r'_\d{2,}')
@@ -240,6 +241,10 @@ class Frame(Interface):
         if function == '?':
             function = None
 
+        platform = data.get('platform')
+        if platform not in VALID_PLATFORMS:
+            platform = None
+
         context_locals = data.get('vars') or {}
         if isinstance(context_locals, (list, tuple)):
             context_locals = dict(enumerate(context_locals))
@@ -279,9 +284,11 @@ class Frame(Interface):
         kwargs = {
             'abs_path': trim(abs_path, 256),
             'filename': trim(filename, 256),
+            'platform': platform,
             'module': trim(module, 256),
             'function': trim(function, 256),
             'package': trim(data.get('package'), 256),
+            'package_addr': trim(data.get('package_addr'), 16),
             'symbol_addr': trim(data.get('symbol_addr'), 16),
             'instruction_addr': trim(data.get('instruction_addr'), 16),
             'instruction_offset': instruction_offset,
@@ -366,6 +373,7 @@ class Frame(Interface):
             'absPath': self.abs_path,
             'module': self.module,
             'package': self.package,
+            'platform': self.platform,
             'instructionAddr': self.instruction_addr,
             'instructionOffset': self.instruction_offset,
             'symbolAddr': self.symbol_addr,
@@ -446,6 +454,11 @@ class Frame(Interface):
         }).strip('\n')
 
     def get_culprit_string(self, platform=None):
+        # If this frame has a platform, we use it instead of the one that
+        # was passed in (as that one comes from the exception which might
+        # not necessarily be the same platform).
+        if self.platform is not None:
+            platform = self.platform
         if platform in ('objc', 'cocoa'):
             return '%s (%s)' % (
                 self.function or '?',

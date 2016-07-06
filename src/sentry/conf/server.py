@@ -720,6 +720,7 @@ SENTRY_INTERFACES = {
     'applecrashreport': 'sentry.interfaces.applecrash.AppleCrashReport',
     'breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
     'contexts': 'sentry.interfaces.contexts.Contexts',
+    'threads': 'sentry.interfaces.threads.Threads',
     'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
     'sentry.interfaces.Message': 'sentry.interfaces.message.Message',
     'sentry.interfaces.Stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
@@ -731,6 +732,7 @@ SENTRY_INTERFACES = {
     'sentry.interfaces.AppleCrashReport': 'sentry.interfaces.applecrash.AppleCrashReport',
     'sentry.interfaces.Breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
     'sentry.interfaces.Contexts': 'sentry.interfaces.contexts.Contexts',
+    'sentry.interfaces.Threads': 'sentry.interfaces.threads.Threads',
 }
 
 SENTRY_EMAIL_BACKEND_ALIASES = {
