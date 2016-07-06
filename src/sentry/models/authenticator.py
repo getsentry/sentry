@@ -344,7 +344,7 @@ class OtpMixin(object):
     def _get_otp_counter_cache_key(self, counter):
         if self.authenticator is not None:
             return 'used-otp-counters:%s:%s' % (
-                self.authenticator.user.id,
+                self.authenticator.user_id,
                 counter,
             )
 
