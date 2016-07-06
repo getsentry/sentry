@@ -76,3 +76,22 @@ class GetParticipantsTest(TestCase):
         users = GroupSubscription.objects.get_participants(group=group)
 
         assert users == [user]
+
+    def test_excludes_project_participating_only(self):
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        project = self.create_project(team=team, organization=org)
+        group = self.create_group(project=project)
+        user = self.create_user('foo@example.com')
+        self.create_member(user=user, organization=org, teams=[team])
+
+        UserOption.objects.set_value(
+            user=user,
+            project=project,
+            key='workflow:notifications',
+            value=UserOptionValue.participating_only,
+        )
+
+        users = GroupSubscription.objects.get_participants(group=group)
+
+        assert users == []

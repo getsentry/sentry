@@ -37,13 +37,21 @@
 
         {{ settings_form.workflow_notifications|as_crispy_field }}
 
+        <p class="help-text help-block">Note: You'll always receive notifications if you're explicitly participating on an issue.</p>
+
         <hr />
 
         <h4>{% trans "Alerts" %}</h4>
 
-        <p>Alerts are generated based on a project's rules, defined in <strong>[Project] &raquo; Settings</strong>.</p>
+        <p>Alerts are generated based on a project's rules, defined in <strong>[Project] &raquo; Settings &raquo; Rules</strong>.</p>
 
         {{ settings_form.subscribe_by_default|as_crispy_field }}
+
+        <hr />
+
+        <h4>{% trans "Fine Tuning" %}</h4>
+
+        <p>We understand that Sentry's use cases are wide reaching, and thus you may have some projects that function differently than others. Use the settings below to fine tune notification settings per-project.</p>
 
         {% for project, form in project_forms %}
             {{ form|as_crispy_errors }}
@@ -60,52 +68,50 @@
                 <table class="table table-bordered table-striped" style="margin-bottom: 20px">
                     <thead>
                         <tr>
-                          <th style="width:31px;"><input type="checkbox" data-toggle="alerts" /></th>
                             <th>{% trans "Project" %}</th>
+                            <th style="width:50px;text-align:center">
+                              <a data-toggle="alert">Alerts</a>
+                            </th>
+                            <th style="width:50px;text-align:center">
+                              <a data-toggle="workflow">Workflow</a>
+                            </th>
                             <th style="width:150px;overflow:hidden;text-align:right">
-                                {% trans "Email Address" %}
+                              {% trans "Email Address" %}
                             </th>
                         </tr>
                     </thead>
                     <tbody>
             {% endifchanged %}
             <tr>
-              <td>{{ form.alert }}</td>
-                <td>
-                    <label for="{{ form.alert.auto_id }}">{{ project.organization.slug}} / {{ project.slug }}</label>
-                </td>
-                <td style="text-align:right">
-                    <a href="javascript:void(0)" data-target="{{ form.email.auto_id }}" data-toggle="change-target-value">
-                        {% if form.email.value %}{{ form.email.value }}{% else %}<em>Default</em>{% endif %}
-                    </a>
-                    {{ form.email }}
-                </td>
+              <td>
+                {{ project.organization.slug}} / {{ project.slug }}
+              </td>
+              <td style="text-align:center">{{ form.alert }}</td>
+              <td style="text-align:center">{{ form.workflow }}</td>
+              <td style="text-align:right">
+                <a href="javascript:void(0)" data-target="{{ form.email.auto_id }}" data-toggle="change-target-value">
+                  {% if form.email.value %}{{ form.email.value }}{% else %}<em>Default</em>{% endif %}
+                </a>
+                {{ form.email }}
+              </td>
             </tr>
         {% endfor %}
         </tbody></table>
 
-        <p><small>{% blocktrans %}Note: You will never receive notifications if a project has them disabled (via the Project settings){% endblocktrans %}</small></p>
-
         {% for form in ext_forms %}
-            <fieldset>
-                <h4>{{ form.get_title }}</h4>
-                {% with form.get_description as description %}
-                    {% if description %}
-                        {{ description|linebreaks }}
-                    {% endif %}
-                {% endwith %}
-                {% include "sentry/partial/form_base.html" %}
-            </fieldset>
+            <h4>{{ form.get_title }}</h4>
+            {% with form.get_description as description %}
+                {% if description %}
+                    {{ description|linebreaks }}
+                {% endif %}
+            {% endwith %}
+            {% include "sentry/partial/form_base.html" %}
         {% endfor %}
 
         <fieldset class="form-actions">
             <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
         </fieldset>
     </form>
-    <style>
-    #div_id_workflow_notifications label { display:none; }
-    #div_id_subscribe_by_default label { display:none; }
-    </style>
     <script>
     $(function(){
       $('form a[data-toggle="change-target-value"]').click(function(){
@@ -119,11 +125,32 @@
           $this.html('<em>Default</em>');
         }
       });
-      $('form input[data-toggle="alerts"]').click(function(e){
-        $(this).parents('table')
+
+      function findCheckboxes(parent, match) {
+        return $(parent).parents('table')
           .find('tbody input[type="checkbox"]')
-          .prop('checked', e.target.checked);
-      });
+          .filter(function() {
+            return this.name.indexOf(match) !== -1;
+          });
+      }
+
+      function setupChecker(pattern) {
+        $('form a[data-toggle="' + pattern + '"]').click(function(e){
+          var checked = $(this).data('checked');
+          findCheckboxes(this, pattern).prop('checked', !checked);
+          $(this).data('checked', !checked);
+        }).each(function() {
+          var boxes = findCheckboxes(this, pattern);
+          var checkedBoxes = boxes.filter(function(){
+            return $(this).attr('checked');
+          });
+          var defaultChecked = (boxes.length === checkedBoxes.length);
+          $(this).data('checked', defaultChecked);
+        });
+      }
+
+      setupChecker('alert');
+      setupChecker('workflow');
     });
     </script>
 {% endblock %}
