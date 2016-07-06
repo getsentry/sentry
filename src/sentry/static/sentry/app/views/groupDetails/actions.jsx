@@ -7,6 +7,7 @@ import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import TooltipMixin from '../../mixins/tooltip';
+import {defined} from '../../utils';
 import {t} from '../../locale';
 
 const Snooze = {
@@ -95,7 +96,7 @@ const GroupActions = React.createClass({
       snoozeClassName += ' active';
     }
 
-    let hasRelease = group.tags.filter(item => item.key === 'release').length;
+    let hasRelease = defined(group.lastRelease);
     let releaseTrackingUrl = '/' + this.getOrganization().slug + '/' + this.getProject().slug + '/settings/release-tracking/';
 
     return (
