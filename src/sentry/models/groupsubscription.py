@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -61,6 +62,8 @@ class GroupSubscriptionManager(BaseManager):
             user__in=users,
             key='workflow:notifications',
             value=UserOptionValue.participating_only,
+        ).filter(
+            Q(project__isnull=True) | Q(project=group.project)
         ).values_list('user', flat=True))
 
         if participating_only:

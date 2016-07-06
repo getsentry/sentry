@@ -19,7 +19,7 @@ from django.utils.translation import ugettext_lazy as _
 from six.moves import range
 
 from sentry.constants import LANGUAGES
-from sentry.models import UserOption, User
+from sentry.models import User, UserOption, UserOptionValue
 from sentry.utils.auth import find_users
 from sentry.web.forms.fields import ReadOnlyTextField
 
@@ -183,20 +183,14 @@ class ChangePasswordRecoverForm(forms.Form):
 
 class NotificationSettingsForm(forms.Form):
     alert_email = forms.EmailField(label=_('Email'), help_text=_('Designate an alternative email address to send email notifications to.'), required=False)
-    subscribe_by_default = forms.ChoiceField(
-        label=_('Alerts'),
-        choices=(
-            ('1', _('Automatically subscribe to alerts for new projects')),
-            ('0', _('Do not subscribe to alerts for new projects')),
-        ), required=False,
-        widget=forms.Select(attrs={'class': 'input-xxlarge'}))
-    workflow_notifications = forms.ChoiceField(
-        label=_('Workflow Notifications'),
-        choices=(
-            ('0', _('Receive updates for all issues by default')),
-            ('1', _('Only notify me when I\'m participating or mentioned on an issue')),
-        ), required=False,
-        widget=forms.Select(attrs={'class': 'input-xxlarge'}))
+    subscribe_by_default = forms.BooleanField(
+        label=_('Subscribe to alerts for projects by default'),
+        required=False,
+    )
+    workflow_notifications = forms.BooleanField(
+        label=_('Receive updates for all issues by default'),
+        required=False,
+    )
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
@@ -207,17 +201,22 @@ class NotificationSettingsForm(forms.Form):
             key='alert_email',
             default=user.email,
         )
-        self.fields['subscribe_by_default'].initial = UserOption.objects.get_value(
-            user=self.user,
-            project=None,
-            key='subscribe_by_default',
-            default='1',
+        self.fields['subscribe_by_default'].initial = (
+            UserOption.objects.get_value(
+                user=self.user,
+                project=None,
+                key='subscribe_by_default',
+                default='1',
+            ) == '1'
         )
-        self.fields['workflow_notifications'].initial = UserOption.objects.get_value(
-            user=self.user,
-            project=None,
-            key='workflow:notifications',
-            default='0',
+
+        self.fields['workflow_notifications'].initial = (
+            UserOption.objects.get_value(
+                user=self.user,
+                project=None,
+                key='workflow:notifications',
+                default='0',
+            ) == '0'
         )
 
     def get_title(self):
@@ -230,18 +229,28 @@ class NotificationSettingsForm(forms.Form):
             key='alert_email',
             value=self.cleaned_data['alert_email'],
         )
+
         UserOption.objects.set_value(
             user=self.user,
             project=None,
             key='subscribe_by_default',
-            value=self.cleaned_data['subscribe_by_default'],
+            value='1' if self.cleaned_data['subscribe_by_default'] else '0',
         )
-        UserOption.objects.set_value(
-            user=self.user,
-            project=None,
-            key='workflow:notifications',
-            value=self.cleaned_data['workflow_notifications'],
-        )
+
+        if self.cleaned_data.get('workflow_notifications') is True:
+            UserOption.objects.set_value(
+                user=self.user,
+                project=None,
+                key='workflow:notifications',
+                value='0',
+            )
+        else:
+            UserOption.objects.set_value(
+                user=self.user,
+                project=None,
+                key='workflow:notifications',
+                value=UserOptionValue.participating_only,
+            )
 
 
 class ChangePasswordForm(forms.Form):
@@ -403,6 +412,7 @@ class AppearanceSettingsForm(forms.Form):
 
 class ProjectEmailOptionsForm(forms.Form):
     alert = forms.BooleanField(required=False)
+    workflow = forms.BooleanField(required=False)
     email = forms.EmailField(required=False, widget=forms.HiddenInput())
 
     def __init__(self, project, user, *args, **kwargs):
@@ -412,8 +422,15 @@ class ProjectEmailOptionsForm(forms.Form):
         super(ProjectEmailOptionsForm, self).__init__(*args, **kwargs)
 
         has_alerts = project.is_user_subscribed_to_mail_alerts(user)
+        workflow_setting = UserOption.objects.get_value(
+            user, project, 'workflow:notifications', '0')
+        if workflow_setting == UserOptionValue.participating_only:
+            has_workflow = False
+        else:
+            has_workflow = True
 
         self.fields['alert'].initial = has_alerts
+        self.fields['workflow'].initial = has_workflow
         self.fields['email'].initial = UserOption.objects.get_value(
             user, project, 'mail:email', None)
 
@@ -422,6 +439,17 @@ class ProjectEmailOptionsForm(forms.Form):
             self.user, self.project, 'mail:alert',
             int(self.cleaned_data['alert']),
         )
+
+        if self.cleaned_data.get('workflow') is True:
+            UserOption.objects.set_value(
+                self.user, self.project, 'workflow:notifications',
+                '0',
+            )
+        elif self.cleaned_data.get('workflow') is False:
+            UserOption.objects.set_value(
+                self.user, self.project, 'workflow:notifications',
+                UserOptionValue.participating_only,
+            )
 
         if self.cleaned_data['email']:
             UserOption.objects.set_value(
