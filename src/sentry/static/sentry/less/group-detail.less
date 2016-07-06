@@ -1087,6 +1087,10 @@ div.traceback > ul {
         font-weight: bold;
       }
 
+      .informal {
+        font-style: italic;
+      }
+
       a.annotation {
         &.trigger-popover {
           cursor: pointer;
@@ -1100,6 +1104,10 @@ div.traceback > ul {
 
     &.system-frame .title {
       background: @white-dark;
+    }
+
+    &.missing-frame .title {
+      background: lighten(@red-light, 30);
     }
 
     .title.as-table {
@@ -1729,6 +1737,19 @@ pre.val, span.val {
 
   &.val-toggle-open > a.val-toggle-link:hover {
     background: @gray;
+  }
+}
+
+/**
+* Exceptions and Threads
+* ============================================================================
+*/
+.box .thread {
+  .exception {
+    margin-top: 10px;
+  }
+  .traceback.no-exception {
+    margin-top: 0;
   }
 }
 
