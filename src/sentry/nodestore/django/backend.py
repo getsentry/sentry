@@ -30,10 +30,13 @@ class DjangoNodeStorage(NodeStorage):
             return None
 
     def get_multi(self, id_list):
-        return dict(
-            (n.id, n.data)
+        return {
+            n.id: n.data
             for n in Node.objects.filter(id__in=id_list)
-        )
+        }
+
+    def delete_multi(self, id_list):
+        Node.objects.filter(id__in=id_list).delete()
 
     def set(self, id, data):
         create_or_update(

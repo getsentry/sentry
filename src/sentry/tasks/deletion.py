@@ -238,8 +238,9 @@ def delete_events(relation, limit=100, logger=None):
     has_more = bool(result_set)
     if has_more:
         # delete objects from nodestore first
-        node_ids = set(r.data.id for r in result_set)
-        nodestore.delete_multi(node_ids)
+        node_ids = set(r.data.id for r in result_set if r.data.id)
+        if node_ids:
+            nodestore.delete_multi(node_ids)
 
         event_ids = [r.id for r in result_set]
 
