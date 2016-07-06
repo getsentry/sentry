@@ -136,10 +136,22 @@ class BasicResolvingIntegrationTest(TestCase):
 
         assert frames[0].function == '<redacted>'
         assert frames[0].instruction_addr == '0x002ac28b8'
+        assert not frames[0].in_app
 
         assert frames[1].function == 'real_main'
+        assert frames[1].filename == 'Foo.swift'
         assert frames[1].lineno == 42
         assert frames[1].colno == 23
         assert frames[1].package == object_name
         assert frames[1].instruction_addr == '0x100026330'
         assert frames[1].instruction_offset is None
+        assert frames[1].in_app
+
+        assert frames[2].platform == 'javascript'
+        assert frames[2].abs_path == '/scripts/views.js'
+        assert frames[2].function == 'merge'
+        assert frames[2].lineno == 268
+        assert frames[2].colno == 16
+        assert frames[2].filename == '../../sentry/scripts/views.js'
+        assert frames[2].instruction_offset is None
+        assert frames[2].in_app
