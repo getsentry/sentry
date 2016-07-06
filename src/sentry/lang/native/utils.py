@@ -20,6 +20,8 @@ def find_apple_crash_report_referenced_images(binary_images, threads):
         image_map[image['image_addr']] = image['uuid']
     to_load = set()
     for thread in threads:
+        if 'backtrace' not in thread:
+            continue
         for frame in thread['backtrace']['contents']:
             img_uuid = image_map.get(frame['object_addr'])
             if img_uuid is not None:
