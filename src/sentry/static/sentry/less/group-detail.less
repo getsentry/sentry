@@ -69,7 +69,7 @@
   }
 
   .count span {
-    font-size: 24px;
+    font-size: 22px;
     display: block;
     line-height: 1.2;
   }
@@ -1018,7 +1018,9 @@
 .traceback {
   list-style-type: none;
   padding-left: 0;
-  margin: 0 -20px;
+  border: 1px solid @trim-dark;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0, .04);
 }
 
 // TODO(dcramer): we probably shouldnt overload these
@@ -1028,9 +1030,23 @@ pre.traceback {
 
 div.traceback > ul {
   padding: 0;
+  margin-bottom: 0;
 
-  &:last-child {
-    margin-bottom: 0;
+  li {
+    &:first-child {
+      border-top: none;
+
+      .title {
+        border-top: none;
+        border-top-right-radius: 3px;
+        border-top-left-radius: 3px;
+      }
+    }
+
+    &:last-child .title {
+      border-bottom-right-radius: 3px;
+      border-bottom-left-radius: 3px;
+    }
   }
 }
 
@@ -1806,8 +1822,10 @@ pre.val, span.val {
 
 ul.crumbs {
   .list-unstyled;
-  border: 1px solid @trim;
+  border: 1px solid @trim-dark;
   border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0, .04);
+  margin-bottom: 0;
 
   li {
     margin: 0;
@@ -1830,9 +1848,15 @@ ul.crumbs {
       position: absolute;
     }
 
+    &:first-child {
+      border-top-right-radius: 2px;
+      border-top-left-radius: 2px;
+    }
+
     &:last-child {
       border-bottom: 0;
-      border-radius: 0 0 2px 2px;
+      border-bottom-right-radius: 2px;
+      border-bottom-left-radius: 2px;
     }
 
     h5 {
@@ -1856,7 +1880,7 @@ ul.crumbs {
       display: block;
       .square(26px);
       background: #fff;
-      border: 1px solid @gray;
+      border: 1px solid @gray-light;
       box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
       border-radius: 32px;
       position: absolute;
