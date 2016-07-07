@@ -28,7 +28,7 @@ const CrashHeader = React.createClass({
     return (
       (stacktrace && stacktrace.hasSystemFrames) ||
       (thread && thread.stacktrace && thread.stacktrace.hasSystemFrames) ||
-      (exception && exception.values.find(x => !!x.stacktrace.hasSystemFrames))
+      (exception && exception.values.find(x => !!(x.stacktrace && x.stacktrace.hasSystemFrames)))
     );
   },
 
