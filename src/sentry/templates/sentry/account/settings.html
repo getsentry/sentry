@@ -10,10 +10,7 @@
 {% block main %}
     <form action="" method="post">
         {% csrf_token %}
-        {{ settings_form|as_crispy_errors }}
-        {% if password_form %}
-          {{ password_form|as_crispy_errors }}
-        {% endif %}
+        {{ form|as_crispy_errors }}
 
         {% if request.user.has_unverified_emails %}
           <div class="alert alert-warning alert-block">
