@@ -1,6 +1,7 @@
 import re
 import cgi
 import json
+import time
 import logging
 
 from django.conf import settings
@@ -12,11 +13,19 @@ from sentry import http
 logger = logging.getLogger(__name__)
 
 
+SOFT_TIMEOUT = 300
+HARD_TIMEOUT = 3600
+
+
 REACT_MAPPING_URL = ('https://raw.githubusercontent.com/facebook/'
                      'react/master/scripts/error-codes/codes.json')
 
 
 error_processors = {}
+
+
+def is_expired(ts):
+    return ts > time.time() - SOFT_TIMEOUT
 
 
 class Processor(object):
@@ -30,17 +39,24 @@ class Processor(object):
     def load_mapping(self):
         key = 'javascript.errormapping:%s' % self.vendor
         mapping = cache.get(key)
+        cached_rv = None
         if mapping is not None:
-            return json.loads(mapping)
+            ts, cached_rv = json.loads(mapping)
+            if not is_expired(ts):
+                return cached_rv
 
-        http_session = http.build_session()
-        response = http_session.get(self.mapping_url,
-            allow_redirects=True,
-            verify=False,
-            timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
-        )
-        data = response.json()
-        cache.set(key, json.dumps(data), 300)
+        try:
+            http_session = http.build_session()
+            response = http_session.get(self.mapping_url,
+                allow_redirects=True,
+                timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
+            )
+            data = response.json()
+            cache.set(key, json.dumps([time.time(), data]), HARD_TIMEOUT)
+        except Exception:
+            if cached_rv is None:
+                raise
+            return cached_rv
         return data
 
     def try_process(self, exc):

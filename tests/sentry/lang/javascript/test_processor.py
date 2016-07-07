@@ -335,42 +335,43 @@ class ErrorMappingTest(TestCase):
         }
         ''', content_type='application/json')
 
-        data = {
-            'platform': 'javascript',
-            'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'InvariantViolation',
-                    'value': (
-                        'Minified React error #109; visit http://facebook'
-                        '.github.io/react/docs/error-decoder.html?invariant='
-                        '109&args[]=Component for the full message or use '
-                        'the non-minified dev environment for full errors '
-                        'and additional helpful warnings.'
-                    ),
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/foo.js',
-                                'filename': 'foo.js',
-                                'lineno': 4,
-                                'colno': 0,
-                            },
-                            {
-                                'abs_path': 'http://example.com/foo.js',
-                                'filename': 'foo.js',
-                                'lineno': 1,
-                                'colno': 0,
-                            },
-                        ],
-                    },
-                }],
+        for x in xrange(3):
+            data = {
+                'platform': 'javascript',
+                'sentry.interfaces.Exception': {
+                    'values': [{
+                        'type': 'InvariantViolation',
+                        'value': (
+                            'Minified React error #109; visit http://facebook'
+                            '.github.io/react/docs/error-decoder.html?invariant='
+                            '109&args[]=Component for the full message or use '
+                            'the non-minified dev environment for full errors '
+                            'and additional helpful warnings.'
+                        ),
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/foo.js',
+                                    'filename': 'foo.js',
+                                    'lineno': 4,
+                                    'colno': 0,
+                                },
+                                {
+                                    'abs_path': 'http://example.com/foo.js',
+                                    'filename': 'foo.js',
+                                    'lineno': 1,
+                                    'colno': 0,
+                                },
+                            ],
+                        },
+                    }],
+                }
             }
-        }
 
-        assert rewrite_exception(data)
+            assert rewrite_exception(data)
 
-        assert data['sentry.interfaces.Exception']['values'][0]['value'] == (
-            'Component.render(): A valid React element (or null) must be '
-            'returned. You may have returned undefined, an array or '
-            'some other invalid object.'
-        )
+            assert data['sentry.interfaces.Exception']['values'][0]['value'] == (
+                'Component.render(): A valid React element (or null) must be '
+                'returned. You may have returned undefined, an array or '
+                'some other invalid object.'
+            )
