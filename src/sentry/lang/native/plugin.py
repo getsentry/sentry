@@ -281,7 +281,7 @@ def preprocess_apple_crash_event(data):
     threads = {}
     raw_threads = {}
     for raw_thread in crash['threads']:
-        if raw_thread['crashed']:
+        if raw_thread['crashed'] and raw_thread.get('backtrace'):
             crashed_thread = raw_thread
         raw_threads[raw_thread['index']] = raw_thread
         threads[raw_thread['index']] = {
@@ -328,7 +328,7 @@ def preprocess_apple_crash_event(data):
             if thread['stacktrace'] is None:
                 continue
             raw_thread = raw_threads.get(thread['id'])
-            if raw_threads is None:
+            if raw_thread is None or not raw_thread.get('backtrace'):
                 continue
             bt, errors = sym.symbolize_backtrace(
                 raw_thread['backtrace']['contents'], sdk_info)
