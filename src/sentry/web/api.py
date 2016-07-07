@@ -489,6 +489,12 @@ class CspReportView(StoreView):
             metrics.incr('events.blacklisted')
             raise APIForbidden('Rejected CSP report')
 
+        # Attach on collected meta data. This data obviously isn't a part
+        # of the spec, but we need to append to the report sentry specific things.
+        report['_meta'] = {
+            'release': request.GET.get('sentry_release'),
+        }
+
         response_or_event_id = self.process(
             request,
             project=project,
