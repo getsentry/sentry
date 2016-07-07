@@ -1518,6 +1518,7 @@ ul.faces {
     border-radius: 3px;
     box-shadow: 0 1px 2px rgba(0,0,0, .02);
     line-height: 1.2;
+    max-width: 100%;
 
     &.true .value {
       background: #FBFEFA;
@@ -1540,6 +1541,8 @@ ul.faces {
 
   .key, .value {
     padding: 4px 8px;
+    min-width: 0;
+    white-space: nowrap;
   }
 
   .value {
@@ -1547,6 +1550,21 @@ ul.faces {
     border-left: 1px solid @trim;
     border-radius: 0 3px 3px 0;
     font-family: Monaco, monospace;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    > a {
+      max-width: 100%;
+      .truncate;
+      display: inline-block;
+      line-height: 1;
+      vertical-align: text-bottom;
+    }
+
+    .external-icon {
+      display: inline;
+    }
   }
 }
 
