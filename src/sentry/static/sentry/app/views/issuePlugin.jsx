@@ -19,6 +19,7 @@ const IssuePlugin = React.createClass({
       createIssue: true,
       loading: true,
       error: false,
+      errorDetails: null,
       createFormData: {},
       linkFormData: {}
     };
@@ -55,9 +56,6 @@ const IssuePlugin = React.createClass({
 
     this.api.request(this.getPluginCreateEndpoint(), {
       success: (data) => {
-        if (!this.isMounted()) {
-          return;
-        }
         let createFormData = {};
         data.forEach((field) => {
           createFormData[field.name] = field.default;
@@ -70,21 +68,19 @@ const IssuePlugin = React.createClass({
         });
       },
       error: (error) => {
-        if (!this.isMounted()) {
-          return;
-        }
-        this.setState({
+        let state = {
           error: true,
           loading: false
-        });
+        };
+        if (error.status === 400 && error.responseJSON) {
+          state.errorDetails = error.responseJSON;
+        }
+        this.setState(state);
       }
     });
 
     this.api.request(this.getPluginLinkEndpoint(), {
       success: (data) => {
-        if (!this.isMounted()) {
-          return;
-        }
         let linkFormData = {};
         data.forEach((field) => {
           linkFormData[field.name] = field.default;
@@ -97,13 +93,14 @@ const IssuePlugin = React.createClass({
         });
       },
       error: (error) => {
-        if (!this.isMounted()) {
-          return;
-        }
-        this.setState({
+        let state = {
           error: true,
           loading: false
-        });
+        };
+        if (error.status === 400 && error.responseJSON) {
+          state.errorDetails = error.responseJSON;
+        }
+        this.setState(state);
       }
     });
   },
@@ -229,10 +226,28 @@ const IssuePlugin = React.createClass({
     );
   },
 
+  renderError() {
+    let error = this.state.errorDetails;
+    if (!error) {
+      return;
+    }
+    if (error.error_type === 'auth') {
+      return (
+        <div className="alert alert-block">
+          <p>You still need to <a href={error.auth_url}>associate an identity</a>
+           {' with' + error.title + 'before you can create issues with this service.'}</p>
+        </div>
+      );
+    }
+  },
+
   render() {
-    // TODO: does this need to work with multiple plugins?
+    // TODO: does this need to work with multiple plugins? --> yes, probably
     let group = this.getGroup();
     let plugin = group.pluginIssues && group.pluginIssues[0];
+    if (this.state.errorDetails) {
+      return this.renderError();
+    }
     if (plugin.issue) {
       return (
         <div>
