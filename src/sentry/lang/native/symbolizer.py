@@ -133,5 +133,5 @@ class Symbolizer(object):
 
         for idx, frm in enumerate(backtrace):
             rv.append(self.symbolize_frame(
-                frm, sdk_info, report_error=report_error))
+                frm, sdk_info, report_error=report_error) or frm)
         return rv, errors
