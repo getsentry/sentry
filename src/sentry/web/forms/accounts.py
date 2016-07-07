@@ -439,5 +439,6 @@ class TwoFactorForm(forms.Form):
     otp = forms.CharField(
         label=_('One-time password'), max_length=20, widget=forms.TextInput(
             attrs={'placeholder': _('Code from authenticator'),
+                   'autofocus': True,
         }),
     )
