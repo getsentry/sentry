@@ -1,9 +1,13 @@
 from rest_framework.response import Response
 from social_auth.models import UserSocialAuth
 
+from django.conf import settings
+from django.core.urlresolvers import reverse
+
 from sentry.models import Activity, Event, GroupMeta
 from sentry.plugins import Plugin
 from sentry.plugins.base import JSONResponse
+from sentry.plugins.base.configuration import default_issue_plugin_config
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -81,12 +85,6 @@ class IssueTrackingPlugin2(Plugin):
         """
         return 'Unlink %s Issue' % self.get_title()
 
-    # def get_new_issue_form(self, request, group, event, **kwargs):
-    #     """
-    #     Return a Form for the "Create new issue" page.
-    #     """
-    #     return self.new_issue_form(request.POST or None, initial=self.get_initial_form_data(request, group, event))
-
     def get_new_issue_fields(self, request, group, event, **kwargs):
         return [{
             'name': 'title',
@@ -107,12 +105,6 @@ class IssueTrackingPlugin2(Plugin):
         """
         return []
 
-    # def get_link_existing_issue_form(self, request, group, event, **kwargs):
-    #     if not self.link_issue_form:
-    #         return None
-    #     return self.link_issue_form(request.POST or None,
-    #                                 initial=self.get_initial_link_form_data(request, group, event))
-
     def get_link_existing_issue_fields(self, request, group, event, **kwargs):
         return [{
             'name': 'issue_id',
@@ -127,6 +119,12 @@ class IssueTrackingPlugin2(Plugin):
             'default': absolute_uri(group.get_absolute_url()),
             'type': 'textarea'
         }]
+
+    def get_configure_plugin_fields(self, request, project, **kwargs):
+        """
+        Must be overridden by plugins that require configuration.
+        """
+        raise NotImplementedError
 
     def get_issue_url(self, group, issue_id, **kwargs):
         """
@@ -162,27 +160,17 @@ class IssueTrackingPlugin2(Plugin):
         """
         pass
 
-    # def get_initial_form_data(self, request, group, event, **kwargs):
-    #     return {
-    #         'description': self._get_group_description(request, group, event),
-    #         'title': self._get_group_title(request, group, event),
-    #     }
-
-    # def get_initial_link_form_data(self, request, group, event, **kwargs):
-    #     return {}
-
     def has_auth_configured(self, **kwargs):
         if not self.auth_provider:
             return True
 
         return self.auth_provider in get_auth_providers()
 
-    # def handle_unlink_issue(self, request, group, **kwargs):
-    #     GroupMeta.objects.unset_value(group, '%s:tid' % self.get_conf_key())
-    #     return self.redirect(group.get_absolute_url())
-
     def view_create(self, request, group, **kwargs):
         # TODO: check auth
+        auth_errors = self.check_config_and_auth(request, group)
+        if auth_errors:
+            return Response(auth_errors, status=400)
         event = group.get_latest_event()
         if request.method == 'GET':
             return Response(self.get_new_issue_fields(request, group, event, **kwargs))
@@ -213,6 +201,9 @@ class IssueTrackingPlugin2(Plugin):
         return Response({'success': True, 'issue_url': self.get_issue_url()})
 
     def view_unlink(self, request, group, **kwargs):
+        auth_errors = self.check_config_and_auth(request, group)
+        if auth_errors:
+            return Response(auth_errors, status=400)
         if GroupMeta.objects.get_value(group, '%s:tid' % self.get_conf_key(), None):
             if self.can_unlink_issues:
                 GroupMeta.objects.unset_value(group, '%s:tid' % self.get_conf_key())
@@ -220,7 +211,9 @@ class IssueTrackingPlugin2(Plugin):
             return Response({'success': False, 'message': 'No issues to unlink.'})
 
     def view_link(self, request, group, **kwargs):
-        # TODO: check auth
+        auth_errors = self.check_config_and_auth(request, group)
+        if auth_errors:
+            return Response(auth_errors, status=400)
         if request.method == 'GET':
             event = group.get_latest_event()
             return Response(self.get_link_existing_issue_fields(request, group, event, **kwargs))
@@ -256,127 +249,39 @@ class IssueTrackingPlugin2(Plugin):
         """
         return Response()
 
-    # def view(self, request, group, **kwargs):
-    #     has_auth_configured = self.has_auth_configured()
-    #     if not (has_auth_configured and self.is_configured(project=group.project, request=request)):
-    #         if self.auth_provider:
-    #             required_auth_settings = settings.AUTH_PROVIDERS[self.auth_provider]
-    #         else:
-    #             required_auth_settings = None
+    def view_configure(self, request, project, **kwargs):
+        if request.method == 'GET':
+            return Response(self.get_configure_plugin_fields(request, project, **kwargs))
+        self.configure(project, request.DATA)
+        return Response({'sucess': True, 'message': 'Successfully updated configuration.'})
 
-    #         return self.render(self.not_configured_template, {
-    #             'title': self.get_title(),
-    #             'project': group.project,
-    #             'has_auth_configured': has_auth_configured,
-    #             'required_auth_settings': required_auth_settings,
-    #         })
+    def configure(self, project, form_data):
+        """Configures the plugin"""
+        default_issue_plugin_config(self, project, form_data)
 
-    #     if self.needs_auth(project=group.project, request=request):
-    #         return self.render(self.needs_auth_template, {
-    #             'title': self.get_title(),
-    #             'project': group.project,
-    #         })
+    def check_config_and_auth(self, request, group):
+        has_auth_configured = self.has_auth_configured()
+        if not (has_auth_configured and self.is_configured(project=group.project, request=request)):
+            if self.auth_provider:
+                required_auth_settings = settings.AUTH_PROVIDERS[self.auth_provider]
+            else:
+                required_auth_settings = None
 
-    #     if GroupMeta.objects.get_value(group, '%s:tid' % self.get_conf_key(), None):
-    #         if self.can_unlink_issues and request.GET.get('unlink'):
-    #             return self.handle_unlink_issue(request, group, **kwargs)
-    #         return None
+            return {
+                'error_type': 'config',
+                'title': self.get_title(),
+                'slug': self.slug,
+                'has_auth_configured': has_auth_configured,
+                'auth_provider': self.auth_provider,
+                'required_auth_settings': required_auth_settings,
+            }
 
-    #     prefix = self.get_conf_key()
-    #     event = group.get_latest_event()
-    #     Event.objects.bind_nodes([event], 'data')
-
-    #     op = request.POST.get('op', 'create')
-
-    #     create_form = self.get_new_issue_form(request, group, event)
-    #     link_form = None
-    #     if self.can_link_existing_issues:
-    #         link_form = self.get_link_existing_issue_form(request, group, event)
-
-    #     if op == 'create':
-    #         if create_form.is_valid():
-    #             try:
-    #                 issue_id = self.create_issue(
-    #                     group=group,
-    #                     form_data=create_form.cleaned_data,
-    #                     request=request,
-    #                 )
-    #             except forms.ValidationError as e:
-    #                 create_form.errors['__all__'] = [u'Error creating issue: %s' % e]
-
-    #         if create_form.is_valid():
-    #             GroupMeta.objects.set_value(group, '%s:tid' % prefix, issue_id)
-
-    #             issue_information = {
-    #                 'title': create_form.cleaned_data['title'],
-    #                 'provider': self.get_title(),
-    #                 'location': self.get_issue_url(group, issue_id),
-    #                 'label': self.get_issue_label(group=group, issue_id=issue_id),
-    #             }
-    #             Activity.objects.create(
-    #                 project=group.project,
-    #                 group=group,
-    #                 type=Activity.CREATE_ISSUE,
-    #                 user=request.user,
-    #                 data=issue_information,
-    #             )
-
-    #             issue_tracker_used.send(plugin=self, project=group.project, user=request.user, sender=IssueTrackingPlugin)
-    #             return self.redirect(group.get_absolute_url())
-
-    #     elif op == 'link':
-    #         if link_form.is_valid():
-    #             try:
-    #                 self.link_issue(
-    #                     group=group,
-    #                     form_data=link_form.cleaned_data,
-    #                     request=request,
-    #                 )
-    #             except forms.ValidationError as e:
-    #                 link_form.errors['__all__'] = [u'Error creating issue: %s' % e]
-
-    #         if link_form.is_valid():
-    #             issue_id = int(link_form.cleaned_data['issue_id'])
-    #             GroupMeta.objects.set_value(group, '%s:tid' % prefix, issue_id)
-    #             issue_information = {
-    #                 'title': self.get_issue_title_by_id(request, group, issue_id),
-    #                 'provider': self.get_title(),
-    #                 'location': self.get_issue_url(group, issue_id),
-    #                 'label': self.get_issue_label(group=group, issue_id=issue_id),
-    #             }
-    #             Activity.objects.create(
-    #                 project=group.project,
-    #                 group=group,
-    #                 type=Activity.CREATE_ISSUE,
-    #                 user=request.user,
-    #                 data=issue_information,
-    #             )
-
-    #             return self.redirect(group.get_absolute_url())
-
-    #     context = {
-    #         'create_form': create_form,
-    #         # pass in 'form' for legacy compat
-    #         'form': create_form,
-    #         'title': self.get_new_issue_title(),
-    #         'read_only_fields': self.get_new_issue_read_only_fields(group=group),
-    #         'can_link_existing_issues': self.can_link_existing_issues,
-    #         'link_form': link_form,
-    #         'op': op
-    #     }
-
-    #     return self.render(self.create_issue_template, context)
-
-    # def actions(self, request, group, action_list, **kwargs):
-    #     if not self.is_configured(request=request, project=group.project):
-    #         return action_list
-    #     prefix = self.get_conf_key()
-    #     if not GroupMeta.objects.get_value(group, '%s:tid' % prefix, None):
-    #         action_list.append((self.get_new_issue_title(), self.get_url(group)))
-    #     elif self.can_unlink_issues:
-    #         action_list.append((self.get_unlink_issue_title(),
-    #                             '%s?unlink=1' % self.get_url(group).rstrip('/')))
-    #     return action_list
+        if self.needs_auth(project=group.project, request=request):
+            return {
+                'error_type': 'auth',
+                'title': self.get_title(),
+                'auth_url': reverse('socialauth_associate_begin', args=[self.auth_provider])
+            }
 
     def plugin_issues(self, request, group, plugin_issues, **kwargs):
         if not self.is_configured(request=request, project=group.project):
