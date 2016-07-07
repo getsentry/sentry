@@ -74,7 +74,7 @@ const StacktraceInterface = React.createClass({
           wrapTitle={false}>
         <CrashContent
           group={group}
-          event={event}
+          event={evt}
           stackView={stackView}
           newestFirst={newestFirst}
           stacktrace={data} />
