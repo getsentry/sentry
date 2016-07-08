@@ -12,7 +12,7 @@ import {defined, objectIsEmpty, isUrl} from '../../../utils';
 import ContextLine from './contextLine';
 import FrameVariables from './frameVariables';
 
-function trimPackage(pkg) {
+export function trimPackage(pkg) {
   let pieces = pkg.split(/\//g);
   let rv = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
   let match = rv.match(/^(.*?)\.(dylib|so|a)$/);
@@ -97,8 +97,14 @@ const Frame = React.createClass({
     return out;
   },
 
+  getPlatform() {
+    // prioritize the frame platform but fall back to the platform
+    // of the stacktrace / exception
+    return this.props.data.platform || this.props.platform;
+  },
+
   shouldPrioritizeModuleName() {
-    switch (this.props.platform) {
+    switch (this.getPlatform()) {
       case 'java':
       case 'csharp':
         return true;
@@ -152,7 +158,7 @@ const Frame = React.createClass({
 
     if (defined(data.package)) {
       title.push(<span className="within" key="within"> within </span>);
-      title.push(<code title={data.package} className="package">{trimPackage(data.package)}</code>);
+      title.push(<code title={data.package} className="package" key="package">{trimPackage(data.package)}</code>);
     }
 
     if (defined(data.origAbsPath)) {
@@ -289,7 +295,7 @@ const Frame = React.createClass({
   },
 
   renderLine() {
-    switch (this.props.platform) {
+    switch (this.getPlatform()) {
       case 'objc':
       case 'cocoa':
         return this.renderCocoaLine();

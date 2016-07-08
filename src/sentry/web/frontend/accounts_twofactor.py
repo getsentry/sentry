@@ -53,7 +53,7 @@ class TwoFactorSettingsView(BaseView):
     def make_context(self, request, interface):
         context = csrf(request)
         context['auth'] = interface
-        context['page'] = 'settings'
+        context['page'] = 'security'
         return context
 
     def delete_authenticator(self, interface):

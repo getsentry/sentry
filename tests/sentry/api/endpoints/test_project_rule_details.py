@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Rule
+from sentry.models import Rule, RuleStatus
 from sentry.testutils import APITestCase
 
 
@@ -122,3 +122,24 @@ class UpdateProjectRuleTest(APITestCase):
         }, format='json')
 
         assert response.status_code == 400, response.content
+
+
+class DeleteProjectRuleTest(APITestCase):
+    def test_simple(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        rule = Rule.objects.create(project=project, label='foo')
+
+        url = reverse('sentry-api-0-project-rule-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+            'rule_id': rule.id,
+        })
+        response = self.client.delete(url)
+
+        assert response.status_code == 202, response.content
+
+        rule = Rule.objects.get(id=rule.id)
+        assert rule.status == RuleStatus.PENDING_DELETION

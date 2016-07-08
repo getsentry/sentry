@@ -16,17 +16,21 @@ const DeviceContextType = React.createClass({
       <ContextBlock
         data={data}
         knownData={[
-          ['Name', name],
+          ['?Name', name],
           ['Family', family],
           ['Model', model + (model_id ? ` (${model_id})` : '')],
           ['Architecture', arch],
-          ['Battery Level', defined(battery_level)
+          ['?Battery Level', defined(battery_level)
             ? `${battery_level}%` : null],
-          ['Orientation', orientation],
+          ['?Orientation', orientation],
         ]}
         alias={this.props.alias} />
     );
   }
 });
+
+DeviceContextType.getTitle = function(value) {
+  return 'Device';
+};
 
 export default DeviceContextType;

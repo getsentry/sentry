@@ -7,7 +7,6 @@ from django.utils import timezone
 
 from sentry.models import GroupRuleStatus, Rule
 from sentry.rules import EventState, rules
-from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
 
 RuleFuture = namedtuple('RuleFuture', ['rule', 'kwargs'])
@@ -49,12 +48,7 @@ class RuleProcessor(object):
         self.futures_by_cb = defaultdict(list)
 
     def get_rules(self):
-        cache_key = 'project:%d:rules' % (self.project.id,)
-        rules_list = cache.get(cache_key)
-        if rules_list is None:
-            rules_list = list(Rule.objects.filter(project=self.project))
-            cache.set(cache_key, rules_list, 60)
-        return rules_list
+        return Rule.get_for_project(self.project.id)
 
     def get_rule_status(self, rule):
         # TODO(dcramer): this isnt the most efficient query pattern for this

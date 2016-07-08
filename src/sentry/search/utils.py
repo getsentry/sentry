@@ -163,7 +163,7 @@ def tokenize_query(query):
 
         if value[0] == '"':
             nvalue = value
-            while nvalue[-1] != '"':
+            while not nvalue.endswith('"'):
                 try:
                     nvalue = tokens_iter.next()
                 except StopIteration:

@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RuleSerializer
-from sentry.models import Rule
+from sentry.models import Rule, RuleStatus
 
 
 class ProjectRulesEndpoint(ProjectEndpoint):
@@ -21,6 +21,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         """
         queryset = Rule.objects.filter(
             project=project,
+            status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE],
         )
 
         return self.paginate(
