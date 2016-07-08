@@ -375,3 +375,44 @@ class ErrorMappingTest(TestCase):
                 'returned. You may have returned undefined, an array or '
                 'some other invalid object.'
             )
+
+    @responses.activate
+    def test_react_error_mapping_empty_args(self):
+        responses.add(responses.GET, REACT_MAPPING_URL, body=r'''
+        {
+          "108": "%s.getChildContext(): key \"%s\" is not defined in childContextTypes."
+        }
+        ''', content_type='application/json')
+
+        data = {
+            'platform': 'javascript',
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'type': 'InvariantViolation',
+                    'value': (
+                        'Minified React error #108; visit http://facebook'
+                        '.github.io/react/docs/error-decoder.html?invariant='
+                        '108&args[]=Component&args[]= for the full message '
+                        'or use the non-minified dev environment for full '
+                        'errors and additional helpful warnings.'
+                    ),
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'abs_path': 'http://example.com/foo.js',
+                                'filename': 'foo.js',
+                                'lineno': 4,
+                                'colno': 0,
+                            },
+                        ],
+                    },
+                }],
+            }
+        }
+
+        assert rewrite_exception(data)
+
+        assert data['sentry.interfaces.Exception']['values'][0]['value'] == (
+            'Component.getChildContext(): key "" is not defined in '
+            'childContextTypes.'
+        )
