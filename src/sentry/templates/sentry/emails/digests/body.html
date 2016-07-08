@@ -32,23 +32,7 @@
                       <span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span>
                   </td>
                   <td class="event-detail">
-                      {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
-                      {% if group.data.type == "error" %}
-                        <div class="event-type error">
-                          <h3>
-                            <a href="{% absolute_uri group_link %}">{{ group.data.metadata.type }}</a>
-                            <small>{{ group.title|soft_break:50 }}</small>
-                          </h3>
-                          <p>{{ group.data.metadata.value }}</p>
-                        </div>
-                      {% else %}
-                        <div class="event-type default">
-                          <h3>
-                            <a href="{% absolute_uri group_link %}">{{ group.message_short|soft_break:40 }}</a>
-                          </h3>
-                          <p>{{ group.title|soft_break:50 }}</p>
-                        </div>
-                      {% endif %}
+                      {% include "sentry/emails/_group.html" %}
                       <p>
                         {{ group.title|soft_break:50 }}
                         <small>&mdash; {{ records.0.datetime|date:"N j, Y, g:i:s a e" }}</small>
