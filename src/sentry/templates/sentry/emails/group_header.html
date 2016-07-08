@@ -16,7 +16,7 @@
     </thead>
     <tr>
       <td class="group-message">
-        <h3>{{ group.message_short }}</h3>
+        {% include "sentry/emails/_group.html" %}
         <p class="meta">
           <span class="count">Seen <strong>{{ group.times_seen }}</strong> time{{ group.times_seen|pluralize }}.</span>
           <span class="last-seen pretty-date"> Last seen: {{ group.last_seen }} UTC</span>
