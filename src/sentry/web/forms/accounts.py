@@ -264,10 +264,11 @@ class AccountSettingsForm(forms.Form):
         self.user = user
         super(AccountSettingsForm, self).__init__(*args, **kwargs)
 
+        needs_password = user.has_usable_password()
+
         if self.user.is_managed:
             # username and password always managed, email and
             # name optionally managed
-            needs_password = True
             for field in ('email', 'name', 'username'):
                 if field == 'username' or field in settings.SENTRY_MANAGED_USER_FIELDS:
                     self.fields[field] = ReadOnlyTextField(label=self.fields[field].label)
@@ -275,12 +276,13 @@ class AccountSettingsForm(forms.Form):
                     needs_password = False
 
             del self.fields['new_password']
-            if not needs_password:
-                del self.fields['password']
 
         # don't show username field if its the same as their email address
         if self.user.email == self.user.username:
             del self.fields['username']
+
+        if not needs_password:
+            del self.fields['password']
 
     def is_readonly(self):
         if self.user.is_managed:
@@ -309,15 +311,12 @@ class AccountSettingsForm(forms.Form):
         value = self.cleaned_data.get('password')
         if value and not self.user.check_password(value):
             raise forms.ValidationError('The password you entered is not correct.')
-        return value
-
-    def clean(self):
-        if not self.cleaned_data.get('password') and (
-            self.cleaned_data.get('email', self.user.email) != self.user.email or
-            self.cleaned_data.get('new_password')
+        elif not value and (
+            self.cleaned_data.get('email', self.user.email) != self.user.email
+            or self.cleaned_data.get('new_password')
         ):
             raise forms.ValidationError('You must confirm your current password to make changes.')
-        return self.cleaned_data
+        return value
 
     def save(self, commit=True):
         if self.cleaned_data.get('new_password'):
