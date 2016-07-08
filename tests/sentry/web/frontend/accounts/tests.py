@@ -148,6 +148,19 @@ class SettingsTest(TestCase):
         user = User.objects.get(id=self.user.id)
         assert user.email == 'bizbaz@example.com'
 
+    def test_can_change_email_without_set_password(self):
+        self.login_as(self.user)
+
+        self.user.update(password='')
+
+        params = self.params()
+        params['email'] = 'bizbaz@example.com'
+
+        resp = self.client.post(self.path, params)
+        assert resp.status_code == 302
+        user = User.objects.get(id=self.user.id)
+        assert user.email == 'bizbaz@example.com'
+
     def test_cannot_change_email_with_invalid_password(self):
         self.login_as(self.user)
 
