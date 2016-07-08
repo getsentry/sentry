@@ -22,4 +22,8 @@ const RuntimeContextType = React.createClass({
   }
 });
 
+RuntimeContextType.getTitle = function(value) {
+  return 'Runtime';
+};
+
 export default RuntimeContextType;

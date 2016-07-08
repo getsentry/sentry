@@ -108,9 +108,7 @@
               <a href="javascript:void(0)" class="resend-invite btn btn-sm btn-primary" data-member-id="{{ member.id }}" style="padding: 0 4px; margin-top: 2px">Resend invite</a>
               {% endif %}
             {% elif not has_2fa %}
-              {% feature auth:twofactor %}
               <span style="color:#B64236;" class="icon-exclamation tip" title="{% trans "Two-factor auth not enabled" %}"></span>
-              {% endfeature %}
             {% endif %}
           </td>
           <td class="squash">{{ member.get_role_display }}</td>

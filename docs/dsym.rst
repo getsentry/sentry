@@ -27,15 +27,15 @@ To extract and process symbols do this:
 
 1.  connect an i-device (like an iPod) running the version of the
     operating system you want to extract the symbols of.
-2.  launch X-Code and the device manager there.  It might be necesssary to
+2.  launch Xcode and the device manager there.  It might be necesssary to
     "use this device or development".
-3.  wait for X-Code to finish processing the device.
-4.  go to `~/Library/Developer/iOS DeviceSupport` (or tvOS etc.)
+3.  wait for Xcode to finish processing the device.
+4.  go to `~/Library/Developer/Xcode/iOS DeviceSupport` (or tvOS etc.)
 5.  ensure a folder there was created for the version of iOS you are
     running.
 6.  run `extract-all.py`::
 
-    $ python extract-all.py --sdk iOS "~/Library/Developers/iOS DeviceSupport/X.Y.Z (XXXXX)"
+    $ python extract-all.py --sdk iOS "~/Library/Developers/Xcode/iOS DeviceSupport/X.Y.Z (XXXXX)"
 
 This will create a zipfile named ``X.Y.Z (XXXXX).zip`` in your current
 folder with extracted and preprocessed files.  If you are extracting for

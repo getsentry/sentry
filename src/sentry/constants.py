@@ -197,3 +197,11 @@ WARN_SESSION_EXPIRED = 'Your session has expired.'  # TODO: translate this
 EVENT_ORDERING_KEY = attrgetter('datetime', 'id')
 
 FILTER_MASK = '[Filtered]'
+
+# Maximum length of a symbol
+MAX_SYM = 256
+
+# Known dsym mimetypes
+KNOWN_DSYM_TYPES = {
+    'application/x-mach-binary': 'macho'
+}

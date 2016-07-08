@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 sentry.testutils.fixtures
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -135,11 +136,14 @@ class Fixtures(object):
 
     @fixture
     def group(self):
-        return self.create_group(message='Foo bar')
+        return self.create_group(message=u'こんにちは')
 
     @fixture
     def event(self):
-        return self.create_event(event_id='a' * 32)
+        return self.create_event(
+            event_id='a' * 32,
+            message=u'こんにちは',
+        )
 
     @fixture
     def activity(self):

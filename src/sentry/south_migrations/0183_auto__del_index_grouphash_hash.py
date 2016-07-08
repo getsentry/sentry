@@ -2,17 +2,20 @@
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
-from django.db import models
+from django.db import models, transaction
+from sentry.utils.db import is_postgres
 
 
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Removing index on 'GroupHash', fields ['hash']
-        try:
-            db.delete_index(u'sentry_grouphash', ['hash'])
-        except Exception:
-            pass
+        if is_postgres():
+            try:
+                with transaction.atomic():
+                    db.delete_index(u'sentry_grouphash', ['hash'])
+            except Exception:
+                pass
 
 
     def backwards(self, orm):

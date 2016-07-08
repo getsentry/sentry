@@ -849,6 +849,10 @@
       background-image: url(../images/icons/context/windows.png);
     }
 
+    &.linux .context-item-icon {
+      background-image: url(../images/icons/context/linux.png);
+    }
+
     &.ubuntu .context-item-icon {
       background-image: url(../images/icons/context/ubuntu.png);
     }
@@ -857,8 +861,10 @@
       background-image: url(../images/icons/context/firefox.png);
     }
 
-    &.chrome .context-item-icon {
-      background-image: url(../images/icons/context/chrome.png);
+    &.chrome, &.chrome-mobile, &.chrome-mobile-ios {
+      .context-item-icon {
+        background-image: url(../images/icons/context/chrome.png);
+      }
     }
 
     &.chromium .context-item-icon {
@@ -1148,6 +1154,10 @@ div.traceback > ul {
         font-weight: bold;
       }
 
+      .informal {
+        font-style: italic;
+      }
+
       a.annotation {
         &.trigger-popover {
           cursor: pointer;
@@ -1161,6 +1171,10 @@ div.traceback > ul {
 
     &.system-frame .title {
       background: @white-dark;
+    }
+
+    &.missing-frame .title {
+      background: lighten(@red-light, 30);
     }
 
     .title.as-table {
@@ -1790,6 +1804,19 @@ pre.val, span.val {
 
   &.val-toggle-open > a.val-toggle-link:hover {
     background: @gray;
+  }
+}
+
+/**
+* Exceptions and Threads
+* ============================================================================
+*/
+.box .thread {
+  .exception {
+    margin-top: 10px;
+  }
+  .traceback.no-exception {
+    margin-top: 0;
   }
 }
 

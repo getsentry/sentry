@@ -449,6 +449,19 @@ class StacktraceTest(TestCase):
             {'x': '<nan>'},
         )
 
+    def test_address_normalization(self):
+        interface = Frame.to_python({
+            'lineno': 1,
+            'filename': 'blah.c',
+            'function': 'main',
+            'instruction_addr': 123456,
+            'symbol_addr': '123450',
+            'image_addr': '0x0',
+        })
+        assert interface.instruction_addr == '0x1e240'
+        assert interface.symbol_addr == '0x1e23a'
+        assert interface.image_addr == '0x0'
+
 
 class SlimFrameDataTest(TestCase):
     def test_under_max(self):

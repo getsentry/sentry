@@ -1,4 +1,5 @@
 import {defined, trim} from '../../../utils';
+import {trimPackage} from './frame';
 
 function getJavaScriptFrame(frame) {
   let result = '';
@@ -101,7 +102,7 @@ function ljust(str, len) {
 export function getCocoaFrame(frame) {
   let result = '  ';
   if (defined(frame.package)) {
-    result += ljust(frame.package, 20);
+    result += ljust(trimPackage(frame.package), 20);
   }
   if (defined(frame.instructionAddr)) {
     result += ljust(frame.instructionAddr, 12);
@@ -138,6 +139,9 @@ function getPreamble(exception, platform) {
 }
 
 function getFrame(frame, frameIdx, platform) {
+  if (frame.platform) {
+    platform = frame.platform;
+  }
   switch (platform) {
     case 'javascript':
       return getJavaScriptFrame(frame, frameIdx);

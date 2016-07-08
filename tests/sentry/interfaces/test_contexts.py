@@ -14,17 +14,20 @@ class ContextsTest(TestCase):
             'os': {
                 'name': 'Windows',
                 'version': '95',
+                'rooted': True,
             },
         })
         assert sorted(ctx.iter_tags()) == [
             ('os', 'Windows 95'),
             ('os.name', 'Windows'),
+            ('os.rooted', 'yes'),
         ]
         assert ctx.to_json() == {
             'os': {
                 'type': 'os',
                 'name': 'Windows',
                 'version': '95',
+                'rooted': True,
             }
         }
 
