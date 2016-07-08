@@ -108,9 +108,11 @@ def exception_from_apple_error_or_diagnosis(error, diagnosis=None):
         elif 'diagnosis' in error:
             rv['value'] = error['diagnosis']
         elif 'mach_exception' in mechanism:
-            rv['value'] = mechanism['mach_exception']['exception_name']
+            rv['value'] = mechanism['mach_exception'] \
+                .get('exception_name') or 'Mach Exception'
         elif 'posix_signal' in mechanism:
-            rv['value'] = mechanism['posix_signal']['name']
+            rv['value'] = mechanism['posix_signal'] \
+                .get('name') or 'Posix Signal'
         else:
             rv['value'] = 'Unknown'
 
