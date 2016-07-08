@@ -87,7 +87,7 @@ def process_react_exception(exc, match, mapping):
     if msg_format is None:
         return False
     args = []
-    for k, v in cgi.parse_qsl(qs):
+    for k, v in cgi.parse_qsl(qs, keep_blank_values=True):
         if k == 'args[]':
             args.append(v)
     exc['value'] = msg_format % tuple(args)
