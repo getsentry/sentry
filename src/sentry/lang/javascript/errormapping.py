@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry import http
+from sentry.utils.strings import count_sprintf_parameters
 
 
 logger = logging.getLogger(__name__)
@@ -86,11 +87,19 @@ def process_react_exception(exc, match, mapping):
     msg_format = mapping.get(error_id)
     if msg_format is None:
         return False
+
+    arg_count = count_sprintf_parameters(msg_format)
     args = []
     for k, v in cgi.parse_qsl(qs, keep_blank_values=True):
         if k == 'args[]':
             args.append(v)
-    exc['value'] = msg_format % tuple(args)
+
+    # Due to truncated error messages we sometimes might not be able to
+    # get all arguments.  In that case we fill up missing parameters for
+    # the format string with <redacted>.
+    args = tuple(args + ['<redacted>'] * (arg_count - len(args)))[:arg_count]
+    exc['value'] = msg_format % args
+
     return True
 
 
