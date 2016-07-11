@@ -1,10 +1,10 @@
 import re
-import cgi
 import json
 import time
 import logging
 import random
 
+from urlparse import parse_qsl
 from django.conf import settings
 from django.core.cache import cache
 
@@ -87,7 +87,7 @@ def process_react_exception(exc, match, mapping):
     if msg_format is None:
         return False
     args = []
-    for k, v in cgi.parse_qsl(qs, keep_blank_values=True):
+    for k, v in parse_qsl(qs, keep_blank_values=True):
         if k == 'args[]':
             args.append(v)
     exc['value'] = msg_format % tuple(args)
