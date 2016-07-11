@@ -60,7 +60,7 @@ def log_options(default=None):
             if loglevel:
                 os.environ['SENTRY_LOG_LEVEL'] = loglevel
             if logformat:
-                os.environ['SENTRY_LOG_FORMAT'] = logformat
+                os.environ['SENTRY_LOG_FORMAT'] = logformat.lower()
             return ctx.invoke(f, *args, **kwargs)
         return update_wrapper(inner, f)
     return decorator
