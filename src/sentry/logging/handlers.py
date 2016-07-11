@@ -61,10 +61,11 @@ class StructLogHandler(logging.StreamHandler):
         # a record because the RootLogger will take the 'extra' dictionary
         # and just turn them into attributes.
         kwargs = {
-            (k if k not in throwaways else 'popme'): v
-            for k, v in record.__dict__.iteritems()
+            k: v
+            for k, v in vars(record).iteritems()
+            if k not in throwaways
+            and v is not None
         }
-        kwargs.pop('popme', None)
         kwargs.update({
             'level': record.levelno,
             'event': record.msg,
