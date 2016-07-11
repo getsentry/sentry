@@ -291,6 +291,7 @@ class IssueTrackingPlugin2(Plugin):
             'slug': self.slug,
             'can_unlink': self.can_unlink_issues,
             'can_link_existing': self.can_link_existing_issues,
+            'title': self.get_title()
         }
         if issue_id:
             item['issue'] = {

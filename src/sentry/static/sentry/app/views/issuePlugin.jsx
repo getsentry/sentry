@@ -274,22 +274,32 @@ const IssuePlugin = React.createClass({
 
   render() {
     let plugin = this.props.plugin;
+    let content;
     if (this.state.errorDetails) {
-      return this.renderError();
-    }
-    if (plugin.issue) {
-      return (
-        <div>
+      content = this.renderError();
+    } else if (plugin.issue) {
+      content = (
+        <p>
           <a href={plugin.issue.url} target="_blank">{plugin.issue.label}</a>
           {plugin.can_unlink &&
-            <button className="btn btn-primary"
+            <button className="btn btn-default" style={{'marginLeft': '10px'}}
                     onClick={this.unlinkIssue}>{t('Unlink')}</button>}
-        </div>);
+        </p>
+      );
+    } else if (!this.state.createFieldList || (plugin.can_link_existing && !this.state.linkFieldList)) {
+      content = <LoadingIndicator />;
+    } else {
+      content = this.renderForm();
     }
-    if (!this.state.createFieldList || (plugin.can_link_existing && !this.state.linkFieldList)) {
-      return <LoadingIndicator />;
-    }
-    return this.renderForm();
+
+    return (
+      <div className="box">
+        <div className="box-header"><h3>{plugin.title}</h3></div>
+        <div className="box-content with-padding">
+          {content}
+        </div>
+      </div>
+    );
   }
 });
 
