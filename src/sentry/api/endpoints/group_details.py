@@ -177,6 +177,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         action_list = self._get_actions(request, group)
 
+        # TODO(dcramer): remove hourly/daily stats
         now = timezone.now()
         hourly_stats = tsdb.rollup(tsdb.get_range(
             model=tsdb.models.group,

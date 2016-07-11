@@ -304,19 +304,6 @@
 
 // Group Overview
 
-.group-overview {
-  .bar-chart {
-    figure a {
-      height: 70px;
-    }
-  }
-  .bar-chart-small {
-    figure a {
-      height: 40px;
-    }
-  }
-}
-
 .group-stats-column {
   float: right;
 }
@@ -377,6 +364,11 @@
     span {
       background: @purple-light;
       #gradient > .vertical(@purple-light, @purple);
+
+      &.inactive {
+        background: @gray-lightest;
+        #gradient > .vertical(@gray-lightest, @gray-lightest);
+      }
     }
 
     &:hover span {
