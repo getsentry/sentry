@@ -138,6 +138,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'sentry:sensitive_fields': project.get_option('sentry:sensitive_fields', []),
             'sentry:csp_ignored_sources_defaults': bool(project.get_option('sentry:csp_ignored_sources_defaults', True)),
             'sentry:csp_ignored_sources': '\n'.join(project.get_option('sentry:csp_ignored_sources', []) or []),
+            'sentry:default_environment': project.get_option('sentry:default_environment'),
         }
         data['activePlugins'] = active_plugins
         data['team'] = serialize(project.team, request.user)
