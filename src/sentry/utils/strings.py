@@ -26,6 +26,8 @@ _camelcase_re = re.compile(
     r'(?:[A-Z]{2,}(?=[A-Z]))|(?:[A-Z][a-z0-9]+)|(?:[a-z0-9]+)')
 _letters_re = re.compile(r'[A-Z]+')
 _digit_re = re.compile(r'\d+')
+_sprintf_placeholder_re = re.compile(
+    r'%(?:\d+\$)?[+-]?(?:[ 0]|\'.{1})?-?\d*(?:\.\d+)?[bcdeEufFgGosxX]')
 
 
 def truncatechars(value, arg):
@@ -185,3 +187,8 @@ def is_valid_dot_atom(value):
         and not value[0] == '.'
         and not value[-1] == '.'  # cannot start or end with a dot
         and set(value).issubset(valid_dot_atom_characters))  # can only contain valid characters
+
+
+def count_sprintf_parameters(string):
+    """Counts the number of sprintf parameters in a string."""
+    return len(_sprintf_placeholder_re.findall(string))
