@@ -4,9 +4,15 @@ import ApiMixin from '../mixins/apiMixin';
 import {BooleanField, Form, Select2Field, TextareaField, TextField} from '../components/forms';
 import GroupActions from '../actions/groupActions';
 import GroupState from '../mixins/groupState';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
 import {t} from '../locale';
 
 const IssuePlugin = React.createClass({
+  propTypes: {
+    plugin: React.PropTypes.object.isRequired
+  },
+
   mixins: [
     ApiMixin,
     GroupState
@@ -26,29 +32,28 @@ const IssuePlugin = React.createClass({
   },
 
   componentWillMount() {
-    // TODO: does this need to work with multiple plugins?
-    let group = this.getGroup();
-    let plugin = group.pluginIssues && group.pluginIssues[0];
-    if (group.pluginIssues && group.pluginIssues.length) {
-      if (!plugin.issue) {
-        this.fetchData(group.pluginIssues[0].slug);
-      }
+    let plugin = this.props.plugin;
+    if (!plugin.issue) {
+      this.fetchData();
     }
   },
 
-  getPluginCreateEndpoint(pluginSlug) {
-    return '/issues/' + this.getGroup().id + '/plugin/create/github/';
+  getPluginCreateEndpoint() {
+    return ('/issues/' + this.getGroup().id +
+            '/plugin/create/' + this.props.plugin.slug + '/');
   },
 
-  getPluginLinkEndpoint(pluginSlug) {
-    return '/issues/' + this.getGroup().id + '/plugin/link/github/';
+  getPluginLinkEndpoint() {
+    return ('/issues/' + this.getGroup().id +
+            '/plugin/link/' + this.props.plugin.slug + '/');
   },
 
-  getPluginUnlinkEndpoint(pluginSlug) {
-    return '/issues/' + this.getGroup().id + '/plugin/unlink/github/';
+  getPluginUnlinkEndpoint() {
+    return ('/issues/' + this.getGroup().id +
+            '/plugin/unlink/' + this.props.plugin.slug + '/');
   },
 
-  fetchData(pluginSlug) {
+  fetchData() {
     this.setState({
       loading: true,
       error: false
@@ -229,9 +234,8 @@ const IssuePlugin = React.createClass({
   getPluginConfigureUrl() {
     let org = this.getOrganization();
     let project = this.getProject();
-    // TODO: fix this when enabling multiple plugins
-    let pluginSlug = this.getGroup().pluginIssues[0].slug;
-    return '/' + org.slug + '/' + project.slug + '/settings/plugins/' + pluginSlug;
+    let plugin = this.props.plugin;
+    return '/' + org.slug + '/' + project.slug + '/settings/plugins/' + plugin.slug;
   },
 
   renderError() {
@@ -263,20 +267,11 @@ const IssuePlugin = React.createClass({
         </div>
       );
     }
-    // TODO: general error
+    return <LoadingError/>;
   },
 
   render() {
-    // TODO: does this need to work with multiple plugins? --> yes, probably
-    let group = this.getGroup();
-    let plugin = group.pluginIssues && group.pluginIssues[0];
-
-    if (!plugin) {
-      window.location = ('/' + this.getOrganization().slug + '/' +
-                         this.getProject().slug + '/issues/' + this.getGroup().id);
-      return null;
-    }
-
+    let plugin = this.props.plugin;
     if (this.state.errorDetails) {
       return this.renderError();
     }
@@ -290,11 +285,35 @@ const IssuePlugin = React.createClass({
         </div>);
     }
     if (!this.state.createFieldList || (plugin.can_link_existing && !this.state.linkFieldList)) {
-      // TODO: loading
-      return null;
+      return <LoadingIndicator />;
     }
     return this.renderForm();
   }
 });
 
-export default IssuePlugin;
+
+const GroupIssuePlugins = React.createClass({
+  mixins: [
+    GroupState
+  ],
+
+  render() {
+    let group = this.getGroup();
+
+    if (!(group.pluginIssues && group.pluginIssues.length)) {
+      window.location = ('/' + this.getOrganization().slug + '/' +
+                         this.getProject().slug + '/issues/' + this.getGroup().id);
+      return null;
+    }
+
+    return (
+      <div>
+        {group.pluginIssues.map((plugin) => {
+          return <IssuePlugin plugin={plugin} key={plugin.slug} />;
+        })}
+      </div>
+    );
+  }
+});
+
+export default GroupIssuePlugins;
