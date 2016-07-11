@@ -202,10 +202,10 @@ class StreamGroupSerializer(GroupSerializer):
     def get_attrs(self, item_list, user):
         attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
 
-        # we need to compute stats at 1d (1h resolution), and 14d
-        group_ids = [g.id for g in item_list]
-
         if self.stats_period:
+            # we need to compute stats at 1d (1h resolution), and 14d
+            group_ids = [g.id for g in item_list]
+
             segments, interval = self.STATS_PERIOD_CHOICES[self.stats_period]
             now = timezone.now()
             stats = tsdb.get_range(
