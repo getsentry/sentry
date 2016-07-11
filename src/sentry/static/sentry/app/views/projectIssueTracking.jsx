@@ -2,6 +2,7 @@ import React from 'react';
 import AlertActions from '../actions/alertActions';
 import ApiMixin from '../mixins/apiMixin';
 import {Form, Select2Field, TextareaField, TextField} from '../components/forms';
+import LoadingIndicator from '../components/loadingIndicator';
 import {t} from '../locale';
 
 const IssuePluginConfigForm = React.createClass({
@@ -98,10 +99,16 @@ const IssuePluginConfigForm = React.createClass({
     this.api.request(this.getPluginConfigureEndpoint(), {
       data: this.state.formData,
       success: (data) => {
-        // TODO
+        AlertActions.addAlert({
+          message: t('Successfully saved plugin settings.'),
+          type: 'success'
+        });
       },
       error: (error) => {
-        // TODO
+        AlertActions.addAlert({
+          message: t('There was an error saving the plugin configuration.'),
+          type: 'error'
+        });
       }
     });
   },
@@ -109,7 +116,7 @@ const IssuePluginConfigForm = React.createClass({
   disablePlugin() {
     this.api.request(this.getPluginDisableEndpoint(), {
       success: (data) => {
-        // TODO: when this whole page is a react view, this won't be necessary
+        // When this whole page is a react view, this won't be necessary
         window.location.reload();
       },
       error: (error) => {
@@ -123,8 +130,7 @@ const IssuePluginConfigForm = React.createClass({
 
   render() {
     if (!this.state.fieldList) {
-      // TODO: loading
-      return null;
+      return <LoadingIndicator />;
     }
     return (
       <div className="box">
