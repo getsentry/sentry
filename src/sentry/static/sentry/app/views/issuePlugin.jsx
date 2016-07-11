@@ -226,19 +226,44 @@ const IssuePlugin = React.createClass({
     );
   },
 
+  getPluginConfigureUrl() {
+    let org = this.getOrganization();
+    let project = this.getProject();
+    // TODO: fix this when enabling multiple plugins
+    let pluginSlug = this.getGroup().pluginIssues[0].slug;
+    return '/' + org.slug + '/' + project.slug + '/settings/plugins/' + pluginSlug;
+  },
+
   renderError() {
     let error = this.state.errorDetails;
     if (!error) {
-      return;
+      return null;
     }
     if (error.error_type === 'auth') {
       return (
         <div className="alert alert-block">
           <p>You still need to <a href={error.auth_url}>associate an identity</a>
-           {' with' + error.title + 'before you can create issues with this service.'}</p>
+           {' with ' + error.title + ' before you can create issues with this service.'}</p>
+        </div>
+      );
+    } else if (error.error_type === 'config') {
+      return (
+        <div className="alert alert-block">
+            {!error.has_auth_configured ?
+                <div>
+                  <p>{('Your server administrator will need to configure authentication with ')}
+                  <strong>{error.auth_provider}</strong>{(' before you can use this plugin.')}</p>
+                  <p>{('The following settings must be configured:')}</p>
+                  <ul>{error.required_auth_settings.map((setting) => {
+                    return <li><code>{setting}</code></li>;
+                  })}</ul>
+                </div>
+              :
+              <p>You still need to <a href={this.getPluginConfigureUrl()}>configure this plugin</a> before you can use it.</p>}
         </div>
       );
     }
+    // TODO: general error
   },
 
   render() {
