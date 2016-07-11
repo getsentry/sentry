@@ -193,6 +193,8 @@ const IssuePlugin = React.createClass({
         break;
       case 'select':
         if (field.has_autocomplete) {
+          props.url = ('/api/0/issues/' + this.getGroup().id +
+                       '/plugin/autocomplete/' + this.props.plugin.slug);
           el = <Select2Field {...props} />;
         }
         break;

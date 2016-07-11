@@ -1,4 +1,3 @@
-
 import ReactDOM from 'react-dom';
 import InputField from './inputField';
 
@@ -10,8 +9,7 @@ export default class Select2Field extends InputField {
   componentDidMount() {
     let $el = $('input', ReactDOM.findDOMNode(this));
     $el.on('change.autocomplete', this.onChange.bind(this));
-    // TODO: make configurable
-    let url = '/api/0/issues/101/plugin/autocomplete/github?autocomplete_field=' + this.props.name;
+    let url = this.props.url + '?autocomplete_field=' + this.props.name;
     $el.select2({
       placeholder: 'Start typing to search for an issue',
       minimumInputLength: 1,
@@ -19,12 +17,11 @@ export default class Select2Field extends InputField {
         quietMillis: 100,
         url: url,
         dataType: 'json',
-        data: function(q) {
+        data: (q) => {
           return {autocomplete_query: q};
         },
-        results: function(data) {
-          // TODO: this needs to be configurable
-          return {results: data.issues};
+        results: (data) => {
+          return {results: data[this.props.name]};
         }
       }
     });
