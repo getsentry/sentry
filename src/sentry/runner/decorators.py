@@ -36,20 +36,31 @@ def configuration(f):
     return update_wrapper(inner, f)
 
 
-def log_level_option(default=None):
+def log_options(default=None):
     def decorator(f):
-        "Give ability to configure global logging level. Must be used before configuration."
+        """
+        Give ability to configure global logging level/format.
+        Must be used before configuration.
+        """
         import click
         from functools import update_wrapper
+        from sentry.logging import LoggingFormat
+        formats = [LoggingFormat.HUMAN.upper(), LoggingFormat.MACHINE.upper()]
 
         @click.pass_context
         @click.option('--loglevel', '-l', default=default,
             help='Global logging level. Use wisely.',
             envvar='SENTRY_LOG_LEVEL',
             type=CaseInsensitiveChoice(LOG_LEVELS))
-        def inner(ctx, loglevel=None, *args, **kwargs):
+        @click.option('--logformat', '-f', default=default,
+            help='Log line format.',
+            envvar='SENTRY_LOG_FORMAT',
+            type=CaseInsensitiveChoice(formats))
+        def inner(ctx, loglevel=None, logformat=None, *args, **kwargs):
             if loglevel:
                 os.environ['SENTRY_LOG_LEVEL'] = loglevel
+            if logformat:
+                os.environ['SENTRY_LOG_FORMAT'] = logformat
             return ctx.invoke(f, *args, **kwargs)
         return update_wrapper(inner, f)
     return decorator
