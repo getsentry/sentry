@@ -129,8 +129,8 @@ const IssuePluginConfigForm = React.createClass({
     return (
       <div className="box">
         <div className="box-header">
-          {this.props.plugin.can_disable &&
-              <button className="btn btn-sm btn-default pull-right" onClick={this.disablePlugin}>{t('Disable')}</button>}
+          {this.props.plugin.can_disable && this.props.plugin.is_enabled &&
+            <button className="btn btn-sm btn-default pull-right" onClick={this.disablePlugin}>{t('Disable')}</button>}
           <h3>{this.props.plugin.title}</h3>
         </div>
         <div className="box-content with-padding">

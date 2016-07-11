@@ -3,6 +3,7 @@ from social_auth.models import UserSocialAuth
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.utils.html import format_html
 
 from sentry.models import Activity, Event, GroupMeta
 from sentry.plugins import Plugin
@@ -110,7 +111,6 @@ class IssueTrackingPlugin2(Plugin):
             'name': 'issue_id',
             'label': 'Issue',
             'default': '',
-            # TODO: make this not text
             'type': 'select',
             'has_autocomplete': True,
         }, {
@@ -167,7 +167,6 @@ class IssueTrackingPlugin2(Plugin):
         return self.auth_provider in get_auth_providers()
 
     def view_create(self, request, group, **kwargs):
-        # TODO: check auth
         auth_errors = self.check_config_and_auth(request, group)
         if auth_errors:
             return Response(auth_errors, status=400)
@@ -302,23 +301,20 @@ class IssueTrackingPlugin2(Plugin):
         plugin_issues.append(item)
         return plugin_issues
 
-    # def tags(self, request, group, tag_list, **kwargs):
-    #     if not self.is_configured(request=request, project=group.project):
-    #         return tag_list
+    def tags(self, request, group, tag_list, **kwargs):
+        if not self.is_configured(request=request, project=group.project):
+            return tag_list
 
-    #     prefix = self.get_conf_key()
-    #     issue_id = GroupMeta.objects.get_value(group, '%s:tid' % prefix)
-    #     if not issue_id:
-    #         return tag_list
+        prefix = self.get_conf_key()
+        issue_id = GroupMeta.objects.get_value(group, '%s:tid' % prefix)
+        if not issue_id:
+            return tag_list
 
-    #     tag_list.append(format_html('<a href="{}">{}</a>',
-    #         self.get_issue_url(group=group, issue_id=issue_id),
-    #         self.get_issue_label(group=group, issue_id=issue_id),
-    #     ))
+        tag_list.append(format_html('<a href="{}">{}</a>',
+            self.get_issue_url(group=group, issue_id=issue_id),
+            self.get_issue_label(group=group, issue_id=issue_id),
+        ))
 
-    #     return tag_list
-
-    # def get_issue_doc_html(self, **kwargs):
-    #     return ""
+        return tag_list
 
 IssuePlugin2 = IssueTrackingPlugin2
