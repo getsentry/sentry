@@ -38,6 +38,10 @@ class DummyTSDB(BaseTSDB):
     def get_most_frequent(self, model, keys, start, end=None, rollup=None, limit=None):
         return {key: [] for key in keys}
 
+    def get_most_frequent_series(self, model, keys, start, end=None, rollup=None, limit=None):
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+        return {key: [(timestamp, {}) for timestamp in series] for key in keys}
+
     def get_frequency_series(self, model, items, start, end=None, rollup=None):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
