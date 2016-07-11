@@ -264,11 +264,11 @@ class BaseTSDB(object):
         """
         Retrieve the most frequently seen items in a frequency table for each
         interval in a series. (This is in contrast with ``get_most_frequent``,
-        which returns the most frequent item seen over the entire requested
+        which returns the most frequent items seen over the entire requested
         range.)
 
-        Result are returned as a mapping, where the key is the key requested
-        and the value is a list of ``(timestamp, {item: score, ...})``) pairs
+        Results are returned as a mapping, where the key is the key requested
+        and the value is a list of ``(timestamp, {item: score, ...})`` pairs
         over the series. The maximum number of items returned for each interval
         is the index capacity if no ``limit`` is provided.
         """
