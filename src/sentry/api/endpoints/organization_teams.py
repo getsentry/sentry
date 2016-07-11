@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db import IntegrityError, transaction
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -88,11 +89,18 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             result = serializer.object
 
-            team = Team.objects.create(
-                name=result['name'],
-                slug=result.get('slug'),
-                organization=organization,
-            )
+            try:
+                with transaction.atomic():
+                    team = Team.objects.create(
+                        name=result['name'],
+                        slug=result.get('slug'),
+                        organization=organization,
+                    )
+            except IntegrityError:
+                return Response(
+                    {'detail': 'A team with this slug already exists.'},
+                    status=409,
+                )
 
             if request.user.is_authenticated():
                 try:
