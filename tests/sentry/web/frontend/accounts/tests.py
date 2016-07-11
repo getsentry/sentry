@@ -272,6 +272,17 @@ class RecoverPasswordTest(TestCase):
         assert 'form' in resp.context
         assert 'user' in resp.context['form'].errors
 
+    def test_managed_account_is_invalid(self):
+        user = self.create_user('foo@example.com', is_managed=True)
+
+        resp = self.client.post(self.path, {
+            'user': user.email,
+        })
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/account/recover/index.html')
+        assert 'form' in resp.context
+        assert 'user' in resp.context['form'].errors
+
     @mock.patch('sentry.models.LostPasswordHash.send_recover_mail')
     def test_valid_username(self, send_recover_mail):
         resp = self.client.post(self.path, {
