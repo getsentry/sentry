@@ -128,6 +128,34 @@ const Header = React.createClass({
               <li><a><span className="icon-star-solid"/></a></li>
               <li><a><span className="icon-av_timer"/></a></li>
             </ul>
+            <div className="sidebar-panel">
+              <div className="sidebar-panel-header">
+                <a className="close"></a>
+                <h2>Assigned to me</h2>
+              </div>
+              <div className="sidebar-panel-items">
+                <div className="sidebar-panel-item">
+                  <h3>Type Error <span className="culprit">poll(../../sentry/scripts/views.js)</span></h3>
+                  <div className="message">Object [object Object] has no method 'updateFrom'</div>
+                </div>
+                <div className="sidebar-panel-item active">
+                  <h3>Type Error <span className="culprit">poll(../../sentry/scripts/views.js)</span></h3>
+                  <div className="message">Object [object Object] has no method 'updateFrom'</div>
+                </div>
+                <div className="sidebar-panel-item">
+                  <h3>Type Error <span className="culprit">poll(../../sentry/scripts/views.js)</span></h3>
+                  <div className="message">Object [object Object] has no method 'updateFrom'</div>
+                </div>
+                <div className="sidebar-panel-item">
+                  <h3>Type Error <span className="culprit">poll(../../sentry/scripts/views.js)</span></h3>
+                  <div className="message">Object [object Object] has no method 'updateFrom'</div>
+                </div>
+                <div className="sidebar-panel-item">
+                  <h3>Type Error <span className="culprit">poll(../../sentry/scripts/views.js)</span></h3>
+                  <div className="message">Object [object Object] has no method 'updateFrom'</div>
+                </div>
+              </div>
+            </div>
           </div>
           { /* <Broadcasts /> */ }
           { /* {this.props.orgId ?
