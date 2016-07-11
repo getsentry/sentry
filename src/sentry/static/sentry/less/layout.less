@@ -1,4 +1,5 @@
 @sidebar-width: 60px;
+@sidebar-panel-width: 300px;
 
 html {
   height: 100%;
@@ -13,7 +14,7 @@ body {
   -webkit-font-smoothing: antialiased;
   .transition(.1s padding ease-in-out);
   overflow-x: hidden;
-  padding-left: @sidebar-width;
+  padding-left: @sidebar-width + @sidebar-panel-width;
 }
 
 /**
@@ -63,8 +64,8 @@ body.auth {
 
 .container {
   position: relative;
-  padding-left: 40px;
-  padding-right: 40px;
+  padding-left: 30px;
+  padding-right: 30px;
   width: 100% !important;
 }
 
@@ -83,6 +84,7 @@ header {
   left: 0;
   bottom: 0;
   width: @sidebar-width;
+  z-index: 100;
 
   .container {
     padding-left: 14px;
@@ -310,6 +312,61 @@ header {
       a {
         padding-bottom: 13px;
       }
+    }
+  }
+}
+
+.sidebar-panel {
+  position: fixed;
+  width: @sidebar-panel-width;
+  top: 0;
+  left: @sidebar-width;
+  bottom: 0;
+  background: @white-darker;
+  z-index: 100;
+  color: @gray-darker;
+  border-right: 1px solid @trim;
+  box-shadow: 1px 0 2px rgba(0,0,0, .06);
+
+
+  .sidebar-panel-header {
+    border-bottom: 1px solid @trim;
+    padding: 23px 20px 20px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0, .06);
+
+    h2 {
+      font-size: 18px;
+      margin: 0;
+      font-weight: normal;
+    }
+  }
+
+  .sidebar-panel-item {
+    padding: 15px 20px;
+    line-height: 1.2;
+    cursor: pointer;
+    border-bottom: 1px solid @trim;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0, .06);
+
+    h3 {
+      font-size: 16px;
+      margin-bottom: 5px;
+      .culprit {
+        font-weight: normal;
+      }
+    }
+
+    .message {
+      color: @gray-dark;
+    }
+
+    &.active {
+      background: @10;
+      border-color: @30;
+      border-top: 1px solid @30;
+      margin-top: -1px;
     }
   }
 }
