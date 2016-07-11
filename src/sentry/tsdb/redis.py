@@ -427,12 +427,11 @@ class RedisTSDB(BaseTSDB):
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
-        commands = {}
-
         arguments = ['RANKED']
         if limit is not None:
             arguments.append(int(limit))
 
+        commands = {}
         for key in keys:
             ks = []
             for timestamp in series:
@@ -440,9 +439,35 @@ class RedisTSDB(BaseTSDB):
             commands[key] = [(CountMinScript, ks, arguments)]
 
         results = {}
-
         for key, responses in self.cluster.execute_commands(commands).items():
             results[key] = [(member, float(score)) for member, score in responses[0].value]
+
+        return results
+
+    def get_most_frequent_series(self, model, keys, start, end=None, rollup=None, limit=None):
+        if not self.enable_frequency_sketches:
+            raise NotImplementedError("Frequency sketches are disabled.")
+
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+
+        arguments = ['RANKED']
+        if limit is not None:
+            arguments.append(int(limit))
+
+        commands = {}
+        for key in keys:
+            commands[key] = [(
+                CountMinScript,
+                self.make_frequency_table_keys(model, rollup, timestamp, key),
+                arguments,
+            ) for timestamp in series]
+
+        def unpack_response(response):
+            return {item: float(score) for item, score in response.value}
+
+        results = {}
+        for key, responses in self.cluster.execute_commands(commands).items():
+            results[key] = zip(series, map(unpack_response, responses))
 
         return results
 

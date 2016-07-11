@@ -260,6 +260,20 @@ class BaseTSDB(object):
         """
         raise NotImplementedError
 
+    def get_most_frequent_series(self, model, keys, start, end=None, rollup=None, limit=None):
+        """
+        Retrieve the most frequently seen items in a frequency table for each
+        interval in a series. (This is in contrast with ``get_most_frequent``,
+        which returns the most frequent item seen over the entire requested
+        range.)
+
+        Result are returned as a mapping, where the key is the key requested
+        and the value is a list of ``(timestamp, {item: score, ...})``) pairs
+        over the series. The maximum number of items returned for each interval
+        is the index capacity if no ``limit`` is provided.
+        """
+        raise NotImplementedError
+
     def get_frequency_series(self, model, items, start, end=None, rollup=None):
         """
         Retrieve the frequency of known items in a table over time.
