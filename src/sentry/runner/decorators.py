@@ -16,6 +16,7 @@ LOG_LEVELS = ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', 'FATAL')
 
 class CaseInsensitiveChoice(Choice):
     def convert(self, value, param, ctx):
+        self.choices = [choice.upper() for choice in self.choices]
         return super(CaseInsensitiveChoice, self).convert(value.upper(), param, ctx)
 
 
@@ -45,7 +46,7 @@ def log_options(default=None):
         import click
         from functools import update_wrapper
         from sentry.logging import LoggingFormat
-        formats = [LoggingFormat.HUMAN.upper(), LoggingFormat.MACHINE.upper()]
+        formats = [LoggingFormat.HUMAN, LoggingFormat.MACHINE]
 
         @click.pass_context
         @click.option('--loglevel', '-l', default=default,
