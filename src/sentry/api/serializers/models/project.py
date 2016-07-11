@@ -36,10 +36,19 @@ class ProjectSerializer(Serializer):
             default_subscribe = (
                 user_options.get('subscribe_by_default', '1') == '1'
             )
+
+            default_environments = {
+                o.project_id: o.value
+                for o in ProjectOption.objects.filter(
+                    key='sentry:default_environment',
+                    project__in=project_ids,
+                )
+            }
         else:
             bookmarks = set()
             user_options = {}
             default_subscribe = False
+            default_environments = {}
 
         reviewed_callsigns = {
             p.project_id: p.value
@@ -64,6 +73,7 @@ class ProjectSerializer(Serializer):
                     (item.id, 'mail:alert'),
                     default_subscribe,
                 )),
+                'default_environment': default_environments.get(item.id),
                 'reviewed-callsign': reviewed_callsigns.get(item.id),
                 'platforms': platforms_by_project[item.id],
             }
@@ -85,6 +95,7 @@ class ProjectSerializer(Serializer):
             'name': obj.name,
             'isPublic': obj.public,
             'isBookmarked': attrs['is_bookmarked'],
+            'defaultEnvironment': attrs['default_environment'],
             'callSign': obj.callsign,
             'color': obj.color,
             # TODO(mitsuhiko): eventually remove this when we will treat

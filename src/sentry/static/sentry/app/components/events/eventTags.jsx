@@ -29,7 +29,7 @@ const EventTags = React.createClass({
           group={this.props.group}
           event={this.props.event}
           title={t('Tags')}
-          ype="tags">
+          type="tags">
         <Pills>
           {tags.map((tag) => {
             return (

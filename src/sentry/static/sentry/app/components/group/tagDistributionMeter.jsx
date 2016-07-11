@@ -36,6 +36,15 @@ const TagDistributionMeter = React.createClass({
     this.fetchData();
   },
 
+  shouldComponentUpdate(nextProps, nextState) {
+    return (
+      this.state.loading !== nextState.loading ||
+      this.state.error !== nextState.error ||
+      this.props.tag !== nextProps.tag ||
+      this.props.name !== nextProps.name
+    );
+  },
+
   fetchData() {
     let url = '/issues/' + this.props.group.id + '/tags/' + encodeURIComponent(this.props.tag) + '/';
 
