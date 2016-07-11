@@ -15,6 +15,7 @@ const Snooze = {
   '30MINUTES': 30,
   '2HOURS': 60 * 2,
   '24HOURS': 60 * 24,
+  'ONEWEEK': 60 * 24 * 7,
 };
 
 const GroupActions = React.createClass({
@@ -170,6 +171,9 @@ const GroupActions = React.createClass({
               </MenuItem>
               <MenuItem noAnchor={true}>
                 <a onClick={this.onSnooze.bind(this, Snooze['24HOURS'])}>{t('for 24 hours')}</a>
+              </MenuItem>
+              <MenuItem noAnchor={true}>
+                <a onClick={this.onSnooze.bind(this, Snooze.ONEWEEK)}>{t('for 1 week')}</a>
               </MenuItem>
               <MenuItem noAnchor={true}>
                 <a onClick={this.onUpdate.bind(this, {status: 'muted'})}>{t('forever')}</a>
