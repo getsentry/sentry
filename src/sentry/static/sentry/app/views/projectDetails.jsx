@@ -3,6 +3,7 @@ import Reflux from 'reflux';
 
 import ApiMixin from '../mixins/apiMixin';
 import DocumentTitle from 'react-document-title';
+import EnvironmentStore from '../stores/environmentStore';
 import MemberListStore from '../stores/memberListStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -129,6 +130,12 @@ const ProjectDetails = React.createClass({
         }
       });
 
+      this.api.request(this.getEnvironmentListEndpoint(), {
+        success: (data) => {
+          EnvironmentStore.loadInitialData(data);
+        }
+      });
+
       this.setState({
         loading: false,
         error: false,
@@ -149,9 +156,14 @@ const ProjectDetails = React.createClass({
     }
   },
 
+  getEnvironmentListEndpoint() {
+    let {orgId, projectId} = this.props.params;
+    return `/projects/${orgId}/${projectId}/environments/`;
+  },
+
   getMemberListEndpoint() {
-    let params = this.props.params;
-    return '/projects/' + params.orgId + '/' + params.projectId + '/members/';
+    let {orgId, projectId} = this.props.params;
+    return `/projects/${orgId}/${projectId}/members/`;
   },
 
   setProjectNavSection(section) {

@@ -304,25 +304,52 @@
 
 // Group Overview
 
-.group-overview {
-  .bar-chart {
-    figure a {
-      height: 70px;
-    }
-  }
-  .bar-chart-small {
-    figure a {
-      height: 40px;
-    }
-  }
-}
-
 .group-stats-column {
   float: right;
 }
 
 .group-stats {
   font-size: 14px;
+
+  .env-stats {
+    > h6 {
+      color: @gray-dark;
+
+      > span {
+        background: @white;
+        padding-right: 7px;
+      }
+
+      &:before {
+        display: block;
+        position: absolute;
+        content: "";
+        border-top: 1px solid lighten(@trim, 3);
+        left: 0;
+        right: 0;
+        top: 50%;
+        z-index: -1;
+      }
+    }
+
+    .env-content {
+      margin-bottom: 20px;
+
+      h6 {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #888;
+
+        &:before {
+          display: none;
+        }
+      }
+
+      dl:last-child {
+        margin-bottom: 5px;
+      }
+    }
+  }
 
   h6 {
     font-size: 14px;
@@ -355,10 +382,10 @@
         display: block;
         position: absolute;
         content: "";
-        border-radius: 9px;
-        .square(9px);
+        border-radius: 8px;
+        .square(8px);
         right: 0;
-        top: 3px;
+        top: 0;
       }
 
       &.first-seen:after {
@@ -377,10 +404,17 @@
     span {
       background: @purple-light;
       #gradient > .vertical(@purple-light, @purple);
+
+      &.inactive {
+        background: @gray-lightest;
+        #gradient > .vertical(@gray-lightest, @gray-lightest);
+      }
     }
 
     &:hover span {
-      background: @blue;
+      border: 1px solid @purple-light;
+      margin-left: -1px;
+      margin-right: -1px;
     }
   }
 
