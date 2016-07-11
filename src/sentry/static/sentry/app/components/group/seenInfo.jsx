@@ -7,7 +7,7 @@ import {t} from '../../locale';
 
 const SeenInfo = React.createClass({
   propTypes: {
-    date: React.PropTypes.any.isRequired,
+    date: React.PropTypes.any,
     release: React.PropTypes.shape({
       version: React.PropTypes.string.isRequired
     }),
@@ -15,18 +15,43 @@ const SeenInfo = React.createClass({
     projectId: React.PropTypes.string.isRequired
   },
 
+  shouldComponentUpdate(nextProps, nextState) {
+    return (
+      (this.props.release || {}).version !== (nextProps.release || {}).version ||
+      this.props.date !== nextProps.date
+    );
+  },
+
+  getReleaseTrackingUrl() {
+    let {orgId, projectId} = this.props;
+
+    return `/${orgId}/${projectId}/settings/release-tracking/`;
+  },
+
   render() {
-    let {date, release} = this.props;
+    let {date, release, orgId, projectId} = this.props;
     return (
       <dl>
         <dt key={0}>{t('When')}:</dt>
-        <dd key={1}><TimeSince date={date} /></dd>
+        {date ?
+          <dd key={1}><TimeSince date={date} /></dd>
+        :
+          <dd key={1}>n/a</dd>
+        }
         <dt key={2}>{t('Date')}:</dt>
-        <dd key={3}><DateTime date={date} seconds={true} /></dd>
-        {utils.defined(release) && [
-          <dt key={4}>{t('Release')}:</dt>,
-          <dd key={5}><Version orgId={this.props.orgId} projectId={this.props.projectId} version={release.version} /></dd>
-        ]}
+        {date ?
+          <dd key={3}><DateTime date={date} seconds={true} /></dd>
+        :
+          <dd key={3}>n/a</dd>
+        }
+        <dt key={4}>{t('Release')}:</dt>
+        {utils.defined(release) ?
+          <dd key={5}><Version orgId={orgId} projectId={projectId} version={release.version} /></dd>
+        : (date ?
+          <dd key={5}><small style={{marginLeft: 5, fontStyle: 'italic'}}><a href={this.getReleaseTrackingUrl()}>not configured</a></small></dd>
+        :
+          <dd key={5}>n/a</dd>
+        )}
       </dl>
     );
   }
