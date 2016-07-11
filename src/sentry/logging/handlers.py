@@ -48,13 +48,23 @@ class HumanRenderer(object):
 
 class StructLogHandler(logging.StreamHandler):
     def emit(self, record, logger=get_logger()):
+        # This may seem a little gross, but when logging with the RootLogger,
+        # anything passed into 'extra' gets turned into a real kwarg
+        throwaways = [
+            'threadName', 'thread', 'created', 'process', 'processName', 'args',
+            'module', 'filename', 'levelno', 'exc_text', 'msg', 'pathname', 'lineno',
+            'funcName', 'relativeCreated', 'levelname', 'msecs',
+        ]
+
         kwargs = {
+            (k if k not in throwaways else 'popme'): v
+            for k, v in record.__dict__.iteritems()
+        }
+        kwargs.pop('popme')
+        kwargs.update({
             'level': record.levelno,
             'event': record.msg,
-            'name': record.name,
-        }
-        if record.exc_info:
-            kwargs['exc_info'] = record.exc_info
+        })
 
         if record.args:
             # record.args inside of LogRecord.__init__ gets unrolled
