@@ -201,9 +201,10 @@ const GroupHeader = React.createClass({
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
             {t('Related Events')}
           </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/plugins/`}>
-            {t('External Issues')}
-          </ListLink>
+          {group.pluginIssues.length ?
+            <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/plugins/`}>
+              {t('External Issues')}
+            </ListLink> : null}
         </ul>
       </div>
     );

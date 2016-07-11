@@ -270,6 +270,13 @@ const IssuePlugin = React.createClass({
     // TODO: does this need to work with multiple plugins? --> yes, probably
     let group = this.getGroup();
     let plugin = group.pluginIssues && group.pluginIssues[0];
+
+    if (!plugin) {
+      window.location = ('/' + this.getOrganization().slug + '/' +
+                         this.getProject().slug + '/issues/' + this.getGroup().id);
+      return null;
+    }
+
     if (this.state.errorDetails) {
       return this.renderError();
     }
