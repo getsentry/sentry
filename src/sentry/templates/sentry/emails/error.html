@@ -32,7 +32,7 @@
     {% else %}
       <div class="event">
         <div class="event-id">ID: {{ event.event_id }}</div>
-        <div class="event-date">{{ event.datetime }} UTC</div>
+        <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e" }}</div>
       </div>
 
       {% for label, html, _ in interfaces %}

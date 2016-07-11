@@ -36,7 +36,7 @@
                       <a href="{% absolute_uri group_link %}">{{ group.message_short|soft_break:40 }}</a>
                       <p>
                         {{ group.title|soft_break:50 }}
-                        <small>&mdash; {{ records.0.datetime|date:"N j, Y, P e" }}</small>
+                        <small>&mdash; {{ records.0.datetime|date:"N j, Y, g:i:s a e" }}</small>
                       </p>
                   </td>
               </tr>
