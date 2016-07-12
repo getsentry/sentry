@@ -48,6 +48,56 @@ from sentry.web.helpers import render_to_response, render_to_string
 logger = logging.getLogger(__name__)
 
 
+def get_random(request):
+    seed = request.GET.get('seed', str(time.time()))
+    return Random(seed)
+
+
+def make_message(random, length=None):
+    if length is None:
+        length = int(random.weibullvariate(8, 3))
+    return ' '.join(random.choice(WORDS) for _ in xrange(length))
+
+
+def make_culprit(random):
+    def make_module_path_components(min, max):
+        for _ in xrange(random.randint(min, max)):
+            yield ''.join(random.sample(WORDS, random.randint(1, int(random.paretovariate(2.2)))))
+
+    return '{module} in {function}'.format(
+        module='.'.join(make_module_path_components(1, 4)),
+        function=random.choice(WORDS)
+    )
+
+
+def make_group_metadata(random, group):
+    return {
+        'type': 'error',
+        'metadata': {
+            'type': '{}Error'.format(
+                ''.join(word.title() for word in random.sample(WORDS, random.randint(1, 3))),
+            ),
+            'value': make_message(random),
+        }
+    }
+
+
+def make_group_generator(random, project):
+    for id in itertools.count(1):
+        group = Group(
+            id=id,
+            project=project,
+            culprit=make_culprit(random),
+            level=random.choice(LOG_LEVELS.keys()),
+            message=make_message(random),
+        )
+
+        if random.random() < 0.8:
+            group.data = make_group_metadata(random, group)
+
+        yield group
+
+
 # TODO(dcramer): use https://github.com/disqus/django-mailviews
 class MailPreview(object):
     def __init__(self, html_template, text_template, context=None):
@@ -114,12 +164,11 @@ class ActivityMailDebugView(View):
             name='My Project',
         )
 
-        group = Group(
-            id=1,
-            project=project,
-            message='This is an example event.',
-            last_seen=datetime(2016, 6, 13, 3, 8, 24, tzinfo=timezone.utc),
-            first_seen=datetime(2016, 6, 13, 3, 8, 24, tzinfo=timezone.utc),
+        group = next(
+            make_group_generator(
+                get_random(request),
+                project,
+            ),
         )
 
         event = Event(
@@ -163,11 +212,12 @@ def new_event(request):
         team=team,
         organization=org,
     )
-    group = Group(
-        id=1,
-        project=project,
-        message='This is an example event.',
-        level=logging.ERROR,
+
+    group = next(
+        make_group_generator(
+            get_random(request),
+            project,
+        ),
     )
 
     event = Event(
@@ -208,56 +258,9 @@ def new_event(request):
     ).render()
 
 
-def make_message(random, length=None):
-    if length is None:
-        length = int(random.weibullvariate(8, 3))
-    return ' '.join(random.choice(WORDS) for _ in xrange(length))
-
-
-def make_culprit(random):
-    def make_module_path_components(min, max):
-        for _ in xrange(random.randint(min, max)):
-            yield ''.join(random.sample(WORDS, random.randint(1, int(random.paretovariate(2.2)))))
-
-    return '{module} in {function}'.format(
-        module='.'.join(make_module_path_components(1, 4)),
-        function=random.choice(WORDS)
-    )
-
-
-def make_group_metadata(random, group):
-    return {
-        'type': 'error',
-        'metadata': {
-            'type': '{}Error'.format(
-                ''.join(word.title() for word in random.sample(WORDS, random.randint(1, 3))),
-            ),
-            'value': make_message(random),
-        }
-    }
-
-
-def make_group_generator(random, project):
-    for id in itertools.count(1):
-        group = Group(
-            id=id,
-            project=project,
-            culprit=make_culprit(random),
-            level=random.choice(LOG_LEVELS.keys()),
-            message=make_message(random),
-        )
-
-        if random.random() < 0.8:
-            group.data = make_group_metadata(random, group)
-
-        yield group
-
-
 @login_required
 def digest(request):
-    seed = request.GET.get('seed', str(time.time()))
-    logger.debug('Using random seed value: %s')
-    random = Random(seed)
+    random = get_random(request)
 
     now = datetime.utcnow().replace(tzinfo=pytz.utc)
 
