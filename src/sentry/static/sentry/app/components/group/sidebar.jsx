@@ -19,7 +19,8 @@ const GroupParticipants = React.createClass({
 
     return (
       <div>
-        <h6><span>{participants.length} Participants</span></h6>
+        <h6><span>{participants.length} {'Participant' +
+                                         (participants.length === 1 ? '' : 's')}</span></h6>
         <ul className="faces">
           {participants.map((user) => {
             return (
