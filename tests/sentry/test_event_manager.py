@@ -17,7 +17,8 @@ from sentry.event_manager import (
     generate_culprit,
 )
 from sentry.models import (
-    Activity, Event, Group, GroupResolution, GroupStatus, EventMapping, Release
+    Activity, Event, Group, GroupRelease, GroupResolution, GroupStatus,
+    EventMapping, Release
 )
 from sentry.testutils import TestCase, TransactionTestCase
 
@@ -413,6 +414,47 @@ class EventManagerTest(TransactionTestCase):
 
         group = event.group
         assert group.first_release.version == '1.0'
+
+    def test_group_release_no_env(self):
+        manager = EventManager(self.make_event(release='1.0'))
+        event = manager.save(1)
+
+        release = Release.objects.get(version='1.0', project=event.project_id)
+
+        assert GroupRelease.objects.filter(
+            release_id=release.id,
+            group=event.group_id,
+            environment='',
+        ).exists()
+
+        # ensure we're not erroring on second creation
+        manager = EventManager(self.make_event(release='1.0'))
+        manager.save(1)
+
+    def test_group_release_with_env(self):
+        manager = EventManager(self.make_event(
+            release='1.0', environment='prod'))
+        event = manager.save(1)
+
+        release = Release.objects.get(version='1.0', project=event.project_id)
+
+        assert GroupRelease.objects.filter(
+            release_id=release.id,
+            group=event.group_id,
+            environment='prod',
+        ).exists()
+
+        manager = EventManager(self.make_event(
+            release='1.0', environment='staging'))
+        event = manager.save(1)
+
+        release = Release.objects.get(version='1.0', project=event.project_id)
+
+        assert GroupRelease.objects.filter(
+            release_id=release.id,
+            group=event.group_id,
+            environment='staging',
+        ).exists()
 
     def test_bad_logger(self):
         manager = EventManager(self.make_event(logger='foo bar'))
