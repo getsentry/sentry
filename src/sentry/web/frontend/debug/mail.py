@@ -37,7 +37,7 @@ from sentry.models import (
     Team,
 )
 from sentry.plugins.sentry_mail.activity import emails
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.samples import load_data
 from sentry.utils.email import inline_css
 from sentry.utils.http import absolute_uri
@@ -83,13 +83,19 @@ def make_group_metadata(random, group):
 
 
 def make_group_generator(random, project):
+    epoch = to_timestamp(datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc))
     for id in itertools.count(1):
+        first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)
+        last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
+
         group = Group(
             id=id,
             project=project,
             culprit=make_culprit(random),
             level=random.choice(LOG_LEVELS.keys()),
             message=make_message(random),
+            first_seen=to_datetime(first_seen),
+            last_seen=to_datetime(last_seen),
         )
 
         if random.random() < 0.8:
