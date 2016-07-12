@@ -6,9 +6,10 @@
     "url": "git://github.com/getsentry/sentry.git"
   },
   "dependencies": {
-    "babel-core": "5.8.38",
+    "babel-core": "6.10.4",
     "babel-gettext-extractor": "^1.0.2",
-    "babel-loader": "5.3.3",
+    "babel-loader": "6.2.4",
+    "babel-polyfill": "^6.9.1",
     "bootstrap": "3.3.5",
     "classnames": "2.2.0",
     "compression-webpack-plugin": "^0.3.0",

@@ -17,7 +17,8 @@ var IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 var babelQuery = {
   plugins: [],
-  extra: {}
+  extra: {},
+  presets: ['es2015']
 };
 
 // only extract po files if we need to
@@ -41,7 +42,7 @@ var entry = {
   // js
   'app': 'app',
   'vendor': [
-    'babel-core/polyfill',
+    'babel-polyfill',
     'bootstrap/js/dropdown',
     'bootstrap/js/tab',
     'bootstrap/js/tooltip',
