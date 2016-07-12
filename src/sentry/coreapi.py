@@ -691,6 +691,9 @@ class CspApiHelper(ClientApiHelper):
         return auth
 
     def validate_data(self, project, data):
+        # pop off our meta data used to hold Sentry specific stuff
+        meta = data.pop('_meta', {})
+
         # All keys are sent with hyphens, so we want to conver to underscores
         report = dict(map(lambda v: (v[0].replace('-', '_'), v[1]), data.iteritems()))
 
@@ -706,12 +709,13 @@ class CspApiHelper(ClientApiHelper):
         if inst.referrer:
             headers['Referer'] = inst.referrer
 
-        return {
+        data = {
             'logger': 'csp',
             'project': project.id,
             'message': inst.get_message(),
             'culprit': inst.get_culprit(),
             'tags': inst.get_tags(),
+            'release': meta.get('release'),
             inst.get_path(): inst.to_json(),
             # This is a bit weird, since we don't have nearly enough
             # information to create an Http interface, but
@@ -723,5 +727,19 @@ class CspApiHelper(ClientApiHelper):
             },
             'sentry.interfaces.User': {
                 'ip_address': self.context.ip_address,
-            }
+            },
+            'errors': [],
         }
+
+        # Copy/pasted from above in ClientApiHelper.validate_data
+        if data.get('release'):
+            data['release'] = unicode(data['release'])
+            if len(data['release']) > 64:
+                data['errors'].append({
+                    'type': EventError.VALUE_TOO_LONG,
+                    'name': 'release',
+                    'value': data['release'],
+                })
+                del data['release']
+
+        return data

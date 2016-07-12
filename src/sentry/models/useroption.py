@@ -18,6 +18,8 @@ from sentry.db.models.manager import BaseManager
 
 
 class UserOptionValue(object):
+    # 'workflow:notifications'
+    all_conversations = '0'
     participating_only = '1'
 
 

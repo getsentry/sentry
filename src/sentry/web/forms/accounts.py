@@ -19,7 +19,7 @@ from django.utils.translation import ugettext_lazy as _
 from six.moves import range
 
 from sentry.constants import LANGUAGES
-from sentry.models import UserOption, User
+from sentry.models import User, UserOption, UserOptionValue
 from sentry.utils.auth import find_users
 from sentry.web.forms.fields import ReadOnlyTextField
 
@@ -172,6 +172,11 @@ class RecoverPasswordForm(CaptchaForm):
         users = find_users(value, with_valid_password=False)
         if not users:
             raise forms.ValidationError(_("We were unable to find a matching user."))
+
+        users = [u for u in users if not u.is_managed]
+        if not users:
+            raise forms.ValidationError(_("The account you are trying to recover is managed and does not support password recovery."))
+
         if len(users) > 1:
             raise forms.ValidationError(_("Multiple accounts were found matching this email address."))
         return users[0]
@@ -179,69 +184,6 @@ class RecoverPasswordForm(CaptchaForm):
 
 class ChangePasswordRecoverForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput())
-
-
-class NotificationSettingsForm(forms.Form):
-    alert_email = forms.EmailField(label=_('Email'), help_text=_('Designate an alternative email address to send email notifications to.'), required=False)
-    subscribe_by_default = forms.ChoiceField(
-        label=_('Alerts'),
-        choices=(
-            ('1', _('Automatically subscribe to alerts for new projects')),
-            ('0', _('Do not subscribe to alerts for new projects')),
-        ), required=False,
-        widget=forms.Select(attrs={'class': 'input-xxlarge'}))
-    workflow_notifications = forms.ChoiceField(
-        label=_('Workflow Notifications'),
-        choices=(
-            ('0', _('Receive updates for all issues by default')),
-            ('1', _('Only notify me when I\'m participating or mentioned on an issue')),
-        ), required=False,
-        widget=forms.Select(attrs={'class': 'input-xxlarge'}))
-
-    def __init__(self, user, *args, **kwargs):
-        self.user = user
-        super(NotificationSettingsForm, self).__init__(*args, **kwargs)
-        self.fields['alert_email'].initial = UserOption.objects.get_value(
-            user=self.user,
-            project=None,
-            key='alert_email',
-            default=user.email,
-        )
-        self.fields['subscribe_by_default'].initial = UserOption.objects.get_value(
-            user=self.user,
-            project=None,
-            key='subscribe_by_default',
-            default='1',
-        )
-        self.fields['workflow_notifications'].initial = UserOption.objects.get_value(
-            user=self.user,
-            project=None,
-            key='workflow:notifications',
-            default='0',
-        )
-
-    def get_title(self):
-        return "General"
-
-    def save(self):
-        UserOption.objects.set_value(
-            user=self.user,
-            project=None,
-            key='alert_email',
-            value=self.cleaned_data['alert_email'],
-        )
-        UserOption.objects.set_value(
-            user=self.user,
-            project=None,
-            key='subscribe_by_default',
-            value=self.cleaned_data['subscribe_by_default'],
-        )
-        UserOption.objects.set_value(
-            user=self.user,
-            project=None,
-            key='workflow:notifications',
-            value=self.cleaned_data['workflow_notifications'],
-        )
 
 
 class AccountSettingsForm(forms.Form):
@@ -264,10 +206,11 @@ class AccountSettingsForm(forms.Form):
         self.user = user
         super(AccountSettingsForm, self).__init__(*args, **kwargs)
 
+        needs_password = user.has_usable_password()
+
         if self.user.is_managed:
             # username and password always managed, email and
             # name optionally managed
-            needs_password = True
             for field in ('email', 'name', 'username'):
                 if field == 'username' or field in settings.SENTRY_MANAGED_USER_FIELDS:
                     self.fields[field] = ReadOnlyTextField(label=self.fields[field].label)
@@ -275,12 +218,13 @@ class AccountSettingsForm(forms.Form):
                     needs_password = False
 
             del self.fields['new_password']
-            if not needs_password:
-                del self.fields['password']
 
         # don't show username field if its the same as their email address
         if self.user.email == self.user.username:
             del self.fields['username']
+
+        if not needs_password:
+            del self.fields['password']
 
     def is_readonly(self):
         if self.user.is_managed:
@@ -309,15 +253,12 @@ class AccountSettingsForm(forms.Form):
         value = self.cleaned_data.get('password')
         if value and not self.user.check_password(value):
             raise forms.ValidationError('The password you entered is not correct.')
-        return value
-
-    def clean(self):
-        if not self.cleaned_data.get('password') and (
-            self.cleaned_data.get('email', self.user.email) != self.user.email or
-            self.cleaned_data.get('new_password')
+        elif not value and (
+            self.cleaned_data.get('email', self.user.email) != self.user.email
+            or self.cleaned_data.get('new_password')
         ):
             raise forms.ValidationError('You must confirm your current password to make changes.')
-        return self.cleaned_data
+        return value
 
     def save(self, commit=True):
         if self.cleaned_data.get('new_password'):
@@ -403,8 +344,81 @@ class AppearanceSettingsForm(forms.Form):
         return self.user
 
 
+class NotificationSettingsForm(forms.Form):
+    alert_email = forms.EmailField(label=_('Email'), help_text=_('Designate an alternative email address to send email notifications to.'), required=False)
+    subscribe_by_default = forms.BooleanField(
+        label=_('Subscribe to alerts for projects by default'),
+        required=False,
+    )
+    workflow_notifications = forms.BooleanField(
+        label=_('Receive updates for all issues by default'),
+        required=False,
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super(NotificationSettingsForm, self).__init__(*args, **kwargs)
+        self.fields['alert_email'].initial = UserOption.objects.get_value(
+            user=self.user,
+            project=None,
+            key='alert_email',
+            default=user.email,
+        )
+        self.fields['subscribe_by_default'].initial = (
+            UserOption.objects.get_value(
+                user=self.user,
+                project=None,
+                key='subscribe_by_default',
+                default='1',
+            ) == '1'
+        )
+
+        self.fields['workflow_notifications'].initial = (
+            UserOption.objects.get_value(
+                user=self.user,
+                project=None,
+                key='workflow:notifications',
+                default=UserOptionValue.all_conversations,
+            ) == UserOptionValue.all_conversations
+        )
+
+    def get_title(self):
+        return "General"
+
+    def save(self):
+        UserOption.objects.set_value(
+            user=self.user,
+            project=None,
+            key='alert_email',
+            value=self.cleaned_data['alert_email'],
+        )
+
+        UserOption.objects.set_value(
+            user=self.user,
+            project=None,
+            key='subscribe_by_default',
+            value='1' if self.cleaned_data['subscribe_by_default'] else '0',
+        )
+
+        if self.cleaned_data.get('workflow_notifications') is True:
+            UserOption.objects.set_value(
+                user=self.user,
+                project=None,
+                key='workflow:notifications',
+                value=UserOptionValue.all_conversations,
+            )
+        else:
+            UserOption.objects.set_value(
+                user=self.user,
+                project=None,
+                key='workflow:notifications',
+                value=UserOptionValue.participating_only,
+            )
+
+
 class ProjectEmailOptionsForm(forms.Form):
     alert = forms.BooleanField(required=False)
+    workflow = forms.BooleanField(required=False)
     email = forms.EmailField(required=False, widget=forms.HiddenInput())
 
     def __init__(self, project, user, *args, **kwargs):
@@ -414,8 +428,10 @@ class ProjectEmailOptionsForm(forms.Form):
         super(ProjectEmailOptionsForm, self).__init__(*args, **kwargs)
 
         has_alerts = project.is_user_subscribed_to_mail_alerts(user)
+        has_workflow = project.is_user_subscribed_to_workflow(user)
 
         self.fields['alert'].initial = has_alerts
+        self.fields['workflow'].initial = has_workflow
         self.fields['email'].initial = UserOption.objects.get_value(
             user, project, 'mail:email', None)
 
@@ -423,6 +439,11 @@ class ProjectEmailOptionsForm(forms.Form):
         UserOption.objects.set_value(
             self.user, self.project, 'mail:alert',
             int(self.cleaned_data['alert']),
+        )
+
+        UserOption.objects.set_value(
+            self.user, self.project, 'workflow:notifications',
+            UserOptionValue.all_conversations if self.cleaned_data['workflow'] else UserOptionValue.participating_only,
         )
 
         if self.cleaned_data['email']:
