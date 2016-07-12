@@ -28,8 +28,8 @@ from sentry.constants import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Event, EventMapping, EventUser, Group, GroupHash, GroupResolution,
-    GroupStatus, Project, Release, TagKey, UserReport
+    Activity, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
+    GroupResolution, GroupStatus, Project, Release, TagKey, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
@@ -556,6 +556,18 @@ class EventManager(object):
             self.logger.info('Duplicate EventMapping found for event_id=%s', event_id,
                              exc_info=True)
             return event
+
+        if release:
+            # TODO(dcramer): would be a bit more ideal to buffer this
+            GroupRelease.objects.create_or_update(
+                project_id=project.id,
+                release_id=release.id,
+                group_id=group.id,
+                environment=environment or '',
+                values={
+                    'last_seen': date,
+                }
+            )
 
         UserReport.objects.filter(
             project=project, event_id=event_id,
