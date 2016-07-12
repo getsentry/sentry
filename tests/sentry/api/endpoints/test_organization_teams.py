@@ -84,3 +84,20 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert resp.status_code == 201, resp.content
         team = Team.objects.get(id=resp.data['id'])
         assert team.slug == 'hello-world'
+
+    def test_duplicate(self):
+        self.login_as(user=self.user)
+
+        resp = self.client.post(self.path, data={
+            'name': 'hello world',
+            'slug': 'foobar',
+        })
+
+        assert resp.status_code == 201, resp.content
+
+        resp = self.client.post(self.path, data={
+            'name': 'hello world',
+            'slug': 'foobar',
+        })
+
+        assert resp.status_code == 409, resp.content

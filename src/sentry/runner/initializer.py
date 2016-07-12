@@ -171,7 +171,13 @@ def configure_structlog():
             structlog.processors.StackInfoRenderer(),
         ]
     }
+
+    fmt_from_env = os.environ.get('SENTRY_LOG_FORMAT')
+    if fmt_from_env:
+        settings.SENTRY_OPTIONS['system.logging-format'] = fmt_from_env.lower()
+
     fmt = options.get('system.logging-format')
+
     if fmt == LoggingFormat.HUMAN:
         from sentry.logging.handlers import HumanRenderer
         kwargs['processors'].extend([

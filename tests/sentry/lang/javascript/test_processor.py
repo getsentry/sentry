@@ -416,3 +416,41 @@ class ErrorMappingTest(TestCase):
             'Component.getChildContext(): key "" is not defined in '
             'childContextTypes.'
         )
+
+    @responses.activate
+    def test_react_error_mapping_truncated(self):
+        responses.add(responses.GET, REACT_MAPPING_URL, body=r'''
+        {
+          "108": "%s.getChildContext(): key \"%s\" is not defined in childContextTypes."
+        }
+        ''', content_type='application/json')
+
+        data = {
+            'platform': 'javascript',
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'type': 'InvariantViolation',
+                    'value': (
+                        u'Minified React error #108; visit http://facebook'
+                        u'.github.io/react/docs/error-decoder.html?…'
+                    ),
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'abs_path': 'http://example.com/foo.js',
+                                'filename': 'foo.js',
+                                'lineno': 4,
+                                'colno': 0,
+                            },
+                        ],
+                    },
+                }],
+            }
+        }
+
+        assert rewrite_exception(data)
+
+        assert data['sentry.interfaces.Exception']['values'][0]['value'] == (
+            '<redacted>.getChildContext(): key "<redacted>" is not defined in '
+            'childContextTypes.'
+        )

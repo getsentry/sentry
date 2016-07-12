@@ -61,6 +61,8 @@ class TSDBModel(Enum):
     frequent_projects_by_organization = 403
     # number of issues seen for a project, by project
     frequent_issues_by_project = 404
+    # number of events seen for a release, by issue
+    frequent_releases_by_groups = 406
 
 
 class BaseTSDB(object):
@@ -255,6 +257,20 @@ class BaseTSDB(object):
         highest (most frequent) to lowest (least frequent) score. The maximum
         number of items returned is ``index capacity * rollup intervals`` if no
         ``limit`` is provided.
+        """
+        raise NotImplementedError
+
+    def get_most_frequent_series(self, model, keys, start, end=None, rollup=None, limit=None):
+        """
+        Retrieve the most frequently seen items in a frequency table for each
+        interval in a series. (This is in contrast with ``get_most_frequent``,
+        which returns the most frequent items seen over the entire requested
+        range.)
+
+        Results are returned as a mapping, where the key is the key requested
+        and the value is a list of ``(timestamp, {item: score, ...})`` pairs
+        over the series. The maximum number of items returned for each interval
+        is the index capacity if no ``limit`` is provided.
         """
         raise NotImplementedError
 
