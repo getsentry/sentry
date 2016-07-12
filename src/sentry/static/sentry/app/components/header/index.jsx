@@ -19,6 +19,7 @@ const OnboardingStatus = React.createClass({
     org: React.PropTypes.object.isRequired,
     onToggleTodos: React.PropTypes.func.isRequired,
     showTodos: React.PropTypes.bool,
+    showPanel: React.PropTypes.bool,
     onHideTodos: React.PropTypes.func,
   },
 
@@ -90,6 +91,10 @@ const Header = React.createClass({
     this.setState({showTodos: !this.state.showTodos});
   },
 
+  togglePanel() {
+    this.setState({showPanel: !this.state.showPanel});
+  },
+
   render() {
     let user = ConfigStore.get('user');
     let org = this.getOrganization();
@@ -119,18 +124,19 @@ const Header = React.createClass({
         <div className="container">
           <div className="anchor-top">
             <div className="org-switcher divider-bottom">
-              <a className="active-org">
+              <a className="active-org" href="/">
                 <img src="https://s3.amazonaws.com/f.cl.ly/items/0z1b103b2K2e3A0y3E0H/sentry-avatar.png" />
               </a>
             </div>
             <ul className="my-nav divider-bottom">
-              <li><a><span className="icon-user"/></a></li>
-              <li><a><span className="icon-star-solid"/></a></li>
-              <li><a><span className="icon-av_timer"/></a></li>
+              <li><a><span className="icon-user" onClick={this.togglePanel}/></a></li>
+              <li><a><span className="icon-star-solid" onClick={this.togglePanel}/></a></li>
+              <li><a><span className="icon-av_timer" onClick={this.togglePanel}/></a></li>
             </ul>
+            {this.state.showPanel &&
             <div className="sidebar-panel">
               <div className="sidebar-panel-header">
-                <a className="close"></a>
+                <a className="close pull-right" onClick={this.togglePanel}><span className="icon-x" /></a>
                 <h2>Assigned to me</h2>
               </div>
               <div className="sidebar-panel-items">
@@ -156,6 +162,7 @@ const Header = React.createClass({
                 </div>
               </div>
             </div>
+            }
           </div>
           { /* <Broadcasts /> */ }
           { /* {this.props.orgId ?
