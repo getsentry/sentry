@@ -64,7 +64,7 @@
   "devDependencies": {
     "babel-eslint": "5.0.0-beta9",
     "chai": "3.4.1",
-    "enzyme": "2.4.0",
+    "enzyme": "2.4.1",
     "eslint": "1.9.0",
     "eslint-plugin-getsentry": "1.0.0",
     "eslint-plugin-react": "3.11.2",
