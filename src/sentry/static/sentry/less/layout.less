@@ -1,5 +1,5 @@
 @sidebar-width: 60px;
-@sidebar-panel-width: 300px;
+@sidebar-panel-width: 320px;
 
 html {
   height: 100%;
@@ -14,7 +14,7 @@ body {
   -webkit-font-smoothing: antialiased;
   .transition(.1s padding ease-in-out);
   overflow-x: hidden;
-  padding-left: @sidebar-width + @sidebar-panel-width;
+  padding-left: @sidebar-width;
 }
 
 /**
@@ -317,6 +317,7 @@ header {
 }
 
 .sidebar-panel {
+  display: none;
   position: fixed;
   width: @sidebar-panel-width;
   top: 0;

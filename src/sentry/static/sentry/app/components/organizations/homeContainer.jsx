@@ -48,11 +48,6 @@ const HomeContainer = React.createClass({
                 </a>
               }
             </div>
-            <div className="org-name">
-              <Link to={`/${org.slug}/`}>
-                {org.name}
-              </Link>
-            </div>
             <ProjectSelector
                 organization={org} />
           </div>
