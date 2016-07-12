@@ -296,13 +296,6 @@ else:
     LOGIN_URL = reverse_lazy('sentry-login')
 
 AUTHENTICATION_BACKENDS = (
-    'social_auth.backends.twitter.TwitterBackend',
-    'social_auth.backends.facebook.FacebookBackend',
-    # TODO: migrate to GoogleOAuth2Backend
-    'social_auth.backends.google.GoogleBackend',
-    'social_auth.backends.contrib.github.GithubBackend',
-    'social_auth.backends.contrib.bitbucket.BitbucketBackend',
-    'social_auth.backends.contrib.trello.TrelloBackend',
     'sentry.utils.auth.EmailAuthBackend',
 )
 
