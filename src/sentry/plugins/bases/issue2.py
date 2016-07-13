@@ -2,22 +2,73 @@ from rest_framework.response import Response
 from social_auth.models import UserSocialAuth
 
 from django.conf import settings
+from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from django.utils.html import format_html
 
-from sentry.models import Activity, Event, GroupMeta
+from sentry.api.bases.group import GroupEndpoint
+from sentry.api.bases.project import ProjectEndpoint
+from sentry.models import Activity, GroupMeta
 from sentry.plugins import Plugin
-from sentry.plugins.base import JSONResponse
 from sentry.plugins.base.configuration import default_issue_plugin_config
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
 
+class IssueGroupActionEndpoint(GroupEndpoint):
+    view_method_name = None
+    plugin = None
+
+    def _handle(self, request, group, *args, **kwargs):
+        GroupMeta.objects.populate_cache([group])
+        return getattr(self.plugin, self.view_method_name)(request, group, *args, **kwargs)
+
+    def get(self, request, group, *args, **kwargs):
+        return self._handle(request, group, *args, **kwargs)
+
+    def post(self, request, group, *args, **kwargs):
+        return self._handle(request, group, *args, **kwargs)
+
+
+class IssuePluginProjectEndpoint(ProjectEndpoint):
+    view_method_name = None
+    plugin = None
+
+    def _handle(self, request, project, *args, **kwargs):
+        return getattr(self.plugin, self.view_method_name)(request, project, *args, **kwargs)
+
+    def get(self, request, project, *args, **kwargs):
+        return self._handle(request, project, *args, **kwargs)
+
+    def post(self, request, project, *args, **kwargs):
+        return self._handle(request, project, *args, **kwargs)
+
+
 class IssueTrackingPlugin2(Plugin):
     auth_provider = None
     can_unlink_issues = False
     can_link_existing_issues = False
+    allowed_actions = ('create', 'link', 'unlink')
+
+    def get_group_urls(self):
+        _urls = []
+        for action in self.allowed_actions:
+            view_method_name = 'view_%s' % action
+            _urls.append(url(r'^(?:issues|groups)/(?P<issue_id>\d+)/plugin/{action}/{slug}/'.format(action=action, slug=self.slug),
+                             IssueGroupActionEndpoint.as_view(view_method_name=view_method_name, plugin=self)))
+
+        return patterns('', *_urls)
+
+    def get_project_urls(self):
+        _urls = []
+        # TODO: add enable here when moved to api
+        for action in ('configure', 'disable'):
+            view_method_name = 'view_%s' % action
+            _urls.append(url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugin/{action}/{slug}'.format(action=action, slug=self.slug),
+                             IssuePluginProjectEndpoint.as_view(view_method_name=view_method_name, plugin=self)))
+
+        return patterns('', *_urls)
 
     def _get_group_body(self, request, group, event, **kwargs):
         result = []
@@ -257,6 +308,12 @@ class IssueTrackingPlugin2(Plugin):
     def configure(self, project, form_data):
         """Configures the plugin"""
         default_issue_plugin_config(self, project, form_data)
+
+    def view_disable(self, request, project, **kwargs):
+        if self.can_disable:
+            self.disable(project)
+            return Response({'message': 'Successfully disabled plugin'})
+        return Response({'message': 'Plugin cannot be disabled'}, status=400)
 
     def check_config_and_auth(self, request, group):
         has_auth_configured = self.has_auth_configured()

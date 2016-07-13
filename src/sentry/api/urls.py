@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from django.conf.urls import patterns, url
+from django.conf.urls import include, patterns, url
 
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
@@ -15,7 +15,6 @@ from .endpoints.group_hashes import GroupHashesEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_notes_details import GroupNotesDetailsEndpoint
 from .endpoints.group_participants import GroupParticipantsEndpoint
-from .endpoints.group_plugin import GroupPluginEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
@@ -53,7 +52,6 @@ from .endpoints.project_index import ProjectIndexEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
-from .endpoints.project_plugin import ProjectPluginEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
@@ -280,9 +278,6 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:user-feedback|user-reports)/$',
         ProjectUserReportsEndpoint.as_view(),
         name='sentry-api-0-project-user-reports'),
-    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugin/(?P<action>[\w_-]+)/(?P<slug>[\w_-]+)',
-        ProjectPluginEndpoint.as_view(),
-        name='sentry-api-0-group-plugins'),
 
     # Groups
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/$',
@@ -324,9 +319,6 @@ urlpatterns = patterns(
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/(?:user-feedback|user-reports)/$',
         GroupUserReportsEndpoint.as_view(),
         name='sentry-api-0-group-user-reports'),
-    url(r'^(?:issues|groups)/(?P<issue_id>\d+)/plugin/(?P<action>[\w_-]+)/(?P<slug>[\w_-]+)',
-        GroupPluginEndpoint.as_view(),
-        name='sentry-api-0-group-plugins'),
 
     url(r'^shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$',
         SharedGroupDetailsEndpoint.as_view(),
@@ -355,6 +347,9 @@ urlpatterns = patterns(
     url(r'^internal/stats/$',
         InternalStatsEndpoint.as_view(),
         name='sentry-api-0-internal-stats'),
+
+    # Plugin api
+    url(r'^', include('sentry.plugins.base.api_urls')),
 
     url(r'^$',
         IndexEndpoint.as_view(),
