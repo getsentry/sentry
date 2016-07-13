@@ -115,7 +115,7 @@ class EmailTestCase(AcceptanceTestCase):
         self.browser.wait_until('#preview')
         self.browser.snapshot('new event email html')
 
-    def test_new_event_html(self):
+    def test_new_event_txt(self):
         self.browser.get(self.build_url('/debug/mail/new-event/', 'txt'))
         self.browser.wait_until('#preview')
         self.browser.snapshot('new event email txt')
@@ -125,7 +125,7 @@ class EmailTestCase(AcceptanceTestCase):
         self.browser.wait_until('#preview')
         self.browser.snapshot('digest email html')
 
-    def test_digest_html(self):
+    def test_digest_txt(self):
         self.browser.get(self.build_url('/debug/mail/digest/', 'txt'))
         self.browser.wait_until('#preview')
         self.browser.snapshot('digest email txt')
