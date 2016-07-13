@@ -34,8 +34,7 @@
                   <td class="event-detail">
                       {% include "sentry/emails/_group.html" %}
                       <p>
-                        {{ group.title|soft_break:50 }}
-                        <small>&mdash; {{ records.0.datetime|date:"N j, Y, g:i:s a e" }}</small>
+                        <small>{{ records.0.datetime|date:"N j, Y, g:i:s a e" }}</small>
                       </p>
                   </td>
               </tr>
