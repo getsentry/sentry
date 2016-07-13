@@ -1,6 +1,6 @@
 import moment from 'moment';
 import React from 'react';
-import {valueIsEqual} from '../utils';
+import {intcomma, valueIsEqual} from '../utils';
 import TooltipMixin from '../mixins/tooltip';
 
 const StackedBarChart = React.createClass({
@@ -19,12 +19,14 @@ const StackedBarChart = React.createClass({
       x: React.PropTypes.number.isRequired,
       label: React.PropTypes.string
     })),
+    tooltip: React.PropTypes.func,
     barClasses: React.PropTypes.array
   },
 
   mixins: [
     TooltipMixin(function () {
-      let barChartInstance = this;
+      let chart = this;
+
       return {
         html: true,
         placement: this.props.placement,
@@ -38,9 +40,14 @@ const StackedBarChart = React.createClass({
         title: function (instance) {
           // `this` is the targeted element
           let pointIdx = this.getAttribute('data-point-index');
+          let tooltipFunc = chart.props.tooltip || chart.renderTooltip;
 
           if (pointIdx)
-            return barChartInstance.renderTooltip(pointIdx);
+            return tooltipFunc(
+              chart.props.points[pointIdx],
+              pointIdx,
+              chart,
+          );
           else
             return this.getAttribute('data-title');
         }
@@ -63,7 +70,8 @@ const StackedBarChart = React.createClass({
       points: [],
       markers: [],
       width: null,
-      barClasses: ['chart-bar']
+      barClasses: ['chart-bar'],
+      tooltip: this.renderTooltip,
     };
   },
 
@@ -177,8 +185,7 @@ const StackedBarChart = React.createClass({
     );
   },
 
-  renderTooltip(pointIdx) {
-    let point = this.props.points[pointIdx];
+  renderTooltip(point, pointIdx) {
     let timeLabel = this.getTimeLabel(point);
     let totalY = 0;
     for (let i = 0; i < point.y.length; i++) {
@@ -186,7 +193,7 @@ const StackedBarChart = React.createClass({
     }
     let title = (
       '<div style="width:130px">' +
-        totalY + ' ' + this.props.label + '<br/>' +
+        intcomma(totalY) + ' ' + this.props.label + '<br/>' +
         timeLabel +
       '</div>'
     );

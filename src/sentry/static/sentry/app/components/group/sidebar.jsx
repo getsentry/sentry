@@ -2,7 +2,7 @@ import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
 import Avatar from '../avatar';
-import GroupChart from './chart';
+import GroupReleaseChart from './releaseChart';
 import GroupState from '../../mixins/groupState';
 import IndicatorStore from '../../stores/indicatorStore';
 import SeenInfo from './seenInfo';
@@ -84,15 +84,19 @@ const GroupSidebar = React.createClass({
 
     return (
       <div className="group-stats">
-        <GroupChart statsPeriod="24h" group={group}
-                    title={t('Last 24 Hours')}
-                    firstSeen={group.firstSeen}
-                    lastSeen={group.lastSeen} />
-        <GroupChart statsPeriod="30d" group={group}
-                    title={t('Last 30 Days')}
-                    className="bar-chart-small"
-                    firstSeen={group.firstSeen}
-                    lastSeen={group.lastSeen} />
+        <GroupReleaseChart
+          statsPeriod="24h"
+          group={group}
+          title={t('Last 24 Hours')}
+          firstSeen={group.firstSeen}
+          lastSeen={group.lastSeen} />
+        <GroupReleaseChart
+          statsPeriod="30d"
+          group={group}
+          title={t('Last 30 Days')}
+          className="bar-chart-small"
+          firstSeen={group.firstSeen}
+          lastSeen={group.lastSeen} />
 
         <h6 className="first-seen"><span>{t('First seen')}</span></h6>
         <SeenInfo
