@@ -108,7 +108,7 @@ class Team(Model):
         db_table = 'sentry_team'
         unique_together = (('organization', 'slug'),)
 
-    __repr__ = sane_repr('slug', 'name')
+    __repr__ = sane_repr('name', 'slug')
 
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)
