@@ -37,7 +37,7 @@
     "react-addons-pure-render-mixin": "15.2.1",
     "react-addons-test-utils": "15.2.1",
     "react-addons-update": "15.2.1",
-    "react-bootstrap": "0.28.3",
+    "react-bootstrap": "^0.29.5",
     "react-document-title": "1.0.4",
     "react-dom": "15.2.1",
     "react-lazy-load": "3.0.10",
