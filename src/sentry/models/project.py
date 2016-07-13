@@ -102,7 +102,7 @@ class Project(Model):
         db_table = 'sentry_project'
         unique_together = (('team', 'slug'), ('organization', 'slug'))
 
-    __repr__ = sane_repr('team_id', 'slug')
+    __repr__ = sane_repr('team_id', 'name', 'slug')
 
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)
