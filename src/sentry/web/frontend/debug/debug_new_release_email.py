@@ -7,7 +7,6 @@ from uuid import uuid4
 
 from sentry.models import Organization, Team, Project, Release
 from sentry.utils.http import absolute_uri
-from sentry.web.helpers import render_to_response
 
 from .mail import MailPreview
 
