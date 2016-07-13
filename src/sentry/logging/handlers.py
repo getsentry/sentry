@@ -10,7 +10,6 @@ import logging
 
 from django.utils.timezone import now
 from simplejson import JSONEncoder
-
 from structlog import get_logger
 from structlog.processors import _json_fallback_handler
 
