@@ -5,9 +5,9 @@ from urllib import urlencode
 from sentry.testutils import AcceptanceTestCase
 
 
-class ActivityEmailsTest(AcceptanceTestCase):
+class EmailTestCase(AcceptanceTestCase):
     def setUp(self):
-        super(ActivityEmailsTest, self).setUp()
+        super(EmailTestCase, self).setUp()
         self.user = self.create_user('foo@example.com')
         self.login_as(self.user)
 
@@ -109,3 +109,23 @@ class ActivityEmailsTest(AcceptanceTestCase):
         self.browser.get(self.build_url('/debug/mail/unassigned/', 'txt'))
         self.browser.wait_until('#preview')
         self.browser.snapshot('unassigned email txt')
+
+    def test_new_event_html(self):
+        self.browser.get(self.build_url('/debug/mail/new-event/'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('new event email html')
+
+    def test_new_event_html(self):
+        self.browser.get(self.build_url('/debug/mail/new-event/', 'txt'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('new event email txt')
+
+    def test_digest_html(self):
+        self.browser.get(self.build_url('/debug/mail/digest/'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('digest email html')
+
+    def test_digest_html(self):
+        self.browser.get(self.build_url('/debug/mail/digest/', 'txt'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('digest email txt')
