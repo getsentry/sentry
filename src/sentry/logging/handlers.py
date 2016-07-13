@@ -5,8 +5,11 @@ sentry.logging.handlers
 :license: BSD, see LICENSE for more details.
 """
 
-from simplejson import JSONEncoder
+
 import logging
+
+from django.utils.timezone import now
+from simplejson import JSONEncoder
 
 from structlog import get_logger
 from structlog.processors import _json_fallback_handler
@@ -44,14 +47,15 @@ class HumanRenderer(object):
             if isinstance(level, basestring)
             else logging.getLevelName(level)
         )
-        base = '[%s] %s: %s' % (
+        base = '%s [%s] %s: %s' % (
+            now().strftime('%H:%M:%S'),
             real_level,
             event_dict.pop('name', 'root'),
             event_dict.pop('event'),
         )
         join = ' '.join(k + '=' + repr(v)
                for k, v in event_dict.iteritems())
-        return '%s (%s)' % (base, join)
+        return '%s%s' % (base, (' (%s)' % join if join else ''))
 
 
 class StructLogHandler(logging.StreamHandler):
