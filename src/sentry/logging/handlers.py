@@ -23,6 +23,14 @@ _default_encoder = JSONEncoder(
     default=_json_fallback_handler,
 ).encode
 
+# These are values that come default from logging.LogRecord.
+# They are defined here: https://github.com/python/cpython/blob/2.7/Lib/logging/__init__.py#L237-L310
+throwaways = frozenset((
+    'threadName', 'thread', 'created', 'process', 'processName', 'args',
+    'module', 'filename', 'levelno', 'exc_text', 'msg', 'pathname', 'lineno',
+    'funcName', 'relativeCreated', 'levelname', 'msecs',
+))
+
 
 class JSONRenderer(object):
     def __call__(self, logger, name, event_dict):
@@ -43,18 +51,25 @@ class HumanRenderer(object):
         )
         join = ' '.join(k + '=' + repr(v)
                for k, v in event_dict.iteritems())
-        return '%s %s' % (base, join)
+        return '%s (%s)' % (base, join)
 
 
 class StructLogHandler(logging.StreamHandler):
     def emit(self, record, logger=get_logger()):
+        # If anyone wants to use the 'extra' kwarg to provide context within
+        # structlog, we have to strip all of the default attributes from
+        # a record because the RootLogger will take the 'extra' dictionary
+        # and just turn them into attributes.
         kwargs = {
+            k: v
+            for k, v in vars(record).iteritems()
+            if k not in throwaways
+            and v is not None
+        }
+        kwargs.update({
             'level': record.levelno,
             'event': record.msg,
-            'name': record.name,
-        }
-        if record.exc_info:
-            kwargs['exc_info'] = record.exc_info
+        })
 
         if record.args:
             # record.args inside of LogRecord.__init__ gets unrolled
