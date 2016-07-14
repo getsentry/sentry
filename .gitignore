@@ -1,3 +1,4 @@
+.cache/
 .coverage
 .DS_Store
 *.egg-info
