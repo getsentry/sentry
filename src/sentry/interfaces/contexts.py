@@ -104,8 +104,8 @@ class DefaultContextType(ContextType):
 @contexttype('device')
 class DeviceContextType(ContextType):
     indexed_fields = {
-        '': u'{model}{?simulator:Simulator:}',
-        'family': u'{family}{?simulator:Simulator:}',
+        '': u'{model}{?simulator: Simulator:}',
+        'family': u'{family}{?simulator: Simulator:}',
     }
     # model_id, arch
 
