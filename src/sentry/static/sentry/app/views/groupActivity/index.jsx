@@ -74,7 +74,8 @@ const GroupActivity = React.createClass({
           t('%s marked this issue as a regression', author)
         );
       case 'create_issue':
-        return t('created an issue on %(provider)s titled %(title)s', {
+        return t('%(author)s created an issue on %(provider)s titled %(title)s', {
+          author: author,
           provider: data.provider,
           title: <a href={data.location}>{data.title}</a>
         });
