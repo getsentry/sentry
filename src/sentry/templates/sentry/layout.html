@@ -146,7 +146,7 @@
         <div id="blk_projectselect"></div>
         <script>
         $(function(){
-          ReactDOM.render(React.createFactory(Sentry.ProjectSelector)({
+          React.render(React.createFactory(Sentry.ProjectSelector)({
             organization: {% serialize_detailed_org organization %},
             projectId: {% if project %}'{{ project.slug }}'{% else %}null{% endif %},
           }), document.getElementById('blk_projectselect'));
