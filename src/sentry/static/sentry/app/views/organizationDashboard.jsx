@@ -107,7 +107,7 @@ function ProjectSparkline(props) {
 
   return (
     <Sparklines data={values} width={100} height={32}>
-      <SparklinesLine {...props} style={{stroke: '#25A6F7', fill: 'none', strokeWidth: 3}}/>
+      <SparklinesLine {...props} style={{stroke: '#8f85d4', fill: 'none', strokeWidth: 3}}/>
     </Sparklines>
   );
 }
