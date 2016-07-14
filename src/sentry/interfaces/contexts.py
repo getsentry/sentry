@@ -23,17 +23,38 @@ EMPTY_VALUES = frozenset(('', None))
 context_types = {}
 
 
+class _IndexMapping(object):
+
+    def __init__(self, vars):
+        self.vars = vars
+
+    def __getitem__(self, key):
+        if key[:1] == '?':
+            try:
+                return self.vars[key[1:]]
+            except LookupError:
+                return False
+        return self.vars[key]
+
+
 class _IndexFormatter(string.Formatter):
 
     def format_field(self, value, format_spec):
-        if not format_spec and isinstance(value, bool):
-            return value and 'yes' or 'no'
+        if isinstance(value, bool):
+            if not format_spec:
+                return value and u'yes' or u'no'
+            args = format_spec.split(':', 1)
+            if value:
+                return args[0]
+            if len(args) == 2:
+                return args[1]
+            return u''
         return string.Formatter.format_field(self, value, format_spec)
 
 
 def format_index_expr(format_string, data):
     return unicode(_IndexFormatter().vformat(
-        unicode(format_string), (), data).strip())
+        unicode(format_string), (), _IndexMapping(data)).strip())
 
 
 def contexttype(name):
@@ -83,8 +104,8 @@ class DefaultContextType(ContextType):
 @contexttype('device')
 class DeviceContextType(ContextType):
     indexed_fields = {
-        '': u'{model}',
-        'family': u'{family}',
+        '': u'{model}{?simulator:Simulator:}',
+        'family': u'{family}{?simulator:Simulator:}',
     }
     # model_id, arch
 
