@@ -2,7 +2,6 @@ from __future__ import absolute_import, print_function
 
 import itertools
 import logging
-import pytz
 import time
 import traceback
 import uuid
@@ -220,11 +219,9 @@ def new_event(request):
         organization=org,
     )
 
+    random = get_random(request)
     group = next(
-        make_group_generator(
-            get_random(request),
-            project,
-        ),
+        make_group_generator(random, project),
     )
 
     event = Event(
@@ -233,6 +230,12 @@ def new_event(request):
         group=group,
         message=group.message,
         data=load_data(platform),
+        datetime=to_datetime(
+            random.randint(
+                to_timestamp(group.first_seen),
+                to_timestamp(group.last_seen),
+            ),
+        ),
     )
 
     rule = Rule(label="An example rule")
@@ -268,8 +271,6 @@ def new_event(request):
 @login_required
 def digest(request):
     random = get_random(request)
-
-    now = datetime.utcnow().replace(tzinfo=pytz.utc)
 
     # TODO: Refactor all of these into something more manageable.
     org = Organization(
@@ -326,7 +327,12 @@ def digest(request):
                 group=group,
                 message=group.message,
                 data=load_data('python'),
-                datetime=now - offset,
+                datetime=to_datetime(
+                    random.randint(
+                        to_timestamp(group.first_seen),
+                        to_timestamp(group.last_seen),
+                    ),
+                )
             )
 
             records.append(
