@@ -92,7 +92,7 @@ def delete_team(object_id, continuous=True, **kwargs):
 def delete_project(object_id, continuous=True, **kwargs):
     from sentry.models import (
         Activity, EventMapping, EventUser, Group, GroupAssignee, GroupBookmark,
-        GroupEmailThread, GroupHash, GroupMeta, GroupResolution,
+        GroupEmailThread, GroupHash, GroupMeta, GroupRelease, GroupResolution,
         GroupRuleStatus, GroupSeen, GroupSubscription, GroupSnooze, GroupTagKey,
         GroupTagValue, Project, ProjectBookmark, ProjectKey, ProjectStatus,
         Release, ReleaseFile, SavedSearchUserDefault, SavedSearch, TagKey,
@@ -116,7 +116,7 @@ def delete_project(object_id, continuous=True, **kwargs):
 
     model_list = (
         Activity, EventMapping, EventUser, GroupAssignee, GroupBookmark,
-        GroupEmailThread, GroupHash, GroupRuleStatus, GroupSeen,
+        GroupEmailThread, GroupHash, GroupRelease, GroupRuleStatus, GroupSeen,
         GroupSubscription, GroupTagKey, GroupTagValue, ProjectBookmark,
         ProjectKey, TagKey, TagValue, SavedSearchUserDefault, SavedSearch,
         UserReport
@@ -163,9 +163,9 @@ def delete_project(object_id, continuous=True, **kwargs):
 def delete_group(object_id, continuous=True, **kwargs):
     from sentry.models import (
         EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupMeta,
-        GroupResolution, GroupRuleStatus, GroupSnooze, GroupSubscription,
-        GroupStatus, GroupTagKey, GroupTagValue, GroupEmailThread,
-        GroupRedirect, UserReport
+        GroupRelease, GroupResolution, GroupRuleStatus, GroupSnooze,
+        GroupSubscription, GroupStatus, GroupTagKey, GroupTagValue,
+        GroupEmailThread, GroupRedirect, UserReport
     )
 
     try:
@@ -178,9 +178,10 @@ def delete_group(object_id, continuous=True, **kwargs):
 
     bulk_model_list = (
         # prioritize GroupHash
-        GroupHash, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,
-        GroupRuleStatus, GroupSnooze, GroupTagValue, GroupTagKey, EventMapping,
-        GroupEmailThread, UserReport, GroupRedirect, GroupSubscription,
+        GroupHash, GroupAssignee, GroupBookmark, GroupMeta, GroupRelease,
+        GroupResolution, GroupRuleStatus, GroupSnooze, GroupTagValue,
+        GroupTagKey, EventMapping, GroupEmailThread, UserReport, GroupRedirect,
+        GroupSubscription,
     )
     for model in bulk_model_list:
         has_more = bulk_delete_objects(model, group_id=object_id, logger=logger)
