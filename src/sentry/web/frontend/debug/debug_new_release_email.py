@@ -7,7 +7,6 @@ from uuid import uuid4
 
 from sentry.models import Organization, Team, Project, Release
 from sentry.utils.http import absolute_uri
-from sentry.web.helpers import render_to_response
 
 from .mail import MailPreview
 
@@ -48,7 +47,7 @@ class DebugNewReleaseEmailView(View):
             'project_id': project.slug,
         }))
 
-        preview = MailPreview(
+        return MailPreview(
             html_template='sentry/emails/activity/release.html',
             text_template='sentry/emails/activity/release.txt',
             context={
@@ -57,8 +56,4 @@ class DebugNewReleaseEmailView(View):
                 'release_link': release_link,
                 'project_link': project_link,
             },
-        )
-
-        return render_to_response('sentry/debug/mail/preview.html', {
-            'preview': preview,
-        })
+        ).render(request)
