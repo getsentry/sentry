@@ -58,7 +58,7 @@ const LetterAvatar = React.createClass({
 
   render() {
     return (
-      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" className={this.props.className}>
+      <svg viewBox="0 0 120 120" className={this.props.className}>
         <rect x="0" y="0" width="120" height="120" rx="15" ry="15" fill={this.getColor()}/>
         <text x="50%" y="50%" fontSize="65" style={{'dominantBaseline': 'central'}}
               textAnchor="middle" fill="#FFFFFF">{this.getInitials()}</text>
