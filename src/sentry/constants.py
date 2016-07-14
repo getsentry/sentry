@@ -183,6 +183,9 @@ VALID_PLATFORMS = set([
     'php',
     'python',
     'ruby',
+    'elixir',
+    'haskell',
+    'groovy',
 ])
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
