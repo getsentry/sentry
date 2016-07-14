@@ -249,7 +249,7 @@ def new_event(request):
 
     return MailPreview(
         html_template='sentry/emails/error.html',
-        text_template='sentry/emails/error.html',
+        text_template='sentry/emails/error.txt',
         context={
             'rule': rule,
             'group': group,
