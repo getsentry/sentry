@@ -21,7 +21,8 @@ from sentry.web.helpers import get_login_url, render_to_response
 
 ERR_MISSING_SSO_LINK = _('You need to link your account with the SSO provider to continue.')
 
-logger = logging.getLogger('sentry.frontend')
+logger = logging.getLogger(__name__)
+audit_logger = logging.getLogger('sentry.audit.ui')
 
 
 class OrganizationMixin(object):
@@ -242,7 +243,7 @@ class BaseView(View, OrganizationMixin):
             ip_address=request.META['REMOTE_ADDR'],
             **kwargs
         )
-        logger.info(entry.get_event_display(), extra={
+        audit_logger.info(entry.get_event_display(), extra={
             'entry_id': entry.id,
             'actor_id': entry.actor_id,
             'actor_label': entry.actor_label,

@@ -39,7 +39,8 @@ DEFAULT_AUTHENTICATION = (
     SessionAuthentication,
 )
 
-logger = logging.getLogger('sentry.api')
+logger = logging.getLogger(__name__)
+audit_logger = logging.getLogger('sentry.audit.api')
 
 
 class DocSection(Enum):
@@ -117,7 +118,7 @@ class Endpoint(APIView):
         if entry.actor_key_id:
             extra['actor_key_id'] = entry.actor_key_id
 
-        logger.info(entry.get_event_display(), extra=extra)
+        audit_logger.info(entry.get_event_display(), extra=extra)
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
