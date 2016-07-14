@@ -1,16 +1,23 @@
 import React from 'react';
-import AlertActions from '../actions/alertActions';
-import ApiMixin from '../mixins/apiMixin';
-import {BooleanField, Form, Select2Field, TextareaField, TextField} from '../components/forms';
-import GroupActions from '../actions/groupActions';
-import GroupState from '../mixins/groupState';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import {t} from '../locale';
+import _ from 'underscore';
+import Modal from 'react-bootstrap/lib/Modal';
+import AlertActions from '../../actions/alertActions';
+import ApiMixin from '../../mixins/apiMixin';
+import {Form, Select2Field, TextareaField, TextField} from '../../components/forms';
+import DropdownLink from '../../components/dropdownLink';
+import GroupActions from '../../actions/groupActions';
+import GroupState from '../../mixins/groupState';
+import LoadingError from '../../components/loadingError';
+import LoadingIndicator from '../../components/loadingIndicator';
+import MenuItem from '../../components/menuItem';
+import {t} from '../../locale';
+import {toTitleCase} from '../../utils';
 
 const IssuePlugin = React.createClass({
   propTypes: {
-    plugin: React.PropTypes.object.isRequired
+    plugin: React.PropTypes.object.isRequired,
+    actionType: React.PropTypes.oneOf(['unlink', 'link', 'create']).isRequired,
+    onSuccess: React.PropTypes.func
   },
 
   mixins: [
@@ -22,8 +29,7 @@ const IssuePlugin = React.createClass({
     return {
       createFieldList: null,
       linkFieldList: null,
-      createIssue: true,
-      loading: true,
+      loading: _.contains(['link', 'create'], this.props.actionType),
       error: false,
       errorDetails: null,
       createFormData: {},
@@ -33,7 +39,7 @@ const IssuePlugin = React.createClass({
 
   componentWillMount() {
     let plugin = this.props.plugin;
-    if (!plugin.issue) {
+    if (!plugin.issue && this.props.actionType !== 'unlink') {
       this.fetchData();
     }
   },
@@ -59,55 +65,57 @@ const IssuePlugin = React.createClass({
       error: false
     });
 
-    this.api.request(this.getPluginCreateEndpoint(), {
-      success: (data) => {
-        let createFormData = {};
-        data.forEach((field) => {
-          createFormData[field.name] = field.default;
-        });
-        this.setState({
-          createFieldList: data,
-          error: false,
-          loading: false,
-          createFormData: createFormData
-        });
-      },
-      error: (error) => {
-        let state = {
-          error: true,
-          loading: false
-        };
-        if (error.status === 400 && error.responseJSON) {
-          state.errorDetails = error.responseJSON;
+    if (this.props.actionType === 'create') {
+      this.api.request(this.getPluginCreateEndpoint(), {
+        success: (data) => {
+          let createFormData = {};
+          data.forEach((field) => {
+            createFormData[field.name] = field.default;
+          });
+          this.setState({
+            createFieldList: data,
+            error: false,
+            loading: false,
+            createFormData: createFormData
+          });
+        },
+        error: (error) => {
+          let state = {
+            error: true,
+            loading: false
+          };
+          if (error.status === 400 && error.responseJSON) {
+            state.errorDetails = error.responseJSON;
+          }
+          this.setState(state);
         }
-        this.setState(state);
-      }
-    });
-
-    this.api.request(this.getPluginLinkEndpoint(), {
-      success: (data) => {
-        let linkFormData = {};
-        data.forEach((field) => {
-          linkFormData[field.name] = field.default;
-        });
-        this.setState({
-          linkFieldList: data,
-          error: false,
-          loading: false,
-          linkFormData: linkFormData
-        });
-      },
-      error: (error) => {
-        let state = {
-          error: true,
-          loading: false
-        };
-        if (error.status === 400 && error.responseJSON) {
-          state.errorDetails = error.responseJSON;
+      });
+    } else if (this.props.actionType === 'link') {
+      this.api.request(this.getPluginLinkEndpoint(), {
+        success: (data) => {
+          let linkFormData = {};
+          data.forEach((field) => {
+            linkFormData[field.name] = field.default;
+          });
+          this.setState({
+            linkFieldList: data,
+            error: false,
+            loading: false,
+            linkFormData: linkFormData
+          });
+        },
+        error: (error) => {
+          let state = {
+            error: true,
+            loading: false
+          };
+          if (error.status === 400 && error.responseJSON) {
+            state.errorDetails = error.responseJSON;
+          }
+          this.setState(state);
         }
-        this.setState(state);
-      }
-    });
+      });
+    }
   },
 
   createIssue() {
@@ -119,6 +127,7 @@ const IssuePlugin = React.createClass({
           message: t('Successfully created issue.'),
           type: 'success'
         });
+        this.props.onSuccess && this.props.onSuccess();
       },
       error: (error) => {
         AlertActions.addAlert({
@@ -138,6 +147,7 @@ const IssuePlugin = React.createClass({
           message: t('Successfully linked issue.'),
           type: 'success'
         });
+        this.props.onSuccess && this.props.onSuccess();
       },
       error: (error) => {
         AlertActions.addAlert({
@@ -156,7 +166,7 @@ const IssuePlugin = React.createClass({
           message: t('Successfully unlinked issue.'),
           type: 'success'
         });
-        this.fetchData();
+        this.props.onSuccess && this.props.onSuccess();
       },
       error: (error) => {
         AlertActions.addAlert({
@@ -204,33 +214,40 @@ const IssuePlugin = React.createClass({
     return el;
   },
 
-  toggleIssueForm(value) {
-    this.setState({createIssue: value});
-  },
-
   renderForm() {
-    return (
-      <div>
-        <div>
-          <BooleanField label={t('Create new issue')}
-                        name="is_create"
-                        value={this.state.createIssue}
-                        onChange={this.toggleIssueForm}/>
-        </div>
-        {this.state.createIssue ?
+    let form;
+    switch (this.props.actionType) {
+      case 'create':
+        form = (
           <Form onSubmit={this.createIssue}>
             {this.state.createFieldList.map((field) => {
               return <div key={field.name}>{this.renderField('create', field)}</div>;
             })}
-          </Form> :
+          </Form>
+        );
+        break;
+      case 'link':
+        form = (
           <Form onSubmit={this.linkIssue}>
             {this.state.linkFieldList.map((field) => {
               return <div key={field.name}>{this.renderField('link', field)}</div>;
             })}
           </Form>
-        }
-      </div>
-    );
+        );
+        break;
+      case 'unlink':
+        form = (
+          <div>
+            <p>{t('Are you sure you want to unlink this issue?')}</p>
+            <button onClick={this.unlinkIssue}
+                    className="btn btn-danger">{t('Unlink')}</button>
+          </div>
+        );
+        break;
+      default:
+        form = null;
+    }
+    return form;
   },
 
   getPluginConfigureUrl() {
@@ -273,59 +290,111 @@ const IssuePlugin = React.createClass({
   },
 
   render() {
-    let plugin = this.props.plugin;
     let content;
     if (this.state.errorDetails) {
       content = this.renderError();
-    } else if (plugin.issue) {
-      content = (
-        <p>
-          <a href={plugin.issue.url} target="_blank">{plugin.issue.label}</a>
-          {plugin.can_unlink &&
-            <button className="btn btn-default" style={{'marginLeft': '10px'}}
-                    onClick={this.unlinkIssue}>{t('Unlink')}</button>}
-        </p>
-      );
-    } else if (!this.state.createFieldList || (plugin.can_link_existing && !this.state.linkFieldList)) {
+    } else if (this.state.loading) {
       content = <LoadingIndicator />;
     } else {
       content = this.renderForm();
     }
-
-    return (
-      <div className="box">
-        <div className="box-header"><h3>{plugin.title}</h3></div>
-        <div className="box-content with-padding">
-          {content}
-        </div>
-      </div>
-    );
+    return content;
   }
 });
 
 
-const GroupIssuePlugins = React.createClass({
+const IssuePluginActions = React.createClass({
+  propTypes: {
+    plugin: React.PropTypes.object.isRequired
+  },
+
   mixins: [
+    ApiMixin,
     GroupState
   ],
 
-  render() {
-    let group = this.getGroup();
+  getInitialState() {
+    return {
+      showModal: false,
+      actionType: null
+    };
+  },
 
-    if (!(group.pluginIssues && group.pluginIssues.length)) {
-      window.location = ('/' + this.getOrganization().slug + '/' +
-                         this.getProject().slug + '/issues/' + this.getGroup().id);
+  openModal(action) {
+    this.setState({
+      showModal: true,
+      actionType: action
+    });
+  },
+
+  closeModal() {
+    this.setState({
+      showModal: false,
+      actionType: null
+    });
+  },
+
+  render() {
+    let plugin = this.props.plugin;
+
+    if (!plugin.allowed_actions || !plugin.allowed_actions.length) {
       return null;
     }
 
+    let allowedActions;
+    if (plugin.issue) {
+      allowedActions = plugin.allowed_actions.filter((action) => { return action === 'unlink'; });
+    } else {
+      allowedActions = plugin.allowed_actions.filter((action) => { return action !== 'unlink'; });
+    }
+
+    let button;
+    if (allowedActions.length === 1) {
+      button = (
+        <button className="btn btn-default btn-sm"
+                onClick={this.openModal.bind(this, allowedActions[0])}>
+          {toTitleCase(allowedActions[0]) + ' ' + plugin.title}
+        </button>
+      );
+    } else {
+      button = (
+        <div className="btn-group">
+          <DropdownLink
+            caret={false}
+            className="btn btn-default btn-sm"
+            title={<span>
+                     {plugin.title}
+                     <span className="icon-arrow-down" style={{marginLeft: 3, marginRight: -3}} />
+                   </span>}>
+            {allowedActions.map((action) => {
+              return (
+                <MenuItem key={action} noAnchor={true}>
+                  <a onClick={this.openModal.bind(this, action)}>{toTitleCase(action)}</a>
+                </MenuItem>
+              );
+            })}
+          </DropdownLink>
+        </div>
+      );
+    }
+
     return (
-      <div>
-        {group.pluginIssues.map((plugin) => {
-          return <IssuePlugin plugin={plugin} key={plugin.slug} />;
-        })}
-      </div>
+      <span>
+        {button}
+        <Modal show={this.state.showModal} onHide={this.closeModal}
+               animation={false}>
+          <Modal.Header closeButton>
+            <Modal.Title>{plugin.title + ' Issue'}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <IssuePlugin plugin={this.props.plugin}
+                         actionType={this.state.actionType}
+                         onSuccess={this.closeModal}/>
+          </Modal.Body>
+        </Modal>
+      </span>
     );
   }
 });
 
-export default GroupIssuePlugins;
+export default IssuePluginActions;

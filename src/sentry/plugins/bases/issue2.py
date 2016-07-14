@@ -248,7 +248,7 @@ class IssueTrackingPlugin2(Plugin):
         )
 
         # issue_tracker_used.send(plugin=self, project=group.project, user=request.user, sender=IssueTrackingPlugin)
-        return Response({'success': True, 'issue_url': self.get_issue_url()})
+        return Response({'success': True, 'issue_url': self.get_issue_url(group=group, issue_id=issue_id)})
 
     def view_unlink(self, request, group, **kwargs):
         auth_errors = self.check_config_and_auth(request, group)
@@ -346,8 +346,7 @@ class IssueTrackingPlugin2(Plugin):
         issue_id = GroupMeta.objects.get_value(group, '%s:tid' % prefix, None)
         item = {
             'slug': self.slug,
-            'can_unlink': self.can_unlink_issues,
-            'can_link_existing': self.can_link_existing_issues,
+            'allowed_actions': self.allowed_actions,
             'title': self.get_title()
         }
         if issue_id:

@@ -10,6 +10,10 @@ export default class Select2Field extends InputField {
     let $el = $('input', ReactDOM.findDOMNode(this));
     $el.on('change.autocomplete', this.onChange.bind(this));
     let url = this.props.url + '?autocomplete_field=' + this.props.name;
+
+    // TODO(jess): upgrade select2 so we can just do
+    // dropdownParent: $('.modal-dialog') as a supported option
+    $('.modal').removeAttr('tabindex');
     $el.select2({
       placeholder: 'Start typing to search for an issue',
       minimumInputLength: 1,
