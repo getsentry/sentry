@@ -16,6 +16,15 @@ def replace_keys(html, project_key):
     html = html.replace('___PUBLIC_KEY___', project_key.public_key)
     html = html.replace('___SECRET_KEY___', project_key.secret_key)
     html = html.replace('___PROJECT_ID___', str(project_key.project_id))
+
+    # If we actually render this in the main UI we can also provide
+    # extra information about the project (org slug and project slug)
+    if '___PROJECT_NAME___' in html or '___ORG_NAME___' in html:
+        project = project_key.project
+        org = project.organization
+        html = html.replace('___ORG_NAME___', str(org.slug))
+        html = html.replace('___PROJECT_NAME___', str(project.slug))
+
     return html
 
 

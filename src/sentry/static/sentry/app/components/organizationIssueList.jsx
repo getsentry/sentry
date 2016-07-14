@@ -56,7 +56,6 @@ const OrganizationIssueList = React.createClass({
           </div>
         </div>
         <h3>{this.props.title}</h3>
-        <div className="alert alert-block alert-info">{'Psst! This feature is still a work-in-progress. Thanks for being an early adopter!'}</div>
         <IssueList endpoint={this.props.endpoint} query={{
           status: this.state.status,
           statsPeriod: '24h',

@@ -2,7 +2,6 @@ from __future__ import absolute_import, print_function
 
 import itertools
 import logging
-import pytz
 import time
 import traceback
 import uuid
@@ -11,10 +10,7 @@ from datetime import (
     datetime,
     timedelta,
 )
-from django.contrib.webdesign.lorem_ipsum import (
-    WORDS,
-    words,
-)
+from django.contrib.webdesign.lorem_ipsum import WORDS
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -40,7 +36,7 @@ from sentry.models import (
     Team,
 )
 from sentry.plugins.sentry_mail.activity import emails
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.samples import load_data
 from sentry.utils.email import inline_css
 from sentry.utils.http import absolute_uri
@@ -49,6 +45,62 @@ from sentry.web.helpers import render_to_response, render_to_string
 
 
 logger = logging.getLogger(__name__)
+
+
+def get_random(request):
+    seed = request.GET.get('seed', str(time.time()))
+    return Random(seed)
+
+
+def make_message(random, length=None):
+    if length is None:
+        length = int(random.weibullvariate(8, 3))
+    return ' '.join(random.choice(WORDS) for _ in xrange(length))
+
+
+def make_culprit(random):
+    def make_module_path_components(min, max):
+        for _ in xrange(random.randint(min, max)):
+            yield ''.join(random.sample(WORDS, random.randint(1, int(random.paretovariate(2.2)))))
+
+    return '{module} in {function}'.format(
+        module='.'.join(make_module_path_components(1, 4)),
+        function=random.choice(WORDS)
+    )
+
+
+def make_group_metadata(random, group):
+    return {
+        'type': 'error',
+        'metadata': {
+            'type': '{}Error'.format(
+                ''.join(word.title() for word in random.sample(WORDS, random.randint(1, 3))),
+            ),
+            'value': make_message(random),
+        }
+    }
+
+
+def make_group_generator(random, project):
+    epoch = to_timestamp(datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc))
+    for id in itertools.count(1):
+        first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)
+        last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
+
+        group = Group(
+            id=id,
+            project=project,
+            culprit=make_culprit(random),
+            level=random.choice(LOG_LEVELS.keys()),
+            message=make_message(random),
+            first_seen=to_datetime(first_seen),
+            last_seen=to_datetime(last_seen),
+        )
+
+        if random.random() < 0.8:
+            group.data = make_group_metadata(random, group)
+
+        yield group
 
 
 # TODO(dcramer): use https://github.com/disqus/django-mailviews
@@ -68,9 +120,10 @@ class MailPreview(object):
             traceback.print_exc()
             raise
 
-    def render(self):
+    def render(self, request):
         return render_to_response('sentry/debug/mail/preview.html', {
             'preview': self,
+            'format': request.GET.get('format'),
         })
 
 
@@ -117,12 +170,11 @@ class ActivityMailDebugView(View):
             name='My Project',
         )
 
-        group = Group(
-            id=1,
-            project=project,
-            message='This is an example event.',
-            last_seen=datetime(2016, 6, 13, 3, 8, 24, tzinfo=timezone.utc),
-            first_seen=datetime(2016, 6, 13, 3, 8, 24, tzinfo=timezone.utc),
+        group = next(
+            make_group_generator(
+                get_random(request),
+                project,
+            ),
         )
 
         event = Event(
@@ -166,11 +218,10 @@ def new_event(request):
         team=team,
         organization=org,
     )
-    group = Group(
-        id=1,
-        project=project,
-        message='This is an example event.',
-        level=logging.ERROR,
+
+    random = get_random(request)
+    group = next(
+        make_group_generator(random, project),
     )
 
     event = Event(
@@ -179,6 +230,12 @@ def new_event(request):
         group=group,
         message=group.message,
         data=load_data(platform),
+        datetime=to_datetime(
+            random.randint(
+                to_timestamp(group.first_seen),
+                to_timestamp(group.last_seen),
+            ),
+        ),
     )
 
     rule = Rule(label="An example rule")
@@ -208,16 +265,12 @@ def new_event(request):
                 ('device', 'Other')
             ]
         },
-    ).render()
+    ).render(request)
 
 
 @login_required
 def digest(request):
-    seed = request.GET.get('seed', str(time.time()))
-    logger.debug('Using random seed value: %s')
-    random = Random(seed)
-
-    now = datetime.utcnow().replace(tzinfo=pytz.utc)
+    random = get_random(request)
 
     # TODO: Refactor all of these into something more manageable.
     org = Organization(
@@ -257,25 +310,12 @@ def digest(request):
 
     records = []
 
-    group_sequence = itertools.count(1)
     event_sequence = itertools.count(1)
+    group_generator = make_group_generator(random, project)
 
     for i in xrange(random.randint(1, 30)):
-        group_id = next(group_sequence)
-
-        culprit = '{module} in {function}'.format(
-            module='.'.join(
-                ''.join(random.sample(WORDS, random.randint(1, int(random.paretovariate(2.2))))) for word in xrange(1, 4)
-            ),
-            function=random.choice(WORDS)
-        )
-        group = state['groups'][group_id] = Group(
-            id=group_id,
-            project=project,
-            message=words(int(random.weibullvariate(8, 4)), common=False),
-            culprit=culprit,
-            level=random.choice(LOG_LEVELS.keys()),
-        )
+        group = next(group_generator)
+        state['groups'][group.id] = group
 
         offset = timedelta(seconds=0)
         for i in xrange(random.randint(1, 10)):
@@ -287,7 +327,12 @@ def digest(request):
                 group=group,
                 message=group.message,
                 data=load_data('python'),
-                datetime=now - offset,
+                datetime=to_datetime(
+                    random.randint(
+                        to_timestamp(group.first_seen),
+                        to_timestamp(group.last_seen),
+                    ),
+                )
             )
 
             records.append(
@@ -301,8 +346,8 @@ def digest(request):
                 )
             )
 
-            state['event_counts'][group_id] = random.randint(10, 1e4)
-            state['user_counts'][group_id] = random.randint(10, 1e4)
+            state['event_counts'][group.id] = random.randint(10, 1e4)
+            state['user_counts'][group.id] = random.randint(10, 1e4)
 
     digest = build_digest(project, records, state)
     start, end, counts = get_digest_metadata(digest)
@@ -317,7 +362,7 @@ def digest(request):
             'start': start,
             'end': end,
         },
-    ).render()
+    ).render(request)
 
 
 @login_required
@@ -346,7 +391,7 @@ def request_access(request):
                 'organization_slug': org.slug,
             }) + '?ref=access-requests'),
         },
-    ).render()
+    ).render(request)
 
 
 @login_required
@@ -373,7 +418,7 @@ def invitation(request):
                 'token': om.token,
             })),
         },
-    ).render()
+    ).render(request)
 
 
 @login_required
@@ -399,7 +444,7 @@ def access_approved(request):
             'organization': org,
             'team': team,
         },
-    ).render()
+    ).render(request)
 
 
 @login_required
@@ -419,7 +464,7 @@ def confirm_email(request):
             )),
             'is_new_user': True,
         },
-    ).render()
+    ).render(request)
 
 
 @login_required
@@ -435,4 +480,4 @@ def recover_account(request):
             )),
             'domain': get_server_hostname(),
         },
-    ).render()
+    ).render(request)

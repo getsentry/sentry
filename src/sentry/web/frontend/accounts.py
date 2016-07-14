@@ -182,7 +182,7 @@ def settings(request):
         # TODO(dcramer): we should maintain validation here when we support
         # multiple email addresses
         if request.user.email != old_email:
-            UserEmail.objects.get(user=user, email=old_email).delete()
+            UserEmail.objects.filter(user=user, email=old_email).delete()
             try:
                 with transaction.atomic():
                     user_email = UserEmail.objects.create(

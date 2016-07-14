@@ -273,14 +273,6 @@
     padding-top: 30px;
   }
 
-  .group-header h3 {
-    margin: 0 0 4px;
-    font-size: 18px;
-    word-wrap: break-word;
-    word-break: break-all;
-    line-height: 1.1;
-  }
-
   .group-header .group-message {
     padding: 0 15px 0 0;
     width: 400px;
@@ -313,6 +305,7 @@
 
   .inner .group-header table td {
     padding: 0;
+    vertical-align: top;
   }
 
   .inner .group-header table th.align-right {
@@ -357,6 +350,27 @@
     text-align: center;
     line-height: inherit;
     display: block;
+  }
+
+  /* Event type */
+
+  .event-type h3 {
+    line-height: 24px;
+    margin: 0;
+  }
+
+  .event-type h3 a {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .event-type h3 small {
+    font-size: 14px;
+  }
+
+  .event-type p {
+    margin: 0;
+    font-size: 14px;
   }
 
   /* Note */
@@ -457,9 +471,9 @@
 
   .digest td.error-level {
     padding: 0;
-    padding-top: 12px;
+    padding-top: 14px;
     padding-right: 18px;
-    width: 46px;
+    width: 38px;
     vertical-align: top;
   }
 
@@ -501,20 +515,14 @@
   }
 
   table.event-list .event-detail {
+    line-height: 24px;
     width: 400px;
     text-align: left;
   }
 
-  table.event-list .event-detail a {
-    font-size: 17px;
-    color: #15A7F6;
-    font-weight: 600;
-  }
-
   table.event-list .event-detail p {
     margin: 0;
-    font-size: 15px;
-    color: #687276;
+    color: #546076;
   }
 
   table.event-list .more-events {
@@ -522,6 +530,7 @@
     text-align: left;
     font-size: 14px;
   }
+
 
   @media only screen and (max-device-width: 480px) {
     /* mobile-specific CSS styles */
