@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 from django.db import models
 from django.utils import timezone
+from hashlib import md5
 
+from sentry.utils.cache import cache
 from sentry.db.models import (
     BoundedPositiveIntegerField, Model, sane_repr
 )
@@ -24,3 +26,37 @@ class GroupRelease(Model):
         unique_together = (('group_id', 'release_id', 'environment'),)
 
     __repr__ = sane_repr('group_id', 'release_id')
+
+    @classmethod
+    def get_cache_key(cls, group_id, release_id, environment):
+        return 'grouprelease:1:{}:{}'.format(
+            group_id,
+            md5('{}:{}'.format(release_id, environment)).hexdigest(),
+        )
+
+    @classmethod
+    def get_or_create(cls, group, release, environment, datetime, **kwargs):
+        if not environment:
+            environment = ''
+        cache_key = cls.get_cache_key(group.id, release.id, environment)
+
+        instance = cache.get(cache_key)
+        if instance is None:
+            instance, created = cls.objects.get_or_create(
+                release_id=release.id,
+                group_id=group.id,
+                environment=environment,
+                defaults={
+                    'project_id': group.project_id,
+                    'first_seen': datetime,
+                    'last_seen': datetime,
+                },
+            )
+            cache.set(cache_key, instance, 3600)
+        else:
+            created = False
+
+        # TODO(dcramer): this would be good to buffer
+        if not created:
+            instance.update(last_seen=datetime)
+        return instance
