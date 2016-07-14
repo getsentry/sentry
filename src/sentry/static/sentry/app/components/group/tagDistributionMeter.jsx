@@ -87,7 +87,7 @@ const TagDistributionMeter = React.createClass({
         {data.topValues.map((value, index) => {
           let pct = percent(value.count, totalValues);
           let pctLabel = Math.floor(pct);
-          let className = "segment segment-" + index;
+          let className = 'segment segment-' + index;
 
           return (
             <Link
