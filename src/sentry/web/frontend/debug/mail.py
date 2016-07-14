@@ -121,9 +121,10 @@ class MailPreview(object):
             traceback.print_exc()
             raise
 
-    def render(self):
+    def render(self, request):
         return render_to_response('sentry/debug/mail/preview.html', {
             'preview': self,
+            'format': request.GET.get('format'),
         })
 
 
@@ -261,7 +262,7 @@ def new_event(request):
                 ('device', 'Other')
             ]
         },
-    ).render()
+    ).render(request)
 
 
 @login_required
@@ -355,7 +356,7 @@ def digest(request):
             'start': start,
             'end': end,
         },
-    ).render()
+    ).render(request)
 
 
 @login_required
@@ -384,7 +385,7 @@ def request_access(request):
                 'organization_slug': org.slug,
             }) + '?ref=access-requests'),
         },
-    ).render()
+    ).render(request)
 
 
 @login_required
@@ -411,7 +412,7 @@ def invitation(request):
                 'token': om.token,
             })),
         },
-    ).render()
+    ).render(request)
 
 
 @login_required
@@ -437,7 +438,7 @@ def access_approved(request):
             'organization': org,
             'team': team,
         },
-    ).render()
+    ).render(request)
 
 
 @login_required
@@ -457,7 +458,7 @@ def confirm_email(request):
             )),
             'is_new_user': True,
         },
-    ).render()
+    ).render(request)
 
 
 @login_required
@@ -473,4 +474,4 @@ def recover_account(request):
             )),
             'domain': get_server_hostname(),
         },
-    ).render()
+    ).render(request)
