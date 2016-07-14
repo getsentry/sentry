@@ -25,14 +25,14 @@ const CompactIssueHeader = React.createClass({
         return (
           <span>
             <span style={{marginRight: 10}}>{metadata.type}</span>
-            <em style={{fontSize: '80%', color: '#6F7E94', fontWeight: 'normal'}}>{data.culprit}</em><br/>
+            <em>{data.culprit}</em><br/>
           </span>
         );
       case 'csp':
         return (
           <span>
             <span style={{marginRight: 10}}>{metadata.directive}</span>
-            <em style={{fontSize: '80%', color: '#6F7E94', fontWeight: 'normal'}}>{metadata.uri}</em><br/>
+            <em>{metadata.uri}</em><br/>
           </span>
         );
       case 'default':
