@@ -8,6 +8,7 @@ import sentry
 
 from django.conf import settings
 from django.db.utils import DatabaseError
+from raven.conf.remote import RemoteConfig
 from raven.contrib.django.client import DjangoClient
 
 from . import metrics
@@ -29,14 +30,23 @@ def is_current_event_safe():
     return True
 
 
+class InternalRemoteConfig(RemoteConfig):
+    def is_active(self):
+        return True
+
+
 class SentryInternalClient(DjangoClient):
+    def __init__(self, *args, **kwargs):
+        super(SentryInternalClient, self).__init__(*args, **kwargs)
+        self.remote = InternalRemoteConfig()
+
     def is_enabled(self):
         if getattr(settings, 'DISABLE_RAVEN', False):
             return False
         return settings.SENTRY_PROJECT is not None
 
     def can_record_current_event(self):
-        return self.remote.is_active() or is_current_event_safe()
+        return self.is_enabled() or is_current_event_safe()
 
     def capture(self, *args, **kwargs):
         if not self.can_record_current_event():
@@ -53,7 +63,7 @@ class SentryInternalClient(DjangoClient):
         # NOTE: we don't want to check self.is_enabled() like normal, since
         # is_enabled behavior is overridden in this class. We explicitly
         # want to check if the remote is active.
-        if self.remote.is_active():
+        if self.is_enabled():
             from sentry import options
             # Append some extra tags that are useful for remote reporting
             super_kwargs = copy.deepcopy(kwargs)
