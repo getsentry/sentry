@@ -33,22 +33,22 @@ class _IndexMapping(object):
             try:
                 return self.vars[key[1:]]
             except LookupError:
-                return False
+                return None
         return self.vars[key]
 
 
 class _IndexFormatter(string.Formatter):
 
     def format_field(self, value, format_spec):
-        if isinstance(value, bool):
-            if not format_spec:
-                return value and u'yes' or u'no'
-            args = format_spec.split(':', 1)
+        if format_spec[:1] == '?':
+            args = format_spec[1:].split(':', 1)
             if value:
                 return args[0]
             if len(args) == 2:
                 return args[1]
             return u''
+        if isinstance(value, bool):
+            return value and u'yes' or u'no'
         return string.Formatter.format_field(self, value, format_spec)
 
 
@@ -104,8 +104,8 @@ class DefaultContextType(ContextType):
 @contexttype('device')
 class DeviceContextType(ContextType):
     indexed_fields = {
-        '': u'{model}{?simulator: Simulator:}',
-        'family': u'{family}{?simulator: Simulator:}',
+        '': u'{model}{?simulator:? Simulator:}',
+        'family': u'{family}{?simulator:? Simulator:}',
     }
     # model_id, arch
 
