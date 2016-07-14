@@ -2,7 +2,6 @@ from __future__ import absolute_import, print_function
 
 import itertools
 import logging
-import pytz
 import time
 import traceback
 import uuid
