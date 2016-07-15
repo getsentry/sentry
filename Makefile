@@ -110,7 +110,7 @@ test-acceptance:
 	@echo "--> Building static assets"
 	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running acceptance tests"
-	py.test tests/acceptance || exit 1
+	py.test tests/acceptance/test_emails.py::EmailTestCase::test_assigned_html || exit 1
 	@echo ""
 
 test-python-coverage:
