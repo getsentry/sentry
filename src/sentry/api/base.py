@@ -18,7 +18,7 @@ from rest_framework.views import APIView
 from structlog import get_logger
 
 from sentry.app import raven, tsdb
-from sentry.models import ApiKey, AuditLogEntry
+from sentry.models import ApiKey, ApiToken, AuditLogEntry
 from sentry.utils.cursors import Cursor
 from sentry.utils.http import absolute_uri, is_valid_origin
 
@@ -136,7 +136,7 @@ class Endpoint(APIView):
             time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0)
 
         origin = request.META.get('HTTP_ORIGIN')
-        if origin and request.auth:
+        if origin and request.auth and not isinstance(request.auth, (ApiKey, ApiToken)):
             allowed_origins = request.auth.get_allowed_origins()
             if not is_valid_origin(origin, allowed=allowed_origins):
                 response = Response('Invalid origin: %s' % (origin,), status=400)
