@@ -55,18 +55,25 @@ def run():
 @click.option('--bind', '-b', default=None, help='Bind address.', type=Address)
 @click.option('--workers', '-w', default=0, help='The number of worker processes for handling requests.')
 @click.option('--upgrade', default=False, is_flag=True, help='Upgrade before starting.')
+@click.option('--with-lock', default=False, is_flag=True, help='Use a lock if performing an upgrade.')
 @click.option('--noinput', default=False, is_flag=True, help='Do not prompt the user for input of any kind.')
 @log_options()
 @configuration
-def web(bind, workers, upgrade, noinput):
+def web(bind, workers, upgrade, with_lock, noinput):
     "Run web service."
     if upgrade:
         click.echo('Performing upgrade before service startup...')
         from sentry.runner import call_command
-        call_command(
-            'sentry.runner.commands.upgrade.upgrade',
-            verbosity=0, noinput=noinput,
-        )
+        try:
+            call_command(
+                'sentry.runner.commands.upgrade.upgrade',
+                verbosity=0, noinput=noinput, lock=with_lock,
+            )
+        except click.ClickException:
+            if with_lock:
+                click.echo('!! Upgrade currently running from another process, skipping.', err=True)
+            else:
+                raise
 
     from sentry.services.http import SentryHTTPServer
     SentryHTTPServer(
