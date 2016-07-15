@@ -10,6 +10,12 @@ APPLE_SDK_MAPPING = {
     'Mac OS': 'macOS',
 }
 
+KNOWN_DSYM_TYPES = {
+    'iOS': 'macho',
+    'tvOS': 'macho',
+    'macOS': 'macho'
+}
+
 
 def find_apple_crash_report_referenced_images(binary_images, threads):
     """Given some binary images from an apple crash report and a thread
@@ -70,6 +76,32 @@ def find_all_stacktraces(data):
                 rv.append(stacktrace)
 
     return rv
+
+
+def get_sdk_from_event(event):
+    sdk_info = (event.get('debug_meta') or {}).get('sdk_info')
+    if sdk_info:
+        return sdk_info
+    os = (event.get('contexts') or {}).get('os')
+    if os and os.get('type') == 'os':
+        return get_sdk_from_os(os)
+
+
+def get_sdk_from_os(data):
+    if 'name' not in data or 'version' not in data:
+        return
+    dsym_type = KNOWN_DSYM_TYPES.get(data['name'])
+    if dsym_type is None:
+        return
+    system_version = tuple(int(x) for x in (
+        data['version'] + '.0' * 3).split('.')[:3])
+    return {
+        'dsym_type': 'macho',
+        'sdk_name': data['name'],
+        'version_major': system_version[0],
+        'version_minor': system_version[1],
+        'version_patchlevel': system_version[2],
+    }
 
 
 def get_sdk_from_apple_system_info(info):
