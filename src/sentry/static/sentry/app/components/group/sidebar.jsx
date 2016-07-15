@@ -76,6 +76,28 @@ const GroupSidebar = React.createClass({
     });
   },
 
+  renderPluginIssue() {
+    let issues = [];
+    this.props.group.pluginIssues.forEach((plugin) => {
+      let issue = plugin.issue;
+      if (issue) {
+        issues.push(
+          <dl key={plugin.slug}>
+            <dt>{plugin.title + ': '}</dt><dd><a href={issue.url}>{issue.label}</a></dd>
+          </dl>
+        );
+      }
+    });
+    if (issues.length) {
+      return (
+        <div>
+          <h6><span>{t('External Issues')}</span></h6>
+          {issues}
+        </div>
+      );
+    }
+  },
+
   render() {
     let orgId = this.getOrganization().slug;
     let projectId = this.getProject().slug;
@@ -107,6 +129,8 @@ const GroupSidebar = React.createClass({
             projectId={projectId}
             date={group.lastSeen}
             release={group.lastRelease} />
+
+        {this.renderPluginIssue()}
 
         <h6><span>{t('Tags')}</span></h6>
         {group.tags.map((data) => {
