@@ -66,7 +66,7 @@ const MenuItem = React.createClass({
     }
 
     return (
-      <li {...this.props} role="presentation" title={null} href={null}
+      <li role="presentation" title={null} href={null}
         className={classNames(this.props.className, classes)}>
         {children}
       </li>
