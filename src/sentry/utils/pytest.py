@@ -288,6 +288,7 @@ def browser(request, percy, live_server):
         'phantomjs',
     )
     driver = webdriver.PhantomJS(executable_path=phantomjs_path)
+    driver.set_page_load_timeout(120)
 
     def fin():
         # Teardown Selenium.
