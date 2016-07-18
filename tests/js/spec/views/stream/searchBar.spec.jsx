@@ -216,8 +216,10 @@ describe('SearchBar', function() {
       };
       let searchBar = mount(<SearchBar {...props} />).instance();
       searchBar.updateAutoCompleteItems();
-      expect(searchBar.state.searchTerm).to.eql('fu');
-      expect(searchBar.state.searchItems.length).to.eql(0);
+      expect(searchBar.state.searchTerm).to.eql('unresolved');
+      expect(searchBar.state.searchItems.length).to.eql(1);
+      expect(searchBar.state.searchItems[0].desc).to.eql('unresolved');
+      expect(searchBar.state.searchItems[0].value).to.eql('unresolved');
       expect(searchBar.state.activeSearchItem).to.eql(0);
     });
 

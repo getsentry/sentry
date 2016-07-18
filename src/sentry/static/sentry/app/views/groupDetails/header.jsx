@@ -162,7 +162,7 @@ const GroupHeader = React.createClass({
                     <Count className="count" value={userCount} />
                   </Link>
                 :
-                  <span>0</span>
+                  0
                 }
               </div>
             </div>
