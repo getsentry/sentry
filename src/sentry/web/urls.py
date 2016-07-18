@@ -17,6 +17,7 @@ from sentry.web.frontend import accounts, admin, generic, accounts_twofactor
 from sentry.web.frontend.accept_organization_invite import \
     AcceptOrganizationInviteView
 from sentry.web.frontend.account_security import AccountSecurityView
+from sentry.web.frontend.account_notification import AccountNotificationView
 from sentry.web.frontend.admin_queue import AdminQueueView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
@@ -258,7 +259,7 @@ urlpatterns += patterns(
         name='sentry-account-settings-appearance'),
     url(r'^account/settings/identities/$', accounts.list_identities,
         name='sentry-account-settings-identities'),
-    url(r'^account/settings/notifications/$', accounts.notification_settings,
+    url(r'^account/settings/notifications/$', AccountNotificationView.as_view(),
         name='sentry-account-settings-notifications'),
     url(r'^account/settings/security/$', AccountSecurityView.as_view(),
         name='sentry-account-security'),
