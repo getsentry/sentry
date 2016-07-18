@@ -125,7 +125,7 @@ install_requires = [
     'raven>=5.21.0,<6.0.0',
     'redis>=2.10.3,<2.11.0',
     'requests%s>=2.9.1,<2.11.0' % (not IS_LIGHT_BUILD and '[security]' or ''),
-    'selenium>=2.53,<2.60',
+    'selenium==2.53.5',
     'simplejson>=3.2.0,<3.9.0',
     'six>=1.6.0,<2.0.0',
     'setproctitle>=1.1.7,<1.2.0',
