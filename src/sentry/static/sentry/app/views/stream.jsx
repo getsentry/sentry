@@ -3,7 +3,7 @@ import Reflux from 'reflux';
 import {History} from 'react-router';
 import {Link} from 'react-router';
 import Cookies from 'js-cookie';
-import {StickyContainer, Sticky} from 'react-sticky';
+import Sticky from 'react-sticky';
 import classNames from 'classnames';
 import _ from 'underscore';
 
@@ -575,54 +575,52 @@ const Stream = React.createClass({
     let access = this.getAccess();
 
     return (
-      <StickyContainer>
-        <div className={classNames(classes)}>
-          <div className="stream-content">
-            <StreamFilters
-              access={access}
-              orgId={orgId}
-              projectId={projectId}
-              query={this.state.query}
-              sort={this.state.sort}
-              tags={this.state.tags}
-              searchId={searchId}
-              defaultQuery={this.props.defaultQuery}
-              onSortChange={this.onSortChange}
-              onSearch={this.onSearch}
-              onSavedSearchCreate={this.onSavedSearchCreate}
-              onSidebarToggle={this.onSidebarToggle}
-              isSearchDisabled={this.state.isSidebarVisible}
-              savedSearchList={this.state.savedSearchList}
-            />
-            <div className="group-header">
-              <Sticky onStickyStateChange={this.onStickyStateChange}>
-                <div className={this.state.isStickyHeader ? 'container' : null}>
-                  <StreamActions
-                    orgId={params.orgId}
-                    projectId={params.projectId}
-                    query={this.state.query}
-                    onSelectStatsPeriod={this.onSelectStatsPeriod}
-                    onRealtimeChange={this.onRealtimeChange}
-                    realtimeActive={this.state.realtimeActive}
-                    statsPeriod={this.state.statsPeriod}
-                    groupIds={this.state.groupIds}
-                    allResultsVisible={this.allResultsVisible()}/>
-                </div>
-              </Sticky>
-            </div>
-            {this.renderStreamBody()}
-            <Pagination pageLinks={this.state.pageLinks}/>
-          </div>
-          <StreamSidebar
-            loading={this.state.tagsLoading}
-            tags={this.state.tags}
+      <div className={classNames(classes)}>
+        <div className="stream-content">
+          <StreamFilters
+            access={access}
+            orgId={orgId}
+            projectId={projectId}
             query={this.state.query}
-            onQueryChange={this.onSearch}
-            orgId={params.orgId}
-            projectId={params.projectId}
-            />
+            sort={this.state.sort}
+            tags={this.state.tags}
+            searchId={searchId}
+            defaultQuery={this.props.defaultQuery}
+            onSortChange={this.onSortChange}
+            onSearch={this.onSearch}
+            onSavedSearchCreate={this.onSavedSearchCreate}
+            onSidebarToggle={this.onSidebarToggle}
+            isSearchDisabled={this.state.isSidebarVisible}
+            savedSearchList={this.state.savedSearchList}
+          />
+          <div className="group-header">
+            <Sticky onStickyStateChange={this.onStickyStateChange}>
+              <div className={this.state.isStickyHeader ? 'container' : null}>
+                <StreamActions
+                  orgId={params.orgId}
+                  projectId={params.projectId}
+                  query={this.state.query}
+                  onSelectStatsPeriod={this.onSelectStatsPeriod}
+                  onRealtimeChange={this.onRealtimeChange}
+                  realtimeActive={this.state.realtimeActive}
+                  statsPeriod={this.state.statsPeriod}
+                  groupIds={this.state.groupIds}
+                  allResultsVisible={this.allResultsVisible()}/>
+              </div>
+            </Sticky>
+          </div>
+          {this.renderStreamBody()}
+          <Pagination pageLinks={this.state.pageLinks}/>
         </div>
-      </StickyContainer>
+        <StreamSidebar
+          loading={this.state.tagsLoading}
+          tags={this.state.tags}
+          query={this.state.query}
+          onQueryChange={this.onSearch}
+          orgId={params.orgId}
+          projectId={params.projectId}
+          />
+      </div>
     );
   }
 
