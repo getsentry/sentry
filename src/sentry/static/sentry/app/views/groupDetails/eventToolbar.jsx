@@ -140,7 +140,7 @@ let GroupEventToolbar  = React.createClass({
             {eventNavNodes}
           </div>
         </div>
-        <h4>{t('Event %s', evt.eventID)}</h4>
+        <h4>{t('Event')} <span className="event-id">{evt.eventID}</span></h4>
         <span>
           <span className="tip" data-title={this.getDateTooltip()}>
             <DateTime date={evt.dateCreated} style={style} />
