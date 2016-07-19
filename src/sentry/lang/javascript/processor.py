@@ -366,6 +366,18 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         }
         raise CannotFetchSource(error)
 
+    # For JavaScript files, check if content is something other than JavaScript/JSON (i.e. HTML)
+    # NOTE: possible to have JS files that don't actually end w/ ".js", but this should catch 99% of cases
+    if url.endswith('.js'):
+        # Check if response is HTML by seeing if <!DOCTYPE declaration at top of file
+        body_start = result[1][:30].strip()  # Discard leading whitespace (often found before doctype)
+        if body_start[:9] in ['<!doctype', '<!DOCTYPE']:
+            error = {
+                'type': EventError.JS_INVALID_CONTENT,
+                'url': url
+            }
+            raise CannotFetchSource(error)
+
     # Make sure the file we're getting back is unicode, if it's not,
     # it's either some encoding that we don't understand, or it's binary
     # data which we can't process.
