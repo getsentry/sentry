@@ -617,7 +617,6 @@ class JavascriptIntegrationTest(TestCase):
         event = Event.objects.get()
         assert event.data['errors'] == [{'url': u'http://example.com/unsupported.sourcemap.js', 'type': 'js_invalid_source'}]
 
-
     def test_failed_sourcemap_expansion_data_url(self):
         data = {
             'message': 'hello',
@@ -644,7 +643,6 @@ class JavascriptIntegrationTest(TestCase):
 
         event = Event.objects.get()
         assert event.data['errors'] == [{'url': u'<data url>', 'type': 'js_no_source'}]
-
 
     @responses.activate
     def test_html_response_for_js(self):
