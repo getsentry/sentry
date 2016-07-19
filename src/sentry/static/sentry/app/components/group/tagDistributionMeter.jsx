@@ -84,14 +84,15 @@ const TagDistributionMeter = React.createClass({
     let {orgId, projectId} = this.props;
     return (
       <div className="segments">
-        {data.topValues.map((value) => {
+        {data.topValues.map((value, index) => {
           let pct = percent(value.count, totalValues);
           let pctLabel = Math.floor(pct);
+          let className = 'segment segment-' + index;
 
           return (
             <Link
                 key={value.id}
-                className="segment" style={{width: pct + '%'}}
+                className={className} style={{width: pct + '%'}}
                 to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props.tag}/`}
                 title={'<div class="truncate">' + escape(value.name) + '</div>' + pctLabel + '%'}>
               <span className="tag-description">
