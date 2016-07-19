@@ -66,6 +66,16 @@ UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 logger = logging.getLogger(__name__)
 
 
+def expose_url(url):
+    if url is None:
+        return u'<unknown>'
+    if url.startswith('data:'):
+        return u'<data url>'
+    if isinstance(url, bytes):
+        url = url.decode('utf-8', 'replace')
+    return url
+
+
 class BadSource(Exception):
     error_type = EventError.UNKNOWN_ERROR
 
@@ -318,24 +328,24 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             if isinstance(exc, RestrictedIPAddress):
                 error = {
                     'type': EventError.RESTRICTED_IP,
-                    'url': url,
+                    'url': expose_url(url),
                 }
             elif isinstance(exc, SuspiciousOperation):
                 error = {
                     'type': EventError.SECURITY_VIOLATION,
-                    'url': url,
+                    'url': expose_url(url),
                 }
             elif isinstance(exc, (RequestException, ZeroReturnError)):
                 error = {
                     'type': EventError.JS_GENERIC_FETCH_ERROR,
                     'value': str(type(exc)),
-                    'url': url,
+                    'url': expose_url(url),
                 }
             else:
                 logger.exception(unicode(exc))
                 error = {
                     'type': EventError.UNKNOWN_ERROR,
-                    'url': url,
+                    'url': expose_url(url),
                 }
 
             # TODO(dcramer): we want to be less aggressive on disabling domains
@@ -362,7 +372,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         error = {
             'type': EventError.JS_INVALID_HTTP_CODE,
             'value': result[2],
-            'url': url,
+            'url': expose_url(url),
         }
         raise CannotFetchSource(error)
 
@@ -376,7 +386,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             error = {
                 'type': EventError.JS_INVALID_SOURCE_ENCODING,
                 'value': 'utf8',
-                'url': url,
+                'url': expose_url(url),
             }
             raise CannotFetchSource(error)
 
@@ -403,7 +413,7 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
     except Exception as exc:
         logger.warn(unicode(exc))
         raise UnparseableSourcemap({
-            'url': url,
+            'url': expose_url(url),
         })
 
 
@@ -617,7 +627,7 @@ class SourceProcessor(object):
             if sourcemap_idx and frame.colno is None:
                 all_errors.append({
                     'type': EventError.JS_NO_COLUMN,
-                    'url': force_bytes(frame.abs_path, errors='replace'),
+                    'url': expose_url(frame.abs_path),
                 })
             elif sourcemap_idx:
                 last_state = state
@@ -663,7 +673,7 @@ class SourceProcessor(object):
                     else:
                         all_errors.append({
                             'type': EventError.JS_MISSING_SOURCE,
-                            'url': force_bytes(abs_path, errors='replace'),
+                            'url': expose_url(abs_path),
                         })
 
                 if state is not None:
