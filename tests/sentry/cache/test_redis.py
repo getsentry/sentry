@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from sentry.cache.redis import RedisCache
+from sentry.cache.redis import RedisCache, ValueTooLarge
 from sentry.testutils import TestCase
 
 
@@ -20,3 +20,6 @@ class RedisCacheTest(TestCase):
 
         result = self.backend.get('foo')
         assert result is None
+
+        with self.assertRaises(ValueTooLarge):
+            self.backend.set('foo', 'x' * (RedisCache.max_size + 1), 0)
