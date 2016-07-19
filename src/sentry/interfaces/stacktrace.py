@@ -697,7 +697,13 @@ class Stacktrace(Interface):
             return []
 
         if not system_frames:
+            total_frames = len(frames)
             frames = [f for f in frames if f.in_app] or frames
+
+            # if app frames make up less than 10% of the stacktrace discard
+            # the hash as invalid
+            if len(frames) / float(total_frames) < 0.10:
+                return []
 
         output = []
         for frame in frames:
