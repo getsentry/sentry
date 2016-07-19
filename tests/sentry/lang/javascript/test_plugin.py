@@ -619,8 +619,12 @@ class JavascriptIntegrationTest(TestCase):
 
     @responses.activate
     def test_html_response_for_js(self):
-        responses.add(responses.GET, 'http://example.com/file.min.js',
-                      body='<!DOCTYPE html><html><head></head><body></body></html>')
+        responses.add(responses.GET, 'http://example.com/file1.js',
+                      body='       <!DOCTYPE html><html><head></head><body></body></html>')
+        responses.add(responses.GET, 'http://example.com/file2.js',
+                      body='<!doctype html><html><head></head><body></body></html>')
+        responses.add(responses.GET, 'http://example.com/file.html',
+                      body='<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>')
 
         data = {
             'message': 'hello',
@@ -631,10 +635,22 @@ class JavascriptIntegrationTest(TestCase):
                     'stacktrace': {
                         'frames': [
                             {
-                                'abs_path': 'http://example.com/file.min.js',
+                                'abs_path': 'http://example.com/file1.js',
                                 'filename': 'file.min.js',
                                 'lineno': 1,
                                 'colno': 39,
+                            },
+                            {
+                                'abs_path': 'http://example.com/file2.js',
+                                'filename': 'file.min.js',
+                                'lineno': 1,
+                                'colno': 39,
+                            },
+                            {
+                                'abs_path': 'http://example.com/file.html',
+                                'filename': 'file.html',
+                                'lineno': 1,
+                                'colno': 1,
                             },
                         ],
                     },
@@ -646,4 +662,7 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert event.data['errors'] == [{'url': u'http://example.com/file.min.js', 'type': 'js_invalid_content'}]
+        assert event.data['errors'] == [
+            {'url': u'http://example.com/file1.js', 'type': 'js_invalid_content'},
+            {'url': u'http://example.com/file2.js', 'type': 'js_invalid_content'}
+        ]
