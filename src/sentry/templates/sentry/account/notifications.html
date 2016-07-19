@@ -108,6 +108,9 @@
             {% include "sentry/partial/form_base.html" %}
         {% endfor %}
 
+        {% block hosted_notifications %}
+        {% endblock %}
+
         <fieldset class="form-actions">
             <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
         </fieldset>

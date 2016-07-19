@@ -10,7 +10,7 @@ from sentry.models import Project, EventError
 from sentry.plugins import Plugin2
 from sentry.lang.native.symbolizer import Symbolizer, have_symsynd
 from sentry.lang.native.utils import find_all_stacktraces, \
-    find_apple_crash_report_referenced_images, \
+    find_apple_crash_report_referenced_images, get_sdk_from_event, \
     find_stacktrace_referenced_images, get_sdk_from_apple_system_info, \
     APPLE_SDK_MAPPING
 from sentry.utils.native import parse_addr
@@ -359,7 +359,9 @@ def resolve_frame_symbols(data):
         return
 
     debug_images = debug_meta['images']
-    sdk_info = debug_meta['sdk_info']
+    sdk_info = get_sdk_from_event(data)
+    if not sdk_info:
+        return
 
     stacktraces = find_all_stacktraces(data)
     if not stacktraces:
