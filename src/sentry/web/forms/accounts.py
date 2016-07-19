@@ -345,7 +345,11 @@ class AppearanceSettingsForm(forms.Form):
 
 
 class NotificationSettingsForm(forms.Form):
-    alert_email = forms.EmailField(label=_('Email'), help_text=_('Designate an alternative email address to send email notifications to.'), required=False)
+    alert_email = forms.EmailField(
+        label=_('Email'),
+        help_text=_('Designate an alternative email address to send email notifications to.'),
+        required=False
+    )
     subscribe_by_default = forms.BooleanField(
         label=_('Subscribe to alerts for projects by default'),
         required=False,
@@ -358,6 +362,7 @@ class NotificationSettingsForm(forms.Form):
     def __init__(self, user, *args, **kwargs):
         self.user = user
         super(NotificationSettingsForm, self).__init__(*args, **kwargs)
+
         self.fields['alert_email'].initial = UserOption.objects.get_value(
             user=self.user,
             project=None,
