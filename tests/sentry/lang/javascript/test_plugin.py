@@ -616,3 +616,30 @@ class JavascriptIntegrationTest(TestCase):
 
         event = Event.objects.get()
         assert event.data['errors'] == [{'url': u'http://example.com/unsupported.sourcemap.js', 'type': 'js_invalid_source'}]
+
+    def test_failed_sourcemap_expansion_data_url(self):
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'type': 'Error',
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'abs_path': 'data:application/javascript,base46,asfasf',
+                                'filename': 'indexed.min.js',
+                                'lineno': 1,
+                                'colno': 39,
+                            },
+                        ],
+                    },
+                }],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        assert event.data['errors'] == [{'url': u'<data url>', 'type': 'js_no_source'}]
