@@ -283,7 +283,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         if not allow_scraping or not url.startswith(('http:', 'https:')):
             error = {
                 'type': EventError.JS_MISSING_SOURCE,
-                'url': url,
+                'url': expose_url(url),
             }
             raise CannotFetchSource(error)
 
