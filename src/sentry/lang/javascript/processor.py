@@ -369,12 +369,12 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     # For JavaScript files, check if content is something other than JavaScript/JSON (i.e. HTML)
     # NOTE: possible to have JS files that don't actually end w/ ".js", but this should catch 99% of cases
     if url.endswith('.js'):
-        # Check if response is HTML by seeing if "<!DOCTYPE" declaration at top of file. Intentionally
-        # not relying on Content-Type header because apps often don't set correct Content-Type on
-        # JS files.
-        body_start = result[1][:30].strip()  # Discard leading whitespace (often found before doctype)
+        # Check if response is HTML by looking if the first non-whitespace character is an open tag ('<').
+        # This cannot parse as valid JS/JSON.
+        # NOTE: not relying on Content-Type header because apps often don't set this correctly
+        body_start = result[1][:20].strip()  # Discard leading whitespace (often found before doctype)
 
-        if body_start[:9] in ['<!doctype', '<!DOCTYPE']:
+        if body_start[:1] == '<':
             error = {
                 'type': EventError.JS_INVALID_CONTENT,
                 'url': url
