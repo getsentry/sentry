@@ -17,7 +17,6 @@ def collect_project_platforms(**kwargs):
     max_project_id = Project.objects.aggregate(x=Max('id'))['x'] or 0
     step = 1000
     while min_project_id < max_project_id:
-        max_project_id = min_project_id + step
         queryset = Group.objects.filter(
             last_seen__gte=now - timedelta(days=1),
             project__gte=min_project_id,
