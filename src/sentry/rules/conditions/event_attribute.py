@@ -41,6 +41,7 @@ MATCH_CHOICES = OrderedDict([
 ATTR_CHOICES = [
     'message',
     'platform',
+    'environment',
     'exception.type',
     'exception.value',
     'user.id',
@@ -103,6 +104,9 @@ class EventAttributeCondition(EventCondition):
             if len(path) != 1:
                 return []
             return [getattr(event, path[0])]
+
+        elif path[0] == 'environment':
+            return [event.get_tag('environment')]
 
         elif len(path) == 1:
             return []
