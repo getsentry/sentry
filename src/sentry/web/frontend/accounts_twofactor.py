@@ -105,9 +105,16 @@ class TwoFactorSettingsView(BaseView):
         if not insecure \
            or (interface.is_backup_interface and
                Authenticator.objects.user_has_2fa(request.user)):
-            interface.enroll(request.user)
-            if Authenticator.objects.auto_add_recovery_codes(request.user):
-                next = reverse('sentry-account-settings-2fa-recovery')
+            try:
+                interface.enroll(request.user)
+            except Authenticator.AlreadyEnrolled:
+                # This can happen in some cases when races occur.  We have
+                # seen this when people press the submit button twice.  In
+                # that case just go to the overview page of 2fa
+                next = reverse('sentry-account-settings-2fa')
+            else:
+                if Authenticator.objects.auto_add_recovery_codes(request.user):
+                    next = reverse('sentry-account-settings-2fa-recovery')
         return HttpResponseRedirect(next)
 
     def configure(self, request, interface):
