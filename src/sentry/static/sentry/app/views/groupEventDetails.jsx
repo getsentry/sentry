@@ -35,6 +35,7 @@ const GroupEventDetails = React.createClass({
     }
   },
 
+
   fetchData() {
     let eventId = this.props.params.eventId || 'latest';
 

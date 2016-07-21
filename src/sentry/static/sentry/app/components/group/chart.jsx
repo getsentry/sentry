@@ -4,7 +4,6 @@ import PropTypes from '../../proptypes';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 import {t} from '../../locale';
 
-
 const GroupChart = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
@@ -57,4 +56,3 @@ const GroupChart = React.createClass({
 });
 
 export default GroupChart;
-
