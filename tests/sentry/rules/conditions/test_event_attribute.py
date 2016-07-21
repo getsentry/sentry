@@ -41,6 +41,7 @@ class EventAttributeConditionTest(RuleTestCase):
                         },
                     ],
                 },
+                'tags': [('environment', 'production')],
                 'extra': {
                     'foo': {
                         'bar': 'baz',
@@ -169,6 +170,22 @@ class EventAttributeConditionTest(RuleTestCase):
             'match': MatchType.EQUAL,
             'attribute': 'message',
             'value': 'php',
+        })
+        self.assertDoesNotPass(rule, event)
+
+    def test_environment(self):
+        event = self.get_event()
+        rule = self.get_rule({
+            'match': MatchType.EQUAL,
+            'attribute': 'environment',
+            'value': 'production',
+        })
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule({
+            'match': MatchType.EQUAL,
+            'attribute': 'environment',
+            'value': 'staging',
         })
         self.assertDoesNotPass(rule, event)
 

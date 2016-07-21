@@ -7,6 +7,7 @@ sentry.utils.email
 """
 from __future__ import absolute_import
 
+import logging
 import os
 import subprocess
 import tempfile
@@ -15,7 +16,6 @@ from email.utils import parseaddr
 from functools import partial
 from operator import attrgetter
 from random import randrange
-from structlog import get_logger
 
 from django.conf import settings
 from django.core.mail import get_connection as _get_connection
@@ -40,7 +40,7 @@ from sentry.web.helpers import render_to_string
 # The maximum amount of recipients to display in human format.
 MAX_RECIPIENTS = 5
 
-logger = get_logger(name='sentry.mail')
+logger = logging.getLogger('sentry.mail')
 
 
 class _CaseInsensitiveSigner(Signer):
@@ -365,29 +365,24 @@ class MessageBuilder(object):
         from sentry.tasks.email import send_email
         fmt = options.get('system.logging-format')
         messages = self.get_built_messages(to, bcc=bcc)
-        log_mail_queued = partial(
-            logger.info,
-            event='mail.queued',
-            message_type=self.type,
-        )
+        extra = {
+            'message_type': self.type
+        }
+        log_mail_queued = partial(logger.info, 'mail.queued', extra=extra)
         for message in messages:
             safe_execute(
                 send_email.delay,
                 message=message,
                 _with_transaction=False,
             )
-            message_id = message.extra_headers['Message-Id']
+            extra['message_id'] = message.extra_headers['Message-Id']
             if fmt == LoggingFormat.HUMAN:
-                log_mail_queued(
-                    message_id=message_id,
-                    message_to=self.format_to(message.to),
-                )
+                extra['message_to'] = self.format_to(message.to),
+                log_mail_queued()
             elif fmt == LoggingFormat.MACHINE:
                 for recipient in message.to:
-                    log_mail_queued(
-                        message_id=message_id,
-                        message_to=recipient,
-                    )
+                    extra['message_to'] = recipient
+                    log_mail_queued()
 
 
 def send_messages(messages, fail_silently=False):
@@ -395,10 +390,8 @@ def send_messages(messages, fail_silently=False):
     sent = connection.send_messages(messages)
     metrics.incr('email.sent', len(messages))
     for message in messages:
-        logger.info(
-            event='mail.sent',
-            message_id=message.extra_headers['Message-Id'],
-        )
+        extra = {'message_id': message.extra_headers['Message-Id']}
+        logger.info('mail.sent', extra=extra)
     return sent
 
 
