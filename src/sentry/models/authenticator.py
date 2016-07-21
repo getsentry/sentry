@@ -243,7 +243,7 @@ class AuthenticatorInterface(object):
             )
         else:
             if not self.allow_multi_enrollment:
-                raise RuntimeError('Already enrolled')
+                raise Authenticator.AlreadyEnrolled()
             self.authenticator.config = self.config
             self.authenticator.save()
 
@@ -553,6 +553,9 @@ class Authenticator(BaseModel):
     config = UnicodePickledObjectField()
 
     objects = AuthenticatorManager()
+
+    class AlreadyEnrolled(Exception):
+        pass
 
     class Meta:
         app_label = 'sentry'
