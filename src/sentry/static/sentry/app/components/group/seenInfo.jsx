@@ -12,7 +12,8 @@ const SeenInfo = React.createClass({
       version: React.PropTypes.string.isRequired
     }),
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    projectId: React.PropTypes.string.isRequired,
+    hasRelease: React.PropTypes.bool.isRequired,
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -47,7 +48,7 @@ const SeenInfo = React.createClass({
         <dt key={4}>{t('Release')}:</dt>
         {utils.defined(release) ?
           <dd key={5}><Version orgId={orgId} projectId={projectId} version={release.version} /></dd>
-        : (date ?
+        : (!this.props.hasRelease ?
           <dd key={5}><small style={{marginLeft: 5, fontStyle: 'italic'}}><a href={this.getReleaseTrackingUrl()}>not configured</a></small></dd>
         :
           <dd key={5}>n/a</dd>
