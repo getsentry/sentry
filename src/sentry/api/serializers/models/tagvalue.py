@@ -57,3 +57,11 @@ class TagValueSerializer(Serializer):
             'lastSeen': obj.last_seen,
             'firstSeen': obj.first_seen,
         }
+
+
+class EnvironmentTagValueSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        return {
+            'id': str(obj.id),
+            'name': obj.value,
+        }

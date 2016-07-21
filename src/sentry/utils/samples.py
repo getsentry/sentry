@@ -98,6 +98,7 @@ def create_sample_event(project, platform=None, default=None, raw=True,
         return
 
     data.update(kwargs)
+    data.setdefault('environment', 'production')
 
     manager = EventManager(data)
     manager.normalize()

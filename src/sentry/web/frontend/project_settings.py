@@ -69,6 +69,13 @@ class EditProjectForm(forms.ModelForm):
     # Options that are overridden by Organization level settings
     org_overrides = ('scrub_data', 'scrub_defaults', 'scrub_ip_address')
 
+    default_environment = forms.CharField(
+        label=_('Default Environment'),
+        help_text=_('The default selected environment when viewing issues.'),
+        widget=forms.TextInput(attrs={'placeholder': _('e.g. production')}),
+        required=False,
+    )
+
     class Meta:
         fields = ('name', 'team', 'slug')
         model = Project
@@ -189,6 +196,7 @@ class ProjectSettingsView(ProjectView):
                 'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
                 'scrape_javascript': bool(project.get_option('sentry:scrape_javascript', True)),
                 'blacklisted_ips': '\n'.join(project.get_option('sentry:blacklisted_ips', [])),
+                'default_environment': project.get_option('sentry:default_environment'),
             },
         )
 
@@ -206,7 +214,8 @@ class ProjectSettingsView(ProjectView):
                     'sensitive_fields',
                     'scrub_ip_address',
                     'scrape_javascript',
-                    'blacklisted_ips'):
+                    'blacklisted_ips',
+                    'default_environment'):
                 # Value can't be overridden if set on the org level
                 if opt in form.org_overrides and organization.get_option('sentry:%s' % (opt,), False):
                     continue

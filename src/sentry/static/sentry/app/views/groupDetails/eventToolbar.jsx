@@ -45,6 +45,10 @@ let GroupEventToolbar  = React.createClass({
     }),
   ],
 
+  shouldComponentUpdate(nextProps, nextState) {
+    return this.props.event.id !== nextProps.event.id;
+  },
+
   getDateTooltip() {
     let evt = this.props.event;
     let user = ConfigStore.get('user');
