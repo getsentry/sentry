@@ -16,7 +16,7 @@
   .main {
     max-width: 700px;
     box-shadow: 0 1px 3px rgba(0,0,0, .1);
-    margin: 10px auto;
+    margin: 15px auto;
     border-radius: 4px;
     border: 1px solid #c7d0d4;
     border-collapse: separate;
@@ -49,6 +49,10 @@
   small {
     font-size: 13px;
     color: #838c99;
+  }
+
+  .align-right {
+    text-align: right;
   }
 
   pre, blockquote, table {
@@ -108,6 +112,10 @@
     border-bottom: 1px solid #dee7eb;
   }
 
+  .header table {
+    margin-bottom: 0;
+  }
+
   .header .btn {
     float: right;
     margin: -3px 0 0 0;
@@ -127,6 +135,17 @@
     color: #ccc;
     font-weight: normal;
   }
+
+  .unsubscribe-box {
+    background: #FDFDFE;
+    border: 1px solid #D6DBE4;
+    border-radius: 3px;
+    padding: 15px;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 15px;
+  }
+
   .footer {
     border-top: 1px solid #E7EBEE;
     padding: 35px 0;
@@ -157,6 +176,18 @@
     font-size: 22px;
     font-weight: 700;
     margin: 0 0 20px;
+  }
+
+  h4 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 20px 0;
+  }
+
+  h5 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 4px;
   }
 
   .inner {
@@ -358,6 +389,10 @@
 
   /* Issue */
 
+  .issue {
+    line-height: 24px;
+  }
+
   .issue h3 {
     line-height: 24px;
     margin: 0;
@@ -540,6 +575,156 @@
     font-size: 14px;
   }
 
+  .weekly-report .container {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .weekly-report .header td {
+    text-align: right;
+    font-size: 14px;
+  }
+
+  .weekly-report td, .weekly-report th {
+    text-align: left;
+  }
+
+  .weekly-report .issue-table {
+    margin-bottom: 40px;
+  }
+
+  .weekly-report .issue-table th {
+    border-bottom: 1px solid #EAEDF1;
+  }
+
+  .weekly-report .issue-table th h4 {
+    margin: 0 0 15px;
+  }
+
+  .weekly-report .issue-table td {
+    border-bottom: 1px solid #EAEDF1;
+    padding: 12px 0;
+  }
+
+  .weekly-report .issue-table .issue small a {
+    color: #687276;
+  }
+
+  .weekly-report .issue-table .issue-meta {
+    font-size: 14px;
+    line-height: 24px;
+  }
+
+  .weekly-report .issue-table td.empty {
+    text-align: center;
+    background: #FBFCFD;
+    border: 1px solid #EAEDF1;
+    font-size: 14px;
+  }
+
+  .weekly-report .issue-table .narrow-column {
+    width: 60px;
+    text-align: center;
+    padding-left: 20px;
+    color: #687276;
+  }
+
+  .weekly-report .issue-table th.narrow-column {
+    text-transform: uppercase;
+    font-size: 14px;
+    color: #8794A8;
+    padding-bottom: 15px;
+    font-weight: 500;
+  }
+
+  .weekly-report .issue-table td.narrow-column {
+    font-size: 18px;
+  }
+
+  .weekly-report .legend {
+    font-size: 14px;
+    text-align: right;
+  }
+
+  .weekly-report .legend span {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    padding: 3px;
+    vertical-align: text-bottom;;
+    margin: 0 3px 0 10px;
+    border-radius: 3px;
+  }
+
+  .weekly-report .legend .all,
+  .weekly-report .issue-graph-bar .all {
+    background: #D6DBE4;
+  }
+
+  .weekly-report .legend .resolved,
+  .weekly-report .issue-graph-bar .resolved {
+    background: #A290D1;
+  }
+  .weekly-report .issues-resolved {
+    margin-bottom: 30px;
+  }
+
+  .weekly-report .issues-resolved .issues-resolved-column {
+    width: 33.3%;
+    text-align: right;
+  }
+
+  .weekly-report .issues-resolved .empty {
+    display: block;
+    text-align: center;
+  }
+
+  .weekly-report .issues-resolved .issues-resolved-column-left {
+    padding-right: 15px;
+  }
+
+  .weekly-report .issues-resolved .issues-resolved-column-middle {
+    padding-left: 20px;
+    padding-right: 20px;
+    border-left: 1px solid #D6DBE4;
+    border-right: 1px solid #D6DBE4;
+  }
+
+  .weekly-report .issues-resolved .issues-resolved-column .stat {
+    font-size: 30px;
+    margin-bottom: 5px;
+  }
+
+  .weekly-report .issues-resolved .issues-resolved-column .stat img {
+    vertical-align: middle;
+  }
+
+  .weekly-report .issue-graph, .weekly-report .issue-graph-bar {
+    margin-bottom: 0;
+  }
+
+  .weekly-report .issue-graph-bar td {
+    font-size: 0;
+  }
+
+  .weekly-report .user-impact {}
+
+  .weekly-report .user-impact-stat {
+    width: 90px;
+    height: 90px;
+    vertical-align: middle;
+    text-align: center;
+    font-size: 32px;
+    color: #836CC2;
+    background-size: 90px 90px;
+    background-image: url("{% absolute_asset_url 'sentry' 'images/email/circle-bg.png' %}");
+  }
+
+  .weekly-report .user-impact-text {
+    font-size: 18px;
+    padding-left: 12px;
+    padding-right: 15px;
+  }
 
   @media only screen and (max-device-width: 480px) {
     /* mobile-specific CSS styles */

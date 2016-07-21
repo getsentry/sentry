@@ -103,6 +103,11 @@ def subtract(value, amount):
 
 
 @register.filter
+def absolute_value(value):
+    return abs(int(value) if isinstance(value, (int, long)) else float(value))
+
+
+@register.filter
 def has_charts(group):
     from sentry.utils.db import has_charts
     if hasattr(group, '_state'):
@@ -118,7 +123,7 @@ def as_sorted(value):
 
 
 @register.filter
-def small_count(v):
+def small_count(v, precision=1):
     if not v:
         return 0
     z = [
@@ -132,7 +137,7 @@ def small_count(v):
         if o:
             if len(str(o)) > 2 or not p:
                 return '%d%s' % (o, y)
-            return '%.1f%s' % (v / float(x), y)
+            return ('%.{}f%s'.format(precision)) % (v / float(x), y)
     return v
 
 
