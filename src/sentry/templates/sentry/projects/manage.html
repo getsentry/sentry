@@ -48,6 +48,7 @@
         <h3>{% trans "Event Settings" %}</h3>
       </div>
       <div class="box-content with-padding">
+        {{ form.default_environment|as_crispy_field }}
         {{ form.resolve_age|as_crispy_field }}
         <p><small><strong>Note: Enabling auto resolve will immediately resolve anything that has not been seen within this period of time. There is no undo!</strong></small></p>
         {{ form.scrub_data|as_crispy_field }}
