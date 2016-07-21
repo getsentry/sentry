@@ -105,6 +105,10 @@ const compareArrays = function(arr1, arr2, compFunc) {
   return true;
 };
 
+const intcomma = function(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
+
 export default {
   getQueryParams() {
     let hashes, hash;
@@ -196,6 +200,7 @@ export default {
   arrayIsEqual: arrayIsEqual,
   objectMatchesSubset: objectMatchesSubset,
   compareArrays: compareArrays,
+  intcomma: intcomma,
   modelsEqual: modelsEqual,
   valueIsEqual: valueIsEqual,
   parseLinkHeader: require('./utils/parseLinkHeader'),
