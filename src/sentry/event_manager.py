@@ -301,6 +301,11 @@ class EventManager(object):
 
             data['tags'].append((key, value))
 
+            # XXX(dcramer): many legacy apps are using the environment tag
+            # rather than the key itself
+            if key == 'environment' and not data.get('environment'):
+                data['environment'] = value
+
         if not isinstance(data['extra'], dict):
             # throw it away
             data['extra'] = {}
