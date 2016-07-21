@@ -52,6 +52,18 @@ def to_datetime(value):
     return epoch + timedelta(seconds=value)
 
 
+def floor_to_utc_day(value):
+    """
+    Floors a given datetime to UTC midnight.
+    """
+    return value.astimezone(pytz.utc).replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+
+
 def get_sql_date_trunc(col, db='default', grouper='hour'):
     conn = connections[db]
 
