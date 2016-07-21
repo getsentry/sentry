@@ -558,16 +558,40 @@ class EventManager(object):
             return event
 
         if release:
-            # TODO(dcramer): would be a bit more ideal to buffer this
-            GroupRelease.objects.create_or_update(
-                project_id=project.id,
-                release_id=release.id,
-                group_id=group.id,
-                environment=environment or '',
-                values={
-                    'last_seen': date,
-                }
+            grouprelease = GroupRelease.get_or_create(
+                group=group,
+                release=release,
+                environment=environment,
+                datetime=date,
             )
+
+        tsdb.incr_multi([
+            (tsdb.models.group, group.id),
+            (tsdb.models.project, project.id),
+        ], timestamp=event.datetime)
+
+        frequencies = [
+            (tsdb.models.frequent_projects_by_organization, {
+                project.organization_id: {
+                    project.id: 1,
+                },
+            }),
+            (tsdb.models.frequent_issues_by_project, {
+                project.id: {
+                    group.id: 1,
+                },
+            })
+        ]
+        if release:
+            frequencies.append(
+                (tsdb.models.frequent_releases_by_groups, {
+                    group.id: {
+                        grouprelease.id: 1,
+                    },
+                })
+            )
+
+        tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
 
         UserReport.objects.filter(
             project=project, event_id=event_id,
@@ -760,34 +784,6 @@ class EventManager(object):
             is_sample = False
         else:
             is_sample = can_sample
-
-        tsdb.incr_multi([
-            (tsdb.models.group, group.id),
-            (tsdb.models.project, project.id),
-        ], timestamp=event.datetime)
-
-        frequencies = [
-            (tsdb.models.frequent_projects_by_organization, {
-                project.organization_id: {
-                    project.id: 1,
-                },
-            }),
-            (tsdb.models.frequent_issues_by_project, {
-                project.id: {
-                    group.id: 1,
-                },
-            })
-        ]
-        if release:
-            frequencies.append(
-                (tsdb.models.frequent_releases_by_groups, {
-                    group.id: {
-                        release.id: 1,
-                    },
-                })
-            )
-
-        tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
 
         return group, is_new, is_regression, is_sample
 
