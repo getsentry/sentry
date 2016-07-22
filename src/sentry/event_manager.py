@@ -576,16 +576,16 @@ class EventManager(object):
         ], timestamp=event.datetime)
 
         frequencies = [
-            (tsdb.models.frequent_projects_by_organization, {
-                project.organization_id: {
-                    project.id: 1,
-                },
-            }),
-            (tsdb.models.frequent_issues_by_project, {
-                project.id: {
-                    group.id: 1,
-                },
-            })
+            # (tsdb.models.frequent_projects_by_organization, {
+            #     project.organization_id: {
+            #         project.id: 1,
+            #     },
+            # }),
+            # (tsdb.models.frequent_issues_by_project, {
+            #     project.id: {
+            #         group.id: 1,
+            #     },
+            # })
         ]
         if release:
             frequencies.append(
