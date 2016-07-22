@@ -276,7 +276,7 @@ def bulk_delete_objects(model, limit=10000, logger=None, **filters):
         params.append(value)
 
     if logger is not None:
-        logger.info('Removing %r objects where %s=%r', model, column, value)
+        logger.info('remove.%s' % model.__name__.lower(), extra={column: value})
 
     if db.is_postgres():
         query = """
