@@ -57,6 +57,7 @@ VERSION_RE = re.compile(r'^[a-f0-9]{32}|[a-f0-9]{40}$', re.I)
 # the maximum number of remote resources (i.e. sourc eifles) that should be
 # fetched
 MAX_RESOURCE_FETCHES = 100
+MAX_URL_LENGTH = 150
 
 # TODO(dcramer): we want to change these to be constants so they are easier
 # to translate/link again
@@ -69,8 +70,9 @@ logger = logging.getLogger(__name__)
 def expose_url(url):
     if url is None:
         return u'<unknown>'
-    if url.startswith('data:'):
+    if url[:5] == 'data:':
         return u'<data url>'
+    url = truncatechars(url, MAX_URL_LENGTH)
     if isinstance(url, bytes):
         url = url.decode('utf-8', 'replace')
     return url
@@ -638,6 +640,8 @@ class SourceProcessor(object):
                 else:
                     sourcemap_label = sourcemap_url
 
+                sourcemap_label = expose_url(sourcemap_label)
+
                 try:
                     state = find_source(sourcemap_idx, frame.lineno, frame.colno)
                 except Exception:
@@ -723,7 +727,7 @@ class SourceProcessor(object):
 
             elif sourcemap_url:
                 frame.data = {
-                    'sourcemap': sourcemap_url,
+                    'sourcemap': expose_url(sourcemap_url),
                 }
 
             # TODO: theoretically a minified source could point to another mapped, minified source
