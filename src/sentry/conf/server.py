@@ -546,10 +546,13 @@ LOGGING = {
     },
     # LOGGING.overridable is a list of loggers including root that will change
     # based on the overridden level defined above.
-    'overridable': ['celery'],
+    'overridable': ['celery', 'sentry'],
     'loggers': {
         'celery': {
             'level': 'WARN',
+        },
+        'sentry': {
+            'level': 'INFO',
         },
         'sentry.errors': {
             'handlers': ['console'],

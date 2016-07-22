@@ -50,7 +50,7 @@ class HumanRenderer(object):
             now().strftime('%H:%M:%S'),
             real_level,
             event_dict.pop('name', 'root'),
-            event_dict.pop('event'),
+            event_dict.pop('event', ''),
         )
         join = ' '.join(k + '=' + repr(v)
                for k, v in event_dict.iteritems())
