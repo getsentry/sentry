@@ -106,7 +106,8 @@ const GroupReleaseStats = React.createClass({
     let stats = this.props.group.stats['24h'];
 
     let since = stats[0][0];
-    let until = stats[stats.length - 1][0];
+    // due to the current stats logic in Sentry we need to extend the bounds
+    let until = stats[stats.length - 1][0] + 1;
 
     this.api.request(`/issues/${group.id}/environments/${env}/`, {
       query: {
