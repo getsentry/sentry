@@ -553,6 +553,8 @@ LOGGING = {
         },
         'sentry': {
             'level': 'INFO',
+            'handlers': ['console', 'internal'],
+            'propagate': False,
         },
         'sentry.errors': {
             'handlers': ['console'],
