@@ -14,8 +14,8 @@ from django.utils import timezone
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BaseManager, FlexibleForeignKey,
-    sane_repr
+    Model, BoundedBigIntegerField, BoundedPositiveIntegerField, BaseManager,
+    FlexibleForeignKey, sane_repr
 )
 from sentry.utils import db
 
@@ -27,11 +27,15 @@ class GroupTagValue(Model):
     """
     __core__ = False
 
+    # TODO(dcramer): remove constraints
     project = FlexibleForeignKey('sentry.Project', null=True, related_name='grouptag')
     group = FlexibleForeignKey('sentry.Group', related_name='grouptag')
     times_seen = BoundedPositiveIntegerField(default=0)
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
+    # TODO(dcramer): add unique/indexes once data is populated
+    key_id = BoundedBigIntegerField(null=True)
+    value_id = BoundedBigIntegerField(null=True)
     last_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
     first_seen = models.DateTimeField(

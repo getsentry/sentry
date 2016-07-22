@@ -11,5 +11,5 @@ class TagKeySerializer(Serializer):
             'id': str(obj.id),
             'key': TagKey.get_standardized_key(obj.key),
             'name': obj.get_label(),
-            'uniqueValues': obj.values_seen,
+            # 'uniqueValues': obj.values_seen,
         }

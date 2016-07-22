@@ -12,7 +12,7 @@ from pkg_resources import parse_version as Version
 from sentry import options
 from sentry.models import (
     Organization, OrganizationMember, Project, User,
-    Team, ProjectKey, TagKey, TagValue, GroupTagValue, GroupTagKey
+    Team, ProjectKey, GroupTagValue, GroupTagKey
 )
 from sentry.signals import buffer_incr_complete
 from sentry.utils import db
@@ -137,29 +137,30 @@ def create_keys_for_project(instance, created, **kwargs):
             label='Default',
         )
 
+# XXX(dcramer): data is unused at the moment, lets avoid filling it until
+# we have a valid usecase
+# @buffer_incr_complete.connect(sender=TagValue, weak=False)
+# def record_project_tag_count(filters, created, **kwargs):
+#     from sentry import app
 
-@buffer_incr_complete.connect(sender=TagValue, weak=False)
-def record_project_tag_count(filters, created, **kwargs):
-    from sentry import app
+#     if not created:
+#         return
 
-    if not created:
-        return
+#     # TODO(dcramer): remove in 7.6.x
+#     project_id = filters.get('project_id')
+#     if not project_id:
+#         project_id = filters['project'].id
 
-    # TODO(dcramer): remove in 7.6.x
-    project_id = filters.get('project_id')
-    if not project_id:
-        project_id = filters['project'].id
-
-    app.buffer.incr(TagKey, {
-        'values_seen': 1,
-    }, {
-        'project_id': project_id,
-        'key': filters['key'],
-    })
+#     app.buffer.incr(TagKey, {
+#         'values_seen': 1,
+#     }, {
+#         'project_id': project_id,
+#         'key': filters['key'],
+#     })
 
 
 @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
-def record_group_tag_count(filters, created, **kwargs):
+def record_group_tag_count(filters, created, extra, **kwargs):
     from sentry import app
 
     if not created:
@@ -180,6 +181,8 @@ def record_group_tag_count(filters, created, **kwargs):
         'project_id': project_id,
         'group_id': group_id,
         'key': filters['key'],
+    }, {
+        'key_id': extra.get('key_id'),
     })
 
 

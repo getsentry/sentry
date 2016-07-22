@@ -29,7 +29,6 @@ class ProjectTagKeyDetailsTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data['id'] == str(tagkey.id)
-        assert response.data['uniqueValues'] == tagkey.values_seen
 
 
 class ProjectTagKeyDeleteTest(APITestCase):
