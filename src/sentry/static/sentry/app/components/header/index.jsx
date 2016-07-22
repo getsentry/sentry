@@ -70,7 +70,7 @@ const SidebarPanel = React.createClass({
     return (
       <div className="sidebar-panel">
         <div className="sidebar-panel-header">
-          <a className="close pull-right" onClick={this.props.onHidePanel}><span className="icon-x" /></a>
+          <a className="close pull-right" onClick={this.props.hidePanel}><span className="icon-x" /></a>
           <h2>{this.props.title}</h2>
         </div>
         <div className="sidebar-panel-items">
@@ -125,8 +125,18 @@ const Header = React.createClass({
     this.setState({showTodos: !this.state.showTodos});
   },
 
-  togglePanel() {
-    this.setState({showPanel: !this.state.showPanel});
+  hidePanel() {
+    this.setState({
+      showPanel: false,
+      currentPanel: ""
+    });
+  },
+
+  showPanel(panel) {
+    this.setState({
+      showPanel: true,
+      currentPanel: panel
+    });
   },
 
   render() {
@@ -163,13 +173,27 @@ const Header = React.createClass({
               </a>
             </div>
             <ul className="my-nav divider-bottom">
-              <li><a><span className="icon-user" onClick={this.togglePanel}/></a></li>
-              <li><a><span className="icon-star-solid" onClick={this.togglePanel}/></a></li>
-              <li><a><span className="icon-av_timer" onClick={this.togglePanel}/></a></li>
+              <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
+                <a><span className="icon-user" onClick={()=>this.showPanel('assigned')} /></a>
+              </li>
+              <li className={this.state.currentPanel == 'bookmarks' ? 'active' : null }>
+                <a><span className="icon-star-solid" onClick={()=>this.showPanel('bookmarks')} /></a>
+              </li>
+              <li className={this.state.currentPanel == 'history' ? 'active' : null }>
+                <a><span className="icon-av_timer" onClick={()=>this.showPanel('history')} /></a>
+              </li>
             </ul>
-            {this.state.showPanel &&
-              <SidebarPanel title="Assigned to me"
-                            onHidePanel={this.setState.bind(this, {showPanel: false})}/>
+            {this.state.showPanel && this.state.currentPanel == 'assigned' &&
+                <SidebarPanel title={t('Assigned to me')}
+                              hidePanel={()=>this.hidePanel()}/>
+            }
+            {this.state.showPanel && this.state.currentPanel == 'bookmarks' &&
+                <SidebarPanel title={t('My Bookmarks')}
+                              hidePanel={()=>this.hidePanel()}/>
+            }
+            {this.state.showPanel && this.state.currentPanel == 'history' &&
+                <SidebarPanel title={t('Recently Viewed')}
+                              hidePanel={()=>this.hidePanel()}/>
             }
           </div>
           { /* <Broadcasts /> */ }
