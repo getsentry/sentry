@@ -58,6 +58,40 @@ function getFirstRequiredAdminAction(org) {
   return null;
 }
 
+
+const SidebarPanel = React.createClass({
+  propTypes: {
+    title: React.PropTypes.string,
+    items: React.PropTypes.array,
+    onHidePanel: React.PropTypes.func
+  },
+
+  render() {
+    return (
+      <div className="sidebar-panel">
+        <div className="sidebar-panel-header">
+          <a className="close pull-right" onClick={this.props.onHidePanel}><span className="icon-x" /></a>
+          <h2>{this.props.title}</h2>
+        </div>
+        <div className="sidebar-panel-items">
+          <SidebarPanelItem />
+        </div>
+      </div>
+    );
+  }
+});
+
+const SidebarPanelItem = React.createClass({
+  render() {
+    return (
+      <div className="sidebar-panel-item">
+        <h3>Type Error <span className="culprit">poll(../../sentry/scripts/views.js)</span></h3>
+        <div className="message">Object [object Object] has no method 'updateFrom'</div>
+      </div>
+    );
+  }
+});
+
 const Header = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string
@@ -134,34 +168,8 @@ const Header = React.createClass({
               <li><a><span className="icon-av_timer" onClick={this.togglePanel}/></a></li>
             </ul>
             {this.state.showPanel &&
-            <div className="sidebar-panel">
-              <div className="sidebar-panel-header">
-                <a className="close pull-right" onClick={this.togglePanel}><span className="icon-x" /></a>
-                <h2>Assigned to me</h2>
-              </div>
-              <div className="sidebar-panel-items">
-                <div className="sidebar-panel-item">
-                  <h3>Type Error <span className="culprit">poll(../../sentry/scripts/views.js)</span></h3>
-                  <div className="message">Object [object Object] has no method 'updateFrom'</div>
-                </div>
-                <div className="sidebar-panel-item active">
-                  <h3>Type Error <span className="culprit">poll(../../sentry/scripts/views.js)</span></h3>
-                  <div className="message">Object [object Object] has no method 'updateFrom'</div>
-                </div>
-                <div className="sidebar-panel-item">
-                  <h3>Type Error <span className="culprit">poll(../../sentry/scripts/views.js)</span></h3>
-                  <div className="message">Object [object Object] has no method 'updateFrom'</div>
-                </div>
-                <div className="sidebar-panel-item">
-                  <h3>Type Error <span className="culprit">poll(../../sentry/scripts/views.js)</span></h3>
-                  <div className="message">Object [object Object] has no method 'updateFrom'</div>
-                </div>
-                <div className="sidebar-panel-item">
-                  <h3>Type Error <span className="culprit">poll(../../sentry/scripts/views.js)</span></h3>
-                  <div className="message">Object [object Object] has no method 'updateFrom'</div>
-                </div>
-              </div>
-            </div>
+              <SidebarPanel title="Assigned to me"
+                            onHidePanel={this.setState.bind(this, {showPanel: false})}/>
             }
           </div>
           { /* <Broadcasts /> */ }
@@ -184,8 +192,8 @@ const Header = React.createClass({
                                 onToggleTodos={this.toggleTodos}
                                 onHideTodos={this.setState.bind(this, {showTodos: false})} />
             }
-            <div class="notification-hub-dropdown"></div>
-            <div class="support"></div>
+            <div className="notification-hub-dropdown"></div>
+            <div className="support"></div>
             <UserNav className="user-settings" />
           </div>
         </div>
