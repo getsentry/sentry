@@ -29,6 +29,7 @@ from sentry.models import (
     Activity,
     Event,
     Group,
+    GroupStatus,
     Organization,
     OrganizationMember,
     Project,
@@ -95,6 +96,10 @@ def make_group_generator(random, project):
             message=make_message(random),
             first_seen=to_datetime(first_seen),
             last_seen=to_datetime(last_seen),
+            status=random.choice((
+                GroupStatus.UNRESOLVED,
+                GroupStatus.RESOLVED,
+            )),
         )
 
         if random.random() < 0.8:
