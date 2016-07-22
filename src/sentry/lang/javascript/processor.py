@@ -412,7 +412,7 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
         return sourcemap_to_index(body)
     except Exception as exc:
         # This is in debug because the product shows an error already.
-        logger.debug(unicode(exc))
+        logger.debug(unicode(exc), exc_info=True)
         raise UnparseableSourcemap({
             'url': expose_url(url),
         })
