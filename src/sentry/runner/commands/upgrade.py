@@ -20,6 +20,11 @@ from sentry.runner.decorators import configuration
 def upgrade(ctx, verbosity, traceback, noinput):
     "Perform any pending database migrations and upgrades."
 
+    # Turn on sentry migration safety.  This flips some flags internally
+    # that might conflict with migration error reporting.
+    from sentry import south_migrations
+    south_migrations.MIGRATION_SAFETY = True
+
     from django.core.management import call_command as dj_call_command
     dj_call_command(
         'syncdb',
