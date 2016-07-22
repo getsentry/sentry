@@ -11,8 +11,8 @@ from django.db import models
 
 from sentry.constants import MAX_TAG_KEY_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BaseManager, FlexibleForeignKey,
-    sane_repr
+    Model, BoundedBigIntegerField, BoundedPositiveIntegerField, BaseManager,
+    FlexibleForeignKey, sane_repr
 )
 
 
@@ -24,9 +24,12 @@ class GroupTagKey(Model):
     """
     __core__ = False
 
+    # TODO(dcramer): remove constraints
     project = FlexibleForeignKey('sentry.Project', null=True)
     group = FlexibleForeignKey('sentry.Group')
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
+    # TODO(dcramer): add unique/indexes once data is populated
+    key_id = BoundedBigIntegerField(null=True)
     values_seen = BoundedPositiveIntegerField(default=0)
 
     objects = BaseManager()

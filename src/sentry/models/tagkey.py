@@ -11,6 +11,7 @@ import re
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from hashlib import md5
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, TAG_LABELS
 from sentry.db.models import (
@@ -91,6 +92,24 @@ class TagKey(Model):
         if key.startswith('sentry:'):
             return key.split('sentry:', 1)[-1]
         return key
+
+    @classmethod
+    def get_cache_key(cls, project_id, key):
+        return 'tagkey:1:%s:%s' % (project_id, md5(key).hexdigest())
+
+    @classmethod
+    def get_or_create(cls, project, key):
+        cache_key = cls.get_cache_key(project.id, key)
+
+        obj = cache.get(cache_key)
+        if obj is None:
+            obj = cls.objects.get_or_create(
+                project=project,
+                key=key,
+            )[0]
+            cache.set(cache_key, obj, 3600)
+
+        return obj
 
     def get_label(self):
         return self.label \

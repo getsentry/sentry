@@ -53,7 +53,7 @@ class TagValueSerializer(Serializer):
             'key': TagKey.get_standardized_key(obj.key),
             'name': attrs['name'],
             'value': obj.value,
-            'count': obj.times_seen,
+            # 'count': obj.times_seen,
             'lastSeen': obj.last_seen,
             'firstSeen': obj.first_seen,
         }

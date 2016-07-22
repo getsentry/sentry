@@ -7,15 +7,18 @@ sentry.models.tagvalue
 """
 from __future__ import absolute_import, print_function
 
+from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
+from hashlib import md5
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
     Model, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField,
     BaseManager, sane_repr
 )
+from sentry.utils.cache import cache
 from sentry.utils.http import absolute_uri
 
 
@@ -47,6 +50,34 @@ class TagValue(Model):
     @classmethod
     def is_valid_value(cls, value):
         return '\n' not in value
+
+    @classmethod
+    def get_cache_key(cls, project_id, key, value):
+        return 'tagvalue:1:%s:%s' % (project_id, md5(u'{}:{}'.format(
+            key, value
+        )).hexdigest())
+
+    @classmethod
+    def get_or_create(cls, project, key, value, datetime):
+        cache_key = cls.get_cache_key(project.id, key, value)
+
+        obj = cache.get(cache_key)
+        if obj is None:
+            obj, created = cls.objects.get_or_create(
+                project=project,
+                key=key,
+                value=value,
+                defaults={
+                    'first_seen': datetime,
+                    'last_seen': datetime,
+                }
+            )
+            # update last_seen up to once an hour
+            if created and obj.last_seen < (datetime - timedelta(hours=1)):
+                obj.update(last_seen=datetime)
+            cache.set(cache_key, obj, 3600)
+
+        return obj
 
     def get_label(self):
         # HACK(dcramer): quick and dirty way to hack in better display states
