@@ -152,25 +152,17 @@ def login(request, user, passed_2fa=False, after_2fa=None):
 
 
 def log_auth_success(request, username):
-    logger.info(
-        'User authenticated successfully [ip:%s username:%r]',
-        request.META['REMOTE_ADDR'],
-        username,
-        extra={
-            'request': request,
-        }
-    )
+    logger.info('user.auth.success', extra={
+        'ip_address': request.META['REMOTE_ADDR'],
+        'username': username,
+    })
 
 
 def log_auth_failure(request, username=None):
-    logger.info(
-        'User failed authentication [ip:%s username:%r]',
-        request.META['REMOTE_ADDR'],
-        username or '',
-        extra={
-            'request': request,
-        }
-    )
+    logger.info('user.auth.fail', extra={
+        'ip_address': request.META['REMOTE_ADDR'],
+        'username': username,
+    })
 
 
 class EmailAuthBackend(ModelBackend):
