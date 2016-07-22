@@ -198,7 +198,7 @@ class RedisBackend(Backend):
 
             results = pipeline.execute()
             if should_truncate:
-                logger.info('Removed %s extra records from %s.', results[-1], key)
+                logger.debug('Removed %s extra records from %s.', results[-1], key)
 
             return results[-2 if should_truncate else -1]
 
@@ -488,7 +488,7 @@ class RedisBackend(Backend):
             # will be garbage collected.
             records = connection.zrevrange(digest_key, 0, -1, withscores=True)
             if not records:
-                logger.info('Retrieved timeline containing no records.')
+                logger.debug('Retrieved timeline containing no records.')
 
             def get_records_for_digest():
                 with connection.pipeline(transaction=False) as pipeline:
