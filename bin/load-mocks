@@ -1,4 +1,6 @@
-#!/usr/bin/env sentry exec
+#!/usr/bin/env python
+from sentry.runner import configure
+configure()
 
 import itertools
 import random
