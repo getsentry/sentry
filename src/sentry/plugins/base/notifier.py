@@ -37,7 +37,7 @@ class Notifier(object):
         )
 
         if rate_limited:
-            self.logger.info('Notification for project %s dropped due to rate limiting', project.id)
+            self.logger.info('notification.rate_limited', extra={'project_id': project.id})
 
         return not rate_limited
 

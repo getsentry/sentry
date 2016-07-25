@@ -55,8 +55,10 @@ class NotificationPlugin(Plugin):
     project_conf_form = NotificationConfigurationForm
 
     def notify(self, notification):
-        self.logger.info('Notification dispatched [event=%s] [plugin=%s]',
-                         notification.event.id, self.slug)
+        self.logger.info('notification.dispatched', extra={
+            'event_id': notification.event.id,
+            'plugin': self.slug
+        })
         event = notification.event
         return self.notify_users(event.group, event)
 
@@ -153,7 +155,7 @@ class NotificationPlugin(Plugin):
         # older plugins.
         if not (hasattr(self, 'notify_digest') and digests.enabled(project)) and self.__is_rate_limited(group, event):
             logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
-            logger.info('Notification for project %r dropped due to rate limiting', project)
+            logger.info('notification.rate_limited', extra={'project_id': project.id})
             return False
 
         return True
