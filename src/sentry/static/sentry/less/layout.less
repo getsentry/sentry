@@ -70,11 +70,11 @@ body.auth {
 }
 
 /**
-* Header
+* Navbar
 * ============================================================================
 */
 
-header {
+.navbar {
   background-color: @header-bg-color;
   color: #fff;
   .clearfix();
@@ -155,15 +155,15 @@ header {
     }
   }
 
-  .my-nav {
+  .navbar-nav {
     .list-unstyled;
     padding: 20px 0 10px;
 
-    li {
+    > li {
       text-align: center;
       line-height: 36px;
 
-      a {
+      > a {
         text-shadow: 0 1px 1px rgba(0,0,0, .15);
       }
 
@@ -178,8 +178,19 @@ header {
 
     .icon-av_timer {
       padding-top: 2px;
-      font-size: 24px;
+      font-size: 25px;
     }
+
+    .icon-globe {
+      font-size: 20px;
+    }
+
+    &.anchor-bottom {
+      position: absolute;
+      bottom: -20px;
+      width: 32px;
+    }
+
   }
 
   .divider-top {
@@ -196,21 +207,15 @@ header {
     }
   }
 
-  .user-nav {
-    position: absolute;
-    bottom: 15px;
-    width: 32px;
-
-    .user-settings {
-      .avatar {
-        .square(32px);
-        box-shadow: 0 1px 1px rgba(0,0,0, .3);
-      }
+  .user-settings {
+    .avatar {
+      .square(32px);
+      box-shadow: 0 1px 1px rgba(0,0,0, .3);
     }
+  }
 
-    .onboarding-progress-bar {
-      margin: 0 8px 20px;
-    }
+  .onboarding-progress-bar {
+    margin: 0 8px 20px;
   }
 
   .dropdown {
@@ -331,6 +336,8 @@ header {
   color: @gray-darker;
   border-right: 1px solid @trim;
   box-shadow: 1px 0 2px rgba(0,0,0, .06);
+  text-align: left;
+  line-height: 24px;
 
 
   .sidebar-panel-header {

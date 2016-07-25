@@ -131,7 +131,7 @@ const Header = React.createClass({
 
     // NOTE: this.props.orgId not guaranteed to be specified
     return (
-      <header>
+      <nav className="navbar">
         <div className="container">
           <div className="anchor-top">
             <div className="org-switcher divider-bottom">
@@ -139,7 +139,7 @@ const Header = React.createClass({
                 <img src="https://s3.amazonaws.com/f.cl.ly/items/0z1b103b2K2e3A0y3E0H/sentry-avatar.png" />
               </a>
             </div>
-            <ul className="my-nav divider-bottom">
+            <ul className="navbar-nav divider-bottom">
               <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
                 <a><span className="icon-user" onClick={()=>this.showPanel('assigned')} /></a>
               </li>
@@ -162,8 +162,31 @@ const Header = React.createClass({
                 <SidebarPanel title={t('Recently Viewed')}
                               hidePanel={()=>this.hidePanel()}/>
             }
+            {this.state.showPanel && this.state.currentPanel == 'onboarding' &&
+                <SidebarPanel title={t('Getting Started')}
+                              hidePanel={()=>this.hidePanel()}/>
+            }
           </div>
-          { /* <Broadcasts /> */ }
+
+          <ul className="navbar-nav anchor-bottom">
+
+            {org &&
+              <li>
+                <OnboardingStatus org={org} showTodos={this.state.showTodos}
+                                onShowTodos={this.setState.bind(this, {showTodos: false})}
+                                onToggleTodos={this.toggleTodos}
+                                onHideTodos={this.setState.bind(this, {showTodos: false})} />
+              </li>
+            }
+            <Broadcasts showPanel={this.state.showPanel}
+                        currentPanel={this.state.currentPanel}
+                        onShowPanel={()=>this.showPanel('broadcasts')}
+                        hidePanel={()=>this.hidePanel()} />
+            <li><UserNav className="user-settings" /></li>
+          </ul>
+
+
+
           { /* {this.props.orgId ?
             <Link to={`/${this.props.orgId}/`} className="logo">{logo}</Link>
             :
@@ -176,19 +199,8 @@ const Header = React.createClass({
           <span className="admin-action-message">{actionMessage}</span>
           : null}
           */ }
-          <div className="user-nav">
-            {org &&
-              <OnboardingStatus org={org} showTodos={this.state.showTodos}
-                                onShowTodos={this.setState.bind(this, {showTodos: false})}
-                                onToggleTodos={this.toggleTodos}
-                                onHideTodos={this.setState.bind(this, {showTodos: false})} />
-            }
-            <div className="notification-hub-dropdown"></div>
-            <div className="support"></div>
-            <UserNav className="user-settings" />
-          </div>
         </div>
-      </header>
+      </nav>
     );
   }
 });
