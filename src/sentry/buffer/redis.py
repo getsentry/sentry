@@ -116,7 +116,7 @@ class RedisBuffer(Buffer):
         # tasks
         if not client.set(lock_key, '1', nx=True, ex=10):
             metrics.incr('buffer.revoked', tags={'reason': 'locked'})
-            self.logger.info('Skipped process on %s; unable to get lock', key)
+            self.logger.info('buffer.revoked.locked', extra={'redis_key': key})
             return
 
         try:
@@ -129,7 +129,7 @@ class RedisBuffer(Buffer):
 
             if not values:
                 metrics.incr('buffer.revoked', tags={'reason': 'empty'})
-                self.logger.info('Skipped process on %s; no values found', key)
+                self.logger.info('buffer.revoked.empty', extra={'redis_key': key})
                 return
 
             model = import_string(values['m'])
