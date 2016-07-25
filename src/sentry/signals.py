@@ -39,4 +39,5 @@ member_joined = BetterSignal(providing_args=["member"])
 issue_tracker_used = BetterSignal(providing_args=["plugin", "project", "user"])
 plugin_enabled = BetterSignal(providing_args=["plugin", "project", "user"])
 
-email_verified = BetterSignal(providing_args=["email"])
+email_modified = BetterSignal(providing_args=["useremail"])
+email_verified = BetterSignal(providing_args=["useremail"])
