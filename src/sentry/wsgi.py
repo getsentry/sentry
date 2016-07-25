@@ -10,6 +10,12 @@ from __future__ import absolute_import
 import os
 import os.path
 import sys
+import datetime
+
+
+# We need to run this here because of a concurrency bug in Python's locale
+# with the lazy initialization.
+datetime.datetime.strptime('', '')
 
 # Add the project to the python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
