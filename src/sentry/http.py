@@ -59,18 +59,40 @@ def is_valid_url(url):
     if parsed.hostname == server_hostname:
         return True
 
+    # NOTE: The use of `socket.gethostbyname` is slightly flawed.
+    # `gethostbyname` doesn't handle octal IP addresses correctly, nor
+    # does it fetch all of the IP addresses for the record.
+    # `getaddrinfo` does the correct thing with octals here, and also returns all
+    # ip addresses for the hostname.
+    #
+    # WARNING: This behavior is only correct on Linux. On OSX, `getaddrinfo` also
+    # returns the wrong IP.
+    #
+    # The following should all technically resolve to `127.0.0.1`:
+    # Python 2.7.11 Linux
+    # >>> socket.gethostbyname('0177.0000.0000.0001')
+    # '177.0.0.1'
+    # >>> socket.getaddrinfo('0177.0000.0000.0001', 0)[0]
+    # (2, 1, 6, '', ('127.0.0.1', 0))
+    # Python 2.7.11 macOS
+    # >>> socket.gethostbyname('0177.0000.0000.0001')
+    # '177.0.0.1'
+    # >>> socket.getaddrinfo('0177.0000.0000.0001', None)[0]
+    # (2, 2, 17, '', ('177.0.0.1', 0))
     try:
-        ip_address = socket.gethostbyname(parsed.hostname)
+        ip_addresses = set(addr for _, _, _, _, addr in socket.getaddrinfo(parsed.hostname, 0))
     except socket.gaierror:
         return False
 
-    if ip_address == server_hostname:
-        return True
+    for addr in ip_addresses:
+        ip_address = addr[0]
+        if ip_address == server_hostname:
+            return True
 
-    ip_network = IPNetwork(ip_address)
-    for addr in DISALLOWED_IPS:
-        if ip_network in addr:
-            return False
+        ip_network = IPNetwork(ip_address)
+        for addr in DISALLOWED_IPS:
+            if ip_network in addr:
+                return False
 
     return True
 
