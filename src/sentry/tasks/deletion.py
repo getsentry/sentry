@@ -203,7 +203,7 @@ def delete_group(object_id, continuous=True, **kwargs):
 @retry(exclude=(DeleteAborted,))
 def delete_tag_key(object_id, continuous=True, **kwargs):
     from sentry.models import (
-        GroupTagKey, GroupTagValue, TagKey, TagKeyStatus, TagValue
+        EventTag, GroupTagKey, GroupTagValue, TagKey, TagKeyStatus, TagValue
     )
 
     try:
@@ -224,6 +224,14 @@ def delete_tag_key(object_id, continuous=True, **kwargs):
             if continuous:
                 delete_tag_key.delay(object_id=object_id, countdown=15)
             return
+
+    has_more = bulk_delete_objects(EventTag, project_id=tagkey.project_id,
+                                   key_id=tagkey.id, logger=logger)
+    if has_more:
+        if continuous:
+            delete_tag_key.delay(object_id=object_id, countdown=15)
+        return
+
     tagkey.delete()
 
 
