@@ -1,9 +1,10 @@
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
-import DropdownLink from '../dropdownLink';
 import LoadingIndicator from '../loadingIndicator';
 import {t} from '../../locale';
+
+import SidebarPanel from '../sidebarPanel';
 
 const Broadcasts = React.createClass({
   mixins: [
@@ -106,32 +107,35 @@ const Broadcasts = React.createClass({
 
     let title = <span className="icon-globe" />;
     return (
-      <DropdownLink
-          topLevelClasses={`broadcasts ${this.props.className || ''} ${unseenCount && 'unseen'}`}
-          menuClasses="dropdown-menu-right"
-          onOpen={this.onOpen}
-          onClose={this.onClose}
-          title={title}>
-        {loading ?
-          <li><LoadingIndicator /></li>
-        : (broadcasts.length === 0 ?
-          <li className="empty">{t('No recent broadcasts from the Sentry team.')}</li>
-        :
-          broadcasts.map((item) => {
-            return (
-              <li key={item.id} className={!item.hasSeen && 'unseen'}>
-                {item.title &&
-                  <h4>{item.title}</h4>
-                }
-                {item.message}
-                {item.link &&
-                  <a href={item.link} className="read-more">{t('Read more')}</a>
-                }
-              </li>
-            );
-          })
-        )}
-      </DropdownLink>
+      <li className={this.state.currentPanel == 'broadcasts' ? 'active' : null }>
+        <a className="broadcasts-toggle" onClick={this.props.onShowPanel}><span className="icon-globe"/></a>
+        {this.props.showPanel && this.props.currentPanel == 'broadcasts' &&
+          <SidebarPanel title={t('Recent updates from Sentry')}
+                        hidePanel={this.props.hidePanel}>
+            <ul className="broadcast-items">
+              {loading ?
+                <li><LoadingIndicator /></li>
+              : (broadcasts.length === 0 ?
+                <li className="empty">{t('No recent broadcasts from the Sentry team.')}</li>
+              :
+                broadcasts.map((item) => {
+                  return (
+                    <li key={item.id} className={!item.hasSeen && 'unseen'}>
+                      {item.title &&
+                        <h4>{item.title}</h4>
+                      }
+                      {item.message}
+                      {item.link &&
+                        <a href={item.link} className="read-more">{t('Read more')}</a>
+                      }
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+          </SidebarPanel>
+        }
+      </li>
     );
   }
 });

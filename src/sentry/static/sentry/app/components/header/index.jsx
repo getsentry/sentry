@@ -104,6 +104,8 @@ const Header = React.createClass({
       showPanel: true,
       currentPanel: panel
     });
+    console.log(this.state.currentPanel);
+    console.log(this.state.showPanel);
   },
 
   render() {
