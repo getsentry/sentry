@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -108,10 +109,17 @@ class OrganizationIndexEndpoint(Endpoint):
         if serializer.is_valid():
             result = serializer.object
 
-            org = Organization.objects.create(
-                name=result['name'],
-                slug=result.get('slug'),
-            )
+            try:
+                with transaction.atomic():
+                    org = Organization.objects.create(
+                        name=result['name'],
+                        slug=result.get('slug'),
+                    )
+            except IntegrityError:
+                return Response(
+                    {'detail': 'An organization with this slug already exists.'},
+                    status=409,
+                )
 
             OrganizationMember.objects.create(
                 user=request.user,
