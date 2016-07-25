@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db.models import Q
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import (
@@ -23,6 +24,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
     def get(self, request, organization):
         queryset = OrganizationMember.objects.filter(
+            Q(user__is_active=True) | Q(user__isnull=True),
             organization=organization,
         ).select_related('user')
 
