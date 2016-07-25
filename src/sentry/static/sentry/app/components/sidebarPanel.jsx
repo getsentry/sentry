@@ -1,15 +1,5 @@
 import React from 'react';
-
-const SidebarPanelItem = React.createClass({
-  render() {
-    return (
-      <div className="sidebar-panel-item">
-        <h3>Type Error <span className="culprit">poll(../../sentry/scripts/views.js)</span></h3>
-        <div className="message">Object [object Object] has no method 'updateFrom'</div>
-      </div>
-    );
-  }
-});
+import SidebarPanelItem from './sidebarPanelItem';
 
 const SidebarPanel = React.createClass({
   propTypes: {

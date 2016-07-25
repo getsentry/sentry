@@ -167,7 +167,7 @@ body.auth {
         text-shadow: 0 1px 1px rgba(0,0,0, .15);
       }
 
-      &.active a {
+      &.active > a {
         color: #fff;
       }
     }
@@ -350,6 +350,11 @@ body.auth {
       font-size: 11px;
       position: relative;
       top: -2px;
+      color: @40;
+
+      &:hover {
+        color: @60;
+      }
     }
 
     h2 {
@@ -373,6 +378,18 @@ body.auth {
       margin-bottom: 5px;
       .culprit {
         font-weight: normal;
+      }
+    }
+
+    p {
+      margin-bottom: 5px;
+    }
+
+    a {
+      color: @50;
+
+      &:hover {
+        color: @70;
       }
     }
 

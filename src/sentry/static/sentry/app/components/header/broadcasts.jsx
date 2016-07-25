@@ -5,6 +5,7 @@ import LoadingIndicator from '../loadingIndicator';
 import {t} from '../../locale';
 
 import SidebarPanel from '../sidebarPanel';
+import SidebarPanelItem from '../sidebarPanelItem';
 
 const Broadcasts = React.createClass({
   mixins: [
@@ -107,32 +108,28 @@ const Broadcasts = React.createClass({
 
     let title = <span className="icon-globe" />;
     return (
-      <li className={this.state.currentPanel == 'broadcasts' ? 'active' : null }>
+      <li className={this.props.currentPanel == 'broadcasts' ? 'active' : null }>
         <a className="broadcasts-toggle" onClick={this.props.onShowPanel}><span className="icon-globe"/></a>
         {this.props.showPanel && this.props.currentPanel == 'broadcasts' &&
           <SidebarPanel title={t('Recent updates from Sentry')}
                         hidePanel={this.props.hidePanel}>
-            <ul className="broadcast-items">
               {loading ?
-                <li><LoadingIndicator /></li>
+                <LoadingIndicator />
               : (broadcasts.length === 0 ?
-                <li className="empty">{t('No recent broadcasts from the Sentry team.')}</li>
+                <div className="empty">{t('No recent updates from the Sentry team.')}</div>
               :
                 broadcasts.map((item) => {
                   return (
-                    <li key={item.id} className={!item.hasSeen && 'unseen'}>
-                      {item.title &&
-                        <h4>{item.title}</h4>
-                      }
-                      {item.message}
-                      {item.link &&
-                        <a href={item.link} className="read-more">{t('Read more')}</a>
-                      }
-                    </li>
+                    <SidebarPanelItem
+                      key={item.id}
+                      className={!item.hasSeen && 'unseen'}
+                      title={item.title}
+                      message={item.message}
+                      link={item.link}>
+                    </SidebarPanelItem>
                   );
                 })
               )}
-            </ul>
           </SidebarPanel>
         }
       </li>
