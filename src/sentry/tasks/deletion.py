@@ -39,7 +39,7 @@ def delete_organization(object_id, continuous=True, **kwargs):
         pending_delete.send(sender=Organization, instance=o)
 
     for team in Team.objects.filter(organization=o).order_by('id')[:1]:
-        logger.info('Removing Team id=%s where organization=%s', team.id, o.id)
+        logger.info('remove.team', extra={'team_id': team.id, 'organization_id': o.id})
         team.update(status=TeamStatus.DELETION_IN_PROGRESS)
         delete_team(team.id, continuous=False)
         if continuous:
@@ -76,7 +76,7 @@ def delete_team(object_id, continuous=True, **kwargs):
 
     # Delete 1 project at a time since this is expensive by itself
     for project in Project.objects.filter(team=t).order_by('id')[:1]:
-        logger.info('Removing Project id=%s where team=%s', project.id, t.id)
+        logger.info('remove.project', extra={'project_id': project.id, 'team_id': t.id})
         project.update(status=ProjectStatus.DELETION_IN_PROGRESS)
         delete_project(project.id, continuous=False)
         if continuous:
@@ -241,7 +241,7 @@ def delete_events(relation, limit=100, logger=None):
 
     has_more = False
     if logger is not None:
-        logger.info('Removing %r objects where %r', Event, relation)
+        logger.info('remove.event', extra=relation)
 
     result_set = list(Event.objects.filter(**relation)[:limit])
     has_more = bool(result_set)
@@ -264,7 +264,7 @@ def delete_objects(models, relation, limit=100, logger=None):
     has_more = False
     for model in models:
         if logger is not None:
-            logger.info('Removing %r objects where %r', model, relation)
+            logger.info('remove.%s' % model.__name__.lower(), extra=relation)
         for obj in model.objects.filter(**relation)[:limit]:
             obj.delete()
             has_more = True
