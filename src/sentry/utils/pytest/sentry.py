@@ -132,6 +132,11 @@ def pytest_configure(config):
 
     initialize_receivers()
 
+    from sentry.plugins import plugins
+    from sentry.plugins.utils import TestIssuePlugin2
+
+    plugins.register(TestIssuePlugin2)
+
     from sentry.utils.redis import clusters
 
     with clusters.get('default').all() as client:
