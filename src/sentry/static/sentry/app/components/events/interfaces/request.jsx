@@ -5,7 +5,6 @@ import RichHttpContent from './richHttpContent';
 import {getCurlCommand} from './utils';
 import {t} from '../../../locale';
 
-import RequestActions from './requestActions';
 import Truncate from '../../../components/truncate';
 
 const RequestInterface = React.createClass({
@@ -63,14 +62,6 @@ const RequestInterface = React.createClass({
 
     if (!this.isPartial()) {
       children.push(
-        <div key="action-buttons" className="pull-right">
-          {!this.props.isShare &&
-            <RequestActions organization={this.context.organization}
-                            project={this.context.project}
-                            group={group}
-                            event={evt} />
-          }
-        </div>,
         <div key="view-buttons" className="btn-group">
           <a className={(view === 'rich' ? 'active' : '') + ' btn btn-default btn-sm'}
             onClick={this.toggleView.bind(this, 'rich')}>{
