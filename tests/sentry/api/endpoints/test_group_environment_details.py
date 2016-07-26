@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from sentry.models import GroupRelease, Release
+from sentry.models import Environment, GroupRelease, Release
 from sentry.testutils import APITestCase
 
 
@@ -9,6 +9,7 @@ class GroupEnvironmentDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
+        Environment.objects.create(project_id=group.project_id, name='')
 
         url = '/api/0/issues/{}/environments/none/'.format(group.id)
         response = self.client.get(url, format='json')
@@ -16,12 +17,17 @@ class GroupEnvironmentDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data['lastRelease'] is None
         assert response.data['firstRelease'] is None
-        assert response.data['environment'] == {'name': ''}
+        assert response.data['environment']['name'] == ''
 
     def test_no_data_named_env(self):
         self.login_as(user=self.user)
 
         group = self.create_group()
+
+        Environment.objects.create(
+            project_id=group.project_id,
+            name='production',
+        )
 
         url = '/api/0/issues/{}/environments/production/'.format(group.id)
         response = self.client.get(url, format='json')
@@ -29,13 +35,17 @@ class GroupEnvironmentDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data['lastRelease'] is None
         assert response.data['firstRelease'] is None
-        assert response.data['environment'] == {'name': 'production'}
+        assert response.data['environment']['name'] == 'production'
 
     def test_with_data_named_env(self):
         self.login_as(user=self.user)
 
         project = self.create_project()
         group = self.create_group(project=project)
+        Environment.objects.create(
+            project_id=group.project_id,
+            name='production',
+        )
 
         release = Release.objects.create(
             project=project,
@@ -54,7 +64,6 @@ class GroupEnvironmentDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['lastRelease']['release']['version'] == release.version
-        assert response.data['lastRelease'].get('stats')
         assert response.data['firstRelease']['release']['version'] == release.version
-        assert not response.data['firstRelease'].get('stats')
-        assert response.data['environment'] == {'name': 'production'}
+        assert response.data['environment']['name'] == 'production'
+        assert response.data['environment'].get('stats')
