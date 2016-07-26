@@ -33,7 +33,6 @@ from sentry.models import (
 )
 from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
-from sentry.utils.logging import suppress_exceptions
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import default_cache
@@ -392,7 +391,6 @@ class EventManager(object):
 
         return data
 
-    @suppress_exceptions
     def save(self, project, raw=False):
         from sentry.tasks.post_process import index_event_tags
 
