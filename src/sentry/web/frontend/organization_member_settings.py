@@ -88,10 +88,15 @@ class OrganizationMemberSettingsView(OrganizationView):
 
             return self.redirect(redirect)
 
+        member_role_priority = roles.get(member.role).priority
+
         context = {
             'member': member,
             'form': form,
-            'role_list': roles.get_all(),
+            'role_list': [
+                (r, r.priority <= member_role_priority)
+                for r in roles.get_all()
+            ]
         }
 
         return self.respond('sentry/organization-member-settings.html', context)

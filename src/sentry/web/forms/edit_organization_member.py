@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django import forms
 
+from sentry import roles
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
     OrganizationMemberTeam, Team
@@ -14,6 +15,7 @@ class EditOrganizationMemberForm(forms.ModelForm):
         widget=forms.CheckboxSelectMultiple(),
         required=False,
     )
+    role = forms.ChoiceField()
 
     class Meta:
         fields = ('role',)
@@ -22,6 +24,12 @@ class EditOrganizationMemberForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(EditOrganizationMemberForm, self).__init__(*args, **kwargs)
 
+        member_role_priority = roles.get(self.instance.role).priority
+        self.fields['role'].choices = (
+            (r.id, r.name)
+            for r in roles.get_all()
+            if r.priority <= member_role_priority
+        )
         self.fields['teams'].queryset = Team.objects.filter(
             organization=self.instance.organization,
         )
