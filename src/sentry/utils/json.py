@@ -15,6 +15,7 @@ import uuid
 import decimal
 
 from django.utils.timezone import is_aware
+from django.utils.html import mark_safe
 
 
 def better_default_encoder(o):
@@ -76,3 +77,9 @@ def dumps(value, escape=False, **kwargs):
 
 def loads(value, **kwargs):
     return _default_decoder.decode(value)
+
+
+def dumps_htmlsafe(obj):
+    data = dumps(obj)
+    data = data.replace('<', '&lt;').replace('>', '&gt;')
+    return mark_safe(data)
