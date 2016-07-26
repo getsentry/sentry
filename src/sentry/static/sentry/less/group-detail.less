@@ -402,12 +402,17 @@
     height: 50px;
 
     span {
-      background: @purple-light;
+      background: @purple;
       #gradient > .vertical(@purple-light, @purple);
 
       &.inactive {
         background: @gray-lightest;
         #gradient > .vertical(@gray-lightest, @gray-lightest);
+      }
+
+      &.environment {
+        background: @purple-lightest;
+        #gradient > .vertical(@purple-lightest, @purple-lightest);
       }
     }
 
@@ -418,6 +423,11 @@
       &.inactive {
         background: @gray-lighter;
         #gradient > .vertical(@gray-lighter, @gray-lighter);
+      }
+
+      &.environment {
+        background: @purple;
+        #gradient > .vertical(@purple, @purple);
       }
     }
   }

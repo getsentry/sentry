@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from django.db import models
 from django.utils import timezone
-from hashlib import md5
 
 from sentry.utils.cache import cache
 from sentry.db.models import (
@@ -10,42 +9,41 @@ from sentry.db.models import (
 )
 
 
-class GroupRelease(Model):
+class ReleaseEnvironment(Model):
     __core__ = False
 
     project_id = BoundedPositiveIntegerField(db_index=True)
-    group_id = BoundedPositiveIntegerField()
     release_id = BoundedPositiveIntegerField(db_index=True)
-    environment = models.CharField(max_length=64, default='')
+    environment_id = BoundedPositiveIntegerField(db_index=True)
     first_seen = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_grouprelease'
-        unique_together = (('group_id', 'release_id', 'environment'),)
+        db_table = 'sentry_environmentrelease'
+        unique_together = (('project_id', 'release_id', 'environment_id'),)
 
-    __repr__ = sane_repr('group_id', 'release_id')
+    __repr__ = sane_repr('project_id', 'release_id', 'environment_id')
 
     @classmethod
-    def get_cache_key(cls, group_id, release_id, environment):
-        return 'grouprelease:1:{}:{}'.format(
-            group_id,
-            md5('{}:{}'.format(release_id, environment)).hexdigest(),
+    def get_cache_key(cls, project_id, release_id, environment_id):
+        return 'releasenv:1:{}:{}:{}'.format(
+            project_id,
+            release_id,
+            environment_id,
         )
 
     @classmethod
-    def get_or_create(cls, group, release, environment, datetime, **kwargs):
-        cache_key = cls.get_cache_key(group.id, release.id, environment.name)
+    def get_or_create(cls, project, release, environment, datetime, **kwargs):
+        cache_key = cls.get_cache_key(project.id, release.id, environment.id)
 
         instance = cache.get(cache_key)
         if instance is None:
             instance, created = cls.objects.get_or_create(
+                project_id=project.id,
                 release_id=release.id,
-                group_id=group.id,
-                environment=environment.name,
+                environment_id=environment.id,
                 defaults={
-                    'project_id': group.project_id,
                     'first_seen': datetime,
                     'last_seen': datetime,
                 },

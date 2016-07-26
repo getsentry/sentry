@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from sentry.models import GroupRelease, Release
+from sentry.models import Environment, GroupRelease, Release
 from sentry.testutils import APITestCase
 
 
@@ -9,6 +9,7 @@ class GroupEnvironmentDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
+        Environment.objects.create(project_id=group.project_id, name='')
 
         url = '/api/0/issues/{}/environments/none/'.format(group.id)
         response = self.client.get(url, format='json')
@@ -23,6 +24,11 @@ class GroupEnvironmentDetailsTest(APITestCase):
 
         group = self.create_group()
 
+        Environment.objects.create(
+            project_id=group.project_id,
+            name='production',
+        )
+
         url = '/api/0/issues/{}/environments/production/'.format(group.id)
         response = self.client.get(url, format='json')
 
@@ -36,6 +42,10 @@ class GroupEnvironmentDetailsTest(APITestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
+        Environment.objects.create(
+            project_id=group.project_id,
+            name='production',
+        )
 
         release = Release.objects.create(
             project=project,

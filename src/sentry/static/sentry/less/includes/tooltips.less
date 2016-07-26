@@ -13,7 +13,52 @@
     margin-right: -5px;
     background: @purple-dark;
   }
+
   .value-label {
     padding: 3px 0;
+  }
+
+  .legend {
+    padding: 3px 0;
+    position: relative;
+    margin: 0 !important;
+    line-height: 10px;
+
+    dt {
+      margin: 0;
+      position: absolute;
+      left: 0;
+      width: 8px;
+      margin-right: 5px;
+
+      &.active span {
+        background: @purple;
+      }
+
+      &.environment span {
+        background: @purple-lightest;
+      }
+
+      &.inactive span {
+        background: @gray-lightest;
+      }
+
+      span {
+        .square(8px);
+        display: inline-block;
+        border: 1px solid #fff;
+      }
+    }
+
+    dd {
+      float: none;
+      text-align: left;
+      margin: 0 0 0 13px;
+
+      small {
+        color: @white-darker;
+        display: block;
+      }
+    }
   }
 }
