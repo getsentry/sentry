@@ -154,9 +154,7 @@ def is_none(value):
 @register.simple_tag(takes_context=True)
 def serialize(context, value):
     value = serialize_func(value, context['request'].user)
-    value = json.dumps(value)
-    value = value.replace('<', '&lt;').replace('>', '&gt;')
-    return mark_safe(value)
+    return json.dumps_htmlsafe(value)
 
 
 @register.simple_tag(takes_context=True)
