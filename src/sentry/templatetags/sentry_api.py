@@ -21,7 +21,7 @@ def serialize(context, obj):
     else:
         user = None
 
-    return mark_safe(json.dumps(serialize_func(obj, user)))
+    return convert_to_json(serialize_func(obj, user), escape=True)
 
 
 @register.simple_tag
@@ -45,7 +45,7 @@ def serialize_detailed_org(context, obj):
         DetailedOrganizationSerializer(),
     )
 
-    return mark_safe(json.dumps(context))
+    return convert_to_json(context, escape=True)
 
 
 @register.simple_tag
@@ -62,4 +62,4 @@ def get_user_context(request, escape=False):
                 result['name'] = user.name
     else:
         result = {}
-    return mark_safe(json.dumps(result))
+    return convert_to_json(result, escape=True)
