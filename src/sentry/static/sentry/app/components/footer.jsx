@@ -24,7 +24,7 @@ const Footer = React.createClass({
           <div className="pull-right">
             <a href={config.urlPrefix + '/api/'}>{t('API')}</a>
             <a href={config.urlPrefix + '/docs/'}>{t('Docs')}</a>
-            <a href="https://github.com/getsentry/sentry">{t('Contribute')}</a>
+            <a href="https://github.com/getsentry/sentry" rel="noreferrer">{t('Contribute')}</a>
             {config.isOnPremise &&
               <a href={config.urlPrefix + '/out/'}>{t('Migrate to SaaS')}</a>
             }

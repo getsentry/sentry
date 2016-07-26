@@ -311,7 +311,7 @@ class IssueTrackingPlugin(Plugin):
         if not issue_id:
             return tag_list
 
-        tag_list.append(format_html('<a href="{}">{}</a>',
+        tag_list.append(format_html('<a href="{}" rel="noreferrer">{}</a>',
             self.get_issue_url(group=group, issue_id=issue_id),
             self.get_issue_label(group=group, issue_id=issue_id),
         ))
