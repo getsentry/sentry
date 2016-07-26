@@ -61,8 +61,13 @@ class ProjectEndpoint(Endpoint):
     def convert_args(self, request, organization_slug, project_slug, *args, **kwargs):
         try:
             org = Organization.objects.get_from_cache(slug=organization_slug)
-            if request.user and not access.from_request(request, org).memberships:
+            if request.user:
+                can_access_org = any(access.from_request(request, org).memberships)
+            if request.auth:
+                can_access_org = request.auth.organization_id == org.id
+            if not can_access_org:
                 raise ResourceDoesNotExist
+
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
