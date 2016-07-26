@@ -63,7 +63,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
 
             try:
                 stats = tsdb.get_frequency_series(
-                    model=tsdb.models.frequent_releases_by_groups,
+                    model=tsdb.models.frequent_releases_by_group,
                     items=items,
                     start=since,
                     end=until,

@@ -34,10 +34,20 @@ const GroupReleaseChart = React.createClass({
       totalY += point.y[i];
     }
 
+    let release = this.props.release;
+
     return (
       '<div style="width:150px">' +
         `<div class="time-label">${timeLabel}</div>` +
-        `<div class="value-label">${intcomma(totalY)} events</div>` +
+        '<dl class="legend">' +
+          '<dt class="inactive"><span></span></dt>' +
+          `<dd>${intcomma(totalY)} event${totalY !== 1 ? 's' : ''}</dd>` +
+          (release ? (
+            '<dt class="active"><span></span></dt>' +
+            `<dd>${intcomma(point.y[0])} event${point.y[0] !== 1 ? 's' : ''}` +
+            `<small>in ${release.version.substr(0, 12)}</small></dd>`
+          ) : '') +
+        '</dl>' +
       '</div>'
     );
   },

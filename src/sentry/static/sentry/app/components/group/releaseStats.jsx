@@ -187,8 +187,8 @@ const GroupReleaseStats = React.createClass({
               <GroupReleaseChart
                   group={group}
                   environment={environment}
-                  release={data.lastRelease ? data.lastRelease.release : null}
-                  releaseStats={data.lastRelease ? data.lastRelease.stats : null}
+                  release={data.currentRelease ? data.currentRelease.release : null}
+                  releaseStats={data.currentRelease ? data.currentRelease.stats : null}
                   statsPeriod="24h"
                   title={t('Last 24 Hours')}
                   firstSeen={firstSeen}
@@ -197,8 +197,8 @@ const GroupReleaseStats = React.createClass({
               <GroupReleaseChart
                   group={group}
                   environment={environment}
-                  release={data.lastRelease ? data.lastRelease.release : null}
-                  releaseStats={data.lastRelease ? data.lastRelease.stats : null}
+                  release={data.currentRelease ? data.currentRelease.release : null}
+                  releaseStats={data.currentRelease ? data.currentRelease.stats : null}
                   statsPeriod="30d"
                   title={t('Last 30 Days')}
                   className="bar-chart-small"
