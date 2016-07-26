@@ -39,7 +39,7 @@ const SeenInfo = React.createClass({
         :
           <dd key={1}>n/a</dd>
         }
-        <dt key={2}>{t('Date')}:</dt>
+        <dt key={2} />
         {date ?
           <dd key={3}><DateTime date={date} seconds={true} /></dd>
         :

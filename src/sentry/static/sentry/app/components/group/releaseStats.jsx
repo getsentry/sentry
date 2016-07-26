@@ -147,10 +147,10 @@ const GroupReleaseStats = React.createClass({
     let orgId = this.getOrganization().slug;
     let environment = this.state.environment;
     let data = this.state.data || {};
-    let firstSeen = (
+    let firstSeenEnv = (
       data.firstRelease ? data.firstRelease.firstSeen : group.firstSeen
     );
-    let lastSeen = (
+    let lastSeenEnv = (
       data.lastRelease ? data.lastRelease.lastSeen : group.lastSeen
     );
 
@@ -166,15 +166,11 @@ const GroupReleaseStats = React.createClass({
                 <MenuItem
                     key={e.name}
                     isActive={environment === e.name}
-                    onClick={this.switchEnv.bind(this, e.name)}>{toTitleCase(e.name)}</MenuItem>
+                    onClick={this.switchEnv.bind(this, e.name)}>
+                  {toTitleCase(e.name) || DEFAULT_ENV_NAME}
+                </MenuItem>
               );
             })}
-            {envList.length === 0 &&
-              <MenuItem
-                  key=""
-                  isActive={environment === ''}
-                  onClick={this.switchEnv.bind(this, '')}>{DEFAULT_ENV_NAME}</MenuItem>
-            }
           </DropdownLink>
         </span></h6>
         <div className="env-content">
@@ -187,42 +183,54 @@ const GroupReleaseStats = React.createClass({
               <GroupReleaseChart
                   group={group}
                   environment={environment}
-                  release={data.lastRelease ? data.lastRelease.release : null}
-                  releaseStats={data.lastRelease ? data.lastRelease.stats : null}
+                  environmentStats={data.environment.stats}
+                  release={data.currentRelease ? data.currentRelease.release : null}
+                  releaseStats={data.currentRelease ? data.currentRelease.stats : null}
                   statsPeriod="24h"
                   title={t('Last 24 Hours')}
-                  firstSeen={firstSeen}
-                  lastSeen={lastSeen} />
+                  firstSeen={group.firstSeen}
+                  firstSeenEnvironment={firstSeenEnv}
+                  lastSeen={group.lastSeen}
+                  lastSeenEnvironment={lastSeenEnv} />
 
               <GroupReleaseChart
                   group={group}
                   environment={environment}
-                  release={data.lastRelease ? data.lastRelease.release : null}
-                  releaseStats={data.lastRelease ? data.lastRelease.stats : null}
+                  environmentStats={environment.stats}
+                  release={data.currentRelease ? data.currentRelease.release : null}
+                  releaseStats={data.currentRelease ? data.currentRelease.stats : null}
                   statsPeriod="30d"
                   title={t('Last 30 Days')}
                   className="bar-chart-small"
-                  firstSeen={firstSeen}
-                  lastSeen={lastSeen} />
+                  firstSeen={group.firstSeen}
+                  firstSeenEnvironment={firstSeenEnv}
+                  lastSeen={group.lastSeen}
+                  lastSeenEnvironment={lastSeenEnv} />
 
-              <h6 className="first-seen">
+              <h6>
                 <span>{t('First seen')}</span>
+                {environment &&
+                  <small>({environment})</small>
+                }
               </h6>
 
               <SeenInfo
                   orgId={orgId}
                   projectId={projectId}
-                  date={firstSeen}
+                  date={firstSeenEnv}
                   hasRelease={hasRelease}
                   release={data.firstRelease ? data.firstRelease.release : null} />
 
-              <h6 className="last-seen">
+              <h6>
                 <span>{t('Last seen')}</span>
+                {environment &&
+                  <small>({environment})</small>
+                }
               </h6>
               <SeenInfo
                   orgId={orgId}
                   projectId={projectId}
-                  date={lastSeen}
+                  date={lastSeenEnv}
                   hasRelease={hasRelease}
                   release={data.lastRelease ? data.lastRelease.release : null} />
             </div>
