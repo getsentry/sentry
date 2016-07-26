@@ -5,57 +5,40 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.app import tsdb
-from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import GroupRelease, Release
+from sentry.api.serializers import Serializer, register
+from sentry.models import Environment
 
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
 
 
-@register(GroupRelease)
-class GroupReleaseSerializer(Serializer):
-    def get_attrs(self, item_list, user):
-        release_list = list(Release.objects.filter(
-            id__in=[i.release_id for i in item_list],
-        ))
-        releases = {
-            r.id: d
-            for r, d in zip(release_list, serialize(release_list, user))
-        }
-
-        result = {}
-        for item in item_list:
-            result[item] = {
-                'release': releases.get(item.release_id),
-            }
-        return result
-
+@register(Environment)
+class EnvironmentSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            'release': attrs['release'],
-            'environment': obj.environment,
-            'firstSeen': obj.first_seen,
-            'lastSeen': obj.last_seen,
+            'id': str(obj.id),
+            'name': obj.name,
         }
 
 
-class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
+class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
     STATS_PERIODS = {
         '24h': StatsPeriod(24, timedelta(hours=1)),
         '30d': StatsPeriod(30, timedelta(hours=24)),
     }
 
-    def __init__(self, since=None, until=None):
+    def __init__(self, group, since=None, until=None):
+        self.group = group
         self.since = since
         self.until = until
 
     def get_attrs(self, item_list, user):
-        attrs = super(GroupReleaseWithStatsSerializer, self).get_attrs(
-            item_list, user)
-
-        items = {}
+        attrs = {
+            item: {'stats': {}}
+            for item in item_list
+        }
+        items = {self.group.id: []}
         for item in item_list:
-            items.setdefault(item.group_id, []).append(item.id)
-            attrs[item]['stats'] = {}
+            items[self.group.id].append(item.id)
 
         for key, (segments, interval) in self.STATS_PERIODS.iteritems():
             until = self.until or timezone.now()
@@ -63,7 +46,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
 
             try:
                 stats = tsdb.get_frequency_series(
-                    model=tsdb.models.frequent_releases_by_group,
+                    model=tsdb.models.frequent_environments_by_group,
                     items=items,
                     start=since,
                     end=until,
@@ -77,12 +60,12 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
             for item in item_list:
                 attrs[item]['stats'][key] = [
                     (k, v[item.id])
-                    for k, v in stats.get(item.group_id, {})
+                    for k, v in stats.get(self.group.id, {})
                 ]
         return attrs
 
     def serialize(self, obj, attrs, user):
-        result = super(GroupReleaseWithStatsSerializer, self).serialize(
+        result = super(GroupEnvironmentWithStatsSerializer, self).serialize(
             obj, attrs, user)
         result['stats'] = attrs['stats']
         return result

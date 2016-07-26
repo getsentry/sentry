@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import timedelta
 from django.utils import timezone
 
-from sentry.models import GroupRelease, Release
+from sentry.models import Environment, GroupRelease, Release
 from sentry.testutils import TestCase
 
 
@@ -12,13 +12,13 @@ class GetOrCreateTest(TestCase):
         project = self.create_project()
         group = self.create_group(project=project)
         release = Release.objects.create(version='abc', project=project)
-
+        env = Environment.objects.create(project_id=project.id, name='prod')
         datetime = timezone.now()
 
         grouprelease = GroupRelease.get_or_create(
             group=group,
             release=release,
-            environment='prod',
+            environment=env,
             datetime=datetime,
         )
 
@@ -34,25 +34,9 @@ class GetOrCreateTest(TestCase):
         grouprelease = GroupRelease.get_or_create(
             group=group,
             release=release,
-            environment='prod',
+            environment=env,
             datetime=datetime_new,
         )
 
         assert grouprelease.first_seen == datetime
         assert grouprelease.last_seen == datetime_new
-
-    def test_empty_env(self):
-        project = self.create_project()
-        group = self.create_group(project=project)
-        release = Release.objects.create(version='abc', project=project)
-
-        datetime = timezone.now()
-
-        grouprelease = GroupRelease.get_or_create(
-            group=group,
-            release=release,
-            environment=None,
-            datetime=datetime,
-        )
-
-        assert grouprelease.environment == ''
