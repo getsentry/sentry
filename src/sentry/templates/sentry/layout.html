@@ -187,7 +187,7 @@
           {% block support_link %}{% endblock %}
           <a href="https://docs.getsentry.com/hosted/api/">{% trans "API" %}</a>
           <a href="https://docs.getsentry.com">{% trans "Docs" %}</a>
-          <a href="https://github.com/getsentry/sentry">{% trans "Contribute" %}</a>
+          <a href="https://github.com/getsentry/sentry" rel="noreferrer">{% trans "Contribute" %}</a>
           {% if ONPREMISE %}<a href="/out/">{% trans "Migrate to SaaS" %}</a>{% endif %}
         </div>
         <div class="version pull-left">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>
