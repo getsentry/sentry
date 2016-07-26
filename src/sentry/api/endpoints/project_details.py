@@ -139,6 +139,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'sentry:csp_ignored_sources_defaults': bool(project.get_option('sentry:csp_ignored_sources_defaults', True)),
             'sentry:csp_ignored_sources': '\n'.join(project.get_option('sentry:csp_ignored_sources', []) or []),
             'sentry:default_environment': project.get_option('sentry:default_environment'),
+            'feedback:branding': project.get_option('feedback:branding', '1') == '1',
         }
         data['activePlugins'] = active_plugins
         data['team'] = serialize(project.team, request.user)
@@ -245,6 +246,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     'sentry:csp_ignored_sources',
                     clean_newline_inputs(options['sentry:csp_ignored_sources']))
+            if 'feedback:branding' in options:
+                project.update_option('feedback:branding', '1' if options['feedback:branding'] else '0')
 
             self.create_audit_entry(
                 request=request,
