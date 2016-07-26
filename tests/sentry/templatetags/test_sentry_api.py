@@ -19,4 +19,4 @@ class SerializeDetailedOrgTest(TestCase):
         }))
 
         assert '<script>' not in result
-        assert '&lt;script&gt;' in result
+        assert '\u003cscript\u003ealert(1);\u003c/script\u003e' in result

@@ -70,6 +70,7 @@ def dump(value, fp, **kwargs):
 
 
 def dumps(value, escape=False, **kwargs):
+    # Legacy use. Do not use. Use dumps_htmlsafe
     if escape:
         return _default_escaped_encoder.encode(value)
     return _default_encoder.encode(value)
@@ -79,7 +80,5 @@ def loads(value, **kwargs):
     return _default_decoder.decode(value)
 
 
-def dumps_htmlsafe(obj):
-    data = dumps(obj)
-    data = data.replace('<', '&lt;').replace('>', '&gt;')
-    return mark_safe(data)
+def dumps_htmlsafe(value):
+    return mark_safe(_default_escaped_encoder.encode(value))
