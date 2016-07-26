@@ -4,7 +4,7 @@ from sentry.auth import access
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import ScopedPermission
-from sentry.models import Project, ProjectStatus
+from sentry.models import Organization, Project, ProjectStatus
 from sentry.models.apikey import ROOT_KEY
 
 
@@ -68,6 +68,10 @@ class ProjectEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         if project.status != ProjectStatus.VISIBLE:
+            raise ResourceDoesNotExist
+
+        org = Organization.objects.get_from_cache(slug=organization_slug)
+        if not access.from_request(request, org).memberships:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
