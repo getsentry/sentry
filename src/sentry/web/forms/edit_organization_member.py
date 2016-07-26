@@ -14,14 +14,21 @@ class EditOrganizationMemberForm(forms.ModelForm):
         widget=forms.CheckboxSelectMultiple(),
         required=False,
     )
+    role = forms.ChoiceField()
 
     class Meta:
         fields = ('role',)
         model = OrganizationMember
 
     def __init__(self, *args, **kwargs):
+        allowed_roles = kwargs.pop('allowed_roles')
+
         super(EditOrganizationMemberForm, self).__init__(*args, **kwargs)
 
+        self.fields['role'].choices = (
+            (r.id, r.name)
+            for r in allowed_roles
+        )
         self.fields['teams'].queryset = Team.objects.filter(
             organization=self.instance.organization,
         )
