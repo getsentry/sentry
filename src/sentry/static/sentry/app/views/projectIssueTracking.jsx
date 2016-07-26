@@ -43,7 +43,7 @@ const IssuePluginConfiguration = React.createClass({
       <div>
         {this.props.plugins.map((plugin) => {
           return (
-            <div className="box">
+            <div className="box" key={plugin.slug}>
               <div className="box-header">
                 {plugin.can_disable && plugin.is_enabled &&
                   <button className="btn btn-sm btn-default pull-right"

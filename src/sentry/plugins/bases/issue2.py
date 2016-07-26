@@ -11,6 +11,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.models import Activity, Event, GroupMeta
 from sentry.plugins import Plugin
 from sentry.plugins.base.configuration import default_issue_plugin_config
+from sentry.signals import issue_tracker_used
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -26,6 +27,7 @@ class IssueGroupActionEndpoint(GroupEndpoint):
 
     def _handle(self, request, group, *args, **kwargs):
         GroupMeta.objects.populate_cache([group])
+
         return getattr(self.plugin, self.view_method_name)(request, group, *args, **kwargs)
 
     def get(self, request, group, *args, **kwargs):
@@ -250,8 +252,8 @@ class IssueTrackingPlugin2(Plugin):
             data=issue_information,
         )
 
-        # issue_tracker_used.send(plugin=self, project=group.project, user=request.user, sender=IssueTrackingPlugin)
-        return Response({'success': True, 'issue_url': self.get_issue_url(group=group, issue_id=issue_id)})
+        issue_tracker_used.send(plugin=self, project=group.project, user=request.user, sender=IssueTrackingPlugin2)
+        return Response({'issue_url': self.get_issue_url(group=group, issue_id=issue_id)})
 
     def view_unlink(self, request, group, **kwargs):
         auth_errors = self.check_config_and_auth(request, group)
@@ -260,8 +262,8 @@ class IssueTrackingPlugin2(Plugin):
         if GroupMeta.objects.get_value(group, '%s:tid' % self.get_conf_key(), None):
             if 'unlink' in self.allowed_actions:
                 GroupMeta.objects.unset_value(group, '%s:tid' % self.get_conf_key())
-                return Response({'success': True, 'message': 'Successfully unlinked issue.'})
-            return Response({'success': False, 'message': 'No issues to unlink.'})
+                return Response({'message': 'Successfully unlinked issue.'})
+        return Response({'message': 'No issues to unlink.'}, status=400)
 
     def view_link(self, request, group, **kwargs):
         auth_errors = self.check_config_and_auth(request, group)
@@ -305,13 +307,13 @@ class IssueTrackingPlugin2(Plugin):
             user=request.user,
             data=issue_information,
         )
-        return Response({'success': True, 'message': 'Successfully linked issue.'})
+        return Response({'message': 'Successfully linked issue.'})
 
     def view_configure(self, request, project, **kwargs):
         if request.method == 'GET':
             return Response(self.get_configure_plugin_fields(request, project, **kwargs))
         self.configure(project, request.DATA)
-        return Response({'sucess': True, 'message': 'Successfully updated configuration.'})
+        return Response({'message': 'Successfully updated configuration.'})
 
     def configure(self, project, form_data):
         """Configures the plugin"""
