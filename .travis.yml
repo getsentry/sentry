@@ -1,5 +1,7 @@
 sudo: false
 language: python
+addons:
+  firefox: "39.0"
 services:
   - memcached
   - mysql
@@ -27,6 +29,7 @@ env:
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
+    - SELENIUM_DRIVER=firefox
 install:
   - make travis-install-$TEST_SUITE
 script:
