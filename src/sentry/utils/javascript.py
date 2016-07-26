@@ -64,7 +64,7 @@ def transform(objects, request=None):
 
 def to_json(obj, request=None):
     result = transform(obj, request=request)
-    return json.dumps(result)
+    return json.dumps_htmlsafe(result)
 
 
 def register(type):

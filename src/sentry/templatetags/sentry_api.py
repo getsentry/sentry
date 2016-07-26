@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from django import template
 from django.http import HttpRequest
-from django.utils.html import mark_safe
 
 from sentry.api.serializers.base import serialize as serialize_func
 from sentry.api.serializers.models.organization import (
@@ -21,14 +20,12 @@ def serialize(context, obj):
     else:
         user = None
 
-    return convert_to_json(serialize_func(obj, user), escape=True)
+    return convert_to_json(serialize_func(obj, user))
 
 
 @register.simple_tag
-def convert_to_json(obj, escape=False):
-    if escape:
-        return json.dumps_htmlsafe(obj)
-    return mark_safe(json.dumps(obj))
+def convert_to_json(obj):
+    return json.dumps_htmlsafe(obj)
 
 
 @register.simple_tag(takes_context=True)
@@ -44,7 +41,7 @@ def serialize_detailed_org(context, obj):
         DetailedOrganizationSerializer(),
     )
 
-    return convert_to_json(context, escape=True)
+    return convert_to_json(context)
 
 
 @register.simple_tag
@@ -61,4 +58,4 @@ def get_user_context(request, escape=False):
                 result['name'] = user.name
     else:
         result = {}
-    return convert_to_json(result, escape=True)
+    return convert_to_json(result)
