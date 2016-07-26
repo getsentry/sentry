@@ -32,6 +32,7 @@ env:
     - SELENIUM_DRIVER=firefox
 install:
   - make travis-install-$TEST_SUITE
+  - pip freeze
 script:
   - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE
