@@ -4,8 +4,8 @@ from __future__ import absolute_import, print_function
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect, HttpResponse
-from django.utils.http import is_safe_url
 
+from sudo.utils import is_safe_url
 from social_auth.decorators import dsa_view, disconnect_view
 from social_auth.utils import setting, backend_setting, clean_partial_pipeline
 
