@@ -8,7 +8,14 @@ from sentry.models import Event
 from sentry.testutils import TestCase
 
 
-@pytest.mark.skipif(find_llvm_symbolizer() is None,
+def has_llvm_symbolizer():
+    try:
+        return find_llvm_symbolizer() is not None
+    except EnvironmentError:
+        return False
+
+
+@pytest.mark.skipif(has_llvm_symbolizer(),
                     reason='llvm-symbolizer is not installed')
 class BasicResolvingIntegrationTest(TestCase):
 
