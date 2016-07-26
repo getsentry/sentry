@@ -3,14 +3,8 @@ import React from 'react';
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
-import {TextareaField, CheckboxField} from '../components/forms';
+import {FormState, TextareaField, CheckboxField} from '../components/forms';
 import {t} from '../locale';
-
-const FormState = {
-  READY: 0,
-  SAVING: 1,
-  ERROR: 2,
-};
 
 const ProjectCspSettingsForm = React.createClass({
   propTypes: {
