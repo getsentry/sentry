@@ -307,7 +307,6 @@ const TodoList = React.createClass({
     return (
       <div>
         <div onClick={this.click} className="onboarding-wrapper">
-          <h3>{t('Getting started with Sentry')}</h3>
           <ul className="list-unstyled">
             {todo_list}
           </ul>
