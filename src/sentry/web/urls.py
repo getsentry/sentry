@@ -76,7 +76,6 @@ from sentry.web.frontend.remove_organization import RemoveOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.remove_project_key import RemoveProjectKeyView
 from sentry.web.frontend.remove_team import RemoveTeamView
-from sentry.web.frontend.replay_event import ReplayEventView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.unsubscribe_issue_notifications import \
     UnsubscribeIssueNotificationsView
@@ -478,8 +477,6 @@ urlpatterns += patterns(
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', react_page_view,
         name='sentry-stream'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/(?:group|issues)/(?P<group_id>\d+)/events/(?P<event_id>\d+)/replay/$', ReplayEventView.as_view(),
-        name='sentry-replay'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/(?:group|issues)/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/json/$', GroupEventJsonView.as_view(),
         name='sentry-group-event-json'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$', GroupTagExportView.as_view(),
