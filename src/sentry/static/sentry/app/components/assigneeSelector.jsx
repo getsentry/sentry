@@ -23,7 +23,6 @@ const AssigneeSelector = React.createClass({
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     TooltipMixin({
-      html: true,
       selector: '.tip'
     }),
     ApiMixin
