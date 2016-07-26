@@ -17,11 +17,7 @@ import {t} from '../../locale';
 
 const OnboardingStatus = React.createClass({
   propTypes: {
-    org: React.PropTypes.object.isRequired,
-    onToggleTodos: React.PropTypes.func.isRequired,
-    showTodos: React.PropTypes.bool,
-    showPanel: React.PropTypes.bool,
-    onHideTodos: React.PropTypes.func,
+    org: React.PropTypes.object.isRequired
   },
 
   render() {
@@ -39,10 +35,14 @@ const OnboardingStatus = React.createClass({
     };
 
     return (
-      <div className="onboarding-progress-bar" onClick={this.props.onToggleTodos}>
+      <div className="onboarding-progress-bar" onClick={this.props.onShowPanel}>
         <div className="slider" style={style} ></div>
-        {this.props.showTodos &&
-          <div className="dropdown-menu"><TodoList onClose={this.props.onHideTodos} /></div>
+        {this.props.showPanel && this.props.currentPanel == 'todos' &&
+          <SidebarPanel
+            title="Getting Started"
+            hidePanel={this.props.hidePanel}>
+            <TodoList onClose={this.props.hidePanel} />
+          </SidebarPanel>
         }
       </div>
     );
@@ -169,19 +169,21 @@ const Header = React.createClass({
           </div>
 
           <ul className="navbar-nav anchor-bottom">
-
             {org &&
               <li>
-                <OnboardingStatus org={org} showTodos={this.state.showTodos}
-                                onShowTodos={this.setState.bind(this, {showTodos: false})}
-                                onToggleTodos={this.toggleTodos}
-                                onHideTodos={this.setState.bind(this, {showTodos: false})} />
+                <OnboardingStatus
+                  org={org}
+                  showPanel={this.state.showPanel}
+                  currentPanel={this.state.currentPanel}
+                  onShowPanel={()=>this.showPanel('todos')}
+                  hidePanel={()=>this.hidePanel()} />
               </li>
             }
-            <Broadcasts showPanel={this.state.showPanel}
-                        currentPanel={this.state.currentPanel}
-                        onShowPanel={()=>this.showPanel('broadcasts')}
-                        hidePanel={()=>this.hidePanel()} />
+            <Broadcasts
+              showPanel={this.state.showPanel}
+              currentPanel={this.state.currentPanel}
+              onShowPanel={()=>this.showPanel('broadcasts')}
+              hidePanel={()=>this.hidePanel()} />
             <li><UserNav className="user-settings" /></li>
           </ul>
 

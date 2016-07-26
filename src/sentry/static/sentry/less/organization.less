@@ -512,40 +512,35 @@ table.project-list {
  */
 
  .onboarding-wrapper {
-   .box;
-   padding: 15px 20px 0;
-
-   .close {
-     float: right;
-     color: @gray-lightest;
-
-     &:hover {
-       color: @gray-lighter;
-     }
-   }
-
-   h3 {
-     font-size: 20px;
-     border-bottom: 2px solid rgba(0,0,0, .05);
-     margin: 0 -15px 15px;
-     padding: 0 15px 15px;
-     text-align: center;
-   }
-
-   h4 {
-     font-size: 17px;
-     margin: 0 0 3px;
-   }
-
-   p {
-     color: @gray;
-     line-height: 1.25;
-   }
-
    ul {
      li {
        position: relative;
-       padding-left: 60px;
+       padding: 15px 20px 15px 75px;
+       line-height: 1.2;
+       cursor: pointer;
+       border-bottom: 1px solid @trim;
+       background: #fff;
+       box-shadow: 0 1px 2px rgba(0,0,0, .06);
+       font-size: 14px;
+
+       h4 {
+         font-size: 16px;
+         margin-bottom: 5px;
+         .culprit {
+           font-weight: normal;
+         }
+       }
+       a {
+         color: @link-color;
+
+         &:hover {
+           color: @link-color-hover;
+         }
+       }
+
+       p {
+         margin: 0;
+       }
 
        .todo-content {
          position: relative;
@@ -566,19 +561,16 @@ table.project-list {
 
        &.pending {
          position: relative;
-         margin-top: 4px;
-         margin-bottom: 4px;
 
          .pending-bar {
            position: absolute;
-           top: -12px;
-           right: -15px;
-           left:  -15px;
-           bottom: -10px;
+           top: 0;
+           right: 0;
+           left:  0;
+           bottom: 0;
            background-size: 30px 30px;
            background-image: linear-gradient(135deg, rgba(0, 0, 0, .03) 25%, transparent 25%,transparent 50%, rgba(0, 0, 0, .03) 50%, rgba(0, 0, 0, .03) 75%,transparent 75%, transparent);
            animation: animate-stripes 3s linear infinite;
-           box-shadow: inset 0 2px 0 rgba(0,0,0, .05), inset 0 -2px 0 rgba(0,0,0, .05);
           }
        }
 
@@ -600,33 +592,35 @@ table.project-list {
    }
 
   .ob-checkbox {
-    .square(46px);
+    .square(44px);
       background: #fff;
-      border: 3px solid @white-darkest;
+      border: 3px solid @20;
       border-radius: 46px;
       position: absolute;
       top: -5px;
-      left: -61px;
+      left: -58px;
 
     .icon-checkmark {
-      color: #32D077;
-      font-size: 26px;
-      left: 8px;
       position: relative;
-      top: 7px;
+      color: @green-dark;
+      font-size: 20px;
+      left: 10px;
+      top: 9px;
     }
 
-    .icon-x, .icon-ellipsis {
-      color: @gray-lightest;
-      font-size: 26px;
-      left: 7px;
+    .icon-x {
       position: relative;
-      top: 8px;
+      color: @50;
+      font-size: 20px;
+      left: 9px;
+      top: 9px;
     }
 
     .icon-ellipsis {
-      color: @gray-light;
-      top: 7px;
+      position: relative;
+      font-size: 24px;
+      color: @50;
+      top: 8px;
       left: 7px;
     }
   }
@@ -668,8 +662,6 @@ table.project-list {
     display: block;
     text-align: center;
     border: 0;
-    border-top: 1px solid @gray-lightest;
-    margin: -5px -15px 0;
     border-radius: 0;
     background: @white-dark;
     padding: 10px;
