@@ -14,6 +14,7 @@ const GroupReleaseChart = React.createClass({
     releaseStats: React.PropTypes.object,
     statsPeriod: React.PropTypes.string.isRequired,
     environment: React.PropTypes.string,
+    environmentStats: React.PropTypes.object,
     firstSeen: React.PropTypes.string,
     lastSeen: React.PropTypes.string,
     title: React.PropTypes.string
@@ -34,10 +35,27 @@ const GroupReleaseChart = React.createClass({
       totalY += point.y[i];
     }
 
+    console.log(point.y);
+
+    let {environment, release} = this.props;
+
     return (
       '<div style="width:150px">' +
         `<div class="time-label">${timeLabel}</div>` +
-        `<div class="value-label">${intcomma(totalY)} events</div>` +
+        '<dl class="legend">' +
+          '<dt class="inactive"><span></span></dt>' +
+          `<dd>${intcomma(totalY)} event${totalY !== 1 ? 's' : ''}</dd>` +
+          (environment ? (
+            '<dt class="environment"><span></span></dt>' +
+            `<dd>${intcomma(point.y[1])} event${point.y[2] !== 1 ? 's' : ''}` +
+            `<small>in ${environment}</small></dd>`
+          ) : '') +
+          (release ? (
+            '<dt class="active"><span></span></dt>' +
+            `<dd>${intcomma(point.y[0])} event${point.y[0] !== 1 ? 's' : ''}` +
+            `<small>in ${release.version.substr(0, 12)}</small></dd>`
+          ) : '') +
+        '</dl>' +
       '</div>'
     );
   },
@@ -57,13 +75,24 @@ const GroupReleaseChart = React.createClass({
       });
     }
 
+    let envStats = this.props.environmentStats;
+    let envPoints = {};
+    if (defined(envStats)) {
+      envStats[this.props.statsPeriod].forEach((point) => {
+        envPoints[point[0]] = point[1];
+      });
+    }
+
     let points = stats.map((point) => {
       let rData = releasePoints[point[0]] || 0;
-      let remaining = point[1] - rData;
+      let eData = (envPoints[point[0]] || 0) - rData;
+      if (eData < 0) eData = 0;
+      let remaining = point[1] - rData - eData;
       return {
         x: point[0],
         y: [
           rData,
+          eData,
           remaining >= 0 ? remaining : 0,
         ],
       };
@@ -101,7 +130,7 @@ const GroupReleaseChart = React.createClass({
           height={150}
           className="sparkline"
           markers={markers}
-          barClasses={['active', 'inactive']}
+          barClasses={['release', 'environment', 'inactive']}
           tooltip={this.renderTooltip} />
       </div>
     );
