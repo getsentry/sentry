@@ -3,7 +3,7 @@ import React from 'react';
 import StackedBarChart from '../stackedBarChart';
 import PropTypes from '../../proptypes';
 import {t} from '../../locale';
-import {defined, intcomma} from '../../utils';
+import {defined, escape, intcomma} from '../../utils';
 
 const GroupReleaseChart = React.createClass({
   propTypes: {
@@ -14,9 +14,38 @@ const GroupReleaseChart = React.createClass({
     releaseStats: React.PropTypes.object,
     statsPeriod: React.PropTypes.string.isRequired,
     environment: React.PropTypes.string,
+    environmentStats: React.PropTypes.object,
     firstSeen: React.PropTypes.string,
     lastSeen: React.PropTypes.string,
     title: React.PropTypes.string
+  },
+
+  getInitialState(props) {
+    if (props === undefined) props = this.props;
+    let releaseStats = props.releaseStats;
+    let releasePoints = {};
+    if (defined(releaseStats)) {
+      releaseStats[this.props.statsPeriod].forEach((point) => {
+        releasePoints[point[0]] = point[1];
+      });
+    }
+
+    let envStats = props.environmentStats;
+    let envPoints = {};
+    if (defined(envStats)) {
+      envStats[this.props.statsPeriod].forEach((point) => {
+        envPoints[point[0]] = point[1];
+      });
+    }
+
+    return {
+      releasePoints: releasePoints,
+      envPoints: envPoints,
+    };
+  },
+
+  componentWillReceiveProps(nextProps) {
+    this.setState(this.getInitialState());
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -34,10 +63,26 @@ const GroupReleaseChart = React.createClass({
       totalY += point.y[i];
     }
 
+    let {environment, release} = this.props;
+    let {releasePoints, envPoints} = this.state;
+
     return (
       '<div style="width:150px">' +
         `<div class="time-label">${timeLabel}</div>` +
-        `<div class="value-label">${intcomma(totalY)} events</div>` +
+        '<dl class="legend">' +
+          '<dt class="inactive"><span></span></dt>' +
+          `<dd>${intcomma(totalY)} event${totalY !== 1 ? 's' : ''}</dd>` +
+          (environment ? (
+            '<dt class="environment"><span></span></dt>' +
+            `<dd>${intcomma(envPoints[point.x] || 0)} event${envPoints[point.x] !== 1 ? 's' : ''}` +
+            `<small>in ${escape(environment)}</small></dd>`
+          ) : '') +
+          (release ? (
+            '<dt class="active"><span></span></dt>' +
+            `<dd>${intcomma(releasePoints[point.x] || 0)} event${releasePoints[point.x] !== 1 ? 's' : ''}` +
+            `<small>in ${escape(release.version.substr(0, 12))}</small></dd>`
+          ) : '') +
+        '</dl>' +
       '</div>'
     );
   },
@@ -49,21 +94,18 @@ const GroupReleaseChart = React.createClass({
     let stats = group.stats[this.props.statsPeriod];
     if (!stats || !stats.length) return null;
 
-    let releaseStats = this.props.releaseStats;
-    let releasePoints = {};
-    if (defined(releaseStats)) {
-      releaseStats[this.props.statsPeriod].forEach((point) => {
-        releasePoints[point[0]] = point[1];
-      });
-    }
+    let {releasePoints, envPoints} = this.state;
 
     let points = stats.map((point) => {
       let rData = releasePoints[point[0]] || 0;
-      let remaining = point[1] - rData;
+      let eData = (envPoints[point[0]] || 0) - rData;
+      if (eData < 0) eData = 0;
+      let remaining = point[1] - rData - eData;
       return {
         x: point[0],
         y: [
           rData,
+          eData,
           remaining >= 0 ? remaining : 0,
         ],
       };
@@ -101,7 +143,7 @@ const GroupReleaseChart = React.createClass({
           height={150}
           className="sparkline"
           markers={markers}
-          barClasses={['active', 'inactive']}
+          barClasses={['release', 'environment', 'inactive']}
           tooltip={this.renderTooltip} />
       </div>
     );

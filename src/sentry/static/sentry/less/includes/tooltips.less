@@ -6,6 +6,13 @@
   font-weight: bold;
   // border: 1px solid @trim;
 
+  dl {
+    margin: 0 !important;
+  }
+  dd, dt {
+    padding: 0 !important;
+  }
+
   .time-label {
     font-size: 11px;
     padding: 3px 5px;
@@ -13,7 +20,71 @@
     margin-right: -5px;
     background: @purple-dark;
   }
+
   .value-label {
     padding: 3px 0;
+  }
+
+  .legend {
+    padding: 3px 0;
+    position: relative;
+    line-height: 10px;
+
+    dt {
+      margin: 0;
+      position: absolute;
+      left: 0;
+      width: 8px;
+      margin-right: 5px;
+
+      &.active span {
+        background: @purple;
+      }
+
+      &.environment span {
+        background: @purple-lightest;
+      }
+
+      &.inactive span {
+        background: @gray-lightest;
+      }
+
+      span {
+        .square(8px);
+        display: inline-block;
+        border: 1px solid #fff;
+      }
+    }
+
+    dd {
+      float: none;
+      text-align: left;
+      margin: 0 0 0 13px;
+
+      small {
+        color: @white-darker;
+        display: block;
+      }
+    }
+  }
+
+  .flat {
+    line-height: 12px;
+    padding: 0 5px !important;
+    position: relative;
+
+    dt {
+      text-align: left;
+      margin: 0;
+      position: absolute;
+      left: 5px;
+      width: 75px;
+      margin-right: 5px;
+    }
+    dd {
+      float: none;
+      text-align: right;
+      margin: 0 0 0 80px;
+    }
   }
 }
