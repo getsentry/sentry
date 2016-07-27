@@ -408,6 +408,8 @@ def resolve_frame_symbols(data):
                         'symbol_addr': frame['symbol_addr'],
                     }, sdk_info, report_error=report_error)
                     if not sfrm:
+                        logger.warning('Frame did not symbolize (%s)',
+                                       frame)
                         continue
                     # XXX: log here if symbol could not be found?
                     frame['function'] = sfrm.get('symbol_name') or \
