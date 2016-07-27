@@ -59,7 +59,7 @@ class ProjectEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
 
     def convert_args(self, request, organization_slug, project_slug, *args, **kwargs):
-        self.bail_on_xorg(request, organization_slug)
+        self.bail_on_xorg(request, slug=organization_slug)
         try:
             project = Project.objects.get_from_cache(
                 organization__slug=organization_slug,
