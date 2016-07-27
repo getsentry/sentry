@@ -294,7 +294,6 @@ def preprocess_apple_crash_event(data):
             'name': raw_thread.get('name'),
             'current': raw_thread.get('current_thread', False),
             'crashed': raw_thread.get('crashed', False),
-            'stacktrace': True,
         }
 
     sdk_info = get_sdk_from_apple_system_info(system)
@@ -330,7 +329,8 @@ def preprocess_apple_crash_event(data):
                 })
 
         for thread in threads.itervalues():
-            if thread['stacktrace'] is None:
+            # If we were told to skip the stacktrace, skip it indeed
+            if thread.get('stacktrace', Ellipsis) is None:
                 continue
             raw_thread = raw_threads.get(thread['id'])
             if raw_thread is None or not raw_thread.get('backtrace'):
