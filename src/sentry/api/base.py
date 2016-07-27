@@ -221,11 +221,8 @@ class Endpoint(APIView):
                 org = Organization.objects.get_from_cache(**filters)
             except Organization.DoesNotExist:
                 raise ResourceDoesNotExist
-            ac = access.from_request(request, org)
-            if ac.organization:
-                return
-            else:
-                extra = request.kwargs
+            if not access.from_request(request, org).organization:
+                extra = request.parser_context.get('kwargs', {})
                 extra['actor_label'] = request.user.id if request.user else request.auth.id
                 extra['ip_address'] = request.META['REMOTE_ADDR'],
                 logger.warning('xorg.attempt', extra=extra)
