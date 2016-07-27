@@ -10,7 +10,7 @@
   <div id="blk_rule_editor"></div>
   <script>
   $(function(){
-    React.render(React.createFactory(Sentry.RuleEditor)({
+    ReactDOM.render(React.createFactory(Sentry.RuleEditor)({
       rule: {% serialize rule %},
       actions: {{ action_list|safe }},
       conditions: {{ condition_list|safe }},

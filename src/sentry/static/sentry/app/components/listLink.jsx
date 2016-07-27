@@ -1,4 +1,5 @@
 import React from 'react';
+import _ from 'underscore';
 import {Link, History} from 'react-router';
 import classNames from 'classnames';
 
@@ -46,9 +47,10 @@ const ListLink = React.createClass({
   },
 
   render() {
+    let carriedProps = _.omit(this.props, 'activeClassName', 'isActive');
     return (
       <li className={this.getClassName()}>
-        <Link {...this.props} onlyActiveOnIndex={this.props.index}>{this.props.children}</Link>
+        <Link {...carriedProps} onlyActiveOnIndex={this.props.index}>{this.props.children}</Link>
       </li>
     );
   }

@@ -31,8 +31,9 @@ const DateTime = React.createClass({
       date = new Date(date);
     }
 
+    let carriedProps = _.omit(this.props, 'date', 'seconds');
     return (
-      <time {...this.props}>{moment(date).format(format)}</time>
+      <time {...carriedProps}>{moment(date).format(format)}</time>
     );
   }
 });
