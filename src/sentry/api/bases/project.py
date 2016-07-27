@@ -4,7 +4,7 @@ from sentry.auth import access
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import ScopedPermission
-from sentry.models import Organization, Project, ProjectStatus
+from sentry.models import Project, ProjectStatus
 from sentry.models.apikey import ROOT_KEY
 
 
@@ -60,20 +60,8 @@ class ProjectEndpoint(Endpoint):
 
     def convert_args(self, request, organization_slug, project_slug, *args, **kwargs):
         try:
-            org = Organization.objects.get_from_cache(slug=organization_slug)
-            if request.user:
-                can_access_org = any(access.from_request(request, org).memberships)
-            if request.auth:
-                can_access_org = request.auth.organization_id == org.id
-            if not can_access_org:
-                raise ResourceDoesNotExist
-
-        except Organization.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        try:
             project = Project.objects.get_from_cache(
-                organization=org,
+                organization__slug=organization_slug,
                 slug=project_slug,
             )
         except Project.DoesNotExist:
