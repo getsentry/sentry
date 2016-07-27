@@ -204,19 +204,15 @@ class Endpoint(APIView):
 
         return Response(results, headers=headers)
 
-    def bail_on_xorg(self, request, obj):
+    def bail_on_xorg(self, request, **filters):
         """
         Will raise `ResourceDoesNotExist` when an authenticatee is attempting
         to access a resource that is defined in another organization.
         See: https://github.com/getsentry/sentry/issues/3807
         """
-        if isinstance(obj, Organization):
-            org = obj
+        if isinstance(filters, Organization):
+            org = filters
         else:
-            if isinstance(obj, basestring):
-                filters = {'slug': obj}
-            elif isinstance(obj, (int, long)):
-                filters = {'id': obj}
             try:
                 org = Organization.objects.get_from_cache(**filters)
             except Organization.DoesNotExist:

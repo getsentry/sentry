@@ -18,7 +18,7 @@ class BaseAccess(object):
     memberships = ()
     scopes = frozenset()
     # organization the user/key belongs to
-    organization = ()
+    organization = None
 
     def has_scope(self, scope):
         if not self.is_active:
@@ -84,7 +84,7 @@ def from_request(request, organization, scopes=None):
             sso_is_valid=True,
         )
     if request.user and request.user.is_authenticated():
-        if isinstance(request.auth, ApiToken):
+        if hasattr(request, 'auth') and isinstance(request.auth, ApiToken):
             # Narrow scopes even further because users can narrow
             # the scopes of the tokens they create themselves.
             if scopes is not None:
