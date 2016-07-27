@@ -17,8 +17,10 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.app import raven, tsdb
-from sentry.models import ApiKey, AuditLogEntry
+from sentry.auth import access
+from sentry.models import ApiKey, AuditLogEntry, Organization
 from sentry.utils.cursors import Cursor
 from sentry.utils.http import absolute_uri, is_valid_origin
 
@@ -201,6 +203,33 @@ class Endpoint(APIView):
         ])
 
         return Response(results, headers=headers)
+
+    def bail_on_xorg(self, request, obj):
+        """
+        Will raise `ResourceDoesNotExist` when an authenticatee is attempting
+        to access a resource that is defined in another organization.
+        See: https://github.com/getsentry/sentry/issues/3807
+        """
+        if isinstance(obj, Organization):
+            org = obj
+        else:
+            if isinstance(obj, basestring):
+                filters = {'slug': obj}
+            elif isinstance(obj, long):
+                filters = {'id': obj}
+            try:
+                org = Organization.objects.get_from_cache(**filters)
+            except Organization.DoesNotExist:
+                raise ResourceDoesNotExist
+            ac = access.from_request(request, org)
+            if ac.organization:
+                return
+            else:
+                logger.warning('xorg.attempt', extra={
+                    'actor_label': request.user.id if request.user else request.auth.id,
+                    'ip_address': request.META['REMOTE_ADDR'],
+                })
+                raise ResourceDoesNotExist
 
 
 class StatsMixin(object):

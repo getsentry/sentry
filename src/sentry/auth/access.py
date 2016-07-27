@@ -6,7 +6,7 @@ import warnings
 
 from django.conf import settings
 
-from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
+from sentry.models import ApiKey, ApiToken, AuthIdentity, AuthProvider, OrganizationMember
 
 
 class BaseAccess(object):
@@ -17,6 +17,8 @@ class BaseAccess(object):
     # teams with valid membership
     memberships = ()
     scopes = frozenset()
+    # organization the user/key belongs to
+    organization = ()
 
     def has_scope(self, scope):
         if not self.is_active:
@@ -41,6 +43,11 @@ class BaseAccess(object):
     def has_team_scope(self, team, scope):
         return self.has_team_access(team) and self.has_scope(scope)
 
+    def in_organization(self, organization):
+        if not self.is_active:
+            return False
+        return organization.id == self.organization.id
+
     def to_django_context(self):
         return {
             s.replace(':', '_'): self.has_scope(s)
@@ -52,9 +59,10 @@ class Access(BaseAccess):
     # TODO(dcramer): this is still a little gross, and ideally backend access
     # would be based on the same scopes as API access so theres clarity in
     # what things mean
-    def __init__(self, scopes, is_active, teams, memberships, sso_is_valid):
+    def __init__(self, scopes, is_active, teams, memberships, organization, sso_is_valid):
         self.teams = teams
         self.memberships = memberships
+        self.organization = organization
         self.scopes = scopes
 
         self.is_active = is_active
@@ -72,9 +80,20 @@ def from_request(request, organization, scopes=None):
             is_active=True,
             teams=team_list,
             memberships=team_list,
+            organization=organization,
             sso_is_valid=True,
         )
-    return from_user(request.user, organization, scopes=scopes)
+    if request.user and request.user.is_authenticated():
+        if isinstance(request.auth, ApiToken):
+            # Narrow scopes even further because users can narrow
+            # the scopes of the tokens they create themselves.
+            if scopes is not None:
+                scopes = set(scopes) & set(request.auth.get_scopes())
+        return from_user(request.user, organization, scopes=scopes)
+    elif request.auth and isinstance(request.auth, ApiKey):
+        return from_key(request.auth, scopes=scopes)
+    else:
+        return DEFAULT
 
 
 def from_user(user, organization, scopes=None):
@@ -138,6 +157,23 @@ def from_member(member, scopes=None):
         scopes=scopes,
         memberships=team_memberships,
         teams=team_access,
+        organization=member.organization,
+    )
+
+
+def from_key(apikey, scopes=None):
+    if scopes is not None:
+        allowed_scopes = set(scopes) & set(apikey.get_scopes())
+    else:
+        allowed_scopes = set(apikey.get_scopes())
+    teams = apikey.organization.team_set.all() if 'team:read' in allowed_scopes else ()
+    return Access(
+        is_active=apikey.is_active,
+        sso_is_valid=False,
+        scopes=allowed_scopes,
+        memberships=(),
+        teams=teams,
+        organization=apikey.organization,
     )
 
 
@@ -157,6 +193,10 @@ class NoAccess(BaseAccess):
     @property
     def memberships(self):
         return ()
+
+    @property
+    def organization(self):
+        return None
 
     @property
     def scopes(self):
