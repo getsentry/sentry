@@ -26,6 +26,7 @@ Subcommands
  upgrade <upgrade/index>
  run <run/index>
  help <help/index>
+ exec <exec/index>
  queues <queues/index>
  plugins <plugins/index>
  devserver <devserver/index>
