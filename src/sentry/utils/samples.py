@@ -8,10 +8,19 @@ sentry.utils.samples
 from __future__ import absolute_import
 
 import os.path
+from datetime import datetime, timedelta
 
 from sentry.constants import DATA_ROOT
 from sentry.event_manager import EventManager
 from sentry.utils import json
+
+
+epoch = datetime.utcfromtimestamp(0)
+
+
+def milliseconds_ago(now, milliseconds):
+    ago = (now - timedelta(milliseconds=milliseconds))
+    return (ago - epoch).total_seconds()
 
 
 def load_data(platform, default=None):
@@ -80,6 +89,19 @@ def load_data(platform, default=None):
         "data": '{"hello": "world"}',
         "method": "GET"
     }
+
+    now = datetime.utcnow()
+
+    # Make breadcrumb timestamps relative to right now so they make sense
+    breadcrumbs = data.get('sentry.interfaces.Breadcrumbs')
+    if breadcrumbs is not None:
+        duration = 1000
+        values = breadcrumbs['values']
+        for value in reversed(values):
+            value['timestamp'] = milliseconds_ago(now, duration)
+
+            # Every breadcrumb is 1s apart
+            duration += 1000
 
     return data
 

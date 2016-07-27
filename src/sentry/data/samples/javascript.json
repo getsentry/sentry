@@ -1,9 +1,4 @@
 {
-    "errors": [
-        {"type": "invalid_attribute", "name": "foobar"},
-        {"type": "invalid_attribute", "name": "foobar"},
-        {"type": "invalid_data", "name": "event_id", "value": "86f7e437faa5a7fce15d1ddcb9eaeaea377667b8"}
-    ],
     "sentry.interfaces.Exception": {
         "values": [
             {
@@ -146,6 +141,69 @@
                 "type": "TypeError",
                 "value": "Object [object Object] has no method 'updateFrom'",
                 "module": null
+            }
+        ]
+    },
+    "sentry.interfaces.Breadcrumbs": {
+        "values": [
+            {
+                "type": "navigation",
+                "timestamp": 1463071692.0,
+                "category": "react-router",
+                "data": {
+                    "from": "/login/",
+                    "to": "/dashboard/"
+                }
+            },
+            {
+                "timestamp": 1463072692.0,
+                "message": "This is an info log message",
+                "category": "console"
+            },
+            {
+                "timestamp": 1463073692.0,
+                "message": "This is a warning log message",
+                "level": "warning",
+                "category": "console"
+            },
+            {
+                "timestamp": 1463074692.0,
+                "message": "This is an error log message",
+                "level": "error",
+                "category": "console"
+            },
+            {
+                "timestamp": 1463075692.0,
+                "message": "This is a critical log message",
+                "level": "critical",
+                "category": "console"
+            },
+            {
+                "timestamp": 1463076692.0,
+                "message": "This is a debug log message",
+                "level": "debug",
+                "category": "console",
+                "data": {
+                    "foo": "bar",
+                    "baz": "blah"
+                }
+            },
+            {
+                "type": "http",
+                "category": "ajax",
+                "timestamp": 1463077692.0,
+                "data": {
+                    "reason": "OK",
+                    "status_code": 200,
+                    "url": "Http://example.com/",
+                    "method": "POST"
+                }
+            },
+            {
+                "type": "ui",
+                "timestamp": 1463078692.0,
+                "message": "div > form[name=\"post\"] > button.btn.btn-small[name=\"submit\"]",
+                "category": "ui.click"
             }
         ]
     }
