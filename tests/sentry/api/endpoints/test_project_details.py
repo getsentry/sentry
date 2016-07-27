@@ -20,18 +20,6 @@ class ProjectDetailsTest(APITestCase):
         assert response.status_code == 200
         assert response.data['id'] == str(project.id)
 
-    def test_other_projects(self):
-        # Should return a 404 and not a 403. See https://github.com/getsentry/sentry/issues/3807
-        other_org = self.create_organization()
-        other_project = self.create_project(organization=other_org)
-        self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-details', kwargs={
-            'organization_slug': other_org.slug,
-            'project_slug': other_project.slug,
-        })
-        response = self.client.get(url)
-        assert response.status_code == 404
-
     def test_numeric_org_slug(self):
         # Regression test for https://github.com/getsentry/sentry/issues/2236
         self.login_as(user=self.user)
