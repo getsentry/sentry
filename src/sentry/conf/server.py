@@ -582,7 +582,7 @@ LOGGING = {
             'handlers': ['console'],
             'propagate': False,
         },
-        'toronado.cssutils': {
+        'toronado': {
             'level': 'ERROR',
             'handlers': ['null'],
             'propagate': False,
