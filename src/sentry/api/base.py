@@ -225,10 +225,10 @@ class Endpoint(APIView):
             if ac.organization:
                 return
             else:
-                logger.warning('xorg.attempt', extra={
-                    'actor_label': request.user.id if request.user else request.auth.id,
-                    'ip_address': request.META['REMOTE_ADDR'],
-                })
+                extra = request.kwargs
+                extra['actor_label'] = request.user.id if request.user else request.auth.id
+                extra['ip_address'] = request.META['REMOTE_ADDR'],
+                logger.warning('xorg.attempt', extra=extra)
                 raise ResourceDoesNotExist
 
 
