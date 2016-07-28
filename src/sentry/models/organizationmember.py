@@ -233,6 +233,3 @@ class OrganizationMember(Model):
 
     def get_scopes(self):
         return roles.get(self.role).scopes
-
-    def can_manage_member(self, member):
-        return roles.can_manage(self.role, member.role)
