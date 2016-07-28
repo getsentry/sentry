@@ -154,17 +154,18 @@ const OrganizationStats = React.createClass({
     let oReceived = 0;
     let oRejected = 0;
     let oBlacklisted = 0;
-    let orgPoints = [];
+    let orgPoints = [];  // accepted, rejected, blacklisted
     let aReceived = [0, 0]; // received, points
     let rawOrgData = this.state.rawOrgData;
     $.each(rawOrgData.received, (idx, point) => {
       let dReceived = point[1];
       let dRejected = rawOrgData.rejected[idx][1];
       let dBlacklisted = rawOrgData.blacklisted[idx][1];
+      let dAccepted = dReceived - dRejected - dBlacklisted;
       orgPoints.push({
         x: point[0],
         y: [
-          dReceived,
+          dAccepted,
           dRejected,
           dBlacklisted
         ]
