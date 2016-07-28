@@ -39,7 +39,7 @@ const OnboardingStatus = React.createClass({
         <div className="slider" style={style} ></div>
         {this.props.showPanel && this.props.currentPanel == 'todos' &&
           <SidebarPanel
-            title="Getting Started"
+            title="Getting Started with Sentry"
             hidePanel={this.props.hidePanel}>
             <TodoList onClose={this.props.hidePanel} />
           </SidebarPanel>
