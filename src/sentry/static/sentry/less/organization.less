@@ -548,7 +548,7 @@ table.project-list {
 
        &.checked {
          .ob-checkbox {
-           border-color: #48D887;
+           border-color: @green;
          }
        }
 
@@ -633,6 +633,8 @@ table.project-list {
     .transition(opacity .1s);
     opacity: 0;
     visibility: hidden;
+    background: #fff;
+    color: @70;
 
     &:active {
       position: absolute;
@@ -685,10 +687,10 @@ table.project-list {
   z-index: 200;
 
   .slider {
-    background: #6AFFAB;
+    background: @green-light;
     padding-right: 0;
     border-radius: inherit;
-    box-shadow: 0 2px 0 rgba(0,0,0, .08);
+    box-shadow: 0 2px 1px rgba(0,0,0, .08);
     position: absolute;
     bottom: 0;
     left: 0;
@@ -740,11 +742,8 @@ table.project-list {
   }
 }
 
-.onboarding-progress-bar:hover {
-  background: rgba(255,255,255, .25);
-  .slider {
-    box-shadow: 0 0 10px rgba(200, 255, 224, 0.35), 0 2px 0 rgba(0,0,0, .08);
-  }
+.onboarding-progress-bar:hover, .onboarding-progress-bar.active {
+  background: rgba(255,255,255, .6);
 }
 
 /**
