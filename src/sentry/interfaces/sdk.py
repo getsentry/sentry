@@ -46,7 +46,7 @@ class Sdk(Interface):
                     newest_name != self.name or
                     LooseVersion(newest_version) > LooseVersion(self.version)
                 )
-            except Exception:
+            except ValueError:
                 is_newer = False
         else:
             is_newer = newest_name != self.name
