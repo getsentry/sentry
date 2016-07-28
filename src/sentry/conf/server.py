@@ -1012,3 +1012,20 @@ SERVER_EMAIL = DEAD
 EMAIL_SUBJECT_PREFIX = DEAD
 
 SUDO_URL = 'sentry-sudo'
+
+# TODO(dcramer): move this to getsentry.com so it can be automated
+SDK_VERSIONS = {
+    'raven-js': '3.3.0',
+    'raven-python': '5.23.0',
+}
+
+SDK_URLS = {
+    'raven-js': 'https://docs.getsentry.com/hosted/clients/javascript/',
+    'raven-python': 'https://docs.getsentry.com/hosted/clients/python/',
+    'raven-swift': 'https://docs.getsentry.com/hosted/clients/cocoa/',
+}
+
+DEPRECATED_SDKS = {
+    # sdk name => new sdk name
+    'raven-objc': 'sentry-swift',
+}
