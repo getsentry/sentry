@@ -161,7 +161,7 @@ const OrganizationStats = React.createClass({
       let dReceived = point[1];
       let dRejected = rawOrgData.rejected[idx][1];
       let dBlacklisted = rawOrgData.blacklisted[idx][1];
-      let dAccepted = dReceived - dRejected - dBlacklisted;
+      let dAccepted = Math.max(0, dReceived - dRejected - dBlacklisted);
       orgPoints.push({
         x: point[0],
         y: [
@@ -184,7 +184,7 @@ const OrganizationStats = React.createClass({
         received: oReceived,
         rejected: oRejected,
         blacklisted: oBlacklisted,
-        accepted: oReceived - oRejected - oBlacklisted,
+        accepted: Math.max(0, oReceived - oRejected - oBlacklisted),
         avgRate: (aReceived[1] ? parseInt((aReceived[0] / aReceived[1]) / 60, 10) : 0)
       },
       statsLoading: false
