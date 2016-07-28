@@ -284,21 +284,8 @@ const TodoList = React.createClass({
     e.stopPropagation();
   },
 
-  toggleSeeAll(e) {
-    this.setState({seeAll: !this.state.seeAll});
-  },
-
   render() {
-    let next_tasks = [];
-    if (this.state.seeAll) {
-      next_tasks = this.state.tasks;
-    } else {
-      next_tasks = this.state.tasks.filter( (task) => {
-        if (task.status != 'complete' && task.status != 'skipped') {
-          return task;
-        }
-      }).slice(0,3);
-    }
+    let next_tasks = this.state.tasks;
 
     let todo_list = next_tasks.map( (task) => {
       return (<TodoItem key={task.task} task={task} onSkip={this.skipTask} />);
@@ -310,7 +297,6 @@ const TodoList = React.createClass({
           <ul className="list-unstyled">
             {todo_list}
           </ul>
-          <a className="btn btn-default btn-see-all" onClick={this.toggleSeeAll}>{this.state.seeAll ? t('Show less') : t('Show more')}</a>
         </div>
       </div>
     );
