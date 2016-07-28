@@ -283,6 +283,9 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:user-feedback|user-reports)/$',
         ProjectUserReportsEndpoint.as_view(),
         name='sentry-api-0-project-user-reports'),
+    # Load plugin project urls
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugin/',
+        include('sentry.plugins.base.project_api_urls')),
 
     # Groups
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/$',
@@ -327,6 +330,9 @@ urlpatterns = patterns(
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/(?:user-feedback|user-reports)/$',
         GroupUserReportsEndpoint.as_view(),
         name='sentry-api-0-group-user-reports'),
+    # Load plugin group urls
+    url(r'^(?:issues|groups)/(?P<issue_id>\d+)/plugin/',
+        include('sentry.plugins.base.group_api_urls')),
 
     url(r'^shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$',
         SharedGroupDetailsEndpoint.as_view(),
@@ -355,9 +361,6 @@ urlpatterns = patterns(
     url(r'^internal/stats/$',
         InternalStatsEndpoint.as_view(),
         name='sentry-api-0-internal-stats'),
-
-    # Plugin api
-    url(r'^', include('sentry.plugins.base.api_urls')),
 
     url(r'^$',
         IndexEndpoint.as_view(),
