@@ -79,7 +79,7 @@ class IssuePlugin2GroupAction(TestCase):
     @mock.patch('sentry.plugins.IssueTrackingPlugin2.is_configured', return_value=True)
     def test_get_create(self, *args):
         self.login_as(user=self.user)
-        url = '/api/0/issues/%s/plugin/create/issuetrackingplugin2/' % self.group.id
+        url = '/api/0/issues/%s/plugin/issuetrackingplugin2/create/' % self.group.id
         response = self.client.get(url, format='json')
         content = json.loads(response.content)
         field_names = [field['name'] for field in content]
@@ -91,7 +91,7 @@ class IssuePlugin2GroupAction(TestCase):
     @mock.patch('sentry.plugins.IssueTrackingPlugin2.is_configured', return_value=True)
     def test_post_create_invalid(self, *args):
         self.login_as(user=self.user)
-        url = '/api/0/issues/%s/plugin/create/issuetrackingplugin2/' % self.group.id
+        url = '/api/0/issues/%s/plugin/issuetrackingplugin2/create/' % self.group.id
         response = self.client.post(url, data={
             'title': '',
             'description': ''
@@ -105,7 +105,7 @@ class IssuePlugin2GroupAction(TestCase):
     @mock.patch('sentry.plugins.IssueTrackingPlugin2.get_issue_url', return_value='')
     def test_post_create_valid(self, *args):
         self.login_as(user=self.user)
-        url = '/api/0/issues/%s/plugin/create/issuetrackingplugin2/' % self.group.id
+        url = '/api/0/issues/%s/plugin/issuetrackingplugin2/create/' % self.group.id
         response = self.client.post(url, data={
             'title': 'test',
             'description': 'test'
@@ -117,14 +117,14 @@ class IssuePlugin2GroupAction(TestCase):
     @mock.patch('sentry.plugins.IssueTrackingPlugin2.is_configured', return_value=True)
     def test_get_link(self, *args):
         self.login_as(user=self.user)
-        url = '/api/0/issues/%s/plugin/link/issuetrackingplugin2/' % self.group.id
+        url = '/api/0/issues/%s/plugin/issuetrackingplugin2/link/' % self.group.id
         response = self.client.get(url, format='json')
         assert response.status_code == 200
 
     @mock.patch('sentry.plugins.IssueTrackingPlugin2.is_configured', return_value=True)
     def test_get_unlink_invalid(self, *args):
         self.login_as(user=self.user)
-        url = '/api/0/issues/%s/plugin/unlink/issuetrackingplugin2/' % self.group.id
+        url = '/api/0/issues/%s/plugin/issuetrackingplugin2/unlink/' % self.group.id
         response = self.client.get(url, format='json')
         assert response.status_code == 400
 
@@ -133,7 +133,7 @@ class IssuePlugin2GroupAction(TestCase):
         self.login_as(user=self.user)
         id_ = '%s:tid' % self.plugin_instance.get_conf_key()
         GroupMeta.objects.set_value(self.group, id_, 4)
-        url = '/api/0/issues/%s/plugin/unlink/issuetrackingplugin2/' % self.group.id
+        url = '/api/0/issues/%s/plugin/issuetrackingplugin2/unlink/' % self.group.id
         response = self.client.get(url, format='json')
         assert response.status_code == 200
         GroupMeta.objects.populate_cache([self.group])
@@ -151,7 +151,7 @@ class IssuePlugin2ProjectAction(TestCase):
     def test_get_configure(self, *args):
         self.login_as(user=self.user)
         url = ('/api/0/projects/%s/%s/plugin/'
-               'configure/issuetrackingplugin2/') % (self.project.organization.slug,
+               'issuetrackingplugin2/configure/') % (self.project.organization.slug,
                                                      self.project.slug)
         response = self.client.get(url, format='json')
         assert response.status_code == 200
@@ -159,7 +159,7 @@ class IssuePlugin2ProjectAction(TestCase):
     def test_get_disable(self, *args):
         self.login_as(user=self.user)
         url = ('/api/0/projects/%s/%s/plugin/'
-               'disable/issuetrackingplugin2/') % (self.project.organization.slug,
+               'issuetrackingplugin2/disable/') % (self.project.organization.slug,
                                                    self.project.slug)
         response = self.client.get(url, format='json')
         assert response.status_code == 200

@@ -62,8 +62,9 @@ class IssueTrackingPlugin2(Plugin):
         _urls = []
         for action in self.allowed_actions:
             view_method_name = 'view_%s' % action
-            _urls.append(url(r'^(?:issues|groups)/(?P<issue_id>\d+)/plugin/{action}/{slug}/'.format(action=action, slug=self.slug),
-                             IssueGroupActionEndpoint.as_view(view_method_name=view_method_name, plugin=self)))
+            _urls.append(url(r'^%s/' % action,
+                             IssueGroupActionEndpoint.as_view(view_method_name=view_method_name,
+                                                              plugin=self)))
 
         return patterns('', *_urls)
 
@@ -72,12 +73,13 @@ class IssueTrackingPlugin2(Plugin):
         # TODO: add enable here when moved to api
         for action in ('configure', 'disable'):
             view_method_name = 'view_%s' % action
-            _urls.append(url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugin/{action}/{slug}'.format(action=action, slug=self.slug),
-                             IssuePluginProjectEndpoint.as_view(view_method_name=view_method_name, plugin=self)))
+            _urls.append(url(r'^%s/' % action,
+                             IssuePluginProjectEndpoint.as_view(view_method_name=view_method_name,
+                                                                plugin=self)))
 
         return patterns('', *_urls)
 
-    def _get_group_body(self, request, group, event, **kwargs):
+    def get_group_body(self, request, group, event, **kwargs):
         result = []
         for interface in event.interfaces.itervalues():
             output = safe_execute(interface.to_string, event, _with_transaction=False)
@@ -85,11 +87,11 @@ class IssueTrackingPlugin2(Plugin):
                 result.append(output)
         return '\n\n'.join(result)
 
-    def _get_group_description(self, request, group, event):
+    def get_group_description(self, request, group, event):
         output = [
             absolute_uri(group.get_absolute_url()),
         ]
-        body = self._get_group_body(request, group, event)
+        body = self.get_group_body(request, group, event)
         if body:
             output.extend([
                 '',
@@ -99,7 +101,7 @@ class IssueTrackingPlugin2(Plugin):
             ])
         return '\n'.join(output)
 
-    def _get_group_title(self, request, group, event):
+    def get_group_title(self, request, group, event):
         return event.error()
 
     def is_configured(self, request, project, **kwargs):
@@ -130,7 +132,7 @@ class IssueTrackingPlugin2(Plugin):
         if not request.user.is_authenticated():
             return True
 
-        return bool(not UserSocialAuth.objects.filter(user=request.user, provider=self.auth_provider).exists())
+        return not UserSocialAuth.objects.filter(user=request.user, provider=self.auth_provider).exists()
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
         """
@@ -139,12 +141,12 @@ class IssueTrackingPlugin2(Plugin):
         return [{
             'name': 'title',
             'label': 'Title',
-            'default': self._get_group_title(request, group, event),
+            'default': self.get_group_title(request, group, event),
             'type': 'text'
         }, {
             'name': 'description',
             'label': 'Description',
-            'default': self._get_group_description(request, group, event),
+            'default': self.get_group_description(request, group, event),
             'type': 'textarea'
         }]
 
@@ -235,7 +237,7 @@ class IssueTrackingPlugin2(Plugin):
             return Response({
                 'error_type': 'validation',
                 'errors': [{'__all__': e.message}]
-            })
+            }, status=400)
         GroupMeta.objects.set_value(group, '%s:tid' % self.get_conf_key(), issue_id)
 
         issue_information = {
@@ -290,7 +292,7 @@ class IssueTrackingPlugin2(Plugin):
             return Response({
                 'error_type': 'validation',
                 'errors': [{'__all__': e.message}]
-            })
+            }, status=400)
 
         issue_id = int(request.DATA['issue_id'])
         GroupMeta.objects.set_value(group, '%s:tid' % self.get_conf_key(), issue_id)

@@ -30,7 +30,7 @@ const IssuePluginConfigForm = React.createClass({
     let org = this.props.organization;
     let project = this.props.project;
     return ('/projects/' + org.slug + '/' + project.slug +
-            '/plugin/configure/' + this.props.plugin.slug + '/');
+            '/plugin/' + this.props.plugin.slug + '/configure/');
   },
 
   fetchData() {

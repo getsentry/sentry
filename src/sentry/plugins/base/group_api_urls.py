@@ -11,7 +11,4 @@ for _plugin in plugins.all():
     if isinstance(_plugin, IssueTrackingPlugin2):
         _plugin_group_urls = _plugin.get_group_urls()
         if _plugin_group_urls:
-            urlpatterns += (url('^', include(_plugin_group_urls)),)
-        _plugin_project_urls = _plugin.get_project_urls()
-        if _plugin_project_urls:
-            urlpatterns += (url('^', include(_plugin_project_urls)),)
+            urlpatterns += (url(r'^%s/' % _plugin.slug, include(_plugin_group_urls)),)
