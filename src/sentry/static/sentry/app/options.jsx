@@ -40,6 +40,18 @@ const definitions = [
     help: t('The maximum number of events the system should accept per minute. A value of 0 will disable the default rate limit.'),
   },
   {
+    key: 'auth.ip-rate-limit',
+    label: t('IP Rate Limit'),
+    placeholder: 'e.g. 10',
+    help: t('The maximum number of times an authentication attempt may be made by a single IP address in a 60 second window.'),
+  },
+  {
+    key: 'auth.user-rate-limit',
+    label: t('User Rate Limit'),
+    placeholder: 'e.g. 10',
+    help: t('The maximum number of times an authentication attempt may be made against a single account in a 60 second window.'),
+  },
+  {
     key: 'mail.from',
     label: t('Email From'),
     component: EmailField,

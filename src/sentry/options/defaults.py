@@ -74,3 +74,6 @@ register('sms.twilio-number', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITI
 register('u2f.app-id', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('u2f.facets', default=(), type=Sequence,
          flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+
+register('auth.ip-rate-limit', default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register('auth.user-rate-limit', default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
