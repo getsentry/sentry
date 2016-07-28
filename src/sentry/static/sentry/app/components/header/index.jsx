@@ -35,13 +35,15 @@ const OnboardingStatus = React.createClass({
     };
 
     return (
-      <div className="onboarding-progress-bar" onClick={this.props.onShowPanel}>
-        <div className="slider" style={style} ></div>
+      <div className="onboarding">
+        <div className="onboarding-progress-bar" onClick={this.props.onShowPanel}>
+          <div className="slider" style={style} ></div>
+        </div>
         {this.props.showPanel && this.props.currentPanel == 'todos' &&
           <SidebarPanel
             title="Getting Started with Sentry"
             hidePanel={this.props.hidePanel}>
-            <TodoList onClose={this.props.hidePanel} />
+            <TodoList />
           </SidebarPanel>
         }
       </div>
@@ -97,6 +99,7 @@ const Header = React.createClass({
       showPanel: false,
       currentPanel: ""
     });
+    console.log("Panel Hidden.");
   },
 
   showPanel(panel) {
@@ -104,6 +107,8 @@ const Header = React.createClass({
       showPanel: true,
       currentPanel: panel
     });
+    console.log(this.state.showPanel);
+    console.log(this.state.currentPanel);
   },
 
   render() {
@@ -160,10 +165,6 @@ const Header = React.createClass({
             }
             {this.state.showPanel && this.state.currentPanel == 'history' &&
                 <SidebarPanel title={t('Recently Viewed')}
-                              hidePanel={()=>this.hidePanel()}/>
-            }
-            {this.state.showPanel && this.state.currentPanel == 'onboarding' &&
-                <SidebarPanel title={t('Getting Started')}
                               hidePanel={()=>this.hidePanel()}/>
             }
           </div>

@@ -124,10 +124,6 @@ const Confirmation = React.createClass({
 });
 
 const TodoList = React.createClass({
-  propTypes: {
-    onClose: React.PropTypes.func
-  },
-
   mixins: [ApiMixin, OrganizationState],
 
   statics: {
@@ -245,20 +241,6 @@ const TodoList = React.createClass({
       return task;
     });
     this.setState({tasks: tasks});
-  },
-
-  componentDidMount() {
-    // If a click is detected *outside* the TodoList, trigger
-    // the onClose handler
-    this.clickHandler = $('body').on('click', (e) => {
-      if (!$(e.target).closest('.onboarding-progress-bar').length) {
-        this.props.onClose();
-      }
-    });
-  },
-
-  componentWillUnmount() {
-    $('body').off('click', this.clickHandler);
   },
 
   skipTask(skipped_task) {
