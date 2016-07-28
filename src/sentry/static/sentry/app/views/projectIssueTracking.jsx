@@ -17,7 +17,7 @@ const IssuePluginConfiguration = React.createClass({
     let org = this.props.organization;
     let project = this.props.project;
     return ('/projects/' + org.slug + '/' + project.slug +
-            '/plugin/disable/' + plugin.slug + '/');
+            '/plugin/' + plugin.slug + '/disable/');
   },
 
   disablePlugin(plugin) {
