@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 __all__ = ('Sdk',)
 
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
@@ -41,10 +41,13 @@ class Sdk(Interface):
         newest_version = settings.SDK_VERSIONS.get(self.name)
         newest_name = settings.DEPRECATED_SDKS.get(self.name, self.name)
         if newest_version is not None:
-            is_newer = (
-                newest_name != self.name or
-                StrictVersion(newest_version) > StrictVersion(self.version)
-            )
+            try:
+                is_newer = (
+                    newest_name != self.name or
+                    LooseVersion(newest_version) > LooseVersion(self.version)
+                )
+            except Exception:
+                is_newer = False
         else:
             is_newer = newest_name != self.name
 
