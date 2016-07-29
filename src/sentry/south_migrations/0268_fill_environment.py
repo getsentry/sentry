@@ -31,7 +31,9 @@ class Migration(DataMigration):
             else:
                 # we do this after creation to avoid querying it when
                 # we dont actually need to create the row (as its not cheap)
-                renv.update(
+                ReleaseEnvironment.objects.filter(
+                    id=renv.id,
+                ).update(
                     first_seen=GroupRelease.objects.filter(
                         project_id=gr.project_id,
                         release_id=gr.release_id,
