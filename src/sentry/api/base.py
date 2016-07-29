@@ -204,25 +204,28 @@ class Endpoint(APIView):
 
         return Response(results, headers=headers)
 
-    def bail_on_xorg(self, request, **filters):
+    def bail_on_xorg(self, request, *args, **filters):
         """
         Will raise `ResourceDoesNotExist` when an authenticatee is attempting
         to access a resource that is defined in another organization.
         See: https://github.com/getsentry/sentry/issues/3807
         """
-        if isinstance(filters, Organization):
-            org = filters
+        if len(args):
+            org = args[0]
         else:
             try:
                 org = Organization.objects.get_from_cache(**filters)
             except Organization.DoesNotExist:
                 raise ResourceDoesNotExist
-            if not access.from_request(request, org).organization:
-                extra = request.parser_context.get('kwargs', {})
-                extra['actor_label'] = request.user.id if request.user else request.auth.id
-                extra['ip_address'] = request.META['REMOTE_ADDR'],
-                logger.warning('xorg.attempt', extra=extra)
-                raise ResourceDoesNotExist
+        if not access.from_request(request, org).organization:
+            extra = request.parser_context.get('kwargs', {})
+            if request.user is not None:
+                extra['actor_id'] = request.user.id
+            else:
+                extra['actor_key'] = request.auth.id
+            extra['ip_address'] = request.META['REMOTE_ADDR'],
+            logger.warning('xorg.attempt', extra=extra)
+            raise ResourceDoesNotExist
 
 
 class StatsMixin(object):

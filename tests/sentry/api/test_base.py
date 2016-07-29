@@ -1,11 +1,14 @@
 from __future__ import absolute_import
 
 import base64
+import pytest
 
 from django.http import HttpRequest
+from mock import Mock
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import ApiKey
 from sentry.testutils import APITestCase
 
@@ -38,3 +41,46 @@ class EndpointTest(APITestCase):
         assert response.status_code == 200, response.content
 
         assert response['Access-Control-Allow-Origin'] == 'http://example.com'
+
+    def test_xorg_attempts(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        xorg = self.create_organization()
+
+        apikey = ApiKey.objects.create(
+            organization=org,
+            allowed_origins='*',
+        )
+
+        request = Mock()
+        request.auth = apikey
+        request.user = None
+        request.method = 'GET'
+        request.META = {'REMOTE_ADDR': '127.0.0.1'}
+        request.parser_context = {}
+        request.is_superuser = lambda: user.is_superuser
+        endpoint = DummyEndpoint()
+
+        # Test non-bail on ApiKey
+        endpoint.bail_on_xorg(request, org)
+
+        # Test bail on key-based xorg attempt
+        assert request.auth.organization is not xorg
+        with pytest.raises(ResourceDoesNotExist):
+            endpoint.bail_on_xorg(request, xorg)
+
+        # Test non-bail on User and org filter
+        request.auth = None
+        request.user = user
+        assert not request.user.is_superuser
+        assert request.user.is_authenticated()
+        endpoint.bail_on_xorg(request, slug=org.slug)
+
+        # Test bail on user-based xorg attempt
+        assert user not in xorg.member_set.all()
+        with pytest.raises(ResourceDoesNotExist):
+            endpoint.bail_on_xorg(request, xorg)
+
+        # Test bail on 404
+        with pytest.raises(ResourceDoesNotExist):
+            endpoint.bail_on_xorg(request, slug='doesnotexist')

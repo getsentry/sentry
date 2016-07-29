@@ -91,7 +91,7 @@ def from_request(request, organization, scopes=None):
                 scopes = set(scopes) & set(request.auth.get_scopes())
         return from_user(request.user, organization, scopes=scopes)
     elif request.auth and isinstance(request.auth, ApiKey):
-        return from_key(request.auth, scopes=scopes)
+        return from_key(request.auth, organization, scopes=scopes)
     else:
         return DEFAULT
 
@@ -161,7 +161,10 @@ def from_member(member, scopes=None):
     )
 
 
-def from_key(apikey, scopes=None):
+def from_key(apikey, organization, scopes=None):
+    if not apikey.organization.id == organization.id:
+        return DEFAULT
+
     if scopes is not None:
         allowed_scopes = set(scopes) & set(apikey.get_scopes())
     else:
