@@ -412,6 +412,8 @@ def to_context(report, fetch_groups=None):
         'series': {
             'maximum': max(sum(point) for timestamp, point in series),
             'points': series,
+            'all': sum([sum(point) for timestamp, point in series]),
+            'resolved': sum([point[0] for timestamp, point in series]),
         },
         'comparisons': [
             ('last week', change(aggregates[-1], aggregates[-2])),
