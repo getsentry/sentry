@@ -28,8 +28,9 @@ from sentry.constants import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Event, EventMapping, EventUser, Group, GroupHash, GroupRelease,
-    GroupResolution, GroupStatus, Project, Release, TagKey, UserReport
+    Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash,
+    GroupRelease, GroupResolution, GroupStatus, Project, Release,
+    ReleaseEnvironment, TagKey, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
@@ -560,7 +561,19 @@ class EventManager(object):
                              exc_info=True)
             return event
 
+        environment = Environment.get_or_create(
+            project=project,
+            name=environment,
+        )
+
         if release:
+            ReleaseEnvironment.get_or_create(
+                project=project,
+                release=release,
+                environment=environment,
+                datetime=date,
+            )
+
             grouprelease = GroupRelease.get_or_create(
                 group=group,
                 release=release,
@@ -584,10 +597,15 @@ class EventManager(object):
             #         group.id: 1,
             #     },
             # })
+            (tsdb.models.frequent_environments_by_group, {
+                group.id: {
+                    environment.id: 1,
+                },
+            })
         ]
         if release:
             frequencies.append(
-                (tsdb.models.frequent_releases_by_groups, {
+                (tsdb.models.frequent_releases_by_group, {
                     group.id: {
                         grouprelease.id: 1,
                     },

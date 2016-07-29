@@ -62,9 +62,11 @@ class TSDBModel(Enum):
     # number of issues seen for a project, by project
     frequent_issues_by_project = 404
     # number of events seen for a release, by issue
-    # frequent_releases_by_groups = 406  # DEPRECATED
+    # frequent_releases_by_group = 406  # DEPRECATED
     # number of events seen for a release, by issue
-    frequent_releases_by_groups = 407
+    frequent_releases_by_group = 407
+    # number of events seen for an environment, by issue
+    frequent_environments_by_group = 408
 
 
 class BaseTSDB(object):
