@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import TagValue
+from sentry.models import Environment
 from sentry.testutils import APITestCase
 
 
@@ -10,16 +10,14 @@ class ProjectEnvironmentsTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
 
-        TagValue.objects.create(
-            project=project,
-            key='environment',
-            value='production',
+        Environment.objects.create(
+            project_id=project.id,
+            name='production',
         )
 
-        TagValue.objects.create(
-            project=project,
-            key='environment',
-            value='staging',
+        Environment.objects.create(
+            project_id=project.id,
+            name='staging',
         )
 
         self.login_as(user=self.user)

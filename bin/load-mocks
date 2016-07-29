@@ -3,22 +3,22 @@ from sentry.runner import configure
 configure()
 
 import itertools
-import random
 
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
-from hashlib import md5
+from hashlib import md5, sha1
 from pytz import utc
 from random import randint
+from uuid import uuid4
 
 from sentry import roles
 from sentry.app import tsdb, buffer
 from sentry.models import (
     Activity, Broadcast, File, GroupMeta, Organization, OrganizationAccessRequest,
     OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport,
-    GroupRelease
+    GroupRelease, Environment, ReleaseEnvironment
 )
 from sentry.utils.samples import create_sample_event
 
@@ -85,11 +85,23 @@ def create_sample_time_series(event, release=None):
 
     now = datetime.utcnow().replace(tzinfo=utc)
 
+    environment = Environment.get_or_create(
+        project=project,
+        name=event.get_tag('environment') or ''
+    )
+
     if release:
+        ReleaseEnvironment.get_or_create(
+            project=project,
+            release=release,
+            environment=environment,
+            datetime=now,
+        )
+
         grouprelease = GroupRelease.get_or_create(
             group=group,
             release=release,
-            environment=event.get_tag('environment') or '',
+            environment=environment,
             datetime=now,
         )
 
@@ -119,10 +131,15 @@ def create_sample_time_series(event, release=None):
                     group.id: count,
                 },
             }),
+            (tsdb.models.frequent_environments_by_group, {
+                group.id: {
+                    environment.id: count,
+                },
+            })
         ]
         if release:
             frequencies.append(
-                (tsdb.models.frequent_releases_by_groups, {
+                (tsdb.models.frequent_releases_by_group, {
                     group.id: {
                         grouprelease.id: count,
                     },
@@ -159,10 +176,15 @@ def create_sample_time_series(event, release=None):
                     group.id: count,
                 },
             }),
+            (tsdb.models.frequent_environments_by_group, {
+                group.id: {
+                    environment.id: count,
+                },
+            })
         ]
         if release:
             frequencies.append(
-                (tsdb.models.frequent_releases_by_groups, {
+                (tsdb.models.frequent_releases_by_group, {
                     group.id: {
                         grouprelease.id: count,
                     },
@@ -240,7 +262,7 @@ def main(num_events=1):
             )
 
             release = Release.objects.get_or_create(
-                version='4f38b65c62c4565aa94bba391ff8946922a8eed4',
+                version=sha1(uuid4().hex).hexdigest(),
                 project=project,
             )[0]
 
