@@ -44,7 +44,22 @@ def _to_interval(timestamp, duration):
     )
 
 
+def change(value, reference):
+    """
+    Calculate the relative change between a value and a reference point.
+    """
+    if not reference:  # handle both None and divide by zero case
+        return None
+
+    return ((value or 0) - reference) / float(reference)
+
+
 def clean_series(start, stop, rollup, series):
+    """
+    Validate a series, ensuring that it follows the specified rollup and
+    boundaries. The start bound is inclusive, while the stop bound is
+    exclusive (similar to the slice operation.)
+    """
     start_timestamp = to_timestamp(start)
     stop_timestamp = to_timestamp(stop)
 
@@ -60,16 +75,28 @@ def clean_series(start, stop, rollup, series):
 
 
 def merge_sequences(target, other, function=operator.add):
+    """
+    Merge two sequences into a single sequence. The length of the two
+    sequences must be equal.
+    """
     assert len(target) == len(other), 'sequence lengths must match'
     return type(target)([function(x, y) for x, y in zip(target, other)])
 
 
-def merge_mappings(target, other, function=lambda key, x, y: x + y):
+def merge_mappings(target, other, function=lambda x, y: x + y):
+    """
+    Merge two mappings into a single mapping. The set of keys in both
+    mappings must be equal.
+    """
     assert set(target) == set(other), 'keys must match'
     return {k: function(v, other[k]) for k, v in target.items()}
 
 
 def merge_series(target, other, function=operator.add):
+    """
+    Merge two series into a single series. Both series must have the same
+    start and end points as well as the same resolution.
+    """
     missing = object()
     results = []
     for x, y in itertools.izip_longest(target, other, fillvalue=missing):
@@ -356,14 +383,6 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
 
     if features.has('organizations:reports:deliver', organization):
         message.send()
-
-
-def change(current, previous):
-    if not previous:  # handle both None and divide by zero case
-        return None
-
-    delta = (current or 0) - previous
-    return delta / previous
 
 
 def rewrite_issue_list((count, issues), fetch_groups=None):
