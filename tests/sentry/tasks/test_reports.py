@@ -8,7 +8,7 @@ from sentry.utils.dates import to_datetime
 
 
 def test_change():
-    assert change(1, 0) == None
+    assert change(1, 0) is None
     assert change(10, 5) == 1.00  # 100% increase
     assert change(50, 100) == -0.50   # 50% decrease
     assert change(None, 100) == -1.00  # 100% decrease
@@ -19,7 +19,7 @@ def test_safe_add():
     assert safe_add(1, 1) == 2
     assert safe_add(None, 1) == 1
     assert safe_add(1, None) == 1
-    assert safe_add(None, None) == None
+    assert safe_add(None, None) is None
 
 
 def test_merge_mappings():
