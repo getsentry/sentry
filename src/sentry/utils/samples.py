@@ -23,7 +23,7 @@ def milliseconds_ago(now, milliseconds):
     return (ago - epoch).total_seconds()
 
 
-def load_data(platform, default=None):
+def load_data(platform, default=None, timestamp=None):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
     # has production consequences.
@@ -90,7 +90,12 @@ def load_data(platform, default=None):
         "method": "GET"
     }
 
-    now = datetime.utcnow()
+    start = datetime.utcnow()
+    if timestamp:
+        try:
+            start = datetime.utcfromtimestamp(timestamp)
+        except TypeError:
+            pass
 
     # Make breadcrumb timestamps relative to right now so they make sense
     breadcrumbs = data.get('sentry.interfaces.Breadcrumbs')
@@ -98,7 +103,7 @@ def load_data(platform, default=None):
         duration = 1000
         values = breadcrumbs['values']
         for value in reversed(values):
-            value['timestamp'] = milliseconds_ago(now, duration)
+            value['timestamp'] = milliseconds_ago(start, duration)
 
             # Every breadcrumb is 1s apart
             duration += 1000
@@ -114,7 +119,9 @@ def create_sample_event(project, platform=None, default=None, raw=True,
     if platform:
         platform = platform.split('-', 1)[0].split('_', 1)[0]
 
-    data = load_data(platform, default)
+    timestamp = kwargs.get('timestamp')
+
+    data = load_data(platform, default, timestamp)
 
     if not data:
         return
