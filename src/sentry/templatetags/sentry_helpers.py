@@ -66,6 +66,18 @@ truncatechars.is_safe = True
 register.filter(to_json)
 
 
+@register.filter
+def multiply(x, y):
+    def coerce(value):
+        if isinstance(value, (int, long, float)):
+            return value
+        try:
+            return int(value)
+        except ValueError:
+            return float(value)
+    return coerce(x) * coerce(y)
+
+
 @register.simple_tag
 def absolute_uri(path='', *args):
     from sentry.utils.http import absolute_uri

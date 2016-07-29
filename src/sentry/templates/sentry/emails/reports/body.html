@@ -73,7 +73,7 @@
             {% else %}
                 <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-decrease.png' %}" width="20px" height="10px">
             {% endif %}
-            {{ change|absolute_value|floatformat:"-1" }}%
+            {{ change|multiply:"100"|absolute_value|floatformat:"-1" }}%
             </div>
             <small>{% if change >= 0 %}more{% else %}less{% endif %} than {{ label }}</small>
           {% else %}
