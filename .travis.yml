@@ -16,6 +16,9 @@ cache:
     - node_modules
     - $HOME/.cache/pip/wheels
     - "$HOME/virtualenv/python2.7.9"
+branches:
+  only:
+  - master
 env:
   matrix:
     - TEST_SUITE=sqlite DB=sqlite
