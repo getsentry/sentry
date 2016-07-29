@@ -363,6 +363,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         subject=u'Sentry Report for {}'.format(organization.name),
         template='sentry/emails/reports/body.txt',
         html_template='sentry/emails/reports/body.html',
+        type='report.organization',
         context={
             'interval': {
                 'start': start,
