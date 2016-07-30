@@ -15,6 +15,19 @@ class Migration(DataMigration):
         Environment = orm['sentry.Environment']
         ReleaseEnvironment = orm['sentry.ReleaseEnvironment']
         GroupRelease = orm['sentry.GroupRelease']
+        TagValue = orm['sentry.TagValue']
+
+        queryset = TagValue.objects.filter(
+            key='environment',
+        )
+
+        environments = {}
+        for tag in RangeQuerySetWrapperWithProgressBar(queryset):
+            env, _ = Environment.objects.get_or_create(
+                project_id=tag.project_id,
+                name=tag.value,
+            )
+            environments[(tag.project_id, tag.value)] = env.id
 
         queryset = GroupRelease.objects.filter(
             # limit the scope of data, even though that means we might not
@@ -23,17 +36,16 @@ class Migration(DataMigration):
         )
 
         for gr in RangeQuerySetWrapperWithProgressBar(queryset):
-            env, _ = Environment.objects.get_or_create(
-                project_id=gr.project_id,
-                name=gr.environment,
-            )
+            env_id = environments.get((gr.project_id, gr.environment))
+            if not env_id:
+                continue
 
             try:
                 with transaction.atomic():
                     renv = ReleaseEnvironment.objects.create(
                         project_id=gr.project_id,
                         release_id=gr.release_id,
-                        environment_id=env.id,
+                        environment_id=env_id,
                     )
             except IntegrityError:
                 pass
