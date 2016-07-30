@@ -138,7 +138,7 @@ class AuthenticationForm(CaptchaForm):
             return False
 
         return ratelimiter.is_limited(
-            'auth:username:{}'.format(username),
+            u'auth:username:{}'.format(username),
             limit,
         )
 
