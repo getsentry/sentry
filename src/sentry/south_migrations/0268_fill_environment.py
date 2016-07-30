@@ -15,25 +15,20 @@ class Migration(DataMigration):
         Environment = orm['sentry.Environment']
         ReleaseEnvironment = orm['sentry.ReleaseEnvironment']
         GroupRelease = orm['sentry.GroupRelease']
-        TagValue = orm['sentry.TagValue']
-
-        queryset = TagValue.objects.filter(
-            key='environment',
-        )
-
-        environments = {}
-        for tag in RangeQuerySetWrapperWithProgressBar(queryset):
-            env, _ = Environment.objects.get_or_create(
-                project_id=tag.project_id,
-                name=tag.value,
-            )
-            environments[(tag.project_id, tag.value)] = env.id
 
         queryset = GroupRelease.objects.filter(
             # limit the scope of data, even though that means we might not
             # capture all historical values
             last_seen__gte=timezone.now() - timedelta(days=1),
         )
+
+        environments = {}
+        for gr in RangeQuerySetWrapperWithProgressBar(queryset):
+            env, _ = Environment.objects.get_or_create(
+                project_id=gr.project_id,
+                name=gr.environment,
+            )
+            environments[(env.project_id, env.name)] = env.id
 
         for gr in RangeQuerySetWrapperWithProgressBar(queryset):
             env_id = environments.get((gr.project_id, gr.environment))
