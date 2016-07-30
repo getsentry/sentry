@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+from datetime import timedelta
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
 from django.db import IntegrityError, models, transaction
+from django.db.models import Min, Max
+from django.utils import timezone
 
 class Migration(DataMigration):
 
@@ -13,7 +16,13 @@ class Migration(DataMigration):
         ReleaseEnvironment = orm['sentry.ReleaseEnvironment']
         GroupRelease = orm['sentry.GroupRelease']
 
-        for gr in RangeQuerySetWrapperWithProgressBar(GroupRelease.objects.all()):
+        queryset = GroupRelease.objects.filter(
+            # limit the scope of data, even though that means we might not
+            # capture all historical values
+            last_seen__gte=timezone.now() - timedelta(days=1),
+        )
+
+        for gr in RangeQuerySetWrapperWithProgressBar(queryset):
             env, _ = Environment.objects.get_or_create(
                 project_id=gr.project_id,
                 name=gr.environment,
@@ -31,23 +40,17 @@ class Migration(DataMigration):
             else:
                 # we do this after creation to avoid querying it when
                 # we dont actually need to create the row (as its not cheap)
+                results = GroupRelease.objects.filter(
+                    project_id=gr.project_id,
+                    release_id=gr.release_id,
+                    environment=gr.environment,
+                ).aggregate(first=Min('first_seen'), last=Max('last_seen'))
+
                 ReleaseEnvironment.objects.filter(
                     id=renv.id,
                 ).update(
-                    first_seen=GroupRelease.objects.filter(
-                        project_id=gr.project_id,
-                        release_id=gr.release_id,
-                        environment=gr.environment,
-                    ).order_by('first_seen').values_list(
-                        'first_seen', flat=True
-                    ).first(),
-                    last_seen=GroupRelease.objects.filter(
-                        project_id=gr.project_id,
-                        release_id=gr.release_id,
-                        environment=gr.environment,
-                    ).order_by('-last_seen').values_list(
-                        'last_seen', flat=True
-                    ).first(),
+                    first_seen=results['first'],
+                    last_seen=results['last'],
                 )
 
 
