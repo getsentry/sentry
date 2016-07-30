@@ -12,6 +12,8 @@ class Migration(DataMigration):
     def forwards(self, orm):
         from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
+        db.commit_transaction()
+
         Environment = orm['sentry.Environment']
         ReleaseEnvironment = orm['sentry.ReleaseEnvironment']
         GroupRelease = orm['sentry.GroupRelease']
@@ -60,7 +62,7 @@ class Migration(DataMigration):
                     first_seen=results['first'],
                     last_seen=results['last'],
                 )
-
+        db.start_transaction()
 
     def backwards(self, orm):
         pass
