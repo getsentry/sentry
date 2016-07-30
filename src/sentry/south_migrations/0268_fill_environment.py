@@ -20,6 +20,7 @@ class Migration(DataMigration):
             # limit the scope of data, even though that means we might not
             # capture all historical values
             last_seen__gte=timezone.now() - timedelta(days=1),
+            last_seen__lte=timezone.now(),
         )
 
         environments = {}
