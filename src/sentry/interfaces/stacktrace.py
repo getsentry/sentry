@@ -11,12 +11,11 @@ from __future__ import absolute_import
 __all__ = ('Stacktrace',)
 
 import re
-from types import NoneType
-from six import string_types
+import six
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
-from urlparse import urlparse
+from six.moves.urllib.parse import urlparse
 
 from sentry.app import env
 from sentry.interfaces.base import Interface, InterfaceValidationError
@@ -53,9 +52,9 @@ def trim_package(pkg):
 def to_hex_addr(addr):
     if addr is None:
         return None
-    elif isinstance(addr, (int, long)):
+    elif isinstance(addr, six.integer_types):
         return '0x%x' % addr
-    elif isinstance(addr, basestring):
+    elif isinstance(addr, six.string_types):
         if addr[:2] == '0x':
             return addr
         return '0x%x' % int(addr)
@@ -229,7 +228,8 @@ class Frame(Interface):
         module = data.get('module')
 
         for name in ('abs_path', 'filename', 'function', 'module'):
-            if not isinstance(data.get(name), (string_types, NoneType)):
+            v = data.get(name)
+            if v is not None and not isinstance(v, six.string_types):
                 raise InterfaceValidationError("Invalid value for '%s'" % name)
 
         # absolute path takes priority over filename
@@ -291,7 +291,7 @@ class Frame(Interface):
 
         instruction_offset = data.get('instruction_offset')
         if instruction_offset is not None and \
-           not isinstance(instruction_offset, (int, long)):
+           not isinstance(instruction_offset, six.integer_types):
             raise InterfaceValidationError("Invalid value for 'instruction_offset'")
 
         kwargs = {

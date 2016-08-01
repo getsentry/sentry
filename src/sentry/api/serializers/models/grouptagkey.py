@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.api.serializers import Serializer, register
 from sentry.models import GroupTagKey, TagKey
 
@@ -30,7 +32,7 @@ class GroupTagKeySerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            'id': str(obj.id),
+            'id': six.text_type(obj.id),
             'name': attrs['name'],
             'key': attrs['key'],
             'uniqueValues': obj.values_seen,

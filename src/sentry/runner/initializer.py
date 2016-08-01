@@ -7,9 +7,9 @@ sentry.runner.initializer
 """
 from __future__ import absolute_import, print_function
 
-import os
-
 import click
+import os
+import six
 
 from sentry.utils import warnings
 from sentry.utils.warnings import DeprecatedSettingWarning
@@ -106,7 +106,7 @@ def bootstrap_options(settings, config=None):
             pass
         except (AttributeError, ParserError, ScannerError) as e:
             from .importer import ConfigurationError
-            raise ConfigurationError('Malformed config.yml file: %s' % unicode(e))
+            raise ConfigurationError('Malformed config.yml file: %s' % six.text_type(e))
 
         # Empty options file, so fail gracefully
         if options is None:
@@ -119,7 +119,7 @@ def bootstrap_options(settings, config=None):
     from sentry.conf.server import DEAD
 
     # First move options from settings into options
-    for k, v in options_mapper.iteritems():
+    for k, v in six.iteritems(options_mapper):
         if getattr(settings, v, DEAD) is not DEAD and k not in options:
             warnings.warn(
                 DeprecatedSettingWarning(
@@ -131,14 +131,14 @@ def bootstrap_options(settings, config=None):
 
     # Stuff everything else into SENTRY_OPTIONS
     # these will be validated later after bootstrapping
-    for k, v in options.iteritems():
+    for k, v in six.iteritems(options):
         settings.SENTRY_OPTIONS[k] = v
 
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
     # only in SENTRY_OPTIONS and no config.yml file
     for o in (settings.SENTRY_DEFAULT_OPTIONS, settings.SENTRY_OPTIONS):
-        for k, v in o.iteritems():
+        for k, v in six.iteritems(o):
             if k in options_mapper:
                 # Map the mail.backend aliases to something Django understands
                 if k == 'mail.backend':
@@ -293,7 +293,7 @@ def fix_south(settings):
     settings.SOUTH_DATABASE_ADAPTERS = {}
 
     # South needs an adapter defined conditionally
-    for key, value in settings.DATABASES.iteritems():
+    for key, value in six.iteritems(settings.DATABASES):
         if value['ENGINE'] != 'sentry.db.postgres':
             continue
         settings.SOUTH_DATABASE_ADAPTERS[key] = 'south.db.postgresql_psycopg2'
@@ -314,7 +314,7 @@ def bind_cache_to_option_store():
 
 
 def show_big_error(message):
-    if isinstance(message, basestring):
+    if isinstance(message, six.string_types):
         lines = message.splitlines()
     else:
         lines = message

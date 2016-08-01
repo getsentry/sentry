@@ -38,6 +38,7 @@ from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
+from sentry.utils.hashlib import md5_text
 from sentry.utils.safe import safe_execute, trim, trim_dict
 from sentry.utils.strings import truncatechars
 from sentry.utils.validators import validate_ip
@@ -70,7 +71,7 @@ def get_fingerprint_for_event(event):
     fingerprint = event.data.get('fingerprint')
     if fingerprint is None:
         return ['{{ default }}']
-    if isinstance(fingerprint, basestring):
+    if isinstance(fingerprint, six.string_types):
         return [fingerprint]
     return fingerprint
 
@@ -81,7 +82,7 @@ def get_hashes_for_event(event):
 
 def get_hashes_for_event_with_reason(event):
     interfaces = event.get_interfaces()
-    for interface in interfaces.itervalues():
+    for interface in six.itervalues(interfaces):
         result = interface.compute_hashes(event.platform)
         if not result:
             continue
@@ -106,7 +107,7 @@ def get_hashes_from_fingerprint(event, fingerprint):
         hash_count = 1
 
     hashes = []
-    for idx in xrange(hash_count):
+    for idx in range(hash_count):
         result = []
         for bit in fingerprint:
             if bit in default_values:
@@ -126,13 +127,13 @@ def get_hashes_from_fingerprint_with_reason(event, fingerprint):
         hash_count = 1
 
     hashes = OrderedDict((bit, []) for bit in fingerprint)
-    for idx in xrange(hash_count):
+    for idx in range(hash_count):
         for bit in fingerprint:
             if bit in default_values:
                 hashes[bit].append(default_hashes)
             else:
                 hashes[bit] = bit
-    return hashes.items()
+    return list(hashes.items())
 
 
 if not settings.SENTRY_SAMPLE_DATA:
@@ -285,7 +286,7 @@ class EventManager(object):
             tags = []
         # full support for dict syntax
         elif isinstance(tags, dict):
-            tags = tags.items()
+            tags = list(tags.items())
         # prevent [tag, tag, tag] (invalid) syntax
         elif not all(len(t) == 2 for t in tags):
             tags = []
@@ -314,7 +315,7 @@ class EventManager(object):
             data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
 
         # TODO(dcramer): more of validate data needs stuffed into the manager
-        for key in data.keys():
+        for key in list(iter(data)):
             if key in CLIENT_RESERVED_ATTRS:
                 continue
 
@@ -466,7 +467,7 @@ class EventManager(object):
 
         data['fingerprint'] = fingerprint or ['{{ default }}']
 
-        for path, iface in event.interfaces.iteritems():
+        for path, iface in six.iteritems(event.interfaces):
             data['tags'].extend(iface.iter_tags())
             # Get rid of ephemeral interface data
             if iface.ephemeral:
@@ -503,10 +504,10 @@ class EventManager(object):
 
         if not message:
             message = ''
-        elif not isinstance(message, basestring):
+        elif not isinstance(message, six.string_types):
             message = force_text(message)
 
-        for value in event_metadata.itervalues():
+        for value in six.itervalues(event_metadata):
             value_u = force_text(value, errors='replace')
             if value_u not in message:
                 message = u'{} {}'.format(message, value_u)
@@ -688,7 +689,7 @@ class EventManager(object):
 
         cache_key = 'euser:{}:{}'.format(
             project.id,
-            md5(euser.tag_value.encode('utf-8')).hexdigest(),
+            md5_text(euser.tag_value).hexdigest(),
         )
         cached = default_cache.get(cache_key)
         if cached is None:
@@ -744,7 +745,7 @@ class EventManager(object):
         all_hashes = self._find_hashes(project, hashes)
 
         try:
-            existing_group_id = (h[0] for h in all_hashes if h[0]).next()
+            existing_group_id = six.next(h[0] for h in all_hashes if h[0])
         except StopIteration:
             existing_group_id = None
 

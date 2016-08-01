@@ -7,6 +7,8 @@ sentry.tsdb.base
 """
 from __future__ import absolute_import
 
+import six
+
 from django.conf import settings
 from django.utils import timezone
 from enum import Enum
@@ -188,7 +190,7 @@ class BaseTSDB(object):
         range_set = self.get_range(model, keys, start, end, rollup)
         sum_set = dict(
             (key, sum(p for _, p in points))
-            for (key, points) in range_set.iteritems()
+            for (key, points) in six.iteritems(range_set)
         )
         return sum_set
 
@@ -199,7 +201,7 @@ class BaseTSDB(object):
         """
         normalize_ts_to_epoch = self.normalize_ts_to_epoch
         result = {}
-        for key, points in values.iteritems():
+        for key, points in six.iteritems(values):
             result[key] = []
             last_new_ts = None
             for (ts, count) in points:

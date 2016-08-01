@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import os
 import re
+import six
 import time
 import logging
 import posixpath
@@ -328,7 +329,7 @@ def preprocess_apple_crash_event(data):
                     'error': 'The symbolicator encountered an internal failure',
                 })
 
-        for thread in threads.itervalues():
+        for thread in six.itervalues(threads):
             # If we were told to skip the stacktrace, skip it indeed
             if thread.get('stacktrace', Ellipsis) is None:
                 continue
@@ -387,7 +388,7 @@ def resolve_frame_symbols(data):
             'error': 'frame #%d: %s: %s' % (
                 idx,
                 e.__class__.__name__,
-                str(e),
+                six.text_type(e),
             )
         })
 

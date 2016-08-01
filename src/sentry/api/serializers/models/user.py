@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.conf import settings
 
 from sentry.app import env
@@ -45,7 +47,7 @@ class UserSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         d = {
-            'id': str(obj.id),
+            'id': six.text_type(obj.id),
             'name': obj.get_display_name(),
             'username': obj.username,
             'email': obj.email,

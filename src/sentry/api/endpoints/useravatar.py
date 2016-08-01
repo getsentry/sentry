@@ -1,18 +1,15 @@
 from __future__ import absolute_import
 
-from uuid import uuid4
-
-from PIL import Image
-
 from django.conf import settings
-
+from PIL import Image
 from rest_framework import status
 from rest_framework.response import Response
+from six import StringIO
+from uuid import uuid4
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import UserAvatar, File
-from sentry.utils.compat import StringIO
 
 
 MIN_DIMENSION = 256

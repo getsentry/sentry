@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
 
 from sentry.models import Rule, RuleStatus
@@ -24,7 +26,7 @@ class ProjectRuleDetailsTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(rule.id)
+        assert response.data['id'] == six.text_type(rule.id)
 
 
 class UpdateProjectRuleTest(APITestCase):
@@ -55,7 +57,7 @@ class UpdateProjectRuleTest(APITestCase):
         }, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(rule.id)
+        assert response.data['id'] == six.text_type(rule.id)
 
         rule = Rule.objects.get(id=rule.id)
         assert rule.label == 'hello world'

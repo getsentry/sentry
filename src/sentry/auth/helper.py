@@ -1,7 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import logging
-from hashlib import md5
+
 from uuid import uuid4
 
 from django.conf import settings
@@ -19,6 +19,7 @@ from sentry.models import (
 )
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth
+from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.web.forms.accounts import AuthenticationForm
@@ -113,7 +114,7 @@ class AuthHelper(object):
         # we serialize the pipeline to be [AuthView().get_ident(), ...] which
         # allows us to determine if the pipeline has changed during the auth
         # flow or if the user is somehow circumventing a chunk of it
-        self.signature = md5(
+        self.signature = md5_text(
             ' '.join(av.get_ident() for av in self.pipeline)
         ).hexdigest()
 
@@ -558,7 +559,7 @@ class AuthHelper(object):
         lock = locks.get(
             'sso:auth:{}:{}'.format(
                 auth_provider.id,
-                md5(unicode(identity['id'])).hexdigest(),
+                md5_text(identity['id']).hexdigest(),
             ),
             duration=5,
         )

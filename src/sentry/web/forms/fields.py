@@ -7,8 +7,8 @@ sentry.web.forms.fields
 """
 from __future__ import absolute_import
 
+import ipaddress
 import six
-from ipaddr import IPNetwork
 
 from django.core.validators import URLValidator
 from django.forms.widgets import RadioFieldRenderer, TextInput, Widget
@@ -16,13 +16,13 @@ from django.forms.util import flatatt
 from django.forms import (
     Field, CharField, IntegerField, Textarea, TypedChoiceField, ValidationError
 )
-from django.utils.encoding import force_unicode
+from django.utils.encoding import force_text
 from django.utils.html import format_html
-from sentry.utils.http import parse_uri_match
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import User
+from sentry.utils.http import parse_uri_match
 
 
 class CustomTypedChoiceField(TypedChoiceField):
@@ -56,7 +56,7 @@ class RadioFieldRenderer(RadioFieldRenderer):
     flexible.
     """
     def render(self):
-        return mark_safe(u'\n<div class="inputs-list">%s</div>\n' % u'\n'.join([force_unicode(w) for w in self]))
+        return mark_safe(u'\n<div class="inputs-list">%s</div>\n' % u'\n'.join([force_text(w) for w in self]))
 
 
 class UserField(CharField):
@@ -134,7 +134,7 @@ class OriginsField(CharField):
     def clean(self, value):
         if not value:
             return []
-        values = filter(bool, (v.strip() for v in value.split('\n')))
+        values = [v.strip() for v in value.split('\n') if v]
         for value in values:
             if not self.is_valid_origin(value):
                 raise ValidationError('%r is not an acceptable value' % value)
@@ -166,10 +166,10 @@ class IPNetworksField(CharField):
         value = value.strip()
         if not value:
             return None
-        values = filter(bool, (v.strip() for v in value.split('\n')))
+        values = [v.strip() for v in value.split('\n') if v]
         for value in values:
             try:
-                IPNetwork(value)
+                ipaddress.ip_network(six.text_type(value))
             except ValueError:
                 raise ValidationError('%r is not an acceptable value' % value)
         return values

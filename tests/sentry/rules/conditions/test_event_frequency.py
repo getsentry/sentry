@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from datetime import timedelta
 from django.utils import timezone
 
@@ -16,7 +18,7 @@ class EventFrequencyConditionTest(RuleTestCase):
         value = 10
         rule = self.get_rule({
             'interval': Interval.ONE_MINUTE,
-            'value': str(value),
+            'value': six.text_type(value),
         })
 
         tsdb.incr(
@@ -40,7 +42,7 @@ class EventFrequencyConditionTest(RuleTestCase):
         value = 10
         rule = self.get_rule({
             'interval': Interval.ONE_HOUR,
-            'value': str(value),
+            'value': six.text_type(value),
         })
 
         tsdb.incr(
@@ -64,7 +66,7 @@ class EventFrequencyConditionTest(RuleTestCase):
         value = 10
         rule = self.get_rule({
             'interval': Interval.ONE_DAY,
-            'value': str(value),
+            'value': six.text_type(value),
         })
 
         tsdb.incr(
@@ -88,7 +90,7 @@ class EventFrequencyConditionTest(RuleTestCase):
         value = 10
         rule = self.get_rule({
             'interval': Interval.ONE_HOUR,
-            'value': str(value),
+            'value': six.text_type(value),
         })
 
         self.assertDoesNotPass(rule, event)

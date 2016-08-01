@@ -7,6 +7,8 @@ sentry.utils.dates
 """
 from __future__ import absolute_import
 
+import six
+
 from datetime import (
     datetime,
     timedelta,
@@ -87,7 +89,7 @@ def parse_timestamp(value):
     # TODO(mitsuhiko): merge this code with coreapis date parser
     if isinstance(value, datetime):
         return value
-    elif isinstance(value, (int, long, float)):
+    elif isinstance(value, six.integer_types + (float,)):
         return datetime.utcfromtimestamp(value).replace(tzinfo=pytz.utc)
     value = (value or '').rstrip('Z').encode('ascii', 'replace').split('.', 1)
     if not value:

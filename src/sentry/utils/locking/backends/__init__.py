@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+
+
 class LockBackend(object):
     """
     Interface for providing lock behavior that is used by the

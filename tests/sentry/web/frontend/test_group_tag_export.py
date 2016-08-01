@@ -45,7 +45,8 @@ class GroupTagExportTest(TestCase):
         assert response['Content-Type'] == 'text/csv'
         rows = list(response.streaming_content)
         for idx, row in enumerate(rows):
-            assert row.endswith('\r\n')
+            row = row.decode('utf-8')
+            assert row.endswith(u'\r\n')
             bits = row[:-2].split(',')
             if idx == 0:
                 assert bits == ['value', 'times_seen', 'last_seen', 'first_seen']

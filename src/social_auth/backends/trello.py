@@ -22,9 +22,9 @@ except ImportError:
     except ImportError:
         from django.utils import simplejson
 
+from six.moves.urllib.parse import urlencode
 from social_auth.backends import ConsumerBasedOAuth, OAuthBackend
 from social_auth.utils import dsa_urlopen, backend_setting
-from urllib import urlencode
 
 
 TRELLO_REQUEST_TOKEN_URL = 'https://trello.com/1/OAuthGetRequestToken'

@@ -1,14 +1,16 @@
 from __future__ import absolute_import
 
-from rest_framework.response import Response
+import six
 
 import sentry
-from sentry import options
-from sentry.utils.email import is_smtp_enabled
-from sentry.api.base import Endpoint
-from sentry.api.permissions import SuperuserPermission
 
 from django.conf import settings
+from rest_framework.response import Response
+
+from sentry import options
+from sentry.api.base import Endpoint
+from sentry.api.permissions import SuperuserPermission
+from sentry.utils.email import is_smtp_enabled
 
 
 class SystemOptionsEndpoint(Endpoint):
@@ -52,8 +54,8 @@ class SystemOptionsEndpoint(Endpoint):
 
     def put(self, request):
         # TODO(dcramer): this should validate options before saving them
-        for k, v in request.DATA.iteritems():
-            if v and isinstance(v, basestring):
+        for k, v in six.iteritems(request.DATA):
+            if v and isinstance(v, six.string_types):
                 v = v.strip()
             try:
                 option = options.lookup_key(k)
@@ -76,7 +78,7 @@ class SystemOptionsEndpoint(Endpoint):
                     'error': 'invalid_type',
                     'errorDetail': {
                         'option': k,
-                        'message': unicode(e),
+                        'message': six.text_type(e),
                     },
                 }, status=400)
         # TODO(dcramer): this has nothing to do with configuring options and

@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 from django.db import models
 from django.utils import timezone
-from hashlib import md5
 
 from sentry.utils.cache import cache
+from sentry.utils.hashlib import md5_text
 from sentry.db.models import (
     BoundedPositiveIntegerField, Model, sane_repr
 )
@@ -31,7 +31,7 @@ class GroupRelease(Model):
     def get_cache_key(cls, group_id, release_id, environment):
         return 'grouprelease:1:{}:{}'.format(
             group_id,
-            md5('{}:{}'.format(release_id, environment)).hexdigest(),
+            md5_text('{}:{}'.format(release_id, environment)).hexdigest(),
         )
 
     @classmethod

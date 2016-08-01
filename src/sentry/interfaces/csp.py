@@ -10,7 +10,8 @@ from __future__ import absolute_import
 
 __all__ = ('Csp',)
 
-from urlparse import urlsplit, urlunsplit
+from six.moves.urllib.parse import urlsplit, urlunsplit
+
 from sentry.interfaces.base import Interface
 from sentry.utils import json
 from sentry.utils.cache import memoize
@@ -148,7 +149,7 @@ class Csp(Interface):
         return _normalize_uri(self.document_uri)
 
     def _normalize_directive(self, directive):
-        bits = filter(None, directive.split(' '))
+        bits = [d for d in directive.split(' ') if d]
         return ' '.join([bits[0]] + map(self._normalize_value, bits[1:]))
 
     def _normalize_value(self, value):

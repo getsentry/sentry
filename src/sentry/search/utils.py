@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
+import six
+
 from collections import defaultdict
 from datetime import datetime, timedelta
 from django.db.models import Q
@@ -166,7 +168,7 @@ def tokenize_query(query):
             nvalue = value
             while not nvalue.endswith('"'):
                 try:
-                    nvalue = tokens_iter.next()
+                    nvalue = six.next(tokens_iter)
                 except StopIteration:
                     break
                 value = '%s %s' % (value, nvalue)
@@ -185,7 +187,7 @@ def parse_query(project, query, user):
 
     results = {'tags': {}, 'query': []}
 
-    for key, token_list in tokens.iteritems():
+    for key, token_list in six.iteritems(tokens):
         for value in token_list:
             if key == 'query':
                 results['query'].append(value)

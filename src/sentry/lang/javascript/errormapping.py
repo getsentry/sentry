@@ -1,12 +1,15 @@
+from __future__ import absolute_import
+
 import re
 import json
 import time
 import logging
 import random
+import six
 
-from urlparse import parse_qsl
 from django.conf import settings
 from django.core.cache import cache
+from six.moves.urllib.parse import parse_qsl
 
 from sentry import http
 from sentry.utils.strings import count_sprintf_parameters
@@ -114,7 +117,7 @@ def rewrite_exception(data):
 
     rv = False
     for exc in exc_data['values']:
-        for processor in error_processors.itervalues():
+        for processor in six.itervalues(error_processors):
             try:
                 if processor.try_process(exc):
                     rv = True

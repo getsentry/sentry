@@ -7,6 +7,8 @@ sentry.quotas.base
 """
 from __future__ import absolute_import
 
+import six
+
 from collections import namedtuple
 from functools import partial
 from django.conf import settings
@@ -42,7 +44,7 @@ class Quota(object):
         return 0
 
     def translate_quota(self, quota, parent_quota):
-        if str(quota).endswith('%'):
+        if six.text_type(quota).endswith('%'):
             pct = int(quota[:-1])
             quota = int(parent_quota) * pct / 100
         if not quota:

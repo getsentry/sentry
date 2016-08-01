@@ -21,11 +21,11 @@ os.environ['PYFLAKES_NODOCTEST'] = '1'
 
 def register_checks():
     import pycodestyle
-    from sentry.lint.absolute_import_check import AbsoluteImportCheck
-    from sentry.lint.mock_check import MockCheck
 
-    pycodestyle.register_check(MockCheck, codes=[MockCheck.code])
-    pycodestyle.register_check(AbsoluteImportCheck, codes=[AbsoluteImportCheck.code])
+    from sentry.lint.sentry_check import SentryCheck
+
+    pycodestyle.register_check(SentryCheck)
+
 
 register_checks()
 
@@ -60,7 +60,7 @@ def py_lint(file_list):
     file_list = get_files_for_list(file_list)
 
     # remove non-py files and files which no longer exist
-    file_list = filter(lambda x: x.endswith('.py'), file_list)
+    file_list = [x for x in file_list if x.endswith('.py')]
 
     flake8_style = get_style_guide(parse_argv=True)
     report = flake8_style.check_files(file_list)

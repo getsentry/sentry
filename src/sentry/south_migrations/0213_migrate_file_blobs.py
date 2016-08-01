@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import six
+
 from collections import defaultdict
 
 from django.db import models
@@ -56,7 +58,7 @@ class Migration(DataMigration):
         saved = 0
         count = 0
         total = 0
-        for blob, path_set in blob_paths.iteritems():
+        for blob, path_set in six.iteritems(blob_paths):
             total += (blob.size or 0) * len(path_set)
             if len(path_set) == 1:
                 continue

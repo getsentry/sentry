@@ -48,7 +48,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path)
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content
+        assert self.provider.TEMPLATE in resp.content.decode('utf-8')
 
         path = reverse('sentry-auth-sso')
 
@@ -92,7 +92,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path)
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content
+        assert self.provider.TEMPLATE in resp.content.decode('utf-8')
 
         path = reverse('sentry-auth-sso')
 
@@ -138,7 +138,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path)
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content
+        assert self.provider.TEMPLATE in resp.content.decode('utf-8')
 
         path = reverse('sentry-auth-sso')
 
@@ -160,7 +160,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path)
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content
+        assert self.provider.TEMPLATE in resp.content.decode('utf-8')
 
         path = reverse('sentry-auth-sso')
 
@@ -205,7 +205,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path)
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content
+        assert self.provider.TEMPLATE in resp.content.decode('utf-8')
 
         path = reverse('sentry-auth-sso')
 
@@ -258,7 +258,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path)
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content
+        assert self.provider.TEMPLATE in resp.content.decode('utf-8')
 
         path = reverse('sentry-auth-sso')
 
@@ -317,7 +317,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path)
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content
+        assert self.provider.TEMPLATE in resp.content.decode('utf-8')
 
         path = reverse('sentry-auth-sso')
 
@@ -383,7 +383,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path)
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content
+        assert self.provider.TEMPLATE in resp.content.decode('utf-8')
 
         path = reverse('sentry-auth-sso')
 
@@ -454,7 +454,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path)
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content
+        assert self.provider.TEMPLATE in resp.content.decode('utf-8')
 
         path = reverse('sentry-auth-sso')
 
@@ -512,7 +512,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path)
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content
+        assert self.provider.TEMPLATE in resp.content.decode('utf-8')
 
         path = reverse('sentry-auth-sso')
 
@@ -567,7 +567,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path)
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content
+        assert self.provider.TEMPLATE in resp.content.decode('utf-8')
 
         path = reverse('sentry-auth-sso')
 

@@ -1,4 +1,7 @@
+from __future__ import absolute_import
+
 import pytest
+
 from sentry.utils.csp import is_valid_csp_report
 
 

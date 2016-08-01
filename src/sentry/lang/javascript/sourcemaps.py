@@ -20,7 +20,7 @@ from __future__ import absolute_import
 import bisect
 
 from collections import namedtuple
-from urlparse import urljoin
+from six.moves.urllib.parse import urljoin
 
 from sentry.utils import json
 

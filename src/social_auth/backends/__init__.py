@@ -11,17 +11,14 @@ enabled.
 """
 from __future__ import absolute_import
 
-from urllib2 import Request, HTTPError
-from urllib import urlencode
-
-from oauth2 import Consumer as OAuthConsumer, Token, Request as OAuthRequest
-
-from sentry.utils import json
+import six
 
 from django.contrib.auth import authenticate
 from django.utils.importlib import import_module
 from django.utils.crypto import get_random_string, constant_time_compare
-
+from six.moves.urllib.error import HTTPError
+from six.moves.urllib.request import Request
+from six.moves.urllib.parse import urlencode
 from social_auth.models import UserSocialAuth
 from social_auth.utils import (
     setting, model_to_ctype, ctype_to_model, clean_partial_pipeline,
@@ -31,6 +28,9 @@ from social_auth.exceptions import (
     AuthTokenError, AuthMissingParameter, AuthStateMissing, AuthStateForbidden,
     NotAllowedToDisconnect, BackendError)
 from social_auth.backends.utils import build_consumer_oauth_request
+from oauth2 import Consumer as OAuthConsumer, Token, Request as OAuthRequest
+
+from sentry.utils import json
 
 PIPELINE = setting('SOCIAL_AUTH_PIPELINE', (
     'social_auth.backends.pipeline.social.social_auth_user',
@@ -251,7 +251,7 @@ class BaseAuth(object):
             'backend': self.AUTH_BACKEND.name,
             'args': tuple(map(model_to_ctype, args)),
             'kwargs': dict((key, model_to_ctype(val))
-                           for key, val in kwargs.iteritems())
+                           for key, val in six.iteritems(kwargs))
         }
 
     def from_session_dict(self, session_data, *args, **kwargs):
@@ -262,9 +262,9 @@ class BaseAuth(object):
 
         kwargs = kwargs.copy()
         saved_kwargs = dict((key, ctype_to_model(val))
-                            for key, val in session_data['kwargs'].iteritems())
+                            for key, val in six.iteritems(session_data['kwargs']))
         saved_kwargs.update((key, val)
-                            for key, val in kwargs.iteritems())
+                            for key, val in six.iteritems(kwargs))
         return (session_data['next'], args, saved_kwargs)
 
     def continue_pipeline(self, *args, **kwargs):
@@ -291,7 +291,7 @@ class BaseAuth(object):
         """
         backend_name = self.AUTH_BACKEND.name.upper().replace('-', '_')
         extra_arguments = setting(backend_name + '_AUTH_EXTRA_ARGUMENTS', {})
-        for key, value in extra_arguments.iteritems():
+        for key, value in six.iteritems(extra_arguments):
             if key in self.data:
                 extra_arguments[key] = self.data[key]
             elif value:
@@ -432,7 +432,7 @@ class ConsumerBasedOAuth(BaseOAuth):
 
         try:
             access_token = self.access_token(token)
-        except HTTPError, e:
+        except HTTPError as e:
             if e.code == 400:
                 raise AuthCanceled(self)
             else:
@@ -441,7 +441,7 @@ class ConsumerBasedOAuth(BaseOAuth):
 
     def do_auth(self, access_token, *args, **kwargs):
         """Finish the auth process once the access_token was retrieved"""
-        if isinstance(access_token, basestring):
+        if isinstance(access_token, six.string_types):
             access_token = Token.from_string(access_token)
 
         data = self.user_data(access_token)
@@ -610,7 +610,7 @@ class BaseOAuth2(BaseOAuth):
 
         try:
             response = json.loads(dsa_urlopen(request).read())
-        except HTTPError, e:
+        except HTTPError as e:
             if e.code == 400:
                 raise AuthCanceled(self)
             else:

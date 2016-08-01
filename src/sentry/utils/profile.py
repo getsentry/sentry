@@ -1,5 +1,8 @@
+from __future__ import absolute_import
+
 import sys
 import time
+
 from cProfile import Profile
 from pstats import Stats
 from functools import update_wrapper

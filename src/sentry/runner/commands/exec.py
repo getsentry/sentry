@@ -7,6 +7,7 @@ sentry.runner.commands.exec
 """
 from __future__ import absolute_import, print_function
 
+import six
 import sys
 import click
 
@@ -71,7 +72,7 @@ def exec_(c, file):
                 with open(file, 'rb') as fp:
                     c = fp.read().decode('utf8')
             except (IOError, OSError) as e:
-                raise click.ClickException(unicode(e))
+                raise click.ClickException(six.text_type(e))
     else:
         file = '<string>'
 
@@ -91,4 +92,4 @@ def exec_(c, file):
     }
     # locals context
     l = {}
-    exec compile(script, file, 'exec') in g, l
+    six.exec_(compile(script, file, 'exec'), g, l)

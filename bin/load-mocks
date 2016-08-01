@@ -3,6 +3,7 @@ from sentry.runner import configure
 configure()
 
 import itertools
+import six
 
 from datetime import datetime, timedelta
 from django.conf import settings
@@ -20,6 +21,7 @@ from sentry.models import (
     OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport,
     GroupRelease, Environment, ReleaseEnvironment
 )
+from sentry.utils.hashlib import sha1, md5
 from sentry.utils.samples import create_sample_event
 
 PLATFORMS = itertools.cycle([
@@ -298,7 +300,7 @@ def main(num_events=1):
                     level=LEVELS.next(),
                     environment=ENVIRONMENTS.next(),
                     message='This is a mostly useless example %s exception' % platform,
-                    checksum=md5(platform + str(_)).hexdigest(),
+                    checksum=md5(platform + six.text_type(_)).hexdigest(),
                 )
 
             for _ in range(num_events):

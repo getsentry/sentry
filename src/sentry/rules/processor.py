@@ -161,4 +161,4 @@ class RuleProcessor(object):
         self.futures_by_cb = defaultdict(list)
         for rule in self.get_rules():
             self.apply_rule(rule)
-        return self.futures_by_cb.items()
+        return list(self.futures_by_cb.items())

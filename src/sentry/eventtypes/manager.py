@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 
 class EventTypeManager(object):
     def __init__(self):
@@ -7,7 +9,7 @@ class EventTypeManager(object):
         self.__lookup = {}
 
     def __iter__(self):
-        return self.__values.itervalues()
+        return six.itervalues(self.__values)
 
     def __contains__(self, key):
         return key in self.__lookup

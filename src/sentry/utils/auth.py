@@ -7,6 +7,7 @@ sentry.utils.auth
 """
 from __future__ import absolute_import
 
+import six
 import time
 import logging
 
@@ -40,7 +41,7 @@ def parse_auth_header(header):
 def get_auth_providers():
     return [
         key for key, cfg_names
-        in settings.AUTH_PROVIDERS.iteritems()
+        in six.iteritems(settings.AUTH_PROVIDERS)
         if all(getattr(settings, c, None) for c in cfg_names)
     ]
 

@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from datetime import datetime, timedelta
 
 import pytest
@@ -41,9 +43,9 @@ class GroupTest(TestCase):
 
     def test_get_oldest_latest_events(self):
         group = self.create_group()
-        for i in xrange(0, 3):
+        for i in range(0, 3):
             self.create_event(
-                event_id=str(i),
+                event_id=six.text_type(i),
                 group=group,
                 datetime=datetime(2013, 8, 13, 3, 8, i),
             )
@@ -53,9 +55,9 @@ class GroupTest(TestCase):
 
     def test_get_oldest_latest_identical_timestamps(self):
         group = self.create_group()
-        for i in xrange(0, 3):
+        for i in range(0, 3):
             self.create_event(
-                event_id=str(i),
+                event_id=six.text_type(i),
                 group=group,
                 datetime=datetime(2013, 8, 13, 3, 8, 50),
             )
@@ -70,9 +72,9 @@ class GroupTest(TestCase):
             group=group,
             datetime=datetime(2013, 8, 13, 3, 8, 0),  # earliest
         )
-        for i in xrange(1, 3):
+        for i in range(1, 3):
             self.create_event(
-                event_id=str(i),
+                event_id=six.text_type(i),
                 group=group,
                 datetime=datetime(2013, 8, 13, 3, 8, 30),  # all in the middle
             )

@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.models import Activity
 from sentry.testutils import APITestCase
 
@@ -23,4 +25,4 @@ class OrganizationActivityTest(APITestCase):
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(activity.id)
+        assert response.data[0]['id'] == six.text_type(activity.id)

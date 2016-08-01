@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.api.serializers import Serializer, register
 from sentry.models import Rule
 
@@ -10,7 +12,7 @@ class RuleSerializer(Serializer):
         d = {
             # XXX(dcramer): we currently serialize unsaved rule objects
             # as part of the rule editor
-            'id': str(obj.id) if obj.id else None,
+            'id': six.text_type(obj.id) if obj.id else None,
             'conditions': obj.data.get('conditions', []),
             'actions': obj.data.get('actions', []),
             'actionMatch': obj.data.get('action_match', 'all'),

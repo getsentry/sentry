@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+import six
+
 from sentry.models import GroupSubscription
 from sentry.testutils import APITestCase
 
@@ -22,4 +24,4 @@ class GroupParticipantsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(self.user.id)
+        assert response.data[0]['id'] == six.text_type(self.user.id)

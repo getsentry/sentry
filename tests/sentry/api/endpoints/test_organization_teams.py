@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
 from exam import fixture
 
@@ -29,9 +31,9 @@ class OrganizationTeamsListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]['id'] == str(team2.id)
+        assert response.data[0]['id'] == six.text_type(team2.id)
         assert not response.data[0]['isMember']
-        assert response.data[1]['id'] == str(team1.id)
+        assert response.data[1]['id'] == six.text_type(team1.id)
         assert response.data[1]['isMember']
 
 

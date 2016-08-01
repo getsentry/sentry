@@ -7,6 +7,8 @@ sentry.utils.javascript
 """
 from __future__ import absolute_import
 
+import six
+
 from collections import defaultdict
 from datetime import timedelta
 from django.core.urlresolvers import reverse
@@ -53,7 +55,7 @@ def transform(objects, request=None):
     elif not isinstance(objects, (list, tuple)):
         return transform([objects], request=request)[0]
     # elif isinstance(obj, dict):
-    #     return dict((k, transform(v, request=request)) for k, v in obj.iteritems())
+    #     return dict((k, transform(v, request=request)) for k, v in six.iteritems(obj))
     t = transformers.get(type(objects[0]))
 
     if t:
@@ -180,8 +182,8 @@ class GroupTransformer(Transformer):
         version = int(version.strftime('%s'))
 
         d = {
-            'id': str(obj.id),
-            'count': str(obj.times_seen),
+            'id': six.text_type(obj.id),
+            'count': six.text_type(obj.times_seen),
             'title': escape(obj.title),
             'message': escape(obj.message_short),
             'level': obj.level,

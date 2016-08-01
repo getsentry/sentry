@@ -7,9 +7,10 @@ sentry.tsdb.inmemory
 """
 from __future__ import absolute_import
 
+import six
+
 from collections import Counter, defaultdict
 from datetime import timedelta
-
 from django.utils import timezone
 
 from sentry.tsdb.base import BaseTSDB
@@ -56,7 +57,7 @@ class InMemoryTSDB(BaseTSDB):
         for epoch, key, count in results:
             results_by_key[key][epoch] = int(count or 0)
 
-        for key, points in results_by_key.iteritems():
+        for key, points in six.iteritems(results_by_key):
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
@@ -174,7 +175,7 @@ class InMemoryTSDB(BaseTSDB):
     def get_frequency_totals(self, model, items, start, end=None, rollup=None):
         results = {}
 
-        for key, series in self.get_frequency_series(model, items, start, end, rollup).iteritems():
+        for key, series in six.iteritems(self.get_frequency_series(model, items, start, end, rollup)):
             result = results[key] = {}
             for timestamp, scores in series:
                 for member, score in scores.items():

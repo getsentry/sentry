@@ -9,6 +9,7 @@ sentry.tasks.post_process
 from __future__ import absolute_import, print_function
 
 import logging
+import six
 
 from django.db import IntegrityError, router, transaction
 from raven.contrib.django.models import client as Raven
@@ -36,7 +37,7 @@ def _capture_stats(event, is_new):
     metrics.incr('events.processed')
     metrics.incr('events.processed.{platform}'.format(
         platform=platform))
-    metrics.timing('events.size.data', len(unicode(event.data)))
+    metrics.timing('events.size.data', len(six.text_type(event.data)))
 
 
 @instrumented_task(
