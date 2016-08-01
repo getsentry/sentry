@@ -1,17 +1,21 @@
 from __future__ import absolute_import
 
-import six
-
+import itertools
 from datetime import timedelta
+
+import six
 from django.utils import timezone
 
 from sentry.app import tsdb
+from sentry.rules.conditions.event_frequency import (
+    EventFrequencyCondition, EventUniqueUserFrequencyCondition, Interval
+)
 from sentry.testutils.cases import RuleTestCase
-from sentry.rules.conditions.event_frequency import EventFrequencyCondition, Interval
 
 
-class EventFrequencyConditionTest(RuleTestCase):
-    rule_cls = EventFrequencyCondition
+class FrequencyConditionMixin(object):
+    def increment(self, event, count, timestamp=None):
+        raise NotImplementedError
 
     def test_one_minute(self):
         event = self.get_event()
@@ -21,20 +25,20 @@ class EventFrequencyConditionTest(RuleTestCase):
             'value': six.text_type(value),
         })
 
-        tsdb.incr(
-            tsdb.models.group,
-            event.group_id,
-            count=value + 1,
+        self.increment(
+            event,
+            value + 1,
             timestamp=timezone.now() - timedelta(minutes=5),
         )
+
         self.assertDoesNotPass(rule, event)
 
         rule.clear_cache(event)
-        tsdb.incr(tsdb.models.group, event.group_id, count=value)
+        self.increment(event, value)
         self.assertDoesNotPass(rule, event)
 
         rule.clear_cache(event)
-        tsdb.incr(tsdb.models.group, event.group_id, count=1)
+        self.increment(event, 1)
         self.assertPasses(rule, event)
 
     def test_one_hour(self):
@@ -45,20 +49,19 @@ class EventFrequencyConditionTest(RuleTestCase):
             'value': six.text_type(value),
         })
 
-        tsdb.incr(
-            tsdb.models.group,
-            event.group_id,
-            count=value + 1,
+        self.increment(
+            event,
+            value + 1,
             timestamp=timezone.now() - timedelta(minutes=90),
         )
         self.assertDoesNotPass(rule, event)
 
         rule.clear_cache(event)
-        tsdb.incr(tsdb.models.group, event.group_id, count=value)
+        self.increment(event, value)
         self.assertDoesNotPass(rule, event)
 
         rule.clear_cache(event)
-        tsdb.incr(tsdb.models.group, event.group_id, count=1)
+        self.increment(event, 1)
         self.assertPasses(rule, event)
 
     def test_one_day(self):
@@ -69,20 +72,19 @@ class EventFrequencyConditionTest(RuleTestCase):
             'value': six.text_type(value),
         })
 
-        tsdb.incr(
-            tsdb.models.group,
-            event.group_id,
-            count=value + 1,
+        self.increment(
+            event,
+            value + 1,
             timestamp=timezone.now() - timedelta(hours=36),
         )
         self.assertDoesNotPass(rule, event)
 
         rule.clear_cache(event)
-        tsdb.incr(tsdb.models.group, event.group_id, count=value)
+        self.increment(event, value)
         self.assertDoesNotPass(rule, event)
 
         rule.clear_cache(event)
-        tsdb.incr(tsdb.models.group, event.group_id, count=1)
+        self.increment(event, 1)
         self.assertPasses(rule, event)
 
     def test_doesnt_send_consecutive(self):
@@ -96,7 +98,7 @@ class EventFrequencyConditionTest(RuleTestCase):
         self.assertDoesNotPass(rule, event)
 
         rule.clear_cache(event)
-        tsdb.incr(tsdb.models.group, event.group_id, count=value + 1)
+        self.increment(event, value + 1)
         self.assertPasses(rule, event)
 
         self.assertDoesNotPass(rule, event, rule_last_active=timezone.now())
@@ -105,11 +107,32 @@ class EventFrequencyConditionTest(RuleTestCase):
         event = self.get_event()
         rule = self.get_rule({
             'interval': Interval.ONE_MINUTE,
-            'value': '0',
+            'value': six.text_type('0'),
         })
 
         self.assertDoesNotPass(rule, event)
 
         rule.clear_cache(event)
-        tsdb.incr(tsdb.models.group, event.group_id, count=1)
+        self.increment(event, 1)
         self.assertPasses(rule, event)
+
+
+class EventFrequencyConditionTestCase(FrequencyConditionMixin, RuleTestCase):
+    rule_cls = EventFrequencyCondition
+
+    def increment(self, event, count, timestamp=None):
+        tsdb.incr(tsdb.models.group, event.group_id, count=count, timestamp=timestamp)
+
+
+class EventUniqueUserFrequencyConditionTestCase(FrequencyConditionMixin, RuleTestCase):
+    rule_cls = EventUniqueUserFrequencyCondition
+
+    sequence = itertools.count()  # generates unique values, class scope doesn't matter
+
+    def increment(self, event, count, timestamp=None):
+        tsdb.record(
+            tsdb.models.users_affected_by_group,
+            event.group_id,
+            [next(self.sequence) for _ in xrange(0, count)],
+            timestamp=timestamp
+        )
