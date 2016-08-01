@@ -43,6 +43,12 @@ class OrganizationsCreateTest(APITestCase):
         assert org.name == 'hello world'
         assert org.slug == 'foobar'
 
+        resp = self.client.post(self.path, data={
+            'name': 'hello world',
+            'slug': 'foobar',
+        })
+        assert resp.status_code == 409, resp.content
+
     def test_without_slug(self):
         self.login_as(user=self.user)
 

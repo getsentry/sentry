@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db import IntegrityError, transaction
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -86,12 +87,19 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
         if serializer.is_valid():
             result = serializer.object
 
-            project = Project.objects.create(
-                name=result['name'],
-                slug=result.get('slug'),
-                organization=team.organization,
-                team=team
-            )
+            try:
+                with transaction.atomic():
+                    project = Project.objects.create(
+                        name=result['name'],
+                        slug=result.get('slug'),
+                        organization=team.organization,
+                        team=team
+                    )
+            except IntegrityError:
+                return Response(
+                    {'detail': 'A project with this slug already exists.'},
+                    status=409,
+                )
 
             # XXX: create sample event?
 

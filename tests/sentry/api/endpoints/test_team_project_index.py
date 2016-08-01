@@ -43,3 +43,9 @@ class TeamProjectCreateTest(APITestCase):
         assert project.name == 'hello world'
         assert project.slug == 'foobar'
         assert project.team == team
+
+        resp = self.client.post(url, data={
+            'name': 'hello world',
+            'slug': 'foobar',
+        })
+        assert resp.status_code == 409, resp.content
