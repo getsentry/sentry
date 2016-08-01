@@ -19,12 +19,14 @@ from sentry.rules.conditions.base import EventCondition
 class Interval(object):
     ONE_MINUTE = '1m'
     ONE_HOUR = '1h'
+    ONE_DAY = '1d'
 
 
 class EventFrequencyForm(forms.Form):
     interval = forms.ChoiceField(choices=(
         (Interval.ONE_MINUTE, 'one minute'),
         (Interval.ONE_HOUR, 'one hour'),
+        (Interval.ONE_DAY, 'one day'),
     ))
     value = forms.IntegerField(widget=forms.TextInput(attrs={
         'placeholder': '100',
@@ -83,6 +85,8 @@ class EventFrequencyCondition(EventCondition):
                 start = end - timedelta(minutes=1)
             elif interval == Interval.ONE_HOUR:
                 start = end - timedelta(hours=1)
+            elif interval == Interval.ONE_DAY:
+                start = end - timedelta(hours=24)
             else:
                 raise ValueError(interval)
 
