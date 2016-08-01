@@ -11,6 +11,8 @@ services:
   - cassandra
 python:
   - "2.7"
+  - "3.4"
+  - "3.5"
 cache:
   directories:
     - node_modules

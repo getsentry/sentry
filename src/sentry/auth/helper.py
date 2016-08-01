@@ -1,6 +1,8 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import six
+
 from hashlib import md5
 from uuid import uuid4
 
@@ -558,7 +560,7 @@ class AuthHelper(object):
         lock = locks.get(
             'sso:auth:{}:{}'.format(
                 auth_provider.id,
-                md5(unicode(identity['id'])).hexdigest(),
+                md5(six.text_type(identity['id'])).hexdigest(),
             ),
             duration=5,
         )

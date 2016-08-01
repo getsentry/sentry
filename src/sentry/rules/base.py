@@ -39,6 +39,7 @@ from __future__ import absolute_import
 
 import logging
 import re
+import six
 
 from collections import namedtuple
 from django.utils.html import escape
@@ -90,7 +91,7 @@ class RuleBase(object):
 
         def replace_field(match):
             field = match.group(1)
-            return unicode(form[field])
+            return six.text_type(form[field])
 
         return mark_safe(re.sub(r'{([^}]+)}', replace_field, escape(self.label)))
 

@@ -42,7 +42,6 @@ class ManageProjectPluginsTest(TestCase):
                 ],
             ),
         )
-        print opts
         assert opts.get('auto_tag:_operating_systems:enabled') is True
         assert opts.get('auto_tag:_urls:enabled') is True
         assert opts.get('mail:enabled') is False

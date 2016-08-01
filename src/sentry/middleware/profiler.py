@@ -7,10 +7,10 @@ import cProfile
 import re
 import pstats
 import sys
-import StringIO
 
 from django.conf import settings
 from django.http import HttpResponse
+from six import StringIO
 
 
 words_re = re.compile(r'\s+')

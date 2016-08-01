@@ -50,7 +50,7 @@ def get_integration_id(platform_id, integration_id):
 
 
 def sync_docs():
-    print 'syncing documentation (platform index)'
+    print('syncing documentation (platform index)')
     data = json.load(urllib2.urlopen(BASE_URL.format('_index.json')))
     platform_list = []
     for platform_id, integrations in data['platforms'].iteritems():
@@ -81,8 +81,9 @@ def sync_docs():
 
 
 def sync_integration_docs(platform_id, integration_id, path):
-    print '  syncing documentation for %s.%s integration' % (
-        platform_id, integration_id)
+    print('  syncing documentation for %s.%s integration' % (
+        platform_id, integration_id
+    ))
 
     data = json.load(urllib2.urlopen(BASE_URL.format(path)))
 

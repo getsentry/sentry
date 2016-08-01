@@ -5,7 +5,7 @@ import responses
 import pytest
 
 from django.core.exceptions import SuspiciousOperation
-from ipaddr import IPNetwork
+from ipaddress import IPNetwork
 from mock import patch
 
 from sentry import http

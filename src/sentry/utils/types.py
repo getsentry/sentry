@@ -7,9 +7,12 @@ sentry.utils.types
 """
 from __future__ import absolute_import, print_function
 
-from sentry.utils.yaml import safe_load
+import six
+
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
+
+from sentry.utils.yaml import safe_load
 
 __all__ = (
     'InvalidTypeError',
@@ -29,7 +32,7 @@ class Type(object):
     # Types that do not need to be coerced
     expected_types = ()
     # Types that are acceptable for coersion
-    compatible_types = (basestring,)
+    compatible_types = six.string_types
 
     def __call__(self, value=None):
         if value is None:
@@ -83,7 +86,7 @@ class IntType(Type):
     """Coerce an integer from a string"""
     name = 'integer'
     default = 0
-    expected_types = (int,)
+    expected_types = six.integer_types
 
     def convert(self, value):
         try:
@@ -97,7 +100,7 @@ class FloatType(Type):
     name = 'float'
     default = 0.0
     expected_types = (float,)
-    compatible_types = (basestring, float, int)
+    compatible_types = six.string_types + six.integer_types + (float,)
 
     def convert(self, value):
         try:
@@ -110,8 +113,8 @@ class StringType(Type):
     """String type without any coersion, must be a string"""
     name = 'string'
     default = u''
-    expected_types = (basestring,)
-    compatible_types = (basestring,)
+    expected_types = six.string_types
+    compatible_types = six.string_types
 
 
 class DictType(Type):
@@ -135,10 +138,10 @@ class SequenceType(Type):
     name = 'sequence'
     default = ()
     expected_types = (tuple, list)
-    compatible_types = (basestring, tuple, list)
+    compatible_types = six.string_types + (tuple, list)
 
     def convert(self, value):
-        if isinstance(value, basestring):
+        if isinstance(value, six.string_types):
             try:
                 value = safe_load(value)
             except (AttributeError, ParserError, ScannerError):
@@ -163,8 +166,8 @@ _type_mapping = {
     bool: Bool,
     int: Int,
     float: Float,
-    str: String,
-    unicode: String,
+    six.binary_type: String,
+    six.text_type: String,
     dict: Dict,
     tuple: Sequence,
     list: Sequence,

@@ -7,9 +7,9 @@ sentry.runner.initializer
 """
 from __future__ import absolute_import, print_function
 
-import os
-
 import click
+import os
+import six
 
 from sentry.utils import warnings
 from sentry.utils.warnings import DeprecatedSettingWarning
@@ -106,7 +106,7 @@ def bootstrap_options(settings, config=None):
             pass
         except (AttributeError, ParserError, ScannerError) as e:
             from .importer import ConfigurationError
-            raise ConfigurationError('Malformed config.yml file: %s' % unicode(e))
+            raise ConfigurationError('Malformed config.yml file: %s' % six.text_type(e))
 
         # Empty options file, so fail gracefully
         if options is None:
@@ -314,7 +314,7 @@ def bind_cache_to_option_store():
 
 
 def show_big_error(message):
-    if isinstance(message, basestring):
+    if isinstance(message, six.string_types):
         lines = message.splitlines()
     else:
         lines = message

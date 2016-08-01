@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import six
 
 from django.contrib.auth.models import update_last_login
 from django.contrib.auth.signals import user_logged_in
@@ -31,7 +32,7 @@ def safe_update_last_login(sender, user, **kwargs):
     try:
         update_last_login(sender, user, **kwargs)
     except DatabaseError as exc:
-        logging.warn(unicode(exc), exc_info=True)
+        logging.warn(six.text_type(exc), exc_info=True)
 
 
 user_logged_in.disconnect(update_last_login)

@@ -44,7 +44,7 @@ class GzippedDictField(models.TextField):
         if not value and self.null:
             # save ourselves some storage
             return None
-        # enforce unicode strings to guarantee consistency
+        # enforce six.text_type strings to guarantee consistency
         if isinstance(value, str):
             value = six.text_type(value)
         return compress(pickle.dumps(value))

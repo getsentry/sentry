@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
 from django.conf import settings
-from django.utils.html import escape
 from django.utils.translation import ugettext as _
 
+from sentry.utils.compat import html_escape
 from sentry.utils.imports import import_string
 
 
@@ -131,4 +131,4 @@ class Interface(object):
         body = self.to_string(event)
         if not body:
             return ''
-        return '<pre>%s</pre>' % (escape(body),)
+        return '<pre>%s</pre>' % (html_escape(body),)

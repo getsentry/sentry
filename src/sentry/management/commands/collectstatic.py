@@ -5,7 +5,7 @@ sentry.management.commands.collectstatic
 :copyright: (c) 2015 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import os
 from itertools import chain, izip
@@ -30,7 +30,7 @@ def checksum(file_):
 def get_bundle_version(files):
     hasher = md5()
     for (short, _), sum in izip(files, map(checksum, files)):
-        print '%s  %s' % (sum, short)
+        print('%s  %s' % (sum, short))
         hasher.update('%s  %s\n' % (sum, short))
     return hasher.hexdigest()
 
@@ -46,8 +46,8 @@ class Command(BaseCommand):
         paths = sorted(set(chain(*itemgetter(*collected.keys())(collected))))
         abs_paths = map(self.storage.path, paths)
         version = get_bundle_version(zip(paths, abs_paths))
-        print '-----------------'
-        print version
+        print('-----------------')
+        print(version)
         with open(self.storage.path(VERSION_PATH), 'wb') as fp:
             fp.write(version)
         return collected

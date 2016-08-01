@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import operator
+import six
 
 from django.db.models import Q
 
@@ -40,7 +41,7 @@ class GroupTagValueSerializer(Serializer):
             tag_labels.update({
                 ('sentry:user', euser.tag_value): euser.get_label()
                 for euser in EventUser.objects.filter(
-                    reduce(operator.or_, user_lookups),
+                    six.reduce(operator.or_, user_lookups),
                     project=project,
                 )
             })
@@ -54,7 +55,7 @@ class GroupTagValueSerializer(Serializer):
             tag_labels.update({
                 (t.key, t.value): t.get_label()
                 for t in TagValue.objects.filter(
-                    reduce(operator.or_, other_lookups),
+                    six.reduce(operator.or_, other_lookups),
                     project=project,
                 )
             })

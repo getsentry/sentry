@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from collections import OrderedDict
 
 
@@ -18,7 +20,7 @@ class Role(object):
         return self.name.encode('utf-8')
 
     def __unicode__(self):
-        return unicode(self.name)
+        return six.text_type(self.name)
 
     def __repr__(self):
         return '<Role: {}>'.format(self.id)

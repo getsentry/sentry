@@ -13,7 +13,7 @@ from django.conf import settings
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
-from urlparse import urlparse
+from sentry.utils.compat import urlparse
 
 
 class Browser(object):

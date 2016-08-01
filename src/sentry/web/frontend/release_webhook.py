@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from hashlib import sha256
 import hmac
 import logging
+import six
 from simplejson import JSONDecodeError
 
 from django.http import HttpResponse
@@ -42,7 +43,7 @@ class ReleaseWebhookView(View):
         except JSONDecodeError as exc:
             return HttpResponse(
                 status=400,
-                content=json.dumps({'error': unicode(exc)}),
+                content=json.dumps({'error': six.text_type(exc)}),
                 content_type='application/json',
             )
 

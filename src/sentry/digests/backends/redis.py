@@ -217,7 +217,7 @@ class RedisBackend(Backend):
             # expected items in any specific scheduling interval to chunk *
             # maximum_iterations.
             maximum_iterations = 1000
-            for i in xrange(maximum_iterations):
+            for i in range(maximum_iterations):
                 items = connection.zrangebyscore(
                     make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
                     min=0,
@@ -283,10 +283,10 @@ class RedisBackend(Backend):
         extra = 0
         start = 0
         maximum_iterations = 1000
-        for i in xrange(maximum_iterations):
+        for i in range(maximum_iterations):
             fetch_size = chunk + extra
             entries = map(
-                lambda (key, timestamp): ScheduleEntry(key, timestamp),
+                lambda x: ScheduleEntry(*x),
                 connection.zrangebyscore(
                     make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
                     min=start,
@@ -341,7 +341,8 @@ class RedisBackend(Backend):
                 extra = min(
                     ilen(
                         itertools.takewhile(
-                            lambda (lock, entry): entry.timestamp == start,
+                            # (lock, entry)
+                            lambda x: x[1].timestamp == start,
                             can_reschedule[False][::-1],
                         ),
                     ),

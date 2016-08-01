@@ -11,16 +11,16 @@ from __future__ import absolute_import
 
 from django.conf.global_settings import *  # NOQA
 
-from datetime import timedelta
-
 import os
 import os.path
 import socket
 import sys
 import tempfile
-import urlparse
 
 import sentry
+
+from datetime import timedelta
+from sentry.utils.compat import urlparse
 
 gettext_noop = lambda s: s
 
@@ -89,7 +89,7 @@ if 'DATABASE_URL' in os.environ:
 TIME_ZONE = 'UTC'
 
 # Language code for this installation. All choices can be found here:
-# http://www.i18nguy.com/unicode/language-identifiers.html
+# http://www.i18nguy.com/six.text_type/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
 
 LANGUAGES = (

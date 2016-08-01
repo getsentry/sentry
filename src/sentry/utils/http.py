@@ -12,7 +12,7 @@ import urllib
 
 from collections import namedtuple
 from urlparse import urlparse, urljoin
-from ipaddr import IPNetwork
+from ipaddress import IPNetwork
 
 from django.conf import settings
 from sentry import options

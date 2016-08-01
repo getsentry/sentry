@@ -8,7 +8,7 @@ sentry.web.forms.fields
 from __future__ import absolute_import
 
 import six
-from ipaddr import IPNetwork
+from ipaddress import IPNetwork
 
 from django.core.validators import URLValidator
 from django.forms.widgets import RadioFieldRenderer, TextInput, Widget

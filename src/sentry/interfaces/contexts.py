@@ -8,6 +8,7 @@ sentry.interfaces.contexts
 
 from __future__ import absolute_import
 
+import six
 import string
 
 from django.utils.encoding import force_text
@@ -32,8 +33,8 @@ class _IndexFormatter(string.Formatter):
 
 
 def format_index_expr(format_string, data):
-    return unicode(_IndexFormatter().vformat(
-        unicode(format_string), (), data).strip())
+    return six.text_type(_IndexFormatter().vformat(
+        six.text_type(format_string), (), data).strip())
 
 
 def contexttype(name):

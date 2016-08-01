@@ -10,6 +10,8 @@ from __future__ import absolute_import
 
 __all__ = ('Exception',)
 
+import six
+
 from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
@@ -69,7 +71,7 @@ class SingleException(Interface):
             # in case of TypeError: foo (no space)
             value = value.strip()
 
-        if value is not None and not isinstance(value, basestring):
+        if value is not None and not isinstance(value, six.string_types):
             value = json.dumps(value)
         value = trim(value, 4096)
 
@@ -126,7 +128,7 @@ class SingleException(Interface):
 
         return {
             'type': self.type,
-            'value': unicode(self.value) if self.value else None,
+            'value': six.text_type(self.value) if self.value else None,
             'mechanism': self.mechanism or None,
             'threadId': self.thread_id,
             'module': self.module,

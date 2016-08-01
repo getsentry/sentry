@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from operator import or_
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
@@ -41,7 +43,7 @@ class ApiTokensEndpoint(Endpoint):
 
             token = ApiToken.objects.create(
                 user=request.user,
-                scopes=reduce(or_, (
+                scopes=six.reduce(or_, (
                     getattr(ApiToken.scopes, k) for k in result['scopes']
                 )),
             )
@@ -51,7 +53,6 @@ class ApiTokensEndpoint(Endpoint):
 
     def delete(self, request):
         token = request.DATA.get('token')
-        print(request.DATA)
         if not token:
             return Response({'token': ''}, status=400)
 

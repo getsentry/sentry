@@ -2,6 +2,7 @@
 from __future__ import absolute_import, print_function
 
 import operator
+import six
 import sys
 
 from collections import defaultdict
@@ -42,7 +43,7 @@ class Command(BaseCommand):
             primary_user.username,
         )
         while True:
-            response = raw_input(message).strip().lower()
+            response = six.input(message).strip().lower()
             if response in ('y', ''):
                 return True
             elif response == 'n':
@@ -63,7 +64,7 @@ class Command(BaseCommand):
         unique_users = []
         if usernames:
             unique_users.append(list(User.objects.filter(
-                reduce(operator.or_, [Q(username__iexact=u) | Q(email__iexact=u) for u in usernames]),
+                six.reduce(operator.or_, [Q(username__iexact=u) | Q(email__iexact=u) for u in usernames]),
             )))
         elif organization:
             unique_users = self._get_organization_user_sets(organization)

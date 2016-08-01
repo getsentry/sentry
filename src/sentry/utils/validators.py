@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import re
-from ipaddr import IPAddress
+from ipaddress import IPAddress
 
 EVENT_ID_RE = re.compile(r'^[a-fA-F0-9]{32}$')
 

@@ -12,7 +12,6 @@ class HTTPServiceTest(TestCase):
             'false': False,
             'string': 'foo',
             'int': 1,
-            'long': 1L,
             'none': None,
             'hy-phen': 'foo',
         }
@@ -21,7 +20,6 @@ class HTTPServiceTest(TestCase):
             ('UWSGI_FALSE', 'false'),
             ('UWSGI_STRING', 'foo'),
             ('UWSGI_INT', '1'),
-            ('UWSGI_LONG', '1'),
             ('UWSGI_HY_PHEN', 'foo'),
         ]
         assert set(convert_options_to_env(options)) == set(expected)

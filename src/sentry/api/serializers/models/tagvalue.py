@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import operator
+import six
 
 from django.db.models import Q
 
@@ -31,7 +32,7 @@ class TagValueSerializer(Serializer):
             tag_labels.update({
                 ('sentry:user', euser.tag_value): euser.get_label()
                 for euser in EventUser.objects.filter(
-                    reduce(operator.or_, user_lookups),
+                    six.reduce(operator.or_, user_lookups),
                     project=item_list[0].project,
                 )
             })

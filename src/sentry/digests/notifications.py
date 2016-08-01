@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import functools
 import itertools
 import logging
+import six
+
 from collections import (
     OrderedDict,
     defaultdict,
@@ -97,7 +99,7 @@ class Pipeline(object):
         self.operations = []
 
     def __call__(self, sequence):
-        return reduce(lambda x, operation: operation(x), self.operations, sequence)
+        return six.reduce(lambda x, operation: operation(x), self.operations, sequence)
 
     def apply(self, function):
         def operation(sequence):
@@ -125,7 +127,7 @@ class Pipeline(object):
 
     def reduce(self, function, initializer):
         def operation(sequence):
-            result = reduce(function, sequence, initializer(sequence))
+            result = six.reduce(function, sequence, initializer(sequence))
             logger.debug('%r reduced %s items to %s.', function, len(sequence), len(result))
             return result
         self.operations.append(operation)
@@ -170,7 +172,8 @@ def sort_group_contents(rules):
         rules[key] = OrderedDict(
             sorted(
                 groups.items(),
-                key=lambda (group, records): (group.event_count, group.user_count),
+                # x = (group, records)
+                key=lambda x: (x[0].event_count, x[0].user_count),
                 reverse=True,
             )
         )
@@ -181,7 +184,8 @@ def sort_rule_groups(rules):
     return OrderedDict(
         sorted(
             rules.items(),
-            key=lambda (rule, groups): len(groups),
+            # x = (rule, groups)
+            key=lambda x: len(x[1]),
             reverse=True,
         ),
     )

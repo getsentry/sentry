@@ -17,10 +17,10 @@ class ApiError(Exception):
         return u'status={} body={}'.format(self.status_code, self.body)
 
     def __str__(self):
-        return self.__unicode__().encode('utf-8')
+        return self.__six.text_type__().encode('utf-8')
 
     def __repr__(self):
-        return u'<ApiError: {}>'.format(self.__unicode__())
+        return u'<ApiError: {}>'.format(self.__six.text_type__())
 
 
 class ApiClient(object):

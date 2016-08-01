@@ -201,7 +201,7 @@ class OptionsManager(object):
         # Guess type based on the default value
         if type is None:
             # the default value would be equivilent to '' if no type / default
-            # is specified and we assume unicode for safety
+            # is specified and we assume six.text_type for safety
             if default_value is None:
                 default_value = u''
                 default = lambda: default_value
