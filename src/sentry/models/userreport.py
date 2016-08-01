@@ -23,6 +23,7 @@ class UserReport(Model):
     email = models.EmailField(max_length=75)
     comments = models.TextField()
     date_added = models.DateTimeField(default=timezone.now)
+    snapshot = models.TextField(null=True)
 
     class Meta:
         app_label = 'sentry'

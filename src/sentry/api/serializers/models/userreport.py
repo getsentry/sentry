@@ -16,6 +16,7 @@ class UserReportSerializer(Serializer):
             'email': obj.email,
             'comments': obj.comments,
             'dateCreated': obj.date_added,
+            'snapshot': obj.snapshot,
         }
 
 

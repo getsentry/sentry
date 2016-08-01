@@ -25,7 +25,9 @@
   var serialize = function(form) {
     var q = [];
     for (var i = 0; i < form.elements.length; i++) {
-      q.push(form.elements[i].name + '=' + encodeURIComponent(form.elements[i].value));
+      if (form.elements[i].name) {
+        q.push(form.elements[i].name + '=' + encodeURIComponent(form.elements[i].value));
+      }
     }
     return q.join('&');
   };
@@ -38,6 +40,35 @@
 
   var SentryErrorEmbed = function(options) {
     this.build();
+  };
+
+  SentryErrorEmbed.prototype.loadWebcamJS = function(cb) {
+    var script = document.createElement('script');
+
+    if (script.readyState) {
+      script.onreadystatechange = function() {
+        if (script.readyState == 'loaded' || script.readyState == 'complete') {
+          script.onreadystate = null;
+          cb();
+        }
+      };
+    } else {
+      script.onload = function() {
+        cb();
+      };
+    }
+    script.src = 'https://pixlcore.com/demos/webcamjs/webcam.js';
+    document.getElementsByTagName('head')[0].appendChild(script);
+  };
+
+  SentryErrorEmbed.prototype.onWebcamReady = function() {
+    Webcam.set({
+      width: 320,
+      height: 240,
+      image_format: 'jpeg',
+      jpeg_quality: 90
+    });
+    Webcam.attach('#webcam');
   };
 
   SentryErrorEmbed.prototype.build = function() {
@@ -108,22 +139,25 @@
       return;
     this._submitInProgress = true;
 
-    var xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState === XHR_DONE) {
-        if (xhr.status === 200) {
-          self.onSuccess();
-        } else if (xhr.status == 400) {
-          self.onFormError(JSON.parse(xhr.responseText));
-        } else {
-          self._errorWrapper.innerHTML = GENERIC_ERROR;
+    Webcam.snap(function(data) {
+      body += '&snapshot=' + encodeURIComponent(data);
+      var xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === XHR_DONE) {
+          if (xhr.status === 200) {
+            self.onSuccess();
+          } else if (xhr.status == 400) {
+            self.onFormError(JSON.parse(xhr.responseText));
+          } else {
+            self._errorWrapper.innerHTML = GENERIC_ERROR;
+          }
+          self._submitInProgress = false;
         }
-        self._submitInProgress = false;
-      }
-    };
-    xhr.open('POST', endpoint, true);
-    xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-    xhr.send(body);
+      };
+      xhr.open('POST', endpoint, true);
+      xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+      xhr.send(body);
+    });
   };
 
   SentryErrorEmbed.prototype.onSuccess = function() {
@@ -149,6 +183,7 @@
 
   SentryErrorEmbed.prototype.attach = function(parent) {
     parent.appendChild(this.element);
+    this.loadWebcamJS(this.onWebcamReady);
   };
 
   var options = window.sentryConfig || {};

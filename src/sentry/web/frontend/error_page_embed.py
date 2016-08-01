@@ -29,10 +29,11 @@ class UserReportForm(forms.ModelForm):
     comments = forms.CharField(widget=forms.Textarea(attrs={
         'placeholder': "I clicked on 'X' and then hit 'Confirm'",
     }))
+    snapshot = forms.CharField(required=False)
 
     class Meta:
         model = UserReport
-        fields = ('name', 'email', 'comments')
+        fields = ('name', 'email', 'comments', 'snapshot')
 
 
 class ErrorPageEmbedView(View):
@@ -130,6 +131,7 @@ class ErrorPageEmbedView(View):
                     name=report.name,
                     email=report.email,
                     comments=report.comments,
+                    snapshot=report.snapshot,
                     date_added=timezone.now(),
                 )
             return self._json_response(request)

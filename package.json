@@ -51,6 +51,7 @@
     "u2f-api": "0.0.8",
     "underscore": "1.8.3",
     "url-loader": "0.5.6",
+    "webcamjs": "^1.0.11",
     "webpack": "1.12.4"
   },
   "private": true,

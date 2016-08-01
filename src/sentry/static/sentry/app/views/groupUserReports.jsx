@@ -86,6 +86,7 @@ const GroupUserReports = React.createClass({
             <TimeSince date={item.dateCreated} />
             <div className="activity-author">{item.name} <small>{item.email}</small></div>
             <p dangerouslySetInnerHTML={{__html: body}} />
+            {item.snapshot && <p><img src={item.snapshot} /></p>}
           </div>
         </li>
       );

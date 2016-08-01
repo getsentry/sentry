@@ -4,9 +4,9 @@
 
   <script>
   window.sentryConfig = {
-    eventId: 'abcdfg',
+    eventId: '{{ event_id }}',
     dsn: '{{ dsn }}'
   };
   </script>
-  <script src="{% url 'sentry-error-page-embed' %}"></script>
+  <script src="{% url 'sentry-error-page-embed' %}?eventId={{ event_id }}&dsn={{ dsn }}"></script>
 </script>
