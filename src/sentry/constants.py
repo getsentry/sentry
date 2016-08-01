@@ -127,6 +127,7 @@ SENTRY_RULES = (
     'sentry.rules.conditions.regression_event.RegressionEventCondition',
     'sentry.rules.conditions.tagged_event.TaggedEventCondition',
     'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
+    'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
     'sentry.rules.conditions.event_attribute.EventAttributeCondition',
     'sentry.rules.conditions.level.LevelCondition',
 )
