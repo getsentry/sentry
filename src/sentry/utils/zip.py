@@ -1,4 +1,7 @@
+from __future__ import absolute_import
+
 import os
+import six
 import shutil
 import zipfile
 
@@ -34,7 +37,7 @@ def safe_extract_zip(f, path, strip_toplevel=True):
     """
     close = False
     if not isinstance(f, zipfile.ZipFile):
-        close = isinstance(f, basestring)
+        close = isinstance(f, six.text_types)
         zf = zipfile.ZipFile(f, 'r')
     else:
         zf = f

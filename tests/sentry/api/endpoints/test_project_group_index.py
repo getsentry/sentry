@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from datetime import timedelta
 from django.utils import timezone
 from exam import fixture
@@ -17,7 +19,7 @@ class GroupListTest(APITestCase):
     def _parse_links(self, header):
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = {}
-        for url, attrs in parse_link_header(header).iteritems():
+        for url, attrs in six.iteritems(parse_link_header(header)):
             links[attrs['rel']] = attrs
             attrs['href'] = url
         return links
@@ -44,7 +46,7 @@ class GroupListTest(APITestCase):
         )
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(group1.id)
+        assert response.data[0]['id'] == six.text_type(group1.id)
 
     def test_simple_pagination(self):
         now = timezone.now().replace(microsecond=0)
@@ -68,7 +70,7 @@ class GroupListTest(APITestCase):
         )
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(group2.id)
+        assert response.data[0]['id'] == six.text_type(group2.id)
 
         links = self._parse_links(response['Link'])
 
@@ -79,7 +81,7 @@ class GroupListTest(APITestCase):
         response = self.client.get(links['next']['href'], format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(group1.id)
+        assert response.data[0]['id'] == six.text_type(group1.id)
 
         links = self._parse_links(response['Link'])
 
@@ -91,7 +93,7 @@ class GroupListTest(APITestCase):
         # response = self.client.get(links['previous']['href'], format='json')
         # assert response.status_code == 200
         # assert len(response.data) == 1
-        # assert response.data[0]['id'] == str(group2.id)
+        # assert response.data[0]['id'] == six.text_type(group2.id)
 
         # links = self._parse_links(response['Link'])
 
@@ -117,7 +119,7 @@ class GroupListTest(APITestCase):
         # response = self.client.get(links['previous']['href'], format='json')
         # assert response.status_code == 200
         # assert len(response.data) == 1
-        # assert response.data[0]['id'] == str(group3.id)
+        # assert response.data[0]['id'] == six.text_type(group3.id)
 
     def test_stats_period(self):
         # TODO(dcramer): this test really only checks if validation happens
@@ -167,7 +169,7 @@ class GroupListTest(APITestCase):
         response = self.client.get(self.path, format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(group2.id)
+        assert response.data[0]['id'] == six.text_type(group2.id)
 
     def test_lookup_by_event_id(self):
         project = self.project
@@ -185,7 +187,7 @@ class GroupListTest(APITestCase):
                                    format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(group.id)
+        assert response.data[0]['id'] == six.text_type(group.id)
 
     def test_lookup_by_event_id_with_whitespace(self):
         project = self.project
@@ -203,7 +205,7 @@ class GroupListTest(APITestCase):
                                    format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(group.id)
+        assert response.data[0]['id'] == six.text_type(group.id)
 
     def test_lookup_by_unknown_event_id(self):
         project = self.project
@@ -656,10 +658,10 @@ class GroupUpdateTest(APITestCase):
             'merge': '1',
         }, format='json')
         assert response.status_code == 200
-        assert response.data['merge']['parent'] == str(group2.id)
+        assert response.data['merge']['parent'] == six.text_type(group2.id)
         assert sorted(response.data['merge']['children']) == sorted([
-            str(group1.id),
-            str(group3.id),
+            six.text_type(group1.id),
+            six.text_type(group3.id),
         ])
 
         assert len(merge_group.mock_calls) == 2

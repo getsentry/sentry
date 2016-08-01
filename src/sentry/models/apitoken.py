@@ -67,7 +67,7 @@ class ApiToken(Model):
         }
 
     def get_scopes(self):
-        return [k for k, v in self.scopes.iteritems() if v]
+        return [k for k, v in six.iteritems(self.scopes) if v]
 
     def has_scope(self, scope):
         return scope in self.scopes

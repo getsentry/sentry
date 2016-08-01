@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from rest_framework.response import Response
 
 from sentry.app import tsdb
@@ -27,6 +29,6 @@ class ProjectGroupStatsEndpoint(ProjectEndpoint, StatsMixin):
         )
 
         return Response({
-            str(k): v
+            six.text_type(k): v
             for k, v in data.items()
         })

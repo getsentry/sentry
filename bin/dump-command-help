@@ -97,7 +97,7 @@ def dump_command(out, cmd, path):
             })
 
     if isinstance(cmd, click.Group):
-        for child_name, child_cmd in cmd.commands.iteritems():
+        for child_name, child_cmd in six.iteritems(cmd.commands):
             dump_command(out, child_cmd, path + [child_name])
             data['subcommands'].append(child_name)
 

@@ -18,7 +18,7 @@ import base64
 import os
 import os.path
 import pytest
-import urllib
+import six
 
 from click.testing import CliRunner
 from contextlib import contextmanager
@@ -31,6 +31,7 @@ from django.test import TestCase, TransactionTestCase
 from django.utils.importlib import import_module
 from exam import before, fixture, Exam
 from rest_framework.test import APITestCase as BaseAPITestCase
+from six.moves.urllib.parse import urlencode
 
 from sentry import auth
 from sentry.auth.providers.dummy import DummyProvider
@@ -134,7 +135,7 @@ class BaseTestCase(Fixtures, Exam):
         return json.dumps(data)
 
     def _makePostMessage(self, data):
-        return base64.b64encode(self._makeMessage(data))
+        return base64.b64encode(self._makeMessage(data).encode('utf-8'))
 
     def _postWithHeader(self, data, key=None, secret=None, protocol=None):
         if key is None:
@@ -158,7 +159,7 @@ class BaseTestCase(Fixtures, Exam):
     def _postCspWithHeader(self, data, key=None, **extra):
         if isinstance(data, dict):
             body = json.dumps({'csp-report': data})
-        elif isinstance(data, basestring):
+        elif isinstance(data, six.string_types):
             body = data
         path = reverse('sentry-api-csp-report', kwargs={'project_id': self.project.id})
         path += '?sentry_key=%s' % self.projectkey.public_key
@@ -187,7 +188,7 @@ class BaseTestCase(Fixtures, Exam):
         }
         with self.tasks():
             resp = self.client.get(
-                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urllib.urlencode(qs)),
+                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urlencode(qs)),
                 **headers
             )
         return resp
@@ -208,7 +209,7 @@ class BaseTestCase(Fixtures, Exam):
         }
         with self.tasks():
             resp = self.client.post(
-                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urllib.urlencode(qs)),
+                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urlencode(qs)),
                 data=message,
                 content_type='application/json',
                 **headers

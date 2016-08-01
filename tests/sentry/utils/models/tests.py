@@ -39,10 +39,10 @@ class ModelTest(TestCase):
 
     def test_large_int(self):
         with self.assertRaises(AssertionError):
-            DummyModel.objects.create(normint=9223372036854775807L, foo='bar')
+            DummyModel.objects.create(normint=int(9223372036854775807), foo='bar')
 
         with self.assertRaises(AssertionError):
-            DummyModel.objects.create(bigint=9223372036854775808L, foo='bar')
+            DummyModel.objects.create(bigint=int(9223372036854775808), foo='bar')
 
         with self.assertRaises(AssertionError):
-            DummyModel.objects.create(posint=9223372036854775808L, foo='bar')
+            DummyModel.objects.create(posint=int(9223372036854775808), foo='bar')

@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
 import psycopg2
+import six
 import traceback
+
+from sentry.utils.compat import implements_to_string
 
 
 class CompositeTraceback(object):
@@ -12,11 +15,9 @@ class CompositeTraceback(object):
 
     def __iter__(self):
         for tb in self.__tb_list:
-            print repr(tb)
             while tb:
                 self.__curframe = tb
                 tb = tb.tb_next
-                print '*', repr(tb)
                 yield tb
 
     def tb_frame(self):
@@ -29,10 +30,11 @@ class CompositeTraceback(object):
         return self.__curframe.tb_lineno
 
     def tb_next(self):
-        self.__iterator.next()
+        six.next(self.__iterator)
         return self
 
 
+@implements_to_string
 class TransactionAborted(psycopg2.DatabaseError):
     def __init__(self, exc_info, cur_exc_info):
         self.exc_info = exc_info
@@ -42,9 +44,6 @@ class TransactionAborted(psycopg2.DatabaseError):
         return '\n'.join(traceback.format_exception(self.__class__, self, self.get_traceback()))
 
     def __str__(self):
-        return str(unicode(self))
-
-    def __unicode__(self):
         return u'(%s) %s' % (self.cur_exc_info[0].__name__, self.cur_exc_info[1])
 
     def get_traceback(self):

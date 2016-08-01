@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
+
 from sentry.models import EventUser
 from sentry.testutils import APITestCase
 
@@ -39,8 +42,8 @@ class ProjectUsersTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert sorted(map(lambda x: x['id'], response.data)) == sorted([
-            str(self.euser1.id),
-            str(self.euser2.id),
+            six.text_type(self.euser1.id),
+            six.text_type(self.euser2.id),
         ])
 
     def test_empty_search_query(self):
@@ -58,7 +61,7 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(self.euser2.id)
+        assert response.data[0]['id'] == six.text_type(self.euser2.id)
 
         response = self.client.get('{}?query=username:ba'.format(self.path), format='json')
 
@@ -72,7 +75,7 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(self.euser1.id)
+        assert response.data[0]['id'] == six.text_type(self.euser1.id)
 
         response = self.client.get('{}?query=email:@example.com'.format(self.path), format='json')
 
@@ -86,7 +89,7 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(self.euser1.id)
+        assert response.data[0]['id'] == six.text_type(self.euser1.id)
 
         response = self.client.get('{}?query=id:3'.format(self.path), format='json')
 
@@ -100,7 +103,7 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(self.euser2.id)
+        assert response.data[0]['id'] == six.text_type(self.euser2.id)
 
         response = self.client.get('{}?query=ip:0'.format(self.path), format='json')
 

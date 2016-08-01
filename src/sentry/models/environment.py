@@ -14,7 +14,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField, Model, sane_repr
 )
 from sentry.utils.cache import cache
-from sentry.utils.hashlib import md5
+from sentry.utils.hashlib import md5_text
 
 
 class Environment(Model):
@@ -33,7 +33,7 @@ class Environment(Model):
 
     @classmethod
     def get_cache_key(cls, project_id, name):
-        return 'env:1:%s:%s' % (project_id, md5(name).hexdigest())
+        return 'env:1:%s:%s' % (project_id, md5_text(name).hexdigest())
 
     @classmethod
     def get_or_create(cls, project, name):

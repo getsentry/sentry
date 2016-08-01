@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import OrganizationMember
 
@@ -15,13 +17,13 @@ class OrganizationMemberSerializer(Serializer):
 
         return {
             item: {
-                'user': users[str(item.user_id)] if item.user_id else None,
+                'user': users[six.text_type(item.user_id)] if item.user_id else None,
             } for item in item_list
         }
 
     def serialize(self, obj, attrs, user):
         d = {
-            'id': str(obj.id),
+            'id': six.text_type(obj.id),
             'email': obj.get_email(),
             'name': obj.user.get_display_name() if obj.user else obj.get_email(),
             'user': attrs['user'],

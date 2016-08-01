@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-from urllib import quote
+from six.moves.urllib.parse import quote
 from uuid import uuid4
 
 from sentry.models import UserReport

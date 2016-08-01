@@ -18,10 +18,10 @@ from django.db import router
 from django.db.models import Manager, Model
 from django.db.models.signals import (
     post_save, post_delete, post_init, class_prepared)
-from django.utils.encoding import smart_str
-from hashlib import md5
+from django.utils.encoding import smart_text
 
 from sentry.utils.cache import cache
+from sentry.utils.hashlib import md5_text
 
 from .query import create_or_update
 
@@ -56,13 +56,17 @@ def __prep_key(model, key):
 
 def make_key(model, prefix, kwargs):
     kwargs_bits = []
-    for k, v in sorted(kwargs.iteritems()):
+    for k, v in sorted(six.iteritems(kwargs)):
         k = __prep_key(model, k)
-        v = smart_str(__prep_value(model, k, v))
+        v = smart_text(__prep_value(model, k, v))
         kwargs_bits.append('%s=%s' % (k, v))
     kwargs_bits = ':'.join(kwargs_bits)
 
-    return '%s:%s:%s' % (prefix, model.__name__, md5(kwargs_bits).hexdigest())
+    return '%s:%s:%s' % (
+        prefix,
+        model.__name__,
+        md5_text(kwargs_bits).hexdigest()
+    )
 
 
 class BaseManager(Manager):
@@ -87,7 +91,7 @@ class BaseManager(Manager):
         self.__local_cache.value = value
 
     def _generate_cache_version(self):
-        return md5(
+        return md5_text(
             '&'.join(sorted(f.attname for f in self.model._meta.fields))
         ).hexdigest()[:3]
 
@@ -238,7 +242,7 @@ class BaseManager(Manager):
         if not self.cache_fields or len(kwargs) > 1:
             return self.get(**kwargs)
 
-        key, value = kwargs.items()[0]
+        key, value = next(six.iteritems(kwargs))
         pk_name = self.model._meta.pk.name
         if key == 'pk':
             key = pk_name

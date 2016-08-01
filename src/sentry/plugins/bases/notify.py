@@ -8,6 +8,7 @@ sentry.plugins.bases.notify
 from __future__ import absolute_import, print_function
 
 import logging
+import six
 
 from django import forms
 
@@ -114,7 +115,7 @@ class NotificationPlugin(Plugin):
             )
         )
 
-        disabled = set(u for u, v in alert_settings.iteritems() if v == 0)
+        disabled = set(u for u, v in six.iteritems(alert_settings) if v == 0)
 
         member_set = set(project.member_set.exclude(
             user__in=disabled,

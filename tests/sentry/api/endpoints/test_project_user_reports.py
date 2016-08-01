@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.testutils import APITestCase
 from sentry.models import GroupStatus, UserReport
 
@@ -49,7 +51,7 @@ class ProjectUserReportListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert sorted(map(lambda x: x['id'], response.data)) == sorted([
-            str(report_1.id),
+            six.text_type(report_1.id),
         ])
 
     def test_all_reports(self):
@@ -76,7 +78,7 @@ class ProjectUserReportListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert sorted(map(lambda x: x['id'], response.data)) == sorted([
-            str(report_1.id),
+            six.text_type(report_1.id),
         ])
 
 

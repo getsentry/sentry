@@ -67,7 +67,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             resp = self.client.post(base_path, {'provider': 'dummy'})
 
             assert resp.status_code == 200
-            assert self.provider.TEMPLATE in resp.content
+            assert self.provider.TEMPLATE in resp.content.decode('utf-8')
 
             path = reverse('sentry-auth-sso')
 

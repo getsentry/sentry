@@ -48,10 +48,10 @@ def static_media(request, **kwargs):
 
     try:
         document_root, path = resolve(path)
-    except Http404 as e:
+    except Http404:
         # Return back a simpler plain-text 404 response, more suitable
         # for static files, rather than our full blown HTML.
-        return HttpResponseNotFound(e.message + '\n', content_type='text/plain')
+        return HttpResponseNotFound('', content_type='text/plain')
 
     if 'gzip' in request.META.get('HTTP_ACCEPT_ENCODING', '') and not path.endswith('.gz') and not settings.DEBUG:
         paths = (path + '.gz', path)

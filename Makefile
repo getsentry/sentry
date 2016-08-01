@@ -172,7 +172,7 @@ travis-install-mysql: travis-install-python
 travis-install-acceptance: install-npm travis-install-postgres
 travis-install-js: travis-upgrade-pip install-python install-python-tests install-npm
 travis-install-cli: travis-install-python
-travis-install-dist: travis-noop
+travis-install-dist: travis-install-python
 
 .PHONY: travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
 

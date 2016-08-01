@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 import itertools
 import logging
+import six
 
 import sentry
 
@@ -162,7 +163,7 @@ class MailPlugin(NotificationPlugin):
         # data which may show PII or source code
         if not enhanced_privacy:
             interface_list = []
-            for interface in event.interfaces.itervalues():
+            for interface in six.itervalues(event.interfaces):
                 body = interface.to_email_html(event)
                 if not body:
                     continue
@@ -206,10 +207,10 @@ class MailPlugin(NotificationPlugin):
         # notification template. If there is more than one record for a group,
         # just choose the most recent one.
         if len(counts) == 1:
-            group = counts.keys()[0]
+            group = six.next(iter(counts))
             record = max(
                 itertools.chain.from_iterable(
-                    groups.get(group, []) for groups in digest.itervalues(),
+                    groups.get(group, []) for groups in six.itervalues(digest),
                 ),
                 key=lambda record: record.timestamp,
             )

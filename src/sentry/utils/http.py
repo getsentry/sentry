@@ -7,14 +7,13 @@ sentry.utils.http
 """
 from __future__ import absolute_import
 
+import ipaddress
 import six
-import urllib
 
 from collections import namedtuple
-from urlparse import urlparse, urljoin
-from ipaddr import IPNetwork
-
 from django.conf import settings
+from six.moves.urllib.parse import urlencode, urljoin, urlparse
+
 from sentry import options
 
 
@@ -51,7 +50,7 @@ def safe_urlencode(params, doseq=0):
         else:
             new_params.append((k, six.text_type(v)))
 
-    return urllib.urlencode(new_params, doseq)
+    return urlencode(new_params, doseq)
 
 
 def is_same_domain(url1, url2):
@@ -174,15 +173,13 @@ def is_valid_ip(ip_address, project):
     if not blacklist:
         return True
 
-    ip_network = IPNetwork(ip_address)
     for addr in blacklist:
         # We want to error fast if it's an exact match
         if ip_address == addr:
             return False
 
         # Check to make sure it's actually a range before
-        # attempting to see if we're within that range
-        if '/' in addr and ip_network in IPNetwork(addr):
+        if '/' in addr and ipaddress.ip_address(six.text_type(ip_address)) in ipaddress.ip_network(six.text_type(addr)):
             return False
 
     return True

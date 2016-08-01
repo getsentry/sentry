@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+import six
+
 from datetime import timedelta
 from django.utils import timezone
 
@@ -20,7 +22,7 @@ class GroupDetailsTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(group.id)
+        assert response.data['id'] == six.text_type(group.id)
         assert response.data['firstRelease'] is None
 
     def test_with_first_release(self):
@@ -43,7 +45,7 @@ class GroupDetailsTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(group.id)
+        assert response.data['id'] == six.text_type(group.id)
         assert response.data['firstRelease']['version'] == release.version
 
 

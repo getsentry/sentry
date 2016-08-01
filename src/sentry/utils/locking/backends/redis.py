@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+
+import six
+
 from uuid import uuid4
 
 from sentry.utils import redis
@@ -26,7 +30,7 @@ class RedisLockBackend(LockBackend):
         # *digest* key, even though a digest is composed of multiple values at
         # different keys that would otherwise be placed on different
         # partitions.)
-        if isinstance(routing_key, (int, long)):
+        if isinstance(routing_key, six.integer_types):
             index = routing_key % len(self.cluster.hosts)
             return self.cluster.get_local_client(index)
 

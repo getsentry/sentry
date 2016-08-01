@@ -149,7 +149,7 @@ class StacktraceTest(TestCase):
             'lineno': 1,
             'filename': 'bar.py',
             'in_app': False,
-        } for _ in xrange(11)]
+        } for _ in range(11)]
         interface = Stacktrace.to_python(dict(frames=frames))
         result = interface.get_hash(system_frames=False)
         assert not result
@@ -486,7 +486,7 @@ class SlimFrameDataTest(TestCase):
 
     def test_over_max(self):
         values = []
-        for n in xrange(5):
+        for n in range(5):
             values.append({
                 'filename': 'frame %d' % n,
                 'vars': {'foo': 'bar'},
@@ -499,13 +499,13 @@ class SlimFrameDataTest(TestCase):
 
         assert len(interface.frames) == 5
 
-        for value, num in zip(interface.frames[:2], xrange(2)):
+        for value, num in zip(interface.frames[:2], range(2)):
             assert value.filename == 'frame %d' % num
             assert value.vars is not None
             assert value.pre_context is not None
             assert value.post_context is not None
 
-        for value, num in zip(interface.frames[3:], xrange(3, 5)):
+        for value, num in zip(interface.frames[3:], range(3, 5)):
             assert value.filename == 'frame %d' % num
             assert value.vars is not None
             assert value.pre_context is not None

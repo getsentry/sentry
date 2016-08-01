@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.models import GroupTagKey, GroupTagValue, TagKey, TagValue
 from sentry.testutils import APITestCase
 
@@ -42,7 +44,7 @@ class GroupTagDetailsTest(APITestCase):
         url = '/api/0/issues/{}/tags/{}/'.format(group.id, tagkey.key)
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(tagkey.id)
-        assert response.data['key'] == str(tagkey.key)
+        assert response.data['id'] == six.text_type(tagkey.id)
+        assert response.data['key'] == six.text_type(tagkey.key)
         assert response.data['uniqueValues'] == 1
         assert response.data['totalValues'] == 3

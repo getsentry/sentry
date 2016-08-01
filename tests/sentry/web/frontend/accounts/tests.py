@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import mock
+import six
 
 from django.core.urlresolvers import reverse
 from exam import fixture
@@ -58,7 +59,7 @@ class SettingsTest(TestCase):
             'email': 'admin@localhost',
             'name': 'Foo bar',
         }
-        return dict((k, v) for k, v in params.iteritems() if k not in without)
+        return dict((k, v) for k, v in six.iteritems(params) if k not in without)
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)
@@ -187,7 +188,7 @@ class NotificationSettingsTest(TestCase):
         params = {
             'alert_email': 'foo@example.com',
         }
-        return dict((k, v) for k, v in params.iteritems() if k not in without)
+        return dict((k, v) for k, v in six.iteritems(params) if k not in without)
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)

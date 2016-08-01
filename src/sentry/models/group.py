@@ -10,12 +10,12 @@ from __future__ import absolute_import, print_function
 import logging
 import math
 import re
+import six
 import time
 import warnings
+
 from base64 import b16decode, b16encode
 from datetime import timedelta
-
-import six
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
@@ -266,14 +266,16 @@ class Group(Model):
         return self.status
 
     def get_share_id(self):
-        return b16encode('{}.{}'.format(self.project_id, self.id)).lower()
+        return b16encode(
+            ('{}.{}'.format(self.project_id, self.id)).encode('utf-8')
+        ).lower()
 
     @classmethod
     def from_share_id(cls, share_id):
         if not share_id:
             raise cls.DoesNotExist
         try:
-            project_id, group_id = b16decode(share_id.upper()).split('.')
+            project_id, group_id = b16decode(share_id.upper()).decode('utf-8').split('.')
         except (ValueError, TypeError):
             raise cls.DoesNotExist
         if not (project_id.isdigit() and group_id.isdigit()):

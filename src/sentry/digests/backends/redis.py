@@ -3,9 +3,10 @@ from __future__ import absolute_import
 import itertools
 import logging
 import random
+import six
 import time
-from contextlib import contextmanager
 
+from contextlib import contextmanager
 from redis.exceptions import ResponseError, WatchError
 
 from sentry.digests import Record, ScheduleEntry
@@ -217,7 +218,7 @@ class RedisBackend(Backend):
             # expected items in any specific scheduling interval to chunk *
             # maximum_iterations.
             maximum_iterations = 1000
-            for i in xrange(maximum_iterations):
+            for i in range(maximum_iterations):
                 items = connection.zrangebyscore(
                     make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
                     min=0,
@@ -283,10 +284,10 @@ class RedisBackend(Backend):
         extra = 0
         start = 0
         maximum_iterations = 1000
-        for i in xrange(maximum_iterations):
+        for i in range(maximum_iterations):
             fetch_size = chunk + extra
             entries = map(
-                lambda (key, timestamp): ScheduleEntry(key, timestamp),
+                lambda x: ScheduleEntry(*x),
                 connection.zrangebyscore(
                     make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
                     min=start,
@@ -341,7 +342,8 @@ class RedisBackend(Backend):
                 extra = min(
                     ilen(
                         itertools.takewhile(
-                            lambda (lock, entry): entry.timestamp == start,
+                            # (lock, entry)
+                            lambda x: x[1].timestamp == start,
                             can_reschedule[False][::-1],
                         ),
                     ),
@@ -478,7 +480,7 @@ class RedisBackend(Backend):
                     try:
                         pipeline.execute()
                     except ResponseError as error:
-                        if 'no such key' in str(error):
+                        if 'no such key' in six.text_type(error):
                             logger.debug('Could not move timeline for digestion (likely has no contents.)')
                         else:
                             raise

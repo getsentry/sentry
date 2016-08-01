@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+import six
+
 from sentry.api.serializers import serialize
 from sentry.testutils import TestCase
 from sentry.models import EventError
@@ -12,7 +14,7 @@ class EventSerializerTest(TestCase):
         event = self.create_event(event_id='a')
 
         result = serialize(event)
-        assert result['id'] == str(event.id)
+        assert result['id'] == six.text_type(event.id)
         assert result['eventID'] == 'a'
 
     def test_eventerror(self):

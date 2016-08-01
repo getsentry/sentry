@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+
+import six
+
 try:
     from symsynd.driver import Driver, SymbolicationError
     from symsynd.report import ReportSymbolizer
@@ -127,7 +131,7 @@ class Symbolizer(object):
                 'error': 'frame #%d: %s: %s' % (
                     idx,
                     e.__class__.__name__,
-                    str(e),
+                    six.text_type(e),
                 )
             })
 

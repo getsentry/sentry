@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
@@ -76,11 +78,11 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         data = serialize(event, request.user)
 
         if next_event:
-            data['nextEventID'] = str(next_event.event_id)
+            data['nextEventID'] = six.text_type(next_event.event_id)
         else:
             data['nextEventID'] = None
         if prev_event:
-            data['previousEventID'] = str(prev_event.event_id)
+            data['previousEventID'] = six.text_type(prev_event.event_id)
         else:
             data['previousEventID'] = None
 

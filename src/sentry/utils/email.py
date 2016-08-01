@@ -9,9 +9,11 @@ from __future__ import absolute_import
 
 import logging
 import os
+import six
 import subprocess
 import tempfile
 import time
+
 from email.utils import parseaddr
 from functools import partial
 from operator import attrgetter
@@ -86,7 +88,7 @@ def email_to_group_id(address):
 
 
 def group_id_to_email(group_id):
-    signed_data = signer.sign(str(group_id))
+    signed_data = signer.sign(six.text_type(group_id))
     return '@'.join((
         signed_data.replace(':', '+'),
         options.get('mail.reply-hostname') or get_from_email_domain(),
@@ -259,9 +261,9 @@ class MessageBuilder(object):
             try:
                 headers['List-Id'] = make_listid_from_instance(reference)
             except ListResolver.UnregisteredTypeError as error:
-                logger.debug(str(error))
+                logger.debug(six.text_type(error))
             except AssertionError as error:
-                logger.warning(str(error))
+                logger.warning(six.text_type(error))
 
     def __render_html_body(self):
         html_body = None
@@ -446,7 +448,7 @@ class PreviewBackend(BaseEmailBackend):
     """
     def send_messages(self, email_messages):
         for message in email_messages:
-            content = str(message.message())
+            content = six.text_type(message.message())
             preview = tempfile.NamedTemporaryFile(
                 delete=False,
                 prefix='sentry-email-preview-',

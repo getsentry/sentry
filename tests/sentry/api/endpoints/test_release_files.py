@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse
 
@@ -38,7 +40,7 @@ class ReleaseFilesListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(releasefile.id)
+        assert response.data[0]['id'] == six.text_type(releasefile.id)
 
 
 class ReleaseFileCreateTest(APITestCase):

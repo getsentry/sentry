@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import time
 import re
+import six
 
 from datetime import datetime, timedelta
 from django.conf import settings
@@ -190,7 +191,7 @@ class UserSocialAuth(models.Model):
 
     @classmethod
     def create_social_auth(cls, user, uid, provider):
-        if not isinstance(uid, basestring):
+        if not isinstance(uid, six.string_types):
             uid = str(uid)
         return cls.objects.create(user=user, uid=uid, provider=provider)
 

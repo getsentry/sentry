@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 
 class EventError(object):
     INVALID_DATA = 'invalid_data'
@@ -48,4 +50,4 @@ class EventError(object):
         return cls._messages[data['type']].format(**data)
 
     def to_dict(self):
-        return {k: v for k, v in self.iteritems() if k != 'type'}
+        return {k: v for k, v in six.iteritems(self) if k != 'type'}

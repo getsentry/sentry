@@ -16,9 +16,6 @@ field, check OAuthBackend class for details on how to extend it.
 """
 from __future__ import absolute_import
 
-from urllib import urlencode
-from urllib2 import HTTPError
-
 try:
     import json as simplejson
 except ImportError:
@@ -28,7 +25,8 @@ except ImportError:
         from django.utils import simplejson
 
 from django.conf import settings
-
+from six.moves.urllib.error import HTTPError
+from six.moves.urllib.parse import urlencode
 from social_auth.utils import dsa_urlopen
 from social_auth.backends import BaseOAuth2, OAuthBackend
 from social_auth.exceptions import AuthFailed

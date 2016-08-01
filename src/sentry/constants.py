@@ -12,11 +12,12 @@ from __future__ import absolute_import, print_function
 
 import logging
 import os.path
-from operator import attrgetter
-from collections import OrderedDict
+import six
 
+from collections import OrderedDict
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
+from operator import attrgetter
 
 
 def get_all_languages():
@@ -89,7 +90,7 @@ LOG_LEVELS = {
 }
 DEFAULT_LOG_LEVEL = 'error'
 DEFAULT_LOGGER_NAME = ''
-LOG_LEVELS_MAP = {v: k for k, v in LOG_LEVELS.iteritems()}
+LOG_LEVELS_MAP = {v: k for k, v in six.iteritems(LOG_LEVELS)}
 
 
 # Default alerting threshold values

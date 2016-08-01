@@ -52,7 +52,7 @@ SENTRY_WEB_OPTIONS = {
 SENTRY_OPTIONS.update({
     'redis.clusters': {
         'default': {
-            'hosts': {i: {'port': SENTRY_APIDOCS_REDIS_PORT} for i in xrange(0, 4)},
+            'hosts': {i: {'port': SENTRY_APIDOCS_REDIS_PORT} for i in range(0, 4)},
         },
     },
     'system.secret-key': 'super secret secret key',

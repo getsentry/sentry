@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import functools
 import posixpath
+import six
+
 from threading import Lock
 
 import rb
@@ -124,7 +126,7 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
             results = client.info()
     except Exception as e:
         # Any connection issues should be caught here.
-        raise InvalidConfiguration(unicode(e))
+        raise InvalidConfiguration(six.text_type(e))
 
     versions = {}
     for id, info in results.value.items():

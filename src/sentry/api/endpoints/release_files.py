@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
-from StringIO import StringIO
-
 from django.db import IntegrityError, transaction
+from six import StringIO
 from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response

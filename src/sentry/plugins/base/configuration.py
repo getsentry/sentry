@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import six
 
 from sentry import options
 from sentry.models import ProjectOption
@@ -52,7 +53,7 @@ def default_plugin_config(plugin, project, request):
             if not test_results:
                 test_results = 'No errors returned'
         else:
-            for field, value in form.cleaned_data.iteritems():
+            for field, value in six.iteritems(form.cleaned_data):
                 key = '%s:%s' % (plugin_key, field)
                 if project:
                     ProjectOption.objects.set_value(project, key, value)

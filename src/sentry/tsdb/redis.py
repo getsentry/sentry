@@ -11,16 +11,17 @@ import itertools
 import logging
 import operator
 import random
+import six
 import uuid
+
 from binascii import crc32
 from collections import defaultdict, namedtuple
 from datetime import timedelta
-from hashlib import md5
-
-import six
 from django.utils import timezone
+from hashlib import md5
 from pkg_resources import resource_string
 from redis.client import Script
+from six.moves import reduce
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.utils.dates import to_timestamp
@@ -141,7 +142,7 @@ class RedisTSDB(BaseTSDB):
         # efficient hashed format.
         if not isinstance(key, six.integer_types):
             # enforce utf-8 encoding
-            if isinstance(key, unicode):
+            if isinstance(key, six.text_type):
                 key = key.encode('utf-8')
             return md5(repr(key)).hexdigest()
         return key
@@ -209,7 +210,7 @@ class RedisTSDB(BaseTSDB):
         for epoch, key, count in results:
             results_by_key[key][epoch] = int(count.value or 0)
 
-        for key, points in results_by_key.iteritems():
+        for key, points in six.iteritems(results_by_key):
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
@@ -269,7 +270,7 @@ class RedisTSDB(BaseTSDB):
                         ),
                     ))
 
-        return {key: [(timestamp, promise.value) for timestamp, promise in value] for key, value in responses.iteritems()}
+        return {key: [(timestamp, promise.value) for timestamp, promise in value] for key, value in six.iteritems(responses)}
 
     def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
         """
@@ -292,7 +293,7 @@ class RedisTSDB(BaseTSDB):
 
                 responses[key] = client.target_key(key).execute_command('PFCOUNT', *ks)
 
-        return {key: value.value for key, value in responses.iteritems()}
+        return {key: value.value for key, value in six.iteritems(responses)}
 
     def get_distinct_counts_union(self, model, keys, start, end=None, rollup=None):
         if not keys:
@@ -320,11 +321,12 @@ class RedisTSDB(BaseTSDB):
             hosts[router.get_host_for_key(key)].add(key)
             return hosts
 
-        def get_partition_aggregate((host, keys)):
+        def get_partition_aggregate(value):
             """
             Fetch the HyperLogLog value (in its raw byte representation) that
             results from merging all HyperLogLogs at the provided keys.
             """
+            (host, keys) = value
             destination = make_temporary_key('p:{}'.format(host))
             client = self.cluster.get_local_client(host)
             with client.pipeline(transaction=False) as pipeline:
@@ -394,7 +396,7 @@ class RedisTSDB(BaseTSDB):
         commands = {}
 
         for model, request in requests:
-            for key, items in request.iteritems():
+            for key, items in six.iteritems(request):
                 keys = []
                 expirations = {}
 
@@ -507,7 +509,7 @@ class RedisTSDB(BaseTSDB):
 
         responses = {}
 
-        for key, series in self.get_frequency_series(model, items, start, end, rollup).iteritems():
+        for key, series in six.iteritems(self.get_frequency_series(model, items, start, end, rollup)):
             response = responses[key] = {}
             for timestamp, results in series:
                 for member, value in results.items():

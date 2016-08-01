@@ -8,6 +8,7 @@ sentry.models.project
 from __future__ import absolute_import, print_function
 
 import logging
+import six
 import warnings
 
 from django.conf import settings
@@ -166,7 +167,7 @@ class Project(Model):
 
     def is_internal_project(self):
         for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
-            if str(self.id) == str(value) or str(self.slug) == str(value):
+            if six.text_type(self.id) == six.text_type(value) or six.text_type(self.slug) == six.text_type(value):
                 return True
         return False
 
