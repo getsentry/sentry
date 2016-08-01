@@ -10,12 +10,12 @@ from __future__ import absolute_import, print_function
 import logging
 import math
 import re
+import six
 import time
 import warnings
+
 from base64 import b16decode, b16encode
 from datetime import timedelta
-
-import six
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone

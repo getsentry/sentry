@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from six import StringIO
 
 from sentry.models import File, UserAvatar
 from sentry.testutils import TestCase
-from sentry.utils.compat import StringIO
 from sentry.web.frontend.generic import FOREVER_CACHE
 
 

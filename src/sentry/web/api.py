@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import six
 import traceback
 
 from django.conf import settings
@@ -327,7 +328,7 @@ class StoreView(APIView):
 
         content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')
 
-        if isinstance(data, basestring):
+        if isinstance(data, six.string_types):
             if content_encoding == 'gzip':
                 data = helper.decompress_gzip(data)
             elif content_encoding == 'deflate':

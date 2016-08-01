@@ -3,6 +3,8 @@
 from __future__ import absolute_import
 
 import os
+import six
+
 from sentry.testutils import CliTestCase
 from sentry.runner.commands.init import init
 
@@ -19,7 +21,8 @@ class InitTest(CliTestCase):
 
             # Make sure the python file is valid
             ctx = {'__file__': 'sentry.conf.py'}
-            execfile('config/sentry.conf.py', ctx)
+            with open('config/sentry.conf.py') as fp:
+                six.exec_(fp.read(), ctx)
             assert 'DEBUG' in ctx
 
             # Make sure the yaml file is valid

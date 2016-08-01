@@ -158,7 +158,7 @@ class RedisBackendTestCase(BaseRedisBackendTestCase):
 
         with mock.patch('random.random', return_value=1.0):
             with self.assertChanges(get_timeline_size, before=0, after=fill):
-                for _ in xrange(fill):
+                for _ in range(fill):
                     backend.add(timeline, next(self.records))
 
         with mock.patch('random.random', return_value=0.0):
@@ -173,11 +173,11 @@ class RedisBackendTestCase(BaseRedisBackendTestCase):
 
         n = 10
 
-        for i in xrange(n):
+        for i in range(n):
             with backend.cluster.map() as client:
                 client.zadd(waiting_set_key, i, 'timelines:{0}'.format(i))
 
-        for i in xrange(n, n * 2):
+        for i in range(n, n * 2):
             with backend.cluster.map() as client:
                 client.zadd(ready_set_key, i, 'timelines:{0}'.format(i))
 

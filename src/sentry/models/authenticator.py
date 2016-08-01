@@ -284,7 +284,7 @@ class RecoveryCodeInterface(AuthenticatorInterface):
         rv = []
         if self.is_enrolled:
             h = hmac.new(self.config['salt'], None, hashlib.sha1)
-            for x in xrange(10):
+            for x in range(10):
                 h.update('%s|' % x)
                 rv.append(base64.b32encode(h.digest())[:8])
         return rv

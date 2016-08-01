@@ -2,13 +2,12 @@ from __future__ import absolute_import
 
 import uuid
 
-from PIL import Image
-
 from django.db import models
+from PIL import Image
+from six import StringIO
 
 from sentry.db.models import FlexibleForeignKey, Model
 from sentry.utils.cache import cache
-from sentry.utils.compat import StringIO
 
 
 class UserAvatar(Model):

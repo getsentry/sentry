@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import psycopg2
+import six
 import traceback
 
 
@@ -12,11 +13,9 @@ class CompositeTraceback(object):
 
     def __iter__(self):
         for tb in self.__tb_list:
-            print repr(tb)
             while tb:
                 self.__curframe = tb
                 tb = tb.tb_next
-                print '*', repr(tb)
                 yield tb
 
     def tb_frame(self):
@@ -42,7 +41,7 @@ class TransactionAborted(psycopg2.DatabaseError):
         return '\n'.join(traceback.format_exception(self.__class__, self, self.get_traceback()))
 
     def __str__(self):
-        return str(unicode(self))
+        return str(six.text_type(self))
 
     def __unicode__(self):
         return u'(%s) %s' % (self.cur_exc_info[0].__name__, self.cur_exc_info[1])

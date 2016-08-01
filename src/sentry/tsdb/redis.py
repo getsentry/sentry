@@ -11,14 +11,14 @@ import itertools
 import logging
 import operator
 import random
+import six
 import uuid
+
 from binascii import crc32
 from collections import defaultdict, namedtuple
 from datetime import timedelta
-from hashlib import md5
-
-import six
 from django.utils import timezone
+from hashlib import md5
 from pkg_resources import resource_string
 from redis.client import Script
 
@@ -141,7 +141,7 @@ class RedisTSDB(BaseTSDB):
         # efficient hashed format.
         if not isinstance(key, six.integer_types):
             # enforce utf-8 encoding
-            if isinstance(key, unicode):
+            if isinstance(key, six.text_type):
                 key = key.encode('utf-8')
             return md5(repr(key)).hexdigest()
         return key
@@ -320,11 +320,12 @@ class RedisTSDB(BaseTSDB):
             hosts[router.get_host_for_key(key)].add(key)
             return hosts
 
-        def get_partition_aggregate((host, keys)):
+        def get_partition_aggregate(value):
             """
             Fetch the HyperLogLog value (in its raw byte representation) that
             results from merging all HyperLogLogs at the provided keys.
             """
+            (host, keys) = value
             destination = make_temporary_key('p:{}'.format(host))
             client = self.cluster.get_local_client(host)
             with client.pipeline(transaction=False) as pipeline:
@@ -367,7 +368,7 @@ class RedisTSDB(BaseTSDB):
         return merge_aggregates(
             map(
                 get_partition_aggregate,
-                reduce(
+                six.reduce(
                     map_key_to_host,
                     keys,
                     defaultdict(set),

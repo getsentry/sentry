@@ -73,7 +73,7 @@ def js_lint(file_list=None):
     eslint_path = os.path.join(project_root, 'node_modules', '.bin', 'eslint')
 
     if not os.path.exists(eslint_path):
-        print '!! Skipping JavaScript linting because eslint is not installed.'
+        print('!! Skipping JavaScript linting because eslint is not installed.')
         return False
 
     if file_list is None:
@@ -83,10 +83,14 @@ def js_lint(file_list=None):
     eslint_config = os.path.join(project_root, '.eslintrc')
 
     has_errors = False
-    file_list = filter(lambda x: x.endswith(('.js', '.jsx')), file_list)
+    file_list = [
+        x for x in file_list
+        if x.endswith(('.js', '.jsx'))
+    ]
+
     if file_list:
         status = Popen([eslint_path, '--config', eslint_config, '--ext', '.jsx']
-                       + list(file_list)).wait()
+                       + file_list).wait()
         has_errors = status != 0
 
     return has_errors

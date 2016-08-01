@@ -12,10 +12,10 @@ import urllib
 
 from collections import namedtuple
 from urlparse import urlparse, urljoin
-from ipaddr import IPNetwork
 
 from django.conf import settings
 from sentry import options
+from sentry.utils.compat import ipaddress
 
 
 ParsedUriMatch = namedtuple('ParsedUriMatch', ['scheme', 'domain', 'path'])
@@ -174,7 +174,7 @@ def is_valid_ip(ip_address, project):
     if not blacklist:
         return True
 
-    ip_network = IPNetwork(ip_address)
+    ip_network = ipaddress.IPNetwork(ip_address)
     for addr in blacklist:
         # We want to error fast if it's an exact match
         if ip_address == addr:
@@ -182,7 +182,7 @@ def is_valid_ip(ip_address, project):
 
         # Check to make sure it's actually a range before
         # attempting to see if we're within that range
-        if '/' in addr and ip_network in IPNetwork(addr):
+        if '/' in addr and ip_network in ipaddress.IPNetwork(addr):
             return False
 
     return True

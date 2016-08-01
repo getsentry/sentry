@@ -70,7 +70,7 @@ def get_fingerprint_for_event(event):
     fingerprint = event.data.get('fingerprint')
     if fingerprint is None:
         return ['{{ default }}']
-    if isinstance(fingerprint, basestring):
+    if isinstance(fingerprint, six.string_types):
         return [fingerprint]
     return fingerprint
 
@@ -106,7 +106,7 @@ def get_hashes_from_fingerprint(event, fingerprint):
         hash_count = 1
 
     hashes = []
-    for idx in xrange(hash_count):
+    for idx in range(hash_count):
         result = []
         for bit in fingerprint:
             if bit in default_values:
@@ -126,7 +126,7 @@ def get_hashes_from_fingerprint_with_reason(event, fingerprint):
         hash_count = 1
 
     hashes = OrderedDict((bit, []) for bit in fingerprint)
-    for idx in xrange(hash_count):
+    for idx in range(hash_count):
         for bit in fingerprint:
             if bit in default_values:
                 hashes[bit].append(default_hashes)
@@ -503,7 +503,7 @@ class EventManager(object):
 
         if not message:
             message = ''
-        elif not isinstance(message, basestring):
+        elif not isinstance(message, six.string_types):
             message = force_text(message)
 
         for value in event_metadata.itervalues():

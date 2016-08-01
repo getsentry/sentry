@@ -5,11 +5,11 @@ import responses
 import pytest
 
 from django.core.exceptions import SuspiciousOperation
-from ipaddr import IPNetwork
 from mock import patch
 
 from sentry import http
 from sentry.testutils import TestCase
+from sentry.utils.compat import ipaddress
 
 
 class HttpTest(TestCase):
@@ -30,7 +30,11 @@ class HttpTest(TestCase):
     # XXX(dcramer): we can't use responses here as it hooks Session.send
     # @responses.activate
     def test_ip_blacklist(self):
-        http.DISALLOWED_IPS = set([IPNetwork('127.0.0.1'), IPNetwork('::1'), IPNetwork('10.0.0.0/8')])
+        http.DISALLOWED_IPS = set([
+            ipaddress.IPNetwork('127.0.0.1'),
+            ipaddress.IPNetwork('::1'),
+            ipaddress.IPNetwork('10.0.0.0/8'),
+        ])
         with pytest.raises(SuspiciousOperation):
             http.safe_urlopen('http://127.0.0.1')
         with pytest.raises(SuspiciousOperation):
@@ -45,7 +49,7 @@ class HttpTest(TestCase):
     @pytest.mark.skipif(platform.system() == 'Darwin',
                         reason='macOS is always broken, see comment in sentry/http.py')
     def test_garbage_ip(self):
-        http.DISALLOWED_IPS = set([IPNetwork('127.0.0.1')])
+        http.DISALLOWED_IPS = set([ipaddress.IPNetwork('127.0.0.1')])
         with pytest.raises(SuspiciousOperation):
             # '0177.0000.0000.0001' is an octal for '127.0.0.1'
             http.safe_urlopen('http://0177.0000.0000.0001')

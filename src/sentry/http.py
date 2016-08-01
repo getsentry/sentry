@@ -15,7 +15,7 @@ import warnings
 
 from sentry import options
 from django.conf import settings
-from ipaddr import IPNetwork
+from ipaddraddress import IPNetwork
 from requests.adapters import HTTPAdapter
 from requests.exceptions import SSLError
 from sentry.exceptions import RestrictedIPAddress

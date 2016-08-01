@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import itertools
+import six
 
 from django.http import HttpResponse
 
@@ -27,6 +28,6 @@ class HealthCheck(object):
         problems = list(itertools.chain.from_iterable(results.values()))
 
         return HttpResponse(json.dumps({
-            'problems': map(unicode, problems),
+            'problems': map(six.text_type, problems),
             'healthy': {type(check).__name__: not p for check, p in results.items()},
         }), content_type='application/json', status=(500 if problems else 200))

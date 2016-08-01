@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
 import re
-from ipaddr import IPAddress
+
+from sentry.utils.compat import ipaddress
 
 EVENT_ID_RE = re.compile(r'^[a-fA-F0-9]{32}$')
 
@@ -11,7 +12,7 @@ def validate_ip(value, required=True):
         return
 
     # will raise a ValueError
-    IPAddress(value)
+    ipaddress.IPAddress(value)
     return value
 
 

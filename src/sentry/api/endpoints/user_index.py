@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.db.models import Q
 
 from sentry.api.base import Endpoint
@@ -15,7 +17,7 @@ def in_iexact(column, values):
 
     query = '{}__iexact'.format(column)
 
-    return reduce(or_, [Q(**{query: v}) for v in values])
+    return six.reduce(or_, [Q(**{query: v}) for v in values])
 
 
 class UserIndexEndpoint(Endpoint):

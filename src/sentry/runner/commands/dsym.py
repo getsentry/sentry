@@ -58,10 +58,10 @@ def load_bundle(q, uuid, data, sdk_info, trim_symbols, demangle):
 
     step = 4000
     symbols = data['symbols']
-    for idx in xrange(0, len(symbols) + step, step):
+    for idx in range(0, len(symbols) + step, step):
         end_idx = min(idx + step, len(symbols))
         batch = []
-        for x in xrange(idx, end_idx):
+        for x in range(idx, end_idx):
             addr = symbols[x][0]
             batch.append((obj.id, addr, _process_symbol(symbols[x][1])))
         if batch:
@@ -82,7 +82,7 @@ def process_archive(members, zip, sdk_info, threads=8, trim_symbols=False,
             DSymSymbol.objects.bulk_insert(items)
 
     pool = []
-    for x in xrange(threads):
+    for x in range(threads):
         t = threading.Thread(target=process_items)
         t.setDaemon(True)
         t.start()

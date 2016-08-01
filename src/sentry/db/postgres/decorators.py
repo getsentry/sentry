@@ -62,7 +62,7 @@ def capture_transaction_exceptions(func):
             if exc_info is None:
                 raise
             new_exc = TransactionAborted(sys.exc_info(), exc_info)
-            raise new_exc.__class__, new_exc, exc_info[2]
+            six.reraise(new_exc.__class__, new_exc, exc_info[2])
 
         conn._last_exception = sys.exc_info()
         raise

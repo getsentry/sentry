@@ -34,7 +34,7 @@ class ThreadPool(object):
         self.queue = Queue()
         self.workers = []
         self.tasks = []
-        for worker in xrange(workers):
+        for worker in range(workers):
             self.workers.append(Worker(self.queue))
 
     def add(self, ident, func, args=None, kwargs=None):

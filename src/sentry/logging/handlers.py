@@ -4,8 +4,9 @@ sentry.logging.handlers
 :copyright: (c) 2010-2016 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
-
+import six
 import logging
 
 from django.utils.timezone import now
@@ -43,7 +44,7 @@ class HumanRenderer(object):
     def __call__(self, logger, name, event_dict):
         level = event_dict.pop('level')
         real_level = (level.upper()
-            if isinstance(level, basestring)
+            if isinstance(level, six.string_types)
             else logging.getLevelName(level)
         )
         base = '%s [%s] %s: %s' % (

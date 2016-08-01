@@ -7,6 +7,8 @@ sentry.buffer.redis
 """
 from __future__ import absolute_import
 
+import six
+
 from time import time
 
 from django.db import models
@@ -34,7 +36,7 @@ class RedisBuffer(Buffer):
             with self.cluster.all() as client:
                 client.ping()
         except Exception as e:
-            raise InvalidConfiguration(unicode(e))
+            raise InvalidConfiguration(six.text_type(e))
 
     def _coerce_val(self, value):
         if isinstance(value, models.Model):

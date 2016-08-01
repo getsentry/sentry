@@ -45,7 +45,7 @@ class RiakClient(object):
 
     def _start(self, size):
         assert size > 0
-        for _ in xrange(size):
+        for _ in range(size):
             t = Thread(target=self._target)
             t.setDaemon(True)
             t.start()
@@ -222,7 +222,7 @@ class ConnectionManager(object):
         last_error = None
 
         try:
-            for _ in xrange(self.max_retries + 1):
+            for _ in range(self.max_retries + 1):
                 # If we're trying to initiate a new connection, and
                 # all connections are already dead, then we should flail
                 # and attempt to connect to one of them

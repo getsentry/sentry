@@ -8,7 +8,6 @@ sentry.web.forms.fields
 from __future__ import absolute_import
 
 import six
-from ipaddr import IPNetwork
 
 from django.core.validators import URLValidator
 from django.forms.widgets import RadioFieldRenderer, TextInput, Widget
@@ -18,11 +17,12 @@ from django.forms import (
 )
 from django.utils.encoding import force_unicode
 from django.utils.html import format_html
-from sentry.utils.http import parse_uri_match
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import User
+from sentry.utils.compat import ipaddress
+from sentry.utils.http import parse_uri_match
 
 
 class CustomTypedChoiceField(TypedChoiceField):
@@ -169,7 +169,7 @@ class IPNetworksField(CharField):
         values = filter(bool, (v.strip() for v in value.split('\n')))
         for value in values:
             try:
-                IPNetwork(value)
+                ipaddress.IPNetwork(value)
             except ValueError:
                 raise ValidationError('%r is not an acceptable value' % value)
         return values

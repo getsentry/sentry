@@ -16,11 +16,11 @@ from django.utils import timezone
 from gzip import GzipFile
 from exam import fixture
 from raven import Client
+from six import StringIO
 
 from sentry.models import Group, Event
 from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
-from sentry.utils.compat import StringIO
 from sentry.utils.settings import (
     validate_settings, ConfigurationError, import_string)
 

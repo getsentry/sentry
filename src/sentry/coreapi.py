@@ -20,6 +20,7 @@ from datetime import datetime, timedelta
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import smart_str
 from gzip import GzipFile
+from six import StringIO
 from time import time
 
 from sentry.app import env
@@ -34,7 +35,6 @@ from sentry.models import EventError, Project, ProjectKey, TagKey, TagValue
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
-from sentry.utils.compat import StringIO
 from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float, is_event_id
 
@@ -225,7 +225,7 @@ class ClientApiHelper(object):
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
-            self.log.debug(unicode(e), exc_info=True)
+            self.log.debug(six.text_type(e), exc_info=True)
             raise APIError('Bad data decoding request (%s, %s)' % (
                 type(e).__name__, e
             ))
@@ -241,7 +241,7 @@ class ClientApiHelper(object):
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
-            self.log.debug(unicode(e), exc_info=True)
+            self.log.debug(six.text_type(e), exc_info=True)
             raise APIError('Bad data decoding request (%s, %s)' %
                 (type(e).__name__, e)
             )
@@ -255,7 +255,7 @@ class ClientApiHelper(object):
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
-            self.log.debug(unicode(e), exc_info=True)
+            self.log.debug(six.text_type(e), exc_info=True)
             raise APIError('Bad data decoding request (%s, %s)' %
                 (type(e).__name__, e)
             )
@@ -267,7 +267,7 @@ class ClientApiHelper(object):
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
-            self.log.debug(unicode(e), exc_info=True)
+            self.log.debug(six.text_type(e), exc_info=True)
             raise APIError('Bad data reconstructing object (%s, %s)' %
                 (type(e).__name__, e)
             )
@@ -321,9 +321,9 @@ class ClientApiHelper(object):
 
         result = []
         for bit in data['fingerprint']:
-            if not isinstance(bit, (basestring, int, float)):
+            if not isinstance(bit, six.string_types + six.integer_types + (float,)):
                 raise InvalidFingerprint
-            result.append(unicode(bit))
+            result.append(six.text_type(bit))
         return result
 
     def parse_client_as_sdk(self, value):
@@ -631,7 +631,7 @@ class ClientApiHelper(object):
                     DEFAULT_LOG_LEVEL, DEFAULT_LOG_LEVEL)
 
         if data.get('release'):
-            data['release'] = unicode(data['release'])
+            data['release'] = six.text_type(data['release'])
             if len(data['release']) > 64:
                 data['errors'].append({
                     'type': EventError.VALUE_TOO_LONG,
@@ -733,7 +733,7 @@ class CspApiHelper(ClientApiHelper):
 
         # Copy/pasted from above in ClientApiHelper.validate_data
         if data.get('release'):
-            data['release'] = unicode(data['release'])
+            data['release'] = six.text_type(data['release'])
             if len(data['release']) > 64:
                 data['errors'].append({
                     'type': EventError.VALUE_TOO_LONG,

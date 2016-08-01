@@ -66,7 +66,7 @@ class TOTP(object):
         ts = _get_ts(ts)
         if window is None:
             window = self.default_window
-        for i in xrange(-window, window + 1):
+        for i in range(-window, window + 1):
             counter = int(ts) // self.interval + i
             if constant_time_compare(otp, self.generate_otp(counter=counter)):
                 # Check for blacklisted counters after the constant time

@@ -18,6 +18,7 @@ import base64
 import os
 import os.path
 import pytest
+import six
 import urllib
 
 from click.testing import CliRunner
@@ -158,7 +159,7 @@ class BaseTestCase(Fixtures, Exam):
     def _postCspWithHeader(self, data, key=None, **extra):
         if isinstance(data, dict):
             body = json.dumps({'csp-report': data})
-        elif isinstance(data, basestring):
+        elif isinstance(data, six.string_types):
             body = data
         path = reverse('sentry-api-csp-report', kwargs={'project_id': self.project.id})
         path += '?sentry_key=%s' % self.projectkey.public_key

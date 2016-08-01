@@ -11,6 +11,8 @@ from __future__ import absolute_import
 __all__ = ('Stacktrace',)
 
 import re
+import six
+
 from types import NoneType
 from six import string_types
 
@@ -53,9 +55,9 @@ def trim_package(pkg):
 def to_hex_addr(addr):
     if addr is None:
         return None
-    elif isinstance(addr, (int, long)):
+    elif isinstance(addr, six.integer_types):
         return '0x%x' % addr
-    elif isinstance(addr, basestring):
+    elif isinstance(addr, six.string_types):
         if addr[:2] == '0x':
             return addr
         return '0x%x' % int(addr)
@@ -291,7 +293,7 @@ class Frame(Interface):
 
         instruction_offset = data.get('instruction_offset')
         if instruction_offset is not None and \
-           not isinstance(instruction_offset, (int, long)):
+           not isinstance(instruction_offset, six.integer_types):
             raise InterfaceValidationError("Invalid value for 'instruction_offset'")
 
         kwargs = {

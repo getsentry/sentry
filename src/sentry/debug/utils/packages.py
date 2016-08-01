@@ -7,6 +7,8 @@ try:
 except ImportError:
     pkg_resources = None  # NOQA
 
+from sentry.utils import compat
+
 
 def get_package_version(module_name, app):
     version = None
@@ -35,7 +37,7 @@ def get_package_version(module_name, app):
         except Exception:
             return None
 
-    if not isinstance(version, (basestring, list, tuple)):
+    if not isinstance(version, compat.string_types + (list, tuple)):
         version = None
 
     if version is None:

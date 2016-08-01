@@ -64,7 +64,6 @@ class ExceptionTest(TestCase):
 
     def test_to_string(self):
         result = self.interface.to_string(self.event)
-        print result
         assert result == """ValueError: hello world
   File "foo/baz.py", line 1
 
@@ -250,10 +249,10 @@ class SlimExceptionDataTest(TestCase):
 
     def test_over_max(self):
         values = []
-        for x in xrange(5):
+        for x in range(5):
             exc = {'value': 'exc %d' % x, 'stacktrace': {'frames': []}}
             values.append(exc)
-            for y in xrange(5):
+            for y in range(5):
                 exc['stacktrace']['frames'].append({
                     'filename': 'exc %d frame %d' % (x, y),
                     'vars': {'foo': 'bar'},

@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from operator import or_
@@ -23,7 +25,7 @@ class OrganizationApiKeysView(OrganizationView):
         if request.POST.get('op') == 'newkey':
             key = ApiKey.objects.create(
                 organization=organization,
-                scopes=reduce(or_, [getattr(ApiKey.scopes, s) for s in DEFAULT_SCOPES])
+                scopes=six.reduce(or_, [getattr(ApiKey.scopes, s) for s in DEFAULT_SCOPES])
             )
 
             self.create_audit_entry(

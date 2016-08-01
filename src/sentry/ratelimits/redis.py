@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from hashlib import md5
 from time import time
 
@@ -19,7 +21,7 @@ class RedisRateLimiter(RateLimiter):
             with self.cluster.all() as client:
                 client.ping()
         except Exception as e:
-            raise InvalidConfiguration(unicode(e))
+            raise InvalidConfiguration(six.text_type(e))
 
     def is_limited(self, key, limit, project=None, window=None):
         if window is None:

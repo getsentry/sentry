@@ -8,7 +8,6 @@ from django.contrib.auth.forms import (
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import Http404, HttpResponseRedirect
-from django.utils.html import escape
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
@@ -21,6 +20,7 @@ from sentry.models import (
     Option, Organization, OrganizationMember, OrganizationMemberTeam, Project,
     Team, User
 )
+from sentry.utils.compat import html_escape
 
 csrf_protect_m = method_decorator(csrf_protect)
 sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
@@ -42,7 +42,9 @@ class OptionAdmin(admin.ModelAdmin):
     search_fields = ('key',)
 
     def value_repr(self, instance):
-        return '<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(escape(saferepr(instance.value)))
+        return '<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(
+            html_escape(saferepr(instance.value))
+        )
 
     value_repr.short_description = "Value"
     value_repr.allow_tags = True
@@ -286,7 +288,7 @@ class UserAdmin(admin.ModelAdmin):
         adminForm = admin.helpers.AdminForm(form, fieldsets, {})
 
         context = {
-            'title': _('Change password: %s') % escape(user.get_username()),
+            'title': _('Change password: %s') % html_escape(user.get_username()),
             'adminForm': adminForm,
             'form_url': form_url,
             'form': form,

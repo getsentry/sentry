@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.db.models import Q
 from operator import or_
 
@@ -34,7 +36,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         tagvalues = {
             (t[1], t[2]): t[0]
             for t in TagValue.objects.filter(
-                reduce(or_, (Q(key=k, value=v) for k, v in tags.iteritems())),
+                six.reduce(or_, (Q(key=k, value=v) for k, v in tags.iteritems())),
                 project=project,
             ).values_list('id', 'key', 'value')
         }
