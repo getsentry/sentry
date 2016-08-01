@@ -116,7 +116,7 @@ const Broadcasts = React.createClass({
               {loading ?
                 <LoadingIndicator />
               : (broadcasts.length === 0 ?
-                <div className="empty">{t('No recent updates from the Sentry team.')}</div>
+                <div className="sidebar-panel-empty">{t('No recent updates from the Sentry team.')}</div>
               :
                 broadcasts.map((item) => {
                   return (
