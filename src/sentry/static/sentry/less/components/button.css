@@ -1,0 +1,7 @@
+.btn {
+  composes: btn from 'bootstrap-css/lib/buttons.css';
+}
+
+.btn-default {
+  composes: btn-default from 'bootstrap-css/lib/buttons.css';
+}
