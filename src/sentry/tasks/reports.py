@@ -2,6 +2,7 @@ import functools
 import itertools
 import logging
 import operator
+from collections import namedtuple
 from datetime import timedelta
 
 from django.utils import timezone
@@ -386,6 +387,9 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         message.send()
 
 
+IssueList = namedtuple('IssueList', 'count issues')
+IssueStatistics = namedtuple('IssueStatistics', 'events users')
+
 def rewrite_issue_list((count, issues), fetch_groups=None):
     # XXX: This only exists for removing data dependency in tests.
     if fetch_groups is None:
@@ -398,22 +402,26 @@ def rewrite_issue_list((count, issues), fetch_groups=None):
         if instance is None:
             logger.debug("Could not retrieve group with key %r, skipping...", id)
             return None
-        return (instance, statistics)
+        return (instance, IssueStatistics(*statistics))
 
-    return (
+    return IssueList(
         count,
         filter(None, map(rewrite, issues)),
     )
 
 
+Point = namedtuple('Point', 'resolved unresolved')
+
 def to_context(report, fetch_groups=None):
     series, aggregates, issue_lists = report
+    series = [(timestamp, Point(*values)) for timestamp, values in series]
+
     return {
         'series': {
-            'maximum': max(sum(point) for timestamp, point in series),
             'points': series,
+            'maximum': max(sum(point) for timestamp, point in series),
             'all': sum([sum(point) for timestamp, point in series]),
-            'resolved': sum([point[0] for timestamp, point in series]),
+            'resolved': sum([point.resolved for timestamp, point in series]),
         },
         'comparisons': [
             ('last week', change(aggregates[-1], aggregates[-2])),

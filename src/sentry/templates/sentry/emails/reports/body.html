@@ -46,12 +46,12 @@
           {% for timestamp, metrics in report.series.points %}
             <td valign="bottom" style="padding-right: 5px;">
               <table class="issue-graph-bar">
-                {% if metrics.0 and metrics.1 %}
+                {% if metrics.resolved and metrics.unresolved %}
                   <tr>
-                    <td class="all" height="{% widthratio metrics.1 max 56 %}px" title="{{ metrics.1 }}">&nbsp;</td>
+                    <td class="all" height="{% widthratio metrics.unresolved max 56 %}px" title="{{ metrics.unresolved }}">&nbsp;</td>
                   </tr>
                   <tr>
-                    <td class="resolved" height="{% widthratio metrics.0 max 56 %}px" title="{{ metrics.0 }}">&nbsp;</td>
+                    <td class="resolved" height="{% widthratio metrics.resolved max 56 %}px" title="{{ metrics.resolved }}">&nbsp;</td>
                   </tr>
                 {% else %}
                   <tr><td></td></tr>
@@ -89,14 +89,14 @@
       <thead>
         <tr>
           <th>
-            <h4>{{ label }} ({{ issues.0 }})</h4>
+            <h4>{{ label }} ({{ issues.count }})</h4>
           </th>
           <th class="narrow-column">Events</th>
           <th class="narrow-column">Users</th>
         </tr>
       </thead>
       <tbody>
-        {% for group, statistics in issues.1 %}
+        {% for group, statistics in issues.issues %}
           <tr>
             <td class="issue">
               {% include "sentry/emails/_group.html" %}
@@ -105,8 +105,8 @@
                 in <a href="{% absolute_uri project_link %}" class="issue-project">{{ group.project.name }}</a>
               </small>
             </td>
-            <td class="narrow-column">{{ statistics.0|small_count }}</td>
-            <td class="narrow-column">{{ statistics.1|small_count }}</td>
+            <td class="narrow-column">{{ statistics.events|small_count }}</td>
+            <td class="narrow-column">{{ statistics.users|small_count }}</td>
           </tr>
         {% empty %}
           <tr>
