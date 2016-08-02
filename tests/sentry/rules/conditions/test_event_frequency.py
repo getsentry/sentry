@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
 import itertools
-from datetime import timedelta
+import pytz
+from datetime import datetime, timedelta
 
+import mock
 import six
 from django.utils import timezone
 
@@ -17,7 +19,10 @@ class FrequencyConditionMixin(object):
     def increment(self, event, count, timestamp=None):
         raise NotImplementedError
 
-    def test_one_minute(self):
+    @mock.patch('django.utils.timezone.now')
+    def test_one_minute(self, now):
+        now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
+
         event = self.get_event()
         value = 10
         rule = self.get_rule({
@@ -28,9 +33,8 @@ class FrequencyConditionMixin(object):
         self.increment(
             event,
             value + 1,
-            timestamp=timezone.now() - timedelta(minutes=5),
+            timestamp=now() - timedelta(minutes=5),
         )
-
         self.assertDoesNotPass(rule, event)
 
         rule.clear_cache(event)
@@ -39,9 +43,14 @@ class FrequencyConditionMixin(object):
 
         rule.clear_cache(event)
         self.increment(event, 1)
+
+        now.return_value = now() + timedelta(seconds=1)
         self.assertPasses(rule, event)
 
-    def test_one_hour(self):
+    @mock.patch('django.utils.timezone.now')
+    def test_one_hour(self, now):
+        now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
+
         event = self.get_event()
         value = 10
         rule = self.get_rule({
@@ -52,7 +61,7 @@ class FrequencyConditionMixin(object):
         self.increment(
             event,
             value + 1,
-            timestamp=timezone.now() - timedelta(minutes=90),
+            timestamp=now() - timedelta(minutes=90),
         )
         self.assertDoesNotPass(rule, event)
 
@@ -62,9 +71,14 @@ class FrequencyConditionMixin(object):
 
         rule.clear_cache(event)
         self.increment(event, 1)
+
+        now.return_value = now() + timedelta(seconds=1)
         self.assertPasses(rule, event)
 
-    def test_one_day(self):
+    @mock.patch('django.utils.timezone.now')
+    def test_one_day(self, now):
+        now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
+
         event = self.get_event()
         value = 10
         rule = self.get_rule({
@@ -75,7 +89,7 @@ class FrequencyConditionMixin(object):
         self.increment(
             event,
             value + 1,
-            timestamp=timezone.now() - timedelta(hours=36),
+            timestamp=now() - timedelta(hours=36),
         )
         self.assertDoesNotPass(rule, event)
 
@@ -85,9 +99,14 @@ class FrequencyConditionMixin(object):
 
         rule.clear_cache(event)
         self.increment(event, 1)
+
+        now.return_value = now() + timedelta(seconds=1)
         self.assertPasses(rule, event)
 
-    def test_doesnt_send_consecutive(self):
+    @mock.patch('django.utils.timezone.now')
+    def test_doesnt_send_consecutive(self, now):
+        now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
+
         event = self.get_event()
         value = 10
         rule = self.get_rule({
@@ -99,11 +118,16 @@ class FrequencyConditionMixin(object):
 
         rule.clear_cache(event)
         self.increment(event, value + 1)
+
+        now.return_value = now() + timedelta(seconds=1)
         self.assertPasses(rule, event)
 
-        self.assertDoesNotPass(rule, event, rule_last_active=timezone.now())
+        self.assertDoesNotPass(rule, event, rule_last_active=now())
 
-    def test_more_than_zero(self):
+    @mock.patch('django.utils.timezone.now')
+    def test_more_than_zero(self, now):
+        now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
+
         event = self.get_event()
         rule = self.get_rule({
             'interval': Interval.ONE_MINUTE,
@@ -114,6 +138,8 @@ class FrequencyConditionMixin(object):
 
         rule.clear_cache(event)
         self.increment(event, 1)
+
+        now.return_value = now() + timedelta(seconds=1)
         self.assertPasses(rule, event)
 
 

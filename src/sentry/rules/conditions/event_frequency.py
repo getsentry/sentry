@@ -8,9 +8,8 @@ sentry.rules.conditions.event_frequency
 
 from __future__ import absolute_import
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django import forms
-from pytz import utc
 
 from django.utils import timezone
 from sentry.rules.conditions.base import EventCondition
@@ -85,7 +84,7 @@ class BaseEventFrequencyCondition(EventCondition):
 
         result = event._rate_cache.get(interval)
         if result is None:
-            end = datetime.utcnow().replace(tzinfo=utc)
+            end = timezone.now()
             if interval == Interval.ONE_MINUTE:
                 start = end - timedelta(minutes=1)
             elif interval == Interval.ONE_HOUR:
