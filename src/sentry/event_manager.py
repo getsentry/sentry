@@ -460,6 +460,10 @@ class EventManager(object):
         if event_user:
             tags.append(('sentry:user', event_user.tag_value))
 
+        user_data = data.get('sentry.interfaces.User')
+        if user_data and user_data.get('location'):
+            tags.append(('user.location', user_data['location']))
+
         # XXX(dcramer): we're relying on mutation of the data object to ensure
         # this propagates into Event
         data['tags'] = tags

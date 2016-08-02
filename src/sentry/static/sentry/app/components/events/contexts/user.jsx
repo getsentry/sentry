@@ -19,6 +19,7 @@ const UserContextType = React.createClass({
     user.email && builtins.push(['Email', user.email]);
     user.username && builtins.push(['Username', user.username]);
     user.ip_address && builtins.push(['IP Address', user.ip_address]);
+    user.location && builtins.push(['Location', user.location]);
 
     // We also attach user supplied data as 'user.data'
     _.each(user.data, function(value, key) {
@@ -37,6 +38,7 @@ const UserContextType = React.createClass({
       </div>
     );
   }
+
 });
 
 UserContextType.getTitle = function(value) {
