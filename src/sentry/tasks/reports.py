@@ -17,6 +17,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
 from sentry.utils.math import mean
+from sentry.utils.query import RangeQuerySetWrapper
 
 
 logger = logging.getLogger(__name__)
@@ -281,7 +282,7 @@ def prepare_reports(*args, **kwargs):
     timestamp, duration = _fill_default_parameters(*args, **kwargs)
 
     organization_ids = _get_organization_queryset().values_list('id', flat=True)
-    for organization_id in organization_ids:
+    for organization_id in RangeQuerySetWrapper(organization_ids):
         prepare_organization_report.delay(timestamp, duration, organization_id)
 
 
