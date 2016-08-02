@@ -14,7 +14,6 @@ import random
 import uuid
 from binascii import crc32
 from collections import defaultdict, namedtuple
-from datetime import timedelta
 from hashlib import md5
 
 import six
@@ -23,7 +22,7 @@ from pkg_resources import resource_string
 from redis.client import Script
 
 from sentry.tsdb.base import BaseTSDB
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options
 from sentry.utils.versioning import Version
 
@@ -183,27 +182,27 @@ class RedisTSDB(BaseTSDB):
         >>>          start=now - timedelta(days=1),
         >>>          end=now)
         """
-        normalize_to_epoch = self.normalize_to_epoch
-        normalize_to_rollup = self.normalize_to_rollup
-        make_key = self.make_counter_key
-
-        if rollup is None:
-            rollup = self.get_optimal_rollup(start, end)
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+        series = map(to_datetime, series)
 
         results = []
-        timestamp = end
         with self.cluster.map() as client:
-            while timestamp >= start:
-                real_epoch = normalize_to_epoch(timestamp, rollup)
-                norm_epoch = normalize_to_rollup(timestamp, rollup)
-
-                for key in keys:
-                    model_key = self.get_model_key(key)
-                    hash_key = make_key(model, norm_epoch, model_key)
-                    results.append((real_epoch, key,
-                                    client.hget(hash_key, model_key)))
-
-                timestamp = timestamp - timedelta(seconds=rollup)
+            for key in keys:
+                model_key = self.get_model_key(key)
+                for timestamp in series:
+                    hash_key = self.make_counter_key(
+                        model,
+                        self.normalize_to_rollup(
+                            timestamp,
+                            rollup
+                        ),
+                        model_key,
+                    )
+                    results.append((
+                        to_timestamp(timestamp),
+                        key,
+                        client.hget(hash_key, model_key)
+                    ))
 
         results_by_key = defaultdict(dict)
         for epoch, key, count in results:

@@ -7,6 +7,8 @@ sentry.tsdb.base
 """
 from __future__ import absolute_import
 
+from datetime import timedelta
+
 from django.conf import settings
 from django.utils import timezone
 from enum import Enum
@@ -129,17 +131,16 @@ class BaseTSDB(object):
         if end is None:
             end = timezone.now()
 
-        # NOTE: "optimal" here means "able to most closely reflect the upper
-        # and lower bounds", not "able to construct the most efficient query"
         if rollup is None:
             rollup = self.get_optimal_rollup(start, end)
 
-        series = [self.normalize_to_epoch(start, rollup)]
-        end_ts = int(to_timestamp(end))
-        while series[-1] + rollup < end_ts:
-            series.append(series[-1] + rollup)
+        series = []
+        timestamp = end
+        while timestamp >= start:
+            series.append(self.normalize_to_epoch(timestamp, rollup))
+            timestamp = timestamp - timedelta(seconds=rollup)
 
-        return rollup, series
+        return rollup, sorted(series)
 
     def calculate_expiry(self, rollup, samples, timestamp):
         """
