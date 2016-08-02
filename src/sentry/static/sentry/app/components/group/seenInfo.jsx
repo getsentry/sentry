@@ -9,13 +9,14 @@ import {t} from '../../locale';
 
 const SeenInfo = React.createClass({
   propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
     date: React.PropTypes.any,
     dateGlobal: React.PropTypes.any,
     release: React.PropTypes.shape({
       version: React.PropTypes.string.isRequired
     }),
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
+    environment: React.PropTypes.string,
     hasRelease: React.PropTypes.bool.isRequired,
   },
 
@@ -64,7 +65,7 @@ const SeenInfo = React.createClass({
   },
 
   render() {
-    let {date, release, orgId, projectId} = this.props;
+    let {date, dateGlobal, environment, release, orgId, projectId} = this.props;
     return (
       <dl className="seen-info">
         <dt key={0}>{t('When')}:</dt>
@@ -73,9 +74,14 @@ const SeenInfo = React.createClass({
             <span className="tip"><TimeSince date={date} /></span><br />
             <small><DateTime date={date} seconds={true} /></small>
           </dd>
+        : (dateGlobal && environment === '' ?
+          <dd key={1}>
+            <span className="tip"><TimeSince date={dateGlobal} /></span><br />
+            <small><DateTime date={dateGlobal} seconds={true} /></small>
+          </dd>
         :
           <dd key={1}>n/a</dd>
-        }
+        )}
         <dt key={4}>{t('Release')}:</dt>
         {defined(release) ?
           <dd key={5}><Version orgId={orgId} projectId={projectId} version={release.version} /></dd>
