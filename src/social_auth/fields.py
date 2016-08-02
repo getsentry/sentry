@@ -1,14 +1,9 @@
-try:
-    import json as simplejson
-except ImportError:
-    try:
-        import simplejson
-    except ImportError:
-        from django.utils import simplejson
+from __future__ import absolute_import
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.encoding import smart_unicode
+from django.utils import simplejson
 
 
 class JSONField(models.TextField):

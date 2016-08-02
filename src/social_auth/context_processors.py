@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django.contrib.auth import REDIRECT_FIELD_NAME
 
 from social_auth.models import UserSocialAuth
@@ -20,7 +22,7 @@ def social_auth_backends(request):
 def social_auth_by_type_backends(request):
     """Load Social Auth current user data to context.
     Will add a output from backends_data to context under social_auth key where
-    each entry will be grouped by backend type (openid, oauth, oauth2).
+    each entry will be grouped by backend type (oauth, oauth2).
     """
     def context_value():
         data = backends_data(request.user)

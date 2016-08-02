@@ -2,6 +2,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_auth %}
 {% load sentry_helpers %}
 
 {% block title %}{% trans "Identities" %} | {{ block.super }}{% endblock %}
@@ -23,7 +24,7 @@
             <tbody>
                 {% for identity in identity_list %}
                     <tr>
-                        <td>{{ identity.provider|title }}</td>
+                        <td>{{ identity.provider|auth_provider_label }}</td>
                         <td style="text-align: center;">
                             <form method="post" action="{% url 'socialauth_disconnect_individual' identity.provider identity.id %}?next={% filter urlencode %}{% absolute_uri request.path %}{% endfilter %}">
                             {% csrf_token %}
@@ -40,8 +41,12 @@
             <legend>Connect a New Account</legend>
         </fieldset>
         <ul class="auth-options">
-            {% for engine in AUTH_PROVIDERS %}
-                <li><a href="{% url 'socialauth_associate_begin' engine %}?next={% filter urlencode %}{% absolute_uri request.path %}{% endfilter %}" class="btn btn-default auth-btn auth-{{ engine }}"><span class="auth-icon"></span>{{ engine|title }}</a></li>
+            {% for provider in AUTH_PROVIDERS %}
+                <li>
+                    <a href="{% url 'socialauth_associate' provider %}?next={% filter urlencode %}{% absolute_uri request.path %}{% endfilter %}" class="auth-{{ provider }}">
+                        {% blocktrans with service=provider|auth_provider_label %}Connect {{ service }}{% endblocktrans %}
+                    </a>
+                </li>
             {% endfor %}
         </ul>
     {% endif %}

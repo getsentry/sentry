@@ -35,7 +35,7 @@ def disconnect(request, backend, association_id=None):
     return HttpResponseRedirect(redirect)
 
 
-@dsa_view(setting('SOCIAL_AUTH_COMPLETE_URL_NAME', 'socialauth_complete'))
+@dsa_view(setting('SOCIAL_AUTH_COMPLETE_URL_NAME', 'socialauth_associate_complete'))
 def auth(request, backend):
     """Start authentication process"""
     return auth_process(request, backend)

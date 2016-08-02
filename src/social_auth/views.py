@@ -5,13 +5,14 @@ Notes:
       on third party providers that (if using POST) won't be sending csrf
       token back.
 """
-from urllib2 import quote
+from __future__ import absolute_import
 
 from django.http import HttpResponseRedirect, HttpResponse
 from django.contrib.auth import login, REDIRECT_FIELD_NAME
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
+from urllib2 import quote
 
 from social_auth.utils import (
     sanitize_redirect, setting, backend_setting, clean_partial_pipeline)
@@ -24,7 +25,7 @@ LOGIN_ERROR_URL = setting('LOGIN_ERROR_URL', setting('LOGIN_URL'))
 PIPELINE_KEY = setting('SOCIAL_AUTH_PARTIAL_PIPELINE_KEY', 'partial_pipeline')
 
 
-@dsa_view(setting('SOCIAL_AUTH_COMPLETE_URL_NAME', 'socialauth_complete'))
+@dsa_view(setting('SOCIAL_AUTH_COMPLETE_URL_NAME', 'socialauth_associate_complete'))
 def auth(request, backend):
     """Start authentication process"""
     return auth_process(request, backend)
