@@ -15,6 +15,8 @@ import IssueList from '../components/issueList';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import OrganizationState from '../mixins/organizationState';
 
+import Button from '../components/button';
+
 import {t} from '../locale';
 import {sortArray} from '../utils';
 
@@ -265,6 +267,7 @@ const OrganizationDashboard = React.createClass({
       <OrganizationHomeContainer>
         <div className="row">
           <div className="col-md-8">
+            <Button>Hi guise</Button>
             <AssignedIssues {...this.props} />
             <NewIssues {...this.props} />
             <Activity {...this.props} />
