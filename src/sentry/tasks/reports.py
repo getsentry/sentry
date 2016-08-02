@@ -390,6 +390,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
 IssueList = namedtuple('IssueList', 'count issues')
 IssueStatistics = namedtuple('IssueStatistics', 'events users')
 
+
 def rewrite_issue_list((count, issues), fetch_groups=None):
     # XXX: This only exists for removing data dependency in tests.
     if fetch_groups is None:
@@ -411,6 +412,7 @@ def rewrite_issue_list((count, issues), fetch_groups=None):
 
 
 Point = namedtuple('Point', 'resolved unresolved')
+
 
 def to_context(report, fetch_groups=None):
     series, aggregates, issue_lists = report
