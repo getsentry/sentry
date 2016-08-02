@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django.db import IntegrityError
 from django.utils.translation import ugettext
 
@@ -54,7 +56,7 @@ def load_extra_data(backend, details, response, uid, user, social_user=None,
                    UserSocialAuth.get_social_auth(backend.name, uid))
     if social_user:
         extra_data = backend.extra_data(user, uid, response, details)
-        if kwargs.get('original_email') and not 'email' in extra_data:
+        if kwargs.get('original_email') and 'email' not in extra_data:
             extra_data['email'] = kwargs.get('original_email')
         if extra_data and social_user.extra_data != extra_data:
             if social_user.extra_data:

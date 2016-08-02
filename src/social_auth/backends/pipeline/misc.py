@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from social_auth.backends import PIPELINE
 from social_auth.utils import setting
 

@@ -111,6 +111,7 @@ install_requires = [
     'kombu==3.0.35',
     'lxml>=3.4.1',
     'mock>=0.8.0,<1.1',
+    'oauth2>=1.5.167',
     'petname>=1.7,<1.8',
     'Pillow>=3.2.0,<3.3.0',
     'progressbar>=2.2,<2.4',

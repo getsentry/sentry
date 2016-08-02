@@ -296,13 +296,9 @@ else:
     LOGIN_URL = reverse_lazy('sentry-login')
 
 AUTHENTICATION_BACKENDS = (
-    'social_auth.backends.twitter.TwitterBackend',
-    'social_auth.backends.facebook.FacebookBackend',
-    # TODO: migrate to GoogleOAuth2Backend
-    'social_auth.backends.google.GoogleBackend',
-    'social_auth.backends.contrib.github.GithubBackend',
-    'social_auth.backends.contrib.bitbucket.BitbucketBackend',
-    'social_auth.backends.contrib.trello.TrelloBackend',
+    'social_auth.backends.github.GithubBackend',
+    'social_auth.backends.bitbucket.BitbucketBackend',
+    'social_auth.backends.trello.TrelloBackend',
     'sentry.utils.auth.EmailAuthBackend',
 )
 
@@ -311,13 +307,6 @@ SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_NAME = "sentrysid"
 SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
-
-TWITTER_CONSUMER_KEY = ''
-TWITTER_CONSUMER_SECRET = ''
-
-FACEBOOK_APP_ID = ''
-FACEBOOK_API_SECRET = ''
-FACEBOOK_EXTENDED_PERMISSIONS = ['email']
 
 GOOGLE_OAUTH2_CLIENT_ID = ''
 GOOGLE_OAUTH2_CLIENT_SECRET = ''
@@ -349,6 +338,12 @@ AUTH_PROVIDERS = {
     'github': ('GITHUB_APP_ID', 'GITHUB_API_SECRET'),
     'trello': ('TRELLO_API_KEY', 'TRELLO_API_SECRET'),
     'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
+}
+
+AUTH_PROVIDER_LABELS = {
+    'github': 'GitHub',
+    'trello': 'Trello',
+    'bitbucket': 'Bitbucket'
 }
 
 import random

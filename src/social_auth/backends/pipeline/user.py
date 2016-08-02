@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from uuid import uuid4
 
 from social_auth.utils import setting, module_member
@@ -69,29 +71,12 @@ def create_user(backend, details, response, uid, username, user=None, *args,
 
 
 def _ignore_field(name, is_new=False):
-    return name in ('username', 'id', 'pk') or \
-           (not is_new and
-                name in setting('SOCIAL_AUTH_PROTECTED_USER_FIELDS', []))
+    if name in ('username', 'id', 'pk'):
+        return True
 
-
-def mongoengine_orm_maxlength_truncate(backend, details, user=None,
-                                       is_new=False, *args, **kwargs):
-    """Truncate any value in details that corresponds with a field in the user
-    model. Add this entry to the pipeline before update_user_details"""
-    if user is None:
-        return
-    out = {}
-    names = list(user._fields.keys())
-    for name, value in details.iteritems():
-        if name in names and not _ignore_field(name, is_new):
-            max_length = user._fields[name].max_length
-            try:
-                if max_length and len(value) > max_length:
-                    value = value[:max_length]
-            except TypeError:
-                pass
-        out[name] = value
-    return {'details': out}
+    if not is_new and name in setting('SOCIAL_AUTH_PROTECTED_USER_FIELDS', []):
+        return True
+    return False
 
 
 def django_orm_maxlength_truncate(backend, details, user=None, is_new=False,

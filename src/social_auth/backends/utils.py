@@ -1,5 +1,9 @@
-from oauth2 import Consumer as OAuthConsumer, Token, Request as OAuthRequest, \
-                   SignatureMethod_HMAC_SHA1, HTTP_METHOD
+from __future__ import absolute_import
+
+from oauth2 import (
+    Consumer as OAuthConsumer, Token, Request as OAuthRequest,
+    SignatureMethod_HMAC_SHA1, HTTP_METHOD
+)
 
 try:
     import json as simplejson

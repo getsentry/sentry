@@ -14,6 +14,8 @@ setting, it must be a list of values to request.
 By default account id and token expiration time are stored in extra_data
 field, check OAuthBackend class for details on how to extend it.
 """
+from __future__ import absolute_import
+
 from urllib import urlencode
 from urllib2 import HTTPError
 
@@ -39,7 +41,7 @@ GITHUB_USER_DATA_URL = 'https://api.github.com/user'
 
 # GitHub organization configuration
 GITHUB_ORGANIZATION_MEMBER_OF_URL = \
-        'https://api.github.com/orgs/{org}/members/{username}'
+    'https://api.github.com/orgs/{org}/members/{username}'
 
 GITHUB_SERVER = 'github.com'
 

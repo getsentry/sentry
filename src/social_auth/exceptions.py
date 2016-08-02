@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django.utils.translation import ugettext
 
 
@@ -5,9 +7,11 @@ class SocialAuthBaseException(ValueError):
     """Base class for pipeline exceptions."""
     pass
 
+
 class BackendError(SocialAuthBaseException):
     def __unicode__(self):
         return ugettext(u'Backend error: %s' % self.message)
+
 
 class WrongBackend(BackendError):
     def __init__(self, backend_name):
@@ -15,7 +19,7 @@ class WrongBackend(BackendError):
 
     def __unicode__(self):
         return ugettext(u'Incorrect authentication service "%s"') % \
-                self.backend_name
+            self.backend_name
 
 
 class NotAllowedToDisconnect(SocialAuthBaseException):
@@ -45,7 +49,7 @@ class AuthFailed(AuthException):
             return ugettext(u'Authentication process was cancelled')
         else:
             return ugettext(u'Authentication failed: %s') % \
-                        super(AuthFailed, self).__unicode__()
+                super(AuthFailed, self).__unicode__()
 
 
 class AuthCanceled(AuthException):
