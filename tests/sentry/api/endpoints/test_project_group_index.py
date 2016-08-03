@@ -150,6 +150,31 @@ class GroupListTest(APITestCase):
                                    format='json')
         assert response.status_code == 400
 
+    def test_stats_type(self):
+        now = timezone.now()
+        self.create_group(
+            checksum='a' * 32,
+            last_seen=now - timedelta(seconds=1),
+        )
+        self.create_group(
+            checksum='b' * 32,
+            last_seen=now,
+        )
+
+        self.login_as(user=self.user)
+
+        response = self.client.get(self.path, format='json')  # no `statsType` param
+        assert response.status_code == 200
+
+        response = self.client.get('{}?statsType=events'.format(self.path), format='json')
+        assert response.status_code == 200
+
+        response = self.client.get('{}?statsType=users'.format(self.path), format='json')
+        assert response.status_code == 200
+
+        response = self.client.get('{}?statsType=invalid'.format(self.path), format='json')
+        assert response.status_code == 400
+
     def test_auto_resolved(self):
         project = self.project
         project.update_option('sentry:resolve_age', 1)
