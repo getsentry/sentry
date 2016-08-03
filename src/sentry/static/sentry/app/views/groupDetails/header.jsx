@@ -198,6 +198,9 @@ const GroupHeader = React.createClass({
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/tags/`}>
             {t('Tags')}
           </ListLink>
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/geo/`}>
+            {t('Geo')}
+          </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
             {t('Related Events')}
           </ListLink>

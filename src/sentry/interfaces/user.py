@@ -80,7 +80,7 @@ class User(Interface):
         location = None
         if gi and ip_address:
             # GeoIP returns empty string ('') for localhost, bad input values
-            location = gi.country_name_by_addr(ip_address)
+            location = gi.country_code_by_addr(ip_address)
 
         # TODO(dcramer): patch in fix to deal w/ old data but not allow new
         # if not (ident or email or username or ip_address):
