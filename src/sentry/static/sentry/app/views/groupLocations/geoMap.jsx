@@ -59,7 +59,7 @@ const GeoMap = React.createClass({
               // tooltip content
               return ['<div class="hoverinfo">',
                   '<strong>', geo.properties.name, '</strong>',
-                  '<br>Count: <strong>', data.numberOfThings, '</strong>',
+                  '<br>Events: <strong>', data.numberOfThings, '</strong>',
                   '</div>'].join('');
           }
       }
@@ -75,7 +75,7 @@ const GeoMap = React.createClass({
   },
 
   render() {
-    return <div style={{maxHeight:500}} ref="locations-container"></div>;
+    return <div height="600px" style={{border: '1px solid #D6DBE4', borderRadius: 4}} ref="locations-container"></div>;
   }
 });
 
