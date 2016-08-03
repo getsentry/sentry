@@ -46,6 +46,7 @@ const GeoMap = React.createClass({
       },
       data: dataset,
       geographyConfig: {
+          hideAntarctica: false,
           borderColor: '#DEDEDE',
           highlightBorderWidth: 2,
           highlightFillColor: function(geo) {

@@ -27,7 +27,7 @@ const GroupLocations = React.createClass({
   },
 
   fetchData() {
-    let url = '/issues/' + this.props.params.groupId + '/tags/user.location/';
+    let url = '/issues/' + this.props.params.groupId + '/tags/user.location/values/';
     this.setState({
       loading: true,
       error: false
@@ -56,7 +56,7 @@ const GroupLocations = React.createClass({
     if (this.state.error)
       return <LoadingError/>;
 
-    let series = this.state.data.topValues.map(tag => [countryCodes[tag.value], tag.count]);
+    let series = this.state.data.map(tag => [countryCodes[tag.value], tag.count]);
     return <GeoMap series={series}/>;
   }
 });
