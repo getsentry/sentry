@@ -1,10 +1,12 @@
-# TODO(dcramer): move our changes into social_auth
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 
-from django.conf.urls import patterns, url
+try:
+    from django.conf.urls import patterns, url
+except ImportError:
+    # for Django version less then 1.4
+    from django.conf.urls.defaults import patterns, url
 
-from social_auth.views import complete
-from sentry.social_auth.views import auth, disconnect
+from social_auth.views import auth, complete, disconnect
 
 
 urlpatterns = patterns('',
