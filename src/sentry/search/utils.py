@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function
 
 from collections import defaultdict
 from datetime import datetime, timedelta
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry.constants import STATUS_CHOICES
@@ -248,3 +249,11 @@ def parse_query(project, query, user):
     results['query'] = ' '.join(results['query'])
 
     return results
+
+
+def in_iexact(column, values):
+    from operator import or_
+
+    query = '{}__iexact'.format(column)
+
+    return reduce(or_, [Q(**{query: v}) for v in values])

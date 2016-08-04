@@ -53,8 +53,10 @@ class UserSerializer(Serializer):
             'isActive': obj.is_active,
             'isManaged': obj.is_managed,
             'dateJoined': obj.date_joined,
+            'lastLogin': obj.last_login,
             'has2fa': attrs['has2fa'],
         }
+
         if obj == user:
             options = {
                 o.key: o.value

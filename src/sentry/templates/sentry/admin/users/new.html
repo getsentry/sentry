@@ -1,4 +1,4 @@
-{% extends "sentry/admin/users/list.html" %}
+{% extends "sentry/bases/admin.html" %}
 
 {% load i18n %}
 {% load sentry_helpers %}
@@ -7,6 +7,8 @@
 
 {% block main %}
     <section class="body">
+        <h3>New User</h3>
+
         {% include "sentry/partial/_form.html" %}
     </section>
 {% endblock %}
