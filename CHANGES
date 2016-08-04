@@ -2,6 +2,7 @@ Version 8.7 (Unreleased)
 ------------------------
 
 - Removed "Replay Request" feature.
+- Upgraded to React 15.2
 
 Version 8.6
 -----------
