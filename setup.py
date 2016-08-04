@@ -96,7 +96,6 @@ install_requires = [
     'django-bitfield>=1.7.0,<1.8.0',
     'django-crispy-forms>=1.4.0,<1.5.0',
     'django-debug-toolbar>=1.3.2,<1.4.0',
-    'django-paging>=0.2.5,<0.3.0',
     'django-jsonfield>=0.9.13,<0.9.14',
     'django-picklefield>=0.3.0,<0.4.0',
     'django-recaptcha>=1.0.4,<1.1.0',

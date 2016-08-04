@@ -5,9 +5,22 @@ import React from 'react';
 import ConfigStore from '../../stores/configStore';
 import Footer from '../../components/footer';
 import Header from '../../components/header';
+import HookStore from '../../stores/hookStore';
 import ListLink from '../../components/listLink';
 
 const Admin = React.createClass({
+  getInitialState() {
+    // Allow injection via getsentry et all
+    let hooksManage = [];
+    HookStore.get('admin:sidebar:manage').forEach((cb) => {
+      hooksManage.push(cb());
+    });
+
+    return {
+      hooksManage: hooksManage,
+    };
+  },
+
   getTitle() {
     return 'Sentry Admin';
   },
@@ -38,9 +51,9 @@ const Admin = React.createClass({
                   <h6 className="nav-header">Manage</h6>
                   <ul className="nav nav-stacked">
                     <ListLink to="/manage/organizations/">Organizations</ListLink>
-                    <li><a href={`${urlPrefix}/manage/teams/`}>Teams</a></li>
-                    <li><a href={`${urlPrefix}/manage/projects/`}>Projects</a></li>
-                    <li><a href={`${urlPrefix}/manage/users/`}>Users</a></li>
+                    <ListLink to="/manage/projects/">Projects</ListLink>
+                    <ListLink to="/manage/users/">Users</ListLink>
+                    {this.state.hooksManage}
                   </ul>
                 </div>
                 <div className="col-md-10">

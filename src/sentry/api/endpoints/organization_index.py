@@ -1,18 +1,20 @@
 from __future__ import absolute_import
 
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Count, Q, Sum
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.base import DocSection, Endpoint
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.paginator import OffsetPaginator
+from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import (
-    AuditLogEntryEvent, Organization, OrganizationMember, OrganizationStatus
+    AuditLogEntryEvent, Organization, OrganizationMember, OrganizationStatus,
+    ProjectPlatform
 )
+from sentry.search.utils import tokenize_query, in_iexact
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -73,16 +75,61 @@ class OrganizationIndexEndpoint(Endpoint):
 
         query = request.GET.get('query')
         if query:
-            queryset = queryset.filter(
-                Q(name__icontains=query) | Q(slug__icontains=query),
+            tokens = tokenize_query(query)
+            for key, value in tokens.iteritems():
+                if key == 'query':
+                    value = ' '.join(value)
+                    queryset = queryset.filter(
+                        Q(name__icontains=value) |
+                        Q(slug__icontains=value) |
+                        Q(members__email__iexact=value)
+                    )
+                elif key == 'slug':
+                    queryset = queryset.filter(
+                        in_iexact('slug', value)
+                    )
+                elif key == 'email':
+                    queryset = queryset.filter(
+                        in_iexact('members__email', value)
+                    )
+                elif key == 'platform':
+                    queryset = queryset.filter(
+                        project__in=ProjectPlatform.objects.filter(
+                            platform__in=value,
+                        ).values('project_id')
+                    )
+
+        sort_by = request.GET.get('sortBy')
+        if sort_by == 'members':
+            queryset = queryset.annotate(
+                member_count=Count('member_set'),
             )
+            order_by = '-member_count'
+            paginator_cls = OffsetPaginator
+        elif sort_by == 'projects':
+            queryset = queryset.annotate(
+                project_count=Count('project'),
+            )
+            order_by = '-project_count'
+            paginator_cls = OffsetPaginator
+        elif sort_by == 'events':
+            queryset = queryset.annotate(
+                event_count=Sum('stats__events_24h'),
+            ).filter(
+                stats__events_24h__isnull=False,
+            )
+            order_by = '-event_count'
+            paginator_cls = OffsetPaginator
+        else:
+            order_by = '-date_added'
+            paginator_cls = DateTimePaginator
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='name',
+            order_by=order_by,
             on_results=lambda x: serialize(x, request.user),
-            paginator_cls=OffsetPaginator,
+            paginator_cls=paginator_cls,
         )
 
     # XXX: endpoint useless for end-users as it needs user context.
