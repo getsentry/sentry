@@ -16,6 +16,7 @@ import six
 import uuid
 import zlib
 
+from collections import MutableMapping
 from datetime import datetime, timedelta
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import smart_str
@@ -340,6 +341,12 @@ class ClientApiHelper(object):
             'name': name,
             'version': version,
         }
+
+    def should_filter(self, project, data):
+        # TODO(dcramer): read filters from options such as:
+        # - ignore errors from spiders/bots
+        # - ignore errors from legacy browsers
+        return False
 
     def validate_data(self, project, data):
         # TODO(dcramer): move project out of the data packet
@@ -669,6 +676,8 @@ class ClientApiHelper(object):
             data.setdefault('sentry.interfaces.User', {})['ip_address'] = ip_address
 
     def insert_data_to_database(self, data):
+        # we might be passed LazyData
+        data = dict(data)
         cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
         default_cache.set(cache_key, data, timeout=3600)
         preprocess_event.delay(cache_key=cache_key, start_time=time())
@@ -743,3 +752,53 @@ class CspApiHelper(ClientApiHelper):
                 del data['release']
 
         return data
+
+
+class LazyData(MutableMapping):
+    def __init__(self, data, content_encoding, helper):
+        self._data = data
+        self._content_encoding = content_encoding
+        self._helper = helper
+        self._decoded = False
+
+    def _decode(self):
+        data = self._data
+        content_encoding = self._content_encoding
+        helper = self._helper
+
+        if isinstance(data, basestring):
+            if content_encoding == 'gzip':
+                data = helper.decompress_gzip(data)
+            elif content_encoding == 'deflate':
+                data = helper.decompress_deflate(data)
+            elif not data.startswith('{'):
+                data = helper.decode_and_decompress_data(data)
+            data = helper.safely_load_json_string(data)
+
+        self._data = data
+        self._decoded = True
+
+    def __getitem__(self, name):
+        if not self._decoded:
+            self._decode()
+        return self._data.__getitem__(name)
+
+    def __setitem__(self, name, value):
+        if not self._decoded:
+            self._decode()
+        return self._data.__setitem__(name, value)
+
+    def __delitem__(self, name):
+        if not self._decoded:
+            self._decode()
+        return self._data.__delitem__(name)
+
+    def __len__(self):
+        if not self._decoded:
+            self._decode()
+        return len(self._data)
+
+    def __iter__(self):
+        if not self._decoded:
+            self._decode()
+        return iter(self._data)
