@@ -18,14 +18,14 @@ except Exception as e:
 
 
 def _get_git_revision(path):
-    revision_file = os.path.join(path, 'refs', 'heads', 'master')
-    if not os.path.exists(revision_file):
-        return None
-    fh = open(revision_file, 'r')
-    try:
-        return fh.read().strip()
-    finally:
-        fh.close()
+    # First check for a HEAD, then fall back to refs/heads/master
+    for f in os.path.join(path, 'HEAD'), os.path.join(path, 'refs', 'heads', 'master'):
+        if os.path.exists(f):
+            fh = open(f, 'r')
+            try:
+                return fh.read().strip()
+            finally:
+                fh.close()
 
 
 def get_revision():
