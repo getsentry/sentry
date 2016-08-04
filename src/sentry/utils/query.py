@@ -8,6 +8,7 @@ sentry.utils.query
 from __future__ import absolute_import
 
 import progressbar
+import sys
 
 from django.db import connections, IntegrityError, router, transaction
 from django.db.models import ForeignKey
@@ -132,7 +133,8 @@ class WithProgressBar(object):
                 ' ',
                 progressbar.ETA(),
             ]
-            pbar = progressbar.ProgressBar(widgets=widgets, maxval=self.count)
+            pbar = progressbar.ProgressBar(widgets=widgets, maxval=self.count,
+                                           fd=sys.stdout)
             pbar.start()
             for idx, item in enumerate(self.iterator):
                 yield item
