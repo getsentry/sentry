@@ -17,7 +17,6 @@ import six
 
 from collections import namedtuple
 from datetime import timedelta
-from paging.helpers import paginate as paginate_func
 from pkg_resources import parse_version as Version
 from six.moves import range
 from urllib import quote, urlencode
@@ -25,9 +24,7 @@ from urllib import quote, urlencode
 from django import template
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.template import RequestContext
 from django.template.defaultfilters import stringfilter
-from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
@@ -35,7 +32,6 @@ from django.utils.translation import ugettext as _
 
 from sentry import options
 from sentry.api.serializers import serialize as serialize_func
-from sentry.constants import EVENTS_PER_PAGE
 from sentry.models import UserAvatar, Organization
 from sentry.utils import json
 from sentry.utils.strings import to_unicode
@@ -215,57 +211,6 @@ def duration(value):
     return ''.join(output)
 
 
-# XXX: this is taken from django-paging so that we may render
-#      a custom template, and not worry about INSTALLED_APPS
-@tag(register, [Variable('queryset_or_list'),
-                Constant('from'), Variable('request'),
-                Optional([Constant('as'), Name('asvar')]),
-                Optional([Constant('per_page'), Variable('per_page')])])
-def paginate(context, queryset_or_list, request, asvar=None, per_page=EVENTS_PER_PAGE):
-    """{% paginate queryset_or_list from request as foo[ per_page 25] %}"""
-    result = paginate_func(request, queryset_or_list, per_page, endless=True)
-
-    context_instance = RequestContext(request)
-    paging = mark_safe(render_to_string('sentry/partial/_pager.html', result, context_instance))
-
-    result = dict(objects=result['paginator'].get('objects', []), paging=paging)
-
-    if asvar:
-        context[asvar] = result
-        return ''
-    return result
-
-
-@tag(register, [Variable('queryset_or_list'),
-                Constant('from'), Variable('request'),
-                Optional([Constant('as'), Name('asvar')]),
-                Optional([Constant('per_page'), Variable('per_page')])])
-def paginator(context, queryset_or_list, request, asvar=None, per_page=EVENTS_PER_PAGE):
-    """{% paginator queryset_or_list from request as foo[ per_page 25] %}"""
-    result = paginate_func(request, queryset_or_list, per_page, endless=True)
-
-    if asvar:
-        context[asvar] = result
-        return ''
-    return result
-
-
-@tag(register, [Constant('from'), Variable('request'),
-                Optional([Constant('without'), Name('withoutvar')]),
-                Optional([Constant('as'), Name('asvar')])])
-def querystring(context, request, withoutvar, asvar=None):
-    params = request.GET.copy()
-
-    if withoutvar in params:
-        del params[withoutvar]
-
-    result = params.urlencode()
-    if asvar:
-        context[asvar] = result
-        return ''
-    return result
-
-
 @register.filter
 def date(dt, arg=None):
     from django.template.defaultfilters import date
@@ -359,15 +304,6 @@ def with_metadata(group_list, request):
             'is_bookmarked': g.pk in bookmarks,
             'historical_data': ','.join(str(x[1]) for x in historical_data.get(g.id, [])),
         }
-
-
-@register.inclusion_tag('sentry/plugins/bases/tag/widget.html')
-def render_tag_widget(group, tag):
-    return {
-        'title': tag['label'],
-        'tag_name': tag['key'],
-        'group': group,
-    }
 
 
 @register.simple_tag
