@@ -135,6 +135,10 @@ const EventEntries = React.createClass({
           orgId={this.props.orgId}
           projectId={project.slug} />
         {entries}
+
+        <EventUser
+        />
+
         {hasContext &&
           <EventContexts
             group={group}

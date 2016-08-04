@@ -47,7 +47,13 @@ const KeyValueList = React.createClass({
             return [
               <tr key={key}>
                 <td className="key">{key}</td>
-                <td className="value"><pre>{'' + value || ' '}</pre></td>
+                <td className="value">
+                  <pre>{React.isValidElement(value)
+                    ? value
+                    : '' + value || ''
+                  }
+                  </pre>
+                </td>
               </tr>
             ];
           }

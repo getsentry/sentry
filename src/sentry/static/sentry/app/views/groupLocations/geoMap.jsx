@@ -76,7 +76,11 @@ const GeoMap = React.createClass({
   },
 
   render() {
-    return <div height="600px" style={{border: '1px solid #D6DBE4', borderRadius: 4}} ref="locations-container"></div>;
+    return (
+      <div className="locations-wrapper" style={{border: '1px solid #D6DBE4', borderRadius: 4, overflow: 'hidden'}}>
+        <div style={{marginTop: '-5%'}} ref="locations-container"></div>
+      </div>
+    );
   }
 });
 

@@ -49,6 +49,7 @@ const ContextChunk = React.createClass({
     let {type, alias, value} = this.props;
     let Component = CONTEXT_TYPES[type] || CONTEXT_TYPES.default;
 
+    console.log(group)
     return (
       <GroupEventDataSection
           group={group}
@@ -56,7 +57,7 @@ const ContextChunk = React.createClass({
           key={`context-${alias}`}
           type={`context-${alias}`}
           title={this.renderTitle()}>
-        <Component alias={alias} data={value} />
+        <Component alias={alias} data={value} groupId={group.id}/>
       </GroupEventDataSection>
     );
   },
