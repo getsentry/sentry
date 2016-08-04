@@ -136,13 +136,13 @@ const EventEntries = React.createClass({
           projectId={project.slug} />
         {entries}
 
-        <EventUser
-        />
-
         {hasContext &&
           <EventContexts
             group={group}
-            event={evt} />
+            event={evt}
+            orgId={this.props.orgId}
+            projectId={project.slug}
+          />
         }
         {!utils.objectIsEmpty(evt.context) &&
           <EventExtraData

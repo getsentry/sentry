@@ -2,13 +2,18 @@ import React from 'react';
 import {scaleLinear} from 'd3';
 import Datamap from 'datamaps';
 
+
+const HIGHLIGHT_COLOR = '#E35141';
+
+
 const GeoMap = React.createClass({
   propTypes: {
-    series: React.PropTypes.array.isRequired // [COUNTRY_CODE, COUNT]
+    series: React.PropTypes.array.isRequired, // [COUNTRY_CODE, COUNT]
+    highlightCountryCode: React.PropTypes.string
   },
 
   componentDidMount() {
-    let {series} = this.props;
+    let {series, highlightCountryCode} = this.props;
 
     // We need to colorize every country based on "numberOfWhatever"
     // colors should be uniq for every value.
@@ -38,6 +43,17 @@ const GeoMap = React.createClass({
         return obj;
     }, {});
 
+    if (highlightCountryCode) {
+      let highlightedData = dataset[highlightCountryCode];
+      if (highlightedData) {
+        highlightedData.fillColor = HIGHLIGHT_COLOR;
+      } else {
+        dataset[highlightCountryCode] = {
+          numberOfThings: 0,
+          fillColor: HIGHLIGHT_COLOR
+        };
+      }
+    }
     let map = new Datamap({
       element: this.refs['locations-container'],
       responsive: true,

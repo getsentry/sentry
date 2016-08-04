@@ -7,10 +7,13 @@ import KeyValueList from '../interfaces/keyValueList';
 const UserContextType = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
-    groupId: React.PropTypes.string.isRequired
+    groupId: React.PropTypes.string.isRequired,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   render() {
+    let {groupId, projectId, orgId} = this.props;
     let user = this.props.data;
     let builtins = [];
     let children = [];
@@ -22,9 +25,10 @@ const UserContextType = React.createClass({
     user.ip_address && builtins.push(['IP Address', user.ip_address]);
 
     if (user.location) {
+      let url = `/${orgId}/${projectId}/issues/${groupId}/geo/?highlight=` + encodeURIComponent(user.location);
       let location = (
         <span>{user.location}
-          <a key="external" href={`/issues/${this.props.groupId}/geo/`} className="external-icon">
+          <a key="external" href={url} className="external-icon">
             <em className="icon-open" />
           </a>
         </span>

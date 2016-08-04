@@ -1,4 +1,5 @@
 import React from 'react';
+import _ from 'underscore';
 
 import GroupEventDataSection from './eventDataSection';
 import {objectIsEmpty, toTitleCase, defined} from '../../utils';
@@ -18,6 +19,8 @@ const ContextChunk = React.createClass({
     type: React.PropTypes.string.isRequired,
     alias: React.PropTypes.string.isRequired,
     value: React.PropTypes.object.isRequired,
+    orgId: React.PropTypes.string,
+    projectId: React.PropTypes.string
   },
 
   renderTitle() {
@@ -44,12 +47,10 @@ const ContextChunk = React.createClass({
   },
 
   render() {
-    let group = this.props.group;
+    let {group, orgId, projectId, type, alias, value} = this.props;
     let evt = this.props.event;
-    let {type, alias, value} = this.props;
     let Component = CONTEXT_TYPES[type] || CONTEXT_TYPES.default;
 
-    console.log(group)
     return (
       <GroupEventDataSection
           group={group}
@@ -57,7 +58,7 @@ const ContextChunk = React.createClass({
           key={`context-${alias}`}
           type={`context-${alias}`}
           title={this.renderTitle()}>
-        <Component alias={alias} data={value} groupId={group.id}/>
+        <Component alias={alias} data={value} groupId={group.id} orgId={orgId} projectId={projectId}/>
       </GroupEventDataSection>
     );
   },
@@ -66,18 +67,20 @@ const ContextChunk = React.createClass({
 const ContextsInterface = React.createClass({
   propTypes: {
     event: React.PropTypes.object.isRequired,
-    group: React.PropTypes.object.isRequired
+    group: React.PropTypes.object.isRequired,
+    orgId: React.PropTypes.string,
+    projectId: React.PropTypes.string
   },
 
   render() {
-    let group = this.props.group;
     let evt = this.props.event;
     let children = [];
+
+    let passedProps = _.pick(this.props, 'group', 'event', 'orgId', 'projectId');
+
     if (!objectIsEmpty(evt.user)) {
       children.push((
-        <ContextChunk
-          group={group}
-          event={evt}
+        <ContextChunk {...passedProps}
           type="user"
           alias="user"
           value={evt.user}
@@ -85,13 +88,11 @@ const ContextsInterface = React.createClass({
       ));
     }
 
-    let value = null;
+    let value;
     for (let key in evt.contexts) {
       value = evt.contexts[key];
       children.push((
         <ContextChunk
-          group={group}
-          event={evt}
           type={value.type}
           alias={key}
           value={value}

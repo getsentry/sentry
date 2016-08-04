@@ -57,7 +57,11 @@ const GroupLocations = React.createClass({
       return <LoadingError/>;
 
     let series = this.state.data.map(tag => [countryCodes[tag.value], tag.count]);
-    return <GeoMap series={series}/>;
+    let {highlight} = this.props.location.query;
+    if (highlight) {
+      highlight = countryCodes[highlight];
+    }
+    return <GeoMap highlightCountryCode={highlight} series={series}/>;
   }
 });
 
