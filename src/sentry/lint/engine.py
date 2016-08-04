@@ -34,7 +34,7 @@ def get_files(path):
     results = []
     for root, _, files in os.walk(path):
         for name in files:
-            results.append(os.path.abspath(os.path.join(root, name)))
+            results.append(os.path.join(root, name))
     return results
 
 
