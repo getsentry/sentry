@@ -478,6 +478,7 @@ class EventManager(object):
             hashes = map(md5_from_hash, get_hashes_from_fingerprint(event, fingerprint))
         elif checksum:
             hashes = [checksum]
+            data['checksum'] = checksum
         else:
             hashes = map(md5_from_hash, get_hashes_for_event(event))
 
