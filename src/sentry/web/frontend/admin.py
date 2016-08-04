@@ -19,13 +19,12 @@ from django.conf import settings
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.db.models import Count
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
 from sentry import options
 from sentry.app import env
-from sentry.models import Project, Team, User
+from sentry.models import Project, User
 from sentry.plugins import plugins
 from sentry.utils.email import send_mail
 from sentry.utils.http import absolute_uri
@@ -51,65 +50,6 @@ def configure_plugin(request, slug):
         'title': plugin.get_conf_title(),
         'slug': plugin.slug,
         'view': view,
-    }, request)
-
-
-@requires_admin
-def manage_projects(request):
-    project_list = Project.objects.filter(
-        status=0,
-        team__isnull=False,
-    ).select_related('team')
-
-    project_query = request.GET.get('pquery')
-    if project_query:
-        project_list = project_list.filter(name__icontains=project_query)
-
-    sort = request.GET.get('sort')
-    if sort not in ('name', 'date'):
-        sort = 'date'
-
-    if sort == 'date':
-        order_by = '-date_added'
-    elif sort == 'name':
-        order_by = 'name'
-
-    project_list = project_list.order_by(order_by)
-
-    context = {
-        'project_list': project_list,
-        'project_query': project_query,
-        'sort': sort,
-    }
-
-    return render_to_response('sentry/admin/projects/list.html', context, request)
-
-
-@requires_admin
-def manage_users(request):
-    user_list = User.objects.all().order_by('-date_joined')
-
-    user_query = request.GET.get('uquery')
-    if user_query:
-        user_list = user_list.filter(email__icontains=user_query)
-
-    sort = request.GET.get('sort')
-    if sort not in ('name', 'joined', 'login'):
-        sort = 'joined'
-
-    if sort == 'joined':
-        order_by = '-date_joined'
-    elif sort == 'login':
-        order_by = '-last_login'
-    elif sort == 'name':
-        order_by = 'name'
-
-    user_list = user_list.order_by(order_by)
-
-    return render_to_response('sentry/admin/users/list.html', {
-        'user_list': user_list,
-        'user_query': user_query,
-        'sort': sort,
     }, request)
 
 
@@ -219,56 +159,6 @@ def remove_user(request, user_id):
     })
 
     return render_to_response('sentry/admin/users/remove.html', context, request)
-
-
-@requires_admin
-def list_user_projects(request, user_id):
-    try:
-        user = User.objects.get(pk=user_id)
-    except User.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-admin-users'))
-
-    project_list = Project.objects.filter(
-        status=0,
-        organization__member_set__user=user,
-    ).order_by('-date_added')
-
-    context = {
-        'project_list': project_list,
-        'the_user': user,
-    }
-
-    return render_to_response('sentry/admin/users/list_projects.html', context, request)
-
-
-@requires_admin
-def manage_teams(request):
-    team_list = Team.objects.order_by('-date_added')
-
-    team_query = request.GET.get('tquery')
-    if team_query:
-        team_list = team_list.filter(name__icontains=team_query)
-
-    sort = request.GET.get('sort')
-    if sort not in ('name', 'date', 'events'):
-        sort = 'date'
-
-    if sort == 'date':
-        order_by = '-date_added'
-    elif sort == 'name':
-        order_by = 'name'
-    elif sort == 'projects':
-        order_by = '-num_projects'
-
-    team_list = team_list.annotate(
-        num_projects=Count('project'),
-    ).order_by(order_by)
-
-    return render_to_response('sentry/admin/teams/list.html', {
-        'team_list': team_list,
-        'team_query': team_query,
-        'sort': sort,
-    }, request)
 
 
 @requires_admin
