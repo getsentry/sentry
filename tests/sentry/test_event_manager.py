@@ -15,7 +15,7 @@ from sentry.app import tsdb
 from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
 from sentry.event_manager import (
     EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint,
-    generate_culprit,
+    generate_culprit, md5_from_hash
 )
 from sentry.models import (
     Activity, Event, Group, GroupRelease, GroupResolution, GroupStatus,
@@ -876,3 +876,7 @@ class GenerateCulpritTest(TestCase):
             }
         }
         assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
+
+    def test_md5_from_hash(self):
+        result = md5_from_hash(['foo', 'bar', 'foô'])
+        assert result == '6d81588029ed4190110b2779ba952a00'
