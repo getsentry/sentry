@@ -274,6 +274,17 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     """
     if release:
         result = fetch_release_file(url, release)
+
+        if result is None:
+            # Refetch release files when a site has http and https both online.
+            if url.startswith('http:'):
+                result = fetch_release_file(
+                    url.replace('http:', 'https:'), release
+                )
+            elif url.startswith('https:'):
+                result = fetch_release_file(
+                    url.replace('https:', 'http:'), release
+                )
     else:
         result = None
 
