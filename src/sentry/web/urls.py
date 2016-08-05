@@ -276,7 +276,7 @@ urlpatterns += patterns(
 
     url(r'^account/remove/$', RemoveAccountView.as_view(),
         name='sentry-remove-account'),
-    url(r'^account/settings/social/', include('sentry.social_auth.urls')),
+    url(r'^account/settings/social/', include('social_auth.urls')),
 
     # Admin
     url(r'^manage/queue/$', AdminQueueView.as_view(),

@@ -7,6 +7,7 @@ Notes:
 """
 from __future__ import absolute_import
 
+from sudo.utils import is_safe_url
 from django.http import HttpResponseRedirect, HttpResponse
 from django.contrib.auth import login, REDIRECT_FIELD_NAME
 from django.contrib.auth.decorators import login_required
@@ -15,7 +16,7 @@ from django.views.decorators.csrf import csrf_exempt
 from six.moves.urllib.parse import quote
 
 from social_auth.utils import (
-    sanitize_redirect, setting, backend_setting, clean_partial_pipeline)
+    setting, backend_setting, clean_partial_pipeline)
 from social_auth.decorators import dsa_view, disconnect_view
 
 
@@ -68,12 +69,19 @@ def associate_complete(request, backend, *args, **kwargs):
 def disconnect(request, backend, association_id=None):
     """Disconnects given backend from current logged in user."""
     backend.disconnect(request.user, association_id)
-    url = (
-        request.REQUEST.get(REDIRECT_FIELD_NAME, '') or
-        backend_setting(backend, 'SOCIAL_AUTH_DISCONNECT_REDIRECT_URL') or
-        DEFAULT_REDIRECT
-    )
-    return HttpResponseRedirect(url)
+    data = request.REQUEST
+    if REDIRECT_FIELD_NAME in data:
+        redirect = data[REDIRECT_FIELD_NAME]
+        # NOTE: django-sudo's `is_safe_url` is much better at catching bad
+        # redirections to different domains than social_auth's
+        # `sanitize_redirect` call.
+        if not is_safe_url(redirect, host=request.get_host()):
+            redirect = DEFAULT_REDIRECT
+    else:
+        redirect = backend_setting(backend, 'SOCIAL_AUTH_DISCONNECT_REDIRECT_URL')
+        if not redirect:
+            redirect = DEFAULT_REDIRECT
+    return HttpResponseRedirect(redirect)
 
 
 def auth_process(request, backend):
@@ -89,8 +97,11 @@ def auth_process(request, backend):
     if REDIRECT_FIELD_NAME in data:
         # Check and sanitize a user-defined GET/POST next field value
         redirect = data[REDIRECT_FIELD_NAME]
-        if setting('SOCIAL_AUTH_SANITIZE_REDIRECTS', True):
-            redirect = sanitize_redirect(request.get_host(), redirect)
+        # NOTE: django-sudo's `is_safe_url` is much better at catching bad
+        # redirections to different domains than social_auth's
+        # `sanitize_redirect` call.
+        if not is_safe_url(redirect, host=request.get_host()):
+            redirect = DEFAULT_REDIRECT
         request.session[REDIRECT_FIELD_NAME] = redirect or DEFAULT_REDIRECT
 
     # Clean any partial pipeline info before starting the process
