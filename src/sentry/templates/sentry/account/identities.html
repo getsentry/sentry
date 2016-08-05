@@ -27,27 +27,13 @@
                         <td>{{ identity.provider|auth_provider_label }}</td>
                         <td style="text-align: center;">
                             <form method="post" action="{% url 'socialauth_disconnect_individual' identity.provider identity.id %}?next={% filter urlencode %}{% absolute_uri request.path %}{% endfilter %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-link">Disconnect</button>
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-default btn-sm">Disconnect</button>
                             </form>
                         </td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
-    {% endif %}
-    {% if AUTH_PROVIDERS %}
-        <fieldset>
-            <legend>Connect a New Account</legend>
-        </fieldset>
-        <ul class="auth-options">
-            {% for provider in AUTH_PROVIDERS %}
-                <li>
-                    <a href="{% url 'socialauth_associate' provider %}?next={% filter urlencode %}{% absolute_uri request.path %}{% endfilter %}" class="auth-{{ provider }}">
-                        {% blocktrans with service=provider|auth_provider_label %}Connect {{ service }}{% endblocktrans %}
-                    </a>
-                </li>
-            {% endfor %}
-        </ul>
     {% endif %}
 {% endblock %}
