@@ -43,21 +43,21 @@ SELF = "'self'"
 
 DIRECTIVE_TO_MESSAGES = {
     # 'base-uri': '',
-    'child-src': ("Blocked 'child' from {uri!r}", "Blocked inline 'child'"),
-    'connect-src': ("Blocked 'connect' from {uri!r}", "Blocked inline 'connect'"),
+    'child-src': (u"Blocked 'child' from '{uri}'", "Blocked inline 'child'"),
+    'connect-src': (u"Blocked 'connect' from '{uri}'", "Blocked inline 'connect'"),
     # 'default-src': '',
-    'font-src': ("Blocked 'font' from {uri!r}", "Blocked inline 'font'"),
-    'form-action': ("Blocked 'form' action to {uri!r}",),  # no inline option
+    'font-src': (u"Blocked 'font' from '{uri}'", "Blocked inline 'font'"),
+    'form-action': (u"Blocked 'form' action to '{uri}'",),  # no inline option
     # 'frame-ancestors': '',
-    'img-src': ("Blocked 'image' from {uri!r}", "Blocked inline 'image'"),
-    'manifest-src': ("Blocked 'manifest' from {uri!r}", "Blocked inline 'manifest'"),
-    'media-src': ("Blocked 'media' from {uri!r}", "Blocked inline 'media'"),
-    'object-src': ("Blocked 'object' from {uri!r}", "Blocked inline 'object'"),
+    'img-src': (u"Blocked 'image' from '{uri}'", "Blocked inline 'image'"),
+    'manifest-src': (u"Blocked 'manifest' from '{uri}'", "Blocked inline 'manifest'"),
+    'media-src': (u"Blocked 'media' from '{uri}'", "Blocked inline 'media'"),
+    'object-src': (u"Blocked 'object' from '{uri}'", "Blocked inline 'object'"),
     # 'plugin-types': '',
     # 'referrer': '',
     # 'reflected-xss': '',
-    'script-src': ("Blocked 'script' from {uri!r}", "Blocked unsafe (eval() or inline) 'script'"),
-    'style-src': ("Blocked 'style' from {uri!r}", "Blocked inline 'style'"),
+    'script-src': (u"Blocked 'script' from '{uri}'", "Blocked unsafe (eval() or inline) 'script'"),
+    'style-src': (u"Blocked 'style' from '{uri}'", "Blocked inline 'style'"),
     # 'upgrade-insecure-requests': '',
 }
 
@@ -150,7 +150,7 @@ class Csp(Interface):
 
     def _normalize_directive(self, directive):
         bits = [d for d in directive.split(' ') if d]
-        return ' '.join([bits[0]] + map(self._normalize_value, bits[1:]))
+        return ' '.join([bits[0]] + list(map(self._normalize_value, bits[1:])))
 
     def _normalize_value(self, value):
         # > If no scheme is specified, the same scheme as the one used to

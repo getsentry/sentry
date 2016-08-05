@@ -20,4 +20,4 @@ class ListField(WritableField):
             msg = 'Incorrect type. Expected a mapping, but got %s'
             raise ValidationError(msg % type(data).__name__)
 
-        return map(self.child.from_native, data)
+        return [self.child.from_native(x) for x in data]

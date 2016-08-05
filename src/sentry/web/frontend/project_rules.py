@@ -27,12 +27,12 @@ class ProjectRulesView(ProjectView):
             conditions = []
             for data in rule.data['conditions']:
                 conditions.append(_generate_rule_label(project, rule, data))
-            conditions = filter(bool, conditions)
+            conditions = list(filter(bool, conditions))
 
             actions = []
             for data in rule.data['actions']:
                 actions.append(_generate_rule_label(project, rule, data))
-            actions = filter(bool, actions)
+            actions = list(filter(bool, actions))
 
             rule_list.append({
                 'id': rule.id,

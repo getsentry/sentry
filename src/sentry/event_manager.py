@@ -476,11 +476,17 @@ class EventManager(object):
         # prioritize fingerprint over checksum as its likely the client defaulted
         # a checksum whereas the fingerprint was explicit
         if fingerprint:
-            hashes = map(md5_from_hash, get_hashes_from_fingerprint(event, fingerprint))
+            hashes = [
+                md5_from_hash(h)
+                for h in get_hashes_from_fingerprint(event, fingerprint)
+            ]
         elif checksum:
             hashes = [checksum]
         else:
-            hashes = map(md5_from_hash, get_hashes_for_event(event))
+            hashes = [
+                md5_from_hash(h)
+                for h in get_hashes_for_event(event)
+            ]
 
         # TODO(dcramer): temp workaround for complexity
         data['message'] = message

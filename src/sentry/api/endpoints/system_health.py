@@ -16,14 +16,15 @@ class SystemHealthEndpoint(Endpoint):
     def get(self, request):
         results = status_checks.check_all()
         return Response({
-            'problems': map(
-                lambda problem: {
+            'problems': [
+                {
                     'id': md5_text(problem.message).hexdigest(),
                     'message': problem.message,
                     'severity': problem.severity,
                     'url': problem.url,
-                },
-                sorted(itertools.chain.from_iterable(results.values()), reverse=True),
-            ),
+                }
+                for problem in sorted(itertools.chain.from_iterable(results.values()),
+                                     reverse=True)
+            ],
             'healthy': {type(check).__name__: not problems for check, problems in results.items()},
         })

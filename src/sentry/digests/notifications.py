@@ -112,7 +112,7 @@ class Pipeline(object):
 
     def filter(self, function):
         def operation(sequence):
-            result = filter(function, sequence)
+            result = [s for s in sequence if function(s)]
             logger.debug('%r filtered %s items to %s.', function, len(sequence), len(result))
             return result
         self.operations.append(operation)
@@ -120,7 +120,7 @@ class Pipeline(object):
 
     def map(self, function):
         def operation(sequence):
-            result = map(function, sequence)
+            result = [function(s) for s in sequence]
             logger.debug('%r applied to %s items.', function, len(sequence))
             return result
         self.operations.append(operation)
