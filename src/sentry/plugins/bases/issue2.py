@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+
+import six
+
 from rest_framework.response import Response
 from social_auth.models import UserSocialAuth
 
@@ -81,7 +85,7 @@ class IssueTrackingPlugin2(Plugin):
 
     def get_group_body(self, request, group, event, **kwargs):
         result = []
-        for interface in event.interfaces.itervalues():
+        for interface in six.itervalues(event.interfaces):
             output = safe_execute(interface.to_string, event, _with_transaction=False)
             if output:
                 result.append(output)

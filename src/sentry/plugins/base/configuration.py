@@ -84,7 +84,7 @@ def default_plugin_config(plugin, project, request):
 
 def default_issue_plugin_config(plugin, project, form_data):
     plugin_key = plugin.get_conf_key()
-    for field, value in form_data.iteritems():
+    for field, value in six.iteritems(form_data):
         key = '%s:%s' % (plugin_key, field)
         if project:
             ProjectOption.objects.set_value(project, key, value)
