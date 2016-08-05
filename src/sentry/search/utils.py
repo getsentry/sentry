@@ -6,6 +6,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from django.db.models import Q
 from django.utils import timezone
+from six.moves import reduce
 
 from sentry.constants import STATUS_CHOICES
 from sentry.models import EventUser, User
