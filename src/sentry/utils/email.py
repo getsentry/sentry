@@ -338,7 +338,7 @@ class MessageBuilder(object):
 
         html_body = self.__render_html_body()
         if html_body:
-            msg.attach_alternative(html_body, 'text/html')
+            msg.attach_alternative(html_body.decode('utf-8'), 'text/html')
 
         return msg
 

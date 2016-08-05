@@ -60,11 +60,11 @@ class TeamStatsEndpoint(TeamEndpoint, StatsMixin):
         if not projects:
             return Response([])
 
-        data = tsdb.get_range(
+        data = list(tsdb.get_range(
             model=tsdb.models.project,
             keys=[p.id for p in projects],
             **self._parse_args(request)
-        ).values()
+        ).values())
 
         summarized = []
         for n in range(len(data[0])):

@@ -52,7 +52,8 @@ def get_integration_id(platform_id, integration_id):
 
 def sync_docs():
     print('syncing documentation (platform index)')
-    data = json.load(urlopen(BASE_URL.format('_index.json')))
+    body = urlopen(BASE_URL.format('_index.json')).read().decode('utf-8')
+    data = json.loads(body)
     platform_list = []
     for platform_id, integrations in six.iteritems(data['platforms']):
         platform_list.append({

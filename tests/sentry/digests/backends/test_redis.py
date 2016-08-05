@@ -187,7 +187,7 @@ class RedisBackendTestCase(BaseRedisBackendTestCase):
 
         with self.assertChanges(get_waiting_set_size, before=n, after=0), \
                 self.assertChanges(get_ready_set_size, before=n, after=n * 2):
-            results = zip(range(n), list(backend.schedule(n, chunk=5)))
+            results = list(zip(range(n), list(backend.schedule(n, chunk=5))))
             assert len(results) is n
 
             # Ensure scheduled entries are returned earliest first.

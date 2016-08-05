@@ -149,7 +149,7 @@ class SingleException(Interface):
             if output and self.type:
                 output.append(self.type)
         if not output:
-            output = filter(bool, [self.type, self.value])
+            output = [s for s in [self.type, self.value] if s]
         return output
 
 

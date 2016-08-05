@@ -28,6 +28,6 @@ class HealthCheck(object):
         problems = list(itertools.chain.from_iterable(results.values()))
 
         return HttpResponse(json.dumps({
-            'problems': map(six.text_type, problems),
+            'problems': [six.text_type(p) for p in problems],
             'healthy': {type(check).__name__: not p for check, p in results.items()},
         }), content_type='application/json', status=(500 if problems else 200))

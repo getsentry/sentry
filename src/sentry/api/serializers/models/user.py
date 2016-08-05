@@ -14,7 +14,7 @@ from sentry.utils.avatar import get_gravatar_url
 class UserSerializer(Serializer):
     def _get_identities(self, item_list, user):
         if not (env.request and env.request.is_superuser()):
-            item_list = filter(lambda x: x == user, item_list)
+            item_list = [x for x in item_list if x == user]
 
         queryset = AuthIdentity.objects.filter(
             user__in=item_list,

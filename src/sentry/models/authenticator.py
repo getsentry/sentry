@@ -295,8 +295,13 @@ class RecoveryCodeInterface(AuthenticatorInterface):
         return rv
 
     def generate_new_config(self):
+        if six.PY3:
+            salt = int(os.urandom(16).decode('utf-8'), 16)
+        else:
+            salt = os.urandom(16).encode('hex')
+
         return {
-            'salt': os.urandom(16).encode('hex'),
+            'salt': salt,
             'used': 0,
         }
 
