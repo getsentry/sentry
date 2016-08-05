@@ -45,7 +45,7 @@ def send_beacon():
     install_id = options.get('sentry:install-id')
     if not install_id:
         logger.info('Generated installation ID: %s', install_id)
-        install_id = sha1(uuid4().hex).hexdigest()
+        install_id = sha1(uuid4().bytes).hexdigest()
         options.set('sentry:install-id', install_id)
 
     end = timezone.now()

@@ -7,6 +7,8 @@ sentry.utils.cursors
 """
 from __future__ import absolute_import
 
+import six
+
 from collections import Sequence
 
 
@@ -14,7 +16,7 @@ class Cursor(object):
     def __init__(self, value, offset=0, is_prev=False, has_results=None):
         # XXX: ceil is not entirely correct here, but it's a simple hack
         # that solves most problems
-        self.value = long(value)
+        self.value = int(value)
         self.offset = int(offset)
         self.is_prev = bool(is_prev)
         self.has_results = has_results
@@ -107,13 +109,13 @@ def build_cursor(results, key, limit=100, cursor=None):
         has_next = True
     elif num_results:
         if not value:
-            value = long(key(results[0]))
+            value = int(key(results[0]))
 
         # Are there more results than whats on the current page?
         has_next = num_results > limit
 
         # Determine what our next cursor is by ensuring we have a unique offset
-        next_value = long(key(results[-1]))
+        next_value = int(key(results[-1]))
 
         if next_value == value:
             next_offset = offset + limit
@@ -121,9 +123,9 @@ def build_cursor(results, key, limit=100, cursor=None):
             next_offset = 0
             result_iter = reversed(results)
             # skip the last result
-            result_iter.next()
+            six.next(result_iter)
             for result in result_iter:
-                if long(key(result)) == next_value:
+                if int(key(result)) == next_value:
                     next_offset += 1
                 else:
                     break
@@ -134,11 +136,11 @@ def build_cursor(results, key, limit=100, cursor=None):
 
     # Determine what our pervious cursor is by ensuring we have a unique offset
     if is_prev and num_results:
-        prev_value = long(key(results[0]))
+        prev_value = int(key(results[0]))
 
         if num_results > 2:
             i = 1
-            while i < num_results and prev_value == long(key(results[i])):
+            while i < num_results and prev_value == int(key(results[i])):
                 i += 1
             i -= 1
         else:

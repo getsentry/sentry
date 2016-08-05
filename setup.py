@@ -26,9 +26,9 @@ from __future__ import absolute_import
 
 import sys
 
-if sys.version_info[:2] != (2, 7):
-    print 'Error: Sentry requires Python 2.7'
-    sys.exit(1)
+# if sys.version_info[:2] != (2, 7):
+#     print 'Error: Sentry requires Python 2.7'
+#     sys.exit(1)
 
 import os
 import json
@@ -68,7 +68,7 @@ IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 
 dev_requires = [
     'Babel',
-    'flake8>=2.1,<2.2',
+    'flake8>=2.6,<2.7',
     'pycodestyle>=2.0,<2.1',
     'isort>=4.2.2,<4.3.0',
 ]
@@ -88,9 +88,9 @@ tests_require = [
 
 
 install_requires = [
-    'BeautifulSoup>=3.2.1,<3.3.0',
     'celery>=3.1.8,<3.1.19',
     'click>=5.0,<7.0',
+    # 'cryptography>=1.3,<1.4',
     'cssutils>=0.9.9,<0.10.0',
     'Django>=1.6.0,<1.7',
     'django-bitfield>=1.7.0,<1.8.0',
@@ -105,29 +105,32 @@ install_requires = [
     'email-reply-parser>=0.2.0,<0.3.0',
     'enum34>=0.9.18,<1.2.0',
     'exam>=0.5.1',
+    # broken on python3
     'hiredis>=0.1.0,<0.2.0',
     'honcho>=0.7.0,<0.8.0',
-    'ipaddr>=2.1.11,<2.2.0',
     'kombu==3.0.35',
     'lxml>=3.4.1',
+
+    'ipaddress>=1.0.16,<1.1.0',
     'mock>=0.8.0,<1.1',
     'oauth2>=1.5.167',
     'petname>=1.7,<1.8',
     'Pillow>=3.2.0,<3.3.0',
-    'progressbar>=2.2,<2.4',
+    'progressbar2>=3.10,<3.11',
     'psycopg2>=2.6.0,<2.7.0',
     'pytest>=2.6.4,<2.7.0',
     'pytest-django>=2.9.1,<2.10.0',
     'pytest-html>=1.9.0,<1.10.0',
     'python-dateutil>=2.0.0,<3.0.0',
     'python-memcached>=1.53,<2.0.0',
-    'PyYAML>=3.11,<4.0',
+    'python-openid>=2.2',
+    'PyYAML>=3.11,<3.12',
     'raven>=5.21.0,<6.0.0',
     'redis>=2.10.3,<2.11.0',
-    'requests%s>=2.9.1,<2.11.0' % (not IS_LIGHT_BUILD and '[security]' or ''),
+    'requests[security]>=2.9.1,<2.11.0',
     'selenium>=2.53,<2.60',
     'simplejson>=3.2.0,<3.9.0',
-    'six>=1.6.0,<2.0.0',
+    'six>=1.10.0,<1.11.0',
     'setproctitle>=1.1.7,<1.2.0',
     'statsd>=3.1.0,<3.2.0',
     'structlog==16.1.0',

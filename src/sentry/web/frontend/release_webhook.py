@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from hashlib import sha256
 import hmac
 import logging
+import six
 from simplejson import JSONDecodeError
 
 from django.http import HttpResponse
@@ -22,8 +23,8 @@ logger = logging.getLogger('sentry.webhooks')
 class ReleaseWebhookView(View):
     def verify(self, plugin_id, project_id, token, signature):
         return constant_time_compare(signature, hmac.new(
-            key=str(token),
-            msg='{}-{}'.format(plugin_id, project_id),
+            key=token.encode('utf-8'),
+            msg=('{}-{}'.format(plugin_id, project_id)).encode('utf-8'),
             digestmod=sha256
         ).hexdigest())
 
@@ -42,7 +43,7 @@ class ReleaseWebhookView(View):
         except JSONDecodeError as exc:
             return HttpResponse(
                 status=400,
-                content=json.dumps({'error': unicode(exc)}),
+                content=json.dumps({'error': six.text_type(exc)}),
                 content_type='application/json',
             )
 

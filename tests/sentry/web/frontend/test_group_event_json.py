@@ -22,5 +22,5 @@ class GroupEventJsonTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp['Content-Type'] == 'application/json'
-        data = json.loads(resp.content)
+        data = json.loads(resp.content.decode('utf-8'))
         assert data['id'] == self.event.event_id

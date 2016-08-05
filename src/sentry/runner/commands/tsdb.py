@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-from collections import OrderedDict
-from datetime import datetime, timedelta
-
 import click
 import pytz
+import six
+
+from collections import OrderedDict
+from datetime import datetime, timedelta
 from dateutil.parser import parse
 
 from sentry.runner.decorators import configuration
@@ -105,7 +106,7 @@ def organizations(metrics, since, until):
         for metric in metrics.values():
             results[metric] = tsdb.get_range(metric, instances.keys(), since, until)
 
-        for key, instance in instances.iteritems():
+        for key, instance in six.iteritems(instances):
             values = []
             for metric in metrics.values():
                 values.append(aggregate(results[metric][key]))

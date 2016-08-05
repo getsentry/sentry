@@ -7,6 +7,7 @@ import datetime
 import json
 import logging
 import mock
+import six
 import zlib
 
 from django.conf import settings
@@ -16,11 +17,11 @@ from django.utils import timezone
 from gzip import GzipFile
 from exam import fixture
 from raven import Client
+from six import StringIO
 
 from sentry.models import Group, Event
 from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
-from sentry.utils.compat import StringIO
 from sentry.utils.settings import (
     validate_settings, ConfigurationError, import_string)
 
@@ -109,7 +110,7 @@ class RavenIntegrationTest(TransactionTestCase):
 
     def sendRemote(self, url, data, headers={}):
         content_type = headers.pop('Content-Type', None)
-        headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in headers.iteritems())
+        headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in six.iteritems(headers))
         resp = self.client.post(
             reverse('sentry-api-store', args=[self.pk.project_id]),
             data=data,
@@ -438,7 +439,7 @@ class CspReportTest(TestCase):
         e = Event.objects.all()[0]
         Event.objects.bind_nodes([e], 'data')
         assert output['message'] == e.data['sentry.interfaces.Message']['message']
-        for key, value in output['tags'].iteritems():
+        for key, value in six.iteritems(output['tags']):
             assert e.get_tag(key) == value
         self.assertDictContainsSubset(output['data'], e.data.data, e.data.data)
 

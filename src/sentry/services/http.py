@@ -8,23 +8,25 @@ sentry.services.http
 from __future__ import absolute_import, print_function
 
 import os
+import six
 import sys
+
 from sentry.services.base import Service
 
 
 def convert_options_to_env(options):
-    for k, v in options.iteritems():
+    for k, v in six.iteritems(options):
         if v is None:
             continue
         key = 'UWSGI_' + k.upper().replace('-', '_')
-        if isinstance(v, basestring):
+        if isinstance(v, six.string_types):
             value = v
         elif v is True:
             value = 'true'
         elif v is False:
             value = 'false'
-        elif isinstance(v, (int, long)):
-            value = str(v)
+        elif isinstance(v, six.integer_types):
+            value = six.text_type(v)
         else:
             raise TypeError('Unknown option type: %r (%s)' % (k, type(v)))
         yield key, value
@@ -47,7 +49,7 @@ class SentryHTTPServer(Service):
 
         options = (settings.SENTRY_WEB_OPTIONS or {}).copy()
         if extra_options is not None:
-            for k, v in extra_options.iteritems():
+            for k, v in six.iteritems(extra_options):
                 options[k] = v
         options.setdefault('module', 'sentry.wsgi:application')
         options.setdefault('protocol', 'http')

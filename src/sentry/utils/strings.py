@@ -9,12 +9,12 @@ from __future__ import absolute_import
 
 import base64
 import re
+import six
 import string
 import zlib
-from itertools import count
 
-import six
-from django.utils.encoding import force_unicode, smart_unicode
+from django.utils.encoding import force_text, smart_text
+from itertools import count
 
 # Callsigns we do not want to generate automatically because they might
 # overlap with something else that is popular (like GH for GitHub)
@@ -46,7 +46,13 @@ def truncatechars(value, arg):
 
 
 def compress(value):
-    return base64.b64encode(zlib.compress(value))
+    """
+    Compresses a value for safe passage as a string.
+
+    This returns a unicode string rather than bytes, as the Django ORM works
+    with unicode objects.
+    """
+    return base64.b64encode(zlib.compress(value)).decode('utf-8')
 
 
 def decompress(value):
@@ -60,11 +66,11 @@ def gunzip(value):
 def strip(value):
     if not value:
         return ''
-    return smart_unicode(value).strip()
+    return smart_text(value).strip()
 
 
 def soft_hyphenate(value, length, hyphen=u'\u00ad'):
-    return hyphen.join([value[i:(i + length)] for i in xrange(0, len(value), length)])
+    return hyphen.join([value[i:(i + length)] for i in range(0, len(value), length)])
 
 
 def soft_break(value, length, process=lambda chunk: chunk):
@@ -93,12 +99,12 @@ def soft_break(value, length, process=lambda chunk: chunk):
 
 def to_unicode(value):
     try:
-        value = six.text_type(force_unicode(value))
+        value = six.text_type(force_text(value))
     except (UnicodeEncodeError, UnicodeDecodeError):
         value = '(Error decoding value)'
     except Exception:  # in some cases we get a different exception
         try:
-            value = str(repr(type(value)))
+            value = six.text_type(repr(type(value)))
         except Exception:
             value = '(Error decoding value)'
     return value
@@ -183,7 +189,7 @@ valid_dot_atom_characters = frozenset(
 
 def is_valid_dot_atom(value):
     """Validate an input string as an RFC 2822 dot-atom-text value."""
-    return (isinstance(value, basestring)  # must be a string type
+    return (isinstance(value, six.string_types)  # must be a string type
         and not value[0] == '.'
         and not value[-1] == '.'  # cannot start or end with a dot
         and set(value).issubset(valid_dot_atom_characters))  # can only contain valid characters

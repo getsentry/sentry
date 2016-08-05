@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import functools
 import itertools
 import mock
+import six
 import time
 
 from exam import fixture
@@ -37,13 +38,13 @@ class BaseRedisBackendTestCase(TestCase):
     @fixture
     def records(self):
         for i in itertools.count():
-            yield Record(str(i), str(i), float(i))
+            yield Record(six.text_type(i), six.text_type(i), float(i))
 
 
 class RedisScriptTestCase(BaseRedisBackendTestCase):
     def test_ensure_timeline_scheduled_script(self):
         cluster = clusters.get('default')
-        client = cluster.get_local_client(cluster.hosts.keys()[0])
+        client = cluster.get_local_client(six.next(iter(cluster.hosts)))
 
         timeline = 'timeline'
         timestamp = 100.0
@@ -96,7 +97,7 @@ class RedisScriptTestCase(BaseRedisBackendTestCase):
 
     def test_truncate_timeline_script(self):
         cluster = clusters.get('default')
-        client = cluster.get_local_client(cluster.hosts.keys()[0])
+        client = cluster.get_local_client(six.next(iter(cluster.hosts)))
 
         timeline = 'timeline'
 
@@ -158,7 +159,7 @@ class RedisBackendTestCase(BaseRedisBackendTestCase):
 
         with mock.patch('random.random', return_value=1.0):
             with self.assertChanges(get_timeline_size, before=0, after=fill):
-                for _ in xrange(fill):
+                for _ in range(fill):
                     backend.add(timeline, next(self.records))
 
         with mock.patch('random.random', return_value=0.0):
@@ -173,11 +174,11 @@ class RedisBackendTestCase(BaseRedisBackendTestCase):
 
         n = 10
 
-        for i in xrange(n):
+        for i in range(n):
             with backend.cluster.map() as client:
                 client.zadd(waiting_set_key, i, 'timelines:{0}'.format(i))
 
-        for i in xrange(n, n * 2):
+        for i in range(n, n * 2):
             with backend.cluster.map() as client:
                 client.zadd(ready_set_key, i, 'timelines:{0}'.format(i))
 

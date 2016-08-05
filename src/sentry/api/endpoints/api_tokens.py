@@ -4,6 +4,7 @@ from operator import or_
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from six.moves import reduce
 
 from sentry.api.base import Endpoint, SessionAuthentication
 from sentry.api.fields import MultipleChoiceField
@@ -51,7 +52,6 @@ class ApiTokensEndpoint(Endpoint):
 
     def delete(self, request):
         token = request.DATA.get('token')
-        print(request.DATA)
         if not token:
             return Response({'token': ''}, status=400)
 

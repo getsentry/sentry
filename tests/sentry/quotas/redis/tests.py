@@ -2,9 +2,10 @@
 
 from __future__ import absolute_import
 
+import mock
+import six
 import time
 
-import mock
 from exam import fixture, patcher
 
 from sentry.quotas.redis import (
@@ -19,7 +20,7 @@ def test_is_rate_limited_script():
     now = int(time.time())
 
     cluster = clusters.get('default')
-    client = cluster.get_local_client(cluster.hosts.keys()[0])
+    client = cluster.get_local_client(six.next(iter(cluster.hosts)))
 
     # The item should not be rate limited by either key.
     assert map(bool, is_rate_limited(client, ('foo', 'bar'), (1, now + 60, 2, now + 120))) == [False, False]

@@ -11,16 +11,16 @@ from __future__ import absolute_import
 
 from django.conf.global_settings import *  # NOQA
 
-from datetime import timedelta
-
 import os
 import os.path
 import socket
 import sys
 import tempfile
-import urlparse
 
 import sentry
+
+from datetime import timedelta
+from six.moves.urllib.parse import urlparse
 
 gettext_noop = lambda s: s
 
@@ -66,7 +66,7 @@ DATABASES = {
 
 
 if 'DATABASE_URL' in os.environ:
-    url = urlparse.urlparse(os.environ['DATABASE_URL'])
+    url = urlparse(os.environ['DATABASE_URL'])
 
     # Ensure default database exists.
     DATABASES['default'] = DATABASES.get('default', {})

@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
 
 from sentry.models import AuthIdentity, AuthProvider, User
@@ -20,7 +22,7 @@ class UserDetailsTest(APITestCase):
     #     resp = self.client.get(url, format='json')
 
     #     assert resp.status_code == 200, resp.content
-    #     assert resp.data['id'] == str(user.id)
+    #     assert resp.data['id'] == six.text_type(user.id)
     #     assert 'identities' not in resp.data
 
     def test_lookup_self(self):
@@ -45,7 +47,7 @@ class UserDetailsTest(APITestCase):
         resp = self.client.get(url, format='json')
 
         assert resp.status_code == 200, resp.content
-        assert resp.data['id'] == str(user.id)
+        assert resp.data['id'] == six.text_type(user.id)
         assert 'identities' in resp.data
         assert len(resp.data['identities']) == 1
         assert resp.data['identities'][0]['id'] == auth_identity.ident
@@ -62,7 +64,7 @@ class UserDetailsTest(APITestCase):
 
         resp = self.client.get(url)
         assert resp.status_code == 200, resp.content
-        assert resp.data['id'] == str(user.id)
+        assert resp.data['id'] == six.text_type(user.id)
         assert 'identities' in resp.data
         assert len(resp.data['identities']) == 0
 
@@ -82,7 +84,7 @@ class UserUpdateTest(APITestCase):
             'username': 'b@example.com',
         })
         assert resp.status_code == 200, resp.content
-        assert resp.data['id'] == str(user.id)
+        assert resp.data['id'] == six.text_type(user.id)
 
         user = User.objects.get(id=user.id)
         assert user.name == 'hello world'
@@ -106,7 +108,7 @@ class UserUpdateTest(APITestCase):
             'isActive': 'false',
         })
         assert resp.status_code == 200, resp.content
-        assert resp.data['id'] == str(user.id)
+        assert resp.data['id'] == six.text_type(user.id)
 
         user = User.objects.get(id=user.id)
         assert user.name == 'hello world'

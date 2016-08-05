@@ -7,6 +7,8 @@ sentry.quotas.redis
 """
 from __future__ import absolute_import
 
+import six
+
 from time import time
 
 from sentry.exceptions import InvalidConfiguration
@@ -32,7 +34,7 @@ class RedisQuota(Quota):
             with self.cluster.all() as client:
                 client.ping()
         except Exception as e:
-            raise InvalidConfiguration(unicode(e))
+            raise InvalidConfiguration(six.text_type(e))
 
     def get_quotas(self, project):
         return (
@@ -47,7 +49,8 @@ class RedisQuota(Quota):
         timestamp = time()
 
         quotas = filter(
-            lambda (key, limit, interval): limit and limit > 0,  # a zero limit means "no limit", not "reject all"
+            # x = (key, limit, interval)
+            lambda x: x[1] and x[1] > 0,  # a zero limit means "no limit", not "reject all"
             self.get_quotas(project),
         )
 
@@ -66,7 +69,7 @@ class RedisQuota(Quota):
             expiry = get_next_period_start(interval) + self.grace
             args.extend((limit, int(expiry)))
 
-        client = self.cluster.get_local_client_for_key(str(project.organization.pk))
+        client = self.cluster.get_local_client_for_key(six.text_type(project.organization.pk))
         rejections = is_rate_limited(client, keys, args)
         if any(rejections):
             delay = max(get_next_period_start(interval) - timestamp for (key, limit, interval), rejected in zip(quotas, rejections) if rejected)

@@ -1,4 +1,7 @@
+from __future__ import absolute_import
+
 import pytest
+
 from exam import fixture
 
 from sentry.testutils import TestCase

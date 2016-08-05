@@ -8,6 +8,7 @@ sentry.utils.query
 from __future__ import absolute_import
 
 import progressbar
+import six
 
 from django.db import connections, IntegrityError, router, transaction
 from django.db.models import ForeignKey
@@ -120,7 +121,7 @@ class WithProgressBar(object):
             count = len(iterator)
         self.iterator = iterator
         self.count = count
-        self.caption = unicode(caption or u'Progress')
+        self.caption = six.text_type(caption or u'Progress')
 
     def __iter__(self):
         if self.count != 0:
@@ -156,7 +157,7 @@ class EverythingCollector(Collector):
         # Recursively collect concrete model's parent models, but not their
         # related objects. These will be found by meta.get_all_related_objects()
         concrete_model = model._meta.concrete_model
-        for ptr in concrete_model._meta.parents.iteritems():
+        for ptr in six.iteritems(concrete_model._meta.parents):
             if ptr:
                 # FIXME: This seems to be buggy and execute a query for each
                 # parent object fetch. We have the parent data in the obj,
@@ -206,7 +207,7 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
     collector = EverythingCollector(using=using)
     collector.collect([self])
 
-    for model, objects in collector.data.iteritems():
+    for model, objects in six.iteritems(collector.data):
         # find all potential keys which match our type
         fields = set(
             f.name for f in model._meta.fields
@@ -248,7 +249,7 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
                 pre_delete.send(**signal_kwargs)
                 post_delete.send(**signal_kwargs)
 
-            for k, v in update_kwargs.iteritems():
+            for k, v in six.iteritems(update_kwargs):
                 setattr(obj, k, v)
 
             if send_signals:

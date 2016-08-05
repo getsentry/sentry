@@ -12,6 +12,7 @@ from __future__ import absolute_import
 from simplejson import JSONEncoder, JSONEncoderForHTML, _default_decoder
 import datetime
 import uuid
+import six
 import decimal
 
 from django.utils.timezone import is_aware
@@ -35,7 +36,7 @@ def better_default_encoder(o):
     elif isinstance(o, (set, frozenset)):
         return list(o)
     elif isinstance(o, decimal.Decimal):
-        return str(o)
+        return six.text_type(o)
     raise TypeError(repr(o) + ' is not JSON serializable')
 
 

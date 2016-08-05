@@ -878,5 +878,5 @@ class GenerateCulpritTest(TestCase):
         assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
 
     def test_md5_from_hash(self):
-        result = md5_from_hash(['foo', 'bar', 'foô'])
+        result = md5_from_hash(['foo', 'bar', u'foô'])
         assert result == '6d81588029ed4190110b2779ba952a00'

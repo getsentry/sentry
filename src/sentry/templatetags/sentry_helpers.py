@@ -5,8 +5,6 @@ sentry.templatetags.sentry_helpers
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-# XXX: Import django-paging's template tags so we don't have to worry about
-#      INSTALLED_APPS
 from __future__ import absolute_import
 
 import functools
@@ -14,12 +12,11 @@ import os.path
 import pytz
 import six
 
-
 from collections import namedtuple
 from datetime import timedelta
 from pkg_resources import parse_version as Version
 from six.moves import range
-from urllib import quote, urlencode
+from six.moves.urllib.parse import quote, urlencode
 
 from django import template
 from django.conf import settings
@@ -126,7 +123,7 @@ def small_count(v):
     for x, y in z:
         o, p = divmod(v, x)
         if o:
-            if len(str(o)) > 2 or not p:
+            if len(six.text_type(o)) > 2 or not p:
                 return '%d%s' % (o, y)
             return '%.1f%s' % (v / float(x), y)
     return v
@@ -134,12 +131,12 @@ def small_count(v):
 
 @register.filter
 def num_digits(value):
-    return len(str(value))
+    return len(six.text_type(value))
 
 
 @register.filter
 def to_str(data):
-    return str(data)
+    return six.text_type(data)
 
 
 @register.filter
@@ -302,7 +299,7 @@ def with_metadata(group_list, request):
     for g in group_list:
         yield g, {
             'is_bookmarked': g.pk in bookmarks,
-            'historical_data': ','.join(str(x[1]) for x in historical_data.get(g.id, [])),
+            'historical_data': ','.join(six.text_type(x[1]) for x in historical_data.get(g.id, [])),
         }
 
 

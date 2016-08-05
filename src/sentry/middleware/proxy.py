@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 
 class SetRemoteAddrFromForwardedFor(object):
     def process_request(self, request):
@@ -27,6 +29,6 @@ class ContentLengthHeaderMiddleware(object):
             return response
 
         if not response.streaming:
-            response['Content-Length'] = str(len(response.content))
+            response['Content-Length'] = six.text_type(len(response.content))
 
         return response

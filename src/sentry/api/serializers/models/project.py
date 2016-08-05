@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from collections import defaultdict
 from django.db.models import Q
 
@@ -90,7 +92,7 @@ class ProjectSerializer(Serializer):
         status_label = STATUS_LABELS.get(obj.status, 'unknown')
 
         return {
-            'id': str(obj.id),
+            'id': six.text_type(obj.id),
             'slug': obj.slug,
             'name': obj.name,
             'isPublic': obj.public,
@@ -120,7 +122,7 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
             for d in serialize(list(set(i.organization for i in item_list)), user)
         }
         for item in item_list:
-            attrs[item]['organization'] = orgs[str(item.organization_id)]
+            attrs[item]['organization'] = orgs[six.text_type(item.organization_id)]
         return attrs
 
     def serialize(self, obj, attrs, user):

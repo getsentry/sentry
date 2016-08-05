@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
+import ipaddress
 import re
-from ipaddr import IPAddress
+import six
 
 EVENT_ID_RE = re.compile(r'^[a-fA-F0-9]{32}$')
 
@@ -11,7 +12,7 @@ def validate_ip(value, required=True):
         return
 
     # will raise a ValueError
-    IPAddress(value)
+    ipaddress.ip_network(six.text_type(value))
     return value
 
 

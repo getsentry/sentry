@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import mock
+import six
 
 from django.core import mail
 from django.utils import timezone
@@ -303,7 +304,7 @@ class MailPluginTest(TestCase):
             type=Activity.ASSIGNED,
             user=self.create_user('foo@example.com'),
             data={
-                'assignee': str(self.user.id),
+                'assignee': six.text_type(self.user.id),
             },
         )
 
