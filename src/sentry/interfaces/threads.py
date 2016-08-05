@@ -17,8 +17,14 @@ class Threads(Interface):
         for thread in data.get('values') or ():
             stacktrace = thread.get('stacktrace')
             if stacktrace is not None:
-                stacktrace = Stacktrace.to_python(stacktrace,
-                                                  slim_frames=True)
+                # Special case: if the thread has no frames we set the
+                # stacktrace to none.  Otherwise this will fail really
+                # badly.
+                if not stacktrace.get('frames'):
+                    stacktrace = None
+                else:
+                    stacktrace = Stacktrace.to_python(stacktrace,
+                                                      slim_frames=True)
             threads.append({
                 'stacktrace': stacktrace,
                 'id': trim(thread.get('id'), 40),
