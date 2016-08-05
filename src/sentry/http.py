@@ -35,7 +35,7 @@ USER_AGENT = 'sentry/{version} (https://getsentry.com)'.format(
 )
 
 DISALLOWED_IPS = {
-    ipaddress.ip_network(six.text_type(i))
+    ipaddress.ip_network(six.text_type(i), strict=False)
     for i in settings.SENTRY_DISALLOWED_IPS
 }
 
