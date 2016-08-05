@@ -5,6 +5,7 @@ __all__ = ['SourceProcessor']
 import logging
 import re
 import base64
+import six
 import zlib
 
 from django.conf import settings
@@ -13,7 +14,7 @@ from django.utils.encoding import force_bytes, force_text
 from collections import namedtuple
 from os.path import splitext
 from requests.exceptions import RequestException
-from urlparse import urlparse, urljoin, urlsplit
+from six.moves.urllib.parse import urlparse, urljoin, urlsplit
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
@@ -29,7 +30,7 @@ from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Release, ReleaseFile
 from sentry.utils.cache import cache
 from sentry.utils.files import compress_file
-from sentry.utils.hashlib import md5
+from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
 from sentry.utils.strings import truncatechars
 
@@ -198,7 +199,7 @@ def discover_sourcemap(result):
 def fetch_release_file(filename, release):
     cache_key = 'releasefile:v1:%s:%s' % (
         release.id,
-        md5(filename).hexdigest(),
+        md5_text(filename).hexdigest(),
     ),
 
     filename_path = None
@@ -246,7 +247,7 @@ def fetch_release_file(filename, release):
             with releasefile.file.getfile() as fp:
                 z_body, body = compress_file(fp)
         except Exception as e:
-            logger.exception(unicode(e))
+            logger.exception(six.text_type(e))
             cache.set(cache_key, -1, 3600)
             result = None
         else:
@@ -278,7 +279,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         result = None
 
     cache_key = 'source:cache:v3:%s' % (
-        md5(url).hexdigest(),
+        md5_text(url).hexdigest(),
     )
 
     if result is None:
@@ -301,7 +302,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         # lock down domains that are problematic
         domain = urlparse(url).netloc
         domain_key = 'source:blacklist:v2:%s' % (
-            md5(domain).hexdigest(),
+            md5_text(domain).hexdigest(),
         )
         domain_result = cache.get(domain_key)
         if domain_result:
@@ -340,11 +341,11 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             elif isinstance(exc, (RequestException, ZeroReturnError)):
                 error = {
                     'type': EventError.JS_GENERIC_FETCH_ERROR,
-                    'value': str(type(exc)),
+                    'value': six.text_type(type(exc)),
                     'url': expose_url(url),
                 }
             else:
-                logger.exception(unicode(exc))
+                logger.exception(six.text_type(exc))
                 error = {
                     'type': EventError.UNKNOWN_ERROR,
                     'url': expose_url(url),
@@ -393,10 +394,10 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             }
             raise CannotFetchSource(error)
 
-    # Make sure the file we're getting back is unicode, if it's not,
+    # Make sure the file we're getting back is six.text_type, if it's not,
     # it's either some encoding that we don't understand, or it's binary
     # data which we can't process.
-    if not isinstance(result[1], unicode):
+    if not isinstance(result[1], six.text_type):
         try:
             result = (result[0], result[1].decode('utf8'), result[2])
         except UnicodeDecodeError:
@@ -429,7 +430,7 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
         return sourcemap_to_index(body)
     except Exception as exc:
         # This is in debug because the product shows an error already.
-        logger.debug(unicode(exc), exc_info=True)
+        logger.debug(six.text_type(exc), exc_info=True)
         raise UnparseableSourcemap({
             'url': expose_url(url),
         })

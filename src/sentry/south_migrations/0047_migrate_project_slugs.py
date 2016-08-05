@@ -1,5 +1,7 @@
 # encoding: utf-8
 import datetime
+import six
+
 from south.db import db
 from south.v2 import DataMigration
 from django.db import models
@@ -20,7 +22,7 @@ class Migration(DataMigration):
             n = 0
             while orm['sentry.Project'].objects.filter(slug=slug).exists():
                 n += 1
-                slug = base_slug + '-' + str(n)
+                slug = base_slug + '-' + six.text_type(n)
 
             update(project, slug=slug)
 

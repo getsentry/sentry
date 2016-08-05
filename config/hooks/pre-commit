@@ -23,7 +23,11 @@ def main():
 
     _, files_modified, _ = run(gitcmd)
 
-    files_modified = filter(lambda x: os.path.exists(x), files_modified)
+    files_modified = [
+        f
+        for f in files_modified
+        if os.path.exists(f)
+    ]
 
     return check_files(files_modified)
 

@@ -10,6 +10,8 @@ from __future__ import absolute_import
 
 __all__ = ('Breadcrumbs',)
 
+import six
+
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim
 from sentry.utils.dates import to_timestamp, to_datetime, parse_timestamp
@@ -72,11 +74,11 @@ class Breadcrumbs(Interface):
 
         msg = crumb.get('message')
         if msg is not None:
-            rv['message'] = trim(unicode(msg), 4096)
+            rv['message'] = trim(six.text_type(msg), 4096)
 
         category = crumb.get('category')
         if category is not None:
-            rv['category'] = trim(unicode(category), 256)
+            rv['category'] = trim(six.text_type(category), 256)
 
         event_id = crumb.get('event_id')
         if event_id is not None:

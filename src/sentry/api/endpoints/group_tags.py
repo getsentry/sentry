@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from rest_framework.response import Response
 
 from collections import defaultdict
@@ -28,7 +30,7 @@ class GroupTagsEndpoint(GroupEndpoint):
             all_top_values.extend(top_values)
 
             data.append({
-                'id': str(tag_key.id),
+                'id': six.text_type(tag_key.id),
                 'key': TagKey.get_standardized_key(tag_key.key),
                 'name': tag_key.get_label(),
                 'uniqueValues': tag_key.values_seen,

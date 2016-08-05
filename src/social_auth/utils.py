@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
 import random
-import urlparse
-import urllib
 import logging
 
 from cgi import parse_qsl
@@ -12,7 +10,8 @@ from django.db.models import Model
 from django.contrib.contenttypes.models import ContentType
 from django.utils.functional import empty, SimpleLazyObject
 from django.utils.importlib import import_module
-from urllib2 import urlopen
+from six.moves.urllib.parse import urlencode, urlparse, urlunparse
+from six.moves.urllib.request import urlopen
 
 try:
     random = random.SystemRandom()
@@ -69,7 +68,7 @@ def sanitize_redirect(host, redirect_to):
 
     # Heavier security check, don't allow redirection to a different host.
     try:
-        netloc = urlparse.urlparse(redirect_to)[1]
+        netloc = urlparse(redirect_to)[1]
     except TypeError:  # not valid redirect_to value
         return None
 
@@ -165,10 +164,9 @@ def clean_partial_pipeline(request):
 def url_add_parameters(url, params):
     """Adds parameters to URL, parameter will be repeated if already present"""
     if params:
-        fragments = list(urlparse.urlparse(url))
-        fragments[4] = urllib.urlencode(parse_qsl(fragments[4]) +
-                                        params.items())
-        url = urlparse.urlunparse(fragments)
+        fragments = list(urlparse(url))
+        fragments[4] = urlencode(parse_qsl(fragments[4]) + params.items())
+        url = urlunparse(fragments)
     return url
 
 

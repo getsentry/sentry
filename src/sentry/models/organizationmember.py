@@ -7,12 +7,15 @@ sentry.models.organizationmember
 """
 from __future__ import absolute_import, print_function
 
+import six
+
 from bitfield import BitField
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models, transaction
 from django.db.models import F
 from django.utils import timezone
+from django.utils.encoding import force_bytes
 from hashlib import md5
 from structlog import get_logger
 
@@ -134,8 +137,9 @@ class OrganizationMember(Model):
     @property
     def token(self):
         checksum = md5()
-        for x in (str(self.organization_id), self.get_email(), settings.SECRET_KEY):
-            checksum.update(x)
+        checksum.update(six.text_type(self.organization_id).encode('utf-8'))
+        checksum.update(self.get_email().encode('utf-8'))
+        checksum.update(force_bytes(settings.SECRET_KEY))
         return checksum.hexdigest()
 
     def send_invite_email(self):

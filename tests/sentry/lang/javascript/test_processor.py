@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 import pytest
 import responses
+import six
 
 from mock import patch
 from requests.exceptions import RequestException
@@ -95,7 +96,7 @@ class FetchFileTest(TestCase):
         result = fetch_file('/example.js', release=release)
         assert result.url == '/example.js'
         assert result.body == 'foo'
-        assert isinstance(result.body, unicode)
+        assert isinstance(result.body, six.text_type)
         assert result.headers == {'content-type': 'application/json'}
 
     @patch('sentry.lang.javascript.processor.fetch_release_file')
@@ -335,7 +336,7 @@ class ErrorMappingTest(TestCase):
         }
         ''', content_type='application/json')
 
-        for x in xrange(3):
+        for x in range(3):
             data = {
                 'platform': 'javascript',
                 'sentry.interfaces.Exception': {

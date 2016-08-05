@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
-from rest_framework.response import Response
+import six
 
+from django.core.validators import validate_slug, ValidationError
 from django.db import transaction
+from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models import Project
-from django.core.validators import validate_slug, ValidationError
 
 
 class SlugsUpdateEndpoint(OrganizationEndpoint):
@@ -24,7 +25,7 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
         :auth: required
         """
         slugs = request.DATA.get('slugs', {})
-        for project_id, slug in slugs.iteritems():
+        for project_id, slug in six.iteritems(slugs):
             slug = slug.lower()
             try:
                 validate_slug(slug)
@@ -48,12 +49,12 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
             # Clear out all slugs first so that we can move them
             # around through the uniqueness
             for project in project_q:
-                projects[str(project.id)] = project
+                projects[six.text_type(project.id)] = project
                 project.slug = None
                 project.save()
 
             # Set new ones
-            for project_id, slug in slugs.iteritems():
+            for project_id, slug in six.iteritems(slugs):
                 project = projects.get(project_id)
                 if project is None:
                     continue

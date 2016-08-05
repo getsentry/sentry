@@ -7,6 +7,8 @@ sentry.models.activity
 """
 from __future__ import absolute_import
 
+import six
+
 from django.conf import settings
 from django.db import models
 from django.db.models import F
@@ -82,7 +84,7 @@ class Activity(Model):
         if self.type == self.RELEASE and isinstance(self.data['version'], Release):
             self.data['version'] = self.data['version'].version
         if self.type == self.ASSIGNED:
-            self.data['assignee'] = str(self.data['assignee'])
+            self.data['assignee'] = six.text_type(self.data['assignee'])
 
     def save(self, *args, **kwargs):
         created = bool(not self.id)

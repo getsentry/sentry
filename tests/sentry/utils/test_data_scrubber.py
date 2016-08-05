@@ -59,7 +59,7 @@ class SensitiveDataFilterTest(TestCase):
             'sentry.interfaces.Http': {
                 'data': VARS,
                 'env': VARS,
-                'headers': VARS.items(),
+                'headers': list(VARS.items()),
                 'cookies': VARS,
             }
         }
@@ -125,7 +125,7 @@ class SensitiveDataFilterTest(TestCase):
             'moar_other_field': 'another value'
         }
         data = {
-            'extra': dict(VARS.items() + additional_sensitive_dict.items())
+            'extra': dict(list(VARS.items()) + list(additional_sensitive_dict.items()))
         }
 
         proc = SensitiveDataFilter(additional_sensitive_dict.keys())

@@ -1,6 +1,8 @@
 from __future__ import absolute_import, print_function
 
+import base64
 import logging
+import six
 import traceback
 
 from django.conf import settings
@@ -36,7 +38,7 @@ logger = logging.getLogger('sentry')
 
 # Transparent 1x1 gif
 # See http://probablyprogramming.com/2009/03/15/the-tiniest-gif-ever
-PIXEL = 'R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='.decode('base64')
+PIXEL = base64.b64decode('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=')
 
 PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6', '7'))
 
@@ -74,7 +76,7 @@ class APIView(BaseView):
         auth = helper.auth_from_request(request)
 
         if auth.version not in PROTOCOL_VERSIONS:
-            raise APIError('Client using unsupported server protocol version (%r)' % str(auth.version or ''))
+            raise APIError('Client using unsupported server protocol version (%r)' % six.text_type(auth.version or ''))
 
         if not auth.client:
             raise APIError("Client did not send 'client' identifier")
@@ -111,7 +113,7 @@ class APIView(BaseView):
             response['X-Sentry-Error'] = context['error']
 
             if isinstance(e, APIRateLimited) and e.retry_after is not None:
-                response['Retry-After'] = str(e.retry_after)
+                response['Retry-After'] = six.text_type(e.retry_after)
 
         except Exception as e:
             if settings.DEBUG:
@@ -130,7 +132,7 @@ class APIView(BaseView):
             response.status_code,
         ))
         metrics.incr('client-api.all-versions.responses.%sxx' % (
-            str(response.status_code)[0],
+            six.text_type(response.status_code)[0],
         ))
 
         if helper.context.version:
@@ -141,7 +143,7 @@ class APIView(BaseView):
                 helper.context.version, response.status_code
             ))
             metrics.incr('client-api.v%s.responses.%sxx' % (
-                helper.context.version, str(response.status_code)[0]
+                helper.context.version, six.text_type(response.status_code)[0]
             ))
 
         if response.status_code != 200 and origin:
@@ -327,7 +329,7 @@ class StoreView(APIView):
 
         content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')
 
-        if isinstance(data, basestring):
+        if isinstance(data, six.string_types):
             if content_encoding == 'gzip':
                 data = helper.decompress_gzip(data)
             elif content_encoding == 'deflate':

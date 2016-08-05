@@ -4,12 +4,13 @@ import os
 import zlib
 import json
 import click
-import urlparse
 import logging
+import six
 
 from datetime import datetime
 from subprocess import Popen, PIPE
 from contextlib import contextmanager
+from six.moves.urllib.parse import urlparse
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 SENTRY_CONFIG = os.environ['SENTRY_CONF'] = os.path.join(HERE, 'sentry.conf.py')
@@ -28,7 +29,7 @@ from sentry.utils.apidocs import Runner, MockUtils, iter_scenarios, \
 
 
 OUTPUT_PATH = os.path.join(HERE, 'cache')
-HOST = urlparse.urlparse(settings.SENTRY_OPTIONS['system.url-prefix']).netloc
+HOST = urlparse(settings.SENTRY_OPTIONS['system.url-prefix']).netloc
 
 
 # We don't care about you, go away
@@ -45,7 +46,7 @@ def report(category, message, fg=None):
     if fg is None:
         fg = color_for_string(category)
     click.echo('[%s] %s: %s' % (
-        str(datetime.utcnow()).split('.')[0],
+        six.text_type(datetime.utcnow()).split('.')[0],
         click.style(category, fg=fg),
         message
     ))
@@ -59,7 +60,7 @@ def launch_redis():
     databases %(databases)d
     save ""
     ''' % {
-        'port': str(settings.SENTRY_APIDOCS_REDIS_PORT),
+        'port': six.text_type(settings.SENTRY_APIDOCS_REDIS_PORT),
         'databases': 4,
     })
     cl.stdin.flush()
@@ -210,7 +211,7 @@ def cli(output_path):
             'sections': dict((section, {
                 'title': title,
                 'entries': dict(section_mapping.get(section, ())),
-            }) for section, title in get_sections().iteritems())
+            }) for section, title in six.iteritems(get_sections()))
         })
 
 

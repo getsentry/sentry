@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 import sys
 
 try:
@@ -35,16 +36,16 @@ def get_package_version(module_name, app):
         except Exception:
             return None
 
-    if not isinstance(version, (basestring, list, tuple)):
+    if not isinstance(version, six.string_types + (list, tuple)):
         version = None
 
     if version is None:
         return None
 
     if isinstance(version, (list, tuple)):
-        version = '.'.join(map(str, version))
+        version = '.'.join(map(six.text_type, version))
 
-    return str(version)
+    return six.text_type(version)
 
 
 def get_all_package_versions():

@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from datetime import datetime
 
 from sentry.testutils import APITestCase
@@ -25,4 +27,4 @@ class GroupEventsLatestTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200
-        assert response.data['id'] == str(event_2.id)
+        assert response.data['id'] == six.text_type(event_2.id)

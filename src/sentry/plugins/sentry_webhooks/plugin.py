@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import six
 import sentry
 
 from django.conf import settings
@@ -50,7 +51,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
 
     def get_group_data(self, group, event):
         data = {
-            'id': str(group.id),
+            'id': six.text_type(group.id),
             'project': group.project.slug,
             'project_name': group.project.name,
             'logger': event.get_tag('logger'),

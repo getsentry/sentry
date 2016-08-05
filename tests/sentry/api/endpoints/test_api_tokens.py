@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
 
 from sentry.models import ApiToken
@@ -33,7 +35,7 @@ class ApiTokensCreateTest(APITestCase):
         token = ApiToken.objects.get(
             user=self.user,
         )
-        scopes = [k for k, v in token.scopes.iteritems() if v]
+        scopes = [k for k, v in six.iteritems(token.scopes) if v]
         assert scopes == ['event:read']
 
 

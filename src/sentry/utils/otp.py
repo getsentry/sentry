@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
+import six
 import time
 import hmac
 import base64
 import qrcode
-import urllib
 import hashlib
+
 from datetime import datetime
+from six.moves.urllib.parse import quote
 
 from sentry.utils.dates import to_timestamp
 
@@ -22,7 +24,7 @@ def _pack_int(i):
     while i != 0:
         result.append(i & 0xFF)
         i >>= 8
-    return bytes(bytearray(reversed(result)).rjust(8, b'\0'))
+    return six.binary_type(bytearray(reversed(result)).rjust(8, b'\0'))
 
 
 def _get_ts(ts):
@@ -58,7 +60,7 @@ class TOTP(object):
         offset = h[-1] & 0xf
         code = ((h[offset] & 0x7f) << 24 | (h[offset + 1] & 0xff) << 16 |
                 (h[offset + 2] & 0xff) << 8 | (h[offset + 3] & 0xff))
-        str_code = str(code % 10 ** self.digits)
+        str_code = six.text_type(code % 10 ** self.digits)
         return ('0' * (self.digits - len(str_code))) + str_code
 
     def verify(self, otp, ts=None, window=None, return_counter=False,
@@ -66,7 +68,7 @@ class TOTP(object):
         ts = _get_ts(ts)
         if window is None:
             window = self.default_window
-        for i in xrange(-window, window + 1):
+        for i in range(-window, window + 1):
             counter = int(ts) // self.interval + i
             if constant_time_compare(otp, self.generate_otp(counter=counter)):
                 # Check for blacklisted counters after the constant time
@@ -85,8 +87,8 @@ class TOTP(object):
         if issuer is None:
             issuer = 'Sentry'
         rv = 'otpauth://totp/%s?issuer=%s&secret=%s' % (
-            urllib.quote(user.encode('utf-8')),
-            urllib.quote(issuer.encode('utf-8')),
+            quote(user.encode('utf-8')),
+            quote(issuer.encode('utf-8')),
             self.secret
         )
         if self.digits != 6:

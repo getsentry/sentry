@@ -24,7 +24,7 @@ EXPRESSION_NODE_CALLBACKS = {
     ExpressionNode.ADD: operator.add,
     ExpressionNode.SUB: operator.sub,
     ExpressionNode.MUL: operator.mul,
-    ExpressionNode.DIV: operator.div,
+    ExpressionNode.DIV: getattr(operator, 'floordiv', None) or operator.div,
     ExpressionNode.MOD: operator.mod,
 }
 try:
@@ -88,7 +88,7 @@ def slugify_instance(inst, label, reserved=(), max_length=30, *args, **kwargs):
         (1, 12),  # (36^12) possibilities, 1 final attempt
     )
     for attempts, size in sizes:
-        for i in xrange(attempts):
+        for i in range(attempts):
             end = get_random_string(size, allowed_chars='abcdefghijklmnopqrstuvwxyz0123456790')
             inst.slug = base_slug[:max_length - size - 1] + '-' + end
             if not base_qs.filter(slug__iexact=inst.slug).exists():

@@ -43,7 +43,7 @@ class RedisTSDBTest(TestCase):
 
     def test_simple(self):
         now = datetime.utcnow().replace(tzinfo=pytz.UTC)
-        dts = [now + timedelta(hours=i) for i in xrange(4)]
+        dts = [now + timedelta(hours=i) for i in range(4)]
 
         def timestamp(d):
             t = int(to_timestamp(d))
@@ -84,7 +84,7 @@ class RedisTSDBTest(TestCase):
 
     def test_count_distinct(self):
         now = datetime.utcnow().replace(tzinfo=pytz.UTC)
-        dts = [now + timedelta(hours=i) for i in xrange(4)]
+        dts = [now + timedelta(hours=i) for i in range(4)]
 
         model = TSDBModel.users_affected_by_group
 

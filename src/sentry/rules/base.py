@@ -39,10 +39,12 @@ from __future__ import absolute_import
 
 import logging
 import re
+import six
 
 from collections import namedtuple
-from django.utils.html import escape
 from django.utils.safestring import mark_safe
+
+from sentry.utils.html import escape
 
 
 CallbackFuture = namedtuple('CallbackFuture', ['callback', 'kwargs'])
@@ -55,13 +57,12 @@ class RuleDescriptor(type):
         return new_cls
 
 
+@six.add_metaclass(RuleDescriptor)
 class RuleBase(object):
     label = None
     form_cls = None
 
     logger = logging.getLogger('sentry.rules')
-
-    __metaclass__ = RuleDescriptor
 
     def __init__(self, project, data=None, rule=None):
         self.project = project
@@ -90,7 +91,7 @@ class RuleBase(object):
 
         def replace_field(match):
             field = match.group(1)
-            return unicode(form[field])
+            return six.text_type(form[field])
 
         return mark_safe(re.sub(r'{([^}]+)}', replace_field, escape(self.label)))
 

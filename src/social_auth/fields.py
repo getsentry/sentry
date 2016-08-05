@@ -1,17 +1,18 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils.encoding import smart_unicode
+from django.utils.encoding import smart_text
 from django.utils import simplejson
 
 
+@six.add_metaclass(models.SubfieldBase)
 class JSONField(models.TextField):
     """Simple JSON field that stores python structures as JSON strings
     on database.
     """
-    __metaclass__ = models.SubfieldBase
-
     def to_python(self, value):
         """
         Convert the input JSON value into python structures, raises
@@ -19,10 +20,10 @@ class JSONField(models.TextField):
         """
         if self.blank and not value:
             return None
-        if isinstance(value, basestring):
+        if isinstance(value, six.string_types):
             try:
                 return simplejson.loads(value)
-            except Exception, e:
+            except Exception as e:
                 raise ValidationError(str(e))
         else:
             return value
@@ -30,23 +31,23 @@ class JSONField(models.TextField):
     def validate(self, value, model_instance):
         """Check value is a valid JSON string, raise ValidationError on
         error."""
-        if isinstance(value, basestring):
+        if isinstance(value, six.string_types):
             super(JSONField, self).validate(value, model_instance)
             try:
                 simplejson.loads(value)
-            except Exception, e:
+            except Exception as e:
                 raise ValidationError(str(e))
 
     def get_prep_value(self, value):
         """Convert value to JSON string before save"""
         try:
             return simplejson.dumps(value)
-        except Exception, e:
+        except Exception as e:
             raise ValidationError(str(e))
 
     def value_to_string(self, obj):
         """Return value from object converted to string properly"""
-        return smart_unicode(self.get_prep_value(self._get_val_from_obj(obj)))
+        return smart_text(self.get_prep_value(self._get_val_from_obj(obj)))
 
     def value_from_object(self, obj):
         """Return value dumped to string."""

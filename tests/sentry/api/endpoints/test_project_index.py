@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
 from exam import fixture
 
@@ -29,8 +31,8 @@ class ProjectsListTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
 
-        assert response.data[0]['id'] == str(project.id)
-        assert response.data[0]['organization']['id'] == str(org.id)
+        assert response.data[0]['id'] == six.text_type(project.id)
+        assert response.data[0]['organization']['id'] == six.text_type(org.id)
 
     def test_superuser(self):
         Project.objects.all().delete()
@@ -64,12 +66,12 @@ class ProjectsListTest(APITestCase):
         response = self.client.get(self.path + '?status=active')
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(project1.id)
+        assert response.data[0]['id'] == six.text_type(project1.id)
 
         response = self.client.get(self.path + '?status=deleted')
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(project2.id)
+        assert response.data[0]['id'] == six.text_type(project2.id)
 
     def test_query_filter(self):
         Project.objects.all().delete()
@@ -87,7 +89,7 @@ class ProjectsListTest(APITestCase):
         response = self.client.get(self.path + '?query=foo')
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(project1.id)
+        assert response.data[0]['id'] == six.text_type(project1.id)
 
         response = self.client.get(self.path + '?query=baz')
         assert response.status_code == 200

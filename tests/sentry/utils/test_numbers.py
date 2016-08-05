@@ -1,9 +1,11 @@
+from __future__ import absolute_import
+
 from sentry.utils.numbers import base36_encode, base36_decode, \
     base32_encode, base32_decode
 
 
 def test_base36():
-    assert [base36_encode(x) for x in xrange(128)] == [
+    assert [base36_encode(x) for x in range(128)] == [
         '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C',
         'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
         'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '10', '11',
@@ -18,11 +20,11 @@ def test_base36():
         '3I', '3J'
     ]
 
-    assert [base36_decode(base36_encode(x)) for x in xrange(128)] == range(128)
+    assert [base36_decode(base36_encode(x)) for x in range(128)] == map(int, range(128))
 
 
 def test_base32():
-    assert [base32_encode(x) for x in xrange(128)] == [
+    assert [base32_encode(x) for x in range(128)] == [
         '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C',
         'D', 'E', 'F', 'G', 'H', 'J', 'K', 'M', 'N', 'P', 'Q', 'R', 'S',
         'T', 'V', 'W', 'X', 'Y', 'Z', '10', '11', '12', '13', '14', '15',
@@ -37,4 +39,4 @@ def test_base32():
         '3Y', '3Z'
     ]
 
-    assert [base32_decode(base32_encode(x)) for x in xrange(128)] == range(128)
+    assert [base32_decode(base32_encode(x)) for x in range(128)] == map(int, range(128))

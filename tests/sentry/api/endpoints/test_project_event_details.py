@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
@@ -35,7 +37,7 @@ class ProjectEventDetailsTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(cur_event.id)
-        assert response.data['nextEventID'] == str(next_event.event_id)
-        assert response.data['previousEventID'] == str(prev_event.event_id)
-        assert response.data['groupID'] == group.id
+        assert response.data['id'] == six.text_type(cur_event.id)
+        assert response.data['nextEventID'] == six.text_type(next_event.event_id)
+        assert response.data['previousEventID'] == six.text_type(prev_event.event_id)
+        assert response.data['groupID'] == six.text_type(group.id)

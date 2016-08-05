@@ -4,7 +4,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
-from sentry.utils.hashlib import md5
+from sentry.utils.hashlib import md5_text
 
 KEYWORD_MAP = {
     'id': 'ident',
@@ -50,7 +50,7 @@ class EventUser(Model):
 
     def get_hash(self):
         value = self.ident or self.username or self.email or self.ip_address
-        return md5(value).hexdigest()
+        return md5_text(value).hexdigest()
 
     @property
     def tag_value(self):

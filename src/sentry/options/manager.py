@@ -7,16 +7,20 @@ sentry.options.manager
 """
 from __future__ import absolute_import, print_function
 
+import six
 import sys
 import logging
-from itertools import ifilter
-from types import NoneType
+
 from django.conf import settings
+
 from sentry.utils.types import type_from_value, Any
 
 # Prevent outselves from clobbering the builtin
 _type = type
+
 logger = logging.getLogger('sentry')
+
+NoneType = type(None)
 
 
 class UnknownOption(KeyError):
@@ -201,7 +205,7 @@ class OptionsManager(object):
         # Guess type based on the default value
         if type is None:
             # the default value would be equivilent to '' if no type / default
-            # is specified and we assume unicode for safety
+            # is specified and we assume six.text_type for safety
             if default_value is None:
                 default_value = u''
                 default = lambda: default_value
@@ -211,7 +215,7 @@ class OptionsManager(object):
         # really make sense as config options. There should be a sensible default
         # value instead that matches the type expected, rather than relying on None.
         if type is NoneType:
-            raise TypeError('Options must not be NoneType')
+            raise TypeError('Options must not be None')
 
         # Make sure the type is correct at registration time
         if default_value is not None and not type.test(default_value):
@@ -240,7 +244,7 @@ class OptionsManager(object):
             raise UnknownOption(key)
 
     def validate(self, options, warn=False):
-        for k, v in options.iteritems():
+        for k, v in six.iteritems(options):
             try:
                 self.validate_option(k, v)
             except UnknownOption as e:
@@ -258,7 +262,7 @@ class OptionsManager(object):
         """
         Return an interator for all keys in the registry.
         """
-        return self.registry.itervalues()
+        return six.itervalues(self.registry)
 
     def filter(self, flag=None):
         """
@@ -267,5 +271,5 @@ class OptionsManager(object):
         if flag is None:
             return self.all()
         if flag is DEFAULT_FLAGS:
-            return ifilter(lambda k: k.flags is DEFAULT_FLAGS, self.all())
-        return ifilter(lambda k: k.flags & flag, self.all())
+            return (k for k in self.all() if k.flags is DEFAULT_FLAGS)
+        return (k for k in self.all() if k.flags & flag)

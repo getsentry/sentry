@@ -22,7 +22,6 @@ class ActivityNotificationsTest(PluginTestCase):
     @mock.patch('sentry.tasks.activity.send_activity_notifications')
     def test_simple(self, mock_func):
         group = self.create_group()
-        print mock_func
 
         activity = Activity.objects.create(
             project=group.project,

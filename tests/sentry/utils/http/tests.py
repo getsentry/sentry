@@ -206,5 +206,5 @@ class IsValidIPTestCase(TestCase):
         assert not self.is_valid_ip('127.0.0.1', ['0.0.0.0', '127.0.0.1', '192.168.1.1'])
 
     def test_match_blacklist_range(self):
-        assert not self.is_valid_ip('127.0.0.1', ['127.0.0.1/8'])
+        assert not self.is_valid_ip('127.0.0.1', ['127.0.0.0/8'])
         assert not self.is_valid_ip('127.0.0.1', ['0.0.0.0', '127.0.0.0/8', '192.168.1.0/8'])

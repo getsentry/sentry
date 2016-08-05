@@ -99,7 +99,7 @@ class SensitiveDataFilter(object):
             key = ''
 
         original_value = value
-        if isinstance(value, basestring):
+        if isinstance(value, six.string_types):
             value = value.lower()
         else:
             value = ''

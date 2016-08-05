@@ -11,10 +11,11 @@ from __future__ import absolute_import
 __all__ = ('Http',)
 
 import re
+import six
+
 from django.conf import settings
 from django.utils.translation import ugettext as _
-from urllib import urlencode
-from urlparse import parse_qsl, urlsplit, urlunsplit
+from six.moves.urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils import json
@@ -27,9 +28,9 @@ http_method_re = re.compile(r'^[A-Z\-_]{3,32}$')
 
 
 def to_bytes(value):
-    if isinstance(value, unicode):
+    if isinstance(value, six.text_type):
         return value.encode('utf-8')
-    return str(value)
+    return six.binary_type(value)
 
 
 def format_headers(value):
@@ -52,8 +53,8 @@ def format_headers(value):
         if k.lower() == 'cookie':
             cookie_header = v
         else:
-            if not isinstance(v, basestring):
-                v = unicode(v)
+            if not isinstance(v, six.string_types):
+                v = six.text_type(v)
             result.append((k.title(), v))
     return result, cookie_header
 
@@ -62,7 +63,7 @@ def format_cookies(value):
     if not value:
         return ()
 
-    if isinstance(value, basestring):
+    if isinstance(value, six.string_types):
         value = parse_qsl(value, keep_blank_values=True)
 
     if isinstance(value, dict):
@@ -79,9 +80,9 @@ def fix_broken_encoding(value):
     Strips broken characters that can't be represented at all
     in utf8. This prevents our parsers from breaking elsewhere.
     """
-    if isinstance(value, unicode):
+    if isinstance(value, six.text_type):
         value = value.encode('utf8', errors='replace')
-    if isinstance(value, str):
+    if isinstance(value, six.binary_type):
         value = value.decode('utf8', errors='replace')
     return value
 

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from urllib import urlencode
+from six.moves.urllib.parse import urlencode
 
 from sentry.testutils import AcceptanceTestCase
 

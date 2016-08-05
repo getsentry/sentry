@@ -20,8 +20,8 @@ from sentry.utils.email import email_to_group_id
 class MailgunInboundWebhookView(View):
     def verify(self, api_key, token, timestamp, signature):
         return constant_time_compare(signature, hmac.new(
-            key=api_key,
-            msg='{}{}'.format(timestamp, token),
+            key=api_key.encode('utf-8'),
+            msg=('{}{}'.format(timestamp, token)).encode('utf-8'),
             digestmod=sha256
         ).hexdigest())
 

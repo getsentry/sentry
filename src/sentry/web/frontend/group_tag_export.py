@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import csv
+import six
 
 from django.http import Http404, StreamingHttpResponse
 from django.utils.text import slugify
@@ -9,6 +10,26 @@ from sentry.models import (
     GroupTagValue, TagKey, TagKeyStatus, Group, get_group_with_redirect
 )
 from sentry.web.frontend.base import ProjectView
+
+
+# Python 2 doesn't support unicode with CSV, but Python 3 does via
+# the encoding param
+if six.PY3:
+    def get_row(row):
+        return (
+            row.value,
+            six.text_type(row.times_seen),
+            row.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            row.first_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+        )
+else:
+    def get_row(row):
+        return (
+            row.value.encode('utf-8'),
+            six.text_type(row.times_seen),
+            row.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            row.first_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+        )
 
 
 # csv.writer doesn't provide a non-file interface
@@ -55,18 +76,16 @@ class GroupTagExportView(ProjectView):
         def row_iter():
             yield ('value', 'times_seen', 'last_seen', 'first_seen')
             for row in queryset.iterator():
-                yield (
-                    row.value.encode('utf-8'),
-                    str(row.times_seen),
-                    row.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-                    row.first_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-                )
+                yield get_row(row)
 
         pseudo_buffer = Echo()
-        writer = csv.writer(pseudo_buffer)
+        if six.PY3:
+            writer = csv.writer(pseudo_buffer, encoding='utf-8')
+        else:
+            writer = csv.writer(pseudo_buffer)
         response = StreamingHttpResponse(
             (writer.writerow(r) for r in row_iter()),
-            content_type='text/csv'
+            content_type='text/csv',
         )
         response['Content-Disposition'] = 'attachment; filename="{}-{}.csv"'.format(
             group.qualified_short_id or group.id, slugify(key)

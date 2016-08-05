@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import os
+import six
 
 from sentry.constants import DATA_ROOT
 from sentry.testutils import TestCase
@@ -26,5 +27,6 @@ class DataGenerator(type):
         return super(DataGenerator, cls).__new__(cls, name, bases, attrs)
 
 
+@six.add_metaclass(DataGenerator)
 class DataTestCase(TestCase):
-    __metaclass__ = DataGenerator
+    pass

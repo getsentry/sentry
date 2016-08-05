@@ -6,14 +6,13 @@ from __future__ import absolute_import
 import os
 import pytest
 import signal
-import urllib
 
 from datetime import datetime
 from django.conf import settings
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
-from urlparse import urlparse
+from six.moves.urllib.parse import quote, urlparse
 
 
 class Browser(object):
@@ -138,7 +137,7 @@ def percy(request):
     # Initialize Percy.
     loader = percy.ResourceLoader(
         root_dir=settings.STATIC_ROOT,
-        base_url=urllib.quote(settings.STATIC_URL),
+        base_url=quote(settings.STATIC_URL),
     )
     percy_config = percy.Config(default_widths=settings.PERCY_DEFAULT_TESTING_WIDTHS)
     percy = percy.Runner(loader=loader, config=percy_config)

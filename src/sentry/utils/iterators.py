@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+
+
 def chunked(iterator, size):
     chunk = []
     for item in iterator:

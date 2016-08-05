@@ -9,6 +9,8 @@ from __future__ import absolute_import
 
 __all__ = ('User',)
 
+import six
+
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
@@ -19,7 +21,7 @@ def validate_email(value, required=True):
     if not required and not value:
         return
 
-    if not isinstance(value, basestring):
+    if not isinstance(value, six.string_types):
         raise ValueError('object of type %r is not an email address' % type(value).__name__)
 
     # safe to assume an email address at least has a @ in it.
@@ -55,14 +57,14 @@ class User(Interface):
 
         ident = trim(data.pop('id', None), 128)
         if ident:
-            ident = unicode(ident)
+            ident = six.text_type(ident)
         try:
             email = trim(validate_email(data.pop('email', None), False), 128)
         except ValueError:
             raise InterfaceValidationError("Invalid value for 'email'")
         username = trim(data.pop('username', None), 128)
         if username:
-            username = unicode(username)
+            username = six.text_type(username)
 
         try:
             ip_address = validate_ip(data.pop('ip_address', None), False)

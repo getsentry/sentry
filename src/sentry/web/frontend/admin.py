@@ -135,7 +135,7 @@ def edit_user(request, user_id):
 @requires_admin
 @csrf_protect
 def remove_user(request, user_id):
-    if str(user_id) == str(request.user.id):
+    if six.text_type(user_id) == six.text_type(request.user.id):
         return HttpResponseRedirect(reverse('sentry-admin-users'))
 
     try:

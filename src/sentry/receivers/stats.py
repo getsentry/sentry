@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from celery.signals import (
     task_failure,
     task_prerun,
@@ -30,7 +32,7 @@ def _get_task_name(task):
 
 def record_task_signal(signal, name, **options):
     def handler(sender, **kwargs):
-        if not isinstance(sender, basestring):
+        if not isinstance(sender, six.string_types):
             sender = _get_task_name(sender)
         metrics.incr('jobs.{0}'.format(name), instance=sender, **options)
         metrics.incr('jobs.all.{0}'.format(name))

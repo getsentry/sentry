@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
+import six
 
+from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
@@ -42,5 +43,5 @@ class OrganizationAuditLogsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]['id'] == str(entry2.id)
-        assert response.data[1]['id'] == str(entry1.id)
+        assert response.data[0]['id'] == six.text_type(entry2.id)
+        assert response.data[1]['id'] == six.text_type(entry1.id)

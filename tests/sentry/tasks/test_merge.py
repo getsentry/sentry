@@ -32,7 +32,7 @@ class MergeGroupTest(TestCase):
         assert event2.data['foo'] == 'baz'
 
     def test_merge_creates_redirect(self):
-        groups = [self.create_group() for _ in xrange(0, 3)]
+        groups = [self.create_group() for _ in range(0, 3)]
 
         with self.tasks():
             merge_group(groups[0].id, groups[1].id)
@@ -53,7 +53,7 @@ class MergeGroupTest(TestCase):
 
     def test_merge_updates_tag_values_seen(self):
         project = self.create_project()
-        groups = [self.create_group(project) for _ in xrange(0, 2)]
+        groups = [self.create_group(project) for _ in range(0, 2)]
 
         for group in groups:
             GroupTagKey.objects.create(
