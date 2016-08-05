@@ -13,8 +13,8 @@ default_manager.add('organizations:sso', OrganizationFeature)  # NOQA
 default_manager.add('organizations:onboarding', OrganizationFeature)  # NOQA
 default_manager.add('organizations:callsigns', OrganizationFeature)  # NOQA
 default_manager.add('organizations:new-tracebacks', OrganizationFeature)  # NOQA
-default_manager.add('organizations:reports:prepare', OrganizationFeature)
-default_manager.add('organizations:reports:deliver', OrganizationFeature)
+default_manager.add('organizations:reports:prepare', OrganizationFeature)  # NOQA
+default_manager.add('organizations:reports:deliver', OrganizationFeature)  # NOQA
 default_manager.add('projects:global-events', ProjectFeature)  # NOQA
 default_manager.add('projects:quotas', ProjectFeature)  # NOQA
 default_manager.add('projects:plugins', ProjectPluginFeature)  # NOQA
