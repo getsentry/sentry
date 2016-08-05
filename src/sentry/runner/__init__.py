@@ -11,7 +11,13 @@ import os
 import click
 import sys
 import sentry
+import datetime
 from sentry.utils.imports import import_string
+
+
+# We need to run this here because of a concurrency bug in Python's locale
+# with the lazy initialization.
+datetime.datetime.strptime('', '')
 
 # Parse out a pretty version for use with --version
 if sentry.__build__ is None:
