@@ -134,7 +134,7 @@ class OriginsField(CharField):
     def clean(self, value):
         if not value:
             return []
-        values = [v.strip() for v in value.split('\n') if v]
+        values = [v for v in (v.strip() for v in value.split('\n')) if v]
         for value in values:
             if not self.is_valid_origin(value):
                 raise ValidationError('%r is not an acceptable value' % value)
@@ -166,7 +166,7 @@ class IPNetworksField(CharField):
         value = value.strip()
         if not value:
             return None
-        values = [v.strip() for v in value.split('\n') if v]
+        values = [v for v in (v.strip() for v in value.split('\n')) if v]
         for value in values:
             try:
                 ipaddress.ip_network(six.text_type(value))
