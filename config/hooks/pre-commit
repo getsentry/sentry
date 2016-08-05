@@ -8,6 +8,8 @@ from glob import glob
 
 from sentry.lint.engine import check_files
 
+text_type = type(u'')
+
 
 # git usurbs your bin path for hooks and will always run system python
 if 'VIRTUAL_ENV' in os.environ:
@@ -24,7 +26,7 @@ def main():
     _, files_modified, _ = run(gitcmd)
 
     files_modified = [
-        f
+        text_type(f)
         for f in files_modified
         if os.path.exists(f)
     ]
