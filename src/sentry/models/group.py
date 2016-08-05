@@ -108,27 +108,32 @@ class GroupManager(BaseManager):
         return manager.save(project)
 
     def add_tags(self, group, tags):
-        from sentry.models import TagValue, GroupTagValue
+        from sentry.models import TagKey, TagValue, GroupTagValue
 
         project_id = group.project_id
+        project = group.project
         date = group.last_seen
 
-        for tag_item in tags:
-            if len(tag_item) == 2:
-                (key, value), data = tag_item, None
-            else:
-                key, value, data = tag_item
+        keys = {
+            k: TagKey.get_or_create(project, k)
+            for k, _ in tags
+        }
 
-            buffer.incr(TagValue, {
-                'times_seen': 1,
-            }, {
-                'project_id': project_id,
-                'key': key,
-                'value': value,
-            }, {
-                'last_seen': date,
-                'data': data,
-            })
+        values = {
+            (k, v): TagValue.get_or_create(project, k, v, group.last_seen)
+            for k, v in tags
+        }
+
+        for key, value in tags:
+            # XXX(dcramer): data is unused at the moment, lets avoid filling it until
+            # we have a valid usecase
+            # buffer.incr(TagValue, {
+            #     'times_seen': 1,
+            # }, {
+            #     'id': values[(key, value)].id,
+            # }, {
+            #     'last_seen': date,
+            # })
 
             buffer.incr(GroupTagValue, {
                 'times_seen': 1,
@@ -138,6 +143,8 @@ class GroupManager(BaseManager):
                 'key': key,
                 'value': value,
             }, {
+                'key_id': keys[key].id,
+                'value_id': values[(key, value)].id,
                 'last_seen': date,
             })
 
