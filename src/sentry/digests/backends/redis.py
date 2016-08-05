@@ -286,17 +286,19 @@ class RedisBackend(Backend):
         maximum_iterations = 1000
         for i in range(maximum_iterations):
             fetch_size = chunk + extra
-            entries = map(
-                lambda x: ScheduleEntry(*x),
-                connection.zrangebyscore(
-                    make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
-                    min=start,
-                    max=deadline,
-                    withscores=True,
-                    start=0,
-                    num=fetch_size,
+            entries = [
+                ScheduleEntry(*x)
+                for x in (
+                    connection.zrangebyscore(
+                        make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
+                        min=start,
+                        max=deadline,
+                        withscores=True,
+                        start=0,
+                        num=fetch_size,
+                    )
                 )
-            )
+            ]
 
             def try_lock(entry):
                 """

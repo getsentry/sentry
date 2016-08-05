@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
+import base64
+
 from django.conf import settings
 from PIL import Image
 from rest_framework import status
 from rest_framework.response import Response
-from six import StringIO
+from six import BytesIO
 from uuid import uuid4
 
 from sentry.api.bases.user import UserEndpoint
@@ -39,12 +41,12 @@ class UserAvatarEndpoint(UserEndpoint):
         photo_string = request.DATA.get('avatar_photo')
         photo = None
         if photo_string:
-            photo_string = photo_string.decode('base64')
+            photo_string = base64.b64decode(photo_string)
             if len(photo_string) > settings.SENTRY_MAX_AVATAR_SIZE:
                 return Response({'error': 'Image too large.'},
                                 status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
             try:
-                with Image.open(StringIO(photo_string)) as img:
+                with Image.open(BytesIO(photo_string)) as img:
                     width, height = img.size
                     if not self.is_valid_size(width, height):
                         return Response({'error': 'Image invalid size.'},
@@ -54,7 +56,7 @@ class UserAvatarEndpoint(UserEndpoint):
                                 status=status.HTTP_400_BAD_REQUEST)
             file_name = '%s.png' % user.id
             photo = File.objects.create(name=file_name, type=self.FILE_TYPE)
-            photo.putfile(StringIO(photo_string))
+            photo.putfile(BytesIO(photo_string))
 
         avatar, _ = UserAvatar.objects.get_or_create(user=user)
         if avatar.file and photo:

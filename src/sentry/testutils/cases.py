@@ -132,10 +132,10 @@ class BaseTestCase(Fixtures, Exam):
         super(BaseTestCase, self)._post_teardown()
 
     def _makeMessage(self, data):
-        return json.dumps(data)
+        return json.dumps(data).encode('utf-8')
 
     def _makePostMessage(self, data):
-        return base64.b64encode(self._makeMessage(data).encode('utf-8'))
+        return base64.b64encode(self._makeMessage(data))
 
     def _postWithHeader(self, data, key=None, secret=None, protocol=None):
         if key is None:

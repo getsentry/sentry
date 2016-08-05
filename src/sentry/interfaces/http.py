@@ -70,7 +70,7 @@ def format_cookies(value):
         value = value.items()
 
     return [
-        map(fix_broken_encoding, (k.strip(), v))
+        list(map(fix_broken_encoding, (k.strip(), v)))
         for k, v in value
     ]
 

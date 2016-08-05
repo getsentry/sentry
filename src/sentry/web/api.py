@@ -329,12 +329,12 @@ class StoreView(APIView):
 
         content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')
 
-        if isinstance(data, six.string_types):
+        if isinstance(data, (six.binary_type, six.text_type)):
             if content_encoding == 'gzip':
                 data = helper.decompress_gzip(data)
             elif content_encoding == 'deflate':
                 data = helper.decompress_deflate(data)
-            elif not data.startswith('{'):
+            elif data[0] != b'{':
                 data = helper.decode_and_decompress_data(data)
             data = helper.safely_load_json_string(data)
 

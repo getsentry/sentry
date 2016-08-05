@@ -63,7 +63,7 @@ class ReleaseFileCreateTest(APITestCase):
         response = self.client.post(url, {
             'name': 'http://example.com/application.js',
             'header': 'X-SourceMap: http://example.com',
-            'file': SimpleUploadedFile('application.js', 'function() { }',
+            'file': SimpleUploadedFile('application.js', b'function() { }',
                                        content_type='application/javascript'),
         }, format='multipart')
 
@@ -117,7 +117,7 @@ class ReleaseFileCreateTest(APITestCase):
 
         response = self.client.post(url, {
             'header': 'X-SourceMap: http://example.com',
-            'file': SimpleUploadedFile('', 'function() { }',
+            'file': SimpleUploadedFile('', b'function() { }',
                                        content_type='application/javascript'),
         }, format='multipart')
 
@@ -142,7 +142,7 @@ class ReleaseFileCreateTest(APITestCase):
         response = self.client.post(url, {
             'name': 'http://example.com/application.js',
             'header': 'lol',
-            'file': SimpleUploadedFile('application.js', 'function() { }',
+            'file': SimpleUploadedFile('application.js', b'function() { }',
                                        content_type='application/javascript'),
         }, format='multipart')
 
@@ -167,7 +167,7 @@ class ReleaseFileCreateTest(APITestCase):
         data = {
             'name': 'http://example.com/application.js',
             'header': 'X-SourceMap: http://example.com',
-            'file': SimpleUploadedFile('application.js', 'function() { }',
+            'file': SimpleUploadedFile('application.js', b'function() { }',
                                        content_type='application/javascript'),
         }
 

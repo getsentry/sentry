@@ -20,7 +20,7 @@ def test_base36():
         '3I', '3J'
     ]
 
-    assert [base36_decode(base36_encode(x)) for x in range(128)] == map(int, range(128))
+    assert [base36_decode(base36_encode(x)) for x in range(128)] == list(map(int, range(128)))
 
 
 def test_base32():
@@ -39,4 +39,4 @@ def test_base32():
         '3Y', '3Z'
     ]
 
-    assert [base32_decode(base32_encode(x)) for x in range(128)] == map(int, range(128))
+    assert [base32_decode(base32_encode(x)) for x in range(128)] == list(map(int, range(128)))

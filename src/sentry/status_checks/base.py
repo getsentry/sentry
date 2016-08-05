@@ -2,7 +2,10 @@ from __future__ import absolute_import
 
 import six
 
+from sentry.utils.compat import implements_to_string
 
+
+@implements_to_string
 class Problem(object):
 
     # Used for issues that may render the system inoperable or have effects on
@@ -39,9 +42,6 @@ class Problem(object):
         )
 
     def __str__(self):
-        return self.message.encode('utf-8')
-
-    def __unicode__(self):
         return self.message
 
     @classmethod
