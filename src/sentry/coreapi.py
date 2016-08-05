@@ -18,9 +18,8 @@ import zlib
 
 from datetime import datetime, timedelta
 from django.utils.crypto import constant_time_compare
-from django.utils.encoding import smart_bytes
 from gzip import GzipFile
-from six import StringIO
+from six import BytesIO
 from time import time
 
 from sentry.app import env
@@ -221,7 +220,7 @@ class ClientApiHelper(object):
 
     def decompress_deflate(self, encoded_data):
         try:
-            return zlib.decompress(encoded_data)
+            return zlib.decompress(encoded_data).decode('utf-8')
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
@@ -232,10 +231,10 @@ class ClientApiHelper(object):
 
     def decompress_gzip(self, encoded_data):
         try:
-            fp = StringIO(encoded_data)
+            fp = BytesIO(encoded_data)
             try:
                 f = GzipFile(fileobj=fp)
-                return f.read()
+                return f.read().decode('utf-8')
             finally:
                 f.close()
         except Exception as e:
@@ -249,9 +248,9 @@ class ClientApiHelper(object):
     def decode_and_decompress_data(self, encoded_data):
         try:
             try:
-                return decompress(encoded_data)
+                return decompress(encoded_data).decode('utf-8')
             except zlib.error:
-                return base64.b64decode(encoded_data)
+                return base64.b64decode(encoded_data).decode('utf-8')
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
@@ -262,6 +261,8 @@ class ClientApiHelper(object):
 
     def safely_load_json_string(self, json_string):
         try:
+            if isinstance(json_string, six.binary_type):
+                json_string = json_string.decode('utf-8')
             obj = json.loads(json_string)
             assert isinstance(obj, dict)
         except Exception as e:
@@ -271,9 +272,7 @@ class ClientApiHelper(object):
             raise APIError('Bad data reconstructing object (%s, %s)' %
                 (type(e).__name__, e)
             )
-
-        # XXX: ensure keys are coerced to strings
-        return dict((smart_bytes(k), v) for k, v in six.iteritems(obj))
+        return obj
 
     def _process_data_timestamp(self, data, current_datetime=None):
         value = data['timestamp']
@@ -525,7 +524,7 @@ class ClientApiHelper(object):
                 tags.append((k, v))
             data['tags'] = tags
 
-        for k in data.keys():
+        for k in list(iter(data)):
             if k in CLIENT_RESERVED_ATTRS:
                 continue
 

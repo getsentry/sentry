@@ -296,7 +296,7 @@ class RecoveryCodeInterface(AuthenticatorInterface):
 
     def generate_new_config(self):
         return {
-            'salt': os.urandom(16).encode('hex'),
+            'salt': int(os.urandom(16), 16),
             'used': 0,
         }
 

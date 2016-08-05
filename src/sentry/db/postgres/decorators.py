@@ -89,7 +89,7 @@ def less_shitty_error_messages(func):
         except Exception as e:
             exc_info = sys.exc_info()
             msg = '{}\nSQL: {}'.format(
-                getattr(e, 'message', getattr(e, 'args', [None])[0]),
+                repr(e),
                 sql,
             )
             six.reraise(exc_info[0], exc_info[0](msg), exc_info[2])
