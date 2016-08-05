@@ -107,5 +107,5 @@ class Breadcrumbs(Interface):
                 'event_id': x.get('event_id'),
             }
         return {
-            'values': map(_convert, self.values),
+            'values': [_convert(v) for v in self.values],
         }

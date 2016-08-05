@@ -268,7 +268,7 @@ class Group(Model):
     def get_share_id(self):
         return b16encode(
             ('{}.{}'.format(self.project_id, self.id)).encode('utf-8')
-        ).lower()
+        ).lower().decode('utf-8')
 
     @classmethod
     def from_share_id(cls, share_id):

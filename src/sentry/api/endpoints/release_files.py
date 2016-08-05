@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from django.db import IntegrityError, transaction
-from six import StringIO
+from six import BytesIO
 from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -27,7 +27,7 @@ def upload_file_scenario(runner):
         data={
             'header': 'Content-Type:text/plain; encoding=utf-8',
             'name': '/demo/hello.py',
-            'file': ('hello.py', StringIO('print "Hello World!"')),
+            'file': ('hello.py', BytesIO(b'print "Hello World!"')),
         },
         format='multipart'
     )

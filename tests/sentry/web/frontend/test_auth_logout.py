@@ -16,9 +16,9 @@ class AuthLogoutTest(TestCase):
 
         resp = self.client.get(self.path)
         assert resp.status_code == 302
-        assert self.client.session.keys() == []
+        assert list(self.client.session.keys()) == []
 
     def test_same_behavior_with_anonymous_user(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 302
-        assert self.client.session.keys() == []
+        assert list(self.client.session.keys()) == []

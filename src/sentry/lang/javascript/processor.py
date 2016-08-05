@@ -146,7 +146,7 @@ def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
     upper_bound = min(lineno + 1 + context, len(source))
 
     try:
-        pre_context = map(trim_line, source[lower_bound:lineno])
+        pre_context = [trim_line(x) for x in source[lower_bound:lineno]]
     except IndexError:
         pre_context = []
 
@@ -156,7 +156,7 @@ def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
         context_line = ''
 
     try:
-        post_context = map(trim_line, source[(lineno + 1):upper_bound])
+        post_context = [trim_line(x) for x in source[(lineno + 1):upper_bound]]
     except IndexError:
         post_context = []
 
@@ -419,14 +419,16 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
                             allow_scraping=allow_scraping)
         body = result.body
 
-    # According to various specs[1][2] a SourceMap may be prefixed to force
-    # a Javascript load error.
-    # [1] https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v
-    # [2] http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-xssi
-    if body.startswith((")]}'\n", ")]}\n")):
-        body = body.split('\n', 1)[1]
-
     try:
+        body = body.decode('utf-8')
+
+        # According to various specs[1][2] a SourceMap may be prefixed to force
+        # a Javascript load error.
+        # [1] https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v
+        # [2] http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-xssi
+        if body.startswith((")]}'\n", ")]}\n")):
+            body = body.split('\n', 1)[1]
+
         return sourcemap_to_index(body)
     except Exception as exc:
         # This is in debug because the product shows an error already.

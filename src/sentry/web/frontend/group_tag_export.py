@@ -79,10 +79,7 @@ class GroupTagExportView(ProjectView):
                 yield get_row(row)
 
         pseudo_buffer = Echo()
-        if six.PY3:
-            writer = csv.writer(pseudo_buffer, encoding='utf-8')
-        else:
-            writer = csv.writer(pseudo_buffer)
+        writer = csv.writer(pseudo_buffer)
         response = StreamingHttpResponse(
             (writer.writerow(r) for r in row_iter()),
             content_type='text/csv',

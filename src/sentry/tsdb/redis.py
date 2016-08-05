@@ -132,6 +132,8 @@ class RedisTSDB(BaseTSDB):
         if isinstance(model_key, six.integer_types):
             vnode = model_key % self.vnodes
         else:
+            if isinstance(model_key, six.text_type):
+                model_key = model_key.encode('utf-8')
             vnode = crc32(model_key) % self.vnodes
 
         return '{0}{1}:{2}:{3}'.format(self.prefix, model.value, epoch, vnode)
@@ -310,7 +312,9 @@ class RedisTSDB(BaseTSDB):
             """
             Return a list containing all keys for each interval in the series for a key.
             """
-            return [self.make_key(model, rollup, timestamp, key) for timestamp in series]
+            return [
+                self.make_key(model, rollup, timestamp, key)
+                for timestamp in series]
 
         router = self.cluster.get_router()
 
@@ -346,7 +350,10 @@ class RedisTSDB(BaseTSDB):
             Calculate the cardinality of the provided HyperLogLog values.
             """
             destination = make_temporary_key('a')  # all values will be merged into this key
-            aggregates = {make_temporary_key('a:{}'.format(host)): value for host, value in values}
+            aggregates = {
+                make_temporary_key('a:{}'.format(host)): value
+                for host, value in values
+            }
 
             # Choose a random host to execute the reduction on. (We use a host
             # here that we've already accessed as part of this process -- this
@@ -367,14 +374,14 @@ class RedisTSDB(BaseTSDB):
         # MSET and PFMERGE operations entirely.
 
         return merge_aggregates(
-            map(
-                get_partition_aggregate,
-                reduce(
+            [
+                get_partition_aggregate(x)
+                for x in reduce(
                     map_key_to_host,
                     keys,
                     defaultdict(set),
-                ).items(),
-            )
+                ).items()
+            ]
         )
 
     def make_frequency_table_keys(self, model, rollup, timestamp, key):
