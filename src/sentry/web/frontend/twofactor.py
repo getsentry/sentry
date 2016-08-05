@@ -28,8 +28,10 @@ class TwoFactorAuthView(BaseView):
         if interface is not None:
             interface.authenticator.mark_used()
             if not interface.is_backup_interface:
-                rv.set_cookie(COOKIE_NAME, six.text_type(interface.type),
-                              max_age=COOKIE_MAX_AGE, path='/')
+                rv.set_cookie(
+                    COOKIE_NAME,
+                    six.text_type(interface.type).encode('utf-8'),
+                    max_age=COOKIE_MAX_AGE, path='/')
         return rv
 
     def fail_signin(self, request, user, form):
