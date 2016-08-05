@@ -113,12 +113,13 @@ const GroupDetails = React.createClass({
   onGroupChange(itemIds, isPluginChange) {
     let id = this.props.params.groupId;
     if (itemIds.has(id)) {
-      // TODO: do this in a less hacky way
-      if (isPluginChange) {
+      let group = GroupStore.get(id);
+      if (group.stale) {
         this.fetchData();
+        return;
       }
       this.setState({
-        group: GroupStore.get(id),
+        group: group,
       });
     }
   },

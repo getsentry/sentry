@@ -128,7 +128,7 @@ const IssuePlugin = React.createClass({
     this.api.request(this.getPluginCreateEndpoint(), {
       data: this.state.createFormData,
       success: (data) => {
-        GroupActions.groupPluginChange(this.getGroup().id);
+        GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
         AlertActions.addAlert({
           message: t('Successfully created issue.'),
           type: 'success'
@@ -145,7 +145,7 @@ const IssuePlugin = React.createClass({
     this.api.request(this.getPluginLinkEndpoint(), {
       data: this.state.linkFormData,
       success: (data) => {
-        GroupActions.groupPluginChange(this.getGroup().id);
+        GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
         AlertActions.addAlert({
           message: t('Successfully linked issue.'),
           type: 'success'
@@ -161,7 +161,7 @@ const IssuePlugin = React.createClass({
   unlinkIssue() {
     this.api.request(this.getPluginUnlinkEndpoint(), {
       success: (data) => {
-        GroupActions.groupPluginChange(this.getGroup().id);
+        GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
         AlertActions.addAlert({
           message: t('Successfully unlinked issue.'),
           type: 'success'
