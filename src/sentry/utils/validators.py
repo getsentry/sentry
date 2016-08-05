@@ -12,7 +12,7 @@ def validate_ip(value, required=True):
         return
 
     # will raise a ValueError
-    ipaddress.ip_network(six.text_type(value))
+    ipaddress.ip_network(six.text_type(value), strict=False)
     return value
 
 
