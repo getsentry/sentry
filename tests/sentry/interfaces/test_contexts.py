@@ -103,6 +103,64 @@ class ContextsTest(TestCase):
             }
         }
 
+    def test_device_sim(self):
+        ctx = Contexts.to_python({
+            'device': {
+                'name': 'My iPad',
+                'model': 'iPad1,2',
+                'family': 'iPad',
+                'model_id': '1234AB',
+                'version': '1.2.3',
+                'arch': 'arm64',
+                'simulator': True,
+            },
+        })
+        assert sorted(ctx.iter_tags()) == [
+            ('device', 'iPad1,2 Simulator'),
+            ('device.family', 'iPad Simulator'),
+        ]
+        assert ctx.to_json() == {
+            'device': {
+                'type': 'device',
+                'name': 'My iPad',
+                'model': 'iPad1,2',
+                'family': 'iPad',
+                'model_id': '1234AB',
+                'version': '1.2.3',
+                'arch': 'arm64',
+                'simulator': True,
+            }
+        }
+
+    def test_device_sim_explicit_off(self):
+        ctx = Contexts.to_python({
+            'device': {
+                'name': 'My iPad',
+                'model': 'iPad1,2',
+                'family': 'iPad',
+                'model_id': '1234AB',
+                'version': '1.2.3',
+                'arch': 'arm64',
+                'simulator': False,
+            },
+        })
+        assert sorted(ctx.iter_tags()) == [
+            ('device', 'iPad1,2'),
+            ('device.family', 'iPad'),
+        ]
+        assert ctx.to_json() == {
+            'device': {
+                'type': 'device',
+                'name': 'My iPad',
+                'model': 'iPad1,2',
+                'family': 'iPad',
+                'model_id': '1234AB',
+                'version': '1.2.3',
+                'arch': 'arm64',
+                'simulator': False,
+            }
+        }
+
     def test_default(self):
         ctx = Contexts.to_python({
             'whatever': {

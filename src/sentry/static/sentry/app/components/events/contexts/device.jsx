@@ -11,7 +11,7 @@ const DeviceContextType = React.createClass({
 
   render() {
     let {name, family, model, model_id, arch, battery_level, orientation,
-      ...data} = this.props.data;
+      simulator, ...data} = this.props.data;
     return (
       <ContextBlock
         data={data}
@@ -23,6 +23,7 @@ const DeviceContextType = React.createClass({
           ['?Battery Level', defined(battery_level)
             ? `${battery_level}%` : null],
           ['?Orientation', orientation],
+          ['?Simulator', simulator],
         ]}
         alias={this.props.alias} />
     );
