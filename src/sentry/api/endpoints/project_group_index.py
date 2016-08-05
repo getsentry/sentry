@@ -26,6 +26,7 @@ from sentry.utils.cursors import Cursor
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
+ERR_INVALID_STATS_TYPE = "Invalid stats_type. Valid choices are 'events' and 'users'"
 
 
 @scenario('BulkUpdateAggregates')
@@ -186,6 +187,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             # disable stats
             stats_period = None
 
+        stats_type = request.GET.get('statsType', 'events')
+        if stats_type not in ('events', 'users'):
+            return Response({"detail": ERR_INVALID_STATS_TYPE}, status=400)
+
         query = request.GET.get('query', '').strip()
         if query:
             matching_group = None
@@ -232,7 +237,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         context = serialize(
             results, request.user, StreamGroupSerializer(
-                stats_period=stats_period
+                stats_period=stats_period,
+                stats_type=stats_type,
             )
         )
 
