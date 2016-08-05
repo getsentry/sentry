@@ -348,7 +348,7 @@ class IssueTrackingPlugin2(Plugin):
             return {
                 'error_type': 'auth',
                 'title': self.get_title(),
-                'auth_url': reverse('socialauth_associate_begin', args=[self.auth_provider])
+                'auth_url': reverse('socialauth_associate', args=[self.auth_provider])
             }
 
     def plugin_issues(self, request, group, plugin_issues, **kwargs):
