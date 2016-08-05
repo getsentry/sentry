@@ -1,5 +1,4 @@
 import React from 'react';
-import _ from 'underscore';
 import Modal from 'react-bootstrap/lib/Modal';
 import AlertActions from '../../actions/alertActions';
 import ApiMixin from '../../mixins/apiMixin';
@@ -29,7 +28,7 @@ const IssuePlugin = React.createClass({
     return {
       createFieldList: null,
       linkFieldList: null,
-      loading: _.contains(['link', 'create'], this.props.actionType),
+      loading: ['link', 'create'].includes(this.props.actionType),
       error: null,
       createFormData: {},
       linkFormData: {}
@@ -59,13 +58,23 @@ const IssuePlugin = React.createClass({
   },
 
   setError(error, defaultMessage) {
-    let _error;
+    let errorBody;
     if (error.status === 400 && error.responseJSON) {
-      _error = error.responseJSON;
+      errorBody = error.responseJSON;
     } else {
-      _error = {'message': defaultMessage};
+      errorBody = {'message': defaultMessage};
     }
-    this.setState({error: _error});
+    this.setState({error: errorBody});
+  },
+
+  errorHandler(error) {
+    let state = {
+      loading: false
+    };
+    if (error.status === 400 && error.responseJSON) {
+      state.error = error.responseJSON;
+    }
+    this.setState(state);
   },
 
   fetchData() {
@@ -87,15 +96,7 @@ const IssuePlugin = React.createClass({
             createFormData: createFormData
           });
         },
-        error: (error) => {
-          let state = {
-            loading: false
-          };
-          if (error.status === 400 && error.responseJSON) {
-            state.error = error.responseJSON;
-          }
-          this.setState(state);
-        }
+        error: this.errorHandler
       });
     } else if (this.props.actionType === 'link') {
       this.api.request(this.getPluginLinkEndpoint(), {
@@ -111,15 +112,7 @@ const IssuePlugin = React.createClass({
             linkFormData: linkFormData
           });
         },
-        error: (error) => {
-          let state = {
-            loading: false
-          };
-          if (error.status === 400 && error.responseJSON) {
-            state.error = error.responseJSON;
-          }
-          this.setState(state);
-        }
+        error: this.errorHandler
       });
     }
   },
@@ -281,9 +274,9 @@ const IssuePlugin = React.createClass({
         <div className="alert alert-block">
             {!error.has_auth_configured ?
                 <div>
-                  <p>{('Your server administrator will need to configure authentication with ')}
-                  <strong>{error.auth_provider}</strong>{(' before you can use this plugin.')}</p>
-                  <p>{('The following settings must be configured:')}</p>
+                  <p>{'Your server administrator will need to configure authentication with '}
+                  <strong>{error.auth_provider}</strong>{' before you can use this plugin.'}</p>
+                  <p>The following settings must be configured:</p>
                   <ul>{error.required_auth_settings.map((setting) => {
                     return <li><code>{setting}</code></li>;
                   })}</ul>
@@ -364,19 +357,18 @@ const IssuePluginActions = React.createClass({
       return null;
     }
 
-    let allowedActions;
-    if (plugin.issue) {
-      allowedActions = plugin.allowed_actions.filter((action) => { return action === 'unlink'; });
-    } else {
-      allowedActions = plugin.allowed_actions.filter((action) => { return action !== 'unlink'; });
-    }
+    let allowedActions = plugin.allowed_actions.filter(
+      plugin.issue
+        ? action => action === 'unlink'
+        : action => action !== 'unlink'
+    );
 
     let button;
     if (allowedActions.length === 1) {
       button = (
         <button className="btn btn-default btn-sm"
                 onClick={this.openModal.bind(this, allowedActions[0])}>
-          {toTitleCase(allowedActions[0]) + ' ' + plugin.title}
+          {toTitleCase(allowedActions[0]) + ' ' + plugin.title + ' Issue'}
         </button>
       );
     } else {
@@ -389,7 +381,7 @@ const IssuePluginActions = React.createClass({
                      {plugin.title}
                      <span className="icon-arrow-down" style={{marginLeft: 3, marginRight: -3}} />
                    </span>}>
-            {allowedActions.map((action) => {
+            {allowedActions.map(action => {
               return (
                 <MenuItem key={action} noAnchor={true}>
                   <a onClick={this.openModal.bind(this, action)}>{toTitleCase(action)}</a>
