@@ -89,6 +89,7 @@ class SentryHTTPServer(Service):
         options['enable-threads'] = True
         options['lazy-apps'] = True
         options['single-interpreter'] = True
+        options['cache2'] = 'name=options,items=100,purge_lru=true'
 
         if workers:
             options['workers'] = workers
