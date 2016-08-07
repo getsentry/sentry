@@ -160,6 +160,7 @@ def browser(request, percy, live_server):
             'phantomjs',
         )
         driver = webdriver.PhantomJS(executable_path=phantomjs_path)
+        driver.set_window_size(1280, 800)
     else:
         raise pytest.UsageError('--driver must be specified')
 

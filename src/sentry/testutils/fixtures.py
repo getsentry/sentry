@@ -157,16 +157,17 @@ class Fixtures(object):
         if not kwargs.get('name'):
             kwargs['name'] = petname.Generate(2, ' ').title()
 
-        owner = kwargs.pop('owner', None)
-        if not owner:
+        owner = kwargs.pop('owner', -1)
+        if owner is -1:
             owner = self.user
 
         org = Organization.objects.create(**kwargs)
-        self.create_member(
-            organization=org,
-            user=owner,
-            role='owner',
-        )
+        if owner:
+            self.create_member(
+                organization=org,
+                user=owner,
+                role='owner',
+            )
         return org
 
     def create_member(self, teams=None, **kwargs):
