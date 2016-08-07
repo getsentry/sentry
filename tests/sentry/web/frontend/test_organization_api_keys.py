@@ -17,6 +17,9 @@ class OrganizationApiKeysPermissionTest(PermissionTestCase):
     def test_member_cannot_load(self):
         self.assert_member_cannot_access(self.path)
 
+    def test_manager_cannot_load(self):
+        self.assert_manager_cannot_access(self.path)
+
     def test_owner_can_load(self):
         self.assert_owner_can_access(self.path)
 
