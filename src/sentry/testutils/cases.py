@@ -344,6 +344,15 @@ class PermissionTestCase(TestCase):
 
         self.assert_cannot_access(user, path)
 
+    def assert_manager_cannot_access(self, path):
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user, organization=self.organization,
+            role='manager', teams=[self.team],
+        )
+
+        self.assert_cannot_access(user, path)
+
     def assert_teamless_member_cannot_access(self, path):
         user = self.create_user(is_superuser=False)
         self.create_member(
