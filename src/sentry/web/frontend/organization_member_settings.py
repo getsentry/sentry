@@ -72,11 +72,14 @@ class OrganizationMemberSettingsView(OrganizationView):
                 user=request.user,
                 organization=organization,
             )
-            allowed_roles = [
-                r for r in roles.get_all()
-                if r.priority <= roles.get(acting_member.role).priority
-            ]
-            can_admin = bool(allowed_roles)
+            if roles.get(acting_member.role).priority < roles.get(member.role).priority:
+                can_admin = False
+            else:
+                allowed_roles = [
+                    r for r in roles.get_all()
+                    if r.priority <= roles.get(acting_member.role).priority
+                ]
+                can_admin = bool(allowed_roles)
         elif request.is_superuser():
             allowed_roles = roles.get_all()
 
