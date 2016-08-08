@@ -117,7 +117,7 @@ class ProcessFingerprintTest(BaseAPITest):
 
 class ProcessDataTimestampTest(BaseAPITest):
     def test_iso_timestamp(self):
-        d = datetime(2012, 01, 01, 10, 30, 45)
+        d = datetime(2012, 1, 1, 10, 30, 45)
         data = self.helper._process_data_timestamp({
             'timestamp': '2012-01-01T10:30:45'
         }, current_datetime=d)
@@ -125,7 +125,7 @@ class ProcessDataTimestampTest(BaseAPITest):
         self.assertEquals(data['timestamp'], 1325413845.0)
 
     def test_iso_timestamp_with_ms(self):
-        d = datetime(2012, 01, 01, 10, 30, 45, 434000)
+        d = datetime(2012, 1, 1, 10, 30, 45, 434000)
         data = self.helper._process_data_timestamp({
             'timestamp': '2012-01-01T10:30:45.434'
         }, current_datetime=d)
@@ -133,7 +133,7 @@ class ProcessDataTimestampTest(BaseAPITest):
         self.assertEquals(data['timestamp'], 1325413845.0)
 
     def test_timestamp_iso_timestamp_with_Z(self):
-        d = datetime(2012, 01, 01, 10, 30, 45)
+        d = datetime(2012, 1, 1, 10, 30, 45)
         data = self.helper._process_data_timestamp({
             'timestamp': '2012-01-01T10:30:45Z'
         }, current_datetime=d)
@@ -156,7 +156,7 @@ class ProcessDataTimestampTest(BaseAPITest):
         })
 
     def test_long_microseconds_value(self):
-        d = datetime(2012, 01, 01, 10, 30, 45)
+        d = datetime(2012, 1, 1, 10, 30, 45)
         data = self.helper._process_data_timestamp({
             'timestamp': '2012-01-01T10:30:45.341324Z'
         }, current_datetime=d)

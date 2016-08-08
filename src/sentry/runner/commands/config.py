@@ -8,6 +8,8 @@ sentry.runner.commands.config
 from __future__ import absolute_import, print_function
 
 import click
+import six
+
 from sentry.runner.decorators import configuration
 
 
@@ -66,7 +68,7 @@ def set(option, value):
     except UnknownOption:
         raise click.ClickException('unknown option: %s' % option)
     except TypeError as e:
-        raise click.ClickException(unicode(e))
+        raise click.ClickException(six.text_type(e))
 
 
 @config.command()

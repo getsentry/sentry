@@ -11,7 +11,6 @@ import petname
 import six
 
 from bitfield import BitField
-from urlparse import urlparse
 from uuid import uuid4
 
 from django.conf import settings
@@ -19,6 +18,7 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from six.moves.urllib.parse import urlparse
 
 from sentry import options
 from sentry.db.models import (

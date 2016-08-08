@@ -87,7 +87,7 @@ const BreadcrumbsInterface = React.createClass({
         }
       };
     } else if (evt.message) {
-      let levelTag = evt.tags.find(t => t.key === 'level');
+      let levelTag = (evt.tags || []).find(t => t.key === 'level');
       let level = levelTag && levelTag.value;
       crumb = {
         type: 'message',

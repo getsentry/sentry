@@ -1,14 +1,15 @@
 import $ from 'jquery';
 import React from 'react';
 import ApiMixin from '../../mixins/apiMixin';
-import FlotChart from '../../components/flotChart';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import OrganizationHomeContainer from '../../components/organizations/homeContainer';
+import StackedBarChart from '../../components/stackedBarChart';
 import OrganizationState from '../../mixins/organizationState';
 
 import ProjectTable from './projectTable';
 import {t} from '../../locale';
+import {intcomma} from '../../utils';
 
 const OrganizationStats = React.createClass({
   mixins: [
@@ -153,25 +154,22 @@ const OrganizationStats = React.createClass({
     let oReceived = 0;
     let oRejected = 0;
     let oBlacklisted = 0;
-    let sReceived = {};
-    let sRejected = {};
-    let sBlacklisted = {};
+    let orgPoints = [];  // accepted, rejected, blacklisted
     let aReceived = [0, 0]; // received, points
     let rawOrgData = this.state.rawOrgData;
     $.each(rawOrgData.received, (idx, point) => {
       let dReceived = point[1];
       let dRejected = rawOrgData.rejected[idx][1];
       let dBlacklisted = rawOrgData.blacklisted[idx][1];
-      let ts = point[0] * 1000;
-      if (sReceived[ts] === undefined) {
-        sReceived[ts] = dReceived;
-        sRejected[ts] = dRejected;
-        sBlacklisted[ts] = dBlacklisted;
-      } else {
-        sReceived[ts] += dReceived;
-        sRejected[ts] += dRejected;
-        sBlacklisted[ts] += dBlacklisted;
-      }
+      let dAccepted = Math.max(0, dReceived - dRejected - dBlacklisted);
+      orgPoints.push({
+        x: point[0],
+        y: [
+          dAccepted,
+          dRejected,
+          dBlacklisted
+        ]
+      });
       oReceived += dReceived;
       oRejected += dRejected;
       oBlacklisted += dBlacklisted;
@@ -181,22 +179,12 @@ const OrganizationStats = React.createClass({
       }
     });
     this.setState({
-      orgStats: {
-        rejected: $.map(sRejected, (value, ts) => {
-          return [[ts, value || 0]];
-        }),
-        accepted: $.map(sReceived, (value, ts) => {
-          return [[ts, value - (sRejected[ts] || 0) - (sBlacklisted[ts] || 0)]];
-        }),
-        blacklisted: $.map(sBlacklisted, (value, ts) => {
-          return [[ts, value || 0]];
-        })
-      },
+      orgStats: orgPoints,
       orgTotal: {
         received: oReceived,
         rejected: oRejected,
         blacklisted: oBlacklisted,
-        accepted: oReceived - oRejected - oBlacklisted,
+        accepted: Math.max(0, oReceived - oRejected - oBlacklisted),
         avgRate: (aReceived[1] ? parseInt((aReceived[0] / aReceived[1]) / 60, 10) : 0)
       },
       statsLoading: false
@@ -229,47 +217,24 @@ const OrganizationStats = React.createClass({
     });
   },
 
-  getChartPlotData() {
-    let stats = this.state.orgStats;
+  renderTooltip(point, pointIdx, chart) {
+    let timeLabel = chart.getTimeLabel(point);
+    let [accepted, rejected, blacklisted] = point.y;
 
-    return [
-      {
-        data: stats.accepted,
-        label: t('Accepted'),
-        color: 'rgba(86, 175, 232, 1)',
-        shadowSize: 0,
-        stack: true,
-        lines: {
-          lineWidth: 2,
-          show: true,
-          fill: true
-        }
-      },
-      {
-        data: stats.rejected,
-        color: 'rgba(226, 76, 83, 1)',
-        shadowSize: 0,
-        label: t('Dropped (Rate Limit)'),
-        stack: true,
-        lines: {
-          lineWidth: 2,
-          show: true,
-          fill: true
-        }
-      },
-      {
-        data: stats.blacklisted,
-        color: 'rgba(247, 131, 0, 1)',
-        shadowSize: 0,
-        label: t('Dropped (Blacklist)'),
-        stack: true,
-        lines: {
-          lineWidth: 2,
-          show: true,
-          fill: true
-        }
-      }
-    ];
+    let value = `${intcomma(accepted)} accepted`;
+    if (rejected) {
+      value += `<br>${intcomma(rejected)} rate limited`;
+    }
+    if (blacklisted) {
+      value += `<br>${intcomma(blacklisted)} blacklisted`;
+    }
+
+    return (
+      '<div style="width:150px">' +
+        `<div class="time-label">${timeLabel}</div>` +
+        `<div class="value-label">${value}</div>` +
+      '</div>'
+    );
   },
 
   render() {
@@ -292,18 +257,21 @@ const OrganizationStats = React.createClass({
             </div>
           }
         </div>
-        <div className="box">
-          <div className="box-content with-padding">
+        <div className="organization-stats">
             {this.state.statsLoading ?
               <LoadingIndicator />
             : (this.state.statsError ?
               <LoadingError onRetry={this.fetchData} />
             :
-              <div style={{height: 250}}>
-                <FlotChart plotData={this.getChartPlotData()} className="chart" />
+              <div className="bar-chart">
+                <StackedBarChart
+                  points={this.state.orgStats}
+                  height={150}
+                  barClasses={['accepted', 'rate-limited', 'black-listed']}
+                  className="sparkline"
+                  tooltip={this.renderTooltip} />
               </div>
             )}
-          </div>
         </div>
 
         <div className="box">

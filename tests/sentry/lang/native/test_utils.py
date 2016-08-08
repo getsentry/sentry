@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from sentry.lang.native.utils import get_sdk_from_event
 
 

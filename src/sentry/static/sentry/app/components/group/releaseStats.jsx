@@ -10,7 +10,7 @@ import GroupState from '../../mixins/groupState';
 import GroupReleaseChart from './releaseChart';
 import MenuItem from '../menuItem';
 import SeenInfo from './seenInfo';
-import {toTitleCase} from '../../utils';
+import {defined, toTitleCase} from '../../utils';
 import {t} from '../../locale';
 
 const DEFAULT_ENV_NAME = '(Default Environment)';
@@ -106,7 +106,8 @@ const GroupReleaseStats = React.createClass({
     let stats = this.props.group.stats['24h'];
 
     let since = stats[0][0];
-    let until = stats[stats.length - 1][0];
+    // due to the current stats logic in Sentry we need to extend the bounds
+    let until = stats[stats.length - 1][0] + 1;
 
     this.api.request(`/issues/${group.id}/environments/${env}/`, {
       query: {
@@ -146,16 +147,12 @@ const GroupReleaseStats = React.createClass({
     let orgId = this.getOrganization().slug;
     let environment = this.state.environment;
     let data = this.state.data || {};
-    let firstSeen = (
-      data.firstRelease ? data.firstRelease.firstSeen : group.firstSeen
-    );
-    let lastSeen = (
-      data.lastRelease ? data.lastRelease.lastSeen : group.lastSeen
-    );
+    let firstSeenEnv = data.firstSeen;
+    let lastSeenEnv = data.lastSeen;
 
     let envList = this.state.envList;
+    let hasRelease = defined(group.lastRelease);
 
-    console.log(environment);
     return (
       <div className="env-stats">
         <h6><span>
@@ -165,15 +162,11 @@ const GroupReleaseStats = React.createClass({
                 <MenuItem
                     key={e.name}
                     isActive={environment === e.name}
-                    onClick={this.switchEnv.bind(this, e.name)}>{toTitleCase(e.name)}</MenuItem>
+                    onClick={this.switchEnv.bind(this, e.name)}>
+                  {toTitleCase(e.name) || DEFAULT_ENV_NAME}
+                </MenuItem>
               );
             })}
-            {envList.length === 0 &&
-              <MenuItem
-                  key=""
-                  isActive={environment === ''}
-                  onClick={this.switchEnv.bind(this, '')}>{DEFAULT_ENV_NAME}</MenuItem>
-            }
           </DropdownLink>
         </span></h6>
         <div className="env-content">
@@ -186,42 +179,58 @@ const GroupReleaseStats = React.createClass({
               <GroupReleaseChart
                   group={group}
                   environment={environment}
-                  release={data.lastRelease ? data.lastRelease.release : null}
-                  releaseStats={data.lastRelease ? data.lastRelease.stats : null}
+                  environmentStats={data.environment.stats}
+                  release={data.currentRelease ? data.currentRelease.release : null}
+                  releaseStats={data.currentRelease ? data.currentRelease.stats : null}
                   statsPeriod="24h"
                   title={t('Last 24 Hours')}
-                  firstSeen={firstSeen}
-                  lastSeen={lastSeen} />
+                  firstSeen={group.firstSeen}
+                  lastSeen={group.lastSeen} />
 
               <GroupReleaseChart
                   group={group}
                   environment={environment}
-                  release={data.lastRelease ? data.lastRelease.release : null}
-                  releaseStats={data.lastRelease ? data.lastRelease.stats : null}
+                  environmentStats={data.environment.stats}
+                  release={data.currentRelease ? data.currentRelease.release : null}
+                  releaseStats={data.currentRelease ? data.currentRelease.stats : null}
                   statsPeriod="30d"
                   title={t('Last 30 Days')}
                   className="bar-chart-small"
-                  firstSeen={firstSeen}
-                  lastSeen={lastSeen} />
+                  firstSeen={group.firstSeen}
+                  lastSeen={group.lastSeen} />
 
-              <h6 className="first-seen">
+              <h6>
                 <span>{t('First seen')}</span>
+                {environment &&
+                  <small>({environment})</small>
+                }
               </h6>
 
               <SeenInfo
                   orgId={orgId}
                   projectId={projectId}
-                  date={firstSeen}
-                  release={data.firstRelease ? data.firstRelease.release : null} />
+                  date={firstSeenEnv}
+                  dateGlobal={group.firstSeen}
+                  hasRelease={hasRelease}
+                  environment={environment}
+                  release={data.firstRelease ? data.firstRelease.release : null}
+                  title={t('First seen')} />
 
-              <h6 className="last-seen">
+              <h6>
                 <span>{t('Last seen')}</span>
+                {environment &&
+                  <small>({environment})</small>
+                }
               </h6>
               <SeenInfo
                   orgId={orgId}
                   projectId={projectId}
-                  date={lastSeen}
-                  release={data.lastRelease ? data.lastRelease.release : null} />
+                  date={lastSeenEnv}
+                  dateGlobal={group.lastSeen}
+                  hasRelease={hasRelease}
+                  environment={environment}
+                  release={data.lastRelease ? data.lastRelease.release : null}
+                  title={t('Last seen')} />
             </div>
           )}
         </div>

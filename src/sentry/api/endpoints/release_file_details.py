@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -86,14 +87,21 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
         :pparam string file_id: the ID of the file to retrieve.
         :auth: required
         """
-        release = Release.objects.get(
-            project=project,
-            version=version,
-        )
-        releasefile = ReleaseFile.objects.get(
-            release=release,
-            id=file_id,
-        )
+        try:
+            release = Release.objects.get(
+                project=project,
+                version=version,
+            )
+        except Release.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        try:
+            releasefile = ReleaseFile.objects.get(
+                release=release,
+                id=file_id,
+            )
+        except ReleaseFile.DoesNotExist:
+            raise ResourceDoesNotExist
 
         return Response(serialize(releasefile, request.user))
 
@@ -115,14 +123,22 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
         :param string name: the new name of the file.
         :auth: required
         """
-        release = Release.objects.get(
-            project=project,
-            version=version,
-        )
-        releasefile = ReleaseFile.objects.get(
-            release=release,
-            id=file_id,
-        )
+        try:
+            release = Release.objects.get(
+                project=project,
+                version=version,
+            )
+        except Release.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        try:
+            releasefile = ReleaseFile.objects.get(
+                release=release,
+                id=file_id,
+            )
+        except ReleaseFile.DoesNotExist:
+            raise ResourceDoesNotExist
+
         serializer = ReleaseFileSerializer(data=request.DATA)
 
         if not serializer.is_valid():
@@ -154,14 +170,21 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
         :pparam string file_id: the ID of the file to delete.
         :auth: required
         """
-        release = Release.objects.get(
-            project=project,
-            version=version,
-        )
-        releasefile = ReleaseFile.objects.get(
-            release=release,
-            id=file_id,
-        )
+        try:
+            release = Release.objects.get(
+                project=project,
+                version=version,
+            )
+        except Release.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        try:
+            releasefile = ReleaseFile.objects.get(
+                release=release,
+                id=file_id,
+            )
+        except ReleaseFile.DoesNotExist:
+            raise ResourceDoesNotExist
 
         file = releasefile.file
 

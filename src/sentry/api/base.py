@@ -3,6 +3,7 @@ from __future__ import absolute_import
 __all__ = ['DocSection', 'Endpoint', 'StatsMixin']
 
 import logging
+import six
 import time
 
 from datetime import datetime, timedelta
@@ -61,7 +62,7 @@ class Endpoint(APIView):
     def build_cursor_link(self, request, name, cursor):
         querystring = u'&'.join(
             u'{0}={1}'.format(urlquote(k), urlquote(v))
-            for k, v in request.GET.iteritems()
+            for k, v in six.iteritems(request.GET)
             if k != 'cursor'
         )
         base_url = absolute_uri(request.path)
@@ -72,7 +73,7 @@ class Endpoint(APIView):
 
         return LINK_HEADER.format(
             uri=base_url,
-            cursor=str(cursor),
+            cursor=six.text_type(cursor),
             name=name,
             has_results='true' if bool(cursor) else 'false',
         )

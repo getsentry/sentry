@@ -115,6 +115,15 @@ const EventEntries = React.createClass({
             group={group}
             event={evt} />
         }
+        {!utils.objectIsEmpty(evt.sdk) && evt.sdk.upstream.isNewer &&
+          <div className="alert-block alert-info box" style={{padding: '5px 20px'}}>
+            {t('This event was reported with an old version of the %s SDK.', evt.platform)}
+            {evt.sdk.upstream.url &&
+              <a href={evt.sdk.upstream.url}
+                 style={{marginLeft: 10}}>{t('Learn More')}</a>
+            }
+          </div>
+        }
         {hasContextSummary &&
           <EventContextSummary
             group={group}

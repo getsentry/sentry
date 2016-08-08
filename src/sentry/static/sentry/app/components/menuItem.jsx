@@ -16,7 +16,8 @@ const MenuItem = React.createClass({
     // router link
     to: React.PropTypes.string,
     query: React.PropTypes.object,
-    linkClassName: React.PropTypes.string
+    linkClassName: React.PropTypes.string,
+    onClick: React.PropTypes.function,
   },
 
   handleClick(e) {
@@ -66,8 +67,9 @@ const MenuItem = React.createClass({
     }
 
     return (
-      <li {...this.props} role="presentation" title={null} href={null}
-        className={classNames(this.props.className, classes)}>
+      <li role="presentation" title={null} href={null}
+        className={classNames(this.props.className, classes)}
+        onClick={this.props.onClick}>
         {children}
       </li>
     );

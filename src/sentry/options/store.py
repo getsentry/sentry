@@ -8,6 +8,8 @@ sentry.options.store
 from __future__ import absolute_import, print_function
 
 import logging
+import six
+
 from collections import namedtuple
 from time import time
 from random import random
@@ -15,7 +17,7 @@ from random import random
 from django.utils import timezone
 from django.utils.functional import cached_property
 from sentry.db.models.query import create_or_update
-from sentry.utils.hashlib import md5
+from sentry.utils.hashlib import md5_text
 
 
 Key = namedtuple('Key', ('name', 'default', 'type', 'flags', 'ttl', 'grace', 'cache_key'))
@@ -27,7 +29,7 @@ logger = logging.getLogger('sentry')
 
 
 def _make_cache_key(key):
-    return 'o:%s' % md5(key).hexdigest()
+    return 'o:%s' % md5_text(key).hexdigest()
 
 
 def _make_cache_value(key, value):
@@ -167,7 +169,7 @@ class OptionsStore(object):
             value = None
         except Exception as e:
             if not silent:
-                logger.exception(unicode(e))
+                logger.exception(six.text_type(e))
             value = None
         else:
             # we only attempt to populate the cache if we were previously
@@ -257,7 +259,7 @@ class OptionsStore(object):
         now = int(time())
 
         try:
-            for k, (_, _, grace) in self._local_cache.iteritems():
+            for k, (_, _, grace) in six.iteritems(self._local_cache):
                 if now > grace:
                     to_expire.append(k)
         except RuntimeError:

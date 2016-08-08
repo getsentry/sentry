@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from collections import namedtuple
 from datetime import timedelta
 from django.utils import timezone
@@ -57,13 +59,13 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
             items.setdefault(item.group_id, []).append(item.id)
             attrs[item]['stats'] = {}
 
-        for key, (segments, interval) in self.STATS_PERIODS.iteritems():
+        for key, (segments, interval) in six.iteritems(self.STATS_PERIODS):
             until = self.until or timezone.now()
             since = self.since or until - ((segments - 1) * interval)
 
             try:
                 stats = tsdb.get_frequency_series(
-                    model=tsdb.models.frequent_releases_by_groups,
+                    model=tsdb.models.frequent_releases_by_group,
                     items=items,
                     start=since,
                     end=until,

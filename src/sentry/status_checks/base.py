@@ -1,6 +1,11 @@
 from __future__ import absolute_import
 
+import six
 
+from sentry.utils.compat import implements_to_string
+
+
+@implements_to_string
 class Problem(object):
 
     # Used for issues that may render the system inoperable or have effects on
@@ -23,7 +28,7 @@ class Problem(object):
 
     def __init__(self, message, severity=SEVERITY_CRITICAL, url=None):
         assert severity in self.SEVERITY_LEVELS
-        self.message = unicode(message)
+        self.message = six.text_type(message)
         self.severity = severity
         self.url = url
 
@@ -31,15 +36,12 @@ class Problem(object):
         if not isinstance(other, Problem):
             return NotImplemented
 
-        return cmp(
+        return six.cmp(
             self.SEVERITY_LEVELS[self.severity],
             self.SEVERITY_LEVELS[other.severity],
         )
 
     def __str__(self):
-        return self.message.encode('utf-8')
-
-    def __unicode__(self):
         return self.message
 
     @classmethod

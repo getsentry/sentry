@@ -76,7 +76,6 @@ from sentry.web.frontend.remove_organization import RemoveOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.remove_project_key import RemoveProjectKeyView
 from sentry.web.frontend.remove_team import RemoveTeamView
-from sentry.web.frontend.replay_event import ReplayEventView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.unsubscribe_issue_notifications import \
     UnsubscribeIssueNotificationsView
@@ -277,7 +276,7 @@ urlpatterns += patterns(
 
     url(r'^account/remove/$', RemoveAccountView.as_view(),
         name='sentry-remove-account'),
-    url(r'^account/settings/social/', include('sentry.social_auth.urls')),
+    url(r'^account/settings/social/', include('social_auth.urls')),
 
     # Admin
     url(r'^manage/queue/$', AdminQueueView.as_view(),
@@ -291,25 +290,13 @@ urlpatterns += patterns(
     url(r'^manage/status/warnings/$', admin.status_warnings,
         name='sentry-admin-warnings-status'),
 
-    # Admin - Teams
-    url(r'^manage/teams/$', admin.manage_teams,
-        name='sentry-admin-teams'),
-
-    # Admin - Projects
-    url(r'^manage/projects/$', admin.manage_projects,
-        name='sentry-admin-projects'),
-
     # Admin - Users
-    url(r'^manage/users/$', admin.manage_users,
-        name='sentry-admin-users'),
     url(r'^manage/users/new/$', admin.create_new_user,
         name='sentry-admin-new-user'),
     url(r'^manage/users/(?P<user_id>\d+)/$', admin.edit_user,
         name='sentry-admin-edit-user'),
     url(r'^manage/users/(?P<user_id>\d+)/remove/$', admin.remove_user,
         name='sentry-admin-remove-user'),
-    url(r'^manage/users/(?P<user_id>\d+)/projects/$', admin.list_user_projects,
-        name='sentry-admin-list-user-projects'),
 
     # Admin - Plugins
     url(r'^manage/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin,
@@ -478,8 +465,6 @@ urlpatterns += patterns(
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', react_page_view,
         name='sentry-stream'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/(?:group|issues)/(?P<group_id>\d+)/events/(?P<event_id>\d+)/replay/$', ReplayEventView.as_view(),
-        name='sentry-replay'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/(?:group|issues)/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/json/$', GroupEventJsonView.as_view(),
         name='sentry-group-event-json'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$', GroupTagExportView.as_view(),

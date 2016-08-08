@@ -60,7 +60,7 @@ if settings.SENTRY_USE_BIG_INTS:
 
         def get_prep_value(self, value):
             if value:
-                value = long(value)
+                value = int(value)
                 assert value <= self.MAX_VALUE
             return super(BoundedBigIntegerField, self).get_prep_value(value)
 
@@ -91,7 +91,7 @@ if settings.SENTRY_USE_BIG_INTS:
 
         def get_prep_value(self, value):
             if value:
-                value = long(value)
+                value = int(value)
                 assert value <= self.MAX_VALUE
             return super(BoundedBigAutoField, self).get_prep_value(value)
 

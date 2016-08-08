@@ -8,6 +8,8 @@ sentry.runner.commands.devserver
 from __future__ import absolute_import, print_function
 
 import click
+import six
+
 from sentry.runner.decorators import configuration, log_options
 
 
@@ -77,9 +79,9 @@ def devserver(reload, watchers, workers, bind):
         ]
 
     if needs_https and has_https:
-        from urlparse import urlparse
+        from six.moves.urllib.parse import urlparse
         parsed_url = urlparse(url_prefix)
-        https_port = str(parsed_url.port or 443)
+        https_port = six.text_type(parsed_url.port or 443)
         https_host = parsed_url.hostname
 
         # Determine a random port for the backend http server

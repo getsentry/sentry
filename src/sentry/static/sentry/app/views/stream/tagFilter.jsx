@@ -23,7 +23,7 @@ const StreamTagFilter = React.createClass({
   getDefaultProps() {
     return {
       tag: {},
-      value: null
+      value: ''
     };
   },
 
@@ -31,7 +31,7 @@ const StreamTagFilter = React.createClass({
     return {
       query: '',
       loading: false,
-      value: this.props.value,
+      value: this.props.value
     };
   },
 

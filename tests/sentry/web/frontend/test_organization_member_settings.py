@@ -232,3 +232,67 @@ class OrganizationMemberSettingsTest(TestCase):
 
         assert resp.context['organization'] == organization
         assert resp.context['member'] == owner_om
+
+    def test_manager_cant_assign_owner(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+
+        manager = self.create_user('bar@example.com')
+        OrganizationMember.objects.create(
+            organization=organization,
+            user=manager,
+            role='manager',
+        )
+
+        member = self.create_user('baz@example.com')
+        member_om = OrganizationMember.objects.create(
+            organization=organization,
+            user=member,
+            role='member',
+        )
+
+        path = reverse('sentry-organization-member-settings',
+                       args=[organization.slug, member_om.id])
+
+        self.login_as(manager)
+
+        resp = self.client.post(path, {
+            'role': 'owner',
+        })
+
+        assert resp.status_code == 200
+
+        member = OrganizationMember.objects.get(id=member_om.id)
+
+        assert member.role == 'member'
+
+    def test_manager_cant_downgrade_owner(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+
+        manager = self.create_user('bar@example.com')
+        OrganizationMember.objects.create(
+            organization=organization,
+            user=manager,
+            role='manager',
+        )
+
+        member = self.create_user('baz@example.com')
+        member_om = OrganizationMember.objects.create(
+            organization=organization,
+            user=member,
+            role='owner',
+        )
+
+        path = reverse('sentry-organization-member-settings',
+                       args=[organization.slug, member_om.id])
+
+        self.login_as(manager)
+
+        resp = self.client.post(path, {
+            'role': 'manager',
+        })
+
+        assert resp.status_code == 200
+
+        member = OrganizationMember.objects.get(id=member_om.id)
+
+        assert member.role == 'owner'

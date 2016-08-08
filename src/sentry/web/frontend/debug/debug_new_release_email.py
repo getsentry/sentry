@@ -33,7 +33,7 @@ class DebugNewReleaseEmailView(View):
         )
         release = Release(
             project=project,
-            version=sha1(uuid4().hex).hexdigest(),
+            version=sha1(uuid4().bytes).hexdigest(),
         )
 
         release_link = absolute_uri('/{}/{}/releases/{}/'.format(

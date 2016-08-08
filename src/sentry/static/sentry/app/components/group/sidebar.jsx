@@ -22,16 +22,6 @@ const GroupSidebar = React.createClass({
     GroupState
   ],
 
-  // shouldComponentUpdate(nextProps, nextState) {
-  //   return (
-  //     this.state.loading !== nextState.loading ||
-  //     this.state.error !== nextState.error ||
-  //     this.props.release !== nextProps.release ||
-  //     this.props.environment !== nextProps.environment ||
-  //     this.props.group.id !== nextProps.group.id
-  //   );
-  // },
-
   toggleSubscription() {
     let group = this.props.group;
     let project = this.getProject();

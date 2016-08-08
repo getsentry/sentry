@@ -8,6 +8,7 @@ sentry.interfaces.contexts
 
 from __future__ import absolute_import
 
+import six
 import string
 
 from django.utils.encoding import force_text
@@ -32,8 +33,8 @@ class _IndexFormatter(string.Formatter):
 
 
 def format_index_expr(format_string, data):
-    return unicode(_IndexFormatter().vformat(
-        unicode(format_string), (), data).strip())
+    return six.text_type(_IndexFormatter().vformat(
+        six.text_type(format_string), (), data).strip())
 
 
 def contexttype(name):
@@ -50,7 +51,7 @@ class ContextType(object):
     def __init__(self, alias, data):
         self.alias = alias
         ctx_data = {}
-        for key, value in trim(data).iteritems():
+        for key, value in six.iteritems(trim(data)):
             if value not in EMPTY_VALUES:
                 ctx_data[force_text(key)] = value
         self.data = ctx_data
@@ -62,7 +63,7 @@ class ContextType(object):
 
     def iter_tags(self):
         if self.indexed_fields:
-            for field, f_string in self.indexed_fields.iteritems():
+            for field, f_string in six.iteritems(self.indexed_fields):
                 try:
                     value = format_index_expr(f_string, self.data)
                 except KeyError:
@@ -126,7 +127,7 @@ class Contexts(Interface):
     @classmethod
     def to_python(cls, data):
         rv = {}
-        for alias, value in data.iteritems():
+        for alias, value in six.iteritems(data):
             rv[alias] = cls.normalize_context(alias, value)
         return cls(**rv)
 
@@ -137,11 +138,11 @@ class Contexts(Interface):
         return ctx_cls(alias, data)
 
     def iter_contexts(self):
-        return self._data.itervalues()
+        return six.itervalues(self._data)
 
     def to_json(self):
         rv = {}
-        for alias, inst in self._data.iteritems():
+        for alias, inst in six.iteritems(self._data):
             rv[alias] = inst.to_json()
         return rv
 

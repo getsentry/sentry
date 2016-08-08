@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import six
 
 from django.contrib import messages
 from django.core.context_processors import csrf
@@ -74,10 +75,10 @@ class OrganizationMixin(object):
 
         if active_organization is None and organization_slug:
             try:
-                active_organization = (
+                active_organization = six.next(
                     o for o in organizations
                     if o.slug == organization_slug
-                ).next()
+                )
             except StopIteration:
                 logger.info('Active organization [%s] not found in scope',
                     organization_slug)

@@ -1,15 +1,12 @@
-import pytest
+from __future__ import absolute_import
 
 from mock import patch
 
-from symsynd.driver import find_llvm_symbolizer
-
 from sentry.models import Event
-from sentry.testutils import TestCase
+from sentry.testutils import requires_llvm_symbolizer, TestCase
 
 
-@pytest.mark.skipif(find_llvm_symbolizer() is None,
-                    reason='llvm-symbolizer is not installed')
+@requires_llvm_symbolizer
 class BasicResolvingIntegrationTest(TestCase):
 
     @patch('sentry.lang.native.symbolizer.Symbolizer.symbolize_app_frame')

@@ -97,8 +97,6 @@ class DeleteOrganizationMemberTest(APITestCase):
         assert not OrganizationMember.objects.filter(id=member_om.id).exists()
 
     def test_cannot_delete_member_with_higher_access(self):
-        self.login_as(user=self.user)
-
         organization = self.create_organization(name='foo', owner=self.user)
 
         other_user = self.create_user('bar@example.com')
@@ -154,3 +152,58 @@ class DeleteOrganizationMemberTest(APITestCase):
         assert resp.status_code == 403
 
         assert OrganizationMember.objects.filter(id=owner_om.id).exists()
+
+    def test_can_delete_self(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+
+        other_user = self.create_user('bar@example.com')
+
+        self.create_member(
+            organization=organization,
+            role='member',
+            user=other_user,
+        )
+
+        path = reverse('sentry-api-0-organization-member-details', args=[organization.slug, 'me'])
+
+        self.login_as(other_user)
+
+        resp = self.client.delete(path)
+
+        assert resp.status_code == 204
+
+        assert not OrganizationMember.objects.filter(
+            user=other_user,
+            organization=organization,
+        ).exists()
+
+    def test_missing_scope(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+
+        admin_user = self.create_user('bar@example.com')
+
+        self.create_member(
+            organization=organization,
+            role='admin',
+            user=admin_user,
+        )
+
+        member_user = self.create_user('baz@example.com')
+
+        member_om = self.create_member(
+            organization=organization,
+            role='member',
+            user=member_user,
+        )
+
+        path = reverse('sentry-api-0-organization-member-details', args=[
+            organization.slug, member_om.id,
+        ])
+
+        self.login_as(admin_user)
+
+        resp = self.client.delete(path)
+
+        assert resp.status_code == 400
+
+        assert OrganizationMember.objects.filter(id=member_om.id).exists()

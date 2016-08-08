@@ -9,6 +9,7 @@ sentry.db.models
 from __future__ import absolute_import
 
 import logging
+import six
 
 from django.db import models
 from django.db.models import signals
@@ -78,7 +79,7 @@ class BaseModel(models.Model):
                     data[f.column] = self.__get_field_value(f)
                 except AttributeError as e:
                     # this case can come up from pickling
-                    logging.exception(unicode(e))
+                    logging.exception(six.text_type(e))
             self.__data = data
         else:
             self.__data = UNSAVED

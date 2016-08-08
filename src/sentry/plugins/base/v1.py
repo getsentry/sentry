@@ -10,11 +10,11 @@ from __future__ import absolute_import, print_function
 __all__ = ('Plugin',)
 
 import logging
+import six
 
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from threading import local
-from hashlib import md5
 
 from sentry.auth import access
 from sentry.plugins.base.response import Response
@@ -22,6 +22,7 @@ from sentry.plugins.base.view import PluggableViewMixin
 from sentry.plugins.base.configuration import (
     default_plugin_config, default_plugin_options,
 )
+from sentry.utils.hashlib import md5_text
 
 
 class PluginMount(type):
@@ -207,8 +208,8 @@ class IPlugin(local, PluggableViewMixin):
         >>> plugin.get_conf_version(project)
         """
         options = self.get_conf_options(project)
-        return md5(
-            '&'.join(sorted('%s=%s' % o for o in options.iteritems()))
+        return md5_text(
+            '&'.join(sorted('%s=%s' % o for o in six.iteritems(options)))
         ).hexdigest()[:3]
 
     def get_conf_title(self):
@@ -475,6 +476,7 @@ class IPlugin(local, PluggableViewMixin):
         """Allows a plugin to return the import path to a URL module."""
 
 
+@six.add_metaclass(PluginMount)
 class Plugin(IPlugin):
     """
     A plugin should be treated as if it were a singleton. The owner does not
@@ -482,4 +484,3 @@ class Plugin(IPlugin):
     it will happen, or happen more than once.
     """
     __version__ = 1
-    __metaclass__ = PluginMount

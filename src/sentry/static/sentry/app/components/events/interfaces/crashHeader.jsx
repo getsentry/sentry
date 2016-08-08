@@ -13,7 +13,7 @@ const CrashHeader = React.createClass({
     stacktrace: React.PropTypes.object,
     stackView: React.PropTypes.string.isRequired,
     newestFirst: React.PropTypes.bool.isRequired,
-    stackType: React.PropTypes.string.isRequired,
+    stackType: React.PropTypes.string, // 'original', 'minified', or falsy (none)
     onChange: React.PropTypes.func,
   },
 

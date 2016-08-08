@@ -274,9 +274,11 @@
     <div class="form-submit clearfix">
       <button type="submit" class="btn">Submit Crash Report</button>
       <a class="close">Close</a>
+      {% if show_branding %}
       <p class="powered-by">
         Crash reports powered by <a href="https://getsentry.com">Sentry</a>
       </p>
+      {% endif %}
     </div>
   </form>
 </div>

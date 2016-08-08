@@ -7,6 +7,8 @@ sentry.plugins.sentry_interface_types.models
 """
 from __future__ import absolute_import
 
+import six
+
 import sentry
 
 from sentry.plugins import register
@@ -28,6 +30,6 @@ class InterfaceTypePlugin(TagPlugin):
     project_default_enabled = False
 
     def get_tag_values(self, event):
-        return [i.rsplit('.', 1)[-1] for i in event.interfaces.iterkeys()]
+        return [i.rsplit('.', 1)[-1] for i in six.iterkeys(event.interfaces)]
 
 register(InterfaceTypePlugin)

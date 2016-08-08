@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
+import six
+
 from collections import defaultdict
 from south.db import db
 from south.v2 import DataMigration
@@ -25,7 +27,7 @@ class Migration(DataMigration):
             for team in Team.objects.filter(organization=org):
                 teams_by_org[org].append(team)
 
-        for org, team_list in WithProgressBar(teams_by_org.items(), caption='Organizations'):
+        for org, team_list in WithProgressBar(list(teams_by_org.items()), caption='Organizations'):
             team_member_qs = TeamMember.objects.filter(
                 team__organization=org
             ).select_related('team')
@@ -38,7 +40,7 @@ class Migration(DataMigration):
 
             total_teams = len(team_list)
 
-            for user_id, member_list in members_by_user.iteritems():
+            for user_id, member_list in six.iteritems(members_by_user):
                 # if they were a member of all teams, give them global access
                 has_global_access = len(member_list) == total_teams
 

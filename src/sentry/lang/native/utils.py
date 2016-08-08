@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import logging
 
 
@@ -93,8 +95,12 @@ def get_sdk_from_os(data):
     dsym_type = KNOWN_DSYM_TYPES.get(data['name'])
     if dsym_type is None:
         return
-    system_version = tuple(int(x) for x in (
-        data['version'] + '.0' * 3).split('.')[:3])
+    try:
+        system_version = tuple(int(x) for x in (
+            data['version'] + '.0' * 3).split('.')[:3])
+    except ValueError:
+        return
+
     return {
         'dsym_type': 'macho',
         'sdk_name': data['name'],
@@ -111,7 +117,7 @@ def get_sdk_from_apple_system_info(info):
         sdk_name = APPLE_SDK_MAPPING[info['system_name']]
         system_version = tuple(int(x) for x in (
             info['system_version'] + '.0' * 3).split('.')[:3])
-    except LookupError:
+    except (ValueError, LookupError):
         return None
 
     return {

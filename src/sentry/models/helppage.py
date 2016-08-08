@@ -7,6 +7,8 @@ sentry.models.helppage
 """
 from __future__ import absolute_import
 
+import six
+
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
@@ -38,7 +40,7 @@ class HelpPage(Model):
 
     @property
     def slug(self):
-        return slugify(unicode(self.title))
+        return slugify(six.text_type(self.title))
 
     def natural_key(self):
         if self.key:

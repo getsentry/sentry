@@ -10,6 +10,8 @@ from __future__ import absolute_import
 
 __all__ = ('Message',)
 
+import six
+
 from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
@@ -44,7 +46,7 @@ class Message(Interface):
 
         # TODO(dcramer): some day we should stop people from sending arbitrary
         # crap to the server
-        if not isinstance(data['message'], basestring):
+        if not isinstance(data['message'], six.string_types):
             data['message'] = json.dumps(data['message'])
 
         kwargs = {
@@ -58,7 +60,7 @@ class Message(Interface):
             kwargs['params'] = ()
 
         if kwargs['formatted']:
-            if not isinstance(kwargs['formatted'], basestring):
+            if not isinstance(kwargs['formatted'], six.string_types):
                 data['formatted'] = json.dumps(data['formatted'])
         # support python-esque formatting (e.g. %s)
         elif '%' in kwargs['message'] and kwargs['params']:

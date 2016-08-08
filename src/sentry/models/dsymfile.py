@@ -11,7 +11,9 @@ from __future__ import absolute_import
 import os
 import shutil
 import hashlib
+import six
 import tempfile
+
 from itertools import chain
 from django.db import models, router, transaction, connection, IntegrityError
 
@@ -184,7 +186,7 @@ class DSymSymbolManager(BaseManager):
             addr_abs = image_vmaddr + instruction_addr - image_addr
         addr_rel = instruction_addr - image_addr
 
-        uuid = str(uuid).lower()
+        uuid = six.text_type(uuid).lower()
         cur = connection.cursor()
         try:
             # First try: exact match on uuid (addr_rel)

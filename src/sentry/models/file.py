@@ -8,6 +8,8 @@ sentry.models.file
 
 from __future__ import absolute_import
 
+import six
+
 from hashlib import sha1
 from uuid import uuid4
 
@@ -54,7 +56,7 @@ class FileBlob(Model):
         """
         size = 0
 
-        checksum = sha1('')
+        checksum = sha1(b'')
         for chunk in fileobj:
             size += len(chunk)
             checksum.update(chunk)
@@ -88,9 +90,12 @@ class FileBlob(Model):
 
     @classmethod
     def generate_unique_path(cls, timestamp):
-        pieces = map(str, divmod(int(timestamp.strftime('%s')), ONE_DAY))
-        pieces.append('%s' % (uuid4().hex,))
-        return '/'.join(pieces)
+        pieces = [
+            six.text_type(x)
+            for x in divmod(int(timestamp.strftime('%s')), ONE_DAY)
+        ]
+        pieces.append(uuid4().hex)
+        return u'/'.join(pieces)
 
     def delete(self, *args, **kwargs):
         lock = locks.get('fileblob:upload:{}'.format(self.checksum), duration=60 * 10)
@@ -170,7 +175,7 @@ class File(Model):
         """
         results = []
         offset = 0
-        checksum = sha1('')
+        checksum = sha1(b'')
 
         while True:
             contents = fileobj.read(blob_size)
@@ -227,7 +232,7 @@ class ChunkedFileBlobIndexWrapper(object):
 
     def _nextidx(self):
         try:
-            self._curidx = self._idxiter.next()
+            self._curidx = six.next(self._idxiter)
             self._curfile = self._curidx.blob.getfile()
         except StopIteration:
             self._curidx = None

@@ -14,7 +14,7 @@ from sentry.utils.redis import get_cluster_from_options
 from .base import BaseCache
 
 
-class ValueTooLarge(BaseException):
+class ValueTooLarge(Exception):
     pass
 
 

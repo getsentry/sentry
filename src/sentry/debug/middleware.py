@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 import json
 import re
-import thread
 
 from debug_toolbar.toolbar import DebugToolbar
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.encoding import force_text
+from six.moves import _thread as thread
 
 
 class ToolbarCache(object):

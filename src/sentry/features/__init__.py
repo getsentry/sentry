@@ -5,17 +5,17 @@ from .handler import *  # NOQA
 from .manager import *  # NOQA
 
 
-default_manager = FeatureManager()
+default_manager = FeatureManager()  # NOQA
 default_manager.add('auth:register')
-default_manager.add('organizations:api-keys', OrganizationFeature)
+default_manager.add('organizations:api-keys', OrganizationFeature)  # NOQA
 default_manager.add('organizations:create')
-default_manager.add('organizations:sso', OrganizationFeature)
-default_manager.add('organizations:onboarding', OrganizationFeature)
-default_manager.add('organizations:callsigns', OrganizationFeature)
-default_manager.add('organizations:new-tracebacks', OrganizationFeature)
-default_manager.add('projects:global-events', ProjectFeature)
-default_manager.add('projects:quotas', ProjectFeature)
-default_manager.add('projects:plugins', ProjectPluginFeature)
+default_manager.add('organizations:sso', OrganizationFeature)  # NOQA
+default_manager.add('organizations:onboarding', OrganizationFeature)  # NOQA
+default_manager.add('organizations:callsigns', OrganizationFeature)  # NOQA
+default_manager.add('organizations:new-tracebacks', OrganizationFeature)  # NOQA
+default_manager.add('projects:global-events', ProjectFeature)  # NOQA
+default_manager.add('projects:quotas', ProjectFeature)  # NOQA
+default_manager.add('projects:plugins', ProjectPluginFeature)  # NOQA
 
 
 # expose public api

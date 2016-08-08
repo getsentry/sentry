@@ -18,8 +18,8 @@ import zlib
 
 from datetime import datetime, timedelta
 from django.utils.crypto import constant_time_compare
-from django.utils.encoding import smart_str
 from gzip import GzipFile
+from six import BytesIO
 from time import time
 
 from sentry.app import env
@@ -34,7 +34,6 @@ from sentry.models import EventError, Project, ProjectKey, TagKey, TagValue
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
-from sentry.utils.compat import StringIO
 from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float, is_event_id
 
@@ -83,7 +82,7 @@ class InvalidFingerprint(Exception):
 class Auth(object):
     def __init__(self, auth_vars, is_public=False):
         self.client = auth_vars.get('sentry_client')
-        self.version = str(auth_vars.get('sentry_version'))
+        self.version = six.text_type(auth_vars.get('sentry_version'))
         self.secret_key = auth_vars.get('sentry_secret')
         self.public_key = auth_vars.get('sentry_key')
         self.is_public = is_public
@@ -179,7 +178,7 @@ class ClientApiHelper(object):
         else:
             result = {
                 k: request.GET[k]
-                for k in request.GET.iterkeys()
+                for k in six.iterkeys(request.GET)
                 if k[:7] == 'sentry_'
             }
         if not result:
@@ -221,27 +220,27 @@ class ClientApiHelper(object):
 
     def decompress_deflate(self, encoded_data):
         try:
-            return zlib.decompress(encoded_data)
+            return zlib.decompress(encoded_data).decode('utf-8')
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
-            self.log.debug(unicode(e), exc_info=True)
+            self.log.debug(six.text_type(e), exc_info=True)
             raise APIError('Bad data decoding request (%s, %s)' % (
                 type(e).__name__, e
             ))
 
     def decompress_gzip(self, encoded_data):
         try:
-            fp = StringIO(encoded_data)
+            fp = BytesIO(encoded_data)
             try:
                 f = GzipFile(fileobj=fp)
-                return f.read()
+                return f.read().decode('utf-8')
             finally:
                 f.close()
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
-            self.log.debug(unicode(e), exc_info=True)
+            self.log.debug(six.text_type(e), exc_info=True)
             raise APIError('Bad data decoding request (%s, %s)' %
                 (type(e).__name__, e)
             )
@@ -249,31 +248,31 @@ class ClientApiHelper(object):
     def decode_and_decompress_data(self, encoded_data):
         try:
             try:
-                return decompress(encoded_data)
+                return decompress(encoded_data).decode('utf-8')
             except zlib.error:
-                return base64.b64decode(encoded_data)
+                return base64.b64decode(encoded_data).decode('utf-8')
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
-            self.log.debug(unicode(e), exc_info=True)
+            self.log.debug(six.text_type(e), exc_info=True)
             raise APIError('Bad data decoding request (%s, %s)' %
                 (type(e).__name__, e)
             )
 
     def safely_load_json_string(self, json_string):
         try:
+            if isinstance(json_string, six.binary_type):
+                json_string = json_string.decode('utf-8')
             obj = json.loads(json_string)
             assert isinstance(obj, dict)
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
-            self.log.debug(unicode(e), exc_info=True)
+            self.log.debug(six.text_type(e), exc_info=True)
             raise APIError('Bad data reconstructing object (%s, %s)' %
                 (type(e).__name__, e)
             )
-
-        # XXX: ensure keys are coerced to strings
-        return dict((smart_str(k), v) for k, v in obj.iteritems())
+        return obj
 
     def _process_data_timestamp(self, data, current_datetime=None):
         value = data['timestamp']
@@ -321,9 +320,9 @@ class ClientApiHelper(object):
 
         result = []
         for bit in data['fingerprint']:
-            if not isinstance(bit, (basestring, int, float)):
+            if not isinstance(bit, six.string_types + six.integer_types + (float,)):
                 raise InvalidFingerprint
-            result.append(unicode(bit))
+            result.append(six.text_type(bit))
         return result
 
     def parse_client_as_sdk(self, value):
@@ -432,7 +431,7 @@ class ClientApiHelper(object):
 
         if data.get('tags') is not None:
             if type(data['tags']) == dict:
-                data['tags'] = data['tags'].items()
+                data['tags'] = list(data['tags'].items())
             elif not isinstance(data['tags'], (list, tuple)):
                 self.log.debug(
                     'Discarded invalid type for tags: %s', type(data['tags']))
@@ -525,7 +524,7 @@ class ClientApiHelper(object):
                 tags.append((k, v))
             data['tags'] = tags
 
-        for k in data.keys():
+        for k in list(iter(data)):
             if k in CLIENT_RESERVED_ATTRS:
                 continue
 
@@ -631,7 +630,7 @@ class ClientApiHelper(object):
                     DEFAULT_LOG_LEVEL, DEFAULT_LOG_LEVEL)
 
         if data.get('release'):
-            data['release'] = unicode(data['release'])
+            data['release'] = six.text_type(data['release'])
             if len(data['release']) > 64:
                 data['errors'].append({
                     'type': EventError.VALUE_TOO_LONG,
@@ -695,7 +694,7 @@ class CspApiHelper(ClientApiHelper):
         meta = data.pop('_meta', {})
 
         # All keys are sent with hyphens, so we want to conver to underscores
-        report = dict(map(lambda v: (v[0].replace('-', '_'), v[1]), data.iteritems()))
+        report = dict(map(lambda v: (v[0].replace('-', '_'), v[1]), six.iteritems(data)))
 
         try:
             inst = Csp.to_python(report)
@@ -733,7 +732,7 @@ class CspApiHelper(ClientApiHelper):
 
         # Copy/pasted from above in ClientApiHelper.validate_data
         if data.get('release'):
-            data['release'] = unicode(data['release'])
+            data['release'] = six.text_type(data['release'])
             if len(data['release']) > 64:
                 data['errors'].append({
                     'type': EventError.VALUE_TOO_LONG,

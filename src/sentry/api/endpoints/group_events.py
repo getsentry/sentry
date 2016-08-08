@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
+import six
+
 from django.db.models import Q
 from operator import or_
+from six.moves import reduce
 
 from sentry.api.base import DocSection
 from sentry.api.bases import GroupEndpoint
@@ -34,7 +37,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         tagvalues = {
             (t[1], t[2]): t[0]
             for t in TagValue.objects.filter(
-                reduce(or_, (Q(key=k, value=v) for k, v in tags.iteritems())),
+                reduce(or_, (Q(key=k, value=v) for k, v in six.iteritems(tags))),
                 project=project,
             ).values_list('id', 'key', 'value')
         }
@@ -42,7 +45,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         try:
             tag_lookups = [
                 (tagkeys[k], tagvalues[(k, v)])
-                for k, v in tags.iteritems()
+                for k, v in six.iteritems(tags)
             ]
         except KeyError:
             # one or more tags were invalid, thus the result should be an empty

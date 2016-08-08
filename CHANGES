@@ -1,5 +1,21 @@
-Version 8.7 (Unreleased)
+Version 8.8 (Unreleased)
 ------------------------
+
+Version 8.7
+-----------
+
+- Removed "Replay Request" feature.
+- Upgraded underlying redis library to resolve some networking issues.
+- Added support for minified React exceptions.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Remove index ``GroupTagValue(project_id)``.
+- Added ``Rule.status`` column.
+- Added ``GroupRelease`` model.
+- Added ``Environment`` model.
+- Added ``ReleaseEnvironment`` model.
 
 Version 8.6
 -----------

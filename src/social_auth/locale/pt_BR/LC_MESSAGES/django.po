@@ -1,0 +1,67 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Luan Pablo <luanpab@gmail.com>, 2013.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2013-07-24 17:26-0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Luan Pablo <luanpab@gmail.com>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: exceptions.py:14
+#, python-format
+msgid "Incorrect authentication service \"%s\""
+msgstr "Serviço de autenticação incorreto: \"%s\""
+
+#: exceptions.py:28
+msgid "Stop pipeline"
+msgstr "Interromper pipeline"
+
+#: exceptions.py:42
+msgid "Authentication process was cancelled"
+msgstr "O processo de autenticação foi cancelado"
+
+#: exceptions.py:44
+#, python-format
+msgid "Authentication failed: %s"
+msgstr "Falha na autenticação: %s"
+
+#: exceptions.py:51
+msgid "Authentication process canceled"
+msgstr "Processo de autenticação cancelado"
+
+#: exceptions.py:65
+#, python-format
+msgid "Token error: %s"
+msgstr "Erro de token: %s"
+
+#: exceptions.py:75
+#, python-format
+msgid "Missing needed parameter %s"
+msgstr "Parâmetro obrigatório %s não encontrado"
+
+#: exceptions.py:81
+msgid "Session value state missing."
+msgstr "Valor da sessão ausente."
+
+#: exceptions.py:87
+msgid "Wrong state parameter given."
+msgstr "Parâmetro inserido incorretamente."
+
+#: exceptions.py:98
+msgid "User revoke access to the token"
+msgstr "O usuário cancelou o acesso ao token"
+
+#: backends/pipeline/social.py:17
+#, python-format
+msgid "This %(provider)s account is already in use."
+msgstr "A conta %(provider)s já está em uso."

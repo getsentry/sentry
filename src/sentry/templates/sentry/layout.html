@@ -24,6 +24,8 @@
   <link rel="apple-touch-icon" sizes="120x120" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-120x120.png" %}">
   <link rel="apple-touch-icon" sizes="152x152" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-152x152.png" %}">
 
+  <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/icons/sentry-glyph-black.svg" %}" color="#FB4226">
+
   {% block css %}
   <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
   {% endblock %}
@@ -147,7 +149,7 @@
         <div id="blk_projectselect"></div>
         <script>
         $(function(){
-          React.render(React.createFactory(Sentry.ProjectSelector)({
+          ReactDOM.render(React.createFactory(Sentry.ProjectSelector)({
             organization: {% serialize_detailed_org organization %},
             projectId: {% if project %}'{{ project.slug }}'{% else %}null{% endif %},
           }), document.getElementById('blk_projectselect'));
@@ -187,7 +189,7 @@
           {% block support_link %}{% endblock %}
           <a href="https://docs.getsentry.com/hosted/api/">{% trans "API" %}</a>
           <a href="https://docs.getsentry.com">{% trans "Docs" %}</a>
-          <a href="https://github.com/getsentry/sentry">{% trans "Contribute" %}</a>
+          <a href="https://github.com/getsentry/sentry" rel="noreferrer">{% trans "Contribute" %}</a>
           {% if ONPREMISE %}<a href="/out/">{% trans "Migrate to SaaS" %}</a>{% endif %}
         </div>
         <div class="version pull-left">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>

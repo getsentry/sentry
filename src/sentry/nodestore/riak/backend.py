@@ -79,7 +79,7 @@ class RiakNodeStorage(NodeStorage):
 
         rv = self.conn.multiget(self.bucket, id_list, r=1)
         results = {}
-        for key, value in rv.iteritems():
+        for key, value in six.iteritems(rv):
             if isinstance(value, Exception):
                 six.reraise(type(value), value)
             if value.status != 200:

@@ -8,13 +8,12 @@ import inspect
 import requests
 import mimetypes
 
-from StringIO import StringIO
-from pytz import utc
-from datetime import datetime, timedelta
-from random import randint
 from contextlib import contextmanager
-
+from datetime import datetime, timedelta
 from django.conf import settings
+from pytz import utc
+from random import randint
+from six import StringIO
 
 # Do not import from sentry here!  Bad things will happen
 
@@ -204,7 +203,7 @@ def create_sample_time_series(event):
 
     now = datetime.utcnow().replace(tzinfo=utc)
 
-    for _ in xrange(60):
+    for _ in range(60):
         count = randint(1, 10)
         tsdb.incr_multi((
             (tsdb.models.project, group.project.id),
@@ -222,7 +221,7 @@ def create_sample_time_series(event):
         ), now, int(count * 0.1))
         now = now - timedelta(seconds=1)
 
-    for _ in xrange(24 * 30):
+    for _ in range(24 * 30):
         count = randint(100, 1000)
         tsdb.incr_multi((
             (tsdb.models.project, group.project.id),

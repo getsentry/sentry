@@ -12,10 +12,11 @@ from sentry.web.forms.edit_organization_member import EditOrganizationMemberForm
 
 
 class OrganizationMemberSettingsView(OrganizationView):
-    def get_form(self, request, member):
+    def get_form(self, request, member, allowed_roles):
         return EditOrganizationMemberForm(
             data=request.POST or None,
             instance=member,
+            allowed_roles=allowed_roles,
             initial={
                 'role': member.role,
                 'teams': Team.objects.filter(
@@ -71,12 +72,21 @@ class OrganizationMemberSettingsView(OrganizationView):
                 user=request.user,
                 organization=organization,
             )
-            can_admin = acting_member.can_manage_member(member)
+            if roles.get(acting_member.role).priority < roles.get(member.role).priority:
+                can_admin = False
+            else:
+                allowed_roles = [
+                    r for r in roles.get_all()
+                    if r.priority <= roles.get(acting_member.role).priority
+                ]
+                can_admin = bool(allowed_roles)
+        elif request.is_superuser():
+            allowed_roles = roles.get_all()
 
         if member.user == request.user or not can_admin:
             return self.view_member(request, organization, member)
 
-        form = self.get_form(request, member)
+        form = self.get_form(request, member, allowed_roles)
         if form.is_valid():
             member = form.save(request.user, organization, request.META['REMOTE_ADDR'])
 
@@ -91,7 +101,10 @@ class OrganizationMemberSettingsView(OrganizationView):
         context = {
             'member': member,
             'form': form,
-            'role_list': roles.get_all(),
+            'role_list': [
+                (r, r in allowed_roles)
+                for r in roles.get_all()
+            ]
         }
 
         return self.respond('sentry/organization-member-settings.html', context)

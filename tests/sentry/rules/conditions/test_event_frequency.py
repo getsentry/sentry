@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import six
+
+from datetime import timedelta
 from django.utils import timezone
 
 from sentry.app import tsdb
@@ -12,53 +15,88 @@ class EventFrequencyConditionTest(RuleTestCase):
 
     def test_one_minute(self):
         event = self.get_event()
+        value = 10
         rule = self.get_rule({
             'interval': Interval.ONE_MINUTE,
-            'value': '10',
+            'value': six.text_type(value),
         })
+
+        tsdb.incr(
+            tsdb.models.group,
+            event.group_id,
+            count=value + 1,
+            timestamp=timezone.now() - timedelta(minutes=5),
+        )
         self.assertDoesNotPass(rule, event)
 
-        tsdb.incr(tsdb.models.group, event.group_id, count=11)
+        rule.clear_cache(event)
+        tsdb.incr(tsdb.models.group, event.group_id, count=value)
+        self.assertDoesNotPass(rule, event)
 
         rule.clear_cache(event)
-
-        rule = self.get_rule({
-            'interval': Interval.ONE_MINUTE,
-            'value': '10',
-        })
+        tsdb.incr(tsdb.models.group, event.group_id, count=1)
         self.assertPasses(rule, event)
 
     def test_one_hour(self):
         event = self.get_event()
+        value = 10
         rule = self.get_rule({
             'interval': Interval.ONE_HOUR,
-            'value': '10',
+            'value': six.text_type(value),
         })
+
+        tsdb.incr(
+            tsdb.models.group,
+            event.group_id,
+            count=value + 1,
+            timestamp=timezone.now() - timedelta(minutes=90),
+        )
         self.assertDoesNotPass(rule, event)
 
-        tsdb.incr(tsdb.models.group, event.group_id, count=11)
+        rule.clear_cache(event)
+        tsdb.incr(tsdb.models.group, event.group_id, count=value)
+        self.assertDoesNotPass(rule, event)
 
         rule.clear_cache(event)
+        tsdb.incr(tsdb.models.group, event.group_id, count=1)
+        self.assertPasses(rule, event)
 
+    def test_one_day(self):
+        event = self.get_event()
+        value = 10
         rule = self.get_rule({
-            'interval': Interval.ONE_HOUR,
-            'value': '10',
+            'interval': Interval.ONE_DAY,
+            'value': six.text_type(value),
         })
+
+        tsdb.incr(
+            tsdb.models.group,
+            event.group_id,
+            count=value + 1,
+            timestamp=timezone.now() - timedelta(hours=36),
+        )
+        self.assertDoesNotPass(rule, event)
+
+        rule.clear_cache(event)
+        tsdb.incr(tsdb.models.group, event.group_id, count=value)
+        self.assertDoesNotPass(rule, event)
+
+        rule.clear_cache(event)
+        tsdb.incr(tsdb.models.group, event.group_id, count=1)
         self.assertPasses(rule, event)
 
     def test_doesnt_send_consecutive(self):
         event = self.get_event()
+        value = 10
         rule = self.get_rule({
             'interval': Interval.ONE_HOUR,
-            'value': '10',
+            'value': six.text_type(value),
         })
 
-        tsdb.incr(tsdb.models.group, event.group_id, count=11)
+        self.assertDoesNotPass(rule, event)
 
-        rule = self.get_rule({
-            'interval': Interval.ONE_HOUR,
-            'value': '10',
-        })
+        rule.clear_cache(event)
+        tsdb.incr(tsdb.models.group, event.group_id, count=value + 1)
         self.assertPasses(rule, event)
 
         self.assertDoesNotPass(rule, event, rule_last_active=timezone.now())
@@ -69,14 +107,9 @@ class EventFrequencyConditionTest(RuleTestCase):
             'interval': Interval.ONE_MINUTE,
             'value': '0',
         })
+
         self.assertDoesNotPass(rule, event)
 
-        tsdb.incr(tsdb.models.group, event.group_id, count=1)
-
         rule.clear_cache(event)
-
-        rule = self.get_rule({
-            'interval': Interval.ONE_MINUTE,
-            'value': '0',
-        })
+        tsdb.incr(tsdb.models.group, event.group_id, count=1)
         self.assertPasses(rule, event)

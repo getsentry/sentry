@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
+import six
+
 from datetime import timedelta
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -224,7 +226,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         try:
             query_kwargs = self._build_query_params_from_request(request, project)
         except ValidationError as exc:
-            return Response({'detail': unicode(exc)}, status=400)
+            return Response({'detail': six.text_type(exc)}, status=400)
 
         cursor_result = search.query(**query_kwargs)
 
@@ -322,7 +324,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             try:
                 query_kwargs = self._build_query_params_from_request(request, project)
             except ValidationError as exc:
-                return Response({'detail': unicode(exc)}, status=400)
+                return Response({'detail': six.text_type(exc)}, status=400)
 
             # bulk mutations are limited to 1000 items
             # TODO(dcramer): it'd be nice to support more than this, but its
@@ -604,8 +606,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             )
 
             result['merge'] = {
-                'parent': str(primary_group.id),
-                'children': [str(g.id) for g in children],
+                'parent': six.text_type(primary_group.id),
+                'children': [six.text_type(g.id) for g in children],
             }
 
         return Response(result)

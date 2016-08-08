@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
 import itertools
-from hashlib import md5
 
 from rest_framework.response import Response
 
 from sentry import status_checks
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SuperuserPermission
+from sentry.utils.hashlib import md5_text
 
 
 class SystemHealthEndpoint(Endpoint):
@@ -16,14 +16,15 @@ class SystemHealthEndpoint(Endpoint):
     def get(self, request):
         results = status_checks.check_all()
         return Response({
-            'problems': map(
-                lambda problem: {
-                    'id': md5(problem.message).hexdigest(),
+            'problems': [
+                {
+                    'id': md5_text(problem.message).hexdigest(),
                     'message': problem.message,
                     'severity': problem.severity,
                     'url': problem.url,
-                },
-                sorted(itertools.chain.from_iterable(results.values()), reverse=True),
-            ),
+                }
+                for problem in sorted(itertools.chain.from_iterable(results.values()),
+                                     reverse=True)
+            ],
             'healthy': {type(check).__name__: not problems for check, problems in results.items()},
         })

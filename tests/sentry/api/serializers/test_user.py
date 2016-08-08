@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+import six
+
 from sentry.api.serializers import serialize
 from sentry.testutils import TestCase
 from sentry.models import Authenticator
@@ -13,7 +15,7 @@ class UserSerializerTest(TestCase):
         user = self.create_user()
 
         result = serialize(user)
-        assert result['id'] == str(user.id)
+        assert result['id'] == six.text_type(user.id)
         assert result['has2fa'] is False
 
         Authenticator.objects.create(
@@ -22,5 +24,5 @@ class UserSerializerTest(TestCase):
         )
 
         result = serialize(user)
-        assert result['id'] == str(user.id)
+        assert result['id'] == six.text_type(user.id)
         assert result['has2fa'] is True

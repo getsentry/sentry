@@ -1,8 +1,12 @@
 from __future__ import absolute_import, division, print_function
 
+import six
+
 from collections import defaultdict
 from datetime import datetime, timedelta
+from django.db.models import Q
 from django.utils import timezone
+from six.moves import reduce
 
 from sentry.constants import STATUS_CHOICES
 from sentry.models import EventUser, User
@@ -165,7 +169,7 @@ def tokenize_query(query):
             nvalue = value
             while not nvalue.endswith('"'):
                 try:
-                    nvalue = tokens_iter.next()
+                    nvalue = six.next(tokens_iter)
                 except StopIteration:
                     break
                 value = '%s %s' % (value, nvalue)
@@ -184,7 +188,7 @@ def parse_query(project, query, user):
 
     results = {'tags': {}, 'query': []}
 
-    for key, token_list in tokens.iteritems():
+    for key, token_list in six.iteritems(tokens):
         for value in token_list:
             if key == 'query':
                 results['query'].append(value)
@@ -248,3 +252,11 @@ def parse_query(project, query, user):
     results['query'] = ' '.join(results['query'])
 
     return results
+
+
+def in_iexact(column, values):
+    from operator import or_
+
+    query = '{}__iexact'.format(column)
+
+    return reduce(or_, [Q(**{query: v}) for v in values])

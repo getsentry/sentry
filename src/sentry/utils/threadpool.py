@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from collections import defaultdict
 from Queue import Queue, Empty
 from threading import Thread
@@ -34,7 +36,7 @@ class ThreadPool(object):
         self.queue = Queue()
         self.workers = []
         self.tasks = []
-        for worker in xrange(workers):
+        for worker in range(workers):
             self.workers.append(Worker(self.queue))
 
     def add(self, ident, func, args=None, kwargs=None):
@@ -53,6 +55,6 @@ class ThreadPool(object):
         results = defaultdict(list)
         for worker in self.workers:
             worker.join()
-            for k, v in worker.results.iteritems():
+            for k, v in six.iteritems(worker.results):
                 results[k].extend(v)
         return results
