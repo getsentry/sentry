@@ -1,11 +1,15 @@
 from __future__ import absolute_import
 
 import pytest
+import mock
+from django.core import mail
 
+from sentry.models import Project
 from sentry.tasks.reports import (
     change, clean_series, merge_mappings, merge_sequences, merge_series,
-    safe_add
+    safe_add, prepare_reports,
 )
+from sentry.testutils.cases import TestCase
 from sentry.utils.dates import to_datetime
 
 
@@ -146,3 +150,28 @@ def test_clean_series_rejects_offset_timestamp():
             rollup,
             series,
         )
+
+
+class ReportTestCase(TestCase):
+    @mock.patch('sentry.features.has')
+    def test_integration(self, has_feature):
+        Project.objects.all().delete()
+
+        has_feature.side_effect = lambda name, *a, **k: {
+            'organizations:reports:deliver': True,
+            'organizations:reports:prepare': True,
+        }.get(name, False)
+
+        project = self.create_project(
+            organization=self.organization,
+            team=self.team,
+        )
+
+        member_set = set(project.team.member_set.all())
+
+        with self.tasks():
+            prepare_reports()
+            assert len(mail.outbox) == len(member_set) == 1
+
+            message = mail.outbox[0]
+            assert self.organization.name in message.subject
