@@ -44,7 +44,7 @@ class TaggedEventForm(forms.Form):
 
 class TaggedEventCondition(EventCondition):
     form_cls = TaggedEventForm
-    label = u'An events tags match {key} {match} {value}'
+    label = u'An event\'s tags match {key} {match} {value}'
 
     def passes(self, event, state, **kwargs):
         key = self.get_option('key')
