@@ -10,6 +10,7 @@ from django.views.decorators.cache import never_cache
 
 from sentry import features
 from sentry.constants import WARN_SESSION_EXPIRED
+from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
@@ -117,6 +118,7 @@ class AuthLoginView(BaseView):
 
         context = {
             'op': op or 'login',
+            'server_hostname': get_server_hostname(),
             'login_form': login_form,
             'register_form': register_form,
             'CAN_REGISTER': can_register,
