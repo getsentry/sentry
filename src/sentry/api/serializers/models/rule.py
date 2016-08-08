@@ -16,7 +16,7 @@ class RuleSerializer(Serializer):
             'conditions': obj.data.get('conditions', []),
             'actions': obj.data.get('actions', []),
             'actionMatch': obj.data.get('action_match', 'all'),
-            'name': obj.render_label(),
+            'name': obj.label,
             'dateCreated': obj.date_added,
         }
         return d
