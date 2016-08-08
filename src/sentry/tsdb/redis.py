@@ -179,8 +179,6 @@ class RedisTSDB(BaseTSDB):
         """
         To get a range of data for group ID=[1, 2, 3]:
 
-        Start and end are both inclusive.
-
         >>> now = timezone.now()
         >>> get_keys(TimeSeriesModel.group, [1, 2, 3],
         >>>          start=now - timedelta(days=1),
