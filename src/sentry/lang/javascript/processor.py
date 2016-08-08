@@ -63,6 +63,7 @@ MAX_URL_LENGTH = 150
 # TODO(dcramer): we want to change these to be constants so they are easier
 # to translate/link again
 
+# UrlResult.body **must** be unicode
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
 logger = logging.getLogger(__name__)
@@ -105,7 +106,7 @@ def trim_line(line, column=0):
     `column`. So it tries to extract 60 characters before and after
     the provided `column` and yield a better context.
     """
-    line = line.strip('\n')
+    line = line.strip(u'\n')
     ll = len(line)
     if ll <= 150:
         return line
@@ -126,10 +127,10 @@ def trim_line(line, column=0):
     line = line[start:end]
     if end < ll:
         # we've snipped from the end
-        line += ' {snip}'
+        line += u' {snip}'
     if start > 0:
         # we've snipped from the beginning
-        line = '{snip} ' + line
+        line = u'{snip} ' + line
     return line
 
 
@@ -172,7 +173,7 @@ def discover_sourcemap(result):
     sourcemap = result.headers.get('sourcemap', result.headers.get('x-sourcemap'))
 
     if not sourcemap:
-        parsed_body = result.body.split('\n')
+        parsed_body = result.body.split(u'\n')
         # Source maps are only going to exist at either the top or bottom of the document.
         # Technically, there isn't anything indicating *where* it should exist, so we
         # are generous and assume it's somewhere either in the first or last 5 lines.
@@ -185,7 +186,7 @@ def discover_sourcemap(result):
         # We want to scan each line sequentially, and the last one found wins
         # This behavior is undocumented, but matches what Chrome and Firefox do.
         for line in possibilities:
-            if line[:21] in ('//# sourceMappingURL=', '//@ sourceMappingURL='):
+            if line[:21] in (u'//# sourceMappingURL=', u'//@ sourceMappingURL='):
                 # We want everything AFTER the indicator, which is 21 chars long
                 sourcemap = line[21:].rstrip()
 
@@ -253,7 +254,7 @@ def fetch_release_file(filename, release):
         else:
             # Write the compressed version to cache, but return the deflated version
             cache.set(cache_key, (releasefile.file.headers, z_body, 200), 3600)
-            result = (releasefile.file.headers, body, 200)
+            result = (releasefile.file.headers, body.decode('utf-8'), 200)
     elif result == -1:
         # We cached an error, so normalize
         # it down to None
@@ -262,7 +263,7 @@ def fetch_release_file(filename, release):
         # We got a cache hit, but the body is compressed, so we
         # need to decompress it before handing it off
         body = zlib.decompress(result[1])
-        result = (result[0], body, result[2])
+        result = (result[0], body.decode('utf-8'), result[2])
 
     return result
 
@@ -387,7 +388,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         # NOTE: not relying on Content-Type header because apps often don't set this correctly
         body_start = result[1][:20].lstrip()  # Discard leading whitespace (often found before doctype)
 
-        if body_start[:1] == '<':
+        if body_start[:1] == u'<':
             error = {
                 'type': EventError.JS_INVALID_CONTENT,
                 'url': url,
@@ -420,15 +421,12 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
         body = result.body
 
     try:
-        if isinstance(body, six.binary_type):
-            body = body.decode('utf-8')
-
         # According to various specs[1][2] a SourceMap may be prefixed to force
         # a Javascript load error.
         # [1] https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v
         # [2] http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-xssi
-        if body.startswith((")]}'\n", ")]}\n")):
-            body = body.split('\n', 1)[1]
+        if body.startswith((u")]}'\n", u")]}\n")):
+            body = body.split(u'\n', 1)[1]
 
         return sourcemap_to_index(body)
     except Exception as exc:
