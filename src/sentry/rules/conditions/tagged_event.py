@@ -57,7 +57,11 @@ class TaggedEventCondition(EventCondition):
         value = value.lower()
         key = key.lower()
 
-        tags = (v.lower() for k, v in event.get_tags() if k.lower() == key or TagKey.get_standardized_key(k) == key)
+        tags = (
+            v.lower()
+            for k, v in event.get_tags()
+            if k.lower() == key or TagKey.get_standardized_key(k) == key
+        )
 
         if match == MatchType.EQUAL:
             for t_value in tags:
@@ -94,3 +98,11 @@ class TaggedEventCondition(EventCondition):
                 if value in t_value:
                     return False
             return True
+
+    def render_label(self):
+        data = {
+            'key': self.data['key'],
+            'value': self.data['value'],
+            'match': MATCH_CHOICES[self.data['match']],
+        }
+        return self.label.format(**data)
