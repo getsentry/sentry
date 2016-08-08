@@ -298,7 +298,7 @@ def prepare_organization_report(timestamp, duration, organization_id):
 
     # TODO: Build and store project reports here.
 
-    for user_id in organization.member_set.values_list('id', flat=True):
+    for user_id in organization.member_set.values_list('user_id', flat=True):
         deliver_organization_user_report.delay(
             timestamp,
             duration,
