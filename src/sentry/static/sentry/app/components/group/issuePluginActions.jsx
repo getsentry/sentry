@@ -62,7 +62,7 @@ const IssuePlugin = React.createClass({
     if (error.status === 400 && error.responseJSON) {
       errorBody = error.responseJSON;
     } else {
-      errorBody = {'message': defaultMessage};
+      errorBody = {message: defaultMessage};
     }
     this.setState({error: errorBody});
   },
@@ -73,6 +73,8 @@ const IssuePlugin = React.createClass({
     };
     if (error.status === 400 && error.responseJSON) {
       state.error = error.responseJSON;
+    } else {
+      state.error = {message: t('An unknown error occurred.')};
     }
     this.setState(state);
   },
