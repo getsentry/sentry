@@ -1,6 +1,5 @@
 from __future__ import absolute_import, division
 
-from django.core.urlresolvers import reverse
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 
@@ -26,8 +25,8 @@ class GroupPluginActionView(ProjectView):
         if response:
             return response
 
-        redirect = request.META.get('HTTP_REFERER') or reverse('sentry-stream', kwargs={
-            'organization_slug': organization.slug,
-            'project_id': group.project.slug
-        })
+        redirect = request.META.get('HTTP_REFERER') or '/{}/{}/'.format(
+            organization.slug,
+            group.project.slug,
+        )
         return HttpResponseRedirect(redirect)
