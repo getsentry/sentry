@@ -291,6 +291,9 @@ class StoreView(APIView):
             sender=type(self),
         )
 
+        if not data:
+            raise APIError('No JSON data was found')
+
         if not is_valid_ip(remote_addr, project):
             app.tsdb.incr_multi([
                 (app.tsdb.models.project_total_received, project.id),
