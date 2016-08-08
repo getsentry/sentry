@@ -420,7 +420,8 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
         body = result.body
 
     try:
-        body = body.decode('utf-8')
+        if isinstance(body, six.binary_type):
+            body = body.decode('utf-8')
 
         # According to various specs[1][2] a SourceMap may be prefixed to force
         # a Javascript load error.
