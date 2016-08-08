@@ -32,7 +32,7 @@ def safe_execute(func, *args, **kwargs):
         else:
             cls = func.__class__
 
-        func_name = getattr(func, '__name__', str(func))
+        func_name = getattr(func, '__name__', six.text_type(func))
         cls_name = cls.__name__
 
         logger = logging.getLogger('sentry.safe')
@@ -64,7 +64,7 @@ def trim(value, max_size=settings.SENTRY_MAX_VARIABLE_SIZE, max_depth=3,
     elif isinstance(value, dict):
         result = {}
         _size += 2
-        for k, v in value.iteritems():
+        for k, v in six.iteritems(value):
             trim_v = trim(v, _size=_size, **options)
             result[k] = trim_v
             _size += len(six.text_type(trim_v)) + 1
@@ -105,7 +105,7 @@ def trim_pairs(iterable, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwarg
 
 def trim_dict(value, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwargs):
     max_items -= 1
-    for idx, key in enumerate(value.keys()):
+    for idx, key in enumerate(list(iter(value))):
         value[key] = trim(value[key], **kwargs)
         if idx > max_items:
             del value[key]

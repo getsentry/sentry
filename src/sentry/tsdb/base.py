@@ -7,6 +7,8 @@ sentry.tsdb.base
 """
 from __future__ import absolute_import
 
+import six
+
 from django.conf import settings
 from django.utils import timezone
 from enum import Enum
@@ -62,9 +64,11 @@ class TSDBModel(Enum):
     # number of issues seen for a project, by project
     frequent_issues_by_project = 404
     # number of events seen for a release, by issue
-    # frequent_releases_by_groups = 406  # DEPRECATED
+    # frequent_releases_by_group = 406  # DEPRECATED
     # number of events seen for a release, by issue
-    frequent_releases_by_groups = 407
+    frequent_releases_by_group = 407
+    # number of events seen for an environment, by issue
+    frequent_environments_by_group = 408
 
 
 class BaseTSDB(object):
@@ -186,7 +190,7 @@ class BaseTSDB(object):
         range_set = self.get_range(model, keys, start, end, rollup)
         sum_set = dict(
             (key, sum(p for _, p in points))
-            for (key, points) in range_set.iteritems()
+            for (key, points) in six.iteritems(range_set)
         )
         return sum_set
 
@@ -197,7 +201,7 @@ class BaseTSDB(object):
         """
         normalize_ts_to_epoch = self.normalize_ts_to_epoch
         result = {}
-        for key, points in values.iteritems():
+        for key, points in six.iteritems(values):
             result[key] = []
             last_new_ts = None
             for (ts, count) in points:

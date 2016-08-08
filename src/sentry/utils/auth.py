@@ -7,6 +7,7 @@ sentry.utils.auth
 """
 from __future__ import absolute_import
 
+import six
 import time
 import logging
 
@@ -40,7 +41,7 @@ def parse_auth_header(header):
 def get_auth_providers():
     return [
         key for key, cfg_names
-        in settings.AUTH_PROVIDERS.iteritems()
+        in six.iteritems(settings.AUTH_PROVIDERS)
         if all(getattr(settings, c, None) for c in cfg_names)
     ]
 
@@ -152,25 +153,17 @@ def login(request, user, passed_2fa=False, after_2fa=None):
 
 
 def log_auth_success(request, username):
-    logger.info(
-        'User authenticated successfully [ip:%s username:%r]',
-        request.META['REMOTE_ADDR'],
-        username,
-        extra={
-            'request': request,
-        }
-    )
+    logger.info('user.auth.success', extra={
+        'ip_address': request.META['REMOTE_ADDR'],
+        'username': username,
+    })
 
 
 def log_auth_failure(request, username=None):
-    logger.info(
-        'User failed authentication [ip:%s username:%r]',
-        request.META['REMOTE_ADDR'],
-        username or '',
-        extra={
-            'request': request,
-        }
-    )
+    logger.info('user.auth.fail', extra={
+        'ip_address': request.META['REMOTE_ADDR'],
+        'username': username,
+    })
 
 
 class EmailAuthBackend(ModelBackend):

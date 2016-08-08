@@ -8,6 +8,8 @@ sentry.search.django.backend
 
 from __future__ import absolute_import
 
+import six
+
 from django.db import router
 from django.db.models import Q
 
@@ -28,7 +30,7 @@ class DjangoSearchBackend(SearchBackend):
 
         # ANY matches should come last since they're the least specific and
         # will provide the largest range of matches
-        tag_lookups = sorted(tags.iteritems(), key=lambda x: x != ANY)
+        tag_lookups = sorted(six.iteritems(tags), key=lambda x: x != ANY)
 
         # get initial matches to start the filter
         matches = None

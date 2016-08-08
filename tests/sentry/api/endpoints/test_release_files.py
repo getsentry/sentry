@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse
 
@@ -38,7 +40,7 @@ class ReleaseFilesListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(releasefile.id)
+        assert response.data[0]['id'] == six.text_type(releasefile.id)
 
 
 class ReleaseFileCreateTest(APITestCase):
@@ -61,7 +63,7 @@ class ReleaseFileCreateTest(APITestCase):
         response = self.client.post(url, {
             'name': 'http://example.com/application.js',
             'header': 'X-SourceMap: http://example.com',
-            'file': SimpleUploadedFile('application.js', 'function() { }',
+            'file': SimpleUploadedFile('application.js', b'function() { }',
                                        content_type='application/javascript'),
         }, format='multipart')
 
@@ -115,7 +117,7 @@ class ReleaseFileCreateTest(APITestCase):
 
         response = self.client.post(url, {
             'header': 'X-SourceMap: http://example.com',
-            'file': SimpleUploadedFile('', 'function() { }',
+            'file': SimpleUploadedFile('', b'function() { }',
                                        content_type='application/javascript'),
         }, format='multipart')
 
@@ -140,7 +142,7 @@ class ReleaseFileCreateTest(APITestCase):
         response = self.client.post(url, {
             'name': 'http://example.com/application.js',
             'header': 'lol',
-            'file': SimpleUploadedFile('application.js', 'function() { }',
+            'file': SimpleUploadedFile('application.js', b'function() { }',
                                        content_type='application/javascript'),
         }, format='multipart')
 
@@ -165,7 +167,7 @@ class ReleaseFileCreateTest(APITestCase):
         data = {
             'name': 'http://example.com/application.js',
             'header': 'X-SourceMap: http://example.com',
-            'file': SimpleUploadedFile('application.js', 'function() { }',
+            'file': SimpleUploadedFile('application.js', b'function() { }',
                                        content_type='application/javascript'),
         }
 

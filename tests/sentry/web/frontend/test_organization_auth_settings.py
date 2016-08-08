@@ -53,7 +53,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             resp = self.client.post(path, {'provider': 'dummy'})
 
         assert resp.status_code == 200
-        assert resp.content == self.provider.TEMPLATE
+        assert resp.content.decode('utf-8') == self.provider.TEMPLATE
 
     def test_basic_flow(self):
         user = self.create_user('bar@example.com')
@@ -67,7 +67,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             resp = self.client.post(base_path, {'provider': 'dummy'})
 
             assert resp.status_code == 200
-            assert self.provider.TEMPLATE in resp.content
+            assert self.provider.TEMPLATE in resp.content.decode('utf-8')
 
             path = reverse('sentry-auth-sso')
 

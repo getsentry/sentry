@@ -16,4 +16,5 @@ Options
 - ``--autoreload``: Enable autoreloading.
 - ``-l, --loglevel [DEBUG|INFO|WARNING|ERROR|CRITICAL|FATAL]``: Global
   logging level. Use wisely.
+- ``--logformat [human|machine]``: Log line format.
 - ``--help``: print this help page.

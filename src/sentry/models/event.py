@@ -7,9 +7,9 @@ sentry.models.event
 """
 from __future__ import absolute_import
 
+import six
 import warnings
 
-import six
 from collections import OrderedDict
 from django.db import models
 from django.utils import timezone
@@ -141,7 +141,7 @@ class Event(Model):
 
     def get_interfaces(self):
         result = []
-        for key, data in self.data.iteritems():
+        for key, data in six.iteritems(self.data):
             try:
                 cls = get_interface(key)
             except ValueError:
@@ -191,14 +191,14 @@ class Event(Model):
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
         data['tags'] = self.get_tags()
-        for k, v in sorted(self.data.iteritems()):
+        for k, v in sorted(six.iteritems(self.data)):
             data[k] = v
         return data
 
     @property
     def size(self):
         data_len = len(self.get_legacy_message())
-        for value in self.data.itervalues():
+        for value in six.itervalues(self.data):
             data_len += len(repr(value))
         return data_len
 

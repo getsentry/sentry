@@ -39,12 +39,14 @@ def check_versions(service, versions, required, recommended=None):
     :param recommended: recommended version. If any host does not fulfill this
         requirement, a ``PendingDeprecationWarning`` is raised.
     """
-    must_upgrade = dict(filter(lambda (host, version): required > version, versions.items()))
+    # x = (host, version)
+    must_upgrade = dict(filter(lambda x: required > x[1], versions.items()))
     if must_upgrade:
         raise InvalidConfiguration(make_upgrade_message(service, 'must', required, must_upgrade))
 
     if recommended:
-        should_upgrade = dict(filter(lambda (host, version): recommended > version, versions.items()))
+        # x = (host, version)
+        should_upgrade = dict(filter(lambda x: recommended > x[1], versions.items()))
         if should_upgrade:
             warnings.warn(
                 make_upgrade_message(service, 'should', recommended, should_upgrade),

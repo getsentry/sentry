@@ -36,4 +36,4 @@ lookup_key = default_manager.lookup_key
 
 
 def load_defaults():
-    from .defaults import *  # NOQA
+    from . import defaults  # NOQA

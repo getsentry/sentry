@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.models import User
 
 from .base import ActivityEmail
@@ -12,7 +14,7 @@ class AssignedActivityEmail(ActivityEmail):
     def get_description(self):
         activity = self.activity
         data = activity.data
-        if activity.user_id and str(activity.user_id) == data['assignee']:
+        if activity.user_id and six.text_type(activity.user_id) == data['assignee']:
             return u'{author} assigned {an issue} to themselves'
 
         try:

@@ -1,26 +1,27 @@
 #!/usr/bin/env python
-
 from sentry.runner import configure
 configure()
 
 import itertools
-import random
+import six
 
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
-from hashlib import md5
+from hashlib import sha1
 from pytz import utc
 from random import randint
+from uuid import uuid4
 
 from sentry import roles
 from sentry.app import tsdb, buffer
 from sentry.models import (
     Activity, Broadcast, File, GroupMeta, Organization, OrganizationAccessRequest,
     OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport,
-    GroupRelease
+    GroupRelease, Environment, ReleaseEnvironment
 )
+from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import create_sample_event
 
 PLATFORMS = itertools.cycle([
@@ -86,11 +87,23 @@ def create_sample_time_series(event, release=None):
 
     now = datetime.utcnow().replace(tzinfo=utc)
 
+    environment = Environment.get_or_create(
+        project=project,
+        name=event.get_tag('environment') or ''
+    )
+
     if release:
+        ReleaseEnvironment.get_or_create(
+            project=project,
+            release=release,
+            environment=environment,
+            datetime=now,
+        )
+
         grouprelease = GroupRelease.get_or_create(
             group=group,
             release=release,
-            environment=event.get_tag('environment') or '',
+            environment=environment,
             datetime=now,
         )
 
@@ -120,10 +133,15 @@ def create_sample_time_series(event, release=None):
                     group.id: count,
                 },
             }),
+            (tsdb.models.frequent_environments_by_group, {
+                group.id: {
+                    environment.id: count,
+                },
+            })
         ]
         if release:
             frequencies.append(
-                (tsdb.models.frequent_releases_by_groups, {
+                (tsdb.models.frequent_releases_by_group, {
                     group.id: {
                         grouprelease.id: count,
                     },
@@ -160,10 +178,15 @@ def create_sample_time_series(event, release=None):
                     group.id: count,
                 },
             }),
+            (tsdb.models.frequent_environments_by_group, {
+                group.id: {
+                    environment.id: count,
+                },
+            })
         ]
         if release:
             frequencies.append(
-                (tsdb.models.frequent_releases_by_groups, {
+                (tsdb.models.frequent_releases_by_group, {
                     group.id: {
                         grouprelease.id: count,
                     },
@@ -173,99 +196,6 @@ def create_sample_time_series(event, release=None):
         tsdb.record_frequency_multi(frequencies, now)
 
         now = now - timedelta(hours=1)
-
-
-epoch = datetime.utcfromtimestamp(0)
-
-
-def milliseconds_ago(now, milliseconds):
-    ago = (now - timedelta(milliseconds=milliseconds))
-    return (ago - epoch).total_seconds()
-
-
-def get_sample_breadcrumbs(prior_event_id=None):
-    now = datetime.now()
-    sample_breadcrumbs = {
-        "values": [
-            {
-                "type": "navigation",
-                "timestamp": milliseconds_ago(now, 5200),
-                "category": "react-router",
-                "data": {
-                    "from": "/login/",
-                    "to": "/dashboard/",
-                }
-            },
-            {
-                "timestamp": milliseconds_ago(now, 4000),
-                "message": "This is an info log message",
-                "category": "django"
-            },
-            {
-                "timestamp": milliseconds_ago(now, 3300),
-                "message": "This is a warning log message",
-                "level": "warning",
-                "category": 'django'
-            },
-            {
-                "timestamp": milliseconds_ago(now, 2700),
-                "message": "This is an error log message",
-                "level": "error",
-                "category": 'django'
-            },
-            {
-                "timestamp": milliseconds_ago(now, 2700),
-                "message": "This is a critical log message",
-                "level": "critical",
-                "category": 'django'
-            },
-            {
-                "timestamp": milliseconds_ago(now, 2700),
-                "message": "This is a debug log message",
-                "level": "debug",
-                "category": 'django',
-                "data": {
-                    "foo": "bar",
-                    "baz": "blah"
-                }
-            },
-            {
-                "type": "http",
-                "category": "requests",
-                "timestamp": milliseconds_ago(now, 1300),
-                "data": {
-                    "reason": "OK",
-                    "status_code": 200,
-                    "url": "Http://example.com/",
-                    "method": "POST"
-                }
-            },
-            {
-                "type": "query",
-                "category": "django",
-                "timestamp": milliseconds_ago(now, 1200),
-                "message": u'SELECT "auth_user"."password", "auth_user"."last_login", "auth_user"."id", "auth_user"."username", "auth_user"."first_name", "auth_user"."email", "auth_user"."is_staff", "auth_user"."is_active", "auth_user"."is_superuser", "auth_user"."is_managed", "auth_user"."date_joined" FROM "auth_user" WHERE "auth_user"."id" = 1',
-                "duration": 0.002
-            },
-            {
-                "type": "ui",
-                "timestamp": milliseconds_ago(now, 1000),
-                "message": "div > form[name=\"post\"] > button.btn.btn-small[name=\"submit\"]",
-                "category": 'ui.click'
-            }
-        ]
-    }
-
-    if prior_event_id:
-        sample_breadcrumbs["values"].insert(2, {
-            "type": "error",
-            "timestamp": milliseconds_ago(now, 3000),
-            "message": "TypeError: something broke earlier",
-            "category": "error",
-            "event_id": prior_event_id
-        })
-
-    return sample_breadcrumbs
 
 
 def main(num_events=1):
@@ -334,7 +264,7 @@ def main(num_events=1):
             )
 
             release = Release.objects.get_or_create(
-                version='4f38b65c62c4565aa94bba391ff8946922a8eed4',
+                version=sha1(uuid4().bytes).hexdigest(),
                 project=project,
             )[0]
 
@@ -370,8 +300,7 @@ def main(num_events=1):
                     level=LEVELS.next(),
                     environment=ENVIRONMENTS.next(),
                     message='This is a mostly useless example %s exception' % platform,
-                    checksum=md5(platform + str(_)).hexdigest(),
-                    breadcrumbs=get_sample_breadcrumbs(prior_event_id=last_event.id if last_event else None),
+                    checksum=md5_text(platform + six.text_type(_)).hexdigest(),
                 )
 
             for _ in range(num_events):
@@ -386,7 +315,6 @@ def main(num_events=1):
                     project=project,
                     platform='javascript',
                     release=release.version,
-                    breadcrumbs=get_sample_breadcrumbs(prior_event_id=event1.event_id),
                     environment=ENVIRONMENTS.next(),
                     sdk={
                         'name': 'raven-js',

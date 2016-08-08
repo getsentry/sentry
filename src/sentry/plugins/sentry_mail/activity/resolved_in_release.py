@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
-from django.utils.html import escape
-
+from sentry.utils.html import escape
 from sentry.utils.http import absolute_uri
 
 from .base import ActivityEmail

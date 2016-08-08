@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import six
 import threading
 
 from collections import defaultdict
@@ -21,7 +22,7 @@ class State(threading.local):
         self.query_hashes[hash(sql)] += 1
 
     def count_dupes(self):
-        return sum(1 for n in self.query_hashes.itervalues() if n > 1)
+        return sum(1 for n in six.itervalues(self.query_hashes) if n > 1)
 
 
 class CursorWrapper(object):

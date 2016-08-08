@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.api.serializers import Serializer, register
 from sentry.models import Broadcast, BroadcastSeen
 
@@ -23,7 +25,7 @@ class BroadcastSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            'id': str(obj.id),
+            'id': six.text_type(obj.id),
             'message': obj.message,
             'title': obj.title,
             'link': obj.link,

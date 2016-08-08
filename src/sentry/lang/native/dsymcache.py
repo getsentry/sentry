@@ -1,7 +1,10 @@
+from __future__ import absolute_import
+
 import os
 import uuid
 import time
 import errno
+import six
 import shutil
 
 from sentry import options
@@ -19,7 +22,7 @@ class DSymCache(object):
         return options.get('dsym.cache-path')
 
     def get_project_path(self, project):
-        return os.path.join(self.dsym_cache_path, str(project.id))
+        return os.path.join(self.dsym_cache_path, six.text_type(project.id))
 
     def get_global_path(self):
         return os.path.join(self.dsym_cache_path, 'global')

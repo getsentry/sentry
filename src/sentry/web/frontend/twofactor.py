@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 import time
 
 from django.http import HttpResponseRedirect, HttpResponse
@@ -27,8 +28,10 @@ class TwoFactorAuthView(BaseView):
         if interface is not None:
             interface.authenticator.mark_used()
             if not interface.is_backup_interface:
-                rv.set_cookie(COOKIE_NAME, str(interface.type),
-                              max_age=COOKIE_MAX_AGE, path='/')
+                rv.set_cookie(
+                    COOKIE_NAME,
+                    six.text_type(interface.type).encode('utf-8'),
+                    max_age=COOKIE_MAX_AGE, path='/')
         return rv
 
     def fail_signin(self, request, user, form):
@@ -56,7 +59,7 @@ class TwoFactorAuthView(BaseView):
         interface_type = request.COOKIES.get(COOKIE_NAME)
         if interface_type:
             for interface in interfaces:
-                if str(interface.type) == interface_type:
+                if six.text_type(interface.type) == interface_type:
                     return interface
 
         # Fallback is to go the highest ranked as default.  This will be

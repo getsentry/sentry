@@ -356,7 +356,7 @@ const AvatarCropper = React.createClass({
         {this.renderCanvas()}
         <div className="form-group">
           {src && <a onClick={this.uploadClick}>{t('Change Photo')}</a>}
-          <input ref="file" type="file" accept="image/*" onChange={this.onChange} style={style}/>
+          <input ref="file" type="file" accept="image/gif,image/jpeg,image/png" onChange={this.onChange} style={style}/>
         </div>
       </div>
     );

@@ -46,6 +46,7 @@ class GroupSubscriptionManager(BaseManager):
         # identify all members of a project
         users = User.objects.filter(
             sentry_orgmember_set__teams=group.project.team,
+            is_active=True,
         )
 
         # TODO(dcramer): allow members to change from default particpating to

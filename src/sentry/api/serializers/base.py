@@ -18,7 +18,7 @@ def serialize(objects, user=None, serializer=None):
         return serialize([objects], user=user, serializer=serializer)[0]
 
     # elif isinstance(obj, dict):
-    #     return dict((k, serialize(v, request=request)) for k, v in obj.iteritems())
+    #     return dict((k, serialize(v, request=request)) for k, v in six.iteritems(obj))
 
     if serializer is None:
         # find the first object that is in the registry

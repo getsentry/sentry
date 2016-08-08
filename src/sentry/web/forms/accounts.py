@@ -18,9 +18,11 @@ from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy as _
 from six.moves import range
 
+from sentry import options
+from sentry.app import ratelimiter
 from sentry.constants import LANGUAGES
 from sentry.models import User, UserOption, UserOptionValue
-from sentry.utils.auth import find_users
+from sentry.utils.auth import find_users, logger
 from sentry.web.forms.fields import ReadOnlyTextField
 
 
@@ -78,6 +80,8 @@ class AuthenticationForm(CaptchaForm):
     error_messages = {
         'invalid_login': _("Please enter a correct %(username)s and password. "
                            "Note that both fields may be case-sensitive."),
+        'rate_limited': _("You have made too many failed authentication "
+                          "attempts. Please try again later."),
         'no_cookies': _("Your Web browser doesn't appear to have cookies "
                         "enabled. Cookies are required for logging in."),
         'inactive': _("This account is inactive."),
@@ -106,8 +110,48 @@ class AuthenticationForm(CaptchaForm):
             return
         return value.lower()
 
+    def is_rate_limited(self):
+        if self._is_ip_rate_limited():
+            return True
+        if self._is_user_rate_limited():
+            return True
+        return False
+
+    def _is_ip_rate_limited(self):
+        limit = options.get('auth.ip-rate-limit')
+        if not limit:
+            return False
+
+        ip_address = self.request.META['REMOTE_ADDR']
+        return ratelimiter.is_limited(
+            'auth:ip:{}'.format(ip_address),
+            limit,
+        )
+
+    def _is_user_rate_limited(self):
+        limit = options.get('auth.user-rate-limit')
+        if not limit:
+            return False
+
+        username = self.cleaned_data.get('username')
+        if not username:
+            return False
+
+        return ratelimiter.is_limited(
+            u'auth:username:{}'.format(username),
+            limit,
+        )
+
     def clean(self):
         username = self.cleaned_data.get('username')
+
+        if self.is_rate_limited():
+            logger.info('user.auth.rate-limited', extra={
+                'ip_address': self.request.META['REMOTE_ADDR'],
+                'username': username,
+            })
+            raise forms.ValidationError(self.error_messages['rate_limited'])
+
         password = self.cleaned_data.get('password')
 
         if username and password:

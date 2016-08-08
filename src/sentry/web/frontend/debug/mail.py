@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 import itertools
 import logging
+import six
 import time
 import traceback
 import uuid
@@ -29,6 +30,7 @@ from sentry.models import (
     Activity,
     Event,
     Group,
+    GroupStatus,
     Organization,
     OrganizationMember,
     Project,
@@ -43,24 +45,23 @@ from sentry.utils.http import absolute_uri
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response, render_to_string
 
-
 logger = logging.getLogger(__name__)
 
 
 def get_random(request):
-    seed = request.GET.get('seed', str(time.time()))
+    seed = request.GET.get('seed', six.text_type(time.time()))
     return Random(seed)
 
 
 def make_message(random, length=None):
     if length is None:
         length = int(random.weibullvariate(8, 3))
-    return ' '.join(random.choice(WORDS) for _ in xrange(length))
+    return ' '.join(random.choice(WORDS) for _ in range(length))
 
 
 def make_culprit(random):
     def make_module_path_components(min, max):
-        for _ in xrange(random.randint(min, max)):
+        for _ in range(random.randint(min, max)):
             yield ''.join(random.sample(WORDS, random.randint(1, int(random.paretovariate(2.2)))))
 
     return '{module} in {function}'.format(
@@ -95,6 +96,10 @@ def make_group_generator(random, project):
             message=make_message(random),
             first_seen=to_datetime(first_seen),
             last_seen=to_datetime(last_seen),
+            status=random.choice((
+                GroupStatus.UNRESOLVED,
+                GroupStatus.RESOLVED,
+            )),
         )
 
         if random.random() < 0.8:
@@ -241,7 +246,7 @@ def new_event(request):
     rule = Rule(label="An example rule")
 
     interface_list = []
-    for interface in event.interfaces.itervalues():
+    for interface in six.itervalues(event.interfaces):
         body = interface.to_email_html(event)
         if not body:
             continue
@@ -298,7 +303,7 @@ def digest(request):
         id=i,
         project=project,
         label="Rule #%s" % (i,),
-    ) for i in xrange(1, random.randint(2, 4))}
+    ) for i in range(1, random.randint(2, 4))}
 
     state = {
         'project': project,
@@ -313,12 +318,12 @@ def digest(request):
     event_sequence = itertools.count(1)
     group_generator = make_group_generator(random, project)
 
-    for i in xrange(random.randint(1, 30)):
+    for i in range(random.randint(1, 30)):
         group = next(group_generator)
         state['groups'][group.id] = group
 
         offset = timedelta(seconds=0)
-        for i in xrange(random.randint(1, 10)):
+        for i in range(random.randint(1, 10)):
             offset += timedelta(seconds=random.random() * 120)
             event = Event(
                 id=next(event_sequence),

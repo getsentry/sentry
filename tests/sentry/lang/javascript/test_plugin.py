@@ -1,3 +1,5 @@
+# coding: utf-8
+
 from __future__ import absolute_import
 
 import responses
@@ -16,7 +18,7 @@ def get_fixture_path(name):
 
 
 def load_fixture(name):
-    with open(get_fixture_path(name)) as fp:
+    with open(get_fixture_path(name), 'rb') as fp:
         return fp.read()
 
 
@@ -217,13 +219,17 @@ class JavascriptIntegrationTest(TestCase):
     @responses.activate
     def test_sourcemap_source_expansion(self):
         responses.add(responses.GET, 'http://example.com/file.min.js',
-                      body=load_fixture('file.min.js'))
+                      body=load_fixture('file.min.js'),
+                      content_type='application/javascript; charset=utf-8')
         responses.add(responses.GET, 'http://example.com/file1.js',
-                      body=load_fixture('file1.js'))
+                      body=load_fixture('file1.js'),
+                      content_type='application/javascript; charset=utf-8')
         responses.add(responses.GET, 'http://example.com/file2.js',
-                      body=load_fixture('file2.js'))
+                      body=load_fixture('file2.js'),
+                      content_type='application/javascript; charset=utf-8')
         responses.add(responses.GET, 'http://example.com/file.sourcemap.js',
-                      body=load_fixture('file.sourcemap.js'))
+                      body=load_fixture('file.sourcemap.js'),
+                      content_type='application/javascript; charset=utf-8')
         responses.add(responses.GET, 'http://example.com/index.html',
                       body='Not Found', status=404)
 
@@ -271,8 +277,9 @@ class JavascriptIntegrationTest(TestCase):
             'function add(a, b) {',
             '\t"use strict";',
         ]
-        assert frame.context_line == '\treturn a + b;'
-        assert frame.post_context == ['}']
+        expected = u'\treturn a + b; // fôo'
+        assert frame.context_line == expected
+        assert frame.post_context == ['}', '']
 
         raw_frame_list = exception.values[0].raw_stacktrace.frames
         raw_frame = raw_frame_list[0]
@@ -286,15 +293,78 @@ class JavascriptIntegrationTest(TestCase):
         assert raw_frame_list[1] == frame_list[1]
 
     @responses.activate
+    def test_sourcemap_embedded_source_expansion(self):
+        responses.add(responses.GET, 'http://example.com/embedded.js',
+                      body=load_fixture('embedded.js'),
+                      content_type='application/javascript; charset=utf-8')
+        responses.add(responses.GET, 'http://example.com/embedded.js.map',
+                      body=load_fixture('embedded.js.map'),
+                      content_type='application/json; charset=utf-8')
+        responses.add(responses.GET, 'http://example.com/index.html',
+                      body='Not Found', status=404)
+
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'type': 'Error',
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'abs_path': 'http://example.com/embedded.js',
+                                'filename': 'file.min.js',
+                                'lineno': 1,
+                                'colno': 39,
+                            },
+
+                            # NOTE: Intentionally source is not retrieved from this HTML file
+                            {
+                                'function': 'function: "HTMLDocument.<anonymous>"',
+                                'abs_path': "http//example.com/index.html",
+                                'filename': 'index.html',
+                                'lineno': 283,
+                                'colno': 17,
+                                'in_app': False,
+                            }
+                        ],
+                    },
+                }],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        assert event.data['errors'] == [{'type': 'js_no_source', 'url': 'http//example.com/index.html'}]
+
+        exception = event.interfaces['sentry.interfaces.Exception']
+        frame_list = exception.values[0].stacktrace.frames
+
+        frame = frame_list[0]
+        assert frame.pre_context == [
+            'function add(a, b) {',
+            '\t"use strict";',
+        ]
+        expected = u'\treturn a + b; // fôo'
+        assert frame.context_line == expected
+        assert frame.post_context == ['}', '']
+
+    @responses.activate
     def test_indexed_sourcemap_source_expansion(self):
         responses.add(responses.GET, 'http://example.com/indexed.min.js',
-                      body=load_fixture('indexed.min.js'))
+                      body=load_fixture('indexed.min.js'),
+                      content_type='application/javascript; charset=utf-8')
         responses.add(responses.GET, 'http://example.com/file1.js',
-                      body=load_fixture('file1.js'))
+                      body=load_fixture('file1.js'),
+                      content_type='application/javascript; charset=utf-8')
         responses.add(responses.GET, 'http://example.com/file2.js',
-                      body=load_fixture('file2.js'))
+                      body=load_fixture('file2.js'),
+                      content_type='application/javascript; charset=utf-8')
         responses.add(responses.GET, 'http://example.com/indexed.sourcemap.js',
-                      body=load_fixture('indexed.sourcemap.js'))
+                      body=load_fixture('indexed.sourcemap.js'),
+                      content_type='application/json; charset=utf-8')
 
         data = {
             'message': 'hello',
@@ -338,8 +408,10 @@ class JavascriptIntegrationTest(TestCase):
             'function add(a, b) {',
             '\t"use strict";',
         ]
-        assert frame.context_line == '\treturn a + b;'
-        assert frame.post_context == ['}']
+
+        expected = u'\treturn a + b; // fôo'
+        assert frame.context_line == expected
+        assert frame.post_context == ['}', '']
 
         raw_frame_list = exception.values[0].raw_stacktrace.frames
         raw_frame = raw_frame_list[0]
@@ -510,8 +582,8 @@ class JavascriptIntegrationTest(TestCase):
             'function add(a, b) {',
             '\t"use strict";',
         ]
-        assert frame.context_line == '\treturn a + b;'
-        assert frame.post_context == ['}']
+        assert frame.context_line == u'\treturn a + b; // fôo'
+        assert frame.post_context == ['}', '']
 
         frame = frame_list[1]
         assert frame.pre_context == [
@@ -533,9 +605,11 @@ class JavascriptIntegrationTest(TestCase):
         that are not found.
         """
         responses.add(responses.GET, 'http://example.com/file.min.js',
-                      body=load_fixture('file.min.js'))
+                      body=load_fixture('file.min.js'),
+                      content_type='application/javascript; charset=utf-8')
         responses.add(responses.GET, 'http://example.com/file.sourcemap.js',
-                      body=load_fixture('file.sourcemap.js'))
+                      body=load_fixture('file.sourcemap.js'),
+                      content_type='application/json; charset=utf-8')
         responses.add(responses.GET, 'http://example.com/file1.js',
                       body='Not Found', status=404)
 
@@ -586,10 +660,12 @@ class JavascriptIntegrationTest(TestCase):
         property - this is unsupported and should fail.
         """
         responses.add(responses.GET, 'http://example.com/unsupported.min.js',
-                      body=load_fixture('unsupported.min.js'))
+                      body=load_fixture('unsupported.min.js'),
+                      content_type='application/javascript; charset=utf-8')
 
         responses.add(responses.GET, 'http://example.com/unsupported.sourcemap.js',
-                      body=load_fixture('unsupported.sourcemap.js'))
+                      body=load_fixture('unsupported.sourcemap.js'),
+                      content_type='application/json; charset=utf-8')
 
         data = {
             'message': 'hello',
@@ -643,3 +719,53 @@ class JavascriptIntegrationTest(TestCase):
 
         event = Event.objects.get()
         assert event.data['errors'] == [{'url': u'<data url>', 'type': 'js_no_source'}]
+
+    @responses.activate
+    def test_html_response_for_js(self):
+        responses.add(responses.GET, 'http://example.com/file1.js',
+                      body='       <!DOCTYPE html><html><head></head><body></body></html>')
+        responses.add(responses.GET, 'http://example.com/file2.js',
+                      body='<!doctype html><html><head></head><body></body></html>')
+        responses.add(responses.GET, 'http://example.com/file.html',
+                      body='<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>')
+
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'type': 'Error',
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'abs_path': 'http://example.com/file1.js',
+                                'filename': 'file.min.js',
+                                'lineno': 1,
+                                'colno': 39,
+                            },
+                            {
+                                'abs_path': 'http://example.com/file2.js',
+                                'filename': 'file.min.js',
+                                'lineno': 1,
+                                'colno': 39,
+                            },
+                            {
+                                'abs_path': 'http://example.com/file.html',
+                                'filename': 'file.html',
+                                'lineno': 1,
+                                'colno': 1,
+                            },
+                        ],
+                    },
+                }],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        assert event.data['errors'] == [
+            {'url': u'http://example.com/file1.js', 'type': 'js_invalid_content'},
+            {'url': u'http://example.com/file2.js', 'type': 'js_invalid_content'}
+        ]

@@ -9,8 +9,9 @@ from __future__ import absolute_import, print_function
 
 import os
 import click
-from contextlib import contextmanager
+import six
 
+from contextlib import contextmanager
 from django.db import transaction
 
 from sentry.runner.decorators import configuration
@@ -43,7 +44,7 @@ def get_callsigns(projects):
             rv[callsign] = project.id
             break
 
-    return dict((v, k) for k, v in rv.iteritems())
+    return dict((v, k) for k, v in six.iteritems(rv))
 
 
 def sync_docs():

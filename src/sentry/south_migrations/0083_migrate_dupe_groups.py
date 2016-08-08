@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
+import six
+
 from south.v2 import DataMigration
 
 
@@ -70,7 +72,7 @@ class Migration(DataMigration):
                     key['time_spent_count'] += count.time_spent_count
 
             # migrate tags
-            for (key, value), data in tag_updates.iteritems():
+            for (key, value), data in six.iteritems(tag_updates):
                 defaults = {
                     'times_seen': F('times_seen') + data['times_seen'],
                 }
@@ -90,7 +92,7 @@ class Migration(DataMigration):
             orm['sentry.MessageFilterValue'].objects.filter(group__in=matches).delete()
 
             # migrate counts
-            for date, data in counts.iteritems():
+            for date, data in six.iteritems(counts):
                 create_or_update(orm['sentry.MessageCountByMinute'],
                     project=group.project,
                     group=group,

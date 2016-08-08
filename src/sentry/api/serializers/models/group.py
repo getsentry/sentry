@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+import six
+
 from collections import namedtuple
 from datetime import timedelta
 from django.core.urlresolvers import reverse
@@ -149,15 +151,15 @@ class GroupSerializer(Serializer):
         # TODO(dcramer): remove in 8.6+
         if event_type == 'error':
             if 'value' in metadata:
-                metadata['value'] = unicode(metadata['value'])
+                metadata['value'] = six.text_type(metadata['value'])
             if 'type' in metadata:
-                metadata['type'] = unicode(metadata['type'])
+                metadata['type'] = six.text_type(metadata['type'])
 
         return {
-            'id': str(obj.id),
+            'id': six.text_type(obj.id),
             'shareId': obj.get_share_id(),
             'shortId': obj.qualified_short_id,
-            'count': str(obj.times_seen),
+            'count': six.text_type(obj.times_seen),
             'userCount': attrs['user_count'],
             'title': obj.message_short,
             'culprit': obj.culprit,

@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Activity
 
@@ -15,13 +17,13 @@ class ActivitySerializer(Serializer):
 
         return {
             item: {
-                'user': users[str(item.user_id)] if item.user_id else None,
+                'user': users[six.text_type(item.user_id)] if item.user_id else None,
             } for item in item_list
         }
 
     def serialize(self, obj, attrs, user):
         return {
-            'id': str(obj.id),
+            'id': six.text_type(obj.id),
             'user': attrs['user'],
             'type': obj.get_type_display(),
             'data': obj.data,
@@ -47,8 +49,8 @@ class OrganizationActivitySerializer(ActivitySerializer):
         }
 
         for item in item_list:
-            attrs[item]['issue'] = groups[str(item.group_id)] if item.group_id else None
-            attrs[item]['project'] = projects[str(item.project_id)]
+            attrs[item]['issue'] = groups[six.text_type(item.group_id)] if item.group_id else None
+            attrs[item]['project'] = projects[six.text_type(item.project_id)]
         return attrs
 
     def serialize(self, obj, attrs, user):

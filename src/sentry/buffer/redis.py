@@ -7,6 +7,8 @@ sentry.buffer.redis
 """
 from __future__ import absolute_import
 
+import six
+
 from time import time
 
 from django.db import models
@@ -17,7 +19,7 @@ from sentry.exceptions import InvalidConfiguration
 from sentry.tasks.process_buffer import process_incr
 from sentry.utils import metrics
 from sentry.utils.compat import pickle
-from sentry.utils.hashlib import md5
+from sentry.utils.hashlib import md5_text
 from sentry.utils.imports import import_string
 from sentry.utils.redis import get_cluster_from_options
 
@@ -34,7 +36,7 @@ class RedisBuffer(Buffer):
             with self.cluster.all() as client:
                 client.ping()
         except Exception as e:
-            raise InvalidConfiguration(unicode(e))
+            raise InvalidConfiguration(six.text_type(e))
 
     def _coerce_val(self, value):
         if isinstance(value, models.Model):
@@ -47,8 +49,10 @@ class RedisBuffer(Buffer):
         """
         return 'b:k:%s:%s' % (
             model._meta,
-            md5('&'.join('%s=%s' % (k, self._coerce_val(v))
-                for k, v in sorted(filters.iteritems()))).hexdigest(),
+            md5_text(
+                '&'.join('%s=%s' % (k, self._coerce_val(v))
+                    for k, v in sorted(six.iteritems(filters)))
+            ).hexdigest(),
         )
 
     def _make_lock_key(self, key):
@@ -73,11 +77,11 @@ class RedisBuffer(Buffer):
         pipe = conn.pipeline()
         pipe.hsetnx(key, 'm', '%s.%s' % (model.__module__, model.__name__))
         pipe.hsetnx(key, 'f', pickle.dumps(filters))
-        for column, amount in columns.iteritems():
+        for column, amount in six.iteritems(columns):
             pipe.hincrby(key, 'i+' + column, amount)
 
         if extra:
-            for column, value in extra.iteritems():
+            for column, value in six.iteritems(extra):
                 pipe.hset(key, 'e+' + column, pickle.dumps(value))
         pipe.expire(key, self.key_expire)
         pipe.zadd(self.pending_key, time(), key)
@@ -91,7 +95,7 @@ class RedisBuffer(Buffer):
             return
 
         try:
-            for host_id in self.cluster.hosts.iterkeys():
+            for host_id in six.iterkeys(self.cluster.hosts):
                 conn = self.cluster.get_local_client(host_id)
                 keys = conn.zrange(self.pending_key, 0, -1)
                 if not keys:
@@ -116,7 +120,7 @@ class RedisBuffer(Buffer):
         # tasks
         if not client.set(lock_key, '1', nx=True, ex=10):
             metrics.incr('buffer.revoked', tags={'reason': 'locked'})
-            self.logger.info('Skipped process on %s; unable to get lock', key)
+            self.logger.info('buffer.revoked.locked', extra={'redis_key': key})
             return
 
         try:
@@ -129,14 +133,14 @@ class RedisBuffer(Buffer):
 
             if not values:
                 metrics.incr('buffer.revoked', tags={'reason': 'empty'})
-                self.logger.info('Skipped process on %s; no values found', key)
+                self.logger.info('buffer.revoked.empty', extra={'redis_key': key})
                 return
 
             model = import_string(values['m'])
             filters = pickle.loads(values['f'])
             incr_values = {}
             extra_values = {}
-            for k, v in values.iteritems():
+            for k, v in six.iteritems(values):
                 if k.startswith('i+'):
                     incr_values[k[2:]] = int(v)
                 elif k.startswith('e+'):

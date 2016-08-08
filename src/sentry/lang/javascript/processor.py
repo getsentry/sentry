@@ -5,6 +5,7 @@ __all__ = ['SourceProcessor']
 import logging
 import re
 import base64
+import six
 import zlib
 
 from django.conf import settings
@@ -13,7 +14,7 @@ from django.utils.encoding import force_bytes, force_text
 from collections import namedtuple
 from os.path import splitext
 from requests.exceptions import RequestException
-from urlparse import urlparse, urljoin, urlsplit
+from six.moves.urllib.parse import urlparse, urljoin, urlsplit
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
@@ -29,7 +30,7 @@ from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Release, ReleaseFile
 from sentry.utils.cache import cache
 from sentry.utils.files import compress_file
-from sentry.utils.hashlib import md5
+from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
 from sentry.utils.strings import truncatechars
 
@@ -57,10 +58,12 @@ VERSION_RE = re.compile(r'^[a-f0-9]{32}|[a-f0-9]{40}$', re.I)
 # the maximum number of remote resources (i.e. sourc eifles) that should be
 # fetched
 MAX_RESOURCE_FETCHES = 100
+MAX_URL_LENGTH = 150
 
 # TODO(dcramer): we want to change these to be constants so they are easier
 # to translate/link again
 
+# UrlResult.body **must** be unicode
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
 logger = logging.getLogger(__name__)
@@ -69,8 +72,9 @@ logger = logging.getLogger(__name__)
 def expose_url(url):
     if url is None:
         return u'<unknown>'
-    if url.startswith('data:'):
+    if url[:5] == 'data:':
         return u'<data url>'
+    url = truncatechars(url, MAX_URL_LENGTH)
     if isinstance(url, bytes):
         url = url.decode('utf-8', 'replace')
     return url
@@ -102,7 +106,7 @@ def trim_line(line, column=0):
     `column`. So it tries to extract 60 characters before and after
     the provided `column` and yield a better context.
     """
-    line = line.strip('\n')
+    line = line.strip(u'\n')
     ll = len(line)
     if ll <= 150:
         return line
@@ -123,10 +127,10 @@ def trim_line(line, column=0):
     line = line[start:end]
     if end < ll:
         # we've snipped from the end
-        line += ' {snip}'
+        line += u' {snip}'
     if start > 0:
         # we've snipped from the beginning
-        line = '{snip} ' + line
+        line = u'{snip} ' + line
     return line
 
 
@@ -143,7 +147,7 @@ def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
     upper_bound = min(lineno + 1 + context, len(source))
 
     try:
-        pre_context = map(trim_line, source[lower_bound:lineno])
+        pre_context = [trim_line(x) for x in source[lower_bound:lineno]]
     except IndexError:
         pre_context = []
 
@@ -153,7 +157,7 @@ def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
         context_line = ''
 
     try:
-        post_context = map(trim_line, source[(lineno + 1):upper_bound])
+        post_context = [trim_line(x) for x in source[(lineno + 1):upper_bound]]
     except IndexError:
         post_context = []
 
@@ -169,7 +173,7 @@ def discover_sourcemap(result):
     sourcemap = result.headers.get('sourcemap', result.headers.get('x-sourcemap'))
 
     if not sourcemap:
-        parsed_body = result.body.split('\n')
+        parsed_body = result.body.split(u'\n')
         # Source maps are only going to exist at either the top or bottom of the document.
         # Technically, there isn't anything indicating *where* it should exist, so we
         # are generous and assume it's somewhere either in the first or last 5 lines.
@@ -182,7 +186,7 @@ def discover_sourcemap(result):
         # We want to scan each line sequentially, and the last one found wins
         # This behavior is undocumented, but matches what Chrome and Firefox do.
         for line in possibilities:
-            if line[:21] in ('//# sourceMappingURL=', '//@ sourceMappingURL='):
+            if line[:21] in (u'//# sourceMappingURL=', u'//@ sourceMappingURL='):
                 # We want everything AFTER the indicator, which is 21 chars long
                 sourcemap = line[21:].rstrip()
 
@@ -196,7 +200,7 @@ def discover_sourcemap(result):
 def fetch_release_file(filename, release):
     cache_key = 'releasefile:v1:%s:%s' % (
         release.id,
-        md5(filename).hexdigest(),
+        md5_text(filename).hexdigest(),
     ),
 
     filename_path = None
@@ -244,13 +248,13 @@ def fetch_release_file(filename, release):
             with releasefile.file.getfile() as fp:
                 z_body, body = compress_file(fp)
         except Exception as e:
-            logger.exception(unicode(e))
+            logger.exception(six.text_type(e))
             cache.set(cache_key, -1, 3600)
             result = None
         else:
             # Write the compressed version to cache, but return the deflated version
             cache.set(cache_key, (releasefile.file.headers, z_body, 200), 3600)
-            result = (releasefile.file.headers, body, 200)
+            result = (releasefile.file.headers, body.decode('utf-8'), 200)
     elif result == -1:
         # We cached an error, so normalize
         # it down to None
@@ -259,7 +263,7 @@ def fetch_release_file(filename, release):
         # We got a cache hit, but the body is compressed, so we
         # need to decompress it before handing it off
         body = zlib.decompress(result[1])
-        result = (result[0], body, result[2])
+        result = (result[0], body.decode('utf-8'), result[2])
 
     return result
 
@@ -276,7 +280,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         result = None
 
     cache_key = 'source:cache:v3:%s' % (
-        md5(url).hexdigest(),
+        md5_text(url).hexdigest(),
     )
 
     if result is None:
@@ -299,7 +303,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         # lock down domains that are problematic
         domain = urlparse(url).netloc
         domain_key = 'source:blacklist:v2:%s' % (
-            md5(domain).hexdigest(),
+            md5_text(domain).hexdigest(),
         )
         domain_result = cache.get(domain_key)
         if domain_result:
@@ -338,11 +342,11 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             elif isinstance(exc, (RequestException, ZeroReturnError)):
                 error = {
                     'type': EventError.JS_GENERIC_FETCH_ERROR,
-                    'value': str(type(exc)),
+                    'value': six.text_type(type(exc)),
                     'url': expose_url(url),
                 }
             else:
-                logger.exception(unicode(exc))
+                logger.exception(six.text_type(exc))
                 error = {
                     'type': EventError.UNKNOWN_ERROR,
                     'url': expose_url(url),
@@ -376,10 +380,25 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         }
         raise CannotFetchSource(error)
 
-    # Make sure the file we're getting back is unicode, if it's not,
+    # For JavaScript files, check if content is something other than JavaScript/JSON (i.e. HTML)
+    # NOTE: possible to have JS files that don't actually end w/ ".js", but this should catch 99% of cases
+    if url.endswith('.js'):
+        # Check if response is HTML by looking if the first non-whitespace character is an open tag ('<').
+        # This cannot parse as valid JS/JSON.
+        # NOTE: not relying on Content-Type header because apps often don't set this correctly
+        body_start = result[1][:20].lstrip()  # Discard leading whitespace (often found before doctype)
+
+        if body_start[:1] == u'<':
+            error = {
+                'type': EventError.JS_INVALID_CONTENT,
+                'url': url,
+            }
+            raise CannotFetchSource(error)
+
+    # Make sure the file we're getting back is six.text_type, if it's not,
     # it's either some encoding that we don't understand, or it's binary
     # data which we can't process.
-    if not isinstance(result[1], unicode):
+    if not isinstance(result[1], six.text_type):
         try:
             result = (result[0], result[1].decode('utf8'), result[2])
         except UnicodeDecodeError:
@@ -401,17 +420,18 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
                             allow_scraping=allow_scraping)
         body = result.body
 
-    # According to various specs[1][2] a SourceMap may be prefixed to force
-    # a Javascript load error.
-    # [1] https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v
-    # [2] http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-xssi
-    if body.startswith((")]}'\n", ")]}\n")):
-        body = body.split('\n', 1)[1]
-
     try:
+        # According to various specs[1][2] a SourceMap may be prefixed to force
+        # a Javascript load error.
+        # [1] https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v
+        # [2] http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-xssi
+        if body.startswith((u")]}'\n", u")]}\n")):
+            body = body.split(u'\n', 1)[1]
+
         return sourcemap_to_index(body)
     except Exception as exc:
-        logger.warn(unicode(exc))
+        # This is in debug because the product shows an error already.
+        logger.debug(six.text_type(exc), exc_info=True)
         raise UnparseableSourcemap({
             'url': expose_url(url),
         })
@@ -637,6 +657,8 @@ class SourceProcessor(object):
                 else:
                     sourcemap_label = sourcemap_url
 
+                sourcemap_label = expose_url(sourcemap_label)
+
                 try:
                     state = find_source(sourcemap_idx, frame.lineno, frame.colno)
                 except Exception:
@@ -722,7 +744,7 @@ class SourceProcessor(object):
 
             elif sourcemap_url:
                 frame.data = {
-                    'sourcemap': sourcemap_url,
+                    'sourcemap': expose_url(sourcemap_url),
                 }
 
             # TODO: theoretically a minified source could point to another mapped, minified source

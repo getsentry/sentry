@@ -146,7 +146,8 @@ let GroupEventToolbar  = React.createClass({
         </div>
         <h4>{t('Event')} <span className="event-id">{evt.eventID}</span></h4>
         <span>
-          <span className="tip" data-title={this.getDateTooltip()}>
+          {/* use a key here to force removal of tooltip parent - fixes #3341 */}
+          <span className="tip" data-title={this.getDateTooltip()} key={evt.id}>
             <DateTime date={evt.dateCreated} style={style} />
             {isOverLatencyThreshold && <span className="icon-alert" />}
           </span>

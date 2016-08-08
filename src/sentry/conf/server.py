@@ -11,16 +11,16 @@ from __future__ import absolute_import
 
 from django.conf.global_settings import *  # NOQA
 
-from datetime import timedelta
-
 import os
 import os.path
 import socket
 import sys
 import tempfile
-import urlparse
 
 import sentry
+
+from datetime import timedelta
+from six.moves.urllib.parse import urlparse
 
 gettext_noop = lambda s: s
 
@@ -66,7 +66,7 @@ DATABASES = {
 
 
 if 'DATABASE_URL' in os.environ:
-    url = urlparse.urlparse(os.environ['DATABASE_URL'])
+    url = urlparse(os.environ['DATABASE_URL'])
 
     # Ensure default database exists.
     DATABASES['default'] = DATABASES.get('default', {})
@@ -296,13 +296,9 @@ else:
     LOGIN_URL = reverse_lazy('sentry-login')
 
 AUTHENTICATION_BACKENDS = (
-    'social_auth.backends.twitter.TwitterBackend',
-    'social_auth.backends.facebook.FacebookBackend',
-    # TODO: migrate to GoogleOAuth2Backend
-    'social_auth.backends.google.GoogleBackend',
-    'social_auth.backends.contrib.github.GithubBackend',
-    'social_auth.backends.contrib.bitbucket.BitbucketBackend',
-    'social_auth.backends.contrib.trello.TrelloBackend',
+    'social_auth.backends.github.GithubBackend',
+    'social_auth.backends.bitbucket.BitbucketBackend',
+    'social_auth.backends.trello.TrelloBackend',
     'sentry.utils.auth.EmailAuthBackend',
 )
 
@@ -311,13 +307,6 @@ SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_NAME = "sentrysid"
 SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
-
-TWITTER_CONSUMER_KEY = ''
-TWITTER_CONSUMER_SECRET = ''
-
-FACEBOOK_APP_ID = ''
-FACEBOOK_API_SECRET = ''
-FACEBOOK_EXTENDED_PERMISSIONS = ['email']
 
 GOOGLE_OAUTH2_CLIENT_ID = ''
 GOOGLE_OAUTH2_CLIENT_SECRET = ''
@@ -349,6 +338,12 @@ AUTH_PROVIDERS = {
     'github': ('GITHUB_APP_ID', 'GITHUB_API_SECRET'),
     'trello': ('TRELLO_API_KEY', 'TRELLO_API_SECRET'),
     'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
+}
+
+AUTH_PROVIDER_LABELS = {
+    'github': 'GitHub',
+    'trello': 'Trello',
+    'bitbucket': 'Bitbucket'
 }
 
 import random
@@ -546,10 +541,13 @@ LOGGING = {
     },
     # LOGGING.overridable is a list of loggers including root that will change
     # based on the overridden level defined above.
-    'overridable': ['celery'],
+    'overridable': ['celery', 'sentry'],
     'loggers': {
         'celery': {
             'level': 'WARN',
+        },
+        'sentry': {
+            'level': 'INFO',
         },
         'sentry.errors': {
             'handlers': ['console'],
@@ -579,7 +577,7 @@ LOGGING = {
             'handlers': ['console'],
             'propagate': False,
         },
-        'toronado.cssutils': {
+        'toronado': {
             'level': 'ERROR',
             'handlers': ['null'],
             'propagate': False,
@@ -1009,3 +1007,20 @@ SERVER_EMAIL = DEAD
 EMAIL_SUBJECT_PREFIX = DEAD
 
 SUDO_URL = 'sentry-sudo'
+
+# TODO(dcramer): move this to getsentry.com so it can be automated
+SDK_VERSIONS = {
+    'raven-js': '3.3.0',
+    'raven-python': '5.23.0',
+}
+
+SDK_URLS = {
+    'raven-js': 'https://docs.getsentry.com/hosted/clients/javascript/',
+    'raven-python': 'https://docs.getsentry.com/hosted/clients/python/',
+    'raven-swift': 'https://docs.getsentry.com/hosted/clients/cocoa/',
+}
+
+DEPRECATED_SDKS = {
+    # sdk name => new sdk name
+    'raven-objc': 'sentry-swift',
+}

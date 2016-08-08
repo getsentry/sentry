@@ -232,7 +232,7 @@ class Fixtures(object):
         if kwargs.get('tags'):
             tags = kwargs.pop('tags')
             if isinstance(tags, dict):
-                tags = tags.items()
+                tags = list(tags.items())
             kwargs['data']['tags'] = tags
 
         kwargs['data'].setdefault('errors', [{

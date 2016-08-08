@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.conf import settings
 
 from sentry.app import env
@@ -12,7 +14,7 @@ from sentry.utils.avatar import get_gravatar_url
 class UserSerializer(Serializer):
     def _get_identities(self, item_list, user):
         if not (env.request and env.request.is_superuser()):
-            item_list = filter(lambda x: x == user, item_list)
+            item_list = [x for x in item_list if x == user]
 
         queryset = AuthIdentity.objects.filter(
             user__in=item_list,
@@ -45,7 +47,7 @@ class UserSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         d = {
-            'id': str(obj.id),
+            'id': six.text_type(obj.id),
             'name': obj.get_display_name(),
             'username': obj.username,
             'email': obj.email,
@@ -53,8 +55,10 @@ class UserSerializer(Serializer):
             'isActive': obj.is_active,
             'isManaged': obj.is_managed,
             'dateJoined': obj.date_joined,
+            'lastLogin': obj.last_login,
             'has2fa': attrs['has2fa'],
         }
+
         if obj == user:
             options = {
                 o.key: o.value

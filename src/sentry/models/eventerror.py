@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 
 class EventError(object):
     INVALID_DATA = 'invalid_data'
@@ -11,13 +13,13 @@ class EventError(object):
 
     JS_GENERIC_FETCH_ERROR = 'js_generic_fetch_error'
     JS_INVALID_HTTP_CODE = 'js_invalid_http_code'
+    JS_INVALID_CONTENT = 'js_invalid_content'
     JS_NO_COLUMN = 'js_no_column'
     JS_MISSING_SOURCE = 'js_no_source'
     JS_INVALID_SOURCEMAP = 'js_invalid_source'
     JS_TOO_MANY_REMOTE_SOURCES = 'js_too_many_sources'
     JS_INVALID_SOURCE_ENCODING = 'js_invalid_source_encoding'
     JS_INVALID_SOURCEMAP_LOCATION = 'js_invalid_sourcemap_location'
-
     NATIVE_NO_CRASHED_THREAD = 'native_no_crashed_thread'
     NATIVE_INTERNAL_FAILURE = 'native_internal_failure'
     NATIVE_NO_SYMSYND = 'native_no_symsynd'
@@ -31,6 +33,7 @@ class EventError(object):
         RESTRICTED_IP: u'Cannot fetch resource due to restricted IP address on {url}',
         JS_GENERIC_FETCH_ERROR: u'Unable to fetch resource: {url}',
         JS_INVALID_HTTP_CODE: u'HTTP returned {value} response on {url}',
+        JS_INVALID_CONTENT: u'Source file was not JavaScript: {url}',
         JS_NO_COLUMN: u'Cannot expand sourcemap due to no column information for {url}',
         JS_MISSING_SOURCE: u'Source code was not found for {url}',
         JS_INVALID_SOURCEMAP: u'Sourcemap was invalid or not parseable: {url}',
@@ -47,4 +50,4 @@ class EventError(object):
         return cls._messages[data['type']].format(**data)
 
     def to_dict(self):
-        return {k: v for k, v in self.iteritems() if k != 'type'}
+        return {k: v for k, v in six.iteritems(self) if k != 'type'}

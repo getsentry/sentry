@@ -5,7 +5,6 @@ import sentry
 
 from django import template
 from django.conf import settings
-from django.utils.html import mark_safe
 from django.contrib.messages import get_messages
 from pkg_resources import parse_version
 
@@ -136,4 +135,4 @@ def get_react_config(context):
             'isAuthenticated': False,
             'user': None,
         })
-    return mark_safe(json.dumps(context))
+    return json.dumps_htmlsafe(context)

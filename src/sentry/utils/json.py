@@ -12,9 +12,11 @@ from __future__ import absolute_import
 from simplejson import JSONEncoder, JSONEncoderForHTML, _default_decoder
 import datetime
 import uuid
+import six
 import decimal
 
 from django.utils.timezone import is_aware
+from django.utils.html import mark_safe
 
 
 def better_default_encoder(o):
@@ -34,7 +36,7 @@ def better_default_encoder(o):
     elif isinstance(o, (set, frozenset)):
         return list(o)
     elif isinstance(o, decimal.Decimal):
-        return str(o)
+        return six.text_type(o)
     raise TypeError(repr(o) + ' is not JSON serializable')
 
 
@@ -69,6 +71,7 @@ def dump(value, fp, **kwargs):
 
 
 def dumps(value, escape=False, **kwargs):
+    # Legacy use. Do not use. Use dumps_htmlsafe
     if escape:
         return _default_escaped_encoder.encode(value)
     return _default_encoder.encode(value)
@@ -76,3 +79,7 @@ def dumps(value, escape=False, **kwargs):
 
 def loads(value, **kwargs):
     return _default_decoder.decode(value)
+
+
+def dumps_htmlsafe(value):
+    return mark_safe(_default_escaped_encoder.encode(value))

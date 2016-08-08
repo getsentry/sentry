@@ -18,7 +18,7 @@ const ProjectTable = React.createClass({
   propTypes: {
     projectMap: React.PropTypes.object.isRequired,
     projectTotals: React.PropTypes.array.isRequired,
-    orgTotal: React.PropTypes.number.isRequired,
+    orgTotal: React.PropTypes.object.isRequired,
     organization: React.PropTypes.object.isRequired
   },
 

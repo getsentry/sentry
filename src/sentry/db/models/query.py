@@ -8,6 +8,8 @@ sentry.db.models.query
 
 from __future__ import absolute_import
 
+import six
+
 from django.db import IntegrityError, router, transaction
 from django.db.models.expressions import ExpressionNode
 from django.db.models.signals import post_save
@@ -30,7 +32,7 @@ def update(self, using=None, **kwargs):
             kwargs[field.name] = field.pre_save(self, False)
 
     affected = self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
-    for k, v in kwargs.iteritems():
+    for k, v in six.iteritems(kwargs):
         if isinstance(v, ExpressionNode):
             v = resolve_expression_node(self, v)
         setattr(self, k, v)
@@ -75,12 +77,12 @@ def create_or_update(model, using=None, **kwargs):
 
     create_kwargs = kwargs.copy()
     inst = objects.model()
-    for k, v in values.iteritems():
+    for k, v in six.iteritems(values):
         if isinstance(v, ExpressionNode):
             create_kwargs[k] = resolve_expression_node(inst, v)
         else:
             create_kwargs[k] = v
-    for k, v in defaults.iteritems():
+    for k, v in six.iteritems(defaults):
         if isinstance(v, ExpressionNode):
             create_kwargs[k] = resolve_expression_node(inst, v)
         else:

@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
-import urllib
 import logging
 import requests
+
+from six.moves.urllib.parse import quote
 
 from sentry import options
 
@@ -21,7 +22,7 @@ def send_sms(body, to, from_=None):
     if account[:2] != 'AC':
         account = 'AC' + account
     url = 'https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json' % \
-        urllib.quote(account)
+        quote(account)
     rv = requests.post(url, auth=(account,
                              options.get('sms.twilio-token')), data={
         'To': to,

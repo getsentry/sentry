@@ -22,13 +22,12 @@ __all__ = ('GzippedDictField',)
 logger = logging.getLogger('sentry')
 
 
+@six.add_metaclass(models.SubfieldBase)
 class GzippedDictField(models.TextField):
     """
     Slightly different from a JSONField in the sense that the default
     value is a dictionary.
     """
-    __metaclass__ = models.SubfieldBase
-
     def to_python(self, value):
         if isinstance(value, six.string_types) and value:
             try:
@@ -44,9 +43,10 @@ class GzippedDictField(models.TextField):
         if not value and self.null:
             # save ourselves some storage
             return None
-        # enforce unicode strings to guarantee consistency
-        if isinstance(value, str):
+        # enforce six.text_type strings to guarantee consistency
+        if isinstance(value, six.binary_type):
             value = six.text_type(value)
+        # db values need to be in unicode
         return compress(pickle.dumps(value))
 
     def value_to_string(self, obj):

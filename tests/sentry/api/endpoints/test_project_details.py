@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import mock
+import six
 
 from django.core.urlresolvers import reverse
 
@@ -18,7 +19,7 @@ class ProjectDetailsTest(APITestCase):
         })
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data['id'] == str(project.id)
+        assert response.data['id'] == six.text_type(project.id)
 
     def test_numeric_org_slug(self):
         # Regression test for https://github.com/getsentry/sentry/issues/2236
@@ -42,7 +43,7 @@ class ProjectDetailsTest(APITestCase):
         url = '/api/0/projects/%s/%s/' % (org.slug, project.slug)
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data['id'] == str(project.id)
+        assert response.data['id'] == six.text_type(project.id)
 
     def test_with_stats(self):
         project = self.create_project()

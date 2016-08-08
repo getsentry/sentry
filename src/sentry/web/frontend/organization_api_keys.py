@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from operator import or_
+from six.moves import reduce
 
 from sentry.models import ApiKey, AuditLogEntryEvent
 from sentry.web.frontend.base import OrganizationView

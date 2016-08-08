@@ -9,7 +9,9 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 
-from sentry.models import EventMapping, Group, ProjectKey, UserReport
+from sentry.models import (
+    EventMapping, Group, ProjectKey, ProjectOption, UserReport
+)
 from sentry.web.helpers import render_to_response
 from sentry.utils import json
 from sentry.utils.http import is_valid_origin
@@ -136,8 +138,15 @@ class ErrorPageEmbedView(View):
                 "errors": dict(form.errors),
             }, status=400)
 
+        show_branding = ProjectOption.objects.get_value(
+            project=key.project,
+            key='feedback:branding',
+            default='1'
+        ) == '1'
+
         template = render_to_string('sentry/error-page-embed.html', {
             'form': form,
+            'show_branding': show_branding,
         })
 
         context = {

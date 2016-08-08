@@ -23,7 +23,7 @@ class TaggedEventConditionTest(RuleTestCase):
             'key': u'\xc3',
             'value': u'\xc4',
         })
-        assert rule.render_label() == u'An events tags match \xc3 eq \xc4'
+        assert rule.render_label() == u'An event\'s tags match \xc3 equals \xc4'
 
     def test_equals(self):
         event = self.get_event()

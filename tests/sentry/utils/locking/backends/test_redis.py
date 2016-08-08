@@ -1,4 +1,7 @@
+from __future__ import absolute_import
+
 import pytest
+
 from exam import fixture
 
 from sentry.testutils import TestCase
@@ -22,7 +25,7 @@ class RedisLockBackendTestCase(TestCase):
         client = self.backend.get_client(key)
 
         self.backend.acquire(key, duration)
-        assert client.get(full_key) == self.backend.uuid
+        assert client.get(full_key) == self.backend.uuid.encode('utf-8')
         assert duration - 2 < float(client.ttl(full_key)) <= duration
 
         self.backend.release(key)

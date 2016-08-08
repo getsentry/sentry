@@ -1,5 +1,7 @@
 sudo: false
 language: python
+addons:
+  firefox: "39.0"
 services:
   - memcached
   - mysql
@@ -9,11 +11,16 @@ services:
   - cassandra
 python:
   - "2.7"
+  # - "3.4"
+  # - "3.5"
 cache:
   directories:
     - node_modules
     - $HOME/.cache/pip/wheels
     - "$HOME/virtualenv/python2.7.9"
+branches:
+  only:
+  - master
 env:
   matrix:
     - TEST_SUITE=sqlite DB=sqlite
@@ -27,8 +34,10 @@ env:
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
+    - SELENIUM_DRIVER=firefox
 install:
   - make travis-install-$TEST_SUITE
+  - pip freeze
 script:
   - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE

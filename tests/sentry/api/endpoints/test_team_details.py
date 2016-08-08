@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
 from mock import patch
 
@@ -17,7 +19,7 @@ class TeamDetailsTest(APITestCase):
         })
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data['id'] == str(team.id)
+        assert response.data['id'] == six.text_type(team.id)
 
 
 class TeamUpdateTest(APITestCase):

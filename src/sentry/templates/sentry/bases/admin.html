@@ -21,10 +21,9 @@
 
     <h6 class="nav-header">{% trans "Manage" %}</h6>
     <ul class="nav nav-stacked">
-        <li{% block admin-nav-organizations %}{% endblock %}><a href="{% absolute_uri '/manage/organizations/' %}">{% trans "Organizations" %}</a></li>
-        <li{% block admin-nav-teams %}{% endblock %}><a href="{% url 'sentry-admin-teams' %}">{% trans "Teams" %}</a></li>
-        <li{% block admin-nav-projects %}{% endblock %}><a href="{% url 'sentry-admin-projects' %}">{% trans "Projects" %}</a></li>
-        <li{% block admin-nav-users %}{% endblock %}><a href="{% url 'sentry-admin-users' %}">{% trans "Users" %}</a></li>
+        <li><a href="{% absolute_uri '/manage/organizations/' %}">{% trans "Organizations" %}</a></li>
+        <li><a href="{% absolute_uri '/manage/projects/' %}">{% trans "Projects" %}</a></li>
+        <li><a href="{% absolute_uri '/manage/users/' %}">{% trans "Users" %}</a></li>
     </ul>
 
     {% with plugins=PLUGINS.for_site|as_sorted %}

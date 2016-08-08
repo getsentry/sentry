@@ -3,11 +3,14 @@ from __future__ import absolute_import
 import functools
 import itertools
 import logging
+import six
+
 from collections import (
     OrderedDict,
     defaultdict,
     namedtuple,
 )
+from six.moves import reduce
 
 from sentry.app import tsdb
 from sentry.digests import Record
@@ -71,18 +74,18 @@ def fetch_state(project, records):
 
 
 def attach_state(project, groups, rules, event_counts, user_counts):
-    for id, group in groups.iteritems():
+    for id, group in six.iteritems(groups):
         assert group.project_id == project.id, 'Group must belong to Project'
         group.project = project
 
-    for id, rule in rules.iteritems():
+    for id, rule in six.iteritems(rules):
         assert rule.project_id == project.id, 'Rule must belong to Project'
         rule.project = project
 
-    for id, event_count in event_counts.iteritems():
+    for id, event_count in six.iteritems(event_counts):
         groups[id].event_count = event_count
 
-    for id, user_count in user_counts.iteritems():
+    for id, user_count in six.iteritems(user_counts):
         groups[id].user_count = user_count
 
     return {
@@ -109,7 +112,7 @@ class Pipeline(object):
 
     def filter(self, function):
         def operation(sequence):
-            result = filter(function, sequence)
+            result = [s for s in sequence if function(s)]
             logger.debug('%r filtered %s items to %s.', function, len(sequence), len(result))
             return result
         self.operations.append(operation)
@@ -117,7 +120,7 @@ class Pipeline(object):
 
     def map(self, function):
         def operation(sequence):
-            result = map(function, sequence)
+            result = [function(s) for s in sequence]
             logger.debug('%r applied to %s items.', function, len(sequence))
             return result
         self.operations.append(operation)
@@ -166,11 +169,12 @@ def group_records(groups, record):
 
 
 def sort_group_contents(rules):
-    for key, groups in rules.iteritems():
+    for key, groups in six.iteritems(rules):
         rules[key] = OrderedDict(
             sorted(
                 groups.items(),
-                key=lambda (group, records): (group.event_count, group.user_count),
+                # x = (group, records)
+                key=lambda x: (x[0].event_count, x[0].user_count),
                 reverse=True,
             )
         )
@@ -181,7 +185,8 @@ def sort_rule_groups(rules):
     return OrderedDict(
         sorted(
             rules.items(),
-            key=lambda (rule, groups): len(groups),
+            # x = (rule, groups)
+            key=lambda x: len(x[1]),
             reverse=True,
         ),
     )
