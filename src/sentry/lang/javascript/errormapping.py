@@ -67,6 +67,8 @@ class Processor(object):
         return data
 
     def try_process(self, exc):
+        if not exc['value']:
+            return False
         match = self.regex.search(exc['value'])
         if match is None:
             return False
