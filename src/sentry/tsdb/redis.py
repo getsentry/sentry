@@ -17,7 +17,6 @@ import uuid
 from binascii import crc32
 from collections import defaultdict, namedtuple
 
-import six
 from django.utils import timezone
 from hashlib import md5
 from pkg_resources import resource_string
