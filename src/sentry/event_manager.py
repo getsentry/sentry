@@ -482,6 +482,7 @@ class EventManager(object):
             ]
         elif checksum:
             hashes = [checksum]
+            data['checksum'] = checksum
         else:
             hashes = [
                 md5_from_hash(h)
