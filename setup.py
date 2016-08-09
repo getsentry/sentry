@@ -145,7 +145,7 @@ install_requires = [
 ]
 
 dsym_requires = [
-    'symsynd>=0.8.2,<1.0.0',
+    'symsynd>=0.8.3,<1.0.0',
 ]
 
 
