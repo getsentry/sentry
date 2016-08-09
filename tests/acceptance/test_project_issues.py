@@ -42,6 +42,7 @@ class ProjectIssuesTest(AcceptanceTestCase):
         )
         self.browser.get(self.path)
         self.browser.wait_until('.group-list')
+        self.browser.wait_until('.sparkline')
         self.browser.snapshot('project issues with issues')
 
     def test_with_no_issues(self):
