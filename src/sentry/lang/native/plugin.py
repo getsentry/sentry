@@ -361,8 +361,6 @@ def resolve_frame_symbols(data):
 
     debug_images = debug_meta['images']
     sdk_info = get_sdk_from_event(data)
-    if not sdk_info:
-        return
 
     stacktraces = find_all_stacktraces(data)
     if not stacktraces:
@@ -409,7 +407,6 @@ def resolve_frame_symbols(data):
                         'symbol_addr': frame['symbol_addr'],
                     }, sdk_info, report_error=report_error)
                     if not sfrm:
-                        logger.error('Frame did not symbolize (%s)', frame)
                         continue
                     # XXX: log here if symbol could not be found?
                     frame['function'] = sfrm.get('symbol_name') or \
