@@ -174,6 +174,7 @@ const NoteInput = React.createClass({
   onKeyDown(e) {
     // Auto submit the form on [meta] + Enter
     e.key === 'Enter' && e.metaKey && this.submitForm();
+    e.key === 'Enter' && e.ctrlKey && this.submitForm();
   },
 
   onCancel(e) {
