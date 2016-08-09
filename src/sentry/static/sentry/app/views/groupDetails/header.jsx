@@ -11,6 +11,7 @@ import ListLink from '../../components/listLink';
 import ShortId from '../../components/shortId';
 import GroupTitle from '../../components/group/title';
 import ProjectState from '../../mixins/projectState';
+import PluginExtras from './pluginExtras';
 import {t} from '../../locale';
 
 const GroupHeader = React.createClass({
@@ -168,6 +169,9 @@ const GroupHeader = React.createClass({
             </div>
           </div>
         </div>
+        {group.pluginExtras && group.pluginExtras.map(function(p, i) {
+          return <PluginExtras key={i} pluginExtras={p}/>;
+        })}
         <GroupSeenBy />
         <GroupActions />
         {orgFeatures.has('shared-issues') &&

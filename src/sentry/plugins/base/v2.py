@@ -304,6 +304,20 @@ class IPlugin2(local):
         """
         return []
 
+    def get_extras(self, request, group, **kwargs):
+        """
+        Return a list of available extras to append this aggregate.
+
+        An extra is a dict containing additional details
+        about issues linked via plugins.
+
+        {'status': 'open'}
+
+        >>> def get_extras(self, request, group, **kwargs):
+        >>>     return [{'status': 'open'}]
+        """
+        return []
+
     def get_annotations(self, group, **kwargs):
         """
         Return a list of annotations to append to this aggregate.

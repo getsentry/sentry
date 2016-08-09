@@ -377,6 +377,23 @@ class IPlugin(local, PluggableViewMixin):
         """
         return action_list
 
+    def extras(self, request, group, extras_list, **kwargs):
+        """
+        Modifies the extras list for a grouped message.
+
+        An extra is a dict containing additional details
+        about issues linked via plugins.
+
+        {'status': 'open'}
+
+        This must return ``extras_list``.
+
+        >>> def extras(self, request, group, extras_list, **kwargs):
+        >>>     extras_list.append({'status': 'open'})
+        >>>     return extras_list
+        """
+        return extras_list
+
     def panels(self, request, group, panel_list, **kwargs):
         """
         Modifies the panel list for a grouped message.
