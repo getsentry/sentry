@@ -16,7 +16,7 @@
   .main {
     max-width: 700px;
     box-shadow: 0 1px 3px rgba(0,0,0, .1);
-    margin: 10px auto;
+    margin: 15px auto;
     border-radius: 4px;
     border: 1px solid #c7d0d4;
     border-collapse: separate;
@@ -40,7 +40,7 @@
     white-space: pre;
     white-space: pre-wrap;
     margin-bottom: 15px;
-    background: #F4F5F6;
+    background-color: #F4F5F6;
     color: #3D4649;
     padding: 15px;
     border-radius: 4px;
@@ -49,6 +49,10 @@
   small {
     font-size: 13px;
     color: #838c99;
+  }
+
+  .align-right {
+    text-align: right;
   }
 
   pre, blockquote, table {
@@ -78,7 +82,7 @@
 
   .btn, p .btn {
     color: #fff;
-    background: #15A7F6;
+    background-color: #15A7F6;
     padding: 8px 15px;
     line-height: 18px;
     font-weight: normal;
@@ -108,6 +112,10 @@
     border-bottom: 1px solid #dee7eb;
   }
 
+  .header table {
+    margin-bottom: 0;
+  }
+
   .header .btn {
     float: right;
     margin: -3px 0 0 0;
@@ -127,6 +135,17 @@
     color: #ccc;
     font-weight: normal;
   }
+
+  .unsubscribe-box {
+    background-color: #FDFDFE;
+    border: 1px solid #D6DBE4;
+    border-radius: 3px;
+    padding: 15px;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 15px;
+  }
+
   .footer {
     border-top: 1px solid #E7EBEE;
     padding: 35px 0;
@@ -147,7 +166,7 @@
   }
 
   h2 .highlight {
-    background: #f6f7f8;
+    background-color: #f6f7f8;
     padding: 0 6px;
     border-radius: 3px;
     font-weight: 500;
@@ -159,8 +178,20 @@
     margin: 0 0 20px;
   }
 
+  h4 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 20px 0;
+  }
+
+  h5 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 4px;
+  }
+
   .inner {
-    background: #fff;
+    background-color: #fff;
     padding: 30px 0 20px;
   }
 
@@ -205,7 +236,7 @@
   }
 
   .inner .interface table td {
-    background: #f4f5f6;
+    background-color: #f4f5f6;
     padding: 5px 10px;
     border-radius: 3px;
     margin-bottom: 5px;
@@ -231,7 +262,7 @@
     margin-right: 5px;
     margin-bottom: 10px;
     border-radius: 3px;
-    background: #F4F5F6;
+    background-color: #F4F5F6;
   }
   .tag-list li strong {
     font-weight: 200;
@@ -245,7 +276,7 @@
   }
 
   .notice {
-    background: #FBFAF4;
+    background-color: #FBFAF4;
     color: #866938;
     border: 1px solid #E2D2AD;
     padding: 15px;
@@ -341,11 +372,11 @@
     font-size: 16px;
     text-transform: capitalize;
   }
-  .level-info { background: #2788ce; }
-  .level-debug { background: #9BA5A9; }
-  .level-warning { background: #f18500; }
-  .level-error { background: #f43f20; }
-  .level-fatal { background: #d20f2a; }
+  .level-info { background-color: #2788ce; }
+  .level-debug { background-color: #9BA5A9; }
+  .level-warning { background-color: #f18500; }
+  .level-error { background-color: #f43f20; }
+  .level-fatal { background-color: #d20f2a; }
   .event .count .span {
     position: absolute;
     left: 0;
@@ -357,6 +388,10 @@
   }
 
   /* Issue */
+
+  .issue {
+    line-height: 24px;
+  }
 
   .issue h3 {
     line-height: 24px;
@@ -392,7 +427,7 @@
     padding: 0;
   }
   .inner .note-body {
-    background: #F4F5F6;
+    background-color: #F4F5F6;
     padding: 12px 20px;
     border-radius: 3px;
   }
@@ -450,7 +485,7 @@
   }
 
   .inner table.reset > tr > td {
-    background: #fff;
+    background-color: #fff;
     padding: 0;
     padding-top: 0;
   }
@@ -466,7 +501,7 @@
   }
 
   .digest .rule {
-    background: #F6F7F8;
+    background-color: #F6F7F8;
     padding: 8px;
     font-size: 14px;
     border-left: 10px solid #15A7F6;
@@ -540,6 +575,159 @@
     font-size: 14px;
   }
 
+  .weekly-report .container {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .weekly-report .header td {
+    text-align: right;
+    font-size: 14px;
+  }
+
+  .weekly-report td, .weekly-report th {
+    text-align: left;
+  }
+
+  .weekly-report .issue-table {
+    margin-bottom: 40px;
+  }
+
+  .weekly-report .issue-table th {
+    border-bottom: 1px solid #EAEDF1;
+  }
+
+  .weekly-report .issue-table th h4 {
+    margin: 0 0 15px;
+  }
+
+  .weekly-report .issue-table td {
+    border-bottom: 1px solid #EAEDF1;
+    padding: 12px 0;
+  }
+
+  .weekly-report .issue-table .issue small a {
+    color: #687276;
+  }
+
+  .weekly-report .issue-table .issue-meta {
+    font-size: 14px;
+    line-height: 24px;
+  }
+
+  .weekly-report .issue-table td.empty {
+    text-align: center;
+    background-color: #FBFCFD;
+    border: 1px solid #EAEDF1;
+    font-size: 14px;
+  }
+
+  .weekly-report .issue-table .narrow-column {
+    width: 60px;
+    text-align: center;
+    padding-left: 20px;
+    color: #687276;
+  }
+
+  .weekly-report .issue-table th.narrow-column {
+    text-transform: uppercase;
+    font-size: 14px;
+    color: #8794A8;
+    padding-bottom: 15px;
+    font-weight: 500;
+  }
+
+  .weekly-report .issue-table td.narrow-column {
+    font-size: 18px;
+  }
+
+  .weekly-report .legend {
+    font-size: 14px;
+    text-align: right;
+  }
+
+  .weekly-report .legend span {
+    display: inline-block;
+    padding: 3px 7px;
+    margin: 0 10px 0 5px;
+    border-radius: 3px;
+    color: #fff;
+  }
+
+  .weekly-report .legend span.resolved {
+    margin-right: 0;
+  }
+
+  .weekly-report .legend .all,
+  .weekly-report .issue-graph-bar .all {
+    background-color: #D6DBE4;
+  }
+
+  .weekly-report .legend .resolved,
+  .weekly-report .issue-graph-bar .resolved {
+    background-color: #A290D1;
+  }
+  .weekly-report .issues-resolved {
+    margin-bottom: 30px;
+  }
+
+  .weekly-report .issues-resolved .issues-resolved-column {
+    width: 33.3%;
+    text-align: right;
+  }
+
+  .weekly-report .issues-resolved .empty {
+    display: block;
+    text-align: center;
+  }
+
+  .weekly-report .issues-resolved .issues-resolved-column-left {
+    padding-right: 15px;
+    vertical-align: bottom;
+  }
+
+  .weekly-report .issues-resolved .issues-resolved-column-middle {
+    padding-left: 20px;
+    padding-right: 20px;
+    border-left: 1px solid #D6DBE4;
+    border-right: 1px solid #D6DBE4;
+  }
+
+  .weekly-report .issues-resolved .issues-resolved-column .stat {
+    font-size: 30px;
+    margin-bottom: 5px;
+  }
+
+  .weekly-report .issues-resolved .issues-resolved-column .stat img {
+    vertical-align: middle;
+  }
+
+  .weekly-report .issue-graph, .weekly-report .issue-graph-bar {
+    margin-bottom: 0;
+  }
+
+  .weekly-report .issue-graph-bar td {
+    font-size: 0;
+  }
+
+  .weekly-report .user-impact {}
+
+  .weekly-report .user-impact-stat {
+    width: 90px;
+    height: 90px;
+    vertical-align: middle;
+    text-align: center;
+    font-size: 32px;
+    color: #836CC2;
+    background-size: 90px 90px;
+    background-image: url("{% absolute_asset_url 'sentry' 'images/email/circle-bg.png' %}");
+  }
+
+  .weekly-report .user-impact-text {
+    font-size: 18px;
+    padding-left: 12px;
+    padding-right: 15px;
+  }
 
   @media only screen and (max-device-width: 480px) {
     /* mobile-specific CSS styles */
