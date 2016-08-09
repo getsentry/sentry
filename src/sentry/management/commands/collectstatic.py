@@ -31,7 +31,7 @@ def checksum(file_):
 
 def get_bundle_version(files):
     hasher = md5()
-    for (short, _), sum in zip(files, map(checksum, files)):
+    for (short, _), sum in zip(files, list(map(checksum, files))):
         print('%s  %s' % (sum, short))
         hasher.update('{}  {}\n'.format(sum, short).encode('utf-8'))
     return hasher.hexdigest()
@@ -46,8 +46,8 @@ class Command(BaseCommand):
 
         collected = super(Command, self).collect()
         paths = sorted(set(chain(*itemgetter(*collected.keys())(collected))))
-        abs_paths = map(self.storage.path, paths)
-        version = get_bundle_version(zip(paths, abs_paths))
+        abs_paths = list(map(self.storage.path, paths))
+        version = get_bundle_version(list(zip(paths, abs_paths)))
         print('-----------------')
         print(version)
         with open(self.storage.path(VERSION_PATH), 'wb') as fp:
