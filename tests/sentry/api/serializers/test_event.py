@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.event import SharedEventSerializer
 from sentry.testutils import TestCase
 from sentry.models import EventError
 
@@ -31,3 +32,18 @@ class EventSerializerTest(TestCase):
         assert result['errors'][0]['type'] == EventError.INVALID_DATA
         assert u'ü' in result['errors'][0]['message']
         assert result['errors'][0]['data'] == {'name': u'ü'}
+
+
+class SharedEventSerializerTest(TestCase):
+    def test_simple(self):
+        event = self.create_event(event_id='a')
+
+        result = serialize(event, None, SharedEventSerializer())
+        assert result['id'] == six.text_type(event.id)
+        assert result['eventID'] == 'a'
+        assert result.get('context') is None
+        assert result.get('contexts') is None
+        assert result.get('user') is None
+        assert result.get('tags') is None
+        for entry in result['entries']:
+            assert entry['type'] != 'breadcrumbs'
