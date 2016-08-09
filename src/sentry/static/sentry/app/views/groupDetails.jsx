@@ -113,8 +113,13 @@ const GroupDetails = React.createClass({
   onGroupChange(itemIds) {
     let id = this.props.params.groupId;
     if (itemIds.has(id)) {
+      let group = GroupStore.get(id);
+      if (group.stale) {
+        this.fetchData();
+        return;
+      }
       this.setState({
-        group: GroupStore.get(id),
+        group: group,
       });
     }
   },
