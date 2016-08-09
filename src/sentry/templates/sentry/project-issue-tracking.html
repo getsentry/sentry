@@ -33,6 +33,8 @@
       </div>
     {% endfor %}
 
+    <div id="issue_plugins"></div>
+
     {% if other_plugins %}
       <div class="box">
         <div class="box-header">
@@ -59,4 +61,14 @@
       <p>There are no issue tracker integrations available. Ask your Sentry team about integrating with your favorite project management tools.</p>
     </div>
   {% endif %}
+
+  <script>
+  $(function(){
+    ReactDOM.render(React.createFactory(Sentry.IssuePluginConfiguration)({
+      project: {% serialize project %},
+      organization: {% serialize organization %},
+      plugins: {% serialize issue_v2_plugins %}
+    }), document.getElementById('issue_plugins'));
+  });
+  </script>
 {% endblock %}

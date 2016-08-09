@@ -337,6 +337,7 @@ const GroupStore = Reflux.createStore({
     this.pendingChanges.remove(changeId);
     this.trigger(new Set(itemIds));
   }
+
 });
 
 export default GroupStore;

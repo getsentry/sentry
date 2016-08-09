@@ -10,7 +10,7 @@ from sentry.models import (
     OrganizationOnboardingTask,
     OrganizationOption
 )
-from sentry.plugins import IssueTrackingPlugin, NotificationPlugin
+from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
     event_processed,
     project_created,
@@ -216,7 +216,7 @@ def record_sourcemaps_received(project, group, event, **kwargs):
 
 @plugin_enabled.connect(weak=False)
 def record_plugin_enabled(plugin, project, user, **kwargs):
-    if isinstance(plugin, IssueTrackingPlugin):
+    if isinstance(plugin, IssueTrackingPlugin) or isinstance(plugin, IssueTrackingPlugin2):
         task = OnboardingTask.ISSUE_TRACKER
         status = OnboardingTaskStatus.PENDING
     elif isinstance(plugin, NotificationPlugin):
