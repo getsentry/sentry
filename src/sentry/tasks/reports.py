@@ -6,6 +6,7 @@ import logging
 import operator
 from collections import namedtuple
 from datetime import timedelta
+from six.moves import reduce
 
 from django.utils import timezone
 
@@ -148,24 +149,43 @@ def prepare_project_series((start, stop), project, rollup=60 * 60 * 24):
     )
 
 
-def prepare_project_aggregates((start, stop), project):
+def time_series_collector(function, segments, start, stop):
+    """
+    Return a function can be used in a ``reduce`` operation to collect
+    ``datetime`` objects into N equally sized buckets. The object collected
+    into must support item assignment, such as a mutable mapping or sequence.
+    """
+    period = (stop - start) / segments
+
+    def collect(results, value):
+        key = int((value - start).total_seconds() / period.total_seconds())
+        results[key] = function(results[key], value)
+        return results
+
+    return collect
+
+
+def prepare_project_aggregates((_, stop), project):
     # TODO: This needs to return ``None`` for periods that don't have any data
     # (because the project is not old enough) and possibly extrapolate for
     # periods that only have partial periods.
-    period = timedelta(days=7 * 4)
-    start = stop - period
-
-    resolutions = project.group_set.filter(
-        status=GroupStatus.RESOLVED,
-        resolved_at__gte=start,
-        resolved_at__lt=stop,
-    ).values_list('resolved_at', flat=True)
-
-    periods = [0] * 4
-    for resolution in resolutions:
-        periods[int((resolution - start).total_seconds() / period.total_seconds())] += 1
-
-    return periods
+    segments = 4
+    period = timedelta(days=7)
+    start = stop - (period * segments)
+    return reduce(
+        time_series_collector(
+            lambda x, y: x + 1,
+            segments,
+            start,
+            stop,
+        ),
+        project.group_set.filter(
+            status=GroupStatus.RESOLVED,
+            resolved_at__gte=start,
+            resolved_at__lt=stop,
+        ).values_list('resolved_at', flat=True),
+        [0] * segments,
+    )
 
 
 def trim_issue_list(value):
