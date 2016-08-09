@@ -10,8 +10,12 @@ from sentry.web.frontend.base import BaseView, OrganizationView
 
 
 class ReactMixin(object):
+    def get_context(self, request):
+        # this hook is utilized by getsentry
+        return {'request': request}
+
     def handle_react(self, request):
-        context = Context({'request': request})
+        context = Context(self.get_context(request))
 
         # Force a new CSRF token to be generated and set in user's
         # Cookie. Alternatively, we could use context_processor +
