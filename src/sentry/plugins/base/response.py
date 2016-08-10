@@ -38,8 +38,11 @@ class Response(object):
 
 
 class JSONResponse(Response):
-    def __init__(self, context):
+    def __init__(self, context, status=200):
         self.context = context
+        self.status = status
 
     def respond(self, request, context=None):
-        return HttpResponse(json.dumps(self.context), content_type='application/json')
+        return HttpResponse(json.dumps(self.context),
+                            content_type='application/json',
+                            status=self.status)
