@@ -8,6 +8,7 @@ sentry.tsdb.base
 from __future__ import absolute_import
 
 import six
+from datetime import timedelta
 
 from django.conf import settings
 from django.utils import timezone
@@ -121,27 +122,42 @@ class BaseTSDB(object):
         """
         num_seconds = int(to_timestamp(end_timestamp)) - int(to_timestamp(start_timestamp))
 
-        # calculate the highest rollup within time range
+        # This loop attempts to find the smallest possible rollup that will
+        # contain both the start and end timestamps. ``self.rollups`` is
+        # ordered from the highest resolution (smallest interval) to lowest
+        # resolution (largest interval.)
+        # XXX: There is a bug here, since this function assumes that the end
+        # timestamp is always equal to or greater than the current time. If the
+        # time range is shifted far enough into the past (e.g. a 30 second
+        # window, retrieved several days after it's occurrence), this can
+        # return a rollup that has already been evicted due to TTL, even if a
+        # lower resolution representation of the range exists.
         for rollup, samples in self.rollups:
             if rollup * samples >= num_seconds:
                 return rollup
+
+        # If nothing actually matches the requested range, just return the
+        # lowest resolution interval.
         return self.rollups[-1][0]
 
     def get_optimal_rollup_series(self, start, end=None, rollup=None):
         if end is None:
             end = timezone.now()
 
-        # NOTE: "optimal" here means "able to most closely reflect the upper
-        # and lower bounds", not "able to construct the most efficient query"
         if rollup is None:
             rollup = self.get_optimal_rollup(start, end)
 
-        series = [self.normalize_to_epoch(start, rollup)]
-        end_ts = int(to_timestamp(end))
-        while series[-1] + rollup < end_ts:
-            series.append(series[-1] + rollup)
+        # This attempts to create a range with a duration as close as possible
+        # to the requested interval using the requested (or inferred) rollup
+        # resolution. This result always includes the ``end`` timestamp, but
+        # may not include the ``start`` timestamp.
+        series = []
+        timestamp = end
+        while timestamp >= start:
+            series.append(self.normalize_to_epoch(timestamp, rollup))
+            timestamp = timestamp - timedelta(seconds=rollup)
 
-        return rollup, series
+        return rollup, sorted(series)
 
     def calculate_expiry(self, rollup, samples, timestamp):
         """
@@ -174,8 +190,6 @@ class BaseTSDB(object):
     def get_range(self, model, keys, start, end, rollup=None):
         """
         To get a range of data for group ID=[1, 2, 3]:
-
-        Both ``start`` and ``end`` are inclusive.
 
         Returns a mapping of key => [(timestamp, count), ...].
 
