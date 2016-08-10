@@ -49,7 +49,7 @@ const GroupSidebar = React.createClass({
 
   renderPluginIssue() {
     let issues = [];
-    this.props.group.pluginIssues.forEach((plugin) => {
+    (this.props.group.pluginIssues || []).forEach((plugin) => {
       let issue = plugin.issue;
       if (issue) {
         issues.push(
