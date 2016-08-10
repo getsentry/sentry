@@ -376,7 +376,7 @@ def report(request):
 
     random = get_random(request)
 
-    rollup = 60 * 60 * 24 * 7
+    duration = 60 * 60 * 24 * 7
     timestamp = random.randint(
         to_timestamp(datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc)),
         to_timestamp(datetime(2016, 7, 1, 0, 0, 0, tzinfo=timezone.utc)),
@@ -403,7 +403,7 @@ def report(request):
         name='My Project',
     )
 
-    start, stop = reports._to_interval(timestamp, rollup)
+    start, stop = reports._to_interval(timestamp, duration)
 
     group_instances = {}
 
@@ -439,6 +439,7 @@ def report(request):
     def build_report():
         daily_maximum = random.randint(1000, 10000)
 
+        rollup = 60 * 60 * 24
         series = [(
             timestamp + (i * rollup),
             (random.randint(0, daily_maximum), random.randint(0, daily_maximum))
@@ -472,9 +473,10 @@ def report(request):
         html_template='sentry/emails/reports/body.html',
         text_template='sentry/emails/reports/body.txt',
         context={
+            'duration': reports.durations[duration],
             'interval': {
-                'start': start,
-                'stop': stop,
+                'start': reports.date_format(start),
+                'stop': reports.date_format(stop),
             },
             'report': reports.to_context(
                 report,

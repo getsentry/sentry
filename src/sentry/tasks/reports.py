@@ -8,7 +8,7 @@ from collections import namedtuple
 from datetime import timedelta
 from six.moves import reduce
 
-from django.utils import timezone
+from django.utils import dateformat, timezone
 
 from sentry import features
 from sentry.app import tsdb
@@ -20,6 +20,12 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
 from sentry.utils.math import mean
+
+
+date_format = functools.partial(
+    dateformat.format,
+    format_string="F jS, Y",
+)
 
 
 logger = logging.getLogger(__name__)
@@ -149,22 +155,6 @@ def prepare_project_series((start, stop), project, rollup=60 * 60 * 24):
     )
 
 
-def time_series_collector(function, segments, start, stop):
-    """
-    Return a function can be used in a ``reduce`` operation to collect
-    ``datetime`` objects into N equally sized buckets. The object collected
-    into must support item assignment, such as a mutable mapping or sequence.
-    """
-    period = (stop - start) / segments
-
-    def collect(results, value):
-        key = int((value - start).total_seconds() / period.total_seconds())
-        results[key] = function(results[key], value)
-        return results
-
-    return collect
-
-
 def prepare_project_aggregates((_, stop), project):
     # TODO: This needs to return ``None`` for periods that don't have any data
     # (because the project is not old enough) and possibly extrapolate for
@@ -172,20 +162,22 @@ def prepare_project_aggregates((_, stop), project):
     segments = 4
     period = timedelta(days=7)
     start = stop - (period * segments)
-    return reduce(
-        time_series_collector(
-            lambda x, y: x + 1,
-            segments,
+
+    def get_aggregate_value(start, stop):
+        return tsdb.get_sums(
+            tsdb.models.project,
+            (project.id,),
             start,
             stop,
-        ),
-        project.group_set.filter(
-            status=GroupStatus.RESOLVED,
-            resolved_at__gte=start,
-            resolved_at__lt=stop,
-        ).values_list('resolved_at', flat=True),
-        [0] * segments,
-    )
+            rollup=60 * 60 * 24,
+        )[project.id]
+
+    return [
+        get_aggregate_value(
+            start + (period * i),
+            start + (period * (i + 1) - timedelta(seconds=1)),
+        ) for i in range(segments)
+    ]
 
 
 def trim_issue_list(value):
@@ -351,18 +343,39 @@ def fetch_personal_statistics((start, stop), organization, user):
     }
 
 
-def build_message(interval, organization, user, report):
-    start, stop = interval
+Duration = namedtuple(
+    'Duration', (
+        'adjective',  # e.g. "daily" or "weekly",
+        'noun',       # relative to today, e.g. "yesterday" or "this week"
+    ))
 
+durations = {
+    (60 * 60 * 24 * 7): Duration(
+        'weekly',
+        'this week',
+    ),
+}
+
+
+def build_message(timestamp, duration, organization, user, report):
+    start, stop = interval = _to_interval(timestamp, duration)
+
+    duration_spec = durations[duration]
     message = MessageBuilder(
-        subject=u'Sentry Report for {}'.format(organization.name),
+        subject=u'{} Report for {}: {} - {}'.format(
+            duration_spec.adjective.title(),
+            organization.name,
+            date_format(start),
+            date_format(stop),
+        ),
         template='sentry/emails/reports/body.txt',
         html_template='sentry/emails/reports/body.html',
         type='report.organization',
         context={
+            'duration': duration_spec,
             'interval': {
-                'start': start,
-                'stop': stop,
+                'start': date_format(start),
+                'stop': date_format(stop),
             },
             'organization': organization,
             'personal': fetch_personal_statistics(
@@ -413,7 +426,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         ),
     )
 
-    message = build_message(interval, organization, user, report)
+    message = build_message(timestamp, duration, organization, user, report)
 
     if features.has('organizations:reports:deliver', organization):
         message.send()
