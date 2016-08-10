@@ -28,9 +28,10 @@ class JSONTest(TestCase):
         self.assertEquals(json.dumps(res), '["foo"]')
 
     def test_escape(self):
-        res = '<script>alert(1);</script>'
-        assert json.dumps(res) == '"<script>alert(1);</script>"'
-        assert json.dumps(res, escape=True) == '"\\u003cscript\\u003ealert(1);\\u003c/script\\u003e"'
+        res = "<script>alert('&');</script>"
+        assert json.dumps(res) == '"<script>alert(\'&\');</script>"'
+        assert json.dumps(res, escape=True) == '"\\u003cscript\\u003ealert(\\u0027\u0026\\u0027);\\u003c/script\\u003e"'
+        assert json.dumps_htmlsafe(res) == '"\\u003cscript\\u003ealert(\\u0027\u0026\\u0027);\\u003c/script\\u003e"'
 
     def test_inf(self):
         res = float('inf')

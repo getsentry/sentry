@@ -32,7 +32,7 @@
             </td>
             <td>
               <a class="btn btn-sm btn-default" href="javascript:void(0)"
-                 onclick="removeTagKey({{ tag.key|to_json }})"><span class="icon icon-trash"></span></a>
+                 onclick='removeTagKey({{ tag.key|to_json }})'><span class="icon icon-trash"></span></a>
             </td>
           </tr>
         {% endfor %}
