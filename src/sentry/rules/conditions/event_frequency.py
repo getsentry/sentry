@@ -116,7 +116,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
 
 
 class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
-    label = 'An event is seen by more than {value} unique users in {interval}'
+    label = 'An event is seen by more than {value} users in {interval}'
 
     def query(self, event, start, end):
         return self.tsdb.get_distinct_counts_totals(
