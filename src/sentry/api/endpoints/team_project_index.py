@@ -5,10 +5,12 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
-from sentry.api.bases.team import TeamEndpoint
+from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.serializers import serialize
 from sentry.models import Project, ProjectStatus, AuditLogEntryEvent
+from sentry.signals import project_created
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.samples import create_sample_event
 
 
 @scenario('ListTeamProjects')
@@ -37,8 +39,24 @@ class ProjectSerializer(serializers.Serializer):
     slug = serializers.CharField(max_length=200, required=False)
 
 
+# While currently the UI suggests teams are a parent of a project, in reality
+# the project is the core component, and which team it is on is simply an
+# attribute. Because you can already change the team of a project via mutating
+# it, and because Sentry intends to remove teams as a hierarchy item, we
+# allow you to view a teams projects, as well as create a new project as long
+# as you are a member of that team and have project scoped permissions.
+class TeamProjectPermission(TeamPermission):
+    scope_map = {
+        'GET': ['project:read', 'project:write', 'project:delete'],
+        'POST': ['project:write', 'project:delete'],
+        'PUT': ['project:write', 'project:delete'],
+        'DELETE': ['project:delete'],
+    }
+
+
 class TeamProjectIndexEndpoint(TeamEndpoint):
     doc_section = DocSection.TEAMS
+    permission_classes = (TeamProjectPermission,)
 
     @attach_scenarios([list_team_projects_scenario])
     def get(self, request, team):
@@ -110,6 +128,10 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
                 event=AuditLogEntryEvent.PROJECT_ADD,
                 data=project.get_audit_log_data(),
             )
+
+            project_created.send(project=project, user=request.user, sender=self)
+
+            create_sample_event(project, platform='javascript')
 
             return Response(serialize(project, request.user), status=201)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
