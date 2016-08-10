@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 
 import mock
 import six
-from django.utils import timezone
 
 from sentry.app import tsdb
 from sentry.rules.conditions.event_frequency import (
@@ -44,7 +43,6 @@ class FrequencyConditionMixin(object):
         rule.clear_cache(event)
         self.increment(event, 1)
 
-        now.return_value = now() + timedelta(seconds=1)
         self.assertPasses(rule, event)
 
     @mock.patch('django.utils.timezone.now')
@@ -72,7 +70,6 @@ class FrequencyConditionMixin(object):
         rule.clear_cache(event)
         self.increment(event, 1)
 
-        now.return_value = now() + timedelta(seconds=1)
         self.assertPasses(rule, event)
 
     @mock.patch('django.utils.timezone.now')
@@ -100,7 +97,6 @@ class FrequencyConditionMixin(object):
         rule.clear_cache(event)
         self.increment(event, 1)
 
-        now.return_value = now() + timedelta(seconds=1)
         self.assertPasses(rule, event)
 
     @mock.patch('django.utils.timezone.now')
@@ -119,7 +115,6 @@ class FrequencyConditionMixin(object):
         rule.clear_cache(event)
         self.increment(event, value + 1)
 
-        now.return_value = now() + timedelta(seconds=1)
         self.assertPasses(rule, event)
 
         self.assertDoesNotPass(rule, event, rule_last_active=now())
@@ -139,7 +134,6 @@ class FrequencyConditionMixin(object):
         rule.clear_cache(event)
         self.increment(event, 1)
 
-        now.return_value = now() + timedelta(seconds=1)
         self.assertPasses(rule, event)
 
 
