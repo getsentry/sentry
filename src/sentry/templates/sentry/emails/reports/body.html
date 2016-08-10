@@ -14,9 +14,8 @@
         </h1>
       </td>
       <td class="align-right">
-        <strong>Weekly Update for {{ organization.name }}</strong><br />
-        {# Note: This assumes we're always sending email on day boundaries. #}
-        {{ interval.start|date:"F j, Y" }} &ndash; {{ interval.stop|date:"F j, Y" }}
+        <strong>{{ duration.adjective|title }} Update for {{ organization.name }}</strong><br />
+        {{ interval.start }} &ndash; {{ interval.stop }}
       </td>
     </tr>
   </table>
@@ -28,11 +27,11 @@
   <table style="margin-bottom: 10px">
     <tr>
       <td>
-        <h4>Issues resolved in the past week</h4>
+          <h4>Events Seen {{ duration.noun|title }}</h4>
       </td>
       <td class="legend">
-          All <span class="all">{{ report.series.all|small_count }}</span>
-          Resolved <span class="resolved">{{ report.series.resolved|small_count }}</span>
+          <span class="all"></span> All: {{ report.series.all|small_count }}
+          <span class="resolved"></span> Resolved: {{ report.series.resolved|small_count }}
       </td>
     </tr>
   </table>
@@ -75,7 +74,7 @@
             {% endif %}
             {{ change|multiply:"100"|absolute_value|floatformat:"-1" }}%
             </div>
-            <small>{% if change >= 0 %}more{% else %}less{% endif %} than {{ label }}</small>
+            <small>{% if change >= 0 %}more{% else %}fewer{% endif %} events than {{ label }}</small>
           {% else %}
             <small class="empty">There is not enough data to compare to {{ label }}.</small>
           {% endif %}

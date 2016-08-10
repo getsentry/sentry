@@ -3,12 +3,11 @@ from __future__ import absolute_import
 import pytest
 import mock
 from django.core import mail
-from six.moves import reduce
 
 from sentry.models import Project
 from sentry.tasks.reports import (
     change, clean_series, merge_mappings, merge_sequences, merge_series,
-    safe_add, prepare_reports, time_series_collector,
+    safe_add, prepare_reports,
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.dates import to_datetime
@@ -151,38 +150,6 @@ def test_clean_series_rejects_offset_timestamp():
             rollup,
             series,
         )
-
-
-def test_time_series_collector():
-    def datetime_range(*args):
-        return [to_datetime(i) for i in range(*args)]
-
-    assert reduce(
-        time_series_collector(
-            lambda x, y: x + 1,
-            4,
-            to_datetime(0),
-            to_datetime(60),
-        ),
-        datetime_range(60),
-        [0] * 4,
-    ) == [15] * 4
-
-    assert reduce(
-        time_series_collector(
-            lambda x, y: x + [y],
-            4,
-            to_datetime(0),
-            to_datetime(60),
-        ),
-        datetime_range(60),
-        [[] for _ in range(4)]
-    ) == [
-        datetime_range(0, 15),
-        datetime_range(15, 30),
-        datetime_range(30, 45),
-        datetime_range(45, 60),
-    ]
 
 
 class ReportTestCase(TestCase):
