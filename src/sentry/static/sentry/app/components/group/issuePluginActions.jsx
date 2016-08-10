@@ -218,7 +218,8 @@ const IssuePlugin = React.createClass({
       case 'create':
         if (this.state.createFieldList) {
           form = (
-            <Form onSubmit={this.createIssue} submitLabel={t('Create Issue')}>
+            <Form onSubmit={this.createIssue} submitLabel={t('Create Issue')}
+                  footerClass="">
               {this.state.createFieldList.map((field) => {
                 return <div key={field.name}>{this.renderField('create', field)}</div>;
               })}
@@ -229,7 +230,8 @@ const IssuePlugin = React.createClass({
       case 'link':
         if (this.state.linkFieldList) {
           form = (
-            <Form onSubmit={this.linkIssue} submitLabel={t('Link Issue')}>
+            <Form onSubmit={this.linkIssue} submitLabel={t('Link Issue')}
+                  footerClass="">
               {this.state.linkFieldList.map((field) => {
                 return <div key={field.name}>{this.renderField('link', field)}</div>;
               })}
@@ -338,6 +340,12 @@ const IssuePluginActions = React.createClass({
     };
   },
 
+  ACTION_LABELS: {
+    create: t('Create New Issue'),
+    link: t('Link with Existing Issue'),
+    unlink: t('Unlink Issue')
+  },
+
   openModal(action) {
     this.setState({
       showModal: true,
@@ -368,14 +376,14 @@ const IssuePluginActions = React.createClass({
     let button;
     if (allowedActions.length === 1) {
       button = (
-        <button className="btn btn-default btn-sm"
+        <button className={'btn btn-default btn-sm btn-plugin-' + plugin.slug}
                 onClick={this.openModal.bind(this, allowedActions[0])}>
           {toTitleCase(allowedActions[0]) + ' ' + plugin.title + ' Issue'}
         </button>
       );
     } else {
       button = (
-        <div className="btn-group">
+        <div className={'btn-group btn-plugin-' + plugin.slug}>
           <DropdownLink
             caret={false}
             className="btn btn-default btn-sm"
@@ -386,7 +394,7 @@ const IssuePluginActions = React.createClass({
             {allowedActions.map(action => {
               return (
                 <MenuItem key={action} noAnchor={true}>
-                  <a onClick={this.openModal.bind(this, action)}>{toTitleCase(action)}</a>
+                  <a onClick={this.openModal.bind(this, action)}>{this.ACTION_LABELS[action]}</a>
                 </MenuItem>
               );
             })}
