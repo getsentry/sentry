@@ -19,17 +19,17 @@ from raven.contrib.django.models import client as Raven
 
 from sentry import app
 from sentry.coreapi import (
-    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper
+    APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper,
+    LazyData
 )
 from sentry.event_manager import EventManager
 from sentry.models import Project, OrganizationOption
 from sentry.signals import event_accepted, event_received
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
-from sentry.utils.csp import is_valid_csp_report
 from sentry.utils.data_scrubber import SensitiveDataFilter
 from sentry.utils.http import (
-    is_valid_origin, get_origins, is_same_domain, is_valid_ip,
+    is_valid_origin, get_origins, is_same_domain,
 )
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
@@ -116,6 +116,8 @@ class APIView(BaseView):
                 response['Retry-After'] = six.text_type(e.retry_after)
 
         except Exception as e:
+            # TODO(dcramer): test failures are not outputting the log message
+            # here
             if settings.DEBUG:
                 content = traceback.format_exc()
             else:
@@ -285,16 +287,22 @@ class StoreView(APIView):
     def process(self, request, project, auth, helper, data, **kwargs):
         metrics.incr('events.total')
 
+        if not data:
+            raise APIError('No JSON data was found')
+
+        data = LazyData(
+            data=data,
+            content_encoding=request.META.get('HTTP_CONTENT_ENCODING', ''),
+            helper=helper,
+        )
+
         remote_addr = request.META['REMOTE_ADDR']
         event_received.send_robust(
             ip=remote_addr,
             sender=type(self),
         )
 
-        if not data:
-            raise APIError('No JSON data was found')
-
-        if not is_valid_ip(remote_addr, project):
+        if helper.should_filter(project, data, ip_address=remote_addr):
             app.tsdb.incr_multi([
                 (app.tsdb.models.project_total_received, project.id),
                 (app.tsdb.models.project_total_blacklisted, project.id),
@@ -302,7 +310,7 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_blacklisted, project.organization_id),
             ])
             metrics.incr('events.blacklisted')
-            raise APIForbidden('Blacklisted IP address: %s' % (remote_addr,))
+            raise APIForbidden('Event dropped due to filter')
 
         # TODO: improve this API (e.g. make RateLimit act on __ne__)
         rate_limit = safe_execute(app.quotas.is_rate_limited, project=project,
@@ -330,17 +338,6 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_received, project.organization_id),
             ])
 
-        content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')
-
-        if isinstance(data, (six.binary_type, six.text_type)):
-            if content_encoding == 'gzip':
-                data = helper.decompress_gzip(data)
-            elif content_encoding == 'deflate':
-                data = helper.decompress_deflate(data)
-            elif data[0] != b'{':
-                data = helper.decode_and_decompress_data(data)
-            data = helper.safely_load_json_string(data)
-
         # mutates data
         data = helper.validate_data(project, data)
 
@@ -351,7 +348,7 @@ class StoreView(APIView):
 
         # mutates data
         manager = EventManager(data, version=auth.version)
-        data = manager.normalize()
+        manager.normalize()
 
         org_options = OrganizationOption.objects.get_all_values(project.organization_id)
 
@@ -482,17 +479,6 @@ class CspReportView(StoreView):
 
         if not is_valid_origin(origin, project):
             raise APIForbidden('Invalid document-uri')
-
-        # An invalid CSP report must go against quota
-        if not is_valid_csp_report(report, project):
-            app.tsdb.incr_multi([
-                (app.tsdb.models.project_total_received, project.id),
-                (app.tsdb.models.project_total_blacklisted, project.id),
-                (app.tsdb.models.organization_total_received, project.organization_id),
-                (app.tsdb.models.organization_total_blacklisted, project.organization_id),
-            ])
-            metrics.incr('events.blacklisted')
-            raise APIForbidden('Rejected CSP report')
 
         # Attach on collected meta data. This data obviously isn't a part
         # of the spec, but we need to append to the report sentry specific things.
