@@ -138,7 +138,7 @@ const BreadcrumbsInterface = React.createClass({
     return (
       <div className="breadcrumb-filter">
         <input type="text" className="search-input form-control"
-          placeholder={'search breadcrumbs'}
+          placeholder={'Search breadcrumbs...'}
           autoComplete="off"
           value={this.state.queryValue}
           onChange={this.setQuery}
