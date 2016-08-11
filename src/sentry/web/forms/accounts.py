@@ -21,7 +21,9 @@ from six.moves import range
 from sentry import options
 from sentry.app import ratelimiter
 from sentry.constants import LANGUAGES
-from sentry.models import User, UserOption, UserOptionValue
+from sentry.models import (
+    Organization, OrganizationStatus, User, UserOption, UserOptionValue
+)
 from sentry.utils.auth import find_users, logger
 from sentry.web.forms.fields import ReadOnlyTextField
 
@@ -386,6 +388,49 @@ class AppearanceSettingsForm(forms.Form):
         )
 
         return self.user
+
+
+class NotificationReportSettingsForm(forms.Form):
+    organizations = forms.ModelMultipleChoiceField(
+        queryset=Organization.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(),
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super(NotificationReportSettingsForm, self).__init__(*args, **kwargs)
+
+        org_queryset = Organization.objects.filter(
+            status=OrganizationStatus.VISIBLE,
+            member_set__user=user,
+        )
+
+        disabled_orgs = set(UserOption.objects.get_value(
+            user=user,
+            project=None,
+            key='reports:disabled-organizations',
+            default=[],
+        ))
+
+        self.fields['organizations'].queryset = org_queryset
+        self.fields['organizations'].initial = [
+            o.id for o in org_queryset
+            if o.id not in disabled_orgs
+        ]
+
+    def save(self):
+        enabled_orgs = set((
+            o.id for o in self.cleaned_data.get('organizations')
+        ))
+        UserOption.objects.set_value(
+            user=self.user,
+            project=None,
+            key='reports:disabled-organizations',
+            value=list(
+                set(self.fields['organizations'].initial).difference(enabled_orgs)
+            ),
+        )
 
 
 class NotificationSettingsForm(forms.Form):
