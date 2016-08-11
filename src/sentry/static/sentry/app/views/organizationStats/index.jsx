@@ -226,7 +226,7 @@ const OrganizationStats = React.createClass({
       value += `<br>${intcomma(rejected)} rate limited`;
     }
     if (blacklisted) {
-      value += `<br>${intcomma(blacklisted)} blacklisted`;
+      value += `<br>${intcomma(blacklisted)} filtered`;
     }
 
     return (
@@ -248,7 +248,7 @@ const OrganizationStats = React.createClass({
             three categories: Accepted, Rate Limited, and Blacklisted. Rate
             Limited events are entries that the system threw away due to quotas
             being hit, and Blacklisted events are events that were blocked
-            due to your Blacklisted IPs setting.`)}</p>
+            due to your filters.`)}</p>
           </div>
           {!this.state.statsLoading &&
             <div className="col-md-3 stats-column">
