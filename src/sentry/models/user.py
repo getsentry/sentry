@@ -7,6 +7,7 @@ sentry.models.user
 """
 from __future__ import absolute_import
 
+import logging
 import warnings
 
 from django.contrib.auth.models import AbstractBaseUser, UserManager
@@ -17,6 +18,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField
 from sentry.utils.http import absolute_uri
+
+audit_logger = logging.getLogger('sentry.audit')
 
 
 class UserManager(BaseManager, UserManager):
@@ -148,6 +151,11 @@ class User(BaseModel, AbstractBaseUser):
             GroupSeen, OrganizationMember, OrganizationMemberTeam, UserAvatar,
             UserOption
         )
+
+        audit_logger.info('user.merge', extra={
+            'from_user_id': from_user.id,
+            'to_user_id': to_user.id,
+        })
 
         for obj in OrganizationMember.objects.filter(user=from_user):
             try:
