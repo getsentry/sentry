@@ -47,6 +47,8 @@ def update_organization_scenario(runner):
 
 class OrganizationSerializer(serializers.ModelSerializer):
     projectRateLimit = serializers.IntegerField(min_value=1, max_value=100)
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=64,
+                                  required=False)
 
     class Meta:
         model = Organization

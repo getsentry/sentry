@@ -36,7 +36,8 @@ def create_project_scenario(runner):
 
 class ProjectSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=True)
-    slug = serializers.CharField(max_length=200, required=False)
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=200,
+                                  required=False)
 
 
 # While currently the UI suggests teams are a parent of a project, in reality
