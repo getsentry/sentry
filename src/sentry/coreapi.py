@@ -23,6 +23,7 @@ from gzip import GzipFile
 from six import BytesIO
 from time import time
 
+from sentry import filters
 from sentry.app import env
 from sentry.cache import default_cache
 from sentry.constants import (
@@ -31,6 +32,7 @@ from sentry.constants import (
 )
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
+from sentry.event_manager import EventManager
 from sentry.models import EventError, Project, ProjectKey, TagKey, TagValue
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json
@@ -349,6 +351,11 @@ class ClientApiHelper(object):
         # - ignore errors from legacy browsers
         if ip_address and not is_valid_ip(ip_address, project):
             return True
+
+        for filter_cls in filters.all():
+            filter_obj = filter_cls(project)
+            if filter_obj.is_enabled() and filter_obj.test(data):
+                return True
 
         return False
 
@@ -786,16 +793,21 @@ class CspApiHelper(ClientApiHelper):
 
 
 class LazyData(MutableMapping):
-    def __init__(self, data, content_encoding, helper):
+    def __init__(self, data, content_encoding, helper, project, auth, client_ip):
         self._data = data
         self._content_encoding = content_encoding
         self._helper = helper
+        self._project = project
+        self._auth = auth
+        self._client_ip = client_ip
         self._decoded = False
 
     def _decode(self):
         data = self._data
         content_encoding = self._content_encoding
         helper = self._helper
+        project = self._project
+        auth = self._auth
 
         # TODO(dcramer): CSP is passing already decoded JSON, which sort of
         # defeats the purpose of a lot of lazy evaluation. It needs refactored
@@ -811,6 +823,32 @@ class LazyData(MutableMapping):
                 data = data.decode('utf-8')
         if isinstance(data, six.text_type):
             data = helper.safely_load_json_string(data)
+
+        # We need data validation/etc to apply as part of LazyData so that
+        # if there are filters present, they can operate on a normalized
+        # version of the data
+
+        # mutates data
+        data = helper.validate_data(project, data)
+
+        if 'sdk' not in data:
+            sdk = helper.parse_client_as_sdk(auth.client)
+            if sdk:
+                data['sdk'] = sdk
+            else:
+                data['sdk'] = {}
+
+        data['sdk']['client_ip'] = self._client_ip
+
+        # we always fill in the IP so that filters and other items can
+        # access it (even if it eventually gets scrubbed)
+        helper.ensure_has_ip(
+            data, self._client_ip, set_if_missing=auth.is_public or
+            data.get('platform') in ('javascript', 'cocoa', 'objc'))
+
+        # mutates data
+        manager = EventManager(data, version=auth.version)
+        manager.normalize()
 
         self._data = data
         self._decoded = True
