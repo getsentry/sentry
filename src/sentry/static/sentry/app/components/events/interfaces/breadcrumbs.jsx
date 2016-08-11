@@ -130,7 +130,8 @@ const BreadcrumbsInterface = React.createClass({
 
   clearSearch() {
     this.setState({
-      queryValue: ''
+      queryValue: '',
+      collapsed: true
     });
   },
 
