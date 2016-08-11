@@ -191,6 +191,23 @@ def discover_sourcemap(result):
                 sourcemap = line[21:].rstrip()
 
     if sourcemap:
+        # react-native shoves a comment at the end of the
+        # sourceMappingURL line.
+        # For example:
+        #  sourceMappingURL=app.js.map/*ascii:...*/
+        # This comment is completely out of spec and no browser
+        # would support this, but we need to strip it to make
+        # people happy.
+        if '/*' in sourcemap and sourcemap[-2:] == '*/':
+            index = sourcemap.index('/*')
+            # comment definitely shouldn't be the first character,
+            # so let's just make sure of that.
+            if index == 0:
+                raise AssertionError(
+                    'react-native comment found at bad location: %d, %r' %
+                    (index, sourcemap)
+                )
+            sourcemap = sourcemap[:index]
         # fix url so its absolute
         sourcemap = urljoin(result.url, sourcemap)
 
