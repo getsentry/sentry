@@ -8,16 +8,14 @@
   <div class="event-type error">
       <h3>
         <a href="{% absolute_uri group_link %}">{{ group.data.metadata.type }}</a>
-        <small>{{ group.title|soft_break:50 }}</small>
+        <small>{{ group.data.metadata.value|truncatechars:100|soft_break:40 }}</small>
       </h3>
-      <p>{{ group.data.metadata.value }}</p>
     </div>
   {% else %}
     <div class="event-type default">
       <h3>
-        <a href="{% absolute_uri group_link %}">{{ group.message_short|soft_break:40 }}</a>
+        <a href="{% absolute_uri group_link %}">{{ group.message_short|truncatechars:40 }}</a>
       </h3>
-      <p>{{ group.title|soft_break:50 }}</p>
     </div>
   {% endif %}
 
