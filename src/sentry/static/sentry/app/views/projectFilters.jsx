@@ -1,0 +1,161 @@
+import React from 'react';
+import underscore from 'underscore';
+
+import ApiMixin from '../mixins/apiMixin';
+import IndicatorStore from '../stores/indicatorStore';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
+import {t} from '../locale';
+
+const FilterRow = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
+    data: React.PropTypes.object.isRequired,
+    onToggle: React.PropTypes.func.isRequired,
+  },
+
+  mixins: [ApiMixin],
+
+  getInitialState() {
+    return {
+      loading: false,
+      error: false,
+    };
+  },
+
+  toggle() {
+    if (this.state.loading)
+      return;
+
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    let {orgId, projectId, data} = this.props;
+    this.api.request(`/projects/${orgId}/${projectId}/filters/${data.id}/`, {
+      method: 'PUT',
+      data: {
+        active: !data.active,
+      },
+      success: (d, _, jqXHR) => {
+        this.props.onToggle(!data.active);
+        IndicatorStore.remove(loadingIndicator);
+      },
+      error: () => {
+        this.setState({
+          error: true,
+          loading: false
+        });
+        IndicatorStore.remove(loadingIndicator);
+      }
+    });
+  },
+
+  render() {
+    let data = this.props.data;
+    return (
+      <tr>
+        <td>
+          <h5>{data.name}</h5>
+        </td>
+        <td style={{textAlign: 'right'}}>
+          <input type="checkbox" checked={data.active}
+                 onChange={this.toggle} />
+        </td>
+      </tr>
+    );
+  }
+});
+
+const ProjectFilters = React.createClass({
+  mixins: [ApiMixin],
+
+  getInitialState() {
+    return {
+      loading: true,
+      error: false,
+      filterList: [],
+    };
+  },
+
+  componentDidMount() {
+    this.fetchData();
+  },
+
+  fetchData() {
+    let {orgId, projectId} = this.props.params;
+    this.api.request(`/projects/${orgId}/${projectId}/filters/`, {
+      success: (data, _, jqXHR) => {
+        this.setState({
+          error: false,
+          loading: false,
+          filterList: data
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+          loading: false
+        });
+      }
+    });
+  },
+
+  onToggleFilter(filter, active) {
+    underscore.find(this.state.filterList, (f) => f.id === filter.id).active = active;
+    this.setState({
+      filterList: this.state.filterList
+    });
+  },
+
+  renderBody() {
+    let body;
+
+    if (this.state.loading)
+      body = this.renderLoading();
+    else if (this.state.error)
+      body = <LoadingError onRetry={this.fetchData} />;
+    else
+      body = this.renderResults();
+
+    return body;
+  },
+
+  renderLoading() {
+    return (
+      <div className="box">
+        <LoadingIndicator />
+      </div>
+    );
+  },
+
+  renderResults() {
+    let {orgId, projectId} = this.props.params;
+    return (
+      <table className="table">
+        <tbody>
+          {this.state.filterList.map((filter) => {
+            return (
+              <FilterRow
+                key={filter.id}
+                data={filter}
+                orgId={orgId}
+                projectId={projectId}
+                onToggle={this.onToggleFilter.bind(this, filter)} />
+            );
+          })}
+        </tbody>
+      </table>
+    );
+  },
+
+  render() {
+    // TODO(dcramer): localize when language is final
+    return (
+      <div>
+        <h1>{t('Filters')}</h1>
+        {this.renderBody()}
+      </div>
+    );
+  }
+});
+
+export default ProjectFilters;
