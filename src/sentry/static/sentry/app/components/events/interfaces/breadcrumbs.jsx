@@ -52,7 +52,8 @@ const BreadcrumbsInterface = React.createClass({
 
   getInitialState() {
     return {
-      collapsed: true
+      collapsed: true,
+      queryValue: ''
     };
   },
 
@@ -107,6 +108,53 @@ const BreadcrumbsInterface = React.createClass({
     return crumb;
   },
 
+  setQuery(evt) {
+    this.setState({
+      queryValue: evt.target.value
+    });
+  },
+
+  filterCrumbs(crumbs, queryValue) {
+    return crumbs.filter(item => {
+      let category = item.category || '';
+      let message = item.message || '';
+      let level = item.level || '';
+      if (!message && !category && !level) {
+        return false;
+      }
+      return (message.toLowerCase().indexOf(queryValue) !== -1) ||
+              (category.toLowerCase().indexOf(queryValue) !== -1) ||
+              (level.toLowerCase().indexOf(queryValue) !== -1);
+    });
+  },
+
+  clearSearch() {
+    this.setState({
+      queryValue: ''
+    });
+  },
+
+  getSearchField() {
+    return (
+      <div className="breadcrumb-filter">
+        <input type="text" className="search-input form-control"
+          placeholder={'search breadcrumbs'}
+          autoComplete="off"
+          value={this.state.queryValue}
+          onChange={this.setQuery}
+          />
+        <span className="icon-search" />
+        {this.state.queryValue &&
+          <div>
+            <a className="search-clear-form" onClick={this.clearSearch}>
+              <span className="icon-circle-cross" />
+            </a>
+          </div>
+        }
+      </div>
+    );
+  },
+
   render() {
     let group = this.props.group;
     let evt = this.props.event;
@@ -117,6 +165,7 @@ const BreadcrumbsInterface = React.createClass({
         <h3>
           <strong>{'Breadcrumbs'}</strong>
         </h3>
+        {this.getSearchField()}
       </div>
     );
 
@@ -129,14 +178,20 @@ const BreadcrumbsInterface = React.createClass({
       all = all.slice(0).concat([virtualCrumb]);
     }
 
+    // filter breadcrumbs on text input
+    let filtered = all;
+    let queryValue = this.state.queryValue.toLowerCase();
+    if (queryValue) {
+      filtered = this.filterCrumbs(filtered, queryValue);
+    }
     // cap max number of breadcrumbs to show
-    let crumbs = all;
     const MAX = BreadcrumbsInterface.MAX_CRUMBS_WHEN_COLLAPSED;
-    if (this.state.collapsed && crumbs.length > MAX) {
-      crumbs = all.slice(-MAX);
+    let crumbs = filtered;
+    if (this.state.collapsed && filtered.length > MAX) {
+      crumbs = filtered.slice(-MAX);
     }
 
-    let numCollapsed = all.length - crumbs.length;
+    let numCollapsed = filtered.length - crumbs.length;
 
     return (
       <GroupEventDataSection

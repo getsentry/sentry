@@ -32,7 +32,7 @@ describe('BreadcrumbsInterface', function() {
                {message: 'sup', category: 'default', level: 'extreme'},
                {message: 'sup', category: 'default', level: 'extreme'}]
     }
-  }
+  };
   describe('filterCrumbs', function() {
     it('should filter crumbs based on crumb message', function() {
       const breadcrumbs = shallow(<BreadcrumbsInterface {...PROPS}/>).instance();
