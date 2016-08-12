@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import functools
 import itertools
-import json
 import logging
 import operator
 import zlib
@@ -20,7 +19,7 @@ from sentry.models import (
     Team, User
 )
 from sentry.tasks.base import instrumented_task
-from sentry.utils import redis
+from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
 from sentry.utils.math import mean
