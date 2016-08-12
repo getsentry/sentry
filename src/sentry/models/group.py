@@ -137,7 +137,7 @@ class GroupManager(BaseManager):
                 'key': key,
                 'value': value,
             }, {
-                'project_id': project_id,
+                'project': project_id,
                 'last_seen': date,
             })
 
