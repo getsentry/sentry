@@ -2,8 +2,10 @@ from __future__ import absolute_import
 
 import functools
 import itertools
+import json
 import logging
 import operator
+import zlib
 from collections import namedtuple
 from datetime import timedelta
 from six.moves import reduce
@@ -18,6 +20,7 @@ from sentry.models import (
     Team, User
 )
 from sentry.tasks.base import instrumented_task
+from sentry.utils import redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
 from sentry.utils.math import mean
@@ -238,6 +241,94 @@ def prepare_project_report(interval, project):
     )
 
 
+class ReportBackend(object):
+    def build(self, timestamp, duration, project):
+        return prepare_project_report(
+            _to_interval(timestamp, duration),
+            project,
+        )
+
+    def prepare(self, timestamp, duration, organization):
+        """
+        Build and store reports for all projects in the organization.
+        """
+        raise NotImplementedError
+
+    def fetch(self, timestamp, duration, organization, projects):
+        """
+        Fetch reports for a set of projects in the organization, returning
+        reports in the order that they were requested.
+        """
+        raise NotImplementedError
+
+
+class DummyReportBackend(ReportBackend):
+    def prepare(self, timestamp, duration, organization):
+        pass
+
+    def fetch(self, timestamp, duration, organization, projects):
+        assert all(project.organization_id == organization.id for project in projects)
+        return map(
+            functools.partial(
+                self.build,
+                timestamp,
+                duration,
+            ),
+            projects,
+        )
+
+
+class RedisReportBackend(ReportBackend):
+    version = 0
+
+    def __init__(self, cluster, ttl, namespace='r'):
+        self.cluster = cluster
+        self.ttl = ttl
+        self.namespace = namespace
+
+    def __make_key(self, timestamp, duration, organization):
+        return '{}:{}:{}:{}:{}'.format(
+            self.namespace,
+            self.version,
+            organization.id,
+            int(timestamp),
+            int(duration),
+        )
+
+    def __encode(self, report):
+        return zlib.compress(json.dumps(report))
+
+    def __decode(self, value):
+        return json.loads(zlib.decompress(value))
+
+    def prepare(self, timestamp, duration, organization):
+        reports = {}
+        for project in organization.project_set.all():
+            reports[project.id] = self.__encode(
+                self.build(timestamp, duration, project),
+            )
+
+        with self.cluster.map() as client:
+            key = self.__make_key(timestamp, duration, organization)
+            client.hmset(key, reports)
+            client.expire(key, self.ttl)
+
+    def fetch(self, timestamp, duration, organization, projects):
+        with self.cluster.map() as client:
+            result = client.hmget(
+                self.__make_key(timestamp, duration, organization),
+                [project.id for project in projects],
+            )
+
+        return list(map(self.__decode, result.value))
+
+
+backend = RedisReportBackend(
+    redis.clusters.get('default'),
+    60 * 60 * 3,
+)
+
+
 def safe_add(x, y):
     if x is not None and y is not None:
         return x + y
@@ -288,7 +379,7 @@ def prepare_organization_report(timestamp, duration, organization_id):
     if not features.has('organizations:reports:prepare', organization):
         return
 
-    # TODO: Build and store project reports here.
+    backend.prepare(timestamp, duration, organization)
 
     for user_id in organization.member_set.values_list('user_id', flat=True):
         deliver_organization_user_report.delay(
@@ -389,24 +480,21 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     if not projects:
         return
 
-    interval = _to_interval(timestamp, duration)
-
-    def fetch_report(project):
-        # TODO: Fetch reports from storage, rather than building on demand.
-        return prepare_project_report(
-            interval,
-            project,
+    message = build_message(
+        timestamp,
+        duration,
+        organization,
+        user,
+        reduce(
+            merge_reports,
+            backend.fetch(  # TODO: This should handle missing data gracefully, maybe?
+                timestamp,
+                duration,
+                organization,
+                projects,
+            ),
         )
-
-    report = reduce(
-        merge_reports,
-        map(
-            fetch_report,
-            projects,
-        ),
     )
-
-    message = build_message(timestamp, duration, organization, user, report)
 
     if features.has('organizations:reports:deliver', organization):
         message.send()
