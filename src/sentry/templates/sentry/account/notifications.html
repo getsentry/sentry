@@ -49,6 +49,14 @@
 
         <hr />
 
+        <h4>{% trans "Weekly Reports" %}</h4>
+
+        <p>{% blocktrans %}Reports contain a summary of what's happened within your organization over the last week.{% endblocktrans %}</p>
+
+        {{ reports_form.organizations|as_crispy_field }}
+
+        <hr />
+
         <h4>{% trans "Fine Tuning" %}</h4>
 
         <p>Use the settings below to fine tune notification settings per-project.</p>
