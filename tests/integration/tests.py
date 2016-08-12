@@ -19,7 +19,9 @@ from exam import fixture
 from raven import Client
 from six import StringIO
 
-from sentry.models import Group, Event
+from sentry.models import (
+    Group, GroupTagKey, GroupTagValue, Event, TagKey, TagValue
+)
 from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
 from sentry.utils.settings import (
@@ -111,6 +113,8 @@ class RavenIntegrationTest(TransactionTestCase):
     def sendRemote(self, url, data, headers={}):
         content_type = headers.pop('Content-Type', None)
         headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in six.iteritems(headers))
+        if isinstance(data, six.text_type):
+            data = data.encode('utf-8')
         resp = self.client.post(
             reverse('sentry-api-store', args=[self.pk.project_id]),
             data=data,
@@ -143,7 +147,7 @@ class SentryRemoteTest(TestCase):
         return reverse('sentry-api-store')
 
     def test_minimal(self):
-        kwargs = {'message': 'hello'}
+        kwargs = {'message': 'hello', 'tags': {'foo': 'bar'}}
 
         resp = self._postWithHeader(kwargs)
 
@@ -153,6 +157,20 @@ class SentryRemoteTest(TestCase):
         instance = Event.objects.get(event_id=event_id)
 
         assert instance.message == 'hello'
+
+        assert TagKey.objects.filter(
+            key='foo', project=self.project,
+        ).exists()
+        assert TagValue.objects.filter(
+            key='foo', value='bar', project=self.project,
+        ).exists()
+        assert GroupTagKey.objects.filter(
+            key='foo', group=instance.group_id, project=self.project,
+        ).exists()
+        assert GroupTagValue.objects.filter(
+            key='foo', value='bar', group=instance.group_id,
+            project=self.project,
+        ).exists()
 
     def test_timestamp(self):
         timestamp = timezone.now().replace(microsecond=0, tzinfo=timezone.utc) - datetime.timedelta(hours=1)

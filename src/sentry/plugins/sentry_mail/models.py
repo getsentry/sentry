@@ -87,10 +87,7 @@ class MailPlugin(NotificationPlugin):
         return absolute_uri(reverse('sentry-account-settings-notifications'))
 
     def get_project_url(self, project):
-        return absolute_uri(reverse('sentry-stream', args=[
-            project.organization.slug,
-            project.slug,
-        ]))
+        return absolute_uri('/{}/{}/'.format(project.organization.slug, project.slug))
 
     def is_configured(self, project, **kwargs):
         # Nothing to configure here

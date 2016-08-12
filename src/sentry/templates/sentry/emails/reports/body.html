@@ -1,0 +1,157 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block bodyclass %}weekly-report{% endblock %}
+
+{% block header %}
+  <table>
+    <tr>
+      <td width="125px">
+        <h1>
+          <a href="{% absolute_uri %}"><img src="{% absolute_asset_url 'sentry' 'images/email/sentry_logo_full.png' %}" width="125px" height="29px" alt="Sentry"></a>
+        </h1>
+      </td>
+      <td class="align-right">
+        <strong>{{ duration.adjective|title }} Update for {{ organization.name }}</strong><br />
+        {{ interval.start }} &ndash; {{ interval.stop }}
+      </td>
+    </tr>
+  </table>
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+  <table style="margin-bottom: 10px">
+    <tr>
+      <td>
+          <h4>Events Seen {{ duration.noun|title }}</h4>
+      </td>
+      <td class="legend">
+          <span class="all"></span> All: {{ report.series.all|small_count }}
+          <span class="resolved"></span> Resolved: {{ report.series.resolved|small_count }}
+      </td>
+    </tr>
+  </table>
+
+  <table class="issues-resolved">
+    <tr>
+      <td class="issues-resolved-column issues-resolved-column-left">
+        <table class="issue-graph">
+          <tr>
+          {% with report.series.maximum as max %}
+          {% for timestamp, metrics in report.series.points %}
+            <td valign="bottom" style="padding-right: 5px;">
+              <table class="issue-graph-bar">
+                {% if metrics.resolved and metrics.unresolved %}
+                  <tr>
+                    <td class="all" height="{% widthratio metrics.unresolved max 56 %}px" title="{{ metrics.unresolved }}">&nbsp;</td>
+                  </tr>
+                  <tr>
+                    <td class="resolved" height="{% widthratio metrics.resolved max 56 %}px" title="{{ metrics.resolved }}">&nbsp;</td>
+                  </tr>
+                {% else %}
+                  <tr><td></td></tr>
+                  <tr><td class="all baseline" height="1px">&nbsp;</td>
+                {% endif %}
+              </table>
+            </td>
+          {% endfor %}
+          {% endwith %}
+          </tr>
+        </table>
+      </td>
+      {% for label, change in report.comparisons %}
+      <td class="issues-resolved-column {% if not forloop.last %}issues-resolved-column-middle{% endif %}">
+          {% if change %}
+            <div class="stat">
+            {% if change >= 0 %}
+                <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-increase.png' %}" width="20px" height="10px">
+            {% else %}
+                <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-decrease.png' %}" width="20px" height="10px">
+            {% endif %}
+            {{ change|multiply:"100"|absolute_value|floatformat:"-1" }}%
+            </div>
+            <small>{% if change >= 0 %}more{% else %}fewer{% endif %} events than {{ label }}</small>
+          {% else %}
+            <small class="empty">There is not enough data to compare to {{ label }}.</small>
+          {% endif %}
+      </td>
+      {% endfor %}
+    </tr>
+  </table>
+
+  <table class="issue-table">
+    <thead>
+      <tr>
+        <th>
+          <h4>New and Reopened Issues {{ duration.noun|title }}</h4>
+        </th>
+        <th class="narrow-column">Events</th>
+        <th class="narrow-column">Users</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for group, statistics in report.issue_list.issues %}
+        <tr>
+          <td class="issue">
+            {% include "sentry/emails/_group.html" %}
+            <small>
+              Last seen at {{ group.last_seen }}
+              in <a href="{% absolute_uri project_link %}" class="issue-project">{{ group.project.name }}</a>
+            </small>
+          </td>
+          <td class="narrow-column">{{ statistics.events|small_count }}</td>
+          <td class="narrow-column">{{ statistics.users|small_count }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td class="empty" colspan="3">
+            {# TODO: This is probably not the best way to articulate this. #}
+            There were no issues this period.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if personal.resolved or personal.users %}
+    <h4>Your impact</h4>
+    <table class="user-impact">
+      <tr>
+        <td width="50%">
+          <table>
+            <tr>
+              <td class="user-impact-stat">{{ personal.resolved|small_count:0 }}</td>
+              <td class="user-impact-text">Issue{{ personal.resolved|pluralize }} resolved this week by you.</td>
+            </tr>
+          </table>
+        </td>
+        <td width="50%">
+          <table>
+            <tr>
+              <td class="user-impact-stat">{{ personal.users|small_count:0 }}</td>
+              <td class="user-impact-text">User{{ personal.users|pluralize }} rejoicing because of it.</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  {% endif %}
+
+  {% comment %}
+  <div class="unsubscribe-box">
+    Not enjoying these? <a>Click to unsubscribe</a>.
+  </div>
+  {% endcomment %}
+</div>
+<div class="footer">
+  <div class="container">
+    <a href="{% absolute_uri %}" style="float:right">Home</a>
+    {% url 'sentry-account-settings-notifications' as settings_link %}
+    <a href="{% absolute_uri settings_link %}">Notification Settings</a>
+  </div>
+</div>
+{% endblock %}

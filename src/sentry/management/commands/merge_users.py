@@ -2,13 +2,12 @@
 from __future__ import absolute_import, print_function
 
 import operator
-import six
 import sys
 
 from collections import defaultdict
 from django.core.management.base import BaseCommand, CommandError, make_option
 from django.db.models import Q
-from six.moves import reduce
+from six.moves import input, reduce
 
 from sentry.models import Organization, OrganizationMember, User
 
@@ -44,7 +43,7 @@ class Command(BaseCommand):
             primary_user.username,
         )
         while True:
-            response = six.input(message).strip().lower()
+            response = input(message).strip().lower()
             if response in ('y', ''):
                 return True
             elif response == 'n':

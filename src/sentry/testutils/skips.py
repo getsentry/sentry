@@ -40,7 +40,10 @@ requires_cassandra = pytest.mark.skipif(
 
 
 def has_llvm_symbolizer():
-    from symsynd.driver import find_llvm_symbolizer
+    try:
+        from symsynd.driver import find_llvm_symbolizer
+    except ImportError:
+        return False
 
     try:
         return find_llvm_symbolizer() is not None
