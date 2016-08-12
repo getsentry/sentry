@@ -8,6 +8,7 @@ from collections import namedtuple
 from datetime import timedelta
 from six.moves import reduce
 
+from django.db.models import Q
 from django.utils import dateformat, timezone
 
 from sentry import features
@@ -185,11 +186,20 @@ def trim_issue_list(value):
         value,
         key=lambda (id, statistics): statistics,
         reverse=True,
-    )[:5]
+    )[:10]
 
 
-def prepare_project_issue_list((start, stop), queryset, rollup=60 * 60 * 24):
-    issue_ids = list(queryset.values_list('id', flat=True))
+def prepare_project_issue_list(interval, project):
+    start, stop = interval
+
+    issue_ids = list(
+        project.group_set.exclude(status=GroupStatus.MUTED).filter(
+            Q(first_seen__gte=start, first_seen__lt=stop) |
+            Q(status=GroupStatus.UNRESOLVED, resolved_at__gte=start, resolved_at__lt=stop)
+        ).values_list('id', flat=True)
+    )
+
+    rollup = 60 * 60 * 24
 
     events = tsdb.get_sums(
         tsdb.models.group,
@@ -213,35 +223,6 @@ def prepare_project_issue_list((start, stop), queryset, rollup=60 * 60 * 24):
     )
 
 
-def prepare_project_issue_lists(interval, project):
-    start, stop = interval
-    queryset = project.group_set.exclude(status=GroupStatus.MUTED)
-    return (
-        prepare_project_issue_list(
-            interval,
-            queryset.filter(
-                first_seen__gte=start,
-                first_seen__lt=stop,
-            ),
-        ),
-        prepare_project_issue_list(
-            interval,
-            queryset.filter(
-                status=GroupStatus.UNRESOLVED,
-                resolved_at__gte=start,
-                resolved_at__lt=stop,
-            ),
-        ),
-        prepare_project_issue_list(
-            interval,
-            queryset.filter(
-                last_seen__gte=start,
-                last_seen__lt=stop,
-            ),
-        ),
-    )
-
-
 def merge_issue_lists(target, other):
     return (
         target[0] + other[0],
@@ -253,7 +234,7 @@ def prepare_project_report(interval, project):
     return (
         prepare_project_series(interval, project),
         prepare_project_aggregates(interval, project),
-        prepare_project_issue_lists(interval, project),
+        prepare_project_issue_list(interval, project),
     )
 
 
@@ -280,10 +261,9 @@ def merge_reports(target, other):
             other[1],
             safe_add,
         ),
-        merge_sequences(
+        merge_issue_lists(
             target[2],
             other[2],
-            merge_issue_lists,
         ),
     )
 
@@ -460,7 +440,7 @@ Point = namedtuple('Point', 'resolved unresolved')
 
 
 def to_context(report, fetch_groups=None):
-    series, aggregates, issue_lists = report
+    series, aggregates, issue_list = report
     series = [(timestamp, Point(*values)) for timestamp, values in series]
 
     return {
@@ -477,9 +457,8 @@ def to_context(report, fetch_groups=None):
                 mean(aggregates) if all(v is not None for v in aggregates) else None,
             )),
         ],
-        'issues': (
-            ('New Issues', rewrite_issue_list(issue_lists[0], fetch_groups)),
-            ('Reintroduced Issues', rewrite_issue_list(issue_lists[1], fetch_groups)),
-            ('Most Frequently Seen Issues', rewrite_issue_list(issue_lists[2], fetch_groups)),
+        'issue_list': rewrite_issue_list(
+            issue_list,
+            fetch_groups,
         ),
     }

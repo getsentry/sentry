@@ -83,41 +83,39 @@
     </tr>
   </table>
 
-  {% for label, issues in report.issues %}
-    <table class="issue-table">
-      <thead>
+  <table class="issue-table">
+    <thead>
+      <tr>
+        <th>
+          <h4>New and Reopened Issues {{ duration.noun|title }}</h4>
+        </th>
+        <th class="narrow-column">Events</th>
+        <th class="narrow-column">Users</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for group, statistics in report.issue_list.issues %}
         <tr>
-          <th>
-            <h4>{{ label }} ({{ issues.count }})</h4>
-          </th>
-          <th class="narrow-column">Events</th>
-          <th class="narrow-column">Users</th>
+          <td class="issue">
+            {% include "sentry/emails/_group.html" %}
+            <small>
+              Last seen at {{ group.last_seen }}
+              in <a href="{% absolute_uri project_link %}" class="issue-project">{{ group.project.name }}</a>
+            </small>
+          </td>
+          <td class="narrow-column">{{ statistics.events|small_count }}</td>
+          <td class="narrow-column">{{ statistics.users|small_count }}</td>
         </tr>
-      </thead>
-      <tbody>
-        {% for group, statistics in issues.issues %}
-          <tr>
-            <td class="issue">
-              {% include "sentry/emails/_group.html" %}
-              <small>
-                Last seen at {{ group.last_seen }}
-                in <a href="{% absolute_uri project_link %}" class="issue-project">{{ group.project.name }}</a>
-              </small>
-            </td>
-            <td class="narrow-column">{{ statistics.events|small_count }}</td>
-            <td class="narrow-column">{{ statistics.users|small_count }}</td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td class="empty" colspan="3">
-              {# TODO: This is probably not the best way to articulate this. #}
-              There were no issues this period.
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% endfor %}
+      {% empty %}
+        <tr>
+          <td class="empty" colspan="3">
+            {# TODO: This is probably not the best way to articulate this. #}
+            There were no issues this period.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 
   {% if personal.resolved or personal.users %}
     <h4>Your impact</h4>
