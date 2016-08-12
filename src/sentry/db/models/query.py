@@ -70,7 +70,6 @@ def create_or_update(model, using=None, **kwargs):
 
     objects = model.objects.using(using)
 
-    # TODO(dcramer): support _id shortcut on filter kwargs
     affected = objects.filter(**kwargs).update(**values)
     if affected:
         return affected, False
@@ -82,7 +81,11 @@ def create_or_update(model, using=None, **kwargs):
             create_kwargs[k] = resolve_expression_node(inst, v)
         else:
             create_kwargs[k] = v
+
     for k, v in six.iteritems(defaults):
+        # XXX(dcramer): we want to support column shortcut on create so
+        # we can do create_or_update(..., {'project': 1})
+        k = model._meta.get_field(k).column
         if isinstance(v, ExpressionNode):
             create_kwargs[k] = resolve_expression_node(inst, v)
         else:
