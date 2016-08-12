@@ -449,7 +449,7 @@ def report(request):
             random.randint(0, daily_maximum * 7) if random.random() < 0.9 else None for _ in xrange(0, 4)
         ]
 
-        issue_lists = [build_issue_list() for _ in range(0, 3)]
+        issue_lists = build_issue_list()
 
         return series, aggregates, issue_lists
 
