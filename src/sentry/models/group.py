@@ -134,10 +134,10 @@ class GroupManager(BaseManager):
                 'times_seen': 1,
             }, {
                 'group_id': group.id,
-                'project_id': project_id,
                 'key': key,
                 'value': value,
             }, {
+                'project_id': project_id,
                 'last_seen': date,
             })
 
