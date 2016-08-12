@@ -113,6 +113,10 @@ const Frame = React.createClass({
     }
   },
 
+  preventCollapse(evt) {
+    evt.stopPropagation();
+  },
+
   renderDefaultTitle() {
     let data = this.props.data;
     let title = [];
@@ -133,7 +137,7 @@ const Frame = React.createClass({
         </code>
       ));
       if (isUrl(data.absPath)) {
-        title.push(<a href={data.absPath} className="icon-open" key="share" target="_blank" />);
+        title.push(<a href={data.absPath} className="icon-open" key="share" target="_blank" onClick={this.preventCollapse}/>);
       }
       if (defined(data.function)) {
         title.push(<span className="in-at" key="in"> in </span>);

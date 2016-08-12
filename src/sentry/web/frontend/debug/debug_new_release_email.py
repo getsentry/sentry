@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
 from django.views.generic import View
 from hashlib import sha1
 from uuid import uuid4
@@ -42,10 +41,10 @@ class DebugNewReleaseEmailView(View):
             release.version,
         ))
 
-        project_link = absolute_uri(reverse('sentry-stream', kwargs={
-            'organization_slug': org.slug,
-            'project_id': project.slug,
-        }))
+        project_link = absolute_uri('/{}/{}/'.format(
+            org.slug,
+            project.slug,
+        ))
 
         return MailPreview(
             html_template='sentry/emails/activity/release.html',

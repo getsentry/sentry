@@ -4,6 +4,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../../components/dropdownLink';
 import GroupState from '../../mixins/groupState';
 import IndicatorStore from '../../stores/indicatorStore';
+import IssuePluginActions from '../../components/group/issuePluginActions';
 import MenuItem from '../../components/menuItem';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import TooltipMixin from '../../mixins/tooltip';
@@ -223,6 +224,9 @@ const GroupActions = React.createClass({
             );
           })
         }
+        {group.pluginIssues && group.pluginIssues.map((plugin) => {
+          return <IssuePluginActions key={plugin.slug} plugin={plugin}/>;
+        })}
       </div>
     );
   }

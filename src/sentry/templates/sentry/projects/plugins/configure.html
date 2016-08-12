@@ -39,7 +39,11 @@
                     <a class="close" data-dismiss="alert" href="javascript:void(0)">&times;</a>
                 </div>
             {% endif %}
-            {{ view }}
+            {% if view %}
+                {{ view }}
+            {% else %}
+                <div id="issue_plugins"></div>
+            {% endif %}
         </div>
         <div class="col-md-4 col-md-offset-1">
             <div class="plugin-meta">
@@ -75,4 +79,16 @@
             </div>
         </div>
     </div>
+
+    {% if issue_v2_plugin %}
+        <script>
+        $(function(){
+            ReactDOM.render(React.createFactory(Sentry.IssuePluginConfigForm)({
+                project: {% serialize project %},
+                organization: {% serialize organization %},
+                plugin: {% serialize issue_v2_plugin %}
+            }), document.getElementById('issue_plugins'));
+        });
+        </script>
+    {% endif %}
 {% endblock %}

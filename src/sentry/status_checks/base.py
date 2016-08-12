@@ -2,10 +2,13 @@ from __future__ import absolute_import
 
 import six
 
+from functools import total_ordering
+
 from sentry.utils.compat import implements_to_string
 
 
 @implements_to_string
+@total_ordering
 class Problem(object):
 
     # Used for issues that may render the system inoperable or have effects on
@@ -32,14 +35,11 @@ class Problem(object):
         self.severity = severity
         self.url = url
 
-    def __cmp__(self, other):
-        if not isinstance(other, Problem):
-            return NotImplemented
+    def __eq__(self, other):
+        return self.SEVERITY_LEVELS[self.severity] == self.SEVERITY_LEVELS[other.severity]
 
-        return six.cmp(
-            self.SEVERITY_LEVELS[self.severity],
-            self.SEVERITY_LEVELS[other.severity],
-        )
+    def __lt__(self, other):
+        return self.SEVERITY_LEVELS[self.severity] < self.SEVERITY_LEVELS[other.severity]
 
     def __str__(self):
         return self.message

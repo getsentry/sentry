@@ -15,7 +15,7 @@ export default class BooleanField extends InputField {
       <input id={this.getId()}
           type={this.getType()}
           style={{marginLeft: '10px'}}
-          onChange={this.onChange}
+          onChange={this.onChange.bind(this)}
           disabled={this.props.disabled}
           defaultChecked={this.state.value} />
     );

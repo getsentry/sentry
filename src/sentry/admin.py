@@ -16,7 +16,7 @@ from django.template.response import TemplateResponse
 from django.utils.translation import ugettext, ugettext_lazy as _
 from pprint import saferepr
 from sentry.models import (
-    ApiKey, AuthIdentity, AuthProvider, AuditLogEntry, Broadcast, HelpPage,
+    ApiKey, AuthIdentity, AuthProvider, AuditLogEntry, Broadcast,
     Option, Organization, OrganizationMember, OrganizationMemberTeam, Project,
     Team, User
 )
@@ -336,11 +336,3 @@ class AuditLogEntryAdmin(admin.ModelAdmin):
                        'target_user', 'event', 'ip_address', 'data', 'datetime')
 
 admin.site.register(AuditLogEntry, AuditLogEntryAdmin)
-
-
-class HelpPageAdmin(admin.ModelAdmin):
-    list_display = ('title', 'is_visible', 'priority')
-    list_filter = ('is_visible',)
-    search_fields = ('title', 'content')
-
-admin.site.register(HelpPage, HelpPageAdmin)

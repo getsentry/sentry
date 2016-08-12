@@ -129,3 +129,8 @@ class EmailTestCase(AcceptanceTestCase):
         self.browser.get(self.build_url('/debug/mail/digest/', 'txt'))
         self.browser.wait_until('#preview')
         self.browser.snapshot('digest email txt')
+
+    def test_report_html(self):
+        self.browser.get(self.build_url('/debug/mail/report/'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('report email html')

@@ -59,6 +59,18 @@ truncatechars.is_safe = True
 register.filter(to_json)
 
 
+@register.filter
+def multiply(x, y):
+    def coerce(value):
+        if isinstance(value, (int, long, float)):
+            return value
+        try:
+            return int(value)
+        except ValueError:
+            return float(value)
+    return coerce(x) * coerce(y)
+
+
 @register.simple_tag
 def absolute_uri(path='', *args):
     from sentry.utils.http import absolute_uri
@@ -96,6 +108,11 @@ def subtract(value, amount):
 
 
 @register.filter
+def absolute_value(value):
+    return abs(int(value) if isinstance(value, (int, long)) else float(value))
+
+
+@register.filter
 def has_charts(group):
     from sentry.utils.db import has_charts
     if hasattr(group, '_state'):
@@ -111,7 +128,7 @@ def as_sorted(value):
 
 
 @register.filter
-def small_count(v):
+def small_count(v, precision=1):
     if not v:
         return 0
     z = [
@@ -125,7 +142,7 @@ def small_count(v):
         if o:
             if len(six.text_type(o)) > 2 or not p:
                 return '%d%s' % (o, y)
-            return '%.1f%s' % (v / float(x), y)
+            return ('%.{}f%s'.format(precision)) % (v / float(x), y)
     return v
 
 

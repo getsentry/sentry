@@ -18,11 +18,10 @@
 
 {% block main %}
     <h2 style="margin-bottom: 15px">
-        {% url 'sentry-stream' group.project.organization.slug group.project.slug as project_link %}
         {% if group.times_seen == 1 %}
-            New Issue on <a href="{% absolute_uri project_link %}">{{ project_label }}</a>
+            New Issue on <a href="{% absolute_uri '/{}/{}/' group.project.organization.slug group.project.slug %}">{{ project_label }}</a>
         {% else %}
-            Regression on <a href="{% absolute_uri project_link %}">{{ project_label }}</a>
+            Regression on <a href="{% absolute_uri '/{}/{}/' group.project.organization.slug group.project.slug %}">{{ project_label }}</a>
         {% endif %}
     </h2>
 

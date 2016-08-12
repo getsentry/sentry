@@ -207,6 +207,13 @@ class DiscoverSourcemapTest(TestCase):
         result = UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js\n//# sourceMappingURL=http://example.com/source2.map.js')
         assert discover_sourcemap(result) == 'http://example.com/source2.map.js'
 
+        result = UrlResult('http://example.com', {}, '//# sourceMappingURL=app.map.js/*ascii:lol*/')
+        assert discover_sourcemap(result) == 'http://example.com/app.map.js'
+
+        result = UrlResult('http://example.com', {}, '//# sourceMappingURL=/*lol*/')
+        with self.assertRaises(AssertionError):
+            discover_sourcemap(result)
+
 
 class GenerateModuleTest(TestCase):
     def test_simple(self):

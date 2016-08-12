@@ -371,6 +371,123 @@ def digest(request):
 
 
 @login_required
+def report(request):
+    from sentry.tasks import reports
+
+    random = get_random(request)
+
+    duration = 60 * 60 * 24 * 7
+    timestamp = random.randint(
+        to_timestamp(datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc)),
+        to_timestamp(datetime(2016, 7, 1, 0, 0, 0, tzinfo=timezone.utc)),
+    )
+
+    organization = Organization(
+        id=1,
+        slug='example',
+        name='Example',
+    )
+
+    team = Team(
+        id=1,
+        slug='example',
+        name='Example',
+        organization=organization,
+    )
+
+    project = Project(
+        id=1,
+        organization=organization,
+        team=team,
+        slug='project',
+        name='My Project',
+    )
+
+    start, stop = reports._to_interval(timestamp, duration)
+
+    group_instances = {}
+
+    def fetch_group_instances(id_list):
+        results = {}
+        for id in id_list:
+            instance = group_instances.get(id)
+            if instance is not None:
+                results[id] = instance
+        return results
+
+    group_generator = make_group_generator(random, project)
+
+    def make_group_id_generator():
+        while True:
+            group = next(group_generator)
+            if random.random() < 0.95:
+                group_instances[group.id] = group
+            yield group.id
+
+    group_id_sequence = make_group_id_generator()
+
+    def build_issue_list():
+        count = random.randint(0, int(random.paretovariate(0.4)))
+        return count, [(
+            next(group_id_sequence),
+            (
+                int(random.paretovariate(0.3)),
+                int(random.paretovariate(0.3)),
+            ),
+        ) for _ in xrange(0, min(count, 5))]
+
+    def build_report():
+        daily_maximum = random.randint(1000, 10000)
+
+        rollup = 60 * 60 * 24
+        series = [(
+            timestamp + (i * rollup),
+            (random.randint(0, daily_maximum), random.randint(0, daily_maximum))
+        ) for i in xrange(0, 7)]
+
+        aggregates = [
+            random.randint(0, daily_maximum * 7) if random.random() < 0.9 else None for _ in xrange(0, 4)
+        ]
+
+        return series, aggregates, build_issue_list()
+
+    report = reduce(
+        reports.merge_reports,
+        [build_report() for _ in xrange(0, random.randint(1, 3))]
+    )
+
+    if random.random() < 0.85:
+        personal = {
+            'resolved': random.randint(0, 100),
+            'users': int(random.paretovariate(0.2)),
+        }
+    else:
+        personal = {
+            'resolved': 0,
+            'users': 0,
+        }
+
+    return MailPreview(
+        html_template='sentry/emails/reports/body.html',
+        text_template='sentry/emails/reports/body.txt',
+        context={
+            'duration': reports.durations[duration],
+            'interval': {
+                'start': reports.date_format(start),
+                'stop': reports.date_format(stop),
+            },
+            'report': reports.to_context(
+                report,
+                fetch_group_instances,
+            ),
+            'organization': organization,
+            'personal': personal,
+            'user': request.user,
+        },
+    ).render(request)
+
+
+@login_required
 def request_access(request):
     org = Organization(
         id=1,
