@@ -307,6 +307,12 @@ class RedisReportBackend(ReportBackend):
                 self.build(timestamp, duration, project),
             )
 
+        if not reports:
+            # XXX: HMSET requires at least one key/value pair, so we need to
+            # protect ourselves here against organizations that were created
+            # but haven't set up any projects yet.
+            return
+
         with self.cluster.map() as client:
             key = self.__make_key(timestamp, duration, organization)
             client.hmset(key, reports)
