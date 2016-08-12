@@ -15,7 +15,7 @@ from sentry import features
 from sentry.app import tsdb
 from sentry.models import (
     Activity, Group, GroupStatus, Organization, OrganizationStatus, Project,
-    Team, User
+    Team, User, UserOption,
 )
 from sentry.tasks.base import instrumented_task
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
@@ -373,12 +373,37 @@ def build_message(timestamp, duration, organization, user, report):
     return message
 
 
+DISABLED_ORGANIZATIONS_USER_OPTION_KEY = 'reports:disabled-organizations'
+
+
+def user_subscribed_to_organization_reports(user, organization):
+    return organization.id not in UserOption.objects.get_value(
+        user=user,
+        project=None,
+        key=DISABLED_ORGANIZATIONS_USER_OPTION_KEY,
+        default=[],
+    )
+
+
+class Skipped(object):
+    NotSubscribed = object()
+    NoProjects = object()
+
+
 @instrumented_task(
     name='sentry.tasks.reports.deliver_organization_user_report',
     queue='reports.deliver')
 def deliver_organization_user_report(timestamp, duration, organization_id, user_id):
     organization = _get_organization_queryset().get(id=organization_id)
     user = User.objects.get(id=user_id)
+
+    if not user_subscribed_to_organization_reports(user, organization):
+        logger.debug(
+            'Skipping report for %r to %r, user is not subscribed to reports.',
+            organization,
+            user,
+        )
+        return Skipped.NotSubscribed
 
     projects = set()
     for team in Team.objects.get_for_user(organization, user):
@@ -387,7 +412,12 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         )
 
     if not projects:
-        return
+        logger.debug(
+            'Skipping report for %r to %r, user is not associated with any projects.',
+            organization,
+            user,
+        )
+        return Skipped.NoProjects
 
     interval = _to_interval(timestamp, duration)
 

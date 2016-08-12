@@ -1,13 +1,17 @@
 from __future__ import absolute_import
 
-import pytest
+import functools
+
 import mock
+import pytest
 from django.core import mail
 
-from sentry.models import Project
+from sentry.models import Project, UserOption
 from sentry.tasks.reports import (
-    change, clean_series, merge_mappings, merge_sequences, merge_series,
-    safe_add, prepare_reports,
+    DISABLED_ORGANIZATIONS_USER_OPTION_KEY, Skipped, change, clean_series,
+    deliver_organization_user_report, merge_mappings, merge_sequences,
+    merge_series, prepare_reports, safe_add,
+    user_subscribed_to_organization_reports
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.dates import to_datetime
@@ -175,3 +179,48 @@ class ReportTestCase(TestCase):
 
             message = mail.outbox[0]
             assert self.organization.name in message.subject
+
+    def test_deliver_organization_user_report_respects_settings(self):
+        user = self.user
+        organization = self.organization
+
+        set_option_value = functools.partial(
+            UserOption.objects.set_value,
+            user,
+            None,
+            DISABLED_ORGANIZATIONS_USER_OPTION_KEY,
+        )
+
+        deliver_report = functools.partial(
+            deliver_organization_user_report,
+            0,
+            60 * 60 * 24 * 7,
+            organization.id,
+            user.id,
+        )
+
+        set_option_value([])
+        assert deliver_report() is not Skipped.NotSubscribed
+
+        set_option_value([organization.id])
+        assert deliver_report() is Skipped.NotSubscribed
+
+    def test_user_subscribed_to_organization_reports(self):
+        user = self.user
+        organization = self.organization
+
+        set_option_value = functools.partial(
+            UserOption.objects.set_value,
+            user,
+            None,
+            DISABLED_ORGANIZATIONS_USER_OPTION_KEY,
+        )
+
+        set_option_value([])
+        assert user_subscribed_to_organization_reports(user, organization) is True
+
+        set_option_value([-1])
+        assert user_subscribed_to_organization_reports(user, organization) is True
+
+        set_option_value([organization.id])
+        assert user_subscribed_to_organization_reports(user, organization) is False
