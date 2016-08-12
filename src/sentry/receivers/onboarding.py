@@ -43,6 +43,9 @@ def check_for_onboarding_complete(organization):
 
 @project_created.connect(weak=False)
 def record_new_project(project, user, **kwargs):
+    if not user.is_authenticated():
+        user = None
+
     try:
         with transaction.atomic():
             OrganizationOnboardingTask.objects.create(
