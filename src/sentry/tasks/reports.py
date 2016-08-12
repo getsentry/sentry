@@ -407,7 +407,7 @@ def user_subscribed_to_organization_reports(user, organization):
     )
 
 
-class Skipped:
+class Skipped(object):
     NotSubscribed = object()
     NoProjects = object()
 
