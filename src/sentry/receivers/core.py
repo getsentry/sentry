@@ -159,7 +159,7 @@ def record_project_tag_count(filters, created, **kwargs):
 
 
 @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
-def record_group_tag_count(filters, created, **kwargs):
+def record_group_tag_count(filters, created, extra, **kwargs):
     from sentry import app
 
     if not created:
@@ -168,7 +168,7 @@ def record_group_tag_count(filters, created, **kwargs):
     # TODO(dcramer): remove in 7.6.x
     project_id = filters.get('project_id')
     if not project_id:
-        project_id = filters['project'].id
+        project_id = extra['project']
 
     group_id = filters.get('group_id')
     if not group_id:
