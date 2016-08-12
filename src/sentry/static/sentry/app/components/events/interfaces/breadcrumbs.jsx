@@ -73,10 +73,9 @@ const BreadcrumbsInterface = React.createClass({
 
   renderNoMatch() {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
-        <p>{'Sorry, no breadcrumbs match your search query.'}</p>
-      </div>    
+      <li className="crumb-empty">
+        <p><span className="icon icon-exclamation" /> {'Sorry, no breadcrumbs match your search query.'}</p>
+      </li>
     );
   },
 

@@ -2256,6 +2256,21 @@ ul.crumbs {
       }
     }
 
+    &.crumb-empty {
+      text-align: center;
+      padding: 14px 0;
+
+      &:before {
+        display: none;
+      }
+
+      .icon {
+        opacity: .4;
+        margin-right: 4px;
+        vertical-align: text-bottom;
+      }
+    }
+
     &.crumb-last {
       &:before {
          bottom: auto;
