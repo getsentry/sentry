@@ -8,9 +8,11 @@ sentry.db.models.query
 
 from __future__ import absolute_import
 
+import itertools
 import six
 
 from django.db import IntegrityError, router, transaction
+from django.db.models import Model
 from django.db.models.expressions import ExpressionNode
 from django.db.models.signals import post_save
 
@@ -76,16 +78,11 @@ def create_or_update(model, using=None, **kwargs):
 
     create_kwargs = kwargs.copy()
     inst = objects.model()
-    for k, v in six.iteritems(values):
-        if isinstance(v, ExpressionNode):
-            create_kwargs[k] = resolve_expression_node(inst, v)
-        else:
-            create_kwargs[k] = v
-
-    for k, v in six.iteritems(defaults):
+    for k, v in itertools.chain(six.iteritems(values), six.iteritems(defaults)):
         # XXX(dcramer): we want to support column shortcut on create so
         # we can do create_or_update(..., {'project': 1})
-        k = model._meta.get_field(k).column
+        if not isinstance(v, Model):
+            k = model._meta.get_field(k).column
         if isinstance(v, ExpressionNode):
             create_kwargs[k] = resolve_expression_node(inst, v)
         else:
