@@ -4,7 +4,7 @@ import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
 import Breadcrumb from 'app/components/events/interfaces/breadcrumbs/breadcrumb';
 
 describe('BreadcrumbsInterface', function() {
-  const PROPS =  {
+  const PROPS = {
     group: {
       id: '1'
     },

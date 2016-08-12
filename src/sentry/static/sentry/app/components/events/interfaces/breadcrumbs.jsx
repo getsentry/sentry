@@ -1,9 +1,8 @@
 import React from 'react';
-
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
-
 import Breadcrumb from './breadcrumbs/breadcrumb';
+import {t} from '../../../locale';
 
 function Collapsed(props) {
   return (
@@ -74,7 +73,7 @@ const BreadcrumbsInterface = React.createClass({
   renderNoMatch() {
     return (
       <li className="crumb-empty">
-        <p><span className="icon icon-exclamation" /> {'Sorry, no breadcrumbs match your search query.'}</p>
+        <p><span className="icon icon-exclamation" /> {t('Sorry, no breadcrumbs match your search query.')}</p>
       </li>
     );
   },
@@ -124,15 +123,11 @@ const BreadcrumbsInterface = React.createClass({
 
   filterCrumbs(crumbs, queryValue) {
     return crumbs.filter(item => {
-      let category = item.category || '';
-      let message = item.message || '';
-      let level = item.level || '';
-      if (!message && !category && !level) {
-        return false;
-      }
-      return (message.toLowerCase().indexOf(queryValue) !== -1) ||
-              (category.toLowerCase().indexOf(queryValue) !== -1) ||
-              (level.toLowerCase().indexOf(queryValue) !== -1);
+      // return true if any of category, message, or level contain queryValue
+      return !!['category', 'message', 'level'].find(prop => {
+        let propValue = (item[prop] || '').toLowerCase();
+        return propValue.includes(queryValue);
+      });
     });
   },
 
@@ -147,7 +142,7 @@ const BreadcrumbsInterface = React.createClass({
     return (
       <div className="breadcrumb-filter">
         <input type="text" className="search-input form-control"
-          placeholder={'Search breadcrumbs...'}
+          placeholder={t('Search breadcrumbs...')}
           autoComplete="off"
           value={this.state.queryValue}
           onChange={this.setQuery}
@@ -188,11 +183,11 @@ const BreadcrumbsInterface = React.createClass({
     }
 
     // filter breadcrumbs on text input
-    let filtered = all;
-    let queryValue = this.state.queryValue.toLowerCase();
-    if (queryValue) {
-      filtered = this.filterCrumbs(filtered, queryValue);
-    }
+    let {queryValue} = this.state;
+    let filtered = queryValue
+      ? this.filterCrumbs(all, queryValue.toLowerCase())
+        : all;
+
     // cap max number of breadcrumbs to show
     const MAX = BreadcrumbsInterface.MAX_CRUMBS_WHEN_COLLAPSED;
     let crumbs = filtered;
