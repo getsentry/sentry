@@ -57,10 +57,10 @@ def resolve_expression_node(instance, node):
 def slugify_instance(inst, label, reserved=(), max_length=30, *args, **kwargs):
     base_slug = slugify(label)[:max_length]
 
-    if base_slug in reserved:
-        base_slug = None
-    elif base_slug is not None:
+    if base_slug is not None:
         base_slug = base_slug.strip()
+        if base_slug in reserved:
+            base_slug = None
 
     if not base_slug:
         base_slug = uuid4().hex[:12]
