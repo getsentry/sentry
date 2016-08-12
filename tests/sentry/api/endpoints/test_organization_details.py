@@ -93,7 +93,7 @@ class OrganizationDeleteTest(APITestCase):
 
         mock_delete_organization.delay.assert_called_once_with(
             object_id=org.id,
-            countdown=3600,
+            countdown=86400,
         )
 
     def test_cannot_remove_as_admin(self):
