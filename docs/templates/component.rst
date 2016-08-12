@@ -1,9 +1,9 @@
 =========
 Component
 =========
-Component docmuents are meant to sit in the root of a directory in ``src/sentry/``, named
+Component documents are meant to sit in the root of a directory in ``src/sentry/``, named
 ``README.rst``, and act as a guide to what the component is for. Below is an annotated
-example of a componemt named ``toaster``.
+example of a component named ``toaster``.
 
 #####
 
@@ -56,7 +56,7 @@ This is meant for the components that are implemented via different technology
 Single Unit
 ~~~~~~~~~~~
 The single unit is a compact toaster whose responsibility is solely toasting.
-It is a cheap unit, it does it’s job, and it is easy to replace in the event of a failure.
+It is a cheap unit, it does its job, and it is easy to replace in the event of a failure.
 
 Toaster Oven
 ~~~~~~~~~~~~
