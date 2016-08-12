@@ -71,6 +71,15 @@ const BreadcrumbsInterface = React.createClass({
     }).reverse(); // un-reverse rendered result
   },
 
+  renderNoMatch() {
+    return (
+      <div className="box empty-stream">
+        <span className="icon icon-exclamation" />
+        <p>{'Sorry, no breadcrumbs match your search query.'}</p>
+      </div>    
+    );
+  },
+
   getVirtualCrumb() {
     let evt = this.props.event;
     let crumb;
@@ -194,6 +203,12 @@ const BreadcrumbsInterface = React.createClass({
 
     let numCollapsed = filtered.length - crumbs.length;
 
+    let crumbContent;
+    if (crumbs.length) {
+      crumbContent = this.renderBreadcrumbs(crumbs);
+    } else if (all.length) {
+      crumbContent = this.renderNoMatch();
+    }
     return (
       <GroupEventDataSection
           className="breadcrumb-box"
@@ -204,7 +219,7 @@ const BreadcrumbsInterface = React.createClass({
           wrapTitle={false}>
         <ul className="crumbs">
           {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
-          {this.renderBreadcrumbs(crumbs)}
+          {crumbContent}
         </ul>
       </GroupEventDataSection>
     );
