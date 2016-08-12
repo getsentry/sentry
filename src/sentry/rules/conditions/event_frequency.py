@@ -8,9 +8,8 @@ sentry.rules.conditions.event_frequency
 
 from __future__ import absolute_import
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django import forms
-from pytz import utc
 
 from django.utils import timezone
 from sentry.rules.conditions.base import EventCondition
@@ -34,16 +33,16 @@ class EventFrequencyForm(forms.Form):
     }))
 
 
-class EventFrequencyCondition(EventCondition):
+class BaseEventFrequencyCondition(EventCondition):
     form_cls = EventFrequencyForm
-    label = 'An event is seen more than {value} times in {interval}'
+    label = NotImplemented  # subclass must implement
 
     def __init__(self, *args, **kwargs):
         from sentry.app import tsdb
 
         self.tsdb = kwargs.pop('tsdb', tsdb)
 
-        super(EventFrequencyCondition, self).__init__(*args, **kwargs)
+        super(BaseEventFrequencyCondition, self).__init__(*args, **kwargs)
 
     def passes(self, event, state):
         # when a rule is not active (i.e. it hasnt gone from inactive -> active)
@@ -74,13 +73,18 @@ class EventFrequencyCondition(EventCondition):
     def clear_cache(self, event):
         event._rate_cache = {}
 
+    def query(self, event, start, end):
+        """
+        """
+        raise NotImplementedError  # subclass must implement
+
     def get_rate(self, event, interval):
         if not hasattr(event, '_rate_cache'):
             event._rate_cache = {}
 
         result = event._rate_cache.get(interval)
         if result is None:
-            end = datetime.utcnow().replace(tzinfo=utc)
+            end = timezone.now()
             if interval == Interval.ONE_MINUTE:
                 start = end - timedelta(minutes=1)
             elif interval == Interval.ONE_HOUR:
@@ -90,12 +94,34 @@ class EventFrequencyCondition(EventCondition):
             else:
                 raise ValueError(interval)
 
-            result = self.tsdb.get_sums(
-                model=self.tsdb.models.group,
-                keys=[event.group_id],
-                start=start,
-                end=end,
-            )[event.group_id]
-            event._rate_cache[interval] = result
+            event._rate_cache[interval] = result = self.query(
+                event,
+                start,
+                end,
+            )
 
         return result
+
+
+class EventFrequencyCondition(BaseEventFrequencyCondition):
+    label = 'An event is seen more than {value} times in {interval}'
+
+    def query(self, event, start, end):
+        return self.tsdb.get_sums(
+            model=self.tsdb.models.group,
+            keys=[event.group_id],
+            start=start,
+            end=end,
+        )[event.group_id]
+
+
+class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
+    label = 'An event is seen by more than {value} users in {interval}'
+
+    def query(self, event, start, end):
+        return self.tsdb.get_distinct_counts_totals(
+            model=self.tsdb.models.users_affected_by_group,
+            keys=[event.group_id],
+            start=start,
+            end=end,
+        )[event.group_id]
