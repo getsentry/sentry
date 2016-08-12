@@ -12,7 +12,7 @@ import itertools
 import six
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import ForeignKey, Model
+from django.db.models import Model
 from django.db.models.expressions import ExpressionNode
 from django.db.models.signals import post_save
 
@@ -82,9 +82,7 @@ def create_or_update(model, using=None, **kwargs):
         # XXX(dcramer): we want to support column shortcut on create so
         # we can do create_or_update(..., {'project': 1})
         if not isinstance(v, Model):
-            field = model._meta.get_field(k)
-            if isinstance(field, ForeignKey):
-                k = field.column
+            k = model._meta.get_field(k).attname
         if isinstance(v, ExpressionNode):
             create_kwargs[k] = resolve_expression_node(inst, v)
         else:
