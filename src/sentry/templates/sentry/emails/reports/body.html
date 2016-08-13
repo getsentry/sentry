@@ -45,7 +45,7 @@
           {% for timestamp, metrics in report.series.points %}
             <td valign="bottom" style="padding-right: 5px;">
               <table class="issue-graph-bar">
-                {% if metrics.resolved and metrics.unresolved %}
+                {% if metrics.resolved or metrics.unresolved %}
                   <tr>
                     <td class="all" height="{% widthratio metrics.unresolved max 56 %}px" title="{{ metrics.unresolved }}">&nbsp;</td>
                   </tr>
