@@ -75,7 +75,7 @@ class ProjectAdminSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
     isSubscribed = serializers.BooleanField()
     name = serializers.CharField(max_length=200)
-    slug = serializers.SlugField(max_length=200)
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50)
 
 
 class RelaxedProjectPermission(ProjectPermission):

@@ -36,7 +36,8 @@ def list_organization_teams_scenario(runner):
 
 class TeamSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=True)
-    slug = serializers.CharField(max_length=200, required=False)
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
+                                  required=False)
 
 
 class OrganizationTeamsEndpoint(OrganizationEndpoint):

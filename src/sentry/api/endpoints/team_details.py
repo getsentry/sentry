@@ -37,6 +37,8 @@ def update_team_scenario(runner):
 
 
 class TeamSerializer(serializers.ModelSerializer):
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50)
+
     class Meta:
         model = Team
         fields = ('name', 'slug')
