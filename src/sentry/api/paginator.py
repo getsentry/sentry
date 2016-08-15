@@ -171,3 +171,39 @@ class OffsetPaginator(BasePaginator):
             next=next_cursor,
             prev=prev_cursor,
         )
+
+
+class CompositeOffsetPaginator(BasePaginator):
+    """
+    Like the OffsetPaginator, except that order_by is passed explicitly and
+    not modified (nor parsed). This means a composite key can be used within
+    the order by clause.
+    """
+    def __init__(self, queryset, order_by):
+        self.order_by = order_by
+        self.queryset = queryset
+
+    def get_result(self, limit=100, cursor=None):
+        # offset is page #
+        # value is page limit
+        if cursor is None:
+            cursor = Cursor(0, 0, 0)
+
+        queryset = self.queryset.order_by(*self.order_by)
+
+        page = cursor.offset
+        offset = cursor.offset * cursor.value
+        stop = offset + (cursor.value or limit) + 1
+
+        results = list(queryset[offset:stop])
+        if cursor.value != limit:
+            results = results[::-1][:limit + 1][::-1]
+
+        next_cursor = Cursor(limit, page + 1, False, len(results) > limit)
+        prev_cursor = Cursor(limit, page - 1, True, page > 0)
+
+        return CursorResult(
+            results=results[:limit],
+            next=next_cursor,
+            prev=prev_cursor,
+        )

@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.paginator import CompositeOffsetPaginator
 from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
 from sentry.models import Activity, Release
@@ -84,7 +85,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-id',
+            order_by=('-date_released', '-date_added'),
+            paginator_cls=CompositeOffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
 
