@@ -10,18 +10,18 @@ const Switch = React.createClass({
 
   render() {
 
-    let switchClasses = "switch";
+    let switchClasses = 'switch';
 
     if (this.props.size) {
-      switchClasses += " switch-" + this.props.size;
+      switchClasses += ' switch-' + this.props.size;
     }
 
     if (this.props.isActive) {
-      switchClasses += " switch-on";
+      switchClasses += ' switch-on';
     }
 
     if (this.props.isLoading) {
-      switchClasses += " switch-disabled";
+      switchClasses += ' switch-disabled';
     }
 
     return (
