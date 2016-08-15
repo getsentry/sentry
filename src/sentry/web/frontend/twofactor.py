@@ -4,13 +4,12 @@ import six
 import time
 
 from django.http import HttpResponseRedirect, HttpResponse
-from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
 from sentry import options
 from sentry.web.frontend.base import BaseView
 from sentry.web.forms.accounts import TwoFactorForm
-from sentry.web.helpers import render_to_response
+from sentry.web.helpers import render_to_response, get_login_url
 from sentry.utils import auth, json
 from sentry.models import Authenticator
 
@@ -101,7 +100,7 @@ class TwoFactorAuthView(BaseView):
     def handle(self, request):
         user = auth.get_pending_2fa_user(request)
         if user is None or request.user.is_authenticated():
-            return HttpResponseRedirect(reverse('sentry'))
+            return HttpResponseRedirect(get_login_url())
 
         interfaces = Authenticator.objects.all_interfaces_for_user(user)
 

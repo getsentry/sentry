@@ -142,6 +142,19 @@ class OrganizationMixin(object):
 
         return project
 
+    def redirect_to_org(self, request):
+        from sentry import features
+
+        # TODO(dcramer): deal with case when the user cannot create orgs
+        organization = self.get_active_organization(request)
+        if organization:
+            url = reverse('sentry-organization-home', args=[organization.slug])
+        elif not features.has('organizations:create'):
+            return self.respond('sentry/no-organization-access.html', status=403)
+        else:
+            url = reverse('sentry-create-organization')
+        return HttpResponseRedirect(url)
+
 
 class BaseView(View, OrganizationMixin):
     auth_required = True
@@ -213,7 +226,7 @@ class BaseView(View, OrganizationMixin):
         return self.redirect(redirect_uri)
 
     def get_no_permission_url(request, *args, **kwargs):
-        return reverse('sentry')
+        return reverse('sentry-login')
 
     def get_context_data(self, request, **kwargs):
         context = csrf(request)

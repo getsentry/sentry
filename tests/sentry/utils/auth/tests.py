@@ -42,12 +42,12 @@ class GetLoginRedirectTest(TestCase):
 
     def test_schema_uses_default(self):
         result = get_login_redirect(self.make_request('http://example.com'))
-        assert result == reverse('sentry')
+        assert result == reverse('sentry-login')
 
     def test_login_uses_default(self):
         result = get_login_redirect(self.make_request(reverse('sentry-login')))
-        assert result == reverse('sentry')
+        assert result == reverse('sentry-login')
 
     def test_no_value_uses_default(self):
         result = get_login_redirect(self.make_request())
-        assert result == reverse('sentry')
+        assert result == reverse('sentry-login')

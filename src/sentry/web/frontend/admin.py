@@ -33,13 +33,13 @@ from sentry.web.decorators import requires_admin
 from sentry.web.forms import (
     ChangeUserForm, NewUserForm, RemoveUserForm, TestEmailForm
 )
-from sentry.web.helpers import render_to_response, render_to_string
+from sentry.web.helpers import render_to_response, render_to_string, get_login_url
 
 
 def configure_plugin(request, slug):
     plugin = plugins.get(slug)
     if not plugin.has_site_conf():
-        return HttpResponseRedirect(reverse('sentry'))
+        return HttpResponseRedirect(get_login_url())
 
     view = plugin.configure(request=request)
     if isinstance(view, HttpResponse):
@@ -58,7 +58,7 @@ def configure_plugin(request, slug):
 @csrf_protect
 def create_new_user(request):
     if not request.is_superuser():
-        return HttpResponseRedirect(reverse('sentry'))
+        return HttpResponseRedirect(get_login_url())
 
     form = NewUserForm(request.POST or None, initial={
         'send_welcome_mail': True,
@@ -77,7 +77,7 @@ def create_new_user(request):
             context = {
                 'username': user.username,
                 'password': password,
-                'url': absolute_uri(reverse('sentry')),
+                'url': absolute_uri(get_login_url()),
             }
             body = render_to_string('sentry/emails/welcome_mail.txt', context, request)
 
@@ -105,7 +105,7 @@ def create_new_user(request):
 @csrf_protect
 def edit_user(request, user_id):
     if not request.is_superuser():
-        return HttpResponseRedirect(reverse('sentry'))
+        return HttpResponseRedirect(get_login_url())
 
     try:
         user = User.objects.get(pk=user_id)

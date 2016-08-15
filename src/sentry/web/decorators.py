@@ -32,7 +32,7 @@ def signed_auth_required(func):
         if not request.user_from_signed_request:
             messages.add_message(
                 request, messages.ERROR, ERR_BAD_SIGNATURE)
-            return HttpResponseRedirect(reverse('sentry'))
+            return HttpResponseRedirect(get_login_url())
         return func(request, *args, **kwargs)
     return wrapped
 
