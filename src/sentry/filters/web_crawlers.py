@@ -34,7 +34,7 @@ CRAWLERS = re.compile(r'|'.join((
 class WebCrawlersFilter(Filter):
     id = 'web-crawlers'
     name = 'Filter out known web crawlers'
-    description = 'Some crawlers may try to parse and execute JavaScript, but in an incompatible way which then triggers an error.'
+    description = 'Some crawlers may execute pages in incompatible ways which then cause errors that are unlikely to be seen by a normal user.'
     default = True
 
     def get_user_agent(self, data):
