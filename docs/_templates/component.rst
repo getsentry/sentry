@@ -1,15 +1,13 @@
-=========
 Component
-=========
+---------
 Component documents are meant to sit in the root of a directory in ``src/sentry/``, named
 ``README.rst``, and act as a guide to what the component is for. Below is an annotated
 example of a component named ``toaster``.
 
 #####
 
-=======
 Toaster
-=======
+-------
 **# Two sentence intro. What it is and what it’s used for.**
 
 The toaster is a metal apparatus that heats things inside of it.
