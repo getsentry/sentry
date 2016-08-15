@@ -683,14 +683,14 @@ class Stacktrace(Interface):
     def get_hash(self, system_frames=True):
         frames = self.frames
 
-        # TODO(dcramer): this should apply only to JS
-        # In a common case (I believe from window.onerror) we can end up with
-        # a stacktrace which includes a single frame and a reference that isnt
-        # valuable. It would generally point to the loading page, so it's possible
-        # we could improve this check using that information.
+        # TODO(dcramer): this should apply only to platform=javascript
+        # Browser JS will often throw errors (from inlined code in an HTML page)
+        # which contain only a single frame, no function name, and have the HTML
+        # document as the filename. In this case the hash is often not usable as
+        # the context cannot be trusted and the URL is dynamic (this also means
+        # the line number cannot be trusted).
         stack_invalid = (
-            len(frames) == 1 and frames[0].lineno == 1
-            and not frames[0].function and frames[0].is_url()
+            len(frames) == 1 and not frames[0].function and frames[0].is_url()
         )
 
         if stack_invalid:
