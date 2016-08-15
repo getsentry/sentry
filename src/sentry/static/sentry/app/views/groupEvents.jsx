@@ -94,9 +94,11 @@ const GroupEvents = React.createClass({
   getEventTitle(event) {
     switch (event.type) {
       case 'error':
-        return `${event.metadata.type}: ${event.metadata.value}`;
+        if (event.metadata.type && event.metadata.value)
+          return `${event.metadata.type}: ${event.metadata.value}`;
+        return event.metadata.type || event.metadata.value;
       case 'csp':
-        return `${event.metadata.directive}: ${event.metadata.uri}`;
+        return event.metadata.message;
       case 'default':
         return event.metadata.title;
       default:

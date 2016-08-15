@@ -131,9 +131,24 @@ const GroupDetails = React.createClass({
   },
 
   getTitle() {
-    if (this.state.group)
-      return this.state.group.title;
-    return 'Sentry';
+    let group = this.state.group;
+
+    if (!group)
+      return 'Sentry';
+
+    switch (group.type) {
+      case 'error':
+        let {mType, mValue} = group.metadata;
+        if (mType && mValue)
+          return `${mType}: ${mValue}`;
+        return mType || mValue;
+      case 'csp':
+        return group.metadata.message;
+      case 'default':
+        return group.metadata.title;
+      default:
+        return group.message.split('\n')[0];
+    }
   },
 
   render() {
