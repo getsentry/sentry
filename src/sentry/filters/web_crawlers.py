@@ -46,6 +46,8 @@ class WebCrawlersFilter(Filter):
             return ''
 
     def test(self, data):
+        # TODO(dcramer): we could also look at UA parser and use the 'Spider'
+        # device type
         user_agent = self.get_user_agent(data)
         if not user_agent:
             return False
