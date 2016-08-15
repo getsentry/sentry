@@ -210,11 +210,11 @@
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/user-feedback/' project.organization.slug project.slug %}">{% trans "User Feedback" %}</a>
     </li>
+    <li>
+        <a href="{% absolute_uri '/{}/{}/settings/filters/' project.organization.slug project.slug %}">{% trans "Inbound Filters" %}</a>
+    </li>
     <li{% if page == 'keys' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "Client Keys (DSN)" %}</a>
-    </li>
-    <li>
-        <a href="{% absolute_uri '/{}/{}/settings/filters/' project.organization.slug project.slug %}">{% trans "Filters" %}</a>
     </li>
   </ul>
   {% with project|get_plugins as plugins %}
