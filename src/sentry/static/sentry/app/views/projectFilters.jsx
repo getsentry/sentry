@@ -4,6 +4,7 @@ import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import Switch from '../components/switch';
 import TooltipMixin from '../mixins/tooltip';
 import {t} from '../locale';
 
@@ -63,9 +64,10 @@ const FilterRow = React.createClass({
           <h5>{data.name}</h5>
         </td>
         <td style={{textAlign: 'right'}}>
-          <input type="checkbox" checked={data.active}
-                 onChange={this.toggle}
-                 disabled={this.state.loading} />
+          <Switch size="lg"
+                  isActive={data.active}
+                  isLoading={this.state.loading}
+                  toggle={()=>{this.toggle()}} />
         </td>
       </tr>
     );
