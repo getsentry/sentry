@@ -720,7 +720,10 @@ class CspApiHelper(ClientApiHelper):
         meta = data.pop('_meta', {})
 
         # All keys are sent with hyphens, so we want to conver to underscores
-        report = dict(map(lambda v: (v[0].replace('-', '_'), v[1]), six.iteritems(data)))
+        report = {
+            k.replace('-', '_'): v
+            for k, v in six.iteritems(data)
+        }
 
         try:
             inst = Csp.to_python(report)

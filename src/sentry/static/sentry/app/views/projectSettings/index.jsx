@@ -107,8 +107,8 @@ const ProjectSettings = React.createClass({
               <ListLink to={`/${orgId}/${projectId}/settings/csp/`}>{t('CSP Reports')}</ListLink>
             }
             <ListLink to={`/${orgId}/${projectId}/settings/user-feedback/`}>{t('User Feedback')}</ListLink>
+            <ListLink to={`/${orgId}/${projectId}/settings/filters/`}>{t('Inbound Filters')}</ListLink>
             <li><a href={`${settingsUrlRoot}/keys/`}>{t('Client Keys')} (DSN)</a></li>
-            <ListLink to={`/${orgId}/${projectId}/settings/filters/`}>{t('Filters')}</ListLink>
           </ul>
           <h6 className="nav-header">{t('Integrations')}</h6>
           <ul className="nav nav-stacked">

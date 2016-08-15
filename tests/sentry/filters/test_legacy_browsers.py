@@ -37,3 +37,7 @@ class LegacyBrowsersFilterTest(TestCase):
     def test_does_not_filter_chrome(self):
         data = self.get_mock_data('Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36')
         assert self.apply_filter(data) is False
+
+    def test_does_not_filter_edge(self):
+        data = self.get_mock_data('Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.10136')
+        assert self.apply_filter(data) is False

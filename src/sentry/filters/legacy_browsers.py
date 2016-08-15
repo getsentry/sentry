@@ -29,6 +29,9 @@ class LegacyBrowsersFilter(Filter):
             return ''
 
     def test(self, data):
+        if data.get('platform') != 'javascript':
+            return False
+
         value = self.get_user_agent(data)
         if not value:
             return False
