@@ -7,6 +7,7 @@ import LoadingIndicator from '../components/loadingIndicator';
 import Switch from '../components/switch';
 import TooltipMixin from '../mixins/tooltip';
 import {t} from '../locale';
+import marked from '../utils/marked';
 
 const FilterRow = React.createClass({
   propTypes: {
@@ -63,7 +64,9 @@ const FilterRow = React.createClass({
         <td>
           <h5>{data.name}</h5>
           {data.description &&
-            <small className="help-block">{data.description}</small>
+            <small className="help-block" dangerouslySetInnerHTML={{
+              __html: marked(data.description)
+            }} />
           }
         </td>
         <td style={{textAlign: 'right'}}>
@@ -163,7 +166,7 @@ const ProjectFilters = React.createClass({
     // TODO(dcramer): localize when language is final
     return (
       <div>
-        <h1>{t('Filters')}</h1>
+        <h1>{t('Inbound Data Filters')}</h1>
         <p>Filters allow you to prevent Sentry from storing events in certain situations. Filtered events are tracked separately from rate limits, and do not apply to any project quotas.</p>
         {this.renderBody()}
       </div>
