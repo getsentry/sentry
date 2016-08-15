@@ -22,6 +22,8 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
             results.append({
                 'id': filter.id,
                 'active': filter.is_enabled(),
+                'description': filter.description,
                 'name': filter.name,
             })
+        results.sort(key=lambda x: x['name'])
         return Response(results)

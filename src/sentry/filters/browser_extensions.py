@@ -48,7 +48,8 @@ EXTENSION_EXC_SOURCES = re.compile('|'.join((
 
 class BrowserExtensionsFilter(Filter):
     id = 'browser-extensions'
-    name = 'Filter out known errors caused by browser extensions'
+    name = 'Filter out errors known to be caused by browser extensions'
+    description = 'Certain browser extensions will inject inline scripts and are known to cause errors.'
 
     def get_exception_value(self, data):
         try:

@@ -6,6 +6,11 @@ from sentry.models import ProjectOption
 
 
 class Filter(object):
+    id = None
+    description = None
+    name = None
+    default = False
+
     def __init__(self, project):
         self.project = project
 
@@ -13,7 +18,7 @@ class Filter(object):
         return ProjectOption.objects.get_value(
             project=self.project,
             key='filters:{}'.format(self.id),
-            default='0',
+            default='1' if self.default else '0',
         ) == '1'
 
     def enable(self, status=True):
