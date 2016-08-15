@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-
 from sentry.filters.browser_extensions import BrowserExtensionsFilter
 from sentry.testutils import TestCase
 

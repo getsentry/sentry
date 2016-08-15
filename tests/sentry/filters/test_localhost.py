@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-
 from sentry.filters.localhost import LocalhostFilter
 from sentry.testutils import TestCase
 

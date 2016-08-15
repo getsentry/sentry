@@ -62,12 +62,15 @@ const FilterRow = React.createClass({
       <tr>
         <td>
           <h5>{data.name}</h5>
+          {data.description &&
+            <small className="help-block">{data.description}</small>
+          }
         </td>
         <td style={{textAlign: 'right'}}>
           <Switch size="lg"
                   isActive={data.active}
                   isLoading={this.state.loading}
-                  toggle={()=>{this.toggle()}} />
+                  toggle={this.toggle} />
         </td>
       </tr>
     );
