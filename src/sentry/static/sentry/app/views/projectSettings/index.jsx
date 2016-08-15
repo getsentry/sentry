@@ -89,7 +89,6 @@ const ProjectSettings = React.createClass({
               <li><a href={`${settingsUrlRoot}/quotas/`}>{t('Rate Limits')}</a></li>
             }
             <li><a href={`${settingsUrlRoot}/rules/`}>{t('Rules')}</a></li>
-            <ListLink to={`/${orgId}/${projectId}/settings/filters/`}>{t('Filters')}</ListLink>
             <li><a href={`${settingsUrlRoot}/tags/`}>{t('Tags')}</a></li>
             <li><a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a></li>
             <li><a href={`${settingsUrlRoot}/release-tracking/`}>{t('Release Tracking')}</a></li>
@@ -109,6 +108,7 @@ const ProjectSettings = React.createClass({
             }
             <ListLink to={`/${orgId}/${projectId}/settings/user-feedback/`}>{t('User Feedback')}</ListLink>
             <li><a href={`${settingsUrlRoot}/keys/`}>{t('Client Keys')} (DSN)</a></li>
+            <ListLink to={`/${orgId}/${projectId}/settings/filters/`}>{t('Filters')}</ListLink>
           </ul>
           <h6 className="nav-header">{t('Integrations')}</h6>
           <ul className="nav nav-stacked">

@@ -181,9 +181,6 @@
     <li{% if page == 'rules' %} class="active"{% endif %}>
         <a href="{% url 'sentry-project-rules' project.organization.slug project.slug %}">{% trans "Rules" %}</a>
     </li>
-    <li>
-        <a href="{% absolute_uri '/{}/{}/settings/filters/' project.organization.slug project.slug %}">{% trans "Filters" %}</a>
-    </li>
     <li{% if page == 'tags' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project-tags' project.organization.slug project.slug %}">{% trans "Tags" %}</a>
     </li>
@@ -215,6 +212,9 @@
     </li>
     <li{% if page == 'keys' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "Client Keys (DSN)" %}</a>
+    </li>
+    <li>
+        <a href="{% absolute_uri '/{}/{}/settings/filters/' project.organization.slug project.slug %}">{% trans "Filters" %}</a>
     </li>
   </ul>
   {% with project|get_plugins as plugins %}
