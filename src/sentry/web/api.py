@@ -346,6 +346,8 @@ class StoreView(APIView):
             if sdk:
                 data['sdk'] = sdk
 
+        data['sdk']['client_ip'] = remote_addr
+
         # mutates data
         manager = EventManager(data, version=auth.version)
         manager.normalize()

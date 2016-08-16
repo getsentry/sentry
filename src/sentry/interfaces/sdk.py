@@ -28,9 +28,12 @@ class Sdk(Interface):
         if not version:
             raise InterfaceValidationError("No 'version' value")
 
+        client_ip = data.get('client_ip')
+
         kwargs = {
             'name': trim(name, 128),
             'version': trim(version, 128),
+            'client_ip': trim(client_ip, 128),
         }
         return cls(**kwargs)
 
@@ -54,6 +57,7 @@ class Sdk(Interface):
         return {
             'name': self.name,
             'version': self.version,
+            'clientIP': self.client_ip,
             'upstream': {
                 'name': newest_name,
                 # when this is correct we can make it available

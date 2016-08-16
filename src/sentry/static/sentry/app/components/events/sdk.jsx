@@ -31,6 +31,10 @@ const EventSdk = React.createClass({
               <td className="key">Version</td>
               <td className="value"><pre>{data.version}</pre></td>
             </tr>
+            <tr key="version">
+              <td className="key">Client IP</td>
+              <td className="value"><pre>{data.clientIP || 'n/a'}</pre></td>
+            </tr>
           </tbody>
         </table>
       </GroupEventDataSection>
