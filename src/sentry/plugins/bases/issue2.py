@@ -6,14 +6,13 @@ from rest_framework.response import Response
 from social_auth.models import UserSocialAuth
 
 from django.conf import settings
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 from django.core.urlresolvers import reverse
 from django.utils.html import format_html
 
-from sentry.api.bases.group import GroupEndpoint
-from sentry.api.bases.project import ProjectEndpoint
 from sentry.models import Activity, Event, GroupMeta
 from sentry.plugins import Plugin
+from sentry.plugins.endpoints import PluginGroupEndpoint, PluginProjectEndpoint
 from sentry.plugins.base.configuration import default_issue_plugin_config
 from sentry.signals import issue_tracker_used
 from sentry.utils.auth import get_auth_providers
@@ -21,38 +20,20 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
 
-class PluginError(Exception):
-    pass
-
-
-class IssueGroupActionEndpoint(GroupEndpoint):
+# TODO(dcramer): remove this in favor of GroupEndpoint
+class IssueGroupActionEndpoint(PluginGroupEndpoint):
     view_method_name = None
     plugin = None
 
     def _handle(self, request, group, *args, **kwargs):
         GroupMeta.objects.populate_cache([group])
 
-        return getattr(self.plugin, self.view_method_name)(request, group, *args, **kwargs)
-
-    def get(self, request, group, *args, **kwargs):
-        return self._handle(request, group, *args, **kwargs)
-
-    def post(self, request, group, *args, **kwargs):
-        return self._handle(request, group, *args, **kwargs)
+        return getattr(self.plugin, self.view_method_name)(
+            request, group, *args, **kwargs)
 
 
-class IssuePluginProjectEndpoint(ProjectEndpoint):
-    view_method_name = None
-    plugin = None
-
-    def _handle(self, request, project, *args, **kwargs):
-        return getattr(self.plugin, self.view_method_name)(request, project, *args, **kwargs)
-
-    def get(self, request, project, *args, **kwargs):
-        return self._handle(request, project, *args, **kwargs)
-
-    def post(self, request, project, *args, **kwargs):
-        return self._handle(request, project, *args, **kwargs)
+class PluginError(Exception):
+    pass
 
 
 class IssueTrackingPlugin2(Plugin):
@@ -61,27 +42,6 @@ class IssueTrackingPlugin2(Plugin):
 
     def has_project_conf(self):
         return True
-
-    def get_group_urls(self):
-        _urls = []
-        for action in self.allowed_actions:
-            view_method_name = 'view_%s' % action
-            _urls.append(url(r'^%s/' % action,
-                             IssueGroupActionEndpoint.as_view(view_method_name=view_method_name,
-                                                              plugin=self)))
-
-        return patterns('', *_urls)
-
-    def get_project_urls(self):
-        _urls = []
-        # TODO: add enable here when moved to api
-        for action in ('configure', 'disable'):
-            view_method_name = 'view_%s' % action
-            _urls.append(url(r'^%s/' % action,
-                             IssuePluginProjectEndpoint.as_view(view_method_name=view_method_name,
-                                                                plugin=self)))
-
-        return patterns('', *_urls)
 
     def get_group_body(self, request, group, event, **kwargs):
         result = []
@@ -110,6 +70,34 @@ class IssueTrackingPlugin2(Plugin):
 
     def is_configured(self, request, project, **kwargs):
         raise NotImplementedError
+
+    def get_group_urls(self):
+        _urls = []
+        for action in self.allowed_actions:
+            view_method_name = 'view_%s' % action
+            _urls.append(
+                url(r'^%s/' % action,
+                    PluginGroupEndpoint.as_view(
+                        view=getattr(self, view_method_name),
+                    ),
+                )
+            )
+        return _urls
+
+    def get_project_urls(self):
+        _urls = []
+        # TODO: add enable here when moved to api
+        for action in ('configure', 'disable'):
+            view_method_name = 'view_%s' % action
+
+            _urls.append(
+                url(r'^%s/' % action,
+                    PluginProjectEndpoint.as_view(
+                        view=getattr(self, view_method_name),
+                    ),
+                )
+            )
+        return _urls
 
     def get_auth_for_user(self, user, **kwargs):
         """
