@@ -413,7 +413,7 @@ def fetch_personal_statistics((start, stop), organization, user):
         datetime__gte=start,
         datetime__lt=stop,
         group__status=GroupStatus.RESOLVED,  # only count if the issue is still resolved
-    ).values_list('group_id', flat=True)
+    ).distinct().values_list('group_id', flat=True)
     return {
         'resolved': len(resolved_issue_ids),
         'users': tsdb.get_distinct_counts_union(
