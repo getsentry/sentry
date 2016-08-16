@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import {History} from 'react-router';
 import {Link} from 'react-router';
 import jQuery from 'jquery';
 
@@ -28,6 +29,7 @@ const ProjectSelector = React.createClass({
 
   mixins: [
     ApiMixin,
+    History,
     TooltipMixin(function () {
       return {
         selector: '.tip',
@@ -47,7 +49,9 @@ const ProjectSelector = React.createClass({
 
   getInitialState() {
     return {
-      filter: ''
+      filter: '',
+      currentIndex: -1,
+      ...this.getProjectState({filter: ''})
     };
   },
 
@@ -65,7 +69,9 @@ const ProjectSelector = React.createClass({
 
   onFilterChange(evt) {
     this.setState({
-      filter: evt.target.value
+      filter: evt.target.value,
+      currentIndex: -1,
+      ...this.getProjectState({filter: evt.target.value})
     });
   },
 
@@ -88,7 +94,11 @@ const ProjectSelector = React.createClass({
   },
 
   close() {
-    this.setState({filter: ''});
+    this.setState({
+      filter: '',
+      currentIndex: -1,
+      ...this.getProjectState({filter: ''})
+    });
     // dropdownLink might not exist because we try to close within
     // onFilterBlur above after a timeout. My hunch is that sometimes
     // this DOM element is removed within the 200ms, so we error out.
@@ -105,7 +115,7 @@ const ProjectSelector = React.createClass({
     });
   },
 
-  getProjectNode(team, project, highlightText, hasSingleTeam) {
+  getProjectNode(team, project, highlightText, hasSingleTeam, isSelected) {
     let projectId = project.slug;
     let label = this.getProjectLabel(team, project, hasSingleTeam,
                                      highlightText);
@@ -113,6 +123,7 @@ const ProjectSelector = React.createClass({
     let menuItemProps = {
       key: projectId, // TODO: what if two projects w/ same name under diff orgs?
       linkClassName: projectId == this.props.projectId ? 'active' : '',
+      className: isSelected ? 'project-selected' : '',
 
       // When router is available, use `to` property. Otherwise, use href
       // property. For example - when project selector is loaded on
@@ -211,18 +222,45 @@ const ProjectSelector = React.createClass({
 
   onClose() {
     this.setState({
-      filter: ''
+      filter: '',
+      currentIndex: -1,
+      ...this.getProjectState({filter: ''})
     });
   },
 
-  render() {
+  onKeyDown(evt) {
+    let projects = this.state.projectList;
+    if (evt.key === 'Down' || evt.keyCode === 40) {
+      if (this.state.currentIndex + 1 < projects.length) {
+        this.setState({
+          currentIndex: this.state.currentIndex + 1
+        });
+      }
+    } else if (evt.key === 'Up' || evt.keyCode === 38) {
+      if (this.state.currentIndex > 0) {
+        this.setState({
+          currentIndex: this.state.currentIndex - 1
+        });
+      }
+    } else if (evt.key === 'Enter' || evt.keyCode === 13) {
+      if (this.state.currentIndex > -1) {
+        let url = this.getProjectUrlProps(projects[this.state.currentIndex][1]);
+        if (url.to) {
+          this.history.pushState(null, url.to);
+        } else if (url.href) {
+          window.location = url.href;
+        }
+      }
+    }
+  },
+
+  getProjectState(state) {
+    state = state || this.state;
     let org = this.props.organization;
-    let filter = this.state.filter.toLowerCase();
+    let filter = state.filter.toLowerCase();
+    let projectList = [];
     let activeTeam;
     let activeProject;
-    let hasSingleTeam = org.teams.length === 1;
-
-    let projectList = [];
     org.teams.forEach((team) => {
       if (!team.isMember) {
         return;
@@ -239,19 +277,28 @@ const ProjectSelector = React.createClass({
         projectList.push([team, project]);
       });
     });
+    return {
+      projectList: projectList,
+      activeTeam: activeTeam,
+      activeProject: activeProject
+    };
+  },
 
-    projectList = sortArray(projectList, ([team, project]) => {
+  render() {
+    let org = this.props.organization;
+    let hasSingleTeam = org.teams.length === 1;
+
+    let projectList = sortArray(this.state.projectList, ([team, project]) => {
       return [!project.isBookmarked, team.name, project.name];
     });
 
-    let children = projectList.map(([team, project]) => {
-      return this.getProjectNode(team, project, this.state.filter, hasSingleTeam);
+    let children = projectList.map(([team, project], index) => {
+      return this.getProjectNode(team, project, this.state.filter, hasSingleTeam, this.state.currentIndex === index);
     });
-
     return (
       <div className="project-select" ref="container">
-        {activeProject ?
-          this.getLinkNode(activeTeam, activeProject)
+        {this.state.activeProject ?
+          this.getLinkNode(this.state.activeTeam, this.state.activeProject)
         :
           t('Select a project')
         }
@@ -264,6 +311,7 @@ const ProjectSelector = React.createClass({
               placeholder={t('Filter projects')}
               onChange={this.onFilterChange}
               onKeyUp={this.onKeyUp}
+              onKeyDown={this.onKeyDown}
               onBlur={this.onFilterBlur}
               ref="filter" />
           </li>
