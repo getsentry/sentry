@@ -15,12 +15,6 @@ from sentry.models import ProjectOption
 from sentry.web.forms.fields import RangeField
 
 
-class NotificationSettingsForm(forms.Form):
-    subject_prefix = forms.CharField(
-        label=_('Mail Subject Prefix'), required=False,
-        help_text=_('Choose a custom prefix for emails from this project.'))
-
-
 class DigestSettingsForm(forms.Form):
     minimum_delay = RangeField(
         label=_('Minimum delivery frequency'),

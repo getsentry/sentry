@@ -22,30 +22,6 @@
     </div>
     {% endif %}
 
-    <div class="box">
-      <div class="box-header">
-        <h3>{% trans "Rules" %}</h3>
-      </div>
-      <div class="box-content with-padding">
-        {% url 'sentry-project-rules' organization.slug project.slug as link %}
-        <p>{% blocktrans %}Sentry will notify users subscribed to this project based on the <a href="{{ link }}">rules configured for this project</a>.{% endblocktrans %}</p>
-
-      </div>
-    </div>
-
-    <div class="box">
-      <div class="box-header">
-        <h3>{% trans "General" %}</h3>
-      </div>
-      <div class="box-content with-padding">
-        {{ general_form|as_crispy_errors }}
-
-        {% for field in general_form %}
-            {{ field|as_crispy_field }}
-        {% endfor %}
-      </div>
-    </div>
-
     {% if digests_form %}
     <div class="box">
       <div class="box-header">
@@ -66,13 +42,13 @@
             </div>
           {% endfor %}
         </div>
+
+        <fieldset class="form-actions align-right">
+          <button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button>
+        </fieldset>
       </div>
     </div>
     {% endif %}
-
-    <fieldset class="form-actions">
-      <button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button>
-    </fieldset>
   </form>
 
   <script>

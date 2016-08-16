@@ -6,13 +6,11 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import constants
-from sentry import options
 from sentry.app import digests
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.plugins import plugins, NotificationPlugin
 from sentry.web.forms.projects import (
     DigestSettingsForm,
-    NotificationSettingsForm,
 )
 from sentry.web.frontend.base import ProjectView
 
@@ -73,16 +71,7 @@ class ProjectNotificationsView(ProjectView):
             else:
                 digests_form = None
 
-            general_form = NotificationSettingsForm(
-                data=request.POST,
-                prefix='general',
-                initial={
-                    'subject_prefix': project.get_option(
-                        'mail:subject_prefix', options.get('mail.subject-prefix')),
-                },
-            )
-            if general_form.is_valid() and (digests_form.is_valid() if digests_form is not None else True):
-                project.update_option('mail:subject_prefix', general_form.cleaned_data['subject_prefix'])
+            if (digests_form.is_valid() if digests_form is not None else True):
                 if digests_form is not None:
                     project.update_option(
                         get_digest_option_key('mail', 'minimum_delay'),
@@ -114,14 +103,6 @@ class ProjectNotificationsView(ProjectView):
             else:
                 digests_form = None
 
-            general_form = NotificationSettingsForm(
-                prefix='general',
-                initial={
-                    'subject_prefix': project.get_option(
-                        'mail:subject_prefix', options.get('mail.subject-prefix')),
-                },
-            )
-
         enabled_plugins = []
         other_plugins = []
         for plugin in self._iter_plugins():
@@ -145,7 +126,6 @@ class ProjectNotificationsView(ProjectView):
             'page': 'notifications',
             'enabled_plugins': enabled_plugins,
             'other_plugins': other_plugins,
-            'general_form': general_form,
             'digests_form': digests_form,
             'is_user_subbed': is_user_subbed
         }
