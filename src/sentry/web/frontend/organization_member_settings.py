@@ -9,6 +9,7 @@ from sentry import roles
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.forms.edit_organization_member import EditOrganizationMemberForm
+from sentry.web.helpers import get_login_url
 
 
 class OrganizationMemberSettingsView(OrganizationView):
@@ -60,7 +61,7 @@ class OrganizationMemberSettingsView(OrganizationView):
                 id=member_id,
             )
         except OrganizationMember.DoesNotExist:
-            return self.redirect(reverse('sentry'))
+            return self.redirect(get_login_url())
 
         if request.POST.get('op') == 'reinvite' and member.is_pending:
             return self.resend_invite(request, organization, member)

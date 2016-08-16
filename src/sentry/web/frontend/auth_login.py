@@ -143,6 +143,9 @@ class AuthLoginView(BaseView):
     @never_cache
     @transaction.atomic
     def handle(self, request):
+        if request.user.is_authenticated():
+            return self.redirect_to_org(request)
+
         # Single org mode -- send them to the org-specific handler
         if settings.SENTRY_SINGLE_ORGANIZATION:
             org = Organization.get_default()

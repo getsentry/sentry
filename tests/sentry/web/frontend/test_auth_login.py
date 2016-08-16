@@ -76,3 +76,11 @@ class AuthLoginTest(TestCase):
         assert resp.status_code == 200
         assert resp.context['op'] == 'register'
         self.assertTemplateUsed('sentry/login.html')
+
+    def test_already_logged_in(self):
+        self.login_as(self.user)
+        with self.feature('organizations:create'):
+            resp = self.client.get(self.path)
+
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver' + reverse('sentry-create-organization')
