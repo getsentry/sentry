@@ -43,6 +43,10 @@ that facilitates the transformation from ``LogRecord`` to Structlog's event dict
 
 Loggers
 ```````
+Sentry follows the standard logging pipeline that Python provides. This means that most of
+the conventional loggers that are created propagate upwards to the ``root`` logger. Loggers
+are configured via the ``LOGGING`` dictionary.
+
 Root
 ~~~~
 The root logger is the only logger that has both primary handlers attached. All other loggers
