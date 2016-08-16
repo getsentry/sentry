@@ -87,6 +87,33 @@
     </tr>
   </table>
 
+  <table>
+    {% with report.distribution.totals as totals %}
+    <tr>
+      {% for type, value in report.distribution.types %}
+        <td width="{% widthratio value.events totals.events 100 %}%" title="{{ type.label }}: {{ value.events }}" style="background-color: {{ type.color }}">
+          &nbsp;
+        </td>
+      {% endfor %}
+    </tr>
+    {% endwith %}
+  </table>
+
+  <table>
+    {% with report.distribution.totals as totals %}
+    <tr>
+      {% for type, value in report.distribution.types %}
+        <td>
+          <strong style="color: {{ type.color }}">{{ type.label }}</strong>
+          {% percent value.events totals.events "0.1f" %}%
+          <br/>
+          {{ value.events }} events in {{ value.groups }} issues
+        </td>
+      {% endfor %}
+    </tr>
+    {% endwith %}
+  </table>
+
   <table class="issue-table">
     <thead>
       <tr>

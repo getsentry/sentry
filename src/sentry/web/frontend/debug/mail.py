@@ -457,8 +457,17 @@ def report(request):
     release_id_generator = make_release_id_generator()
 
     def build_issue_list():
-        count = random.randint(0, int(random.paretovariate(0.4)))
-        return count, [(
+        summaries = []
+        for i in range(3):
+            issues = int(random.weibullvariate(10, 1))
+            summaries.append((
+                issues,
+                int(issues * random.paretovariate(0.5)),
+            ))
+
+        count = sum(s[1] for s in summaries)
+
+        return summaries, [(
             next(group_id_sequence),
             (
                 int(random.paretovariate(0.3)),

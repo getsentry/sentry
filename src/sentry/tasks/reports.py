@@ -14,7 +14,7 @@ from django.utils import dateformat, timezone
 from sentry import features
 from sentry.app import tsdb
 from sentry.models import (
-    Activity, Group, GroupStatus, Organization, OrganizationStatus, Project,
+    Activity, Event, Group, GroupStatus, Organization, OrganizationStatus, Project,
     Release, TagValue, Team, User, UserOption,
 )
 from sentry.tasks.base import instrumented_task
@@ -195,10 +195,8 @@ def prepare_project_issue_list(interval, project):
 
     queryset = project.group_set.exclude(status=GroupStatus.MUTED)
 
-    issue_ids = set()
-
     # Fetch all new issues.
-    issue_ids.update(
+    new_issue_ids = set(
         queryset.filter(
             first_seen__gte=start,
             first_seen__lt=stop,
@@ -212,7 +210,7 @@ def prepare_project_issue_list(interval, project):
     # past week. (In theory, the activity table *could* be used to answer this
     # query without the subselect, but there's no suitable indexes to make it's
     # performance predictable.)
-    issue_ids.update(
+    reopened_issue_ids = set(
         Activity.objects.filter(
             group__in=queryset.filter(
                 last_seen__gte=start,
@@ -228,33 +226,59 @@ def prepare_project_issue_list(interval, project):
         ).distinct().values_list('group_id', flat=True)
     )
 
+    # Fetch all issues that were seen during the interval, and use that to
+    # calculate the number of existing issues.
+    existing_issue_ids = set(
+        Event.objects.filter(
+            project_id=project.id,
+            datetime__gte=start,
+            datetime__lt=stop,
+        ).distinct().values_list('group_id', flat=True)
+    ) - new_issue_ids - reopened_issue_ids
+
     rollup = 60 * 60 * 24
 
     events = tsdb.get_sums(
         tsdb.models.group,
-        issue_ids,
+        new_issue_ids | reopened_issue_ids | existing_issue_ids,
         start,
         stop,
         rollup=rollup,
     )
 
+    def summarize(group_ids):
+        return (
+            len(group_ids),
+            sum(events[id] for id in group_ids),
+        )
+
+    issue_list_candidates = new_issue_ids | reopened_issue_ids
+
     users = tsdb.get_distinct_counts_totals(
         tsdb.models.users_affected_by_group,
-        issue_ids,
+        issue_list_candidates,
         start,
         stop,
         rollup=rollup,
     )
 
     return (
-        len(issue_ids),
-        trim_issue_list([(id, (events[id], users[id])) for id in issue_ids]),
+        list(
+            map(
+                summarize, (
+                    new_issue_ids,
+                    reopened_issue_ids,
+                    existing_issue_ids
+                ),
+            )
+        ),
+        trim_issue_list([(id, (events[id], users[id])) for id in issue_list_candidates]),
     )
 
 
 def merge_issue_lists(target, other):
     return (
-        target[0] + other[0],
+        merge_sequences(target[0], other[0], merge_sequences),
         trim_issue_list(target[1] + other[1]),
     )
 
@@ -336,7 +360,7 @@ class DummyReportBackend(ReportBackend):
 
 
 class RedisReportBackend(ReportBackend):
-    version = 0
+    version = 1
 
     def __init__(self, cluster, ttl, namespace='r'):
         self.cluster = cluster
@@ -626,6 +650,8 @@ def rewrite_issue_list((count, issues), fetch_groups=None):
 
 
 Point = namedtuple('Point', 'resolved unresolved')
+IssueListSummary = namedtuple('IssueListSummary', 'groups events')
+DistributionType = namedtuple('DistributionType', 'label color')
 
 
 def to_context(report, fetch_groups=None):
@@ -638,6 +664,22 @@ def to_context(report, fetch_groups=None):
             'maximum': max(sum(point) for timestamp, point in series),
             'all': sum([sum(point) for timestamp, point in series]),
             'resolved': sum([point.resolved for timestamp, point in series]),
+        },
+        'distribution': {
+            'types': list(
+                zip(
+                    (
+                        DistributionType('New Issues', '#ccc'),
+                        DistributionType('Reopened Issues', '#aaa'),
+                        DistributionType('Existing Issues', '#888'),
+                    ),
+                    map(
+                        lambda value: IssueListSummary(*value),
+                        issue_list[0],
+                    ),
+                ),
+            ),
+            'totals': IssueListSummary(*reduce(merge_sequences, issue_list[0])),
         },
         'comparisons': [
             ('last week', change(aggregates[-1], aggregates[-2])),

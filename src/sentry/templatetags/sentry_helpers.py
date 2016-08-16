@@ -321,10 +321,16 @@ def with_metadata(group_list, request):
 
 
 @register.simple_tag
-def percent(value, total):
+def percent(value, total, format=None):
     if not (value and total):
-        return 0
-    return int(int(value) / float(total) * 100)
+        result = 0
+    else:
+        result = int(value) / float(total) * 100
+
+    if format is None:
+        return int(result)
+    else:
+        return ('%%%s' % format) % result
 
 
 @register.filter
