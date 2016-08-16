@@ -62,9 +62,9 @@ class MailPlugin(NotificationPlugin):
             return
 
         tags = dict(context['event'].get_tags())
-        
+
         subject_prefix = self.get_option('subject_prefix', project) or self._subject_prefix()
-        subject_prefix = re.sub(r'%([^\s]+)%', lambda g: tags.get(g.group(1), '%{}%'.format(g.group(1))), subject_prefix)
+        subject_prefix = re.sub(r'(%([^\s]+)%)', (lambda g: tags.get(g.group(2)) if g.group(2) in tags else g.group(1)), subject_prefix)
         subject_prefix = force_text(subject_prefix)
         subject = force_text(subject)
 
