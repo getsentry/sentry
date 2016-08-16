@@ -37,6 +37,7 @@ export default {
   Raven: require('raven-js'),
   React: require('react'),
   ReactDOM: require('react-dom'),
+  Reflux: require('reflux'),
   Router: require('react-router'),
 
   Sentry: {
@@ -64,6 +65,7 @@ export default {
     LoadingIndicator: require('./components/loadingIndicator'),
     ListLink: require('./components/listLink'),
     MenuItem: require('./components/menuItem'),
+    OrganizationHomeContainer: require('./components/organizations/homeContainer'),
     Pagination: require('./components/pagination'),
     ProjectSelector: require('./components/projectHeader/projectSelector'),
     RuleEditor: require('./views/ruleEditor'),
@@ -71,6 +73,9 @@ export default {
     TimeSince: require('./components/timeSince'),
     TodoList: require('./components/todos'),
     U2fEnrollment: require('./components/u2fenrollment'),
-    U2fSign: require('./components/u2fsign')
+    U2fSign: require('./components/u2fsign'),
+    utils: {
+      errorHandler: require('./utils/errorHandler')
+    }
   }
 };
